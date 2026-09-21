@@ -55,3 +55,10 @@ describe("background-check purchase stays disabled", () => {
     expect(src).toMatch(/STRIPE_IDV_WEBHOOK_SECRET/);
   });
 });
+
+// Both halves, because turning only one off is the failure mode the file
+// names: the card comes back (a button that charges live money for a check
+// nothing can record), and the edge function starts serving again (the real
+// enforcement point, callable with any signed-in token).
+// @mutate src/components/profile/BackgroundCheckCard.tsx | const BGC_PURCHASE_ENABLED = false | const BGC_PURCHASE_ENABLED = true
+// @mutate supabase/functions/create-bgc-payment/index.ts | const BGC_PURCHASE_ENABLED = false | const BGC_PURCHASE_ENABLED = true

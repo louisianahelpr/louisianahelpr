@@ -62,3 +62,9 @@ describe("AdminHelperTiers with a tier the client does not know", () => {
     expect(unknownReports[0][1]).toMatchObject({ context: { tier: "elite" } });
   });
 });
+
+// The two halves of the contract: the neutral-icon fallback (without it
+// `<Icon/>` is undefined and the route boundary eats the page — the original
+// 25767c27e defect), and the report that tells us a tier name drifted at all.
+// @mutate src/components/admin/AdminHelperTiers.tsx | Icon: has(TIER_ICON, tier) ? TIER_ICON[tier] : Award, | Icon: TIER_ICON[tier],
+// @mutate src/components/admin/AdminHelperTiers.tsx | !tierLook(t).known | false

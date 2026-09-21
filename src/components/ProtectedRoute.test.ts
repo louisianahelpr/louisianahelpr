@@ -58,3 +58,10 @@ describe("isProfileGateAllowed", () => {
     expect(isProfileGateAllowed("/profile", "?tab=legal&ref=policy")).toBe(true);
   });
 });
+
+// The gate widens off a query param, so the two ways to get that wrong are a
+// SUBSTRING match (which opens Payment behind `?tab=payment&tab=legal`, and
+// lets `?tab=legalese` through) and reading the LAST value instead of the
+// first. This mutation is the substring version — the shortcut a reader of
+// this line would reach for first.
+// @mutate src/components/ProtectedRoute.tsx | return pathname === "/profile" && new URLSearchParams(search).get("tab") === "legal"; | return pathname === "/profile" && search.includes("tab=legal");

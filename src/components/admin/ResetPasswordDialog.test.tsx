@@ -86,3 +86,57 @@ describe("ResetPasswordDialog", () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+/*
+ * HOLLOW UNTIL 2026-09-21. Everything above this line passes with
+ * `if (error) throw error;` DELETED from the dialog: the only invoke these
+ * tests set up resolves `{ error: null }`, so the failure branch was never
+ * reached — an admin whose reset email never went out would have watched the
+ * dialog close on "success". Same shape as the ReuploadIdDialog / adminAudit
+ * hollow guards in the burn-down.
+ *
+ * And the retry. `inFlight` is a ref, so only the `finally` hands the button
+ * back. Delete that one line and a single failed send locks the admin out of
+ * resending for the life of the dialog: the button re-enables (that is
+ * `setBusy(false)`, a different line) and then silently does nothing — the
+ * PostedJobActions latch defect exactly.
+ */
+describe("ResetPasswordDialog — the send failed", () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    toastSuccess.mockReset();
+    toastError.mockReset();
+  });
+
+  it("surfaces the failure and does NOT close the dialog", async () => {
+    invokeMock.mockResolvedValue({ data: null, error: new Error("smtp is down") });
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
+    render(<ResetPasswordDialog profile={sampleProfile} onClose={onClose} onSuccess={onSuccess} />);
+    screen.getByRole("button", { name: /Send Reset Link/ }).click();
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith("smtp is down"));
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("RELEASES the in-flight latch, so the admin can send again", async () => {
+    invokeMock.mockResolvedValueOnce({ data: null, error: new Error("smtp is down") });
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
+    render(<ResetPasswordDialog profile={sampleProfile} onClose={onClose} onSuccess={onSuccess} />);
+    const button = screen.getByRole("button", { name: /Send Reset Link/ });
+    button.click();
+    await waitFor(() => expect(toastError).toHaveBeenCalled());
+    await waitFor(() => expect(button).not.toBeDisabled());
+
+    // Second attempt, provider back up. This is the assertion an engage-only
+    // version of this file can never make.
+    invokeMock.mockResolvedValue({ data: {}, error: null });
+    button.click();
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+  });
+});
+
+// @mutate src/components/admin/ResetPasswordDialog.tsx |       if (error) throw error; |       void error;
+// @mutate src/components/admin/ResetPasswordDialog.tsx | } finally {\n      inFlight.current = false;\n      setBusy(false);\n    } | } finally {\n      setBusy(false);\n    }

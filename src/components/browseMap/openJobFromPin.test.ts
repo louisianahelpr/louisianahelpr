@@ -55,3 +55,9 @@ describe("openJobFromPin", () => {
     expect(open).toHaveBeenCalledWith(expect.objectContaining({ id: "a" }));
   });
 });
+
+// The dead tap this exists to close: the pin's job is not in any loaded list
+// and nothing happens. Second mutation: the fetch fails and is swallowed, so
+// the tap is dead again for a different reason.
+// @mutate src/components/browseMap/openJobFromPin.ts | void fetchJob(jobId) | if (jobId) return;\n  void fetchJob(jobId)
+// @mutate src/components/browseMap/openJobFromPin.ts | .catch(() => onError("Couldn't open that job. Try again.")); | .catch(() => {});

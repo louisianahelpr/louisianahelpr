@@ -46,3 +46,7 @@ describe("parseUserAgent", () => {
     expect(parseUserAgent(null).label).toBe("Unknown device");
   });
 });
+
+// The regression itself: with the app test unreachable, the WKWebView UA falls
+// through to the Safari branch and a user's own phone is listed as a browser.
+// @mutate src/components/profile/SecurityTab.tsx | lower.includes("helprapp") \|\| lower.includes("capacitor") | false

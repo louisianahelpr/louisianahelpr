@@ -86,4 +86,31 @@ describe("ManualVerifyDialog", () => {
     expect(toastError).toHaveBeenCalledWith(expect.stringContaining("nope"));
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  /*
+   * The failure above proved the latch ENGAGES around a refused call. It said
+   * nothing about the release, and `inFlight` is a ref: without the
+   * `finally`, one failed verify leaves the admin pressing an enabled button
+   * that does nothing for the life of the dialog. `setBusy(false)` is a
+   * different line and re-enables the control either way, so the symptom is
+   * silence, not a stuck spinner.
+   */
+  it("RELEASES the in-flight latch, so the admin can verify again", async () => {
+    invokeMock.mockResolvedValueOnce({ data: null, error: new Error("nope") });
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
+    render(<ManualVerifyDialog profile={sampleProfile} onClose={onClose} onSuccess={onSuccess} />);
+    const button = screen.getByRole("button", { name: /Manually Verify/ });
+    button.click();
+    await waitFor(() => expect(toastError).toHaveBeenCalled());
+    await waitFor(() => expect(button).not.toBeDisabled());
+
+    invokeMock.mockResolvedValue({ data: { ok: true }, error: null });
+    button.click();
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+  });
 });
+
+// @mutate src/components/admin/ManualVerifyDialog.tsx |       if (error) throw error; |       void error;
+// @mutate src/components/admin/ManualVerifyDialog.tsx | } finally {\n      inFlight.current = false;\n      setBusy(false);\n    } | } finally {\n      setBusy(false);\n    }

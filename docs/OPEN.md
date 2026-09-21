@@ -3162,6 +3162,15 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [x] **Nightly WebKit + real-backend run.** e83876cc5 `nightly-webkit.yml` runs the whole happy-path suite in real WebKit (helper-apply 2/2 locally; first CI run dispatched). Real backend already nightly in e2e-real-backend.yml.
 
 
+### Map/list parity — owner report 2026-09-21 (FIXED, third occurrence of the class)
+
+- [x] **The map ignored three filters the list applied.** Owner: *"the map still shows 6 jobs but 3 on the left ... when i apply they fall off the left but not the map."* Boosted, Ending soon and Matches-my-availability were in `MapJobFilterInput`, rendered as active chips, and never read by `buildMapJobFilter`. `mapFilter.ts` had a function naming them outright (`unsupportedMapFilters`, "filters the map has no field to evaluate"), so the gap was documented, tested and shipped.
+  - Two genuinely had no field: `boosted_at` (already the FIRST KEY of the RPC's own ORDER BY, just never projected) and `expires_at`. Migration `20260921173413` returns both. **Verified live on prod: 17 output columns, both present, anon+authenticated keep EXECUTE, PUBLIC does not.**
+  - The third never needed one — availability reads `date_needed` + `start_time`, returned since 20260823120000 and never wired up.
+  - First attempt failed db-deploy with "cannot change return type of existing function" — `CREATE OR REPLACE` cannot change a `RETURNS TABLE`. The replay gate caught it before prod. Now a guarded DROP + CREATE, with the REVOKE/GRANT pair load-bearing because a DROP discards grants.
+- [ ] **Not yet verified in a browser.** Proven by unit tests (each of the three predicates shown load-bearing), by prod object state, and by reading the wiring chain end to end — but no screenshot of the map and list agreeing at 375. Worth one browser pass.
+- **Why the existing guard missed it:** `dashboardSurfaceExclusionParity.test.ts` derives its inventory from the `ViewerFeedExclusions` interface, so it covers the first two reports (applied jobs 2026-09-15, dismissed jobs 2026-09-19) and is structurally blind to a sibling interface with the same disease. `src/test/mapFilterParity.test.ts` now does the same job for `MapJobFilterInput`: every field must be READ by the predicate or carry an exemption naming the field it serves.
+
 ### App Store screenshots (2026-09-21) — found by the burn-down
 
 - [x] **The browse screenshot was an EMPTY FEED for six days.** Root cause was not the expired dates (that was a second, real bug) and not the mock: `src/hooks/useDashboardFilters.ts:360` applies the early-access perk CLIENT-SIDE — `if (jobAge < earlyAccessDelayMs(tier)) return false` — and `FAKE_HELPER` has no tier, so the free-tier 20-minute delay culled every fixture row, all of which were `created_at: now`. Fixed with a relative `AGO(minutes)` helper and raised 4 → 7 jobs so the feed fills a 430x932 viewport. Screenshot inspected and `review:record`ed: seven cards, real parishes, $61–$228, badges, an eighth peeking under the nav.

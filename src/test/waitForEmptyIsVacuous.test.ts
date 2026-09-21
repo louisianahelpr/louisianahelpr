@@ -36,7 +36,7 @@ import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { blankComments } from "./helpers/blankNonCode";
+import { blankNonCode } from "./helpers/blankNonCode";
 
 const REPO = resolve(__dirname, "..", "..");
 
@@ -72,7 +72,22 @@ function matchersIn(body: string): string[] {
  * returns on poll #1.
  */
 function vacuousWaits(src: string): string[] {
-  const code = blankComments(src);
+  /*
+   * blankNonCode, not blankComments: STRING BODIES must be blanked too.
+   *
+   * This file's own detector self-test passes the offending shape as a string
+   * literal — `vacuousWaits('await waitFor(() => expect(container)
+   * .toBeEmptyDOMElement());')`. With string bodies preserved, the scan read
+   * that illustration as real code and reported THIS FILE as a new offender on
+   * the day it was written. A guard its own example can trip is the
+   * self-referential class the repo already tracks.
+   *
+   * Blanking string bodies costs nothing here: a real `waitFor` call is code,
+   * never a literal. And the self-test still works, because it hands the string
+   * to this function as a runtime VALUE — what gets blanked is that value's own
+   * (non-existent) strings, not the literal in this file.
+   */
+  const code = blankNonCode(src);
   const out: string[] = [];
   for (const m of code.matchAll(/\bwaitFor\s*\(/g)) {
     const start = m.index! + m[0].length - 1; // at the "("

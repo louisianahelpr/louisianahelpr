@@ -1,12 +1,21 @@
+// Two halves, two mutations. The first is a real bad write in src/ — the
+// defect class this guard exists for. The second disables the engine's
+// unknown-column check, which is what the "each check can fail" block below
+// pins.
+// @mutate src/pages/dashboard/useSaveJob.ts | .upsert({ user_id: userId, job_id: jobId } | .upsert({ user_id: userId, jobb_id: jobId }
+// @mutate scripts/audit/write-contract.mjs | if (!col) { reject("unknown_column" | if (!col) { if (false) reject("unknown_column"
 import { describe, it, expect } from "vitest";
 // @ts-expect-error — plain .mjs script, no type declarations
 import * as contract from "../../scripts/audit/write-contract.mjs";
 
 /**
  * WRITE CONTRACT guard. Every `.insert/.update/.upsert/.delete/.rpc` in src/
- * is checked against the committed prod schema snapshot
- * (scripts/audit/write-contract.snapshot.json, refreshed nightly by
- * .github/workflows/write-contract-refresh.yml). A write prod would reject —
+ * is checked against the COMMITTED prod schema snapshot
+ * (scripts/audit/write-contract.snapshot.json, refreshed WEEKLY — Sat 11:17
+ * UTC — by .github/workflows/write-contract-refresh.yml). Nothing here queries
+ * prod: between refreshes this is a source-text pin against a frozen copy of
+ * the schema, so a column added or dropped in prod is invisible to it until
+ * that job runs. A write prod would reject —
  * unknown column, missing NOT NULL, disallowed enum/check value, no grant, no
  * RLS policy for the role, no EXECUTE on an RPC — fails here, unless it is a
  * KNOWN defect in write-contract.baseline.json with a docs/OPEN.md line.

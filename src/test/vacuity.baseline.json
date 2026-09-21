@@ -457,12 +457,6 @@
     "src/test/edge/verify-apple-iap.test.ts",
     "src/test/edge/void-cancelled-payments.test.ts",
     "src/test/edge/weekly-helper-report.test.ts",
-    "src/test/supportRequestAlert.test.ts",
-    "src/test/threadOpenSingleLoader.test.ts",
-    "src/test/toastPlacement.test.tsx",
-    "src/test/unknownZipIsNeverSilent.test.ts",
-    "src/test/virtualListScrollSource.test.ts",
-    "src/test/writeContract.test.ts",
     "src/test/zipRequiredAtSignup.test.ts"
   ],
   "noInventoryFloor": [

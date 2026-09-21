@@ -23,6 +23,10 @@
  * hook, the deep-link effect calls `openConvo`, and no other code anywhere
  * sets a thread or pushes the flag.
  */
+// The exact pre-fix shape, restored: the deep-link effect setting the thread by
+// hand instead of running the one loader. AST-driven, so the comment shape
+// cannot satisfy it.
+// @mutate src/pages/messages/useMessagesData.ts | void openConvo(match); | setActiveConvo(match);
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";

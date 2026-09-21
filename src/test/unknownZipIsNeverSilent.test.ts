@@ -20,14 +20,72 @@
 // on CompleteProfile; an existing member changes their ZIP in ProfileEditForm.
 // Warning on one of them moves the gap rather than closing it — the same
 // reasoning, and the same trap, as zipRequiredAtSignup.test.ts.
+//
+// READ THROUGH THE AST, NOT `toContain` OVER TEXT. The text form was HOLLOW
+// (proved 2026-09-21): turning ProfileEditForm's warning off — `{unknownZip &&
+// (` → `{false && (` — and leaving the original as a TRAILING `// {unknownZip
+// && (` comment passed 6/6. `codeOnly` stripped only WHOLE-LINE `//` comments,
+// so an unknown ZIP went silent on the profile-edit screen with the guard
+// green. The same read also made `toContain("UNKNOWN_ZIP_MESSAGE")` satisfiable
+// by the import line alone. Both are closed by asserting on nodes: a JSX
+// `{flag && …}` container with the shared message INSIDE the branch it gates.
+// @mutate src/components/profile/ProfileEditForm.tsx | {unknownZip && ( | {false && ( /* {unknownZip && ( */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import ts from "typescript";
 import { UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
-const codeOnly = (src: string) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
+const parse = (p: string) => ts.createSourceFile(p, read(p), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+
+/** Is `name` referenced anywhere in this subtree? Comments are not nodes. */
+function mentions(node: ts.Node, name: string): boolean {
+  if (ts.isIdentifier(node) && node.text === name) return true;
+  return ts.forEachChild(node, (c) => (mentions(c, name) ? true : undefined)) === true;
+}
+
+function find(sf: ts.SourceFile, pred: (n: ts.Node) => boolean): ts.Node | undefined {
+  let hit: ts.Node | undefined;
+  const visit = (n: ts.Node) => {
+    if (!hit && pred(n)) hit = n;
+    if (!hit) ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  return hit;
+}
+
+/**
+ * The `{<flag> && …}` JSX branch this screen renders for an unresolvable ZIP,
+ * or undefined if it renders none.
+ */
+function unknownZipBranch(file: string, flag: string): ts.BinaryExpression | undefined {
+  const sf = parse(file);
+  const hit = find(
+    sf,
+    (n) =>
+      ts.isJsxExpression(n) &&
+      !!n.expression &&
+      ts.isBinaryExpression(n.expression) &&
+      n.expression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken &&
+      ts.isIdentifier(n.expression.left) &&
+      n.expression.left.text === flag,
+  ) as ts.JsxExpression | undefined;
+  return hit?.expression as ts.BinaryExpression | undefined;
+}
+
+/** A live `useParishForZip(zipCode)` call — not a comment quoting one. */
+const readsParishHook = (file: string) =>
+  !!find(
+    parse(file),
+    (n) =>
+      ts.isCallExpression(n) &&
+      ts.isIdentifier(n.expression) &&
+      n.expression.text === "useParishForZip" &&
+      n.arguments.length === 1 &&
+      ts.isIdentifier(n.arguments[0]) &&
+      n.arguments[0].text === "zipCode",
+  );
 
 // SignupStep2 is presentational and receives the flag as a prop, so it renders
 // on `zipUnknown`; the two that own their own state render on `unknownZip`.
@@ -40,14 +98,19 @@ const SURFACES: Array<[label: string, path: string, flag: string]> = [
 describe("every ZIP field warns on an unresolvable ZIP", () => {
   for (const [label, path, flag] of SURFACES) {
     it(`${label} renders the shared warning`, () => {
-      const src = codeOnly(read(path));
       // Rendered on the unknown-ZIP flag specifically — not on "no parish
       // resolved", which is also true while the user is still typing and while
       // the lookup is failing.
-      expect(src).toContain(`{${flag} && (`);
+      const branch = unknownZipBranch(path, flag);
+      expect(branch, `${path} renders nothing gated on \`${flag}\` — an unknown ZIP is silent here`).toBeTruthy();
       // Uses the ONE shared sentence rather than a locally-invented one, so
-      // three screens cannot drift into three explanations of one thing.
-      expect(src).toContain("UNKNOWN_ZIP_MESSAGE");
+      // three screens cannot drift into three explanations of one thing. It
+      // must be INSIDE the gated branch: an import at the top of the file is
+      // not a rendered warning.
+      expect(
+        mentions(branch!.right, "UNKNOWN_ZIP_MESSAGE"),
+        `${path} gates on ${flag} but does not render UNKNOWN_ZIP_MESSAGE inside that branch`,
+      ).toBe(true);
     });
   }
 
@@ -56,12 +119,22 @@ describe("every ZIP field warns on an unresolvable ZIP", () => {
     // effect, and each independently decided to render nothing for the case
     // that mattered. One hook is what stops a fourth copy repeating that.
     for (const [, path] of SURFACES.slice(1)) {
-      expect(codeOnly(read(path)), path).toContain("useParishForZip(zipCode)");
+      expect(readsParishHook(path), path).toBe(true);
     }
     // SignupStep2 is presentational — Signup.tsx owns the state and passes it.
-    const signup = codeOnly(read("src/pages/Signup.tsx"));
-    expect(signup).toContain("useParishForZip(zipCode)");
-    expect(signup).toMatch(/zipUnknown=\{unknownZip\}/);
+    expect(readsParishHook("src/pages/Signup.tsx")).toBe(true);
+    const wired = find(
+      parse("src/pages/Signup.tsx"),
+      (n) =>
+        ts.isJsxAttribute(n) &&
+        n.name.getText() === "zipUnknown" &&
+        !!n.initializer &&
+        ts.isJsxExpression(n.initializer) &&
+        !!n.initializer.expression &&
+        ts.isIdentifier(n.initializer.expression) &&
+        n.initializer.expression.text === "unknownZip",
+    );
+    expect(wired, "Signup.tsx no longer passes unknownZip into SignupStep2's zipUnknown prop").toBeTruthy();
   });
 });
 

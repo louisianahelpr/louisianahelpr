@@ -17,9 +17,14 @@
  * is false. Reproduced by pointing SUPPORT_ALERT_FUNCTIONS_DIR at a pre-fix
  * checkout, exactly as alertPolicy.test.ts does with ALERT_POLICY_FUNCTIONS_DIR.
  */
+// The registered mutation is the COMMENT shape, not the plain one: downgrading
+// the alert to `custom` while the original survives as a comment is what the
+// old regex reader could not see. Killing this kills the plain form too.
+// @mutate supabase/functions/contact-support/index.ts | kind: 'support_request', | // kind: 'support_request',\n      kind: 'custom',
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import ts from "typescript";
 import {
   ALWAYS_POST_KINDS,
   CRITICAL_KINDS,
@@ -35,21 +40,36 @@ const CONTACT_SUPPORT = join(FUNCTIONS, "contact-support", "index.ts");
  * The literal `kind`/`severity` of contact-support's ops alert, read from its
  * source. Deliberately a local reader rather than an import from
  * alertPolicy.test.ts: importing that file would re-run its whole suite here.
+ *
+ * READ THROUGH THE AST, NOT A REGEX OVER TEXT. This was
+ * `/kind:\s*["']([\w_]+)["']/` over the call's brace-matched body, and it was
+ * HOLLOW (proved 2026-09-21): downgrading the live call to `kind: 'custom'`
+ * while leaving `// kind: 'support_request',` above it passed 5/5 — a support
+ * request silently back on the once-a-day digest, green. The comment supplied
+ * the first match. A property assignment in the object literal cannot be a
+ * comment.
  */
-function supportCall(): { kind: string | null; severity: string | null } {
+function supportCall(): { kind: string | null; severity: string | null; oncePerDayKey: string | null } {
   const s = readFileSync(CONTACT_SUPPORT, "utf8");
-  const calls = [...s.matchAll(/postSlackOpsAlert\(\{/g)];
+  const sf = ts.createSourceFile(CONTACT_SUPPORT, s, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const calls: ts.CallExpression[] = [];
+  const visit = (n: ts.Node) => {
+    if (ts.isCallExpression(n) && n.expression.getText() === "postSlackOpsAlert") calls.push(n);
+    ts.forEachChild(n, visit);
+  };
+  visit(sf);
   expect(calls.length, "contact-support posts exactly one ops alert").toBe(1);
-  let depth = 1;
-  let j = calls[0].index! + calls[0][0].length;
-  while (depth && j < s.length) {
-    if (s[j] === "{") depth++;
-    else if (s[j] === "}") depth--;
-    j++;
-  }
-  const body = s.slice(calls[0].index! + calls[0][0].length, j);
-  const lit = (key: string) => new RegExp(`${key}:\\s*["']([\\w_]+)["']`).exec(body)?.[1] ?? null;
-  return { kind: lit("kind"), severity: lit("severity") };
+  const arg = calls[0].arguments[0];
+  expect(!!arg && ts.isObjectLiteralExpression(arg), "the ops alert is not called with an object literal").toBe(true);
+  const props = (arg as ts.ObjectLiteralExpression).properties;
+  const prop = (key: string) =>
+    props.find((p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && p.name.getText() === key);
+  const lit = (key: string) => {
+    const init = prop(key)?.initializer;
+    if (!init) return null;
+    return ts.isStringLiteral(init) || ts.isNoSubstitutionTemplateLiteral(init) ? init.text : null;
+  };
+  return { kind: lit("kind"), severity: lit("severity"), oncePerDayKey: prop("oncePerDayKey")?.initializer.getText() ?? null };
 }
 
 describe("support requests reach #ops-alerts the same day", () => {
@@ -67,8 +87,9 @@ describe("support requests reach #ops-alerts the same day", () => {
   });
 
   it("…and is deduped per request", () => {
-    const src = readFileSync(CONTACT_SUPPORT, "utf8");
-    expect(src).toMatch(/oncePerDayKey:\s*supportRequestKey\(/);
+    // The AST's own initializer text, so a commented-out `oncePerDayKey:` line
+    // cannot stand in for a live one (see supportCall's note).
+    expect(supportCall().oncePerDayKey, "the alert does not dedupe on the request").toMatch(/^supportRequestKey\(/);
   });
 
   it("only these kinds bypass the critical-only rule", () => {

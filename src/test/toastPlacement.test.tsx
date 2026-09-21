@@ -1,3 +1,8 @@
+// The fourth reversal, made for real: the anchor the Toaster actually resolves
+// to on mount flipped back to top. Asserted on the RENDERED container's
+// data-y-position, never on a class name or the source text, so only a real
+// flip can satisfy or break it.
+// @mutate src/components/ui/sonner.tsx | mql.matches ? "bottom-right" : "bottom-center" | mql.matches ? "top-right" : "top-center"
 import { describe, it, expect, beforeAll } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { toast } from "sonner";

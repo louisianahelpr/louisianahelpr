@@ -1,3 +1,7 @@
+// The registered mutation is the COMMENT shape — the inbox's scroll source
+// deleted but left as a JSX comment, which is exactly what this guard could not
+// see before `blankComments` below. Killing it kills the plain deletion too.
+// @mutate src/components/messages/ConversationList.tsx | scrollElementRef={containerRef} | {/* scrollElementRef={containerRef} */}
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
@@ -179,6 +183,23 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
+/**
+ * Comments BLANKED, not deleted, so the offsets the caller already computed
+ * stay valid.
+ *
+ * This guard was HOLLOW without it (proved 2026-09-21): deleting the inbox's
+ * `scrollElementRef={containerRef}` and leaving it as `{/* scrollElementRef=
+ * {containerRef} *\/}` passed 4/4 — the window virtualizer back, 13 of 29
+ * threads unreachable at 375, green. The `/* … *\/` form is blanked wherever it
+ * appears in the props; the `//` form only when it is the whole line, because a
+ * prop value can legitimately contain `https://`.
+ */
+function blankComments(props: string): string {
+  return props
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/^([ \t]*)\/\/.*$/gm, (m, indent: string) => indent + " ".repeat(m.length - indent.length));
+}
+
 /** The JSX props text of a `<VirtualList ...>` element starting at `from`. */
 function elementProps(source: string, from: number): string {
   let depth = 0;
@@ -186,9 +207,9 @@ function elementProps(source: string, from: number): string {
     const ch = source[i];
     if (ch === "{") depth += 1;
     else if (ch === "}") depth -= 1;
-    else if (ch === ">" && depth === 0) return source.slice(from, i);
+    else if (ch === ">" && depth === 0) return blankComments(source.slice(from, i));
   }
-  return source.slice(from);
+  return blankComments(source.slice(from));
 }
 
 interface CallSite {

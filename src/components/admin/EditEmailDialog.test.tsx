@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { act, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { EditEmailDialog } from "./EditEmailDialog";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -12,6 +12,26 @@ vi.mock("@/integrations/supabase/client", () => ({
       invoke: (...args: unknown[]) => invokeMock(...args),
     },
   },
+}));
+
+/*
+ * THE GATE, MADE OBSERVABLE.
+ *
+ * `requireBiometric()` opens with `if (!isNativePlatform) return true;`, so the
+ * real module passes unconditionally under vitest. Importing it and calling it
+ * proves nothing: the whole Face ID confirmation in front of repointing a
+ * user's LOGIN EMAIL could be deleted and every test here stayed green (it was,
+ * in fact, the second such hole found on 2026-09-21).
+ *
+ * So it is mocked with a handle the tests can drive. `beforeEach` defaults it
+ * to `true` — a mock that only ever returns true is the OPPOSITE of coverage,
+ * it removes the gate from the test's world — and the refusal case below drives
+ * it `false` and asserts the edge function was never reached.
+ */
+const requireBiometricMock = vi.fn<(reason: string, options?: unknown) => Promise<boolean>>();
+vi.mock("@/lib/biometricGate", () => ({
+  requireBiometric: (...args: unknown[]) =>
+    (requireBiometricMock as unknown as (...a: unknown[]) => Promise<boolean>)(...args),
 }));
 
 const toastSuccess = vi.fn();
@@ -35,6 +55,9 @@ describe("EditEmailDialog", () => {
     invokeMock.mockReset();
     toastSuccess.mockReset();
     toastError.mockReset();
+    requireBiometricMock.mockReset();
+    // Default PASS, so every case above this one is unchanged by the gate.
+    requireBiometricMock.mockResolvedValue(true);
   });
 
   it("renders nothing when profile is null", () => {
@@ -110,14 +133,59 @@ describe("EditEmailDialog", () => {
     });
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     expect(onClose).toHaveBeenCalled();
+    // The gate was ASKED on the happy path too — a gate that is never reached
+    // is as absent as one that is never obeyed.
+    expect(requireBiometricMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("a refused Face ID prompt changes nothing — no invoke, no close, dialog still open", async () => {
+    // Repointing a login email hands password reset to the new address from
+    // that moment on. If the confirmation can be refused and the change still
+    // lands, the gate is decoration.
+    requireBiometricMock.mockResolvedValue(false);
+    invokeMock.mockResolvedValue({ data: {}, error: null });
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
+    render(
+      <EditEmailDialog
+        profile={sampleProfile}
+        onClose={onClose}
+        onSuccess={onSuccess}
+      />,
+    );
+    const newEmail = screen.getByLabelText("New email");
+    const confirmEmail = screen.getByLabelText("Confirm new email");
+    fireEvent.change(newEmail, { target: { value: "attacker@example.com" } });
+    fireEvent.change(confirmEmail, { target: { value: "attacker@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /Update Email/ }));
+
+    await waitFor(() => expect(requireBiometricMock).toHaveBeenCalledTimes(1));
+    // Drain every microtask the submit could still have queued. Asserting
+    // "not called" the instant the gate resolves would pass even with the
+    // guard deleted, because the invoke is one tick further along.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    // THE ACTION DID NOT HAPPEN.
+    expect(invokeMock).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(toastSuccess).not.toHaveBeenCalled();
+    // …and the dialog is still standing, with what was typed still in it, so
+    // the admin can see the change did not go through.
+    expect(screen.getByRole("button", { name: /Update Email/ })).toBeInTheDocument();
+    expect(newEmail).toHaveValue("attacker@example.com");
   });
 });
 
 // The format check is what stands between a typo and admin-update-email being
 // invoked with an address nobody owns.
-//
-// BLIND SPOT, reported not fixed: nothing in this file proves `requireBiometric`
-// gates the submit. The real module is imported (not mocked) and returns true on
-// web, so the Face ID gate in front of an account-takeover primitive could be
-// deleted with all five tests green.
 // @mutate src/components/admin/EditEmailDialog.tsx | if (!emailRegex.test(email1)) { | if (false) {
+//
+// BLIND SPOT CLOSED 2026-09-21. `requireBiometric` is now mocked with a handle
+// and driven to a refusal, and the refusal case asserts the edge function was
+// never invoked — not merely that "a toast appeared". Deleting the component's
+// `if (!ok) return;` must therefore turn this file red, which is what the
+// registration below proves.
+// @mutate src/components/admin/EditEmailDialog.tsx | if (!ok) return;\n\n    setUpdating(true); | setUpdating(true);

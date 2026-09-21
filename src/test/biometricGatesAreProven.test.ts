@@ -70,17 +70,25 @@ function testsThatRefuse(): { file: string; body: string }[] {
     .filter((t) => /mockResolvedValue(Once)?\(\s*false\s*\)|=>\s*false\b|:\s*false\b/.test(t.body));
 }
 
-/** Known, reported, NOT covered. MAY ONLY SHRINK. */
+/**
+ * Known, reported, NOT covered. MAY ONLY SHRINK.
+ *
+ * 2026-09-21, ten → four. The six highest-stakes gates now each have a test
+ * that mocks `@/lib/biometricGate`, drives `requireBiometric` to `false`, and
+ * asserts the ACTION DID NOT HAPPEN — the RPC or edge invoke called zero
+ * times, no success toast, the dialog still open — with a mutation registered
+ * on that component's own `if (!ok)` so the assertion is shown able to fail:
+ *
+ *   EditEmailDialog (login email), AdminPayoutBatches (single AND bulk payout,
+ *   two gates), InstantPayoutDialog (instant cash-out), AdminJobs (refund),
+ *   AdminSettings (grant AND remove admin, two gates), BanDialog (ban).
+ *
+ * The four left are a second lane's work and are named, not hidden.
+ */
 const UNPROVEN: readonly string[] = [
-  "src/components/InstantPayoutDialog.tsx",
   "src/components/PayoutSetupForm.tsx",
   "src/components/ReferralSection.tsx",
   "src/components/admin/AdminDisputes.tsx",
-  "src/components/admin/AdminJobs.tsx",
-  "src/components/admin/AdminPayoutBatches.tsx",
-  "src/components/admin/AdminSettings.tsx",
-  "src/components/admin/BanDialog.tsx",
-  "src/components/admin/EditEmailDialog.tsx",
   "src/components/profile/SecurityTab.tsx",
 ];
 

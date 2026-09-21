@@ -20,7 +20,6 @@
     "src/test/arrivalNudgeStage.test.ts",
     "src/test/auditCatalogRoutes.test.ts",
     "src/test/avatarRowObjectAgreement.test.ts",
-    "src/test/bannedAccountDeletion.test.tsx",
     "src/test/blockedStorageBoot.test.ts",
     "src/test/buttonHeightLedger.test.ts",
     "src/test/checkAuditEvidence.test.ts",

@@ -19,6 +19,9 @@
  *      (20260903014600) is invisible from the UI, and a suspended user
  *      pressing "Delete Forever" believing it clears their suspension is the
  *      exact trust defect RetentionSummary was written to prevent.
+ *
+ * @mutate src/pages/AccountBanned.tsx | : "This suspension — it applies again if you sign up with this email before it ends", | : "Your data will be removed.",
+ * @mutate src/hooks/useDeleteAccount.ts | if (error) throw error; | if (error) void error;
  */
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";

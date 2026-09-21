@@ -176,6 +176,34 @@ describe("storage bucket size/MIME caps (authz-rls H-003 class check)", () => {
     },
   );
 
+  /*
+   * PRIVATE BUCKETS TOO — the gap this guard had.
+   *
+   * It judged only buckets that end up `public`, so four private ones sat at
+   * `file_size_limit = NULL, allowed_mime_types = NULL` on prod for months and
+   * this file was green the whole time: application-attachments, id-documents,
+   * proof-photos, user-documents. Measured live 2026-09-21.
+   *
+   * "Private" bounds WHO CAN READ, not what can be written. Any authenticated
+   * caller holding an INSERT policy could upload an executable, or a file large
+   * enough to eat the free-tier storage quota. And `message-attachments` is
+   * private and DOES carry both caps, so the inconsistency was an oversight
+   * rather than a decision about private buckets.
+   *
+   * Capped by 20260921092104 at 10 MB — twice the 5 MB every one of these
+   * surfaces already enforces in the browser, so nothing legitimate breaks.
+   */
+  it("no bucket is left uncapped, private ones included", () => {
+    const uncapped = [...state.entries()]
+      .filter(([, b]) => !b.hasSize || !b.hasMime)
+      .map(([id, b]) => `${id} (${b.isPublic ? "public" : "private"}, size=${b.hasSize}, mime=${b.hasMime})`);
+    expect(
+      uncapped,
+      "a bucket with no size limit and no MIME allow-list accepts a file of ANY size and ANY type " +
+        "from anyone holding an INSERT policy. Private only bounds who can READ it.",
+    ).toEqual([]);
+  });
+
   it("no public bucket is left uncapped", () => {
     expect(offendingPublicBuckets(state)).toEqual([]);
   });

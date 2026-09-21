@@ -1,3 +1,25 @@
+// PROVEN ABLE TO FAIL 2026-09-21 (guard burn-down). Three shapes were run by
+// hand; two are registered below and one cannot be (it lives in this file).
+//
+//  1. Registered — the sweeper's marker drifts from the spec's by one space:
+//     reds "the prod loop and its sweeper agree on the marker" (1 of 72).
+//     Live consequence: every production row the lifecycle spec creates
+//     becomes unreachable by teardown while the sweeper reports "nothing
+//     stranded".
+//  2. Registered — an `if: ${{ secrets.… }}` on e2e-real-backend.yml's
+//     anon-surface job: reds "keeps a real-backend check that needs no
+//     provisioning". That is this file's central claim, and it can fail.
+//  3. NOT registerable — the mock-boundary FLOOR. Breaking `mocksSupabase`
+//     so it matches nothing was run by hand: reds "knows which specs are
+//     mocked, and it is most of them". Measured today the floor has real
+//     headroom (55 specs reached by CI, 29 of them mocked, floor > 10) and it
+//     is a classifier guard, not a ratio — which is right, because the ratio
+//     is deliberately being driven to zero by "no mock mode ever". A dead
+//     classifier reads ~0 and reds. The mutation gate can only replace text in
+//     a GUARDED file, and this classifier is in the guard itself, so no
+//     `@mutate` can express it.
+// @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | export const E2E_TITLE_MARKER = "[E2E DO NOT ACCEPT]"; | export const E2E_TITLE_MARKER = "[E2E DO NOT ACCEPT] ";
+// @mutate .github/workflows/e2e-real-backend.yml | \n  anon-surface:\n    name: Anon surface contract (real prod, read-only, no credentials)\n | \n  anon-surface:\n    name: Anon surface contract (real prod, read-only, no credentials)\n    if: ${{ secrets.E2E_SUPABASE_URL != '' }}\n
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";

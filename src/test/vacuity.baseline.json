@@ -404,7 +404,6 @@
     "src/pages/userProfile/RecognitionRow.test.tsx",
     "src/pages/userProfile/badgeInputs.test.tsx",
     "src/pages/userProfile/singleReviewList.test.ts",
-    "src/test/e2eSpecsReachableInCi.test.ts",
     "src/test/edge/ai-job-builder.test.ts",
     "src/test/edge/auto-expire-jobs-confirm-window.test.ts",
     "src/test/edge/auto-release-payment-undelivered-revision.test.ts",

@@ -1,3 +1,23 @@
+/**
+ * WHY THIS CARRIES AN EXEMPTION RATHER THAN A MUTATION.
+ *
+ * Measured 2026-09-21: five of the six tests here assert create-notification
+ * EDGE FUNCTION behaviour over REST (403 for spoofing a stranger, 400 for an
+ * unsafe link and a bad type, the stored link sanitised to "/dashboard",
+ * preference persistence, email_send_log fan-out). The gate mutates `src/` and
+ * runs `npm run build`; it does not deploy an edge function, so a mutation
+ * against those five returns SURVIVED for an environment reason.
+ *
+ * The sixth test DOES drive a browser, and was considered for a registration of
+ * its own. It reads the poster's notification rows LIVE from prod and navigates
+ * whichever links exist, so which screens it visits changes run to run — the
+ * same nondeterminism that made overlay-sweep's shrink ratchet unassertable. A
+ * mutation scoped to one of those screens could pass or fail on the row set,
+ * which is a coin-toss dressed as a proof. Registerable only once the link set
+ * is pinned to a fixture this spec owns.
+ *
+ * @mutate-exempt 5 of 6 tests are create-notification edge-function behaviour over REST and the gate never deploys a function (measured 2026-09-21). SHOWN ABLE TO FAIL in the right medium by src/test/edge/create-notification.test.ts, which carries a registered @mutate against supabase/functions/create-notification/index.ts and covers the 403 stranger-relationship gate and the 400 length cap directly. GAP, stated plainly: that edge test does NOT cover the stored-link sanitisation to "/dashboard", the notification-preference round-trip, or the email_send_log row. The 6th test drives a browser but over rows read live from prod, so a mutation against it is data-dependent; it becomes registerable once its links come from a fixture this spec owns.
+ */
 import { test, expect, getSession, rest, newUserContext, sessionsAvailable, assertHealthy, SUPABASE_URL, ANON, announceUncovered, skipUncovered } from "../fixtures";
 
 /**

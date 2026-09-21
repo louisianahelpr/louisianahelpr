@@ -64,7 +64,27 @@ if (newlyUnregistered.length) {
       `    // @mutate <file the guard protects> | <text to break> | <replacement>\n` +
       newlyUnregistered.map((g) => `    ${c.bold(g)}`).join("\n"),
   );
-} else ok(`registration: ${guards.length - unregistered.length}/${guards.length} guards register a mutation (${grandfathered.size} grandfathered)`);
+} else {
+  /*
+   * THREE CATEGORIES, NOT TWO. An @mutate-exempt guard satisfies `unregistered`
+   * (see the filter above, which accepts EITHER a mutation or an exemption), so
+   * until 2026-09-21 it was counted inside "registers a mutation" — and an
+   * exemption then read as proof. That is the mirror of the complaint that a
+   * lumped total reads as debt: lumped the other way, it reads as coverage.
+   *
+   * An exemption is a RECORDED GAP. It belongs in its own number, printed every
+   * run, so the headline cannot drift away from what is actually proven.
+   */
+  const exempted = guards.filter((g) => registration.get(g).mutations.length === 0 && registration.get(g).exemptions.length > 0);
+  const proven = guards.length - unregistered.length - exempted.length;
+  ok(`registration: ${proven}/${guards.length} guards register a mutation (${exempted.length} exempt with a reason, ${grandfathered.size} grandfathered)`);
+  if (exempted.length) {
+    console.log(
+      `${c.bold("  exempt")} — the gate cannot express a mutation for these; each reason must say how the guard IS shown able to fail, or that nothing does:\n` +
+        exempted.map((g) => `    ${g}\n      ${String(registration.get(g).exemptions[0]?.reason ?? "").slice(0, 160)}`).join("\n"),
+    );
+  }
+}
 
 if (staleBaseline.length)
   fail(

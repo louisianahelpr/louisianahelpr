@@ -1,3 +1,21 @@
+/**
+ * WHY THIS CARRIES AN EXEMPTION RATHER THAN A MUTATION.
+ *
+ * Measured 2026-09-21: `grep -c "page\.\|browser"` on this file returns ZERO.
+ * It never opens a browser. Every one of its 12 assertions is a REST call
+ * against prod asserting that a DATABASE TRIGGER refuses the write
+ * (`contact_leak_reason` -> check_violation 23514 -> HTTP 400). The vacuity gate
+ * mutates a file under `src/` and runs `npm run build`; it does not run
+ * `supabase db push` and does not deploy functions. So nothing it can change is
+ * in this spec's path, and any `@mutate` here returns SURVIVED for an
+ * environment reason — a false accusation against a real guard, wearing a green
+ * tick.
+ *
+ * But "the gate cannot reach it" is not the answer to "is this able to fail?".
+ * It is, and it was shown so in the right medium: real Postgres.
+ *
+ * @mutate-exempt Subject is a DB trigger, not client code: 0 browser refs, 12 REST assertions (measured 2026-09-21), and the gate never deploys migrations. SHOWN ABLE TO FAIL by scripts/probes/contact-leak-reject.probe.mjs, which replays 20260913020635_reject_contact_leaks_in_jobs_and_bios.sql in PGlite and is RED-BEFORE against the LIVE function body (pg_get_functiondef 2026-09-12 misses jane@my-domain.com; the migration catches it), then proves a phone number in a job insert and in a bio update are both rejected 23514 while clean text passes. scripts/probes/contact-scan-phone.probe.mjs covers the digit-boundary and hidden-copy half the same way.
+ */
 import { test, expect, getSession, optionalSession, rest, sessionsAvailable, SUPABASE_URL, E2E_TITLE_MARKER, announceUncovered, skipUncovered } from "../fixtures";
 
 /**

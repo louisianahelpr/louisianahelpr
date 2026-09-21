@@ -1,3 +1,18 @@
+/**
+ * WHY THIS CARRIES AN EXEMPTION RATHER THAN A MUTATION — and what is still owed.
+ *
+ * Measured 2026-09-21: `grep -c "page\.\|browser"` returns ZERO. All 17
+ * assertions are REST calls against prod asserting RLS refuses a cross-account
+ * read or write. The gate mutates `src/` and rebuilds `dist/`; it never applies
+ * a policy. So any `@mutate` here is a guaranteed SURVIVED for an environment
+ * reason, which would convict a real guard.
+ *
+ * The honest position is PARTIAL, and it is recorded rather than rounded up:
+ * the CLASS is proven able to fail in real Postgres, the specific generic
+ * cross-account read this file asserts is not.
+ *
+ * @mutate-exempt Subject is RLS, not client code: 0 browser refs, 17 REST assertions (measured 2026-09-21), and the gate never applies a policy. CLASS SHOWN ABLE TO FAIL by scripts/probes/direct-offer-policy-scope.pglite.mjs, which isolates the direct-offer policies on a jobs table and is RED-BEFORE: under the old policy a non-party account can SELECT and UPDATE the status of an ASSIGNED, funded job. scripts/probes/self-application-gate.pglite.mjs and trigger-fn-grants.pglite.mjs cover two more authz holes the same way. GAP, stated plainly: no probe reproduces the generic "helper reads the poster's private job" assertion at the top of this file. Closing it means a PGlite replay of the jobs SELECT policy with two roles, modelled on direct-offer-policy-scope.pglite.mjs.
+ */
 import { test, expect, getSession, rest, sessionsAvailable, SUPABASE_URL, E2E_TITLE_MARKER, announceUncovered } from "../fixtures";
 import type { APIRequestContext } from "@playwright/test";
 

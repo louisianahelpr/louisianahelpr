@@ -67,3 +67,7 @@ describe("buildJobInsertPayload — sales tax", () => {
     expect(p.platform_fee_amount).toBeCloseTo(15, 2);
   });
 });
+
+// Restores the flat "tax every category" lock: an exempt job persists ~10% of
+// its budget as sales tax Stripe never collected and admin revenue then sums.
+// @mutate src/pages/postjob/jobSubmitHelpers.ts | const lockedSalesTaxRate = isLaborTaxable(category) ? salesTaxRate : 0; | const lockedSalesTaxRate = salesTaxRate;

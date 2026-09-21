@@ -131,3 +131,8 @@ describe("resolveParishByZip", () => {
     expect(rpcMock).toHaveBeenCalledWith("get_parish_for_zip", { p_zip: "70528" });
   });
 });
+
+// Re-collapses the distinction this module exists for: a ZIP Louisiana does
+// not have becomes indistinguishable from our own RPC falling over, so the UI
+// goes silent and an unreachable (NULL-parish) account is created.
+// @mutate src/lib/parishLookup.ts | return { status: "unknown-zip", zip: cleaned }; | return { status: "lookup-failed", zip: cleaned };

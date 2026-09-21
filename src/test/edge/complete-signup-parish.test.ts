@@ -30,6 +30,11 @@
  * These tests execute the real function through the edge harness — the mock
  * only stands in for Supabase itself, so the branching is the shipped code.
  */
+//
+// Registered mutations - each turns this guard RED on its own:
+//   Disabling the server-side ZIP lookup is the original bug exactly: the row is
+//   written with a zip_code and a NULL parish, and the member matches no job.
+// @mutate supabase/functions/complete-signup/index.ts | if (!resolvedParish && typeof zipCode === "string") { | if (false) {
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

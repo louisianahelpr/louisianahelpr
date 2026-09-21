@@ -27,12 +27,19 @@
  * shared helpers and the Deno runtime are doubled. Stripe is never reached on
  * these paths (that is the point of them).
  */
+//
+// Registered mutations - each turns this guard RED on its own:
+//   (1) dropping the already-boosted re-check on the flip lets a same-job double
+//   request spend two free credits; (2) dropping the Checkout idempotency key
+//   lets a double-tap mint two sessions, i.e. two real charges.
+// @mutate supabase/functions/create-boost-payment/index.ts |         .or(`boost_expires_at.is.null,boost_expires_at.lte.${flipAt}`) | 
+// @mutate supabase/functions/create-boost-payment/index.ts | }, {\n      idempotencyKey: `boost:${user.id}:${job_id}`,\n    }); | });
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
-import { resetStripeMock } from "./mocks/stripe";
+import { resetStripeMock, stripeMock } from "./mocks/stripe";
 
 const USER_ID = "user-boost-1";
 const JOB_ID = "job-boost-1";
@@ -355,6 +362,55 @@ describe("create-boost-payment — monthly free boost allowance", () => {
       expect(body.free).toBeUndefined();
       expect(jobWrites()).toHaveLength(0);
       expect(profileWrites()).toHaveLength(0);
+    });
+  });
+});
+
+/**
+ * The PAID path — untested until 2026-09-21, and the probe that found the gap
+ * deleted the Stripe `idempotencyKey` outright and left this file 17/17 GREEN.
+ * That option is the ONLY thing standing between a double-tap on "Boost" and
+ * two Checkout Sessions, i.e. two real charges; nothing downstream de-dupes a
+ * boost payment, because the webhook happily applies whichever session pays.
+ */
+describe("create-boost-payment — the PAID Stripe Checkout path", () => {
+  beforeEach(() => {
+    resetSupabaseMock();
+    resetSharedMocks();
+    resetStripeMock();
+    resetEnv();
+  });
+
+  it("keys the Checkout Session on boost:<user>:<job>, and stamps the metadata the webhook boosts from", async () => {
+    seed("free");
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_boost" }] });
+    stripeMock.checkout.sessions.create.mockResolvedValue({
+      url: "https://checkout.stripe.com/c/pay/cs_test_boost",
+    });
+
+    const fn = await load();
+    const res = await fn.fetch(call(fn));
+    expect(res.status).toBe(200);
+    expect((await json(res)).url).toBe("https://checkout.stripe.com/c/pay/cs_test_boost");
+
+    expect(stripeMock.checkout.sessions.create).toHaveBeenCalledTimes(1);
+    const [params, opts] = stripeMock.checkout.sessions.create.mock.calls[0] as [
+      Record<string, any>,
+      { idempotencyKey?: string } | undefined,
+    ];
+    // Same user + same job = same key, so Stripe replays the first session
+    // rather than minting a second one a second tap could also pay.
+    expect(opts?.idempotencyKey).toBe(`boost:${USER_ID}:${JOB_ID}`);
+    // A session that pays but does not say WHICH job it boosts charges the
+    // poster and boosts nothing — stripe-webhook routes on exactly these keys.
+    expect(params.metadata).toMatchObject({
+      kind: "job_boost",
+      job_id: JOB_ID,
+      customer_id: USER_ID,
+    });
+    expect(params.payment_intent_data?.metadata).toMatchObject({
+      kind: "job_boost",
+      job_id: JOB_ID,
     });
   });
 });

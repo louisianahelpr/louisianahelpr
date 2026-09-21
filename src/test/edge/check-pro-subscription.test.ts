@@ -13,6 +13,11 @@
  *
  * Runs the REAL function source through the edge harness.
  */
+//
+// Registered mutations - each turns this guard RED on its own:
+//   Answering 200 from the outer catch is the original fail-OPEN: `unwrap` reads
+//   it as success and overwrites a paying member's tier with a confident null.
+// @mutate supabase/functions/check-pro-subscription/index.ts | status: 503,\n      }\n    );\n  }\n}); | status: 200,\n      }\n    );\n  }\n});
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

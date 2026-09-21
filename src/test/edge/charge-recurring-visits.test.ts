@@ -45,6 +45,11 @@
  * runs — 09-01, 09-02 and 09-03 — and out of it on 09-04 (`d > today` fails).
  * That is the three-day window finding 3 is about.
  */
+//
+// Registered mutations - each turns this guard RED on its own:
+//   A per-call idempotency key means the retry after a no-answer failure is a
+//   SECOND real charge instead of Stripe replaying the first.
+// @mutate supabase/functions/charge-recurring-visits/index.ts | `recurring-visit:${parent.id}:${visitDate}`, | `recurring-visit:${parent.id}:${visitDate}:${Math.random()}`,
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

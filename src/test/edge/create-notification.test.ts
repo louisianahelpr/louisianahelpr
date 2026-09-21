@@ -11,6 +11,11 @@
  *
  * Runs the REAL function source through the edge harness.
  */
+//
+// Registered mutations - each turns this guard RED on its own:
+//   Deleting the limiter restores the email/push-bomb primitive: an authenticated
+//   caller fans unbounded copy over three Helpr-branded channels.
+// @mutate supabase/functions/create-notification/index.ts | if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders); |
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

@@ -14,6 +14,11 @@
  * the "same attempt, different set" case fails because two different sets hash
  * to two different keys.
  */
+//
+// Registered mutations - each turns this guard RED on its own:
+//   Reverting the key to the legacy SET hash is the double-pay: a retry that
+//   claims a different set gets a different key and Stripe sends a SECOND transfer.
+// @mutate supabase/functions/cash-out-credits/index.ts | `cashout-${attemptId}` | `cashout-${await sha256Hex(creditIds.slice().sort().join(","))}`
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

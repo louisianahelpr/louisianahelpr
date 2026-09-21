@@ -23,6 +23,14 @@
  * in for Supabase only, and its bucket is a real key set, so "did the old
  * object survive?" is answered by the same `list()` the function makes.
  */
+//
+// Registered mutations - each turns this guard RED on its own:
+//   (1) sweeping on the uploaded name alone deletes the object a racing
+//   replacement already moved the row onto; (2) filtering the UPDATE on `id`
+//   instead of `user_id` matches zero rows on prod and silently leaves the
+//   account unapproved.
+// @mutate supabase/functions/complete-signup/index.ts | rowName && rowName !== avatarObjectName ? [avatarObjectName, rowName] : avatarObjectName, | avatarObjectName,
+// @mutate supabase/functions/complete-signup/index.ts | .update(updateData)\n      .eq("user_id", userId)\n      .select("user_id"); | .update(updateData)\n      .eq("id", userId)\n      .select("user_id");
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -112,6 +120,16 @@ describe("complete-signup — avatar row before avatar object", () => {
     const update = scenario.writes.find((w) => w.table === "profiles" && w.op === "update");
     expect((update?.payload as Record<string, unknown>)?.avatar_url).toContain(
       `${AVATARS}/avatar.png`,
+    );
+    // …filtered on `user_id`, the column that actually holds the auth id.
+    // `profiles.id` is a SEPARATE surrogate key, so `.eq("id", userId)` matches
+    // ZERO rows on prod and answers `{ data: [], error: null }` — the account
+    // is left unapproved and the avatar row never moves, with nothing thrown.
+    // The mock resolves writes by TABLE, not by filter, so every other
+    // assertion in this file passes with the wrong column; only this one sees
+    // it (probe 2026-09-21: the swap left both complete-signup guards 12/12).
+    expect(update?.filters).toEqual(
+      expect.arrayContaining([{ op: "eq", column: "user_id", value: USER_ID }]),
     );
     expect(scenario.storage.removeCalls).toEqual([[`${AVATARS}/avatar.php`]]);
     expect(objects()).toEqual([`${AVATARS}/avatar.png`]);

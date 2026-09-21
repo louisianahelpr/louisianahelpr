@@ -245,3 +245,8 @@ describe("useDynamicTypeSync", () => {
     document.documentElement.style.removeProperty("font-size");
   });
 });
+
+// The macOS floor. `-apple-system-body` resolves to 13px on a platform with no
+// Dynamic Type at all; without the floor that is 0.765, clamped to 0.85, and the
+// whole app renders ~15% small in desktop Safari. Invisible in Chromium.
+// @mutate src/lib/accessibility.ts | if (px !== null) return Math.max(px / IOS_DEFAULT_BODY_PX, 1); | if (px !== null) return px / IOS_DEFAULT_BODY_PX;

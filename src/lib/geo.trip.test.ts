@@ -224,3 +224,8 @@ describe("commuteMinutes — conditioned on a distance that is already a commute
     expect(commuteMinutes(MAX_COMMUTE_MINUTES + 1)).toBeNull();
   });
 });
+
+// Proof this guard can fail: the pill is a claim about the TRIP. Drop the range
+// test and the owner's 1,634-mile Shreveport card is called a commute again,
+// which is the report this whole file was written from.
+// @mutate src/lib/geo.ts | return m != null && m <= COMMUTE_RANGE_MILES; | return m != null;

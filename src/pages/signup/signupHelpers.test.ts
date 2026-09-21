@@ -119,11 +119,47 @@ describe("passwordStrength", () => {
     expect(qa.score).toBeLessThan(4);
   });
 
+  /**
+   * THE PASSWORD THAT ACTUALLY EXERCISES THE CAP (2026-09-21, vacuity sweep).
+   *
+   * `CoworkQA2026x` was the only password this file tested the cap with, and it
+   * scores 3 on variety ALONE — 12+ chars, mixed case, a digit, no symbol, and
+   * under 16 characters. So `score = Math.min(score, 3)` was a no-op for it,
+   * and deleting that line outright left this file 30/30 green. The guard that
+   * exists to stop the meter promising "Strong" about a password the server
+   * will refuse could not fail.
+   *
+   * `abcdefghijklmnop1!` is the shape that needs it: 18 characters (two length
+   * points), a digit, a symbol — 4/4 on pure variety — and NO uppercase, which
+   * prod GoTrue refuses with 422 weak_password. Without the cap the meter paints
+   * a full green bar reading "Strong" beside a password that cannot be used.
+   */
+  const SCORES_FOUR_ON_VARIETY_ALONE = "abcdefghijklmnop1!";
+
+  it("caps a password that would score 4 on variety but fails a rule", () => {
+    expect(unmetPasswordRules(SCORES_FOUR_ON_VARIETY_ALONE).map((r) => r.label)).toEqual([
+      "Uppercase",
+    ]);
+    const capped = passwordStrength(SCORES_FOUR_ON_VARIETY_ALONE);
+    expect(capped.label).not.toBe("Strong");
+    expect(capped.score).toBe(3);
+    expect(capped.label).toBe("Good");
+  });
+
   it("is only Strong for passwords that pass every rule", () => {
     // Derived from the world, not from the meter: any password the meter calls
     // Strong must have nothing outstanding. A future scoring tweak that hands
     // out a 4 for variety alone fails here.
-    for (const p of ["CoworkQA2026x", "Abcdefghijkl", "Ab1!efghij", "aB1!aB1!aB1!", "Qa#Helpr2026!x"]) {
+    for (const p of [
+      "CoworkQA2026x",
+      "Abcdefghijkl",
+      "Ab1!efghij",
+      "aB1!aB1!aB1!",
+      "Qa#Helpr2026!x",
+      SCORES_FOUR_ON_VARIETY_ALONE,
+      "ABCDEFGHIJKLMNOP1!",
+      "abcdefghijklmnop1234",
+    ]) {
       if (passwordStrength(p).label === "Strong") {
         expect(unmetPasswordRules(p)).toHaveLength(0);
       }
@@ -238,3 +274,10 @@ describe("passwordProblem", () => {
     expect(passwordProblem("Abcdefghijk1!")).toBeNull();
   });
 });
+
+// Proof this guard can fail: without the cap, a password that scores 4 on pure
+// variety while failing a hard rule is painted "Strong" beside a field prod
+// GoTrue answers 422 weak_password. (Until 2026-09-21 this file tested the cap
+// only with CoworkQA2026x, which scores 3 on variety alone — the cap was a
+// no-op for it and deleting the line left the file 30/30 green.)
+// @mutate src/pages/signup/signupHelpers.ts | if (unmetPasswordRules(password).length > 0) score = Math.min(score, 3); |

@@ -222,3 +222,9 @@ describe("Legal & policies — the same documents the signed-out page shows", ()
     expect(screen.queryByRole("heading", { name: /^The basics/ })).toBeNull();
   });
 });
+
+// The tab states no policy of its own: it MOUNTS the same elements
+// pages/Legal.tsx does. Point the Privacy panel at a different document and the
+// export, the GDPR footnote and "Information we collect" all go with it — which
+// is exactly the drift (two wordings of one clause) this file exists to stop.
+// @mutate src/components/profile/LegalTab.tsx | privacy: <PrivacyContent />, | privacy: <CommunityContent />,

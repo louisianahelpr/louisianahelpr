@@ -181,19 +181,46 @@ describe("Schedule card — Add to calendar sits in the meta row, no extra row",
     const body = screen.getByTestId("schedule-card-body");
     // The navigation button is the body's preceding sibling, stretched over it.
     expect(nav.nextElementSibling).toBe(body);
-    expect(nav.className).toMatch(/\babsolute\b/);
-    expect(nav.className).toMatch(/\binset-0\b/);
-    expect(body.className).toMatch(/\bpointer-events-none\b/);
     const add = within(body).getByRole("button", { name: "Add to calendar" });
-    expect(add.className).toMatch(/\bpointer-events-auto\b/);
     // The money chip's tooltip must still be hoverable under the rows'
     // pointer-events-none.
     const chip = body.querySelector('[title="Your budget for this job"]') as HTMLElement;
     expect(chip).not.toBeNull();
-    expect(chip.className).toMatch(/\bpointer-events-auto\b/);
+
+    // EVERY ONE OF THESE IS A PROXY, AND HERE IS ITS EXACT WORTH.
+    //
+    // jsdom computes no layout and applies no stylesheet, so nothing in this
+    // file can observe that the overlay actually covers the card or that a tap
+    // on "Add to calendar" reaches the right handler. What CAN be measured,
+    // and is measured below, is the pair a regression breaks one half of:
+    //
+    //   (i)  the element still carries the class — caught by `className`;
+    //   (ii) that class still COMPILES to the declaration it names — caught by
+    //        running it through the real tailwind.config.ts. This app has
+    //        shipped classes Tailwind never generated (CLAUDE.md "gloss"), and
+    //        a `pointer-events-auto` that emits nothing leaves the chip and the
+    //        calendar action dead under the overlay with the markup unchanged.
+    //
+    // A human still has to look at 1024 to know it LOOKS right; see the note at
+    // the head of this file.
+    const css = await compile(`${nav.className} ${body.className} ${add.className} ${chip.className}`);
+    const carries = (el: HTMLElement, cls: string, decl: string) => {
+      expect(el.className, `element lost .${cls}`).toMatch(new RegExp(`(^| )${cls}( |$)`));
+      expect(css, `.${cls} compiles to nothing — the markup is unchanged and the rule is gone`).toContain(decl);
+    };
+    carries(nav, "absolute", "position: absolute");
+    carries(nav, "inset-0", "inset: 0px");
+    carries(body, "pointer-events-none", "pointer-events: none");
+    carries(add, "pointer-events-auto", "pointer-events: auto");
+    carries(chip, "pointer-events-auto", "pointer-events: auto");
     // The press feedback moved from the button to the body via `peer-active`;
     // it must compile to a real sibling selector, not to nothing.
-    const css = await compile(`${nav.className} ${body.className}`);
     expect(css).toMatch(/\.peer:active ~ \.peer-active\\:scale-\\\[0\\\.99\\\] \{/);
   });
 });
+
+// The two-track grid itself. jsdom cannot see the columns, so the measurement
+// is the emitted CSS: swap the explicit tracks for a plain two-column grid and
+// the compiled `grid-template-columns` no longer names the 320-480px calendar
+// track, even though the rendered markup is identical.
+// @mutate src/components/profile/ScheduleTab.tsx | min-[1024px]:grid-cols-[clamp(320px,42%,480px)_minmax(0,1fr)] | min-[1024px]:grid-cols-2

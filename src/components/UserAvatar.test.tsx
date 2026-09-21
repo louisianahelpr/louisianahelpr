@@ -240,3 +240,9 @@ describe("UserAvatar — the verdict never goes stale", () => {
     expect(seen.length).toBe(afterFirst);
   });
 });
+
+// The CORS retry is only a retry because the <img> is a NEW element. Without
+// the key React patches `crossOrigin` off the element already in its error
+// state and nothing re-requests — a real photograph on a non-CORS host is lost,
+// and every other assertion in this file still passes.
+// @mutate src/components/UserAvatar.tsx | key={corsMode} |

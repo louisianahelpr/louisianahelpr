@@ -258,3 +258,10 @@ describe("PaymentSuccess", () => {
     });
   });
 });
+
+// Proof this guard can fail: the screen may claim the money is held ONLY for a
+// status that proves it is. Widening the held set to the two states that mean
+// "we do not know" (unpaid: webhook not landed) and "taken then given back"
+// (refunded) makes the page print "Payment authorized / held securely" over
+// both — the exact claim this file exists to forbid.
+// @mutate src/pages/PaymentSuccess.tsx | const HELD_STATUSES = new Set(["escrow", "payout_pending", "released"]); | const HELD_STATUSES = new Set(["escrow", "payout_pending", "released", "unpaid", "refunded"]);

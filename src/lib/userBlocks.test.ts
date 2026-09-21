@@ -243,3 +243,9 @@ describe("unblockUser", () => {
     expect(await unblockUser("blocker", "blocked")).toBe(false);
   });
 });
+
+// Proof this guard can fail: getBlockedUserIds FAILS CLOSED. Turning the throw
+// back into an empty set is the original bug — a failed read reads as "nobody
+// is blocked", so every harassment block silently lifts and the blocked person
+// reappears in the inbox, the nav badge, the applicant list and the rail.
+// @mutate src/lib/userBlocks.ts | throw error; | return new Set();

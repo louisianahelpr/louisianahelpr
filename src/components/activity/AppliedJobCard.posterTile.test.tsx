@@ -216,3 +216,8 @@ describe("a card with no step card keeps the tile in its body", () => {
     expect(links).toHaveLength(1);
   });
 });
+
+// Proof this guard can fail: the expanded gate IS the point (file header). Drop
+// it and the poster name + profile link land on every COLLAPSED Jobs card,
+// which is V6 (owner, 2026-09-15) in reverse.
+// @mutate src/components/activity/AppliedJobCard.tsx | isExpanded && posterId && app.posterName ? ( | posterId && app.posterName ? (

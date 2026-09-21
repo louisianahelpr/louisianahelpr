@@ -205,3 +205,8 @@ describe("/help dispute answer matches the cards (VN-28)", () => {
     expect(disputeAnswer).toContain("Report a Problem");
   });
 });
+
+// Proof this guard can fail: /help#faq-<topic> is a real destination — the shape
+// a support reply pastes. Dropping the `targeted` term leaves the anchor inert:
+// the page loads with every section shut and nothing scrolled to.
+// @mutate src/pages/HelpCenter.tsx | const open = manualOpen \|\| (targeted && !dismissed); | const open = manualOpen;

@@ -216,3 +216,9 @@ describe("/home-history can leave the app", () => {
     expect(screen.queryByRole("button", { name: /Share Record/i })).toBeNull();
   });
 });
+
+// `jobs.helper_id` is the primary source of "who came out". Drop it and an
+// instant-book job — stamped straight onto the job, with no accepted
+// application anywhere — loses its "done by" line silently, which is the
+// original defect.
+// @mutate src/pages/HomeHistory.tsx | for (const j of jobs) addHelper(j.id, j.helper_id); |

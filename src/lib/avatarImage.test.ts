@@ -254,3 +254,9 @@ describe("avatarInitials", () => {
     expect(avatarInitials("ßeta")).toBe("SS");
   });
 });
+
+// Detector (2). The whole reason this file argues for TWO detectors: a linear
+// gradient has an arbitrarily wide luma range and an identically zero
+// Laplacian, so deleting the Laplacian verdict lets prod row 6b472670 through
+// while every detector-(1) assertion above still passes.
+// @mutate src/lib/avatarImage.ts | return sum / count < BLANK_AVATAR_DETAIL; | return false;

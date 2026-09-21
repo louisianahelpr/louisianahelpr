@@ -222,6 +222,91 @@ describe("beforeSend noise filter", () => {
   });
 });
 
+/**
+ * SESSION REPLAY PII SCRUBBING — the one part of this module that can leak a
+ * card number, and until 2026-09-21 the one part with no test at all.
+ *
+ * `maskAllText: true` lives inside `if (import.meta.env.PROD)`, and vitest runs
+ * in DEV, so the whole deferred block was unreachable from this file: the flag
+ * could be deleted, flipped to false, or the option renamed, and every test
+ * here stayed green while prod Session Replay started recording the text of
+ * every input on the screen — Stripe card numbers and CVCs, Supabase
+ * magic-link tokens, message bodies.
+ *
+ * So PROD is stubbed on `import.meta.env` (vitest leaves it a plain mutable
+ * object, unlike a real Vite build where it is statically replaced) and the
+ * idle callback is driven synchronously, which makes the registration and its
+ * privacy options observable.
+ */
+describe("Session Replay privacy (PROD path)", () => {
+  async function initInProd() {
+    const env = import.meta.env as unknown as Record<string, unknown>;
+    const prevProd = env.PROD;
+    const prevDev = env.DEV;
+    env.PROD = true;
+    env.DEV = false;
+    // requestIdleCallback doesn't exist in jsdom; define it as an immediate
+    // call so the deferred registration runs without timer gymnastics.
+    const idle = vi.fn((cb: () => void) => {
+      cb();
+      return 1;
+    });
+    vi.stubGlobal("requestIdleCallback", idle);
+    try {
+      const { initSentry } = await loadFresh();
+      initSentry();
+      // The registration is behind a dynamic `import("@sentry/react")`, so the
+      // addIntegration call lands a microtask later.
+      await vi.waitFor(() => expect(addIntegrationMock).toHaveBeenCalledOnce());
+      return { idle };
+    } finally {
+      env.PROD = prevProd;
+      env.DEV = prevDev;
+      vi.unstubAllGlobals();
+    }
+  }
+
+  it("registers Replay with maskAllText — every text node redacted", async () => {
+    await initInProd();
+    const integration = addIntegrationMock.mock.calls[0][0] as {
+      name: string;
+      opts: { maskAllText?: boolean; blockAllMedia?: boolean };
+    };
+    expect(integration.name).toBe("replay");
+    // THE PCI LINE. Not `toBeTruthy()` — the option has to be exactly true,
+    // and it has to be present: an absent key is Sentry's default of `true`
+    // today but is not a decision this app has made.
+    expect(integration.opts).toHaveProperty("maskAllText", true);
+    // Media stays visible on purpose — images/icons carry no typed secrets
+    // and a fully blocked replay is unreadable for debugging the UI.
+    expect(integration.opts).toHaveProperty("blockAllMedia", false);
+  });
+
+  it("samples replay only as configured, and never breaks init", async () => {
+    await initInProd();
+    const config = initMock.mock.calls[0][0] as Record<string, unknown>;
+    // Set on the initial config so the sampling decision is in force before
+    // the deferred integration starts capturing.
+    expect(config.replaysSessionSampleRate).toBe(0.1);
+    expect(config.replaysOnErrorSampleRate).toBe(1.0);
+  });
+
+  it("a Replay registration that throws must not break the app", async () => {
+    addIntegrationMock.mockImplementation(() => {
+      throw new Error("replay refused to register");
+    });
+    await expect(initInProd()).resolves.toBeTruthy();
+  });
+
+  it("does NOT register Replay in a dev build", async () => {
+    // The other side of the same gate: vitest is DEV, so nothing defers.
+    const { initSentry } = await loadFresh();
+    initSentry();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(addIntegrationMock).not.toHaveBeenCalled();
+  });
+});
+
 describe("captureException", () => {
   it("no-ops when Sentry is not initialized", async () => {
     const { captureException } = await loadFresh();
@@ -283,3 +368,12 @@ describe("setSentryUser", () => {
     expect(setUserMock).toHaveBeenCalledWith(null);
   });
 });
+
+// Proof this guard can fail, on the two lines that matter most here:
+//  1. PII scrubbing. maskAllText false = prod Session Replay records the text of
+//     every input — Stripe card numbers and CVCs, magic-link tokens.
+//  2. The noise filter going universal. Returning true for every message makes
+//     beforeSend drop EVERY error, i.e. the observability layer goes dark while
+//     Sentry still reports as configured.
+// @mutate src/lib/sentry.ts | maskAllText: true, | maskAllText: false,
+// @mutate src/lib/sentry.ts | if (pattern.test(text)) return true; | return true;

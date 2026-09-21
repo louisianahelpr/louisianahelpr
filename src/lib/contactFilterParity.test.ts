@@ -72,6 +72,39 @@ const serverLocationSharePattern = (() => {
 const FW = /[０-９]/g;
 const normalize = (s: string) => s.replace(FW, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
 
+/**
+ * THE STRIKE BRANCHES, READ OUT OF THE MIGRATION — not retyped here.
+ *
+ * This WAS a hand-typed JS replica of the four non-phone branches (email,
+ * worded digits, payment services, payment intent). A replica is both the
+ * input and the oracle: delete the email branch from a new
+ * `contact_leak_reason` and every assertion in this file still passed, because
+ * the replica kept answering "email". That is a trust-and-safety gap, not a
+ * test nicety — the email branch IS the disintermediation gate for
+ * "jane@gmail.com". So the branches are now parsed out of the same newest
+ * migration `serverPhonePattern` and `serverLocationSharePattern` come from,
+ * and a branch that leaves the SQL leaves this test's oracle with it.
+ *
+ * `\m` / `\M` (Postgres-only word boundaries) become `\b`; nothing else in
+ * these literals differs between an ARE and a JS RegExp.
+ */
+type ServerBranch = { subject: "v_norm" | "p_text"; pattern: string; label: string };
+const SERVER_BRANCHES: ServerBranch[] = [
+  ...NEWEST.body.matchAll(
+    /(?:IF|ELSIF)\s+(v_norm|p_text)\s+~\*\s+'([^']+)'\s+THEN\s+RETURN\s+'([^']+)'/gi,
+  ),
+].map((m) => ({ subject: m[1] as ServerBranch["subject"], pattern: m[2], label: m[3] }));
+
+/** SQL's user-facing reason → the short code this file's assertions speak. */
+const REASON_CODE: Record<string, string> = {
+  "Phone number detected": "phone",
+  "Email address detected": "email",
+  "Off-platform payment service mentioned": "payment",
+  "Off-platform payment intent detected": "direct",
+};
+
+const areToJs = (p: string) => p.replace(/\\[mM]/g, "\\b");
+
 function serverLeakReason(p: string): string | null {
   if (!p || p.trim() === "") return null;
   const v = normalize(p);
@@ -79,13 +112,42 @@ function serverLeakReason(p: string): string | null {
   // exact shape can never also read as a phone number, email, or
   // off-platform-payment phrase.
   if (new RegExp(serverLocationSharePattern).test(v)) return null;
-  if (new RegExp(serverPhonePattern, "i").test(v)) return "phone";
-  if (/(zero|one|two|three|four|five|six|seven|eight|nine|oh)([^a-z0-9]+(zero|one|two|three|four|five|six|seven|eight|nine|oh)){6,}/i.test(p)) return "phone";
-  if (/[a-z0-9._]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}/i.test(p)) return "email";
-  if (/\bvenmo\b|\bcashapp\b|\bcash app\b|\bzelle\b|\bpaypal\b|\bapple\s*pay\b|\bgoogle\s*pay\b|\bcrypto\b|\bbitcoin\b|\bbtc\b|\beth\b/i.test(p)) return "payment";
-  if (/\bpay me direct\b|\boff the app\b|\boutside the app\b|\bskip the fee\b|\bavoid the fee\b|\bcash only\b|\bin cash\b|\btext me\b|\bcall me\b|\bwhatsapp\b|\btelegram\b|\bdm me\b|\bhit me up\b|\bcontact me at\b|\breach me at\b|\bsend money to\b|\bpay outside\b/i.test(p)) return "direct";
+  for (const b of SERVER_BRANCHES) {
+    if (new RegExp(areToJs(b.pattern), "i").test(b.subject === "v_norm" ? v : p)) {
+      return REASON_CODE[b.label] ?? b.label;
+    }
+  }
   return null;
 }
+
+describe("the server's strike branches are read from the migration, not retyped", () => {
+  it("every reason contact_leak_reason can return is still defined there", () => {
+    // The floor: an empty or shortened branch list would make serverLeakReason
+    // return null for everything, and the SERVER_STRIKES corpus below asserts
+    // `.not.toBeNull()` first, so it fails loudly rather than vacuously.
+    expect(
+      SERVER_BRANCHES.length,
+      `${NEWEST.file}: no IF/ELSIF ~* branch found — this guard's server oracle is blind`,
+    ).toBeGreaterThanOrEqual(5);
+    const codes = new Set(SERVER_BRANCHES.map((b) => REASON_CODE[b.label] ?? b.label));
+    for (const want of ["phone", "email", "payment", "direct"]) {
+      expect(
+        codes.has(want),
+        `${NEWEST.file} no longer strikes "${want}" — a contact-leak class left the server gate`,
+      ).toBe(true);
+    }
+  });
+
+  it("uses only regex syntax Postgres AREs and JavaScript agree on", () => {
+    for (const b of SERVER_BRANCHES) {
+      // `\m`/`\M` are translated; a lookbehind or a `\d`/`\w` would mean this
+      // file's oracle and the real function disagree about what they match.
+      for (const banned of ["(?<", "\\d", "\\w"]) {
+        expect(areToJs(b.pattern).includes(banned), `${b.label}: contains ${banned}`).toBe(false);
+      }
+    }
+  });
+});
 
 // Every string the server WILL strike. The client must warn on all of them.
 const SERVER_STRIKES = [
@@ -287,3 +349,13 @@ describe("phone matcher: client and server agree on every shared fixture", () =>
     });
   }
 });
+
+// Neuter the location-share exemption and it swallows EVERY message: the
+// client scanner returns [] for anything and the server oracle returns null,
+// so the whole SERVER_STRIKES corpus goes red. This is the shape of the only
+// way to turn the contact filter off from one constant.
+// @mutate src/lib/contactLeakRules.ts | "^📍 Location: -?[0-9]{1,3}\\.[0-9]{6},-?[0-9]{1,3}\\.[0-9]{6}$" | "^"
+// Take the email branch out of the SHIPPED SQL. Before the branches were read
+// from the migration (2026-09-21) this survived: the retyped replica kept
+// answering "email" while the live gate let jane@gmail.com through.
+// @mutate supabase/migrations/20260915030812_contact_leak_reason_exempts_location_shares.sql | ELSIF p_text ~* '[a-z0-9._]+@ | ELSIF p_text ~* 'zzz-removed@

@@ -385,3 +385,7 @@ describe("guards against a wrong number reaching the screen", () => {
     expect(earningsByMonth([job({ id: "a", completed_at: "" })], PRO_FEE)).toEqual([]);
   });
 });
+
+// Publish the win rate below its sample floor and "100% win rate" off two
+// decided applications reaches the screen.
+// @mutate src/lib/helperAnalytics.ts | decided >= floors.decided_applications ? Math.round((won / decided) * 1000) / 10 : null | Math.round((won / decided) * 1000) / 10

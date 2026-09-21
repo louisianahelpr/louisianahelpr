@@ -308,3 +308,7 @@ describe("poster placement — client/SQL parity", () => {
     expect(BODY).not.toMatch(/subscription_tier = 'basic'/);
   });
 });
+
+// Raise the poster-placement cap above the smallest discrete signal this
+// scorer awards and the bounded boost becomes the override it replaced.
+// @mutate src/lib/smartSort.ts | export const POSTER_PLACEMENT_MAX_POINTS = 0.1; | export const POSTER_PLACEMENT_MAX_POINTS = 0.5;

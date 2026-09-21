@@ -356,3 +356,6 @@ describe("TrackingMap when MapKit can't be used", () => {
     expect(view.container.querySelector("[data-testid='tracking-map-surface']")).not.toBeNull();
   });
 });
+
+// The closed label set is what keeps an arbitrary string off the job pin.
+// @mutate src/components/trackingMap/trackingMarkers.ts | label && DESTINATION_LABELS.has(label) ? label : null | label ?? null

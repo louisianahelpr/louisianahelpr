@@ -302,16 +302,40 @@ describe("the GPS nudge — encouragement, never an accusation", () => {
     expect(text).not.toMatch(/instead of|without waiting|skip (the )?confirm/i);
   });
 
+  /* THE SENTENCE THESE TWO ASSERT ON IS THE ONE THE COMPONENT ACTUALLY DRAWS.
+     They used to read `not.toMatch(/proof on your side/i)` — the PRE-2026-09-19
+     wording, which the component has not rendered since the copy was cut to one
+     line (see the BENEFIT case above, which asserts "GPS proof you were here").
+     An absence assertion on a string nothing renders cannot fail: with the
+     nudge's gate widened to `currentArrivalEvidence !== "none"` — the nag the
+     owner's ruling forbids — this whole file stayed green (measured
+     2026-09-21). Both now assert the rendered sentence and the state it is
+     read out of, so the gate is what they are actually pinned to. */
   it("goes quiet once the poster has confirmed — encouragement, not nagging", () => {
     renderHelperTracker({ ...CHECKED_IN_NO_GPS, posterConfirmedArrivalAt: AT });
     const text = document.body.textContent ?? "";
-    expect(text, "nothing left to encourage: they are unblocked").not.toMatch(/proof on your side/i);
+    expect(text, "nothing left to encourage: they are unblocked").not.toMatch(
+      /GPS proof you were here/i,
+    );
+    expect(text, "no Location ask of any wording once the poster has vouched").not.toMatch(
+      /Turning Location on/i,
+    );
     expect(screen.queryByRole("button", { name: /Try My Location Again/i })).toBeNull();
   });
 
   it("goes quiet once the location IS confirmed", () => {
     renderHelperTracker({ ...CHECKED_IN_NO_GPS, helperArrivalVerifiedAt: AT });
-    expect(document.body.textContent ?? "").not.toMatch(/proof on your side/i);
+    const text = document.body.textContent ?? "";
+    expect(text, "GPS already proved it — nothing left to ask for").not.toMatch(
+      /GPS proof you were here/i,
+    );
+    expect(text).not.toMatch(/Turning Location on/i);
     expect(screen.queryByRole("button", { name: /Try My Location Again/i })).toBeNull();
   });
 });
+
+// Widen the GPS nudge past its evidence gate and it nags a Helpr the poster
+// has already vouched for — the "don't nag" half of the owner's 2026-09-19
+// ruling. This SURVIVED until the two "goes quiet" cases stopped asserting on
+// wording the component no longer renders (2026-09-21).
+// @mutate src/components/JobTracking.tsx | isHelper && (currentArrivalEvidence === "claimed" \|\| currentArrivalEvidence === "near_miss") | isHelper && currentArrivalEvidence !== "none"

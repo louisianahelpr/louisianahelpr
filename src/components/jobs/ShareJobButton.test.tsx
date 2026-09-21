@@ -336,3 +336,10 @@ describe("ShareJobButton", () => {
     expect(payload.files).toBeUndefined();
   });
 });
+
+// The label must follow what actually runs: drop `isNativePlatform` from
+// canNativeShare and the shipped app draws "Copy link" on a button that opens
+// the OS share sheet (the 2026-08-30 report).
+// @mutate src/components/jobs/ShareJobButton.tsx | isNativePlatform \|\| |
+// The shared URL itself — the attribution param every rung carries.
+// @mutate src/components/jobs/ShareJobButton.tsx | /jobs/${job.id}?ref=share | /jobs/${job.id}

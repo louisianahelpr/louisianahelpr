@@ -3162,6 +3162,23 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [x] **Nightly WebKit + real-backend run.** e83876cc5 `nightly-webkit.yml` runs the whole happy-path suite in real WebKit (helper-apply 2/2 locally; first CI run dispatched). Real backend already nightly in e2e-real-backend.yml.
 
 
+### `overlay-sweep` is a report generator wearing a guard's name (2026-09-21)
+
+- [ ] **67 tests, 66 route probes, and exactly ONE assertion in the whole file** — `expect(probed.length).toBeGreaterThan(0)` at line 404. `findings[]` has no consumer other than `writeFileSync` to `/tmp/ui-review/overlay-report.json`. Every check it performs — missing accessible name, focus not moved into the overlay, Escape did not close it, background not scroll-locked, text below the 9px floor, tap targets under 43.5px, sibling-button mismatch, a scoped axe run at wcag2aa — **can fire on all 66 routes and the spec still exits 0.**
+- It IS wired into CI (`ui-sweep.yml` sets `RUN_OVERLAY_SWEEP`), so this has been **green-on-blind, not dormant**. It is the only audit of ~91 overlay components.
+- It also has the `landedOn` hole: `probeRoute` captures the landed URL and uses it only to detect navigation *during* probing, never comparing it to the REQUESTED route. Likely aliases that redirect and get probed as their destination: `/settings`, `/schedule`, `/family`, `/subscription`, `/earnings`, `/saved-helprs`, `/saved-helpers`, `/job-history`, `/availability`.
+- **What it needs**, deliberately not half-done: a checked-in findings baseline so pre-existing findings stay green and NEW ones go red, plus a `landedOn === requested` assertion. Building the baseline needs one full sweep (66 routes x up to 40 button clicks, `test.setTimeout(180_000)` each) — its own budget. Asserting `findings.length === 0` without that run puts main red.
+- No mutation was registered for it and no exemption was written: a registration would report SURVIVED by construction, and an exemption would retire a real audit from the burn-down.
+
+- [ ] **`e2e/happy-path/state-matrix/state-sweep.spec.ts` (187 tests) is unopened**, and it carries a SECOND exemption — it is on the `noInventoryFloor` list in `vacuity.baseline.json`. Worth checking both when someone picks it up.
+- [ ] **`error-state-sweep` still unproven** (272 tests, ~30 min). Target unchanged and still correct: `src/lib/supabaseResult.ts`, `if (error) {` → `if (false) {`.
+
+### `replaceState-churn` was hollow twice over (2026-09-21, FIXED)
+
+- [x] **The burst never happened.** It dispatched all 90 `input` events inside one synchronous `page.evaluate`, and React 18 auto-batching collapses that into ONE render and one commit — so `useSearchParamMirror` performed ~1 write, not 90, and `WRITE_HARD_STOP` (60) was never approached. The spec had been asserting that a route survives a burst that did not occur. Fixed with a macrotask between dispatches, which is what a real typist produces.
+- [x] **The contract is invisible to the engine it runs on.** The crash is WebKit-only (`SecurityError` past ~100 `replaceState` calls); the `happy-path` project is Chromium, which throttles silently and throws nothing, so "the route did not crash" was true regardless of what the hook did. Now counts `history.replaceState` calls via `addInitScript` and bounds them both ways: `>= 25` (the burst genuinely reached the mirror — this is what stops the first defect recurring silently) and `<= WRITE_HARD_STOP + 10` (the breaker capped it). The crash itself stays with the nightly WebKit project.
+- [ ] **Still unexplained:** 19 of 20 `error_logs` RouteErrorBoundary entries are on `/browse`, `/my-jobs`, `/my-posts`. Both tests churn `q`/`filter` only and never the `adopt()` half re-firing mid-burst under a realtime-driven re-render, which the spec's own header names as the plausible mechanism. `/browse` (the other `useSearchParamMirror` caller) is not churned at all.
+
 ### Dashboard three-surface CULL parity is still unguarded (2026-09-21)
 
 The owner has reported map/list/count disagreeing **three times** (applied jobs

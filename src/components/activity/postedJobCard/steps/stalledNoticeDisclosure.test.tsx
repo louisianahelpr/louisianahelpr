@@ -59,6 +59,7 @@ vi.mock("@/integrations/supabase/client", () => {
 
 import { InProgressStep } from "./InProgressStep";
 import {
+  completionStalled,
   STALLED_APPROVE_DETAIL_TITLE,
   STALLED_APPROVE_DISABLED_DETAIL,
   STALLED_APPROVE_DISABLED_LABEL,
@@ -201,4 +202,37 @@ describe("the stalled note is one sentence, and the rest is one tap away", () =>
     draw(stalledJob({ helper_completed_at: ago(1) }));
     expect(screen.queryByRole("button", { name: /^Why\?/ })).toBeNull();
   });
+
+  it("…because the shared PREDICATE stands down, not only the row's precedence", () => {
+    // The rendered assertion above is double-gated (vacuity burn-down,
+    // 2026-09-21): a job carrying `helper_completed_at` also hands the row's
+    // primary slot to the ENABLED Approve rung, which outranks the stalled
+    // branch in `posterConfirmationRung` — so deleting `helper_completed_at`
+    // from `completionStalled`'s own guard left this file green (proved by
+    // mutation). That half matters on its own: the SWEEP reads the same
+    // predicate, and a job whose Helpr has marked it done is not in the trap —
+    // nudging both parties about it, and escalating it to a human at +48h,
+    // would be an accusation the data contradicts.
+    const evidence = {
+      status: "in_progress",
+      helper_completed_at: null as string | null,
+      poster_completed_at: null as string | null,
+      date_needed: DAY_LONG_PAST,
+      start_time: "09:00",
+      estimated_hours: 2,
+    };
+    const now = new Date(NOW);
+    // The floor: without it, every line below would pass on a fixture that was
+    // never in the trap to begin with.
+    expect(completionStalled(evidence, now), "the fixture is not stalled at all").toBe(true);
+    expect(completionStalled({ ...evidence, helper_completed_at: ago(1) }, now)).toBe(false);
+    expect(completionStalled({ ...evidence, poster_completed_at: ago(1) }, now)).toBe(false);
+  });
 });
+
+// The card's whole disclosure hangs off ONE predicate: move the trap's grace
+// window out of reach and the disabled box and its "Why?" chip both vanish.
+// @mutate supabase/functions/_shared/stalledCompletion.ts | export const STALLED_FIRST_AFTER_HOURS = 2; | export const STALLED_FIRST_AFTER_HOURS = 2000;
+// …and the half of the predicate that stands it down again (the assertion
+// added 2026-09-21; the rendered test alone could not see this line).
+// @mutate supabase/functions/_shared/stalledCompletion.ts | if (job.helper_completed_at \|\| job.poster_completed_at) return false; | if (job.poster_completed_at) return false;

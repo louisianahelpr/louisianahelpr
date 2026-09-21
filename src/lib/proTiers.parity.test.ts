@@ -181,3 +181,8 @@ describe("a one-time pass is the same length on every store", () => {
     expect((Date.parse(got) - purchaseDate) / 86_400_000).toBe(ONE_TIME_PASS_DAYS);
   });
 });
+
+// ME-039: the STRIPE_PRICE_* override must be gated on the SECRET KEY's own
+// mode. Ungated, a live key posts test Price ids and every membership
+// checkout 500s.
+// @mutate supabase/functions/_shared/proTiers.ts | if (isStripeTestMode()) { | if (true) {

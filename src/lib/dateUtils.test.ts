@@ -178,3 +178,8 @@ describe("hasJobStarted — the clock gate on the No-Show action", () => {
     expect(jobStartDateTime("2026-08-19T02:00:00Z", "09:00:00")).toBeNull();
   });
 });
+
+// The job's wall clock belongs to the JOB's zone, not the reader's: resolving
+// it in UTC is the 2026-09-06 defect (a 6:30 PM Central job counting down two
+// hours late, and the No-Show gate opening with it).
+// @mutate src/lib/dateUtils.ts | const ms = jobLocalStartMs(dateNeeded, startTime ?? null, timeZone); | const ms = jobLocalStartMs(dateNeeded, startTime ?? null, "UTC");

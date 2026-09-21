@@ -14,23 +14,48 @@ import {
 } from "./subscriptionTiers";
 
 // Every paid tier is a consumer subscription, and every tier there is. The
-// table used to carry a fifth `business` row at 6% with a null price, excluded
-// from these invariants because it was billed per-seat on a
+// table used to carry a `business` row at 6% with a null price, excluded from
+// these invariants because it was billed per-seat on a
 // `_shared/businessSeatTiers.ts` ladder — a file that does not exist. It was
 // removed on 2026-09-01: nothing could sell that tier, nothing could store it,
 // and the prod census was zero rows. So PAID and ALL now differ only by "free".
-const PAID_CONSUMER_TIERS: SubscriptionTier[] = ["basic", "pro", "elite"];
-const ALL_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
+//
+// DERIVED FROM THE TABLE, not hand-listed (vacuity burn-down, 2026-09-21).
+// Both lists read `["free","basic","pro","elite"]` and had done since before
+// Plus was restored on 2026-09-05, so every loop below silently skipped the
+// tier — `TIER_PERKS.plus.platformFeePercent` could be set to 2 (cheaper than
+// Elite's floor, and cheaper than the edge ladder charges) with all 21 tests
+// green, and `plus.price` could be nulled with "Free is the ONLY priceless
+// tier" still passing. Proved by mutation before this was changed. The key set
+// itself is pinned literally by the test below, so the inventory still cannot
+// silently shrink.
+const ALL_TIERS: SubscriptionTier[] = Object.keys(TIER_PERKS) as SubscriptionTier[];
+const PAID_CONSUMER_TIERS: SubscriptionTier[] = ALL_TIERS.filter((t) => t !== "free");
 
 describe("TIER_PERKS fee model", () => {
   it("uses the documented platform fee per tier (12 / 11 / 10 / 9 / 8)", () => {
     expect(TIER_PERKS.free.platformFeePercent).toBe(12);
     expect(TIER_PERKS.basic.platformFeePercent).toBe(11);
     expect(TIER_PERKS.pro.platformFeePercent).toBe(10);
+    // Plus's 9% rung was named in this test's OWN title and never asserted.
+    expect(TIER_PERKS.plus.platformFeePercent).toBe(9);
     expect(TIER_PERKS.elite.platformFeePercent).toBe(8);
   });
 
-  it("has exactly four tiers — the retired Business row is gone", () => {
+  it("every tier on the table has its rung asserted by name", () => {
+    // The ladder assertions above are per-tier literals, which is the right
+    // shape for money — but a literal list cannot fail for a rung it never
+    // had, which is exactly how Plus went unasserted for sixteen days. This
+    // ties the literals back to the table: a new tier lands here first.
+    const LADDER: Record<SubscriptionTier, number> =
+      { free: 12, basic: 11, pro: 10, plus: 9, elite: 8 };
+    expect(Object.keys(LADDER).sort()).toEqual(ALL_TIERS.slice().sort());
+    for (const tier of ALL_TIERS) {
+      expect(TIER_PERKS[tier].platformFeePercent, `${tier}'s commission`).toBe(LADDER[tier]);
+    }
+  });
+
+  it("has exactly five tiers — the retired Business row is gone", () => {
     // Pins the KEY SET, not just the values. The `business` row had to leave
     // this table and `TIER_FEE_PERCENT` in one commit (the parity tests tie the
     // two key sets together), so a re-added row here must be a deliberate edit
@@ -55,6 +80,9 @@ describe("TIER_PERKS fee model", () => {
       TIER_PERKS.pro.platformFeePercent,
     );
     expect(TIER_PERKS.pro.platformFeePercent).toBeGreaterThan(
+      TIER_PERKS.plus.platformFeePercent,
+    );
+    expect(TIER_PERKS.plus.platformFeePercent).toBeGreaterThan(
       TIER_PERKS.elite.platformFeePercent,
     );
   });
@@ -185,8 +213,34 @@ describe("toSubscriptionTier", () => {
     expect(toSubscriptionTier("starter")).toBe("free");
   });
 
+  it("an inherited Object key is NOT a tier (the prototype-lookup hole)", () => {
+    // `toSubscriptionTier` uses hasOwnProperty precisely so a value like
+    // "constructor" or "toString" — which `raw in TIER_PERKS` answers TRUE for
+    // — cannot resolve to a tier. Nothing asserted it: swapping the guard for
+    // `raw in TIER_PERKS` left all 21 tests green (proved by mutation). The
+    // cost of that hole is not theoretical: the string is returned as a
+    // SubscriptionTier, and `tierFeePercent` then reads
+    // `TIER_PERKS["constructor"].platformFeePercent` — undefined — so the
+    // commission shown on a payout preview becomes NaN rather than 12%.
+    for (const inherited of ["constructor", "toString", "hasOwnProperty", "__proto__"]) {
+      expect(toSubscriptionTier(inherited), `${inherited} resolved to a tier`).toBe("free");
+      expect(
+        TIER_PERKS[toSubscriptionTier(inherited)].platformFeePercent,
+        `${inherited} produced a non-numeric commission`,
+      ).toBe(12);
+    }
+  });
+
   it("is case-sensitive — only lowercase ids match", () => {
     expect(toSubscriptionTier("PRO")).toBe("free");
     expect(toSubscriptionTier("Business")).toBe("free");
   });
 });
+
+// MONEY: a rung cheaper than Elite's floor, granted to a tier the ladder
+// assertions used to skip entirely.
+// @mutate src/lib/subscriptionTiers.ts | platformFeePercent: 9, | platformFeePercent: 2,
+// …and the prototype-lookup hole: `raw in TIER_PERKS` answers true for an
+// inherited key, so "constructor" would resolve to a tier and its commission
+// to undefined.
+// @mutate src/lib/subscriptionTiers.ts | if (raw && Object.prototype.hasOwnProperty.call(TIER_PERKS, raw)) { | if (raw && raw in TIER_PERKS) {

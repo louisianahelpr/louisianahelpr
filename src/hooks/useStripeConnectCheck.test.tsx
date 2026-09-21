@@ -211,3 +211,9 @@ describe("checkHelperAwardEligibility agrees with the server's gate", () => {
     await expect(run()).resolves.toMatchObject({ ok: false, indeterminate: true });
   });
 });
+
+// Shown able to fail:
+// Stop passing the profile's idv_status, so the gate reads the Stripe Connect flag
+// alone again and refuses payout-ready helpers the server's helper_award_block_reason()
+// would have cleared.
+// @mutate src/hooks/useStripeConnectCheck.ts | profile?.idv_status, | undefined,

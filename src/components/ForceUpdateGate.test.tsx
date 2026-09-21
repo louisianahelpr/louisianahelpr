@@ -205,3 +205,8 @@ describe("ForceUpdateGate — the block screen is not a dead end", () => {
     expect(dialog).toHaveAccessibleName(/Update Helpr to continue/i);
   });
 });
+
+// Shown able to fail:
+// Make the threshold exclusive, so the binary that is EXACTLY at min_supported_build
+// is hard-blocked with no remote un-stick — the worst outcome this gate can produce.
+// @mutate src/hooks/useVersionCheck.ts | if (installed >= required) return { status: "ok" }; | if (installed > required) return { status: "ok" };

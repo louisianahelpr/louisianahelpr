@@ -199,3 +199,8 @@ describe("AdminUserDetailDialog", () => {
     expect(screen.getByRole("button", { name: /Move to Pending/ })).toBeInTheDocument();
   });
 });
+
+// AUTHORIZATION: the self-ban guard. With `isSelf` stuck false the console
+// offers an admin the one irreversible action that locks them out of it and
+// that the database refuses outright (trg_reject_self_issued_ban, 22023).
+// @mutate src/components/admin/userDetail/ActionsTab.tsx | const isSelf = !!currentAdminId && currentAdminId === viewProfile.user_id; | const isSelf = false;

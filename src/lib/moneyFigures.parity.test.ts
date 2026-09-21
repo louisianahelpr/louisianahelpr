@@ -161,3 +161,9 @@ describe("Form 1099-K threshold — one number for the whole product", () => {
     expect(rendered).toMatch(/irs\.gov/);
   });
 });
+
+// Shown able to fail:
+// A missing/unknown tier resolves to the ELITE rate instead of the free one — the
+// never-undercharge default inverted, so every poster whose tier cannot be read is
+// charged 8% instead of 12%.
+// @mutate src/lib/subscriptionTiers.ts | TIER_PERKS[toSubscriptionTier(expired ? "free" : (rawTier ?? "").toLowerCase())].platformFeePercent | TIER_PERKS[toSubscriptionTier(expired ? "free" : (rawTier ?? "elite").toLowerCase())].platformFeePercent

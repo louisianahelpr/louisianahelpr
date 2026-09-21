@@ -212,3 +212,9 @@ describe("useMapKitJs authorization honesty", () => {
     expect(a.result.current).toBe("ready");
   }, 10_000);
 });
+
+// Shown able to fail:
+// The optimistic auth-confirm timer armed at init time again, which is exactly the
+// race that shipped: it fires at 5s while resolveToken is still burning two 8s abort
+// windows, and settles "ready" for a MapKit that was never handed a token.
+// @mutate src/hooks/useMapKitJs.ts | void resolveToken().then((t) => { | armAuthConfirmTimeout(); void resolveToken().then((t) => {

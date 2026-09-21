@@ -298,3 +298,10 @@ for (const { name, width, job } of [
     }
   });
 }
+
+// `min-w-0` on the apply body is the fix this spec was written for: without it
+// the body is a CSS-grid item at the default `min-width: auto`, and the
+// overflow-x-auto opener-chip row drags the implicit column to its 674px
+// max-content width inside a 341px box. Restore the default and every row —
+// title, earnings, counter, both buttons — runs off the right edge again.
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | min-w-0 flex flex-col gap-3.5 | flex flex-col gap-3.5

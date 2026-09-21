@@ -212,3 +212,11 @@ test("lifetime take-home is stated in exactly one place", async ({ helperPage: p
   expect(total, `lifetime completed-jobs count claimed by: ${JSON.stringify(claims)}`).toBe(1);
   expect(claims.Earnings, "the Earnings summary card is its one home").toBe(1);
 });
+
+// The length budget is only meaningful because ONE view is mounted at a time —
+// that split is what answered "entirely too long" (owner, 2026-08-28).
+// Dropping the `view === "earnings"` half of the gate mounts the Earnings
+// column underneath Payouts as well, which both blows the Payouts budget and
+// puts lifetime take-home ($1,636.80) on the Payouts view, where this spec
+// asserts it has no business being.
+// @mutate src/components/profile/EarningsTab.tsx | view === "earnings" && !loading | !loading

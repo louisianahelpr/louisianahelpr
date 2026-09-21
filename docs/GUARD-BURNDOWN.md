@@ -11,6 +11,29 @@ means youre fixing it for good."*
 *Regenerate from `npm run vacuity` + `src/test/vacuity.baseline.json`; do not
 hand-edit the numbers.*
 
+**What "proven able to fail" means here, exactly.** A guard counts as proven
+when it carries a registered `@mutate` directive AND that mutation has been
+executed and KILLED it. Checked 2026-09-21 rather than assumed:
+
+- all 249 registered guards carry a real `@mutate` — **0** are `@mutate-exempt`,
+  so none is merely *claimed*;
+- `survivingMutations` in the baseline is **empty** — no guard is grandfathered
+  as known-vacuous;
+- the per-push gate mutates only what a commit CHANGED. The thing that runs
+  every registration is the nightly full sweep (`vacuity.yml`, 06:10 UTC).
+
+**That nightly sweep had failed both times it ran**, which is how the one real
+gap surfaced: on 2026-09-21 it executed 369 registrations, killed 368, and
+`statGridFullTrackClassCheck` SURVIVED its own — a guard this chart was counting
+as proven. Fixed in `4da4b7fc1`. The 2026-09-20 run's other two survivors
+(`searchDismissAndOverlay`) were already fixed. With that, every survivor the
+sweep has ever reported is closed.
+
+So: the counts are verified, and the one guard that did not deserve its place in
+them has been repaired rather than reclassified. The honest caveat is that a
+registration proves sensitivity to the ONE line it names — `release-payout` is
+1,096 lines and two of them are pinned.
+
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
 | **`src/test/*.test.ts*`** | 193 | **193 — COMPLETE** | **0** |

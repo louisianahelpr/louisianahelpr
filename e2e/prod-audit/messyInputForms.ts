@@ -26,6 +26,50 @@ const pressIfPresent = async (page: Page, name: RegExp) => {
 };
 
 /**
+ * RECOVER THE ADMIN GATE BEFORE JUDGING AN ADMIN SCREEN.
+ *
+ * `AdminRoute` does not render the admin view until it knows the role. When
+ * the role lookup does not come back it renders a DESIGNED recovery state —
+ * "We couldn't verify your access. … Tap Try again." (AdminRoute.tsx:71-98) —
+ * a correct screen that happens to hold zero text-like fields. The sweep then
+ * counted zero and reported "the form did not render", blaming the form for a
+ * gate that never opened.
+ *
+ * Measured 2026-09-20 against prod: `profiles` (the read that lookup makes)
+ * swung between 1s and a 25s timeout while the other lanes were driving prod,
+ * and `/auth/v1/admin/generate_link` was returning 504 at the same time.
+ * Holding that read locally reproduced the CI failure exactly — 0 fields on
+ * `/admin?view=referrals`, with this screen on display — and pressing the
+ * screen's own Try again took it back to 1.
+ *
+ * So press the recovery control, which is what an admin does, and only then
+ * look for the form. It is a no-op on a healthy gate, and the field floor is
+ * untouched: an admin view that renders no field once the gate is open still
+ * fails, which is what made these eight visible in the first place.
+ */
+const recoverAdminGate = async (page: Page, budgetMs = 30_000) => {
+  const denied = page.getByText(/couldn't verify your access/i).first();
+  // `role="status"` is what both loading gates wear: AdminRoute's own
+  // HelprSpinner while the role is still in flight, and RouteSuspenseFallback
+  // while the lazy admin chunk loads. Returning while either is up would be
+  // the same silent no-op in a different costume — the prepare would press
+  // nothing and the sweep would count zero — so wait the gate out first.
+  const loading = page.getByRole("status").first();
+  const deadline = Date.now() + budgetMs;
+  let retries = 0;
+  while (Date.now() < deadline) {
+    if (await denied.isVisible().catch(() => false)) {
+      if (retries++ >= 3) return;
+      await page.getByRole("button", { name: /^try(ing)? again/i }).first().click().catch(() => {});
+      await page.waitForTimeout(2_000);
+      continue;
+    }
+    if (!(await loading.isVisible().catch(() => false))) return;
+    await page.waitForTimeout(500);
+  }
+};
+
+/**
  * OPEN THE COLLAPSED SEARCH. Five surfaces (/legal, /dashboard, /messages,
  * /my-posts, /profile?tab=saved_helpers) start with no search field in the DOM
  * at all: a magnifier trigger holds its place, and pressing it mounts the
@@ -147,21 +191,32 @@ export const FORMS: FormSpec[] = [
     prepare: async (page) => { await pressIfPresent(page, /add (a )?calendar/i); },
     covers: ["src/pages/strSettings/AddCalendarForm.tsx"],
   },
-  { name: "admin-settings", url: "/admin?view=settings", as: "admin", covers: ["src/components/admin/AdminSettings.tsx"] },
-  { name: "admin-people", url: "/admin?view=people", as: "admin", covers: ["src/components/admin/AdminUsers.tsx"] },
+  // Every admin entry opens the gate first — see `recoverAdminGate`. The four
+  // below reach their field on a healthy gate and would have reported "the
+  // form did not render" on a hiccuped one, exactly as referrals did.
+  { name: "admin-settings", url: "/admin?view=settings", as: "admin", prepare: recoverAdminGate, covers: ["src/components/admin/AdminSettings.tsx"] },
+  { name: "admin-people", url: "/admin?view=people", as: "admin", prepare: recoverAdminGate, covers: ["src/components/admin/AdminUsers.tsx"] },
   {
     // The referrals search box is scoped to the three list tabs and hidden on
     // the "Overview" tab the view opens on (`tab !== "overview"` in
     // AdminReferrals.tsx) — Overview is a stat summary with nothing to search.
+    // OPEN THE GATE, THEN WAIT FOR THE TAB, THEN PRESS IT. `pressIfPresent`
+    // presses whatever is on screen at that instant and silently does nothing
+    // when it is not, so neither a hiccuped admin gate nor a slow render left
+    // any trace: the tab strip was not there, the press never happened, the
+    // searchbox never opened, and the sweep blamed the form.
     name: "admin-referrals", url: "/admin?view=referrals", as: "admin",
     prepare: async (page) => {
-      await pressIfPresent(page, /^codes\b/i);
-      await page.getByRole("searchbox", { name: /search referrals/i }).waitFor({ timeout: 5_000 }).catch(() => {});
+      await recoverAdminGate(page);
+      const codes = page.getByRole("button", { name: /^codes\b/i }).first();
+      await codes.waitFor({ state: "visible", timeout: 30_000 }).catch(() => {});
+      if (await codes.isVisible().catch(() => false)) await codes.click();
+      await page.getByRole("searchbox", { name: /search referrals/i }).waitFor({ timeout: 10_000 }).catch(() => {});
     },
     covers: ["src/components/admin/AdminReferrals.tsx"],
   },
-  { name: "admin-subscriptions", url: "/admin?view=subscriptions", as: "admin", covers: ["src/components/admin/AdminSubscriptions.tsx"] },
-  { name: "admin-notiflogs", url: "/admin?view=notiflogs", as: "admin", covers: ["src/components/admin/AdminNotificationLogs.tsx"] },
+  { name: "admin-subscriptions", url: "/admin?view=subscriptions", as: "admin", prepare: recoverAdminGate, covers: ["src/components/admin/AdminSubscriptions.tsx"] },
+  { name: "admin-notiflogs", url: "/admin?view=notiflogs", as: "admin", prepare: recoverAdminGate, covers: ["src/components/admin/AdminNotificationLogs.tsx"] },
 ];
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */

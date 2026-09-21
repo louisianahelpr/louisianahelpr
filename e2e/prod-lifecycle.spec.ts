@@ -342,21 +342,36 @@ async function uploadProofThroughTheApp(
 
   // ONE PHOTO ASK AT A TIME, TIED TO THE TRACKER STEP (owner, 2026-09-11,
   // HelperPhotoAsk.tsx). The card no longer carries a "Before Photos" /
-  // "After Photos" pair: it renders a single panel titled "Add a before photo"
-  // or "Add an after photo" whose button reads "Add Photo". This locator used
-  // to wait for `^Before Photos$`, which stopped existing when that redesign
-  // reached production — the money loop then sat on a fully funded, hired,
-  // in-progress job for the whole five-minute test budget, and failed in a way
-  // that read like a flake rather than a selector that had gone stale.
+  // "After Photos" pair: it renders ONE ask, tied to the tracker's current
+  // step.
   //
-  // The heading is asserted FIRST so the single "Add Photo" button is known to
-  // belong to the right type; the dialog title check below confirms it again.
-  const askHeading = type === "before" ? "Add a before photo" : "Add an after photo";
+  // THIS LOCATOR HAS NOW GONE STALE TWICE, and the second time cost more than
+  // the first. It waited for `^Before Photos$` until that redesign shipped;
+  // then for a panel titled "Add a before photo" / "Add an after photo" with an
+  // "Add Photo" button. That panel is `PhotoProofStep`, which has ZERO call
+  // sites in src/ — the card renders `PhotoProofCaptureChip` instead, whose
+  // trigger is a Button carrying `aria-label="<label> — add the <type> photo
+  // for this job"` with the label "Before Photo" / "After Photo".
+  //
+  // So the money loop was waiting 30s for text nothing renders, on a fully
+  // funded, hired, in-progress job. It only became visible on 2026-09-21
+  // because the pre-sweep had been failing FIRST and skipping this spec
+  // entirely since 2026-09-19 — a stale selector hiding behind a stuck fixture.
+  //
+  // Anchored on the accessible name rather than the visible span, because that
+  // name also encodes the TYPE ("add the after photo for this job"), which is
+  // what stops a mis-click on the wrong chip when both are briefly present.
+  // The dialog title check below confirms the type a second time.
+  const askLabel = type === "before" ? "Before Photo" : "After Photo";
+  const askChip = card.getByRole("button", {
+    name: new RegExp(`^${askLabel} — add the ${type} photo for this job$`),
+  });
   await expect(
-    card.getByText(askHeading, { exact: true }),
-    `the card never asked for the ${type} photo — the app shows one ask per tracker step, so check the order`,
+    askChip,
+    `the card never asked for the ${type} photo — the app shows one ask per tracker step, so check ` +
+      `the order, and check the chip label in PhotoProof.tsx has not moved again`,
   ).toBeVisible({ timeout: 30_000 });
-  await card.getByRole("button", { name: /^Add Photo$/ }).click();
+  await askChip.click();
 
   // The dialog is portaled to <body>, so it is NOT inside `card`.
   const dialog = page.getByRole("dialog").filter({ hasText: `${label} photos` });

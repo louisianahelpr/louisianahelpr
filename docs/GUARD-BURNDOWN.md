@@ -36,11 +36,11 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| **`src/test/*.test.ts*`** | 193 | **193 — COMPLETE** | **0** |
+| **`src/test/*.test.ts*`** | 194 | **194 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
-| Playwright `e2e/**` | 60 | 13 | 47 |
+| Playwright `e2e/**` | 60 | 17 | 43 |
 | colocated beside components | 336 | 33 | 303 |
-| **total** | **642** | **292** | **350** |
+| **total** | **643** | **297** | **346** |
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 
@@ -97,6 +97,36 @@ turning up live problems the green suite never mentioned:
   the raw dollars, so the receipt and the charge disagreed with nothing to
   reconcile them.
 - **Four private storage buckets** accepted a file of any size and any type.
+
+## 17 registrations were FAKE PROOFS (2026-09-21)
+
+The directive format is `<file> | <find> | <replace>`, split on `|`. The parser
+took the first three fields and threw the rest away — so any directive whose
+find or replace contained an unescaped `||`, which most real guard conditions
+do, silently became a DIFFERENT mutation:
+
+```
+... | if (!released || released.length === 0) { | if (false) {
+->   find: "if (!released"    replace: "released.length === 0) {"
+```
+
+That splices unparseable code into the target. The guard then fails to LOAD,
+and a guard that fails is scored `killed`. So the registration reported a proof
+it had never performed, removed its file from the burn-down, and told everyone
+it was proven. **A fake kill is worse than no registration at all.**
+
+17 of 485 were in this state, four on money paths (`auto-tip-charge`,
+`calculate-tax`, `payoutClaim`, `slack-ops-alert`). The parser now rejects more
+than three fields instead of guessing.
+
+Repairing them needed an exact rule, not a heuristic: `||` is two ADJACENT
+pipes and is code; the field separator is always a LONE pipe. (Trying "pick the
+split whose find is unique in the target" was ambiguous every time, because a
+prefix of the find is unique too.)
+
+**Then all 17 were run for real, for the first time: 45/46 killed. None was
+hiding a hollow guard.** Worth stating plainly, since the opposite was the
+reasonable expectation.
 
 ## The gate itself was the biggest hollow thing in here
 

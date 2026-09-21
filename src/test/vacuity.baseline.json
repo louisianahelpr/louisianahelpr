@@ -403,13 +403,7 @@
     "src/pages/userProfile/AtAGlanceCard.test.tsx",
     "src/pages/userProfile/RecognitionRow.test.tsx",
     "src/pages/userProfile/badgeInputs.test.tsx",
-    "src/pages/userProfile/singleReviewList.test.ts",
-    "src/test/edge/exhaustivenessRegistry.test.ts",
-    "src/test/edge/harness-smoke.test.ts",
-    "src/test/edge/mapkit-token.test.ts",
-    "src/test/edge/paginate.test.ts",
-    "src/test/edge/slack-ops-alert.test.ts",
-    "src/test/edge/str-ical-safeFetch.test.ts"
+    "src/pages/userProfile/singleReviewList.test.ts"
   ],
   "noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",

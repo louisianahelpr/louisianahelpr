@@ -347,3 +347,10 @@ describe("fetchIcalFeed", () => {
     ).rejects.toThrow(/iCal fetch failed: 404/);
   });
 });
+
+// ── Shown able to fail ─────────────────────────────────────────────────────
+// THE SSRF defence, in one line: every redirect hop is re-validated. Hop 1 is
+// innocent by design, so trusting the Location header restores the exact
+// bypass proven against prod on 2026-09-01
+// (https://httpbin.org/redirect-to?url=http://127.0.0.1/ reaching loopback).
+// @mutate supabase/functions/str-ical-sync/safeFetch.ts | target = await assertPublicUrl(next.toString(), resolve); | target = next;

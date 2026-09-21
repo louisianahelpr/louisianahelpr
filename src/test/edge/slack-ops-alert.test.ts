@@ -27,7 +27,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
-import { resetSupabaseMock } from "./mocks/supabase";
+import { resetSupabaseMock, scenario } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 
 const CRON_SECRET = "cron-secret";
@@ -40,6 +40,11 @@ async function load(): Promise<EdgeHarness> {
     CRON_SECRET,
     SLACK_API_KEY: "xoxb-test",
     SLACK_OPS_CHANNEL: "#ops-alerts",
+    // The delivery-failure path builds a service-role client to record the
+    // undelivered alert in error_logs — without these it would build one
+    // against empty strings, which is not what production does.
+    SUPABASE_URL: "https://x.supabase.co",
+    SUPABASE_SERVICE_ROLE_KEY: "service-key",
   });
   return loadEdgeFunction("slack-ops-alert");
 }
@@ -188,3 +193,101 @@ describe("slack-ops-alert — only critical posts; the rest waits for the digest
     expect(slackPosts[0].attachments[0].color).toBe("#3b82f6");
   });
 });
+
+/**
+ * THE ALARM MUST NOT FAIL SILENTLY.
+ *
+ * Every caller is a fire-and-forget `net.http_post` from SQL: it cannot read
+ * the response body, cannot retry, and this function answers HTTP 200 whatever
+ * happens — deliberately, so a Slack outage never becomes the reason a dispute
+ * or a payout errors. That design makes a REJECTED post indistinguishable from
+ * a delivered one at the call site, in the one component whose entire job is to
+ * tell a human that something is broken. `channel_not_found` is the realistic
+ * one: #ops-alerts is private, so chat.postMessage refuses until the bot is
+ * invited, and nothing anywhere would have said so.
+ *
+ * So the non-throwing 200 stays, and the failure is required to leave a durable
+ * trace in `error_logs` instead. Added 2026-09-21 after a mutation run: deleting
+ * the whole `if (!res.ok || data?.ok === false)` branch from the function left
+ * this file GREEN — nothing here had ever exercised a Slack rejection, so the
+ * swallow-detection was unproven in exactly the way this module cannot afford.
+ */
+describe("slack-ops-alert — a REJECTED post is recorded, never swallowed", () => {
+  /** Whatever Slack answers for this test's post. */
+  let slackReply: { status: number; body: Record<string, unknown> };
+
+  beforeEach(() => {
+    resetSupabaseMock();
+    resetSharedMocks();
+    resetEnv();
+    slackPosts = [];
+    slackReply = { status: 200, body: { ok: true, ts: "1.0" } };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        slackPosts.push(JSON.parse(String(init.body)));
+        return new Response(JSON.stringify(slackReply.body), { status: slackReply.status });
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const errorLogInserts = () =>
+    scenario.writes.filter((w) => w.table === "error_logs" && w.op === "insert");
+
+  it("records an application-level rejection (ok:false) in error_logs and reports ok:false", async () => {
+    slackReply = { status: 200, body: { ok: false, error: "channel_not_found" } };
+    const fn = await load();
+    const res = await fn.fetch(call(fn, { kind: "payout_failed", severity: "critical", title: "t", message: "m" }));
+
+    // It DID try to post — this is a rejection, not a skip.
+    expect(slackPosts).toHaveLength(1);
+    // Still 200: a SQL caller must never see this as its own failure.
+    expect(res.status).toBe(200);
+    expect(await json(res)).toMatchObject({ ok: false, error: "channel_not_found" });
+
+    const logged = errorLogInserts();
+    expect(logged).toHaveLength(1);
+    const payload = logged[0].payload as Record<string, any>;
+    expect(String(payload.message)).toContain("channel_not_found");
+    // 'error', never 'critical': trg_error_logs_slack must not post this row,
+    // or a ratelimited Slack feeds itself (616 rows in three days, 2026-09-14).
+    expect(payload.severity).toBe("error");
+    expect(JSON.parse(String(payload.stack))).toMatchObject({
+      slack_error: "channel_not_found",
+      alert_kind: "payout_failed",
+    });
+  });
+
+  it("records an HTTP-level rejection (non-2xx) the same way", async () => {
+    slackReply = { status: 500, body: { error: "server_error" } };
+    const fn = await load();
+    const res = await fn.fetch(call(fn, { kind: "payout_failed", severity: "critical", title: "t", message: "m" }));
+
+    expect(res.status).toBe(200);
+    expect(await json(res)).toMatchObject({ ok: false, error: "server_error" });
+    expect(errorLogInserts()).toHaveLength(1);
+  });
+
+  it("writes NOTHING to error_logs when the post actually lands", async () => {
+    // The floor under the two assertions above: if every run logged, the
+    // presence of a row would prove nothing about delivery.
+    const fn = await load();
+    const res = await fn.fetch(call(fn, { kind: "payout_failed", severity: "critical", title: "t", message: "m" }));
+
+    expect(await json(res)).toMatchObject({ ok: true });
+    expect(errorLogInserts()).toHaveLength(0);
+  });
+});
+
+// ── Shown able to fail ─────────────────────────────────────────────────────
+// The whole Slack-rejection branch. Deleting it makes every refused post
+// (revoked token, renamed channel, bot never invited to the private
+// #ops-alerts) answer `{ok:true}` and leave no trace anywhere — the alarm
+// itself failing silently. Measured 2026-09-21: before the
+// "a REJECTED post is recorded, never swallowed" block above, this mutation
+// left the file GREEN.
+// @mutate supabase/functions/slack-ops-alert/index.ts | if (!res.ok || data?.ok === false) { | if (false) {

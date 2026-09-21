@@ -20,3 +20,12 @@ describe("edge harness smoke test", () => {
     expect(res.status).toBe(200);
   });
 });
+
+// ── Shown able to fail ─────────────────────────────────────────────────────
+// This is a META guard: its subject is the harness, so it is mutated against
+// the harness. `serve` is the seam where a real edge function's handler is
+// captured — half the functions reach it through this shim (create-payment
+// imports `serve` from deno.land) and the other half through `Deno.serve`.
+// Break it and no handler exists to drive, which is the one failure that would
+// make EVERY harness-based guard in src/test/edge/ meaningless at once.
+// @mutate src/test/edge/harness.ts | const serve = (h) => __hReg(h); | const serve = (h) => {};

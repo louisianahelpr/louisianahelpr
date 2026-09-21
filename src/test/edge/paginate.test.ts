@@ -468,3 +468,9 @@ describe("_shared/paginate — chunked IN lists", () => {
     expect(res.total).toBe(0);
   });
 });
+
+// ── Shown able to fail ─────────────────────────────────────────────────────
+// The completeness verdict: rows actually read vs the server's own exact
+// count. It is the ONLY thing standing between a PostgREST read silently
+// truncated at db-max-rows=1000 and a caller that believes it saw everything.
+// @mutate supabase/functions/_shared/paginate.ts | if (rows.length < total) { | if (false) {

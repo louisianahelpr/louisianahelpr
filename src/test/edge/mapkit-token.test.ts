@@ -53,3 +53,9 @@ describe("mapkit-token — mint-rate ceiling", () => {
     expect(res.status).toBe(503);
   });
 });
+
+// ── Shown able to fail ─────────────────────────────────────────────────────
+// The EF-04 ceiling itself. Removing the gate returns this anonymous endpoint
+// to unmetered hour-long Apple MapKit token minting — quota exhaustion with
+// nothing to revoke.
+// @mutate supabase/functions/mapkit-token/index.ts | if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeadersFull); |

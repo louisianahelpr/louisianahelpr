@@ -818,3 +818,12 @@ describe("the registry's checks are able to fail", () => {
     expect(claimed.has("payout_state_that_does_not_exist_yet")).toBe(false);
   });
 });
+
+// ── Shown able to fail ─────────────────────────────────────────────────────
+// D3 ENFORCED, driven from the production side rather than a synthetic
+// fixture: give a real emitter a type the notifications_type_check CHECK does
+// not list. In production that INSERT raises 23514 and the notification simply
+// never exists, with nothing on screen to say so. This proves the registry is
+// reading `supabase/functions/**` for real — the meta-tests at the bottom of
+// this file only ever exercise temp-dir fixtures.
+// @mutate supabase/functions/instant-job-match/index.ts | type: "job_match", | type: "job_match_v2",

@@ -44,6 +44,22 @@ export interface MapJob {
   urgent_fee?: number | null;
   is_group_job?: boolean | null;
   helpers_needed?: number | null;
+
+  /*
+   * Added by 20260921173413 so the map can evaluate the last three filters it
+   * could not. Owner, 2026-09-21: "the map still shows 6 jobs but 3 on the
+   * left ... when i apply they fall off the left but not the map."
+   *
+   * Optional for the same reason as every field above — between the merge and
+   * db-deploy finishing, the RPC still returns the old row and these keys are
+   * ABSENT, not null. `buildMapJobFilter` treats absent as "cannot evaluate"
+   * and `unsupportedMapFilters` keeps saying so, which is the honest state for
+   * those few minutes; a null `boosted_at` means "not boosted" and IS
+   * evaluated.
+   */
+  /** Already the first key of the RPC's ORDER BY; now projected too. */
+  boosted_at?: string | null;
+  expires_at?: string | null;
 }
 
 // The DEFAULT CAMERA: Louisiana's real geographic extent (state bounding

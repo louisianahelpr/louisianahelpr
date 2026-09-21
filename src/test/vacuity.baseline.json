@@ -188,7 +188,6 @@
     "src/lib/cppRouting.test.ts",
     "src/lib/cppRouting.test.tsx",
     "src/lib/dateUtils.test.ts",
-    "src/lib/deepLinkRoute.test.ts",
     "src/lib/displayedMoneyMatchesReality.test.ts",
     "src/lib/disputeSplitPreview.parity.test.ts",
     "src/lib/errorLogger.test.ts",

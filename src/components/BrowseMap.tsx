@@ -237,7 +237,11 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   // Filters the narrow map row has no field to evaluate. Named in the UI
   // rather than silently dropped — a filter that looks applied but isn't is
   // worse than one the app says it can't apply here.
-  const ignoredFilters = filters ? unsupportedMapFilters(filters) : [];
+  // Passed the ROWS so "unsupported" is decided by what the deployed RPC
+  // actually returns, not by a static list that stayed true long after it
+  // stopped being true. Once 20260921173413 is deployed this is [] and the
+  // chips stop appearing on their own.
+  const ignoredFilters = filters ? unsupportedMapFilters(filters, jobs) : [];
 
   const mapBoxRef = useRef<HTMLDivElement | null>(null);
 

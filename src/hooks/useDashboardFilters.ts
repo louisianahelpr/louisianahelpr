@@ -444,10 +444,17 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
       // Mirrors the list's early-access gate. Without it the map leaked
       // exactly the brand-new jobs the subscription perk exists to hold back.
       earlyAccessDelayMs: earlyAccessDelayMs(earlyAccessTier),
+      // The map evaluates `matchAvailability` itself now (2026-09-21). It
+      // needs only `date_needed` + `start_time`, which the map RPC has
+      // returned since 20260823120000 — the filter was never unsupportable
+      // there, just never wired up, and the map went on showing every pin
+      // while the list narrowed.
+      helperAvailability,
     }),
     [
       selectedCategory, searchQuery, minBudget, maxBudget, urgentOnly, boostedOnly,
       expiresWithin, matchAvailability, nearbyMiles, userLoc, earlyAccessTier,
+      helperAvailability,
     ],
   );
 

@@ -11,11 +11,24 @@
 // pages happen to be loaded. The map holds every open job, so it has to apply
 // the same predicate to its own rows.
 //
-// The map RPC deliberately returns a narrow, PII-safe row (no description, no
-// expires_at, no boost flag, no date_needed), so some filters simply have no
-// field to test. Those are named by `unsupportedMapFilters` and surfaced in the
-// UI rather than silently ignored — a filter that appears applied but isn't is
-// worse than one the app admits it can't apply here.
+// The map RPC returns a narrow, PII-safe row, so for a long time some filters
+// had no field to test. Those were named by `unsupportedMapFilters` and shown
+// in the UI rather than silently ignored — a filter that appears applied but
+// isn't is worse than one the app admits it can't apply.
+//
+// 2026-09-21: that honesty was not enough. Owner, third report of the class —
+// "the map still shows 6 jobs but 3 on the left ... when i apply they fall off
+// the left but not the map." Naming a filter as unsupported still leaves two
+// surfaces disagreeing in front of the user.
+//
+// So the fields came to the map instead. `boosted_at` and `expires_at` are now
+// projected by `get_open_jobs_for_map` (migration 20260921173413) — boosted_at
+// was already the first key of its ORDER BY and simply was not returned — and
+// availability needs only `date_needed` + `start_time`, which the RPC has
+// returned since 20260823120000 and nothing ever wired up. All three are
+// evaluated here now. `unsupportedMapFilters` survives for the deploy window
+// only: until db-deploy lands, the two new keys are ABSENT and the map says so
+// rather than pretending.
 
 import { haversineMiles } from "@/lib/geo";
 import type { MapJob } from "./config";
@@ -38,6 +51,17 @@ export interface MapJobFilterInput {
    * fresh jobs the perk is meant to gate. 0 = show everything immediately.
    */
   earlyAccessDelayMs: number;
+  /**
+   * The viewer's weekly availability, same rows the list's `matchAvailability`
+   * predicate reads. Empty = the filter cannot narrow anything, which is how
+   * the list behaves too (`matchAvailability && helperAvailability.length > 0`).
+   */
+  helperAvailability?: ReadonlyArray<{
+    day_of_week: number;
+    is_available: boolean;
+    start_time: string | null;
+    end_time: string | null;
+  }>;
 }
 
 /**
@@ -63,12 +87,25 @@ export function isAnyFilterActive(f: MapJobFilterInput): boolean {
   );
 }
 
-/** Filters the map has no field to evaluate, in user-facing wording. */
-export function unsupportedMapFilters(f: MapJobFilterInput): string[] {
+/**
+ * Filters the map has no field to evaluate, in user-facing wording.
+ *
+ * Decided from the ROWS, not from a hand-kept list: a key that is absent means
+ * the deployed RPC predates 20260921173413 and genuinely cannot be filtered on.
+ * Once db-deploy lands this returns [] and the chips stop appearing, with no
+ * second change needed — which is the point, because the previous version was
+ * a static list that stayed true long after it stopped being true.
+ *
+ * `matchAvailability` is no longer here at all: it needs only `date_needed`
+ * and `start_time`, which the RPC has always returned. It was never
+ * unsupported — just never wired up.
+ */
+export function unsupportedMapFilters(f: MapJobFilterInput, jobs: readonly MapJob[] = []): string[] {
+  const sample = jobs[0];
+  const has = (k: keyof MapJob) => sample === undefined || k in sample;
   const out: string[] = [];
-  if (f.boostedOnly) out.push("Boosted");
-  if (f.expiresWithin) out.push("Ending soon");
-  if (f.matchAvailability) out.push("Matches my availability");
+  if (f.boostedOnly && !has("boosted_at")) out.push("Boosted");
+  if (f.expiresWithin && !has("expires_at")) out.push("Ending soon");
   return out;
 }
 
@@ -96,6 +133,38 @@ export function buildMapJobFilter(f: MapJobFilterInput): (job: MapJob) => boolea
       const age = now - new Date(job.created_at).getTime();
       if (age < f.earlyAccessDelayMs) return false;
     }
+
+    /*
+     * The three the map used to ignore. Each mirrors the list's own predicate
+     * in src/hooks/useDashboardFilters.ts — deliberately the same shape, so a
+     * change to one reads as obviously needing the other.
+     *
+     * A key that is ABSENT means the deployed RPC predates 20260921173413; the
+     * filter cannot be evaluated and `unsupportedMapFilters` is telling the
+     * user so, and it must NOT cull. A key that is present and null is a real
+     * answer: `boosted_at: null` means not boosted.
+     */
+    if (f.boostedOnly && "boosted_at" in job && !job.boosted_at) return false;
+
+    if (f.expiresWithin && "expires_at" in job) {
+      if (!job.expires_at) return false; // list: `expiresWithin && !expires_at` culls
+      const hoursLeft = (new Date(job.expires_at).getTime() - now) / 36e5;
+      if (f.expiresWithin === "24h" && hoursLeft > 24) return false;
+      if (f.expiresWithin === "3d" && hoursLeft > 72) return false;
+      if (f.expiresWithin === "7d" && hoursLeft > 168) return false;
+    }
+
+    if (f.matchAvailability && (f.helperAvailability?.length ?? 0) > 0) {
+      // Noon avoids the DST edge where a midnight-parsed date lands on the
+      // previous day — same reason the list parses `${date}T12:00:00`.
+      const jobDate = new Date(job.date_needed + "T12:00:00");
+      const slot = f.helperAvailability!.find((s) => s.day_of_week === jobDate.getDay());
+      if (!slot || !slot.is_available) return false;
+      if (job.start_time && job.start_time !== "flexible" && slot.start_time && slot.end_time) {
+        if (job.start_time < slot.start_time || job.start_time > slot.end_time) return false;
+      }
+    }
+
     return true;
   };
 }

@@ -13,6 +13,7 @@ import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { findErrorScreen } from "../errorScreens";
+import { isReadRpcPath } from "../readRpc";
 import { measureLayout } from "../happy-path/auditRoutes";
 import { ANON, SUPABASE_URL, getSession as journeySession, newUserContext, rest, type Role, type Session } from "../journeys/fixtures";
 
@@ -75,19 +76,23 @@ export const SKIP_BUTTON = /back to|^back$|^close$|^×$|dismiss|skip|not now|tog
 
 /**
  * WRITE FIREWALL for the button-pressing explore. Reads are the real backend;
- * every POST/PATCH/DELETE to Supabase (REST, RPC, functions, storage) is
- * refused at the wire and logged, because an indiscriminate presser on PROD
- * must not be able to cancel a job, ban a user or send an email by pressing
- * the wrong "Confirm". Token refresh passes. Targeted specs never use this:
- * they make real writes on test-owned rows and clean them up.
+ * every POST/PATCH/DELETE to Supabase (REST, functions, storage) is refused at
+ * the wire and logged, because an indiscriminate presser on PROD must not be
+ * able to cancel a job, ban a user or send an email by pressing the wrong
+ * "Confirm". Token refresh passes, and so do the read RPCs `../readRpc.ts` classifies. Edge
+ * functions are NEVER passed — `stripe-payouts` reads, `create-payment` moves
+ * money, and one POST body does not tell them apart. Targeted specs never use
+ * this: they make real writes on test-owned rows and clean them up.
  */
 export async function writeFirewall(ctx: BrowserContext): Promise<string[]> {
   const blocked: string[] = [];
   await ctx.route(`${SUPABASE_URL}/**`, async (route) => {
     const req = route.request();
     const m = req.method();
+    const { pathname } = new URL(req.url());
     if (m === "GET" || m === "HEAD" || m === "OPTIONS" || /\/auth\/v1\/(token|user|logout)/.test(req.url())) return route.continue();
-    blocked.push(`${m} ${new URL(req.url()).pathname} ${(req.postData() ?? "").slice(0, 300)}`);
+    if (m === "POST" && isReadRpcPath(pathname)) return route.continue();
+    blocked.push(`${m} ${pathname} ${(req.postData() ?? "").slice(0, 300)}`);
     await route.abort("blockedbyclient").catch(() => {});
   });
   return blocked;

@@ -30,7 +30,9 @@ there is not even listed as unproven.
 | VISUAL | 7 | **DONE** — 120 → 113. One real vacuity + one false-positive-prone guard fixed. |
 | AUTHZ | 11 | **DONE** — 113 → 102. Three more real vacuities, two of them the worst found. |
 | SCHEMA | 13 | **DONE** — 102 → 89. One hollow (comment-satisfiable), one unregisterable. |
-| OTHER | 89 | 35 done, 21 running, 33 queued |
+| OTHER | 89 | **DONE** |
+
+**ROW 1 COMPLETE: `src/test/*.test.ts*` is 191 of 191 proven.** 25 were hollow.
 
 Then the 53 edge, the 60 e2e, the 336 colocated — all now IN the ratchet and
 baselined, so none can grow while the backlog shrinks.
@@ -138,7 +140,7 @@ So at 639/639 what is known is: *every test in the repo has been shown capable o
 failing.* NOT: every behaviour is tested. Gap 3 is the larger number and needs its
 own plan.
 
-## Hollow guards found so far: 20 of 100 proven (1 in 5)
+## Hollow guards found so far: 25 of 194 proven (1 in 7)
 
 Money, privacy, admin authorization, ban evasion, prod fixtures, the primary
 button, universal links, and the brand rule have each had one. Every live system

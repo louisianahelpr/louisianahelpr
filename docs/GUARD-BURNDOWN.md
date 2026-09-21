@@ -39,8 +39,8 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 | **`src/test/*.test.ts*`** | 194 | **194 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
 | Playwright `e2e/**` | 60 | 17 | 43 |
-| colocated beside components | 336 | 33 | 303 |
-| **total** | **643** | **297** | **346** |
+| colocated beside components | 336 | 39 | 297 |
+| **total** | **643** | **303** | **340** |
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 
@@ -97,6 +97,35 @@ turning up live problems the green suite never mentioned:
   the raw dollars, so the receipt and the charge disagreed with nothing to
   reconcile them.
 - **Four private storage buckets** accepted a file of any size and any type.
+
+## The four hollow SHAPES, so they can be looked for rather than stumbled on
+
+Every hollow guard found today was one of these. They are worth naming because
+each is invisible on a green run and obvious once you know to break the line:
+
+1. **Asserting a class name or a comment** instead of the computed result. A
+   Tailwind change that stops emitting the rule passes.
+2. **Redundant gates.** If two conditions each independently hide the thing you
+   assert on, NEITHER can be shown able to fail. `MessageActionSheet` had
+   `mine &&` inside `canEdit` plus a `{mine ? (…)}` branch choosing the whole
+   action list — every test asserted only that Edit was hidden, so breaking
+   either gate left it hidden by the other. Nothing tested that the other
+   party's message is undeletable.
+3. **A proximity assertion** — `toMatch(/X[\s\S]{0,220}Y/)`. Character distance
+   is never the property. `appleIap` asserted `throw new IapBlockedError` within
+   220 chars of `if (error)`; moving the throw OUT of the block (a purchase
+   allowed to proceed when eligibility could not be read) stayed within 220 and
+   passed. Assert containment in the actual block.
+4. **A mock default.** A chain-key mock that answers `{ data: [], error: null }`
+   for an UNREGISTERED key means a test expecting an empty/false result passes
+   whether or not the production filter exists — delete the `.eq(...)`, the key
+   changes, the default answers, the assertion still holds. And the sibling
+   shape: `waitFor(() => expect(x).toBeEmptyDOMElement())` returns on poll #1,
+   because a `useQuery` component's first paint is empty for every input.
+
+Two of these now have their own class guards
+(`src/test/waitForEmptyIsVacuous.test.ts`,
+`src/test/guardsDoNotDeleteSource.test.ts`), both ratcheted.
 
 ## 17 registrations were FAKE PROOFS (2026-09-21)
 

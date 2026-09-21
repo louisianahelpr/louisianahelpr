@@ -153,6 +153,41 @@ survivors.
   (7.11:1). NOTE for whoever takes it: `aria-hidden` does NOT clear the gate
   (axe's contrast rule matches on visual visibility, not the a11y tree), so do
   not try that first as this lane did.
+  **CLOSED** by `f148bb5c6` — all four separators inherit their line now, and
+  `node scripts/a11y/low-alpha-text-inventory.mjs` reports zero
+  `burnt-sienna / 0.5` foregrounds left in `src/`.
+
+## Low-alpha AA batch — landed `8aff7b8cc`, three things left open (2026-09-20)
+
+36 → 17 below the 4.5:1 floor. 19 declarations fixed, 7 classified in
+`src/test/lowAlphaForegroundContrast.test.ts` (5 were Lucide/SVG glyphs, not
+text; 2 meet a different WCAG threshold). Three items that lane could NOT close:
+
+- [ ] **`TrustRow`'s separator never renders.** Its only call site,
+  `JobPosterCard.tsx:133`, passes `repeatHirePercent` and nothing else, so
+  `chips.length` is at most 1 and `{i > 0 && DOT}` is never true. Reported, not
+  changed beyond the colour fix (CLAUDE.md: dead code is a REPORT). Either give
+  the call site a second signal or delete the separator — but the 1.62:1 it used
+  to carry is gone either way.
+- [ ] **The inventory scanner cannot see Tailwind's slash-opacity syntax.** It
+  matches `color: "hsl(var(--x) / N)"` and `text-[hsl(var(--x)/N)]` only, so
+  `text-muted-foreground/70` and friends are invisible to it. Proof, found by
+  the in-page scan on `/dashboard`'s job dialog: **"Save as my default pitch"
+  measures 3.08:1 light / 4.07:1 dark** and is in NO inventory. Widen the
+  regexes, then re-baseline.
+- [ ] **Three live AA failures the in-page scan surfaced outside this lane's
+  list**, all measured on prod data at 375 and 1440: the job dialog's "Save as
+  my default pitch" (above); `/messages` "Keep chats & payments on Helpr —
+  going off-platform…" at **3.95:1 dark** (full `rgb(212,103,53)` on its own
+  sienna-tinted panel); and `/my-posts`' count badge "2" at **1.27:1 dark**
+  (`rgb(20,22,26)` on `rgb(45,42,35)`).
+- [ ] **Four of the changed sites were never photographed in their own state**
+  and are verified by token maths only: `ui/calendar`'s weekday header (the
+  `?tab=schedule` grid is ScheduleTab's OWN calendar, not this primitive — its
+  real call sites are DatePickerField and EarningsExport), `JobDetailDialog`'s
+  Read More (needs a description over 180 chars), `ApplicantsPanel`'s "% applied"
+  (needs an open panel on a job with reach), and `HelprWrapped`'s undercount
+  warning (needs a partial query failure).
 
 - **`src/components/activity/appliedJobCard/ConfirmedSection.test.tsx` failed
   2 of 5 on main** while this lane ran. Reproduced identically at `2127dfbd2`

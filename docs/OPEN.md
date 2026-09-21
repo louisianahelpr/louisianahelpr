@@ -3284,6 +3284,45 @@ Still red overall, but NOT for the tracked reason.
   nondeterminism the overlay sweep hit, where fixture dates relative to `now`
   change which chips a card renders.
 
+### `scrollWidth <= clientWidth` cannot see overflow in THIS codebase (2026-09-21)
+
+`src/index.css` sets `body { overflow-x: hidden }` deliberately, to absorb the
+`.full-bleed` `-50vw` trick's 1-2px spill on platforms where `100vw` includes
+the scrollbar. It also suppresses the SYMPTOM: `documentElement.scrollWidth`
+stops growing, so content genuinely off the side of a phone reports as fitting.
+Measured — a 1400px-wide element in the landing hero at a 320px viewport left
+the assertion GREEN on all five viewports.
+
+**CLAUDE.md is not wrong here, and this is not a request to change it.** Its
+rule already has two clauses: "assert `documentElement.scrollWidth <=
+clientWidth`, **no element wider than the viewport**". The second clause is the
+one that actually does the work in this codebase. `mobile-viewports.spec.ts`
+implemented only the first, and was therefore unable to fail for its headline
+concern while running green in CI.
+
+- [x] Checked every file in the repo that asserts `scrollWidth`: all of them
+  also measure per-element rects, so the fleet is not broadly blind. The
+  `measureLayout` helper in `auditRoutes.ts` already reports
+  `overflowOffenders` for exactly this reason and both sweeps assert on it.
+- [ ] **When writing any new fit check, implement BOTH clauses.** The first
+  alone is inert here, and it is the more obvious one to reach for.
+
+### A check that SKIPS when its selector misses is a deleted check (2026-09-21)
+
+`mobile-viewports.spec.ts` had `test.skip(true, "…update selector")` on a
+selector miss. It targeted `src/components/landing/PhoneCluster.tsx`, which no
+longer exists, via a pill that appears nowhere in `src/`. CI reported
+20 passed / 5 skipped and read green.
+
+This is the worst available shape because **the miss and the regression are the
+same event**: a layout change is what makes a selector stop matching, so the
+check disarms itself in precisely the circumstance it exists to detect.
+
+- [ ] Three instances exist repo-wide. This one is deleted (a sibling covers
+  the concern directly at all five widths). The other two are defensible — a
+  network-dependent AASA fetch and a journeys fixture helper — so a ratchet
+  would be mostly noise. Reported rather than guarded, deliberately.
+
 ### Two AA contrast failures from the overlay sweep — REAL, causes UNCONFIRMED (2026-09-21)
 
 Both come from the overlay sweep's axe pass (impact "serious") and both ratios

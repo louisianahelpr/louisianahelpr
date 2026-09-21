@@ -71,6 +71,9 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const ROOT = resolve(__dirname, "../../..");
 
+/** Budget for a React.lazy import + its transform on a cold module cache. */
+const LAZY_MS = 15_000;
+
 const QUEUE_ROW = {
   job_id: "6f1c3d12-0a4c-4f2f-9f2d-5c1f0b8a7e21",
   title: "Haul off storm debris",
@@ -110,9 +113,27 @@ describe("/admin?view=stalled actually renders the stuck-job queue", () => {
 
     // The section header the page derives from VIEW_LABELS…
     expect(await screen.findByRole("heading", { level: 1, name: "Stuck Jobs" })).toBeInTheDocument();
-    // …and the lazy component the switch mounts under it, with real data.
-    expect(await screen.findByText("Haul off storm debris")).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: "Mark Reviewed" })).toBeInTheDocument();
+    /*
+     * …and the lazy component the switch mounts under it, with real data.
+     *
+     * LAZY_MS, not findBy's 1s default. `AdminStalledJobs` is reached through
+     * React.lazy, so this assertion waits on a dynamic import that vitest must
+     * still transform. Inside the full suite the module cache is warm and 1s is
+     * plenty; standing alone it is a coin flip, and this file FAILED on its own
+     * while passing in CI (measured 2026-09-21).
+     *
+     * That is worse than a slow test: the vacuity gate runs a guard ALONE when
+     * it applies a mutation, so a guard that is red on its own is scored
+     * `killed` for a reason that has nothing to do with the mutation — a proof
+     * it never performed. Both registrations below were in that state.
+     *
+     * The timeout does not weaken anything. If the queue never mounts, this
+     * still fails; it just stops failing for being cold.
+     */
+    expect(await screen.findByText("Haul off storm debris", {}, { timeout: LAZY_MS })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Mark Reviewed" }, { timeout: LAZY_MS }),
+    ).toBeInTheDocument();
     // The one sentence this screen must keep true, rendered in situ.
     expect(screen.getByText(/Nothing here moves money/)).toBeInTheDocument();
   });

@@ -319,8 +319,34 @@ export function collectMutations(guards = guardFiles()) {
 export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
   const results = [];
 
-  // One batched baseline run: a guard that is already red proves nothing, and
-  // running each guard twice would double the wall clock for no information.
+  /*
+   * THE BASELINE MUST RUN THE GUARD THE SAME WAY THE MUTATION WILL — ALONE.
+   *
+   * This used to take ONE batched vitest run over every guard and only narrow
+   * to individual runs when that batch came back red, to avoid "running each
+   * guard twice for no information". There IS information in the second run,
+   * and skipping it manufactured fake kills:
+   *
+   *   baseline:  runVitest([...all guards])   <- batched, GREEN
+   *   mutation:  runGuard(one guard)          <- ALONE,   red
+   *   verdict:   killed
+   *
+   * A guard that is green in a batch and red on its own — a warm module cache
+   * for a React.lazy import, a global another spec happens to set, an
+   * ordering dependency — fails the mutated run for a reason that has nothing
+   * to do with the mutation, and is scored as a proof. That is the same
+   * "reported a proof it had not performed" defect as the unescaped-`||`
+   * parse bug above, arriving through a different door.
+   *
+   * Measured 2026-09-21: src/components/admin/adminStalledJobsWiring.test.tsx
+   * passes in the suite and fails standing alone (its lazily-mounted queue
+   * needs longer than findBy's 1s default once the module cache is cold). Any
+   * registration on it would have scored a fake kill.
+   *
+   * So: one solo run per guard, and the cost is accepted. The gate normally
+   * mutates only the registrations changed since origin/main, where this is a
+   * handful of runs; the full sweep is nightly and has the wall clock.
+   */
   const guards = [...new Set(mutations.map((m) => m.guard))];
   const baselineRed = new Set();
   const baselineWhy = new Map();
@@ -328,11 +354,28 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
   // its own CLI run against the built preview.
   const pw = guards.filter(isPlaywrightGuard);
   const vt = guards.filter((g) => !isPlaywrightGuard(g));
-  if (vt.length) {
-    const b = runVitest(vt);
-    if (!b.green) {
-      // Narrow: find which ones are red, one at a time, only when the batch is red.
-      for (const g of vt) if (!runVitest([g]).green) baselineRed.add(g);
+  for (const g of vt) {
+    const r = runVitest([g]);
+    if (r.green) continue;
+    baselineRed.add(g);
+    baselineWhy.set(g, r.out.trim().split("\n").slice(-25).join("\n"));
+  }
+  /*
+   * A guard red ALONE but green TOGETHER is its own finding, not just a skip:
+   * it means that guard's green in CI is borrowed from whatever else the suite
+   * happened to load first. Name it, because it is invisible in a normal
+   * `vitest run`.
+   */
+  if (baselineRed.size && vt.length > 1) {
+    const together = runVitest(vt);
+    if (together.green) {
+      process.stderr.write(
+        `\n! TEST ISOLATION: ${baselineRed.size} guard(s) are RED standing alone and GREEN in the\n` +
+          `  batch, so their passing grade in CI depends on another spec running first:\n` +
+          [...baselineRed].map((g) => `    ${g}`).join("\n") +
+          `\n  Each is reported inconclusive below rather than scored. Fix the isolation —\n` +
+          `  a guard that only passes with company cannot be trusted to fail on its own.\n`,
+      );
     }
   }
   // The FIRST playwright baseline builds dist/ (the preview may be stale or

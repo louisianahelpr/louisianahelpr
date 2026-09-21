@@ -851,14 +851,39 @@ test.describe("full money loop against production", () => {
        Before AND after, because `hasRequiredProof` demands both and there is no
        reason to prove one path and stub the other. */
     const proofDir = mkdtempSync(join(tmpdir(), "lh-proof-"));
-    // AFTER FIRST, then before — the order the app asks in. With arrival
-    // confirmed the card is on the Working step, and HelperPhotoAsk puts the
-    // After ask first there (a finished-work photo is the step's own ask; a
-    // still-missing Before only appears once the After exists). Uploading
-    // Before first waits for a panel the app will not render yet.
-    const afterPath = await uploadProofThroughTheApp(page, helper, job.id, runId, "after", proofDir);
-    // No navigation: the card must move to the before ask by itself.
-    const beforePath = await uploadProofThroughTheApp(page, helper, job.id, runId, "before", proofDir, false);
+    /* BEFORE, then START WORKING, then AFTER — the order the app actually asks
+       in, corrected 2026-09-21.
+       This read "AFTER FIRST, then before", on the stated grounds that "with
+       arrival confirmed the card is on the Working step". It is not. Arrival is
+       confirmed here through `mark_helper_arrival` and a jobs PATCH, which
+       writes `helper_arrival_verified_at` / `poster_confirmed_arrival_at` — and
+       creates NO `job_tracking` row. The card therefore renders OnSiteStep, and
+       HelperPhotoAsk's on_site branch offers the BEFORE ask and only that one.
+       The Working step, where the After ask lives, begins when the helper
+       presses the tracker's "Start Working".
+       Verified on prod: not one of the loop's jobs has a job_tracking row — the
+       newest in the table is 2026-09-15 — so this loop has never reached the
+       Working step at all. It passed until 2026-09-19 because the photo ask was
+       a different component then; the three commits that day made it one ask
+       per tracker step, and this order stopped matching the app. Nobody saw it
+       because the pre-sweep was failing first and skipping this spec. */
+    const beforePath = await uploadProofThroughTheApp(page, helper, job.id, runId, "before", proofDir);
+
+    // The tracker's own next-step CTA. Pressing it is what writes
+    // job_tracking.status = 'working', which is the state the After ask belongs
+    // to — doing it through the button rather than the table keeps this a
+    // journey rather than a fixture edit.
+    const trackerCard = page.locator("div.liquid-glass").filter({ hasText: runId }).first();
+    const startWorking = trackerCard.getByRole("button", { name: /^Start Working$/ });
+    await expect(
+      startWorking,
+      "the card never offered Start Working, so the tracker cannot reach the step the After photo " +
+        "ask belongs to — check the arrival legs above actually landed",
+    ).toBeVisible({ timeout: 30_000 });
+    await startWorking.click();
+
+    // No navigation: the card must move to the After ask by itself.
+    const afterPath = await uploadProofThroughTheApp(page, helper, job.id, runId, "after", proofDir, false);
 
     /* THE OBJECT EXISTS — asked of storage, not of the app that just claimed
        it. Listed as the HELPER (the `Users can read proof photos for their

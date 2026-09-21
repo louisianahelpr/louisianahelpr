@@ -10,11 +10,11 @@ means youre fixing it for good."*
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| `src/test/*.test.ts*` (the ratchet) | 190 | **70** | **120** |
+| `src/test/*.test.ts*` (the ratchet) | 190 | **77** | **113** |
 | `src/test/edge/` | 53 | 0 | 53 |
 | Playwright `e2e/**/*.spec.ts` | 60 | 0 | 60 |
 | colocated beside components | 336 | 0 | 336 |
-| **total** | **639** | **70** | **569** |
+| **total** | **639** | **77** | **562** |
 
 Only the first row is enforced today (`.github/workflows/vacuity.yml`, on every push
 and PR, plus a full mutation sweep nightly at 06:10 UTC). The ratchet's baseline may
@@ -27,8 +27,8 @@ there is not even listed as unproven.
 |---|---|---|
 | MONEY | 4 | **DONE** — 129 → 125. Two real vacuities found. |
 | BROWSE | 5 | **DONE** — 125 → 120. One real vacuity found. |
-| VISUAL | 7 | running |
-| AUTHZ | 11 | 6 running, 5 queued |
+| VISUAL | 7 | **DONE** — 120 → 113. One real vacuity + one false-positive-prone guard fixed. |
+| AUTHZ | 11 | running (6 + 5) |
 | SCHEMA | 13 | |
 | OTHER | 89 | |
 
@@ -56,6 +56,18 @@ A second, partial hollowness in the same bucket: `mapMarkerAccessibleName` floor
 its FILE list rather than its construct inventory, so after the Leaflet→MapKit port
 two of its three branches matched nothing and a file pinned in the floor
 contributed zero constructs. Given a construct-count floor.
+
+**VISUAL found a fourth, on the owner's own primary-button rule.**
+`glossyPrimaryInvariant` counts occurrences of the shared gloss class over RAW
+source. Repainting the real CTA in `button.tsx` from `btn-grad-primary` to a flat
+`bg-primary` — the app's actual primary button going flat — left it **GREEN**,
+because a *comment* ("all three applied btn-grad-primary") supplied the second
+occurrence the `>= 2` count needed. Comments are now stripped first.
+
+Same bucket: `twoFontTypeSystem` scanned raw lines, so prose naming `font-serif`
+reported itself — the false positive that bit this repo earlier in the month. Now
+blanks comments while preserving line numbers, and has an inventory floor; an empty
+`walk()` would have passed both of its scans vacuously.
 
 Also recorded: `giftCardNaming.test.ts` is a regex for a retired product name. It
 never sees an amount and **could not have caught** the same-day bug where the client

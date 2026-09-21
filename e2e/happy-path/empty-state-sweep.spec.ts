@@ -82,6 +82,7 @@ import {
   ADMIN_SCREENS,
   ANON_SCREENS,
   AUTHED_SCREENS,
+  catalogLandingFor,
   measureLayout,
   settleAnimations,
   type LayoutReport,
@@ -196,35 +197,30 @@ const MIN_MAIN_TEXT = 20;
  * Measured 2026-09-21, these are the routes that legitimately land elsewhere.
  * Each is a real redirect with a real reason, not a workaround:
  */
+/**
+ * The ROUTER aliases — /settings, /earnings, /gift-card and the rest — are NOT
+ * listed here any more. They are declared on the catalog rows themselves
+ * (`redirectsTo` in auditRoutes.ts) and read back through `catalogLandingFor`,
+ * because this file and overlay-sweep.spec.ts were each maintaining their own
+ * copy of the same map. Two hand-kept lists of the same fact is how the catalog
+ * and the sweeps drift apart, which is the failure this whole check exists to
+ * catch.
+ *
+ * What remains below is the set this file alone can know: landings that depend
+ * on the FIXTURE STATE rather than on the route table. A different sweep with a
+ * different fixture lands differently, so these cannot live in the catalog.
+ */
 const EXPECTED_LANDING: Record<string, string> = {
   // ── Visited in the ANON pass, so ProtectedRoute sends them to the gate ──
   "/account-banned": "/login",
   "/account-denied": "/login",
   "/account-pending": "/login",
 
-  // ── Aliases that forward into a /profile tab ───────────────────────────
-  // Seven catalog entries, ONE rendered screen. The sweep has been auditing
-  // /profile seven times over and reporting it as seven routes; that is the
-  // "audit one screen N times" collapse the file header warns about, already
-  // happening. Left as-is here because the redirects themselves are correct —
-  // but the catalog claims coverage it does not have, which is a finding for
-  // auditRoutes.ts, not something this file should paper over silently.
-  "/availability": "/profile",
-  "/earnings": "/profile",
-  "/gift-card": "/profile",
-  "/saved-helpers": "/profile",
-  "/saved-helprs": "/profile",
-  "/schedule": "/profile",
-  "/settings": "/profile",
-
-  // ── Other permanent forwards ───────────────────────────────────────────
-  "/activity": "/my-posts",
   // The fixture profile is COMPLETE, so the Big 7 gate is satisfied and this
   // forwards on. That is what makes the ProtectedRoute mutation registered at
   // the bottom of this file provable: invert the gate and every OTHER route
   // starts bouncing to /complete-profile instead.
   "/complete-profile": "/dashboard",
-  "/data-rights": "/privacy",
 };
 
 /**
@@ -232,9 +228,13 @@ const EXPECTED_LANDING: Record<string, string> = {
  * table answering [] the job does not exist, so the detail route forwards to
  * the dashboard. That is correct behaviour for a missing job — but it does
  * mean these rows audit /dashboard, not a job page.
+ *
+ * Catalog aliases are compared at PATH granularity here, matching every other
+ * comparison in this sweep: `/earnings` declares `/profile?tab=earnings`, and
+ * what this file measures is `/profile`.
  */
 const expectedLandingFor = (path: string): string | undefined =>
-  path.startsWith("/jobs/") ? "/dashboard" : EXPECTED_LANDING[path];
+  EXPECTED_LANDING[path] ?? catalogLandingFor(path)?.split("?")[0];
 
 // Noise the HARNESS causes, not the app. Left unfiltered these appear on every
 // screen and drown the real findings.

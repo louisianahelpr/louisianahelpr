@@ -112,7 +112,7 @@ export function distinctScreens(rows: ScreenSpec[]): ScreenSpec[] {
  * overlay-sweep each hand-maintained their own copy of this map, which is
  * exactly how the catalog and the sweeps drift apart.
  */
-export function expectedLandingFor(url: string): string | undefined {
+export function catalogLandingFor(url: string): string | undefined {
   // Every signed-in visitor to a job detail is forwarded to the dashboard
   // (src/pages/JobDetail.tsx), so this cannot be a per-row literal.
   if (url.startsWith("/jobs/")) return "/dashboard";

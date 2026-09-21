@@ -16,7 +16,7 @@
  */
 import { describe, expect, it } from "vitest";
 // @ts-expect-error — plain .mjs helper shared with the sweeper script
-import { summariseSweep, DEFERRED_STALE_MS } from "../../scripts/e2e/sweepSummary.mjs";
+import { summariseSweep, DEFERRED_STALE_MS, classifyCancelEscrow } from "../../scripts/e2e/sweepSummary.mjs";
 
 const NOW = Date.parse("2026-09-20T09:00:00Z");
 const at = (iso: string) => ({ id: iso, created_at: iso });
@@ -64,3 +64,60 @@ describe("summariseSweep", () => {
     expect(summariseSweep({ listed: 6, deferred: [], now: NOW }).line).toBe("OK — all stranded rows unwound.");
   });
 });
+
+/*
+ * THE DISPUTE ARM, and why its absence cost two nights of the money loop.
+ *
+ * `cancel_escrow` answers 409 "This job is under dispute, so its payment can't
+ * be cancelled or refunded here. An admin will decide where the payment goes."
+ * That refusal is the product WORKING — the escrow of a disputed job is exactly
+ * what must not be unwound behind the admin who will decide where it goes.
+ *
+ * The sweeper had no arm for it, so it fell through to the generic non-OK
+ * branch and became a hard failure. Measured 2026-09-21: job e7e09075
+ * ("[E2E DO NOT ACCEPT] automated lifecycle", is_seed, the shared
+ * poster-e2e/helper-e2e pair) went into dispute on 2026-09-19 and was never
+ * resolved, and every scheduled run of the nightly real-money journey — the
+ * highest-stakes check in this repo — died on it.
+ *
+ * The distinction this pins is between "the product refused, correctly" and
+ * "the product could not do the thing". Only the second is a fault.
+ */
+describe("classifyCancelEscrow", () => {
+  const DISPUTE_409 =
+    '{"error":"This job is under dispute, so its payment can\'t be cancelled or refunded here. ' +
+    'An admin will decide where the payment goes."}';
+
+  it("a disputed job is reported, not a failure", () => {
+    expect(classifyCancelEscrow(409, DISPUTE_409)).toBe("disputed");
+  });
+
+  it("a hired funded leftover still settles forward", () => {
+    expect(classifyCancelEscrow(409, '{"error":"...","useCancelJob":true}')).toBe("settle-forward");
+  });
+
+  it("any other refusal is still a FAILURE — the arm must not swallow real defects", () => {
+    // The direction that matters in reverse: if every 409 were forgiven, a
+    // genuine break in the cancel path would go unnoticed, which is the defect
+    // the sweeper's hard failure exists to catch.
+    expect(classifyCancelEscrow(409, '{"error":"already been released"}')).toBe("failure");
+    expect(classifyCancelEscrow(500, "boom")).toBe("failure");
+    expect(classifyCancelEscrow(403, "")).toBe("failure");
+  });
+
+  it("a success is a success", () => {
+    expect(classifyCancelEscrow(200, "{}")).toBe("ok");
+    expect(classifyCancelEscrow(204, "")).toBe("ok");
+  });
+
+  it("does not match the word 'dispute' in an unrelated message", () => {
+    // "under dispute" is the phrase the edge function actually sends; a looser
+    // /dispute/ would forgive, say, a dispute-adjacent 500.
+    expect(classifyCancelEscrow(500, "dispute service unavailable")).toBe("failure");
+  });
+});
+
+// Without the dispute arm the refusal falls through to the generic non-OK
+// branch and becomes a hard failure — which is exactly how one unresolved test
+// fixture reddened the nightly money loop for two days.
+// @mutate scripts/e2e/sweepSummary.mjs | if (status === 409 && /under dispute/i.test(body)) return "disputed"; |

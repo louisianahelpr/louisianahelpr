@@ -56,3 +56,34 @@ export function summariseSweep({ listed, deferred = [], now = Date.now() }) {
       : `OK — every other stranded row unwound; ${head}.`,
   };
 }
+
+/**
+ * What a `cancel_escrow` answer MEANS, as a pure function.
+ *
+ * Extracted 2026-09-21 because the branching lived inline in the sweeper's
+ * network loop, where it could not be tested — and one missing arm of it made
+ * the nightly money loop red for two days.
+ *
+ * The three answers are genuinely different things, and only one is a fault:
+ *
+ *   "settle-forward"  409 + useCancelJob — a hired, funded leftover. Cancelling
+ *                     it here would record a cancel_with_helper strike against
+ *                     poster-e2e, and three of those restrict the account for
+ *                     7 days and break every nightly journey. It settles
+ *                     forward via auto-release instead.
+ *   "disputed"        409 + "under dispute" — the escrow of a disputed job must
+ *                     NOT be unwound behind the admin who will decide where it
+ *                     goes. This refusal is the product working. Treating it as
+ *                     a stranded row is what turned ONE unresolved test fixture
+ *                     (e7e09075, disputed 2026-09-19) into a nightly red.
+ *   "failure"         anything else non-OK — a real defect in the cancel path.
+ *
+ * Both 409s are REPORTED, never fatal. The distinction that matters is between
+ * "the product refused, correctly" and "the product could not do the thing".
+ */
+export function classifyCancelEscrow(status, body = "") {
+  if (status >= 200 && status < 300) return "ok";
+  if (status === 409 && /"useCancelJob"\s*:\s*true/.test(body)) return "settle-forward";
+  if (status === 409 && /under dispute/i.test(body)) return "disputed";
+  return "failure";
+}

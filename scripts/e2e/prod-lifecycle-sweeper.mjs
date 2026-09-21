@@ -47,7 +47,7 @@
 //   SUPABASE_URL=… SUPABASE_ANON_KEY=… POSTER_ACCESS_TOKEN=… \
 //     node scripts/e2e/prod-lifecycle-sweeper.mjs [--dry-run]
 import { removeJobMediaRest } from "../lib/jobMediaRest.mjs";
-import { summariseSweep } from "./sweepSummary.mjs";
+import { summariseSweep, classifyCancelEscrow } from "./sweepSummary.mjs";
 
 const BASE = (process.env.SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
 const ANON = process.env.SUPABASE_ANON_KEY || "";
@@ -76,7 +76,7 @@ const H = {
 /** Jobs this suite created that are not settled. */
 async function strandedJobs() {
   const url =
-    `${BASE}/rest/v1/jobs?select=id,title,status,payment_status,stripe_session_id,created_at,customer_id,helper_id` +
+    `${BASE}/rest/v1/jobs?select=id,title,status,payment_status,stripe_session_id,created_at,customer_id,helper_id,disputed_at` +
     `&title=like.*${encodeURIComponent(E2E_TITLE_MARKER)}*` +
     `&payment_status=not.in.(released,refunded,cancelled)` +
     `&order=created_at.asc`;
@@ -165,6 +165,7 @@ const failures = [];
    rows in escrow, the oldest from 2026-09-15, none of which had settled
    forward in five days, and every nightly log had reported OK. */
 const deferred = [];
+const disputed = [];
 for (const job of jobs) {
   /* A Checkout Session id proves a session was MINTED, not that it was paid —
      it is set by create-payment before the poster ever sees the card form. This
@@ -239,7 +240,8 @@ for (const job of jobs) {
     if (!r.ok) failures.push(`cancel ${job.id}: HTTP ${r.status} ${r.body}`);
   } else if (funded) {
     const r = await cancelEscrow(job.id);
-    if (r.status === 409 && /"useCancelJob":true/.test(r.body)) {
+    const verdict = classifyCancelEscrow(r.status, r.body);
+    if (verdict === "settle-forward") {
       /* cancel_escrow only refunds an OPEN job with no Helpr since the
          dispute-races branch (a hired job has a cancellation-fee ladder the
          direct refund skipped). It is deliberately NOT cancelled here instead:
@@ -250,7 +252,33 @@ for (const job of jobs) {
          run's release) — reported, never a failure. */
       console.log(`    left to settle forward: ${job.id} is hired and funded (cancel_escrow 409 useCancelJob)`);
       deferred.push(job);
-    } else if (!r.ok) failures.push(`cancel_escrow ${job.id}: HTTP ${r.status} ${r.body}`);
+    } else if (verdict === "disputed") {
+      /* A DISPUTED JOB IS NOT A STRANDED ROW, and treating it as one turned
+         ONE fixture into a nightly red.
+         Measured 2026-09-21: job e7e09075 ("[E2E DO NOT ACCEPT] automated
+         lifecycle", is_seed, the shared poster-e2e/helper-e2e pair) went into
+         dispute on 2026-09-19 and was never resolved. Every scheduled money
+         loop since died here, because `cancel_escrow` answered 409 "This job
+         is under dispute, so its payment can't be cancelled or refunded here.
+         An admin will decide where the payment goes." — which is CORRECT.
+         The escrow of a disputed job is exactly what must not be unwound
+         behind an admin's back.
+         So the sweeper was failing on the one answer that proves the product
+         is behaving. The cost is out of all proportion: the nightly real-money
+         journey is the highest-stakes check in this repo, and it was red for
+         two days over a test row awaiting a decision nobody had made.
+         Reported with its age, never a failure — the same treatment as the
+         useCancelJob case above. An OLD one is still worth a human's
+         attention, so the age is printed rather than swallowed. */
+      const disputedFor = job.disputed_at
+        ? `${Math.floor((Date.now() - Date.parse(job.disputed_at)) / 86_400_000)}d`
+        : "unknown age";
+      console.log(
+        `    awaiting an admin decision: ${job.id} is under dispute (${disputedFor}) — ` +
+          `escrow deliberately left alone`,
+      );
+      disputed.push(job);
+    } else if (verdict === "failure") failures.push(`cancel_escrow ${job.id}: HTTP ${r.status} ${r.body}`);
   } else {
     // Walk the status back to 'open' first when the run got as far as hiring or
     // completing — the DELETE policy will not touch anything else.
@@ -288,5 +316,25 @@ if (!summary.ok) {
   console.log(
     `::warning title=Stranded funded test jobs are not settling forward::${summary.stale.length} ` +
       `test-owned job(s) have sat in escrow past 48h: ${summary.stale.map((r) => r.id).join(", ")}`,
+  );
+}
+
+/*
+ * Disputed rows, on the same terms as the deferred ones above: VISIBLE, never
+ * an exit code. The sweeper must not unwind a disputed escrow — that decision
+ * is an admin's — but a dispute nobody resolves quietly blocks every later
+ * cleanup of that job, so it cannot be swallowed either.
+ */
+if (disputed.length) {
+  const ages = disputed.map((j) => ({
+    id: j.id,
+    days: j.disputed_at ? (Date.now() - Date.parse(j.disputed_at)) / 86_400_000 : NaN,
+  }));
+  const oldest = ages.reduce((a, b) => ((b.days || 0) > (a.days || 0) ? b : a));
+  console.log(
+    `::warning title=Test jobs awaiting an admin dispute decision::${disputed.length} ` +
+      `test-owned job(s) are under dispute and their escrow is deliberately untouched; ` +
+      `oldest ${oldest.id} at ${Number.isFinite(oldest.days) ? oldest.days.toFixed(1) : "?"} day(s). ` +
+      `Resolve it in the admin console — until then this job cannot be cleaned up.`,
   );
 }

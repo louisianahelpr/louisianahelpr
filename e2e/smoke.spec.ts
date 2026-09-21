@@ -24,6 +24,13 @@ async function expectClean(page: import("@playwright/test").Page) {
   return errors;
 }
 
+// Shown able to fail on the contract this file states most precisely: /terms,
+// /privacy and /rules became their own <Legal> routes on 2026-09-11 because the
+// old <Navigate> hop cost a full extra routing round-trip on the coldest path
+// there is — a fresh tab opened from the signup consent checkboxes. Putting the
+// redirect back moves the URL to /legal and reds `toHaveURL(/\/terms$/)`.
+// @mutate src/App.tsx | <Route path="/terms" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} /> | <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />
+
 test.describe("public landing", () => {
   test("homepage renders the marketing hero", async ({ page }) => {
     const errors = await expectClean(page);

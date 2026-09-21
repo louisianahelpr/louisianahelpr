@@ -81,6 +81,14 @@ function adminRpcNames(): string[] {
   return [...names].sort();
 }
 
+// Shown able to fail on the exact miss this file's own comment describes: a
+// READ whose name carries no read verb, so the firewall refuses it and the
+// screen renders a load failure while the app is fine. Renaming the support
+// queue's CALL SITE leaves it matched by neither READ_RPC nor WRITE_RPC, which
+// is the state `admin_support_queue` (2026-09-13) and `admin_stalled_job_queue`
+// (2026-09-19) were each in before someone noticed by hand.
+// @mutate src/components/admin/AdminSupport.tsx | rpc("admin_support_queue" | rpc("admin_support_items"
+
 test("the admin view inventory is parsed (non-empty, includes tiers)", () => {
   expect(VIEWS.length).toBeGreaterThan(10);
   expect(VIEWS).toContain("tiers");

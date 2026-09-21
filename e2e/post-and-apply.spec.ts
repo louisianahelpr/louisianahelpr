@@ -34,6 +34,12 @@ async function expectClean(page: import("@playwright/test").Page) {
 // found four real failures, including the stale locator below. Reported to the
 // orchestrator for a wiring decision rather than wired here unilaterally.
 
+// Shown able to fail on the regression it was written for. The header of the
+// third test names it: the CTA used to route to /signup, and "not /signup,
+// which was the pre-fix bug today" is the whole reason that test exists.
+// Sending the hero's Browse CTA back to /signup reproduces it exactly.
+// @mutate src/components/landing/HeroSection.tsx | <Link to={loggedIn ? "/dashboard" : "/browse"}> | <Link to={loggedIn ? "/dashboard" : "/signup"}>
+
 test.describe("post + apply baseline", () => {
   test("/post-job redirects anonymous to a valid surface (no crash)", async ({ page }) => {
     const errors = await expectClean(page);

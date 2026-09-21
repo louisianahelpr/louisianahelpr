@@ -55,6 +55,12 @@
  * Per CLAUDE.md they are not evidence until someone has LOOKED:
  * `npm run review:record -- <png> <screen> <checked> <ok|defect>`.
  */
+// Shown able to fail on clause (a) and (b) together: the open field must take
+// FREE space, never a sibling's, and must not push the page. `min-w-0` on the
+// search wrapper is what lets it shrink inside its flex row; demanding 900px
+// instead makes it both steal from its siblings and hang off the right edge.
+// @mutate src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx | relative flex-1 min-w-0 lg:max-w-md | relative flex-1 min-w-[900px] lg:max-w-md
+
 import { test, expect, type Page, type Browser, type TestInfo } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -169,6 +175,52 @@ async function overflowOf(page: Page) {
   return page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     clientWidth: document.documentElement.clientWidth,
+    /**
+     * `scrollWidth` alone cannot see clause (b), and the reason is our own CSS.
+     * `src/index.css` sets `body { overflow-x: hidden }` to absorb the 1-2px the
+     * .full-bleed -50vw trick spills, which also stops documentElement.scrollWidth
+     * growing. Measured 2026-09-21 in mobile-viewports: a deliberately 1400px-wide
+     * element left the identical comparison reading equal at every width.
+     *
+     * That matters most HERE, because "an expanding field is a width change" is
+     * the entire reason this file exists — the one clause it could not have
+     * detected. A bounding rect ignores an ancestor's clip, which is the second
+     * half of CLAUDE.md's proof-of-fit rule and what `measureLayout` in
+     * auditRoutes.ts has always used as `overflowOffenders`.
+     */
+    pastRightEdge: (() => {
+      const vw = window.innerWidth;
+      const out: string[] = [];
+      // An ancestor that legitimately clips or SCROLLS on the x-axis makes a
+      // child past the right edge correct, not a defect — a side-scrolling tab
+      // strip is the common case. Same walk `measureLayout` in auditRoutes.ts
+      // uses for `clippedWideElements`, and omitting it produced a false
+      // positive on /my-posts@320 (the Cancelled tab of an overflow-x-auto
+      // strip, right=326 of a 320px viewport) before this was added.
+      const clipped = (e: Element): boolean => {
+        let p = e.parentElement;
+        while (p && p !== document.body && p !== document.documentElement) {
+          const ox = getComputedStyle(p).overflowX;
+          if (ox === "hidden" || ox === "clip" || ox === "auto" || ox === "scroll") return true;
+          p = p.parentElement;
+        }
+        return false;
+      };
+      for (const el of Array.from(
+        document.querySelectorAll<HTMLElement>("button, a, input, h1, h2, h3, p, li, label"),
+      )) {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) continue;
+        const st = getComputedStyle(el);
+        if (st.visibility === "hidden" || st.display === "none") continue;
+        if (clipped(el)) continue;
+        if (r.right > vw + 2 && r.left < vw) {
+          out.push(`<${el.tagName.toLowerCase()}${el.className ? "." + String(el.className).split(" ")[0] : ""}> right=${Math.round(r.right)} > ${vw}`);
+          if (out.length >= 5) break;
+        }
+      }
+      return out;
+    })(),
   }));
 }
 
@@ -204,6 +256,10 @@ async function assertSurface(
     beforeOverflow.scrollWidth,
     `${tag}: the page already overflows horizontally BEFORE search opens`,
   ).toBeLessThanOrEqual(beforeOverflow.clientWidth);
+  expect(
+    beforeOverflow.pastRightEdge,
+    `${tag}: content already past the right edge BEFORE search opens (see overflowOf)`,
+  ).toEqual([]);
 
   await page.click(triggerSel);
   await page.waitForSelector(fieldSel, { state: "visible", timeout: 10_000 });
@@ -216,6 +272,11 @@ async function assertSurface(
     openOverflow.scrollWidth,
     `${tag}: documentElement.scrollWidth ${openOverflow.scrollWidth} > clientWidth ${openOverflow.clientWidth} with search OPEN`,
   ).toBeLessThanOrEqual(openOverflow.clientWidth);
+  expect(
+    openOverflow.pastRightEdge,
+    `${tag}: content past the right edge with search OPEN. body{overflow-x:hidden} hides ` +
+      `this from scrollWidth, so it is measured per element — see overflowOf.`,
+  ).toEqual([]);
 
   // ── (a) the field takes free space, never a sibling's ──
   const geom = await fieldAndSiblings(page, fieldSel, rowSel);

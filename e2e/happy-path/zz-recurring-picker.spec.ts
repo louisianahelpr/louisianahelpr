@@ -159,6 +159,17 @@ for (const width of [375, 1440]) {
       const de = document.documentElement;
       const viewportW = window.innerWidth;
       const past: string[] = [];
+      // An x-clipping or x-SCROLLING ancestor makes a child past the right edge
+      // correct (a side-scrolling strip). Same walk measureLayout uses.
+      const clipped = (e: Element): boolean => {
+        let p2 = e.parentElement;
+        while (p2 && p2 !== document.body && p2 !== de) {
+          const ox = getComputedStyle(p2).overflowX;
+          if (ox === "hidden" || ox === "clip" || ox === "auto" || ox === "scroll") return true;
+          p2 = p2.parentElement;
+        }
+        return false;
+      };
       for (const el of Array.from(
         document.querySelectorAll<HTMLElement>("button, a, input, h1, h2, h3, p, li, label, output"),
       )) {
@@ -166,6 +177,7 @@ for (const width of [375, 1440]) {
         if (r.width === 0 || r.height === 0) continue;
         const st = getComputedStyle(el);
         if (st.visibility === "hidden" || st.display === "none") continue;
+        if (clipped(el)) continue;
         if (r.right > viewportW + 2 && r.left < viewportW) {
           past.push(`<${el.tagName.toLowerCase()}${el.className ? " ." + String(el.className).split(" ")[0] : ""}> right=${Math.round(r.right)} > ${viewportW}`);
           if (past.length >= 5) break;

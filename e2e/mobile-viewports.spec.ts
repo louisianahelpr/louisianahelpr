@@ -8,10 +8,26 @@ import { LOCAL_BASE_URL } from "./localBase";
 //
 // This suite covers the 5 viewport widths the original test plan called
 // out: 320, 375, 414 (iPhones), 768, 1024 (iPad / iPad Pro). For each:
-//   - assert no horizontal scroll (the body must not exceed viewport)
-//   - assert the bottom-nav post-job FAB is reachable + not clipped
-//   - assert the landing-page hero phone-cluster doesn't escape
+//   - assert no horizontal scroll (both ways: documentElement.scrollWidth, and
+//     per-element rects, because body{overflow-x:hidden} hides the first one)
+//   - assert no uncaught JS error on render
 //   - take a screenshot for visual review (uploaded as a CI artifact)
+//
+// TWO CLAIMS REMOVED FROM THIS LIST 2026-09-21, because the suite never made
+// them and the list saying it did was the whole problem:
+//
+//   "the bottom-nav post-job FAB is reachable + not clipped" — there is NO
+//   assertion about a FAB anywhere in this file, and never was. The words
+//   survived only in this comment and in all 20 test NAMES ("… FAB reachable"),
+//   which is worse than a missing check: a green run reported a guarantee that
+//   did not exist. The pages here are public-only and the post-job FAB is
+//   gated behind a session, so the check could not be written as stated
+//   either. Renamed rather than faked; if the guest nav has a reachability
+//   contract worth asserting, it wants a spec that can see a session.
+//
+//   "the landing-page hero phone-cluster doesn't escape" — that test existed,
+//   targeted a component that has since been deleted, and had been SKIPPING on
+//   all five viewports. Removed; see the note where it used to live.
 //
 // Pages tested are public-only — /dashboard etc. need an auth session
 // which lives in a different test (post-and-apply.spec.ts). The
@@ -59,13 +75,20 @@ for (const vp of VIEWPORTS) {
         : devices["iPad (gen 7)"].userAgent,
     });
 
-    // Shown able to fail on the defect it names. Forcing the hero's own wrapper
-    // wider than the narrowest phone puts the landing page into horizontal
-    // scroll at every viewport this spec measures — which is precisely what the
-    // deleted phone-cluster test was supposed to catch and never could.
-    // @mutate src/components/landing/HeroSection.tsx | <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16"> | <div style={{ minWidth: 1400 }} className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16">
+    // Shown able to fail on Assertion 2 — an uncaught error on render, which is
+    // what 20 public page-loads are for. A null dereference in the landing hero
+    // is exactly that class, and it fails the landing legs at every viewport.
+    //
+    // NOT the overflow assertion, and the reason is worth keeping. A 1400px
+    // element forced into the hero wrapper was `killed` while the element check
+    // was naive and went back to SURVIVED once the check learned to skip
+    // x-clipping ancestors (see Assertion 1b) — because that overflow IS inside
+    // one, and this repo deliberately treats clipped wide elements as correct
+    // (`clippedWideElements` in auditRoutes.ts, reported and not failed). So the
+    // first verdict was measuring a case the codebase does not call a defect.
+    // @mutate src/components/landing/HeroSection.tsx |   const [loggedIn, setLoggedIn] = useState(false); |   const [loggedIn, setLoggedIn] = useState(false);\n  (null as unknown as { boom(): void }).boom();
     for (const page of PAGES) {
-      test(`${page.label} — no horizontal scroll, FAB reachable`, async ({ page: p }) => {
+      test(`${page.label} — no horizontal scroll, no JS error`, async ({ page: p }) => {
         const errors: string[] = [];
         p.on("pageerror", (err) => errors.push(err.message));
 
@@ -128,6 +151,20 @@ for (const vp of VIEWPORTS) {
         const offCanvas = await p.evaluate(() => {
           const viewportW = window.innerWidth;
           const out: string[] = [];
+          // An ancestor that legitimately clips or SCROLLS on x makes a child
+          // past the right edge correct — a side-scrolling tab strip is the
+          // common case. Same walk measureLayout uses for clippedWideElements;
+          // without it, /my-posts@320 reports its overflow-x-auto strip's last
+          // tab (right=326 of 320) as a defect.
+          const clipped = (e: Element): boolean => {
+            let p2 = e.parentElement;
+            while (p2 && p2 !== document.body && p2 !== document.documentElement) {
+              const ox = getComputedStyle(p2).overflowX;
+              if (ox === "hidden" || ox === "clip" || ox === "auto" || ox === "scroll") return true;
+              p2 = p2.parentElement;
+            }
+            return false;
+          };
           const nodes = Array.from(
             document.querySelectorAll<HTMLElement>(
               "button, a, input, textarea, select, [role=button], h1, h2, h3, p, li, label",
@@ -138,6 +175,7 @@ for (const vp of VIEWPORTS) {
             if (r.width === 0 || r.height === 0) continue;
             const st = getComputedStyle(el);
             if (st.visibility === "hidden" || st.display === "none") continue;
+            if (clipped(el)) continue;
             if (r.right > viewportW + 2 && r.left < viewportW) {
               out.push(
                 `<${el.tagName.toLowerCase()}${el.className ? " ." + String(el.className).split(" ")[0] : ""}> right=${Math.round(r.right)} > ${viewportW}`,
@@ -159,6 +197,33 @@ for (const vp of VIEWPORTS) {
           errors,
           `Uncaught JS errors on ${page.label}:\n  ${errors.join("\n  ")}`,
         ).toEqual([]);
+
+        // ── Assertion 3: the page rendered ITSELF, not an error screen ──
+        //
+        // Assertion 2 cannot see a component that threw. `RouteErrorBoundary`
+        // catches it and renders "This page hit a problem." — so nothing reaches
+        // `page.on("pageerror")`, and the fallback then satisfies every other
+        // check here: it has no horizontal scroll and nothing past the right
+        // edge, because it is a small centred card.
+        //
+        // Measured 2026-09-21: a null dereference injected into the landing
+        // hero's render left this spec GREEN at all five viewports. Twenty
+        // public page-loads could not tell a working page from a crashed one.
+        // Same shape as a route sweep grading its redirect destination — every
+        // invariant passes, on the wrong screen.
+        const errorScreen = await p.evaluate(() => {
+          const text = document.body.innerText || "";
+          for (const m of ["This page hit a problem.", "You're offline.", "We've logged it."]) {
+            if (text.includes(m)) return m;
+          }
+          return null;
+        });
+        expect(
+          errorScreen,
+          `${page.label} rendered RouteErrorBoundary ("${errorScreen}") instead of the page. ` +
+            `Every other assertion here passes on that fallback, so without this one a crashed ` +
+            `route is indistinguishable from a healthy one.`,
+        ).toBeNull();
 
         // ── Screenshot for visual review ───────────────────────────
         // Saved per-viewport-per-page so a regression on iPhone SE

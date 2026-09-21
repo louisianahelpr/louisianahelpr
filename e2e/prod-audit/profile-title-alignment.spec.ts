@@ -151,6 +151,21 @@ function readTitle(): TitleBox {
     pastRightEdge: (() => {
       const vw = window.innerWidth;
       const out: string[] = [];
+      // An ancestor that legitimately clips or SCROLLS on the x-axis makes a
+      // child past the right edge correct, not a defect — a side-scrolling tab
+      // strip is the common case. Same walk `measureLayout` in auditRoutes.ts
+      // uses for `clippedWideElements`, and omitting it produced a false
+      // positive on /my-posts@320 (the Cancelled tab of an overflow-x-auto
+      // strip, right=326 of a 320px viewport) before this was added.
+      const clipped = (e: Element): boolean => {
+        let p = e.parentElement;
+        while (p && p !== document.body && p !== document.documentElement) {
+          const ox = getComputedStyle(p).overflowX;
+          if (ox === "hidden" || ox === "clip" || ox === "auto" || ox === "scroll") return true;
+          p = p.parentElement;
+        }
+        return false;
+      };
       for (const el of Array.from(
         document.querySelectorAll<HTMLElement>("button, a, input, h1, h2, h3, p, li, label"),
       )) {
@@ -158,6 +173,7 @@ function readTitle(): TitleBox {
         if (r.width === 0 || r.height === 0) continue;
         const st = getComputedStyle(el);
         if (st.visibility === "hidden" || st.display === "none") continue;
+        if (clipped(el)) continue;
         if (r.right > vw + 2 && r.left < vw) {
           out.push(`<${el.tagName.toLowerCase()}${el.className ? "." + String(el.className).split(" ")[0] : ""}> right=${Math.round(r.right)}`);
           if (out.length >= 5) break;

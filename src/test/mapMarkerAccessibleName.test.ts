@@ -30,6 +30,13 @@
  * and its fix as inline fixtures (not a git-history read, which would stop
  * proving anything the moment this fix is committed) — proving the checker
  * itself can fail before trusting it to certify the real tree.
+ *
+ * Shown able to fail against the REAL tree 2026-09-20 (the canaries above only
+ * ever proved the checker, never that it is pointed at anything): deleting
+ * `el.setAttribute("aria-label", label)` from `wireButtonBehaviour` turns
+ * "src/ map components have none" red naming mapMarkers.ts.
+ *
+ * @mutate src/components/browseMap/mapMarkers.ts |   el.setAttribute("aria-label", label);\n |
  */
 import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
@@ -86,6 +93,18 @@ interface Offender {
 // strip them first so an explanation isn't mistaken for an offense.
 const stripComments = (t: string) =>
   t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+
+/** Every site that hands a map marker a command role, labelled or not — the
+ *  CONSTRUCT inventory, as opposed to the file list. Floored below: a file list
+ *  stays non-empty even after every construct in it has gone. */
+function commandRoleSites(rawSrc: string): number {
+  const src = stripComments(rawSrc);
+  return (
+    [...src.matchAll(/\bdivIcon\s*\(/g)].length +
+    [...src.matchAll(/\.setAttribute\(\s*["'`]role["'`]\s*,\s*["'`](button|link)["'`]/g)].length +
+    [...src.matchAll(/\brole=(["'])(button|link)\1/g)].length
+  );
+}
 
 /**
  * Scans `src` for every construct that hands a map marker a command role,
@@ -192,6 +211,15 @@ describe("map markers with a command role have an accessible name", () => {
     expect(files).toEqual(
       expect.arrayContaining(["src/components/TrackingMap.tsx", "src/components/browseMap/mapMarkers.ts"]),
     );
+    // …and the CONSTRUCT inventory is floored, not just the file list. Since
+    // the Leaflet→MapKit port there is no live `divIcon(` call and no raw JSX
+    // role="button" left on the map surface (both survive only in prose, which
+    // stripComments removes), so `wireButtonBehaviour`'s
+    // setAttribute("role","button") in mapMarkers.ts is the ONLY site this
+    // guard actually grades. A file list alone would stay green after that one
+    // went too — exactly the empty-inventory shape.
+    const sites = files.reduce((n, f) => n + commandRoleSites(readFileSync(resolve(ROOT, f), "utf8")), 0);
+    expect(sites, "no command-role map-marker construct found at all — this guard would be grading nothing").toBeGreaterThan(0);
   });
 
   it("src/ map components have none", () => {

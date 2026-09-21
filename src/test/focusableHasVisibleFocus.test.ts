@@ -14,6 +14,13 @@
  * (`tabIndex={-1}`, or a Radix `*Content` dialog panel, including the
  * `asChild` element it renders as: headings/dialogs focused on screen change)
  * or carries `glass-field`, whose `:focus-visible` outline lives in index.css.
+ *
+ * Shown able to fail 2026-09-20: stripping the replacement ring off the Switch
+ * track (the exact shape of the DateWheelPicker bug — `outline-none` left
+ * behind with nothing painted in its place) turns the repo-wide case red with
+ * `src/components/ui/switch.tsx` named in the offender list.
+ *
+ * @mutate src/components/ui/switch.tsx | "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood))] focus-visible:ring-offset-2 focus-visible:ring-offset-background", | "focus-visible:outline-none",
  */
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";

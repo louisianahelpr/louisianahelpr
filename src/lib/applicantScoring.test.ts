@@ -6,6 +6,7 @@ import {
   scoreApplicant,
   type ApplicantData,
 } from "./applicantScoring";
+import { TIER_ORDER, TIER_PERK_MATRIX } from "../../supabase/functions/_shared/tierPerks";
 
 /**
  * Priority Placement is a perk people are CHARGED for on a surface where a
@@ -37,15 +38,55 @@ const BLANK: ApplicantData = {
 const at = (over: Partial<ApplicantData>): ApplicantData => ({ ...BLANK, ...over });
 
 describe("priorityPlacementPoints", () => {
-  it("pays only the tiers that actually advertise Priority Placement", () => {
-    // TIER_PERKS: pro.priorityPlacement === true, elite.priorityPlacement ===
-    // true, basic.priorityPlacement === false. Basic buys early access and
-    // instant payouts, not placement — charging for it here would be the
-    // mirror image of the bug this file exists for.
-    expect(priorityPlacementPoints("elite")).toBe(PRIORITY_PLACEMENT_MAX_POINTS);
-    expect(priorityPlacementPoints("pro")).toBe(PRIORITY_PLACEMENT_MAX_POINTS / 2);
-    expect(priorityPlacementPoints("basic")).toBe(0);
-    expect(priorityPlacementPoints("free")).toBe(0);
+  /**
+   * DERIVED FROM THE PERK MATRIX, NEVER HAND-LISTED — and this file learned
+   * that the hard way. Until 2026-09-21 this test named exactly four tiers:
+   * elite, pro, basic, free. Re-introducing CC-019 verbatim —
+   *
+   *     if (!["pro", "elite"].includes(String(tier ?? "").toLowerCase())) return 0;
+   *
+   * i.e. the hand-typed tier list that scored a paying Plus member at ZERO
+   * placement points while TIER_PERK_MATRIX.plus.priorityPlacement is true and
+   * the storefront sells Plus as "everything in Pro" — left this suite
+   * **8 of 8 green**. The one tier the bug was about was the one tier nobody
+   * had written down. That is the `registries-checked-against-themselves`
+   * shape: a list cannot fail for a member it never had.
+   *
+   * So the inventory is TIER_ORDER and the oracle is TIER_PERK_MATRIX, the
+   * same table `hasPerk` reads. A tier added tomorrow is asserted tomorrow,
+   * and a `priorityPlacementPoints` that stops consulting the matrix fails
+   * here on the first tier it forgets.
+   */
+  it("agrees with TIER_PERK_MATRIX on every tier that exists, not a hand list", () => {
+    const entitled = TIER_ORDER.filter((t) => TIER_PERK_MATRIX[t].priorityPlacement);
+    expect(
+      entitled.length,
+      "the matrix grants Priority Placement to nobody — this walk would be vacuous",
+    ).toBeGreaterThanOrEqual(3);
+    expect(
+      TIER_ORDER.length - entitled.length,
+      "every tier is entitled — the zero case would go unasserted",
+    ).toBeGreaterThanOrEqual(2);
+
+    const top = TIER_ORDER[TIER_ORDER.length - 1];
+    const wrong: string[] = [];
+    for (const tier of TIER_ORDER) {
+      const want = !TIER_PERK_MATRIX[tier].priorityPlacement
+        ? 0
+        : tier === top
+          ? PRIORITY_PLACEMENT_MAX_POINTS
+          : PRIORITY_PLACEMENT_MAX_POINTS / 2;
+      const got = priorityPlacementPoints(tier);
+      if (got !== want) wrong.push(`${tier}: scored ${got}, matrix says ${want}`);
+      // The fee ladder normalises case; so must this, for every tier.
+      const upper = priorityPlacementPoints(tier.toUpperCase());
+      if (upper !== want) wrong.push(`${tier.toUpperCase()}: scored ${upper}, matrix says ${want}`);
+      // And the boost must actually reach the rank the poster's list is sorted
+      // by — a tier that is paid for and scores 0 there is the whole defect.
+      const boost = scoreApplicant(at({ priorityTier: tier })).priorityBoost;
+      if (boost !== want) wrong.push(`scoreApplicant(${tier}).priorityBoost = ${boost}, matrix says ${want}`);
+    }
+    expect(wrong, "priorityPlacementPoints disagrees with TIER_PERK_MATRIX").toEqual([]);
   });
 
   it("gives an unknown, absent or retired tier nothing", () => {
@@ -114,3 +155,13 @@ describe("scoreApplicant — the boost is bounded, never an override", () => {
     expect(scoreApplicant(at({ priorityTier: null })).priorityBoost).toBe(0);
   });
 });
+// Proof this guard can fail (scripts/vacuity).
+//
+// The FIRST mutation is CC-019 itself, retyped: the hand-listed tier gate that
+// scored a paying Plus member at zero placement points. Before 2026-09-21 this
+// file survived it 8/8 green, because the four tiers it named by hand did not
+// include the one the bug was about. It is registered here as the permanent
+// proof that the matrix-derived walk above actually looks at Plus.
+// @mutate src/lib/applicantScoring.ts | if (!hasPerk(tier, "priorityPlacement")) return 0; | if (!["pro", "elite"].includes(String(tier ?? "").toLowerCase())) return 0;
+// The second is the "make the perk feel stronger" change: money outranking merit.
+// @mutate src/lib/applicantScoring.ts | export const PRIORITY_PLACEMENT_MAX_POINTS = 2; | export const PRIORITY_PLACEMENT_MAX_POINTS = 20;

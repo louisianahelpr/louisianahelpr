@@ -103,3 +103,9 @@ describe("ProfileTabFallback — the ruling, asserted", () => {
     ).toBe(true);
   });
 });
+// Proof this guard can fail (scripts/vacuity). The two halves of the owner's
+// ruling, one mutation each: strip the real header and the placeholder is back
+// to a bone that shifts every tab's body down on arrival; hard-code the reserve
+// and it is the measured 118px against 447-3,477px of real content again.
+// @mutate src/components/profile/ProfileTabFallback.tsx | <ProfileTabHeader title={TAB_TITLES[tab]} onBack={onBack} /> |
+// @mutate src/components/profile/ProfileTabFallback.tsx | setReserve(Math.max(0, Math.round(window.innerHeight - top))); | setReserve(118);

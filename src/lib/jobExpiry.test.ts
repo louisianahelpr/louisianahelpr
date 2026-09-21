@@ -102,3 +102,8 @@ describe("computeJobExpiresAt", () => {
     expect(computeJobExpiresAt("", "09:00", NOW)).toBeNull();
   });
 });
+// Proof this guard can fail (scripts/vacuity). Pin the zone instead of taking
+// the injected one and the gate is back to answering a different question than
+// the schedule asks — the exact browser-zone defect, and the reason both sides
+// of these tests inject a zone rather than letting the runtime's cancel out.
+// @mutate src/lib/jobExpiry.ts | jobStartDateTime(dateNeeded, startTime, timeZone) | jobStartDateTime(dateNeeded, startTime, "America/Chicago")

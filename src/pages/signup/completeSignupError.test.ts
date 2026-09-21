@@ -126,3 +126,7 @@ describe("completeSignupErrorCopy", () => {
     );
   });
 });
+// Proof this guard can fail (scripts/vacuity). Echo complete-signup's body
+// instead of filtering it and a 500's raw "new row violates row-level security
+// policy for table profiles" lands on a stranger at the end of signup.
+// @mutate src/pages/signup/completeSignupError.ts | userFacingError(message, SIGNUP_SAVED_ACCOUNT_ONLY) | message

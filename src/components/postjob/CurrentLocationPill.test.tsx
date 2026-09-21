@@ -143,3 +143,8 @@ describe("CurrentLocationPill", () => {
     expect(onResolved).not.toHaveBeenCalled();
   });
 });
+// Proof this guard can fail (scripts/vacuity). Remove the wall-clock budget
+// and an unauthorized MapKit that never calls back strands the promise again:
+// setLoading(false) never runs, Nominatim is never reached, and the pill sits
+// on "Locating..." forever with no toast. That is the reported bug, exactly.
+// @mutate src/components/postjob/CurrentLocationPill.tsx | const timer = setTimeout(() => done(null), MAPKIT_REVERSE_TIMEOUT_MS); | const timer = 0 as unknown as ReturnType<typeof setTimeout>;

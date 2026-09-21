@@ -115,3 +115,9 @@ describe("the consequential call sites still use it", () => {
     expect(offenders).toEqual([]);
   });
 });
+// Proof this guard can fail (scripts/vacuity). Two ways a consequential
+// confirmation goes silently dark: render through the suppressed property
+// instead of the captured real one, or let a second applyToastPolicy() capture
+// the already-suppressed wrapper as the "real" renderer.
+// @mutate src/lib/toastPolicy.ts | return (realSuccess ?? toast.success)(message, data); | return toast.success(message, data);
+// @mutate src/lib/toastPolicy.ts | if (realSuccess === null) realSuccess = toast.success; | realSuccess = toast.success;

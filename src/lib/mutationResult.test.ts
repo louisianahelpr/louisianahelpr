@@ -152,3 +152,8 @@ describe("isWriteRejected", () => {
     expect(isWriteRejected(null)).toBe(false);
   });
 });
+// Proof this guard can fail (scripts/vacuity). This is the repo's own
+// silent-failure defence: neuter the row-count check and every escrow release,
+// ban ladder and admin resolution that RLS quietly rejected goes back to
+// firing the confetti over a row that never changed.
+// @mutate src/lib/mutationResult.ts | if (rows.length < min) { | if (rows.length < 0) {

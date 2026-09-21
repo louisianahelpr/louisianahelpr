@@ -153,3 +153,8 @@ describe("NotificationPanel: a failed load renders the error card, never the emp
     expect(screen.queryByText(EMPTY_COPY)).toBeNull();
   });
 });
+// Proof this guard can fail (scripts/vacuity). Drop the one line that refuses
+// to read an errored session as "signed out" and the outage shape from the
+// owner's report is back: auth 500s, the store is cleared, and a poster with
+// 313 unread is told "Nothing new yet."
+// @mutate src/components/NotificationPanel.tsx | if (sessionError) throw sessionError; |

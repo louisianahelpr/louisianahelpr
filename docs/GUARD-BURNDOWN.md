@@ -36,16 +36,11 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| **`src/test/*.test.ts*`** | 199 | **199 — COMPLETE** | **0** |
+| **`src/test/*.test.ts*`** | 200 | **200 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
 | Playwright `e2e/**` | 59 | 27 | 32 |
-| colocated beside components | 340 | 238 | 102 |
-| **total** | **651** | **517** | **134** |
-
-*Zero known-vacuous, zero `@mutate-exempt`: every one of the 517 carries a real
-registered mutation that was executed and killed it. The denominator moves as
-lanes add guards and as scaffolding is excluded — it is derived from
-`git ls-files`, never maintained by hand.*
+| colocated beside components | 344 | 252 | 92 |
+| **total** | **656** | **532** | **124** |
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 
@@ -158,7 +153,12 @@ without confirmation. The defect was purely that none of it was observable,
 which is its own kind of exposure: a gate nobody can see removed is a gate
 waiting to be removed.
 
-Ratcheted by `src/test/biometricGatesAreProven.test.ts`; 10 → 4 and falling.
+**CLOSED the same day.** All twelve now drive a refusal and assert the action
+did not happen. Every gate turned out present and correctly obeyed — call count
+≤ branch count in all twelve — so there was no live hole, only a blind spot.
+The exemption list reached zero and was DELETED: the ratchet is now
+unconditional, and a new gated component with no refusal test fails on the
+commit that adds it. That is where a ratchet is supposed to end up.
 
 ## Two specs that are not checks at all
 

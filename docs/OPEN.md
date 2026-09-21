@@ -3201,33 +3201,35 @@ three halves now have a class guard; the third does not.
   - only `.tsx` (Sep 21): `sessionStorage` throwing (private mode / SSR), and the `?ppid=` path.
   The hazard is divergence: someone hardening one will not know the other exists, and a rule changed in one file stays asserted the old way in the other. Merge into one file, keeping every case from both.
 
-### Biometric gates: 10 of 12 are unobserved (2026-09-21)
+### Biometric gates — CLOSED 2026-09-21 (was 10 of 12 unobserved)
 
 `requireBiometric()` short-circuits `if (!isNativePlatform) return true`, so
-under vitest it ALWAYS succeeds. A test that does not mock
-`@/lib/biometricGate` cannot see the gate at all — the whole Face ID
-confirmation can be deleted and the suite stays green. It happened twice today,
-both times in front of an account-takeover primitive.
+under vitest it ALWAYS succeeds: a test that does not mock
+`@/lib/biometricGate` cannot see the gate, and the whole confirmation is
+deletable with the suite green. It shipped that way twice, both in front of an
+account-takeover primitive.
 
-Measured: **12 components call it; 2 have a test that drives a refusal.**
+- [x] **All 12 gated components now drive a refusal** and assert the action did
+  NOT happen — zero RPC/invoke calls, no audit row, no success toast, the
+  dialog still open and not stuck on a processing label. Covers instant and
+  referral cash-outs, four payout-account operations, refunds, dispute
+  decide/settle/retry, single AND bulk payout runs, granting and removing
+  admin, bans, the login-email change, account deletion, and the app lock.
+- [x] **No live security finding.** Every gate was present and correctly
+  obeyed — call count ≤ branch count in all twelve. The defect was purely that
+  none of it was observable, which is its own exposure: a gate nobody can see
+  removed is a gate waiting to be removed.
+- [x] **The exemption list is DELETED.** It reached zero, so the ratchet became
+  unconditional: `it.each` runs over every gated component and a new one with
+  no refusal test fails on the commit that adds it. The now-vacuous "only
+  shrinks" case was replaced with a source-derived one — every gate must BRANCH
+  on its answer.
+- [ ] **Still blind, unchanged:** no check proves iOS actually presents a sheet;
+  the whole class is jsdom. And `adminDisputesFiltering.test.tsx` deliberately
+  pins the gate to `true`, so that suite alone would stay green if the gates
+  vanished — called out in the guard's header.
 
-- [x] `AppLockGate`, `DeleteUserDialog` — covered (the second was fixed today).
-- [ ] **Unproven, and each guards a money or account-takeover action:**
-  `InstantPayoutDialog` (instant cash-out), `ReferralSection` (referral
-  cash-out), `PayoutSetupForm` (FOUR sites: change payout account, dashboard
-  access, remove method, reset account), `AdminJobs` (refund), `AdminDisputes`
-  (dispute decision + settlement + retry), `AdminPayoutBatches` (single AND
-  BULK payout run), `AdminSettings` (grant admin, remove admin), `BanDialog`,
-  `EditEmailDialog` (repointing a user's LOGIN EMAIL), `SecurityTab`.
-- **Worse than absent:** 3 of the 5 files that DO mock the gate mock it to
-  return `true`. That is not coverage, it is the opposite — it removes the gate
-  from the test's world so the surrounding assertions pass. Anyone counting
-  "files that mock biometricGate" would have called this covered.
-- Ratcheted by `src/test/biometricGatesAreProven.test.ts` (list may only
-  shrink). It checks a refusal is DRIVEN; that the component then does nothing
-  is each guard's own job.
-
-### Route catalog overstates coverage (2026-09-21) — found by the burn-down
+### Route catalog overstates coverage (2026-09-21)### Route catalog overstates coverage (2026-09-21) — found by the burn-down
 
 - [ ] **7 route names render ONE screen, and every sweep counts them as 7.** Measured over 92 screens: **15 routes (16%) land somewhere other than where they were asked for**, and seven of them land on the same page — `/availability`, `/earnings`, `/gift-card`, `/saved-helpers`, `/saved-helprs`, `/schedule`, `/settings` all render `/profile`. So `empty-state-sweep` audited `/profile` seven times and reported seven routes audited. A catalog defect (`e2e/happy-path/auditRoutes.ts`), not a sweep defect.
 - [x] **The sweep could not detect it.** `result.landedOn` had been recorded since the file was written and read ONLY inside the failure message — nothing compared it to the requested route. Every invariant it asserts (one `<h1>`, a title, no overflow, axe clean, `<main>` has text) is satisfied by a redirect destination just as well as by the intended screen. A `ROUTE_BOUNCE` invariant plus an `EXPECTED_LANDING` allowlist carrying the 15 measured redirects (with a reason each) now exists; a NEW bounce fails. The existing 15 were allowlisted rather than failed — they are correct redirects and failing them reds main.

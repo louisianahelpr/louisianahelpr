@@ -129,3 +129,9 @@ test("?view=payouts opens the payouts half, and the plain deep link still opens 
   await page.getByRole("tab").first().waitFor({ timeout: 20_000 });
   await expect(page.getByRole("tab", { name: "Earnings" })).toHaveAttribute("aria-selected", "true");
 });
+
+// `?view=payouts` is the whole reason a payout notification can deep-link at
+// the payout half instead of the earnings summary. That is one line: the
+// mount-time read of the `view` search param. Pin it to "earnings" and the
+// tab opens on the wrong half while every other assertion here still passes.
+// @mutate src/components/profile/EarningsTab.tsx | searchParams.get("view") === "payouts" ? "payouts" : "earnings", | "earnings",

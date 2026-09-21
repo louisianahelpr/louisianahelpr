@@ -3162,6 +3162,21 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 - [x] **Nightly WebKit + real-backend run.** e83876cc5 `nightly-webkit.yml` runs the whole happy-path suite in real WebKit (helper-apply 2/2 locally; first CI run dispatched). Real backend already nightly in e2e-real-backend.yml.
 
 
+### Dashboard three-surface CULL parity is still unguarded (2026-09-21)
+
+The owner has reported map/list/count disagreeing **three times** (applied jobs
+2026-09-15, dismissed jobs 2026-09-19, the filter bar 2026-09-21). Two of the
+three halves now have a class guard; the third does not.
+
+| what a surface applies | guard | derives its inventory from |
+|---|---|---|
+| viewer EXCLUSIONS (applied / dismissed / blocked / saved-only) | `dashboardSurfaceExclusionParity.test.ts` | the `ViewerFeedExclusions` interface |
+| the FILTER BAR (category, budget, boosted, ending-soon, availability, radius, early-access) | `mapFilterParity.test.ts` (new) | the `MapJobFilterInput` interface |
+| the DATA-LAYER CULLS (expired, past-dated, ownerless, own post, funded, credential tier, direct-offer, seed) | **none** | — there is no interface to derive from, which is exactly why it is unguarded |
+
+- [ ] **Give the data-layer culls a registry and guard them like the other two.** Today they are expressed three different ways — SQL `WHERE` clauses in `get_open_jobs_for_map` / `open_jobs_browse`, a `.filter()` chain in `useDashboardData`, and query builders in `useDashboardJobsCount` — so no inventory exists to diff. A fourth divergence would ship green, and `useDashboardJobsCount.test.tsx` proves the count applies each cull without tying that set to what the other two apply.
+- The lesson from the first two halves: a guard whose inventory is ONE interface is structurally blind to a sibling with the same disease. Three interfaces means three guards, or one registry all three read.
+
 ### Two test files for one module (2026-09-21)
 
 - [ ] **`src/lib/cppRouting.test.ts` AND `src/lib/cppRouting.test.tsx` both exist**, both cover `cppRouting`, and both sit in the vacuity denominator. Not redundant — each has coverage the other lacks, which is why neither can simply be deleted:

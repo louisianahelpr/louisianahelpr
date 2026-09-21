@@ -245,6 +245,10 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                 </button>
               </PopoverTrigger>
               <PopoverContent
+                // Radix gives PopoverContent role="dialog"; without a name a
+                // screen reader announces this sort menu as bare "dialog".
+                // Same reason as the disclosure popover above.
+                aria-label="Sort reviews"
                 className="w-[min(92vw,200px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-1.5"
                 align="end"
               >

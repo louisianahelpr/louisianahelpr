@@ -263,6 +263,8 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                   </button>
                 </PopoverTrigger>
                 <PopoverContent
+                  // role="dialog" with no name announces as bare "dialog".
+                  aria-label="Filter saved Helprs by skill"
                   className="w-[min(92vw,240px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-1.5"
                   align="start"
                 >
@@ -319,6 +321,8 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                   </button>
                 </PopoverTrigger>
                 <PopoverContent
+                  // role="dialog" with no name announces as bare "dialog".
+                  aria-label="Sort saved Helprs"
                   className="w-[min(92vw,220px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-1.5"
                   align="start"
                 >

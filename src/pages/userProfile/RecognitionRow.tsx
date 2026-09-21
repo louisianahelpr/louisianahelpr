@@ -340,6 +340,10 @@ function MoreBadges({ hidden }: { hidden: BadgeSpec[] }) {
         </button>
       </PopoverTrigger>
       <PopoverContent
+        // role="dialog" with no name announces as bare "dialog" — and this one
+        // is the overflow list behind "+N more", so the announcement is the
+        // only thing telling a screen-reader user what they just opened.
+        aria-label="All badges"
         align="start"
         sideOffset={6}
         className="w-72 rounded-2xl shadow-lg max-h-[60vh] overflow-y-auto"

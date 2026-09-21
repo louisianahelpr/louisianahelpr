@@ -513,6 +513,10 @@ export function JobStepOverflowChip({
         </Button>
       </PopoverTrigger>
       <PopoverContent
+        // role="dialog" with no name announces as bare "dialog" — and this
+        // panel holds the job's overflow ACTIONS, so the announcement is what
+        // tells a screen-reader user which job they are acting on.
+        aria-label="More actions for this job"
         align="center"
         // The class is the FALLBACK, for the frame before the row is measured
         // and for any DOM that never lays out; the inline width is the row's

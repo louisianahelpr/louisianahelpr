@@ -89,6 +89,19 @@ describe("claimPayout reads the ledger itself — HIGH-1", () => {
     expect(db.reads).toHaveLength(0); // it trusted the snapshot, never read
   });
 
+  // A null `error` is not a write (CLAUDE.md). `payout_transfers_one_live_per_job_helper`
+  // makes a lost claim race surface as 23505 — covered above — but a zero-row
+  // return with error null is the OTHER shape: RLS, a rewritten row, an
+  // upsert-that-matched-nothing. Proceeding on it means we believe we hold a
+  // claim we do not hold, and both runs then reach transfers.create. Nothing
+  // exercised this branch before (money-lane vacuity pass, 2026-09-21).
+  it("treats a zero-row insert with error null as an error, not as a held claim", async () => {
+    const db = makeDb({ readRows: [], insert: { data: [], error: null } });
+    const res = await claimPayout(db as never, { ...baseArgs });
+    expect(res.kind).toBe("error");
+    if (res.kind === "error") expect(res.message).toMatch(/no row/i);
+  });
+
   it("process-scheduled-payouts does NOT hand claimPayout a snapshot", () => {
     const src = readFileSync("supabase/functions/process-scheduled-payouts/index.ts", "utf8");
     const call = src
@@ -163,3 +176,12 @@ describe("checkUnrecordedTransfers destination pagination — LOW-1", () => {
     if (res.kind === "conflict") expect(res.transferIds).toContain("tr_a");
   });
 });
+
+// Proof this guard can fail: match the orphaned Stripe transfer against this
+// run's GROSS recompute instead of the net the claim recorded, and the canonical
+// orphan stops being adoptable — MEDIUM-1, which paged on every first payout.
+// @mutate supabase/functions/_shared/payoutClaim.ts | openClaim.amount_cents != null ? Number(openClaim.amount_cents) : args.amountCents | args.amountCents
+// Proof the zero-row claim branch is covered: delete the `.select("id")` emptiness
+// check and a claim nobody holds reads as held — the double-pay that "a null
+// error is not a write" exists to stop.
+// @mutate supabase/functions/_shared/payoutClaim.ts |   if (!inserted || inserted.length === 0) {\n    return { kind: "error", message: "payout claim insert returned no row" };\n  }\n |

@@ -408,14 +408,8 @@
     "src/test/edge/harness-smoke.test.ts",
     "src/test/edge/mapkit-token.test.ts",
     "src/test/edge/paginate.test.ts",
-    "src/test/edge/payoutClaim.test.ts",
-    "src/test/edge/process-scheduled-payouts.test.ts",
-    "src/test/edge/release-payout-unrecorded-transfer.test.ts",
-    "src/test/edge/release-payout-unsettled-dispute.test.ts",
-    "src/test/edge/release-payout.test.ts",
     "src/test/edge/slack-ops-alert.test.ts",
-    "src/test/edge/str-ical-safeFetch.test.ts",
-    "src/test/edge/void-cancelled-payments.test.ts"
+    "src/test/edge/str-ical-safeFetch.test.ts"
   ],
   "noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",

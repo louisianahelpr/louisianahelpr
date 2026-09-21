@@ -184,3 +184,9 @@ describe("void-cancelled-payments — an unexecuted dispute decision owns the es
     expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalled();
   });
 });
+
+// Proof this guard can fail: ignore the unsettled-dispute verdict and the loop
+// refunds a cancelled job whose escrow a dispute decision still owns — refund
+// plus split on one charge, the double-settle this file exists to prevent.
+// @mutate supabase/functions/void-cancelled-payments/index.ts | if (settlement.blocked) { | if (false) {
+// @mutate supabase/functions/void-cancelled-payments/index.ts | if ((livePayouts ?? []).length > 0) { | if (false) {

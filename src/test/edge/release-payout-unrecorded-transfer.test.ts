@@ -201,3 +201,8 @@ describe("release-payout — a transfer at Stripe with no ledger row", () => {
     expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
   });
 });
+
+// Proof this guard can fail: make the Stripe transfer-list read fail OPEN and an
+// unverifiable payout is sent instead of deferred — the exact double-transfer
+// this file's `fails CLOSED when the Stripe transfer list cannot be read` covers.
+// @mutate supabase/functions/_shared/payoutClaim.ts | return { kind: "error", message: `Stripe transfer list failed: ${(e as Error).message}` }; | return { kind: "clear" };

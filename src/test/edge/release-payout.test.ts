@@ -953,3 +953,9 @@ describe("release-payout edge function", () => {
     });
   });
 });
+
+// Proof this guard can fail: take the platform's cut out of the payout math and
+// the helper is paid the FULL budget ($100 instead of $88) — the commission
+// direction bug this file's `payout math + transfer` block exists to catch.
+// @mutate supabase/functions/release-payout/index.ts | const payoutDollars = grossDollars - platformFeeDollars; | const payoutDollars = grossDollars;
+// @mutate supabase/functions/release-payout/index.ts | if (payoutCents > escrowValueCents) { | if (false) {

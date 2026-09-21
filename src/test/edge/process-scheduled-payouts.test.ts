@@ -591,3 +591,8 @@ describe("process-scheduled-payouts edge function", () => {
     });
   });
 });
+
+// Proof this guard can fail: restore the legacy 10% fallback rate and every
+// payout on a job with no frozen percent under-collects the platform fee
+// ($4 on a $200 job) — the fallback this file's `fee fallback` block pins to 12.
+// @mutate supabase/functions/process-scheduled-payouts/index.ts | job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT, | job.helper_fee_percent ?? 10,

@@ -265,3 +265,8 @@ describe("checkUnsettledDispute — the query it actually sends", () => {
     expect(result.dispute).toBeUndefined();
   });
 });
+
+// Proof this guard can fail: let a decided-but-unexecuted dispute read as clear
+// and the full 88% transfer goes out on an escrow a decision already awarded —
+// the double-settle described at the top of _shared/unsettledDispute.ts.
+// @mutate supabase/functions/_shared/unsettledDispute.ts | if (row) return { blocked: true, dispute: row }; | if (row) return { blocked: false };

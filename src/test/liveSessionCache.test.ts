@@ -4,6 +4,10 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { readLiveCache, writeCache } from "../../e2e/liveSession";
 
+// Proven able to fail 2026-09-21: short-circuiting the dead-session branch puts
+// the revoked JWT straight back into every signed-in spec (2 failed).
+// @mutate e2e/liveSession.ts | if (!alive) { | if (false) {
+
 // Gap closed 2026-09-12: a cached session whose GoTrue session was revoked
 // still carried an unexpired JWT, so the harness reused it and signed-in specs
 // quietly tested the logged-out screen. The cache must ask GoTrue, not the clock.

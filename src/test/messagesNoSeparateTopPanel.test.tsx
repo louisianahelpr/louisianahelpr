@@ -17,7 +17,13 @@
  *
  * Shown able to fail: reverting ConversationList's PageScaffold call to
  * `titleCard={headerEl}` turns the desktop case red (the h1 is back outside
- * the panel) while the phone case stays green.
+ * the panel) while the phone case stays green. Registered and re-proven
+ * 2026-09-21 (1 failed, 1 passed — exactly that split).
+ *
+ * Not mount-wiring-blind: the assertions are over the RENDERED tree, and
+ * ConversationList's only mount is src/pages/Messages.tsx:393.
+ *
+ * @mutate src/components/messages/ConversationList.tsx | titleCard={isWebDesktop ? undefined : headerEl} | titleCard={headerEl}
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";

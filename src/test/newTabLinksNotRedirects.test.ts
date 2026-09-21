@@ -8,6 +8,15 @@
  * owner hit a broken screen there. 8570fdbef made them real routes. This keeps
  * any new-tab link from pointing at a redirect again. Redirect routes are read
  * from App.tsx, not listed here, so a new redirect is covered the day it lands.
+ *
+ * Proven able to fail 2026-09-21 by re-committing the original bug: turning
+ * /rules back into a <Navigate> while the signup and complete-profile consent
+ * checkboxes still open it with target="_blank" (1 failed, naming both files).
+ * Reverted. A CONSTRUCT floor was added at the same time — the `hits` assertion
+ * is "empty list", so it passed vacuously if `newTabHrefs` ever stopped
+ * matching, which is the unfloored-inventory shape.
+ *
+ * @mutate src/App.tsx | <Route path="/rules" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} /> | <Route path="/rules" element={<Navigate to="/legal?tab=rules" replace />} />
  */
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -49,15 +58,32 @@ describe("new-tab links never target a redirect route", () => {
     expect(redirects.length, "parsed no redirect routes — the parser is broken, not the app clean").toBeGreaterThan(0);
     const res = redirects.map(toRe);
     const hits: string[] = [];
+    const seen: string[] = [];
     (function walk(d: string) {
       for (const n of readdirSync(d)) {
         const p = join(d, n);
         if (statSync(p).isDirectory()) walk(p);
         else if (/\.tsx?$/.test(n) && !/\.test\./.test(n)) {
-          for (const h of newTabHrefs(readFileSync(p, "utf8"))) if (res.some((r) => r.test(h))) hits.push(`${p} → ${h}`);
+          for (const h of newTabHrefs(readFileSync(p, "utf8"))) {
+            seen.push(`${p} → ${h}`);
+            if (res.some((r) => r.test(h))) hits.push(`${p} → ${h}`);
+          }
         }
       }
     })("src");
+    // CONSTRUCT FLOOR, not just a file-count one. The assertion below is
+    // "empty list", so it passes vacuously the moment `newTabHrefs` stops
+    // matching — a `<Link … target="_blank">` refactor, an href built by a
+    // helper, a `window.open` moved behind a wrapper. The eight in-app new-tab
+    // links live on the consent checkboxes (SignupStep1, CompleteProfile) and
+    // TermsReconsentDialog — precisely the screens the original /terms bug hit.
+    // If this floor goes red, the parser rotted; fix the parser, do not lower
+    // the number. Raise it deliberately when links are added.
+    expect(
+      seen.length,
+      "newTabHrefs() found (almost) no in-app new-tab link in all of src/ — the parser rotted, " +
+        `so the assertion below is passing over an empty list. Found: ${seen.join(", ") || "nothing"}`,
+    ).toBeGreaterThanOrEqual(6);
     expect(hits).toEqual([]);
   });
 });

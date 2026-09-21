@@ -22,6 +22,16 @@ import {
  * `scan_failed` and let the publish proceed. Both directions are asserted here.
  *
  * Auto-publish is on, so nothing human is between this function and the feed.
+ *
+ * Proven able to fail 2026-09-21, once in each of the two directions above.
+ * Widening the lookback to 24h makes an evergreen caption from yesterday look
+ * like the lost attempt, so a scheduled post is silently adopted and never goes
+ * out (1 failed). Answering "none" instead of "scan_failed" on a missing token
+ * asserts nothing was posted when the scan could not possibly establish that —
+ * the double-post direction (1 failed).
+ *
+ * @mutate supabase/functions/_shared/marketing/meta.ts | const DUPLICATE_LOOKBACK_MS = 2 * 60 * 60 * 1000; | const DUPLICATE_LOOKBACK_MS = 24 * 60 * 60 * 1000;
+ * @mutate supabase/functions/_shared/marketing/meta.ts | if (!token) return { kind: "scan_failed", reason: "no page access token" }; | if (!token) return { kind: "none" };
  */
 
 const env: MetaEnv = {

@@ -28,6 +28,13 @@ import { jobActionChipStyle } from "@/components/activity/JobActionRow";
  * a set ("every Message chip in the app, and only Message chips"), and a
  * component test reads one element at a time — the same reason
  * `alarmColourInvariant` and `glossyPrimaryInvariant` read the tree.
+ *
+ * Proven able to fail 2026-09-21: repainting the active-job card's Message chip
+ * `tone="info"` — exactly the split this replaced — is caught (1 failed). The
+ * `messageChips >= 6` floor below is what stops the same assertion passing over
+ * an empty list once the chip or the label is renamed.
+ *
+ * @mutate src/components/activity/appliedJobCard/ActiveJobSection.tsx | tone="message" | tone="info"
  */
 
 const ROOT = resolve(__dirname, "../..");

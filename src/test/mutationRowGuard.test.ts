@@ -36,6 +36,21 @@ import { resolve, join, relative } from "node:path";
  * LEGITIMATE outcome for that write (a deliberately conditional
  * `.eq("status", "pending")` race), add it to ALLOWLIST / DELETE_ALLOWLIST
  * with the reason.
+ *
+ * Proven able to fail 2026-09-21 on a real moderation-ladder write: dropping
+ * `.select("user_id")` from BanDialog's `profiles.ban_status = 'final_warning'`
+ * update — the write the app actually reads to lock the account — is caught
+ * (1 failed, naming the file and line). Reverted.
+ *
+ * NOT killable by removing a `.select()` from every write: a computed-key
+ * payload (`.update({ [field]: … })`, JobConfirmation.tsx) carries no literal
+ * risk column, so RISK_COLUMNS cannot classify it. That is an uncovered class
+ * for the update side, not a hollowness — reported, not papered over.
+ *
+ * The inventory floor below is what stops the whole file passing vacuously if
+ * the scanner ever stops matching PostgREST chains at all.
+ *
+ * @mutate src/components/admin/BanDialog.tsx | .update({ ban_status: "final_warning" })\n            .eq("user_id", profile.user_id)\n            .select("user_id") | .update({ ban_status: "final_warning" })\n            .eq("user_id", profile.user_id)
  */
 
 const repoRoot = resolve(__dirname, "../..");
@@ -426,7 +441,7 @@ interface Hit {
   allowlisted: boolean;
 }
 
-function findHits(includeAllowlisted = false): Hit[] {
+function findHits(includeAllowlisted = false, includeGuarded = false): Hit[] {
   const hits: Hit[] = [];
   for (const file of sourceFiles(srcRoot)) {
     const src = stripComments(readFileSync(file, "utf8"));
@@ -445,7 +460,7 @@ function findHits(includeAllowlisted = false): Hit[] {
         // that tail means the affected rows come back and can be counted.
         const tailEnd = src.indexOf(";", end);
         const tail = src.slice(end, tailEnd === -1 ? end + 400 : tailEnd);
-        if (/\.\s*select\s*\(/.test(tail)) continue;
+        if (!includeGuarded && /\.\s*select\s*\(/.test(tail)) continue;
 
         let reason: string | undefined;
         if (kind === "update") {
@@ -523,6 +538,37 @@ describe("high-risk mutations can observe their own row count", () => {
         "\n",
     );
     expect(Array.isArray(all)).toBe(true);
+  });
+
+  // INVENTORY FLOOR. Everything above asserts an EMPTY list, so every one of
+  // them passes vacuously if the scanner stops matching anything at all — a
+  // renamed client (`supabase.` → something else), a PostgREST chain shape the
+  // member regexes do not know, or a `sourceFiles` walk that returns nothing
+  // because src/ moved. That is the "unfloored inventory" hollow shape: the
+  // guard would go green on a codebase it never read.
+  //
+  // So the CONSTRUCT count is floored, not just the file count: risk writes
+  // matched INCLUDING the ones that are correctly guarded with `.select()`.
+  // Those are what the guard exists to keep guarded, and the number only grows
+  // as more writes are fixed — a drop means the scanner rotted, not that the
+  // codebase got safer. Raise the floors deliberately; never lower them to
+  // make a red go away.
+  it("still sees the codebase — the scan is not vacuously empty", () => {
+    const scanned = sourceFiles(srcRoot).length;
+    expect(scanned, "sourceFiles() walked almost nothing — src/ moved or the walk broke").toBeGreaterThanOrEqual(800);
+
+    const riskWrites = findHits(true, true);
+    expect(
+      riskWrites.length,
+      "the update/delete scanner matched (almost) no risk write in all of src/ — " +
+        "the member regexes, argListOpen or fromTable stopped matching real PostgREST chains, " +
+        "so every assertion above is passing over an empty list.",
+    ).toBeGreaterThanOrEqual(34);
+
+    // Both verbs must still be reachable: a delete-side rot is invisible if
+    // only the update total is floored.
+    expect(riskWrites.filter((h) => h.kind === "update").length).toBeGreaterThanOrEqual(25);
+    expect(riskWrites.filter((h) => h.kind === "delete").length).toBeGreaterThanOrEqual(7);
   });
 
   it("keeps the allowlists honest — every entry names a file that still exists", () => {

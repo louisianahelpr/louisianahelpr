@@ -54,12 +54,27 @@ function declaredBuckets(): string[] {
     )) {
       for (const q of m[1].matchAll(/'([a-z0-9][a-z0-9-]*)'/gi)) live.add(q[1]);
     }
-    // A later migration may remove one; honour that or every dropped bucket
-    // would be reported forever.
+    /*
+     * A later migration may remove one; honour that or every dropped bucket
+     * would be reported forever.
+     *
+     * BOTH forms. This originally matched only `WHERE id = 'x'`, and then
+     * 20260921212141 was rewritten to delete three buckets with `WHERE id IN
+     * (...)` — inside a DO block, because storage.protect_delete() requires
+     * its GUC escape hatch. The replay stopped seeing the deletions and this
+     * guard went red on main against buckets that were already gone from prod.
+     * A parser that silently understands one spelling of the thing it grades
+     * is the same failure as a hand-written list.
+     */
     for (const m of sql.matchAll(
       /delete\s+from\s+storage\.buckets\s+where\s+id\s*=\s*'([^']+)'/gi,
     )) {
       live.delete(m[1]);
+    }
+    for (const m of sql.matchAll(
+      /delete\s+from\s+storage\.buckets\s+where\s+id\s+in\s*\(([^)]*)\)/gi,
+    )) {
+      for (const q of m[1].matchAll(/'([^']+)'/g)) live.delete(q[1]);
     }
   }
   return [...live].sort();
@@ -115,4 +130,4 @@ describe("no orphaned storage buckets", () => {
 
 // Proof this is able to fail: re-create a bucket for a feature that no code
 // uses. The migration replay picks it up and no non-cleanup file names it.
-// @mutate supabase/migrations/20260921212141_drop_orphaned_profile_videos_bucket.sql | DELETE FROM storage.buckets WHERE id = 'profile-videos'; | INSERT INTO storage.buckets (id, name, public) VALUES ('profile-videos', 'profile-videos', true) ON CONFLICT (id) DO NOTHING;
+// @mutate supabase/migrations/20260921212141_drop_orphaned_profile_videos_bucket.sql | WHERE id IN ('profile-videos', 'social-posts', 'business-documents'); | WHERE id IN ('social-posts', 'business-documents');

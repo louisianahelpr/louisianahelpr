@@ -36,11 +36,11 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| **`src/test/*.test.ts*`** | 194 | **194 — COMPLETE** | **0** |
+| **`src/test/*.test.ts*`** | 195 | **195 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
 | Playwright `e2e/**` | 60 | 17 | 43 |
-| colocated beside components | 336 | 39 | 297 |
-| **total** | **643** | **303** | **340** |
+| colocated beside components | 336 | 63 | 273 |
+| **total** | **644** | **328** | **316** |
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 
@@ -97,6 +97,36 @@ turning up live problems the green suite never mentioned:
   the raw dollars, so the receipt and the charge disagreed with nothing to
   reconcile them.
 - **Four private storage buckets** accepted a file of any size and any type.
+
+## A third front: 6 guards grade SQL the database has replaced
+
+Found by fixing one guard's pinned-by-name migration helper and then asking how
+many others do it. Not a latent risk — they are superseded today:
+
+| guard | what it grades from a superseded file |
+|---|---|
+| `smartSort` | a `get_ranked_open_jobs` that 20260915051752 replaced — the browse feed's ranking |
+| `disputeEvidenceChannel` | FOURTEEN dispute functions, every one reapplied by 20260915071502 |
+| `consequenceCopyParity` | FOUR separate migrations, including the arrival gates now in 20260919155016 |
+| `cancellationFee.parity` | `poster_cancel_job` / `block_user_and_settle`, replaced by 20260914215112 |
+| `applyErrorCopy` | `enforce_application_limit`, replaced the same day it was pinned |
+| `groupJobRosterLifecycle` | `enforce_job_tracking_arrival_gate` |
+
+A superseded pin does not by itself make a guard wrong — it may assert only on
+parts that did not change. It means the guard **cannot know either way**, which
+is the same position as not checking.
+
+The count is worth as much as the finding. A first pass grepped raw text and
+said 14. Blanking COMMENTS first — this repo cites the origin migration of a
+rule in prose constantly — brought it to seven, one of which was fixed on the
+spot. Citing a migration is not reading one, and a check that cannot tell the
+difference gets switched off as noise within a day.
+
+Ratcheted by `src/test/guardsReadTheNewestMigration.test.ts`. Its own first
+registered mutation SURVIVED — it reversed a scan direction in another file,
+which is that file's property, not this one's. Registering the WRONG mutation
+is its own quiet failure mode: the guard leaves the burn-down counted as proven
+while nothing about it was tested.
 
 ## The four hollow SHAPES, so they can be looked for rather than stumbled on
 

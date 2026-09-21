@@ -266,6 +266,68 @@ describe("replaceAvatarObject — the orphan bug", () => {
     expect(objects.has("u1/portfolio/work-1.jpg")).toBe(true);
   });
 
+  /**
+   * THE SUB-FOLDER SKIP, ASSERTED SO IT CAN FAIL.
+   *
+   * The test above already says "a portfolio image is never in range", and it
+   * is true — but it cannot fail: `listSupersededAvatars` drops that entry
+   * twice over, once for `o.id !== null` (a folder lists with a NULL id) and
+   * once for `isAvatarObjectName("portfolio")`. Deleting the id check left the
+   * whole file green (probed 2026-09-21), because the NAME check was already
+   * hiding the difference. Two independent gates on one assertion is one gate
+   * nobody is guarding.
+   *
+   * So the case below names the folder something the NAME check accepts. A
+   * bucket folder called `avatar.png` (a member's own upload path, or a
+   * `.list()` of a prefix that has one) lists as `{ name: "avatar.png",
+   * id: null }`, and deleting an object key that is really a folder prefix
+   * would take the files under it. Only the id check stands in the way.
+   */
+  it("never sweeps a FOLDER whose name looks like an avatar object", async () => {
+    const { client, objects, removeCalls } = fakeStorage({
+      "u1/avatar.jpg": "image/jpeg",
+      // A sub-folder, not an object: `.list()` answers one entry named
+      // "avatar.png" with a NULL id.
+      "u1/avatar.png/inner.jpg": "image/jpeg",
+    });
+    const { row } = fakeRow("avatar.jpg");
+
+    const res = await replaceAvatarObject(client, "u1", file("image/webp"), "image/webp", row);
+
+    expect(res.removed, "only the real object may be swept").toEqual(["u1/avatar.jpg"]);
+    expect(removeCalls.flat(), "a folder prefix was handed to remove()").not.toContain(
+      "u1/avatar.png",
+    );
+    expect(objects.has("u1/avatar.png/inner.jpg"), "the folder's contents survived").toBe(true);
+  });
+
+  /**
+   * A FULL PAGE IS NOT A FOLDER LISTING.
+   *
+   * `.list()` is called with `{ limit: 100 }`, so exactly 100 entries means
+   * "the first 100 of an unknown number" — and certifying the unread remainder
+   * as swept is the same defect as reading a null `error` as success.
+   * `listSupersededAvatars` answers `null` for a full page, which both callers
+   * turn into still-exposed. Deleting that line left the whole file green
+   * (probed 2026-09-21): nothing here had ever handed the module a full page.
+   */
+  it("treats a FULL page of 100 entries as unreadable, and removes nothing", async () => {
+    const many: Record<string, string> = { "u1/avatar.jpg": "image/jpeg" };
+    // 100 entries exactly — the cap `listSupersededAvatars` passes to .list().
+    for (let i = 0; i < 99; i++) many[`u1/avatar.x${i}`] = "image/jpeg";
+    const { client, objects, removeCalls } = fakeStorage(many);
+    const { row } = fakeRow("avatar.jpg");
+
+    const res = await replaceAvatarObject(client, "u1", file("image/png"), "image/png", row);
+
+    expect(removeCalls, "an unread remainder may not be swept on a guess").toEqual([]);
+    expect(res.removed).toEqual([]);
+    expect(res.staleRemaining).toEqual(["u1/<unreadable folder>"]);
+    expect(objects.has("u1/avatar.jpg"), "nothing was deleted").toBe(true);
+    // And it is REPORTED — unknown is never silently clean.
+    expect(report).toHaveBeenCalledTimes(1);
+  });
+
   it("is a no-op sweep when the format is unchanged (same key, upserted)", async () => {
     const { client, objects, removeCalls } = fakeStorage({ "u1/avatar.png": "image/png" });
     const { row } = fakeRow("avatar.png");
@@ -465,3 +527,14 @@ describe("replaceAvatarObject — the row moves first", () => {
     expect([...objects.keys()]).toEqual(["u1/avatar.png"]);
   });
 });
+// THE line this module exists for: the storage key is derived from the MIME
+// type the bucket allows, never from user-supplied text. The mutation puts the
+// old filename-derived extension back, which is what left two identity
+// documents publicly fetchable at superseded keys.
+// @mutate src/lib/avatarStorage.ts | const ext = AVATAR_MIME_EXT[contentType.toLowerCase()]; | const ext = contentType.split("/").pop();
+// ...the full-page guard: 100 entries back from a limit-100 list is "the first
+// 100 of an unknown number", never a folder listing.
+// @mutate src/lib/avatarStorage.ts | if (data.length >= LIMIT) return null; |
+
+// ...and the sub-folder skip, which keeps a folder prefix out of remove().
+// @mutate src/lib/avatarStorage.ts | o.id !== null && |

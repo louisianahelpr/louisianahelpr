@@ -492,3 +492,7 @@ describe("the step row's primary slot puts the glossy primary last", () => {
     expect(buttons[0].classList.contains("btn-grad-primary"), "the one control is not the glossy primary").toBe(true);
   });
 });
+// The map's visibility gate: "keep map until done" (owner, 2026-09-16), with
+// the contested-job exemption that keeps it through a dispute or a revision.
+// Dropping the markedDone half leaves the map up on a finished job.
+// @mutate src/components/JobTracking.tsx | (contested \|\| !markedDone) && |

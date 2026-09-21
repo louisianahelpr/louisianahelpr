@@ -573,6 +573,54 @@ describe("useDashboardFilters — nearbyJobs (substring location match)", () => 
 // header count (which falls back to `filteredJobs.length`) and the map (which
 // is measured against this list) both still counted jobs the feed had removed.
 // They belong here, where every surface reads them.
+/**
+ * A JOB CAN OUTLIVE ITS POSTER.
+ *
+ * Account deletion anonymises rather than deletes: `customer_id` goes NULL and
+ * the job row stays, status and all. `browsableJobs` culls those before any
+ * other filter runs, because an ownerless post cannot be applied to — there is
+ * nobody to message, hire or pay — and every downstream surface here (the
+ * header count, the map, `nearbyJobs`) is measured against this list.
+ *
+ * Nothing in this file used to touch that line: replacing the cull with
+ * `allJobs.filter(() => true)` left all 39 tests green (probed 2026-09-21), so
+ * the one filter standing between a deleted account and the browse feed was
+ * unguarded. It is asserted on `filteredJobs` AND on `nearbyJobs`, since the
+ * two derive from it separately.
+ */
+describe("useDashboardFilters — a job whose poster deleted their account", () => {
+  it("never reaches the feed, even with every filter off", () => {
+    const jobs = [
+      makeJob({ id: "ownerless", customer_id: null as unknown as string }),
+      makeJob({ id: "live", customer_id: "customer-9" }),
+    ];
+    const { result } = setup(jobs);
+    expect(
+      result.current.filteredJobs.map((j) => j.id),
+      "an ownerless job has nobody to message, hire or pay — it is not browsable",
+    ).toEqual(["live"]);
+  });
+
+  it("is culled for a signed-in viewer too — the cull is not the own-post filter", () => {
+    // The own-post filter is `userId && job.customer_id === userId`, which a
+    // NULL customer_id passes straight through. Only the browsable cull stops it.
+    const jobs = [makeJob({ id: "ownerless", customer_id: null as unknown as string })];
+    const { result } = setup(jobs, { userId: "user-A" });
+    expect(result.current.filteredJobs).toEqual([]);
+  });
+
+  it("is culled out of nearbyJobs as well, not just the main list", () => {
+    const jobs = [
+      makeJob({ id: "ownerless", customer_id: null as unknown as string, location: "New Orleans" }),
+      makeJob({ id: "live", customer_id: "customer-9", location: "New Orleans" }),
+    ];
+    const { result } = setup(jobs, {
+      profile: { parish: "Orleans", location: "New Orleans" } as unknown as Profile,
+    });
+    expect(result.current.nearbyJobs.map((j: { id: string }) => j.id)).toEqual(["live"]);
+  });
+});
+
 describe("useDashboardFilters — viewer-local culls reach filteredJobs", () => {
   it("hides a job the viewer dismissed", () => {
     const jobs = [makeJob({ id: "kept" }), makeJob({ id: "gone" })];
@@ -600,3 +648,13 @@ describe("useDashboardFilters — viewer-local culls reach filteredJobs", () => 
     expect(result.current.filteredJobs).toHaveLength(2);
   });
 });
+// The ownership cull is the load-bearing line: without it every poster sees
+// (and can apply to) their own posts in the browse feed.
+// @mutate src/hooks/useDashboardFilters.ts | if (userId && job.customer_id === userId) return false; |
+
+// ...and the paid early-access delay, the one filter a non-subscriber must not
+// be able to see through.
+// @mutate src/hooks/useDashboardFilters.ts | if (jobAge < earlyAccessDelayMs(earlyAccessTier)) return false; |
+// ...and the ownerless cull — a job outlives its poster with customer_id NULL,
+// and the own-post filter above passes a NULL straight through.
+// @mutate src/hooks/useDashboardFilters.ts | allJobs.filter((j) => !!j.customer_id) | allJobs.filter(() => true)

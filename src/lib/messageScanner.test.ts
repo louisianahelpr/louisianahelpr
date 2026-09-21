@@ -231,6 +231,45 @@ describe("scanMessage", () => {
   });
 });
 
+/**
+ * THE APP'S OWN LOCATION SHARE IS EXEMPT — and nothing else is.
+ *
+ * `scanMessage` opens with `if (LOCATION_SHARE_REGEX.test(content)) return []`,
+ * the client mirror of the exemption `contact_leak_reason()` applies before it
+ * reaches PHONE_PATTERN. Nothing in this file used to touch that branch:
+ * deleting the early return outright left all 75 tests green (probed
+ * 2026-09-21), so the one line that decides whether a shared pin is treated as
+ * a contact leak was unguarded on both directions.
+ *
+ * It is not decorative. A coordinate with three-digit integer parts lines up
+ * with the 3-3-4 phone shape once its own fractional digits are counted
+ * ("…700,-191.1234"), so without the exemption the app's OWN pin composes as a
+ * phone number and the sender gets a leak warning for tapping "share my
+ * location". The match below was verified against PHONE_PATTERN directly.
+ */
+describe("the app's own location share is exempt (and the exemption is narrow)", () => {
+  it("a shared pin whose digits line up with the phone shape is not a violation", () => {
+    // Trips PHONE_PATTERN on its own: /[0-9]{3}[^0-9a-zA-Z]{0,4}…/ matches
+    // "700,-191.1234" inside it. The exemption is the only thing stopping it.
+    expect(scanMessage("📍 Location: 118.243700,-191.123456")).toEqual([]);
+    expect(hasViolation("📍 Location: 118.243700,-191.123456")).toBe(false);
+  });
+
+  it("the exemption covers ONLY the app's exact shape, never a message that quotes it", () => {
+    // Same pin with anything around it is a person typing, not the app
+    // sharing — the pattern is anchored, and a leak may not ride along inside.
+    expect(
+      scanMessage("📍 Location: 118.243700,-191.123456 call me at 504-555-1234")
+        .some((x) => x.type === "phone_number"),
+      "an anchored-only exemption — text after the pin must not buy an exemption",
+    ).toBe(true);
+    expect(
+      scanMessage("here it is 📍 Location: 30.224100,-92.019800 venmo me")
+        .some((x) => x.type === "payment_app"),
+    ).toBe(true);
+  });
+});
+
 describe("hasViolation", () => {
   it("returns true for any flagged content", () => {
     expect(hasViolation("Call me at 504-555-1234")).toBe(true);
@@ -451,3 +490,13 @@ describe("scan_message_content() word-boundary guard (server-side, structural)",
   }
 
 });
+// The evasion half of the contact-leak filter: fullwidth digits (U+FF10-19)
+// are normalised to ASCII before the phone regex runs, mirroring the server's
+// translate(). Without it "５０４-５５５-１２３４" composes clean.
+// @mutate src/lib/messageScanner.ts | normalizeDigits(content).matchAll(PHONE_REGEX) | content.matchAll(PHONE_REGEX)
+
+// ...and the off-platform-payment phrase list, the rule the server strikes for.
+// @mutate src/lib/messageScanner.ts | pay\s*me\s*direct | payXmeXdirect
+// ...and the app's own location-share exemption, which is the only reason a
+// shared pin is not read as a phone number.
+// @mutate src/lib/messageScanner.ts | if (LOCATION_SHARE_REGEX.test(content)) return []; |

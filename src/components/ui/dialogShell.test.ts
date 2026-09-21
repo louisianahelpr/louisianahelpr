@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, relative } from "node:path";
 import { execSync } from "node:child_process";
+import { blankComments } from "@/test/helpers/blankNonCode";
 
 /**
  * EVERY popup wears the same shell — AND speaks the same grammar inside it.
@@ -58,12 +59,23 @@ const UI = resolve(__dirname);
 const ROOT = resolve(__dirname, "../../..");
 const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 
-/** Comments explain the rules; they must not satisfy them. */
-const stripComments = (t: string) =>
-  t
-    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "") // JSX comments
-    .replace(/\/\*[\s\S]*?\*\//g, "") // block comments
-    .replace(/(^|[^:])\/\/.*$/gm, "$1"); // line comments
+/**
+ * Comments explain the rules; they must not satisfy them.
+ *
+ * `blankComments`, and NOT the hand-rolled block-comment `.replace` this file
+ * used to carry (spelled out in words on purpose — writing that regex here
+ * would both end this comment early and re-trip the detector in
+ * src/test/guardsDoNotDeleteSource.test.ts). That idiom has no idea whether it
+ * is inside a string, so a slash-star inside a URL or a regex literal opened a
+ * comment that ran to the next star-slash anywhere later in the file and
+ * DELETED everything between
+ * — 157 of 1,054 source files in this repo lose real code to it, and a rule
+ * scanning a file it has silently emptied finds no offender and reports green.
+ * Every rule below reads CLASS NAMES and JSX attribute strings, so the
+ * string-preserving half of the helper is the right one (`blankNonCode` would
+ * blank `className="…"` and make the width rules unfalsifiable).
+ */
+const stripComments = (t: string) => blankComments(t);
 
 // ───────────────────────────────────────────────────────────────────────────
 // Part 1 — the shell (unchanged; these already passed and must keep passing)
@@ -1070,3 +1082,8 @@ describe("Popup grammar — footer", () => {
   });
 
 });
+// The footer's equal-halves rule is the load-bearing one: `flex-1` is
+// `flex: 1 1 0%`, and a zero basis under border-box floors at padding, so the
+// commit came out 48px wider than the dismiss while both declared identical
+// flex — the clipping bug the owner photographed twice.
+// @mutate src/components/ui/popupFooter.ts | "basis-[calc(50%-6px)] grow !min-w-max" | "flex-1 min-w-max"

@@ -529,3 +529,8 @@ describe("cancellation ladder — apply_cancellation_violation_consequence (SQL)
     ).toMatch(/p_admin_message_format\s*=>\s*'%s has cancelled %s jobs/);
   });
 });
+// The rung copy IS the product here — this module exists so no surface can
+// state a consequence the RPC does not apply. The suspension length is read
+// out of the SQL (`p_suspension_days`), so a copy that quotes a different one
+// must fail.
+// @mutate src/lib/reliabilityLadder.ts | 3rd — 7-day suspension | 3rd — 3-day suspension

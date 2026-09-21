@@ -85,3 +85,8 @@ describe("SeriesStrip quotes the funding date, not the visit date", () => {
     expect(container.firstChild).toBeNull();
   });
 });
+
+// The constant that turns a visit date into the day the card is charged.
+// Zeroing it reproduces the original defect exactly: the strip names the
+// visit date on the one line of the card that is about money.
+// @mutate src/components/activity/SeriesStrip.tsx | const FUND_LEAD_DAYS = 3; | const FUND_LEAD_DAYS = 0;

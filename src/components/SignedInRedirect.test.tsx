@@ -95,3 +95,9 @@ describe("SignedInRedirect", () => {
     expect(screen.getByText("DASHBOARD")).toBeInTheDocument();
   });
 });
+
+// The single line that decides nothing is decided before auth resolves. The
+// killing case is the fourth test: a TRUTHY user with isLoading still true —
+// without this guard that person is redirected on a session that has not been
+// confirmed yet.
+// @mutate src/components/SignedInRedirect.tsx | if (isLoading) return <>{pendingFallback}</>; | if (false) return <>{pendingFallback}</>;

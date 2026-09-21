@@ -83,3 +83,8 @@ describe("buildJobICS", () => {
     expect(physicalLines[descLineIndex + 1]?.startsWith(" ")).toBe(true);
   });
 });
+
+// An ownerless job (poster deleted, `location` NULL) must OMIT the property,
+// not write it empty — this file lands in a stranger's real calendar.
+// @mutate src/lib/calendarExport.ts | ...(job.location ? [`LOCATION:${escapeICalText(job.location)}`] : []), | `LOCATION:${escapeICalText(job.location ?? "")}`,
+// @mutate src/lib/calendarExport.ts | if (line.length <= 75) return line; | return line;

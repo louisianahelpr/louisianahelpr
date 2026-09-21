@@ -15,13 +15,37 @@ import { TIER_PERKS, tierDisplayName, type SubscriptionTier } from "./subscripti
 import { TIER_DISPLAY_NAMES } from "../../supabase/functions/_shared/tierNames";
 import { TIER_ORDER } from "../../supabase/functions/_shared/tierPerks";
 
-// DERIVED. This was a literal ["free","basic","pro","elite"] — a test whose
-// own input omitted the tier it was supposed to be guarding, so it passed
-// happily while Plus had no verified name (CC-019, the same
+// DERIVED FROM BOTH SIDES. This was a literal ["free","basic","pro","elite"] —
+// a test whose own input omitted the tier it was supposed to be guarding, so it
+// passed happily while Plus had no verified name (CC-019, the same
 // registries-checked-against-themselves shape as the gates).
-const ALL_TIERS: SubscriptionTier[] = [...TIER_ORDER];
+//
+// It was then TIER_ORDER alone, which is only the EDGE side's inventory: a tier
+// added to TIER_PERKS and to nothing else was still invisible to this loop.
+// Union all three so a new rung has to be named everywhere before it counts as
+// verified here.
+const ALL_TIERS: SubscriptionTier[] = [
+  ...new Set([
+    ...TIER_ORDER,
+    ...(Object.keys(TIER_PERKS) as SubscriptionTier[]),
+    ...(Object.keys(TIER_DISPLAY_NAMES) as SubscriptionTier[]),
+  ]),
+] as SubscriptionTier[];
 
 describe("tier display names (client TIER_PERKS <-> edge tierNames)", () => {
+  it("holds the SAME tiers in all three inventories — a new rung cannot hide in one file", () => {
+    // THE assertion in this file. `TIER_PERKS[t].name` is literally
+    // `TIER_DISPLAY_NAMES[t]` (subscriptionTiers.ts:202-282), so the
+    // "same name on both sides" loop below compares a value to itself and can
+    // never fail on a rename. What CAN drift — and did, when `plus` was added
+    // to one ladder and omitted from five others — is WHICH tiers exist. That
+    // is what this asserts, derived from each file rather than hand-listed.
+    const order = [...TIER_ORDER].sort();
+    expect(Object.keys(TIER_PERKS).sort()).toEqual(order);
+    expect(Object.keys(TIER_DISPLAY_NAMES).sort()).toEqual(order);
+    expect([...ALL_TIERS].sort()).toEqual(order);
+  });
+
   it("gives every tier the same name on both sides", () => {
     for (const tier of ALL_TIERS) {
       expect(TIER_PERKS[tier].name).toBe(TIER_DISPLAY_NAMES[tier]);
@@ -50,7 +74,11 @@ describe("tier display names (client TIER_PERKS <-> edge tierNames)", () => {
     // unknown value, never as the plan name for something nobody can buy.
     expect(TIER_DISPLAY_NAMES.business).toBeUndefined();
     expect(tierDisplayName("business")).toBe("Free");
-    expect(Object.keys(TIER_DISPLAY_NAMES).sort()).toEqual(["basic", "elite", "free", "plus", "pro"]);
+    // Derived from TIER_ORDER, not hand-listed: a hand-list here would have to
+    // be remembered on the day a sixth tier ships, which is the one day it
+    // would not be.
+    expect(Object.keys(TIER_DISPLAY_NAMES).sort()).toEqual([...TIER_ORDER].sort());
+    expect(Object.keys(TIER_DISPLAY_NAMES)).not.toContain("business");
   });
 
   it("no 'Helpr ' prefix can creep back onto a consumer tier", () => {
@@ -71,3 +99,6 @@ describe("tier display names (client TIER_PERKS <-> edge tierNames)", () => {
     expect(tierDisplayName("Elite")).toBe("Elite");
   });
 });
+
+// @mutate supabase/functions/_shared/tierNames.ts |   plus: "Plus", |   plus: "Helpr Plus",
+// @mutate supabase/functions/_shared/tierPerks.ts | ["free", "basic", "pro", "plus", "elite"] as const | ["free", "basic", "pro", "plus", "elite", "titanium"] as const

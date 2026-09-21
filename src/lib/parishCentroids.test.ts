@@ -86,3 +86,7 @@ describe("getParishCentroid", () => {
     expect(getParishCentroid("Beverly Hills")).toBeNull();
   });
 });
+
+// `profiles.parish` stores both "Orleans" and "Orleans Parish"; the suffix
+// strip is the only thing that makes the second one resolve.
+// @mutate src/lib/parishCentroids.ts | const normalized = parishName.replace(/\s+Parish\s*$/i, "").trim(); | const normalized = parishName.trim();

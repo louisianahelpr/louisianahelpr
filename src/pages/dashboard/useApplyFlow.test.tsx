@@ -80,6 +80,11 @@ describe("useApplyFlow in-flight guard", () => {
     await waitFor(() => expect(rpcMock).toHaveBeenCalledTimes(1));
     await new Promise((r) => setTimeout(r, 20));
     expect(rpcMock).toHaveBeenCalledTimes(1);
+    // ...and that the one call is the RPC BY NAME. Counting calls alone cannot
+    // tell `apply_to_job` from a renamed/missing function: a name the server
+    // does not have returns PGRST202, which is precisely the door into the
+    // direct-INSERT fallback below (see the REPORT at the foot of this file).
+    expect(rpcMock).toHaveBeenCalledWith("apply_to_job", { p_job_id: "job-1", p_message: null });
   });
 
   it("releases the guard once the apply settles, so a later apply goes through", async () => {
@@ -92,3 +97,33 @@ describe("useApplyFlow in-flight guard", () => {
     await waitFor(() => expect(rpcMock).toHaveBeenCalledTimes(2));
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REPORTED, NOT GUARDED — the PGRST202 direct-INSERT fallback (2026-09-21).
+//
+// `mutationFn` falls back to `supabase.from("applications").insert({...})` when
+// the RPC answers PGRST202. Verified read-only against prod
+// (fncmgoasalhdgfwzhsqa) on 2026-09-21: `apply_to_job(uuid, text)` IS deployed
+// with exactly the signature the client calls, so the fallback is unreachable
+// TODAY. What it would skip if the RPC were ever renamed or dropped, checked
+// against `pg_get_functiondef` and every non-internal trigger on
+// `public.applications`:
+//
+//   • the per-MINUTE and per-HOUR rungs of the cap ladder. `application_cap`
+//     is read for 'minute'/'hour'/'day' inside apply_to_job, but the only
+//     trigger behind it — `enforce_application_limit` — reads ONLY
+//     `application_cap('day')`. Minute and hour have NO trigger.
+//   • the funding gate `job_payment_is_funded(jobs.payment_status)`. Present
+//     in the RPC; absent from `enforce_application_job_state`, which covers
+//     own-job, not-open, direct-offer reservation, Early Access, seed, past
+//     date and expiry — but not payment.
+//   • `pg_advisory_xact_lock('apply_rate:' || auth.uid())`, the serialization
+//     that makes those counts see each other.
+//
+// Not registered as a mutation and not "fixed" here: writing a test around the
+// fallback would lock in a bypass, and deleting the branch is a production
+// change outside this hardening pass. It belongs in docs/OPEN.md.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// @mutate src/pages/dashboard/useApplyFlow.ts | if (!user \|\| !jobId \|\| applyLoading \|\| applyInFlight.current) return; | if (!user \|\| !jobId \|\| applyLoading) return;
+// @mutate src/pages/dashboard/useApplyFlow.ts | { onSettled: () => { applyInFlight.current = false; setApplyLoading(false); } }, | { onSettled: () => { setApplyLoading(false); } },

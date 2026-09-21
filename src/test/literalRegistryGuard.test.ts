@@ -214,11 +214,6 @@ const LEDGER: Array<{ file: string; vocabulary: string; reason: string }> = [
     reason: "Unit test for the tier table itself; the literals are the fixtures under test.",
   },
   {
-    file: "src/lib/tierNames.parity.test.ts",
-    vocabulary: "tier",
-    reason: "Parity test; compares display names across the ladder.",
-  },
-  {
     file: "src/lib/tierPerks.parity.test.ts",
     vocabulary: "tier",
     reason: "Parity test for the perk matrix; the literals are the expectation being compared to it.",

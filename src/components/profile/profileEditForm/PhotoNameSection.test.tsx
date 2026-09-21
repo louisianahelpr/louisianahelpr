@@ -92,3 +92,7 @@ describe("PhotoNameSection", () => {
     expect(container.querySelector('input[type="file"]')).toHaveAttribute("accept", "image/*");
   });
 });
+
+// The second half of the notice is the whole point of it: "Your photo is
+// public" alone did not stop a member publishing their driver's licence.
+// @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | Anyone can see this photo — never use a photo of an ID, licence or document. | Anyone can see this photo.

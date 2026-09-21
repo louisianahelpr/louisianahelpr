@@ -93,6 +93,30 @@ describe("logAdminAction", () => {
     expect(reportMock).toHaveBeenCalledOnce();
   });
 
+  it("REPORTS the error the insert RESOLVES with — a lost audit row must not be silent", async () => {
+    // HOLLOW UNTIL 2026-09-21. supabase-js resolves `{ error }` instead of
+    // throwing, so the surrounding try/catch never sees an RLS refusal — which
+    // is exactly why `if (error) report(...)` exists. Every test above used the
+    // beforeEach default `insertMock.mockResolvedValue({ data: null, error: null })`
+    // or a REJECTION, so that line could be deleted with the file still green:
+    // an admin could ban a user, the audit insert could be refused by RLS, and
+    // nothing anywhere would say so.
+    getUserMock.mockResolvedValue({ data: { user: { id: "admin-1" } } });
+    insertMock.mockResolvedValue({
+      data: null,
+      error: { message: "new row violates row-level security policy", code: "42501" },
+    });
+
+    await expect(logAdminAction("ban_user", "user", "target-1")).resolves.toBeUndefined();
+
+    expect(reportMock).toHaveBeenCalledOnce();
+    const [err, opts] = reportMock.mock.calls[0];
+    expect((err as { code?: string }).code).toBe("42501");
+    // The source tag is how this is told apart from the getUser failure above —
+    // one means "we never tried", the other means "we tried and were refused".
+    expect((opts as { tags: { source: string } }).tags.source).toBe("logAdminAction.insert");
+  });
+
   it("forwards complex details object verbatim", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "admin-1" } } });
 
@@ -110,3 +134,6 @@ describe("logAdminAction", () => {
     );
   });
 });
+
+// @mutate src/lib/adminAudit.ts | if (error) report(error, { tags: { source: "logAdminAction.insert" } }); | void error;
+// @mutate src/lib/adminAudit.ts | if (!user) return; | if (!user) { /* no-op */ }

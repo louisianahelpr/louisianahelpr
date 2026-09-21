@@ -38,9 +38,9 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 |---|---|---|---|
 | **`src/test/*.test.ts*`** | 193 | **193 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
-| Playwright `e2e/**` | 60 | 0 | 60 |
-| colocated beside components | 336 | 3 | 333 |
-| **total** | **642** | **249** | **393** |
+| Playwright `e2e/**` | 60 | 6 | 54 |
+| colocated beside components | 336 | 21 | 315 |
+| **total** | **642** | **273** | **369** |
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 
@@ -71,6 +71,31 @@ Only the first row is enforced today (`.github/workflows/vacuity.yml`, on every 
 and PR, plus a full mutation sweep nightly at 06:10 UTC). The ratchet's baseline may
 only shrink, so row 1 cannot regress. **Rows 2–4 are invisible to it**: a hollow test
 there is not even listed as unproven.
+
+## The gate itself was the biggest hollow thing in here
+
+Three separate defects found in `scripts/vacuity/` on 2026-09-21, each the same
+shape as what it exists to catch — reporting green while unable to see:
+
+1. **A brand-new guard contributed ZERO mutations.** `guardFiles()` is `git
+   ls-files`, so a guard written and not yet `git add`ed was invisible, and the
+   run printed "mutation: nothing in scope". Blind at the one moment that
+   matters most — a guard being born — and green while blind.
+2. **An all-inconclusive batch exited 0.** `inconclusive` means the guard was
+   already red before anything was broken, so breaking the code proved nothing.
+   In an agent worktree with no resolvable vitest, EVERY registration came back
+   inconclusive and the run still said green. That is the environment where most
+   of this work happens.
+3. **Playwright specs were measured against the PREVIOUS bundle.** The
+   happy-path project serves the app from `vite preview` of `dist/`, not `src/`.
+   A `src/` mutation with no rebuild in between tests the old bundle, so every
+   one would have reported SURVIVED — six good specs falsely convicted as
+   hollow, and a "finding" that was pure artefact. The runner now rebuilds.
+   (A fourth, found with it: `.env` is gitignored, so `npm run build` dies in
+   any fresh worktree — which made the failure look like the guard's fault.)
+
+None of these was visible from inside a green run. Each was found by breaking
+something on purpose and noticing the answer did not change.
 
 ## Second front, found 2026-09-21: 49 guards delete the code they inspect
 

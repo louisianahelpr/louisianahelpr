@@ -176,3 +176,11 @@ describe("Edit Profile save bar after a successful save", () => {
     expect(screen.getByRole("button", { name: "Save Changes" })).toBeEnabled();
   });
 });
+
+// PROVEN RED: not moving the dirty-check baseline after a save — the exact
+// defect (Saved at +0.7s, "Save Changes" back at +3.7s) — fails "renders
+// nothing once Saved clears".
+// BLIND TO: the real ProfileTabPanels. The panel is stubbed to the real
+// dirty predicate + real SaveBar, so a regression in the full form's own
+// wiring is outside this file.
+// @mutate src/pages/Profile.tsx | setProfile((prev) => (prev ? { ...prev, ...saved } : prev)); | void saved;

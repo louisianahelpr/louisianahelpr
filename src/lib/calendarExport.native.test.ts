@@ -192,3 +192,10 @@ describe("exportJobToCalendar — web branch", () => {
     }
   });
 });
+
+// PROVEN RED: swapping the share's `files:` item for a `url:` item — the exact
+// pre-fix shape, which iOS reads as an untyped URL and drops the Calendar
+// handler for — fails "shares it as a FILE, not a data: URL".
+// BLIND TO: whether iOS actually offers "Add to Calendar" for a file:// .ics.
+// That is a device fact; this asserts only the payload shape we hand the OS.
+// @mutate src/lib/calendarExport.ts | files: [fileUri], | url: fileUri,

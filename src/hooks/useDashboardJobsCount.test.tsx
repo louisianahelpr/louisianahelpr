@@ -158,3 +158,11 @@ describe("useDashboardJobsCount — dismissed / saved-only exclusion (owner 2026
     await waitFor(() => expect(result.current.data).toBe(3));
   });
 });
+
+// PROVEN RED: dropping the dismissed-jobs cull — the owner's third
+// map/list/count disagreement ("map shows 7 jobs. list shows 4") — fails
+// "EXCLUDES jobs the viewer dismissed".
+// BLIND TO: PARITY ITSELF. This proves the COUNT applies each cull; nothing
+// here ties it to what BrowseTasksFeed and the map RPC apply. A cull added
+// to the feed and not to this hook is invisible to every test in this file.
+// @mutate src/hooks/useDashboardJobsCount.ts | if (dismissedJobIds.length > 0 && dismissedJobIds.length <= MAX_EXCLUDE) { | if (false) {

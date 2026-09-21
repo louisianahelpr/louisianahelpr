@@ -173,3 +173,10 @@ describe("parseBuildNumber", () => {
     expect(normalizeMinBuild("1.0.4")).toBe(GATE_OFF);
   });
 });
+
+// PROVEN RED: making an unparseable value return a BLOCKING threshold
+// instead of GATE_OFF — the fail-closed inversion that would brick every
+// native install at once — fails eight of the "fails OPEN" cases.
+// BLIND TO: the caller. This proves the value; whether App.getInfo()'s build
+// is compared against it correctly lives in the force-update gate.
+// @mutate src/lib/minSupportedBuild.ts | if (parsed === null) return GATE_OFF; | if (parsed === null) return 6000;

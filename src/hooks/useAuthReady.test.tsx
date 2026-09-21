@@ -121,12 +121,20 @@ describe("useAuthReady — auth state changes", () => {
     const { result } = renderHook(() => useAuthReady());
     await waitFor(() => expect(result.current.user).toEqual(fakeUser));
 
+    // PRECONDITION: the user really was there, so what follows is a
+    // transition rather than the null the hook starts life with. Waiting on a
+    // bare `toBeNull()` here would return on poll #1 for a hook that never
+    // signed anyone in (see src/test/waitForEmptyIsVacuous.test.ts).
+    expect(result.current.user).toEqual(fakeUser);
+
     act(() => {
       capturedAuthCallback?.("SIGNED_OUT", null);
     });
 
-    await waitFor(() => expect(result.current.user).toBeNull());
-    expect(result.current.isReady).toBe(true);
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+      expect(result.current.user).toBe(null);
+    });
   });
 
   it("INITIAL_SESSION with no session does NOT prematurely flip ready", async () => {
@@ -194,3 +202,10 @@ describe("useAuthReady — multi-subscriber + singleton", () => {
     expect(onAuthStateChangeMock).toHaveBeenCalledTimes(1);
   });
 });
+
+// PROVEN RED: collapsing the INITIAL_SESSION guard to an unconditional flip
+// fails "INITIAL_SESSION with no session does NOT prematurely flip ready" —
+// the false-unauth that bounces a signed-in user to /login on cold start.
+// BLIND TO: real Supabase token restore. `getSession` is a mock, so a
+// storage-level failure to rehydrate is outside this file.
+// @mutate src/hooks/useAuthReady.ts | if (session \|\| event === "SIGNED_OUT" \|\| event !== "INITIAL_SESSION") { | if (true) {

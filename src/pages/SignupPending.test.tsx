@@ -164,6 +164,22 @@ describe("SignupPending", () => {
       expect(navigateMock).toHaveBeenCalledWith("/complete-profile", { replace: true });
     });
 
+    it("does NOT advance on a session whose email is still unconfirmed", async () => {
+      // The gate is `email_confirmed_at`, not "is there a session". Supabase
+      // hands back a session for an unconfirmed signup whenever email
+      // confirmation is on but the link has not been clicked; routing on the
+      // session alone walks an unverified address straight into the app.
+      getSessionMock.mockResolvedValue({
+        data: { session: { user: { email: EMAIL, email_confirmed_at: null } } },
+        error: null,
+      });
+      renderWithRouterState(EMAIL);
+      await waitFor(() => expect(getSessionMock).toHaveBeenCalled());
+      expect(navigateMock).not.toHaveBeenCalled();
+      // …and the pending address survives, because the wait is not over.
+      expect(sessionStorage.getItem(STORAGE_KEY)).toBe(EMAIL);
+    });
+
     it("ignores a session error rather than routing on bad data", async () => {
       getSessionMock.mockResolvedValue({ data: { session: null }, error: { message: "network" } });
       renderWithRouterState(EMAIL);
@@ -172,3 +188,10 @@ describe("SignupPending", () => {
     });
   });
 });
+
+// PROVEN RED: routing on the presence of a session instead of on
+// `email_confirmed_at` fails "does NOT advance on a session whose email is
+// still unconfirmed" — an unverified address walked into the app.
+// BLIND TO: whether Supabase really withholds `email_confirmed_at` for an
+// unclicked link, and the enumeration fall-through (asserted, not mutated).
+// @mutate src/pages/SignupPending.tsx | if (sessionUser?.email_confirmed_at) { | if (sessionUser) {

@@ -165,3 +165,11 @@ describe("/wrapped tells the truth about a year", () => {
     expect(screen.queryByText("invested in community")).toBeNull();
   });
 });
+
+// PROVEN RED: putting `Math.max` back where the mean is computed — the
+// original defect, a number a stranger reads as the member's standing —
+// fails "reports the AVERAGE rating received".
+// BLIND TO: the SQL behind the rows. The PostgREST stub answers from
+// in-memory fixtures, so a wrong `eq`/date window on the real query is
+// outside this file's reach.
+// @mutate src/pages/HelprWrapped.tsx | ? receivedRatings.reduce((acc, r) => acc + r, 0) / receivedRatings.length | ? Math.max(...receivedRatings)

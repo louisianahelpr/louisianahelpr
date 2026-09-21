@@ -126,9 +126,9 @@ describe("AppLockGate — reachable while a Radix modal holds <body> inert", () 
 
   it("clicking Unlock while <body> is inert still runs the unlock", async () => {
     openRadixModal();
-    render(
+    const { container } = render(
       <AppLockGate>
-        <div>app</div>
+        <div data-testid="app">app</div>
       </AppLockGate>,
     );
 
@@ -150,9 +150,18 @@ describe("AppLockGate — reachable while a Radix modal holds <body> inert", () 
     await waitFor(() => expect(requireBiometricMock).toHaveBeenCalledTimes(2));
     // ...and the lock actually comes down, rather than the handler firing into
     // a screen that stays up.
+    //
+    // WAIT FOR THE DATA, THEN ASSERT THE ABSENCE. `waitFor(() =>
+    // expect(queryByRole(...)).toBeNull())` would have returned on poll #1 for
+    // a component that never rendered a lock at all. The POSITIVE condition —
+    // children promoted to the render root, out of the `opacity-0 aria-hidden`
+    // holder they sit in while the lock is up — cannot be true until the
+    // unlock actually landed, so it is what we poll on.
     await waitFor(() =>
-      expect(screen.queryByRole("dialog", { name: /locked/i })).toBeNull(),
+      expect(container.firstChild).toHaveAttribute("data-testid", "app"),
     );
+    expect(screen.queryByRole("dialog", { name: /locked/i })).toBeNull();
+    expect(document.querySelector('[data-app-lock="locked"]')).toBeNull();
   });
 
   it("un-hides itself when hideOthers() stamps aria-hidden on it", async () => {
@@ -169,9 +178,23 @@ describe("AppLockGate — reachable while a Radix modal holds <body> inert", () 
     panel.setAttribute("aria-hidden", "true");
     panel.setAttribute("data-aria-hidden", "true");
 
+    // PRECONDITION, asserted before the wait: the attribute really is on the
+    // node. Without this the wait below would be satisfiable by a first paint
+    // that never carried the attribute at all, which is the vacuous shape
+    // src/test/waitForEmptyIsVacuous.test.ts is about.
+    expect(panel.getAttribute("aria-hidden")).toBe("true");
+    expect(panel.getAttribute("data-aria-hidden")).toBe("true");
+
     await waitFor(() => {
-      expect(panel.getAttribute("aria-hidden")).toBeNull();
-      expect(panel.getAttribute("data-aria-hidden")).toBeNull();
+      expect(panel.getAttribute("aria-hidden")).toBe(null);
+      expect(panel.getAttribute("data-aria-hidden")).toBe(null);
     });
   });
 });
+
+// PROVEN RED: dropping the panel's `pointerEvents: "auto"` — the one line
+// whose absence left the lock screen pixel-perfect and completely inert
+// behind an open Radix modal — fails "declares pointer-events:auto".
+// BLIND TO: real hit-testing. jsdom does not resolve `pointer-events`, so
+// these assert the DECLARATION; the click test clicks the node directly.
+// @mutate src/components/AppLockGate.tsx | pointerEvents: "auto", | pointerEvents: undefined,

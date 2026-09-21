@@ -135,8 +135,6 @@ function testFiles(): string[] {
  * was truncated and the first correction was wrong too.
  */
 const GRANDFATHERED: readonly string[] = [
-  "src/components/AppLockGate.test.tsx",
-  "src/hooks/useAuthReady.test.tsx",
   "src/test/tripDistanceTrustAndBound.test.tsx",
 ];
 

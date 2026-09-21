@@ -60,6 +60,7 @@ import {
   cleanup, createPressJob, loadTestOwners, makeStripeProbe, mintAccounts, mutationGate, prodSelect,
   rowNamesTestOwner, snapshotProfile, urlOwnership,
 } from "./pressProdSafety.mjs";
+import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const REPO = resolve(HERE, "../..");
@@ -430,7 +431,7 @@ async function main() {
     }
     const personas = route.personas.filter((p) => PERSONAS.includes(p));
     for (const persona of personas) {
-      const rec = { route: route.url, persona, status: "ok", landedOn: null, found: 0, pressed: 0, passed: 0, failed: 0, skipped: 0, controls: [], notes: [] };
+      const rec = { route: route.url, persona, status: "ok", landedOn: null, found: 0, pressed: 0, passed: 0, failed: 0, skipped: 0, controls: [], notes: [], net: null };
       results.push(rec);
       const session = persona === "anon" ? null : sessions[persona];
       if (persona !== "anon" && !session) {
@@ -477,6 +478,26 @@ async function main() {
       ctx.on("page", (p) => { popups.push(p.url()); p.close().catch(() => {}); });
       const downloads = [];
       page.on("download", (d) => { downloads.push(d.suggestedFilename()); d.cancel().catch(() => {}); });
+      /**
+       * PER-REQUEST SEND/RESPONSE TIMING, recorded in CI.
+       *
+       * The listeners above existed only to collect 4xx/5xx into `netFails`, so
+       * the one measurement the /jobs/:id and /user/:id stall needed — how long
+       * each request actually took, under real CI load, with four shards
+       * concurrent against the free-tier project — was never taken. It is now,
+       * and `rec.net` carries the count and the slow tail into results.json.
+       */
+      const reqTimings = [];
+      const shortUrl = (u) => u.replace(BASE, "").replace(/\?.*$/, "").slice(-90);
+      page.on("requestfinished", (r) => {
+        const t = r.timing();
+        if (!t || !(t.responseEnd > 0)) return;
+        reqTimings.push({ ms: Math.round(t.responseEnd), url: shortUrl(r.url()), method: r.method() });
+      });
+      page.on("requestfailed", (r) => {
+        const t = r.timing();
+        reqTimings.push({ ms: Math.max(0, Math.round(t?.responseEnd ?? 0)), url: shortUrl(r.url()), method: r.method(), failed: true });
+      });
 
       // The record the URL names, resolved once per route × persona (read-only select as this account).
       const urlOwnedKey = `${persona}|${route.url}`;
@@ -485,18 +506,22 @@ async function main() {
 
       const gate = (label, meta, chainOwned) => mutationGate({ label, meta, chainOwned, persona, routeUrl: route.url, urlOwned, owners, stripeMode, note: (n) => rec.notes.push(n) });
 
+      // A screen that says it is retrying is NOT settled — see pressLoadHealth.mjs.
       const settle = async () => {
-        await page.waitForFunction(() => {
+        await page.waitForFunction((healSel) => {
           const busy = document.querySelectorAll('[aria-busy="true"]').length;
           const pulses = [...document.querySelectorAll('[class*="animate-pulse"]')].filter((e) => !e.closest("[aria-hidden='true']")).length;
-          return busy === 0 && pulses === 0;
-        }, { timeout: 8000 }).catch(() => {});
+          const retrying = document.querySelectorAll(healSel).length;
+          return busy === 0 && pulses === 0 && retrying === 0;
+        }, SELF_HEAL_SEL, { timeout: 8000 }).catch(() => {});
         await page.waitForTimeout(SETTLE_MS);
       };
       // The URL the screen rests at after a clean load; any drift from it (a
       // filter param, a highlight, a navigation) means the DOM paths no longer
       // address the same controls, so the page is reloaded before the next press.
       let restingUrl = "";
+      /** Result of the most recent self-heal wait — set by load(). */
+      let lastHeal = { healing: false, healed: true, waitedMs: 0 };
       const load = async () => {
         // After the first load the screen is re-entered at the URL it RESTED
         // on: a route that redirects on state (/jobs/:id → the list that owns
@@ -505,6 +530,11 @@ async function main() {
         await page.goto(restingUrl || BASE + route.url, { waitUntil: "domcontentloaded", timeout: 45_000 });
         await page.waitForFunction(() => (document.body.innerText || "").trim().length > 20, { timeout: 15_000 }).catch(() => {});
         await settle();
+        // The auth error card appears only after the profile query's whole
+        // budget (~12.5s) is spent, i.e. AFTER settle() has already returned.
+        // Give its auto-heal its bounded chance before anything classifies this
+        // screen; `lastHeal` is what the boot verdict is judged against.
+        lastHeal = await awaitSelfHeal(page, { timeout: SELF_HEAL_MS });
       };
       const sameScreen = (u) => {
         const a = new URL(u), b = new URL(BASE + route.url);
@@ -549,10 +579,12 @@ async function main() {
         }
         restingUrl = landed;
         const boot = await snapshot();
-        if (ERROR_BOUNDARY_RX.test(boot.text)) {
+        const verdict = classifyBoot({ text: boot.text, errorRx: ERROR_BOUNDARY_RX, heal: lastHeal });
+        if (verdict.note) rec.notes.push(verdict.note);
+        if (verdict.fail) {
           rec.status = "error-on-load";
           rec.failed++; failedPresses++;
-          rec.controls.push({ chain: [], label: "(page load)", result: "FAIL", why: "error boundary / error copy rendered on load", shot: await shoot("load-error") });
+          rec.controls.push({ chain: [], label: "(page load)", result: "FAIL", why: verdict.why, shot: await shoot("load-error") });
         }
 
         // Locator for a chain element: page-level path is relative to <body>;
@@ -760,6 +792,8 @@ async function main() {
       await ctx.close();
       const unpressed = rec.controls.filter((c) => c.result === "SKIP" && !DOCUMENTED_SKIPS.has(c.why)).length;
       undocumented += unpressed;
+      rec.net = summarizeTimings(reqTimings);
+      console.log(`[${route.url} ${persona}] net=${rec.net.requests}req api=${rec.net.apiRequests} p95=${rec.net.p95Ms}ms max=${rec.net.maxMs}ms${rec.net.failed ? ` failed=${rec.net.failed}` : ""}${rec.status === "error-on-load" ? " slowest: " + rec.net.slowest.join(" | ") : ""}`);
       console.log(`[${route.url} ${persona}] found=${rec.found} pressed=${rec.pressed} pass=${rec.passed} fail=${rec.failed} skip=${rec.skipped}${rec.failed ? " :: " + rec.controls.filter((c) => c.result === "FAIL").slice(0, 4).map((c) => `"${c.chain.join(" › ")}" — ${c.why}`).join(" ;; ") : ""}`);
     }
   }

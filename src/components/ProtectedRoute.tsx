@@ -327,7 +327,23 @@ const ProtectedRoute = ({
     });
     track(AhaEvent.ForcedLogoutBounce, { reason: "profile_fetch_error", path: location.pathname });
     return (
-      <div className="min-h-screen flex bg-premium-page">
+      /**
+       * `data-auth-retrying` is the HONEST MACHINE-READABLE SIGNAL that this
+       * card is not a dead end: the effect above is armed and will re-fetch
+       * the profile on its own (first attempt at 4s). Automated harnesses used
+       * to classify this card at t≈0 and call the route broken, so a stall
+       * that healed perfectly at 4s still failed the run — a false red by
+       * construction. `scripts/audit/pressLoadHealth.mjs` reads this attribute,
+       * treats it as "not yet settled", and only fails the route if the card is
+       * STILL up after the heal's bound. `aria-busy` says the same thing to
+       * assistive tech: the region's content is being refreshed.
+       *
+       * It is set unconditionally because the retry effect's condition is the
+       * same one that renders this branch (`showingProfileError`) — the card
+       * cannot be up without the heal running. If that ever stops being true,
+       * gate the attribute on `showingProfileError` rather than dropping it.
+       */
+      <div className="min-h-screen flex bg-premium-page" data-auth-retrying="true" aria-busy="true">
         <ErrorState
           title="We couldn't load your account."
           body="Looks like a brief connection hiccup — you're still signed in. Tap Try again."

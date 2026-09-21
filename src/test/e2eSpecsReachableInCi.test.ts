@@ -341,18 +341,42 @@ function reachableSpecs(): Map<string, string[]> {
     const projFlag = /--project[= ]([a-zA-Z0-9_-]+)/.exec(command);
     const selected = projFlag ? projects.filter((p) => p.name === projFlag[1]) : projects;
 
-    // Positional filters: Playwright matches them as substrings/regexes of
-    // the file path. A shell variable ($SPECS) cannot be resolved here, and
-    // is deliberately treated as matching NOTHING — over-crediting coverage
-    // is the failure mode this test exists to prevent.
-    const filters = command
+    /*
+     * Positional filters: Playwright matches them as substrings/regexes of the
+     * file path. A shell variable ($SPECS) cannot be resolved statically.
+     *
+     * THE COMMENT HERE USED TO SAY the unresolvable token was "treated as
+     * matching NOTHING", and the code did the opposite. Dropping `$SPECS` left
+     * the filter list EMPTY, `filters.length > 0` was then false, the `continue`
+     * never ran, and the command was credited with the WHOLE project — so a job
+     * that usually runs one spec read as running all of them, and every other
+     * spec in that project was recorded as covered by a job that never touches
+     * it. That is the exact false "covered" this file exists to catch,
+     * manufactured by this file. (Trust the declaration, not the comment beside
+     * it — including when the comment is this one.)
+     *
+     * So an unresolvable token now makes the command's scope UNKNOWN, and an
+     * unknown scope credits only what is statically visible — which, when the
+     * variable is the sole positional argument, is nothing at all. Under-
+     * crediting shows up as a spec that looks unrun and gets investigated;
+     * over-crediting shows up as nothing.
+     *
+     * Reported latent rather than live by the lane that found it, and verified:
+     * `ui-sweep.yml` is the one command in this shape, and every happy-path
+     * spec is genuinely run wholesale by `e2e-happy-path.yml` on push. It would
+     * have gone live the moment that wholesale run was narrowed.
+     */
+    const positional = command
       .replace(/^.*playwright\s+test\b/, "")
       .split(/\s+/)
-      .filter((t) => t && !t.startsWith("-") && !t.includes("$"));
+      .filter((t) => t && !t.startsWith("-"));
+    const filters = positional.filter((t) => !t.includes("$"));
+    const scopeIsUnknown = filters.length !== positional.length;
 
     for (const p of selected) {
       for (const s of specsInProject(p, specs)) {
-        if (filters.length > 0 && !filters.some((f) => s.includes(f.replace(/^e2e\//, "")))) continue;
+        const narrowed = filters.length > 0 || scopeIsUnknown;
+        if (narrowed && !filters.some((f) => s.includes(f.replace(/^e2e\//, "")))) continue;
         reach.set(s, [...(reach.get(s) ?? []), workflow]);
       }
     }

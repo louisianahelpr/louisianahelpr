@@ -166,6 +166,7 @@ const failures = [];
    forward in five days, and every nightly log had reported OK. */
 const deferred = [];
 const disputed = [];
+const throttled = [];
 for (const job of jobs) {
   /* A Checkout Session id proves a session was MINTED, not that it was paid —
      it is set by create-payment before the poster ever sees the card form. This
@@ -239,8 +240,18 @@ for (const job of jobs) {
     const r = await cancelJob(job.id);
     if (!r.ok) failures.push(`cancel ${job.id}: HTTP ${r.status} ${r.body}`);
   } else if (funded) {
-    const r = await cancelEscrow(job.id);
-    const verdict = classifyCancelEscrow(r.status, r.body);
+    /* Retried on 429 with backoff before any verdict is drawn. The limiter
+       answers per-caller, so a queue of stranded rows trips it on the rows
+       themselves — waiting is the whole remedy. */
+    let r = await cancelEscrow(job.id);
+    let verdict = classifyCancelEscrow(r.status, r.body);
+    for (let attempt = 0; verdict === "throttled" && attempt < 3; attempt++) {
+      const waitMs = 2000 * 2 ** attempt;
+      console.log(`    throttled on ${job.id}; waiting ${waitMs}ms before asking again`);
+      await new Promise((res) => setTimeout(res, waitMs));
+      r = await cancelEscrow(job.id);
+      verdict = classifyCancelEscrow(r.status, r.body);
+    }
     if (verdict === "settle-forward") {
       /* cancel_escrow only refunds an OPEN job with no Helpr since the
          dispute-races branch (a hired job has a cancellation-fee ladder the
@@ -278,6 +289,12 @@ for (const job of jobs) {
           `escrow deliberately left alone`,
       );
       disputed.push(job);
+    } else if (verdict === "throttled") {
+      // Still throttled after three backoffs. NOT residue — the sweep could not
+      // ask. Reported so the number is visible and the log does not claim a
+      // defect in the cancel path that nothing has evidence for.
+      console.log(`    could not ask: ${job.id} still rate-limited after 3 retries`);
+      throttled.push(job);
     } else if (verdict === "failure") failures.push(`cancel_escrow ${job.id}: HTTP ${r.status} ${r.body}`);
   } else {
     // Walk the status back to 'open' first when the run got as far as hiring or
@@ -325,6 +342,13 @@ if (!summary.ok) {
  * is an admin's — but a dispute nobody resolves quietly blocks every later
  * cleanup of that job, so it cannot be swallowed either.
  */
+if (throttled.length) {
+  console.log(
+    `::warning title=Sweep could not ask about every stranded row::${throttled.length} ` +
+      `cancel_escrow call(s) were still rate-limited after three backoffs. These are NOT stranded ` +
+      `rows — the sweep never got an answer about them. Re-run when the limiter has reset.`,
+  );
+}
 if (disputed.length) {
   const ages = disputed.map((j) => ({
     id: j.id,

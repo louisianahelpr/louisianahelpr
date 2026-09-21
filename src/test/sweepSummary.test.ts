@@ -105,6 +105,16 @@ describe("classifyCancelEscrow", () => {
     expect(classifyCancelEscrow(403, "")).toBe("failure");
   });
 
+  it("429 is throttling, not a broken cancel path", () => {
+    // Self-inflicted on 2026-09-21: 17 stranded rows and three dispatches in
+    // forty minutes made 11 of 17 calls come back 429, and the sweeper reported
+    // eleven defects in the money path. A sweep that could not ASK is a
+    // different fact from one that asked and was refused.
+    expect(classifyCancelEscrow(429, '{"error":"Too many requests. Please try again later."}')).toBe(
+      "throttled",
+    );
+  });
+
   it("a success is a success", () => {
     expect(classifyCancelEscrow(200, "{}")).toBe("ok");
     expect(classifyCancelEscrow(204, "")).toBe("ok");
@@ -121,3 +131,6 @@ describe("classifyCancelEscrow", () => {
 // branch and becomes a hard failure — which is exactly how one unresolved test
 // fixture reddened the nightly money loop for two days.
 // @mutate scripts/e2e/sweepSummary.mjs | if (status === 409 && /under dispute/i.test(body)) return "disputed"; |
+// And the same shape for backpressure: without the 429 arm, the rate limiter
+// doing its job is reported as eleven defects in the cancel path.
+// @mutate scripts/e2e/sweepSummary.mjs | if (status === 429) return "throttled"; |

@@ -85,5 +85,25 @@ export function classifyCancelEscrow(status, body = "") {
   if (status >= 200 && status < 300) return "ok";
   if (status === 409 && /"useCancelJob"\s*:\s*true/.test(body)) return "settle-forward";
   if (status === 409 && /under dispute/i.test(body)) return "disputed";
+  /*
+   * 429 IS BACKPRESSURE, NOT A BROKEN CANCEL PATH.
+   *
+   * Same category error as the dispute 409 this function was extracted for: an
+   * answer that means "ask again later" was being reported as "a funded job
+   * that cancel_escrow refuses is a real defect in the cancel path". It is not
+   * a verdict about the job at all.
+   *
+   * Measured 2026-09-21: with 17 stranded rows and three dispatches inside
+   * forty minutes, 11 of 17 calls came back
+   * `{"error":"Too many requests. Please try again later."}`. The rate limit
+   * doing its job read as eleven defects in the money path.
+   *
+   * The caller retries with backoff before believing it, and reports it as
+   * throttling rather than as residue if it persists — a sweep that could not
+   * ASK is a different fact from a sweep that asked and was refused, and
+   * conflating them sends whoever reads the log looking for a bug that is not
+   * there.
+   */
+  if (status === 429) return "throttled";
   return "failure";
 }

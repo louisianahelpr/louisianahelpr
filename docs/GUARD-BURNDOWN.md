@@ -10,11 +10,11 @@ means youre fixing it for good."*
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| `src/test/*.test.ts*` (the ratchet) | 190 | **88** | **102** |
+| `src/test/*.test.ts*` (the ratchet) | 190 | **95** | **95** |
 | `src/test/edge/` | 53 | 0 | 53 |
 | Playwright `e2e/**/*.spec.ts` | 60 | 0 | 60 |
 | colocated beside components | 336 | 0 | 336 |
-| **total** | **639** | **88** | **551** |
+| **total** | **639** | **95** | **544** |
 
 Only the first row is enforced today (`.github/workflows/vacuity.yml`, on every push
 and PR, plus a full mutation sweep nightly at 06:10 UTC). The ratchet's baseline may
@@ -29,8 +29,8 @@ there is not even listed as unproven.
 | BROWSE | 5 | **DONE** — 125 → 120. One real vacuity found. |
 | VISUAL | 7 | **DONE** — 120 → 113. One real vacuity + one false-positive-prone guard fixed. |
 | AUTHZ | 11 | **DONE** — 113 → 102. Three more real vacuities, two of them the worst found. |
-| SCHEMA | 13 | |
-| OTHER | 89 | |
+| SCHEMA | 13 | 7 done (none hollow — first clean bucket), 6 running |
+| OTHER | 89 | 7 running |
 
 Then the 53 edge, the 60 e2e, the 336 colocated.
 
@@ -100,6 +100,39 @@ Also recorded: `giftCardNaming.test.ts` is a regex for a retired product name. I
 never sees an amount and **could not have caught** the same-day bug where the client
 sent `10.555`, the server charged `$10.56`, and the buyer was shown `$10.555`.
 Client/server rounding agreement is an **uncovered class**, not a gap in that guard.
+
+## The other two gaps — measured, not assumed
+
+Proving a test CAN fail is one of three questions. Owner, 2026-09-20: *"fill the
+gaps also. nothing should be left unturned."*
+
+**Gap 2 — guards that pass honestly but check the wrong thing.** `giftCardNaming`
+proves red fine: it really does catch a retired product name. It never sees an
+AMOUNT, so it could not have caught the same-day bug where the client sent
+`10.555`, the server charged `$10.56`, and the buyer was shown `$10.555`.
+Client/server rounding agreement is an **uncovered class**. Lanes now report these
+as they surface; they are not hollow guards and must not be counted as such.
+
+**Gap 3 — source with no test at all.** The ratchet inspects TEST files, so code
+nobody tests has no guard to prove hollow. It is invisible to this exercise by
+construction. Measured 2026-09-20 (every `src/` + `supabase/functions/` `.ts`/`.tsx`
+that is not itself a test, against every identifier referenced by any test file):
+
+| | files |
+|---|---|
+| source files | 1053 |
+| referenced by at least one test | 739 |
+| **never referenced by any test** | **314** |
+
+    components 134 · admin UI 49 · lib 38 · pages 38 · edge functions 37 · hooks 16
+
+**37 untested edge functions is the line that matters** — that is where money moves.
+Full list: `scripts/` measurement is reproducible; regenerate rather than trusting
+this snapshot.
+
+So at 639/639 what is known is: *every test in the repo has been shown capable of
+failing.* NOT: every behaviour is tested. Gap 3 is the larger number and needs its
+own plan.
 
 ## The rule for each guard
 

@@ -41,14 +41,33 @@ so the `/` + `*` in a URL or regex literal opens a comment that runs to the next
 
 Measured, not estimated:
 
+The measurement that matters is REAL CODE LOST, not bytes removed — this repo
+writes long header comments by house style, so "90% of the file removed" is
+often correct stripping. Comparing the naive chain against a string-aware
+scanner, counting only non-whitespace code characters:
+
 | | |
 |---|---|
-| source files whose text is >60% deleted by that chain | **293 of 1,053 (28%)** |
-| edge source files >60% deleted | **53 of 96** |
-| `src/lib/groupJobs.ts` | 99% deleted |
-| `supabase/functions/brand-asset/index.ts` | 98% deleted |
-| `arrival-confirm-reminder` | 87% deleted, *including the call in question* |
+| TS/TSX source files that lose REAL CODE | **208 of 1,054** |
+| `supabase/functions/brand-asset/index.ts` | **98% of its code gone** (52,892 chars) |
+| `charge-recurring-visits/index.ts` | 74% of its code gone |
+| `src/test/edge/harness.ts` | 51% of its code gone |
+| `arrival-confirm-reminder` | lost the `postSlackOpsAlert(` call itself — the concrete proof |
 | guards still using the idiom | **49** |
+
+*(An earlier pass here recorded "293 of 1,053 files >60% deleted". That counted
+bytes removed, which conflates a long header comment with damage. 208 is the
+number of files where code actually disappears; corrected 2026-09-21.)*
+
+**SQL is NOT yet measured.** Two of the 49 strip SQL comments (`--` plus block),
+and a naive `--` regex has the same string-blindness. But a correct SQL scanner
+must decide what a `$tag$…$tag$` function body is: treating it as an opaque
+string (so comments inside it survive) gives a different answer from treating it
+as SQL (so they are stripped) — and for a guard the second is what you want. A
+first attempt compared the two definitions and produced a number that looked
+alarming and meant nothing. `blankNonCode.ts` handles JS/TS only; a SQL variant
+that recurses into dollar-quoted bodies is needed before any claim is made about
+the 740 migrations.
 
 A guard scanning a file it has silently emptied finds nothing and reports green,
 which is indistinguishable from the code being correct.

@@ -19,11 +19,16 @@
  * ANYWHERE later in the file and deletes everything between. The `//` in
  * `https://` does the same to the rest of its line.
  *
- * Measured across the repo on 2026-09-21: that expression deletes more than
- * 60% of **293 of the 1,053 source files** — `src/lib/groupJobs.ts` 99%,
- * `supabase/functions/brand-asset/index.ts` 98%. A guard scanning a file it has
- * silently emptied finds nothing and reports green, which is indistinguishable
- * from the code being correct.
+ * Measured across the repo on 2026-09-21, counting REAL CODE LOST rather than
+ * bytes removed (this repo writes long header comments, so bytes-removed
+ * flatters the naive version): **208 of 1,054 TS/TSX source files** lose code.
+ * `supabase/functions/brand-asset/index.ts` loses 98% of its own code — 52,892
+ * characters. A guard scanning a file it has silently emptied finds nothing and
+ * reports green, which is indistinguishable from the code being correct.
+ *
+ * NOTE: this helper is JS/TS only. SQL needs its own scanner — `--` comments,
+ * `''` escaping, and `$tag$…$tag$` bodies that must be recursed into rather
+ * than treated as opaque strings.
  *
  * That is not hypothetical. `src/test/edge/sharedImports.test.ts` exists to
  * catch an edge function calling a `_shared` helper it never imported — the

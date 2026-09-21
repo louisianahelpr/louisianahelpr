@@ -15,10 +15,15 @@
  * between; the `//` in `https://` eats the rest of its line.
  *
  * Measured, not estimated:
- *   - 53 of the 96 edge source files lost more than 60% of themselves;
- *     `brand-asset/index.ts` came out 100% empty.
- *   - Repo-wide, 293 of 1,053 source files lose more than 60%.
- *   - `arrival-confirm-reminder` lost 87%, including the call in question.
+ *   - `arrival-confirm-reminder` lost the `postSlackOpsAlert(` call itself,
+ *     which is how this surfaced: deleting its import left the guard green.
+ *   - Counting REAL CODE LOST (non-whitespace characters that a string-aware
+ *     scanner keeps and the naive chain drops), 208 of 1,054 TS/TSX source
+ *     files lose code. `brand-asset/index.ts` loses 98% of its own code,
+ *     `charge-recurring-visits` 74%, `src/test/edge/harness.ts` 51%.
+ *   - Bytes-removed is the WRONG metric and an earlier pass used it: this repo
+ *     writes long header comments, so "90% removed" is usually correct
+ *     stripping. 208 is the honest number.
  *
  * A guard scanning a file it has silently emptied finds nothing and reports
  * green, which looks exactly like the code being correct. This is the purest

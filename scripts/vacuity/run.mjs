@@ -69,6 +69,30 @@ for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => { resto
 process.on("exit", restoreAll);
 process.on("uncaughtException", (e) => { restoreAll(); throw e; });
 
+/**
+ * A KILLED SPAWN IS NOT A VERDICT.
+ *
+ * `spawnSync({ timeout })` kills the child with SIGTERM when the budget runs
+ * out, and the run then exits NON-ZERO. The mutation phase reads non-zero as
+ * "the guard noticed", so a run that simply ran out of wall clock was scored
+ * `killed` — a green verdict manufactured out of a timeout, with the guard
+ * having observed nothing at all.
+ *
+ * Found 2026-09-21 on the Playwright path, where it is worst: a full overlay
+ * sweep is ~22 minutes against a 900s budget, so EVERY mutation of it would
+ * have "passed". The same channel exists on the vitest path at 180s. This is
+ * the third way this gate has manufactured a proof it never performed, after
+ * the unescaped-`||` parse bug and the batched-baseline/solo-mutation split —
+ * all three shaped the same way: something that is not evidence being read as
+ * evidence because it happened to be non-zero.
+ *
+ * A timeout is `inconclusive`, which is already a hard failure. The honest
+ * answer when nothing was observed.
+ */
+export function timedOut(r) {
+  return r.error?.code === "ETIMEDOUT" || r.signal === "SIGTERM" || r.signal === "SIGKILL";
+}
+
 function runVitest(guards, extraEnv = {}) {
   const list = Array.isArray(guards) ? guards : [guards];
   const r = spawnSync(
@@ -81,7 +105,16 @@ function runVitest(guards, extraEnv = {}) {
       timeout: 180_000,
     },
   );
-  return { green: r.status === 0, out: (r.stdout || "") + (r.stderr || "") };
+  const out = (r.stdout || "") + (r.stderr || "");
+  if (timedOut(r)) {
+    return {
+      green: false,
+      timedOut: true,
+      out: `vitest run of ${list.join(", ")} was KILLED at the 180s spawn budget — it did not finish, ` +
+        `so nothing was observed either way.\n` + out.slice(-2000),
+    };
+  }
+  return { green: r.status === 0, out };
 }
 
 /**
@@ -240,6 +273,19 @@ function runPlaywright(guard, { rebuild = false } = {}) {
     },
   );
   const out = (r.stdout || "") + (r.stderr || "");
+
+  if (timedOut(r)) {
+    return {
+      green: false,
+      timedOut: true,
+      out:
+        `${guard} was KILLED at the 900s spawn budget — it did not finish, so nothing was ` +
+        `observed either way. Scope it down in specGateEnv (the sweeps take ` +
+        `OVERLAY_SWEEP_ROUTES / EMPTY_SWEEP_ROLES / ERROR_SWEEP_ROLES) so the mutated code path ` +
+        `runs inside the budget. The assertion being proven is identical at 2 routes and at 66.\n` +
+        out.slice(-3000),
+    };
+  }
 
   /*
    * A RUN WHERE EVERYTHING SKIPPED IS NOT A PASS — and scored as one it
@@ -449,7 +495,12 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
     try {
       fs.writeFileSync(abs, mutated);
       const r = runGuard(m.guard, { rebuild: isPlaywrightGuard(m.guard) && needsRebuild(m.target) });
-      verdict = r.green ? "SURVIVED" : "killed";
+      if (r.timedOut) {
+        verdict = "inconclusive";
+        why = r.out.trim().split("\n").slice(0, 3).join("\n      ");
+      } else {
+        verdict = r.green ? "SURVIVED" : "killed";
+      }
       if (r.green) why = "guard stayed GREEN with the mutation applied";
     } finally {
       // Another lane may have written this file inside the mutation window.

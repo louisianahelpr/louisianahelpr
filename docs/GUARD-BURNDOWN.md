@@ -38,9 +38,9 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 |---|---|---|---|
 | **`src/test/*.test.ts*`** | 196 | **196 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
-| Playwright `e2e/**` | 59 | 22 | 37 |
-| colocated beside components | 336 | 157 | 179 |
-| **total** | **644** | **429** | **216** |
+| Playwright `e2e/**` | 59 | 24 | 35 |
+| colocated beside components | 336 | 166 | 170 |
+| **total** | **644** | **439** | **205** |
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 
@@ -127,6 +127,34 @@ registered mutation SURVIVED — it reversed a scan direction in another file,
 which is that file's property, not this one's. Registering the WRONG mutation
 is its own quiet failure mode: the guard leaves the burn-down counted as proven
 while nothing about it was tested.
+
+## Two specs that are not checks at all
+
+Worth separating from the hollow guards: these do not assert a weak thing, they
+assert almost nothing, while being wired into CI and named like audits.
+
+- **`overlay-sweep.spec.ts`** — 67 tests, 66 route probes, and **exactly one
+  assertion in the whole file**: `expect(probed.length).toBeGreaterThan(0)`.
+  Its `findings[]` has no consumer but a `writeFileSync` to a temp file. Missing
+  accessible names, focus not entering the overlay, Escape not closing it,
+  background not scroll-locked, tap targets under 43.5px and WCAG-AA axe
+  violations can all fire on all 66 routes and it still exits 0. It is the only
+  audit of ~91 overlay components, and it has been green-on-blind, not dormant.
+  Not registered (a mutation would SURVIVE by construction) and not exempted
+  (that retires a real audit). It needs a checked-in findings baseline.
+
+- **`replaceState-churn.spec.ts`** — hollow twice over, now fixed. It dispatched
+  90 keystrokes inside ONE synchronous `page.evaluate`, and React 18 auto-
+  batching collapsed them into a single render: the hook performed ~1 write
+  instead of 90, so the spec asserted that a route survives a burst that never
+  happened. Separately, the crash it guards is WebKit-only while the spec runs
+  on Chromium, where "did not crash" is true regardless of the code. Both
+  halves closed — real macrotask spacing, and the rate limiter asserted as a
+  MECHANISM via a `replaceState` counter bounded BOTH ways, so the vanishing
+  burst cannot recur silently.
+
+**If a spec simulates volume, prove the volume arrived. If the defect is
+engine-specific, assert the mechanism on the engine you run.**
 
 ## A guard is only as good as its weakest exemption
 

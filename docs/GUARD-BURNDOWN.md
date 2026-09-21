@@ -222,6 +222,55 @@ by quoting the literal it used to carry. A check a comment can TRIP pushes the
 next person to delete the explanation to get green, which is how the reason for
 a rule gets lost.
 
+### Second instance, 2026-09-21: five Playwright specs nothing ran
+
+`src/test/e2eSpecsReachableInCi.test.ts` exists to catch exactly one thing — a
+spec file that exists, typechecks, passes review, and is executed by nothing.
+Its own header calls that "the most expensive kind of dead code, because unlike
+dead code it actively misleads."
+
+It was **green at 72/72** while five specs ran nowhere, because all five sat in
+its `NOT_RUN_IN_CI` list. The guard worked perfectly. Its exemptions did not.
+
+Every reason that a parser could decide was FALSE:
+
+| spec | the reason it carried | what is true |
+|---|---|---|
+| `post-and-apply.spec.ts` | "Needs real credentials and writes a job to the live database." | References no credential env var, its own header says authenticated flows are skipped, writes nothing — three anonymous page loads. |
+| `smoke.spec.ts` | "Points at the deployed site." | Imports `LOCAL_BASE_URL`. |
+| `a11y.spec.ts` | "Deployed-site axe run." | Relative `page.goto()`, so it resolves the project baseURL — the local preview. |
+| `visual-audit/desktop-fill.spec.ts` | "Deployed-site visual audit; ui-sweep.yml covers the same ground locally." | Same; and see below. |
+| `visual-audit/responsive.spec.ts` | same | Same. |
+
+Two of the five were not merely stale, they were **impossible**. "ui-sweep.yml
+covers the same ground locally" cannot be true of a `chromium` spec: ui-sweep
+runs `--project=happy-path`, and that project's `testDir`/`testIgnore` cannot
+collect those files at all. Worth stating because it tripped more than one
+reader: **both projects run Chromium the browser** (Desktop Chrome). The
+difference is the file set and whether Supabase is mocked, not the engine —
+only the `-webkit` projects use a different engine.
+
+What it cost: all five run in **2.6 minutes** against a preview server CI
+already builds, and on their first run produced four real failures —
+including a CTA locator in `post-and-apply` that had said "Browse Local Jobs"
+long after the hero started saying "Browse Jobs", so the test had been failing
+on a locator timeout rather than on the behaviour it names.
+
+The durable fix was the same as last time: **fix the exemption, do not add a
+checker.** An exemption reason that names a workflow as cover must now name one
+that exists AND runs at least one project that could actually collect that
+spec. A second guard was started and deliberately discarded — a duplicate is
+worse than useless while the real hole is an exemption list.
+
+One entry stayed exempt, and the shape of its reason is the point:
+`desktop-fill` still fails on `/browse`, where the anonymous feed fills 39% of
+a 1440px viewport against that spec's own ≥65% floor. Wiring it would either
+ship a permanently red workflow or invite the next person to set
+`exempt: true` on the route — masking a real finding. Its reason now names the
+defect and the way out: fix the layout, then wire it and delete the entry in
+the same change. **An exemption with an exit condition is a debt; one without
+is a wish.**
+
 ## Two more product defects the burn-down surfaced
 
 - **Sentry Session Replay was recording every keystroke in prod, unguarded.**
@@ -240,6 +289,65 @@ a rule gets lost.
   2026-09-01 incident, where the SERVICE-ROLE half let
   `png/../../<victim>/avatar.png` overwrite another member's photo. That half
   was guarded; this one was not.
+
+## A probing sweep can only assert one direction of a ratchet
+
+Found 2026-09-21 by shipping the wrong half and paying for it twice.
+
+`e2e/happy-path/overlay-sweep.spec.ts` clicks up to 40 visible buttons per
+route and audits whatever opens. Making it assert meant checking today's
+findings into a baseline, and a baseline naturally wants a two-way ratchet:
+a NEW finding fails, and a finding that STOPS reproducing also fails, so the
+file can only shrink.
+
+The second half does not hold, and five consecutive full runs on an unchanging
+app say so:
+
+```
+overlay opens per run    84 / 86 / 82 / 79 / 84
+/my-posts opened         Escalate|More|SOS            (runs 1,2,3,5)
+                         Timeline & Evidence|No-Show  (run 4)
+/availability contrast   present runs 1-4, absent run 5
+```
+
+Two real causes: the seeded job fixtures carry dates relative to NOW, so a
+card's action chips depend on whether its start has passed; and the 40-button
+cap plus click ordering changes what is reached even on an identical screen.
+
+**The asymmetry is the lesson.** A finding is derived from the DOM the app
+actually rendered, so nondeterminism can only ever HIDE a finding, never invent
+one:
+
+- **ADDED (new key → fail) is sound.** Keep it strict. A rule class absent from
+  the baseline is a real defect on the run that saw it, full stop.
+- **STALE ("no longer reproduces" → fail) is NOT assertable.** It is meant to
+  claim the app changed; on a nondeterministic prober it mostly reports which
+  overlays that run happened to reach. Shipped, it failed on runs 4 and 5 on a
+  DIFFERENT key each time with no code change in between.
+
+A gate that reds for something nobody changed is a gate people mute — and then
+a real failure is muted with it. That is the same defect class this burn-down
+exists to close, reintroduced by the fix for it.
+
+So enforce the shrink direction on something deterministic instead (here: a
+baseline key naming a route the sweep no longer probes is dead weight and
+fails). Restoring the full ratchet needs a deterministic prober — pinned
+fixture dates and a stable trigger enumeration.
+
+**Before putting a shrink ratchet on any probing sweep, run it twice unchanged
+and diff the key sets.** Two 22-minute runs bought that lesson the hard way.
+
+### The invariant behind the fake-kill channels
+
+Three separate fake-proof channels have now been found in the gate itself, and
+they share one shape: **a correct decision function that some path does not
+consult.** The mutation parser was right and 17 directives never reached it; the
+timeout predicate was right and the verdict did not read it.
+
+So: **pin every verdict path end to end, not just its decision function.** A
+guard over the predicate alone passes while the wiring that was supposed to call
+it is missing — which is precisely how the previous two channels survived being
+looked at.
 
 ## The hollow SHAPES, so they can be looked for rather than stumbled on
 

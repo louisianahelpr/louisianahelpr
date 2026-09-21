@@ -1,6 +1,7 @@
 import { test, expect, installSupabaseMocks, seedAuthedSession, FAKE_CUSTOMER } from "./fixtures";
 import type { MockRule } from "./fixtures";
 import { LATEST_TERMS_VERSION } from "../../src/lib/consent";
+import { DATE } from "./seedData";
 
 const OTHER = "00000000-0000-4000-8000-0000000000aa";
 const AGO = (m: number) => new Date(Date.now() - m * 60000).toISOString();
@@ -17,7 +18,14 @@ function mk(tag: string, category: string, location: string, i: number) {
   return {
     id: `30000000-0000-4000-8000-00000000000${i + 1}`,
     title: `JOB ${tag}`, description: `Task ${tag} description.`,
-    category, budget: 100 + i, date_needed: "2026-09-20",
+    // RELATIVE, never a literal. `useDashboardFilters` drops any job whose
+    // `date_needed` is before today ("a job someone wanted yesterday is noise
+    // in the browse feed"), so a hardcoded date is a time bomb: this spec was
+    // pinned to "2026-09-20" and went red — with ALL NINE jobs missing and a
+    // clean console — the moment the clock passed it. Nothing about the feed
+    // had changed. seedData.ts already warns about exactly this ("a frozen
+    // clock would have expired them all") and exports DATE for it.
+    category, budget: 100 + i, date_needed: DATE(3),
     customer_id: OTHER, status: "open", created_at: AGO(60 + i * 10), updated_at: AGO(60 + i * 10),
     is_urgent: false, urgent_fee: 0, is_flexible_schedule: false, is_recurring: false,
     is_group_job: false, helpers_needed: 1, estimated_hours: 2, special_requirements: null,
@@ -79,3 +87,14 @@ test("every open job the API returns is rendered somewhere", async ({ page, cont
   
   expect(missing, `open jobs returned by the API but rendered nowhere: ${missing.join(", ")}`).toEqual([]);
 });
+
+
+// PROOF THIS SPEC CAN FAIL — the 2026-09-16 shape, reproduced.
+//
+// `partitionBrowseFeed` is total over its input by construction: `rest` is
+// `filteredJobs` minus the band, so every row lands in exactly one half. The
+// bug this spec exists for was a SUBTRACTION that removed rows for a band that
+// did not render them. Forcing `inBand` true empties `rest` entirely, so only
+// the recommended band survives and the remaining open jobs the API returned
+// are rendered nowhere — which is the defect, and what `missing` catches.
+// @mutate src/pages/dashboard/browseFeedSections.ts | const inBand = bandIds.has(j.id); | const inBand = true;

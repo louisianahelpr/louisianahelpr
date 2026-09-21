@@ -227,3 +227,13 @@ test("popup footers fit at every width, in equal halves or stacked", async ({ pa
   expect(await stackedAt(320), "no footer stacks at 320 — the wrap is inert again").toBeGreaterThan(0);
   expect(await stackedAt(1440), "footers are stacking on a desktop width").toBe(0);
 });
+
+// PROOF THIS SPEC CAN FAIL — restore bug #2 from the header comment verbatim.
+//
+// `flex-1 min-w-0` is `flex: 1 1 0%`, and under border-box a ZERO basis floors
+// at padding + border: the dismiss's px-4 against the commit's px-6 made the
+// commit ~48px wider at every viewport while both declared identical flex, and
+// the commit's own label then spilled out of the pill. The percentage basis is
+// what makes the halves equal for real. A class-name assertion cannot tell the
+// two apart — this spec renders them and reads the boxes back, so it can.
+// @mutate src/components/ui/popupFooter.ts | export const POPUP_COMMIT_CLS = "basis-[calc(50%-6px)] grow !min-w-max"; | export const POPUP_COMMIT_CLS = "flex-1 min-w-0";

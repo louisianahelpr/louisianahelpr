@@ -139,3 +139,15 @@ test.describe("customer sees helper application", () => {
     await checkA11y(page);
   });
 });
+
+// PROOF THIS SPEC CAN FAIL — delete the count, keep everything else.
+//
+// The contract here is "the poster learns a helper applied". That fact comes
+// from ONE line in useActivityData: the tally that turns application rows into
+// `applicantCounts`, which PostedJobCard prints on the control that acts on it.
+// Dropping the tally leaves the page, the job card and the expand affordance
+// all working — it removes only the number — so nothing but this spec's
+// `Applicants (1)` assertion notices. `pendingApplicantCounts` is deliberately
+// left intact: the two counts answer different questions, and the mutation must
+// break the one this spec is about.
+// @mutate src/hooks/useActivityData.ts | applicantCounts[a.job_id] = (applicantCounts[a.job_id] || 0) + 1; |

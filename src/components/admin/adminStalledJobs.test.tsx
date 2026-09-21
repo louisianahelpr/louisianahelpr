@@ -199,3 +199,10 @@ describe("AdminStalledJobs — the states that are not a list of rows", () => {
     expect(screen.queryByText("No jobs are stuck")).not.toBeInTheDocument();
   });
 });
+
+// The same-frame double-tap guard: `busy` is state, so without the synchronous
+// ref both clicks read the queue as free and resolve_stalled_job_flag fires twice.
+// @mutate src/components/admin/AdminStalledJobs.tsx | if (inFlight.current.has(row.job_id)) return; |
+// `false` from the RPC means somebody else cleared it first. Told as success,
+// the admin believes their review was recorded when no row changed.
+// @mutate src/components/admin/AdminStalledJobs.tsx | const changed = unwrap(res) === true; | const changed = true;

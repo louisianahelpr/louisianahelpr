@@ -204,3 +204,8 @@ describe("rememberRoute — transient params", () => {
     expect(readRestorableRoute()).toBe("/my-posts");
   });
 });
+
+// The device-reported permanent trap: `?chat=1` makes MobileNav render null, so
+// persisting it restored a Messages screen with no bottom nav on every launch —
+// and force-quitting put the user straight back into it.
+// @mutate src/lib/lastRoute.ts | const TRANSIENT_PARAMS = ["chat", "quickApply"]; | const TRANSIENT_PARAMS = ["quickApply"];

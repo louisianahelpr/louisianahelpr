@@ -22,12 +22,29 @@
 import { describe, it, expect } from "vitest";
 import { posterFeePercentForTier as uiPosterFeePercent } from "./posterFees";
 import { tierFeePercent as uiHelperFeePercent, TIER_PERKS, type SubscriptionTier } from "./subscriptionTiers";
-import { feePercentForTier as edgeHelperFeePercent } from "../../supabase/functions/_shared/helperFees";
+import {
+  feePercentForTier as edgeHelperFeePercent,
+  TIER_FEE_PERCENT as EDGE_TIER_FEE_PERCENT,
+} from "../../supabase/functions/_shared/helperFees";
 import { posterFeePercentForTier as edgePosterFeePercent } from "../../supabase/functions/_shared/posterFees";
 
 // Every tier the app can put in `profiles.subscription_tier`, plus the values a
 // real row can actually hold that are NOT tiers (null, junk, mixed case).
-const LIVE_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
+//
+// DERIVED, NEVER HAND-LISTED. This list read `["free", "basic", "pro", "elite"]`
+// — written out by hand — for the whole life of the file, which meant `plus`
+// (restored 2026-09-05 with real live Stripe Prices, 9%) was in NEITHER ladder's
+// coverage here. Every loop below silently skipped it, so the edge ladder's
+// `plus` rung could have been set to any number at all — including below Elite's
+// 8% — with this money guard fully green. The inventory now comes from the two
+// ladders' OWN key sets, unioned, so a rung that exists on only one side is
+// still walked (and fails loudly on the side that is missing it).
+const LIVE_TIERS = [
+  ...new Set([
+    ...Object.keys(TIER_PERKS),
+    ...Object.keys(EDGE_TIER_FEE_PERCENT),
+  ]),
+].sort() as SubscriptionTier[];
 const RAW_VALUES: (string | null | undefined)[] = [
   ...LIVE_TIERS,
   "PRO",
@@ -54,6 +71,24 @@ const EXPIRY_STATES: [label: string, value: string | null | undefined][] = [
   ["active (future)", FUTURE],
   ["EXPIRED (past)", PAST],
 ];
+
+describe("the inventory this file walks is the app's own", () => {
+  it("covers every rung on BOTH ladders, and is not a list someone has to remember", () => {
+    // FLOOR: a derivation that silently produced nothing would make every
+    // per-tier loop below pass vacuously.
+    expect(LIVE_TIERS.length, "no tiers derived from either fee ladder").toBeGreaterThanOrEqual(5);
+    // Named explicitly because this is the rung the hand-written list lost:
+    // `plus` shipped, was pulled, and came back, and the list was never updated.
+    expect(LIVE_TIERS).toContain("plus" as SubscriptionTier);
+    // The two ladders must hold the SAME rungs. A tier on one side only is a
+    // role split by construction: the runtime that lacks it charges the free
+    // rate while the other charges the discounted one.
+    expect(
+      [...Object.keys(EDGE_TIER_FEE_PERCENT)].sort(),
+      "the edge ladder and TIER_PERKS hold different tiers",
+    ).toEqual([...Object.keys(TIER_PERKS)].sort());
+  });
+});
 
 describe("one user, one tier, one percent — poster === helper", () => {
   it("resolves the identical percent for both roles, every tier × every expiry state", () => {
@@ -164,3 +199,11 @@ describe("unknown tiers fall back to the FREE rate, never to a cheaper one", () 
     }
   });
 });
+
+// MONEY. Move the edge ladder's Plus rung off the UI's 9% and the two runtimes
+// charge the same person two different percentages. This directive is the whole
+// reason the tier inventory above is derived rather than hand-listed: against
+// the old hand-written `["free","basic","pro","elite"]` it SURVIVED — every
+// loop skipped Plus, so its edge rate could be set to anything, 7% or 0%,
+// with this file green.
+// @mutate supabase/functions/_shared/helperFees.ts |   plus: 9, |   plus: 7,

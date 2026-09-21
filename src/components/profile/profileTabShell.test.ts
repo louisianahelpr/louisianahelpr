@@ -159,3 +159,10 @@ describe("Profile tabs share one shell", () => {
     ).toEqual([]);
   });
 });
+
+// The literal owner-reported defect: `px-3` on the tab body, which put
+// gift_card's content at a 36px gutter against everybody else's 24px.
+// @mutate src/components/profile/ProfileTabBody.tsx | export const PROFILE_TAB_BODY_CLASS = "space-y-4"; | export const PROFILE_TAB_BODY_CLASS = "space-y-4 px-3";
+// The escape hatch this primitive exists to refuse. An arbitrary `className`
+// prop is how the next `px-3` gets in — through the prop instead of the div.
+// @mutate src/components/profile/ProfileTabBody.tsx | export interface ProfileTabBodyProps { | export interface ProfileTabBodyProps {\n  className?: string;

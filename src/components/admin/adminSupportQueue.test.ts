@@ -199,3 +199,8 @@ describe("waitingLabel", () => {
     expect(waitingLabel("not a date", NOW)).toBe("");
   });
 });
+
+// The whole perk in one line: the 48h head start is what makes a priority
+// ticket outrank a younger free one, and what bounds that overtaking so a free
+// ticket can never be starved. Delete it and the queue is plain FIFO.
+// @mutate src/components/admin/AdminSupport.tsx | return hasPrioritySupport(tier) ? arrived - PRIORITY_HEAD_START_MINUTES * 60_000 : arrived; | return arrived;

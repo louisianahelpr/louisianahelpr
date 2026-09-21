@@ -209,3 +209,9 @@ describe("isSocialLoginPluginAvailable", () => {
     expect(isSocialLoginPluginAvailable()).toBe(true);
   });
 });
+
+// AUTH, contract inverted 2026-08-20 by the owner. Without this branch a native
+// build whose SocialLogin pod did not link falls through to web OAuth, which
+// opens an in-app browser sheet rendering Helpr's OWN login page inside browser
+// chrome — the screen the owner hit on device and did not recognise as theirs.
+// @mutate src/lib/socialAuth.ts | if (Capacitor.isNativePlatform()) { | if (false) {

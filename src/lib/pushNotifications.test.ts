@@ -237,3 +237,8 @@ describe("native platform", () => {
     expect(mod.getPushPermission()).toBe("default");
   });
 });
+
+// The regression this file exists for. Drop the native arm and push is
+// "unsupported" on the one platform where it is real — every surface gated on
+// it goes dead on iOS and prod carries zero push_tokens rows again.
+// @mutate src/lib/pushNotifications.ts | export const isPushSupported = (): boolean => isNativePlatform \|\| hasWebPushApis(); | export const isPushSupported = (): boolean => hasWebPushApis();

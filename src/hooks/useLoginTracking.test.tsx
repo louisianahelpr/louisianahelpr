@@ -220,3 +220,8 @@ describe("useLoginTracking", () => {
     expect(insertMock).toHaveBeenCalledTimes(2);
   });
 });
+
+// AUTH. The tracked-once latch: without it one sign-in writes a login_history
+// row and identifies in PostHog once per SIGNED_IN event Supabase emits, not
+// once per session.
+// @mutate src/hooks/useLoginTracking.ts | tracked.current = true; |

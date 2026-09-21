@@ -79,7 +79,10 @@ const canon = (p) => {
 };
 
 const RESULTS = canon("test-results");
-const LOG = join(RESULTS, "review-log.jsonl");
+// NOT under test-results/: Playwright clears that directory at the start of
+// every run, which silently emptied this log (and made this report green on an
+// empty file). See e2e/reviewLog.ts.
+const LOG = join(canon(".review"), "review-log.jsonl");
 
 const reviews = existsSync(LOG)
   ? readFileSync(LOG, "utf8").split("\n").filter(Boolean).flatMap((l) => {

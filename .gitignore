@@ -148,3 +148,7 @@ e2e-artifacts/
 # 805KB each and check-asset-weight.mjs is right to refuse them — git keeps
 # every revision of a binary forever. They live in the run, not the tree.
 docs/audit/a11y-separators/**/*.png
+
+# Review log — proof a human looked at a screenshot. Must NOT live under
+# test-results/, which Playwright wipes each run. See e2e/reviewLog.ts.
+.review/

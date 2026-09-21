@@ -468,7 +468,24 @@ async function probeRoute(page: Page, route: string): Promise<void> {
     let violations: OverlayFinding["violations"] = [];
     try {
       const axe = await new AxeBuilder({ page })
-        .include(OPEN_OVERLAY)
+        // The TAGGED overlay, not the OPEN_OVERLAY multi-selector.
+        //
+        // checkOpenOverlay deliberately judges the LAST match (portals append,
+        // so the last one is the one the click just opened) and tags it
+        // `data-sweep-target`. The Escape check and the geometry check both
+        // already ask about that element; this scan was the one place still
+        // handed the broad selector, so axe scanned whichever overlay came
+        // first in the DOM — a different element than every other check in the
+        // same iteration was judging.
+        //
+        // It made the sweep NONDETERMINISTIC, which is worse than being wrong:
+        // across three consecutive full runs the /my-posts SOS dialog's
+        // colour-contrast violation (#fdfdfd on #b95e35 = 4.37:1) appeared
+        // once. Under a findings ratchet that is a phantom — a real,
+        // long-standing defect that reads as a NEW regression on whichever run
+        // happens to see it, which is exactly how a gate teaches people to
+        // ignore it.
+        .include("[data-sweep-target]")
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
         .analyze();
       violations = axe.violations.map((v) => ({

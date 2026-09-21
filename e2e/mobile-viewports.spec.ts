@@ -59,6 +59,11 @@ for (const vp of VIEWPORTS) {
         : devices["iPad (gen 7)"].userAgent,
     });
 
+    // Shown able to fail on the defect it names. Forcing the hero's own wrapper
+    // wider than the narrowest phone puts the landing page into horizontal
+    // scroll at every viewport this spec measures — which is precisely what the
+    // deleted phone-cluster test was supposed to catch and never could.
+    // @mutate src/components/landing/HeroSection.tsx | <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16"> | <div style={{ minWidth: 1400 }} className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16">
     for (const page of PAGES) {
       test(`${page.label} — no horizontal scroll, FAB reachable`, async ({ page: p }) => {
         const errors: string[] = [];
@@ -88,6 +93,55 @@ for (const vp of VIEWPORTS) {
           `scrollWidth=${horizontalOverflow.scrollW}, innerWidth=${horizontalOverflow.innerW}`,
         ).toBe(false);
 
+        // ── Assertion 1b: nothing sticks out past the right edge ───
+        //
+        // Assertion 1 above cannot see most overflow, and it is worth being
+        // precise about why. `src/index.css` sets `body { overflow-x: hidden }`
+        // on purpose, to absorb the 1-2px that the .full-bleed -50vw trick can
+        // spill. That clip also suppresses the SYMPTOM this spec measures:
+        // documentElement.scrollWidth stops growing, so content that really is
+        // off the side of the phone reports as fitting.
+        //
+        // Measured 2026-09-21: forcing a 1400px-wide element into the landing
+        // hero at a 320px viewport left Assertion 1 GREEN on all five
+        // viewports. The content was off-screen and unreachable; the metric
+        // said the page fit. CLAUDE.md's stated proof-of-fit ("assert
+        // documentElement.scrollWidth <= clientWidth") has the same blind spot
+        // wherever that CSS applies.
+        //
+        // So measure the ELEMENTS, the way visual-audit/responsive.spec.ts
+        // does — a bounding rect is unaffected by an ancestor's clip. Scoped
+        // to text-bearing and interactive nodes, because those are the ones a
+        // user loses; +2px absorbs sub-pixel rounding.
+        const offCanvas = await p.evaluate(() => {
+          const viewportW = window.innerWidth;
+          const out: string[] = [];
+          const nodes = Array.from(
+            document.querySelectorAll<HTMLElement>(
+              "button, a, input, textarea, select, [role=button], h1, h2, h3, p, li, label",
+            ),
+          );
+          for (const el of nodes) {
+            const r = el.getBoundingClientRect();
+            if (r.width === 0 || r.height === 0) continue;
+            const st = getComputedStyle(el);
+            if (st.visibility === "hidden" || st.display === "none") continue;
+            if (r.right > viewportW + 2 && r.left < viewportW) {
+              out.push(
+                `<${el.tagName.toLowerCase()}${el.className ? " ." + String(el.className).split(" ")[0] : ""}> right=${Math.round(r.right)} > ${viewportW}`,
+              );
+              if (out.length >= 5) break;
+            }
+          }
+          return out;
+        });
+        expect(
+          offCanvas,
+          `Content past the right edge on ${page.label} @ ${vp.width}px. ` +
+            `body{overflow-x:hidden} hides this from scrollWidth, so it is measured ` +
+            `per element:\n  ${offCanvas.join("\n  ")}`,
+        ).toEqual([]);
+
         // ── Assertion 2: no JS errors on render ────────────────────
         expect(
           errors,
@@ -104,32 +158,25 @@ for (const vp of VIEWPORTS) {
       });
     }
 
-    // ── Landing-page-specific check: phone cluster fits the viewport ──
-    // The PhoneCluster component (src/components/landing/PhoneCluster.tsx)
-    // uses fixed-px widths via inline style. At 320px the parent container
-    // shrinks but the cluster's hard-coded widths do NOT, which was flagged
-    // as an overflow risk in the original QA report. Catch a regression
-    // here by checking the cluster's right edge against viewport width.
-    test(`landing — phone cluster fits viewport`, async ({ page: p }) => {
-      await p.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
-      await p.locator("body").waitFor({ state: "visible", timeout: 10_000 });
-
-      // Best-effort selector for the phone cluster — the component
-      // doesn't have a stable test-id yet, so target by the dominant
-      // visual cue (the "46 active now" pill the cluster anchors to).
-      const liveBadge = p.locator('text=/active.*now/i').first();
-      const badgeVisible = await liveBadge.isVisible().catch(() => false);
-      if (!badgeVisible) {
-        test.skip(true, "Live badge not visible on this viewport — landing layout may have shifted; update selector");
-        return;
-      }
-
-      const box = await liveBadge.boundingBox();
-      if (!box) return;
-      expect(
-        box.x + box.width,
-        `Live badge right edge (${box.x + box.width}) exceeds viewport width (${vp.width}) on ${vp.name}`,
-      ).toBeLessThanOrEqual(vp.width + 1); // +1 for sub-pixel rounding
-    });
+    // REMOVED 2026-09-21: `landing — phone cluster fits viewport`.
+    //
+    // It targeted src/components/landing/PhoneCluster.tsx, which NO LONGER
+    // EXISTS, by looking for the "46 active now" pill — a string that appears
+    // nowhere in src/ any more. Its own comment admitted the selector was
+    // "best-effort... doesn't have a stable test-id yet", and it handled a miss
+    // with `test.skip(true, "…update selector")`.
+    //
+    // So it had been skipping on ALL FIVE viewports, in a spec that
+    // mobile-viewports.yml runs in CI, which reported 20 passed / 5 skipped and
+    // read as green. That is the worst shape a check can have: it disarms
+    // itself in exactly the circumstance it exists to detect, because a layout
+    // regression is what makes a selector stop matching. A check that goes
+    // quiet when its target moves is worse than no check — the row is still
+    // there, so the coverage looks real.
+    //
+    // Nothing is lost by deleting it. The overflow concern it named — the
+    // landing page not fitting a narrow phone — is asserted directly and
+    // without a fragile selector by `landing — no horizontal scroll, FAB
+    // reachable` above, which runs at 320/375/414/768/1024 and passes.
   });
 }

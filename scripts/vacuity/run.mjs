@@ -108,7 +108,33 @@ function runVitest(guards, extraEnv = {}) {
 export const isPlaywrightGuard = (rel) => rel.startsWith("e2e/");
 
 /** Bundle-affecting: the browser only sees it after a rebuild. */
-export const needsRebuild = (target) => target.startsWith("src/");
+/**
+ * Does mutating `target` change what `vite preview` serves out of `dist/`?
+ *
+ * A Playwright spec loads the built bundle, so a mutation that never reaches
+ * `dist/` tests the PREVIOUS build and comes back SURVIVED — a confident wrong
+ * answer, and the worst kind this gate can give.
+ *
+ * This was `target.startsWith("src/")`, which is most of the truth and not all
+ * of it. `tailwind.config.ts`, `vite.config.ts`, `index.html` and the postcss
+ * config all shape the bundle and none of them live under `src/`. Found
+ * 2026-09-21 by a lane that went to register a dock-clearance mutation against
+ * `tailwind.config.ts`, worked out it would have been scored false-SURVIVED,
+ * and stopped rather than register a guess.
+ *
+ * Erring toward rebuilding is the safe direction: a needless rebuild costs
+ * ~60-90s, a missed one invents a result.
+ */
+const BUNDLE_AFFECTING = [
+  /^src\//,
+  /^index\.html$/,
+  /^tailwind\.config\.[cm]?[jt]s$/,
+  /^vite\.config\.[cm]?[jt]s$/,
+  /^postcss\.config\.[cm]?[jt]s$/,
+  /^package(-lock)?\.json$/,
+  /^public\//,
+];
+export const needsRebuild = (target) => BUNDLE_AFFECTING.some((re) => re.test(target));
 
 const PW_PROJECT = (rel) => {
   const m = /^e2e\/([^/]+)\//.exec(rel);
@@ -147,6 +173,39 @@ function runBuild() {
   return { ok: r.status === 0, out: (r.stdout || "") + (r.stderr || "") };
 }
 
+/**
+ * Env a spec needs before it will RUN ITS OWN TESTS.
+ *
+ * Several suites gate themselves behind a variable so they do not run on every
+ * push — `const d = process.env.RUN_EMPTY_SWEEP ? test.describe :
+ * test.describe.skip`. Without it they collect their tests and skip all of
+ * them, and Playwright exits 0. To this gate a spec that skipped everything is
+ * indistinguishable from a spec that passed, so a mutation against it comes
+ * back SURVIVED for an environment reason and the guard looks hollow when it
+ * is not.
+ *
+ * Measured 2026-09-21: `empty-state-sweep` (138 tests) and `error-state-sweep`
+ * (272 tests) both do this, and both ARE wired into CI (ui-sweep.yml sets the
+ * vars) — so the coverage was fine and only the PROVABILITY was missing. A
+ * lane correctly refused to register a mutation it knew would be scored
+ * wrongly, and equally refused to `@mutate-exempt` them, which would have
+ * retired two real guards from the burn-down.
+ *
+ * `--list` cannot detect this: it collects identically with the gate on or off.
+ */
+function specGateEnv(guard) {
+  const GATES = {
+    "e2e/happy-path/empty-state-sweep.spec.ts": { RUN_EMPTY_SWEEP: "1" },
+    "e2e/happy-path/error-state-sweep.spec.ts": { RUN_ERROR_SWEEP: "1" },
+    // Found 2026-09-21 by selfGatedSpecsAreRunnable, not by anyone reading the
+    // tree: ~91 components in src/ render an overlay and none was ever audited
+    // until this sweep existed.
+    "e2e/happy-path/overlay-sweep.spec.ts": { RUN_OVERLAY_SWEEP: "1" },
+    "e2e/happy-path/appstore-screenshots.spec.ts": { RUN_APPSTORE_SHOTS: "1" },
+  };
+  return GATES[guard] ?? {};
+}
+
 function runPlaywright(guard, { rebuild = false } = {}) {
   if (rebuild) {
     const b = runBuild();
@@ -162,6 +221,7 @@ function runPlaywright(guard, { rebuild = false } = {}) {
         ...process.env,
         PLAYWRIGHT_WEB_SERVER: "1",
         ...BUILD_ENV,
+        ...specGateEnv(guard),
         // NOT CI: `reuseExistingServer: !CI` is what stops a second build.
         CI: "",
         LH_VACUITY_TRACE: "",

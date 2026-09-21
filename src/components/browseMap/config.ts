@@ -57,8 +57,15 @@ export interface MapJob {
    * those few minutes; a null `boosted_at` means "not boosted" and IS
    * evaluated.
    */
-  /** Already the first key of the RPC's ORDER BY; now projected too. */
-  boosted_at?: string | null;
+  /**
+   * `boost_expires_at`, NOT `boosted_at`. Every other surface defines boosted
+   * as "the boost is STILL RUNNING" (useDashboardData.ts:447,
+   * DashboardGuest.tsx:248, JobDetail.tsx:72, and the count's
+   * `gt("boost_expires_at", now)`). 20260921173413 projected `boosted_at`
+   * — "ever boosted" — which would have shown expired boosts on the map while
+   * the list showed none. Corrected by 20260921201657 before any user saw it.
+   */
+  boost_expires_at?: string | null;
   expires_at?: string | null;
 }
 

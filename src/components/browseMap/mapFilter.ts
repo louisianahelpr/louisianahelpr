@@ -21,9 +21,11 @@
 // the left but not the map." Naming a filter as unsupported still leaves two
 // surfaces disagreeing in front of the user.
 //
-// So the fields came to the map instead. `boosted_at` and `expires_at` are now
-// projected by `get_open_jobs_for_map` (migration 20260921173413) — boosted_at
-// was already the first key of its ORDER BY and simply was not returned — and
+// So the fields came to the map instead. `boost_expires_at` and `expires_at`
+// are now projected by `get_open_jobs_for_map` (20260921173413, corrected by
+// 20260921201657 — the first cut projected `boosted_at`, "ever boosted", which
+// would have put expired boosts on the map while the list showed only live
+// ones: a new divergence in the exact place being fixed) — and
 // availability needs only `date_needed` + `start_time`, which the RPC has
 // returned since 20260823120000 and nothing ever wired up. All three are
 // evaluated here now. `unsupportedMapFilters` survives for the deploy window
@@ -104,7 +106,7 @@ export function unsupportedMapFilters(f: MapJobFilterInput, jobs: readonly MapJo
   const sample = jobs[0];
   const has = (k: keyof MapJob) => sample === undefined || k in sample;
   const out: string[] = [];
-  if (f.boostedOnly && !has("boosted_at")) out.push("Boosted");
+  if (f.boostedOnly && !has("boost_expires_at")) out.push("Boosted");
   if (f.expiresWithin && !has("expires_at")) out.push("Ending soon");
   return out;
 }
@@ -139,12 +141,17 @@ export function buildMapJobFilter(f: MapJobFilterInput): (job: MapJob) => boolea
      * in src/hooks/useDashboardFilters.ts — deliberately the same shape, so a
      * change to one reads as obviously needing the other.
      *
-     * A key that is ABSENT means the deployed RPC predates 20260921173413; the
+     * A key that is ABSENT means the deployed RPC predates the migration; the
      * filter cannot be evaluated and `unsupportedMapFilters` is telling the
      * user so, and it must NOT cull. A key that is present and null is a real
-     * answer: `boosted_at: null` means not boosted.
+     * answer: `boost_expires_at: null` means no live boost.
      */
-    if (f.boostedOnly && "boosted_at" in job && !job.boosted_at) return false;
+    // STILL ACTIVE, not ever-boosted — the definition every other surface
+    // uses. An expired boost is not a boosted job.
+    if (f.boostedOnly && "boost_expires_at" in job) {
+      const until = job.boost_expires_at ? new Date(job.boost_expires_at).getTime() : 0;
+      if (!(until > now)) return false;
+    }
 
     if (f.expiresWithin && "expires_at" in job) {
       if (!job.expires_at) return false; // list: `expiresWithin && !expires_at` culls

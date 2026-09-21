@@ -125,7 +125,7 @@ describe("unsupportedMapFilters", () => {
    */
   it("names nothing once the RPC returns the columns", () => {
     expect(unsupportedMapFilters(NONE)).toEqual([]);
-    const fresh = [{ boosted_at: null, expires_at: null }] as never[];
+    const fresh = [{ boost_expires_at: null, expires_at: null }] as never[];
     expect(
       unsupportedMapFilters(
         { ...NONE, boostedOnly: true, expiresWithin: "24h", matchAvailability: true },
@@ -191,10 +191,22 @@ describe("the map applies the filters it used to only name (owner 2026-09-21)", 
     ...over,
   }) as never;
 
-  it("Boosted culls an unboosted pin", () => {
+  it("Boosted means the boost is STILL RUNNING, not ever-boosted", () => {
     const f = buildMapJobFilter({ ...base, boostedOnly: true });
-    expect(f(job({ boosted_at: null })), "an unboosted job survived the Boosted filter").toBe(false);
-    expect(f(job({ boosted_at: new Date().toISOString() }))).toBe(true);
+    expect(f(job({ boost_expires_at: null })), "an unboosted job survived the Boosted filter").toBe(false);
+    expect(f(job({ boost_expires_at: new Date(Date.now() + 36e5).toISOString() }))).toBe(true);
+    /*
+     * The correction. 20260921173413 projected `boosted_at` — "ever boosted" —
+     * so an EXPIRED boost would have shown on the map while the list, the
+     * count, the guest dashboard and job detail all test
+     * `boost_expires_at > now` and showed nothing. A new divergence inside the
+     * fix for the old one. Caught before any user saw it (0 boosted rows on
+     * prod), corrected by 20260921201657.
+     */
+    expect(
+      f(job({ boost_expires_at: new Date(Date.now() - 36e5).toISOString() })),
+      "an EXPIRED boost passed the Boosted filter — the map would disagree with the list again",
+    ).toBe(false);
   });
 
   it("Ending soon culls a pin outside the window, and one with no expiry at all", () => {
@@ -233,7 +245,7 @@ describe("the map applies the filters it used to only name (owner 2026-09-21)", 
   });
 
   it("once the RPC returns the columns, nothing is reported as unsupported", () => {
-    const fresh = job({ boosted_at: null, expires_at: null });
+    const fresh = job({ boost_expires_at: null, expires_at: null });
     expect(
       unsupportedMapFilters(
         { ...base, boostedOnly: true, expiresWithin: "24h", matchAvailability: true },

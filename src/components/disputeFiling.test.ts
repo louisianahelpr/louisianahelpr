@@ -238,3 +238,8 @@ describe("a completed job cannot be disputed", () => {
     expect(lifecycleErrorMessage({ message: "job_not_completed" }) ?? "").not.toMatch(/dispute/i);
   });
 });
+
+// The filing gate that moves money: without `!detailsOk` a dispute ships with
+// an empty "What happened?" and freezes the escrow for 72 hours on the string
+// "Other:".
+// @mutate src/components/DisputeDialog.tsx | disabled={submitting \|\| !reason \|\| !detailsOk} | disabled={submitting \|\| !reason}

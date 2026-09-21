@@ -267,3 +267,8 @@ describe("parishForCity (signup ZIP/city sanity hint)", () => {
     expect(parishForCity("Not A Real Town")).toBeNull();
   });
 });
+
+// The ambiguity rule: a city listed under two parishes must resolve to null,
+// never to whichever parish iterated last. "New Orleans" is a Jefferson USPS
+// city for five ZIPs as well as all 56 Orleans ones.
+// @mutate src/lib/parishes.ts | map.set(key, AMBIGUOUS_CITY_MARKER); | map.set(key, p);

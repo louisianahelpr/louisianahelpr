@@ -321,3 +321,11 @@ describe("reconcilePortfolioObjects — fails closed", () => {
     expect(second).toEqual({ removed: [], staleRemaining: [] });
   });
 });
+
+// The client half of the storage-key class: the extension must come from the
+// CONTENT TYPE and an unlistable type must never reach a key at all. Drop the
+// guard and `image/heic` mints `<id>.undefined` instead of throwing.
+// @mutate src/lib/portfolioStorage.ts | if (!ext) throw new UnsupportedPortfolioImageError(contentType); |
+// A key outside this user's own portfolio folder must never resolve — that is
+// what keeps the sweep off another member's objects.
+// @mutate src/lib/portfolioStorage.ts | if (!key.startsWith(prefix)) return null; |

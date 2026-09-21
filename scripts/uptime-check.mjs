@@ -5,7 +5,8 @@
  * Owner-approved 2026-09-14. Two questions, asked every 10 minutes:
  *   1. does https://www.louisianahelpr.com/ answer 200?
  *   2. does the database answer a read the app itself makes —
- *      `open_jobs_browse?select=id&limit=1` — with 200 inside 10s?
+ *      `open_jobs_browse?select=id&limit=1` — with 200 inside 10s AND at
+ *      least one row? An empty marketplace is down; see probe()'s note.
  *
  * The second one is the point. Prod is a free-tier t4g.nano; on 2026-09-13 it
  * went down for a day and nothing told anyone. A static-host GET stays 200
@@ -50,8 +51,24 @@ const TIMEOUT_MS = Number(process.env.TIMEOUT_MS || 10_000);
 const ROUNDS = Number(process.env.ROUNDS || 3);
 const ROUND_GAP_MS = Number(process.env.ROUND_GAP_MS || 30_000);
 
-/** One probe. Never throws: a thrown fetch IS the failure we are looking for. */
-async function probe(name, url, headers) {
+/**
+ * One probe. Never throws: a thrown fetch IS the failure we are looking for.
+ *
+ * `expectRows`: a 200 carrying `[]` is NOT up.
+ *
+ * WHY (2026-09-21, nightly-red #1595). This probe asked PostgREST for
+ * `open_jobs_browse?select=id&limit=1` and passed on the status code alone. An
+ * empty array is a 200, so the guest marketplace could be completely dark and
+ * every check in the repo stayed green — which is exactly what happened: the
+ * only signal that prod had ZERO browsable jobs was e2e-journeys
+ * 01-browse.spec.ts failing "guest Browse listed no jobs", twice a week, six
+ * days after the fact. `open_jobs_browse` admits a row only at
+ * payment_status in (escrow, payout_pending, released), so 115 open-but-
+ * unfunded rows render a marketplace with nothing in it. A logged-out visitor
+ * landing on /browse sees an empty page; that is down, whatever the status
+ * line says. Reading the body is the whole fix.
+ */
+async function probe(name, url, headers, { expectRows = false } = {}) {
   const started = Date.now();
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), TIMEOUT_MS);
@@ -62,6 +79,19 @@ async function probe(name, url, headers) {
     // cares about "usable", not "eventually answered".
     if (res.status !== 200) return { name, ok: false, ms, detail: `HTTP ${res.status}` };
     if (ms > TIMEOUT_MS) return { name, ok: false, ms, detail: `200 but ${ms}ms > ${TIMEOUT_MS}ms` };
+    if (expectRows) {
+      let rows;
+      try {
+        rows = await res.json();
+      } catch (e) {
+        return { name, ok: false, ms, detail: `200 but the body is not JSON (${String(e?.message || e).slice(0, 80)})` };
+      }
+      if (!Array.isArray(rows)) return { name, ok: false, ms, detail: "200 but the body is not a row array" };
+      if (rows.length === 0) {
+        return { name, ok: false, ms, detail: `200 in ${ms}ms but ZERO rows — a guest opening /browse sees an empty marketplace` };
+      }
+      return { name, ok: true, ms, detail: `200 in ${ms}ms, ${rows.length} row(s)` };
+    }
     return { name, ok: true, ms, detail: `200 in ${ms}ms` };
   } catch (e) {
     return { name, ok: false, ms: Date.now() - started, detail: (e?.name === "AbortError" ? `no answer in ${TIMEOUT_MS}ms` : String(e?.message || e)) };
@@ -74,11 +104,17 @@ async function round() {
   const checks = [probe("site", SITE_URL, { "user-agent": "louisianahelpr-uptime/1" })];
   if (SUPABASE_URL && KEY) {
     checks.push(
-      probe("database", `${SUPABASE_URL}${REST_PATH}`, {
-        apikey: KEY,
-        authorization: `Bearer ${KEY}`,
-        accept: "application/json",
-      }),
+      probe(
+        "database",
+        `${SUPABASE_URL}${REST_PATH}`,
+        {
+          apikey: KEY,
+          authorization: `Bearer ${KEY}`,
+          accept: "application/json",
+        },
+        // Zero rows is down, not up — see probe()'s note.
+        { expectRows: true },
+      ),
     );
   } else {
     // Never silently drop half the check: no key means we cannot answer the

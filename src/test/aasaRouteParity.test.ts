@@ -71,8 +71,21 @@ const isRegistered = (pathname: string) => matchers.some((re) => re.test(pathnam
 const SAMPLE_SEGMENT = "sample-id";
 const concrete = (claim: string) => claim.replace(/\*/g, SAMPLE_SEGMENT);
 
+// @mutate src/App.tsx | <Route path="/jobs/:id" | <Route path="/jobsx/:id"
 describe("AASA ↔ router parity", () => {
   const claims = paths.filter((p) => !p.startsWith("NOT "));
+
+  /**
+   * FLOOR. Every assertion below is per-claim, so an AASA file whose `paths`
+   * array was emptied or renamed would pass all of them vacuously — and an
+   * empty AASA is precisely the deploy in which no universal link opens the
+   * app at all. 26 claims at the time of writing; the floor is the count minus
+   * headroom, not the count, so adding one is not a test edit.
+   */
+  it("the AASA actually claims something", () => {
+    expect(claims.length).toBeGreaterThan(20);
+    expect(components.length).toBe(paths.length);
+  });
 
   /**
    * THE WEB HALF, and the one that was broken.

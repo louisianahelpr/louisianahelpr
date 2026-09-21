@@ -494,6 +494,7 @@ function latestSqlFunctionBodies(): Map<string, { file: string; body: string }> 
 
 // ── the checks ──────────────────────────────────────────────────────────────
 
+// @mutate src/lib/avatarStorage.ts | await row.write(publicUrl); | void row.write(publicUrl);
 describe("profiles.avatar_url ⇄ avatars bucket agreement (class check)", () => {
   const writes = avatarUrlWrites();
 

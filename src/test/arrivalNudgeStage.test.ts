@@ -13,6 +13,7 @@ const L = (first?: number, second?: number, esc?: number) => ({
   escalated_at: esc == null ? null : at(esc).toISOString(),
 });
 
+// @mutate supabase/functions/_shared/arrivalNudge.ts | if (ledger.escalated_at) return null; | if (false) return null;
 describe("arrivalNudgeStage", () => {
   it("nudges right away when nothing has been sent", () => {
     expect(arrivalNudgeStage(V, null, at(0.1))).toBe("first");

@@ -25,11 +25,36 @@ const OFFER = codeOnly(read("src/components/activity/appliedJobCard/OfferedActio
 const APPLICANTS_QUERY = read("src/pages/activity/activityActions/useApplicantsState.ts");
 const ACTIVITY_QUERY = read("src/hooks/useActivityData.ts");
 
+/**
+ * The range between the conditional that gates the value and the place the RAW
+ * value is rendered — and nothing else.
+ *
+ * Both of these used to run to the end of the file. The offer-message one
+ * sliced from `{app.offer_message &&` with no end at all; the note one named
+ * `"Row 3"` as its end marker, which lives inside a JSX block comment that
+ * this file's own `codeOnly()` deletes, so `indexOf` returned -1 and
+ * `slice(i, -1)` was the rest of the file too. Measured 2026-09-20: replacing
+ * the OfferedActions guard with `{false ? (` — the poster's flagged message
+ * back on screen verbatim — kept the suite GREEN at 5/5, because one unrelated
+ * later mention of `app.flagged_hidden` satisfied the assertion.
+ *
+ * Bounding it at the raw render is what makes the assertion mean "the flag is
+ * tested BEFORE this string reaches the screen", which is the actual invariant.
+ */
+function guardedRange(src: string, opener: string, rawRender: string, where: string) {
+  const start = src.indexOf(opener);
+  expect(start, `${where}: ${opener} is gone — re-point this guard, do not delete it`).toBeGreaterThanOrEqual(0);
+  const raw = src.indexOf(rawRender, start);
+  expect(raw, `${where}: ${rawRender} is no longer rendered after ${opener}`).toBeGreaterThan(start);
+  return src.slice(start, raw);
+}
+
+// @mutate src/components/activity/postedJobs/ApplicantsPanel.tsx | app.flagged_hidden ? ( | false ? (
 describe("helper's note -> poster (ApplicantsPanel)", () => {
   it("does not render the raw note when it is flagged", () => {
     expect(PANEL).toContain("app.flagged_hidden");
     // The guard must WRAP the quote, not sit somewhere else in the file.
-    const block = PANEL.slice(PANEL.indexOf("{app.message &&"), PANEL.indexOf("Row 3"));
+    const block = guardedRange(PANEL, "{app.message &&", "{app.message}", "ApplicantsPanel");
     expect(block).toContain("app.flagged_hidden");
     expect(block).toMatch(/hidden/i);
   });
@@ -37,7 +62,7 @@ describe("helper's note -> poster (ApplicantsPanel)", () => {
 
 describe("poster's offer message -> helper (OfferedActions)", () => {
   it("does not render the raw message when it is flagged", () => {
-    const block = OFFER.slice(OFFER.indexOf("{app.offer_message &&"));
+    const block = guardedRange(OFFER, "{app.offer_message &&", "{app.offer_message}", "OfferedActions");
     expect(block).toContain("app.flagged_hidden");
     expect(block).toMatch(/hidden/i);
   });

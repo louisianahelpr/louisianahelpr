@@ -61,6 +61,7 @@ function tiersInSql(sql: string): string[] {
   return [...list![1].matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort();
 }
 
+// @mutate supabase/migrations/20260905215616_helper_advanced_analytics.sql | IN ('pro', 'plus', 'elite') | IN ('pro', 'elite')
 describe("Advanced Analytics entitlement: SQL ↔ TIER_PERKS", () => {
   it("the SQL tier list is exactly the set with advancedAnalytics: true", () => {
     const fromPerks = (Object.keys(TIER_PERKS) as SubscriptionTier[])

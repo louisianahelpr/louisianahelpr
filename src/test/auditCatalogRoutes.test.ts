@@ -133,6 +133,7 @@ function elementFor(path: string): string | null {
   return null;
 }
 
+// @mutate src/App.tsx | <Route path="/help" | <Route path="/helpdesk"
 describe("audit catalog matches the real route table", () => {
   it("every ANON screen resolves to a registered, publicly reachable route", () => {
     const broken = screensIn("ANON_SCREENS")

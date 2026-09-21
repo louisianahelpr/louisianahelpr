@@ -177,6 +177,7 @@ describe("decodeJwsPayload", () => {
   });
 });
 
+// @mutate supabase/functions/verify-apple-iap/index.ts | .eq("apple_original_transaction_id", tx.originalTransactionId) | .eq("id", user.id)
 describe("verify-apple-iap — the regressions that made the branch dangerous", () => {
   const SRC = codeOnly(read("supabase/functions/verify-apple-iap/index.ts"));
 

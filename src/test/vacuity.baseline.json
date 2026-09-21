@@ -12,7 +12,6 @@
     "src/test/adminDeepLinkContract.test.ts",
     "src/test/adminDisputeSplitZero.test.tsx",
     "src/test/adminDisputeUnsettledCard.test.tsx",
-    "src/test/adminEndpointAuthz.test.ts",
     "src/test/adminJobsPaymentTone.test.ts",
     "src/test/advancedAnalyticsTierParity.test.ts",
     "src/test/alertPolicy.test.ts",

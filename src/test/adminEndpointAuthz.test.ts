@@ -27,6 +27,14 @@
 // say why in EXEMPT rather than deleting the entry, so the decision is on the
 // record.
 
+//
+// COVERAGE LIMIT, on the record: this reads the repo, not the live project. A
+// deployed function whose guard was edited in the Supabase dashboard, or a
+// function deployed from a branch, is invisible here. The 2026-08-25 admin
+// audit verified the live side once by hand; nothing re-verifies it.
+//
+// @mutate supabase/functions/admin-delete-user/index.ts | await supabaseAdmin.rpc("has_role", { | await supabaseAdmin.rpc("not_a_role_check", {
+// @mutate supabase/functions/admin-delete-user/index.ts | await supabaseAdmin.from("admin_audit_log").insert({ | await supabaseAdmin.from("some_other_table").insert({
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -66,8 +74,31 @@ const ADMIN_ENDPOINTS = [
  */
 const EXEMPT: Record<string, string> = {};
 
-/** A server-side admin check, in any of the shapes this repo uses. */
-const ADMIN_CHECK = /has_role|loadAdminIds|is_admin/;
+/**
+ * A server-side admin check, in any of the shapes this repo uses.
+ *
+ * THE CALL, not the word. This was `/has_role|loadAdminIds|is_admin/` over the
+ * raw source, and every one of these files says `has_role` three times: once in
+ * a `//` comment explaining the check, once in the call, once inside the
+ * `console.error("[fn] has_role check failed:")` string. Proven 2026-09-20 by
+ * replacing admin-delete-user's entire RPC call with `const isAdmin = true` —
+ * an endpoint that deletes any account for any caller holding any valid JWT —
+ * and the guard stayed 16/16 green, satisfied by the comment above the hole it
+ * left. Comments and string literals are stripped below and the marker must be
+ * a real call, so the word alone no longer counts.
+ */
+const ADMIN_CHECK = /\.rpc\(\s*["'`](?:has_role|is_admin)["'`]|\bloadAdminIds\s*\(/;
+
+/** The audit write, not the table's name in a comment or an error string. */
+const AUDIT_WRITE = /\.from\(\s*["'`]admin_audit_log["'`]\s*\)/;
+
+/**
+ * Drop `//` and block comments so a marker only counts where it is executed.
+ * `[^:]` before `//` keeps `https://…` inside a string from eating its line.
+ */
+function codeOnly(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+}
 
 describe("admin endpoints authorize server-side", () => {
   it("the ADMIN_ENDPOINTS list still matches what is on disk", () => {
@@ -89,22 +120,24 @@ describe("admin endpoints authorize server-side", () => {
 
       it("verifies the caller is an admin", () => {
         if (EXEMPT[name]) return;
-        const src = readFileSync(file, "utf8");
+        const src = codeOnly(readFileSync(file, "utf8"));
         expect(
           ADMIN_CHECK.test(src),
           `${name} performs privileged cross-user work but no server-side admin ` +
-            `check (has_role / loadAdminIds / is_admin) appears in its source. ` +
-            `Hiding the button in the UI does not stop a direct call.`,
+            `check is CALLED in its source (.rpc("has_role") / .rpc("is_admin") / ` +
+            `loadAdminIds()). Comments and log strings that mention has_role do not ` +
+            `count. Hiding the button in the UI does not stop a direct call.`,
         ).toBe(true);
       });
 
       it("writes an admin_audit_log row", () => {
         if (EXEMPT[name]) return;
-        const src = readFileSync(file, "utf8");
+        const src = codeOnly(readFileSync(file, "utf8"));
         expect(
-          src.includes("admin_audit_log"),
+          AUDIT_WRITE.test(src),
           `${name} changes another user's account but never writes ` +
-            `admin_audit_log, so there is no record of who did it to whom.`,
+            `admin_audit_log (no .from("admin_audit_log")), so there is no record ` +
+            `of who did it to whom. Naming the table in a comment is not a write.`,
         ).toBe(true);
       });
     });

@@ -159,3 +159,5 @@ describe("safeStorage", () => {
     });
   });
 });
+
+// @mutate src/lib/safeStorage.ts | if (isTracked(key)) mirrorSet(key, value); | mirrorSet(key, value);

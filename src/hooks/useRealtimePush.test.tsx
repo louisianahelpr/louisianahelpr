@@ -36,6 +36,13 @@ vi.mock("@/lib/pushNotifications", () => ({
 }));
 
 let capturedHandler: ((payload: { new: unknown }) => void) | null = null;
+// The SECOND argument to `.on("postgres_changes", …)` — the binding itself.
+// It was thrown away here until 2026-09-21, which meant deleting
+// `filter: user_id=eq.<id>` from the hook left all eight cases below green
+// while every connected client received every row inserted into
+// `notifications` (CLAUDE.md: "every postgres_changes channel needs a
+// server-side user-scoped filter").
+let capturedBinding: Record<string, unknown> | null = null;
 
 beforeEach(() => {
   channelMock.mockReset();
@@ -45,15 +52,19 @@ beforeEach(() => {
   showLocalMock.mockReset();
   registerSWMock.mockReset();
   capturedHandler = null;
+  capturedBinding = null;
 
   // Build chainable channel mock that captures the postgres_changes handler
   channelMock.mockImplementation(() => ({
     on: (
       event: string,
-      _opts: unknown,
+      opts: unknown,
       handler: (payload: { new: unknown }) => void,
     ) => {
-      if (event === "postgres_changes") capturedHandler = handler;
+      if (event === "postgres_changes") {
+        capturedHandler = handler;
+        capturedBinding = opts as Record<string, unknown>;
+      }
       return { subscribe: () => ({}) };
     },
   }));
@@ -83,6 +94,18 @@ describe("useRealtimePush", () => {
   it("subscribes to a per-user channel when userId is provided", () => {
     renderHook(() => useRealtimePush("user-1"));
     expect(channelMock).toHaveBeenCalledWith(expect.stringMatching(/^push-notifications-user-1-/));
+  });
+
+  it("binds SERVER-SIDE to this user's notification rows and nobody else's", () => {
+    renderHook(() => useRealtimePush("user-1"));
+    // Not `toMatchObject`: an extra or renamed key here is a different
+    // subscription, and a missing `filter` is the whole-table fan-out.
+    expect(capturedBinding).toEqual({
+      event: "INSERT",
+      schema: "public",
+      table: "notifications",
+      filter: "user_id=eq.user-1",
+    });
   });
 
   it("registers the service worker on first mount", () => {
@@ -164,7 +187,12 @@ describe("useRealtimePush", () => {
     rerender({ uid: "user-2" });
     expect(channelMock).toHaveBeenCalledTimes(2);
     expect(channelMock).toHaveBeenLastCalledWith(expect.stringMatching(/^push-notifications-user-2-/));
+    // …and the server-side filter follows the new id. A filter built once
+    // outside the effect would leave user-2 subscribed to user-1's rows.
+    expect(capturedBinding).toMatchObject({ filter: "user_id=eq.user-2" });
     // Old channel removed
     expect(removeChannelMock).toHaveBeenCalled();
   });
 });
+
+// @mutate src/hooks/useRealtimePush.ts | filter: `user_id=eq.${userId}`, |

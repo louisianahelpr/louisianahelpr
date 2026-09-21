@@ -166,3 +166,5 @@ describe("useSessionTimeout", () => {
     removeSpy.mockRestore();
   });
 });
+
+// @mutate src/hooks/useSessionTimeout.ts | await signOutWithPushCleanup(); |

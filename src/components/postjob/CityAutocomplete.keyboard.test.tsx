@@ -9,7 +9,7 @@
  * then offered no way to reach what it had announced.
  */
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { CityAutocomplete } from "./CityAutocomplete";
 
@@ -106,7 +106,18 @@ describe("suggestion popup keyboard model", () => {
     input.focus();
     fireEvent.keyDown(input, { key: "ArrowDown" });
     expect(input).toHaveAttribute("aria-activedescendant");
-    fireEvent.keyDown(input, { key: "Escape" });
+    // An enclosing sheet must not also close: the handler stops propagation.
+    const outer = vi.fn();
+    document.addEventListener("keydown", outer);
+    const ev = fireEvent.keyDown(input, { key: "Escape" });
+    document.removeEventListener("keydown", outer);
+    expect(outer).not.toHaveBeenCalled();
+    // preventDefault is asserted DIRECTLY (fireEvent returns false when a
+    // handler called it). The `value === "new"` line below cannot prove it:
+    // jsdom does not implement WebKit/Blink's "Escape clears an
+    // <input type=search>", so that assertion passed with the
+    // preventDefault deleted — the exact shape of an unreachable branch.
+    expect(ev).toBe(false);
     expect(screen.queryByRole("listbox")).toBeNull();
     // No stale pointer at a row that is no longer on the page.
     expect(input).not.toHaveAttribute("aria-activedescendant");
@@ -142,3 +153,5 @@ describe("suggestion popup keyboard model", () => {
     expect((input as HTMLInputElement).value).toBe(label);
   });
 });
+
+// @mutate src/hooks/useComboboxKeyboard.ts | if (i >= 0 && i < n) { | if (i < n) {

@@ -127,3 +127,5 @@ describe("useStripeConnectStatus", () => {
     expect(mocks.invoke).not.toHaveBeenCalled();
   });
 });
+
+// @mutate src/hooks/useStripeConnectStatus.ts | if (isError) return { kind: "error" }; |

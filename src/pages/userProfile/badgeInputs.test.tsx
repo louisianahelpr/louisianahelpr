@@ -127,3 +127,5 @@ describe("VN-14 badge inputs", () => {
     expect(own.result.current.data!.helperBadgeStats).toEqual(pub.result.current.badgeStats);
   });
 });
+
+// @mutate src/lib/helperBadgeStats.ts | const helper = total - poster; | const helper = total;

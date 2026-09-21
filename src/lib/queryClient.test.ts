@@ -125,3 +125,5 @@ describe("networkMode semantics while offline", () => {
     expect(dehydrate(client).mutations).toHaveLength(0);
   });
 });
+
+// @mutate src/lib/queryClient.ts | networkMode: "always", | networkMode: "online",

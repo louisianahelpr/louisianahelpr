@@ -160,3 +160,5 @@ describe("initPostHog", () => {
     expect(() => initPostHog()).not.toThrow();
   });
 });
+
+// @mutate src/lib/posthog.ts | disable_session_recording: true, | disable_session_recording: false,

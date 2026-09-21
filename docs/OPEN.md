@@ -3249,7 +3249,29 @@ account-takeover primitive.
 ### App Store screenshots (2026-09-21) — found by the burn-down
 
 - [x] **The browse screenshot was an EMPTY FEED for six days.** Root cause was not the expired dates (that was a second, real bug) and not the mock: `src/hooks/useDashboardFilters.ts:360` applies the early-access perk CLIENT-SIDE — `if (jobAge < earlyAccessDelayMs(tier)) return false` — and `FAKE_HELPER` has no tier, so the free-tier 20-minute delay culled every fixture row, all of which were `created_at: now`. Fixed with a relative `AGO(minutes)` helper and raised 4 → 7 jobs so the feed fills a 430x932 viewport. Screenshot inspected and `review:record`ed: seven cards, real parishes, $61–$228, badges, an eighth peeking under the nav.
-- [ ] **`RUN_APPSTORE_SHOTS=1` appears in NO workflow, NO script and NO package.json.** So these screenshots are generated only by a human typing the command — and for those six days the spec was not even failing in CI, it was SKIPPING (10 skipped tests, which reads green). Decide: wire it into a workflow, or accept it is a manual step and say so in the launch checklist.
+- [x] **`RUN_APPSTORE_SHOTS=1` — DECIDED 2026-09-21: it stays manual, and is now
+  ON THE LAUNCH CHECKLIST.** Wiring the capture into CI would contradict an
+  explicit owner decision (2026-09-06: screenshots come from the FINISHED app,
+  not a half-fixed one) and the iPad shot cannot be produced in CI anyway —
+  MapKit JS will not load in the offline harness. So the capture is a launch-day
+  step, recorded as one, rather than a workflow nobody wants running.
+  - The part that WAS a defect is closed separately: the spec skipping read as
+    green. It is registered in the vacuity runner's `specGateEnv`, so its
+    mutation runs it with the flag set, and `selfGatedSpecsAreRunnable.test.ts`
+    fails if an env-gated spec is ever added that cannot be proven at all.
+  - **Still worth knowing when the shots are taken:** this harness runs on
+    `installSupabaseMocks`, so it is the one place mocks remain deliberate —
+    marketing shots need deterministic content. Nothing it asserts counts as
+    verification of prod behaviour.
+- [ ] **iPad shot: "0 jobs" header above 7 rendered cards — UNREPRODUCED,
+  re-check at capture time.** Observed once in the opt-in MOCKED shot harness.
+  Searched the dashboard/browse render path on 2026-09-21 and found no product
+  code that renders that string above a populated card list, so this is most
+  likely the mock answering a `count` query with 0 while the rows come from a
+  separate mocked response. Recorded rather than closed: if it appears in the
+  real launch-day capture it is a live count/list divergence and belongs to the
+  same class as the map/list bug, which now has a guard
+  (`dashboardSurfaceCullParity.test.ts`).
 - [ ] **`ipad-13` browse shot is flaky and BOTH outcomes are unshippable.** Passed / failed / passed on identical code across three runs. It is a race between the spec's fixed `waitForTimeout(2500)` and MapKit JS timing out: lose the race and the pane is a bare spinner (assertion passes, ships a spinner); win it and the pane says "The map isn't available right now." (fails). The header comment claims iPad "currently fails on MapKit" — intermittent is worse than reliably failing.
 - [ ] **The iPad header reads "0 jobs" with seven cards rendered below it.** Count and list disagree on the same screen. May be a mock artefact (the count likely comes from a HEAD/count request the rules do not answer) rather than a prod defect — verify against prod before anyone photographs that screen. The spec currently greenlights it.
 - [ ] **A mock rule whose endpoint no `src/` file calls is invisible.** Nothing fails; the spec just sees an empty response. Worth a guard that walks every `MockRule` pathname and asserts some file under `src/` still references that table/RPC. Same family: a rule that matches but whose BODY SHAPE no longer clears the app's client-side filters is equally silent — which is exactly what this bug was.
@@ -3316,6 +3338,22 @@ account-takeover primitive.
 
 - [ ] **Switch Stripe to live** (`scripts/e2e/stripe-sandbox-off.sh`, owner-run). Owner, 2026-09-12: sandbox stays ON until launch so money journeys run nightly on the test card. After the switch, payment steps in audits skip as UNCOVERED unless sandbox is turned on for a test window.
 - [ ] **Hide seed/demo jobs publicly** (`seed_jobs_hidden_publicly()`). Owner, 2026-09-12: stays OFF for now; anon browse shows 9 demo listings.
+- [ ] **Capture the App Store screenshots from the finished app.** Decided
+  2026-09-21 to keep this manual rather than wire it into CI, per owner
+  2026-09-06 (shots come from the FINISHED app) — and because the iPad shot
+  cannot be produced in CI at all: MapKit JS will not load in the offline
+  harness, so browse renders "The map isn't available right now".
+  ```
+  RUN_APPSTORE_SHOTS=1 PLAYWRIGHT_WEB_SERVER=1 \
+    npx playwright test --project=happy-path -g "screenshot "
+  ```
+  Output lands in `e2e-artifacts/appstore/<device>/`. **LOOK AT ALL TEN** before
+  submitting — the spec's guards catch an empty feed, an error banner and a
+  login screen, not an ugly one. Two things to check specifically:
+  - the iPad browse shot needs the list view, or a MapKit-capable run;
+  - the once-observed "0 jobs" header above 7 cards (see the screenshots item
+    above) — if it shows up here it is a real count/list divergence, not a mock
+    artefact.
 
 ### From terminal 2 (keyboard a11y, done b6d24b625 + cc592fe46), 2026-09-12
 

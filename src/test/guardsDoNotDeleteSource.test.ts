@@ -50,22 +50,16 @@ const REPO = resolve(__dirname, "..", "..");
 
 /** Guards still using the deleting idiom. MAY ONLY SHRINK. */
 const GRANDFATHERED: readonly string[] = [
-  "src/components/activity/appliedJobCard/payoutDisclosure.test.tsx",
   "src/components/cancellationDialogParity.test.ts",
   "src/components/profile/ProfileTabFallback.test.tsx",
   "src/components/profile/profileTabShell.test.ts",
-  "src/components/ui/dialogShell.test.ts",
-  "src/lib/referralEarnings.test.tsx",
   "src/test/aasaRouteParity.test.ts",
   "src/test/activityTabLabelsFitAPhone.test.ts",
   "src/test/controlInteractionSameness.test.ts",
-  "src/test/emailLogoIsVersioned.test.ts",
   "src/test/emailVerifyButton.test.ts",
   "src/test/expiryFormatterClass.test.ts",
   "src/test/glossyPrimaryInvariant.test.ts",
-  "src/test/helpers/rpcErrorInventory.ts",
   "src/test/hoverTintIsAVisibleStep.test.ts",
-  "src/test/jobDayFixtureTimezone.test.ts",
   "src/test/jobStepRowLabelsVisible.test.tsx",
   "src/test/labelInName.test.tsx",
   "src/test/listboxOptionsNotTabbable.test.ts",

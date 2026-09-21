@@ -40,6 +40,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createHash } from "node:crypto";
+import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
 const STYLES = readFileSync(
@@ -50,7 +51,7 @@ const ASSET = readFileSync(resolve(ROOT, "supabase/functions/brand-asset/index.t
 
 /** Declarations only — this file's own prose names the failure it prevents. */
 const code = (s: string) =>
-  s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+  blankComments(s);
 
 /**
  * A fingerprint of what `brand-asset` actually serves.

@@ -25,6 +25,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { blankComments } from "../../../test/helpers/blankNonCode";
 import {
   AUTO_COMPLETE_HOURS,
   PAYOUT_HOLD_HOURS,
@@ -50,7 +51,13 @@ const cardFiles = (dir: string): string[] =>
   });
 const SRC = cardFiles(CARD_DIR).map((f) => readFileSync(f, "utf8")).join("\n");
 /** Strip comments — the history above is written in them and quotes the old copy. */
-const code = SRC.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+// Was a deleting comment-stripper. A regex cannot tell it is inside a string, so a
+// `/` + `*` in a URL or regex literal opens a comment that runs to the next `*` + `/`
+// anywhere later and takes the real code between. Measured 2026-09-21: 157 of 1,054
+// source files lose real code to that chain, one of them 98% of its own.
+// `blankComments` scans left-to-right, string-aware, and blanks in place so offsets
+// survive. (SQL needs `blankSqlComments` — `--`, nesting, '' escaping, $tag$ bodies.)
+const code = blankComments(SRC);
 
 /**
  * The terminal state — poster has approved — and everything the card says

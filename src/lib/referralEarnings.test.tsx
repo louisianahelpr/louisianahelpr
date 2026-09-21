@@ -9,6 +9,7 @@ import {
   sourceOfReason,
 } from "./referralEarnings";
 import { ReferralExtras } from "@/components/profile/ReferralExtras";
+import { blankComments } from "../test/helpers/blankNonCode";
 
 const REPO = resolve(__dirname, "../..");
 
@@ -149,7 +150,13 @@ describe("class guard: every credit the ledger can hold is classified, and the p
     // The original VN-45 shape: `credits.reduce(...)` for the tiles, handed
     // straight to the ladder as its "earned" figure.
     for (const file of ["src/components/ReferralSection.tsx", "src/components/profile/ReferralExtras.tsx"]) {
-      const code = readFileSync(resolve(REPO, file), "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, "");
+      // Was a deleting comment-stripper. A regex cannot tell it is inside a string, so a
+      // `/` + `*` in a URL or regex literal opens a comment that runs to the next `*` + `/`
+      // anywhere later and takes the real code between. Measured 2026-09-21: 157 of 1,054
+      // source files lose real code to that chain, one of them 98% of its own.
+      // `blankComments` scans left-to-right, string-aware, and blanks in place so offsets
+      // survive. (SQL needs `blankSqlComments` — `--`, nesting, '' escaping, $tag$ bodies.)
+      const code = blankComments(readFileSync(resolve(REPO, file), "utf8"));
       expect(code, file).not.toMatch(/credits\s*\.\s*(?:reduce|filter)\s*\(/);
     }
     const section = readFileSync(resolve(REPO, "src/components/ReferralSection.tsx"), "utf8");

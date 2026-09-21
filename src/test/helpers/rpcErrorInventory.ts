@@ -21,6 +21,7 @@ import ts from "typescript";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { walkSource, readSource } from "./walkSource";
+import { blankSqlComments } from "./blankNonCode";
 
 export type RpcCall = { file: string; line: number };
 
@@ -108,7 +109,10 @@ export function clientRpcCalls(root: string): { calls: Map<string, RpcCall[]>; d
 /** SQL with line and block comments removed, so a header that quotes a
  *  definition or a RAISE is not mistaken for one. */
 export function stripSqlComments(sql: string): string {
-  return sql.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--[^\n]*/g, "");
+  // SQL: `--` to EOL, NESTING block comments, '' quote escaping, and $tag$ bodies
+  // that must be recursed into rather than skipped. A naive pair of regexes gets all
+  // four wrong and also collapses to a space, shifting every later offset. (2026-09-21)
+  return blankSqlComments(sql);
 }
 
 export type FunctionDef = { file: string; body: string };

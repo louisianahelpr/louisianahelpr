@@ -39,6 +39,7 @@
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "..", "..");
 const SRC = join(ROOT, "src");
@@ -58,7 +59,13 @@ function walk(dir: string, out: string[] = []): string[] {
 /** Block and line comments removed, so prose QUOTING the broken spelling is
  *  never mistaken for code. */
 export function stripComments(src: string): string {
-  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  // Was a deleting comment-stripper. A regex cannot tell it is inside a string, so a
+  // `/` + `*` in a URL or regex literal opens a comment that runs to the next `*` + `/`
+  // anywhere later and takes the real code between. Measured 2026-09-21: 157 of 1,054
+  // source files lose real code to that chain, one of them 98% of its own.
+  // `blankComments` scans left-to-right, string-aware, and blanks in place so offsets
+  // survive. (SQL needs `blankSqlComments` — `--`, nesting, '' escaping, $tag$ bodies.)
+  return blankComments(src);
 }
 
 /** The UTC day: `<anything>.toISOString().slice(0, 10)`. */

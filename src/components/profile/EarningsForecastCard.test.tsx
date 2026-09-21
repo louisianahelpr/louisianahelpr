@@ -161,3 +161,11 @@ describe("EarningsForecastCard", () => {
     expect(screen.getByText(/earned so far · \$90/i)).toBeInTheDocument();
   });
 });
+// ── Shown able to fail ─────────────────────────────────────────────────────
+// The money figure, not the chrome: "earned so far" is the only number on this
+// card the helper can reconcile against their bank, and it is the one the
+// projected total is built on top of. Zeroing its accumulator leaves the card
+// rendering perfectly — skeleton, heading, CTA, progress bar all intact — and
+// only the dollars wrong, which is exactly the failure a screenshot pass
+// cannot see.
+// @mutate src/components/profile/EarningsForecastCard.tsx | earnedSoFar += net; | earnedSoFar += 0;

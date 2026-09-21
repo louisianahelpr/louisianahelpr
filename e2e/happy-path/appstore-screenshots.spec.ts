@@ -1,32 +1,46 @@
 import { test, expect, FAKE_HELPER, installSupabaseMocks, type MockRule } from "./fixtures";
+import { DATE } from "./seedData";
 
 // Real-looking Louisiana work. `seed: true` alone does NOT populate the browse
 // feed — it reads `open_jobs_browse`, which needs an explicit rule (the same
 // thing browse-feed-completeness does). Without this the first attempt produced
 // "0 jobs / Nothing today", which is the empty-state equivalent of the login
 // screen Apple rejected: a screenshot that shows the app doing nothing.
+/*
+ * DATES ARE RELATIVE, AND MUST STAY RELATIVE.
+ *
+ * These four were hardcoded 2026-09-10..14. `useDashboardFilters.ts` drops any
+ * job whose `date_needed` is before today, so on 2026-09-15 they began
+ * vanishing one by one and by 2026-09-21 the feed was empty — and this spec
+ * kept PASSING, because an empty state renders perfectly well. It was
+ * capturing App Store screenshots of an app doing nothing: exactly the failure
+ * the note above says Apple already rejected once.
+ *
+ * `DATE(n)` is days from now, and `seedData.ts` exports it with its own warning
+ * about this precise trap. The offsets below preserve the original stagger.
+ */
 const FEED_JOBS = [
   { id: "aa000000-0000-4000-8000-000000000001", title: "Mow and edge a corner lot", category: "lawn_care",
     budget: 85, parish: "East Baton Rouge", location: "Baton Rouge, LA", latitude: 30.4515, longitude: -91.1871,
-    date_needed: "2026-09-12", start_time: "09:00:00", status: "open", payment_status: "escrow",
+    date_needed: DATE(3), start_time: "09:00:00", status: "open", payment_status: "escrow",
     is_urgent: false, is_group_job: false, helpers_needed: 1, credential_tier: 0, is_seed: false,
     description: "Front and back, about a quarter acre. Bagging preferred.",
     customer_id: "cc000000-0000-4000-8000-000000000001", created_at: new Date().toISOString() },
   { id: "aa000000-0000-4000-8000-000000000002", title: "Deep clean before move-out", category: "cleaning",
     budget: 220, parish: "Orleans", location: "New Orleans, LA", latitude: 29.9511, longitude: -90.0715,
-    date_needed: "2026-09-10", start_time: "13:00:00", status: "open", payment_status: "escrow",
+    date_needed: DATE(1), start_time: "13:00:00", status: "open", payment_status: "escrow",
     is_urgent: true, is_group_job: false, helpers_needed: 1, credential_tier: 0, is_seed: false,
     description: "Two bedroom shotgun. Kitchen, bath, floors, windows inside.",
     customer_id: "cc000000-0000-4000-8000-000000000002", created_at: new Date().toISOString() },
   { id: "aa000000-0000-4000-8000-000000000003", title: "Help unloading a moving truck", category: "moving",
     budget: 140, parish: "Lafayette", location: "Lafayette, LA", latitude: 30.2241, longitude: -92.0198,
-    date_needed: "2026-09-14", start_time: "08:00:00", status: "open", payment_status: "escrow",
+    date_needed: DATE(5), start_time: "08:00:00", status: "open", payment_status: "escrow",
     is_urgent: false, is_group_job: true, helpers_needed: 2, credential_tier: 0, is_seed: false,
     description: "26-foot truck, second floor apartment. About three hours.",
     customer_id: "cc000000-0000-4000-8000-000000000003", created_at: new Date().toISOString() },
   { id: "aa000000-0000-4000-8000-000000000004", title: "Fix a leaking kitchen faucet", category: "handyman",
     budget: 110, parish: "Jefferson", location: "Metairie, LA", latitude: 29.9841, longitude: -90.1529,
-    date_needed: "2026-09-11", start_time: "10:30:00", status: "open", payment_status: "escrow",
+    date_needed: DATE(2), start_time: "10:30:00", status: "open", payment_status: "escrow",
     is_urgent: false, is_group_job: false, helpers_needed: 1, credential_tier: 0, is_seed: false,
     description: "Dripping at the base. Parts already bought.",
     customer_id: "cc000000-0000-4000-8000-000000000004", created_at: new Date().toISOString() },

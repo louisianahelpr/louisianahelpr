@@ -170,3 +170,7 @@ describe("group jobs — the budget is split across the roster", () => {
     expect(helperTakeHomeDollars(job, TIER_FALLBACK_PCT)).toBe(275);
   });
 });
+
+// The `??` → `||` money bug in one character: a comped job's genuinely-stamped
+// $0 fee becomes "unstamped" and a 12% commission nobody charged is re-derived.
+// @mutate src/lib/helperEarnings.ts | return job.platform_fee_amount ?? derived; | return job.platform_fee_amount \|\| derived;

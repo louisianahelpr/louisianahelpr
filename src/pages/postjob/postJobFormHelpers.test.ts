@@ -64,3 +64,7 @@ describe("parseLocationIntoFields", () => {
     expect(parseLocationIntoFields(undefined)).toEqual({ streetAddress: "" });
   });
 });
+
+// Kills the "City, ST" branch so a street-less location falls through to the
+// catch-all and is written back as "Baton Rouge, LA, Delcambre, LA, 70501".
+// @mutate src/pages/postjob/postJobFormHelpers.ts | if (locParts.length === 2) { | if (locParts.length === 99) {

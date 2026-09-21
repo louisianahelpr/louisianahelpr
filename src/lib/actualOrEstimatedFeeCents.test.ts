@@ -27,3 +27,7 @@ describe("actualOrEstimatedFeeCents", () => {
     expect(actualOrEstimatedFeeCents(pi, 10000)).toBe(320);
   });
 });
+
+// Drops the REAL fee off the expanded balance transaction and always guesses
+// the card rate — a Klarna charge's 629c cut booked as 320c.
+// @mutate supabase/functions/_shared/stripeFees.ts | return balanceTransaction.fee; | return stripeProcessingCostCents(fallbackAmountCents);

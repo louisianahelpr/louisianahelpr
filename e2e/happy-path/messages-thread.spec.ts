@@ -375,3 +375,18 @@ test.describe("Messages thread — system events read as ONE kind of thing", () 
     expect(new Set(shape.map((r) => r.radius)).size).toBe(1);
   });
 });
+
+// PROOF THIS SPEC CAN FAIL — delete the stale-flag heal and strand the user.
+//
+// `?chat=1` is what hides the bottom dock while a thread is open. A mount that
+// inherits the flag WITHOUT a thread (RouteMemory restoring `/messages?chat=1`
+// into a fresh WKWebView process after jetsam, or a refresh) therefore renders
+// the conversation LIST with no nav and no thread — tabs and the Post FAB gone,
+// with no gesture that brings them back. The `!activeConvo && flagged` branch
+// is the only thing that strips it.
+//
+// Note what stays working under the mutation: opening a thread, backing out of
+// one, the falling-edge close, every fit/a11y/tap-target assertion. Only the
+// "stale ?chat=1 heals itself" case goes red — which is the point. A spec that
+// merely opened and closed a thread would never see this.
+// @mutate src/pages/Messages.tsx | if (!activeConvo && flagged) { | if (false) {

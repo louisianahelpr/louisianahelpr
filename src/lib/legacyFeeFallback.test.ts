@@ -30,3 +30,7 @@ describe("helperFeePercentOrLegacy — a comped 0% is a real fee", () => {
     expect(helperFeePercentOrLegacy(11.5)).toBe(11.5);
   });
 });
+
+// Restores the `||` this module exists to delete: a stamped 0% read as
+// "missing" and silently restated at the 10% legacy fallback.
+// @mutate src/lib/legacyFeeFallback.ts | return Number.isFinite(n) ? n : HELPER_FEE_LEGACY_FALLBACK_PERCENT; | return Number(raw) \|\| HELPER_FEE_LEGACY_FALLBACK_PERCENT;

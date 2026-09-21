@@ -26,6 +26,7 @@ import { join, relative, resolve } from "node:path";
 import { jobMediaPrefixes as denoPrefixes, removeJobMedia } from "../../supabase/functions/_shared/jobMedia";
 import { jobMediaPrefixes as nodePrefixes, messageAttachmentPath } from "../../scripts/lib/jobMediaRest.mjs";
 import { messageAttachmentObjectPath } from "@/lib/storageCleanup";
+import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = process.env.STORAGE_PATHS_ROOT ?? resolve(__dirname, "..", "..");
 
@@ -70,9 +71,11 @@ const rel = (p: string) => relative(ROOT, p);
  */
 const blank = (m: string) => m.replace(/[^\n]/g, " ");
 function callSites(src: string): string {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, blank)
-    .replace(/(^|\n)[ \t]*\/\/[^\n]*/g, blank)
+  // Comments via the string-aware scanner (a regex cannot tell it is inside a
+  // string, so a `/`+`*` in a URL or literal blanks real code to the next
+  // `*`+`/`). The two import rules stay as they are — they are about imports,
+  // not comments, and an import line contains no comment syntax to be fooled by.
+  return blankComments(src)
     .replace(/(^|\n)[ \t]*import\s[\s\S]*?from\s*["'][^"']+["'];?/g, blank)
     .replace(/(^|\n)[ \t]*import\s*\{[\s\S]*?\}\s*from[^\n]*/g, blank);
 }

@@ -65,3 +65,17 @@ test("guest job cards render while poster enrichment is still in flight", async 
     "cards rendered only after enrichment resolved — the queries have been re-merged",
   ).toBe(false);
 });
+
+// PROOF THIS SPEC CAN FAIL — re-merge the two queries, the way they used to be.
+//
+// The split is the whole point: `isLoading` belongs to the job-list query and
+// nothing else. Gating the feed on `posterInfo` as well puts the cards back
+// behind the enrichment round-trip — the measured 1.3s → 2.3s regression — and
+// with the enrichment routes held open for 5s the job title cannot appear
+// inside this spec's 3s budget.
+// NOTE the escaped pipes: the directive splitter is /(?<!\\)\|/, so a bare
+// `||` in a replacement is read as two empty delimiters and the replacement
+// silently truncates to `{isLoading` — which breaks the BUILD rather than the
+// spec, and the runner would score that as `killed` for entirely the wrong
+// reason. Escaped, it round-trips.
+// @mutate src/pages/DashboardGuest.tsx | {isLoading ? ( | {isLoading \|\| !posterInfo ? (

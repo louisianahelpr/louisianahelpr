@@ -92,7 +92,24 @@ export function utcJobDayAssignments(src: string): string[] {
   return bad;
 }
 
-const ALL = walk(SRC).map((f) => relative(ROOT, f));
+/*
+ * THE INVENTORY INCLUDES e2e/, ADDED 2026-09-21 — it was `src/` only, and that
+ * is exactly where the bomb this guard is named for went off.
+ *
+ * `e2e/happy-path/browse-feed-completeness.spec.ts` hardcoded
+ * `date_needed: "2026-09-20"`. `useDashboardFilters` drops any job dated before
+ * today, so at midnight on 2026-09-21 the spec's nine jobs vanished and it went
+ * red on main with nothing changed. `appstore-screenshots.spec.ts` carried four
+ * more (2026-09-10..14) and had been quietly expiring since the 15th — still
+ * PASSING the whole time, because an empty state renders perfectly well, while
+ * capturing App Store screenshots of an app doing nothing.
+ *
+ * The Playwright specs are the most fixture-dense code in the repo and were the
+ * one place this guard could not see. That is not a coincidence worth leaving:
+ * a floor that excludes the densest source of the defect is a floor that will
+ * keep reporting clean.
+ */
+const ALL = [...walk(SRC), ...walk(join(ROOT, "e2e"))].map((f) => relative(ROOT, f));
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const JOB_DAY_FILES = ALL.filter((f) => f !== SELF && stripComments(read(f)).includes("date_needed"));
 
@@ -122,7 +139,25 @@ describe("a job day is Central, never UTC", () => {
   });
 
   it("no job day in src/ is built from toISOString().slice(0, 10)", () => {
-    const offenders = JOB_DAY_FILES.flatMap((f) =>
+    /*
+     * SCOPED TO src/, as the name says — and deliberately NOT widened with the
+     * inventory on 2026-09-21.
+     *
+     * The two rules in this file protect different things. THIS one is about
+     * the ZONE: a job day is a day in America/Chicago, and the UTC day after
+     * ~19:00 Central already names tomorrow, so production code that computes a
+     * day this way shows the wrong date to a real person.
+     *
+     * The Playwright fixtures do `new Date(Date.now() + 2 * 86_400_000)
+     * .toISOString().slice(0, 10)` — a RELATIVE day two days out. A one-day UTC
+     * skew there moves a fixture from "+2 days" to "+3 days", which no
+     * assertion depends on and which can never put it in the past. Flagging
+     * them would be noise, and noise is how a guard gets switched off.
+     *
+     * The AGEING rule below IS widened to e2e/, because that is the failure
+     * that actually happened there.
+     */
+    const offenders = JOB_DAY_FILES.filter((f) => f.startsWith("src/")).flatMap((f) =>
       utcJobDayAssignments(read(f)).map((v) => `${f}: ${v}`),
     );
     expect(

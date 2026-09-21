@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { blankSqlComments } from "./helpers/blankNonCode";
 
 /**
  * `profiles.id` is NOT `auth.users.id`. Never join it to one.
@@ -68,10 +69,20 @@ const ACCOUNT_ID_COLUMNS = [
  * migration that *documents* the bug — including the one that fixed it, which
  * quotes the broken join in its header.
  */
+/**
+ * Was two deleting regexes, and SQL is the harder case of the two:
+ *   - `--` inside a string literal ate the rest of the line;
+ *   - a `/` + `*` inside a literal opened a comment to the next `*` + `/`;
+ *   - Postgres block comments NEST, and a non-greedy regex stops at the first
+ *     inner terminator, leaving the tail behind as if it were code;
+ *   - SQL escapes a quote by DOUBLING it, not with a backslash;
+ *   - `$tag$ … $tag$` wraps every function body in this repo.
+ * `blankSqlComments` handles all five and RECURSES into dollar-quoted bodies
+ * (a body is SQL, so the `--` comments inside it are comments). It also blanks
+ * in place rather than collapsing to a single space, so offsets survive.
+ */
 function stripSqlComments(sql: string): string {
-  return sql
-    .replace(/\/\*[\s\S]*?\*\//g, " ") // block comments
-    .replace(/--[^\n]*/g, " "); // line comments
+  return blankSqlComments(sql);
 }
 
 /**

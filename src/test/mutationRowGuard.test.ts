@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve, join, relative } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * High-risk writes must be able to observe their own row count.
@@ -267,10 +268,19 @@ function sourceFiles(dir: string, out: string[] = []): string[] {
  * documents the exact broken `.update({ helper_id, status: "accepted" })` that
  * this test exists to prevent, and got flagged for describing it.
  */
+/**
+ * Comments blanked, offsets preserved.
+ *
+ * The blanking half was already right; the REGEX half was not. A regex does not
+ * know it is inside a string, so the `/` + `*` in a URL or regex literal opens a
+ * comment that runs to the next `*` + `/` anywhere later in the file and blanks
+ * everything between — real code included. Measured 2026-09-21: that chain makes
+ * 157 of 1,054 source files lose real code, one of them 98% of its own.
+ * `blankComments` is a single left-to-right scan that knows whether it is inside
+ * a string before it looks at a `/`, and blanks in place exactly as this did.
+ */
 function stripComments(src: string): string {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
-    .replace(/(^|[^:])\/\/[^\n]*/g, (m, lead) => lead + " ".repeat(m.length - lead.length));
+  return blankComments(src);
 }
 
 /** Read the balanced `open…close` span that starts at `open` (index of the opener). */

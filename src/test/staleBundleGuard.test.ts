@@ -12,13 +12,16 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { staleBundleMessage, entryOf } from "./staleBundle";
+import { blankComments } from "./helpers/blankNonCode";
 
 /** Comments blanked (offsets preserved) so a `// assertFreshBundle(...)` can
  * never stand in for the call. */
+// The blanking was already right; the regex was not — it cannot tell it is
+// inside a string, so a `/` + `*` in a URL or literal blanks real code up to
+// the next `*` + `/`. blankComments scans left-to-right, string-aware, and
+// blanks in place exactly as this did. (2026-09-21)
 const code = (p: string) =>
-  readFileSync(resolve(__dirname, "..", "..", p), "utf8")
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
-    .replace(/(^|\n)[ \t]*\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, " "));
+  blankComments(readFileSync(resolve(__dirname, "..", "..", p), "utf8"));
 
 const page = (entry: string) =>
   `<!doctype html><html><head><script type="module" crossorigin src="/${entry}"></script></head><body></body></html>`;

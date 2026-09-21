@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, dirname, resolve, relative } from "node:path";
 import ts from "typescript";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * EVERY ROUTED PAGE RENDERS THROUGH A SHARED SHELL. No exceptions without a
@@ -140,10 +141,12 @@ function documentScrollRoutes(): string[] {
   const body = VIEWPORT_HOOK.slice(
     VIEWPORT_HOOK.indexOf("DOCUMENT_SCROLL_ROUTES = ["),
   );
-  const list = body
-    .slice(0, body.indexOf("];"))
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\/\/[^\n]*/g, "");
+  // blankComments, not blankNonCode: the very next line harvests the route
+  // strings out of this slice, so string BODIES must survive. Comments must
+  // not — a commented-out route would otherwise join the list. The old pair of
+  // deleting regexes could not tell the two apart, and `//` inside any route
+  // string would have eaten the rest of its line. (2026-09-21)
+  const list = blankComments(body.slice(0, body.indexOf("];")));
   return [...list.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 }
 

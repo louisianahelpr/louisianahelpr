@@ -38,9 +38,9 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 |---|---|---|---|
 | **`src/test/*.test.ts*`** | 193 | **193 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
-| Playwright `e2e/**` | 60 | 0 | 60 |
-| colocated beside components | 336 | 3 | 333 |
-| **total** | **642** | **249** | **393** |
+| Playwright `e2e/**` | 60 | 13 | 47 |
+| colocated beside components | 336 | 33 | 303 |
+| **total** | **642** | **292** | **350** |
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 
@@ -71,6 +71,57 @@ Only the first row is enforced today (`.github/workflows/vacuity.yml`, on every 
 and PR, plus a full mutation sweep nightly at 06:10 UTC). The ratchet's baseline may
 only shrink, so row 1 cannot regress. **Rows 2–4 are invisible to it**: a hollow test
 there is not even listed as unproven.
+
+## Defects the burn-down found in the PRODUCT (not just in guards)
+
+Proving a guard can fail means breaking the thing it watches, and that keeps
+turning up live problems the green suite never mentioned:
+
+- **App Store screenshots were being captured of an EMPTY FEED.**
+  `appstore-screenshots.spec.ts` hardcoded four job dates (2026-09-10..14).
+  `useDashboardFilters` drops any job dated before today, so from 2026-09-15
+  they expired one at a time and by 2026-09-21 the feed was empty — while the
+  spec kept PASSING, because an empty state renders perfectly well. The file's
+  own header names the outcome: *"the empty-state equivalent of the login
+  screen Apple rejected: a screenshot that shows the app doing nothing."* It had
+  come back and nothing said so.
+- **`browse-feed-completeness` expired at midnight** on 2026-09-21 for the same
+  reason and went red on main with nothing changed.
+- The guard for this exact class, `jobDayFixtureTimezone`, literally names a
+  `date_needed` literal as "the bomb" in its own can-fail test — and missed both,
+  because its inventory was `walk(SRC)`: **`src/` only**. The Playwright specs
+  are the most fixture-dense code in the repo and were the one place it could
+  not look. Now widened to `e2e/`.
+- **The gift-card `$10.555 → $10.56` bug had three more live sites** — both tip
+  dialogs, and `auto-tip-charge`, which charged rounded cents while recording
+  the raw dollars, so the receipt and the charge disagreed with nothing to
+  reconcile them.
+- **Four private storage buckets** accepted a file of any size and any type.
+
+## The gate itself was the biggest hollow thing in here
+
+Three separate defects found in `scripts/vacuity/` on 2026-09-21, each the same
+shape as what it exists to catch — reporting green while unable to see:
+
+1. **A brand-new guard contributed ZERO mutations.** `guardFiles()` is `git
+   ls-files`, so a guard written and not yet `git add`ed was invisible, and the
+   run printed "mutation: nothing in scope". Blind at the one moment that
+   matters most — a guard being born — and green while blind.
+2. **An all-inconclusive batch exited 0.** `inconclusive` means the guard was
+   already red before anything was broken, so breaking the code proved nothing.
+   In an agent worktree with no resolvable vitest, EVERY registration came back
+   inconclusive and the run still said green. That is the environment where most
+   of this work happens.
+3. **Playwright specs were measured against the PREVIOUS bundle.** The
+   happy-path project serves the app from `vite preview` of `dist/`, not `src/`.
+   A `src/` mutation with no rebuild in between tests the old bundle, so every
+   one would have reported SURVIVED — six good specs falsely convicted as
+   hollow, and a "finding" that was pure artefact. The runner now rebuilds.
+   (A fourth, found with it: `.env` is gitignored, so `npm run build` dies in
+   any fresh worktree — which made the failure look like the guard's fault.)
+
+None of these was visible from inside a green run. Each was found by breaking
+something on purpose and noticing the answer did not change.
 
 ## Second front, found 2026-09-21: 49 guards delete the code they inspect
 

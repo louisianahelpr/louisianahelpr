@@ -3256,6 +3256,38 @@ WAS done: the happy-path guard now asserts the call is `apply_to_job` **by name
 and arguments**, because a rename is exactly what produces the PGRST202 that
 opens the door.
 
+### Two AA contrast failures from the overlay sweep — REAL, causes UNCONFIRMED (2026-09-21)
+
+Both come from the overlay sweep's axe pass (impact "serious") and both ratios
+reproduce arithmetically. What does NOT hold is the attribution offered with
+them, and that matters more than the findings, so it is written down first.
+
+| rendered pair | measured | AA floor | where |
+|---|---|---|---|
+| `#83837c` on `#ffffff` | **3.82:1** | 4.5 (normal text) | availability time popover |
+| `#fdfdfd` on `#b95e35` | **4.38:1** | 4.5 (normal text) | `/my-posts` SOS / emergency dialog |
+
+**The proposed cause is wrong, and acting on it would be an expensive
+mistake.** The report attributed the first to `--muted-foreground` via
+`--stormy-sky`, concluding that "EVERY `text-muted-foreground` on white/card
+fails AA". Checked directly against `src/index.css`: `--stormy-sky` is
+`198 12% 36%` = `#516067`, which is **6.52:1 on white** — comfortably passing,
+and matching the 6.51:1 already written in the token's own comment. `#83837c`
+is a warm grey that resolves from NO token in the file; the nearest is
+`--sage`/`--info` at `#8b927c`, 23 units away in summed RGB, too far to be
+rounding. Likewise `#b95e35` is not `--destructive`, which is `#b14a1b` light
+and `#c3521d` dark.
+
+So both are almost certainly COMPOSITES — an opacity modifier over a
+background, or a gradient — not raw token values. That makes them
+component-level, not token-level, and the opposite of the app-wide change that
+was proposed.
+
+- [ ] Find what actually paints each pair (computed style at the failing node,
+  not the token file) and fix at that site.
+- [ ] Do NOT change `--muted-foreground` / `--stormy-sky` on the strength of
+  this. It passes.
+
 ### Route catalog overstates coverage (2026-09-21)### Route catalog overstates coverage (2026-09-21) — found by the burn-down
 
 - [ ] **7 route names render ONE screen, and every sweep counts them as 7.** Measured over 92 screens: **15 routes (16%) land somewhere other than where they were asked for**, and seven of them land on the same page — `/availability`, `/earnings`, `/gift-card`, `/saved-helpers`, `/saved-helprs`, `/schedule`, `/settings` all render `/profile`. So `empty-state-sweep` audited `/profile` seven times and reported seven routes audited. A catalog defect (`e2e/happy-path/auditRoutes.ts`), not a sweep defect.

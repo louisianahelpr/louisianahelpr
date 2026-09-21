@@ -76,5 +76,7 @@ describe("career ladder — an unknown credential tier", () => {
 // size let one 5.0 review wear "Trusted Helpr" on the seed account the owner
 // was looking at.
 // @mutate src/lib/careerLadder.ts | if (r.minReviews && stats.reviewCount < r.minReviews) return false; | if (false) return false;
+// Both registrations below re-verified killed on 2026-09-21 (guard burn-down,
+// src/lib lane) — this file was already registered before the lane ran.
 // The credential tier must treat UNKNOWN (null) as "withhold", not "grant".
 // @mutate src/lib/careerLadder.ts | (stats.credentialTier === null \|\| stats.credentialTier < r.credentialTier) | (false)

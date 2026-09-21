@@ -4,7 +4,7 @@
 // activityConstants) and against impossible ranges (min > max).
 
 import { describe, it, expect } from "vitest";
-import { categoryPricing } from "./pricingGuide";
+import { categoryPricing, getSmartPrice } from "./pricingGuide";
 import { categoryLabels } from "@/components/activity/activityConstants";
 
 describe("categoryPricing data validation", () => {
@@ -38,3 +38,52 @@ describe("categoryPricing data validation", () => {
     }
   });
 });
+
+/**
+ * Everything above grades the TABLE. The thing that spends the table is
+ * `getSmartPrice`, and it had no test: it is what Smart Price mode writes into
+ * the budget field on PostJob, so its answer is the number a poster is charged
+ * and a helpr is paid unless they overtype it. A midpoint quietly becoming a
+ * min or a max moves every Smart Price job by tens of dollars in one direction
+ * and nothing in this file — or anywhere else — would have said so.
+ */
+describe("getSmartPrice — the number Smart Price puts in the budget field", () => {
+  it("is the MIDPOINT of the band, rounded to the nearest $5", () => {
+    expect(getSmartPrice("cleaning")).toBe(55); // (25 + 80) / 2 = 52.5 → 55
+    expect(getSmartPrice("moving")).toBe(125); // (50 + 200) / 2 = 125
+    expect(getSmartPrice("storm_prep")).toBe(215); // (80 + 350) / 2 = 215
+    expect(getSmartPrice("errands")).toBe(35); // (15 + 50) / 2 = 32.5 → 35
+  });
+
+  it("is strictly inside the band for every category — never the floor, never the ceiling", () => {
+    const keys = Object.keys(categoryPricing);
+    expect(keys.length).toBeGreaterThan(10);
+    for (const key of keys) {
+      const suggested = getSmartPrice(key);
+      const { min, max } = categoryPricing[key];
+      expect(suggested, `${key}`).not.toBeNull();
+      expect(suggested!, `${key}: suggested ${suggested} is at or below the band floor ${min}`).toBeGreaterThan(min);
+      expect(suggested!, `${key}: suggested ${suggested} is at or above the band ceiling ${max}`).toBeLessThan(max);
+    }
+  });
+
+  it("lands on a $5 step, so the field never prefills an odd amount", () => {
+    for (const key of Object.keys(categoryPricing)) {
+      expect(getSmartPrice(key)! % 5, `${key}`).toBe(0);
+    }
+  });
+
+  it("returns null for an unknown category instead of a number", () => {
+    // PostJob falls back to leaving the field alone. A 0 or a NaN here would
+    // prefill a budget nobody chose.
+    expect(getSmartPrice("not_a_category")).toBeNull();
+    expect(getSmartPrice("")).toBeNull();
+  });
+});
+
+// The money line: Smart Price must suggest the MIDDLE of the market band. Quote
+// the floor and every Smart Price poster underpays their helpr by up to $135
+// (storm_prep 215 → 80); quote the ceiling and they overpay by as much.
+// @mutate src/lib/pricingGuide.ts | Math.round(((pricing.min + pricing.max) / 2) / 5) * 5 | Math.round(pricing.min / 5) * 5
+// An unknown category must not prefill anything.
+// @mutate src/lib/pricingGuide.ts | if (!pricing) return null; | if (!pricing) return 0;

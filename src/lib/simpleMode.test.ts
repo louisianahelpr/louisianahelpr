@@ -70,3 +70,15 @@ describe("osBodyPx — Dynamic Type probe", () => {
     expect(IOS_DEFAULT_BODY_PX).toBe(17);
   });
 });
+
+// The sentinel only discriminates while the plausible-band ceiling sits below
+// it. Widen the band past 99 and a browser that DROPPED `font: -apple-system-
+// body` hands its host size straight back and is read as a real Dynamic Type
+// measurement — which is the silent false positive this probe was rebuilt to
+// remove, and it pins every non-Apple user to a scale nobody asked for.
+// @mutate src/lib/simpleMode.ts | const MAX_BODY_PX = 60; | const MAX_BODY_PX = 200;
+// The probe must leave nothing behind: it runs on every visibilitychange.
+// @mutate src/lib/simpleMode.ts | host.remove(); | void 0;
+// The divisor for `--user-text-scale`. 17 is iOS "Large"; any other value
+// scales every user's type at the DEFAULT OS setting.
+// @mutate src/lib/simpleMode.ts | export const IOS_DEFAULT_BODY_PX = 17; | export const IOS_DEFAULT_BODY_PX = 16;

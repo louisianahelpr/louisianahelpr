@@ -3,17 +3,50 @@ import { avatarGradientFor } from "./avatarGradient";
 
 describe("avatarGradientFor", () => {
   it("is deterministic — same seed → same gradient", () => {
-    const a = avatarGradientFor("user_abc123");
-    const b = avatarGradientFor("user_abc123");
-    expect(a).toBe(b);
+    // Across MANY seeds, not one. There are only 8 variants, so a hash that had
+    // gone non-deterministic still returns the same class for a single seed one
+    // time in eight — proven 2026-09-21, when a mutation adding
+    // `Math.floor(Math.random() * 7)` to the djb2 accumulator SURVIVED the
+    // one-seed version of this test. A user's avatar changing colour between
+    // mounts is the defect; it has to be impossible to miss, not 87% likely to
+    // be caught.
+    const seeds = Array.from({ length: 200 }, (_, i) => `user_${i}_${i * 17}`);
+    const first = seeds.map(avatarGradientFor);
+    const second = seeds.map(avatarGradientFor);
+    const third = seeds.map(avatarGradientFor);
+    expect(second).toEqual(first);
+    expect(third).toEqual(first);
   });
 
-  it("returns a Tailwind from/to fragment", () => {
-    const cls = avatarGradientFor("any-seed");
+  /**
+   * The whole palette, derived rather than transcribed: hash enough seeds that
+   * every variant comes back, so the assertions below cannot silently stop
+   * covering one. A hand-listed copy of the eight strings would be the other
+   * hollow shape — an inventory that goes stale with the thing it mirrors.
+   */
+  const ALL_VARIANTS = [...new Set(Array.from({ length: 800 }, (_, i) => avatarGradientFor(`seed_${i}`)))];
+
+  it("hashes across the entire palette, so the checks below see every variant", () => {
+    // The module ships 8. If a variant is added, this floor is what forces the
+    // new one through the opaque-hex and no-token checks too.
+    expect(ALL_VARIANTS.length).toBe(8);
+  });
+
+  it("returns a Tailwind from/to fragment — opaque 6-digit hex on BOTH stops, in EVERY variant", () => {
     // Both stops are OPAQUE 6-digit hex on purpose: an alpha on the `to` stop
     // composites over whatever is behind the element, not over the `from`
     // colour, which is how the dark-mode failure survived the first fix.
-    expect(cls).toMatch(/^from-\[#[0-9a-f]{6}\] to-\[#[0-9a-f]{6}\]$/);
+    //
+    // This used to assert on avatarGradientFor("any-seed") — ONE variant. Seven
+    // of the eight could have carried an 8-digit `#rrggbbaa` and the file would
+    // have stayed green; proven 2026-09-21 by putting `#ddbd8780` into variant
+    // 8, which survived the guard.
+    const shape = /^from-\[#[0-9a-f]{6}\] to-\[#[0-9a-f]{6}\]$/;
+    const offenders = ALL_VARIANTS.filter((cls) => !shape.test(cls));
+    expect(
+      offenders,
+      `Every gradient stop must be an opaque 6-digit hex:\n  - ${offenders.join("\n  - ")}`,
+    ).toEqual([]);
   });
 
   /**
@@ -33,8 +66,7 @@ describe("avatarGradientFor", () => {
    * it re-introduces it invisibly — light mode would still look right.
    */
   it("uses no theme-reactive tokens — the palette must not invert with the theme", () => {
-    const seeds = Array.from({ length: 60 }, (_, i) => `seed_${i}`);
-    const offenders = [...new Set(seeds.map(avatarGradientFor))].filter((c) => c.includes("var(--"));
+    const offenders = ALL_VARIANTS.filter((c) => c.includes("var(--"));
     expect(
       offenders,
       "Avatar gradient stops must be literal colours. A theme token here inverts in dark mode " +
@@ -56,3 +88,15 @@ describe("avatarGradientFor", () => {
     expect(unique.size).toBeGreaterThan(2);
   });
 });
+
+// The exact regression, re-introduced: a stop written as a theme token. It
+// looks tidier, light mode still looks correct, and dark mode silently inverts
+// "cream → deep accent" into "near-black → near-white", which no ink colour
+// clears AA against (measured floor 2.54:1 across the eight variants).
+// @mutate src/lib/avatarGradient.ts | "from-[#f0f2f4] to-[#979a86]", | "from-[hsl(var(--parchment))] to-[hsl(var(--bark)/0.62)]",
+// The second half of the same bug: a semi-transparent `to` stop composites over
+// the element's BACKDROP, not over the `from` colour, so the calibration is
+// only valid while both stops are opaque 6-digit hex.
+// @mutate src/lib/avatarGradient.ts | "from-[#ffffff] to-[#ddbd87]", | "from-[#ffffff] to-[#ddbd8780]",
+// Determinism: the same user must not flash between gradients across mounts.
+// @mutate src/lib/avatarGradient.ts | h = ((h << 5) + h + s.charCodeAt(i)) \| 0; | h = ((h << 5) + h + s.charCodeAt(i) + Math.floor(Math.random() * 7)) \| 0;

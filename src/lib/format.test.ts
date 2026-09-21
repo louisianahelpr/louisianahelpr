@@ -11,6 +11,17 @@ describe("formatPriceFloor — a payout may never read above the payout", () => 
     expect(formatPriceFloor(99.99)).toBe("99");
   });
 
+  it("stays put at the boundaries where the three rounding modes disagree", () => {
+    // The only values that tell round / ceil / floor apart:
+    //   83.50 → round 84, ceil 84, floor 83   (the exact half)
+    //   83.01 → round 83, ceil 84, floor 83   (a single cent over)
+    // Without both, a switch from floor to round is invisible for a whole
+    // class of take-homes, and a switch to ceil is invisible for all of them.
+    expect(formatPriceFloor(83.5)).toBe("83");
+    expect(formatPriceFloor(83.01)).toBe("83");
+    expect(formatPriceFloor(83.999)).toBe("83");
+  });
+
   it("leaves whole amounts alone", () => {
     expect(formatPriceFloor(132)).toBe("132");
     expect(formatPriceFloor(0)).toBe("0");
@@ -55,4 +66,12 @@ describe("payout headlines floor the take-home they are given", () => {
     expect(formatPriceFloor(takeHome)).toBe("57"); // never above the payout
   });
 });
+
+// A payout headline may read BELOW the money that lands and may never read
+// above it (owner, 2026-08-19). `formatPriceExact`'s cents rounding is pinned
+// separately, by displayedMoneyMatchesReality.test.ts; this is the floor.
+// @mutate src/lib/format.ts | return Math.floor(amount).toLocaleString("en-US"); | return Math.round(amount).toLocaleString("en-US");
+// Non-finite input must read "$0", not "$NaN" — the same guard formatPrice and
+// formatPriceExact carry, on the one formatter that is quoting someone's pay.
+// @mutate src/lib/format.ts | export function formatPriceFloor(amount: number): string {\n  if (!Number.isFinite(amount)) return "0"; | export function formatPriceFloor(amount: number): string {
 

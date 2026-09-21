@@ -22,5 +22,31 @@ describe("voice note size cap matches the message-attachments bucket", () => {
     }
     expect(bucketBytes, "bucket file_size_limit not found in migrations").not.toBeNull();
     expect(clientMb * 1024 * 1024).toBeLessThanOrEqual(bucketBytes!);
+
+    // Not one constant compared to itself: `clientMb` is parsed out of
+    // src/lib/messageAttachments.ts and `bucketBytes` out of the migration that
+    // provisioned the bucket. Verified against PROD (fncmgoasalhdgfwzhsqa,
+    // read-only, 2026-09-21): storage.buckets.message-attachments
+    // file_size_limit = 5242880, which is exactly the client cap, so the two
+    // sides are equal today and the inequality above has zero slack.
+    expect(bucketBytes).toBe(5 * 1024 * 1024);
+    expect(clientMb).toBeGreaterThan(0);
+  });
+
+  it("the user-facing copy states the SAME number the code enforces", () => {
+    // The cap and the sentence that explains it are two literals ten lines
+    // apart. "max 5 MB" beside a 2 MB check is the error message telling the
+    // user to do something the code will refuse.
+    const src = readFileSync(join(__dirname, "messageAttachments.ts"), "utf8");
+    const limitMb = Number(src.match(/VOICE_NOTE_MAX_BYTES\s*=\s*(\d+)\s*\*\s*1024\s*\*\s*1024/)![1]);
+    const copyMb = Number(src.match(/Voice note too large \(max (\d+) MB\)/)![1]);
+    expect(copyMb).toBe(limitMb);
   });
 });
+
+// The parity that matters: a client cap ABOVE the bucket's file_size_limit
+// means a 5-10 MB voice note is accepted by the app, rejected by storage, and
+// surfaces as a raw StorageApiError instead of "Voice note too large".
+// @mutate src/lib/messageAttachments.ts | const VOICE_NOTE_MAX_BYTES = 5 * 1024 * 1024; | const VOICE_NOTE_MAX_BYTES = 10 * 1024 * 1024;
+// And the copy half of it.
+// @mutate src/lib/messageAttachments.ts | return { error: "Voice note too large (max 5 MB)." }; | return { error: "Voice note too large (max 2 MB)." };

@@ -43,3 +43,11 @@ describe("AhaEvent constants", () => {
     expect(AhaEvent.AppCrashed).toBe("app_crashed");
   });
 });
+
+// Two events sharing one name is the failure mode that survives review: both
+// keys still exist, both still compile, every call site still fires — and the
+// funnel silently merges two steps into one row in `analytics_events`, so the
+// dashboard reports a conversion that never happened.
+// @mutate src/lib/analytics.ts | FirstJobCompleted: "first_job_completed", | FirstJobCompleted: "first_job_posted",
+// A camelCase value ships silently: the runtime accepts any string.
+// @mutate src/lib/analytics.ts | SignupCompleted: "signup_completed", | SignupCompleted: "signupCompleted",

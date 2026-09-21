@@ -66,3 +66,14 @@ describe("safeInternalRedirect", () => {
     expect(safeInternalRedirect("")).toBeNull();
   });
 });
+
+// The open redirect this function exists to stop. `%2F%09%2Fevil.com` decodes
+// to "/\t/evil.com", which clears every prefix check below the control-character
+// sweep — and the URL parser then strips the tab, resolving it as the
+// protocol-relative "//evil.com". Deleting the sweep bounces an authenticated
+// user off-site on a crafted link.
+// @mutate src/lib/authRedirects.ts | for (let i = 0; i < value.length; i += 1) { | for (let i = 0; i < 0; i += 1) {
+// The second half of the same check: a bare "//host" is absolute to a browser.
+// @mutate src/lib/authRedirects.ts | if (value.startsWith("//") \|\| value.startsWith("/\\")) return null; | if (false) return null;
+// A redirect must never point back at an auth screen, or login loops forever.
+// @mutate src/lib/authRedirects.ts | if (/^\/(login\|signup\|forgot-password\|reset-password)\b/.test(value)) return null; | if (false) return null;

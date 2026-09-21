@@ -94,3 +94,10 @@ describe("VerificationStatusRow", () => {
     expect(control).toHaveTextContent(/already covers it/i);
   });
 });
+// ── Shown able to fail ─────────────────────────────────────────────────────
+// Choice 2 in the header comment, as a mutation: the waiting states are rows,
+// not buttons. Forcing the button branch gives a member in `manual_review` a
+// 44px control that opens a flow `claim_idv_attempt` will refuse — the
+// "affordance for an action that will be refused" class — while every other
+// assertion in this file still passes.
+// @mutate src/components/profile/profileLanding/VerificationStatusRow.tsx | {copy.action ? ( | {true ? (

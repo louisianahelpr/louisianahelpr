@@ -204,3 +204,9 @@ describe("AtAGlanceCard — four tiles, most to least important", () => {
     }
   });
 });
+// ── Shown able to fail ─────────────────────────────────────────────────────
+// The owner's actual defect, restored: a self-hiding fourth tile. Gating
+// "Worked together" on a non-zero count is precisely the "it looks empty"
+// three-tiles-and-a-dead-column state the unconditional cell was written to
+// end, and it leaves the order assertion for a populated card green.
+// @mutate src/pages/userProfile/AtAGlanceCard.tsx | { key: "together", icon: Users, value: String(mutualJobsCount), label: "Worked together" }, | ...(mutualJobsCount > 0 ? [{ key: "together", icon: Users, value: String(mutualJobsCount), label: "Worked together" }] : []),

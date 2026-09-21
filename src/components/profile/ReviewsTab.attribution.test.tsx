@@ -147,3 +147,11 @@ describe("the per-review stars come from the shared review card", () => {
     expect(screen.getByRole("img", { name: "5 of 5 stars" })).toBeInTheDocument();
   });
 });
+// ── Shown able to fail ─────────────────────────────────────────────────────
+// Property 1 of the two the header names: drop `flex-wrap` (and the row gap
+// that only matters once it wraps) and the row is back to taking a second
+// COLUMN instead of a second line — the 375 defect, with the structural
+// assertions below still green because the markup shape is untouched.
+// NOTE what this cannot see: jsdom does no layout, so the class is the proxy
+// for the wrap. The real wrap is e2e's job.
+// @mutate src/components/profile/ReviewsTab.tsx | className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 font-sans pt-1 text-ds-12" | className="flex items-baseline gap-x-2 font-sans pt-1 text-ds-12"

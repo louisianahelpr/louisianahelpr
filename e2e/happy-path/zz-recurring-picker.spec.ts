@@ -16,6 +16,11 @@ import { test, installSupabaseMocks, FAKE_CUSTOMER, seedAuthedSession, desktopSc
  * quietly stay skipped forever and we would ship the picker unmeasured — which
  * is exactly the failure mode this file exists to prevent.
  */
+// Shown able to fail on a contract the file states in prose: "The bound is
+// enforced by the button going disabled, not by a rejected submit, so clicking
+// past it must be impossible rather than merely futile." Remove the bound and
+// the stepper walks below one week.
+// @mutate src/components/postjob/RecurringSchedulePicker.tsx | disabled={weeks <= 1} | disabled={false}
 // Playwright loads specs as ES modules, so `__dirname` does not exist here.
 const HERE = dirname(fileURLToPath(import.meta.url));
 const RECURRING_ENABLED = /const RECURRING_ENABLED = true/.test(
@@ -134,11 +139,46 @@ for (const width of [375, 1440]) {
     expect(chosen, `three days chosen @ ${width}`).toHaveLength(3);
     await page.screenshot({ path: `/tmp/recurring-picked-${width}.png`, fullPage: false });
 
-    const fit = await page.evaluate(() => ({
-      scrollWidth: document.documentElement.scrollWidth,
-      clientWidth: document.documentElement.clientWidth,
-    }));
+    // FIT, measured two ways, because the cheap one is blind here.
+    //
+    // `src/index.css` sets `body { overflow-x: hidden }` on purpose, to absorb
+    // the 1-2px the .full-bleed -50vw trick spills. That clip also suppresses
+    // the symptom: documentElement.scrollWidth stops growing, so a seven-column
+    // grid genuinely hanging off a 375px phone still reports as fitting.
+    // Measured 2026-09-21 in e2e/mobile-viewports.spec.ts: a deliberately
+    // 1400px-wide element left the identical assertion green at every width.
+    //
+    // The scrollWidth check is kept (it still catches the case where nothing
+    // clips) and joined by the per-element measurement `measureLayout` in
+    // auditRoutes.ts has used for this all along — a bounding rect does not
+    // care what an ancestor clips. Which matters most on exactly this control:
+    // the file header calls a seven-column grid "exactly the shape that
+    // overflows a 320-375px phone if a cell has a min-width", and until now
+    // that was the one thing it could not have detected.
+    const fit = await page.evaluate(() => {
+      const de = document.documentElement;
+      const viewportW = window.innerWidth;
+      const past: string[] = [];
+      for (const el of Array.from(
+        document.querySelectorAll<HTMLElement>("button, a, input, h1, h2, h3, p, li, label, output"),
+      )) {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) continue;
+        const st = getComputedStyle(el);
+        if (st.visibility === "hidden" || st.display === "none") continue;
+        if (r.right > viewportW + 2 && r.left < viewportW) {
+          past.push(`<${el.tagName.toLowerCase()}${el.className ? " ." + String(el.className).split(" ")[0] : ""}> right=${Math.round(r.right)} > ${viewportW}`);
+          if (past.length >= 5) break;
+        }
+      }
+      return { scrollWidth: de.scrollWidth, clientWidth: de.clientWidth, past };
+    });
     expect(fit.scrollWidth, `horizontal overflow @ ${width}`).toBeLessThanOrEqual(fit.clientWidth);
+    expect(
+      fit.past,
+      `content past the right edge @ ${width} (body{overflow-x:hidden} hides this ` +
+        `from scrollWidth, so it is measured per element):\n  ${fit.past.join("\n  ")}`,
+    ).toEqual([]);
 
     await page.screenshot({ path: `/tmp/recurring-picker-${width}.png`, fullPage: false });
   });

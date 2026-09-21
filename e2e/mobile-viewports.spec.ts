@@ -105,9 +105,13 @@ for (const vp of VIEWPORTS) {
         // Measured 2026-09-21: forcing a 1400px-wide element into the landing
         // hero at a 320px viewport left Assertion 1 GREEN on all five
         // viewports. The content was off-screen and unreachable; the metric
-        // said the page fit. CLAUDE.md's stated proof-of-fit ("assert
-        // documentElement.scrollWidth <= clientWidth") has the same blind spot
-        // wherever that CSS applies.
+        // said the page fit.
+        //
+        // CLAUDE.md is not wrong about this and needs no change — its
+        // proof-of-fit rule has TWO clauses: "assert documentElement.scrollWidth
+        // <= clientWidth, no element wider than the viewport". The second clause
+        // is the one that does the work in this codebase, and this spec had
+        // implemented only the first.
         //
         // So measure the ELEMENTS — a bounding rect is unaffected by an
         // ancestor's clip. This is NOT a new technique in this repo, and the

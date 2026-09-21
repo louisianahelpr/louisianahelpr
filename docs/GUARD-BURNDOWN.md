@@ -36,11 +36,11 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| **`src/test/*.test.ts*`** | 200 | **200 — COMPLETE** | **0** |
+| **`src/test/*.test.ts*`** | 201 | **201 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
 | Playwright `e2e/**` | 59 | 27 | 32 |
-| colocated beside components | 344 | 252 | 92 |
-| **total** | **656** | **532** | **124** |
+| colocated beside components | 343 | 320 | 23 |
+| **total** | **656** | **601 (92%)** | **55** |
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 
@@ -289,6 +289,42 @@ each is invisible on a green run and obvious once you know to break the line:
 Two of these now have their own class guards
 (`src/test/waitForEmptyIsVacuous.test.ts`,
 `src/test/guardsDoNotDeleteSource.test.ts`), both ratcheted.
+
+### Five more shapes, found 2026-09-21 in the colocated row
+
+5. **`not.toThrow()` as the ONLY assertion.** A function whose entire body is
+   deleted does not throw. `routePrefetch.test.ts` was six of these while its
+   header claimed to cover exact matching, prefix matching and the warm cache;
+   it covered none of them. If the only thing a file proves is "this does not
+   explode", say so in the file — do not let the header claim otherwise.
+
+6. **Three `toBeInTheDocument()` smoke tests** standing in for a geometry
+   contract. `skeletons.test.tsx` guarded components whose entire purpose is to
+   IMPORT the real card's frame constant rather than redraw it; replacing that
+   constant with a hand-written approximation — the regression that actually
+   shipped — was invisible. Compare against the exported constant, never a
+   copy of its value, and floor the constant so `"" === ""` cannot pass.
+
+7. **A CLEANUP-ONLY reference counted as use.** `profile-videos` was named in
+   the repo — by `accountPurge`, which lists every bucket it erases. Cleanup
+   code names a thing precisely BECAUSE it may be abandoned, so counting that
+   as "in use" blinds the check exactly where the answer matters. Any
+   "is this still used?" check must exclude its own janitors.
+
+8. **A parser that understands ONE spelling of what it grades.** The orphan
+   bucket replay handled `WHERE id = 'x'` and not `WHERE id IN (...)`. When
+   the migration was rewritten to the second form the replay stopped seeing
+   the deletions and the guard went red against buckets that were already
+   gone. Same failure mode as a hand-written list, wearing a regex.
+
+9. **A hoisted `vi.mock` factory evaluates ONCE per FILE.** A factory that
+   records its own invocation therefore records only the FIRST import of that
+   module; every later case touching it sees an empty recorder whether the
+   code works or not. This produced a test that passed or failed purely on
+   ordering. Use `vi.doMock` re-registered inside each case, with
+   `vi.resetModules()`. A mid-test `resetModules` does NOT re-run an
+   already-evaluated factory, so loops over such a recorder are their own
+   small vacuity.
 
 ## 17 registrations were FAKE PROOFS (2026-09-21)
 

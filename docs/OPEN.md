@@ -5065,3 +5065,49 @@ Known, measured, unfixed:
   inside the lazy chunk.
 - `/my-jobs` applied-card pitch unverified — both test accounts had zero live applications.
 - `vacuityGate.test.ts` races `discardedQueryFilters.test.ts` over a fixture in `src/`.
+
+## BURN-DOWN — 129 guards have never been shown able to fail (opened 2026-09-20)
+
+`src/test/vacuity.baseline.json` lists **129 "unregistered" guards** — tests with no
+`@mutate` registration, meaning nobody has ever demonstrated they can go red.
+**59 of 188 guards are proven; 129 are not.** 69% of the safety net is unverified.
+
+WHY THIS IS THE ROOT OF THE RECURRENCE THE OWNER REPORTED. Owner, 2026-09-20:
+"none of these errors should recur. when you say youre fixing it that means youre
+fixing it for good." A guard that cannot fail is exactly how a defect recurs while
+every check stays green. Four hollow guards were caught in ONE day:
+  - a guard asserting a Tailwind class DELETED that class from the build (Tailwind
+    scans `./src/**` as raw text) — 40 of 42 arbitrary-width classes dead across ten
+    files, every source-level guard green;
+  - a 144-entry hand-back ledger keyed on `file:line`, so it rotted whenever an
+    unrelated edit shifted a line;
+  - the contrast guard pins instance COUNTS, not ratios — items can drop below their
+    floor with it still green;
+  - the review log lived in `test-results/`, which Playwright wipes each run, and
+    `review:report` goes GREEN on an empty log because "zero unreviewed" is what a
+    wiped file looks like.
+Plus: the vacuity mutation phase never ran in an agent worktree AND still exited 0,
+so "shown able to fail" was skipped where most agent work happens (fixed, `73bb54233`).
+
+THE TARGET: 59/188 → 188/188. The baseline may only shrink.
+
+BUCKETED BY RISK (a hollow guard costs most where the blast radius is largest):
+    MONEY    4   ← lane live
+    AUTHZ   11
+    SCHEMA  13
+    BROWSE   5
+    VISUAL   7
+    OTHER   89
+
+THE RULE FOR EACH: make the smallest real change to the GUARDED file that should
+turn it red, run it, confirm red, revert, register `@mutate`, remove from the
+baseline. **If a guard CANNOT be made to fail, that is the finding** — rewrite it so
+it can, or recommend deleting it. A guard nobody can break is worse than no guard,
+because it is counted as protection.
+
+KNOWN HOLLOW SHAPES TO CHECK FOR: satisfiable by a comment (strip comments first —
+except where the data itself contains comment syntax, which deleted a base64 asset
+and hashed the empty string today); a list that is both input and oracle; an empty
+inventory passing vacuously (floor every scan); `.includes()` where exact was meant
+(`"space-y-4 px-3"` passes `.includes("space-y-4")`); pinning a defect's measurement
+so it asserts the bug still exists; interpolating a Tailwind class into an assertion.

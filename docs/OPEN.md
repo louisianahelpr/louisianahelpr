@@ -3201,6 +3201,32 @@ three halves now have a class guard; the third does not.
   - only `.tsx` (Sep 21): `sessionStorage` throwing (private mode / SSR), and the `?ppid=` path.
   The hazard is divergence: someone hardening one will not know the other exists, and a rule changed in one file stays asserted the old way in the other. Merge into one file, keeping every case from both.
 
+### Biometric gates: 10 of 12 are unobserved (2026-09-21)
+
+`requireBiometric()` short-circuits `if (!isNativePlatform) return true`, so
+under vitest it ALWAYS succeeds. A test that does not mock
+`@/lib/biometricGate` cannot see the gate at all — the whole Face ID
+confirmation can be deleted and the suite stays green. It happened twice today,
+both times in front of an account-takeover primitive.
+
+Measured: **12 components call it; 2 have a test that drives a refusal.**
+
+- [x] `AppLockGate`, `DeleteUserDialog` — covered (the second was fixed today).
+- [ ] **Unproven, and each guards a money or account-takeover action:**
+  `InstantPayoutDialog` (instant cash-out), `ReferralSection` (referral
+  cash-out), `PayoutSetupForm` (FOUR sites: change payout account, dashboard
+  access, remove method, reset account), `AdminJobs` (refund), `AdminDisputes`
+  (dispute decision + settlement + retry), `AdminPayoutBatches` (single AND
+  BULK payout run), `AdminSettings` (grant admin, remove admin), `BanDialog`,
+  `EditEmailDialog` (repointing a user's LOGIN EMAIL), `SecurityTab`.
+- **Worse than absent:** 3 of the 5 files that DO mock the gate mock it to
+  return `true`. That is not coverage, it is the opposite — it removes the gate
+  from the test's world so the surrounding assertions pass. Anyone counting
+  "files that mock biometricGate" would have called this covered.
+- Ratcheted by `src/test/biometricGatesAreProven.test.ts` (list may only
+  shrink). It checks a refusal is DRIVEN; that the component then does nothing
+  is each guard's own job.
+
 ### Route catalog overstates coverage (2026-09-21) — found by the burn-down
 
 - [ ] **7 route names render ONE screen, and every sweep counts them as 7.** Measured over 92 screens: **15 routes (16%) land somewhere other than where they were asked for**, and seven of them land on the same page — `/availability`, `/earnings`, `/gift-card`, `/saved-helpers`, `/saved-helprs`, `/schedule`, `/settings` all render `/profile`. So `empty-state-sweep` audited `/profile` seven times and reported seven routes audited. A catalog defect (`e2e/happy-path/auditRoutes.ts`), not a sweep defect.

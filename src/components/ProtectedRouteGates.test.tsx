@@ -241,3 +241,14 @@ import { useLocation } from "react-router-dom";
 function useLocationSearch() {
   return useLocation().search;
 }
+
+// PROVEN RED 2026-09-21: neutering the ban gate — so a banned or
+// suspended account walks into every protected route instead of
+// /account-banned — fails "a banned account is still bounced first,
+// incomplete profile or not". That gate is first for a reason, and this file
+// is what says so.
+// SOURCE-TEXT PIN: jsdom renders the route tree with `useCurrentUser` mocked.
+// It proves the CLIENT's gate order; it proves nothing about RLS, which is
+// what actually stops a banned account reading rows if it reaches a screen
+// anyway.
+// @mutate src/components/ProtectedRoute.tsx | if (isLockedOut(profile.ban_status, profile.auto_suspended_until)) { | if (false) {

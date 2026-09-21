@@ -230,3 +230,12 @@ describe("appLock — cold start vs WebView reload", () => {
     expect(shouldLockOnFreshStart()).toBe(false);
   });
 });
+
+// PROVEN RED 2026-09-21: giving a FUTURE-dated background timestamp credit
+// instead of locking — so moving the device clock forward, backgrounding, then
+// moving it back walks past the app lock — fails "locks when the timestamp is
+// in the FUTURE (clock change / tampering)".
+// SOURCE-TEXT PIN: pure-function and localStorage behaviour in jsdom. It
+// proves the DECISION; it does not prove any caller awaits it, nor that iOS
+// actually delivers the background event that writes the timestamp.
+// @mutate src/lib/appLock.ts | if (elapsed < 0) return true; | if (elapsed < 0) return false;

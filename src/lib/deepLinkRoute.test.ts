@@ -209,3 +209,12 @@ describe("URL fragment survives normalization", () => {
       .toBe("/payment-success?session_id=cs_1#done");
   });
 });
+
+// PROVEN RED 2026-09-21: dropping the host allowlist — so any site's link can
+// drive the app to any route — fails 3 tests including "rejects foreign
+// hosts".
+// SOURCE-TEXT PIN: a pure-function check. It proves what this normaliser
+// returns; it does not prove the AASA file is served, that iOS honours it, or
+// that the custom scheme is registered in Info.plist — the three things that
+// decide whether a link reaches this function at all.
+// @mutate src/lib/deepLinkRoute.ts | if (!isNativeReturnScheme && !ALLOWED_DEEP_LINK_HOSTS.has(url.host)) return null; | if (false) return null;

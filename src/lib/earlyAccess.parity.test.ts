@@ -177,3 +177,12 @@ describe("early-access delay — client/SQL parity", () => {
     expect(hook).toContain("early_access_cutoff()");
   });
 });
+
+// PROVEN RED 2026-09-21: collapsing MAX_EARLY_ACCESS_DELAY_MINUTES to 0 — so
+// every free account sees new jobs the instant they are posted, and the head
+// start Plus/Elite members pay for is worth nothing — fails 4 tests including
+// "uses the same 20-minute base on both sides".
+// SOURCE-TEXT PIN: this compares the TS constant against the SQL in a
+// migration file. It proves the two agree; it cannot see a prod function that
+// drifted from its migration, and it does not execute either side.
+// @mutate src/lib/earlyAccess.ts | export const MAX_EARLY_ACCESS_DELAY_MINUTES = 20; | export const MAX_EARLY_ACCESS_DELAY_MINUTES = 0;

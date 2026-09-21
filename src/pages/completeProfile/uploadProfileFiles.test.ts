@@ -221,3 +221,78 @@ describe("uploadProfileFiles — the profile row is saved before anything is del
     expect(objects.has(`avatars/${USER}/avatar.jpg`)).toBe(true);
   });
 });
+
+/*
+ * THE ID-DOCUMENT KEY IS BUILT FROM THE FILE NAME, and nothing here tested the
+ * only thing standing between that name and the bucket.
+ *
+ * `uploadProfileFiles.ts` builds `${userId}/id-document-${Date.now()}.
+ * ${sanitizeExt(idFile.name)}`. `sanitizeExt` lowercases, then strips every
+ * character that is not a-z0-9, then truncates to 5. Removing that strip —
+ * leaving `name.split(".").pop()?.toLowerCase()` — left all 8 tests in this
+ * file GREEN (measured 2026-09-21), and a browser will happily hand over a
+ * File whose `name` a user chose.
+ *
+ * This is the client half of the family that produced the real incident:
+ * `complete-signup` interpolated a caller-supplied extension into five storage
+ * keys under the SERVICE ROLE, and a `png/../../<victim>/avatar.png` overwrote
+ * another member's public photo (reproduced against prod 2026-09-01, see
+ * supabase/functions/_shared/storageKeys.ts). The server half is guarded. This
+ * half was not.
+ *
+ * Asserted on the KEY THAT REACHES THE BUCKET rather than on sanitizeExt in
+ * isolation, because the property that matters is a path with no second
+ * segment under the user's folder — not the return value of a helper.
+ */
+describe("the id-document key never inherits anything from the file name", () => {
+  it("strips every non-alphanumeric character out of the extension", async () => {
+    await uploadProfileFiles(
+      USER,
+      null,
+      { type: "image/png", size: 1024, name: "scan.p/n g!" } as unknown as File,
+      vi.fn(async () => ({ id: "row-1" })),
+    );
+
+    const keys = [...objects].filter((o) => o.startsWith("id-documents/"));
+    expect(keys, "the id document was not uploaded — this test is not exercising the path").toHaveLength(1);
+    const path = keys[0].replace("id-documents/", "");
+
+    // Exactly two segments: the user's folder, then the object. A slash that
+    // survived the scrub would make a third.
+    expect(path.split("/"), `key escaped the user folder: ${path}`).toHaveLength(2);
+    expect(path.startsWith(`${USER}/`)).toBe(true);
+    expect(path, "a traversal segment reached the key").not.toContain("..");
+    expect(path.split(".").pop(), "the extension kept characters the scrub must remove").toMatch(/^[a-z0-9]{0,5}$/);
+  });
+
+  it("falls back to a safe extension when the name has nothing usable", async () => {
+    await uploadProfileFiles(
+      USER,
+      null,
+      { type: "image/png", size: 1024, name: "no-extension-at-all" } as unknown as File,
+      vi.fn(async () => ({ id: "row-1" })),
+    );
+    const path = [...objects].find((o) => o.startsWith("id-documents/"))!.replace("id-documents/", "");
+    expect(path.split("/")).toHaveLength(2);
+    expect(path.split(".").pop()).toMatch(/^[a-z0-9]{1,5}$/);
+  });
+});
+
+// PROVEN RED 2026-09-21. Removing the character scrub from `sanitizeExt` — so
+// the browser-supplied File.name reaches the storage key — produces
+// `u1/id-document-1790011062213.p/n g`: a SLASH in the key, a third path
+// segment, an object written somewhere nobody intended inside the private
+// `id-documents` bucket.
+//
+// That exact mutation left this file 8/8 GREEN before the two cases above
+// existed. It is the client half of the family behind the real incident:
+// `complete-signup` interpolated a caller-supplied extension into five keys
+// under the SERVICE ROLE and `png/../../<victim>/avatar.png` overwrote another
+// member's public photo (reproduced against prod 2026-09-01; see
+// supabase/functions/_shared/storageKeys.ts). The server half was guarded and
+// this half was not.
+//
+// SOURCE-TEXT PIN: Storage is a fake here. It proves the KEY this code builds;
+// it proves nothing about the bucket's RLS, its MIME allow-list, or its size
+// cap — those are storageBucketLimits.test.ts's job.
+// @mutate src/pages/completeProfile/constants.ts | const ext = name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") \|\| "bin"; | const ext = name.split(".").pop()?.toLowerCase() \|\| "bin";

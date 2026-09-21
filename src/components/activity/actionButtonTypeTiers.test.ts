@@ -211,3 +211,68 @@ describe("activity card action buttons — ONE type size, one typeface", () => {
     expect(fonts, "an action button in a second typeface").toEqual([]);
   });
 });
+
+/**
+ * ── THE HOLE THIS CLOSES (vacuity burn-down, 2026-09-21) ───────────────────
+ * Everything above reads a button's OPENING TAG only. But every control in
+ * this row writes its size on the `<span>` INSIDE the button
+ * (`JOB_ROW_LABEL_CLASS`), never on the button element — so across the whole
+ * activity tree exactly FOUR of the 47 scanned tags carried a type class at
+ * all, and all four were in the two files `NOT_ACTION_ROWS` excludes. `drift`,
+ * `raw` and `fonts` were therefore `[]` by construction, and the row's one
+ * size could be changed to `text-ds-12` with all four tests green (proved by
+ * mutation before this block was written).
+ *
+ * So the row's own size is read where it is actually declared. The two files
+ * below ARE the row's controls — `JobActionRow.tsx` (chip, primary, More) and
+ * the one control written outside it (`DirectionsButton`), which imports the
+ * same constant. Between them they contain exactly ONE type-size declaration,
+ * which is the rule this file exists to state.
+ */
+const ROW_PRIMITIVE_FILES = [
+  "src/components/activity/JobActionRow.tsx",
+  "src/components/activity/appliedJobCard/DirectionsButton.tsx",
+];
+
+/** Any declaration of a type size or a typeface, on the ds scale or off it. */
+const typeTokens = (text: string): string[] =>
+  text.match(/\btext-ds-\d+\b|\btext-(?:xs|sm|base|lg|xl)\b|\btext-\[[^\]]+\]|\bfont-(?:display|serif|mono)\b/g) ?? [];
+
+describe("the row's ONE label size, read where it is actually declared", () => {
+  const sources = ROW_PRIMITIVE_FILES.map(
+    (rel) => [rel, readFileSync(join(ROOT, rel), "utf8")] as const,
+  );
+
+  it("JOB_ROW_LABEL_CLASS declares a size, and it is the row's one size", () => {
+    const m = /export const JOB_ROW_LABEL_CLASS = "([^"]+)"/.exec(sources[0][1]);
+    expect(m, "JOB_ROW_LABEL_CLASS was renamed or moved out of JobActionRow.tsx").not.toBeNull();
+    const tokens = typeTokens(m![1]);
+    expect(tokens.length, `the row label class "${m![1]}" declares no type size at all`)
+      .toBeGreaterThan(0);
+    for (const t of tokens) {
+      expect(
+        SANCTIONED.has(t),
+        `the row's label is ${t} — every control in the row is ONE object at ONE size (text-ds-11)`,
+      ).toBe(true);
+    }
+  });
+
+  it("no control in those files declares a size of its own beside it", () => {
+    const strays = sources.flatMap(([rel, src]) =>
+      src
+        .split("\n")
+        .flatMap((line, i) =>
+          line.includes("JOB_ROW_LABEL_CLASS =")
+            ? []
+            : typeTokens(line).map((t) => `${rel}:${i + 1} → ${t}`),
+        ),
+    );
+    expect(
+      strays,
+      "a row control sizing itself instead of wearing JOB_ROW_LABEL_CLASS",
+    ).toEqual([]);
+  });
+});
+
+// The row's ONE type size, where it is actually declared.
+// @mutate src/components/activity/JobActionRow.tsx | export const JOB_ROW_LABEL_CLASS = "text-ds-11 leading-tight font-medium"; | export const JOB_ROW_LABEL_CLASS = "text-ds-12 leading-tight font-medium";

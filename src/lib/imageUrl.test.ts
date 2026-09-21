@@ -213,3 +213,8 @@ describe("transformedImageUrl — transform add-on disabled (the production defa
     expect(out).not.toContain("quality=");
   });
 });
+
+// The add-on gate: Supabase image transforms are NOT enabled on this project,
+// so a /render/image/ URL 403s and Vercel answers 502 — a broken placeholder
+// on every job photo and avatar.
+// @mutate src/lib/imageUrl.ts | if (import.meta.env.VITE_SUPABASE_IMAGE_TRANSFORM !== "1") return publicUrl; | if (false) return publicUrl;

@@ -10,6 +10,17 @@
 //     database admits;
 //   * each seeded RPC answers from the table set it is handed.
 //
+// Shown able to fail 2026-09-20, once per load-bearing claim:
+//   * the DB-constraint claim — one budget over the `jobs_budget_range` ceiling
+//     (5000 → 5001) turns "stays inside the constraints the database enforces"
+//     red on job 1e…006a;
+//   * the additive claim — dropping the normal seed out of `add()` turns "is
+//     additive: every normal table and every normal id is still present" red
+//     with the normal ids listed as missing.
+//
+// @mutate e2e/happy-path/seedDataHeavy.ts | budget: [10, 45, 180, 999, 2500, 4999, 5000][i % 7], | budget: [10, 45, 180, 999, 2500, 4999, 5001][i % 7],
+// @mutate e2e/happy-path/seedDataHeavy.ts | => [...(SEED_TABLES[table] ?? []), ...extra]; | => [...extra];
+//
 // Imported by computed path on purpose: a static `import "../../e2e/…"` would
 // pull an e2e file into the `src` composite project and break `tsc -b` (the
 // same reason fixtureSchemaContract.test.ts reads seedData.ts as text).

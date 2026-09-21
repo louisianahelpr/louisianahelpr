@@ -20,6 +20,13 @@
 // helpers_needed) — id/customer_id/helper_id are filled in at apply time from
 // runtime ids and are not CHECK-constrained, so their absence here does not
 // weaken the grade.
+//
+// Re-proven able to fail 2026-09-20 (the note that it had been shown red once
+// was verified, not trusted): `budget: 300` → `budget: 9000` in GROUP_JOB_ROW
+// turns "finds no CHECK constraint the group job row would violate" red with
+// `jobs.budget = 9000 — jobs_budget_range requires <= 5000`.
+//
+// @mutate scripts/audit/prod-seed.mjs |   budget: 300,\n  status: "open", |   budget: 9000,\n  status: "open",
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";

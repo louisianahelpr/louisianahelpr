@@ -17,6 +17,18 @@
  * STUCK_SEED_SPLIT_QUERY, and the module under test did not exist — the last
  * two cases here fail against origin/main's copy of the script
  * (SEED_SCRIPT_PATH points at it).
+ *
+ * Shown able to fail 2026-09-20 on both halves of what it owns — the safety
+ * predicate, and the script that uses it:
+ *   * dropping the money guard from `isStuckSeedSplit` (a row with a transfer
+ *     id, refund id or settlement time becomes retirable) turns "never touches
+ *     a real dispute, or one where money moved" red;
+ *   * deleting apply()'s `await retireStuckSeedSplits();` turns "--apply
+ *     retires them" red. That second one used to SURVIVE — see the comment on
+ *     that case.
+ *
+ * @mutate scripts/audit/seedDisputeFixture.mjs |   if (d.execution_transfer_id || d.execution_refund_id || d.executed_at) return false;\n |
+ * @mutate scripts/audit/prod-seed.mjs |   await retireStuckSeedSplits();\n |
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -133,9 +145,26 @@ describe("seed dispute fixture", () => {
     expect(STUCK_SEED_SPLIT_QUERY).toContain("execution_refund_id=is.null");
   });
 
+  /**
+   * SHOWN VACUOUS 2026-09-20, and fixed here. This case used to read
+   * `expect(src).toContain("retireStuckSeedSplits()")` — which the DEFINITION
+   * line `async function retireStuckSeedSplits() {` satisfies all by itself.
+   * Deleting `await retireStuckSeedSplits();` from `apply()`, so --apply
+   * retires nothing and the whole retirement is dead code, left this guard
+   * GREEN. Same shape as the money bucket's comment-satisfiable text pins.
+   * The call is now looked for inside `apply()`'s own body, comments stripped.
+   */
   it("--apply retires them and --verify fails while one exists", () => {
-    const src = readFileSync(SEED_SCRIPT, "utf8");
-    expect(src).toContain("retireStuckSeedSplits()");
+    const raw = readFileSync(SEED_SCRIPT, "utf8");
+    // `[^:]` before `//` so a `https://` inside a string is not mistaken for a
+    // line comment.
+    const src = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+    const start = src.indexOf("async function apply()");
+    expect(start, "prod-seed.mjs has no `async function apply()` — did it get renamed?").toBeGreaterThan(-1);
+    const end = src.indexOf("\n}\n", start);
+    expect(end, "could not find the end of apply()").toBeGreaterThan(start);
+    expect(src.slice(start, end), "apply() does not call retireStuckSeedSplits() — --apply retires nothing")
+      .toContain("await retireStuckSeedSplits();");
     expect(src).toContain("STUCK_SEED_SPLIT_QUERY");
     expect(src).toMatch(/seed disputes stuck mid-execution[\s\S]{0,200}min:\s*0/);
   });

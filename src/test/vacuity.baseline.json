@@ -41,19 +41,7 @@
     "e2e/smoke.spec.ts",
     "e2e/two-role-lifecycle.spec.ts",
     "e2e/visual-audit/desktop-fill.spec.ts",
-    "e2e/visual-audit/responsive.spec.ts",
-    "src/components/activity/JobCardMetaRow.locationChipRest.test.tsx",
-    "src/components/activity/appliedJobCard/DirectionsButton.test.tsx",
-    "src/components/activity/locationPressHintCentred.test.ts",
-    "src/components/dashboard/jobDetailDialog/JobDetailFooter.test.tsx",
-    "src/components/postjob/PetPicker.test.tsx",
-    "src/components/profile/profileEditForm/SaveBar.test.tsx",
-    "src/lib/recurringSchedule.parity.test.ts",
-    "src/pages/activity/ActivityEmptyState.loadError.test.tsx",
-    "src/pages/legal/DataExportCard.test.tsx",
-    "src/pages/legal/PrivacySection.search.test.tsx",
-    "src/pages/userProfile/RecognitionRow.test.tsx",
-    "src/pages/userProfile/singleReviewList.test.ts"
+    "e2e/visual-audit/responsive.spec.ts"
   ],
   "noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",

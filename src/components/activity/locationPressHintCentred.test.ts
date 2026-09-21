@@ -27,3 +27,5 @@ describe("LocationPressHint centring (VN-26)", () => {
     expect(hint, "X still uses all-sides -m-2.5").not.toMatch(/\s-m-2\.5\s/);
   });
 });
+
+// @mutate src/components/activity/PostedJobsTab.tsx | flex items-center gap-2 rounded-ds-md px-3 py-2 | flex items-start gap-2 rounded-ds-md px-3 py-2

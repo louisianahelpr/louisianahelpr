@@ -66,3 +66,7 @@ describe("JobDetailFooter Message button (VN-2)", () => {
     expect(messageButton()).not.toBeNull();
   });
 });
+
+// The original VN-2 gate, restored: `|| viewerAppPosition != null` let any
+// applicant message the poster from the job detail footer.
+// @mutate src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx | viewerUserId === (job as { helper_id?: string \| null }).helper_id) && ( | viewerUserId === (job as { helper_id?: string \| null }).helper_id \|\| viewerAppPosition != null) && (

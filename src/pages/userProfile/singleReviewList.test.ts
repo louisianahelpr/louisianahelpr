@@ -15,3 +15,7 @@ describe("public profile review surface (VN-15)", () => {
     expect(src.match(/<ReviewsSection\b/g)?.length).toBe(1);
   });
 });
+
+// VN-15 itself: the wall mounted alongside the list, printing every quote
+// twice in two card styles.
+// @mutate src/pages/UserProfile.tsx | <ReviewsSection | <PublicReviewWall /><ReviewsSection

@@ -52,3 +52,7 @@ describe("DataExportCard waits for auth before choosing its control", () => {
     expect(screen.queryByRole("link", { name: /sign in/i })).toBeNull();
   });
 });
+
+// Decide from `user` alone again: a signed-in reader whose session is still
+// restoring is told "Sign In to Download".
+// @mutate src/pages/legal/DataExportCard.tsx | {!isReady ? ( | {false ? (

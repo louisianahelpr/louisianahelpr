@@ -71,3 +71,7 @@ describe("PetPicker", () => {
     await waitFor(() => expect(screen.getByText("Rex")).toBeInTheDocument());
   });
 });
+
+// VN-53 itself: the picker's own private cache key, which the pets page never
+// invalidated.
+// @mutate src/components/postjob/PetPicker.tsx | queryKey: petProfilesQueryKey(user?.id), | queryKey: ["pet_profiles_for_post", user?.id],

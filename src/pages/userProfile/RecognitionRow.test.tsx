@@ -43,3 +43,7 @@ describe("RecognitionRow badge sizing", () => {
     expect(screen.queryByText(/Verification in progress/i)).toBeNull();
   });
 });
+
+// VN-17 itself: MilestoneIcon swallows the sizing className ProfileBadge
+// clones on, so milestone marks draw lucide's 24px default.
+// @mutate src/pages/userProfile/RecognitionRow.tsx | return <Icon className={className} style={{ color }} />; | return <Icon style={{ color }} />;

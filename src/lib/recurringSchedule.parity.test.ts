@@ -53,3 +53,9 @@ describe("recurringSchedule — client/edge parity", () => {
     expect(app.MAX_RECURRENCE_WEEKS).toBe(edge.MAX_RECURRENCE_WEEKS);
   });
 });
+
+// Drop the edge copy's start-date floor: a mid-week series would be BILLED for
+// the visits in week 1 that fall before the job the poster actually paid for,
+// while the app quotes the shorter list. The exact divergence this exists for.
+// @mutate supabase/functions/_shared/recurringSchedule.ts | if (d < start) continue;
+// @mutate src/lib/recurringSchedule.ts | export const MAX_RECURRENCE_WEEKS = 52; | export const MAX_RECURRENCE_WEEKS = 26;

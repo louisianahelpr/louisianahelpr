@@ -60,3 +60,7 @@ describe("Privacy Policy: the in-policy export link always has a target", () => 
     expect(container.querySelector(`#${DATA_EXPORT_ANCHOR}`)).toBeNull();
   });
 });
+
+// Put the export card back under HideOnSearch semantics: the "Deletion &
+// portability" row survives the search, its #download-your-data link does not.
+// @mutate src/pages/legal/PrivacySection.tsx | policySearchMatches(query, EXPORT_CARD_SEARCH_TEXT) ? <>{children}</> : null | !query ? <>{children}</> : null

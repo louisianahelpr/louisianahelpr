@@ -61,3 +61,7 @@ describe("ActivityEmptyState: the active tab's failed load shows the error card"
     expect(retryButton()).toBeNull();
   });
 });
+
+// The original gate: both tabs' counts, so a failed read was masked by the
+// OTHER tab's rows and the reader was told "No applications yet".
+// @mutate src/pages/activity/ActivityEmptyState.tsx | if (loadError && totalCount === 0) { | if (loadError && postedJobsCount === 0 && appliedAppsCount === 0) {

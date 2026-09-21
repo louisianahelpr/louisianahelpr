@@ -44,3 +44,7 @@ describe("DirectionsButton", () => {
     expect(onCardClick).not.toHaveBeenCalled();
   });
 });
+
+// Its two reasons to exist, one registration each.
+// @mutate src/components/activity/appliedJobCard/DirectionsButton.tsx | if (!href) return null;
+// @mutate src/components/activity/appliedJobCard/DirectionsButton.tsx | onClick={(e) => e.stopPropagation()}

@@ -10,11 +10,11 @@ means youre fixing it for good."*
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| `src/test/*.test.ts*` (the ratchet) | 190 | **95** | **95** |
+| `src/test/*.test.ts*` (the ratchet) | 190 | **101** | **89** |
 | `src/test/edge/` | 53 | 0 | 53 |
 | Playwright `e2e/**/*.spec.ts` | 60 | 0 | 60 |
 | colocated beside components | 336 | 0 | 336 |
-| **total** | **639** | **95** | **544** |
+| **total** | **639** | **101** | **538** |
 
 Only the first row is enforced today (`.github/workflows/vacuity.yml`, on every push
 and PR, plus a full mutation sweep nightly at 06:10 UTC). The ratchet's baseline may
@@ -29,7 +29,7 @@ there is not even listed as unproven.
 | BROWSE | 5 | **DONE** — 125 → 120. One real vacuity found. |
 | VISUAL | 7 | **DONE** — 120 → 113. One real vacuity + one false-positive-prone guard fixed. |
 | AUTHZ | 11 | **DONE** — 113 → 102. Three more real vacuities, two of them the worst found. |
-| SCHEMA | 13 | 7 done (none hollow — first clean bucket), 6 running |
+| SCHEMA | 13 | **DONE** — 102 → 89. One hollow (comment-satisfiable), one unregisterable. |
 | OTHER | 89 | 7 running |
 
 Then the 53 edge, the 60 e2e, the 336 colocated.
@@ -142,6 +142,50 @@ Run it. Confirm red. Revert. Register `@mutate`. Remove the baseline entry.
 **If a guard cannot be made to fail, that is the finding.** Rewrite it so it can, or
 recommend deleting it — a guard nobody can break is worse than none, because it is
 counted as protection.
+
+## SCHEMA, second half — the migration/RPC six (102 → 89 with the first half)
+
+An eighth real hole, shape (b) again, and the first guard that **could not be
+registered at all**.
+
+**`migrationRaiseCodesPreserved` was satisfiable by a comment.**
+`scripts/check-migration-raise-codes.mjs` parsed raw SQL, so on
+20260919195158 replacing the live
+`RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';` in
+`enforce_job_tracking_arrival_gate` with
+`NULL; -- RAISE EXCEPTION 'job_not_found' …` **deleted the guard on
+job_tracking's arrival gate and left the test GREEN (5 passed)** — both
+`raiseCodes` and the `body.includes('<code>')` fallback read the dead comment
+as the live guard. It now blanks `--` comments first (leaving `--` inside
+single-quoted literals alone) and the registered mutation *is* the comment
+form, so both shapes are pinned. LIVE STATE VERIFIED, read-only against prod:
+`pg_get_functiondef('public.enforce_job_tracking_arrival_gate()')` carries
+`job_not_found`, `tracker_not_assigned_helper` and
+`tracker_requires_before_photo`. The guard was blind; the system was correct.
+
+**`migrationVersions` could not be registered — its inventory is FILENAMES.**
+No file's *contents* feed it, and the mutation gate can only replace source
+text, so no `@mutate` could ever exist. It was shown red by hand first (a
+second file on prefix `20260919195158`: 2 tests failed, naming the colliding
+pair), then its matchers moved to `scripts/check-migration-versions.mjs` with
+synthetic cases per rule — four mutations kill it now. Its frozen
+`LEGACY_INVALID_STAMPS` list is also floored against the real tree: an entry
+naming no migration is a failure, so it may only shrink.
+
+Two partial hollownesses fixed: `rpcCastsOnDeclaredRpcs` and
+`staleRpcCastComments` both walked `src/` with **no inventory floor**, so an
+empty walk would have passed them by describing nothing.
+
+**Every one of these six is a SOURCE-TEXT PIN and none can see prod.** They
+read migration files and the generated `types.ts`, never `pg_policies`,
+`pg_proc.proacl`, `information_schema.role_table_grants` or
+`pg_get_functiondef`. A privilege granted or a function replaced outside a
+migration is invisible to all six. `migrationRelationGrants` in particular
+judges whether a migration *writes* a GRANT, not whether prod *has* one —
+and none of the six sees the `FROM PUBLIC` vs `FROM PUBLIC, anon` distinction
+at all (that is `anonGrantsClassCheck` + `db-smoke`, which do query the live
+catalog). Live-state coverage of grants remains an **uncovered class** for
+this file set, not a gap in any one of them.
 
 ## Hollow shapes already found in this repo
 

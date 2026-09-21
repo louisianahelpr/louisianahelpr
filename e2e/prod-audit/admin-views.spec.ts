@@ -17,7 +17,7 @@
  * load failure the firewall caused says which call it blocked.
  */
 import { expect, test } from "@playwright/test";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { findErrorScreen } from "../errorScreens";
 import { newUserContext, sessionFor, settle, SUPABASE_URL } from "./harness";
@@ -34,8 +34,52 @@ const VIEWS = adminViews();
  * Read RPCs by prefix, plus read RPCs whose names carry no read verb. Adding a
  * name here is a claim that the function does not write: check
  * `pg_get_functiondef` on prod first.
+ *
+ * `admin_stalled_job_queue` added 2026-09-20. Verified live on prod before
+ * adding: `LANGUAGE sql STABLE SECURITY DEFINER`, one SELECT over
+ * `job_completion_nudges JOIN jobs`, and `pg_proc.provolatile = 's'`.
  */
-const READ_RPC = /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$))/;
+const READ_RPC =
+  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$))/;
+
+/**
+ * Admin RPCs that WRITE. Not an allow-list — the opposite: naming one here is
+ * how the inventory check below is told "yes, the firewall is right to refuse
+ * this one". Each verified `provolatile = 'v'` on prod, 2026-09-20.
+ */
+const WRITE_RPC = new Set([
+  "admin_delete_review",
+  "admin_reverse_violation",
+  "resolve_stalled_job_flag",
+  "review_credential",
+  "rpc_decide_dispute",
+]);
+
+/**
+ * Every RPC name the admin surface calls, read out of the admin source itself.
+ *
+ * Matches `supabase.rpc("x"` AND `(supabase.rpc as any)("x"` — the second form
+ * is how a brand-new RPC is called before `types.ts` is regenerated, and it is
+ * exactly the form that hid `admin_stalled_job_queue` from a narrower scan.
+ */
+function adminRpcNames(): string[] {
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const p = join(dir, entry);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (/\.tsx?$/.test(p) && !/\.test\./.test(p)) files.push(p);
+    }
+  };
+  walk(join(process.cwd(), "src/components/admin"));
+  files.push(join(process.cwd(), "src/pages/Admin.tsx"));
+  const names = new Set<string>();
+  for (const f of files) {
+    const src = readFileSync(f, "utf8");
+    for (const m of src.matchAll(/\brpc\b[^("]{0,40}?\(\s*"([a-z0-9_]+)"/g)) names.add(m[1]);
+  }
+  return [...names].sort();
+}
 
 test("the admin view inventory is parsed (non-empty, includes tiers)", () => {
   expect(VIEWS.length).toBeGreaterThan(10);
@@ -44,8 +88,44 @@ test("the admin view inventory is parsed (non-empty, includes tiers)", () => {
 
 test("the read allow-list passes the support queue and still refuses writes", () => {
   expect(READ_RPC.test(`${SUPABASE_URL}/rest/v1/rpc/admin_support_queue`)).toBe(true);
+  expect(READ_RPC.test(`${SUPABASE_URL}/rest/v1/rpc/admin_stalled_job_queue`)).toBe(true);
   expect(READ_RPC.test(`${SUPABASE_URL}/rest/v1/rpc/admin_support_queue_resolve`)).toBe(false);
+  expect(READ_RPC.test(`${SUPABASE_URL}/rest/v1/rpc/admin_stalled_job_queue_resolve`)).toBe(false);
   expect(READ_RPC.test(`${SUPABASE_URL}/rest/v1/rpc/admin_ban_user`)).toBe(false);
+});
+
+/**
+ * PREVENT, DON'T CHASE (2026-09-20). `admin_stalled_job_queue` shipped on
+ * 2026-09-19 and the very next run of this suite showed "We couldn't load the
+ * stuck-job queue" on /admin?view=stalled — a READ the firewall above refused
+ * because its name carries no read verb, the same class of miss
+ * `admin_support_queue` caused on 2026-09-13 and which was then fixed one name
+ * at a time. The screen under test looked broken and the app was fine.
+ *
+ * So the list stops being a list someone has to remember. Every RPC the admin
+ * source calls must be CLASSIFIED — matched by READ_RPC, or named in
+ * WRITE_RPC — and the day an admin screen calls a new one, this fails naming
+ * it, before a nightly reports it as a load failure on the screen.
+ *
+ * It cannot say which way a new name belongs; that is a live check
+ * (`pg_proc.provolatile`, `pg_get_functiondef`) and the reason it fails loudly
+ * rather than guessing.
+ */
+test("every RPC the admin surface calls is classified read or write", () => {
+  const names = adminRpcNames();
+  expect(names.length, "no RPC call sites found under src/components/admin — the scanner is broken").toBeGreaterThan(5);
+  const unclassified = names.filter(
+    (n) => !READ_RPC.test(`${SUPABASE_URL}/rest/v1/rpc/${n}`) && !WRITE_RPC.has(n),
+  );
+  expect(
+    unclassified,
+    `these admin RPCs are neither in READ_RPC nor WRITE_RPC:\n  ${unclassified.join("\n  ")}\n` +
+      "Check pg_proc.provolatile / pg_get_functiondef on prod, then add each to the right one. " +
+      "A read left unclassified makes its own screen render a load failure in this suite.",
+  ).toEqual([]);
+  // A name cannot be both: that would mean the firewall passes a write.
+  const both = [...WRITE_RPC].filter((n) => READ_RPC.test(`${SUPABASE_URL}/rest/v1/rpc/${n}`));
+  expect(both, "classified as a write but the read firewall passes it").toEqual([]);
 });
 
 for (const view of VIEWS) {

@@ -103,7 +103,6 @@
     "src/lib/messagingLockout.test.tsx",
     "src/lib/moneyFigures.parity.test.ts",
     "src/lib/referralEarnings.test.tsx",
-    "src/lib/storagePolicies.test.ts",
     "src/lib/tierPerks.parity.test.ts",
     "src/lib/toastPolicy.consequential.test.ts",
     "src/lib/voiceNoteLimitMatchesBucket.test.ts",

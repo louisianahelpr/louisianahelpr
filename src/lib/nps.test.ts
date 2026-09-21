@@ -15,14 +15,25 @@ function nextResult(): Result {
   return queue.shift() ?? { data: [], error: null };
 }
 
+// Every row handed to `.insert(...)`, in order. The mock used to throw the
+// payload away, which made the three submitNps cases assert nothing but the
+// table name: measured 2026-09-21, `comment: trimmed ? trimmed : null` could
+// become `comment ?? null`, `user_role: role` could be inverted and
+// `triggered_at_jobs_completed` zeroed, and all 20 tests stayed green.
+const inserts: Record<string, unknown>[] = [];
+
 // Each `.from(...)` returns a chainable thenable: every method returns
 // the same object, and awaiting it yields the next queued Result.
 function makeChain() {
   const chain: any = {};
-  const methods = ["select", "eq", "limit", "insert"];
+  const methods = ["select", "eq", "limit"];
   for (const m of methods) {
     chain[m] = vi.fn().mockReturnValue(chain);
   }
+  chain.insert = vi.fn((row: Record<string, unknown>) => {
+    inserts.push(row);
+    return chain;
+  });
   chain.then = (onFulfilled: (r: Result) => any) => Promise.resolve(nextResult()).then(onFulfilled);
   return chain;
 }
@@ -47,6 +58,7 @@ import {
 
 beforeEach(() => {
   queue.length = 0;
+  inserts.length = 0;
   fromMock.mockClear();
   clearNpsLocalCooldownForTests();
 });
@@ -190,14 +202,33 @@ describe("submitNps", () => {
     enqueue({ data: null, error: null });
     await submitNps({ userId: "u1", score: 9, comment: "  great  ", role: "customer", jobsCompleted: 2 });
     expect(fromMock).toHaveBeenCalledWith("nps_responses");
+    // The PAYLOAD, not just the table. `user_role` and
+    // `triggered_at_jobs_completed` are the only two columns that make a score
+    // segmentable — a row that reaches the table under the wrong role is a
+    // silently wrong dashboard, not a missing one.
+    expect(inserts).toEqual([
+      {
+        user_id: "u1",
+        score: 9,
+        comment: "great",
+        user_role: "customer",
+        triggered_at_jobs_completed: 2,
+      },
+    ]);
   });
 
   it("nulls a blank/whitespace-only comment", async () => {
     enqueue({ data: null, error: null });
     await submitNps({ userId: "u1", score: 10, comment: "   ", role: "helper", jobsCompleted: 2 });
-    // The chain's `insert` is what actually receives the payload, but the
-    // mock just resolves — the meaningful coverage is "no throw".
-    expect(fromMock).toHaveBeenCalledWith("nps_responses");
+    // A whitespace-only comment must land as NULL, not as "   ": every NPS
+    // read-out counts commented responses, and a blank string counts as one.
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0]).toMatchObject({
+      comment: null,
+      user_role: "helper",
+      score: 10,
+      triggered_at_jobs_completed: 2,
+    });
   });
 
   it("re-throws the supabase error so the caller can toast it", async () => {
@@ -207,3 +238,12 @@ describe("submitNps", () => {
     ).rejects.toMatchObject({ code: "23505" });
   });
 });
+
+// The helper-side gate is 2 DISTINCT customers, not 2 completed jobs — one
+// repeat customer re-hiring a helper five times is the "one-off luck" case the
+// dedupe exists to exclude.
+// @mutate src/lib/nps.ts | return distinct.size; | return data.length;
+// The submitNps payload, not just the table name — see the `inserts` comment
+// above. This whole block was hollow until 2026-09-21.
+// @mutate src/lib/nps.ts | comment: trimmed ? trimmed : null, | comment: comment ?? null,
+// @mutate src/lib/nps.ts | user_role: role, | user_role: role === "helper" ? "customer" : "helper",

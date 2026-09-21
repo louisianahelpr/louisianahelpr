@@ -98,6 +98,49 @@ describe("QuickApplyHandler — the deep link opens the job sheet", () => {
     expect(handledMock).toHaveBeenCalled();
   });
 
+  it("sends the POSTER to their own post when the job is ALREADY in the feed", async () => {
+    // The same DH-001 answer as the fetched branch, on the path an owner
+    // tapping their own Share link hits most often — their job is on the
+    // loaded page, so the fetch never runs. Measured 2026-09-21: deleting this
+    // branch left every test in this file green, and the poster got the apply
+    // sheet for their own post.
+    const mine = {
+      id: JOB_ID, title: "Haul brush", budget: 80, customer_id: "helper-1",
+      status: "open", description: "", category: "yard", date_needed: null,
+      location: null, created_at: "2026-09-10T00:00:00Z",
+    } as unknown as Parameters<typeof QuickApplyHandler>[0]["allJobs"][number];
+
+    renderHandler([mine]);
+
+    await waitFor(() =>
+      expect(navigateMock).toHaveBeenCalledWith(
+        `/my-posts?highlight=${JOB_ID}`,
+        { replace: true },
+      ),
+    );
+    expect(openJobMock).not.toHaveBeenCalled();
+    expect(toastErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses a feed job that is no longer open rather than opening a sheet on it", async () => {
+    // A stale feed page can still hold a job that has since been filled. The
+    // sheet's apply form would be a dead end, so this is the one feed case
+    // that still earns a toast. Also unguarded until 2026-09-21.
+    const filled = {
+      id: JOB_ID, title: "Haul brush", budget: 80, customer_id: "poster-9",
+      status: "in_progress", description: "", category: "yard", date_needed: null,
+      location: null, created_at: "2026-09-10T00:00:00Z",
+    } as unknown as Parameters<typeof QuickApplyHandler>[0]["allJobs"][number];
+
+    renderHandler([filled]);
+
+    await waitFor(() => expect(toastErrorMock).toHaveBeenCalledTimes(1));
+    expect(String(toastErrorMock.mock.calls[0][0])).toMatch(/isn't accepting applications/i);
+    expect(openJobMock).not.toHaveBeenCalled();
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(handledMock).toHaveBeenCalled();
+  });
+
   it("fetches a job that is NOT in the feed and opens the sheet on that row", async () => {
     responses.set("open_jobs_browse", {
       data: { id: JOB_ID, title: "Move a couch", budget: 120, customer_id: "poster-9", status: "open" },
@@ -197,3 +240,12 @@ describe("QuickApplyHandler — a job the browse view cannot show", () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 });
+
+// The participant fallback is the whole reason this file exists: a job the
+// browse view cannot show, opened by the person working it. Send them to the
+// poster's surface instead and they land on a screen their job cannot appear on.
+// @mutate src/pages/dashboard/QuickApplyHandler.tsx | navigate(`/my-jobs?job=${encodeURIComponent(quickApplyId)}`, { replace: true }); | goToOwnPost(quickApplyId);
+// The feed-hit branches, which were unguarded entirely until 2026-09-21: both
+// `if (false)`-ed out with every test in this file still green.
+// @mutate src/pages/dashboard/QuickApplyHandler.tsx | if (feedJob.customer_id === userId) { | if (false) {
+// @mutate src/pages/dashboard/QuickApplyHandler.tsx | } else if (feedJob.status && feedJob.status !== "open") { | } else if (false) {

@@ -164,3 +164,7 @@ describe("class guard: every credit the ledger can hold is classified, and the p
     expect(section).toMatch(/earnedFromReferrals=\{earnings\.fromReferring\}/);
   });
 });
+
+// "To cash out" is what cash-out-credits will actually pay. Counting redeemed
+// rows into it quotes money that has already been spent.
+// @mutate src/lib/referralEarnings.ts | if (!c.redeemed) unredeemed += amt; | unredeemed += amt;

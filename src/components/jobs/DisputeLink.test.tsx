@@ -183,3 +183,8 @@ describe("<DisputeLink />", () => {
     expect(container.firstChild).toBeNull();
   });
 });
+
+// Escalation is ordered: the dispute unlocks only once the helpr's revision
+// window has actually run out. Flipping the comparison both hides it from the
+// poster who has waited and offers it to the one whose helpr is still working.
+// @mutate src/components/jobs/DisputeLink.tsx | return new Date(job.revision_deadline).getTime() <= now.getTime(); | return new Date(job.revision_deadline).getTime() >= now.getTime();

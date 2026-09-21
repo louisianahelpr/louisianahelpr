@@ -356,3 +356,8 @@ describe("HELPER_MILESTONES — copy contract", () => {
     }
   });
 });
+
+// The freshness gate is the reported bug: without it, opening the Earnings tab
+// sets off "🎉 Your first completed job" with confetti for a job finished last
+// month — and again on every new device, since the marker is device-local.
+// @mutate src/lib/helperMilestones.ts | Number.isFinite(ts) && now - ts <= MILESTONE_FRESHNESS_MS | true

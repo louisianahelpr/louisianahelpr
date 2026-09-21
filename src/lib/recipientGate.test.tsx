@@ -226,3 +226,9 @@ describe("a send refused by the receiver gate", () => {
     expect(gateCalls()).toHaveLength(0);
   });
 });
+
+// The CONTROL call is what separates "the receiver rule refused you" from
+// every other refusal (banned, replaced, thread closed, 30/hour cap). Without
+// it a rate-limited or banned sender is told "only the poster can message
+// them", and their retryable send is made permanently non-retryable.
+// @mutate src/lib/recipientGate.ts | return (await askGate(jobId, posterId)) === true; | return true;

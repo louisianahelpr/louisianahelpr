@@ -21,6 +21,14 @@ vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ profile: profileMock }),
 }));
 
+// `profiles.latitude/longitude` mean "a PRECISE DEVICE FIX, and nothing else"
+// (persistUserLocation.ts) — get_neighbor_hire_count runs a sub-mile test on
+// them. The write is the only thing accuracy gates, so it needs a spy.
+const persistMock = vi.fn();
+vi.mock("@/lib/persistUserLocation", () => ({
+  persistUserLocation: (lat: number, lng: number) => persistMock(lat, lng),
+}));
+
 // The ZIP branch goes through the real RPC wrapper; stub it at the boundary.
 const resolveParishByZipMock = vi.fn();
 vi.mock("@/lib/parishLookup", () => ({
@@ -34,6 +42,7 @@ beforeEach(() => {
   requestMock.mockReset();
   profileMock = null;
   resolveParishByZipMock.mockReset();
+  persistMock.mockReset();
   Object.defineProperty(navigator, "geolocation", {
     configurable: true,
     writable: true,
@@ -293,4 +302,75 @@ describe("useUserLocation", () => {
       await waitFor(() => expect(result.current.status).toBe("error"));
     });
   });
+  /**
+   * A SUCCESS IS KEPT; ONLY THE PROFILE WRITE IS GATED BY ACCURACY.
+   *
+   * fecdbf6e7 threw a coarse fix away and substituted a ZIP centroid — an
+   * invented origin handed to radius search, applicant proximity and
+   * get_neighbor_hire_count. So a coarse fix must still be surfaced with its
+   * real coordinates, flagged `approximate`, and must NOT reach
+   * `profiles.latitude/longitude`, whose documented contract is "a precise
+   * device fix, and nothing else" (persistUserLocation.ts) and on which
+   * get_neighbor_hire_count runs a sub-mile test.
+   */
+  describe("accuracy gates the profile write, never the position", () => {
+    const succeedWithAccuracy = (accuracy: number) => {
+      requestMock.mockImplementation(async (_kind, runNativeCall) => {
+        await runNativeCall();
+        return true;
+      });
+      Object.defineProperty(navigator, "geolocation", {
+        configurable: true,
+        writable: true,
+        value: {
+          getCurrentPosition: vi
+            .fn()
+            .mockImplementation((success: (pos: GeolocationPosition) => void) => {
+              success({
+                coords: { latitude: 30.45, longitude: -91.18, accuracy },
+              } as GeolocationPosition);
+            }),
+        },
+      });
+    };
+
+    it("persists a PRECISE fix and does not call it approximate", async () => {
+      succeedWithAccuracy(10);
+      const { useUserLocation } = await load();
+      const { result } = renderHook(() => useUserLocation(true));
+
+      await waitFor(() => expect(result.current.status).toBe("ready"));
+      if (result.current.status === "ready") {
+        expect(result.current.source).toBe("device");
+        expect(result.current.approximate).toBe(false);
+      }
+      expect(persistMock).toHaveBeenCalledWith(30.45, -91.18);
+    });
+
+    it("keeps a COARSE fix but never writes it to the precise-fix columns", async () => {
+      // 40 km — an IP-derived answer. Far past MAX_TRUSTED_FIX_ACCURACY_M.
+      succeedWithAccuracy(40_000);
+      const { useUserLocation } = await load();
+      const { result } = renderHook(() => useUserLocation(true));
+
+      // Positive assertion first: the position we received is the position we
+      // surface, unchanged — not a centroid, not an error.
+      await waitFor(() => expect(result.current.status).toBe("ready"));
+      if (result.current.status === "ready") {
+        expect(result.current.lat).toBe(30.45);
+        expect(result.current.lng).toBe(-91.18);
+        expect(result.current.source).toBe("device");
+        // ...but the surface quoting miles must be told it is rough.
+        expect(result.current.approximate).toBe(true);
+      }
+      // The whole point: a 40 km-accurate point must not become the row
+      // get_neighbor_hire_count measures sub-mile neighbours against.
+      expect(persistMock).not.toHaveBeenCalled();
+    });
+  });
 });
+
+// Only the PROFILE WRITE is gated by accuracy. `profiles.latitude/longitude`
+// mean "a precise device fix, and nothing else" — get_neighbor_hire_count runs
+// a sub-mile test on them, so a 40 km-accurate point must never land there.
+// @mutate src/hooks/useUserLocation.ts | if (precise) void persistUserLocation(lat, lng); | void persistUserLocation(lat, lng);

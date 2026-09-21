@@ -240,3 +240,8 @@ describe("useSearchParamMirror circuit breaker", () => {
     expect(vi.mocked(report)).not.toHaveBeenCalled();
   });
 });
+
+// `setSearchParams` NAVIGATES UNCONDITIONALLY, so "nothing changed" has to
+// mean "do not call it". Dropping this early return is the ~200-replaceState
+// loop that WebKit throttles and then throws on, taking the route down.
+// @mutate src/hooks/useSearchParamMirror.ts | if (!changed) return; |

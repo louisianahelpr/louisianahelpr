@@ -268,3 +268,9 @@ describe("usePullToRefresh", () => {
     addSpy.mockRestore();
   });
 });
+
+// touchend must read the REF, not the state: `pendingDistance` is written
+// synchronously on every touchmove while `pullDistance` only catches up on the
+// next animation frame, so a flick-and-release would see 0 and silently refuse
+// to refresh.
+// @mutate src/hooks/usePullToRefresh.ts | if (pendingDistance.current >= threshold) { | if (pullDistance >= threshold) {

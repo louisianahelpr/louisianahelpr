@@ -294,3 +294,8 @@ describe("queryKeys", () => {
     });
   });
 });
+
+// Per-user keys exist so one account's cache cannot be served to the next on a
+// shared device — the IDB persister keeps successful queries for 24h, so a
+// key that drops its userId rehydrates the PRIOR user's job history.
+// @mutate src/lib/queryKeys.ts | ["job-history", userId] as const | ["job-history"] as const

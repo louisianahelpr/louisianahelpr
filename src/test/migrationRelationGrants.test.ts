@@ -18,6 +18,12 @@ import { CUTOFF, violationsFor } from "../../scripts/check-migration-relation-gr
  * CREATE newer than the cut-off.
  */
 
+// SOURCE-TEXT PIN, NOT LIVE STATE: this reads migration files, never
+// pg_class/information_schema.role_table_grants, so a privilege granted on prod
+// outside a migration (dashboard, psql, a default privilege) is invisible to it.
+// @mutate scripts/check-migration-relation-grants.mjs | if (c === "-" && n === "-") { | if (false) {
+// @mutate scripts/check-migration-relation-grants.mjs | if (!grant.test(after)) { | if (false) {
+// @mutate scripts/check-migration-relation-grants.mjs | if (!rls.test(after)) out.push | if (false) out.push
 const SCRIPT = resolve(__dirname, "../../scripts/check-migration-relation-grants.mjs");
 const REPO = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(REPO, "supabase/migrations");

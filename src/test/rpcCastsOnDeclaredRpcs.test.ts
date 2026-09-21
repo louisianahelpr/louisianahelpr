@@ -139,15 +139,19 @@ export function findOffenders(files: string[], known: Set<string>): Offender[] {
 
 describe("supabase.rpc casts on RPCs types.ts already declares", () => {
   const known = generatedRpcNames();
+  const FILES = walkSource([resolve(ROOT, "src")]);
 
-  it("reads the generated Functions block", () => {
+  it("reads the generated Functions block, and a non-empty source tree", () => {
     expect(known.size).toBeGreaterThan(100);
     expect(known.has("apply_to_job")).toBe(true);
     expect(known.has("block_user_and_settle")).toBe(true);
+    // Floor the scan too: a walker that returned nothing would make the
+    // "has none" assertion below pass by describing nothing.
+    expect(FILES.length).toBeGreaterThan(1000);
   });
 
   it("has none, except a parameter documented `// nullable-arg:`", () => {
-    const offenders = findOffenders(walkSource([resolve(ROOT, "src")]), known);
+    const offenders = findOffenders(FILES, known);
     expect(
       offenders.map((o) => `${o.file}:${o.line} — ${o.rpc}: ${o.snippet}`),
       "types.ts declares these RPCs; the cast suppresses their argument and return checking. " +
@@ -168,3 +172,9 @@ describe("supabase.rpc casts on RPCs types.ts already declares", () => {
     ]);
   });
 });
+
+// A cast re-added to an RPC types.ts already declares must be seen. The
+// inventory is DERIVED from two independent sources — the generated Functions
+// block and a walk of src/ — so neither side is its own oracle. It is a
+// SOURCE-TEXT scan: it reads types.ts, never prod's pg_proc.
+// @mutate src/components/JobTracking.tsx | await supabase.rpc("mark_helper_arrival", { | await supabase.rpc("mark_helper_arrival" as never, {

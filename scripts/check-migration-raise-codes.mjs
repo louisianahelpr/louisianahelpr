@@ -31,8 +31,48 @@ export const ALLOWLIST_PATH = path.join(ROOT, "scripts/migration-raise-codes-all
 /** History before this is settled; the rule applies to migrations from here on. */
 export const ENFORCED_FROM = "20260915034822";
 
+/**
+ * Blank out SQL `--` line comments, leaving `--` inside single-quoted literals
+ * alone and preserving every other character (so offsets and line numbers hold).
+ *
+ * WITHOUT THIS THE WHOLE CHECK IS SATISFIABLE BY A COMMENT. Measured
+ * 2026-09-20 on 20260919195158: replacing the live
+ * `RAISE EXCEPTION 'job_not_found' …` in enforce_job_tracking_arrival_gate with
+ * `NULL; -- RAISE EXCEPTION 'job_not_found' …` deleted the guard and left this
+ * check GREEN (5 passed) — both `raiseCodes` and the `body.includes('<code>')`
+ * fallback read the dead comment as the live guard.
+ */
+export function stripSqlComments(sql) {
+  let out = "";
+  let inString = false;
+  for (let i = 0; i < sql.length; i += 1) {
+    const ch = sql[i];
+    if (inString) {
+      out += ch;
+      if (ch === "'") {
+        if (sql[i + 1] === "'") out += sql[++i]; // '' is an escaped quote, still inside
+        else inString = false;
+      }
+      continue;
+    }
+    if (ch === "'") { inString = true; out += ch; continue; }
+    if (ch === "-" && sql[i + 1] === "-") {
+      // Blank the comment rather than delete it, so byte offsets and line
+      // numbers still line up with the original file.
+      while (i < sql.length && sql[i] !== "\n") { out += sql[i] === "\t" ? "\t" : " "; i += 1; }
+      out += "\n";
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
 /** Every function definition in one migration's SQL: { name, body }. */
-export function functionDefinitions(sql) {
+export function functionDefinitions(rawSql) {
+  // Comments are blanked (not deleted) first, so a commented-out RAISE cannot
+  // stand in for the live one and every offset below still matches the file.
+  const sql = stripSqlComments(rawSql);
   const out = [];
   const re = /create\s+or\s+replace\s+function\s+((?:"?[a-z_][a-z0-9_]*"?\.)?"?[a-z_][a-z0-9_]*"?)\s*\(/gi;
   let m;

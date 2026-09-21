@@ -51,7 +51,26 @@ describe("migrations keep the guards of the functions they redefine", () => {
     for (const a of check.loadAllowlist()) expect(String(a.reason ?? "").length).toBeGreaterThan(10);
   });
 
+  it("a commented-out RAISE does not stand in for the live one", () => {
+    // The hollow shape this guard had until 2026-09-20: measured on
+    // 20260919195158, replacing the live `RAISE EXCEPTION 'job_not_found'` with
+    // `NULL; -- RAISE EXCEPTION 'job_not_found' …` deleted the guard and left
+    // all 5 tests here GREEN. Comments are blanked before anything is read.
+    const files: Record<string, string> = {
+      "20260915000000_a.sql": "CREATE OR REPLACE FUNCTION public.k() RETURNS void LANGUAGE plpgsql AS $f$ BEGIN RAISE EXCEPTION 'live_guard'; END $f$;",
+      "20260915040000_b.sql": "CREATE OR REPLACE FUNCTION public.k() RETURNS void LANGUAGE plpgsql AS $f$ BEGIN\n  NULL; -- RAISE EXCEPTION 'live_guard';\nEND $f$;",
+    };
+    expect(
+      check.droppedCodes({ files: Object.keys(files), readFile: (f: string) => files[f], allowlist: [] }),
+    ).toEqual([expect.objectContaining({ function: "public.k", code: "live_guard" })]);
+    // …and a `--` inside a quoted literal is not a comment.
+    expect([...check.raiseCodes(check.stripSqlComments("RAISE EXCEPTION 'a_b' USING HINT = 'x -- y';"))]).toEqual(["a_b"]);
+  });
+
   it("the live migrations drop no guard", () => {
     expect(check.droppedCodes()).toEqual([]);
   });
 });
+
+// Deleting a live guard from the newest definition of a function must be seen.
+// @mutate supabase/migrations/20260919195158_before_photo_gates_working_step.sql | RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002'; | NULL; -- RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';

@@ -236,3 +236,11 @@ describe("the checks can fail (the original bug, pinned)", () => {
     expect(raisedCodes("RAISE EXCEPTION 'job not found';")).toEqual([]);
   });
 });
+
+// Deleting the copy for a code a client-called RPC really raises must be seen.
+// Both sides are DERIVED — call sites from the TypeScript AST of src/, codes
+// from the newest migration definition of each RPC and everything it calls —
+// and both are floored above (calls > 50, inventory > 15), so an inventory that
+// went blind fails loudly instead of passing on an empty set.
+// SOURCE-TEXT ONLY: the migrations are the oracle, never prod's pg_get_functiondef.
+// @mutate src/lib/lifecycleErrors.ts | job_already_completed: "This job was just marked complete, so it can't be cancelled.",\n | 

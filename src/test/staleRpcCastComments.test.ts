@@ -110,15 +110,18 @@ function findOffenders(files: string[], known: Set<string>): Offender[] {
 
 describe("stale `drop the cast once types are regenerated` comments", () => {
   const known = generatedRpcNames();
+  const FILES = walkSource([resolve(ROOT, "src")]);
 
-  it("reads the generated Functions block", () => {
-    // If this ever went empty the guard would pass by describing nothing.
+  it("reads the generated Functions block, and a non-empty source tree", () => {
+    // If either of these ever went empty the guard would pass by describing
+    // nothing — the names it matches against, or the files it matches in.
     expect(known.size).toBeGreaterThan(100);
     expect(known.has("record_profile_view")).toBe(true);
+    expect(FILES.length).toBeGreaterThan(1000);
   });
 
   it("has no cast still excused by staleness for an RPC types.ts now declares", () => {
-    const offenders = findOffenders(walkSource([resolve(ROOT, "src")]), known);
+    const offenders = findOffenders(FILES, known);
     expect(
       offenders.map((o) => `${o.file}:${o.line} — ${o.rpc} is in types.ts now: ${o.comment}`),
       "types.ts declares these RPCs, so the cast beside each comment is pure lost type coverage",
@@ -138,3 +141,10 @@ describe("stale `drop the cast once types are regenerated` comments", () => {
     ]);
   });
 });
+
+// Widening the ONE nullable argument back to a cast over the whole call, with
+// the stale-types excuse beside it — the exact regression this file's comment
+// in threadMutes.ts describes ("Casting the whole call back to `any`, as this
+// did, threw away the name and return check too"). SOURCE-TEXT ONLY: types.ts
+// is the oracle, never prod's pg_proc.
+// @mutate src/lib/threadMutes.ts | // whole call back to `any`, as this did, threw away the name and return\n  // check too.\n  const { data, error } = await supabase.rpc("set_thread_snooze", {\n    _job_id: jobId,\n    _other_user_id: otherUserId,\n    _until: untilIso as string, | // drop the cast once types.ts is regenerated.\n  const { data, error } = await (supabase.rpc as any)("set_thread_snooze", {\n    _job_id: jobId,\n    _other_user_id: otherUserId,\n    _until: untilIso,

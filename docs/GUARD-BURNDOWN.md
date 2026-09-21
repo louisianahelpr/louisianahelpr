@@ -38,9 +38,15 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 |---|---|---|---|
 | **`src/test/*.test.ts*`** | 197 | **197 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
-| Playwright `e2e/**` | 60 | 19 | 41 |
-| colocated beside components | 336 | 133 | 203 |
-| **total** | **646** | **402** | **244** |
+| Playwright `e2e/**` | 59 | 22 | 37 |
+| colocated beside components | 336 | 141 | 195 |
+| **total** | **645** | **413** | **232** |
+
+*Denominator dropped 646 → 645 on 2026-09-21: `zz-senior-probe.spec.ts` is 542
+lines and 8 tests with exactly ONE `expect()` — and that one only checks it
+visited every route. It declares itself scaffolding, and a scaffold in the
+denominator makes the safety net look bigger than it is. Kept as a measurement
+harness, excluded from the count by an explicit `@scratch-probe` marker.*
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 

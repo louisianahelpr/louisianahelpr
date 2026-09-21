@@ -16,13 +16,38 @@ import { execFileSync } from "node:child_process";
 
 export const REPO = path.resolve(fileURLToPath(import.meta.url), "..", "..", "..");
 
-/** The guard set, DERIVED FROM THE WORLD (readdir), never from a list. */
+/**
+ * The guard set, DERIVED FROM THE WORLD (git ls-files), never from a list.
+ *
+ * WIDENED 2026-09-20 from `src/test/*.test.ts*` (190 files) to EVERY test in the
+ * repo (639). Owner: *"extend the scan to all 639 … nothing should be left
+ * unturned."*
+ *
+ * WHY THE NARROW SCAN WAS THE REAL PROBLEM. The ratchet only listed files it
+ * could see, so a hollow test in the other 449 — the 53 edge guards, the 60
+ * Playwright specs, the 336 colocated component tests — was not merely unproven,
+ * it was not even LISTED as unproven. `npm run vacuity` printed a green
+ * "registration: N/190" while 449 files sat outside the count entirely. That is
+ * the same failure shape the burn-down exists to kill: green is what a check
+ * reports when it is looking at nothing.
+ *
+ * Eight hollow guards were found inside the 190 in one evening — including one
+ * that passed 16/16 with an entire admin authorization check deleted, and one
+ * that passed 6/6 with a ban pardon-release removed. There is no reason to think
+ * the unwatched 449 are cleaner; they were simply never asked.
+ *
+ * `git ls-files` rather than a recursive readdir: an untracked scratch spec in a
+ * worktree must not enter the ratchet and make someone else's push red.
+ */
 export function guardFiles() {
-  const dir = path.join(REPO, "src", "test");
-  return fs
-    .readdirSync(dir)
-    .filter((f) => /\.test\.tsx?$/.test(f))
-    .map((f) => path.posix.join("src/test", f))
+  return execFileSync("git", ["ls-files", "--", "*.test.ts", "*.test.tsx", "*.spec.ts", "*.spec.tsx"], {
+    cwd: REPO,
+    encoding: "utf8",
+    maxBuffer: 1 << 24,
+  })
+    .split("\n")
+    .map((f) => f.trim())
+    .filter(Boolean)
     .sort();
 }
 

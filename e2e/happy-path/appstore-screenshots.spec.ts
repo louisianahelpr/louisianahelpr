@@ -139,6 +139,39 @@ for (const device of DEVICES) {
         expect(text.trim().length, `${shot.slug} rendered almost nothing`).toBeGreaterThan(80);
         expect(text, `${shot.slug} is a login screen`).not.toMatch(/Forgot Password\?/i);
 
+        // POPULATED, not merely NON-EMPTY — and this is the assertion that was
+        // missing.
+        //
+        // The two checks above were the spec's ONLY content assertions, and the
+        // dashboard's EMPTY state clears both: "0 jobs · Nothing today" plus the
+        // nav, filter chips and header runs far past 80 characters, and it is
+        // obviously not a login form. So when the four hardcoded `date_needed`
+        // literals expired and `useDashboardFilters.ts` began dropping every job
+        // as past-dated, this spec kept PASSING on a feed with nothing in it —
+        // for six days — which is exactly the "app doing nothing" screenshot
+        // Apple rejected v1.0 for under 2.3.3. Making the dates relative
+        // (`DATE(n)`) stopped the feed from emptying; it gave the spec no way to
+        // NOTICE if it empties again. This does.
+        //
+        // `shot.wait` was declared per-shot for precisely this job and then read
+        // by nothing — dead data shaped like a guard. It is read now.
+        if (shot.wait) {
+          await expect(
+            page.getByText(shot.wait, { exact: false }).first(),
+            `${shot.slug} never rendered its required content (${JSON.stringify(shot.wait)})`,
+          ).toBeVisible({ timeout: 10_000 });
+        }
+        if (shot.url === "/dashboard") {
+          const shown = FEED_JOBS.filter((j) => text.includes(j.title));
+          expect(
+            shown.length,
+            `${shot.slug} captured an EMPTY FEED: none of the ${FEED_JOBS.length} seeded job ` +
+              `titles rendered. A product-page screenshot of the empty state IS the 2.3.3 ` +
+              `rejection, not a picture of the app. Check every FEED_JOBS date_needed is ` +
+              `still in the future — DATE(n), never a literal.`,
+          ).toBeGreaterThan(0);
+        }
+
         await page.screenshot({
           path: `e2e-artifacts/appstore/${device.key}/${shot.slug}.png`,
           fullPage: false,

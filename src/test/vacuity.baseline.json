@@ -12,10 +12,8 @@
   "generated": "2026-09-19",
   "unregistered": [
     "e2e/a11y-prod/a11y-prod.spec.ts",
-    "e2e/a11y.spec.ts",
     "e2e/auth.spec.ts",
     "e2e/happy-path/appstore-screenshots.spec.ts",
-    "e2e/happy-path/customer-post-job.spec.ts",
     "e2e/happy-path/device-pass-measure.spec.ts",
     "e2e/happy-path/empty-state-sweep.spec.ts",
     "e2e/happy-path/error-state-sweep.spec.ts",

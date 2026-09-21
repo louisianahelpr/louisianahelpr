@@ -68,3 +68,9 @@ test.describe("a11y — public forms", () => {
     ).toEqual([]);
   });
 });
+
+// The show/hide-password toggle is an icon-only button: its `aria-label` is the
+// ONLY thing giving it an accessible name, so removing it is a critical
+// axe `button-name` violation on /signup — the exact class this sweep claims to
+// catch. (/post-job redirects anonymous visitors to the same auth surface.)
+// @mutate src/pages/signup/SignupStep1.tsx | aria-label={showPassword ? "Hide password" : "Show password"} |

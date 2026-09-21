@@ -59,15 +59,26 @@ scanner, counting only non-whitespace code characters:
 bytes removed, which conflates a long header comment with damage. 208 is the
 number of files where code actually disappears; corrected 2026-09-21.)*
 
-**SQL is NOT yet measured.** Two of the 49 strip SQL comments (`--` plus block),
-and a naive `--` regex has the same string-blindness. But a correct SQL scanner
-must decide what a `$tag$…$tag$` function body is: treating it as an opaque
-string (so comments inside it survive) gives a different answer from treating it
-as SQL (so they are stripped) — and for a guard the second is what you want. A
-first attempt compared the two definitions and produced a number that looked
-alarming and meant nothing. `blankNonCode.ts` handles JS/TS only; a SQL variant
-that recurses into dollar-quoted bodies is needed before any claim is made about
-the 740 migrations.
+**SQL turned out to be almost clean — measured, then retracted.** Two of the 49
+strip SQL comments, and a naive `--` regex has the same string-blindness in
+principle. A first measurement said *341 of 740 migrations lose real SQL*, which
+was wrong: it compared two different definitions of what a `$tag$…$tag$`
+function body is. Treating the body as an opaque string keeps the `--` comments
+inside it; treating it as SQL strips them, which is what a guard wants. The gap
+between those two definitions was the entire "finding".
+
+`blankSqlComments` (in `blankNonCode.ts`) now does it properly — `--` to EOL,
+NESTING block comments, `''` escaping, and it RECURSES into dollar-quoted
+bodies. Compared like with like:
+
+| | |
+|---|---|
+| migrations that lose real SQL to the naive chain | **8 of 740** |
+| worst case | 6% — 47 chars, `sec_revoke_anon_mutation_rpcs.sql` |
+
+So the SQL strippers are fine in practice and the two SQL guards are not
+suspect on this count. Recorded because a retracted number is worth as much as
+a confirmed one, and because the scanner now exists for the next SQL guard.
 
 A guard scanning a file it has silently emptied finds nothing and reports green,
 which is indistinguishable from the code being correct.

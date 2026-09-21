@@ -105,3 +105,87 @@ function scan(src: string, blankStrings: boolean): string {
   }
   return out.join("");
 }
+
+/**
+ * SQL comments blanked, string bodies preserved. The SQL twin of
+ * `blankComments`.
+ *
+ * SQL needs its own scanner, not a `--` added to the JS one:
+ *
+ *   - Line comments are `--`, not `//`. A naive `/--[^\n]*!/g` deletes the rest
+ *     of the line from any `--` inside a string literal.
+ *   - String literals escape a quote by DOUBLING it (`'it''s'`), not with a
+ *     backslash. A scanner that skips `\'` walks off the end of the literal and
+ *     treats the following SQL as string.
+ *   - Block comments NEST in Postgres: `/* a /* b *​/ c *​/` is one comment. A
+ *     non-greedy regex stops at the first inner terminator and leaves ` c *​/`
+ *     behind as if it were code.
+ *   - `$tag$ … $tag$` dollar-quoting wraps every function body in this repo,
+ *     and a body is SQL, not opaque text: the `--` comments inside it ARE
+ *     comments and a guard wants them gone. So the scanner RECURSES into the
+ *     body rather than skipping it — which is exactly the decision that made a
+ *     first, naive measurement of migration damage meaningless.
+ *
+ * Why it matters here: migrations are where the authz and money rules live
+ * (`lock_anonymized_at`, `redact_public_payout_names`,
+ * `lock_job_row_on_apply_and_confirm`), and a guard that scans a migration it
+ * has silently emptied reports green.
+ */
+export function blankSqlComments(src: string): string {
+  const out = src.split("");
+  const n = src.length;
+  const blank = (from: number, to: number) => {
+    for (let k = from; k < to && k < n; k++) if (out[k] !== "\n") out[k] = " ";
+  };
+  let i = 0;
+  while (i < n) {
+    const c = src[i];
+    const d = src[i + 1];
+    if (c === "-" && d === "-") {
+      let j = i;
+      while (j < n && src[j] !== "\n") j++;
+      blank(i, j);
+      i = j;
+      continue;
+    }
+    if (c === "/" && d === "*") {
+      let depth = 1;
+      let j = i + 2;
+      while (j < n && depth > 0) {
+        if (src[j] === "/" && src[j + 1] === "*") { depth++; j += 2; continue; }
+        if (src[j] === "*" && src[j + 1] === "/") { depth--; j += 2; continue; }
+        j++;
+      }
+      blank(i, Math.min(j, n));
+      i = j;
+      continue;
+    }
+    if (c === "$") {
+      const tag = /^\$[A-Za-z_][\w]*\$|^\$\$/.exec(src.slice(i, i + 64))?.[0];
+      if (tag) {
+        const end = src.indexOf(tag, i + tag.length);
+        const bodyEnd = end < 0 ? n : end;
+        // The body is SQL: scan it too, so comments inside a function body are
+        // blanked like any other. The tags themselves stay.
+        const inner = blankSqlComments(src.slice(i + tag.length, bodyEnd));
+        for (let k = 0; k < inner.length; k++) out[i + tag.length + k] = inner[k];
+        i = end < 0 ? n : end + tag.length;
+        continue;
+      }
+    }
+    if (c === "'") {
+      let j = i + 1;
+      while (j < n) {
+        if (src[j] === "'") {
+          if (src[j + 1] === "'") { j += 2; continue; } // '' escape
+          break;
+        }
+        j++;
+      }
+      i = j + 1;
+      continue;
+    }
+    i++;
+  }
+  return out.join("");
+}

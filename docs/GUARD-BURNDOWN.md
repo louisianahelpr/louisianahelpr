@@ -14,10 +14,10 @@ hand-edit the numbers.*
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
 | **`src/test/*.test.ts*`** | 191 | **191 — COMPLETE** | **0** |
-| `src/test/edge/` (money) | 53 | 0 | 53 |
+| `src/test/edge/` (money) | 53 | 7 | 46 |
 | Playwright `e2e/**` | 60 | 0 | 60 |
 | colocated beside components | 333 | 3 | 333 |
-| **total** | **640** | **194** | **446** |
+| **total** | **640** | **201** | **439** |
 
 **Row 1 is done: 191 of 191, and 25 of them were hollow — one in seven.**
 

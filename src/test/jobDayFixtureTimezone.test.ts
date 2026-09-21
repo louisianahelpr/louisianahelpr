@@ -37,7 +37,7 @@
  * @mutate src/pages/activity/activityBadgeListAgreement.test.tsx | date_needed: jobLocalDateISO(6), | date_needed: new Date(Date.now() + 6 * 86_400_000).toISOString().slice(0, 10),
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 
 const ROOT = resolve(__dirname, "..", "..");
@@ -154,6 +154,40 @@ describe("a job day is Central, never UTC", () => {
      cases use exactly those. What is banned is the middle: a real date near
      the era the repo is being written in, which is future today and past
      later. */
+  /**
+   * Files whose `date_needed` literals are PURE ORDERING DATA and never meet
+   * "now". Listed here, in the guard, deliberately — not as a per-file opt-out
+   * marker, because an escape hatch a file can grant itself is how a rule
+   * quietly stops applying (the profile shell shipped a 12px defect through
+   * exactly that shape on 2026-09-20).
+   *
+   * WHY THE EXEMPTION IS REAL. A literal only ages into a bomb if something
+   * compares it to the current date. `resolveWorkDayRange` picks the min and
+   * max of a set; the stalled queue orders rows. Neither asks "is this past?",
+   * so the VALUES are arbitrary and only their relative order is asserted.
+   *
+   * This list was written after the first sweep converted them anyway and
+   * broke both files: the fixture moved with America/Chicago's clock while the
+   * expected string stayed frozen, so at 22:20 Pacific — already tomorrow in
+   * Chicago — every range came back one day late. The guard was right about the
+   * class and wrong about these members.
+   *
+   * To add an entry you must say which assertion proves the date never meets
+   * `now`. "It looked fine" is not a reason.
+   */
+  const ORDERING_ONLY = new Map<string, string>([
+    [
+      "src/lib/workRecordDocument.test.ts",
+      "resolveWorkDayRange returns min/max of the set; the assertions are on " +
+        "ordering and formatted month names, never on past-vs-future",
+    ],
+    [
+      "src/components/admin/adminStalledJobs/stalledQueue.test.ts",
+      "the queue's row ORDER is asserted; staleness comes from the nudge " +
+        "timestamps, not from date_needed vs today",
+    ],
+  ]);
+
   const DATE_LITERAL = /\bdate_needed\s*[:=]\s*["'`](\d{4})-(\d{2})-(\d{2})["'`]/g;
 
   /* Safe means "cannot cross now", and that is a distance from TODAY, not a
@@ -173,6 +207,7 @@ describe("a job day is Central, never UTC", () => {
   it("no job day is a hardcoded date that will age from future to past", () => {
     const offenders: string[] = [];
     for (const f of JOB_DAY_FILES) {
+      if (ORDERING_ONLY.has(f)) continue;
       for (const m of stripComments(read(f)).matchAll(DATE_LITERAL)) {
         if (!isTimeBomb(m[1], m[2], m[3])) continue;
         offenders.push(`${f}: date_needed: "${m[1]}-${m[2]}-${m[3]}"`);
@@ -185,6 +220,21 @@ describe("a job day is Central, never UTC", () => {
         "literal more than a year past / more than five years out when the test needs a " +
         "fixed side of now:\n  " + offenders.join("\n  "),
     ).toEqual([]);
+  });
+
+  it("every ordering-only exemption still exists and still carries date_needed", () => {
+    // An exemption for a file that is gone, renamed, or no longer carries a
+    // job day is a licence nobody is using — and the next person reads it as
+    // evidence that the rule was considered here. Make it rot loudly.
+    for (const [f, reason] of ORDERING_ONLY) {
+      expect(existsSync(resolve(ROOT, f)), `exempted file no longer exists: ${f}`).toBe(true);
+      expect(
+        stripComments(read(f)),
+        `${f} is exempted from the job-day rule but no longer carries a date_needed literal — ` +
+          `delete the exemption`,
+      ).toMatch(/\bdate_needed\s*[:=]/);
+      expect(reason.length, `${f}'s exemption has no stated reason`).toBeGreaterThan(40);
+    }
   });
 
   it("that matcher can actually fail, and does not cry wolf on the safe literals", () => {

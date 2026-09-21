@@ -9,7 +9,6 @@ import {
   buildWorkRecordSummaryLines,
   type WorkRecordDocumentInput,
 } from "./workRecordDocument";
-import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 /**
  * THE WORK RECORD IS A DATED DOCUMENT, SO ITS DATES MUST NOT MOVE.
@@ -153,8 +152,8 @@ describe("active period reads the day worked, not the day posted", () => {
     // Real shape: posted late in one month, worked early in the next — the
     // 18-of-64 case in prod.
     const range = resolveWorkDayRange([
-      { created_at: "2026-07-28T15:45:00Z", date_needed: jobLocalDateISO(-49) },
-      { created_at: "2026-08-25T02:33:09Z", date_needed: jobLocalDateISO(-19) },
+      { created_at: "2026-07-28T15:45:00Z", date_needed: "2026-08-02" },
+      { created_at: "2026-08-25T02:33:09Z", date_needed: "2026-09-01" },
     ]);
     expect(range).toEqual({ first: "2026-08-02", last: "2026-09-01" });
     // Posted-date answer would have been July 2026 - August 2026. The record
@@ -165,8 +164,8 @@ describe("active period reads the day worked, not the day posted", () => {
 
   it("orders by day worked even when that inverts the posting order", () => {
     const range = resolveWorkDayRange([
-      { created_at: "2026-03-01T12:00:00Z", date_needed: jobLocalDateISO(10) },
-      { created_at: "2026-09-01T12:00:00Z", date_needed: jobLocalDateISO(-18) },
+      { created_at: "2026-03-01T12:00:00Z", date_needed: "2026-09-30" },
+      { created_at: "2026-09-01T12:00:00Z", date_needed: "2026-09-02" },
     ]);
     expect(range).toEqual({ first: "2026-09-02", last: "2026-09-30" });
   });
@@ -187,7 +186,7 @@ describe("active period reads the day worked, not the day posted", () => {
   it("a null date_needed falls back to that row's created_at, never dropping it", () => {
     const range = resolveWorkDayRange([
       { created_at: "2026-03-10T12:00:00Z", date_needed: null },
-      { created_at: "2026-09-01T12:00:00Z", date_needed: jobLocalDateISO(-18) },
+      { created_at: "2026-09-01T12:00:00Z", date_needed: "2026-09-02" },
     ]);
     // March survives. Excluding the null row would have reported the helper as
     // starting in September — six months of real, counted, paid work erased.
@@ -204,9 +203,9 @@ describe("active period reads the day worked, not the day posted", () => {
 
   it("a single null date_needed cannot collapse the period", () => {
     const range = resolveWorkDayRange([
-      { created_at: "2026-06-05T12:00:00Z", date_needed: jobLocalDateISO(-102) },
+      { created_at: "2026-06-05T12:00:00Z", date_needed: "2026-06-10" },
       { created_at: "2026-07-05T12:00:00Z", date_needed: null },
-      { created_at: "2026-08-05T12:00:00Z", date_needed: jobLocalDateISO(-37) },
+      { created_at: "2026-08-05T12:00:00Z", date_needed: "2026-08-14" },
     ]);
     expect(range).toEqual({ first: "2026-06-10", last: "2026-08-14" });
   });
@@ -214,7 +213,7 @@ describe("active period reads the day worked, not the day posted", () => {
   it("an unparseable row is skipped rather than poisoning the range", () => {
     const range = resolveWorkDayRange([
       { created_at: "not a timestamp", date_needed: null },
-      { created_at: "2026-08-05T12:00:00Z", date_needed: jobLocalDateISO(-37) },
+      { created_at: "2026-08-05T12:00:00Z", date_needed: "2026-08-14" },
     ]);
     expect(range).toEqual({ first: "2026-08-14", last: "2026-08-14" });
     expect(JSON.stringify(range)).not.toContain("Invalid");

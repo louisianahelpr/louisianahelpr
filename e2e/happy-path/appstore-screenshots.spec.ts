@@ -19,31 +19,84 @@ import { DATE } from "./seedData";
  * `DATE(n)` is days from now, and `seedData.ts` exports it with its own warning
  * about this precise trap. The offsets below preserve the original stagger.
  */
+/*
+ * `created_at` MUST BE IN THE PAST, AND BY MORE THAN 20 MINUTES.
+ *
+ * These four carried `created_at: new Date().toISOString()` — i.e. zero
+ * seconds old — and that emptied the feed just as thoroughly as the expired
+ * `date_needed` literals above, for a completely different reason.
+ *
+ * `useDashboardFilters.ts` applies the subscription "early access" perk
+ * CLIENT-SIDE, as a predicate over the rows already returned:
+ *
+ *     const jobAge = Date.now() - new Date(job.created_at).getTime();
+ *     if (jobAge < earlyAccessDelayMs(earlyAccessTier)) return false;
+ *
+ * FAKE_HELPER has no subscription tier, so `earlyAccessDelayMs` resolves to
+ * the free-tier `MAX_EARLY_ACCESS_DELAY_MINUTES` = 20 minutes
+ * (`src/lib/earlyAccess.ts`). A brand-new job is therefore invisible to this
+ * viewer for its first 20 minutes, and every one of these was 0 minutes old.
+ *
+ * This is NOT something the mock can absorb. `FEED_RULES` matches on pathname
+ * alone, so it happily ignores the server-side `.lte("created_at", cutoff)`
+ * that `useDashboardData.ts` attaches — but the filter that actually removed
+ * these rows runs in the browser, on the response body, after the mock has
+ * already answered. A mock can decide what the server says; it cannot decide
+ * what the app does with it. The fixture has to describe a world the app
+ * still has, which means jobs old enough to have cleared the perk window.
+ *
+ * `AGO(n)` is minutes ago, staggered so the `created_at desc` ordering has
+ * something real to sort and the feed reads like a live one.
+ */
+const AGO = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
+
 const FEED_JOBS = [
   { id: "aa000000-0000-4000-8000-000000000001", title: "Mow and edge a corner lot", category: "lawn_care",
     budget: 85, parish: "East Baton Rouge", location: "Baton Rouge, LA", latitude: 30.4515, longitude: -91.1871,
     date_needed: DATE(3), start_time: "09:00:00", status: "open", payment_status: "escrow",
     is_urgent: false, is_group_job: false, helpers_needed: 1, credential_tier: 0, is_seed: false,
     description: "Front and back, about a quarter acre. Bagging preferred.",
-    customer_id: "cc000000-0000-4000-8000-000000000001", created_at: new Date().toISOString() },
+    customer_id: "cc000000-0000-4000-8000-000000000001", created_at: AGO(95) },
   { id: "aa000000-0000-4000-8000-000000000002", title: "Deep clean before move-out", category: "cleaning",
     budget: 220, parish: "Orleans", location: "New Orleans, LA", latitude: 29.9511, longitude: -90.0715,
     date_needed: DATE(1), start_time: "13:00:00", status: "open", payment_status: "escrow",
     is_urgent: true, is_group_job: false, helpers_needed: 1, credential_tier: 0, is_seed: false,
     description: "Two bedroom shotgun. Kitchen, bath, floors, windows inside.",
-    customer_id: "cc000000-0000-4000-8000-000000000002", created_at: new Date().toISOString() },
+    customer_id: "cc000000-0000-4000-8000-000000000002", created_at: AGO(45) },
   { id: "aa000000-0000-4000-8000-000000000003", title: "Help unloading a moving truck", category: "moving",
     budget: 140, parish: "Lafayette", location: "Lafayette, LA", latitude: 30.2241, longitude: -92.0198,
     date_needed: DATE(5), start_time: "08:00:00", status: "open", payment_status: "escrow",
     is_urgent: false, is_group_job: true, helpers_needed: 2, credential_tier: 0, is_seed: false,
     description: "26-foot truck, second floor apartment. About three hours.",
-    customer_id: "cc000000-0000-4000-8000-000000000003", created_at: new Date().toISOString() },
+    customer_id: "cc000000-0000-4000-8000-000000000003", created_at: AGO(150) },
   { id: "aa000000-0000-4000-8000-000000000004", title: "Fix a leaking kitchen faucet", category: "handyman",
     budget: 110, parish: "Jefferson", location: "Metairie, LA", latitude: 29.9841, longitude: -90.1529,
     date_needed: DATE(2), start_time: "10:30:00", status: "open", payment_status: "escrow",
     is_urgent: false, is_group_job: false, helpers_needed: 1, credential_tier: 0, is_seed: false,
     description: "Dripping at the base. Parts already bought.",
-    customer_id: "cc000000-0000-4000-8000-000000000004", created_at: new Date().toISOString() },
+    customer_id: "cc000000-0000-4000-8000-000000000004", created_at: AGO(70) },
+  // Four was enough to satisfy the "not empty" assertion and still left the
+  // bottom 40% of a 430x932 viewport as blank canvas — a product-page shot of
+  // a feed that runs out. These fill the fold, so the screenshot shows a
+  // marketplace with work on it rather than a list that ends.
+  { id: "aa000000-0000-4000-8000-000000000005", title: "Pressure wash a driveway", category: "cleaning",
+    budget: 95, parish: "Ascension", location: "Gonzales, LA", latitude: 30.2383, longitude: -90.9201,
+    date_needed: DATE(4), start_time: "11:00:00", status: "open", payment_status: "escrow",
+    is_urgent: false, is_group_job: false, helpers_needed: 1, credential_tier: 0, is_seed: false,
+    description: "Concrete drive and front walk. Mildew on the shaded side.",
+    customer_id: "cc000000-0000-4000-8000-000000000005", created_at: AGO(115) },
+  { id: "aa000000-0000-4000-8000-000000000006", title: "Assemble a nursery crib and dresser", category: "handyman",
+    budget: 120, parish: "St. Tammany", location: "Mandeville, LA", latitude: 30.3580, longitude: -90.0653,
+    date_needed: DATE(6), start_time: "14:00:00", status: "open", payment_status: "escrow",
+    is_urgent: false, is_group_job: false, helpers_needed: 1, credential_tier: 0, is_seed: false,
+    description: "Both boxed, instructions inside. Haul the cardboard out after.",
+    customer_id: "cc000000-0000-4000-8000-000000000006", created_at: AGO(200) },
+  { id: "aa000000-0000-4000-8000-000000000007", title: "Trim two live oaks in the back yard", category: "lawn_care",
+    budget: 260, parish: "Caddo", location: "Shreveport, LA", latitude: 32.5252, longitude: -93.7502,
+    date_needed: DATE(8), start_time: "07:30:00", status: "open", payment_status: "escrow",
+    is_urgent: false, is_group_job: false, helpers_needed: 1, credential_tier: 0, is_seed: false,
+    description: "Low limbs over the shed. Bring your own pole saw.",
+    customer_id: "cc000000-0000-4000-8000-000000000007", created_at: AGO(260) },
 ];
 
 const FEED_RULES: MockRule[] = [
@@ -51,7 +104,7 @@ const FEED_RULES: MockRule[] = [
     handle: () => ({ status: 200, body: FEED_JOBS }) },
   { match: (u, m) => m === "POST" && u.pathname === "/rest/v1/rpc/get_safe_profiles",
     handle: () => ({ status: 200, body: FEED_JOBS.map((j, i) => ({
-      user_id: j.customer_id, full_name: ["Camille R.", "Tre B.", "Marie H.", "Eli T."][i],
+      user_id: j.customer_id, full_name: ["Camille R.", "Tre B.", "Marie H.", "Eli T.", "Danielle P.", "Andre S.", "Renee G."][i],
       avatar_url: null, location: j.location })) }) },
 ];
 

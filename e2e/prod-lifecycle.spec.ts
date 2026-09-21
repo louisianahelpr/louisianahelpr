@@ -867,20 +867,47 @@ test.describe("full money loop against production", () => {
        a different component then; the three commits that day made it one ask
        per tracker step, and this order stopped matching the app. Nobody saw it
        because the pre-sweep was failing first and skipping this spec. */
-    const beforePath = await uploadProofThroughTheApp(page, helper, job.id, runId, "before", proofDir);
-
-    // The tracker's own next-step CTA. Pressing it is what writes
-    // job_tracking.status = 'working', which is the state the After ask belongs
-    // to — doing it through the button rather than the table keeps this a
-    // journey rather than a fixture edit.
+    /* WALK THE TRACKER FIRST — there is no photo ask before it.
+       The arrival legs above go through `mark_helper_arrival` and a jobs PATCH,
+       which write `helper_arrival_verified_at` / `poster_confirmed_arrival_at`
+       and create NO `job_tracking` row. `ActiveJobSection` switches on the
+       TRACKER status, and its `default` arm is `<EnRouteStep />`, which mounts
+       no HelperPhotoAsk at all — so with no tracking row the card offers
+       neither photo. Verified on prod: not one of this loop's jobs has a
+       job_tracking row (newest in the table: 2026-09-15), which is why both the
+       Before and the After lookups timed out.
+       Driven through the tracker's own buttons rather than by writing
+       job_tracking, so this stays the journey a helper actually walks. Each is
+       clicked only if offered: the ladder is confirmed -> on_the_way -> arrived
+       -> working, and the API legs above may already have satisfied some of it. */
+    await page.goto("/");
+    await page.evaluate(
+      ([key, value]) => localStorage.setItem(key, value),
+      [AUTH_STORAGE_KEY, JSON.stringify(helper)] as const,
+    );
+    await page.goto(`/my-jobs?job=${job.id}`);
     const trackerCard = page.locator("div.liquid-glass").filter({ hasText: runId }).first();
-    const startWorking = trackerCard.getByRole("button", { name: /^Start Working$/ });
     await expect(
-      startWorking,
-      "the card never offered Start Working, so the tracker cannot reach the step the After photo " +
-        "ask belongs to — check the arrival legs above actually landed",
-    ).toBeVisible({ timeout: 30_000 });
-    await startWorking.click();
+      trackerCard,
+      `the helper's /my-jobs never rendered the card for run ${runId}`,
+    ).toBeVisible({ timeout: 60_000 });
+    for (const action of ["I'm On My Way", "I've Arrived", "Start Working"]) {
+      const cta = trackerCard.getByRole("button", { name: action, exact: true });
+      if (await cta.isVisible().catch(() => false)) {
+        await cta.click();
+        // The next rung only appears once the write lands and the card refetches.
+        await expect(cta, `${action} stayed on the card after it was pressed`).toBeHidden({
+          timeout: 30_000,
+        });
+      }
+    }
+    await expect(
+      trackerCard.getByRole("button", { name: "Start Working", exact: true }),
+      "the tracker never reached Working, so the After photo ask can never render — the ladder is " +
+        "Confirm This Job -> I'm On My Way -> I've Arrived -> Start Working",
+    ).toBeHidden({ timeout: 30_000 });
+
+    const beforePath = await uploadProofThroughTheApp(page, helper, job.id, runId, "before", proofDir, false);
 
     // No navigation: the card must move to the After ask by itself.
     const afterPath = await uploadProofThroughTheApp(page, helper, job.id, runId, "after", proofDir, false);

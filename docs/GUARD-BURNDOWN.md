@@ -36,11 +36,11 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| **`src/test/*.test.ts*`** | 196 | **196 — COMPLETE** | **0** |
+| **`src/test/*.test.ts*`** | 197 | **197 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
 | Playwright `e2e/**` | 60 | 19 | 41 |
-| colocated beside components | 336 | 93 | 243 |
-| **total** | **645** | **361** | **284** |
+| colocated beside components | 336 | 133 | 203 |
+| **total** | **646** | **402** | **244** |
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 
@@ -127,6 +127,40 @@ registered mutation SURVIVED — it reversed a scan direction in another file,
 which is that file's property, not this one's. Registering the WRONG mutation
 is its own quiet failure mode: the guard leaves the burn-down counted as proven
 while nothing about it was tested.
+
+## A guard is only as good as its weakest exemption
+
+The clearest single lesson of the day. `src/test/literalRegistryGuard.test.ts`
+exists to stop a hand-written copy of a database-owned set, and by its own
+count it has caught NINE real defects. It had EXEMPTED the three money parity
+tests that then shipped the Plus bug. The reason on all three rows:
+
+> "Parity test; iterates the tier ladder."
+
+That is not a justification — it is a description of the exact case where a
+hand-written list is most dangerous. A loop over the ladder silently skips the
+rung nobody added, and a per-tier guard that skips a tier reports the same
+confident green it always did. `plus` was restored 2026-09-05 and all three
+ignored it for 16 days:
+
+- `TIER_PERKS.plus.platformFeePercent` could be set to **2%** — below Elite's
+  explicitly-guarded 8% floor — with 21 tests green, including the one named
+  *"bottoms out at Elite's 8% — nothing on the ladder is cheaper"*.
+- The edge ladder's `plus` set to 7% against the UI's 9% — the same person
+  charged two different rates depending which side of the job they stand on —
+  passed 9/9.
+
+**An exemption must say why the list CANNOT drift, not what the list is for.**
+
+I nearly made it worse: I started writing a fourth guard for the class before
+noticing the class guard already existed and had waved these through. The fix
+was to delete three ledger rows, not to add a file.
+
+The same guard also had the mirror defect — it scanned RAW text, so it was
+tripped by PROSE the moment those files were fixed and each explained the fix
+by quoting the literal it used to carry. A check a comment can TRIP pushes the
+next person to delete the explanation to get green, which is how the reason for
+a rule gets lost.
 
 ## Two more product defects the burn-down surfaced
 

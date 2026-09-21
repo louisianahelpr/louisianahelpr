@@ -18,6 +18,7 @@ import {
   SUPABASE_URL,
   type Session,
 } from "./fixtures";
+import { isoDayIn, pickCalendarDay } from "../calendarPicker";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 
 /**
@@ -81,7 +82,10 @@ function slotAhead(minutesAhead: number) {
   // renders midnight as "24", which no native time field accepts, so ask for
   // hourCycle h23 explicitly rather than deriving it from the 12-hour parts.
   const hh24 = new Intl.DateTimeFormat("en-US", { timeZone: ZONE, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(t);
-  return { at: t, monthDay: `${parts.month} ${parts.day}`, hour: parts.hour, minute: parts.minute, ampm: parts.dayPeriod as "AM" | "PM", hh24 };
+  // `isoDay` is what the calendar itself is keyed by (td[data-day]); the
+  // month/day strings are for human-readable annotations only. See
+  // e2e/calendarPicker.ts for why a regex over the day label cannot be used.
+  return { at: t, isoDay: isoDayIn(t, ZONE), monthDay: `${parts.month} ${parts.day}`, hour: parts.hour, minute: parts.minute, ampm: parts.dayPeriod as "AM" | "PM", hh24 };
 }
 const SLOT = slotAhead(100);
 
@@ -237,8 +241,11 @@ test.describe.serial("marketplace chain", () => {
       // Soon, not days out: the day-of confirm opens inside 24h and the
       // tracker's actions unlock at T-2h, so J5 can walk the whole job now.
       const slot = SLOT;
-      const cell = page.getByRole("button", { name: new RegExp(slot.monthDay.replace(" ", ".*")) }).or(page.getByRole("gridcell", { name: new RegExp(slot.monthDay.replace(" ", ".*")) })).first();
-      await cell.click();
+      await pickCalendarDay(page, slot.isoDay);
+      await expect(
+        page.getByRole("button", { name: /Date Needed/ }),
+        "Date Needed still reads as empty after choosing a day",
+      ).not.toHaveText(/Select a date/);
       await pickStartTime(page, slot);
       await assertHealthy(page, "logistics");
     });

@@ -11,6 +11,7 @@
  */
 import type { APIRequestContext, BrowserContext, Page } from "@playwright/test";
 import { test as base, expect } from "@playwright/test";
+import { isoDayIn, pickCalendarDay } from "../calendarPicker";
 import {
   MARKER,
   SUPABASE_URL,
@@ -422,7 +423,10 @@ test.describe("post a job", () => {
     // hh24 is for the NATIVE <input type="time"> the desktop form renders
     // (hour12:false gives "24" at midnight, which the control rejects).
     const hh24 = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(t);
-    return { monthDay: `${parts.month} ${parts.day}`, hour: parts.hour, minute: parts.minute, ampm: parts.dayPeriod as "AM" | "PM", hh24 };
+    // `isoDay` is what the calendar itself is keyed by (td[data-day]); the
+    // month/day strings are for the human-readable annotations only. See
+    // e2e/calendarPicker.ts for why a regex over the label cannot be used.
+    return { isoDay: isoDayIn(t), monthDay: `${parts.month} ${parts.day}`, hour: parts.hour, minute: parts.minute, ampm: parts.dayPeriod as "AM" | "PM", hh24 };
   }
 
   /**
@@ -470,10 +474,13 @@ test.describe("post a job", () => {
     await page.getByRole("combobox", { name: "City" }).fill("Baton Rouge");
     await page.keyboard.press("Escape");
     await page.getByRole("textbox", { name: "ZIP code" }).fill("99999");
-    await page.getByRole("button", { name: /Date Needed/ }).click();
     const slot = slotAhead(100);
-    const day = new RegExp(slot.monthDay.replace(" ", ".*"));
-    await page.getByRole("button", { name: day }).or(page.getByRole("gridcell", { name: day })).first().click();
+    await page.getByRole("button", { name: /Date Needed/ }).click();
+    await pickCalendarDay(page, slot.isoDay);
+    await expect(
+      page.getByRole("button", { name: /Date Needed/ }),
+      "Date Needed still reads as empty after choosing a day",
+    ).not.toHaveText(/Select a date/);
     await pickStartTime(page, slot);
     await page.getByRole("textbox", { name: "Job budget in dollars" }).fill("25");
     await shoot(page, info, "post-step-logistics");

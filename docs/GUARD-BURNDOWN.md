@@ -10,11 +10,11 @@ means youre fixing it for good."*
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| `src/test/*.test.ts*` (the ratchet) | 188 | **63** | **125** |
+| `src/test/*.test.ts*` (the ratchet) | 190 | **70** | **120** |
 | `src/test/edge/` | 53 | 0 | 53 |
 | Playwright `e2e/**/*.spec.ts` | 60 | 0 | 60 |
 | colocated beside components | 336 | 0 | 336 |
-| **total** | **637** | **63** | **574** |
+| **total** | **639** | **70** | **569** |
 
 Only the first row is enforced today (`.github/workflows/vacuity.yml`, on every push
 and PR, plus a full mutation sweep nightly at 06:10 UTC). The ratchet's baseline may
@@ -25,10 +25,10 @@ there is not even listed as unproven.
 
 | bucket | count | status |
 |---|---|---|
-| MONEY | 4 | **DONE** — 129 → 125. Found two real vacuities, below. |
-| BROWSE | 5 | |
-| VISUAL | 7 | |
-| AUTHZ | 11 | |
+| MONEY | 4 | **DONE** — 129 → 125. Two real vacuities found. |
+| BROWSE | 5 | **DONE** — 125 → 120. One real vacuity found. |
+| VISUAL | 7 | running |
+| AUTHZ | 11 | 6 running, 5 queued |
 | SCHEMA | 13 | |
 | OTHER | 89 | |
 
@@ -45,6 +45,17 @@ Proving four money guards red exposed **two that were protecting nothing**:
 2. **Free urgent placement could be restored silently.** Every text pin was
    satisfiable by a comment: `OR (true) -- <original text>` passed, and dropping the
    urgent-fee floor from $5 to $0.01 passed.
+
+**BROWSE then found a third.** `seedDisputeFixture` asserted
+`src.toContain("retireStuckSeedSplits()")` — which the function's own DEFINITION
+line satisfies. Deleting the actual CALL from `apply()` makes the whole retirement
+dead code, so a fake stuck dispute stays on prod, and the guard **stayed green**
+(9 passed). It now looks for the call inside `apply()`'s body, comments stripped.
+
+A second, partial hollowness in the same bucket: `mapMarkerAccessibleName` floored
+its FILE list rather than its construct inventory, so after the Leaflet→MapKit port
+two of its three branches matched nothing and a file pinned in the floor
+contributed zero constructs. Given a construct-count floor.
 
 Also recorded: `giftCardNaming.test.ts` is a regex for a retired product name. It
 never sees an amount and **could not have caught** the same-day bug where the client

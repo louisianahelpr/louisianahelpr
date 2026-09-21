@@ -200,7 +200,18 @@ function specGateEnv(guard) {
     // Found 2026-09-21 by selfGatedSpecsAreRunnable, not by anyone reading the
     // tree: ~91 components in src/ render an overlay and none was ever audited
     // until this sweep existed.
-    "e2e/happy-path/overlay-sweep.spec.ts": { RUN_OVERLAY_SWEEP: "1" },
+    // …and SCOPED. A full overlay sweep is 66 routes at up to 40 button clicks
+    // each — measured at ~70 minutes, which is FIVE TIMES the 900s spawnSync
+    // timeout above. A timed-out run exits non-zero, and a non-zero run under
+    // mutation scores as `killed`, so registering this spec unscoped would have
+    // manufactured a green verdict out of a timeout without the guard having
+    // noticed anything. The two routes below are the ones the registered
+    // mutations act on; the assertion code path is identical at 2 routes and at
+    // 66, which is what the mutation is proving.
+    "e2e/happy-path/overlay-sweep.spec.ts": {
+      RUN_OVERLAY_SWEEP: "1",
+      OVERLAY_SWEEP_ROUTES: "/dashboard,/settings",
+    },
     "e2e/happy-path/appstore-screenshots.spec.ts": { RUN_APPSTORE_SHOTS: "1" },
   };
   return GATES[guard] ?? {};

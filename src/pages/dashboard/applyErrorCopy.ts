@@ -43,6 +43,48 @@ const EXACT: Record<string, string> = {
   // line has to cover both tiers.
   credential_tier_required:
     "You don't have the credentials this job requires. Add your license or insurance in your profile to apply.",
+
+  /*
+   * THE REST OF THE TRIGGER VOCABULARY, added 2026-09-21.
+   *
+   * `enforce_application_job_state` raises eight codes and `enforce_ban_gate`
+   * raises a ninth; only two of them were mapped. Every other one fell through
+   * to the generic "Couldn't send your application through — tap retry" — and
+   * every one of them is DETERMINISTIC, so the retry it offers re-fails
+   * identically. The file's own header warned about exactly this ("a miss is
+   * not silent-but-harmless"); the vocabulary simply grew past the map.
+   *
+   * The list was DERIVED, not recalled: read out of the live trigger bodies on
+   * prod (`pg_get_functiondef` over every non-internal trigger on
+   * `applications`), which is how it turned out to be eight missing and not the
+   * six that had been reported. `applyErrorCodeCoverage.test.ts` now derives
+   * the same inventory from the migrations and fails when a new code has no
+   * copy, so this cannot silently fall behind again.
+   *
+   * None of these offers a retry, because none of them will succeed on one.
+   * Each says what happened and, where the helper can do something, what.
+   */
+
+  // The poster deleted their account; the job row survives, anonymised.
+  job_has_no_owner: "The person who posted this job has closed their account.",
+  // Status moved off `open` — filled, cancelled, already in progress.
+  job_not_open: "This job isn't accepting applications anymore.",
+  // A direct offer to a specific Helpr is pending. It reopens if they decline
+  // or it expires, so this is the one refusal worth coming back for.
+  job_reserved_for_another_helper:
+    "This job is being held for another Helpr right now. It may open up if they pass.",
+  // The paid early-access perk. Say what it is plainly — a member sees the job
+  // first and everyone else sees it shortly. Naming the window would be a
+  // number the client cannot know.
+  job_in_early_access_window:
+    "This job is in early access for members right now. It opens to everyone shortly.",
+  job_date_has_passed: "The date for this job has already passed.",
+  job_expired: "This posting has expired.",
+  job_not_available: "This job is no longer available.",
+  // enforce_ban_gate. Deliberately vague about WHY: the reason belongs in the
+  // email and the account screen, not in a toast on a job card.
+  account_restricted:
+    "Your account can't apply to jobs right now. Check your email or your profile for details.",
 };
 
 /**

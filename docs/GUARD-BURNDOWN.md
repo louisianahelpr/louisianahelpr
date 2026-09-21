@@ -36,11 +36,18 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 
 | scope | files | proven able to fail | remaining |
 |---|---|---|---|
-| **`src/test/*.test.ts*`** | 201 | **201 — COMPLETE** | **0** |
+| **`src/test/*.test.ts*`** | 202 | **202 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
-| Playwright `e2e/**` | 59 | 27 | 32 |
-| colocated beside components | 343 | 320 | 23 |
-| **total** | **656** | **601 (92%)** | **55** |
+| **colocated beside components** | 343 | **343 — COMPLETE** | **0** |
+| Playwright `e2e/**` | 59 | 28 | 31 |
+| **total** | **657** | **626 (95%)** | **31** |
+
+Three rows of four are closed. Every non-Playwright guard in this repo has now
+been shown able to fail. The remaining 31 are e2e specs, serialised behind one
+browser lock — of which **2 are blocked on credentials that exist only as
+GitHub secrets** (`auth.spec.ts`, `two-role-lifecycle.spec.ts`): registering
+against them locally returns SURVIVED for an environment reason, which is a
+false accusation against a good spec rather than a finding.
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 

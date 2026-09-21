@@ -27,6 +27,10 @@
  *
  * Shown able to fail: restoring `&& !isTrulyEmpty` turns both empty cases red
  * ("expected the h1 to be sr-only") and leaves every other case green.
+ *
+ * Registered mutation: painting the name on desktop again (all four desktop
+ * cases red, all four phone cases still green).
+ * @mutate src/pages/Activity.tsx | titleSrOnly={isWebDesktop} | titleSrOnly={false}
  */
 import { describe, expect, it, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";

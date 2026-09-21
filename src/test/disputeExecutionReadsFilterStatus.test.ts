@@ -20,6 +20,10 @@ import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
+// Shown able to fail: delete the `.eq("status", "decided")` from the live
+// stuck-split sweep — the exact MEDIUM-2 regression — and the repo scan reds.
+// @mutate supabase/functions/auto-resolve-disputes/index.ts | .eq("status", "decided") |
+
 const FILTER_ON_EXECUTION = /\.(?:eq|neq|in|is|not|or)\(\s*["'`][^"'`]*execution_status/;
 const FILTER_ON_STATUS = /\.(?:eq|neq|in|is|not)\(\s*["'`]status["'`]/;
 

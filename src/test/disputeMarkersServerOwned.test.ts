@@ -31,6 +31,11 @@ type Write = {
   payload: { keys: Record<string, unknown[] | null>; open: boolean } | null;
 };
 
+// Shown able to fail on the LIVE inventory, not only the synthetic cases: turn
+// the one allowed client dispute write into a de-escalation and the AST-derived
+// scan reds.
+// @mutate src/components/activity/appliedJobCard/DisputedSection.tsx | dispute_status: "helper_responded" | dispute_status: "open"
+
 /** Columns no client may write, whatever the value. */
 const MARKERS = ["disputed_at", "disputed_by", "dispute_deadline", "dispute_resolved_at"] as const;
 

@@ -20,6 +20,11 @@ import { join, resolve } from "node:path";
  * another migration's acknowledgement is not an escape hatch, it is a hole.
  */
 
+// Shown able to fail: drop the exact-descriptor match and the escape hatch
+// becomes a blanket — an ack pasted from another migration opens it. Two
+// near-miss cases go red.
+// @mutate scripts/check-destructive-ddl.mjs | if (named.toLowerCase() !== descriptor.toLowerCase()) { | if (false) {
+
 const SCRIPT = resolve(__dirname, "../../scripts/check-destructive-ddl.mjs");
 const REPO = resolve(__dirname, "../..");
 

@@ -25,6 +25,11 @@ import { join, resolve } from "node:path";
  * delays, aborts or continues answers nothing itself.
  */
 
+// Shown able to fail in the direction that matters — a NEW mock, not a shrunk
+// baseline: add a `route(**/rest/v1/…)` + `fulfill` to a prod-driving journey
+// and both the added-mock test and the debt count go red.
+// @mutate e2e/journeys/01-browse.spec.ts | const rotation = rotationFor(0); | const rotation = rotationFor(0);\ntest.beforeEach(async ({ page }) => { await page.route("**/rest/v1/jobs*", (r) => r.fulfill({ body: "[]" })); });
+
 const REPO = resolve(__dirname, "../..");
 const E2E = join(REPO, "e2e");
 

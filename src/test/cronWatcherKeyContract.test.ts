@@ -100,6 +100,11 @@ function emitsKeyAsBoolean(src: string, key: string): boolean {
   return new RegExp(`(^|[^\\w.])${k}\\s*:\\s*(true|false)\\s*[,}\\n]`, "m").test(src);
 }
 
+// Shown able to fail: emitting a contract key as a boolean is the shape that
+// nearly shipped on 2026-09-03 (`skipped: true`), and it takes down
+// silent-failure detection for EVERY cron, not just this one.
+// @mutate supabase/functions/marketing-publish/index.ts | skipped: 0, | skipped: true,
+
 const expectations = registeredExpectations();
 
 describe("cron watcher key contract", () => {

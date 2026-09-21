@@ -26,6 +26,10 @@ import * as guard from "../../scripts/check-discarded-query-filters.mjs";
  * app has shipped that five times; JobTracking.tsx:699 was the sixth.
  */
 
+// Shown able to fail on DETECTION, not on the walk: drop `in` from the builder
+// method set and the original AdminAnalytics money defect stops being seen.
+// @mutate scripts/check-discarded-query-filters.mjs | "eq", "neq", "in", "is", "gt", "gte", "lt", "lte", | "eq", "neq", "is", "gt", "gte", "lt", "lte",
+
 const FIXTURES = resolve(__dirname, "fixtures/discardedQueryFilters");
 const REPO = resolve(__dirname, "../..");
 

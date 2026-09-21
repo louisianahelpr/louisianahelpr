@@ -128,8 +128,10 @@ another lane is editing right now. `aria-hidden` does not exempt them — the ga
 measures composited contrast.
 
 ### Still open from #1595 / #1582
-- "Daily match digest" switch does not survive a reload (`03-account.spec.ts:251`).
-- The post flow's `Hour` listbox never offers `5` (`02-marketplace.spec.ts:202`); time-of-day dependent.
+- ~~"Daily match digest" switch does not survive a reload (`03-account.spec.ts:251`).~~ Stale spec, fixed `5517880d6` — it reloaded before the upsert reached PostgREST on the `slow` rotation row.
+- ~~The post flow's `Hour` listbox never offers `5` (`02-marketplace.spec.ts:202`).~~ Stale spec, fixed `5517880d6` (+ `9d2c5d4f4` for the calendar cell) — the desktop fork renders a native `<input type=time>`, not the wheels.
+- **`01-browse.spec.ts:52` / `:92` — `guest Browse listed no jobs` (2026-09-21).** Prod genuinely had ZERO browsable jobs on 2026-09-18: `open_jobs_browse` admits a row only at `payment_status IN ('escrow','payout_pending','released')` and prod held 115 `open` rows all at `abandoned`. App and view correct. **The real gap — nothing alarmed:** `scripts/uptime-check.mjs` probed that exact path every 10 min and passed on the status code alone, so `[]` read as up. Fixed `0a5e77de5` (reads the body; zero rows is DOWN), proven red against prod. **Still open:** `01-browse` owns no fixture, so it reds again the next time the funded floor drains — the honest fix is a funded job the journey creates and unwinds itself. Live now: 8 browsable rows. NOT the same defect as `browse-feed-completeness.spec.ts:56` (that one is a mocked-Supabase spec whose API response is a hard-coded 9-job constant — its rows are returned and the *client* drops them; #1595's real API returned nothing).
+- **Verification owed:** one clean `e2e-journeys` dispatch on main (pass = 0 failed in both `journeys` and `journeys-webkit`; the issue closes itself). Run `35562635341` was cancelled while *pending* by the `prod-load` concurrency group — zero jobs started. A `cancelled` prod-load run is never a result.
 - "Not Now" on the push rationale still toasts an error when permission was **already** denied. `requestPush()` returns a bare boolean, so it cannot tell a user's decline from an OS denial (`src/lib/pushPermissionNudge.ts:148`) — fix the signal, not the predicate.
 
 ### Landed in this pass — e7e7b4b0d

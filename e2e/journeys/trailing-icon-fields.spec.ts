@@ -142,3 +142,12 @@ test(incompleteTitle, async ({ browser, journey }) => {
   });
   await ctx.close();
 });
+
+// The whole class is the relationship between the field's trailing padding and
+// what the ✓ actually covers (right-3 + w-4 = 28px). `pr-8` (32px) clears the
+// icon by 4px; `pr-16` (64px) clears it by 36px, which is the "padded past the
+// icon — starves the field" leg — the exact shape that left 29px for five ZIP
+// digits at ≤430. Last name is the field the guest leg always renders a ✓ on
+// ("Thibodeaux-Broussard" is valid the moment it is typed), so the mutation is
+// reachable without depending on a parish lookup for the ZIP.
+// @mutate src/pages/signup/SignupStep2.tsx | lastNameValid && !fieldErrors.lastName ? " pr-8" : "" | lastNameValid && !fieldErrors.lastName ? " pr-16" : ""

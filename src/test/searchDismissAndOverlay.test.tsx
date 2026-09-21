@@ -108,12 +108,17 @@ vi.mock("@/lib/haptics", () => ({
 import { ActivityHeader } from "@/pages/activity/ActivityHeader";
 import { ConversationList } from "@/components/messages/ConversationList";
 import type { Conversation } from "@/components/messages/types";
+import { blankComments } from "./helpers/blankNonCode";
 
 const SRC = path.resolve(__dirname, "..");
 
 /** Comments are not behaviour. Every source read below goes through this. */
 function stripComments(src: string): string {
-  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+  // Was two deleting regexes; the `[^:]` was a partial patch for `https://`
+  // eating its line, applied to only one of the two ways this goes wrong. The
+  // block-comment half had the same string-blindness and no patch at all.
+  // blankComments is string-aware and blanks in place. (2026-09-21)
+  return blankComments(src);
 }
 
 function walk(dir: string, out: string[] = []): string[] {

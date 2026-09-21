@@ -10,6 +10,7 @@ import {
 import { REVIEW_SLA } from "@/lib/reviewSla";
 import { URGENT_FEE_FLOOR_DOLLARS, URGENT_FEE_PRESETS } from "@/lib/moneyLimits";
 import { BOOST_DURATION_HOURS } from "@/lib/productPrices";
+import { blankSqlComments } from "./helpers/blankNonCode";
 
 /**
  * CONSEQUENCE COPY ↔ BACKEND PARITY — the general case.
@@ -90,8 +91,15 @@ const stripComments = (t: string) =>
  * A file's description of itself is the one thing that cannot go stale in step
  * with the file.
  */
-const sqlBody = (sql: string) =>
-  sql.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+// Was two deleting regexes. SQL is the harder case: `--` inside a string
+// literal ate the rest of its line, Postgres block comments NEST (a non-greedy
+// regex stops at the first inner terminator and leaves the tail as code), a
+// quote is escaped by DOUBLING it rather than with a backslash, and every
+// function body here is wrapped in `$tag$ … $tag$` — which must be recursed
+// into, since a body is SQL and its `--` lines really are comments. Deleting
+// also shifted every later offset. blankSqlComments does all of that and
+// blanks in place. (2026-09-21)
+const sqlBody = (sql: string) => blankSqlComments(sql);
 
 // ===========================================================================
 // 1 — NO_SHOW_LADDER_SENTENCE ↔ report_helper_no_show (SQL)

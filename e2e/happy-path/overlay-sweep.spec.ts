@@ -33,8 +33,9 @@
 // reuseExistingServer: !CI, so a stale preview server is reused and you will
 // silently measure an old dist/.
 
-import { writeFileSync, mkdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import {
@@ -45,7 +46,7 @@ import {
   mockTable,
   seedAuthedSession,
 } from "./fixtures";
-import { ADMIN_VIEWS } from "./auditRoutes";
+import { ADMIN_VIEWS, catalogLandingFor } from "./auditRoutes";
 import { detectButtonGeometry } from "./buttonGeometry";
 
 const OUTPUT_DIR = "/tmp/ui-review";
@@ -61,6 +62,136 @@ interface OverlayFinding {
 
 const findings: OverlayFinding[] = [];
 const probed: string[] = [];
+/** requested route -> the path the router actually landed on. */
+const landings: Record<string, string> = {};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ASSERTING, not reporting.
+//
+// Until 2026-09-21 this file had 66 route probes and exactly ONE assertion:
+// `expect(probed.length).toBeGreaterThan(0)`. Every check below — missing
+// accessible name, focus not trapped, Escape not closing, background not
+// scroll-locked, sub-9px text, sub-43.5px tap targets, sibling mismatch, and a
+// scoped axe run at wcag2aa — could fire on all 66 routes and the run still
+// exited 0, because `findings` had no consumer but a writeFileSync to /tmp.
+// It is wired into ui-sweep.yml (weekly, Friday), so it had been green-on-blind
+// rather than dormant, across the only audit that exists of ~91 overlays.
+//
+// The two mechanisms that make it a guard:
+//
+//   1. FINDINGS RATCHET. Today's findings are checked in as a baseline keyed by
+//      route + overlay role + rule CLASS (never an array index, never a px
+//      number, never button order — all three drift run to run). A key not in
+//      the baseline fails the route that produced it. A baseline key that stops
+//      being observed also fails, with instructions to delete it: the file may
+//      only SHRINK, same direction of travel as
+//      src/test/guardsDoNotDeleteSource.test.ts.
+//
+//   2. ROUTE BOUNCE. `probeRoute` has always captured the landed URL and used
+//      it only to notice navigation DURING probing — it was never compared to
+//      the route that was REQUESTED. So an alias that forwards was probed as
+//      its destination and its overlays filed under the requesting route's
+//      name. Same hole empty-state-sweep.spec.ts had; same fix.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Shown able to fail, one mutation per mechanism. Both act on routes inside the
+// OVERLAY_SWEEP_ROUTES scope the vacuity gate sets (see scripts/vacuity/run.mjs):
+// a full 66-route sweep is ~21 minutes and runPlaywright's spawn timeout is 900s,
+// so an unscoped registration would score `killed` off the TIMEOUT rather than
+// off the guard noticing anything.
+//
+// 1. the findings ratchet — strip the notification popover's only label and
+//    `/dashboard :: dialog :: no-accessible-name` appears, which is not in the
+//    baseline.
+// @mutate src/components/NotificationPanel.tsx | aria-labelledby={titleId} | data-unlabelled="1"
+// 2. the bounce check — /settings is an alias declared as landing on /profile.
+//    Point it somewhere else and the sweep must notice it audited the wrong
+//    screen, which is the thing it could not do at all before today.
+// @mutate src/App.tsx | <Route path="/settings" element={<Navigate to="/profile" replace />} /> | <Route path="/settings" element={<Navigate to="/my-jobs" replace />} />
+
+const BASELINE_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "overlay-sweep.baseline.json");
+
+/**
+ * Collapse one issue string to a stable rule class.
+ *
+ * Everything variable is stripped: pixel measurements (sub-pixel layout moves
+ * them run to run), the button label inside a tap-target message, and the
+ * specific colour pair inside an axe detail. What remains is "this route's
+ * dialogs have no accessible name", which is the claim worth ratcheting.
+ */
+function ruleClass(issue: string): string {
+  if (issue.startsWith("no accessible name")) return "no-accessible-name";
+  if (issue.startsWith("taller than viewport")) return "taller-than-viewport-no-internal-scroll";
+  if (issue.startsWith("wider than viewport")) return "wider-than-viewport";
+  if (issue === "focus not moved into the overlay") return "focus-not-moved-into-overlay";
+  if (issue === "background not scroll-locked") return "background-not-scroll-locked";
+  if (issue.startsWith("text below")) return "text-below-9px-floor";
+  if (issue.startsWith("tap target")) return "tap-target-under-43.5px";
+  if (issue.startsWith("sibling buttons differ")) return "sibling-buttons-differ";
+  if (issue === "Escape did not close it") return "escape-did-not-close";
+  return `other: ${issue.slice(0, 48)}`;
+}
+
+/** Every stable key a finding contributes. */
+function keysFor(f: OverlayFinding): string[] {
+  const out = new Set<string>();
+  for (const i of f.issues) out.add(`${f.route} :: ${f.kind} :: ${ruleClass(i)}`);
+  for (const v of f.violations) out.add(`${f.route} :: ${f.kind} :: axe:${v.id}`);
+  return [...out];
+}
+
+interface Baseline {
+  keys: Record<string, string>;
+}
+
+function readBaseline(): Baseline {
+  if (!existsSync(BASELINE_PATH)) return { keys: {} };
+  return JSON.parse(readFileSync(BASELINE_PATH, "utf8")) as Baseline;
+}
+
+const baseline = readBaseline();
+
+/**
+ * ROUTE BOUNCE allowlist — the sweep's own fixture-dependent half. Measured
+ * 2026-09-21 by running the sweep and diffing each requested route against
+ * `landings`: EIGHT of 66 routes landed somewhere else.
+ *
+ * Six of the eight are catalog aliases and are NOT listed here — they are
+ * declared once on the catalog row (`redirectsTo` in auditRoutes.ts) and read
+ * back through `catalogLandingFor`. What that measurement showed: /settings,
+ * /schedule, /earnings, /availability, /saved-helprs and /saved-helpers all
+ * resolve into the Profile shell, so six of this sweep's 66 "routes probed"
+ * were re-probes of Profile tabs it had already probed under their own names.
+ *
+ * A NEW bounce is a failure. If ProtectedRoute, AdminRoute or a router redirect
+ * regresses, every route collapses onto one destination — and without this
+ * check the sweep would stay green while probing one screen 66 times.
+ */
+const EXPECTED_LANDING: Record<string, string> = {
+  // `/browse` is wrapped in <MarketingRedirect>, which sends a SIGNED-IN
+  // visitor into the app (owner: once someone is signed in there should be no
+  // references back to the landing site). This sweep is always signed in, so
+  // its `/browse` row has never probed the browse screen's overlays — it
+  // probed the dashboard's, a second time, under browse's name. Real redirect,
+  // real coverage gap: the browse filter sheet is audited by nobody here.
+  "/browse": "/dashboard",
+
+  // JobDetail forwards every signed-in visitor away. NOT to /dashboard, which
+  // is what auditRoutes.ts's comment and empty-state-sweep both say: with the
+  // seeded mocks the fixture customer OWNS this job, so it lands on the poster
+  // view. Both are true of their own fixture, which is why this is measured
+  // here rather than inherited from the catalog.
+  "/jobs/10000000-0000-4000-8000-000000000001": "/my-posts",
+};
+
+/**
+ * Catalog aliases (`redirectsTo` in auditRoutes.ts) are the shared half, so
+ * /settings, /earnings, /schedule, /availability, /saved-helprs and
+ * /saved-helpers are NOT repeated above. The local map holds only what depends
+ * on this sweep's own fixture and session.
+ */
+const expectedLandingFor = (path: string): string | undefined =>
+  EXPECTED_LANDING[path] ?? catalogLandingFor(path);
 
 /** Selector matching any open overlay Radix renders. */
 const OPEN_OVERLAY =
@@ -103,8 +234,14 @@ const ROUTES = [
   "/settings",
   "/schedule",
   "/profile?tab=pets",
-  "/family",
-  "/subscription",
+  // REMOVED 2026-09-21: "/family", "/subscription", "/job-history". None is a
+  // registered route — /family is behind FAMILY_ENABLED (off), and the other
+  // two had their redirect stubs deleted. All three rendered the NotFound page,
+  // found no overlays on it, and were counted as three more routes probed. That
+  // is the same over-count auditRoutes.ts removed from its own catalog on
+  // 2026-08-22/23; this list is a SECOND catalog and kept them. The 404 screen
+  // has no overlays, so nothing is lost by dropping them — and the guard in
+  // src/test/auditCatalogRoutes.test.ts now fails if this list drifts again.
   "/profile?tab=analytics",
   "/earnings",
   "/saved-helprs",
@@ -112,7 +249,6 @@ const ROUTES = [
   "/profile?tab=str_settings",
   "/profile?tab=auto_tip",
   "/profile?tab=work_record",
-  "/job-history",
   "/profile?tab=home_history",
   "/availability",
   "/jobs/10000000-0000-4000-8000-000000000001",
@@ -222,11 +358,24 @@ async function checkOpenOverlay(page: Page): Promise<{ kind: string; issues: str
 
     // 4. Background scroll lock. Without it the page behind scrolls under the
     //    overlay on touch, which reads as the app coming apart.
+    //    MODALS ONLY, and `role` is not how you tell. Radix gives
+    //    PopoverContent `role="dialog"` as well, and a Popover is NON-modal by
+    //    design: the page behind it is SUPPOSED to stay scrollable, and Radix
+    //    correctly does not lock the body for one. Keyed on role, this rule
+    //    reported the /user/:id badge popover (RecognitionRow.tsx) as a defect
+    //    for doing exactly what a popover must do — a rule that is wrong about
+    //    a whole component family is worse than no rule, because the finding it
+    //    files is indistinguishable from a real one.
+    //
+    //    `aria-modal="true"` is the discriminator: Radix sets it on a modal
+    //    Dialog/AlertDialog and not on a non-modal Popover. That is also the
+    //    exact property that makes the rule's own rationale true — the page
+    //    behind is unreachable, so it must not scroll.
     const bodyLocked =
       getComputedStyle(document.body).overflow === "hidden" ||
       getComputedStyle(document.documentElement).overflow === "hidden" ||
       document.body.hasAttribute("data-scroll-locked");
-    if ((kind === "dialog" || kind === "alertdialog") && !bodyLocked) {
+    if (el.getAttribute("aria-modal") === "true" && !bodyLocked) {
       issues.push("background not scroll-locked");
     }
 
@@ -268,6 +417,9 @@ async function probeRoute(page: Page, route: string): Promise<void> {
   await page.waitForTimeout(400);
 
   const landed = new URL(page.url()).pathname + new URL(page.url()).search;
+  // Recorded for the bounce assertion in `zz`. Everything measured below this
+  // line describes `landed`, not `route`.
+  landings[route] = landed;
 
   // Candidate triggers: every visible control. Radix triggers are plain
   // buttons, so there is no reliable attribute to filter on — aria-haspopup
@@ -380,9 +532,19 @@ test.describe.configure({ mode: "serial" });
 
 sweepDescribe("overlay sweep", () => {
   test.afterAll(() => {
+    const observed: Record<string, string> = {};
+    for (const f of findings) {
+      for (const k of keysFor(f)) {
+        if (!observed[k]) observed[k] = `${f.trigger} — ${[...f.issues, ...f.violations.map((v) => `axe:${v.id}`)][0] ?? ""}`;
+      }
+    }
     writeFileSync(
       resolve(OUTPUT_DIR, "overlay-report.json"),
-      JSON.stringify({ generatedAt: new Date().toISOString(), probed, findings }, null, 2),
+      JSON.stringify(
+        { generatedAt: new Date().toISOString(), probed, landings, observedKeys: observed, findings },
+        null,
+        2,
+      ),
     );
   });
 
@@ -400,7 +562,67 @@ sweepDescribe("overlay sweep", () => {
     });
   }
 
+  // The three assertions the file spent its life without. They run LAST and
+  // over the whole sweep on purpose: `mode: serial` skips the rest of a describe
+  // after the first failure, so asserting inside each route test would have let
+  // one new finding on /dashboard hide the other 65 routes.
   test("zz probed something", () => {
     expect(probed.length).toBeGreaterThan(0);
+  });
+
+  test("zz every route audited the route that was requested", () => {
+    const bounced = Object.entries(landings)
+      .map(([route, landed]) => {
+        const requestedPath = route.split("?")[0];
+        const landedPath = landed.split("?")[0];
+        if (!landedPath || landedPath === requestedPath) return null;
+        const allowed = expectedLandingFor(requestedPath);
+        if (!allowed) return `${route} -> ${landed}`;
+        // Compare at the granularity the expectation was WRITTEN at. Six of the
+        // seven Profile aliases forward to a specific `?tab=`, and comparing
+        // path-only there would accept /earnings landing on the Schedule tab —
+        // a wrong redirect reading as a correct one. (empty-state-sweep is
+        // path-only because every other measurement it takes is.)
+        const ok = allowed.includes("?") ? landed === allowed : landedPath === allowed;
+        return ok ? null : `${route} -> ${landed} (expected ${allowed})`;
+      })
+      .filter(Boolean);
+    expect(
+      bounced,
+      `ROUTE_BOUNCE: these routes were probed, but the overlays found belong to a\n` +
+        `DIFFERENT screen — the router forwarded before a single button was clicked.\n` +
+        `Every finding filed under the requested name actually describes the landing\n` +
+        `page. If the redirect is correct, add it to EXPECTED_LANDING with the reason;\n` +
+        `if it is not, the redirect is the bug.\n  ${bounced.join("\n  ")}`,
+    ).toEqual([]);
+  });
+
+  test("zz no overlay finding outside the checked-in baseline", () => {
+    const observed = new Set<string>();
+    for (const f of findings) for (const k of keysFor(f)) observed.add(k);
+
+    const added = [...observed].filter((k) => !(k in baseline.keys)).sort();
+    const example = (k: string) =>
+      findings.find((f) => keysFor(f).includes(k))?.trigger ?? "?";
+    expect(
+      added.map((k) => `${k}  (trigger: ${example(k)})`),
+      `NEW OVERLAY FINDINGS. Each line is a route + overlay role + rule that was\n` +
+        `not failing when ${BASELINE_PATH.split("/").pop()} was recorded. Fix the overlay;\n` +
+        `adding the key to the baseline is only correct when you have shown the\n` +
+        `finding is not a defect, and it is a regression in this guard either way.\n` +
+        `Full detail: ${OUTPUT_DIR}/overlay-report.json`,
+    ).toEqual([]);
+
+    // Ratchet. A baseline key that is no longer observed means the overlay was
+    // fixed (or the probe stopped reaching it) — either way the line is stale
+    // and must come out, so the file can only ever shrink.
+    const stale = Object.keys(baseline.keys).filter((k) => !observed.has(k)).sort();
+    expect(
+      stale,
+      `STALE BASELINE ENTRIES: these overlay findings no longer reproduce. Delete\n` +
+        `them from ${BASELINE_PATH.split("/").pop()} — the baseline may only shrink, or it\n` +
+        `stops being a record of what is actually broken and starts being a\n` +
+        `permission slip.`,
+    ).toEqual([]);
   });
 });

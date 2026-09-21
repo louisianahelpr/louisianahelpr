@@ -14,7 +14,6 @@
     "e2e/a11y-prod/a11y-prod.spec.ts",
     "e2e/auth.spec.ts",
     "e2e/happy-path/error-state-sweep.spec.ts",
-    "e2e/happy-path/overlay-sweep.spec.ts",
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "e2e/happy-path/zz-recurring-picker.spec.ts",
     "e2e/happy-path/zz-runtime-probe.spec.ts",

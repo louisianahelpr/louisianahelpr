@@ -1,0 +1,39 @@
+{
+  "//": [
+    "OVERLAY SWEEP FINDINGS BASELINE — read e2e/happy-path/overlay-sweep.spec.ts first.",
+    "",
+    "Each key is `route :: overlay role :: rule class`. A finding whose key is NOT",
+    "here fails the sweep. A key here that no longer reproduces ALSO fails, with",
+    "instructions to delete it: this file may only SHRINK. It is a register of what",
+    "is still broken, not a permission slip.",
+    "",
+    "It is NOT a place to put a finding you have not looked at. Every entry below was",
+    "traced to a source line before it was written down; two of the three classes the",
+    "first run produced were FIXED instead of recorded (see the log), and one whole",
+    "class was a defect in the CHECK rather than in the app.",
+    "",
+    "FIRST RUN, 2026-09-21: 66 routes probed, 84 overlay opens, 14 finding records,",
+    "9 distinct keys. Disposition of all 9:",
+    "",
+    "  6 x no-accessible-name — REAL, and FIXED rather than baselined. Five Radix",
+    "    PopoverContents rendered role=\"dialog\" with no name, so a screen reader",
+    "    announced each as bare \"dialog\": ReviewsTab (sort), SavedHelpersTab",
+    "    (filter, sort), JobActionRow (job overflow actions), RecognitionRow (the",
+    "    +N-more badge list). ReviewsTab's OTHER popover already carried an",
+    "    aria-label with a comment explaining exactly this, so the convention",
+    "    existed and these five had simply missed it.",
+    "",
+    "  1 x background-not-scroll-locked — NOT a defect, a defect in the CHECK. It",
+    "    keyed on role=\"dialog\", which Radix also gives a non-modal Popover, and a",
+    "    Popover is SUPPOSED to leave the page behind scrollable. The rule now keys",
+    "    on aria-modal=\"true\", which is both the right discriminator and the exact",
+    "    property that makes the rule's rationale true.",
+    "",
+    "  2 x axe:color-contrast — REAL, and NOT ours to fix. Below."
+  ],
+  "generatedAt": "2026-09-21",
+  "keys": {
+    "/availability :: dialog :: axe:color-contrast": "TimeRangeField popover, trigger \"9 AM – 5 PM\": #83837c on #ffffff = 3.81:1, needs 4.5:1 (WCAG 2 AA 1.4.3, axe impact serious). NOT a component bug — #83837c is --muted-foreground resolving through --stormy-sky in src/index.css, so EVERY text-muted-foreground on a white or card surface fails AA and this popover is just where the sweep can see it. src/index.css is orchestrator-owned; filed for the design/a11y lane rather than patched here.",
+    "/profile?tab=availability :: dialog :: axe:color-contrast": "The same TimeRangeField popover on the canonical Profile tab. /availability is a redirecting alias of this route (see redirectsTo in auditRoutes.ts), so these two keys are ONE defect seen twice — they are both listed because the ratchet is keyed by route and must stay mechanical."
+  }
+}

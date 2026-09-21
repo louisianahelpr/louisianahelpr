@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * The audit catalog must describe the app that exists.
@@ -182,6 +183,9 @@ function isUnconditionalRedirect(element: string): boolean {
 // Proves reclassification cannot open a hole: remove the row that actually
 // audits the gift_card tab and /gift-card's alias target is orphaned.
 // @mutate e2e/happy-path/auditRoutes.ts | { name: "profile-gift-card", url: "/profile?tab=gift_card" }, | 
+// Proves the second catalog is covered too: a dead route put back into
+// overlay-sweep's own ROUTES list must fail here, not be probed silently.
+// @mutate e2e/happy-path/overlay-sweep.spec.ts |   "/profile?tab=pets", |   "/profile?tab=pets",\n  "/job-history",
 describe("audit catalog matches the real route table", () => {
   it("every ANON screen resolves to a registered, publicly reachable route", () => {
     const broken = screensIn("ANON_SCREENS")
@@ -329,6 +333,41 @@ describe("audit catalog matches the real route table", () => {
     expect(
       orphaned,
       `Alias destinations with no row of their own:\n  - ${orphaned.join("\n  - ")}`,
+    ).toEqual([]);
+  });
+
+  /**
+   * overlay-sweep.spec.ts keeps its OWN route list — a second catalog, with
+   * none of the checks above pointed at it. Measured 2026-09-21: three of its
+   * 66 entries (`/family`, `/subscription`, `/job-history`) were not registered
+   * routes at all. Each rendered the NotFound page, found no overlays on it,
+   * and was counted as another route probed — the exact over-count this file
+   * was written to stop, in the one catalog it was not looking at.
+   */
+  it("every route overlay-sweep probes is a registered route", () => {
+    // blankComments, not a regex chain: the removal note inside ROUTES names
+    // the three dead paths IN QUOTES, and a comment-blind scan read them back
+    // out as live entries. (Caught by this test failing on its own comment the
+    // first time it ran — which is precisely what
+    // src/test/guardsDoNotDeleteSource.test.ts exists to prevent.) It blanks
+    // rather than deletes, so every offset still lines up.
+    const sweepSrc = blankComments(
+      readFileSync(resolve(repoRoot, "e2e/happy-path/overlay-sweep.spec.ts"), "utf8"),
+    );
+    const block = /const ROUTES = \[([\s\S]*?)\n\];/.exec(sweepSrc);
+    expect(block, "ROUTES not found in overlay-sweep.spec.ts").toBeTruthy();
+    // String literals only — the ADMIN_VIEWS spread is template literals and is
+    // already covered by the admin test below.
+    const routes = [...block![1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+    expect(routes.length).toBeGreaterThan(10);
+
+    const dead = routes
+      .filter((r) => resolveRoute(r) === null)
+      .map((r) => `${r} → no route: the sweep probes the NotFound page and counts it as a route audited`);
+
+    expect(
+      dead,
+      `overlay-sweep ROUTES entries that render nothing:\n  - ${dead.join("\n  - ")}`,
     ).toEqual([]);
   });
 

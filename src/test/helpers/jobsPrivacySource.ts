@@ -16,7 +16,7 @@ const MIGRATIONS_DIR = "supabase/migrations";
  * five of this repo's migrations explain themselves with the words
  * "CREATE OR REPLACE VIEW only preserves…" in a comment.
  */
-function maskComments(sql: string): string {
+export function maskComments(sql: string): string {
   const out = sql.split("");
   const blank = (from: number, to: number) => {
     for (let i = from; i < to && i < out.length; i++) if (out[i] !== "\n") out[i] = " ";
@@ -49,6 +49,16 @@ export type DbObject = {
   file: string;
   /** The whole CREATE statement, verbatim. */
   text: string;
+  /**
+   * The same statement with every SQL comment blanked (offsets preserved).
+   *
+   * ASSERT AGAINST THIS, NEVER `text`. Found hollow 2026-09-21: the guard
+   * passed 13/13 with `open_jobs_browse` projecting `offered_to_helper_id`
+   * RAW — the owner-decided leak, back in the browse feed for every viewer —
+   * because the deleted CASE was left behind as a `--` line and every
+   * `.toContain(...)` read the dead comment as the live definition.
+   */
+  code: string;
 };
 
 /**
@@ -73,14 +83,14 @@ export function latestDefinitions(): Map<string, DbObject> {
       if (bodyEnd < 0) continue;
       const end = sql.indexOf(";", bodyEnd);
       if (end < 0) continue;
-      latest.set(`function:${m[1].toLowerCase()}`, { kind: "function", name: m[1].toLowerCase(), file, text: raw.slice(start, end + 1) });
+      latest.set(`function:${m[1].toLowerCase()}`, { kind: "function", name: m[1].toLowerCase(), file, text: raw.slice(start, end + 1), code: sql.slice(start, end + 1) });
     }
 
     for (const m of sql.matchAll(/CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+(?:public\.)?([a-z0-9_]+)\b/gi)) {
       const start = m.index!;
       const end = sql.indexOf(";", start);
       if (end < 0) continue;
-      latest.set(`view:${m[1].toLowerCase()}`, { kind: "view", name: m[1].toLowerCase(), file, text: raw.slice(start, end + 1) });
+      latest.set(`view:${m[1].toLowerCase()}`, { kind: "view", name: m[1].toLowerCase(), file, text: raw.slice(start, end + 1), code: sql.slice(start, end + 1) });
     }
   }
   return latest;

@@ -27,16 +27,58 @@ import { resolve } from "node:path";
  * masking for real, but `@electric-sql/pglite` is intentionally not a
  * dependency of this repo, so such a test could never run in CI — which is
  * exactly where this guard has to fire.
+ *
+ * FOUND HOLLOW 2026-09-21, shape (1) "satisfiable by a comment". It passed
+ * 4/4 with `get_public_open_jobs` returning `j.location` RAW — every
+ * logged-out visitor served the street address F-DISC-01 is about — because
+ * the removed call was left behind as `-- public.mask_job_location(j.location)`
+ * and `/mask_job_location\s*\(/` matched the dead comment. Every migration is
+ * now read comment-BLANKED, and the inventories are floored.
  */
+// @mutate supabase/migrations/20260904203654_browse_hides_jobs_above_helper_credential_tier.sql | j.category::text,\n         public.mask_job_location(j.location) AS location, | j.category::text,\n         j.location AS location, -- public.mask_job_location(j.location)
 
 const migrationsDir = resolve(__dirname, "../../supabase/migrations");
+
+/**
+ * Blank every SQL comment, preserving byte offsets and line count. `--` inside
+ * a single-quoted literal is data, not a comment, and is left alone.
+ */
+export function blankSqlComments(sql: string): string {
+  const out = sql.split("");
+  let i = 0;
+  while (i < sql.length) {
+    const c = sql[i];
+    if (c === "'") {
+      i++;
+      while (i < sql.length) {
+        if (sql[i] === "'" && sql[i + 1] === "'") { i += 2; continue; }
+        if (sql[i] === "'") { i++; break; }
+        i++;
+      }
+      continue;
+    }
+    if (c === "-" && sql[i + 1] === "-") {
+      while (i < sql.length && sql[i] !== "\n") { out[i] = " "; i++; }
+      continue;
+    }
+    if (c === "/" && sql[i + 1] === "*") {
+      const end = sql.indexOf("*/", i + 2);
+      const stop = end === -1 ? sql.length : end + 2;
+      for (let k = i; k < stop; k++) if (sql[k] !== "\n") out[k] = " ";
+      i = stop;
+      continue;
+    }
+    i++;
+  }
+  return out.join("");
+}
 
 /** Every migration, oldest first — the order Postgres applies them in. */
 function migrationsInOrder(): { name: string; sql: string }[] {
   return readdirSync(migrationsDir)
     .filter((f) => f.endsWith(".sql"))
     .sort()
-    .map((name) => ({ name, sql: readFileSync(resolve(migrationsDir, name), "utf8") }));
+    .map((name) => ({ name, sql: blankSqlComments(readFileSync(resolve(migrationsDir, name), "utf8")) }));
 }
 
 /**
@@ -97,6 +139,17 @@ function anonExecutable(): Set<string> {
 describe("anon open-jobs surfaces never return a raw street address", () => {
   const latest = latestDefinitions();
 
+  it("reads a real inventory (an empty walk would pass every check below)", () => {
+    // Floors on the CONSTRUCTS, not the file count: a parser that silently
+    // matched nothing would make the sweep below vacuous.
+    expect(migrationsInOrder().length, "no migrations parsed").toBeGreaterThan(100);
+    expect(latest.size, "no CREATE FUNCTION bodies parsed").toBeGreaterThan(100);
+    expect(anonExecutable().size, "no anon EXECUTE grants parsed").toBeGreaterThan(5);
+    // The comment blanker is load-bearing; prove it on both shapes.
+    expect(blankSqlComments("SELECT 1; -- mask_job_location(x)\nSELECT 2;")).not.toMatch(/mask_job_location/);
+    expect(blankSqlComments("SELECT '-- not a comment' AS s;")).toContain("-- not a comment");
+  });
+
   // The two RPCs that actually serve logged-out visitors. Named explicitly
   // rather than only swept for, so a rename or a deletion fails loudly here
   // instead of silently shrinking the generic check below to nothing.
@@ -123,6 +176,7 @@ describe("anon open-jobs surfaces never return a raw street address", () => {
   it("no anon-executable job feed returns an unmasked location column", () => {
     const anon = anonExecutable();
     const offenders: string[] = [];
+    let feedsExamined = 0;
     for (const fn of anon) {
       const def = latest.get(fn);
       if (!def) continue;
@@ -144,6 +198,7 @@ describe("anon open-jobs surfaces never return a raw street address", () => {
       // reported rather than silently allowlisted here.)
       const returnsJobColumn = /RETURNS\s+TABLE\s*\([\s\S]*?\b(date_needed\s+date|budget\s+numeric)\b/i.test(def.body);
       if (!returnsJobColumn) continue;
+      feedsExamined++;
       const masks = /mask_job_location\s*\(/i.test(def.body);
       const gatedOnCaller = /auth\.uid\s*\(\s*\)/i.test(def.body);
       if (!masks && !gatedOnCaller) offenders.push(`${fn} (${def.file})`);
@@ -155,6 +210,11 @@ describe("anon open-jobs surfaces never return a raw street address", () => {
         "house number would publish that street address publicly:\n  " +
         offenders.join("\n  "),
     ).toEqual([]);
+    // Floor the sweep itself: zero feeds examined means the signature filter
+    // stopped matching and this assertion proved nothing.
+    expect(feedsExamined, "the anon job-feed sweep matched no function at all").toBeGreaterThanOrEqual(
+      KNOWN_ANON_JOB_FEEDS.length,
+    );
   });
 
   /**

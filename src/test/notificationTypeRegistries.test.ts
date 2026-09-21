@@ -40,6 +40,8 @@ import { typeIcons } from "@/components/notificationPanel/notificationPanelHelpe
  * Filesystem only: no database, no network. It runs in CI on every push.
  */
 
+// @mutate supabase/functions/create-notification/index.ts |   "transit_updates",\n | 
+
 const repoRoot = resolve(__dirname, "../..");
 const migrationsDir = resolve(repoRoot, "supabase/migrations");
 

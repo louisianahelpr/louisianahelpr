@@ -27,6 +27,15 @@
 //
 // Shown red on the pre-fix tree (a worktree of origin/main) before it was
 // allowed to be green — see the branch's commit message.
+//
+// FOUND HOLLOW 2026-09-21, shape (1) "satisfiable by a comment": it passed
+// 13/13 with open_jobs_browse projecting offered_to_helper_id RAW — the leak
+// itself, back in the browse feed — because the deleted CASE was left behind
+// as a `--` line and `latestDefinitions()` handed the assertions the RAW
+// statement text. Every group-(b) and group-(d) assertion now reads the
+// comment-BLANKED form (`DbObject.code`, `maskComments(...)`), and the
+// registered mutation below IS the comment shape, so both doors are pinned.
+// @mutate supabase/migrations/20260915045110_hide_offered_helper_from_non_posters.sql | CASE\n            WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id\n            ELSE NULL::uuid\n        END AS offered_to_helper_id, | offered_to_helper_id, -- CASE WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id ELSE NULL::uuid END AS offered_to_helper_id
 
 import { describe, it, expect } from "vitest";
 import { walkSource, readSource } from "./helpers/walkSource";
@@ -37,6 +46,7 @@ import {
   jobsColumnsFromTypes,
   jobsRestPathOffsets,
   latestDefinitions,
+  maskComments,
   maskJsComments,
   migrationsAddingJobsColumns,
   returnsOffereeColumn,
@@ -238,7 +248,7 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
   it("get_job_offer_targets returns a row only to the poster or the offeree", () => {
     const def = latestDefinitions().get("function:get_job_offer_targets");
     expect(def, "get_job_offer_targets is not defined in any migration").toBeTruthy();
-    const text = def!.text.replace(/\s+/g, " ");
+    const text = def!.code.replace(/\s+/g, " ");
     expect(def!.file, "the accessor must come from the offer-privacy migration").toBe(FIX_MIGRATION);
     expect(text, "the accessor must be caller-bound").toContain("SECURITY DEFINER");
     expect(text).toMatch(/SET search_path TO 'public'/);
@@ -251,7 +261,7 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
 
   it("get_jobs_for_my_applications nulls the offeree for everyone but the poster and the offeree", () => {
     const def = latestDefinitions().get("function:get_jobs_for_my_applications");
-    const text = def!.text.replace(/\s+/g, " ");
+    const text = def!.code.replace(/\s+/g, " ");
     expect(def!.file, "the latest definition must be the offer-privacy one").toBe(FIX_MIGRATION);
     expect(
       text,
@@ -261,7 +271,7 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
 
   it("open_jobs_browse nulls the offeree for everyone but the poster and the offeree", () => {
     const def = latestDefinitions().get("view:open_jobs_browse");
-    const text = def!.text.replace(/\s+/g, " ");
+    const text = def!.code.replace(/\s+/g, " ");
     expect(def!.file, "the latest view definition must be the offer-privacy one").toBe(FIX_MIGRATION);
     expect(
       text,
@@ -270,7 +280,9 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     // The view's owner bypasses RLS: a write grant on it is an unpoliced write
     // to public.jobs (F-SEC-05, 20260706140000). The migration that redefines
     // the view restates the REVOKE.
-    const migration = readSource(`supabase/migrations/${FIX_MIGRATION}`)!;
+    // Comment-blanked for the same reason: a `-- DROP VIEW …` line must not
+    // fail this, and a commented-out REVOKE must not satisfy it.
+    const migration = maskComments(readSource(`supabase/migrations/${FIX_MIGRATION}`)!);
     expect(migration, "a redefinition of open_jobs_browse must use CREATE OR REPLACE, never DROP + CREATE")
       .not.toMatch(/DROP\s+VIEW\s+(IF\s+EXISTS\s+)?(public\.)?open_jobs_browse/i);
     const flat = migration.replace(/\s+/g, " ");
@@ -338,7 +350,7 @@ describe("offer privacy (d): a migration that adds a jobs column re-syncs the gr
   it("every jobs ADD COLUMN at or after the fix calls sync_jobs_select_grants()", () => {
     const offenders = migrationsAddingJobsColumns()
       .filter((m) => m.file >= FIX_MIGRATION)
-      .filter((m) => !/sync_jobs_select_grants\s*\(\s*\)/i.test(m.text))
+      .filter((m) => !/sync_jobs_select_grants\s*\(\s*\)/i.test(maskComments(m.text)))
       .map((m) => `${m.file} adds ${m.columns.join(", ")}`);
     expect(
       offenders,
@@ -350,7 +362,7 @@ describe("offer privacy (d): a migration that adds a jobs column re-syncs the gr
   }, 30_000);
 
   it("the fix migration itself ends by syncing the grants", () => {
-    const sql = readSource(`supabase/migrations/${FIX_MIGRATION}`)!;
+    const sql = maskComments(readSource(`supabase/migrations/${FIX_MIGRATION}`)!);
     expect(sql.trimEnd().endsWith("SELECT public.sync_jobs_select_grants();")).toBe(true);
   });
 });

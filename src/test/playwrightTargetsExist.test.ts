@@ -15,6 +15,7 @@ import { join, relative, resolve } from "node:path";
  * scripts/*.mjs, every .husky hook and package.json scripts; the projects out of
  * playwright.config.ts; the specs from the e2e/ tree.
  */
+// @mutate scripts/check-changed.mjs | "--project=a11y-prod" | "--project=a11y-prod-gone"
 const ROOT = resolve(__dirname, "../..");
 
 function walk(dir: string): string[] {

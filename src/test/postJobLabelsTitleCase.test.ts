@@ -12,6 +12,7 @@ import { join } from "node:path";
  * the post-job flow. Static text only — `{expressions}` are skipped, and
  * placeholders / helper sentences are not labels, so they are not checked.
  */
+// @mutate src/components/postjob/LogisticsSection.tsx | >Street Address</Label> | >Street address</Label>
 const ROOTS = ["src/components/postjob", "src/pages/postjob"];
 const MINOR = new Set(["a", "an", "the", "and", "or", "nor", "for", "to", "of", "in", "on", "at", "by", "as", "per", "vs"]);
 

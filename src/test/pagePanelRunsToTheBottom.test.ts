@@ -27,11 +27,20 @@
  *
  * Shown able to fail: restoring the deleted rule turns this red, naming the
  * selector and each offending declaration.
+ *
+ * TWO doors, so two registrations. The stylesheet is one; the INLINE default
+ * is the other. `panelSurfaceStyle` is what actually flattens the bottom edge
+ * at every width, and a one-word edit there re-curves all six panels without
+ * touching src/index.css at all — which the CSS scan above cannot see. The
+ * second block asserts that default directly.
  */
+// @mutate src/index.css |   html.web-desktop .mobile-nav-frame { |   html.web-desktop .page-panel { border-bottom-left-radius: 1.5rem !important; }  html.web-desktop .mobile-nav-frame {
+// @mutate src/components/ui/pageCardSurfaces.ts |   borderBottomLeftRadius: 0,\n  borderBottomRightRadius: 0,\n  borderBottom: "none", |   borderBottomLeftRadius: "1.5rem",\n  borderBottomRightRadius: "1.5rem",\n  borderBottom: "1px solid hsl(var(--border))",
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import postcss from "postcss";
+import { panelSurfaceStyle } from "@/components/ui/pageCardSurfaces";
 
 const CSS_PATH = path.resolve(__dirname, "../index.css");
 
@@ -90,6 +99,17 @@ describe("the page panel runs to the bottom, like the right rail", () => {
   it("no rule in src/index.css re-curves or re-borders .page-panel's bottom edge", () => {
     const css = readFileSync(CSS_PATH, "utf8");
     expect(offenders(css)).toEqual([]);
+  });
+
+  it("panelSurfaceStyle — the inline default — keeps the bottom edge flat", () => {
+    // The stylesheet scan above only sees an `!important` OVERRIDE. This is
+    // the value being overridden, and the one that governs at every width.
+    for (const elevation of ["raised", "flat"] as const) {
+      const style = panelSurfaceStyle(elevation);
+      expect(style.borderBottomLeftRadius, elevation).toBe(0);
+      expect(style.borderBottomRightRadius, elevation).toBe(0);
+      expect(style.borderBottom, elevation).toBe("none");
+    }
   });
 
   it("the guard can see an offending rule (it is not vacuous)", () => {

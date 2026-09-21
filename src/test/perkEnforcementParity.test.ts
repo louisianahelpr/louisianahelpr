@@ -39,10 +39,58 @@ import { posterPlacementBonus } from "@/lib/smartSort";
  * bottom: the cumulative bullets a tier's card shows must advertise a perk
  * exactly when the matrix grants it.
  */
+// @mutate supabase/migrations/20260915043200_admin_support_queue_admits_plus.sql | IN ('basic', 'pro', 'plus', 'elite') | IN ('basic', 'pro', 'elite') -- IN ('basic', 'pro', 'plus', 'elite')
 
 const REPO = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(REPO, "supabase/migrations");
 const PAID = TIER_ORDER.filter((t) => t !== "free");
+
+/**
+ * BLANK every SQL comment, preserving every byte offset.
+ *
+ * Found hollow 2026-09-21: the Priority Support block passed 25/25 with the
+ * live tier normalisation reverted to the VN-44 bug —
+ * `IN ('basic','pro','elite')`, which collapses a Plus reporter to 'free' so
+ * priority is unreachable — because a `--` line above it carried the correct
+ * list and `exec()` returns the FIRST match. Every scan below now reads
+ * comment-free SQL, so a commented-out list, ladder arm, DEFAULT or REVOKE
+ * can never stand in for the live one.
+ *
+ * BLANKS rather than deletes: `ladderArms` compares `.index` positions against
+ * the expiry arm's, and deleting text shifts those offsets. `--` inside a
+ * single-quoted literal is left alone — it is data, not a comment.
+ */
+export function blankSqlComments(sql: string): string {
+  const out = sql.split("");
+  let i = 0;
+  while (i < sql.length) {
+    const c = sql[i];
+    if (c === "'") {
+      i++;
+      while (i < sql.length) {
+        if (sql[i] === "'" && sql[i + 1] === "'") { i += 2; continue; }
+        if (sql[i] === "'") { i++; break; }
+        i++;
+      }
+      continue;
+    }
+    if (c === "-" && sql[i + 1] === "-") {
+      while (i < sql.length && sql[i] !== "\n") { out[i] = " "; i++; }
+      continue;
+    }
+    if (c === "/" && sql[i + 1] === "*") {
+      const end = sql.indexOf("*/", i + 2);
+      const stop = end === -1 ? sql.length : end + 2;
+      for (let k = i; k < stop; k++) if (sql[k] !== "\n") out[k] = " ";
+      i = stop;
+      continue;
+    }
+    i++;
+  }
+  return out.join("");
+}
+
+const readMigration = (file: string) => blankSqlComments(readFileSync(resolve(MIGRATIONS, file), "utf8"));
 
 /** Body of the NEWEST migration that (re)defines `public.<fn>` — migrations are append-only. */
 function newestFunctionBody(fn: string): { file: string; header: string; body: string } {
@@ -55,7 +103,7 @@ function newestFunctionBody(fn: string): { file: string; header: string; body: s
   const hits = readdirSync(MIGRATIONS)
     .filter((f) => f.endsWith(".sql"))
     .sort()
-    .map((f) => ({ f, m: re.exec(readFileSync(resolve(MIGRATIONS, f), "utf8")) }))
+    .map((f) => ({ f, m: re.exec(readMigration(f)) }))
     .filter((h) => h.m);
   expect(hits.length, `no migration defines public.${fn}`).toBeGreaterThan(0);
   const last = hits[hits.length - 1];
@@ -110,7 +158,7 @@ describe("Priority Placement — every SQL tier ladder ↔ the perk it enforces"
     const def = /CREATE (?:OR REPLACE )?FUNCTION public\.([a-z0-9_]+)\s*\([\s\S]*?\$([A-Za-z_]*)\$([\s\S]*?)\$\2\$/gi;
     const drop = /DROP FUNCTION (?:IF EXISTS )?public\.([a-z0-9_]+)\s*(?:\(|;|\s)/gi;
     for (const f of readdirSync(MIGRATIONS).filter((x) => x.endsWith(".sql")).sort()) {
-      const sql = readFileSync(resolve(MIGRATIONS, f), "utf8");
+      const sql = readMigration(f);
       const defined = new Set<string>();
       for (const m of sql.matchAll(def)) {
         out.set(m[1].toLowerCase(), { file: f, body: m[3] });
@@ -121,9 +169,9 @@ describe("Priority Placement — every SQL tier ladder ↔ the perk it enforces"
     return out;
   }
 
-  /** The numeric tier arms of a body, comments stripped so a commented-out arm never counts. */
+  /** The numeric tier arms of a body. Bodies arrive comment-blanked, so a commented-out arm never counts. */
   function ladderArms(body: string): Array<{ tier: string; value: number; index: number }> {
-    const code = body.replace(/--[^\n]*/g, "");
+    const code = body;
     return [...code.matchAll(/subscription_tier\s*=\s*'([a-z_]+)'\s+THEN\s+(\d+(?:\.\d+)?)/gi)].map((m) => ({
       tier: m[1],
       value: Number(m[2]),
@@ -153,7 +201,7 @@ describe("Priority Placement — every SQL tier ladder ↔ the perk it enforces"
 
   it.each(Object.keys(TIER_LADDER_PERK))("%s zeroes a lapsed membership before any tier arm", (fn) => {
     const b = bodies.get(fn)!;
-    const code = b.body.replace(/--[^\n]*/g, "");
+    const code = b.body;
     const expiry = /subscription_expires_at\s*<=\s*now\(\)\s*THEN\s+0\b/i.exec(code);
     expect(expiry, `${fn}: no 'subscription_expires_at <= now() THEN 0' arm in ${b.file}`).toBeTruthy();
     expect(expiry!.index).toBeLessThan(Math.min(...ladderArms(b.body).map((a) => a.index)));
@@ -175,7 +223,11 @@ describe("Priority Placement — every SQL tier ladder ↔ the perk it enforces"
 });
 
 describe("Free monthly boosts — create-boost-payment + claim_monthly_free_boost ↔ MONTHLY_FREE_BOOSTS", () => {
-  const edge = readFileSync(resolve(REPO, "supabase/functions/create-boost-payment/index.ts"), "utf8");
+  // JS comments blanked for the same reason the SQL is: a `//` line naming the
+  // RPC call must not stand in for the call itself.
+  const edge = readFileSync(resolve(REPO, "supabase/functions/create-boost-payment/index.ts"), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/^([^\n"'`]*?)\/\/[^\n]*/gm, (m, keep: string) => keep + " ".repeat(m.length - keep.length));
 
   it("the allowance table agrees with the monthlyFreeBoost bit on every tier", () => {
     for (const tier of TIER_ORDER) {
@@ -197,7 +249,7 @@ describe("Free monthly boosts — create-boost-payment + claim_monthly_free_boos
     // A month stamp alone is an allowance of one; the count is what lets Plus have two.
     expect(claim.body).toMatch(/boost_credit_used_count/);
     expect(claim.body).toMatch(/greatest\(p\.boost_credit_used_count,\s*1\)\s*<\s*p_allowance/i);
-    const src = readFileSync(resolve(MIGRATIONS, claim.file), "utf8");
+    const src = readMigration(claim.file);
     expect(src).toMatch(/REVOKE ALL ON FUNCTION public\.claim_monthly_free_boost\(uuid, integer\) FROM PUBLIC, anon, authenticated/);
     expect(src).toMatch(/REVOKE ALL ON FUNCTION public\.refund_monthly_free_boost\(uuid, text\) FROM PUBLIC, anon, authenticated/);
   });

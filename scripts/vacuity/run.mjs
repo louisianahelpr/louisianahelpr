@@ -116,10 +116,33 @@ const PW_PROJECT = (rel) => {
   return ["happy-path", "journeys", "prod-audit", "a11y-prod"].includes(dir) ? dir : "chromium";
 };
 
+/*
+ * The rebuild carries the VITE_* fallbacks ITSELF.
+ *
+ * `.env` is gitignored, so a fresh `git worktree add` — where every agent lane
+ * works — does not have one. vite.config.ts throws from `buildStart` when
+ * VITE_SUPABASE_URL is missing (a deliberate guard: without it supabase-js
+ * throws and React never mounts, i.e. a white screen with no error). So a
+ * rebuild that inherits only `process.env` FAILS in exactly the environment
+ * this gate is supposed to work in, every `src/`-targeted e2e mutation comes
+ * back with a red baseline, and the verdict is `inconclusive` for a reason
+ * that has nothing to do with any guard.
+ *
+ * These are the same publishable/anon values playwright.config.ts already
+ * hands its webServer block — public by design, in every shipped bundle, RLS
+ * is the real boundary — so the two builds agree instead of one silently
+ * having credentials the other lacks.
+ */
+const BUILD_ENV = {
+  VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co",
+  VITE_SUPABASE_PUBLISHABLE_KEY:
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP",
+};
+
 function runBuild() {
   const r = spawnSync("npm", ["run", "build"], {
     cwd: REPO, encoding: "utf8", timeout: 600_000,
-    env: { ...process.env, CI: "" },
+    env: { ...process.env, ...BUILD_ENV, CI: "" },
   });
   return { ok: r.status === 0, out: (r.stdout || "") + (r.stderr || "") };
 }
@@ -138,6 +161,7 @@ function runPlaywright(guard, { rebuild = false } = {}) {
       env: {
         ...process.env,
         PLAYWRIGHT_WEB_SERVER: "1",
+        ...BUILD_ENV,
         // NOT CI: `reuseExistingServer: !CI` is what stops a second build.
         CI: "",
         LH_VACUITY_TRACE: "",
@@ -199,6 +223,7 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
   // running each guard twice would double the wall clock for no information.
   const guards = [...new Set(mutations.map((m) => m.guard))];
   const baselineRed = new Set();
+  const baselineWhy = new Map();
   // Playwright guards cannot be batched into one vitest invocation; each is
   // its own CLI run against the built preview.
   const pw = guards.filter(isPlaywrightGuard);
@@ -214,14 +239,46 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
   // absent); the rest reuse it, since nothing is mutated yet.
   let builtOnce = false;
   for (const g of pw) {
-    if (!runPlaywright(g, { rebuild: !builtOnce }).green) baselineRed.add(g);
+    const r = runPlaywright(g, { rebuild: !builtOnce });
     builtOnce = true;
+    if (r.green) continue;
+    /*
+     * A RED BASELINE MUST SAY WHY. The verdict "guard is RED before any
+     * mutation" was reported with the run's output thrown away, so an
+     * environmental failure (a webServer that did not come up, a browser the
+     * lock handed to someone else, one flaky test out of twenty) is
+     * indistinguishable from a genuinely broken guard — and the operator has
+     * nothing to act on. Measured 2026-09-21: activity-card-density.spec.ts
+     * came back inconclusive in the gate and then passed 20/20 standing alone
+     * two minutes later, with no evidence retained either way.
+     *
+     * Retried ONCE before being called red, for the same reason: the first
+     * playwright run of a session pays the cold webServer build and is the
+     * only one that can lose a race with it.
+     */
+    const again = runPlaywright(g, { rebuild: false });
+    if (again.green) {
+      process.stderr.write(
+        `\n! ${g} was RED on its first baseline and GREEN on retry.\n` +
+          `  Read the tail below before blaming the spec: a failed rebuild or a webServer that did\n` +
+          `  not come up looks identical here to a genuinely flaky test. If it IS the spec, that is a\n` +
+          `  finding — a guard that needs a retry gets ignored, and a real failure ignored with it.\n` +
+          `  First run's tail:\n${c.dim(r.out.trim().split("\n").slice(-25).join("\n"))}\n`,
+      );
+      continue;
+    }
+    baselineRed.add(g);
+    baselineWhy.set(g, again.out.trim().split("\n").slice(-25).join("\n"));
   }
 
   for (const m of mutations) {
     const id = `${m.guard} ⟵ ${m.target}`;
     if (baselineRed.has(m.guard)) {
-      results.push({ ...m, verdict: "inconclusive", why: "guard is RED before any mutation" });
+      results.push({
+        ...m,
+        verdict: "inconclusive",
+        why: "guard is RED before any mutation" + (baselineWhy.has(m.guard) ? `\n      ${baselineWhy.get(m.guard).replace(/\n/g, "\n      ")}` : ""),
+      });
       onResult?.(results.at(-1));
       continue;
     }

@@ -14,7 +14,6 @@
     "e2e/a11y-prod/a11y-prod.spec.ts",
     "e2e/a11y.spec.ts",
     "e2e/auth.spec.ts",
-    "e2e/happy-path/activity-card-density.spec.ts",
     "e2e/happy-path/appstore-screenshots.spec.ts",
     "e2e/happy-path/browse-feed-completeness.spec.ts",
     "e2e/happy-path/customer-post-job.spec.ts",

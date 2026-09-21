@@ -1007,3 +1007,10 @@ test.describe("My Posts — card density + header", () => {
     void SEED_APPLICATIONS;
   });
 });
+
+// The No-Show gate is a CLOCK, not a status: `hasJobStarted` is the single
+// line that keeps a 9:00 AM job from offering No-Show at 8:00 AM (owner's
+// rule, src/lib/dateUtils.ts). Forcing it true makes the chip appear on a job
+// that starts tomorrow — the accusation-before-the-fact defect this spec pins
+// by MOVING THE JOB'S DATE rather than reasoning about the clock.
+// @mutate src/lib/dateUtils.ts | return now.getTime() >= start.getTime(); | return true;

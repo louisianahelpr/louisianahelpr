@@ -208,10 +208,20 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
   // remount — no manual regeneration needed.
   const tipAttemptIdRef = useRef<string>(crypto.randomUUID());
 
-  const sendTip = async (amount: number) => {
+  const sendTip = async (rawAmount: number) => {
     if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
+    /*
+     * ROUND TO WHOLE CENTS BEFORE SENDING — see TipDialog.tsx for the full
+     * account. `CurrencyInput` (used at the custom-amount field below) formats
+     * with `toString`, not `toFixed`, so the user can keep editing a trailing
+     * digit; a typed 10.555 therefore arrives here intact and the server's
+     * `Math.round(amount * 100)` bills $10.56 against a screen reading $10.555.
+     * Rounding here makes the displayed number and the charged number one
+     * number. Whole-dollar presets are unaffected.
+     */
+    const amount = Math.round(rawAmount * 100) / 100;
     try {
       const { data, error } = await supabase.functions.invoke("create-payment", {
         body: { action: "tip", jobId, amount, tipAttemptId: tipAttemptIdRef.current, native: isNativePlatform },

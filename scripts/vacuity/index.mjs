@@ -25,7 +25,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { REPO, guardFiles, parseDirectives, loadBaseline, BASELINE_PATH, changedFiles, c } from "./lib.mjs";
+import { REPO, guardFiles, untrackedGuardFiles, parseDirectives, loadBaseline, BASELINE_PATH, changedFiles, c } from "./lib.mjs";
 import { scanAll } from "./scan.mjs";
 import { preflight } from "./preflight.mjs";
 import { collectMutations, runMutations } from "./run.mjs";
@@ -112,7 +112,13 @@ for (const f of pf) {
 if (!pfFail.length) ok(`harness preflight: ${pf.length - pfFail.length} advisory, 0 blocking`);
 
 // ── 4. MUTATE ───────────────────────────────────────────────────────────────
-const { mutations, errors } = collectMutations(guards);
+/*
+ * A guard that exists but is not yet `git add`ed still gets mutated. The
+ * ratchet above stays tracked-only (an untracked scratch spec must not make
+ * someone else's push red), but a brand-new guard is precisely the one whose
+ * ability to fail has never been demonstrated — see untrackedGuardFiles().
+ */
+const { mutations, errors } = collectMutations([...guards, ...untrackedGuardFiles()]);
 for (const e of errors) fail(`registration — ${e}`);
 
 let scoped = mutations;

@@ -51,6 +51,34 @@ export function guardFiles() {
     .sort();
 }
 
+/**
+ * Untracked-but-not-ignored test files.
+ *
+ * THE HOLE THIS CLOSES (found 2026-09-21, by this gate failing to notice its
+ * own new guard). `guardFiles()` is `git ls-files`, deliberately: an untracked
+ * scratch spec must not enter the RATCHET and make someone else's push red.
+ * But the MUTATION phase collected its registrations from that same tracked
+ * list, so a guard written and not yet `git add`ed contributed zero mutations —
+ * and the run printed a green "mutation: nothing in scope". The single most
+ * important moment for this gate (a guard being born) was the one moment it
+ * was blind, and it said green while blind. That is the exact shape the whole
+ * burn-down exists to kill.
+ *
+ * Kept separate from `guardFiles()` so the ratchet keeps its tracked-only
+ * semantics; only the mutation phase unions these in.
+ */
+export function untrackedGuardFiles() {
+  return execFileSync("git", ["ls-files", "--others", "--exclude-standard"], {
+    cwd: REPO,
+    encoding: "utf8",
+    maxBuffer: 1 << 24,
+  })
+    .split("\n")
+    .map((f) => f.trim())
+    .filter((f) => /\.(test|spec)\.tsx?$/.test(f))
+    .sort();
+}
+
 /** Edge guards — reported on, never edited by this lane (src/test/edge is owned elsewhere). */
 export function edgeGuardFiles() {
   const dir = path.join(REPO, "src", "test", "edge");

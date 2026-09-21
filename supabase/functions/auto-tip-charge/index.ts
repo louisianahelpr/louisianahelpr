@@ -94,9 +94,29 @@ serve(async (req) => {
 
     for (const c of candidates ?? []) {
       const jobId = c.job_id as string;
-      const tipDollars = Number(c.tip_amount);
-      const tipCents = Math.round(tipDollars * 100);
+      const rawTipDollars = Number(c.tip_amount);
+      const tipCents = Math.round(rawTipDollars * 100);
       if (!Number.isFinite(tipCents) || tipCents <= 0) continue;
+      /*
+       * THE RECORDED DOLLARS ARE DERIVED FROM THE CENTS WE ACTUALLY CHARGE.
+       *
+       * `profiles_auto_tip_valid` bounds `auto_tip_value` to 1..500 on a bare
+       * `numeric` with NO scale (verified live 2026-09-21), so a `fixed`
+       * preference of 10.555 is stored intact. Charging `Math.round(x * 100)`
+       * then bills $10.56 while `tips.amount` — also scale-less — recorded
+       * 10.555. Every receipt, ledger total and reconciliation read one number
+       * and Stripe read another.
+       *
+       * Same class as the gift-card 10.555 bug (GiftCard.tsx) and the manual
+       * tip dialog (TipDialog.tsx), both fixed 2026-09-21.
+       *
+       * Deriving rather than rounding separately is the point: there is only
+       * ONE rounding in this function, and both readers use its result, so the
+       * two figures cannot drift apart no matter how the rounding rule changes.
+       * A CHECK constraint was rejected deliberately — it would refuse the
+       * `tips` insert AFTER the card had been charged.
+       */
+      const tipDollars = tipCents / 100;
 
       // Claim the job FIRST. The unique partial index on (job_id) WHERE
       // source='auto' means a concurrent tick loses this insert and skips the

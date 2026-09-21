@@ -30,11 +30,29 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
   const [amount, setAmount] = useState<number | undefined>(undefined);
   const [sending, setSending] = useState(false);
 
-  const handleSend = async (tipAmount: number) => {
-    if (isNaN(tipAmount) || tipAmount <= 0) {
+  const handleSend = async (rawTip: number) => {
+    if (isNaN(rawTip) || rawTip <= 0) {
       toast.error("Enter a valid amount.");
       return;
     }
+    /*
+     * ROUND TO WHOLE CENTS HERE, with the server's own rule.
+     *
+     * `CurrencyInput` deliberately keeps a single decimal point and formats
+     * with `toString` rather than `toFixed`, "so the user can keep editing the
+     * trailing" digit — so a typed `10.555` reaches this handler intact. The
+     * server then does `Math.round(amount * 100)` (create-payment/index.ts:1063)
+     * = 1056 and charges $10.56, while the dialog showed $10.555 and nothing
+     * anywhere said the number changed.
+     *
+     * That is the same defect found in the gift-card flow on 2026-09-20
+     * (GiftCard.tsx:134), from the same cause: the client sent a fractional
+     * cent and let the server silently resolve it. Rounding here means the
+     * number on screen, the number the $1/$1,000 bounds are checked against,
+     * and the number Stripe charges are one number. Whole-dollar presets are
+     * unaffected.
+     */
+    const tipAmount = Math.round(rawTip * 100) / 100;
     hapticMedium();
     setSending(true);
     try {

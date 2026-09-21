@@ -52,7 +52,18 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         ),
         month_grid: "w-full border-collapse space-y-1",
         weekdays: "flex",
-        weekday: "rounded-md w-9 font-sans uppercase text-ds-10 tracking-[0.18em] text-[hsl(var(--burnt-sienna)/0.78)]",
+        // WEEKDAY HEADERS USE --accent-ink, NOT --burnt-sienna. At
+        // `--burnt-sienna/0.78` they measured 3.26:1 on a dark card against a
+        // 4.5:1 AA floor, and raw sienna cannot clear AA on dark at ANY alpha
+        // below 1.0 (ladder on the dark card: 0.78 → 3.26, 0.85 → 3.63, 0.9 →
+        // 3.91, 1.0 → 4.53) — the token is a brand accent, not an ink.
+        // `--accent-ink` is the app's existing accent-AS-TEXT split: identical
+        // to --burnt-sienna in light (19 75% 35%, so LIGHT MODE IS UNCHANGED
+        // but for the alpha step) and lifted to 19 70% 66% in dark precisely so
+        // small labels clear 4.5:1 there. At 0.9 it measures 4.86:1 — over the
+        // floor, under full strength, so the header row stays quieter than the
+        // ink-deep day numbers it labels.
+        weekday: "rounded-md w-9 font-sans uppercase text-ds-10 tracking-[0.18em] text-[hsl(var(--accent-ink)/0.9)]",
         week: "flex w-full mt-2",
         day: "h-11 w-11 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
         day_button: cn(buttonVariants({ variant: "ghost" }), "h-11 w-11 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] aria-selected:opacity-100 rounded-full"),
@@ -62,6 +73,14 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         today:
           "!bg-[hsl(var(--burnt-sienna)/0.10)] !text-[hsl(var(--burnt-sienna))] !font-sans !font-bold ring-1 ring-[hsl(var(--burnt-sienna)/0.28)]",
         outside: "day-outside text-[hsl(var(--olivewood)/0.8)] opacity-60 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+        // DELIBERATELY LEFT BELOW AA, and pinned as such in
+        // src/test/lowAlphaForegroundContrast.test.ts. This is the INACTIVE
+        // state of a day button — react-day-picker renders it `disabled` — and
+        // WCAG 1.4.3 exempts "text that is part of an inactive user interface
+        // component" from the 4.5:1 floor by name. Darkening it would not be a
+        // fix: a disabled day that reads as legible as an enabled one is a NEW
+        // defect, and the `opacity-50` beside it says the same thing twice on
+        // purpose. Measured 1.99:1 light / 2.47:1 dark, which is the point.
         disabled: "text-[hsl(var(--olivewood)/0.35)] opacity-50",
         range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
         hidden: "invisible",

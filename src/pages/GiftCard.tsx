@@ -602,10 +602,18 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                   Or enter a custom amount
                 </label>
                 <div className="relative">
+                  {/* THE "$" AFFIX CHANGED TOKEN, not just alpha. It was
+                      `--bark / 0.7` = 2.96:1 against a 4.5:1 AA floor, and bark
+                      cannot clear AA below ~0.95 — i.e. keeping the hue meant
+                      making the affix a near-solid olive-green, louder than the
+                      amount typed beside it. It is now the field's own quiet
+                      ink, `--olivewood / 0.7` (4.90:1), which is what the label
+                      above the field already uses one step darker (0.8). The
+                      affix belongs to the input, not to the brand palette. */}
                   <span
                     aria-hidden
                     className="absolute left-3 top-1/2 -translate-y-1/2 font-sans font-semibold text-ds-13 pointer-events-none"
-                    style={{ color: "hsl(var(--bark) / 0.7)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                   >
                     $
                   </span>

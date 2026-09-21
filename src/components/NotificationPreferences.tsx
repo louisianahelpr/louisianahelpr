@@ -614,10 +614,24 @@ const NotificationPreferences = () => {
               ariaLabel="Quiet hours"
               savingId="quiet_hours"
             />
+            {/* THE EM-DASH IS 0.7, NOT 0.3 — and all three copies of it in this
+                file (here, the digest row, the saved-Helpr row) moved together.
+                At 0.3 it measured 1.79:1 against a 4.5:1 AA floor: the faintest
+                text in the app and, at ds-14, genuinely hard to see rather than
+                merely quiet. It is NOT exempt as decoration: it is the cell's
+                value — "there is no email version of this row" — and a reader
+                who cannot see it reads the row as if the email column were
+                simply missing.
+                0.7 is the floor that clears AA (ladder on parchment: 0.3 →
+                1.79, 0.5 → 2.84, 0.65 → 4.24, 0.7 → 4.90) and it is an ink the
+                app already uses in 39 other places, so no new value is
+                invented. It stays below the 0.8 the row labels wear, and the
+                column still reads as "app only, intentionally" — only now it
+                reads at all. */}
             <div className="w-[51px] flex justify-center" title="Push-only — no email version of this">
               <span
                 className="font-sans text-ds-14"
-                style={{ color: "hsl(var(--olivewood) / 0.3)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                 aria-hidden
               >
                 —
@@ -768,7 +782,7 @@ const NotificationPreferences = () => {
             <div className="w-[51px] flex justify-center" title="Push-only — no email version of this">
               <span
                 className="font-sans text-ds-14"
-                style={{ color: "hsl(var(--olivewood) / 0.3)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                 aria-hidden
               >
                 —
@@ -828,7 +842,7 @@ const NotificationPreferences = () => {
           <div className="w-[51px] flex justify-center" title="Push-only — no email version of this">
             <span
               className="font-sans text-ds-14"
-              style={{ color: "hsl(var(--olivewood) / 0.3)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
               aria-hidden
             >
               —

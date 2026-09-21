@@ -32,13 +32,17 @@ import { collectLowAlphaForegrounds } from "../../scripts/a11y/low-alpha-text-in
 
 /**
  * ACCEPTED, EACH LOOKED AT. Everything here is below 4.5:1 on at least one
- * surface and is NOT the separator class. Three reasons recur:
+ * surface and is NOT a defect. Three reasons, and only three:
  *
  *  (a) NON-TEXT. A decorative or duplicated-by-adjacent-text icon — Loader2,
- *      Video, ImagePlus, Circle, TrendingUp, ChevronRight. WCAG 1.4.3 governs
- *      TEXT; these are graphical objects, and the purely decorative ones are
- *      exempt entirely. The scanner cannot tell an icon from a word, so it
- *      reports them and a human dispositions them.
+ *      Video, ImagePlus, Circle, TrendingUp, ChevronRight, Gift, Bell, Search,
+ *      sonner's close ×. WCAG 1.4.3 governs TEXT; these are graphical objects
+ *      under 1.4.11, whose floor is 3:1, and the purely decorative ones are
+ *      exempt outright. The scanner cannot tell an icon from a word — it reads
+ *      a `color:` declaration, and a Lucide glyph takes its stroke from
+ *      `currentColor` exactly like a letter does — so it reports them and a
+ *      human dispositions them. EVERY entry below names the glyph, so "it's an
+ *      icon" can be checked rather than believed.
  *
  *  (b) WRONG SURFACE ASSUMED. `--parchment / 0.85` is near-white ink painted on
  *      a dark bark bar (the bulk-dismiss bar, the conversation-list overlay).
@@ -47,18 +51,23 @@ import { collectLowAlphaForegrounds } from "../../scripts/a11y/low-alpha-text-in
  *      high-contrast. These are false positives of the static approximation,
  *      kept visible rather than silently excluded.
  *
- *  (c) REAL, AND NOT THIS LANE'S. Genuinely dim text that is a defect in its
- *      own right — the disabled calendar day, the notification-preference
- *      sublabels, the ChatPresence timestamps. Filed in docs/OPEN.md rather
- *      than changed here: this lane was sent for the separator, and "fix the
- *      exact thing named" outranks tidying on the way past. They are pinned so
- *      they cannot get WORSE or MULTIPLY unnoticed.
+ *  (c) A DIFFERENT WCAG THRESHOLD APPLIES, and is met. The scanner hard-codes
+ *      4.5:1 because it cannot read a font size out of a `clamp()` or an
+ *      `[aria-disabled]` out of a render prop. Two cases, both argued in a
+ *      comment at the declaration itself, not only here.
+ *
+ * (c) USED TO MEAN "real, dim, and someone else's problem" — twenty-one text
+ * declarations parked behind a promise. On 2026-09-20 they were fixed rather
+ * than re-parked: nineteen declarations darkened or re-tokened to the lowest
+ * value that clears AA, five reclassified to (a) after looking at what the
+ * element actually was, and two to (c). That category no longer exists, and it
+ * should not come back — a real failure gets fixed or it gets a WCAG clause.
  *
  * To remove an entry, fix the declaration — the guard fails if a stale entry
  * lingers. To add one, say which of (a)/(b)/(c) it is and why.
  */
 const ACCEPTED = new Map<string, number>([
-  // (a) non-text icons
+  // (a) non-text icons — 1.4.11's 3:1 floor, or decorative and exempt outright
   ["src/components/BrowseMap.tsx --bark/0.6", 2], //                     2.47:1 — two Loader2 spinners
   ["src/components/analytics/AnalyticsUpgradePanel.tsx --bark/0.6", 1], // 2.47:1 — TrendingUp, beside its own heading
   ["src/components/postjob/detailsSection/VideoScope.tsx --bark/0.5", 1], // 2.08:1 — Video glyph above its label
@@ -66,33 +75,32 @@ const ACCEPTED = new Map<string, number>([
   ["src/pages/CompleteProfile.tsx --burnt-sienna/0.7", 1], //             2.87:1 — Circle bullet, aria-hidden, decorative
   ["src/components/messages/ChatHeader.tsx --olivewood/0.65", 1], //      4.24:1 — ChevronRight affordance
   ["src/components/dashboard/jobDetailDialog/JobStatTiles.tsx --burnt-sienna/0.7", 1], // 2.87:1 — tile icon
+  // Reclassified 2026-09-20 — each was on the "21 failing text declarations"
+  // list, and each turned out to be a glyph, not a word.
+  ["src/pages/HelprWrapped.tsx --burnt-sienna/0.75", 1], //               3.11:1 — <Gift className="w-10 h-10">, ornament above its own <h2>
+  ["src/components/landing/HeroSection.tsx --olivewood/0.55", 1], //      3.23:1 — <ChevronDown>, aria-hidden scroll hint that fades out by 160px
+  ["src/pages/giftCards/RecipientPicker.tsx --olivewood/0.6", 1], //      3.70:1 — <Search> inside the field, pointer-events-none; the placeholder says it
+  ["src/components/PushNotificationPrompt.tsx --bark/0.85", 1], //        3.97:1 — <Bell className="w-3.5 h-3.5"> beside its own label
+  ["src/components/ui/sonner.tsx --olivewood/0.65", 1], //                4.24:1 — sonner's close is an <svg aria-hidden stroke="currentColor">, button labelled "Close toast"
 
   // (b) painted on a dark ground the static scan cannot see
   ["src/components/messages/ConversationList.tsx --parchment/0.85", 1], // "1.00:1" — near-white on bark
   ["src/pages/activity/BulkDismissBar.tsx --parchment/0.85", 1], //       "1.00:1" — near-white on bark
 
-  // (c) real, dim, and owned elsewhere — pinned so they cannot worsen
-  ["src/components/ChatPresence.tsx --bark/0.55", 2], //                  2.26:1
-  ["src/components/ChatPresence.tsx --bark/0.7", 1], //                   2.96:1
-  ["src/components/JobConfirmation.tsx --bark/0.85", 1], //               3.97:1
-  ["src/components/NotificationPreferences.tsx --olivewood/0.3", 3], //   1.79:1
-  ["src/components/PushNotificationPrompt.tsx --bark/0.85", 1], //        3.97:1
-  ["src/components/TrustRow.tsx --burnt-sienna/0.35", 1], //              1.62:1
-  ["src/components/activity/postedJobs/ApplicantsPanel.tsx --ink-deep/0.55", 1], // 3.53:1
-  ["src/components/dashboard/JobDetailDialog.tsx --burnt-sienna/0.85", 1], // 3.63:1
-  ["src/components/landing/HeroSection.tsx --olivewood/0.55", 1], //      3.23:1
-  ["src/components/landing/HowItWorksSection.tsx --burnt-sienna/0.35", 1], // 1.62:1
-  ["src/components/messages/ConversationList.tsx --olivewood/0.6", 1], // 3.70:1
-  ["src/components/messages/chatView/ChatComposer.tsx --olivewood/0.6", 1], // 3.70:1
-  ["src/components/profile/EarningsTab.tsx --olivewood/0.5", 2], //       2.84:1
-  ["src/components/profile/EarningsTab.tsx --olivewood/0.65", 2], //      4.24:1
-  ["src/components/ui/calendar.tsx --burnt-sienna/0.78", 1], //           3.26:1
-  ["src/components/ui/calendar.tsx --olivewood/0.35", 1], //              1.99:1 — disabled day, also carries opacity-50
-  ["src/components/ui/sonner.tsx --olivewood/0.65", 1], //                4.24:1
-  ["src/pages/GiftCard.tsx --bark/0.7", 1], //                            2.96:1
-  ["src/pages/HelprWrapped.tsx --burnt-sienna/0.75", 1], //               3.11:1
-  ["src/pages/HelprWrapped.tsx --burnt-sienna/0.85", 1], //               3.63:1
-  ["src/pages/giftCards/RecipientPicker.tsx --olivewood/0.6", 1], //      3.70:1
+  // (c) a different WCAG threshold applies, and is met
+  //
+  // The disabled day: 1.4.3 exempts "text that is part of an inactive user
+  // interface component" by name. Darkening it is not a fix — a disabled day
+  // that reads as legible as an enabled one is a new defect — and it carries
+  // `opacity-50` beside the tint saying the same thing twice on purpose.
+  ["src/components/ui/calendar.tsx --olivewood/0.35", 1], //              1.99:1 — react-day-picker's `disabled` day button
+  //
+  // The step numerals: `clamp(2.125rem, 6.5vw, 6rem)` font-black is never below
+  // 34px, so 1.4.3's LARGE SCALE floor of 3:1 governs, not 4.5:1. They were
+  // 0.35 = 1.62:1, which missed even that, and are now the lowest alpha that
+  // clears 3:1 on every surface. Not taken further on purpose: full-strength
+  // sienna would make "01" louder than the Bodoni title under it.
+  ["src/components/landing/HowItWorksSection.tsx --burnt-sienna/0.75", 1], // 3.11:1 worst surface, 3.61:1 on its real light ground
 ]);
 
 type Row = { file: string; line: number; token: string; alpha: number; worst: [string, number]; source: string };
@@ -148,7 +156,13 @@ describe("low-alpha foreground contrast", () => {
     ).toEqual([]);
   });
 
-  // @mutate src/components/TrustRow.tsx | hsl(var(--burnt-sienna) / 0.35) | hsl(var(--burnt-sienna))
+  // The mutation used to darken TrustRow's separator, which was the stalest
+  // candidate in the list. TrustRow has no tint at all any more (2026-09-20),
+  // so the mutation moved to the one remaining (c) entry that names an alpha:
+  // taking the step numerals to full sienna deletes
+  // `HowItWorksSection --burnt-sienna/0.75` from the world and the entry below
+  // must then be reported stale.
+  // @mutate src/components/landing/HowItWorksSection.tsx | hsl(var(--burnt-sienna) / 0.75) | hsl(var(--burnt-sienna))
   it("the accepted list does not rot", () => {
     const seen = new Set(failing.map(keyOf));
     const stale = [...ACCEPTED.keys()].filter((k) => !seen.has(k));

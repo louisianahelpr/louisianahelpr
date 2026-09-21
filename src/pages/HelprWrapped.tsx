@@ -538,10 +538,20 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
                 </div>
                 {/* Part of the year failed to load — say so rather than let
                     an undercount pass for the full picture. */}
+                {/* THE UNDERCOUNT WARNING USES --accent-ink, not
+                    --burnt-sienna. This is the line that admits the numbers
+                    above it may be wrong, so it is the last text on the page
+                    that should be hard to read — and at `--burnt-sienna/0.85`
+                    it measured 3.63:1 on a dark card against a 4.5:1 floor.
+                    Raw sienna clears AA on dark at no alpha below 1.0;
+                    `--accent-ink` is the same colour in light mode
+                    (19 75% 35%) and the legible lift in dark (19 70% 66%), so
+                    this is a dark-mode-only pixel change. 0.9 → 4.86:1, still
+                    short of full strength. */}
                 {stats?.incomplete && (
                   <p
                     className="text-center text-ds-11 font-sans"
-                    style={{ color: "hsl(var(--burnt-sienna) / 0.85)" }}
+                    style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
                   >
                     Some of your {YEAR} didn't load, so these numbers may be low.{" "}
                     <button

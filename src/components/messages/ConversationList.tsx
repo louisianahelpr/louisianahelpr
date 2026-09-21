@@ -761,8 +761,13 @@ export function ConversationList({
           restore it, not just for N days), and very old archives can fall
           outside the 200-message fetch window (see the onClick refresh
           above) and simply not be resolvable here yet. */}
+      {/* THE HIDDEN-THREADS NOTE IS 0.7, was 0.6 (3.70:1 against a 4.5:1 AA
+          floor). 0.7 is the lowest alpha on this token that clears AA (4.90:1)
+          and is the same ink the aged-out notice further down this file already
+          uses, so the inbox's two explanatory notes now match instead of
+          differing by an alpha nobody chose. */}
       {inboxTab === "recentlyDeleted" && (
-        <p className="px-4 pb-1 text-ds-10 font-sans" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+        <p className="px-4 pb-1 text-ds-10 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
           Hidden threads stay here until restored — not on a timer. Very old ones may take a refresh to appear.
         </p>
       )}

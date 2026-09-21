@@ -238,7 +238,22 @@ const HowItWorksSection = () => {
                   className="block shrink-0 font-display font-black leading-none"
                   style={{
                     fontSize: "clamp(2.125rem, 6.5vw, 6rem)",
-                    color: "hsl(var(--burnt-sienna) / 0.35)",
+                    // 0.75, was 0.35 (1.62:1). THE FLOOR HERE IS 3:1, NOT 4.5:1
+                    // — this numeral is never smaller than 2.125rem = 34px and
+                    // is font-black, which is WCAG 1.4.3 "large scale" by a wide
+                    // margin — but 1.62:1 missed even that, so the step numbers
+                    // were washing out rather than reading as quiet.
+                    // 0.75 is the LOWEST alpha that clears 3:1 on every surface
+                    // (ladder, worst surface: 0.35 → 1.62, 0.6 → 2.44, 0.7 →
+                    // 2.87, 0.75 → 3.11; on this card's real light ground,
+                    // 3.61:1). It is deliberately NOT taken to the 4.5:1 that
+                    // would need full-strength sienna: the numeral is the
+                    // ordinal, the Bodoni title under it is the message, and a
+                    // solid terracotta "01" would out-shout "Post the job".
+                    // Pinned in src/test/lowAlphaForegroundContrast.test.ts,
+                    // which applies a flat 4.5 because a static scan cannot read
+                    // a font size out of a clamp().
+                    color: "hsl(var(--burnt-sienna) / 0.75)",
                     letterSpacing: "-0.04em",
                   }}
                 >

@@ -192,8 +192,14 @@ export function ApplicantsPanel({
                   <Eye className="w-3 h-3 shrink-0" aria-hidden />
                   {jobAnalytics.viewCount} {jobAnalytics.viewCount === 1 ? "view" : "views"}
                 </span>
+                {/* THE CONVERSION LINE IS 0.65, was 0.55 (3.53:1 against a
+                    4.5:1 AA floor). 0.65 is the lowest alpha on --ink-deep that
+                    clears (0.55 → 3.53, 0.6 → 4.08, 0.65 → 4.74), and the line
+                    is still the quieter of the pair: the view count above it is
+                    0.7 at ds-12, this is 0.65 at ds-11. Size and alpha both
+                    still descend — nothing was flattened to buy the ratio. */}
                 {jobAnalytics.conversionRate !== null && (
-                  <span className="block text-ds-11" style={{ color: "hsl(var(--ink-deep) / 0.55)" }}>
+                  <span className="block text-ds-11" style={{ color: "hsl(var(--ink-deep) / 0.65)" }}>
                     {jobAnalytics.conversionRate}% applied
                   </span>
                 )}

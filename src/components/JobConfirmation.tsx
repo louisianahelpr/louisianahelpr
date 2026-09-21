@@ -586,8 +586,16 @@ export function JobConfirmation({
           </span>
         </div>
 
+        {/* THE CONFIRMED RECEIPT IS FULL BARK, no alpha. At 0.85 it measured
+            3.97:1 on the page ground against a 4.5:1 AA floor, and bark cannot
+            clear AA below 0.95 (ladder on parchment: 0.7 → 2.96, 0.85 → 3.97,
+            0.9 → 4.40, 0.95 → 4.89, 1.0 → 5.44). Rather than invent 0.95, the
+            line takes the colour of the confirmed chip directly above it, which
+            is already bare `hsl(var(--bark))` — the receipt and the chip say
+            the same thing, so they should be the same ink. 5.44:1 light /
+            5.82:1 dark, no layout change; it stays subordinate on size. */}
         {myConfirmed && (
-          <p className="font-sans inline-flex items-center gap-1 text-ds-10" style={{ color: "hsl(var(--bark) / 0.85)" }}>
+          <p className="font-sans inline-flex items-center gap-1 text-ds-10" style={{ color: "hsl(var(--bark))" }}>
             <ShieldCheck className="w-3 h-3" />
             Confirmed {new Date(myConfirmed).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
           </p>

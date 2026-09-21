@@ -2,7 +2,7 @@
  * TrustRow — a compact horizontal strip of trust signals for a user profile.
  *
  * Renders only the chips that have real data — never empty or zero-value chips.
- * Chips are separated by a burnt-sienna dot at 35% opacity.
+ * Chips are separated by a dot that inherits the row's own ink (see DOT below).
  *
  * Usage:
  *   <TrustRow idVerified completedJobs={12} avgRating={4.9} repeatHirePercent={50} />
@@ -22,11 +22,25 @@ interface TrustRowProps {
   className?: string;
 }
 
-const DOT = (
-  <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }} aria-hidden>
-    ·
-  </span>
-);
+/**
+ * THE SEPARATOR HAS NO COLOUR OF ITS OWN. It used to be
+ * `hsl(var(--burnt-sienna) / 0.35)` — 1.77:1 on a white card, 1.62:1 on a dark
+ * one, against a 4.5:1 AA floor. Same class of defect, and the same remedy, as
+ * EarningHistory's dot (92d448a8d): the glyph inherits the row it punctuates
+ * (`hsl(var(--olivewood) / 0.8)`, set on the wrapper below — 7.11:1 light,
+ * 7.14:1 dark) instead of carrying a tint nobody would have picked on purpose.
+ *
+ * Sienna could not have been kept at ANY alpha: measured ladder on the dark
+ * card, 0.35 → 1.62, 0.7 → 2.87, 0.85 → 3.63, 1.0 → 4.53. Only full-strength
+ * sienna clears, and a full-strength orange dot between two quiet uppercase
+ * chips shouts louder than the chips themselves.
+ *
+ * `aria-hidden` stays — it is independently right; a screen reader announcing a
+ * bare "·" between "ID Verified" and "12 jobs done" is noise — but it does NOT
+ * clear the contrast gate on its own: axe's colour-contrast rule matches visual
+ * visibility, not the accessibility tree.
+ */
+const DOT = <span aria-hidden>·</span>;
 
 export function TrustRow({
   idVerified,

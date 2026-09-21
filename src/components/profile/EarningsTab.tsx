@@ -469,6 +469,17 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         />
 
         <SectionRule />
+        {/* BOTH ROWS BELOW ARE olivewood/0.7 NOW — subtitles and chevrons alike.
+            The subtitles were 0.65 (4.24:1) and the `›` affordances 0.5
+            (2.84:1), against a 4.5:1 AA floor. 0.7 is the lowest alpha on this
+            token that clears (0.5 → 2.84, 0.65 → 4.24, 0.7 → 4.90) and it is
+            already the app's quiet-ink tier in 39 other files, so nothing new
+            is invented. The hierarchy is unchanged where it actually lives: the
+            row titles stay `--ink-deep` at ds-13 semibold, the subtitles stay
+            ds-11 at a lighter ink, and the chevron stays the smallest thing in
+            the row. Only the chevron moves visibly — it was two steps below its
+            own subtitle and is now level with it, which is right: a disclosure
+            arrow that is fainter than the text it discloses reads as disabled. */}
         <Collapsible>
           <CollapsibleTrigger asChild>
             <button
@@ -479,13 +490,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                   More Insights
                 </span>
-                <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                   Where your money comes from, by category and month
                 </span>
               </span>
               <span
                 className="text-ds-13 shrink-0 transition-transform group-data-[state=open]:rotate-90"
-                style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                 aria-hidden="true"
               >
                 &rsaquo;
@@ -506,11 +517,11 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                   Advanced Analytics
                 </span>
-                <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                   Trends over time, and when work gets posted near you
                 </span>
               </span>
-              <span className="text-ds-13 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.5)" }} aria-hidden="true">
+              <span className="text-ds-13 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden="true">
                 &rsaquo;
               </span>
             </button>

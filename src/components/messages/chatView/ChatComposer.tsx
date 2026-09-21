@@ -170,9 +170,13 @@ export function ChatComposer({
             }}
             data-testid="thread-closed-unsent-draft"
           >
+            {/* 0.7, was 0.6 (3.70:1 against a 4.5:1 AA floor); 0.7 is the
+                lowest alpha on this token that clears (4.90:1). Still clearly
+                the label rather than the content: the draft body below it is
+                0.85 at ds-13, this is 0.7 at ds-11 uppercase. */}
             <p
               className="font-sans text-ds-11 uppercase tracking-wide mb-1"
-              style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
             >
               Not sent
             </p>

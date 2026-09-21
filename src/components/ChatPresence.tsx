@@ -76,14 +76,24 @@ export const ReadReceipt = ({
         aria-pressed={revealed}
         title="Delivered"
       >
+        {/* FULL BARK on both, no alpha. At 0.55 the tick and its label measured
+            2.26:1 against a 4.5:1 AA floor — the worst text contrast in the
+            chat. Bark cannot clear AA below 0.95 (ladder on parchment: 0.55 →
+            2.26, 0.7 → 2.96, 0.85 → 3.97, 0.9 → 4.40, 0.95 → 4.89, 1.0 →
+            5.44), so rather than invent an 0.95 the receipt takes the same bare
+            `hsl(var(--bark))` as the avatar initials below in this file. 5.44:1
+            light / 5.82:1 dark. These stay the quietest thing on a message row
+            by SIZE (ds-10 / ds-9 against ds-13 bubble copy), which is where the
+            hierarchy was actually coming from — the tint was only making them
+            hard to read, not making them secondary. */}
         <span
           className="text-ds-10 font-sans font-semibold underline decoration-dotted underline-offset-2"
-          style={{ color: "hsl(var(--bark) / 0.55)" }}
+          style={{ color: "hsl(var(--bark))" }}
         >
           ✓
         </span>
         {revealed && (
-          <span className="text-ds-9 font-sans" style={{ color: "hsl(var(--bark) / 0.55)" }}>
+          <span className="text-ds-9 font-sans" style={{ color: "hsl(var(--bark))" }}>
             Delivered
           </span>
         )}
@@ -136,8 +146,11 @@ export const ReadReceipt = ({
           </span>
         )}
       </span>
+      {/* Same change as the Delivered receipt above, same reason: 0.7 was
+          2.96:1, and bark clears AA only at ~0.95. Bare `hsl(var(--bark))`
+          matches the initials rendered two lines up. 5.44:1 / 5.82:1. */}
       {revealed && (
-        <span className="text-ds-9 font-sans" style={{ color: "hsl(var(--bark) / 0.7)" }}>
+        <span className="text-ds-9 font-sans" style={{ color: "hsl(var(--bark))" }}>
           {readAtLabel ? `Read ${readAtLabel}` : "Read"}
         </span>
       )}

@@ -547,7 +547,17 @@ const JobDetailDialog = ({
                     type="button"
                     onClick={() => setDescExpanded((v) => !v)}
                     className="mt-1.5 text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] hover:opacity-80 transition-opacity"
-                    style={{ color: "hsl(var(--burnt-sienna) / 0.85)" }}
+                    // --accent-ink, not --burnt-sienna. This is a real control
+                    // — the only way to read the rest of a long job
+                    // description — and at `--burnt-sienna/0.85` it measured
+                    // 3.63:1 on a dark card against a 4.5:1 AA floor. Raw
+                    // sienna clears AA on dark at no alpha below 1.0 (0.85 →
+                    // 3.63, 0.9 → 3.91, 1.0 → 4.53). `--accent-ink` is the
+                    // app's accent-as-text split: the SAME colour in light
+                    // (19 75% 35%) and the legible lift in dark (19 70% 66%),
+                    // so light mode moves only by the 0.85 → 0.9 alpha step.
+                    // 4.86:1 both themes.
+                    style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
                   >
                     {descExpanded ? "Show Less" : "Read More"}
                   </button>

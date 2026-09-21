@@ -9,8 +9,11 @@
  * docs/audit/storage-audit-2026-09-14.md, including the real prod shapes.
  */
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   checkCaps,
+  emptyListingError,
   identityDocumentDeletable,
   orphanReason,
   selectOrphans,
@@ -170,3 +173,50 @@ describe("caps", () => {
     expect(checkCaps({ orphans: objects.slice(0, 6), objects }).tripped).toBe(false);
   });
 });
+
+/**
+ * "Reports success having measured nothing" is a proven failure shape in this
+ * repo — another sweeper printed `OK — all stranded rows unwound.` for five
+ * days over five real stuck rows. The orphan sweep had the same hole: a
+ * `listObjects()` that came back empty produced
+ * `storage orphan sweep: 0 files, 0.0 MB removed (0 objects, 0.0 MB total)`
+ * and exit 0. These pin BOTH halves: the rule, and the fact that the script
+ * actually applies it before it can report anything.
+ */
+describe("an empty listing is a broken read, never a clean sweep", () => {
+  it("refuses a zero-object listing", () => {
+    expect(emptyListingError([], [{ id: "avatars" }])).toMatch(/must never report clean/);
+  });
+
+  it("refuses a listing that is not an array at all", () => {
+    expect(emptyListingError(undefined, undefined)).toMatch(/must never report clean/);
+  });
+
+  it("passes a real listing", () => {
+    expect(emptyListingError([obj("avatars", `${U_GONE}/a.png`)], [{ id: "avatars" }])).toBeNull();
+  });
+
+  it("the sweep script calls it, and THROWS on it, before it can print a summary", () => {
+    // MOUNT-WIRING: the rule above is worth nothing if nobody applies it, and
+    // a guard on the pure function alone cannot see that. Comments blanked so
+    // a `// emptyListingError(...)` cannot stand in for the call.
+    const src = readFileSync(resolve(__dirname, "..", "..", "scripts", "storage-orphan-sweep.mjs"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+      .replace(/(^|\n)[ \t]*\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, " "));
+    const call = /const\s+(\w+)\s*=\s*emptyListingError\(\s*objects\s*,\s*buckets\s*\)/.exec(src);
+    expect(call, "storage-orphan-sweep.mjs must call emptyListingError(objects, buckets)").not.toBeNull();
+    expect(src, "and it must ABORT on it, not log it").toMatch(
+      new RegExp(`if\\s*\\(${call![1]}\\)\\s*throw new Error\\(${call![1]}\\)`),
+    );
+    // …and before the first summary is composed.
+    expect(src.indexOf("emptyListingError")).toBeLessThan(src.indexOf("storage orphan sweep"));
+  });
+});
+
+// PROVEN RED 2026-09-21: dropping the 7-day age floor fails "never touches an
+// object younger than 7 days"; ignoring the second read fails "an owner that
+// reappears on the second read is NOT deleted"; downgrading the empty-listing
+// abort to a log fails the mount-wiring test added the same day.
+// @mutate scripts/lib/storageOrphans.mjs | if (!Number.isFinite(created) || now - created < floorMs) { | if (!Number.isFinite(created)) {
+// @mutate scripts/lib/storageOrphans.mjs | if (!r2 || !identityDocumentDeletable(o.bucket, o.name, first) | if (false || !identityDocumentDeletable(o.bucket, o.name, first)
+// @mutate scripts/storage-orphan-sweep.mjs | if (listingError) throw new Error(listingError); | if (listingError) log(listingError);

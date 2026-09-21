@@ -32,7 +32,7 @@
  * Exit: 0 clean or deleted; 2 cap tripped; 1 failure.
  */
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
-import { DEFAULTS, checkCaps, formatMB, orphanReason, selectOrphans } from "./lib/storageOrphans.mjs";
+import { DEFAULTS, checkCaps, emptyListingError, formatMB, orphanReason, selectOrphans } from "./lib/storageOrphans.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(`--${name}`);
@@ -223,6 +223,11 @@ async function main() {
   const { buckets, objects } = await listObjects();
   const totalBytes = objects.reduce((s, o) => s + o.size, 0);
   log(`listed ${objects.length} objects, ${totalBytes} bytes, ${buckets.length} buckets`);
+
+  // An empty listing is a BROKEN READ, never a clean bucket set. Without this
+  // the sweep prints "0 files ... (0 objects, 0.0 MB total)" and exits 0.
+  const listingError = emptyListingError(objects, buckets);
+  if (listingError) throw new Error(listingError);
 
   const first = await readWorld();
   const firstPass = objects.filter((o) => orphanReason(o.bucket, o.name, first));

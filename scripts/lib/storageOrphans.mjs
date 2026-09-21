@@ -161,6 +161,30 @@ export function selectOrphans({ objects, first, second, now, minAgeDays = DEFAUL
 }
 
 /**
+ * A sweep that MEASURED NOTHING must never report "clean".
+ *
+ * The failure shape this closes is a real one in this repo: a sweeper printed
+ * `"OK — all stranded rows unwound."` for five days over five genuinely stuck
+ * rows, because the thing it measured came back empty and empty read as clean.
+ * `storage-orphan-sweep.mjs` had the same hole: `listObjects()` returning `[]`
+ * — a revoked service key, a renamed bucket, a listing API change, a 500 that
+ * the pagination loop swallowed — produced
+ * `storage orphan sweep: 0 files, 0.0 MB removed (0 objects, 0.0 MB total)`
+ * and exit 0. Prod has thousands of objects; zero is never an answer, it is a
+ * broken read.
+ *
+ * Returns the error string, or null when the listing is real.
+ */
+export function emptyListingError(objects, buckets) {
+  const n = Array.isArray(objects) ? objects.length : -1;
+  if (n > 0) return null;
+  return (
+    `listed ${n < 0 ? "no array of" : n} objects across ${Array.isArray(buckets) ? buckets.length : 0} bucket(s) — ` +
+    `a sweep that measured nothing must never report clean. Check the service-role key and the bucket list.`
+  );
+}
+
+/**
  * Hard caps. Tripped means the matching is probably wrong: delete NOTHING and
  * alert. Over `maxFiles` orphans in total, or any one bucket whose orphans are
  * BOTH over `maxBucketFiles` files AND over `maxBucketPct` percent of it.

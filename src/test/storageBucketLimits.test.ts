@@ -188,3 +188,11 @@ describe("storage bucket size/MIME caps (authz-rls H-003 class check)", () => {
     expect(before).toContain("social-posts");
   });
 });
+
+// PROVEN RED 2026-09-21: dropping job-photos' file_size_limit fails both
+// "public bucket 'job-photos' declares both …" and "no public bucket is left
+// uncapped" with + ["job-photos"].
+// SOURCE-TEXT PIN, stated at the top of this file and worth restating: it
+// replays MIGRATIONS. A bucket whose limits are changed in the Supabase
+// dashboard, or a bucket created outside a migration, is invisible to it.
+// @mutate supabase/migrations/20260915055517_storage_bucket_limits.sql | SET file_size_limit  = 50 * 1024 * 1024, | SET file_size_limit  = NULL,

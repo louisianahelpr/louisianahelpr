@@ -31,4 +31,5 @@ export function checkCaps(args: {
   maxFiles?: number;
   maxBucketPct?: number;
 }): { tripped: boolean; reasons: string[] };
+export function emptyListingError(objects: unknown, buckets: unknown): string | null;
 export function formatMB(bytes: number): string;

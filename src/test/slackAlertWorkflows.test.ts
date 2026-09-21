@@ -68,6 +68,15 @@ describe("Slack alerts in GitHub workflows are never silently skipped", () => {
     for (const f of readdirSync(DIR)) {
       if (f.endsWith(".yml") || f.endsWith(".yaml")) files[f] = readFileSync(join(DIR, f), "utf8");
     }
+    // FLOOR, on the CONSTRUCT count, not just the file count: an empty
+    // workflows directory, or a repo where nothing posts to Slack any more,
+    // would pass this whole guard vacuously. 42 workflows today, 6 of which
+    // read SLACK_WEBHOOK_URL.
+    expect(Object.keys(files).length, "no workflows parsed — the inventory is broken").toBeGreaterThanOrEqual(40);
+    const slackSteps = Object.values(files).flatMap((src) =>
+      steps(src).filter((st) => /secrets\.SLACK_WEBHOOK_URL/.test(st)),
+    );
+    expect(slackSteps.length, "no workflow reads SLACK_WEBHOOK_URL — rules 1 and 3 would pass vacuously").toBeGreaterThanOrEqual(6);
     expect(slackWorkflowViolations(files)).toEqual([]);
   });
 
@@ -93,3 +102,15 @@ jobs:
     expect(v.some((x) => x.includes("never prints ::warning or ::error"))).toBe(true);
   });
 });
+
+// PROVEN RED 2026-09-21, one per rule (all three fail "every workflow passes"):
+//   1. wrong secret name  -> "db-deploy.yml: uses secrets.SLACK_WEBHOOK …"
+//   2. if:-gated on it    -> "db-deploy.yml: step if: gates on a Slack secret …"
+//   3. no ::warning       -> "slack-test.yml: step \"Post test message\" reads
+//                             SLACK_WEBHOOK_URL but never prints ::warning …"
+// SOURCE-TEXT PIN: it reads workflow YAML, never GitHub. It cannot tell whether
+// the SLACK_WEBHOOK_URL repo secret is actually set, nor whether Slack accepts
+// it — slack-test.yml (workflow_dispatch) is the only live proof of that.
+// @mutate .github/workflows/db-deploy.yml | SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} | SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+// @mutate .github/workflows/db-deploy.yml | if: failure() && steps.precheck.outputs.skip != 'true' | if: failure() && steps.precheck.outputs.skip != 'true' && env.SLACK_WEBHOOK_URL != ''
+// @mutate .github/workflows/slack-test.yml | echo "::error::SLACK_WEBHOOK_URL is not set" | echo "SLACK_WEBHOOK_URL is not set"

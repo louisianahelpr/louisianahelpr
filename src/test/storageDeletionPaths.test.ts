@@ -50,6 +50,33 @@ const files = ["src", "supabase/functions", "scripts"].flatMap((d) => walk(join(
 const read = (p: string) => readFileSync(p, "utf8");
 const rel = (p: string) => relative(ROOT, p);
 
+/**
+ * The source with COMMENTS and IMPORT STATEMENTS blanked (blanked, not deleted,
+ * so offsets and line numbers survive).
+ *
+ * WHY (vacuity proof, 2026-09-21): `rule.removal` was tested against the raw
+ * file, so the `import { … purgeAccount } from "../_shared/accountPurge.ts"`
+ * line alone satisfied it. Replacing the whole
+ * `const purge = await purgeAccount(supabaseAdmin, userId);` in
+ * supabase/functions/admin-delete-user/index.ts with a stub — an admin deleting
+ * an account removes the auth row and leaves every avatar, ID document,
+ * credential scan and proof photo in storage forever — left this guard GREEN
+ * (12 passed). Same shape as the `retireStuckSeedSplits()` hole: a DEFINITION
+ * or IMPORT satisfying an assertion that meant a CALL. A comment would have
+ * done it too.
+ *
+ * Only `//` at the start of a line is treated as a comment, so a `https://`
+ * inside a string literal is left alone.
+ */
+const blank = (m: string) => m.replace(/[^\n]/g, " ");
+function callSites(src: string): string {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, blank)
+    .replace(/(^|\n)[ \t]*\/\/[^\n]*/g, blank)
+    .replace(/(^|\n)[ \t]*import\s[\s\S]*?from\s*["'][^"']+["'];?/g, blank)
+    .replace(/(^|\n)[ \t]*import\s*\{[\s\S]*?\}\s*from[^\n]*/g, blank);
+}
+
 /** SQL functions whose latest definition deletes from jobs. */
 function jobDeletingFunctions(): string[] {
   const dir = join(ROOT, "supabase/migrations");
@@ -65,6 +92,8 @@ function jobDeletingFunctions(): string[] {
 
 interface Rule {
   name: string;
+  /** Minimum number of files this rule must still match. */
+  floor: number;
   hits: (src: string) => boolean;
   removal: RegExp;
   exempt: Record<string, string>;
@@ -75,6 +104,7 @@ const JOB_FNS = jobDeletingFunctions();
 const RULES: Rule[] = [
   {
     name: "jobs row delete removes job media",
+    floor: 14,
     hits: (src) =>
       /from\(\s*["']jobs["']\s*\)(?:(?!;)[\s\S]){0,120}?\.delete\(/.test(src) ||
       /jobs\?[^`"']*`[^)]*\{\s*method:\s*["']DELETE["']/.test(src) ||
@@ -95,6 +125,7 @@ const RULES: Rule[] = [
   },
   {
     name: "messages row delete removes its attachment",
+    floor: 5,
     hits: (src) =>
       /from\(\s*["']messages["']\s*\)(?:(?!;)[\s\S]){0,120}?\.delete\(/.test(src) ||
       // The REST spelling, with or without the `rest/v1/` prefix. The prefixed
@@ -103,7 +134,15 @@ const RULES: Rule[] = [
       // { method: "DELETE" })` — a real hit this rule walked straight past.
       // Only the JOBS rule caught that file, and only because its own matcher
       // already had the unprefixed form. Same shape as the jobs one now.
-      /messages\?[^`"']*`[^)]*\{\s*method:\s*["']DELETE["']/.test(src) ||
+      // `[^`]*`, not `[^`"']*`: the URL is a template literal, so an
+      // interpolation inside it may legitimately contain a quote. It does —
+      // `scripts/audit/two-account-journey.mjs` deletes its own message rows
+      // through
+      //   `${SUPABASE_URL}/rest/v1/messages?content=like.${encodeURIComponent(MARK + "%")}`
+      // and the `"` in `"%"` made the old class fail, so a REAL messages
+      // DELETE was invisible to this rule and its exemption looked stale
+      // (found 2026-09-21 by the stale-exemption check below).
+      /messages\?[^`]*`[^)]*\{\s*method:\s*["']DELETE["']/.test(src) ||
       /\bdel\(\s*(?:s,\s*)?[`"']messages[?"'`]/.test(src),
     removal: /removeMessageAttachment|collectMessageAttachments|removeJobMedia/,
     exempt: {
@@ -113,6 +152,7 @@ const RULES: Rule[] = [
   },
   {
     name: "user delete removes the user's storage",
+    floor: 4,
     hits: (src) =>
       /auth\.admin\.deleteUser\(/.test(src) ||
       /auth\/v1\/admin\/users\/\$\{[^}]+\}`,\s*\{\s*method:\s*["']DELETE["']/.test(src),
@@ -126,11 +166,30 @@ describe("storage deletion paths (class guard)", () => {
     expect(JOB_FNS).toContain("purge_user_data");
   });
 
+  // An exemption whose premise nobody checks is a hole with a reason attached.
+  // Every exempt path must still BE a hit: once a file stops deleting rows the
+  // exemption is dead text, and dead text is how a real offender gets waved
+  // through later under a name that was once legitimate.
+  it("no exemption is stale — every exempt file still matches its rule", () => {
+    const stale: string[] = [];
+    for (const rule of RULES) {
+      const hits = new Set(files.filter((f) => rule.hits(read(f))).map(rel));
+      for (const path of Object.keys(rule.exempt)) if (!hits.has(path)) stale.push(`${rule.name}: ${path}`);
+    }
+    expect(stale, "these exemptions no longer describe anything — delete them").toEqual([]);
+  });
+
   for (const rule of RULES) {
     it(rule.name, () => {
       const hits = files.filter((f) => rule.hits(read(f)));
-      expect(hits.length, `${rule.name}: inventory found nothing — the matcher is broken`).toBeGreaterThan(0);
-      const offenders = hits.filter((f) => !rule.removal.test(read(f)) && !rule.exempt[rel(f)]).map(rel);
+      // Floored at the real count, not at 1: a matcher that rots down to a
+      // single hit would otherwise still look healthy.
+      expect(hits.length, `${rule.name}: inventory found nothing — the matcher is broken`).toBeGreaterThanOrEqual(
+        rule.floor,
+      );
+      // `callSites()`, not `read()`: an import or a comment naming the removal
+      // helper is not a call to it. See the note on callSites above.
+      const offenders = hits.filter((f) => !rule.removal.test(callSites(read(f))) && !rule.exempt[rel(f)]).map(rel);
       expect(offenders, `${rule.name}: these delete rows but leave the files`).toEqual([]);
     });
   }
@@ -203,3 +262,11 @@ describe("attachment path from attachment_url", () => {
     expect(messageAttachmentPath(input)).toBe(expected);
   });
 });
+
+// PROVEN RED 2026-09-21 — and GREEN before the callSites() hardening above,
+// which is the whole finding: removing the ONLY purgeAccount() call from
+// admin-delete-user (an admin deleting an account takes the auth row and
+// leaves every avatar, ID document, credential scan and proof photo in storage
+// forever) passed 12/12, because the import line satisfied the removal regex.
+// @mutate supabase/functions/admin-delete-user/index.ts | const purge = await purgeAccount(supabaseAdmin, userId); | const purge = { failures: [] };
+// @mutate src/pages/Messages.tsx | await removeMessageAttachment(messages.find((m) => m.id === messageId)?.attachment_url, messageId); | 0;

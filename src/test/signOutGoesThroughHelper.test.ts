@@ -32,3 +32,12 @@ describe("sign-out goes through the scoped helper", () => {
     expect(hits, "use signOutWithPushCleanup({ scope }) instead").toEqual([]);
   });
 });
+
+// PROVEN RED 2026-09-21: the mutation below (the session-timeout logout going
+// straight to supabase.auth.signOut(), which defaults to scope "global" and so
+// logs the account out on every device) fails the second test with
+//   + ["src/hooks/useSessionTimeout.ts: await supabase.auth.signOut();"]
+// This guard is a SOURCE-TEXT PIN. It cannot see the helper's behaviour; that
+// is src/lib/authSignOut.test.ts, which pins the scope default and the
+// persisted-token floor.
+// @mutate src/hooks/useSessionTimeout.ts | await signOutWithPushCleanup(); | await supabase.auth.signOut();

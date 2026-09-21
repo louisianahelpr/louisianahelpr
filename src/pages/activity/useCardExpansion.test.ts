@@ -96,3 +96,9 @@ describe("useCardExpansion (VN-29)", () => {
     expect(second.result.current.expandedJobIds.has("done-1")).toBe(false);
   });
 });
+
+// VN-29 in one line: the hook must actually SEED its open set from
+// awaitsTipOrReview. Unwiring it (rather than breaking the predicate the
+// first describe block tests directly) is what proves the wiring.
+// @mutate src/pages/activity/useCardExpansion.ts | for (const job of postedJobs) if (awaitsTipOrReview(job, completedJobMeta)) s.add(job.id); | for (const job of postedJobs) if (false) s.add(job.id);
+// @mutate src/pages/activity/useCardExpansion.ts | return !(m.tipped && m.reviewed); | return false;

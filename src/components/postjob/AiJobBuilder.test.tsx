@@ -111,3 +111,8 @@ describe("AiJobBuilder", () => {
     expect(onGenerated).not.toHaveBeenCalled();
   });
 });
+
+// The load-bearing line is the busy-translation: without it the poster is
+// shown the model gateway's raw 503 JSON in a toast (measured 1 in 4 calls,
+// 2026-09-07).
+// @mutate src/components/postjob/AiJobBuilder.tsx | const busy = /503\|high demand\|overloaded\|429\|rate limit/i.test(raw); | const busy = false;

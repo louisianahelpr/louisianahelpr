@@ -95,3 +95,8 @@ describe("ConfirmedSection hides Cancel Job once the start has passed", () => {
     expect(screen.getByRole("button", { name: /^Cancel Job/ })).toBeInTheDocument();
   });
 });
+
+// Two production lines carry this file: the VN-18 label, and the start-time
+// gate that stops the app offering a cancel helper_cancel_booking would refuse.
+// @mutate src/components/activity/appliedJobCard/ConfirmedSection.tsx | const startPassed = hasJobStarted(job.date_needed, job.start_time); | const startPassed = false;
+// @mutate src/components/activity/appliedJobCard/ConfirmedSection.tsx | label="Cancel Job" | label="Can't Make It"

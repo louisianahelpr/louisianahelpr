@@ -137,3 +137,8 @@ describe("useDynamicTypeSync", () => {
     }
   });
 });
+
+// The clamp is the only thing between a 13px macOS `-apple-system-body`
+// reading (or a 32px one) and the whole app rendering at that scale.
+// @mutate src/lib/accessibility.ts | return Math.min(Math.max(measureDynamicTypeScale(), 0.85), 1.5); | return measureDynamicTypeScale();
+// @mutate src/lib/accessibility.ts | mq.addEventListener("change", handler); | void handler;

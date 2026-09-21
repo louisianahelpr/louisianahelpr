@@ -111,3 +111,8 @@ describe("describeCancellation — the card names who cancelled", () => {
     expect(describeCancellation({ ...base, cancelled_by: "admin-9" }, HELPER)).toBe("Cancelled by Helpr support");
   });
 });
+
+// The routing line: a synthetic `direct-<jobId>` row must never satisfy
+// isPending, or the card offers Withdraw/Edit against an id no table holds.
+// @mutate src/components/activity/appliedJobCard/appliedJobCardHelpers.ts | const isPending = app.status === "pending" && !isDirectOffer; | const isPending = app.status === "pending";
+// @mutate src/components/activity/appliedJobCard/appliedJobCardHelpers.ts | const isOffered = isDirectOffer \|\| (isAssigned && !job.helper_confirmed_at); | const isOffered = isAssigned && !job.helper_confirmed_at;

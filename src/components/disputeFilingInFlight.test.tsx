@@ -100,3 +100,6 @@ describe("DisputeDialog — same-frame double submit files one dispute", () => {
     expect(rpcMock.mock.calls.filter((c) => c[0] === "rpc_open_dispute")).toHaveLength(1);
   });
 });
+
+// The synchronous in-flight ref IS the guarantee this file buys.
+// @mutate src/components/DisputeDialog.tsx | if (submittingRef.current) return; | if (false) return;

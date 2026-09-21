@@ -111,3 +111,8 @@ describe("awardBlockFromError reads the codes the trigger actually raises", () =
     expect(awardBlockFromError({ message: "network request failed" })).toBeNull();
   });
 });
+
+// The whole file exists for ONE production line: the identity verdict accepts
+// EITHER source, like helper_award_block_reason() since 20260907013734.
+// @mutate src/lib/awardGate.ts | return source.connectIdentityVerified === true \|\| source.idvStatus === "verified"; | return source.connectIdentityVerified === true;
+// @mutate src/lib/awardGate.ts | if (!status.connected \|\| !status.details_submitted \|\| status.payouts_enabled !== true) { | if (false) {

@@ -92,8 +92,10 @@ const renderPanel = async () => {
 };
 
 describe("NotificationPanel refresh failure", () => {
+  const ROWS = state.rows;
   beforeEach(() => {
     state.fail = false;
+    state.rows = ROWS;
     toastError.mockReset();
   });
 
@@ -109,6 +111,22 @@ describe("NotificationPanel refresh failure", () => {
     expect(toastError).toHaveBeenCalledWith("Couldn't load notifications — try again?");
   });
 
+  // The OTHER half of `openRef.current && hasRowsOnScreen`. Without this the
+  // gate could be narrowed to `openRef.current` alone and both tests above
+  // stayed green — an OPEN panel with nothing on screen would then get the
+  // toast AND the inline error card for the same failure, which is the exact
+  // double-message this branch was written to stop.
+  it("stays silent when an OPEN panel has no rows — the inline card speaks", async () => {
+    state.rows = [];
+    await renderPanel();
+    fireEvent.click(screen.getAllByRole("button", { name: /notifications/i })[0]);
+    state.fail = true;
+    await act(async () => {
+      await state.onRefresh?.();
+    });
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
   it("stays silent when a refresh fails while the panel is CLOSED", async () => {
     await renderPanel();
     // Rows loaded, panel never opened.
@@ -119,3 +137,7 @@ describe("NotificationPanel refresh failure", () => {
     expect(toastError).not.toHaveBeenCalled();
   });
 });
+
+// BOTH halves of the reserved-toast gate, each killed on its own.
+// @mutate src/components/NotificationPanel.tsx | if (openRef.current && hasRowsOnScreen) { | if (hasRowsOnScreen) {
+// @mutate src/components/NotificationPanel.tsx | if (openRef.current && hasRowsOnScreen) { | if (openRef.current) {

@@ -127,3 +127,9 @@ describe("RecipientPicker", () => {
     expect(screen.getByText("You can't send a gift to yourself.")).toBeInTheDocument();
   });
 });
+
+// The email-vs-name router is the one production line every test here leans on:
+// an `@` anywhere routes to the email path, so a half-typed address is never
+// sent to `search_profiles_by_name`. Killing it fails 3 tests on assertions.
+// @mutate src/pages/giftCards/RecipientPicker.tsx | const looksLikeEmail = LOOKS_EMAIL_ISH.test(trimmed); | const looksLikeEmail = false;
+// @mutate src/pages/giftCards/RecipientPicker.tsx | const MIN_QUERY_LEN = 2; | const MIN_QUERY_LEN = 1;

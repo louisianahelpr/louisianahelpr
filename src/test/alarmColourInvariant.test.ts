@@ -7,6 +7,11 @@ import { JOB_STATUS_COLORS, FALLBACK_STATUS_COLOR } from "@/lib/statusColors";
 import { deriveCurrentStatusIdx, STATUS_IDX } from "@/components/JobTracking";
 import { railStepTone, type RailTone } from "@/components/activity/jobRailTone";
 
+// PROVEN ABLE TO FAIL 2026-09-20. Flattening the cursor's amber into the
+// completed green — the owner's "shouldn't be 2 different green" defect,
+// exactly — turns this file red at "the current step must be the single accent".
+// @mutate src/components/activity/jobRailTone.ts | if (isCurrent) return allDone ? "green" : "amber"; | if (isCurrent) return "green";
+
 /**
  * ONE ALARM COLOUR, ONE MEANING.
  *

@@ -17,6 +17,11 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import postcss from "postcss";
 
+// PROVEN ABLE TO FAIL 2026-09-20. Narrowing the cancelling selector so it no
+// longer matches the padding rule it pairs with re-creates VN-24's 56px
+// double-count, and the inventory reports the unpaired selector by name.
+// @mutate src/index.css | html.web-desktop.desktop-rail:not(.app-shell) #root:has(.app-shell-frame) { | html.web-desktop.desktop-rail.x:not(.app-shell) #root:has(.app-shell-frame) {
+
 type Found = { padded: string[]; cancelled: Set<string> };
 
 function inventory(css: string): Found {

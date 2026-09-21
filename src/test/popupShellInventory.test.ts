@@ -4,6 +4,11 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 
+// PROVEN ABLE TO FAIL 2026-09-20. Taking the shared Hero off one popup and
+// hand-rolling its header is the owner's "none of them have the same layout"
+// defect; the inventory names the file.
+// @mutate src/components/ReportDialog.tsx | <DialogHero title={title} /> | <div />
+
 /**
  * EVERY POPUP WEARS THE SHARED SHELL — the whole-codebase version.
  *

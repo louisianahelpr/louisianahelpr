@@ -3,6 +3,13 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 
+// PROVEN ABLE TO FAIL 2026-09-20 — after a real vacuity was fixed. The count
+// below used to run over RAW button.tsx, where a comment mentioning the class
+// made up the second of the two required occurrences: repainting `primary`
+// (the app's actual CTA) flat left this guard GREEN. Comments are stripped now,
+// and the same mutation kills it.
+// @mutate src/components/ui/button.tsx | primary:\n          "btn-grad-primary | primary:\n          "bg-primary
+
 /**
  * ONE PRIMARY, AND IT IS GLOSSY.
  *
@@ -134,7 +141,12 @@ describe("the shared primary is the only glossy primary", () => {
     // Every assertion below is stated as "…and it is not btn-grad-primary".
     // If the primitive stops emitting that class, the whole rule evaporates
     // silently and every offender below becomes indistinguishable from a CTA.
-    const button = repoFile("src/components/ui/button.tsx");
+    // COMMENTS STRIPPED FIRST, and that is not a detail. button.tsx carries a
+    // comment ("all three applied btn-grad-primary") that this count was
+    // including, so the floor of 2 was satisfied by ONE variant plus a
+    // sentence about the other. Measured 2026-09-20: repainting `primary`
+    // (the app's actual CTA) as a flat `bg-primary` left this test GREEN.
+    const button = stripComments(repoFile("src/components/ui/button.tsx"));
     expect(
       (button.match(/btn-grad-primary/g) ?? []).length,
       "button.tsx no longer gives BOTH `primary` and `default` btn-grad-primary — " +

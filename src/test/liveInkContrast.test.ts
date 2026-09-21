@@ -12,6 +12,11 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 
+// PROVEN ABLE TO FAIL 2026-09-20. Setting --live-ink back to --live's own value
+// drops the measured ratio to 3.11:1 and this file goes red. It measures a
+// CONTRAST RATIO from the token's H S% L%, not a count of call sites.
+// @mutate src/index.css | --live-ink: 142 72% 27%; | --live-ink: 142 64% 40%;
+
 const ROOT = path.resolve(__dirname, "../..");
 
 /** `color:` (not background-color / borderColor) whose value reads --live, across a multi-line ternary. */

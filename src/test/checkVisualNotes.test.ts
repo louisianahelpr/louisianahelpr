@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 // @ts-expect-error — plain .mjs script, no types
 import { checkRows, parseTracker } from "../../scripts/check-visual-notes.mjs";
 
+// PROVEN ABLE TO FAIL 2026-09-20. Dropping the verdict check lets a DEFECT
+// review tick a Confirmed box — the whole point of the checklist — and this
+// file goes red on the defect-review case.
+// @mutate scripts/check-visual-notes.mjs | v.screenshot === r.confirmed.value && v.verdict === "ok" | v.screenshot === r.confirmed.value
+
 const md = (rows: string) => `# Notes\n\n## Tracker\n\n| VN | Issue | Size | Fixed | Confirmed |\n|---|---|---|---|---|\n${rows}\n\n## Next\n| VN-99 | ignored | small | [x] | [x] |\n`;
 
 const FIX_TIME = Date.parse("2026-09-14T12:00:00Z");

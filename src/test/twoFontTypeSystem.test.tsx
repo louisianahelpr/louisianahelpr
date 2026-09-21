@@ -5,6 +5,12 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import HeroSection from "@/components/landing/HeroSection";
 
+// PROVEN ABLE TO FAIL 2026-09-20, in both directions: dropping `font-display`
+// from the LOCKED hero H1 reds the last test, and putting a real `font-serif`
+// call site back reds the second one (at the right line number) while the same
+// token inside a COMMENT correctly stays green.
+// @mutate src/components/landing/HeroSection.tsx | relative z-10 font-display font-black | relative z-10 font-black
+
 /**
  * TWO TYPEFACES, NOT THREE — owner decision 2026-09-07.
  *
@@ -52,6 +58,29 @@ const walk = (dir: string, out: string[] = []): string[] => {
   return out;
 };
 
+/**
+ * BLANK COMMENTS, KEEPING LINE NUMBERS.
+ *
+ * Prose ABOUT a retired token is not a call site. This file read raw lines and
+ * so read its own history back as a violation: a comment recording that the
+ * `font-serif` token had been retired reported that comment's own line as an
+ * offender (a false red nobody could clear except by deleting the sentence).
+ * A class inside a comment compiles to nothing by definition, so it cannot be
+ * the defect this file exists to catch.
+ *
+ * Every comment is replaced by SPACES rather than removed, so a reported
+ * `file:line` still points at the line it always did.
+ */
+const blankComments = (t: string): string => {
+  const blank = (m: string) => m.replace(/[^\n]/g, " ");
+  return t
+    .replace(/\/\*[\s\S]*?\*\//g, blank)
+    .replace(/<!--[\s\S]*?-->/g, blank)
+    // `(^|[^:])` keeps `https://…` out of it — the same guard every other
+    // source scan in src/test uses.
+    .replace(/(^|[^:])\/\/.*$/gm, (m, p1: string) => p1 + blank(m.slice(p1.length)));
+};
+
 const readOrSkip = (f: string): string | null => {
   try {
     return readFileSync(f, "utf8");
@@ -63,13 +92,22 @@ const readOrSkip = (f: string): string | null => {
 describe("two-font type system", () => {
   const files = walk(join(ROOT, "src")).concat(join(ROOT, "index.html"), join(ROOT, "tailwind.config.ts"));
 
+  it("the scan still sees the codebase (floor — an empty walk passes vacuously)", () => {
+    // Both scans below are `files.flatMap(…).toEqual([])`: if `walk` ever
+    // returns nothing — a renamed directory, a readdir that throws into the
+    // `continue`, a changed extension filter — every offender list is empty
+    // and this file reports the type system as clean while reading zero
+    // bytes. 1000 is a floor well under the ~1490 that exist today.
+    expect(files.length, "walk(src) found almost nothing — the scan is blind").toBeGreaterThan(1000);
+  });
+
   it("no file in src/, index.html or the Tailwind config selects EB Garamond", () => {
     const offenders = files
       .filter((f) => !f.endsWith("twoFontTypeSystem.test.tsx"))
       .flatMap((f) => {
         const text = readOrSkip(f);
         if (text === null) return [];
-        const lines = text.split("\n");
+        const lines = blankComments(text).split("\n");
         return lines
           .map((line, i) => ({ line, i }))
           // Prose that records the retirement is fine; anything that would
@@ -86,7 +124,7 @@ describe("two-font type system", () => {
       .flatMap((f) => {
         const text = readOrSkip(f);
         if (text === null) return [];
-        const lines = text.split("\n");
+        const lines = blankComments(text).split("\n");
         return lines
           .map((line, i) => ({ line, i }))
           .filter(({ line }) => /(^|[^\w-])!?font-serif(?![\w-])/.test(line))

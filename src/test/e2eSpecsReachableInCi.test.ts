@@ -216,7 +216,7 @@ function ciPlaywrightCommands(): { workflow: string; command: string }[] {
   const found: { workflow: string; command: string }[] = [];
   for (const file of readdirSync(WORKFLOWS).filter((f) => f.endsWith(".yml"))) {
     const src = readFileSync(join(WORKFLOWS, file), "utf8");
-    for (const rawLine of src.split("\n")) {
+    for (const rawLine of joinContinuations(src)) {
       const line = rawLine.trim();
       // Comments describe commands; they do not run them.
       if (line.startsWith("#")) continue;
@@ -232,6 +232,52 @@ function ciPlaywrightCommands(): { workflow: string; command: string }[] {
     }
   }
   return found;
+}
+
+/**
+ * Shell line-continuations, folded back into one line.
+ *
+ * This scanner is line-based, and a `run: |` block may spread one command over
+ * several lines with a trailing backslash. Unfolded, the scanner sees
+ * `npx playwright test --project=chromium \` — a project run with NO positional
+ * filters — and the spec paths on the following lines are invisible to it.
+ *
+ * Both directions are wrong and the second is the dangerous one:
+ *   - a spec named only on a continuation line reads as run by nothing;
+ *   - a command naming SOME specs reads as running the WHOLE project, which
+ *     credits coverage to specs the job never touches. That is exactly the
+ *     false "covered" this file exists to catch, manufactured by this file.
+ *
+ * Found 2026-09-21 by wiring a four-spec step as a multi-line `run: |` and
+ * watching all four still report as run by no CI job. The step that shipped is
+ * single-line, so nothing depends on this today — it is closed because the next
+ * person to wrap a long command at 80 columns should not silently lose it.
+ *
+ * Related and NOT fixed here: ui-sweep.yml runs `playwright test
+ * --project=happy-path --workers=4 $SPECS`, and a shell variable cannot be
+ * resolved by a static scan, so that command reads as running the whole
+ * happy-path project when it usually runs one spec. Latent rather than live —
+ * e2e-happy-path.yml genuinely runs that whole project on every push, so no
+ * spec is falsely credited today. Reported rather than patched around.
+ */
+function joinContinuations(src: string): string[] {
+  const out: string[] = [];
+  let acc: string | null = null;
+  for (const raw of src.split("\n")) {
+    const trimmed = raw.trim();
+    if (acc !== null) {
+      acc += " " + trimmed.replace(/\\$/, "").trim();
+      if (!trimmed.endsWith("\\")) { out.push(acc); acc = null; }
+      continue;
+    }
+    if (trimmed.endsWith("\\") && !trimmed.startsWith("#")) {
+      acc = trimmed.replace(/\\$/, "").trim();
+      continue;
+    }
+    out.push(raw);
+  }
+  if (acc !== null) out.push(acc);
+  return out;
 }
 
 /**

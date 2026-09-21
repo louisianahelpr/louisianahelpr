@@ -38,9 +38,9 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 |---|---|---|---|
 | **`src/test/*.test.ts*`** | 193 | **193 — COMPLETE** | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | **0** |
-| Playwright `e2e/**` | 60 | 6 | 54 |
-| colocated beside components | 336 | 21 | 315 |
-| **total** | **642** | **273** | **369** |
+| Playwright `e2e/**` | 60 | 13 | 47 |
+| colocated beside components | 336 | 33 | 303 |
+| **total** | **642** | **292** | **350** |
 
 **ROW 2 COMPLETE: all 53 edge guards proven able to fail. Seven were hollow.**
 
@@ -71,6 +71,32 @@ Only the first row is enforced today (`.github/workflows/vacuity.yml`, on every 
 and PR, plus a full mutation sweep nightly at 06:10 UTC). The ratchet's baseline may
 only shrink, so row 1 cannot regress. **Rows 2–4 are invisible to it**: a hollow test
 there is not even listed as unproven.
+
+## Defects the burn-down found in the PRODUCT (not just in guards)
+
+Proving a guard can fail means breaking the thing it watches, and that keeps
+turning up live problems the green suite never mentioned:
+
+- **App Store screenshots were being captured of an EMPTY FEED.**
+  `appstore-screenshots.spec.ts` hardcoded four job dates (2026-09-10..14).
+  `useDashboardFilters` drops any job dated before today, so from 2026-09-15
+  they expired one at a time and by 2026-09-21 the feed was empty — while the
+  spec kept PASSING, because an empty state renders perfectly well. The file's
+  own header names the outcome: *"the empty-state equivalent of the login
+  screen Apple rejected: a screenshot that shows the app doing nothing."* It had
+  come back and nothing said so.
+- **`browse-feed-completeness` expired at midnight** on 2026-09-21 for the same
+  reason and went red on main with nothing changed.
+- The guard for this exact class, `jobDayFixtureTimezone`, literally names a
+  `date_needed` literal as "the bomb" in its own can-fail test — and missed both,
+  because its inventory was `walk(SRC)`: **`src/` only**. The Playwright specs
+  are the most fixture-dense code in the repo and were the one place it could
+  not look. Now widened to `e2e/`.
+- **The gift-card `$10.555 → $10.56` bug had three more live sites** — both tip
+  dialogs, and `auto-tip-charge`, which charged rounded cents while recording
+  the raw dollars, so the receipt and the charge disagreed with nothing to
+  reconcile them.
+- **Four private storage buckets** accepted a file of any size and any type.
 
 ## The gate itself was the biggest hollow thing in here
 

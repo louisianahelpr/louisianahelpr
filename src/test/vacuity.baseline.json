@@ -25,7 +25,6 @@
     "e2e/journeys/abuse/idor-and-authz.spec.ts",
     "e2e/journeys/keyboard-focus.spec.ts",
     "e2e/journeys/notifications/notifications.spec.ts",
-    "e2e/journeys/profile-tab-shell-parity.spec.ts",
     "e2e/journeys/time-travel.spec.ts",
     "e2e/mobile-viewports.spec.ts",
     "e2e/payment-lifecycle.spec.ts",

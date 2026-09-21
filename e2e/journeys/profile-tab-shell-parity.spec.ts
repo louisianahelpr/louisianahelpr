@@ -157,3 +157,13 @@ test(title, async ({ browser, request, journey }) => {
   expect(measured, "no Profile tab was measured").toBeGreaterThanOrEqual(40);
   expect(failures, "Profile tabs do not all share one shell").toEqual([]);
 });
+
+// ProfileTabBody deliberately accepts NO className and NO style, so the
+// original defect shape (a lane planting `px-3` in one tab's own copy of the
+// wrapper div) is no longer expressible — and a mutation of the shared class
+// moves all 25 tabs together, which PARITY alone cannot see. What it can see
+// is the other half of the check: an asymmetric margin on the one box every
+// tab renders into makes gutterLeft and gutterRight disagree by 24px on every
+// tab at both widths, which is the "content is not centred in the post-rail
+// area" leg. That is the single line the whole guard rests on.
+// @mutate src/components/profile/ProfileTabBody.tsx | export const PROFILE_TAB_BODY_CLASS = "space-y-4"; | export const PROFILE_TAB_BODY_CLASS = "space-y-4 ml-6";

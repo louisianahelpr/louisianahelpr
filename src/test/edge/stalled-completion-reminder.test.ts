@@ -267,6 +267,19 @@ describe("stalled-completion-reminder", () => {
     expect(claim).toHaveLength(1);
     expect((claim[0].payload as Record<string, unknown>).escalated_at).toBeTruthy();
     expect(claim[0].filters.some((f) => f.column === "job_id")).toBe(true);
+    // THE IDEMPOTENCY MARK. The stage claim is `.update({escalated_at}).eq(job_id)
+    // .is("escalated_at", null).select("job_id")` — the `.is(...)` is what makes
+    // two overlapping runs disagree about who owns the stage, because only one
+    // UPDATE can match and get a row back. Measured 2026-09-21 by deleting
+    // `.is(col, null)` from the function: EVERY test in this file stayed green,
+    // because the mock records filters and never matches on them, so both runs
+    // would "claim" and both would escalate — an admin queue item and a pair of
+    // "a person is looking at this" notifications, twice, per overlapping tick.
+    // Asserted on the recorded clause, which is the only place it is visible.
+    const onlyOnce = claim[0].filters.find((f) => f.column === "escalated_at");
+    expect(onlyOnce, "the escalate claim must be conditional on escalated_at IS NULL").toBeDefined();
+    expect(onlyOnce!.op).toBe("is");
+    expect(onlyOnce!.value).toBeNull();
     assertNoMoneyMoved();
   });
 
@@ -316,3 +329,5 @@ describe("stalled-completion-reminder", () => {
     assertNoMoneyMoved();
   });
 });
+
+// @mutate supabase/functions/stalled-completion-reminder/index.ts | .is(col, null) |

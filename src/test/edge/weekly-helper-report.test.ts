@@ -221,3 +221,5 @@ describe("weekly-helper-report edge function", () => {
     expect(reportWrites()).toHaveLength(0);
   });
 });
+
+// @mutate supabase/functions/weekly-helper-report/index.ts | return new Date(h.subscription_expires_at) > now; | return true;

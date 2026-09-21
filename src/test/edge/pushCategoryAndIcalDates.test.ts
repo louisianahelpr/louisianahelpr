@@ -147,3 +147,6 @@ describe("str-ical look-ahead window", () => {
     expect(early.to.toISOString()).toBe("2026-09-09T00:00:00.000Z");
   });
 });
+
+// @mutate supabase/functions/str-ical-sync/dates.ts | const from = utcDay(now); | const from = now;
+// @mutate supabase/functions/send-push-notification/category.ts | path.startsWith('/jobs/') | path.includes('accepted')

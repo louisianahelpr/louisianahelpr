@@ -245,3 +245,5 @@ describe("review-nag-cron edge function", () => {
     expect(String(b.defectReasons)).toContain("permission denied");
   });
 });
+
+// @mutate supabase/functions/review-nag-cron/index.ts | const WINDOW_HOURS = 24; | const WINDOW_HOURS = 12;

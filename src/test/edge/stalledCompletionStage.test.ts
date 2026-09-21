@@ -264,3 +264,5 @@ describe("the copy", () => {
     expect(body).toMatch(/release, refund, or open a dispute/i);
   });
 });
+
+// @mutate supabase/functions/_shared/stalledCompletion.ts | if (hours >= STALLED_ESCALATE_AFTER_HOURS && sinceLastSent >= STALLED_GAP_BEFORE_ESCALATE) { | if (hours >= STALLED_ESCALATE_AFTER_HOURS) {

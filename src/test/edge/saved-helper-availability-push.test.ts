@@ -124,4 +124,36 @@ describe("saved-helper-availability-push", () => {
     expect(res.status).toBe(200);
     expect(notificationInserts()).toHaveLength(0);
   });
+
+  /**
+   * THE OPT-IN GATE HAS TO LIVE IN THE QUERY, and nothing above proves it does.
+   *
+   * The supabase double RECORDS chained filters but never MATCHES on them: the
+   * `notification_preferences` read resolves to whatever `seed()` put in
+   * `scenario.reads`, opt-in clause or no opt-in clause. Measured 2026-09-21 by
+   * deleting `.eq("saved_helper_availability", true)` from the function: all
+   * three tests above stayed green, while the shipped behaviour would have
+   * become "nudge every customer who has ANY notification_preferences row" —
+   * the exact default-OFF promise the owner made on 2026-09-15, undefended.
+   *
+   * `readQueries` records the clause real PostgREST would have applied, so the
+   * gate is asserted on the QUERY: present, on the right column, equal to true.
+   */
+  it("reads the opt-in list SCOPED to saved_helper_availability = true", async () => {
+    seed("customer-1", true);
+    const fn = await loadConfigured();
+    await cronRequest(fn);
+
+    const prefReads = scenario.readQueries.filter((q) => q.table === "notification_preferences");
+    // Guard against a vacuous pass: the read must have happened at all.
+    expect(prefReads.length).toBeGreaterThan(0);
+    const gate = prefReads[0].filters.find((f) => f.column === "saved_helper_availability");
+    expect(gate, "the opt-in gate must be in the query, not in the test's scenario").toBeDefined();
+    expect(gate!.op).toBe("eq");
+    expect(gate!.value).toBe(true);
+    // …and the read is still scoped to the customers this run is about.
+    expect(prefReads[0].filters.map((f) => f.column)).toContain("user_id");
+  });
 });
+
+// @mutate supabase/functions/saved-helper-availability-push/index.ts | .eq("saved_helper_availability", true) |

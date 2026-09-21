@@ -8,7 +8,7 @@
  * threshold maths, the no-token skip, a 401/5xx failing loudly without
  * paging, and an unrecognised ServiceName being ignored rather than erroring.
  *
- * `runVercelUsageCheck` takes an injected `fetch` the same way
+ * @mutate scripts/lib/vercelUsage.mjs |   if (rows.length === 0 && ignored.length === 0) { | \n  if (false) {\n * `runVercelUsageCheck` takes an injected `fetch` the same way
  * findRecentDuplicate (supabase/functions/_shared/marketing/meta.ts) does —
  * stubbed globally, per src/test/marketingDuplicateScan.test.ts.
  */
@@ -181,6 +181,37 @@ describe("runVercelUsageCheck", () => {
     if (result.outcome !== "fail") throw new Error(`expected 'fail', got ${result.outcome}`);
     expect(result.warn).toBe(false);
     expect(result.error).toMatch(/HTTP 401/);
+  });
+
+  /*
+   * THE DEFECT THIS PINS, found 2026-09-20 while proving this guard able to
+   * fail: a 200 carrying nothing walked the HAPPY path. `parseFocusJsonl("")`
+   * gives no rows, every metric evaluates to 0%, `anyCritical` is false, and
+   * the weekly job reported "ok — under 80% of every Pro-included limit
+   * measured" having measured NOTHING. Vercel renaming every ServiceName,
+   * changing the response shape, or answering 200 with an empty body all land
+   * there, and Slack is gated on `warn === true`, so nobody is paged.
+   *
+   * Zero rows is a failed measurement, not a quota result.
+   */
+  it("a 200 with an empty body is a FAILED MEASUREMENT, not 'under quota'", async () => {
+    fetchMock.mockResolvedValue(new Response("", { status: 200 }));
+    const result = await runVercelUsageCheck({ token: "tok", from: FROM, to: TO });
+    if (result.outcome !== "fail") throw new Error(`expected 'fail', got ${result.outcome}`);
+    expect(result.warn).toBe(false); // an instrumentation fault must not page Slack
+    expect(result.error).toMatch(/no usable rows/);
+  });
+
+  it("a 200 whose ServiceNames we no longer recognise still counts as measured", async () => {
+    // An unmapped ServiceName is a real measurement we chose not to grade, so
+    // it proves the fetch worked. Only zero of BOTH rows and ignored is a
+    // failure — otherwise a Vercel rename would page as an outage.
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ ServiceName: "Some Brand New Thing", ConsumedQuantity: 42 }), { status: 200 }),
+    );
+    const result = await runVercelUsageCheck({ token: "tok", from: FROM, to: TO });
+    if (result.outcome !== "ok") throw new Error(`expected 'ok', got ${result.outcome}`);
+    expect(result.ignored.some((i) => i.serviceName === "Some Brand New Thing")).toBe(true);
   });
 
   it("fails loudly on a 500 the same way", async () => {

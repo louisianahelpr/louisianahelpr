@@ -285,6 +285,42 @@ export async function runVercelUsageCheck({
   const text = await res.text();
   const { rows, errors: parseErrors } = parseFocusJsonl(text);
   const { byMetric, ignored } = aggregateByMetric(rows, metrics);
+
+  /*
+   * A 200 CARRYING NOTHING IS NOT "UNDER QUOTA" — it is a failed measurement.
+   *
+   * Without this, an empty body walks the happy path: `parseFocusJsonl("")`
+   * gives `{rows: []}`, every metric evaluates to 0%, `anyCritical` is false,
+   * and the weekly job reports "ok — under 80% of every Pro-included limit
+   * measured" while having measured NOTHING. Vercel renaming every
+   * ServiceName, changing the response shape, or answering 200 with an empty
+   * body all produce that, and the Slack step is gated on `warn === true`, so
+   * nobody is paged either.
+   *
+   * That is the shape this whole burn-down exists to kill: green is what a
+   * check reports when it is looking at nothing. Found 2026-09-20 while
+   * proving `checkVercelUsage` able to fail — the guard was honest, the
+   * behaviour it certified was the bug.
+   *
+   * `rows + ignored` rather than `rows` alone: an unrecognised ServiceName is
+   * a real measurement we chose not to map, so it still proves the fetch
+   * worked. Zero of BOTH means we learned nothing, which is a `fail` — and
+   * `fail` leaves `warn` false, so this reports loudly in the job without
+   * paging Slack for what is an instrumentation fault, not a quota event.
+   */
+  if (rows.length === 0 && ignored.length === 0) {
+    return {
+      outcome: "fail",
+      warn: false,
+      error:
+        "Vercel billing/charges returned 200 with no usable rows " +
+        `(${text.length} bytes, ${parseErrors.length} parse error(s)). ` +
+        "Reporting 0% against every quota would be a measurement that did not happen — " +
+        "check the endpoint shape and the ServiceName mapping in scripts/lib/vercelUsage.mjs.",
+      parseErrors,
+    };
+  }
+
   const evals = evaluateMetrics(byMetric, { thresholdPercent, metrics });
   const warn = anyCritical(evals);
   const summary = formatSummary(evals, thresholdPercent);

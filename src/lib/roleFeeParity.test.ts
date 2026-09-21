@@ -134,7 +134,12 @@ describe("one user, one tier, one percent — poster === helper", () => {
 
 describe("expiry is handled identically on both sides (the asymmetry that was fixed)", () => {
   it("a LAPSED paid tier reverts to the free rate for BOTH roles on BOTH runtimes", () => {
-    for (const tier of ["basic", "pro", "elite"] as const) {
+      // DERIVED, never hand-listed. This literal omitted `plus` (restored
+      // 2026-09-05), so the loop silently skipped that rung — the same shape
+      // that let Plus's fee be set below Elite's guarded floor with every test
+      // green. Object.keys(TIER_PERKS) grows on its own.
+    // Paid tiers only — `free` has no rate to revert FROM.
+    for (const tier of (Object.keys(TIER_PERKS) as (keyof typeof TIER_PERKS)[]).filter((t) => t !== "free")) {
       const free = TIER_PERKS.free.platformFeePercent; // 12
       expect(edgeHelperFeePercent(tier, PAST)).toBe(free);
       expect(edgePosterFeePercent(tier, PAST)).toBe(free);

@@ -10,7 +10,14 @@ import {
 } from "../../supabase/functions/_shared/helperFees";
 
 describe("helper-fee tier ladder parity (UI ↔ edge)", () => {
-  const tiers: SubscriptionTier[] = ["free", "basic", "pro", "plus", "elite"];
+  // DERIVED. This was hand-listed and happens to be complete today — but the
+  // identical literal in moneyFigures.parity and roleFeeParity was missing
+  // `plus` for 16 days, and both were EXEMPTED in literalRegistryGuard's
+  // ledger with the reason "Parity test; iterates the tier ladder." Iterating
+  // the ladder is exactly when a hand-written list is dangerous: the loop
+  // silently skips the rung nobody added, and a per-tier guard that skips a
+  // tier reports the same confident green it always did.
+  const tiers = Object.keys(TIER_PERKS) as SubscriptionTier[];
 
   it("edge TIER_FEE_PERCENT matches UI TIER_PERKS.platformFeePercent for every tier", () => {
     for (const tier of tiers) {

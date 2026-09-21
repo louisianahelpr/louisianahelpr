@@ -16,6 +16,9 @@ import {
   BGC_FEE_CENTS as EDGE_BGC_FEE_CENTS,
   BOOST_DURATION_HOURS as EDGE_BOOST_DURATION_HOURS,
 } from "../../supabase/functions/_shared/productPrices";
+// The tier ladder itself, so the per-tier loops below derive their inventory
+// rather than hand-listing it — the shape that skipped Plus for 16 days.
+import { TIER_PERKS } from "./subscriptionTiers";
 
 describe("fixed Stripe product-price parity (UI ↔ edge)", () => {
   it("boost fee matches across UI and edge", () => {
@@ -81,7 +84,12 @@ describe("job-boost price by tier (UI mirror of create-boost-payment)", () => {
   });
 
   it("charges full price once a subscription has lapsed, as the server does", () => {
-    for (const tier of ["elite", "pro", "basic"]) {
+      // DERIVED, never hand-listed. This literal omitted `plus` (restored
+      // 2026-09-05), so the loop silently skipped that rung — the same shape
+      // that let Plus's fee be set below Elite's guarded floor with every test
+      // green. Object.keys(TIER_PERKS) grows on its own.
+    // Paid tiers only — a lapsed FREE tier was never discounted.
+    for (const tier of Object.keys(TIER_PERKS).filter((t) => t !== "free")) {
       expect(boostPriceForTier(tier, false)).toEqual({
         free: false,
         cents: BOOST_FEE_CENTS,

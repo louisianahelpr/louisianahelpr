@@ -6,6 +6,7 @@ import { join, relative, sep } from "node:path";
 // was written for — turns it red.
 // @mutate src/lib/statusLabels.test.ts | const required = Constants.public.Enums.job_status; | const required = ["open", "accepted", "in_progress", "completed", "cancelled", "revision_requested", "disputed", "pending_approval"];
 import { describe, expect, it } from "vitest";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * THE REGISTRY ANTIPATTERN, CAUGHT GENERICALLY.
@@ -177,25 +178,35 @@ const LEDGER: Array<{ file: string; vocabulary: string; reason: string }> = [
       "The paid-tier ladder used to resolve a Stripe price. Paid tiers only, so `free` is correctly " +
       "absent; drift here is caught by the Stripe price parity check instead.",
   },
+  /*
+   * THREE ROWS WERE DELETED HERE on 2026-09-21, and the reason they carried is
+   * worth keeping:
+   *
+   *     src/lib/helperFees.parity.test.ts   "Parity test; iterates the tier ladder to compare two fee tables."
+   *     src/lib/moneyFigures.parity.test.ts "Parity test; iterates the tier ladder."
+   *     src/lib/roleFeeParity.test.ts       "Parity test; iterates the tier ladder."
+   *
+   * That is not a justification. It is a description of the exact case where a
+   * hand-written list is most dangerous — a loop over the ladder silently
+   * skips the rung nobody added, and a per-tier guard that skips a tier
+   * reports the same confident green it always did.
+   *
+   * It cost 16 days. `plus` was restored 2026-09-05 and all three loops
+   * ignored it. Measured: TIER_PERKS.plus.platformFeePercent could be set to
+   * 2% — BELOW Elite's explicitly-guarded 8% floor — with 21 tests green,
+   * including the one named "bottoms out at Elite's 8% — nothing on the ladder
+   * is cheaper"; and the edge ladder's `plus` set to 7% against the UI's 9%,
+   * the same person charged two different rates depending which side of the
+   * job they are standing on, passed 9/9.
+   *
+   * All three now derive from Object.keys(TIER_PERKS). The lesson for the rows
+   * that remain below: an exemption must say why the list CANNOT drift, not
+   * what the list is for.
+   */
   {
     file: "supabase/functions/create-pro-checkout/index.ts",
     vocabulary: "tier",
     reason: "Validates the requested tier against the paid set before creating a checkout session.",
-  },
-  {
-    file: "src/lib/helperFees.parity.test.ts",
-    vocabulary: "tier",
-    reason: "Parity test; iterates the tier ladder to compare two fee tables.",
-  },
-  {
-    file: "src/lib/moneyFigures.parity.test.ts",
-    vocabulary: "tier",
-    reason: "Parity test; iterates the tier ladder.",
-  },
-  {
-    file: "src/lib/roleFeeParity.test.ts",
-    vocabulary: "tier",
-    reason: "Parity test; iterates the tier ladder.",
   },
   {
     file: "src/lib/subscriptionTiers.test.ts",
@@ -260,7 +271,25 @@ const LITERAL_GROUP =
 
 function offendersIn(file: string, source: string): Offender[] {
   const found: Offender[] = [];
-  for (const match of source.matchAll(LITERAL_GROUP)) {
+  /*
+   * COMMENTS BLANKED FIRST, added 2026-09-21.
+   *
+   * This scanned raw text, so the guard could be tripped by PROSE — and it
+   * was, the moment three files were fixed and each explained the fix by
+   * quoting the literal it used to carry:
+   *
+   *     // DERIVED, not hand-listed. This literal said ["free","basic","pro","elite"]
+   *
+   * That is the correct thing to write and the guard called it an offence. A
+   * check a comment can trip pushes the next person to delete the explanation
+   * to get green, which is how the reason for a rule gets lost — the same
+   * failure, mirrored, as a check a comment can SATISFY.
+   *
+   * blankComments keeps string bodies, which this scan needs: the members it
+   * counts ARE string literals.
+   */
+  const code = blankComments(source);
+  for (const match of code.matchAll(LITERAL_GROUP)) {
     const body = match[1] ?? match[2] ?? match[3];
     if (!body) continue;
     const members = new Set([...body.matchAll(/["']([a-z_]+)["']/g)].map((m) => m[1]));
@@ -280,7 +309,7 @@ function offendersIn(file: string, source: string): Offender[] {
       if (members.size < Math.max(3, values.length - 1)) continue;
       found.push({
         file,
-        line: source.slice(0, match.index).split("\n").length,
+        line: code.slice(0, match.index).split("\n").length,
         vocabulary,
         covered: members.size,
         of: values.length,

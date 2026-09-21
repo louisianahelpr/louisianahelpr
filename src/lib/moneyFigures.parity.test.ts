@@ -66,7 +66,11 @@ describe("poster service fee (%) — tier-derived, not a flat rate", () => {
     expect(TIER_PERKS.basic.platformFeePercent).toBe(11);
     expect(TIER_PERKS.pro.platformFeePercent).toBe(10);
     expect(TIER_PERKS.elite.platformFeePercent).toBe(8);
-    for (const tier of ["free", "basic", "pro", "elite"] as const) {
+      // DERIVED, never hand-listed. This literal omitted `plus` (restored
+      // 2026-09-05), so the loop silently skipped that rung — the same shape
+      // that let Plus's fee be set below Elite's guarded floor with every test
+      // green. Object.keys(TIER_PERKS) grows on its own.
+    for (const tier of Object.keys(TIER_PERKS) as (keyof typeof TIER_PERKS)[]) {
       expect(posterFeePercentForTier(tier)).toBe(TIER_PERKS[tier].platformFeePercent);
     }
   });

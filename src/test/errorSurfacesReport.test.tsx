@@ -15,7 +15,15 @@
  *      surface this file rendered (or be explicitly excused), and every
  *      caller of the money edge function must report on failure. Adding an
  *      error surface without a report here is red, not silent.
+ *
+ * PROVEN ABLE TO FAIL 2026-09-21 (guard burn-down). Dropping the `screen` tag
+ * from ErrorState's report call — the tag the prod-errors alert groups on, so
+ * the row still arrives and no longer says which screen the user was on — reds
+ * BOTH halves: the RENDER test (a real mount, a real report() call, the tag
+ * absent) and the source-text inventory. The render half is the one that
+ * matters; it is why this guard is .tsx.
  */
+// @mutate src/components/ui/ErrorState.tsx | tags: { source: "ErrorState", screen: currentScreen(), title }, | tags: { source: "ErrorState", title },
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";

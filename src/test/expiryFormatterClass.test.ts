@@ -12,7 +12,13 @@
  * a bare `expires_at` or calls `formatTimeLeft`. Each must contain no
  * `formatDistance*(` call and no hand-written "Expired" literal. Comments are
  * stripped first so prose about the old bug does not trip it.
+ *
+ * PROVEN ABLE TO FAIL 2026-09-21 (guard burn-down): giving dashboard/JobCard
+ * back its own `expiresAt <= now ? "Expired" : formatTimeLeft(…)` — the owner's
+ * 2026-09-12 bug verbatim, a second rule for one fact — reds "no surface spells
+ * expiry its own way".
  */
+// @mutate src/components/dashboard/JobCard.tsx | const expiryText = !showExpiry \|\| !expiresAt ? null : formatTimeLeft(expiresAt, expiryNow); | const expiryText = !showExpiry \|\| !expiresAt ? null : expiresAt.getTime() <= expiryNow ? "Expired" : formatTimeLeft(expiresAt, expiryNow);
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -57,6 +63,18 @@ describe("listing expiry is rendered only through formatTimeLeft", () => {
     .map((p) => ({ rel: relative(ROOT, p).split("\\").join("/"), code: readFileSync(p, "utf8") }))
     .filter((f) => /(^|[^a-z_])expires_at\b|formatTimeLeft/.test(f.code))
     .filter((f) => !(f.rel in NOT_A_LISTING));
+
+  it("every NOT_A_LISTING exemption still names a file this scan would otherwise judge", () => {
+    // An exemption list nothing checks cannot fail, which is how a stale
+    // excuse outlives the file it excused and silently covers its successor.
+    // Derived from the walk, not restated: the key must still be a real file
+    // that the expiry filter would have picked up.
+    const scanned = walk(ROOT)
+      .map((f) => relative(ROOT, f).split("\\").join("/"))
+      .filter((rel) => /(^|[^a-z_])expires_at\b|formatTimeLeft/.test(readFileSync(join(ROOT, rel), "utf8")));
+    const stale = Object.keys(NOT_A_LISTING).filter((f) => !scanned.includes(f));
+    expect(stale, "NOT_A_LISTING names a file that no longer mentions expiry at all").toEqual([]);
+  });
 
   it("inventory sees the known expiry surfaces", () => {
     const rels = files.map((f) => f.rel);

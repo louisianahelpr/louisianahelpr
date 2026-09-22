@@ -58,7 +58,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   cleanup, createPressJob, loadTestOwners, makeStripeProbe, mintAccounts, mutationGate, prodSelect,
-  rowNamesTestOwner, snapshotProfile, urlOwnership,
+  remintSession, rowNamesTestOwner, sessionStillAlive, snapshotProfile, urlOwnership,
 } from "./pressProdSafety.mjs";
 import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
 
@@ -630,6 +630,46 @@ async function main() {
   const results = []; // one per route × persona
   let failedPresses = 0, undocumented = 0, totalFound = 0, totalPressed = 0, shots = 0;
   const ownershipCache = new Map();
+  /**
+   * SESSION DEATH IS NOT A PRESS FAILURE.
+   *
+   * Run 35761400822 reported 274 failed presses across four shards. The
+   * dominant cause was the harness's own auth dying: 39×`403 GET v1/user`,
+   * 38×500 and 21×401 on shard 3 alone, with GoTrue answering
+   * `session_not_found` — the session ROW was gone, not merely expired — and
+   * zero /logout calls in the window. Nothing signed out; the token this
+   * sweep had minted ONCE at run start and injected into every context for 26
+   * minutes simply stopped being accepted. Every press after that measured a
+   * signed-out screen and was counted as a product defect.
+   *
+   * Two rules now:
+   *   1. re-verify against GoTrue before a row, and again after any row whose
+   *      API calls 401/403'd, re-minting rather than pressing on;
+   *   2. count nothing measured with a dead session as a press failure — a run
+   *      that lost its session has not measured the app, and says so.
+   */
+  const SESSION_VERIFY_MS = 5 * 60 * 1000;
+  const sessionDeaths = [];   // every re-mint, with the row it was noticed on
+  const sessionLostRows = []; // rows whose failures are NOT product defects
+  let noticedOn = "run start";
+  const ensureLiveSession = async (persona) => {
+    const s = sessions[persona];
+    if (!s) return null;
+    if (!s.suspect && Date.now() - s.at < SESSION_VERIFY_MS) return s;
+    if (await sessionStillAlive(s)) { s.at = Date.now(); s.suspect = false; return s; }
+    console.log(`::error title=press SESSION DIED::GoTrue refuses the ${s.account} session (noticed on ${noticedOn}) — re-minting; presses measured with it are not product defects`);
+    try {
+      const fresh = { account: s.account, ...(await remintSession(s.account)) };
+      sessions[persona] = fresh;
+      sessionDeaths.push({ persona, account: s.account, noticedOn, at: new Date().toISOString(), reminted: true });
+      return fresh;
+    } catch (e) {
+      sessionDeaths.push({ persona, account: s.account, noticedOn, at: new Date().toISOString(), reminted: false, why: String(e.message).slice(0, 200) });
+      unavailable[persona] = `${s.account}: session died mid-sweep and could not be re-minted (${String(e.message).slice(0, 160)})`;
+      delete sessions[persona];
+      return null;
+    }
+  };
 
   for (const route of routeSet) {
     if (route.redirect) {
@@ -640,7 +680,8 @@ async function main() {
     for (const persona of personas) {
       const rec = { route: route.url, persona, status: "ok", landedOn: null, found: 0, pressed: 0, passed: 0, failed: 0, skipped: 0, controls: [], notes: [], net: null };
       results.push(rec);
-      const session = persona === "anon" ? null : sessions[persona];
+      noticedOn = `${route.url} (${persona})`;
+      const session = persona === "anon" ? null : await ensureLiveSession(persona);
       if (persona !== "anon" && !session) {
         rec.status = "uncovered";
         rec.notes.push(`account unavailable (persona not minted): ${unavailable[persona] ?? "not requested"}`);
@@ -1134,6 +1175,20 @@ async function main() {
         rec.failed++; failedPresses++;
       }
       await ctx.close();
+      // A row whose API calls came back 401/403 may have been walked signed
+      // OUT. Ask GoTrue rather than assume, and if the session is gone,
+      // un-count this row: it did not measure the app. `suspect` forces the
+      // re-mint on the next row, before anything else is pressed.
+      if (session && netFails.some((f) => /^40[13] /.test(f)) && !(await sessionStillAlive(session))) {
+        session.suspect = true;
+        sessionLostRows.push({ route: route.url, persona, account: session.account, failed: rec.failed });
+        console.log(`::error title=press SESSION DIED::${route.url} (${persona}) was walked with a dead ${session.account} session — ${rec.failed} failure(s) on this row are NOT product defects`);
+        rec.status = "session-lost";
+        rec.notes.push(`SESSION DIED mid-route: GoTrue refuses the ${session.account} session; this row did not measure the app`);
+        for (const c of rec.controls) if (c.result === "FAIL") { c.result = "SESSION-LOST"; c.why = `not measured — the ${session.account} session was dead (was: ${c.why})`; }
+        failedPresses -= rec.failed;
+        rec.failed = 0;
+      }
       const unpressed = rec.controls.filter((c) => c.result === "SKIP" && !DOCUMENTED_SKIPS.has(c.why)).length;
       undocumented += unpressed;
       rec.net = summarizeTimings(reqTimings);
@@ -1151,6 +1206,17 @@ async function main() {
   // ---- coverage report ------------------------------------------------------
   const lines = [];
   lines.push("# press-every-control coverage", "", `prod width=${WIDTH} theme=${THEME} base=${BASE} run=${RUN_ID}`, "");
+  // A session death is stated where nobody can mistake it for a defect count.
+  if (sessionDeaths.length || sessionLostRows.length) {
+    const lostFailures = sessionLostRows.reduce((n, r) => n + r.failed, 0);
+    lines.push(
+      `> **SESSION DEATH — THIS RUN DID NOT FULLY MEASURE THE APP.** GoTrue refused a session mid-sweep ${sessionDeaths.length} time(s); ${sessionLostRows.length} row(s) were walked signed out and their ${lostFailures} failure(s) are NOT product defects.`,
+      "",
+      ...sessionDeaths.map((d) => `- session died: **${d.account}** (${d.persona}) noticed on ${d.noticedOn} at ${d.at} — ${d.reminted ? "re-minted, sweep continued" : `COULD NOT RE-MINT: ${d.why}`}`),
+      ...sessionLostRows.map((r) => `- not measured: ${r.route} (${r.persona}) — ${r.failed} failure(s) discarded`),
+      "",
+    );
+  }
   const uncovered = results.filter((r) => r.status === "uncovered");
   if (uncovered.length) lines.push(`**UNCOVERED personas:** ${[...new Set(uncovered.map((r) => `${r.persona} (${r.notes[0]})`))].join("; ")}`, "");
   lines.push("| route | persona | found | pressed | pass | fail | skipped (documented) | undocumented |", "|---|---|---:|---:|---:|---:|---:|---:|");
@@ -1180,13 +1246,16 @@ async function main() {
   lines.push("", `## Rows the sweep consumed before it could press them (${consumed.length})`, "", ...consumed);
   lines.push("", `## Clean-up`, "", ...cleaned.log.map((l) => `- ${l}`), ...cleaned.residue.map((l) => `- **RESIDUE** ${l}`));
   writeFileSync(`${OUT}/coverage.md`, lines.join("\n") + "\n");
-  writeFileSync(`${OUT}/results.json`, JSON.stringify({ width: WIDTH, theme: THEME, runId: RUN_ID, uncovered: unavailable, cleanup: cleaned, results }, null, 2));
+  writeFileSync(`${OUT}/results.json`, JSON.stringify({ width: WIDTH, theme: THEME, runId: RUN_ID, uncovered: unavailable, sessionDeaths, sessionLostRows, cleanup: cleaned, results }, null, 2));
 
   const pressedOrDocumented = totalFound - undocumented;
   console.log(`\nfound=${totalFound} pressed=${totalPressed} failed=${failedPresses} undocumented-skips=${undocumented} coverage=${totalFound ? ((pressedOrDocumented / totalFound) * 100).toFixed(1) : "100.0"}%`);
   console.log(`wrote ${OUT}/coverage.md and ${OUT}/results.json (${shots} screenshots)`);
-  if (failedPresses > 0 || undocumented > 0) {
-    console.log(`FAIL: ${failedPresses} failed press(es), ${undocumented} control(s) unpressed without a documented reason`);
+  if (sessionDeaths.length || sessionLostRows.length) {
+    console.log(`SESSION DEATH: GoTrue refused a session ${sessionDeaths.length} time(s); ${sessionLostRows.length} row(s) not measured. This run did not fully measure the app — the press counts above are a floor, not a verdict.`);
+  }
+  if (failedPresses > 0 || undocumented > 0 || sessionDeaths.length > 0) {
+    console.log(`FAIL: ${failedPresses} failed press(es), ${undocumented} control(s) unpressed without a documented reason, ${sessionDeaths.length} session death(s)`);
     process.exit(1);
   }
 }

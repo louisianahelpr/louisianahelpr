@@ -23,7 +23,7 @@
  *     residue it could not remove listed rather than pretended away
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import { readLiveCache, sessionAlive, writeCache } from "../../e2e/liveSession.ts";
 import { resolve } from "node:path";
 import { removeJobMediaRest, removeMessageAttachmentsRest } from "../lib/jobMediaRest.mjs";
@@ -75,6 +75,28 @@ export async function prodSession(role) {
   if (!(await sessionAlive(supabaseUrl(), anonKey(), session.access_token))) throw new Error(`a freshly obtained session for the ${role} is refused by /auth/v1/user`);
   writeCache(file, session);
   return wrapSession(session);
+}
+
+/**
+ * A SESSION CAN DIE MID-SWEEP, and pressing on with the dead one is how run
+ * 35761400822 produced 274 "failed presses" that were really one auth failure
+ * (GoTrue's own logs: `session_not_found` on GET /user, 183 of them, from the
+ * four shard IPs, with zero /logout calls). press-every-control mints once and
+ * injects the same token into every browser context for ~26 minutes, so these
+ * two exports let it ask GoTrue again and re-mint instead of cascading.
+ *
+ * Both reuse the ONE liveness idiom (e2e/liveSession.ts) rather than adding a
+ * second: `sessionStillAlive` is `sessionAlive` on a wrapped session, and
+ * `remintSession` drops the disk cache readLiveCache would otherwise return
+ * and goes back through prodSession's own mint path.
+ */
+export async function sessionStillAlive(s) {
+  return sessionAlive(supabaseUrl(), anonKey(), s.accessToken);
+}
+
+export async function remintSession(role) {
+  rmSync(resolve(CACHE_DIR, `${role}.raw.json`), { force: true });
+  return prodSession(role);
 }
 
 function wrapSession(session) {

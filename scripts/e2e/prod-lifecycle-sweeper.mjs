@@ -48,6 +48,7 @@
 //     node scripts/e2e/prod-lifecycle-sweeper.mjs [--dry-run]
 import { removeJobMediaRest } from "../lib/jobMediaRest.mjs";
 import { summariseSweep, classifyCancelEscrow } from "./sweepSummary.mjs";
+import { settleJobForward } from "./settleForward.mjs";
 
 const BASE = (process.env.SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
 const ANON = process.env.SUPABASE_ANON_KEY || "";
@@ -72,6 +73,32 @@ const H = {
   Authorization: `Bearer ${TOKEN}`,
   "Content-Type": "application/json",
 };
+
+/*
+ * THE HELPER SEAT IS OPTIONAL AND THAT IS THE POINT.
+ *
+ * A hired, funded leftover can only be settled FORWARD by both parties: the
+ * arrival and the Done belong to the Helpr and cannot be forged from the
+ * poster's token (`enforce_helper_jobs_column_whitelist`,
+ * `enforce_job_completion_server_owned`). So when only the poster's token is
+ * present — every CI caller today — this sweep keeps doing what it has always
+ * done: DEFER, and say so. Give it `HELPER_ACCESS_TOKEN` as well and it settles
+ * those rows instead of leaving them to a "settles forward" that, measured
+ * 2026-09-22, had not happened for a single one of sixteen rows.
+ */
+const HELPER_TOKEN = process.env.HELPER_ACCESS_TOKEN || "";
+
+/** The `sub` claim of an already-gateway-verified token; a read, not an act of trust. */
+function subjectOf(jwt) {
+  try {
+    return JSON.parse(Buffer.from(jwt.split(".")[1], "base64url").toString()).sub ?? null;
+  } catch {
+    return null;
+  }
+}
+const POSTER_ID = subjectOf(TOKEN);
+const HELPER_ID = HELPER_TOKEN ? subjectOf(HELPER_TOKEN) : null;
+const CAN_SETTLE_FORWARD = Boolean(POSTER_ID && HELPER_ID);
 
 /** Jobs this suite created that are not settled. */
 async function strandedJobs() {
@@ -261,6 +288,35 @@ for (const job of jobs) {
          7 days and break every nightly journey (lh-money-escrow review). A
          hired, funded leftover settles FORWARD (auto-release, or the next
          run's release) — reported, never a failure. */
+      /* …and since 2026-09-22 this sweep can DO the settling when it holds the
+         Helpr's seat too, rather than trusting a forward settle that measurably
+         never came: sixteen rows in escrow, the oldest from 2026-09-15, none of
+         them with a `helper_completed_at` for `auto-release-payment` to find.
+         The walk is every real product door in order (arrival → the poster's
+         confirmation → proof photos → the Helpr's Done → the poster's Release),
+         so the row lands in `payout_pending` exactly as a SUCCESSFUL run's
+         does, and no strike is recorded on any leg. Without the helper token it
+         is still deferred and still reported. */
+      if (CAN_SETTLE_FORWARD) {
+        try {
+          const out = await settleJobForward({
+            base: BASE,
+            anon: ANON,
+            posterToken: TOKEN,
+            helperToken: HELPER_TOKEN,
+            posterId: POSTER_ID,
+            helperId: HELPER_ID,
+            jobId: job.id,
+            log: (line) => console.log(line),
+          });
+          if (out.settled) continue;
+          console.log(`    could not settle ${job.id} forward: ${out.reason}`);
+        } catch (err) {
+          // Never fatal: a sweep that could not settle a row forward is the
+          // state this branch has always been in, not a new defect.
+          console.log(`    could not settle ${job.id} forward: ${String(err).slice(0, 200)}`);
+        }
+      }
       console.log(`    left to settle forward: ${job.id} is hired and funded (cancel_escrow 409 useCancelJob)`);
       deferred.push(job);
     } else if (verdict === "disputed") {

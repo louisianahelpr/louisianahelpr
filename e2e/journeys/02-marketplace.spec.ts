@@ -13,11 +13,14 @@ import {
   rest,
   sessionsAvailable,
   stripeModeFromCheckoutUrl,
+  ANON,
   E2E_TITLE_MARKER,
   PNG_1PX,
   SUPABASE_URL,
   type Session,
 } from "./fixtures";
+// The teardown's third disposition, shared with scripts/e2e/settle-stranded-escrow.mjs.
+import { isSettleForwardRefusal, settleJobForward } from "../../scripts/e2e/settleForward.mjs";
 import { isoDayIn, pickCalendarDay } from "../calendarPicker";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 
@@ -254,15 +257,66 @@ test.describe.serial("marketplace chain", () => {
         const job = await readJob(request, S.poster, S.jobId);
         if (!["released", "payout_pending", "refunded"].includes(job.payment_status) && job.status !== "cancelled") {
           if (job.payment_status !== "unpaid") {
-            await request.post(`${SUPABASE_URL}/functions/v1/create-payment`, {
+            const cancelled = await request.post(`${SUPABASE_URL}/functions/v1/create-payment`, {
               headers: rest(S.poster),
               data: { action: "cancel_escrow", jobId: S.jobId },
             });
+            /* THE ANSWER IS READ. It was not, and that is the whole defect:
+               a run that died after J4 left the job `accepted`/`escrow` with a
+               Helpr on it, `cancel_escrow` CORRECTLY answered 409 `useCancelJob`
+               (its door is an allowlist of `status = 'open'` with no helper),
+               and nothing looked. Measured 2026-09-22: SIXTEEN such rows sat in
+               escrow, the oldest from 2026-09-15, none with a
+               `helper_completed_at` for `auto-release-payment` to find — while
+               every nightly log said the job had been unwound. */
+            if (!cancelled.ok()) {
+              const body = await cancelled.text();
+              if (isSettleForwardRefusal(cancelled.status(), body)) {
+                /* HIRED AND FUNDED — settle it FORWARD, never cancel it.
+                   `poster_cancel_job` here would record a `cancel_with_helper`
+                   STRIKE against poster-e2e, and three of those restrict the
+                   account for 7 days and break every nightly journey that signs
+                   in as it. So the job is walked the rest of the way down the
+                   product's own path (arrival → confirm → proof → Done →
+                   release) and lands in `payout_pending` like a successful
+                   run's. No strike is recorded on any leg. */
+                const out = await settleJobForward({
+                  base: SUPABASE_URL,
+                  anon: ANON,
+                  posterToken: S.poster.access_token,
+                  helperToken: S.helper.access_token,
+                  posterId: S.poster.user.id,
+                  helperId: S.helper.user.id,
+                  jobId: S.jobId,
+                  log: (line: string) => test.info().annotations.push({ type: "settle-forward", description: line.trim() }),
+                });
+                if (!out.settled) {
+                  announceUncovered(
+                    "Journey job left in escrow",
+                    `${S.jobId}: cancel_escrow refused it (hired and funded) and settling it forward did not ` +
+                      `finish — ${out.reason}. It is still ${out.status}/${out.paymentStatus}.`,
+                  );
+                }
+              } else {
+                announceUncovered(
+                  "Journey job not unwound",
+                  `${S.jobId}: cancel_escrow answered ${cancelled.status()} ${body.slice(0, 200)}`,
+                );
+              }
+            }
           } else {
-            await request.post(`${SUPABASE_URL}/rest/v1/rpc/poster_cancel_job`, {
+            const cancelledJob = await request.post(`${SUPABASE_URL}/rest/v1/rpc/poster_cancel_job`, {
               headers: rest(S.poster),
               data: { p_job_id: S.jobId, p_reason: "E2E journey teardown" },
             });
+            // Same rule as above: a refusal that nobody reads is a row nobody
+            // finds. This path is the UNFUNDED one, so no strike is at stake.
+            if (!cancelledJob.ok()) {
+              announceUncovered(
+                "Journey job not unwound",
+                `${S.jobId}: poster_cancel_job answered ${cancelledJob.status()} ${(await cancelledJob.text()).slice(0, 200)}`,
+              );
+            }
           }
         }
       } catch (err) {

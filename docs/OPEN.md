@@ -673,10 +673,41 @@ control nothing renders.
   flow that was replaced. Deleting it is a small, safe cleanup; it is written
   down rather than done because nothing here asked for it.
 
-## OPEN — hired-and-funded journey leftovers accumulate in escrow (2026-09-22)
+## CLOSED 2026-09-22 — hired-and-funded journey leftovers accumulate in escrow
 
-Not new, and the disposition is already reasoned — but the count is growing and
-the number was not written anywhere.
+**Fixed and the backlog cleared.** "Settle forward" was the right disposition
+and was never built; now it is `scripts/e2e/settleForward.mjs`, and the
+teardown reads the answer it had been throwing away.
+
+- **The leak.** `02-marketplace.spec.ts`'s `afterAll` now BINDS the
+  `cancel_escrow` response and tests it. On the 409 `useCancelJob` (hired and
+  funded) it settles the job forward instead of leaving it: the Helpr's own
+  `mark_helper_arrival`, the poster's arrival confirmation, real proof photos
+  in the real bucket, `rpc_helper_mark_done`, then
+  `create-payment { action: "release" }` — every leg a product door driven by
+  the seat that owns it, landing the row in `payout_pending` exactly as a
+  successful run's does. **No `cancel_with_helper` strike on any leg**;
+  measured before and after on prod, `user_strikes` for poster-e2e and
+  helper-e2e stayed at 0. Any other non-2xx is `announceUncovered`, never
+  swallowed. The unfunded `poster_cancel_job` branch is now checked too.
+- **The guard** (owner standing order): `src/test/journeyTeardownSettlesForward.test.ts`
+  reads the teardown's own source and requires EVERY unwind call in it to be
+  bound and `.ok()`-tested — the class, not the one line — and pins the
+  disposition (settle forward on the funded branch, `poster_cancel_job` only on
+  the unfunded one). Shown red on the original defect via its `@mutate`.
+- **The backlog.** 16 rows, not 5: the oldest `2fe9l6` from 2026-09-15 plus the
+  `automated lifecycle` rows `prod-lifecycle` had been stranding since
+  2026-09-16. All 16 settled to `payout_pending` with
+  `node scripts/e2e/settle-stranded-escrow.mjs`, each verified by re-query.
+  The disputed fixture `e7e09075` was deliberately NOT touched — that escrow is
+  the admin's to place.
+- **Still open, small:** `prod-lifecycle-sweeper.mjs` can now settle forward
+  too, but only when given `HELPER_ACCESS_TOKEN` alongside
+  `POSTER_ACCESS_TOKEN` (the arrival and the Done cannot be forged from the
+  poster's seat, by design). No workflow passes one yet, so CI still defers and
+  warns. Worth adding to the four `e2e-*` workflows that call the sweeper.
+
+Original report:
 
 - A `02-marketplace` run that fails AFTER J4 leaves its job `accepted`/`escrow`
   with a helper on it. The spec's `afterAll` sends it to

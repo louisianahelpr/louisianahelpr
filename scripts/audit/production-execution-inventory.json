@@ -1,23 +1,118 @@
 {
-  "create-payment":              { "observable": "jobs.payment_status='escrow'", "why": "Checkout completing is the only way a job reaches escrow", "status": "EXECUTED" },
-  "release-payout":              { "observable": "payout_transfers", "why": "A real Stripe transfer row is written per release", "status": "EXECUTED-ADMIN-ONLY" },
-  "process-scheduled-payouts":   { "observable": "payout_transfers where initiated_by<>'admin'", "why": "The cron stamps its own initiator, so admin rows do not count as proof", "status": "NEVER" },
-  "auto-release-payment":        { "observable": "payout_transfers where initiated_by='auto'", "why": "Same table, distinguished by initiator; filters is_seed=false so seed rows can never prove it", "status": "NEVER" },
-  "execute-dispute-split":       { "observable": "dispute_settlement_claims", "why": "A split writes exactly one claim row per settlement", "status": "NEVER" },
-  "auto-resolve-disputes":       { "observable": "disputes.status='decided' AND decided_by IS NULL AND decision_text LIKE 'Auto-resolved by platform policy%' (plus the orphan-sweep text 'Closed by the auto-resolve sweep')", "why": "Guess wrong twice: disputes has no 'resolved' status (live values are open/withdrawn/decided), and 'no admin actor' alone does NOT isolate the auto path - 5 of the 8 rows are user WITHDRAWALS that also carry decided_by IS NULL. The auto path IS distinguishable, by the decision_text it writes (index.ts:610) alongside decided_by=null in settle_dispute_record. Measured 2026-09-22 on prod, all 8 dispute rows read: exactly ONE matches (9756a585, decided 2026-09-16 06:21Z, execution_status='executed') and its job is is_seed=true, so the auto path has run but only on a fixture. dispute_settlement_claims still 0. Cron alive: 30 retained runs, all succeeded, last 2026-09-22 12:21Z", "status": "EXECUTED-SEED-ONLY", "last_seen": "2026-09-16" },
-  "auto-tip-charge":             { "observable": "tips", "why": "Each charged tip writes a row", "status": "EXECUTED" },
-  "instant-payout":              { "observable": "instant_payouts", "why": "One row per instant payout requested", "status": "BARELY-1-ROW" },
-  "cash-out-credits":            { "observable": "referral_credits consumed / payout_transfers", "why": "Cashing out moves credit to a real transfer", "status": "NEVER" },
-  "create-gift-card-checkout":   { "observable": "gift_cards", "why": "A purchase writes the card row", "status": "NEVER" },
-  "claim-gift-card":             { "observable": "gift_cards.redeemed_at", "why": "Claiming stamps the redemption time", "status": "NEVER" },
-  "create-boost-payment":        { "observable": "jobs.boosted_at / jobs.boost_expires_at", "why": "Guess right. Measured 2026-09-22 on prod: 0 of 291 jobs have ever had boosted_at or boost_expires_at set, and 0 profiles have boost_credit_used_month — the free and Elite branches stamp the job inside this function and the paid branch stamps it in stripe-webhook checkoutSessionCompleted, so all three paths land on this column and none has ever fired", "status": "NEVER" },
-  "create-bgc-payment":          { "observable": "profiles background-check state", "why": "A paid check advances the profile's verification state", "status": "UNVERIFIED" },
-  "check-pro-subscription":      { "observable": "profiles.subscription_tier + subscription_billing_cycle", "why": "Column right, attribution weak: this function and stripe-webhook write the same columns and nothing records which wrote. Measured 2026-09-22 on prod: exactly 1 profile holds a tier (pro, expires 2026-10-04) and it is is_seed=true; all 5 non-seed profiles have subscription_tier NULL, so no real user has ever held a tier by any path", "status": "EXECUTED-SEED-ONLY" },
-  "expire-subscriptions":        { "observable": "notifications.title='Membership expired' for the downgrade; cron.job_run_details for invocation", "why": "Guess wrong — there is no expiry-reason column; the downgrade is an untagged subscription_tier=NULL write, and its one attributable trace is the notification it inserts. Measured 2026-09-22 on prod: pg_cron enqueued it 8 times, 6 succeeded, last good 2026-09-21 08:09Z (2026-09-22 failed 'job startup timeout'), while 0 'Membership expired' notifications exist — the cron runs; its downgrade branch has never had a row to clear", "status": "EXECUTED", "last_seen": "2026-09-21" },
-  "subscription-reconciliation": { "observable": "cron.job_run_details for jobname='subscription-reconciliation' (a clean run writes NO product row)", "why": "Guess wrong — this function never writes error_logs: it repairs profiles, posts a Slack ops alert and returns cronResult, so a clean run leaves no durable DB trace and the only durable observable is the pg_cron enqueue record. Measured 2026-09-22 on prod: 8 enqueues, 7 succeeded, last good 2026-09-21 08:24Z (2026-09-22 'job startup timeout'); net._http_response holds no matching bodies, so response-level proof has aged out", "status": "EXECUTED", "last_seen": "2026-09-21" },
-  "stripe-payouts":              { "observable": "payout_transfers", "why": "Shares the transfer ledger with the release path", "status": "EXECUTED-ADMIN-ONLY" },
-  "void-cancelled-payments":     { "observable": "jobs.payment_status='abandoned' (Part B), plus cron.job_run_details for 'void-cancelled-payments'", "why": "Guess named the wrong value: Part A's 'cancelled'/'refunded' are also written by refund and cancellation paths, so neither attributes. 'abandoned' is written in exactly ONE place in the repo (void-cancelled-payments/index.ts:466); every other mention is a read predicate. Measured 2026-09-22 on prod: 117 jobs sit at payment_status='abandoned' and ONE is is_seed=false (995fe75b, created 2026-09-21 17:19Z), so the sweep has fired on a real job, not only fixtures. cron.job_run_details corroborates: 180 retained runs, 172 succeeded, last 2026-09-22 16:10Z; that table only retains back to 2026-09-15, so the count is a floor", "status": "EXECUTED", "last_seen": "2026-09-22" },
-  "payment-confirm-reminder":    { "observable": "jobs.payment_confirm_notif_sent=true", "why": "Guess WRONG: this function sends no email - it inserts a notifications row (index.ts:250) and stamps jobs.payment_confirm_notif_sent (index.ts:293), so email_send_log could never show it. That stamp is written nowhere else in the repo and is the one attributable trace (the notification itself is indistinguishable from other 'job_updates' rows). Measured 2026-09-22 on prod: exactly 1 job has ever been stamped and it is is_seed=true; all 5 non-seed jobs are NULL, so no real poster has ever got this reminder. Cron alive: 30 retained runs, all succeeded, last 2026-09-22 12:15Z", "status": "EXECUTED-SEED-ONLY", "last_seen": "2026-09-22" },
-  "instant-job-match":           { "observable": "notifications type='job_match' AND title LIKE '% Match for you%' (link '/dashboard?quickApply=<id>'), plus match_digest_queue rows", "why": "Guess too loose: type='job_match' is NOT attributable - the notify_matching_helpers DB trigger and daily-match-digest write the same type. This function's rows are identifiable by the title it composes ('<emoji> Match for you') and the '/dashboard?quickApply=' link (index.ts:312-322), and its deferred branch upserts match_digest_queue (index.ts:330). Measured 2026-09-22 on prod: 117 job_match notifications exist (2026-09-07..2026-09-20) and ZERO carry either shape; match_digest_queue has 0 rows ever. It is also not a cron and has no invoker - no functions.invoke('instant-job-match') anywhere in src/ or supabase/, only test files reference it", "status": "NEVER" },
-  "email-unsubscribe":           { "observable": "suppressed_emails", "why": "An unsubscribe writes a suppression row", "status": "EXECUTED-1-ROW" }
+  "create-payment": {
+    "observable": "jobs.payment_status='escrow'",
+    "why": "Checkout completing is the only way a job reaches escrow",
+    "status": "EXECUTED"
+  },
+  "release-payout": {
+    "observable": "payout_transfers",
+    "why": "A real Stripe transfer row is written per release",
+    "status": "EXECUTED-ADMIN-ONLY"
+  },
+  "process-scheduled-payouts": {
+    "observable": "payout_transfers where initiated_by<>'admin'",
+    "why": "The cron stamps its own initiator, so admin rows do not count as proof",
+    "status": "NEVER"
+  },
+  "auto-release-payment": {
+    "observable": "payout_transfers where initiated_by='auto'",
+    "why": "Same table, distinguished by initiator; filters is_seed=false so seed rows can never prove it",
+    "status": "NEVER"
+  },
+  "execute-dispute-split": {
+    "observable": "dispute_settlement_claims",
+    "why": "A split writes exactly one claim row per settlement",
+    "status": "NEVER"
+  },
+  "auto-resolve-disputes": {
+    "observable": "disputes.status='decided' AND decided_by IS NULL AND decision_text LIKE 'Auto-resolved by platform policy%' (plus the orphan-sweep text 'Closed by the auto-resolve sweep')",
+    "why": "Guess wrong twice: disputes has no 'resolved' status (live values are open/withdrawn/decided), and 'no admin actor' alone does NOT isolate the auto path - 5 of the 8 rows are user WITHDRAWALS that also carry decided_by IS NULL. The auto path IS distinguishable, by the decision_text it writes (index.ts:610) alongside decided_by=null in settle_dispute_record. Measured 2026-09-22 on prod, all 8 dispute rows read: exactly ONE matches (9756a585, decided 2026-09-16 06:21Z, execution_status='executed') and its job is is_seed=true, so the auto path has run but only on a fixture. dispute_settlement_claims still 0. Cron alive: 30 retained runs, all succeeded, last 2026-09-22 12:21Z",
+    "status": "EXECUTED-SEED-ONLY",
+    "last_seen": "2026-09-16"
+  },
+  "auto-tip-charge": {
+    "observable": "tips",
+    "why": "Each charged tip writes a row",
+    "status": "EXECUTED"
+  },
+  "instant-payout": {
+    "observable": "instant_payouts",
+    "why": "One row per instant payout requested",
+    "status": "BARELY-1-ROW"
+  },
+  "cash-out-credits": {
+    "observable": "referral_credits consumed / payout_transfers",
+    "why": "Cashing out moves credit to a real transfer",
+    "status": "NEVER"
+  },
+  "create-gift-card-checkout": {
+    "observable": "gift_cards",
+    "why": "A purchase writes the card row",
+    "status": "NEVER"
+  },
+  "claim-gift-card": {
+    "observable": "gift_cards.redeemed_at",
+    "why": "Claiming stamps the redemption time",
+    "status": "NEVER"
+  },
+  "create-boost-payment": {
+    "observable": "jobs.boosted_at / jobs.boost_expires_at",
+    "why": "Guess right. Measured 2026-09-22 on prod: 0 of 291 jobs have ever had boosted_at or boost_expires_at set, and 0 profiles have boost_credit_used_month \u2014 the free and Elite branches stamp the job inside this function and the paid branch stamps it in stripe-webhook checkoutSessionCompleted, so all three paths land on this column and none has ever fired NOTE: boost is not urgent \u2014 urgent-job-fee is tracked separately; conflating them misreported urgent as unused.",
+    "status": "NEVER"
+  },
+  "create-bgc-payment": {
+    "observable": "profiles background-check state",
+    "why": "A paid check advances the profile's verification state",
+    "status": "UNVERIFIED"
+  },
+  "check-pro-subscription": {
+    "observable": "profiles.subscription_tier + subscription_billing_cycle",
+    "why": "Column right, attribution weak: this function and stripe-webhook write the same columns and nothing records which wrote. Measured 2026-09-22 on prod: exactly 1 profile holds a tier (pro, expires 2026-10-04) and it is is_seed=true; all 5 non-seed profiles have subscription_tier NULL, so no real user has ever held a tier by any path",
+    "status": "EXECUTED-SEED-ONLY"
+  },
+  "expire-subscriptions": {
+    "observable": "notifications.title='Membership expired' for the downgrade; cron.job_run_details for invocation",
+    "why": "Guess wrong \u2014 there is no expiry-reason column; the downgrade is an untagged subscription_tier=NULL write, and its one attributable trace is the notification it inserts. Measured 2026-09-22 on prod: pg_cron enqueued it 8 times, 6 succeeded, last good 2026-09-21 08:09Z (2026-09-22 failed 'job startup timeout'), while 0 'Membership expired' notifications exist \u2014 the cron runs; its downgrade branch has never had a row to clear",
+    "status": "EXECUTED",
+    "last_seen": "2026-09-21"
+  },
+  "subscription-reconciliation": {
+    "observable": "cron.job_run_details for jobname='subscription-reconciliation' (a clean run writes NO product row)",
+    "why": "Guess wrong \u2014 this function never writes error_logs: it repairs profiles, posts a Slack ops alert and returns cronResult, so a clean run leaves no durable DB trace and the only durable observable is the pg_cron enqueue record. Measured 2026-09-22 on prod: 8 enqueues, 7 succeeded, last good 2026-09-21 08:24Z (2026-09-22 'job startup timeout'); net._http_response holds no matching bodies, so response-level proof has aged out",
+    "status": "EXECUTED",
+    "last_seen": "2026-09-21"
+  },
+  "stripe-payouts": {
+    "observable": "payout_transfers",
+    "why": "Shares the transfer ledger with the release path",
+    "status": "EXECUTED-ADMIN-ONLY"
+  },
+  "void-cancelled-payments": {
+    "observable": "jobs.payment_status='abandoned' (Part B), plus cron.job_run_details for 'void-cancelled-payments'",
+    "why": "Guess named the wrong value: Part A's 'cancelled'/'refunded' are also written by refund and cancellation paths, so neither attributes. 'abandoned' is written in exactly ONE place in the repo (void-cancelled-payments/index.ts:466); every other mention is a read predicate. Measured 2026-09-22 on prod: 117 jobs sit at payment_status='abandoned' and ONE is is_seed=false (995fe75b, created 2026-09-21 17:19Z), so the sweep has fired on a real job, not only fixtures. cron.job_run_details corroborates: 180 retained runs, 172 succeeded, last 2026-09-22 16:10Z; that table only retains back to 2026-09-15, so the count is a floor",
+    "status": "EXECUTED",
+    "last_seen": "2026-09-22"
+  },
+  "payment-confirm-reminder": {
+    "observable": "jobs.payment_confirm_notif_sent=true",
+    "why": "Guess WRONG: this function sends no email - it inserts a notifications row (index.ts:250) and stamps jobs.payment_confirm_notif_sent (index.ts:293), so email_send_log could never show it. That stamp is written nowhere else in the repo and is the one attributable trace (the notification itself is indistinguishable from other 'job_updates' rows). Measured 2026-09-22 on prod: exactly 1 job has ever been stamped and it is is_seed=true; all 5 non-seed jobs are NULL, so no real poster has ever got this reminder. Cron alive: 30 retained runs, all succeeded, last 2026-09-22 12:15Z",
+    "status": "EXECUTED-SEED-ONLY",
+    "last_seen": "2026-09-22"
+  },
+  "instant-job-match": {
+    "observable": "notifications type='job_match' AND title LIKE '% Match for you%' (link '/dashboard?quickApply=<id>'), plus match_digest_queue rows",
+    "why": "Guess too loose: type='job_match' is NOT attributable - the notify_matching_helpers DB trigger and daily-match-digest write the same type. This function's rows are identifiable by the title it composes ('<emoji> Match for you') and the '/dashboard?quickApply=' link (index.ts:312-322), and its deferred branch upserts match_digest_queue (index.ts:330). Measured 2026-09-22 on prod: 117 job_match notifications exist (2026-09-07..2026-09-20) and ZERO carry either shape; match_digest_queue has 0 rows ever. It is also not a cron and has no invoker - no functions.invoke('instant-job-match') anywhere in src/ or supabase/, only test files reference it",
+    "status": "NEVER"
+  },
+  "email-unsubscribe": {
+    "observable": "suppressed_emails",
+    "why": "An unsubscribe writes a suppression row",
+    "status": "EXECUTED-1-ROW"
+  },
+  "urgent-job-fee": {
+    "observable": "jobs.urgent_fee > 0 AND payment_status reaching escrow",
+    "why": "Owner corrected 2026-09-22: urgent is a SEPARATE purchase path from boost and was missing here entirely. Measured: 2 rows carry urgent_fee ($25, $10), both is_seed=true and both payment_status='cancelled' \u2014 the fee was set on the row but no urgent purchase has ever COMPLETED",
+    "status": "NEVER-COMPLETED",
+    "last_seen": "2026-09-07"
+  }
 }

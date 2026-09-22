@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarCheck, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { AlertTriangle, Calendar, CheckCircle2, Clock, XCircle } from "lucide-react";
 import type { JobStatusLine, JobStatusTone } from "./jobStatusLine";
 
 /**
@@ -64,14 +64,33 @@ interface ToneSkin {
   icon: typeof AlertTriangle;
 }
 
+/*
+ * ONE GLYPH PER MEANING, and the CHECK IS RESERVED (owner, 2026-09-21):
+ *   "needs you shouldnt be a check, bc its not a checked off its we need you.
+ *    done is the only thing wirh the check. waiting is good with the clock"
+ * and on the family: "needs you be the yellow [alert], waiting be the clock and
+ * done be the check".
+ *
+ * So: alert = something is owed, clock = waiting on time or on someone, check =
+ * finished. A check means DONE and nothing else — it used to sit on `you` as
+ * well, which told the reader a job they still owed work on was ticked off.
+ *
+ * `ahead` loses CalendarCheck for the same reason: it carries a check glyph, and
+ * a scheduled job is not finished. A plain calendar says "a date is set".
+ */
 const TONE: Record<JobStatusTone, ToneSkin> = {
   // Unchanged from DisputeOpenBadge, to the token.
   alarm: { surface: "--burnt-sienna", ink: "--sienna-ink", icon: AlertTriangle },
-  // Unchanged from PosterConfirmationBadge: bark is the app's own "your move"
-  // green, the primary button's green. Nothing is wrong; something is waiting.
-  you: { surface: "--bark", ink: "--bark", icon: CheckCircle2 },
+  // AMBER, not bark. Bark is the primary-button green and reads as "good,
+  // done"; this state is "we need you". Amber is already the app's attention
+  // family, so no new colour enters the palette — and the right members of it:
+  // `--amber-tint` is the token whose own comment says it is "used at low alpha
+  // for fills/borders", which is exactly what `surface` is for here, and
+  // `--amber-ink` is the text-grade one. `--amber` does not exist; naming it
+  // would have emitted `hsl(var(--amber) / 0.08)` and painted nothing.
+  you: { surface: "--amber-tint", ink: "--amber-ink", icon: AlertTriangle },
   them: { surface: "--olivewood", ink: "--olivewood", icon: Clock },
-  ahead: { surface: "--olivewood", ink: "--olivewood", icon: CalendarCheck },
+  ahead: { surface: "--olivewood", ink: "--olivewood", icon: Calendar },
   done: { surface: "--bark", ink: "--bark", icon: CheckCircle2 },
   over: { surface: "--olivewood", ink: "--olivewood", icon: XCircle },
 };
@@ -94,17 +113,30 @@ export function JobStatusStrip({ line }: { line: JobStatusLine }) {
         background: `hsl(var(${skin.surface}) / 0.08)`,
       }}
     >
-      <Icon className="w-3 h-3 shrink-0" style={{ color: `hsl(var(${skin.surface}))` }} aria-hidden />
-      <span
-        className="font-sans uppercase text-ds-10 shrink-0"
-        style={{ color: `hsl(var(${skin.ink}))`, letterSpacing: "0.18em" }}
-      >
-        {line.eyebrow}
-      </span>
-      {/* Read aloud between the halves; invisible, and NOT a second copy of
-          either of them. */}
-      <span className="sr-only"> — </span>
-      <span className="font-sans text-ds-11 ml-auto" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+      {/* Icon takes the INK, not the surface. The surface tokens are tuned for
+          low-alpha washes and borders, so at full opacity some sit near 3:1 on
+          the card; the ink tokens are text-grade by construction. One rule for
+          every tone rather than an exception for amber. */}
+      <Icon className="w-3 h-3 shrink-0" style={{ color: `hsl(var(${skin.ink}))` }} aria-hidden />
+      {/*
+        THE EYEBROW IS NO LONGER SHOWN (owner, 2026-09-21): "instead of saying
+        needs you on the left. the left should say like the reason things are
+        being held up or what they are waiting on or what they need to do to
+        move forward."
+
+        It repeated the FILTER TAB the reader was already standing in, twice per
+        card — the same redundancy the removed colour stripe had. The reason is
+        the thing no tab can tell you, so the reason is what the line says, and
+        it says it on the LEFT rather than pushed to the far edge by `ml-auto`.
+
+        It is still spoken, because whose move it is remains useful without
+        sight of the tab, and it is still CARRIED IN THE DATA — which is what
+        keeps `collapsedStatusSentence.test.tsx` able to hold every line filed
+        under "Needs You" to actually being the reader's move. Dropping the
+        field rather than the rendering would have retired that check.
+      */}
+      <span className="sr-only">{line.eyebrow} — </span>
+      <span className="font-sans text-ds-11" style={{ color: `hsl(var(${skin.ink}))` }}>
         {line.detail}
       </span>
     </p>

@@ -690,47 +690,18 @@ function PostedJobCardInner({
             </div>
             )}
 
-            {/* Completed hint */}
-            {job.status === "completed" && (() => {
-              const cMeta = completedJobMeta[job.id];
-              const hasTipped = cMeta?.tipped;
-              const hasReviewed = cMeta?.reviewed;
-              // Hidden once the card is EXPANDED — the expanded body already
-              // shows the same fact as the Tipped/Reviewed pill buttons in
-              // the action row below, so this collapsed-state summary line
-              // became a redundant third repetition of "already done".
-              if (hasTipped && hasReviewed && !isExpanded) {
-                return (
-                  <div className="px-4 py-1.5 border-t border-[hsl(var(--olivewood)/0.1)] bg-card flex items-center justify-between">
-                    {/* No chevron here any more — the meta row's `trailing`
-                        slot carries the card's one expand glyph now, so this
-                        strip would have been a second one on the same card,
-                        two rows apart. */}
-                    <span className="text-ds-11 flex items-center gap-1" style={{ color: "hsl(var(--success-ink))" }}><CheckCircle2 className="w-3 h-3" /> Tipped &amp; Reviewed</span>
-                  </div>
-                );
-              }
-              // Partial: one of tip/review is done, the other isn't. Surfaced
-              // so the poster notices the loose end instead of assuming the
-              // job is fully archived (the "both done" strip above is the
-              // only other state this row ever showed).
-              if ((hasTipped || hasReviewed) && !isExpanded) {
-                return (
-                  <div className="px-4 py-1.5 border-t border-[hsl(var(--olivewood)/0.1)] bg-card flex items-center justify-between">
-                    <span className="text-ds-11 flex items-center gap-1" style={{ color: "hsl(var(--amber-ink))" }}>
-                      <CheckCircle2 className="w-3 h-3" /> {hasTipped ? "Tipped" : "Reviewed"} — {hasTipped ? "review" : "tip"} still open
-                    </span>
-                  </div>
-                );
-              }
-              // Nothing when the job is still awaiting both a tip and a
-              // review. This used to print a bare "Tip & review" / "Leave a
-              // tip" / "Leave a review" strip directly above the action row
-              // that already carries a Tip chip and a Review chip — a label
-              // with no control, naming the buttons underneath it. The chips
-              // ARE the prompt.
-              return null;
-            })()}
+            {/* THE COMPLETED HINT IS GONE — the status strip says it now.
+                This printed "Tipped & Reviewed" or "Tipped — review still
+                open" on its own row, directly above the strip that said
+                "DONE · Paid and closed". So a finished job with a loose end
+                wore TWO rows and TWO checks that contradicted each other
+                (owner, 2026-09-21: "it should also only have 1 check at the
+                bottom. it cant be both done and reviewed tip open").
+                Both facts are one line now: `derivePosterWait` takes the same
+                `completedJobMeta` this component reads and answers
+                done_paid / done_tip_open / done_review_open / done_both_open,
+                and the check is reserved for the one that has earned it. */}
+
 
             {/* A collapsed-only "Re-Post" button used to sit here, for archived
                 completed jobs. It existed because the action row below was the
@@ -881,7 +852,19 @@ function PostedJobCardInner({
                 ladder and the bucket's own predicates. See jobStatusLine.ts. */}
             {!isExpanded && (
               <JobStatusStrip
-                line={posterStatusLine(job, pendingApplicantCounts?.[job.id] ?? 0)}
+                /* The completion meta is passed so the strip can tell a
+                   finished job from one with a loose end. It is the same
+                   `completedJobMeta` this card already reads two hundred lines
+                   up — the row it used to paint from it is gone, because a
+                   card cannot be both "Done" and "Reviewed — tip still open"
+                   (owner, 2026-09-21: "it should also only have 1 check at the
+                   bottom"). */
+                line={posterStatusLine(
+                  job,
+                  pendingApplicantCounts?.[job.id] ?? 0,
+                  undefined,
+                  completedJobMeta[job.id],
+                )}
               />
             )}
           </JobCardShell>

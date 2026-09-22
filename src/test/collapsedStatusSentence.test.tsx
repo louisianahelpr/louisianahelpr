@@ -207,7 +207,10 @@ const job = (over: Record<string, unknown>) => ({ ...baseJob, ...over }) as unkn
  * nothing here reaches it, this object stops compiling — the inventory and its
  * coverage cannot drift apart by one being edited without the other.
  */
-const POSTER_FIXTURES: Record<PosterWait, { job: Job; pending?: number }> = {
+const POSTER_FIXTURES: Record<
+  PosterWait,
+  { job: Job; pending?: number; completion?: { tipped: boolean; reviewed: boolean } }
+> = {
   unfunded: { job: job({ payment_status: "unpaid", stripe_session_id: "cs_1" }) },
   in_review: { job: job({ status: "pending_approval" }) },
   applicants: { job: job({}), pending: 3 },
@@ -275,7 +278,26 @@ const POSTER_FIXTURES: Record<PosterWait, { job: Job; pending?: number }> = {
   },
   dispute: { job: job({ status: "disputed", helper_id: HELPER, dispute_status: "open" }) },
   dispute_escalated: { job: job({ status: "disputed", helper_id: HELPER, dispute_status: "escalated" }) },
-  done_paid: { job: job({ status: "completed", helper_id: HELPER, payment_status: "released" }) },
+  done_paid: {
+    job: job({ status: "completed", helper_id: HELPER, payment_status: "released" }),
+    completion: { tipped: true, reviewed: true },
+  },
+  /* The three loose-end finishes. Same JOB as done_paid — what separates them is
+     the completion meta the card passes in, not anything on the row, so these
+     fixtures are deliberately identical and the `completion` argument is what
+     the cases below vary. */
+  done_tip_open: {
+    job: job({ status: "completed", helper_id: HELPER, payment_status: "released" }),
+    completion: { tipped: false, reviewed: true },
+  },
+  done_review_open: {
+    job: job({ status: "completed", helper_id: HELPER, payment_status: "released" }),
+    completion: { tipped: true, reviewed: false },
+  },
+  done_both_open: {
+    job: job({ status: "completed", helper_id: HELPER, payment_status: "released" }),
+    completion: { tipped: false, reviewed: false },
+  },
   cancelled: { job: job({ status: "cancelled" }) },
 };
 
@@ -332,7 +354,14 @@ describe("every state a collapsed card can be in has a sentence", () => {
 
   it("Posts: the fixtures REACH every id in the table — nothing unproven", () => {
     const reached = new Set(
-      POSTER_WAIT_IDS.map((id) => derivePosterWait(POSTER_FIXTURES[id].job, POSTER_FIXTURES[id].pending ?? 0)),
+      POSTER_WAIT_IDS.map((id) =>
+        derivePosterWait(
+          POSTER_FIXTURES[id].job,
+          POSTER_FIXTURES[id].pending ?? 0,
+          undefined,
+          POSTER_FIXTURES[id].completion,
+        ),
+      ),
     );
     const missing = POSTER_WAIT_IDS.filter((id) => !reached.has(id));
     expect(
@@ -344,7 +373,10 @@ describe("every state a collapsed card can be in has a sentence", () => {
   it("Posts: each fixture produces the id it is filed under", () => {
     for (const id of POSTER_WAIT_IDS) {
       const f = POSTER_FIXTURES[id];
-      expect(derivePosterWait(f.job, f.pending ?? 0), `the ${id} fixture no longer derives ${id}`).toBe(id);
+      expect(
+        derivePosterWait(f.job, f.pending ?? 0, undefined, f.completion),
+        `the ${id} fixture no longer derives ${id}`,
+      ).toBe(id);
     }
   });
 
@@ -401,7 +433,7 @@ describe("the sentence says whose move it is, and does not lie about it", () => 
        disagreement with the bucket, not a copy preference. */
     for (const id of ["on_the_way", "working", "revision_out"] as PosterWait[]) {
       const f = POSTER_FIXTURES[id];
-      const line = posterStatusLine(f.job, f.pending ?? 0);
+      const line = posterStatusLine(f.job, f.pending ?? 0, undefined, f.completion);
       expect(
         OWED_BY_READER.has(line.eyebrow),
         `${id} reads "${line.eyebrow} · ${line.detail}" — it is asking the poster for something ` +
@@ -413,7 +445,7 @@ describe("the sentence says whose move it is, and does not lie about it", () => 
   it("Posts: the states that ARE the poster's move say so", () => {
     for (const id of ["confirm_arrival", "confirm_working", "approve", "revision_fixed", "applicants", "unfunded"] as PosterWait[]) {
       const f = POSTER_FIXTURES[id];
-      const line = posterStatusLine(f.job, f.pending ?? 0);
+      const line = posterStatusLine(f.job, f.pending ?? 0, undefined, f.completion);
       expect(line.eyebrow, `${id} does not tell the poster it is their move`).toBe("Needs You");
     }
   });
@@ -498,28 +530,41 @@ describe("every sentence fits the collapsed card it sits in", () => {
     }
   });
 
-  it("ONE LINE at 375: eyebrow + gap + detail fits the 244px row", () => {
+  /*
+   * MEASURES WHAT IS RENDERED. The strip stopped drawing the eyebrow on
+   * 2026-09-21 (owner: the left should carry the reason, not the tab's own
+   * word), so a budget spending eyebrow + gap + detail was charging the line
+   * for text that is not on screen — and it would have rejected honest copy for
+   * the width of an invisible label. Icon(12) + gap(6) + detail is the layout.
+   *
+   * The eyebrow is still in the DATA and still asserted elsewhere in this file;
+   * it is only no longer part of the geometry.
+   */
+  it("ONE LINE at 375: the detail fits the row left after the icon", () => {
     const budget = lineBudget("375");
     for (const l of lines) {
-      const need = eyebrowPx(l.eyebrow) + GAP_PX + detailPx(l.detail);
+      // `lineBudget` has already taken the icon and the gap off the row.
+      const need = detailPx(l.detail);
       expect(
         need,
-        `${l.side}/${l.id}: "${l.eyebrow} · ${l.detail}" needs ${need.toFixed(1)}px of a ${budget}px row at 375`,
+        `${l.side}/${l.id}: "${l.detail}" needs ${need.toFixed(1)}px of a ${budget}px row at 375`,
       ).toBeLessThanOrEqual(budget);
     }
   });
 
-  it("and all but the escalated dispute fit ONE line at 320 too", () => {
-    // Stated as a NUMBER rather than left implicit: 36 of 38 lines clear the
-    // 194px single-line budget at 320, and the two that do not are the same
-    // line on the two cards — "ADMIN REVIEWING · Payment on hold" at 210.3px,
-    // which is the copy the dispute badge already shipped with.
+  it("EVERY line now fits ONE line at 320 — nothing is allowed to wrap", () => {
+    // It used to be 36 of 38, the two exceptions being "ADMIN REVIEWING ·
+    // Payment on hold" at 210.3px against a 194px budget. Dropping the eyebrow
+    // from the rendering took the uppercase label and its 0.18em tracking off
+    // every line, and the allow-list emptied itself — so it is empty here
+    // rather than carrying two entries nothing reaches. A NEW line that wraps
+    // now fails outright, which is stricter than what this replaced.
     const budget = lineBudget("320");
-    const twoLine = lines.filter((l) => eyebrowPx(l.eyebrow) + GAP_PX + detailPx(l.detail) > budget);
+    const twoLine = lines.filter((l) => detailPx(l.detail) > budget);
     expect(
       twoLine.map((l) => `${l.side}/${l.id}`).sort(),
       "a new sentence has been allowed to wrap at 320 without anyone deciding to let it",
-    ).toEqual(["Jobs/dispute_escalated", "Posts/dispute_escalated"]);
+    ).toEqual([]);
   });
 
   it("the strip is allowed to wrap — otherwise the two-line case is a clipped one", () => {
@@ -596,7 +641,14 @@ function wrap(ui: ReactElement) {
 
 const noop = () => {};
 
-function renderPosted(j: Job, expanded: boolean, pending = 0) {
+function renderPosted(
+  j: Job,
+  expanded: boolean,
+  pending = 0,
+  /* The loose-end states are only distinguishable with this, so the render
+     test has to hand the card what the real page hands it. */
+  completion?: { tipped: boolean; reviewed: boolean },
+) {
   document.body.innerHTML = "";
   return wrap(
     <PostedJobCard
@@ -607,7 +659,7 @@ function renderPosted(j: Job, expanded: boolean, pending = 0) {
       toggleExpandedJobId={noop}
       helperNames={{ [HELPER]: "Hallie H." }}
       helperAvatars={{ [HELPER]: null }}
-      completedJobMeta={{}}
+      completedJobMeta={completion ? { [j.id]: completion } : {}}
       userId={POSTER}
       onBoost={noop} onEdit={noop} onCancel={noop} onComplete={noop} completingJobId={null}
       onRevision={noop} onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop} onReport={noop}
@@ -651,7 +703,7 @@ describe("BOTH cards mount it, collapsed only", () => {
   it("Posts: every collapsed state draws exactly one strip, saying its own line", () => {
     for (const id of POSTER_WAIT_IDS) {
       const f = POSTER_FIXTURES[id];
-      renderPosted(f.job, false, f.pending ?? 0);
+      renderPosted(f.job, false, f.pending ?? 0, f.completion);
       const els = document.querySelectorAll("[data-job-status-strip]");
       expect(els, `Posts/${id}: ${els.length} strips on one collapsed card`).toHaveLength(1);
       expect((els[0] as HTMLElement).dataset.jobStatusStrip, `Posts/${id}`).toBe(id);

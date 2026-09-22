@@ -131,6 +131,9 @@ export type PosterWait =
   | "dispute"
   | "dispute_escalated"
   | "done_paid"
+  | "done_tip_open"
+  | "done_review_open"
+  | "done_both_open"
   | "cancelled";
 
 /**
@@ -178,7 +181,11 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
   revision_out: { detail: "They're making the fix", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
   revision_fixed: { detail: "Check their fix" },
   stalled: { detail: "Nobody marked it done" },
-  overdue: { detail: "The day has passed" },
+  /* STATE THEN ACTION (owner, 2026-09-21). "The day has passed" said what
+     happened and left the poster to work out what to do — and it was the most
+     common line on the whole tab. The date is already on the card above, so the
+     state half is short and the action half is the point. */
+  overdue: { detail: "Day passed — mark it done or cancel" },
   /* THE OLD `DisputeOpenBadge`, VERBATIM — the words, the tone and the
      consequence line are unchanged, because this strip IS that badge
      generalised (owner: "similar to how dispute open displays"). The eyebrow
@@ -186,7 +193,20 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
      loses the one word that matters. */
   dispute: { detail: "Payment on hold", eyebrow: "Dispute open", tone: "alarm" },
   dispute_escalated: { detail: "Payment on hold", eyebrow: "Admin reviewing", tone: "alarm" },
-  done_paid: { detail: "Paid and closed" },
+  /* DONE MEANS BOTH (owner, 2026-09-21): "it shouldnt say done if tip is not
+     complete… it shouldnt say done if reviewed and tip have not both been done.
+     it should also only have 1 check at the bottom. it cant be both done and
+     reviewed tip open."
+     The card used to carry TWO rows here — PostedJobCard printed its own
+     "Reviewed — tip still open" strip above this one, so a job with a loose end
+     showed a check for the loose end AND a check for "Done". Both rows are this
+     one row now, and the check is reserved for the state that has earned it.
+     Clock rather than alert on the open ones: the work is finished and paid, so
+     nothing is wrong — something is merely outstanding. */
+  done_paid: { detail: "Done · paid and closed" },
+  done_tip_open: { detail: "Reviewed — tip still open", tone: "them" },
+  done_review_open: { detail: "Tip left — review still open", tone: "them" },
+  done_both_open: { detail: "Review and tip still open", tone: "them" },
   cancelled: { detail: "This job didn't happen" },
 };
 
@@ -202,11 +222,32 @@ export function derivePosterWait(
   job: Job,
   pendingApplicantCount = 0,
   now: Date = new Date(),
+  /**
+   * Whether the poster has tipped and reviewed, when the caller knows.
+   *
+   * It belongs HERE rather than as a refinement applied afterwards in
+   * `posterStatusLine`, and the guard is what settled that:
+   * `collapsedStatusSentence.test.tsx` asserts every id in `PosterWait` is
+   * produced by THIS function from its declared inputs. A state reachable only
+   * through a later refinement would have been permanently "unproven" — the
+   * check would have been telling the truth, so the fix is to make the input
+   * real rather than to loosen the check.
+   *
+   * Absent meta keeps the old answer, `done_paid`: a caller that cannot see the
+   * loose end must not invent one.
+   */
+  completion?: { tipped: boolean; reviewed: boolean },
 ): PosterWait {
   switch (job.status) {
     case "cancelled":
       return "cancelled";
     case "completed":
+      /* Which finish it is depends on the loose ends, not on the row. */
+      if (completion && !(completion.tipped && completion.reviewed)) {
+        if (completion.reviewed) return "done_tip_open";
+        if (completion.tipped) return "done_review_open";
+        return "done_both_open";
+      }
       return "done_paid";
     case "disputed":
       return (job as { dispute_status?: string | null }).dispute_status === "escalated"
@@ -266,8 +307,18 @@ export function posterStatusLine(
   job: Job,
   pendingApplicantCount = 0,
   now: Date = new Date(),
+  /**
+   * Whether the poster has tipped and reviewed this job, when known.
+   *
+   * Optional and defaulted so every existing call site keeps working and keeps
+   * reading "Done · paid and closed" — the completion meta lives in
+   * `useCardExpansion`'s `CompletedJobMeta` and only the card that renders a
+   * finished job has it. Absent meta is NOT treated as "both open": a caller
+   * that cannot see the loose end should not invent one.
+   */
+  completion?: { tipped: boolean; reviewed: boolean },
 ): JobStatusLine {
-  const id = derivePosterWait(job, pendingApplicantCount, now);
+  const id = derivePosterWait(job, pendingApplicantCount, now, completion);
   const copy = POSTER_WAIT[id];
   const bucket = postedActivityBucket(job, pendingApplicantCount, now);
   return {

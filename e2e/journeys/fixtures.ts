@@ -497,6 +497,67 @@ async function errorLogReader(api: APIRequestContext): Promise<{ apikey: string;
   return null;
 }
 
+/**
+ * THE APP CAN NAVIGATE ITSELF OUT FROM UNDER A `page.goto`, AND DOES — in
+ * WebKit, under load. Seen twice on #1595:
+ *
+ *   notifications.spec.ts  goto ".../my-posts?job=…"  interrupted by ".../profile?tab=warnings&_v=1790058631340"
+ *   03-account.spec.ts:66  goto ".../profile"         interrupted by ".../user/437de07d-…?_v=1790094227753"   (run 35751533019)
+ *
+ * ONE mechanism, not two. `_v=` has exactly one writer in the whole app —
+ * `hardReloadBypassCache` (src/lib/chunkReload.ts), the stale-chunk recovery —
+ * and it does `location.replace(window.location.href + "&_v=<now>")`, i.e. it
+ * reloads the page being LEFT. So the interrupting URL is never a destination
+ * the app chose; it is just whatever screen the spec was navigating AWAY from,
+ * which is why the two failures above look like different bugs and are not.
+ * `/user/<id>?_v=` does NOT mean a user was bounced onto someone's profile: it
+ * means the poster was already ON that profile (03-account.spec.ts:294) when
+ * the goto to /profile started.
+ *
+ * REPRODUCED in WebKit, deterministically, 2026-09-22, against the real built
+ * `dist` at 127.0.0.1:4173: park a page, delay the next document by 4s, start
+ * `goto("/profile")`, then dispatch `vite:preloadError` on the old window
+ * (main.tsx:67 hands it to recoverFromChunkError, which reloads). Playwright
+ * reports, verbatim:
+ *
+ *   page.goto: Navigation to "http://127.0.0.1:4173/profile" is interrupted by
+ *   another navigation to "http://127.0.0.1:4173/login?redirect=%2Fuser%2F…&_v=1790098803572"
+ *
+ * In CI the cancelled module preload comes for free: WebKit aborts the old
+ * screen's in-flight requests when the new navigation commits, and a cancelled
+ * preload raises `vite:preloadError`.
+ *
+ * So it is tolerated ONCE, per navigation, and ANNOUNCED — never swallowed.
+ * The tolerance is gated on `_v=` so it can only ever excuse the app's own
+ * recovery reload; any other interrupted navigation is a real bug and still
+ * fails. The retry calls the ORIGINAL goto, so a second interruption throws.
+ *
+ * The underlying product hole (a navigation started while a lazy chunk is in
+ * flight can be eaten by the recovery reload, leaving the user where they
+ * were) is filed in docs/OPEN.md. This makes every journey page survive it
+ * instead of each spec remembering to.
+ *
+ * Guarded by src/test/journeyGotoToleratesRecoveryReload.test.ts.
+ */
+const tolerateRecoveryReload = (name: string, page: Page, testInfo: TestInfo): Page => {
+  const goto = page.goto.bind(page);
+  page.goto = async (...args: Parameters<Page["goto"]>) => {
+    try {
+      return await goto(...args);
+    } catch (err) {
+      const to = /interrupted by another navigation to "([^"]*)"/i.exec(String(err))?.[1];
+      if (!to || !/[?&]_v=\d+/.test(to)) throw err;
+      testInfo.annotations.push({
+        type: "app-self-navigation",
+        description: `${name}: goto ${String(args[0])} was interrupted by the app's chunk-recovery reload to ${to}; retried once`,
+      });
+      await page.waitForTimeout(2_000);
+      return await goto(...args);
+    }
+  };
+  return page;
+};
+
 type Journey = {
   /** Register a page so it is screenshotted if the journey fails. */
   track: (name: string, page: Page) => Page;
@@ -564,6 +625,7 @@ export const test = base.extend<{ journey: Journey }>({
     await provide({
       track: (name, page) => {
         pages.set(name, page);
+        tolerateRecoveryReload(name, page, testInfo);
         // Every report() the client fires lands as a POST to error_logs; catch it at the wire.
         page.on("request", (req) => {
           if (req.method() === "POST" && req.url().includes("/rest/v1/error_logs")) {

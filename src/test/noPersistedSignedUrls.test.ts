@@ -66,10 +66,29 @@
  * holds the opener's direct UPDATE to the same rule. A bare path fails the
  * anchor and the filing raises `dispute_evidence_invalid_url` — so writing the
  * path without first widening the validator would not fix a dated fuse, it
- * would break dispute filing outright, today, on the money path. These two
- * stay pinned until a migration relaxes the validator to accept
- * `<uploader>/disputes/<job>/<file>` alongside the legacy URL shape; the data
- * half is already done (20260922170321 converts both evidence columns).
+ * would break dispute filing outright, today, on the money path.
+ *
+ * That server gate is now OPEN: 20260922172945_widen_dispute_evidence_url_ok_
+ * to_paths.sql accepts `<uploader>/disputes/<job>/<file>` alongside the legacy
+ * URL, with both uuids still pinned to the caller and the job (its own guard is
+ * src/test/disputeEvidenceUrlOk.test.ts). The data half was already done by
+ * 20260922170321. The WRITE half is still not safe on its own, because of a
+ * FOURTH gate neither the pins nor that migration knew about, found 2026-09-22:
+ *
+ *   src/lib/evidenceUrl.ts — `isTrustedEvidenceUrl` does `new URL(url)` and
+ *   requires `/storage/v1/object/sign/proof-photos/`. A bare path THROWS there
+ *   and is counted as WITHHELD, not rendered. Both readers go through it:
+ *   DisputeTimelineDialog.tsx:281 (the other party's view) and
+ *   components/admin/adminDisputes/DisputeCard.tsx:84 — the screen an admin
+ *   decides a money split from. Converting the two writers today would file
+ *   disputes whose evidence renders as "not shown" to the admin deciding them,
+ *   which is strictly worse than a fuse dated Sept 2027.
+ *
+ * So the remaining work is ONE coordinated change, not two: convert both
+ * writers to store the path, teach `evidenceUrl.ts` to trust the path shape,
+ * and sign at display time in BOTH readers (useProofPhotoUrls —
+ * `extractProofPhotoPath` already accepts either shape). The admin reader is
+ * lh-admin-moderation's surface; coordinate before touching it.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";

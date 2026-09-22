@@ -46,13 +46,31 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    # 06:10 UTC daily — the full mutation set, which is too slow for a push.
-    - cron: "10 6 * * *"
+    # 14:17 UTC daily — the full mutation set, which is too slow for a push.
+    #
+    # WHY :17, AND WHY NOT 06:10 ANY MORE. Giving this job prod credentials
+    # (see the env block below) made it a prod-hitting workflow, which
+    # src/test/prodWorkflowSpacing.test.ts holds to two rules it was previously
+    # outside of: 30 minutes' clearance from the hourly prod-errors monitor at
+    # :47 — and :17 is the only minute in the hour that far from :47 — and 90
+    # minutes from every other daily prod cron. 06:10 was 53 min from
+    # db-drift-detect (05:17) and 67 from db-backup (07:17), so it moved rather
+    # than crowd two database jobs with a Playwright sweep.
+    - cron: "17 14 * * *"
   workflow_dispatch:
 
+# The SCHEDULED run joins the shared prod-load lock, because that is the run
+# that signs into prod and drives the real test accounts through every
+# registered Playwright mutation. Push and PR runs keep their own per-ref group:
+# they mutate only what a commit changed, which is almost never an e2e guard,
+# and GitHub keeps just one PENDING run per group — putting every push in
+# prod-load would let pushes cancel each other and queue behind heavy suites.
+#
+# cancel-in-progress is false in both directions now (it used to cancel PR
+# runs): a cancelled run holding prod-load would release the lock mid-suite.
 concurrency:
-  group: vacuity-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('vacuity-{0}', github.ref) }}
+  cancel-in-progress: false
 
 jobs:
   vacuity:

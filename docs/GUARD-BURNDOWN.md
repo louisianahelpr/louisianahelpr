@@ -21,7 +21,7 @@ executed and KILLED it. Checked 2026-09-21 rather than assumed:
 - `survivingMutations` in the baseline is **empty** — no guard is grandfathered
   as known-vacuous;
 - the per-push gate mutates only what a commit CHANGED. The thing that runs
-  every registration is the nightly full sweep (`vacuity.yml`, 06:10 UTC).
+  every registration is the nightly full sweep (`vacuity.yml`, 14:17 UTC).
 
 **That nightly sweep had failed both times it ran**, which is how the one real
 gap surfaced: on 2026-09-21 it executed 369 registrations, killed 368, and
@@ -186,7 +186,7 @@ was made.
 **Row 1 is done: 191 of 191, and 25 of them were hollow — one in seven.**
 
 Only the first row is enforced today (`.github/workflows/vacuity.yml`, on every push
-and PR, plus a full mutation sweep nightly at 06:10 UTC). The ratchet's baseline may
+and PR, plus a full mutation sweep nightly at 14:17 UTC). The ratchet's baseline may
 only shrink, so row 1 cannot regress. **Rows 2–4 are invisible to it**: a hollow test
 there is not even listed as unproven.
 

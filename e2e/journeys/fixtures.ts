@@ -101,12 +101,52 @@ export async function getSession(api: APIRequestContext, role: Role, fresh = fal
   const creds = envCreds(role);
   let session: Session;
   if (creds) {
-    const r = await api.post(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-      headers: { apikey: ANON, "Content-Type": "application/json" },
-      data: creds,
+    /**
+     * THE SUITE'S OWN SIGN-IN NEEDS HEADROOM AND A SECOND CHANCE.
+     *
+     * This POST inherited `actionTimeout` — 20s for the prod-audit project —
+     * with no retry, and one slow grant does not fail one test: it fails the
+     * spec file's `beforeAll`, and every test in that file is reported "did
+     * not run". Measured twice on 2026-09-22: run 35692221560 lost 29 tests
+     * that way, and 35695851818 lost 103 — the whole of messy-input.spec.ts —
+     * to a single timed-out grant at 06:52.
+     *
+     * It is not that GoTrue is down. Prod's own `auth_logs` for that minute
+     * show the password grants COMPLETING, at p50 1.71s and max 10.18s (11.01s
+     * the minute before, against 0.24-0.79s while the same run's earlier specs
+     * were passing). A cap two seconds above the service's observed worst case,
+     * with nothing behind it, is a coin flip — and losing it costs a hundred
+     * tests, not one.
+     *
+     * So: an explicit timeout that is not the UI action budget, and one retry.
+     * A throw and a non-2xx are the same event here, so both retry; the second
+     * failure carries the first's reason, because "sign-in failed" without it
+     * is what made this look like an outage rather than a tight bound.
+     */
+    const SIGNIN_TIMEOUT_MS = 45_000;
+    const attempt = async () => {
+      const r = await api.post(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        headers: { apikey: ANON, "Content-Type": "application/json" },
+        data: creds,
+        timeout: SIGNIN_TIMEOUT_MS,
+      });
+      if (!r.ok()) throw new Error(`${r.status()} ${await r.text()}`);
+      return (await r.json()) as Session;
+    };
+    let first: unknown;
+    session = await attempt().catch(async (e: unknown) => {
+      first = e;
+      await new Promise((res) => setTimeout(res, 2_000));
+      return attempt();
+    }).catch((second: unknown) => {
+      const say = (e: unknown) => (e instanceof Error ? e.message : String(e));
+      expect(
+        false,
+        `sign-in failed for the ${role} twice (${SIGNIN_TIMEOUT_MS}ms each, 2s apart)\n` +
+          `  first:  ${say(first)}\n  second: ${say(second)}`,
+      ).toBe(true);
+      throw second;
     });
-    expect(r.ok(), `sign-in failed for the ${role}: ${r.status()} ${await r.text()}`).toBe(true);
-    session = (await r.json()) as Session;
   } else {
     // GoTrue rate-limits magic links (429), so a minted session is reused from
     // disk while its access token has 20+ minutes left AND GoTrue still accepts

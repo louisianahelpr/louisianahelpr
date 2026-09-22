@@ -220,6 +220,26 @@ OPEN:
   DO NOT delete baseline entries on the strength of this note alone — it is
   reasoning over an existing measurement file, not a fresh measurement.
 
+## CLOSED 2026-09-22 — "58 unmeasured loading surfaces" was my misreading, not a gap
+
+I reported `check-loading-state-shape` as "110 surfaces, 52 measured" and
+called the other 58 a coverage hole. They are not. Counted properly:
+
+    58 rows have no captured loading frame
+      52  persona = ANON on a route that redirects to /login — there is no
+          loading state to capture, which is the correct result
+       6  persona = customer on /login, /reset-password, /payment-success,
+          /terms, /privacy and /this-route-does-not-exist — static pages and a
+          404, none of which fetches anything
+
+Every data-backed authed surface WAS measured. "No loading frame" means the
+screen has nothing to load, not that nobody looked.
+
+Worth keeping because the mistake is reusable: the tool reports what it
+COULD not measure, and I read it as what it DID not measure. Same shape as
+matching '%DNS time%' and counting `DNS time: 0` as a DNS failure, the same
+day. Read the rows, not the summary line.
+
 ## OPEN — the three red nightlies, diagnosed 2026-09-22 (re-runs pending)
 
 Worked top-down at the owner's direction. All three now have a cause; none is

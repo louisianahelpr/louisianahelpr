@@ -340,6 +340,36 @@ async function uploadProofThroughTheApp(
     `the helper's /my-jobs never rendered the card for run ${runId} — the job is ${jobId}`,
   ).toBeVisible({ timeout: 60_000 });
 
+  /* THE CARD STARTS COLLAPSED, AND A COLLAPSED CARD RENDERS NO TRACKER AT ALL.
+     This is the THIRD distinct way this one assertion has gone stale, and the
+     first two comments below both describe a wrong LABEL — so the natural read
+     of the failure ("check the chip label has not moved again") sent the last
+     two investigations hunting for a rename that had not happened.
+
+     What the 2026-09-22 failure artefact actually showed: the helper's
+     /my-jobs had the job on the **Scheduled** tab, and the card's whole
+     accessible content was `button "Expand Job Details"`, the heading, `$22`,
+     the location chip and `paragraph: Needs You — Finish and mark it done`.
+     No tracker, no chip, nothing to press. The job is scheduled three days
+     out, so `appliedActivityBucket` leaves it in Scheduled and
+     `jobStatusLine`'s eyebrow override says "Needs You" in the copy — both
+     deliberate (jobStatusLine.ts FINDING #5). The card was simply shut.
+
+     Expanded exactly the way 02-marketplace's `card()` helper does it, rather
+     than by a second mechanism: click the heading, and treat the `Job progress`
+     group as the proof that it opened. The sr-only "Expand Job Details" button
+     is NOT used as the handle — it is a 1px clipped element whose accessible
+     name flips to "Collapse Job Details", which makes it both awkward to click
+     and awkward to assert on. */
+  const progress = card.getByRole("group", { name: /Job progress/ });
+  if (!(await progress.isVisible().catch(() => false))) {
+    await card.getByRole("heading", { level: 2 }).first().click();
+    await expect(
+      progress,
+      "the card did not open when its heading was clicked, so the tracker (and the photo ask) can never render",
+    ).toBeVisible({ timeout: 30_000 });
+  }
+
   // ONE PHOTO ASK AT A TIME, TIED TO THE TRACKER STEP (owner, 2026-09-11,
   // HelperPhotoAsk.tsx). The card no longer carries a "Before Photos" /
   // "After Photos" pair: it renders ONE ask, tied to the tracker's current

@@ -1212,3 +1212,7 @@ test.describe("full money loop against production", () => {
 });
 
 export { E2E_TITLE_MARKER };
+
+// CREDENTIAL-BLOCKED, and expensive to mutate on purpose.
+//
+// @mutate-exempt Needs PLAYWRIGHT_POSTER/HELPER/ADMIN_EMAIL+_PASSWORD, GitHub-secrets only (verified 2026-09-21). Mutating it is not merely blocked, it is HARMFUL: every failed run of this journey leaves a hired, funded row the sweeper deliberately will not unwind, and three dispatches inside forty minutes on 2026-09-21 grew the stranded queue to 17 and tripped the edge rate limiter, which then read as eleven defects in the cancel path. A mutation run is many such runs. SHOWN ABLE TO FAIL, abundantly and for real reasons: on 2026-09-21 it failed on three distinct traced causes — a stale locator waiting on PhotoProofStep (zero call sites in src/), an ordering that asked for the After photo on a step that only offers Before, and a direct PATCH of helper_completed_at refused 403/42501 by enforce_job_completion_server_owned. It has not PASSED in any scheduled run since before 2026-09-13. GAP, stated plainly: it is proven to fail loudly, never proven to fail for a mutation someone chose. What would close it is a fixture-scoped variant that funds nothing.

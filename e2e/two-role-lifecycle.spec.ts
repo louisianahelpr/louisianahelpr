@@ -88,3 +88,7 @@ test.describe("two-role lifecycle", () => {
     await helperCtx.close();
   });
 });
+
+// NEVER EXECUTED ANYWHERE. This is the uncomfortable one.
+//
+// @mutate-exempt Needs PLAYWRIGHT_TWO_ROLE=1, PLAYWRIGHT_POSTER_SESSION, PLAYWRIGHT_HELPER_SESSION and PLAYWRIGHT_LIFECYCLE_JOB_ID — a seeded job in a specific lifecycle state, not just credentials. NOT SHOWN ABLE TO FAIL, and the reason is worse than a missing mutation: its job in e2e-real-backend.yml is `skipped` in EVERY scheduled run checked, 2026-09-13 through 2026-09-21 inclusive. It has never run, in any environment, and nothing said so — the workflow is green while this spec does nothing, which is the exact shape this burn-down exists to remove. The three defects its header credits it with (the day-of confirm 403, the tracker's ungated Done, the fee-preview race) were caught by a MANUAL audit on 2026-08-24, not by this file. What would close it is owner-side: seed the two sessions and a job in the right state, set the four vars, and confirm the job stops reporting `skipped`.

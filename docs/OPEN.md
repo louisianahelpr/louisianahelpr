@@ -186,6 +186,48 @@ OPEN:
   DO NOT delete baseline entries on the strength of this note alone — it is
   reasoning over an existing measurement file, not a fresh measurement.
 
+## OPEN — `/` is down to two loading surfaces, and the two still disagree (2026-09-22)
+
+Owner: "the loading for the webpage should go straight to the webpage not load
+another thing then go to webpage."
+
+DONE (b56548863): `/` never passed a `fallback` to MarketingRedirect, so a
+signed-in visitor got its BLANK default and then the generic
+`RouteSuspenseFallback`. `/browse` had already been fixed this exact way, with
+the reasoning written out in App.tsx; `/` was simply missed. Measured on prod,
+1440, ~1.2Mbps/150ms, CPU 4x, signed in:
+
+  BEFORE  400ms shell · 890ms RouteSuspenseFallback ("Loading…") ·
+          1403ms Dashboard's own branch ("Loading jobs near you…") ·
+          2497ms content                                    = 3 surfaces
+  AFTER   `[data-testid="route-suspense-fallback"]` absent from EVERY frame
+                                                            = 2 surfaces
+
+STILL OPEN, and I am not calling it fixed: the two remaining surfaces still
+change shape. Screenshots from the same post-deploy prod run, read as images:
+
+  921ms   title card = HelprMark emblem + THREE circular bones
+  2897ms  title card = search icon + filter icon, at the LEFT, no emblem,
+          no bell
+
+CAUSE, located: `DashboardRouteSkeleton`'s title-card stand-in is calibrated
+for PHONE. Its own comment says the real row "ends in search · filters · bell"
+and mirrors that geometry exactly — which is right at 375, where
+`DashboardTitleBar` carries the emblem and bell. At 1440 those move to
+`DesktopTopNav` (the bell and hamburger are visibly up there in the same
+screenshots) and the real title card is just search + filters. So the skeleton
+is NOT responsive while the component it mirrors IS, and the header visibly
+rearranges mid-load on desktop.
+
+FIX SHAPE: make the stand-in follow `DashboardTitleBar`'s own responsive
+behaviour rather than hard-coding the phone arrangement. Verify at BOTH 375 and
+1440 — the phone geometry is load-bearing (its comment records a measured
+44px→148px jump at 375/slow-3G) and must not regress while fixing desktop.
+
+NOT VERIFIED BY ME: whether 375 is currently correct. I measured 1440 only.
+Do not assume the phone case is fine because its comment says so — that is the
+same trust-the-comment mistake this file keeps recording.
+
 ## OPEN — three more things on the critical path, measured 2026-09-22
 
 Owner asked whether website loading can be sped up. The largest single win is

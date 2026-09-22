@@ -3793,6 +3793,32 @@ WAS done: the happy-path guard now asserts the call is `apply_to_job` **by name
 and arguments**, because a rename is exactly what produces the PGRST202 that
 opens the door.
 
+### press-every-control: the nine-day red was ONE class — a self-consuming list (2026-09-21)
+
+Run `35660182220` failed **228** presses. Triaged properly (the earlier triage
+above called this "two notification rows"):
+
+| class | count | disposition |
+|---|---:|---|
+| `control not found` inside the Notifications overlay | 183 | FIXED here |
+| `control not found` elsewhere (bottom nav, FAB) | 10 | FIXED here |
+| truthful push-permission toast | 22 | already fixed by `3960ba9a1` |
+| `Something went wrong` in notification copy | 5 | already fixed by `320dfba24` |
+| `no observable change` — the FAB on /post-job | 3 | FIXED here (aria-current) |
+| `NOT CLICKABLE` on animated chrome | 5 | two retries + the full message |
+
+Cause: pressing a notification row marks it read, the panel's filter resolves to
+"unread", so **the sweep deletes the rows it is walking**; every row after it
+shifts one `nth-of-type` and one ordinal, and the identity fallback compared a
+label truncated at 60 characters — 57 rows shared one. Controls are now
+re-addressed by a position-independent signature (whole text, relative times
+normalised out), and a row this run itself consumed is a DOCUMENTED skip with
+its proof printed in coverage.md. Guard: `src/test/pressSelfConsumingList.test.ts`,
+five mutations, each shown red.
+
+Measured on /dashboard customer against prod, same commit base: **13 failed
+presses → 0**.
+
 ### press-every-control dispatched 2026-09-21 — #1582's symptom is GONE, three new things
 
 Dispatched run `35660182220` on main to confirm the `aa81799a2` self-heal fix.

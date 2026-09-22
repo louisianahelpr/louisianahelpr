@@ -260,6 +260,96 @@ export function isTruthfulPermissionRefusal({ toast, chain = [], permission } = 
   return chain.some((label) => PUSH_PROMPT_LABEL_RX.test(String(label ?? "").trim()));
 }
 
+/*
+ * ADDRESSING A CONTROL THAT LIVES IN A LIVE, SELF-CONSUMING LIST.
+ *
+ * Measured on run 35660182220 (2026-09-21): 193 of 228 failed presses were
+ * "control not found on a freshly loaded page", and 183 of those 193 were
+ * children of ONE overlay — the notification panel behind the bell.
+ *
+ * The harness presses a nested control by reloading the screen, replaying the
+ * opener chain and re-addressing the control by the DOM path it was first seen
+ * at. Three things make that path wrong for a notification row:
+ *
+ *   1. PRESSING A ROW CONSUMES IT. `NotificationPanel.handleClick` marks the
+ *      notification read (NotificationPanel.tsx:532-533) and the panel's filter
+ *      resolves to "unread" whenever anything is unread (:427-429), so the row
+ *      is gone from the list on the next open and every row after it shifts up
+ *      one `nth-of-type` AND one ordinal.
+ *   2. THE FILTER IS NOT THE SAME ON EVERY OPEN. `filter` starts `null` and is
+ *      decided once the rows land, so the panel can be enumerated in "all" and
+ *      re-opened in "unread" (that is exactly what run 35660182220 shows: the
+ *      "Unread" tab press reported "changed a toggle/field", i.e. it was NOT
+ *      selected when the panel was walked).
+ *   3. THE FALLBACK COULD NOT TELL THE ROWS APART. Re-addressing by identity
+ *      used `tag | label | ordinal`, and `label` is truncated at 60 characters
+ *      — 57 rows in that run shared the label "Payment secured in escrow Your
+ *      payment for "[E2E DO NOT ACCE", leaving the ordinal as the only
+ *      discriminator, and the ordinal is precisely what shifts in (1).
+ *
+ * So identity is the control's WHOLE text, plus its tag and href, with relative
+ * timestamps normalised out — "7h ago" becomes "8h ago" during a 20-minute
+ * shard, and an identity that drifts with the clock is not an identity.
+ */
+export const RELATIVE_TIME_RX =
+  /\b(?:just now|yesterday|today|\d+\s*(?:s|m|h|d|w|mo|y)\s+ago|\d+\s+(?:second|minute|hour|day|week|month|year)s?\s+ago)\b/gi;
+
+/** Position-independent identity for a control, stable across re-renders and clock drift. */
+export function controlSignature(c) {
+  const text = String(c.sigText ?? c.label ?? "")
+    .replace(RELATIVE_TIME_RX, "<rel>")
+    .replace(/\s+/g, " ")
+    .trim();
+  return [c.tag ?? "", c.type ?? "", c.href ?? "", text].join("\u0000");
+}
+
+/** Attach `sig` and an ordinal among identical signatures. Mutates and returns the list. */
+export function withSignatures(list) {
+  const seen = new Map();
+  for (const c of list) {
+    c.sig = controlSignature(c);
+    const n = seen.get(c.sig) ?? 0;
+    c.sigOrdinal = n;
+    seen.set(c.sig, n + 1);
+  }
+  return list;
+}
+
+/**
+ * The documented reason a control in a self-consuming list is not pressed. It
+ * is NOT "the control is missing, shrug": it is only allowed when the run can
+ * point at a control IT ALREADY PRESSED in the same overlay that has also
+ * vanished — i.e. this list demonstrably loses the rows it is pressed on. The
+ * proof (which pressed rows are gone) is recorded on the entry and printed in
+ * coverage.md, so the excuse is never silent.
+ */
+export const CONSUMED_SKIP = "removed from the list by this run's own earlier press (self-consuming feed)";
+
+export function consumedByEarlierPress({ sig, present, pressed }) {
+  if (!sig || present.has(sig)) return null;
+  // A COUNT IS NOT A DISAPPEARANCE. "Unread 103" becomes "Unread 46" as the
+  // sweep reads rows, and the bottom-nav "Posts" tab carries its badge inside
+  // its accessible name — both would otherwise look like controls this run had
+  // made vanish, and would excuse anything that went missing beside them.
+  const loose = new Set([...present].map(looseSignature));
+  const gone = [...(pressed ?? [])].filter((s) => s !== sig && !present.has(s) && !loose.has(looseSignature(s)));
+  return gone.length ? gone : null;
+}
+
+/** The signature with every run of digits blanked — a badge/count that ticked, same control. */
+export function looseSignature(sig) {
+  return String(sig).replace(/\d+/g, "#");
+}
+
+/**
+ * A screen that bounced somewhere else on a LATER load. `/jobs/:id` for the
+ * incomplete-profile persona landed on the job page on the first load and on
+ * /complete-profile on a reload in run 35660182220, which made the bottom nav
+ * "not found" ten times. The controls belong to the screen it went to, and that
+ * screen is walked on its own row.
+ */
+export const BOUNCED_SKIP = "the screen redirected away on a later load; its controls are walked on the screen it went to";
+
 const CONSOLE_NOISE = [
   /Service Worker registration blocked by Playwright/i,
   /Download the React DevTools/i,
@@ -286,6 +376,8 @@ export const DOCUMENTED_SKIPS = new Set([
   "file picker (opens the OS dialog; not a DOM outcome)",
   "inside a toast (transient; not page chrome)",
   "opener chain could not be replayed (parent press reported separately)",
+  CONSUMED_SKIP,
+  BOUNCED_SKIP,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -349,6 +441,12 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base }) => {
     out.push({
       path: pathFrom(el, root),
       label,
+      // The control's WHOLE accessible text, untruncated at 60 the way `label`
+      // is. `controlSignature()` turns this into the identity the re-address
+      // pass matches on; see the comment there for why 60 characters is not
+      // enough to tell two rows of a live feed apart.
+      sigText: (el.getAttribute("aria-label") || el.innerText || el.getAttribute("title") || "").replace(/\s+/g, " ").trim().slice(0, 240),
+      href: href ?? "",
       tag: el.tagName.toLowerCase(),
       type: el.getAttribute("type"),
       disabled: el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true",
@@ -613,7 +711,10 @@ async function main() {
       };
       const atRest = () => page.url() === restingUrl;
       const snapshot = () => page.evaluate(SNAPSHOT, { overlaySel: OPEN_OVERLAY });
-      const enumerate = (scope) => page.evaluate(ENUMERATE, { controlSel: CONTROL_SEL, overlaySel: OPEN_OVERLAY, scope, base: BASE });
+      // Signatures are computed HERE, not in the page, so `controlSignature`
+      // stays a plain exported function a unit test can drive.
+      const enumerate = async (scope) =>
+        withSignatures(await page.evaluate(ENUMERATE, { controlSel: CONTROL_SEL, overlaySel: OPEN_OVERLAY, scope, base: BASE }));
       const slug = (s) => s.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "").slice(0, 80);
       const shoot = async (name) => {
         const file = `${OUT}/${slug(`${route.url}-${persona}-${name}`)}-${shots++}.png`;
@@ -671,8 +772,10 @@ async function main() {
 
         // The work queue: every control found on the page, then every control
         // found inside any overlay a press opened.
-        const queue = (await enumerate("page")).map((c) => ({ chain: [], step: { scope: "page", path: c.path }, meta: c, depth: 0, chainOwned: false }));
+        const queue = (await enumerate("page")).map((c) => ({ chain: [], step: { scope: "page", path: c.path }, meta: c, depth: 0, chainOwned: false, scopeKey: "page" }));
         const seenOverlays = new Set();
+        /** scopeKey → the signatures of the controls this run has actually clicked in it. */
+        const pressedInScope = new Map([["page", new Set()]]);
         let idx = 0;
         let pageDirty = false; // a press changed the resting page; reload before the next one
 
@@ -686,6 +789,18 @@ async function main() {
           rec.found++; totalFound++;
 
           const skip = (why) => { entry.result = "SKIP"; entry.why = why; rec.skipped++; };
+          /**
+           * Is this control gone because THIS RUN pressed it away? Only a scope
+           * that has also lost a control this run clicked earns that answer;
+           * the proof lands on the entry and in coverage.md.
+           */
+          const consumedHere = async (now) => {
+            const present = new Set((now ?? (await enumerate(item.step.scope))).map((c) => c.sig));
+            const gone = consumedByEarlierPress({ sig: meta.sig, present, pressed: pressedInScope.get(item.scopeKey ?? "") ?? new Set() });
+            if (!gone) return false;
+            entry.consumedProof = `${gone.length} control(s) this run pressed are gone from the same list, e.g. ${JSON.stringify(gone[0].slice(0, 120))}`;
+            return true;
+          };
           if (meta.disabled) { skip("disabled (inert by design)"); continue; }
           if (meta.srOnly) { skip("screen-reader only (pointer not expected)"); continue; }
           if (meta.active) { skip("already the active tab/route (no-op expected)"); continue; }
@@ -718,10 +833,28 @@ async function main() {
             target = locate(item.step);
           }
           if (!(await target.count())) {
-            // The path moved (a toast or portal shifted nth-of-type). Find the
-            // same control by identity — tag, label, ordinal — and re-address it.
-            const again = (await enumerate(item.step.scope)).find((c) => c.tag === meta.tag && c.label === meta.label && c.ordinal === meta.ordinal);
+            // The path moved (a toast or portal shifted nth-of-type, or a list
+            // lost a row above this one). Find the same control by IDENTITY and
+            // re-address it: signature first — the whole text, so two rows of
+            // the same feed are told apart — then the old tag/label/ordinal.
+            const now = await enumerate(item.step.scope);
+            const bySig = now.filter((c) => c.sig === meta.sig);
+            // A control whose own badge ticked ("Posts 2" → "Posts 3") is the
+            // same control; accepted only when the loose match is unambiguous.
+            const loose = meta.sig ? now.filter((c) => looseSignature(c.sig) === looseSignature(meta.sig)) : [];
+            const again =
+              bySig[Math.min(meta.sigOrdinal ?? 0, Math.max(bySig.length - 1, 0))] ??
+              (loose.length === 1 ? loose[0] : undefined) ??
+              now.find((c) => c.tag === meta.tag && c.label === meta.label && c.ordinal === meta.ordinal);
             if (again) { item.step.path = again.path; target = locate(item.step); entry.relocated = true; }
+            else {
+              // Not there at all. Did this run itself remove it? Only a list
+              // that has demonstrably lost rows THIS RUN PRESSED earns that
+              // answer, and the proof is recorded.
+              if (await consumedHere(now)) { skip(CONSUMED_SKIP); continue; }
+              // Or did the screen itself bounce on this later load?
+              if (!sameScreen(page.url()) && isBounce(page.url())) { skip(BOUNCED_SKIP); continue; }
+            }
           }
           if (!(await target.count())) {
             entry.result = "FAIL"; entry.why = "control not found on a freshly loaded page (transient or non-deterministic DOM)";
@@ -770,11 +903,31 @@ async function main() {
             await target.scrollIntoViewIfNeeded({ timeout: 2500 }).catch(() => {});
             await target.click({ timeout: PRESS_TIMEOUT });
           } catch (e) {
-            // One retry: the layout may still have been settling under it.
+            // Two retries: the layout may still have been settling under it.
+            // The bottom nav's pill indicator and the FAB's halo animate for a
+            // while after `settle()` returns, and Playwright refuses to click a
+            // box that is still moving — five presses failed that way in run
+            // 35660182220 and every one of them was on animated chrome. The
+            // second retry gets a longer budget, and the reported message is
+            // the LAST failure at 600 chars: the 300-char slice cut the log off
+            // before the part that says WHY (unstable / intercepted / hidden),
+            // which is why that red could not be read for nine days.
+            let last = e;
             await page.waitForTimeout(500);
-            try { await target.click({ timeout: PRESS_TIMEOUT }); }
-            catch {
-              entry.result = "FAIL"; entry.why = "NOT CLICKABLE: " + String(e.message).replace(/\s+/g, " ").slice(0, 300);
+            try { await target.click({ timeout: PRESS_TIMEOUT }); last = null; }
+            catch (e2) {
+              last = e2;
+              await page.waitForTimeout(1500);
+              try { await target.click({ timeout: PRESS_TIMEOUT * 2 }); last = null; }
+              catch (e3) { last = e3; }
+            }
+            if (last) {
+              // The row can go away BETWEEN being re-addressed and being
+              // clicked — a realtime INSERT re-sorts a feed mid-press. If it
+              // is gone and this run is what ate its siblings, that is the
+              // same documented skip, not an unclickable control.
+              if ((await target.count()) === 0 && (await consumedHere())) { skip(CONSUMED_SKIP); pageDirty = true; continue; }
+              entry.result = "FAIL"; entry.why = "NOT CLICKABLE: " + String(last.message).replace(/\s+/g, " ").slice(0, 600);
               rec.failed++; failedPresses++;
               entry.shot = await shoot(`unclickable-${slug(label)}`);
               pageDirty = true;
@@ -782,6 +935,9 @@ async function main() {
             }
           }
           rec.pressed++; totalPressed++;
+          // Remember WHAT was pressed in this scope: a control that vanishes
+          // later is only excused when a control this run pressed is gone too.
+          pressedInScope.get(item.scopeKey ?? "page")?.add(meta.sig);
           await settle();
           const after = await snapshot();
 
@@ -843,7 +999,9 @@ async function main() {
               seenOverlays.add(key);
               const nextChain = [...chain, { ...item.step, label }];
               const chainOwned = item.chainOwned || rowNamesTestOwner(meta.rowText, owners);
-              for (const c of inner) queue.push({ chain: nextChain, step: { scope: "overlay", path: c.path }, meta: c, depth: item.depth + 1, chainOwned });
+              const scopeKey = `overlay:${entry.chain.join(" › ")}`;
+              if (!pressedInScope.has(scopeKey)) pressedInScope.set(scopeKey, new Set());
+              for (const c of inner) queue.push({ chain: nextChain, step: { scope: "overlay", path: c.path }, meta: c, depth: item.depth + 1, chainOwned, scopeKey });
               entry.opened = inner.length;
             }
             // Close it so the next page-level control starts clean.
@@ -901,6 +1059,10 @@ async function main() {
   // state that excused it.
   const excused = results.flatMap((r) => r.controls.filter((c) => c.excused).map((c) => `- ${r.route} (${r.persona}) › ${c.chain.join(" › ")} — ${c.excused}`));
   lines.push("", `## Error toasts not counted as defects (${excused.length})`, "", ...excused);
+  // Same rule for the self-consuming lists: every excused row is listed with
+  // the proof that this run's own presses are what removed it.
+  const consumed = results.flatMap((r) => r.controls.filter((c) => c.consumedProof).map((c) => `- ${r.route} (${r.persona}) › ${c.chain.join(" › ")} — ${c.consumedProof}`));
+  lines.push("", `## Rows the sweep consumed before it could press them (${consumed.length})`, "", ...consumed);
   lines.push("", `## Clean-up`, "", ...cleaned.log.map((l) => `- ${l}`), ...cleaned.residue.map((l) => `- **RESIDUE** ${l}`));
   writeFileSync(`${OUT}/coverage.md`, lines.join("\n") + "\n");
   writeFileSync(`${OUT}/results.json`, JSON.stringify({ width: WIDTH, theme: THEME, runId: RUN_ID, uncovered: unavailable, cleanup: cleaned, results }, null, 2));

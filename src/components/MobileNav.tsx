@@ -789,6 +789,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
                 onFocus={() => !isGuest && prefetchRoute("/post-job")}
                 aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
+                /* The five tabs say where you are with `aria-current`; the FAB
+                   never did, so on /post-job it announced as an ordinary
+                   action that leads somewhere — and pressing it navigates to
+                   the page it is already on, which is no navigation at all.
+                   Same signal the tabs give, for the same reason. */
+                aria-current={!isGuest && location.pathname === "/post-job" ? "page" : undefined}
                 className="group relative w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.96] transition-transform duration-200"
                 style={{
                   // Lit-from-top orb — a radial highlight in the upper-left

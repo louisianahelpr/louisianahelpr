@@ -814,6 +814,44 @@ lifted the presser swept "New email" and "Confirm new email" and made the
 coverage test's `staleGaps` assertion right. The refusal now lives where the
 presser reads it.
 
+### VERIFIED in CI — the consent-gate half of #1618 is fixed
+Run [35697822888](https://github.com/louisianahelpr/louisianahelpr/actions/runs/35697822888),
+2026-09-22 07:15-07:59Z, on `bffd11f5c`:
+
+| | run 35559129731 (2026-09-21) | run 35697822888 (2026-09-22) |
+|---|---|---|
+| `sweep: admin-referrals` | **FAIL** — 0 text-like fields, "the form did not render" | **PASS, 6.3 s** |
+| the other four admin sweeps | pass | pass |
+| `admin-views.spec.ts` (26 views) | pass (through the scrim) | pass, no scrim — its own screenshots are the real screens |
+| `admin@louisianahelpr.com` `terms_version_accepted` | `''` | **`'Jun 2026'`, written 06:43:11Z by `admin-views.spec.ts`** through the `isConsentAcceptance` exception |
+| whole run | 2 failed, 182 passed | 152 passed, 6 failed, 45 did not run |
+
+The account is pinned for good, and a future `LATEST_TERMS_VERSION` bump heals
+itself on the first authed load of the next run.
+
+### STILL RED, and why — prod-audit is not green
+Three separate things, none of them the consent gate:
+
+1. **Prod's own `/auth/v1/token?grant_type=password` is 504-ing in bursts.**
+   Killed three dispatches today in three different places (35692221560: 29
+   failed at 18.0 m; 35695851818: 103 tests "did not run"; 35697822888: 45 "did
+   not run"). Read off Supabase's `auth_logs`, not inferred: at 07:56 and
+   07:57Z the poster's grant returned **504 after 10.3 s, twice**, then a 500,
+   then a 200 at 3.38 s — while sixteen grants at 07:50Z had completed in
+   0.09-0.58 s. `bffd11f5c` gave the grant 45 s and one retry (it was on
+   `actionTimeout`, 20 s, with none), which is why the third run got 64 tests
+   further, but two 45-second attempts still both timed out. This is the same
+   wall `c682d23f0` read from the journeys side ("prod at 6-44 s … POST
+   /auth/v1/token never completed at all") and belongs with #1595, not here.
+2. **The coverage test's non-admin residue** (below). It has not executed in
+   any run since the fix — each died before reaching it — so its number is
+   still the 2026-09-21 one.
+3. **Two real spec failures seen in run 35697822888, unexamined here:**
+   `explore: disputedJob-helper` — "disputedJob-helper broken before any
+   input"; `interruptions.spec.ts:256` — "no success message after the
+   back-online retry"; `reaction-chip-clearance` at 1440 — "no reaction chip
+   rendered in the thread".
+
 ### Still open under #1618 — the coverage test's non-admin residue
 `coverage: every inventory file was swept, explored, or has a stated gap` had
 **43** unaccounted files on run 35559129731; three landed as stated gaps in

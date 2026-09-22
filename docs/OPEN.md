@@ -8,6 +8,46 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## CLOSED 2026-09-22 — functions-deploy called eight discarded edge-function deploys a success
+
+`supabase functions deploy` exiting 0 means an upload was ACCEPTED, not that
+the function changed. Run 35756822730 (a deploy-all) printed
+`Deploying Function: X (script size: N)` then `Deployed Functions on project
+***: X` for all 73 functions and concluded success; eight of those uploads
+never reached prod. The cost: `claim-gift-card` was still serving its
+2026-09-13 build, WITHOUT the `payment_status` funding gate that had landed
+that morning in 61fe256d2 — so a refunded or charged-back gift card stayed
+claimable in production for nine hours behind a green pipeline.
+`create-pro-checkout` was still serving its 2026-09-07 build, so a one-time
+pass bought on top of a live subscription returned 200 instead of 400.
+
+BLAST RADIUS, measured against the deployed artifacts rather than inferred:
+exactly TWO functions were running stale code — those two. The other six lost
+uploads (create-bgc-payment, create-gift-card-checkout, instant-payout,
+execute-dispute-split, cash-out-credits, delete-own-account) had no source
+change since their last good deploy, so their content was already correct.
+
+FIXED (2400aca14, 3470ad103). functions-deploy now snapshots the project's
+functions before and after, reads out of the CLI's OWN output which functions
+it uploaded (`Deploying Function:`) versus deduped (`No change found in
+Function:`), and asserts the stored `ezbr_sha256` moved for every upload. It
+retries what did not land up to twice, then fails naming the functions.
+Both stale functions redeployed and re-verified by reading the deployed
+bodies: create-pro-checkout v87 -> v88 (`billing_cycle !== "one_time"` gone),
+claim-gift-card v3 -> v4 (funding gate present).
+
+Keyed on `ezbr_sha256`, not `version`: `version` is not a deploy counter here
+(health-check moved 1305 -> 1307 in nine minutes with no deploy at all; that
+churn is why create-payment reads 2191).
+
+CHECK: `src/test/functionsDeployLanded.test.ts`, built from that run's real
+hashes and log lines, two registered mutations proven red-then-green. It went
+red on a genuine loss on its first live run (35761183146).
+
+STILL OPEN, upstream: Supabase drops ~5-12% of uploads intermittently
+(8 of 64, then 3 of 58, non-overlapping sets). The retry masks it; it is not
+cured. Bus: BR-025.
+
 ## CLOSED 2026-09-22 — the payout leg is PROVEN: money reached the helper's Connect account, twice
 
 This is the root cause of the payout drought below, and it is a dashboard

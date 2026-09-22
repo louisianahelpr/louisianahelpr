@@ -64,6 +64,59 @@ export async function handleCheckoutSessionExpired(
     );
   }
 
+  // ── An abandoned gift PURCHASE ──
+  // create-gift-card-checkout now pre-registers the gift payment_status='pending'
+  // at session-creation time, so a lost webhook leaves something queryable. That
+  // creates a state nothing had ever seen before: a pending row that never
+  // completes. It has exactly two causes, and they must not look alike:
+  //
+  //   1. the donor abandoned checkout — no money moved, nothing owed; and
+  //   2. the donor PAID and the completion never reached us — money in, no credit.
+  //
+  // Stripe tells us which, and this is the event that tells us. A session that
+  // expires was never paid, so case 1 is closed out here by stamping the row
+  // status='expired' (payment_status stays 'pending' — nothing was ever charged,
+  // so 'refunded' would be a lie). Case 2 is then, by elimination, the ONLY way a
+  // gift row can still read pending+unexpired well past a Checkout Session's ~24h
+  // lifetime — which is the money-in-no-credit signature, cleanly queryable:
+  //
+  //   select * from gift_cards
+  //    where payment_status = 'pending' and status <> 'expired'
+  //      and created_at < now() - interval '24 hours';
+  //
+  // Policy for such a row is REPORT, never auto-expire and never auto-mint:
+  // only Stripe knows whether that charge captured, so a human (or the
+  // money-reconciliation sweep) must resolve it against the PaymentIntent.
+  if ((meta?.kind as string | undefined) === "gift_card_purchase") {
+    const { data: expired, error: expireErr } = await supabase
+      .from("gift_cards")
+      .update({ status: "expired" })
+      .eq("stripe_session_id", session.id)
+      // Never touch a gift that actually got paid. If a completion raced ahead
+      // of this expiry, payment_status is already 'paid' and this matches zero
+      // rows, which is the correct outcome.
+      .eq("payment_status", "pending")
+      .select("id");
+
+    if (expireErr) {
+      // Throw so the outer handler rolls back the idempotency row and returns
+      // 500, letting Stripe retry. A plain return acks 200 permanently and the
+      // abandoned pre-registration is indistinguishable forever from the
+      // money-in-no-credit case above — which would poison the one query that
+      // exists to find real losses.
+      throw new Error(
+        `Failed to expire pre-registered gift card for expired checkout ${session.id}: ${expireErr.message}`,
+      );
+    }
+    // A null error is not a write: report which happened.
+    logStep(
+      expired && expired.length > 0
+        ? "Abandoned gift purchase — pre-registered credit marked expired"
+        : "Expired checkout — gift purchase already paid or not pre-registered, left alone",
+      { sessionId: session.id },
+    );
+  }
+
   const giftCardId = meta?.gift_card_id;
   if (!giftCardId) return; // not a gift card difference checkout — nothing further to unwind
 

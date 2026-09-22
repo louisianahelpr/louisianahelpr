@@ -537,7 +537,7 @@ export async function handleCheckoutSessionCompleted(
       // DB error would double-mint on the retried delivery (money from nothing).
       const { data: existing, error: existErr } = await supabase
         .from("gift_cards")
-        .select("id")
+        .select("id, payment_status")
         .eq("stripe_session_id", session.id)
         .maybeSingle();
       if (existErr) {
@@ -557,7 +557,12 @@ export async function handleCheckoutSessionCompleted(
         throw new Error(`gift_cards idempotency check failed for session ${session.id}: ${existErr.message}`);
       }
 
-      if (existing) {
+      // A row for this session now exists BEFORE payment: create-gift-card-checkout
+      // pre-registers it payment_status='pending' so a lost webhook leaves
+      // something queryable. So "a row exists" is no longer the same question as
+      // "this gift was already minted" — only payment_status='paid' means minted.
+      // A 'pending' row is the pre-registration waiting to be completed.
+      if (existing && existing.payment_status === "paid") {
         logStep("gift_card_purchase already minted for session — skipping", { sessionId: session.id });
       } else {
         // Resolve the recipient's account if the named email already belongs to
@@ -606,7 +611,7 @@ export async function handleCheckoutSessionCompleted(
         crypto.getRandomValues(tokenBytes);
         const claimToken = Array.from(tokenBytes, (b) => b.toString(16).padStart(2, "0")).join("");
 
-        const { error: mintErr } = await supabase.from("gift_cards").insert({
+        const mintRow = {
           donor_id: donorId,
           recipient_id: recipientId,
           recipient_email: recipientEmail,
@@ -620,7 +625,33 @@ export async function handleCheckoutSessionCompleted(
           claim_token: claimToken,
           stripe_session_id: session.id,
           stripe_payment_intent_id: giftCardPiId ?? null,
-        });
+        };
+
+        // UPSERT keyed on stripe_session_id: complete the pre-registered pending
+        // row if one is there, insert if it is not. Written as update-or-insert
+        // rather than PostgREST's .upsert({ onConflict: "stripe_session_id" })
+        // ON PURPOSE. gift_cards_stripe_session_id_unique_idx is a PARTIAL index
+        // — `CREATE UNIQUE INDEX ... (stripe_session_id) WHERE (stripe_session_id
+        // IS NOT NULL)` — and Postgres will only infer a partial index when the
+        // conflict target repeats its predicate. Verified against prod: a plain
+        // `ON CONFLICT (stripe_session_id)` against this table fails outright
+        // with "there is no unique or exclusion constraint matching the ON
+        // CONFLICT specification", and only `ON CONFLICT (stripe_session_id)
+        // WHERE stripe_session_id IS NOT NULL` succeeds — a predicate PostgREST
+        // cannot emit. So the ON CONFLICT form would not merely be slower here,
+        // it would throw on every gift. This form leaves that unique index as
+        // the real double-mint guard: the insert branch still collides on it.
+        const { data: minted, error: mintErr } = existing
+          ? await supabase
+            .from("gift_cards")
+            .update(mintRow)
+            .eq("id", existing.id)
+            // Only a row still 'pending' may be completed. If a concurrent
+            // delivery already flipped it to 'paid', this matches zero rows and
+            // we must NOT re-notify or re-email.
+            .eq("payment_status", "pending")
+            .select("id")
+          : await supabase.from("gift_cards").insert(mintRow).select("id");
 
         if (mintErr) {
           logStep("ERROR minting gift card", { error: mintErr.message, sessionId: session.id });
@@ -646,6 +677,13 @@ export async function handleCheckoutSessionCompleted(
             },
           });
           throw new Error(`gift_cards insert failed for session ${session.id}: ${mintErr.message}`);
+        } else if (!minted || minted.length === 0) {
+          // A null `error` is not a write. Zero rows on the update branch means
+          // the pre-registered row was completed by a concurrent delivery
+          // between our read and our write — the gift IS minted, just not by us,
+          // so the notification and the claim email have already gone out. The
+          // one thing we must not do is send them twice.
+          logStep("gift_card_purchase: pending row completed by a concurrent delivery — skipping notify/email", { sessionId: session.id });
         } else {
           logStep("Gift card minted", { sessionId: session.id, recipientEmail, amountCents });
 

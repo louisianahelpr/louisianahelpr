@@ -220,6 +220,61 @@ serve(async (req) => {
       idempotencyKey: `gift-card:${user.id}:${recipientEmail}:${amountCents}`,
     });
 
+    // ── Pre-register the gift BEFORE the donor can pay ──
+    // Until this existed, this function did exactly ONE database operation (the
+    // profiles read above) and wrote nothing at all: a gift purchase left no row
+    // of any kind until the webhook landed. So a lost webhook delivery — or a
+    // signature failure, which stripe-webhook deliberately answers 200 — meant
+    // the donor was charged and there was nothing queryable anywhere: no row, no
+    // reconciliation target, no support path. `jobs` stamps stripe_session_id at
+    // checkout-open precisely so a lost session is detectable; gifts had no
+    // equivalent. This is that equivalent.
+    //
+    // The row is written payment_status='pending', which every spend path
+    // already refuses — usePostJobGiftCard.ts and useDashboardSideQueries.ts
+    // both require payment_status === "paid", and claim-gift-card rejects
+    // anything else — so a pre-registered gift is inert until the webhook
+    // completes it. `status` stays at the column default rather than 'sent':
+    // nothing has been sent and no claim token exists yet.
+    //
+    // FAIL CLOSED. If this write fails we return an error instead of the
+    // checkout URL, so the donor never reaches a payment page whose outcome we
+    // could not record. The Stripe session exists but is unreachable without its
+    // URL, and a retry collapses onto the SAME session via the idempotency key
+    // below, which then re-attempts this registration.
+    const { data: preRegistered, error: preErr } = await supabaseAdmin
+      .from("gift_cards")
+      .insert({
+        donor_id: user.id,
+        recipient_email: recipientEmail,
+        amount: amountCents / 100,
+        status: "available",
+        payment_status: "pending",
+        category,
+        message,
+        occasion,
+        design_id: designId,
+        stripe_session_id: session.id,
+      })
+      .select("id");
+
+    // A null `error` is not a write — check the error AND the row count.
+    if (preErr) {
+      // 23505 is the unique violation on gift_cards_stripe_session_id_unique_idx,
+      // which means this session is ALREADY registered. That is the correct and
+      // expected state when the idempotency key collapses a retry onto an
+      // existing session, so it is a success, not a failure.
+      if ((preErr as { code?: string }).code === "23505") {
+        console.log("[create-gift-card-checkout] session already pre-registered:", session.id);
+      } else {
+        console.error("[create-gift-card-checkout] pre-register failed:", preErr.message, session.id);
+        return fail(500, "We couldn't start your gift safely. Nothing has been charged — please try again.");
+      }
+    } else if (!preRegistered || preRegistered.length === 0) {
+      console.error("[create-gift-card-checkout] pre-register wrote zero rows:", session.id);
+      return fail(500, "We couldn't start your gift safely. Nothing has been charged — please try again.");
+    }
+
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

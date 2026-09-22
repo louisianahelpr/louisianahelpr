@@ -8,7 +8,7 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
-## OPEN — OWNER ACTION: the Stripe TEST-mode balance is empty, so no payout can succeed (2026-09-22)
+## CLOSED 2026-09-22 — the payout leg is PROVEN: money reached the helper's Connect account, twice
 
 This is the root cause of the payout drought below, and it is a dashboard
 action, not a code fix.
@@ -50,7 +50,30 @@ correct connected account, recorded the failure with a reason and a
 `failed_at`, and left the job at `payout_pending` rather than advancing it to
 `released`. No silent failure and no falsely-settled money.
 
-## OPEN — no real user has ever been paid out, and the automatic payout path has never run (2026-09-22)
+RESOLVED the same afternoon, and the balance refilled on its own as the day's
+escrow charges settled into `available`. Two real transfers landed, through
+BOTH paths, and the job rows followed them to `released`:
+
+| transfer | time (UTC) | initiated_by | result |
+| --- | --- | --- | --- |
+| `tr_3UILijKp2H4b7tEC1WjXCD25` | 16:40:57 | **system** (the cron) | paid -> job `released` |
+| `tr_3UIWrUKp2H4b7tEC0rZHiA5J` | 16:48:27 | admin (`release-payout`) | paid -> job `released` |
+
+Both 2200c + 300c platform fee to `acct_1UCU7J4HVr518r7O`, on a $25 budget.
+The first one is the **automatic** path completing for the first time on this
+database — the thing the entry below said had never happened. `e2e-real-backend`
+run 35756239864 is green end to end, including its `tr_...` / helper-visible
+`paid` row / `released` assertions.
+
+Ledger now: 15 paid transfers (2 today), 1 failed (the 16:35 attempt above),
+17 jobs `released`.
+
+KEEP IN MIND ANYWAY: the test balance is finite and drains at $22 a run. When
+the money loop fails with "insufficient available funds", that is this, not a
+regression — top up with the `4000000000000077` test card rather than
+debugging the payout code.
+
+## OPEN — no REAL (non-seed) user has ever been paid out (2026-09-22)
 
 Read live on prod 2026-09-22 while verifying the four money legs end to end.
 
@@ -64,8 +87,13 @@ Stripe Connect transfer, and the amounts reconcile exactly ($25 budget, 12%
 helper commission -> `amount_cents` 2200 / `platform_fee_cents` 300, matching
 `jobs.platform_fee_amount` and the `$22` the helper's card renders).
 
-What has never happened is the AUTOMATIC one. Both cron payout paths filter
-seeded rows out —
+SUPERSEDED IN PART, same day: the automatic path HAS now run and paid — see the
+CLOSED section above (`tr_3UILijKp…`, `initiated_by='system'`, 16:40 UTC). What
+remains true, and is the reason this entry stays open, is that every job that
+has ever reached a payout state is an `is_seed` fixture. No real customer's
+money has been through this path.
+
+Both cron payout paths filter seeded rows out by default —
 
     process-scheduled-payouts/index.ts:84   if (!includeSeed) ... .eq("is_seed", false)
     auto-release-payment/index.ts:521       if (!includeSeed) ... .eq("is_seed", false)

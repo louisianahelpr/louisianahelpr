@@ -69,8 +69,21 @@ export const NUMBER_BATTERY: { tag: string; value: string }[] = [
 export const TEXTLIKE =
   'input:not([type]), input[type="text"], input[type="email"], input[type="tel"], input[type="search"], input[type="url"], input[type="password"], input[type="number"], textarea, [contenteditable="true"]';
 
-/** Names the explore never presses even behind the write firewall: they end the session or the account. */
-export const NEVER_PRESS = /sign ?out|log ?out|delete (my )?account|switch account|remove app|close account/i;
+/**
+ * Names the explore never presses even behind the write firewall: they end the
+ * session or the account.
+ *
+ * "Edit email" joins them, and the reason is the one already written beside
+ * `EditEmailDialog.tsx` in GAPS: it rewrites an account's login address, and
+ * every shared test account is a sign-in dependency for this whole suite. That
+ * gap was written while the terms re-consent scrim was covering /admin, so
+ * nothing was pressing the control and the decision cost nothing. With the
+ * scrim gone the presser reaches it on the user-detail drawer — measured on
+ * prod 2026-09-21, `explore: admin-people` swept "New email" and "Confirm new
+ * email" — so the refusal has to be stated where the presser can read it, not
+ * only in a comment.
+ */
+export const NEVER_PRESS = /sign ?out|log ?out|delete (my )?account|switch account|remove app|close account|edit email/i;
 /** Chrome that is not a form: theme, menus, back, dismiss. */
 export const SKIP_BUTTON = /back to|^back$|^close$|^×$|dismiss|skip|not now|toggle theme|dark mode|light mode|^menu$|open menu|notifications?$|^home$|^browse$|^messages$|^activity$|^profile$/i;
 

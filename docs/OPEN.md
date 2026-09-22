@@ -81,9 +81,23 @@ prints the total) or walk the graph yourself from `dist/index.html`.
   shell-level chunks in `vite.config.ts`. Low risk, unmeasured benefit — MEASURE
   it on a throttled connection before claiming it helped.
 
-- **`forms-*.js`, 21.7 kB gz** (react-hook-form + zod). On the critical path,
-  but no form is on screen at first paint on any route. Likely a static import
-  from a shell-level module; worth the same treatment the Sentry one got.
+- **`forms-*.js`, 21.7 kB gz — and it is NOT what its name says.** The
+  `manualChunks` rule at `vite.config.ts:601` lumps react-hook-form, zod and
+  @hookform together, so this looked at first like "a form library loading
+  before any form is on screen", the same shape as the Sentry win. It is not.
+  Checked the built chunk rather than reasoning from the rule: every
+  react-hook-form marker (`shouldUnregister`, `isSubmitSuccessful`, `resolver`)
+  is ABSENT and only zod's (`ZodError`, `invalid_type`) are present — Rollup
+  already tree-shook RHF out, because nothing on the critical path uses it.
+  So the 21.7 kB is zod alone, reached by `useProfile` / `useActivityData` ->
+  `src/lib/schemas.ts` -> `zod` for runtime response validation.
+  (`src/lib/validateResult.ts` is `import type`, which erases — it contributes
+  nothing.)
+
+  That makes it a REAL refactor, not a stray import: the win would be loading
+  `schemas.ts` lazily inside the validation call, the way `errorLogger` loads
+  Sentry. Worth doing, but it sits on the data path and deserves its own
+  careful pass — do not treat it as a quick one-liner.
 
 NOT a lead: `app-shared` (134.7 kB gz) is the app's own shared code and the
 single biggest chunk, but it is not one import to move. Anything here needs a

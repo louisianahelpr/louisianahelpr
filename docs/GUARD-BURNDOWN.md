@@ -15,9 +15,9 @@ hand-edit the numbers.*
 when it carries a registered `@mutate` directive AND that mutation has been
 executed and KILLED it. Checked 2026-09-21 rather than assumed:
 
-- every registered guard carries a real `@mutate`. **THREE** now carry
-  `@mutate-exempt` instead, and they are counted separately — see "The three
-  categories" below. They are not in the proven column;
+- every registered guard carries a real `@mutate`. **EIGHT** carry
+  `@mutate-exempt` instead (2026-09-22), and they are counted separately — see
+  "The three categories" below. They are not in the proven column;
 - `survivingMutations` in the baseline is **empty** — no guard is grandfathered
   as known-vacuous;
 - the per-push gate mutates only what a commit CHANGED. The thing that runs
@@ -37,24 +37,30 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 
 | scope | files | proven able to fail | exempt, with a reason | still owed |
 |---|---|---|---|---|
-| **`src/test/*.test.ts*`** | 202 | **202 — COMPLETE** | 0 | **0** |
+| **`src/test/*.test.ts*`** | 208 | **208 — COMPLETE** | 0 | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | 0 | **0** |
-| **colocated beside components** | 343 | **343 — COMPLETE** | 0 | **0** |
-| Playwright `e2e/**` | 60 | 51 | 8 | 1 |
-| **total** | **658** | **649 (99%)** | **8** | **1** |
+| **colocated beside components** | 345 | **345 — COMPLETE** | 0 | **0** |
+| **Playwright `e2e/`** | 61 | **53 — COMPLETE** | 8 | **0** |
+| **total** | **667** | **659 (99%)** | **8** | **0** |
 
 `npm run vacuity` prints the same three numbers on every run, so this table and
 the tool cannot drift apart:
 
 ```
-registration: 649/658 guards register a mutation (8 exempt with a reason, 1 grandfathered)
+registration: 659/667 guards register a mutation (8 exempt with a reason, 0 grandfathered)
 ```
 
-**The one still owed** (2026-09-22):
+**NOTHING IS STILL OWED, and `vacuity.baseline.json`'s `unregistered` list is
+EMPTY (2026-09-22).** The last two entries closed on the same day and for
+opposite reasons: `visual-audit/desktop-fill.spec.ts` was never a `/browse`
+fill defect at all — the spec was measuring the wrong element — and
+`journeys/02-marketplace.spec.ts` was red on six stale assertions, all of them
+below. The grandfather list may only shrink, and it has nothing left to shrink.
 
-| spec | why |
-|---|---|
-| `visual-audit/desktop-fill.spec.ts` | RED on main for a real `/browse` layout defect; a registration against a red spec is scored `inconclusive` and proves nothing |
+What remains in the "exempt, with a reason" column is 8 specs the gate cannot
+express a mutation for at all (a DB trigger, an RLS policy, an edge function, or
+a credential that exists only as a GitHub secret) — recorded gaps in a loud,
+counted list, not coverage. See "The three categories" below.
 
 **`02-marketplace` is GREEN and REGISTERED (2026-09-22).** 4 of 4 in 4.1
 minutes on the real backend, the job left `completed` / `payout_pending` — what
@@ -104,9 +110,9 @@ everything, so no CI job loses a single test.
 
 A single "remaining" number was doing two different kinds of damage.
 
-**PROVEN (639).** A registered `@mutate` that has been run and killed the guard.
+**PROVEN (659, 2026-09-22).** A registered `@mutate` that has been run and killed the guard.
 
-**EXEMPT WITH A REASON (3).** The gate mutates a file under `src/` and runs
+**EXEMPT WITH A REASON (8, 2026-09-22).** The gate mutates a file under `src/` and runs
 `npm run build`. It never runs `supabase db push` and never deploys an edge
 function. So for a spec whose SUBJECT is a database trigger, an RLS policy or an
 edge function, there is no `src/` line to break — any registration returns
@@ -135,11 +141,16 @@ An exemption is a **recorded gap in a loud, counted list**. That is strictly
 better than the same gap sitting silently in `unregistered`, where it reads as
 "nobody got round to it".
 
-**STILL OWED (16).** Of which **2 are blocked on credentials that exist only as
-GitHub secrets** — `auth.spec.ts` (reads `PLAYWRIGHT_TEST_USER_EMAIL` /
-`_PASSWORD` directly) and `two-role-lifecycle.spec.ts` (needs seeded lifecycle
-STATE: a poster session, a helper session and a job id). Registering against
-either locally returns SURVIVED for an environment reason.
+**STILL OWED (0, 2026-09-22).** This number was 16 when the section was
+written and is now empty; `vacuity.baseline.json`'s `unregistered` list is `[]`.
+The five credential-blocked specs it used to hold did not become provable — they
+moved into the exempt column above, each with a reason naming what does and does
+not stand behind it (`auth.spec.ts`, `payment-lifecycle`, `prod-lifecycle` and
+`two-role-lifecycle` all read `PLAYWRIGHT_*_EMAIL`/`_PASSWORD`, which exist only
+as GitHub secrets, so a local registration returns SURVIVED for an environment
+reason). The last two genuine debts, `visual-audit/desktop-fill` and
+`journeys/02-marketplace`, were both red-on-main and are both green and
+registered.
 
 Worth correcting a related assumption, because it nearly cost two whole rows:
 **"needs credentials" blocks two SPECS, not two rows.** The `prod-audit` and

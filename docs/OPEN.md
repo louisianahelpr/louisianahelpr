@@ -409,13 +409,37 @@ Critical path today: **49 chunks, 391 kB gzip (1192 kB raw)** before React can
 mount. Reproduce with `npm run build && npm run check:deferred-vendors` (it
 prints the total) or walk the graph yourself from `dist/index.html`.
 
-- **framer-motion, 38.1 kB gz** (`proxy-*.js`). The biggest remaining single
-  item, and it is genuinely shell-level rather than an accident: statically
-  imported by `MobileNav`, `PageScaffold`, `ScrollToTop`, `PageTransition`,
-  `AnimatePresence`, `Dashboard`, `Messages`, `PostJob`, `Legal` and more.
-  Cutting it means replacing the SHELL's animations with CSS, not deleting a
-  stray import — a real piece of work with a visual risk, so it needs a look
-  and probably an owner decision, not a quiet swap.
+- **framer-motion, 38.1 kB gz** (`proxy-*.js`). ONE DOOR LEFT, and it is named.
+  Traced by BFS over the built graph rather than by listing importers — the
+  question is not who imports it, but the SHORTEST static chain from the entry:
+
+      before ae0629df8   index -> PageScaffold -> proxy
+      after  ae0629df8   index -> DashboardTitleBar -> NotificationPanel -> proxy
+
+  PageScaffold is done: it was a second implementation of the `ds-page-in`
+  keyframe (identical values, checked) and now uses the CSS. That alone only
+  moved 394 -> 393 kB gz, because it was not the only door.
+
+  `NotificationPanel` is the remaining one, and it is NOT a swap like
+  PageScaffold was. It uses `AnimatePresence` for EXIT animations on realtime
+  notification rows, and CSS cannot animate a removal. Two options, both
+  rejected tonight for stated reasons:
+
+    * Lazy-load NotificationPanel from DashboardTitleBar with
+      `NotificationTrigger` as the Suspense fallback. The bell renders
+      immediately — but it is NOT INTERACTIVE until the chunk arrives, so a tap
+      in that window does nothing. Trading a perf win for a dead visible
+      control is the wrong direction in a codebase with a rule about controls
+      that promise and do not deliver.
+    * Extract the animated list (NotificationPanel.tsx:799-963, ~160 lines,
+      many closed-over handlers) into its own `React.lazy` component so only
+      the OPEN panel pulls framer. This is the correct fix. It is also a real
+      refactor of a realtime surface and needs its own verification pass —
+      open the panel, receive a live notification, watch a row enter and exit.
+
+  Worth stating plainly: the popover content not rendering until open does NOT
+  help. The import is static, so the chunk is fetched either way. Only making
+  the IMPORT dynamic moves it.
 
 - **~39 critical-path chunks under 2 kB gz, carrying ~25 kB between them.**
   Read twice, hours apart: 36 chunks / 24 kB, then 39 / 25.5 kB — `dist/` is

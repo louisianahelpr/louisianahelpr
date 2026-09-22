@@ -451,7 +451,13 @@ serve(async (req) => {
       // column-lock trigger (enforce_jobs_insert_column_lock) deliberately
       // leaves them writable, so a poster can POST /rest/v1/jobs directly with
       // is_urgent=true and urgent_fee=NULL/0 and reach the urgent notification
-      // fan-out (instant-job-match keys off is_urgent alone) for free — silent
+      // fan-out for free — silent. (HISTORICAL: instant-job-match keyed off
+      // is_urgent alone when this was written. Verified 2026-09-22 against
+      // DEPLOYED v73: it now requires payment_status IN
+      // ('escrow','payout_pending','released') BEFORE it reads urgency, and
+      // returns {notified: 0, skipped: 'job_not_matchable'} on an unfunded
+      // job. Four independent gates verified live that day — this comment is
+      // kept for the reasoning, not as a current description.)
       // hole H-001. The jobs_urgent_fee_required constraint
       // (20260915055413) now rejects that at INSERT; this recompute is the
       // defence-in-depth twin at charge time and the authority for rows already

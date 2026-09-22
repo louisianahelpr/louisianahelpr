@@ -9,7 +9,8 @@
 -- not stay open past launch." A poster POSTing /rest/v1/jobs directly with
 -- { is_urgent: true, urgent_fee: null } (or 0) therefore got the urgent
 -- BENEFIT — instant, un-batched push fan-out to every matching helper
--- (instant-job-match keys off is_urgent alone) — without paying the $5
+-- (instant-job-match keyed off is_urgent alone AT THE TIME THIS WAS WRITTEN)
+-- — without paying the $5
 -- floor the wizard charges. At scale this also degrades the "Urgent" signal
 -- itself, which is the whole reason it costs money.
 --

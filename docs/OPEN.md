@@ -254,7 +254,38 @@ STILL OPEN:
 
 Shard 2 was unchanged at 90 failures and has not been looked at.
 
-## OPEN — `/` is down to two loading surfaces, and the two still disagree (2026-09-22)
+## CLOSED 2026-09-22 — `/` loaded through three surfaces; now two, and they agree
+
+VERIFIED ON PROD, both halves, same method before and after (1440,
+~1.2Mbps/150ms, CPU 4x, signed in, frames read as images):
+
+  BEFORE  400ms shell · 890ms RouteSuspenseFallback ("Loading…") ·
+          1403ms Dashboard's own branch, a DIFFERENT shape ·
+          2497ms content                                        3 surfaces
+  AFTER   `route-suspense-fallback` absent from every frame;
+          `dashboard-route-skeleton` present 402→2519ms, then the real
+          branch, then content                                  2 surfaces
+
+And the two that remain now MATCH. Screenshots recorded in
+`.review/review-log.jsonl`:
+  968ms   title card: two bones at the LEFT, no emblem, no bell
+  3032ms  title card: search + filter icons at the LEFT, same positions
+The bones become the icons in place — the header no longer rearranges.
+
+Two fixes:
+- b56548863 `/` never passed a `fallback` to MarketingRedirect, so it used its
+  BLANK default and then the generic RouteSuspenseFallback. `/browse` had
+  already been fixed this exact way; `/` was missed.
+- 7b96ee1c9 DashboardRouteSkeleton said three things the real title bar does
+  not (size="md" vs "sm", and missing `dashboard-title-emblem` /
+  `dashboard-title-bell`, which index.css hides on web-desktop). Fixed by
+  reusing those two existing classes, so it cannot drift again without the bar
+  changing too. Guard: src/test/routeSkeletonMirrorsItsTitleBar.test.ts, which
+  reads BOTH files, because the skeleton's own render tests were green through
+  all three.
+
+### Superseded entry (2026-09-22)
+
 
 Owner: "the loading for the webpage should go straight to the webpage not load
 another thing then go to webpage."

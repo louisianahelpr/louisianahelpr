@@ -45,6 +45,47 @@ dispatch in the shared group. Shown red on the original bug —
 `PROD_WORKFLOWS_DIR=<pre-fix checkout>` yields **10** rule-4 violations, the
 fixed tree yields **0**.
 
+## OPEN — #1595's ORIGINAL four failures are fixed; three NEW ones now block it (2026-09-22)
+
+`e2e-journeys` run **35691377627** (dispatch, `6050dd26b`) — the first run of
+that workflow to execute a test since **2026-09-18**. Chromium leg:
+**3 failed, 32 passed, 5 skipped, 1 did not run** in 15.0m.
+
+**The four failures #1595 was opened for are gone.** `01-browse` new + helper
+(the empty guest marketplace, fixed by `94fd5b639`), `02-marketplace:162` and
+`03-account:63` all passed. What replaced them is four days of unseen
+breakage: ~100 commits landed while this suite could not report.
+
+1. **`02-marketplace.spec.ts:481` › "poster pins the conversation (swipe
+   right)"** — `getByText('[E2E DO NOT ACCEPT] J c8wl6w').first()` never
+   visible on `/messages`, 30s (spec line 597). The whole chain BEFORE it
+   passed: `offer-sheet`, `offer-sent`, `helper-sees-offer`, `offer-accepted`,
+   `poster-scheduled-funded`, `helper-scheduled-funded`,
+   `poster-message-attachment` and `message-long-press-held` were all
+   captured — so the thread exists and messaging works. It is the INBOX that
+   does not list it. Suspects, both landed inside the dark window and neither
+   tested against this: `0c64d4d04` (the inbox opens on **Active**, two tabs,
+   ages out finished threads) and `028fe3837` (the inbox is **virtualized**
+   against its own container, so only rendered rows match a text locator).
+2. **`03-account.spec.ts:347` › "sign back in"** — after the settings
+   sign-out, `/profile` never paints `h1 "Hallie Helper"`, 30s (spec line 423).
+   Reached only on the `largest-text` viewport variant.
+3. **`time-travel.spec.ts:165`** — `day-before: at 2026-09-24T17:00:00.000Z
+   from America/Chicago` expected a `21 hours left` chip on the posted job and
+   found none (spec line 221).
+
+**Not yet attributed, and deliberately not guessed at.** Each of the three
+needs its own repro with the screenshot looked at; the traces and
+`error-context.md` are in the run's `journeys-results` artifact. One control
+to run FIRST: another lane dispatched `prod-audit` (05:49:31) and
+`press-every-control` (05:54:28) against the same shared accounts while this
+leg was finishing (~05:37-05:52), so re-run in isolation before treating (1)
+or (2) as a product defect — they are both account-state-shaped.
+
+**The webkit leg has not been seen at all.** `Journeys (journeys-webkit)` sat
+`pending` behind `prod-lifecycle-shared-accounts` for the whole session while
+the other lane's suites held it. So J-webkit's own number is still unmeasured.
+
 ## DONE 2026-09-22 — a dispatched verification run could not close the red it was dispatched to clear (issue #1595)
 
 Second fault behind #1595, found while re-dispatching it. `e2e-journeys.yml`'s
@@ -70,7 +111,7 @@ must have that job reachable on a dispatch. It evaluates the condition with
 `!= 'pull_request'` (prod-freshness, e2e-real-backend) reads as reachable and
 an input narrowing stays allowed. Before: **2** violations; after: **0**.
 
-## BLOCKED — `prodWorkflowSpacing` is RED on main because of `vacuity.yml` (2026-09-22)
+## CLOSED — `prodWorkflowSpacing` was RED on main because of `vacuity.yml` (fixed 2026-09-22)
 
 Not mine to fix; `vacuity.yml` is owned by another lane and was off-limits in
 this pass. `418842d6f` ("the gate could not sign in") gave vacuity.yml
@@ -87,6 +128,24 @@ and 3, 17 violations, every one of them vacuity's:
 These 17 were already red before this pass and are unchanged by it. Either
 vacuity takes a `schedule`-only `prod-load` group and moves its cron into a
 free slot, or it earns a named `EXEMPT` entry with a reason.
+
+**RESOLVED** by the lane that owns `vacuity.yml`, taking the first option —
+the classification was correct, so the workflow moved rather than arguing with
+it:
+
+- the SCHEDULED run now joins `prod-load` via
+  `github.event_name == 'schedule' && 'prod-load' || format('vacuity-{0}', github.ref)`,
+  so the run that actually signs into prod is serialised while push and PR runs
+  (which mutate only what a commit changed, almost never an e2e guard) keep a
+  per-ref group. One PENDING run per group is the reason not to put every push
+  in the shared lock;
+- `cancel-in-progress` is now literally `false` — a cancelled run holding
+  `prod-load` would release the lock mid-suite;
+- the cron moved `10 6` → `17 14`. `:17` is the only minute in the hour a full
+  30 minutes clear of the hourly `prod-errors` monitor at `:47`, and 14:17 is
+  ≥90 min from every other daily prod cron (nearest: 12:40, 97 min).
+
+`npx vitest run src/test/prodWorkflowSpacing.test.ts` → 5 passed, 0 violations.
 
 ## CLOSED — the review log lived in the directory Playwright wipes (fixed 2026-09-20)
 
@@ -541,6 +600,11 @@ caused by them and not in their diff.
   e2e/happy-path/messages-thread.spec.ts`), immediately after the failing full
   run, same build. So it is a flake, not a regression — but it is a flake on a
   REQUIRED check, which means it can red main at random.
+- **Second sighting 2026-09-22, and the first in WebKit**: nightly-webkit run
+  35690913061, same locator, same `toBeHidden` expectation, same 5s timeout,
+  `1 flaky` (it passed on retry). So the rate is 2 of 2 full runs where it has
+  been observed, in two different engines — which argues for the history-pop
+  race over anything engine-specific, and against waiting it out.
 - Not yet reproduced a second time; frequency unknown (1 of 1 full runs). Next
   step is to run the full suite a few times to get a rate, then either await
   the nav-hidden flag rather than the button, or make the back leg wait on the
@@ -5010,7 +5074,7 @@ Until then the two RPCs are baselined, and this line is their OPEN.md entry.
 grandfathered in `src/test/vacuity.baseline.json`, which may only SHRINK — a stale entry is itself a
 failure), a TS-AST static scan, a harness preflight, and a mutation runner. 11.5s full set; per push
 it is scoped to guards whose guard-file or guarded-file changed vs origin/main (untracked included —
-a brand-new guard matters most). Nightly full at 06:10 UTC. **The gate is itself guarded**
+a brand-new guard matters most). Nightly full at 14:17 UTC. **The gate is itself guarded**
 (`vacuityGate.test.ts` plants vacuous guards and asserts each is flagged).
 **Now: 14/14 mutations killed, 0 known-vacuous, preflight 0 blocking.**
 

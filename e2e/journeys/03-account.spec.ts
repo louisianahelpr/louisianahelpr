@@ -422,9 +422,15 @@ test(j8, async ({ browser, request, journey }) => {
          and this gives up just as fast, because the loop exits the moment the
          login form stops being on screen. */
       const submit = page.getByRole("button", { name: /^(Log In|Sign In|Continue)/ }).first();
+      const emailField = page.getByRole("textbox", { name: /email/i }).first();
       for (let attempt = 1; attempt <= 3; attempt++) {
         await page.goto("/login");
-        await page.getByRole("textbox", { name: /email/i }).first().fill(email);
+        // An attempt that DID take leaves /login redirecting away, so there is
+        // no form to fill — stop rather than throw on a missing field. (The
+        // first pass always finds one: the step above proved we are signed out
+        // by being bounced off /my-jobs.)
+        if (!(await emailField.waitFor({ state: "visible", timeout: 15_000 }).then(() => true, () => false))) break;
+        await emailField.fill(email);
         await page.getByLabel(/password/i).first().fill(password);
         await submit.click();
         // Signed in = the login form is gone. Anything else (the toast, a

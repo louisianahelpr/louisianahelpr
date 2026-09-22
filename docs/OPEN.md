@@ -82,9 +82,39 @@ to run FIRST: another lane dispatched `prod-audit` (05:49:31) and
 leg was finishing (~05:37-05:52), so re-run in isolation before treating (1)
 or (2) as a product defect — they are both account-state-shaped.
 
-**The webkit leg has not been seen at all.** `Journeys (journeys-webkit)` sat
-`pending` behind `prod-lifecycle-shared-accounts` for the whole session while
-the other lane's suites held it. So J-webkit's own number is still unmeasured.
+**The webkit leg, measured.** It finally cleared
+`prod-lifecycle-shared-accounts` and ran: **3 failed, 30 passed, 5 skipped, 3
+did not run** in 14.1m. Its three are NOT the chromium three, which makes the
+union six, and one of them cross-engine:
+
+4. **`time-travel.spec.ts:165` — FAILS IN BOTH ENGINES**, identical signature,
+   different fixture id (`…rmuc9ddzh` chromium, `…rmucaspqi` webkit): the
+   `21 hours left` chip is missing at `day-before: 2026-09-24T17:00:00.000Z
+   from America/Chicago`. Deterministic, engine-independent, reproducible in
+   one run — **start here**, it is the cheapest of the six to pin down and the
+   only one no account-contention story can explain.
+5. **`02-marketplace.spec.ts:278` › "continues to payment" (webkit only)** —
+   `Stripe Checkout never rendered a payment field`: neither `#cardNumber` nor
+   a method radio in 60s (`journeys/fixtures.ts:292`). The spec's own
+   `stripeIsBroken()` probe on the line above returned false, so Checkout did
+   NOT error — it rendered without a payment field. Chromium's J2 passed the
+   same leg, so this is WebKit-vs-Checkout, exactly the class nightly-webkit
+   exists for. It also cascades: `test.describe.serial` means the "3 did not
+   run" are J3/J4/J5 — so the webkit money chain past `post` is still dark.
+6. **`notifications.spec.ts:118`** — `page.goto("/my-posts?job=dfecbd90-…")`
+   was **interrupted by the app navigating itself** to
+   `/profile?tab=warnings&_v=1790058631340`. Read that as a product finding,
+   not a test one: a forced warnings redirect eats a notification deep link,
+   so the notification opens the wrong screen. The `_v=` cache-buster says the
+   app did it deliberately. Worth checking against `8a4b3163f` (the abuse spec
+   that used to leave a real strike on the shared poster every night) — if the
+   account is carrying an unacknowledged warning, every deep link for that
+   user goes to the same place, which is a real user-facing bug and not a
+   fixture artefact.
+
+**Note the two legs disagree about WHERE 02-marketplace breaks** — chromium
+got to J4 `hire-and-message` and failed on the inbox; webkit never got past
+J2 `post`. Same commit, same accounts. That is itself evidence worth keeping.
 
 ## DONE 2026-09-22 — a dispatched verification run could not close the red it was dispatched to clear (issue #1595)
 

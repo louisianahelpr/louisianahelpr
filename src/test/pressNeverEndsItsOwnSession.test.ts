@@ -33,7 +33,16 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { mutationGate, SESSION_END_RX, SKIP_SESSION_END } from "../../scripts/audit/pressProdSafety.mjs";
+// Namespace import, matching src/test/pressProdSafety.test.ts. The gate is
+// plain .mjs with no declarations; a named import trips TS7016, and a partial
+// .d.mts sidecar is worse than none — it narrows the module for every other
+// consumer, which broke pressProdSafety.test.ts when tried.
+// @ts-expect-error - plain .mjs tool script, no types
+import * as safety from "../../scripts/audit/pressProdSafety.mjs";
+
+const mutationGate = safety.mutationGate as (a: Record<string, unknown>) => Promise<string | null>;
+const SESSION_END_RX = safety.SESSION_END_RX as RegExp;
+const SKIP_SESSION_END = safety.SKIP_SESSION_END as string;
 
 /** The most-owned, most-pressable shape: a test account on its own profile. */
 const gate = (label: string) =>

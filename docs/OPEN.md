@@ -899,6 +899,22 @@ itself on the first authed load of the next run.
 ### STILL RED, and why — prod-audit is not green
 Three separate things, none of them the consent gate:
 
+0. **LIVE NOW (2026-09-22, from ~08:35Z): the project's whole public API is
+   not answering.** Not a test problem — this is sign-in and every read being
+   down for real users. Measured from two independent networks: a GitHub
+   runner (run 35705632232, 08:38-09:34Z: 36 failed, 3 passed, **167 did not
+   run**; every admin-views test burned 1.5 m = 45 s + retry + 45 s on the
+   grant) and this laptop (`POST /auth/v1/token` → no response in 50 s, twice;
+   `GET /auth/v1/health`, `GET /auth/v1/settings` and a plain anon
+   `open_jobs_browse` REST read → no response in 12-30 s, repeatedly). Prod's
+   own `auth_logs` for that hour hold exactly TWO entries, both `GET /user`,
+   at 40.2 s and 45.8 s, both ending *"Unhandled server error: context
+   canceled"* — i.e. almost nothing is reaching GoTrue at all. Meanwhile the
+   management API reports the project `ACTIVE_HEALTHY`, DNS resolves
+   (Cloudflare), and www.louisianahelpr.com itself answers in 0.14 s, so the
+   Vercel side is fine and the Supabase edge is not. **Nothing that talks to
+   prod can be verified until this clears — re-probe before believing any
+   red filed after 08:35Z today.**
 1. **Prod's own `/auth/v1/token?grant_type=password` is 504-ing in bursts.**
    Killed three dispatches today in three different places (35692221560: 29
    failed at 18.0 m; 35695851818: 103 tests "did not run"; 35697822888: 45 "did

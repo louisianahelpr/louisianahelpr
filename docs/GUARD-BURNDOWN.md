@@ -40,25 +40,22 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 | **`src/test/*.test.ts*`** | 202 | **202 — COMPLETE** | 0 | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | 0 | **0** |
 | **colocated beside components** | 343 | **343 — COMPLETE** | 0 | **0** |
-| Playwright `e2e/**` | 60 | 50 | 4 | 6 |
-| **total** | **658** | **648 (99%)** | **4** | **6** |
+| Playwright `e2e/**` | 60 | 50 | 8 | 2 |
+| **total** | **658** | **648 (99%)** | **8** | **2** |
 
 `npm run vacuity` prints the same three numbers on every run, so this table and
 the tool cannot drift apart:
 
 ```
-registration: 648/658 guards register a mutation (4 exempt with a reason, 6 grandfathered)
+registration: 648/658 guards register a mutation (8 exempt with a reason, 2 grandfathered)
 ```
 
-**The six still owed, and why each is still owed** (2026-09-21):
+**The two still owed** (2026-09-21):
 
 | spec | why |
 |---|---|
-| `auth.spec.ts` | reads `PLAYWRIGHT_TEST_USER_EMAIL`/`_PASSWORD` directly; they exist only as GitHub secrets |
-| `two-role-lifecycle.spec.ts` | needs seeded lifecycle STATE (a poster session, a helper session, a job id), same secrets |
-| `payment-lifecycle.spec.ts`, `prod-lifecycle.spec.ts` | in flight |
-| `visual-audit/desktop-fill.spec.ts` | RED on main for a real `/browse` layout defect; registering against a red spec proves nothing |
-| `journeys/02-marketplace.spec.ts` | the one genuinely hard case: a SERIAL money chain (post → fund on Stripe → apply → hire → do-the-job), so nothing can be scoped away without breaking the chain, and every baseline run funds a real test-mode escrow |
+| `visual-audit/desktop-fill.spec.ts` | RED on main for a real `/browse` layout defect; a registration against a red spec is scored `inconclusive` and proves nothing |
+| `journeys/02-marketplace.spec.ts` | the one genuinely hard case: a SERIAL money chain (post → fund on Stripe → apply → hire → do-the-job). Nothing can be scoped away without breaking the chain, so the gate must run the WHOLE chain green as a baseline and then again mutated — twice per scoring, each time funding a real test-mode escrow, and nightly `vacuity:all` would do it every night. `.describe.serial` does at least make the mutated half cheap: a kill in J2 skips J3-J5. |
 
 ### The five proven 2026-09-21, and what each mutation breaks
 

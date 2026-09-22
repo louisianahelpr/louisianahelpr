@@ -1,0 +1,810 @@
+{
+  "base": "http://127.0.0.1:4291",
+  "viewport": {
+    "width": 375,
+    "height": 812
+  },
+  "dataDelay": 2500,
+  "chunkDelay": 1200,
+  "at": "2026-09-22T18:55:53.498Z",
+  "results": [
+    {
+      "url": "/profile?tab=pets",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4291",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/docs/audit/loading-states/skel-probe-after/customer_profile_tab_pets.loading.png",
+      "loading": {
+        "found": 7,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 25.7,
+            "h": 24.6
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div > div",
+            "placeholderCount": 7,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 812
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 736,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 828,
+            "elements": 20,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 7,
+            "text": "My Pets"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/louisianahelpr/docs/audit/loading-states/skel-probe-after/customer_profile_tab_pets.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 25.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 292
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 216,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 30,
+            "textLeaves": 7,
+            "media": 2,
+            "controls": 4,
+            "placeholders": 0,
+            "text": "My Pets Add a Pet🐕Boudreaux (seed)Dog · Catahoula · 4yr🐈Praline (seed)Cat · 11yrAdd a Pet🐕Boudreaux (seed)Dog · Catahoula · 4yr🐈Praline (seed)Cat · 11yr"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 812
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 292
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -520,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            736,
+            216
+          ],
+          "deltaRowH": -520,
+          "media": [
+            0,
+            2
+          ],
+          "controls": [
+            1,
+            4
+          ],
+          "textLeaves": [
+            1,
+            7
+          ],
+          "placeholderCount": 7,
+          "shapeMatch": false
+        }
+      ],
+      "worstDeltaRowPx": -520,
+      "worstDeltaRowH": -520,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 1,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ]
+    },
+    {
+      "url": "/profile?tab=work_record",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4291",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/docs/audit/loading-states/skel-probe-after/customer_profile_tab_work_record.loading.png",
+      "loading": {
+        "found": 8,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 25.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div > div",
+            "placeholderCount": 8,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 811
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 735,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 923,
+            "elements": 21,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 7,
+            "text": "Work Record"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/louisianahelpr/docs/audit/loading-states/skel-probe-after/customer_profile_tab_work_record.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 25.7,
+            "h": 24.6
+          },
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(2) > div > div:nth-of-type(1) > div > div:nth-of-type(1) > h2": {
+            "y": 153,
+            "h": 50
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 905.5
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 830,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1018,
+            "elements": 85,
+            "textLeaves": 23,
+            "media": 1,
+            "controls": 4,
+            "placeholders": 0,
+            "text": "Work RecordHelpr· LAEmployment & Earnings RecordGenerated September 22, 2026Issued toPerry PosterID verified by StripeVerifiedMember sinceSeptember 2026Work Sum"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 811
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 905.5
+          },
+          "skeletonContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": 94.5,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            735,
+            830
+          ],
+          "deltaRowH": 95,
+          "media": [
+            0,
+            1
+          ],
+          "controls": [
+            1,
+            4
+          ],
+          "textLeaves": [
+            1,
+            23
+          ],
+          "placeholderCount": 8,
+          "shapeMatch": false
+        }
+      ],
+      "worstDeltaRowPx": 94.5,
+      "worstDeltaRowH": 95,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 1,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 2,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ]
+    },
+    {
+      "url": "/profile?tab=gift_card",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4291",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/docs/audit/loading-states/skel-probe-after/customer_profile_tab_gift_card.loading.png",
+      "loading": {
+        "found": 4,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 25.8,
+            "h": 24.6
+          },
+          "testid:gift-form": {
+            "y": 276.1,
+            "h": 914.3
+          },
+          "testid:gift-card-preview": {
+            "y": 571.8,
+            "h": 185.5
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "div#root > nav > div:nth-of-type(2)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 38,
+            "textLeaves": 2,
+            "media": 5,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "2PP"
+          },
+          {
+            "path": "main#main-content > div > div > div > div",
+            "placeholderCount": 2,
+            "probe": {
+              "px": 187.5,
+              "py": 20.1,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0.1,
+              "w": 335,
+              "h": 1567.9
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 1492,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1680,
+            "elements": 80,
+            "textLeaves": 28,
+            "media": 0,
+            "controls": 11,
+            "placeholders": 3,
+            "text": "Gift CardWhat is this?Send a Helpr gift card to someone you know. Find them by name or type their email, choose an amount, and we'll send them a link to claim i"
+          },
+          {
+            "path": "main#main-content > div > div > div > div",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 187.5,
+              "py": 20.1,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0.1,
+              "w": 335,
+              "h": 1567.9
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 1492,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1680,
+            "elements": 80,
+            "textLeaves": 28,
+            "media": 0,
+            "controls": 11,
+            "placeholders": 3,
+            "text": "Gift CardWhat is this?Send a Helpr gift card to someone you know. Find them by name or type their email, choose an amount, and we'll send them a link to claim i"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/louisianahelpr/docs/audit/loading-states/skel-probe-after/customer_profile_tab_gift_card.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 25.7,
+            "h": 24.6
+          },
+          "testid:gift-form": {
+            "y": 275.9,
+            "h": 914.3
+          },
+          "testid:gift-card-preview": {
+            "y": 571.7,
+            "h": 185.5
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 38,
+            "textLeaves": 2,
+            "media": 5,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "2PP"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1424.4
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 1348,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1536,
+            "elements": 80,
+            "textLeaves": 30,
+            "media": 0,
+            "controls": 11,
+            "placeholders": 0,
+            "text": "Gift CardWhat is this?Send a Helpr gift card to someone you know. Find them by name or type their email, choose an amount, and we'll send them a link to claim i"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1424.4
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 1348,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1536,
+            "elements": 80,
+            "textLeaves": 30,
+            "media": 0,
+            "controls": 11,
+            "placeholders": 0,
+            "text": "Gift CardWhat is this?Send a Helpr gift card to someone you know. Find them by name or type their email, choose an amount, and we'll send them a link to claim i"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "div#root > nav > div:nth-of-type(2)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            5,
+            5
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            2,
+            2
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        },
+        {
+          "path": "main#main-content > div > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0.1,
+            "w": 335,
+            "h": 1567.9
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1424.4
+          },
+          "skeletonContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -143.5,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            1492,
+            1348
+          ],
+          "deltaRowH": -144,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            11,
+            11
+          ],
+          "textLeaves": [
+            28,
+            30
+          ],
+          "placeholderCount": 2,
+          "shapeMatch": false
+        },
+        {
+          "path": "main#main-content > div > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0.1,
+            "w": 335,
+            "h": 1567.9
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1424.4
+          },
+          "skeletonContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -143.5,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            1492,
+            1348
+          ],
+          "deltaRowH": -144,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            11,
+            11
+          ],
+          "textLeaves": [
+            28,
+            30
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": false
+        }
+      ],
+      "worstDeltaRowPx": -143.5,
+      "worstDeltaRowH": -144,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 2,
+      "clustersMeasured": 3,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 4,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ]
+    }
+  ]
+}

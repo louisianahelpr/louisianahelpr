@@ -975,12 +975,30 @@ test.describe("full money loop against production", () => {
        once both sides are done, captures and schedules the payout in the same
        call (create-payment/index.ts:576). So the poster's completion is not
        missing from this suite, it is step 6. */
-    const helperDone = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}&select=id`, {
-      headers: { ...rest(helper), Prefer: "return=representation" },
-      data: { helper_completed_at: new Date().toISOString() },
+    /* THROUGH THE RPC, because the columns are server-owned now.
+       This PATCHed `helper_completed_at` directly and has been answered
+       403 / 42501 "Mark the job done as the assigned Helpr; the completion time
+       is the server clock and cannot be set by the client" since the
+       completion-columns hardening landed (`enforce_job_completion_server_owned`,
+       migration 20260915073143). That trigger exists because a Helpr could
+       otherwise PATCH a BACKDATED helper_completed_at and make the job instantly
+       due for auto-release, erasing the poster's 24h window — so the refusal is
+       the product working, and this spec was the thing that had not moved.
+       `rpc_helper_mark_done(_job_id)` is what JobTracking's Done button calls:
+       SECURITY DEFINER, EXECUTE to `authenticated`, it runs the same gates
+       server-side and stamps the time from the server clock. Verified deployed
+       on prod with that exact signature before this change.
+       This is the OLDEST of the three faults stacked on this journey: it has
+       failed here since at least 2026-09-16, before the photo redesign and
+       before the stuck dispute fixture that later skipped the spec entirely. */
+    const helperDone = await request.post(`${SUPABASE_URL}/rest/v1/rpc/rpc_helper_mark_done`, {
+      headers: rest(helper),
+      data: { _job_id: job.id },
     });
-    expect(helperDone.ok(), `helper completion failed: ${helperDone.status()} ${await helperDone.text()}`).toBe(true);
-    expect(await helperDone.json(), "helper completion matched zero rows").toHaveLength(1);
+    expect(
+      helperDone.ok(),
+      `helper completion failed: ${helperDone.status()} ${await helperDone.text()}`,
+    ).toBe(true);
 
     // --- 6 & 7. RELEASE and REVIEW ------------------------------------------
     // Both are downstream of funding, and the dependency is not stylistic: the

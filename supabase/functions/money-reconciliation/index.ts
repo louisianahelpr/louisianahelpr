@@ -198,6 +198,22 @@ serve(async (req) => {
     // invariants were actually evaluated — "0 findings" is only meaningful
     // alongside the list of things that were looked at.
     const checks = {
+      // ── Gift-card credit ──────────────────────────────────────────────
+      // This file used to say gift_cards needed no reconciliation because it
+      // carries no cached balance, so "asserting on them would be theatre".
+      // That was true while the table was empty and stopped being true the
+      // moment the feature shipped. The two assertions below are not balance
+      // checks — they are the signatures of specific, known-possible defects.
+      giftRevokedChildSpendable: new Check(
+        "gift_revoked_donation_has_spendable_child",
+        "critical",
+        "A gift_cards row is payment_status='paid' while an ancestor of the same donation is 'refunded'. Spendable credit derived from money that already went back to the donor — the re-mint class closed in 20260922165121. A hit here means either that fix regressed or a row was written by hand.",
+      ),
+      giftSpentRevokedUnpaged: new Check(
+        "gift_revoked_after_being_spent",
+        "warning",
+        "A redeemed gift_cards row is payment_status='refunded' — the donation was reversed AFTER it had funded a job, so the platform absorbed that value from its own balance. Not an error (we deliberately never claw back from the helper), but it is a real loss and should be reconciled against Stripe.",
+      ),
       cancellationFee: new Check(
         "cancellation_fee_mismatch",
         "critical",
@@ -717,18 +733,70 @@ serve(async (req) => {
     }
 
     // ── Credit conservation ──────────────────────────────────────────────────
-    // Nothing to reconcile. `time_credits` was the ONLY credit table carrying a
-    // denormalized running balance (`balance_after`) that could disagree with
-    // its own ledger, and migration 20260901035602 dropped it — the table let
-    // any signed-in user INSERT their own rows, and no code path ever minted or
-    // spent a credit, so it was deleted rather than re-policed.
+    // `time_credits` was the only credit table carrying a denormalized running
+    // balance that could disagree with its own ledger, and migration
+    // 20260901035602 dropped it. `referral_credits` still has no cached balance
+    // and no `profiles` mirror, so there is no second copy to drift.
     //
-    // referral_credits and gift_cards have no cached balance column and no
-    // `profiles` mirror — their balances are summed live from the rows, so
-    // there is no second copy to drift. Asserting on them would be theatre.
-    // (Both were checked for the same self-insert RLS hole on 2026-09-01 and
-    // both correctly refuse it: HTTP 403, "new row violates row-level security
-    // policy".)
+    // `gift_cards` DOES need asserting, and this file used to say it did not.
+    // Not for a balance — for the derived-value tree. A donation mints children
+    // (`parent_credit_id`): `redeem_gift_card` mints the leftover when a gift is
+    // bigger than the job it funds, and `restore_gift_card_for_job` mints a
+    // replacement when a gift-funded job is cancelled. When the donation behind
+    // that tree is refunded or charged back, every unspent node must be
+    // 'refunded' too. A node still reading 'paid' under a 'refunded' ancestor is
+    // spendable money conjured out of a reversal.
+    {
+      const { data: giftRows, error: giftErr } = await admin
+        .from("gift_cards")
+        .select("id, parent_credit_id, payment_status, status, amount, job_id");
+
+      // Never swallow this. A dropped error here reads as "no gift defects",
+      // which is exactly the false all-clear this function exists to prevent.
+      if (giftErr) {
+        throw new Error(`money-reconciliation: gift_cards read failed: ${giftErr.message}`);
+      }
+
+      const gifts = (giftRows ?? []) as Array<{
+        id: string;
+        parent_credit_id: string | null;
+        payment_status: string | null;
+        status: string | null;
+        amount: number | null;
+        job_id: string | null;
+      }>;
+      const byId = new Map(gifts.map((g) => [g.id, g]));
+
+      /** Walk to the root, bounded, so a cyclic parent chain cannot hang the run. */
+      const hasRefundedAncestor = (row: typeof gifts[number]): boolean => {
+        const seen = new Set<string>([row.id]);
+        let cur = row.parent_credit_id ? byId.get(row.parent_credit_id) : undefined;
+        while (cur && !seen.has(cur.id)) {
+          if (cur.payment_status === "refunded") return true;
+          seen.add(cur.id);
+          cur = cur.parent_credit_id ? byId.get(cur.parent_credit_id) : undefined;
+        }
+        return false;
+      };
+
+      for (const g of gifts) {
+        if (g.payment_status === "paid" && hasRefundedAncestor(g)) {
+          checks.giftRevokedChildSpendable.add({
+            gift_card_id: g.id,
+            parent_credit_id: g.parent_credit_id,
+            status: g.status,
+            amount: money(g.amount ?? 0),
+          });
+        }
+        if (g.payment_status === "refunded" && g.status === "redeemed") {
+          checks.giftSpentRevokedUnpaged.add({
+            gift_card_id: g.id,
+            job_id: g.job_id,
+            amount: money(g.amount ?? 0),
+          });
+        }
+      }
+    }
 
     // ── Emit ─────────────────────────────────────────────────────────────────
     //

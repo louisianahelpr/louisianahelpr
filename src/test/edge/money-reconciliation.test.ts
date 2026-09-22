@@ -90,6 +90,11 @@ function seedCleanLedger() {
   };
   scenario.reads.disputes = { rows: [] };
   scenario.reads.profiles = { rows: [] };
+  // The gift-credit tree. Seeded empty on a clean ledger: the reconciler reads
+  // it unconditionally and FAILS CLOSED on a read error (a dropped one would
+  // read as "no gift defects", the false all-clear this whole function exists
+  // to prevent), so an unseeded table is a 500, not a silent skip.
+  scenario.reads.gift_cards = { rows: [] };
 }
 
 describe("money-reconciliation edge function", () => {
@@ -318,9 +323,84 @@ describe("money-reconciliation edge function", () => {
 
     expect(scenario.writes).toHaveLength(0);
   });
+
+  // ── Gift-credit tree ───────────────────────────────────────────────────────
+  //
+  // This file used to say gift_cards needed no reconciliation because it
+  // carries no cached balance, so "asserting on them would be theatre". True
+  // while the table was empty; false the moment the feature shipped.
+  //
+  // The assertion is not a balance. A donation mints children through
+  // `parent_credit_id` (redeem_gift_card's leftover, restore_gift_card_for_job's
+  // replacement), and when the donation is refunded or charged back every
+  // unspent node must be 'refunded' too. A node still reading 'paid' under a
+  // 'refunded' ancestor is spendable money conjured out of a reversal — the
+  // exact class closed in migration 20260922165121, kept closed here.
+  describe("gift-credit tree", () => {
+    it("flags a spendable child under a refunded donation", async () => {
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      scenario.reads.gift_cards = {
+        rows: [
+          { id: "gc-root", parent_credit_id: null, payment_status: "refunded", status: "redeemed", amount: 75, job_id: "job-1" },
+          { id: "gc-child", parent_credit_id: "gc-root", payment_status: "paid", status: "sent", amount: 25, job_id: null },
+        ],
+      };
+      const res = await fn.fetch(cronRequest(fn));
+      const b = await body(res);
+      const names = (b.findings as Array<{ check: string }>).map((f) => f.check);
+      expect(names).toContain("gift_revoked_donation_has_spendable_child");
+    });
+
+    it("catches it through a GRANDchild too — the tree is walked, not peeked at", async () => {
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      scenario.reads.gift_cards = {
+        rows: [
+          { id: "gc-root", parent_credit_id: null, payment_status: "refunded", status: "redeemed", amount: 75, job_id: "job-1" },
+          { id: "gc-mid", parent_credit_id: "gc-root", payment_status: "refunded", status: "redeemed", amount: 25, job_id: "job-2" },
+          { id: "gc-leaf", parent_credit_id: "gc-mid", payment_status: "paid", status: "sent", amount: 10, job_id: null },
+        ],
+      };
+      const res = await fn.fetch(cronRequest(fn));
+      const b = await body(res);
+      const names = (b.findings as Array<{ check: string }>).map((f) => f.check);
+      expect(names).toContain("gift_revoked_donation_has_spendable_child");
+    });
+
+    it("stays quiet on a healthy tree", async () => {
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      scenario.reads.gift_cards = {
+        rows: [
+          { id: "gc-root", parent_credit_id: null, payment_status: "paid", status: "redeemed", amount: 75, job_id: "job-1" },
+          { id: "gc-child", parent_credit_id: "gc-root", payment_status: "paid", status: "sent", amount: 25, job_id: null },
+        ],
+      };
+      const res = await fn.fetch(cronRequest(fn));
+      const b = await body(res);
+      expect(b.clean).toBe(true);
+    });
+
+    it("does not hang on a cyclic parent chain", async () => {
+      // parent_credit_id is a self-FK with nothing preventing a loop.
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      scenario.reads.gift_cards = {
+        rows: [
+          { id: "gc-a", parent_credit_id: "gc-b", payment_status: "paid", status: "sent", amount: 10, job_id: null },
+          { id: "gc-b", parent_credit_id: "gc-a", payment_status: "paid", status: "sent", amount: 10, job_id: null },
+        ],
+      };
+      const res = await fn.fetch(cronRequest(fn));
+      expect([200, 500]).toContain(res.status);
+    });
+  });
 });
 
 // Proof this guard can fail: null out the jobs-scan truncation verdict and the
 // reconciler goes back to reporting a clean 200 over a fifth of the money —
 // exactly the unsatisfiable alarm this file was written to replace.
 // @mutate supabase/functions/money-reconciliation/index.ts | const jobsCap = scanDefect("jobs", jobScan); | const jobsCap = null;
+
+// @mutate supabase/functions/money-reconciliation/index.ts | if (g.payment_status === "paid" && hasRefundedAncestor(g)) { | if (false) {

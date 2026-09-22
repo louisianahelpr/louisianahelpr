@@ -196,7 +196,7 @@ import { ERROR_SCREEN_PATTERNS } from "../../e2e/errorScreens.ts";
 export const ERROR_BOUNDARY_RX = new RegExp(ERROR_SCREEN_PATTERNS.filter((p) => p.name !== "404 on a real route").map((p) => p.re.source).join("|"), "i");
 /** Labels that MUTATE something. Pressed only on a test-owned target (see pressProdSafety.mjs). */
 export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout)\b/i;
-export { ACCOUNT_DESTROY_RX, PAYMENT_RX, SELF_ROUTE_RX } from "./pressProdSafety.mjs";
+export { ACCOUNT_DESTROY_RX, SESSION_END_RX, PAYMENT_RX, SELF_ROUTE_RX } from "./pressProdSafety.mjs";
 import { PAYMENT_RX } from "./pressProdSafety.mjs";
 /** Console lines the HARNESS causes, not the app. */
 /**
@@ -389,6 +389,7 @@ export const DOCUMENTED_SKIPS = new Set([
   "shared SEED fixture (test-owned, but other sweeps depend on it; the run's own fixture covers the action)",
   "payment control — Stripe is not in TEST mode",
   "would destroy or lock the shared test account",
+  "ends the session this sharded run is driving (a sign-out revokes the other shards too)",
   "account unavailable (persona not minted)",
   "file picker (opens the OS dialog; not a DOM outcome)",
   "inside a toast (transient; not page chrome)",
@@ -636,10 +637,24 @@ async function main() {
    * Run 35761400822 reported 274 failed presses across four shards. The
    * dominant cause was the harness's own auth dying: 39×`403 GET v1/user`,
    * 38×500 and 21×401 on shard 3 alone, with GoTrue answering
-   * `session_not_found` — the session ROW was gone, not merely expired — and
-   * zero /logout calls in the window. Nothing signed out; the token this
-   * sweep had minted ONCE at run start and injected into every context for 26
-   * minutes simply stopped being accepted. Every press after that measured a
+   * `session_not_found` — the session ROW was gone, not merely expired.
+   *
+   * CORRECTED 2026-09-22: an earlier version of this comment said "zero
+   * /logout calls". That was measured over 17:40-18:15 and was true of THAT
+   * WINDOW only. THE SWEEP SIGNED ITSELF OUT at 17:34-17:36, from the shard
+   * runners, with this workflow's own 127.0.0.1:4173 referer — four POST
+   * /logout, 204, actors helpr-e2e-poster-0902 (x2) and helpr-e2e-helper-0902.
+   * The scope was GLOBAL, proven by arithmetic rather than a log line (GoTrue
+   * does not record ?scope=): of four sessions minted per persona at 17:33,
+   * admin pressed no logout and kept 4; seed-incomplete pressed ONE and kept 3
+   * (local); poster pressed two and kept ZERO; helper pressed one and kept
+   * ZERO. Only scope:"global" deletes every row for a user in one call, and
+   * the only global sign-out in this app is SecurityTab.tsx:192, "Sign Out
+   * Everywhere" — corroborated by the same shard IP firing /recover x6 and
+   * /factors x8 in those same minutes, which are that tab's other controls.
+   *
+   * So the token minted ONCE at run start was not merely stale: another shard
+   * had revoked it for the whole account. Every press after that measured a
    * signed-out screen and was counted as a product defect.
    *
    * Two rules now:

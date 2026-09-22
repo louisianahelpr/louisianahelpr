@@ -81,7 +81,10 @@ export async function prodSession(role) {
  * A SESSION CAN DIE MID-SWEEP, and pressing on with the dead one is how run
  * 35761400822 produced 274 "failed presses" that were really one auth failure
  * (GoTrue's own logs: `session_not_found` on GET /user, 183 of them, from the
- * four shard IPs, with zero /logout calls). press-every-control mints once and
+ * four shard IPs). CORRECTED 2026-09-22: this said "with zero /logout calls",
+ * which was true only of the 17:40-18:15 window searched — the sweep signed
+ * ITSELF out at 17:34-17:36, scope GLOBAL, revoking every shard's session for
+ * that account at once. press-every-control mints once and
  * injects the same token into every browser context for ~26 minutes, so these
  * two exports let it ask GoTrue again and re-mint instead of cascading.
  *
@@ -261,10 +264,33 @@ export async function urlOwnership(session, url, owners) {
 export const PAYMENT_RX = /\b(pay|checkout|fund|tip|boost|purchase|buy|subscribe|upgrade|withdraw|release|refund|payout|gift card|deposit)\b/i;
 /** Labels that would destroy or lock the SHARED test account. Never pressed. */
 export const ACCOUNT_DESTROY_RX = /\b(delete (my )?account|deactivate|close (my )?account|delete profile|request deletion|erase my data)\b/i;
+/**
+ * Labels that END A SESSION. Never pressed, and the reason is NOT that they
+ * are destructive — it is that this sweep SHARDS.
+ *
+ * Run 35761400822, proven from GoTrue's own auth_logs: four shards each minted
+ * a session per persona at 17:33; between 17:34 and 17:36 the sweep pressed a
+ * sign-out on poster-e2e (x2) and helper-e2e, and the scope was GLOBAL — of
+ * four sessions each, poster kept ZERO and helper kept ZERO, while admin
+ * (no logout pressed) kept all four and seed-incomplete (one LOCAL logout)
+ * kept three. One shard therefore revoked the other three shards' sessions for
+ * the whole account, and all four kept pressing with dead JWTs: 183
+ * `session_not_found`, 274 "failed presses" that were one auth failure.
+ *
+ * The only global sign-out in the app is SecurityTab.tsx's "Sign Out
+ * Everywhere"; a plain Log Out is scope:"local" (authSignOut.ts) and would
+ * only have killed the pressing shard. Both are refused here: a sweep cannot
+ * measure a screen it has just logged itself out of, local or global.
+ *
+ * e2e/prod-audit/harness.ts already exports NEVER_PRESS with these words for
+ * messy-input. This sweep never consumed it — that omission is the bug.
+ */
+export const SESSION_END_RX = /\bsign ?out\b|\blog ?out\b|\bsign out everywhere\b|\bswitch account\b/i;
 /** Routes whose subject is the signed-in account (a mutation there touches only the test account's own rows). */
 export const SELF_ROUTE_RX = /^\/(profile|post-job|support|schedule|availability|settings|complete-profile|warnings|data-rights|my-posts|payment-success|gift-card|forgot-password|reset-password|signup|login)(\/|\?|$)/;
 
 export const SKIP_DESTROY = "would destroy or lock the shared test account";
+export const SKIP_SESSION_END = "ends the session this sharded run is driving (a sign-out revokes the other shards too)";
 export const SKIP_STRIPE = "payment control — Stripe is not in TEST mode";
 export const SKIP_ADMIN = "admin action without a seed test target";
 export const SKIP_SHARED_SEED = "shared SEED fixture (test-owned, but other sweeps depend on it; the run's own fixture covers the action)";
@@ -278,6 +304,9 @@ export const SKIP_NOT_OWNED_ROW = "not test-owned (mutating control; no record i
  */
 export async function mutationGate({ label, meta, chainOwned, persona, routeUrl, urlOwned, owners, stripeMode, note = () => {} }) {
   if (ACCOUNT_DESTROY_RX.test(label)) return SKIP_DESTROY;
+  // Before ownership: a sign-out on a TEST-OWNED account is exactly the case
+  // that broke run 35761400822. Being test-owned is what made it pressable.
+  if (SESSION_END_RX.test(label)) return SKIP_SESSION_END;
   if (PAYMENT_RX.test(label)) {
     const m = await stripeMode();
     if (m.mode !== "test") { note(`Stripe mode ${m.mode} (${m.detail})`); return SKIP_STRIPE; }

@@ -218,7 +218,7 @@ function runBuild() {
  * is not.
  *
  * Measured 2026-09-21: `empty-state-sweep` (138 tests) and `error-state-sweep`
- * (272 tests) both do this, and both ARE wired into CI (ui-sweep.yml sets the
+ * (276 tests) both do this, and both ARE wired into CI (ui-sweep.yml sets the
  * vars) — so the coverage was fine and only the PROVABILITY was missing. A
  * lane correctly refused to register a mutation it knew would be scored
  * wrongly, and equally refused to `@mutate-exempt` them, which would have
@@ -229,7 +229,7 @@ function runBuild() {
 function specGateEnv(guard) {
   const GATES = {
     "e2e/happy-path/empty-state-sweep.spec.ts": { RUN_EMPTY_SWEEP: "1" },
-    // SCOPED, for the same reason overlay-sweep is. The full sweep is 272 tests
+    // SCOPED, for the same reason overlay-sweep is. The full sweep is 276 tests
     // at --workers=1 and was measured reaching only 209 when spawnSync's 900s
     // timeout hit — so an unscoped mutation here is scored on the TIMEOUT, which
     // used to read as `killed` and is now `inconclusive`. One role and the error

@@ -56,7 +56,14 @@
  *     activity-loading-reserve
  */
 // SHOWN ABLE TO FAIL: each fix, reverted, brings its own number back.
-// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | className="h-[26px] w-16 rounded-ds-md shrink-0 ml-3" | className="h-[26px] w-16 rounded-ds-md shrink-0 ml-3" style={{ height: 96 }}
+// The money bone's own height CLASS, not an appended `style` prop: the bone
+// already carries a `style` for its background, and a second one appended after
+// `className` is a DUPLICATE JSX prop — React keeps the last, so the mutation
+// changed the source text and nothing else. It registered, ran, and SURVIVED on
+// main (placeholder row 150px, byte-identical to unmutated). Mutating the class
+// moves the real box: 26px -> 96px takes the row 150px -> ~220px, far outside
+// the 8px budget.
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | className="h-[26px] w-16 rounded-ds-md shrink-0 ml-3" | className="h-[96px] w-16 rounded-ds-md shrink-0 ml-3"
 // @mutate src/components/ActivityPageSkeleton.tsx | {!isWebDesktop && ( | {false && (
 // The pitch assertion, shown able to fail. `space-y-8` and not the real
 // regression it guards (`space-y-2.5`, the 10px gap this fix replaced with the

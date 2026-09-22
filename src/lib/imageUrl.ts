@@ -144,6 +144,58 @@ const VERCEL_ALLOWED_WIDTHS = [
 
 const VERCEL_TRANSFORM_PATH = "/_vercel/image";
 
+/**
+ * Hostnames that are serving `dist/` themselves, with no Vercel edge in front.
+ *
+ * `/_vercel/image` is not part of this app — it is an endpoint Vercel's edge
+ * adds in front of the deployment. Ask any other host for it and you get
+ * whatever that host does with an unknown path; this SPA's own preview answers
+ * unknown paths with index.html, so an `<img>` pointed there receives
+ * `200 text/html`, fails to decode, and paints its ALT TEXT instead of the
+ * photo. Measured against this repo's `vite preview`, 2026-09-21:
+ *
+ *   GET /_vercel/image?url=…&w=96&q=75  ->  200  content-type: text/html
+ *
+ * That is the owner's "job photos render as broken images" report: an empty
+ * box reading `Photo 1` (JobCardPhotoStrip's alt) on /my-jobs and on an
+ * offered card. It is not a corner case either — since 2026-09-14 EVERY
+ * Playwright project serves the HTML from a local `vite preview` and talks to
+ * prod Supabase (playwright.config.ts, "REAL BACKEND, LOCAL FRONTEND"), so
+ * every photo in every screenshot the audits take has been broken, hiding any
+ * real photo regression underneath.
+ *
+ * Same reasoning as the native guard below, which was already written for the
+ * Capacitor wrapper: do not mint a URL for an edge that is not there.
+ */
+const NO_EDGE_HOSTNAMES = new Set([
+  "localhost",
+  "127.0.0.1",
+  "0.0.0.0",
+  "::1",
+  "[::1]",
+]);
+
+/**
+ * Whether the page is being served by Vercel — i.e. whether
+ * `/_vercel/image` exists on this origin.
+ *
+ * Exported so the rule is testable as a rule rather than only through a URL
+ * string. An EMPTY hostname (a non-browser context: SSR, a worker, a bare
+ * unit-test environment) counts as no edge: a passed-through source URL always
+ * loads, an invented endpoint may not.
+ */
+export function servedByVercelEdge(hostname: string): boolean {
+  if (!hostname) return false;
+  if (NO_EDGE_HOSTNAMES.has(hostname)) return false;
+  // Bonjour/LAN names (`lexis-mac.local`, a phone hitting the dev box by name).
+  if (hostname.endsWith(".local")) return false;
+  return true;
+}
+
+function currentHostname(): string {
+  return globalThis.location?.hostname ?? "";
+}
+
 function snapToAllowedWidth(width: number): number {
   // Pick the smallest allowed width >= request; falls back to the largest
   // if the requester asked for something huge.
@@ -213,6 +265,12 @@ export function buildImageUrl(
 
   // Native: do not route through Vercel's edge — there is no edge.
   if (Capacitor.isNativePlatform()) return src;
+
+  // Nor on any other host that is serving `dist/` itself — the local preview
+  // every Playwright project runs against, a LAN dev box, a self-hosted copy.
+  // See NO_EDGE_HOSTNAMES: there the endpoint returns index.html and the image
+  // renders as a broken box showing its alt text.
+  if (!servedByVercelEdge(currentHostname())) return src;
 
   if (isUntransformable(src)) return src;
 

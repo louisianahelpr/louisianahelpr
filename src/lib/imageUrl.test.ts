@@ -8,10 +8,34 @@ vi.mock("@capacitor/core", () => ({
   },
 }));
 
-import { buildImageUrl, transformedImageUrl } from "./imageUrl";
+import { buildImageUrl, transformedImageUrl, servedByVercelEdge } from "./imageUrl";
 
 const PUBLIC =
   "https://abc123.supabase.co/storage/v1/object/public/avatars/user/photo.jpg";
+
+/**
+ * Pin the document's hostname.
+ *
+ * `buildImageUrl` only mints a `/_vercel/image` src when the page is actually
+ * being served by Vercel, so every assertion about that endpoint has to say
+ * which host it is standing on. jsdom serves these tests from `localhost`,
+ * which is precisely the host where the endpoint does NOT exist.
+ */
+function setHost(hostname: string) {
+  Object.defineProperty(globalThis, "location", {
+    value: { ...globalThis.location, hostname },
+    configurable: true,
+    writable: true,
+  });
+}
+const REAL_LOCATION = globalThis.location;
+function restoreHost() {
+  Object.defineProperty(globalThis, "location", {
+    value: REAL_LOCATION,
+    configurable: true,
+    writable: true,
+  });
+}
 
 describe("transformedImageUrl", () => {
   beforeEach(() => {
@@ -112,6 +136,9 @@ describe("buildImageUrl", () => {
     });
     isNativePlatformMock.mockReset();
     isNativePlatformMock.mockReturnValue(false);
+    // The deployed host. Every `/_vercel/image` assertion below is a claim
+    // about the WEB build as Vercel serves it.
+    setHost("www.louisianahelpr.com");
   });
 
   afterEach(() => {
@@ -119,6 +146,7 @@ describe("buildImageUrl", () => {
       value: 1,
       configurable: true,
     });
+    restoreHost();
   });
 
   it("returns the original URL unchanged on native platforms", () => {
@@ -213,6 +241,71 @@ describe("transformedImageUrl — transform add-on disabled (the production defa
     expect(out).not.toContain("quality=");
   });
 });
+
+describe("buildImageUrl — the host has to actually HAVE the edge", () => {
+  /*
+   * THE DEFECT THIS IS THE REPRO FOR (owner, 2026-09-21, seen twice in one
+   * night on two surfaces): a job card renders an empty box with the literal
+   * alt text "Photo 1" instead of the photo.
+   *
+   * `/_vercel/image` is not part of the app; it is an endpoint Vercel's edge
+   * adds in front of the deployment. Every OTHER host answers it as an unknown
+   * path — and this SPA answers unknown paths with index.html, so the <img>
+   * gets `200 text/html`, fails to decode, and paints its alt text. MEASURED
+   * against this repo's own `vite preview` on 2026-09-21:
+   *
+   *   GET /_vercel/image?url=…&w=96&q=75
+   *     -> HTTP/1.1 200  content-type: text/html   <!doctype html>…
+   *
+   * That preview is not a corner case: since 2026-09-14 EVERY Playwright
+   * project — journeys, prod-audit, a11y-prod, chromium — serves the HTML from
+   * a local `vite preview` and talks to prod Supabase (playwright.config.ts,
+   * "REAL BACKEND, LOCAL FRONTEND"). So every photo in every screenshot the
+   * audits take has been broken, and a real photo regression would be
+   * invisible underneath that.
+   *
+   * The rule is the one `Capacitor.isNativePlatform()` already encodes three
+   * lines above: do not mint a URL for an edge that is not there.
+   */
+  beforeEach(() => {
+    Object.defineProperty(globalThis, "devicePixelRatio", { value: 1, configurable: true });
+    isNativePlatformMock.mockReset();
+    isNativePlatformMock.mockReturnValue(false);
+  });
+  afterEach(() => restoreHost());
+
+  it("passes the source through on the local preview the audits run against", () => {
+    setHost("127.0.0.1");
+    expect(buildImageUrl(PUBLIC, { width: 96, height: 64 })).toBe(PUBLIC);
+    setHost("localhost");
+    expect(buildImageUrl(PUBLIC, { width: 96, height: 64 })).toBe(PUBLIC);
+  });
+
+  it("passes external sources through on a local preview too", () => {
+    setHost("localhost");
+    const external = "https://cdn.example.com/photo.jpg";
+    expect(buildImageUrl(external, { width: 384 })).toBe(external);
+  });
+
+  it("still uses the edge on the deployed host", () => {
+    setHost("www.louisianahelpr.com");
+    expect(buildImageUrl(PUBLIC, { width: 96 }).startsWith("/_vercel/image?")).toBe(true);
+  });
+
+  it("knows which hostnames have no Vercel edge in front of them", () => {
+    for (const host of ["localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]", "lexis-mac.local", ""]) {
+      expect(servedByVercelEdge(host), `${host || "(empty)"} has no Vercel edge`).toBe(false);
+    }
+    for (const host of ["www.louisianahelpr.com", "louisianahelpr.com", "louisianahelpr.vercel.app"]) {
+      expect(servedByVercelEdge(host), `${host} is served by Vercel`).toBe(true);
+    }
+  });
+});
+
+// The host gate above, shown able to fail: without it every image on every
+// local preview — which is what every Playwright project serves since
+// 2026-09-14 — is a broken box with its alt text showing.
+// @mutate src/lib/imageUrl.ts | if (!servedByVercelEdge(currentHostname())) return src; | if (false) return src;
 
 // The add-on gate: Supabase image transforms are NOT enabled on this project,
 // so a /render/image/ URL 403s and Vercel answers 502 — a broken placeholder

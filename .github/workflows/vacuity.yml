@@ -46,7 +46,18 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    # 14:17 UTC daily — the full mutation set, which is too slow for a push.
+    # 14:17 UTC on SUNDAYS — the full mutation set, which is too slow for a push.
+    #
+    # WEEKLY, NOT DAILY (owner decision 2026-09-22, on cost). The set is 1018
+    # registrations, and giving this job credentials means the e2e ones now
+    # actually execute instead of dying on a missing .env — the first full run
+    # after that change was KILLED at the 30-minute budget having finished
+    # almost none of them. A realistic full sweep is hours, and a daily one
+    # would run 5,000-9,000 Actions minutes a month against a 2,000-minute free
+    # tier. The per-push gate still proves every NEW or CHANGED guard
+    # immediately, which is the high-value check; this sweep only catches DRIFT
+    # — a guard that quietly went vacuous because the code moved under it — and
+    # weekly is a reasonable cadence for drift.
     #
     # WHY :17, AND WHY NOT 06:10 ANY MORE. Giving this job prod credentials
     # (see the env block below) made it a prod-hitting workflow, which
@@ -56,7 +67,7 @@ on:
     # minutes from every other daily prod cron. 06:10 was 53 min from
     # db-drift-detect (05:17) and 67 from db-backup (07:17), so it moved rather
     # than crowd two database jobs with a Playwright sweep.
-    - cron: "17 14 * * *"
+    - cron: "17 14 * * 0"
   workflow_dispatch:
     inputs:
       full:
@@ -81,7 +92,11 @@ jobs:
   vacuity:
     name: Guards shown able to fail
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # The full set needs hours, not 30 minutes; a push run still finishes in
+    # seconds and is unaffected by a higher ceiling. 30 min is what killed the
+    # first credentialed full sweep mid-flight, which reports as `cancelled` —
+    # and a cancelled run is a hidden red in this repo.
+    timeout-minutes: 300
 
     # WHY THIS JOB HOLDS TEST-ACCOUNT CREDENTIALS.
     #

@@ -230,6 +230,12 @@ export async function alertGiftDisputeClosed(
 ): Promise<boolean> {
   if (!paymentIntentId) return false;
 
+  // `warning_closed` is an INQUIRY that closed with no chargeback ever filed.
+  // Collapsing everything-not-"won" into the lost branch paged ops CRITICAL
+  // with "The cardholder won this chargeback" — false, and the credit was never
+  // revoked for an inquiry in the first place, so there is nothing to restore.
+  const isInquiryClose = typeof outcome === "string" && outcome.startsWith("warning_");
+
   const { data, error } = await supabase
     .from("gift_cards")
     .select("id, amount, status, payment_status")
@@ -251,11 +257,6 @@ export async function alertGiftDisputeClosed(
     return true;
   }
 
-  // `warning_closed` is an INQUIRY that closed with no chargeback ever filed.
-  // Collapsing everything-not-"won" into the lost branch paged ops CRITICAL
-  // with "The cardholder won this chargeback" — false, and the credit was never
-  // revoked for an inquiry in the first place, so there is nothing to restore.
-  const isInquiryClose = typeof outcome === "string" && outcome.startsWith("warning_");
   const won = outcome === "won";
   logStep("Chargeback on a gift donation closed", { paymentIntentId, outcome });
   await postSlackOpsAlert({

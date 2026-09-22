@@ -50,9 +50,34 @@ correct connected account, recorded the failure with a reason and a
 `failed_at`, and left the job at `payout_pending` rather than advancing it to
 `released`. No silent failure and no falsely-settled money.
 
-RESOLVED the same afternoon, and the balance refilled on its own as the day's
-escrow charges settled into `available`. Two real transfers landed, through
-BOTH paths, and the job rows followed them to `released`:
+RESOLVED the same afternoon. **My first write-up of the cause was WRONG and is
+corrected here**: I said the test balance had "drained to $286" and refilled.
+It had not. The platform's `available` balance was **$0.00 the whole time**
+(`pending` $2,047.75) — there is plenty of money, it is just all pending.
+
+The real mechanism, proven by A/B on prod (same cron, same helper, same $22,
+four minutes apart): `process-scheduled-payouts` sets
+`source_transaction = <the escrow charge>`, which funds the transfer from that
+specific charge, and Stripe allows that **while the charge is still `pending`**.
+
+| job | source charge | `balance_transaction.status` | result |
+| --- | --- | --- | --- |
+| `dd9e4db7…` | `ch_3UGKk7…` (2026-09-16) | `available`, already swept | `balance_insufficient` |
+| `3cb04981…` | `ch_3UILij…` (2026-09-22) | **`pending`** | **paid** |
+
+The platform runs `payouts.schedule = {interval: daily, delay_days: 2}`, so two
+days after a charge its funds go `available` and the next daily payout sends
+them to the bank — after which `source_transaction` has nothing to draw on and
+there is no float to fall back to.
+
+**THE ACTUAL LAUNCH RISK, and it is bigger than the one I originally filed:**
+any payout delayed more than ~2 days past its charge FAILS. That is retries,
+dispute holds, late Connect onboarding, and the whole stale `payout_pending`
+pile. A same-day payout self-funds fine, which is why the nightly money loop is
+not blocked and why this was invisible until a 6-day-old fixture was retried.
+
+Two real transfers landed, through BOTH paths, and the job rows followed them
+to `released`:
 
 | transfer | time (UTC) | initiated_by | result |
 | --- | --- | --- | --- |
@@ -68,10 +93,10 @@ run 35756239864 is green end to end, including its `tr_...` / helper-visible
 Ledger now: 15 paid transfers (2 today), 1 failed (the 16:35 attempt above),
 17 jobs `released`.
 
-KEEP IN MIND ANYWAY: the test balance is finite and drains at $22 a run. When
-the money loop fails with "insufficient available funds", that is this, not a
-regression — top up with the `4000000000000077` test card rather than
-debugging the payout code.
+DO NOT, as I first advised, treat `balance_insufficient` as an owner top-up
+task. Read `balance_transaction.status` on the source charge first: `pending`
+means something else is wrong; `available` means the charge was already swept
+and the payout needed to happen sooner.
 
 ## OPEN — no REAL (non-seed) user has ever been paid out (2026-09-22)
 

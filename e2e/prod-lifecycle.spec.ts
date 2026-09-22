@@ -688,14 +688,22 @@ test.describe("full money loop against production", () => {
          time. Costs nothing on the happy path: the URL has already changed by
          the time this runs, so the branch is skipped. */
       await page.waitForTimeout(6_000);
-      if (!/\/payment-success/.test(page.url())) {
+      /* Read the URL ONCE. Reading it again inside the message is a race the
+         happy path loses: on 2026-09-22 this printed "Stripe Checkout did not
+         submit — still on https://www.louisianahelpr.com/payment-success?job_id=…",
+         which is self-contradictory and points the reader at the wrong page.
+         The charge had gone through; the URL simply changed between the test
+         and the message. A warning that names the success page as the failure
+         is worse than no warning. */
+      const landedOn = page.url();
+      if (!/\/payment-success/.test(landedOn)) {
         const complaints = await page
           .locator('[role="alert"], .FieldError, [class*="Error"]')
           .allInnerTexts()
           .catch(() => [] as string[]);
         const unique = [...new Set(complaints.map((t) => t.replace(/\s+/g, " ").trim()).filter(Boolean))];
         console.log(
-          `::warning title=Stripe Checkout did not submit::still on ${page.url().slice(0, 120)} — ` +
+          `::warning title=Stripe Checkout did not submit::still on ${landedOn.slice(0, 120)} — ` +
             (unique.length ? `page says: ${unique.join(" | ")}` : "no inline error text found on the page"),
         );
       }

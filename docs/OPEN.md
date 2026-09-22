@@ -45,6 +45,107 @@ dispatch in the shared group. Shown red on the original bug —
 `PROD_WORKFLOWS_DIR=<pre-fix checkout>` yields **10** rule-4 violations, the
 fixed tree yields **0**.
 
+## DONE 2026-09-22 — #1595's six, attributed: one product rule change, one Stripe outage, three that were prod being slow
+
+Every one reproduced or read off its own trace and screenshot before it was
+touched. The short version: **one stale spec, and five cases of a red that
+named the wrong thing.**
+
+### The only real spec-vs-product disagreement — `time-travel.spec.ts:165` (BOTH engines)
+
+Reproduced locally on the first chip, every time, so contention was never in
+it. `8fdee80ca` (owner, 2026-09-21: "a job can never be posted if it was enver
+paid for … It would be in post a job, drafts") filed unpaid jobs as DRAFTS:
+`jobIsUnfundedDraft` drops payment_status unpaid/abandoned/failed on an OPEN
+job out of `postedJobs` at the source, list and tab counts together. The
+failure screenshot showed My Posts painted and healthy, Waiting selected,
+holding one SEED card and not this run's.
+
+The spec's fixture is that shape and **cannot be anything else**, checked live
+on prod rather than read from a migration: `enforce_jobs_insert_column_lock`
+rewrites a poster self-insert to `status := 'open'`, `payment_status :=
+'unpaid'`; `payment_status` is in `enforce_poster_jobs_money_lock`'s
+`locked_always`; `enforce_job_status_transition` has no
+`open -> pending_approval` edge. Funding means a real Stripe Checkout.
+
+Fixed in `d54312a0d`. The stored `expires_at` is still asserted on all three
+dates (both DST mornings) — that is where the zone arithmetic lives — and a NEW
+assertion proves the rule that took the leg away: the job is a "Finish Paying"
+draft in Post a Job, and `/my-posts?job=<id>` shows nothing. The countdown chip
+under a moved clock is now a fifth `UNCOVERED:` leg, a ::warning:: every run.
+Check for the class: `src/test/e2eFixturesHiddenBySourceFilter.test.ts`, shown
+red on the real pre-fix file.
+
+### Three that were ONE fact: prod was taking 6-44 seconds
+
+Read off the traces, not guessed. Between 05:42 and 05:45 UTC in run
+35691377627 every prod call the app made was tens of seconds long:
+
+| call | time |
+| --- | --- |
+| `/rest/v1/messages` (the inbox's base query) | **43.8s** |
+| `/rest/v1/profiles?select=*` | 44.1s |
+| `/rest/v1/user_blocks` | 43.5s |
+| `/rest/v1/user_roles` | 36.1s |
+| realtime websocket handshake | 25.0s |
+| `/auth/v1/token?grant_type=password` | **never completed** (status -1) |
+
+* **`02-marketplace.spec.ts:481`** — the inbox was not broken, it was still
+  loading: the failure shot is six skeleton rows, and the list painted about a
+  second after the 30s budget expired. NOT the Active tab and NOT
+  virtualization — driven locally at the same 768 viewport the inbox lists 12
+  Active / 31 All including `[E2E DO NOT ACCEPT]` job threads in ~1.2s. The
+  wait is now 60s, this suite's own convention wherever a step waits on the
+  backend; the assertion is unchanged.
+* **`03-account.spec.ts:347`** — the sign-in POST never completed, and the app
+  said so correctly: "Connection trouble. Check your signal and try again."
+  (`authErrors.ts`'s transport branch; a rate limit says "Too many attempts").
+  The spec pressed Log In once. It now presses up to three times, giving up the
+  moment the form stops being on screen so a genuinely refused credential still
+  fails fast.
+* **`notifications.spec.ts:118`** — `page.goto` interrupted by the app
+  navigating itself to `/profile?tab=warnings&_v=1790058631340`. Not a warnings
+  redirect: `_v=` has exactly one writer, `hardReloadBypassCache`
+  (`src/lib/chunkReload.ts`), and it reloads the page being LEFT. The trace
+  shows the trigger 5s into the goto — WebKit aborting the old screen's
+  in-flight `/rest/v1/jobs?…limit=3`. The spec tolerates one such interruption
+  and records it.
+
+**And a diagnostic so this never costs a day again.** `newUserContext` now
+times every prod call and the journey fixture annotates `prod-latency` on every
+test, with a `::warning::` on a red one: *"Prod was SLOW while this journey
+failed — N of M calls over 10s, slowest 43.8s."* The numbers were in the trace
+the whole time; two reds read as product defects because nothing hoisted them.
+Never fails a test — a slow green is still green, and a red is not excused by a
+slow number beside it.
+
+### `02-marketplace.spec.ts:278` (WebKit only) — Stripe's page, asked at the wrong moment
+
+Stripe's hosted Checkout rendered **its own** "Something went wrong — … the
+payment provider cannot be reached at the moment", for a `cs_test_` session
+minted seconds earlier that Chromium had funded fine. `payOnStripeCheckout`
+already had a `stripeIsBroken()` guard, but it asked **once**, the instant the
+page was handed over, before Stripe had decided — so it answered false and the
+run sat 60s on `#cardNumber` while the error painted behind it. `describe.serial`
+then took J3/J4/J5 with it, which is why the WebKit money chain is still dark.
+
+Now the two outcomes are RACED, and an error that survives a reload becomes
+`skipUncovered` — a visible uncovered money leg, not a false red against our
+own form. **The WebKit money chain past `post` remains unmeasured**: a green
+next run is the first time it will have been seen.
+
+### Still open, filed as a product finding, NOT fixed here
+
+A deep link opened while a lazy chunk is in flight can be eaten by the
+stale-chunk recovery reload, which sends the user back where they were.
+`vite:preloadError` cannot tell a chunk that 404'd from one the browser
+cancelled because the page is navigating away, and `hardReloadBypassCache` then
+reloads the old URL over the new navigation. Seen once, in WebKit, under the
+slow window above; three rounds of the same three deep links in local WebKit did
+not reproduce it, so the guard (bail while a navigation is committing) is NOT
+being written blind against `chunkReload.ts`, a much-iterated,
+high-blast-radius file. Needs a reproduction first.
+
 ## OPEN — #1595's ORIGINAL four failures are fixed; three NEW ones now block it (2026-09-22)
 
 `e2e-journeys` run **35691377627** (dispatch, `6050dd26b`) — the first run of

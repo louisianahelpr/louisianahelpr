@@ -404,10 +404,39 @@ test(j8, async ({ browser, request, journey }) => {
     const email = process.env.PLAYWRIGHT_HELPER_EMAIL;
     const password = process.env.PLAYWRIGHT_HELPER_PASSWORD;
     if (email && password) {
-      await page.goto("/login");
-      await page.getByRole("textbox", { name: /email/i }).first().fill(email);
-      await page.getByLabel(/password/i).first().fill(password);
-      await page.getByRole("button", { name: /^(Log In|Sign In|Continue)/ }).first().click();
+      /* ONE dropped request used to end the journey here. In run 35691377627
+         the `POST /auth/v1/token?grant_type=password` at 05:44:43 never
+         completed — status -1 in the trace, inside the same window where every
+         other prod call was taking 6-44s — and the app did exactly the right
+         thing: "Connection trouble. Check your signal and try again."
+         (authErrors.ts, the `load failed` / `networkerror` branch; a rate limit
+         would have said "Too many attempts"). The spec then walked on to
+         /profile, was bounced to /login by ProtectedRoute, and reported
+         "not signed back in as the helper" — a transport failure wearing a
+         product defect's clothes.
+
+         A person would press Log In again, so the test does. Bounded at three
+         presses: the password grant is not email-throttled (unlike the magic
+         link below), but this must never become a retry loop that hides a
+         genuinely refused credential — a wrong password answers immediately
+         and this gives up just as fast, because the loop exits the moment the
+         login form stops being on screen. */
+      const submit = page.getByRole("button", { name: /^(Log In|Sign In|Continue)/ }).first();
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        await page.goto("/login");
+        await page.getByRole("textbox", { name: /email/i }).first().fill(email);
+        await page.getByLabel(/password/i).first().fill(password);
+        await submit.click();
+        // Signed in = the login form is gone. Anything else (the toast, a
+        // still-present form) is a reason to press it again.
+        if (await submit.waitFor({ state: "detached", timeout: 20_000 }).then(() => true, () => false)) break;
+        const trouble = await page.getByText(/Connection trouble|Too many attempts/i).first().isVisible().catch(() => false);
+        test.info().annotations.push({
+          type: "sign-in-retry",
+          description: `attempt ${attempt} did not take${trouble ? " (the app showed a connection/throttle toast)" : ""}`,
+        });
+        if (attempt < 3) await page.waitForTimeout(3_000);
+      }
     } else {
       // No password on this machine: sign in the way the email link does,
       // through a one-time link opened in this same browser.

@@ -594,7 +594,18 @@ test.describe.serial("marketplace chain", () => {
     await test.step("poster pins the conversation (swipe right)", async () => {
       await pp.goto("/messages");
       const title = pp.getByText(TITLE).first();
-      await expect(title, "the job conversation is missing from the poster's inbox").toBeVisible({ timeout: 30_000 });
+      // 60s, not 30s. This is the FIRST paint of a whole screen against prod —
+      // `/rest/v1/messages` for every thread on the account, then pins,
+      // archives, blocks and five RPCs on top — and it is the only assertion
+      // in this file that waits for one. The 30s it had was under-provisioned
+      // against this suite's own convention (60s wherever a step waits for the
+      // backend to catch up) and measurably so: in run 35691377627 the base
+      // `/rest/v1/messages` query alone took 43.8s and the list painted at
+      // ~05:43:04, about a second after the 30s budget expired. The assertion
+      // is unchanged — the thread must still be listed; only the budget now
+      // matches what the screen actually costs. If prod was slow the journey
+      // fixture says so in a `prod-latency` annotation.
+      await expect(title, "the job conversation is missing from the poster's inbox").toBeVisible({ timeout: 60_000 });
       // The swipeable row: innermost element holding both the job title and its Pin/Unpin trail.
       const row = pp.locator("div").filter({ has: title }).filter({ has: pp.getByText(/^(Pin|Unpin)$/) }).last();
       await expect(row.getByText("Pin", { exact: true }), "the conversation started out pinned").toHaveCount(1);

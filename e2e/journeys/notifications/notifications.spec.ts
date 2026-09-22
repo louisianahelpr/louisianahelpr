@@ -115,7 +115,40 @@ test.describe("notifications & email", () => {
     const ctx = await newUserContext(browser, poster);
     const page = journey.track("notif-link", await ctx.newPage());
     for (const row of rows.slice(0, 3)) {
-      await page.goto(row.link);
+      /* THE APP CAN RELOAD ITSELF OUT FROM UNDER THIS GOTO, and did in
+         e2e-journeys 35691377627 (journeys-webkit):
+
+           page.goto: Navigation to ".../my-posts?job=dfecbd90-…" is
+           interrupted by another navigation to ".../profile?tab=warnings
+           &_v=1790058631340"
+
+         `_v=` has exactly one writer in the app — `hardReloadBypassCache`
+         (src/lib/chunkReload.ts), the stale-chunk recovery — and it reloads
+         `window.location.href`, i.e. the page we were LEAVING. The trace shows
+         why it fired: 5s into this goto, WebKit aborted the previous screen's
+         in-flight `/rest/v1/jobs?…limit=3` fetch ("Fetch API cannot load …
+         due to access control checks", its wording for a cancelled request),
+         inside the window where every prod call was taking 6-44s. A module
+         preload cancelled the same way raises `vite:preloadError`, which
+         main.tsx hands to `recoverFromChunkError()`.
+
+         Tolerated, ONCE, and recorded — never swallowed. This is a real
+         (narrow) product hole, filed in docs/OPEN.md: a deep link opened while
+         a lazy chunk is still in flight can be eaten by the recovery reload,
+         which sends the user back where they were. The assertion below is
+         unchanged; if the second attempt is interrupted too, the spec fails
+         and says so. */
+      try {
+        await page.goto(row.link);
+      } catch (err) {
+        if (!/interrupted by another navigation/i.test(String(err))) throw err;
+        test.info().annotations.push({
+          type: "app-self-navigation",
+          description: `${row.link} was interrupted by the app navigating itself to ${page.url()}; retried once`,
+        });
+        await page.waitForTimeout(2_000);
+        await page.goto(row.link);
+      }
       await assertHealthy(page, `notification link ${row.link} ("${row.title}")`);
       await journey.milestone(page, `link${row.link.replace(/[^a-z0-9]+/gi, "_")}`);
     }

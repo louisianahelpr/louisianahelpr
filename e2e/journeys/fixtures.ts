@@ -157,6 +157,47 @@ export function rest(session: Session, extra: Record<string, string> = {}) {
 }
 
 /**
+ * HOW SLOW PROD WAS WHILE THIS TEST RAN.
+ *
+ * WHY (issue #1595, run 35691377627, 2026-09-22). Two of that run's three
+ * failures were one fact: between 05:42 and 05:45 UTC every prod REST call the
+ * app made took tens of seconds. `/rest/v1/messages` (the inbox's base query)
+ * took **43.8s**, `/rest/v1/profiles` 44.1s, `user_blocks` 43.5s, `user_roles`
+ * 36.1s, the realtime handshake 25s — and `/auth/v1/token?grant_type=password`
+ * never completed at all, which is the "Connection trouble. Check your signal
+ * and try again." in `03-account`'s failure screenshot. The inbox assertion's
+ * 30s budget expired while the data was still on the wire.
+ *
+ * Both reds READ as product defects — a blank inbox, a sign-in that does not
+ * take — and cost a day of diagnosis each, because nothing in the run said
+ * how slow the backend was. The numbers were in the trace the whole time. This
+ * hoists them into the test's own annotations so the next degraded window
+ * explains itself on the run page instead of in a downloaded zip.
+ *
+ * Diagnostic only: it never fails a test. A journey that passes slowly is
+ * still a pass, and a red run is not excused by a slow number beside it.
+ */
+const SLOW_BACKEND_MS = 10_000;
+let backendCalls = 0;
+let slowBackendCalls = 0;
+let slowestBackend = { ms: 0, url: "" };
+
+function resetBackendLatency() {
+  backendCalls = 0;
+  slowBackendCalls = 0;
+  slowestBackend = { ms: 0, url: "" };
+}
+
+/** One line for the annotations, or null when nothing was slow. */
+function backendLatencyReport(): string | null {
+  if (!slowBackendCalls) return null;
+  return (
+    `${slowBackendCalls} of ${backendCalls} prod calls took over ${SLOW_BACKEND_MS / 1_000}s; ` +
+    `slowest ${(slowestBackend.ms / 1_000).toFixed(1)}s on ${slowestBackend.url}`
+  );
+}
+
+/**
  * A fresh context, signed in by seeding the session before first paint (once
  * per tab, so a later in-app sign-out is not undone by the next navigation),
  * with the onboarding tour dismissed. Phone-sized by default: 375-class is the
@@ -202,6 +243,19 @@ export async function newUserContext(
     },
     { key: AUTH_STORAGE_KEY, val: session ? JSON.stringify(session) : "", textScale: device?.textScale ?? 0 },
   );
+  // Not on the `slow` row: that rotation INJECTS 3-8s per call below, so its
+  // numbers would say nothing about prod.
+  if (opts.rotation?.network !== "slow") {
+    ctx.on("requestfinished", (req) => {
+      if (!req.url().startsWith(SUPABASE_URL)) return;
+      const ms = req.timing().responseEnd;
+      if (!(ms > 0)) return;
+      backendCalls += 1;
+      if (ms < SLOW_BACKEND_MS) return;
+      slowBackendCalls += 1;
+      if (ms > slowestBackend.ms) slowestBackend = { ms, url: req.url().slice(SUPABASE_URL.length, SUPABASE_URL.length + 90) };
+    });
+  }
   if (opts.rotation?.network === "slow") {
     // 3-8s on every backend call, deterministic per URL so a re-run is the same run.
     await ctx.route(`${SUPABASE_URL}/**`, async (route) => {
@@ -281,15 +335,50 @@ export async function payOnStripeCheckout(page: Page) {
    * page that did not load — it is not a retry of the payment (nothing was
    * submitted). If Stripe errors again, the failure now names Stripe instead of
    * reading as a missing field in our own form.
+   *
+   * ASKED AT THE WRONG MOMENT until 2026-09-22. This probe ran ONCE, the
+   * instant the page was handed over, and Stripe had not decided yet — so it
+   * answered false and the run then sat 60s on `#cardNumber` while
+   * "Something went wrong" was painting behind it. That is exactly what
+   * e2e-journeys 35691377627 (journeys-webkit, 02-marketplace.spec.ts:278)
+   * reported: "Stripe Checkout never rendered a payment field", with Stripe's
+   * own error heading in the failure snapshot. Chromium funded the same job
+   * from the same `cs_test_` session minutes earlier, and `describe.serial`
+   * took J3/J4/J5 down with it, so one third-party hiccup read as our form
+   * being broken and left the whole WebKit money chain dark.
+   *
+   * RACE the two outcomes instead of guessing which one to wait for: whichever
+   * Stripe renders first ends the wait. The session was minted seconds ago and
+   * verified `cs_test_` by the caller, so an error that SURVIVES a reload is
+   * Stripe's, not an expired link of ours — and an uncovered money leg is
+   * reported as uncovered rather than as a false red.
    */
-  const stripeIsBroken = () =>
-    page.getByText(/Something went wrong/i).first().isVisible().catch(() => false);
-  if (await stripeIsBroken()) {
+  const brokenPanel = page.getByText(/Something went wrong/i).first();
+  const paymentField = cardNumber.or(methodRadio);
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    await expect(
+      paymentField.or(brokenPanel),
+      "Stripe Checkout rendered neither a payment field nor an error of its own",
+    ).toBeVisible({ timeout: 60_000 });
+    if (!(await brokenPanel.isVisible().catch(() => false))) break;
+    test.info().annotations.push({
+      type: "stripe-checkout-error",
+      description: `attempt ${attempt}: Stripe's own "Something went wrong" page at ${page.url()}`,
+    });
+    if (attempt === 2) {
+      skipUncovered(
+        "Stripe Checkout did not load",
+        `Stripe's hosted page answered with its own "Something went wrong" twice, across a reload, for a ` +
+          `Checkout Session minted seconds earlier and verified cs_test_. Nothing was submitted and nothing ` +
+          `was charged. The funding leg and everything chained off it did NOT run on this engine.`,
+      );
+    }
+    // One reload of the SAME session url — not a retry of the payment, since
+    // nothing was ever submitted.
     await page.reload({ waitUntil: "domcontentloaded" }).catch(() => undefined);
     await page.waitForTimeout(2_000);
-    expect(await stripeIsBroken(), `Stripe Checkout itself errored at ${page.url()}`).toBe(false);
   }
-  await expect(cardNumber.or(methodRadio), "Stripe Checkout never rendered a payment field").toBeVisible({ timeout: 60_000 });
+  await expect(paymentField, "Stripe Checkout never rendered a payment field").toBeVisible({ timeout: 30_000 });
   if (!(await cardNumber.isVisible().catch(() => false))) await methodRadio.click({ force: true });
   await cardNumber.waitFor({ state: "visible", timeout: 30_000 });
   await cardNumber.fill(TEST_CARD.number);
@@ -385,6 +474,7 @@ type Journey = {
 export const test = base.extend<{ journey: Journey }>({
   journey: async ({ request }, provide, testInfo: TestInfo) => {
     const startedAt = new Date(Date.now() - 5_000).toISOString();
+    resetBackendLatency();
     const pages = new Map<string, Page>();
     const clientReports: string[] = [];
     const allowed: RegExp[] = [];
@@ -427,7 +517,21 @@ export const test = base.extend<{ journey: Journey }>({
       },
     });
 
+    // Always annotated, so a SLOW GREEN run is visible too — that is the
+    // warning that the next red is coming. Announced as a CI warning only on a
+    // red, where it is the first thing to read before blaming the screen.
+    const latency = backendLatencyReport();
+    if (latency) {
+      testInfo.annotations.push({ type: "prod-latency", description: latency });
+    }
+
     if (testInfo.status !== testInfo.expectedStatus && testInfo.status !== "skipped") {
+      if (latency) {
+        announceUncovered(
+          "Prod was SLOW while this journey failed",
+          `${testInfo.title}: ${latency}. Read this before reading the failure as a product defect.`,
+        );
+      }
       for (const [name, page] of pages) {
         if (page.isClosed()) continue;
         const file = testInfo.outputPath(`failure-${name}.png`);

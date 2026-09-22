@@ -1,3 +1,5 @@
+import { beginSpeculativePrefetch } from "@/lib/chunkReload";
+
 /**
  * Route prefetch map — call the matching dynamic import on hover/focus
  * to warm up the chunk before the user actually navigates.
@@ -104,5 +106,17 @@ export function prefetchRoute(path: string): void {
   if (!key) return;
   warmed.add(key);
   // Fire-and-forget; swallow errors so a failed prefetch never breaks navigation.
-  prefetchers[key]().catch(() => warmed.delete(key));
+  //
+  // The `.catch()` alone did NOT achieve that. It eats the REJECTION, but Vite
+  // fires a `vite:preloadError` event on `window` first, and main.tsx's global
+  // handler turns that into a full cache-purging recovery reload. So a
+  // speculative prefetch cancelled by the user's own navigation — exactly what
+  // WebKit does to the old document's in-flight requests — broke the very
+  // navigation this comment promised it could not. `beginSpeculativePrefetch`
+  // is what makes the promise true: see the block comment on it in
+  // lib/chunkReload.ts for the repro and why declining here is safe.
+  const settle = beginSpeculativePrefetch();
+  prefetchers[key]()
+    .catch(() => warmed.delete(key))
+    .finally(settle);
 }

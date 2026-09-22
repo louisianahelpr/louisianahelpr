@@ -5,7 +5,7 @@ import { initNative, hideSplash } from "./lib/nativeInit";
 import { installGlobalErrorHandlers, report } from "./lib/errorLogger";
 import { initShakeToReport } from "./lib/shakeToReport";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
-import { recoverFromChunkError } from "./lib/chunkReload";
+import { isSpeculativePrefetchInFlight, recoverFromChunkError } from "./lib/chunkReload";
 import { initSimpleMode } from "./lib/simpleMode";
 import { applyToastPolicy } from "./lib/toastPolicy";
 import { applyPrePaintShellClasses } from "./lib/prePaintShellClasses";
@@ -87,6 +87,25 @@ window.addEventListener("vite:preloadError", (event) => {
   // Letting the event through when we are not recovering restores the
   // intended fallthrough: the boundary sees a real chunk error and renders
   // the right copy. Verified by blocking an asset chunk in Playwright.
+  // A SPECULATIVE PREFETCH MAY NOT TRIGGER THE DESTRUCTIVE RECOVERY.
+  //
+  // WebKit cancels the old document's in-flight requests the moment a new
+  // navigation starts, and a cancelled module preload raises this event with
+  // "Importing a module script failed." — the SAME message a genuinely stale
+  // 404'd chunk raises, so the payload cannot separate them (measured in
+  // WebKit 2026-09-22; do not add message sniffing here). Recovery then
+  // `location.replace`s the page being LEFT, and the navigation the user asked
+  // for is gone. Reproduced as a real user with the app's own money hand-off
+  // (`window.location.href = url`, openExternalUrl.ts:45): the user tapped
+  // through to Stripe and landed back on `/?_v=…` instead.
+  //
+  // Declining here cannot prevent a genuine recovery, which is the one thing
+  // that would be worse than the hole: a prefetch warms a route the user has
+  // not asked for, so if that chunk really is stale the user's own navigation
+  // to it still fails and still recovers, at the moment it matters. And with
+  // no preventDefault() the event falls through to the boundaries' own chunk
+  // detection, which is the existing backstop. See lib/chunkReload.ts.
+  if (isSpeculativePrefetchInFlight()) return;
   if (recoverFromChunkError()) event.preventDefault();
 });
 

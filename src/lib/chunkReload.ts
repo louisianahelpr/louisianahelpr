@@ -114,6 +114,56 @@ const refundAttempt = (): void => {
 let pendingRetry:ReturnType<typeof setTimeout> | null = null;
 
 /**
+ * Speculative route prefetches currently in flight (`src/lib/routePrefetch.ts`).
+ *
+ * THE HOLE THIS CLOSES (reproduced in WebKit as a real user, 2026-09-22):
+ * `hardReloadBypassCache` ends with `location.replace(href + "&_v=<now>")` —
+ * it reloads whatever page is CURRENT, i.e. the page being LEFT. WebKit
+ * cancels the old document's in-flight requests once a new navigation starts,
+ * and a cancelled module preload raises `vite:preloadError` with the message
+ * "Importing a module script failed." — byte-for-byte what a genuinely stale
+ * 404'd chunk raises, so the message cannot tell the two apart (measured; do
+ * not try to sniff it). So the user's own navigation cancels a prefetch, the
+ * cancellation is read as a stale deploy, and the recovery reload replaces the
+ * navigation they asked for with the page they were leaving.
+ *
+ * Repro (scripts/repro-chunk-nav-eaten.mjs): hover a footer link on `/` so the
+ * real `prefetchRoute` fires, serve that chunk slowly (bad LTE), then run the
+ * app's own money hand-off — `window.location.href = url`, openExternalUrl.ts:45
+ * — to a destination that takes a few seconds, as a cold Stripe redirect does.
+ * The user does not reach Stripe; they land back on `/?_v=…`.
+ *
+ * Why gating on "speculative" is safe, and why nothing weaker would be: a
+ * prefetch is fire-and-forget warming for a route the user has NOT asked for.
+ * If that chunk is genuinely stale, declining here loses NOTHING — the user's
+ * real navigation to that route still fails, and recovers with full force at
+ * the moment it actually matters. The recovery is deferred to the point of
+ * need, never prevented. And because main.tsx only calls preventDefault() when
+ * it is actually recovering, declining leaves the event to fall through to the
+ * error boundaries' own chunk detection, which is the existing backstop.
+ */
+let speculativePrefetchesInFlight = 0;
+
+/**
+ * Mark a speculative prefetch as in flight. Returns the settle function; call
+ * it in a `finally` so a rejection cannot leak the count upward (a leaked
+ * count would suppress recovery forever, which is the one way this gate could
+ * become dangerous).
+ */
+export const beginSpeculativePrefetch = (): (() => void) => {
+  speculativePrefetchesInFlight += 1;
+  let settled = false;
+  return () => {
+    if (settled) return;
+    settled = true;
+    speculativePrefetchesInFlight = Math.max(0, speculativePrefetchesInFlight - 1);
+  };
+};
+
+/** True while at least one speculative route prefetch is still in flight. */
+export const isSpeculativePrefetchInFlight = (): boolean => speculativePrefetchesInFlight > 0;
+
+/**
  * True from the moment a recovery reload has STARTED until the page goes away.
  *
  * The reload is not instant (SW unregister and cache purge come first), and in
@@ -152,6 +202,7 @@ export const __resetChunkReloadForTests = (): void => {
   if (pendingRetry) clearTimeout(pendingRetry);
   pendingRetry = null;
   recoveryReloadInFlight = false;
+  speculativePrefetchesInFlight = 0;
 };
 
 /**

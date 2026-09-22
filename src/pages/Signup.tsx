@@ -117,7 +117,17 @@ const Signup = () => {
   // entry field lived on the removed Step 3). process_referral just records the
   // link at signup; the $5 credit is released by a DB trigger when the referred
   // user posts or completes their first job.
-  const [referralCode] = useState(searchParams.get("ref") || "");
+  // Settable since 2026-09-22: a code that arrives verbally, on a flyer or in
+  // a Facebook comment had no way in — `?ref=` was the ONLY door. The deep
+  // link still pre-fills this, so the link flow is unchanged; the Step 2 field
+  // just lets someone type one, or correct what the link supplied.
+  // Normalised on the way IN as well as out: without the trim/upper here, a
+  // `?ref=fuhnw3` link rendered a lowercase value in the field while a
+  // hand-typed one rendered FUHNW3 — the same code shown two ways. Caught on
+  // the 375 screenshot, not in a test.
+  const [referralCode, setReferralCode] = useState(
+    (searchParams.get("ref") || "").trim().toUpperCase(),
+  );
   const [acceptedPolicies, setAcceptedPolicies] = useState(false);
   // Explicit 18+ attestation — a legal requirement on a real-money platform.
   // DOB is deferred to first post/apply, so this checkbox is what satisfies the
@@ -326,7 +336,10 @@ const Signup = () => {
         termsAccepted: acceptedPolicies,
         // `?ref=<code>` from a referral share link. Recorded SERVER-side now —
         // see the comment where the old client-side RPC used to live, below.
-        referralCode: referralCode.trim() || null,
+        // Normalised here as well as server-side: process_referral already
+        // upper-cases and trims, so casing/whitespace must never be the reason
+        // a hand-typed code fails. Empty stays null — never an empty string.
+        referralCode: referralCode.trim().toUpperCase() || null,
       },
     });
 
@@ -587,6 +600,8 @@ const Signup = () => {
             zipRecognised={!!resolvedZipParish}
             bio={bio}
             setBio={setBio}
+            referralCode={referralCode}
+            setReferralCode={setReferralCode}
             inputCls={inputCls}
             labelCls={labelCls}
             fieldErrors={step2Errors}

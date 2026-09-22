@@ -7,6 +7,7 @@
 //
 // Validation lives in the parent (validateAboutYouStep).
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,7 @@ import {
   UserRound,
   AlertCircle,
   Check,
+  ChevronDown,
 } from "lucide-react";
 import { DatePickerField } from "@/components/DatePickerField";
 import { UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
@@ -76,6 +78,15 @@ export interface SignupStep2Props {
   zipRecognised?: boolean;
   bio: string;
   setBio: (v: string) => void;
+  /**
+   * Optional referral code. Pre-filled from the `?ref=` deep link when the
+   * visitor arrived through a share link; typed by hand otherwise. NEVER
+   * required and never validated here — an unknown code must not be able to
+   * stop someone creating an account, so the server decides whether it maps
+   * to anything and silently records nothing if it does not.
+   */
+  referralCode: string;
+  setReferralCode: (v: string) => void;
   inputCls: string;
   labelCls: string;
   /**
@@ -116,6 +127,8 @@ export function SignupStep2(props: SignupStep2Props) {
     zipRecognised,
     bio,
     setBio,
+    referralCode,
+    setReferralCode,
     inputCls,
     labelCls,
     fieldErrors = {},
@@ -407,6 +420,17 @@ export function SignupStep2(props: SignupStep2Props) {
               </p>
           }
         </div>
+
+        {/* Referral code — collapsed by default so it costs nothing to the
+            overwhelming majority who have none, and pre-EXPANDED when a
+            `?ref=` link supplied one, so the person can see and correct what
+            the link brought in rather than trusting an invisible field. */}
+        <ReferralCodeField
+          referralCode={referralCode}
+          setReferralCode={setReferralCode}
+          inputCls={inputCls}
+          labelCls={labelCls}
+        />
       </section>
 
       {/* Identity verification is no longer collected at signup — it's
@@ -431,6 +455,83 @@ export function SignupStep2(props: SignupStep2Props) {
           {loading ? "Creating Account…" : "Create Account"}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Optional "Have a referral code?" disclosure.
+ *
+ * Exists because a referral code could previously arrive ONLY through a
+ * `?ref=` deep link, so anyone who HEARD a code, read it on a flyer, or saw it
+ * in a comment had no way to use it at all.
+ *
+ * Deliberately not a required field and deliberately without validation: an
+ * unknown or mistyped code must never be the reason a signup fails. The code
+ * is upper-cased and trimmed as the user types, mirroring what process_referral
+ * does server-side, so casing and stray whitespace can never be the reason a
+ * real code does not match.
+ */
+function ReferralCodeField({
+  referralCode,
+  setReferralCode,
+  inputCls,
+  labelCls,
+}: {
+  referralCode: string;
+  setReferralCode: (v: string) => void;
+  inputCls: string;
+  labelCls: string;
+}) {
+  // Open from the start when a link already supplied a code — a pre-filled
+  // field hidden behind a closed toggle is a value the user never consented to.
+  const [open, setOpen] = useState(() => referralCode.trim().length > 0);
+
+  return (
+    <div className="space-y-2">
+      {!open && (
+        <button
+          type="button"
+          data-testid="referral-code-toggle"
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-1 text-ds-12 underline underline-offset-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 [@media(pointer:fine)]:py-1"
+          style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          aria-expanded={false}
+          aria-controls="referralCode"
+        >
+          Have a referral code?
+          <ChevronDown className="w-3.5 h-3.5 shrink-0" aria-hidden />
+        </button>
+      )}
+      {open && (
+        <>
+          <Label htmlFor="referralCode" className={labelCls}>
+            Referral code{" "}
+            <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              (optional)
+            </span>
+          </Label>
+          <Input
+            id="referralCode"
+            data-testid="referral-code-input"
+            value={referralCode}
+            // Normalise as they type: the referral RPC accepts " fuhnw3 " and
+            // resolves it to FUHNW3, so showing the canonical form back is
+            // honest about what will be sent.
+            onChange={(e) => setReferralCode(e.target.value.trim().toUpperCase())}
+            placeholder="e.g. FUHNW3"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
+            inputMode="text"
+            className={inputCls}
+          />
+          <p className="text-ds-11 text-muted-foreground">
+            Got a code from a friend? Enter it and you both get $5 once you
+            finish your first job.
+          </p>
+        </>
+      )}
     </div>
   );
 }

@@ -1,0 +1,23 @@
+{
+  "create-payment":              { "observable": "jobs.payment_status='escrow'", "why": "Checkout completing is the only way a job reaches escrow", "status": "EXECUTED" },
+  "release-payout":              { "observable": "payout_transfers", "why": "A real Stripe transfer row is written per release", "status": "EXECUTED-ADMIN-ONLY" },
+  "process-scheduled-payouts":   { "observable": "payout_transfers where initiated_by<>'admin'", "why": "The cron stamps its own initiator, so admin rows do not count as proof", "status": "NEVER" },
+  "auto-release-payment":        { "observable": "payout_transfers where initiated_by='auto'", "why": "Same table, distinguished by initiator; filters is_seed=false so seed rows can never prove it", "status": "NEVER" },
+  "execute-dispute-split":       { "observable": "dispute_settlement_claims", "why": "A split writes exactly one claim row per settlement", "status": "NEVER" },
+  "auto-resolve-disputes":       { "observable": "disputes.status='resolved' with no admin actor", "why": "Auto-resolution is distinguishable from an admin closing it by hand", "status": "UNVERIFIED" },
+  "auto-tip-charge":             { "observable": "tips", "why": "Each charged tip writes a row", "status": "EXECUTED" },
+  "instant-payout":              { "observable": "instant_payouts", "why": "One row per instant payout requested", "status": "BARELY-1-ROW" },
+  "cash-out-credits":            { "observable": "referral_credits consumed / payout_transfers", "why": "Cashing out moves credit to a real transfer", "status": "NEVER" },
+  "create-gift-card-checkout":   { "observable": "gift_cards", "why": "A purchase writes the card row", "status": "NEVER" },
+  "claim-gift-card":             { "observable": "gift_cards.redeemed_at", "why": "Claiming stamps the redemption time", "status": "NEVER" },
+  "create-boost-payment":        { "observable": "jobs.boosted_at", "why": "A paid boost stamps the job", "status": "UNVERIFIED" },
+  "create-bgc-payment":          { "observable": "profiles background-check state", "why": "A paid check advances the profile's verification state", "status": "UNVERIFIED" },
+  "check-pro-subscription":      { "observable": "profiles subscription tier", "why": "The tier column is the durable result of a subscription check", "status": "UNVERIFIED" },
+  "expire-subscriptions":        { "observable": "profiles tier downgraded with an expiry reason", "why": "Expiry is the only path that downgrades without a user action", "status": "UNVERIFIED" },
+  "subscription-reconciliation": { "observable": "error_logs source=subscription-reconciliation", "why": "Reconciliation reports drift rather than writing product rows", "status": "UNVERIFIED" },
+  "stripe-payouts":              { "observable": "payout_transfers", "why": "Shares the transfer ledger with the release path", "status": "EXECUTED-ADMIN-ONLY" },
+  "void-cancelled-payments":     { "observable": "jobs.payment_status='cancelled' after a void", "why": "Voiding is the only path from escrow to cancelled without a refund", "status": "UNVERIFIED" },
+  "payment-confirm-reminder":    { "observable": "email_send_log template_name like 'payment%'", "why": "The reminder's only effect is an email", "status": "UNVERIFIED" },
+  "instant-job-match":           { "observable": "notifications for matched jobs", "why": "Matching fans out notifications; no money moves", "status": "UNVERIFIED" },
+  "email-unsubscribe":           { "observable": "suppressed_emails", "why": "An unsubscribe writes a suppression row", "status": "EXECUTED-1-ROW" }
+}

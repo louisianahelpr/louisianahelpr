@@ -8,7 +8,25 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
-## OPEN — the Messages disclosure chevron is SHIPPED BUT UNSEEN (2026-09-22, e28d5f55f)
+## CLOSED 2026-09-22 — the Messages disclosure chevron is SHIPPED BUT UNSEEN (2026-09-22, e28d5f55f)
+
+**LOOKED AT, 2026-09-22 — the feared regression did not happen.** Captured live
+prod (build 19:27:19Z, after c9acd8b94) signed in, at 320 / 375 / 414, and read
+all three PNGs as images. Recorded in `.review/review-log.jsonl` (3x ok).
+
+  320px  chevron present, aria-expanded="true", title "Messages" uncropped
+         (ends at 129px), search + hamburger + chevron all fit on the title
+         row with slack, tab row reads "Active 8  All 31" in full
+  375px  same, chevron at x=290-334
+  414px  same, chevron at x=329-373
+  all    documentElement.scrollWidth === clientWidth (no horizontal overflow)
+
+The specific risk this entry was filed for — the cluster going from two buttons
+back to three against a title row measured at only 20px of slack at 320 on
+2026-09-19 — did not materialise: both tab words stay fully legible and nothing
+clips. The chevron also starts OPEN at every width, which is the property the
+2026-09-19 measurement said mattered most.
+
 
 The code is on main. **Nobody has LOOKED at it**, and per the NEVER GUESS rule
 that is stated here rather than implied by silence.

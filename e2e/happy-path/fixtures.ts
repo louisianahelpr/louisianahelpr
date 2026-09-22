@@ -16,6 +16,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { SEED_TABLES, SEED_RPCS } from "./seedData";
 import { HEAVY_TABLES } from "./seedDataHeavy";
 import { assertFreshBundle } from "./assertFreshBundle";
+import { rebuiltUnderUsMessage } from "../../src/test/staleBundle";
 import { LATEST_TERMS_VERSION } from "../../src/lib/consent";
 
 // Happy-path smoke fixtures. These tests run against `npm run build && npx
@@ -903,14 +904,45 @@ interface HappyPathFixtures {
 export const test = baseTest.extend<HappyPathFixtures>({
   // Always start on mobile viewport — matches the live mobile-viewport
   // spot-check workflow and is what 80%+ of Helpr users hit.
-  page: async ({ page, baseURL }, use) => {
+  page: async ({ page, baseURL }, use, testInfo) => {
     // Once per run, before anything is asserted: refuse to test a bundle the
     // server built from different source. See assertFreshBundle.ts — this has
     // twice produced a confident, completely wrong conclusion about working
     // code, and neither time looked like an environment problem.
     await assertFreshBundle(baseURL ?? "");
     await page.setViewportSize(MOBILE_VIEWPORT);
+
+    // ...and for the whole run, watch for the failure assertFreshBundle is
+    // structurally blind to: `dist/` rebuilt by ANOTHER LANE mid-run. See
+    // rebuiltUnderUsMessage() for the measured chain. Listening costs nothing
+    // and is never consulted unless the test has already failed.
+    const lostChunks: string[] = [];
+    const recoveries: string[] = [];
+    page.on("response", (r) => {
+      if (r.status() === 404 && /\/assets\/[^?]*\.(?:js|css)(?:$|\?)/.test(r.url())) {
+        try {
+          lostChunks.push(new URL(r.url()).pathname);
+        } catch {
+          lostChunks.push(r.url());
+        }
+      }
+    });
+    page.on("framenavigated", (frame) => {
+      // `?_v=<epoch>` is chunkReload.ts's own cache-buster and nothing else
+      // sets it, so its presence means the app decided it was serving a stale
+      // deploy — which against a stable preview never happens.
+      if (frame === page.mainFrame() && /[?&]_v=\d+/.test(frame.url())) recoveries.push(frame.url());
+    });
+
     await use(page);
+
+    // Only ever EXPLAINS a failure; never creates one. A 404'd chunk in a test
+    // that passed anyway is not worth a word, and calling it a defect would be
+    // inventing the very thing this exists to stop.
+    if (testInfo.status !== testInfo.expectedStatus) {
+      const message = rebuiltUnderUsMessage({ lostChunks, recoveries });
+      if (message) throw new Error(message);
+    }
   },
 
   customerPage: async ({ context, page, baseURL }, use) => {

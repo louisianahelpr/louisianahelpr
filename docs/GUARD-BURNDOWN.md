@@ -40,39 +40,49 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 | **`src/test/*.test.ts*`** | 202 | **202 — COMPLETE** | 0 | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | 0 | **0** |
 | **colocated beside components** | 343 | **343 — COMPLETE** | 0 | **0** |
-| Playwright `e2e/**` | 60 | 50 | 8 | 2 |
-| **total** | **658** | **648 (99%)** | **8** | **2** |
+| Playwright `e2e/**` | 60 | 51 | 8 | 1 |
+| **total** | **658** | **649 (99%)** | **8** | **1** |
 
 `npm run vacuity` prints the same three numbers on every run, so this table and
 the tool cannot drift apart:
 
 ```
-registration: 648/658 guards register a mutation (8 exempt with a reason, 2 grandfathered)
+registration: 649/658 guards register a mutation (8 exempt with a reason, 1 grandfathered)
 ```
 
-**The two still owed** (2026-09-21):
+**The one still owed** (2026-09-22):
 
 | spec | why |
 |---|---|
 | `visual-audit/desktop-fill.spec.ts` | RED on main for a real `/browse` layout defect; a registration against a red spec is scored `inconclusive` and proves nothing |
-| `journeys/02-marketplace.spec.ts` | **also RED on main**, measured 2026-09-21 — see below |
 
-**`02-marketplace` is red for a stale assertion, not for anything hard.** One
-full run on the real backend: J2 posts, funds through Stripe and returns
-(`payment-return` milestone captured, `payment_status` = `escrow`), then fails
-on *"the new job is missing from My Posts > Waiting"*. `bucketFor`
-(`activityFilters.ts:242`) has sent any job whose `date_needed` is TODAY to
-**Needs You** since `80b84f6b7` (2026-09-19, "and today is live"), and the
-journey posts `slotAhead(100)`. Because the chain is `describe.serial`, J3-J5
-have not executed since that commit either. Full write-up, including the
-knock-on in J4 and why it was not fixed by guessing, in `docs/OPEN.md`.
+**`02-marketplace` is GREEN and REGISTERED (2026-09-22).** 4 of 4 in 4.1
+minutes on the real backend, the job left `completed` / `payout_pending` — what
+a successful run is supposed to leave. Six separate faults, every one a spec
+assertion that had gone stale against a UI that moved; the product was correct
+at each of them. Full write-up in `docs/OPEN.md`; the two that carry a general
+lesson:
 
-It is ALSO the expensive case, which is why it should be fixed before it is
-registered rather than after: nothing can be scoped away without breaking the
-chain, so the gate must run the whole chain green as a baseline and then again
-mutated — twice per scoring, each time funding a real test-mode escrow, and
-nightly `vacuity:all` would do it every night. `.describe.serial` at least makes
-the mutated half cheap: a kill in J2 skips J3-J5 and funds nothing.
+- **There is no slot that satisfies both halves of this chain.** The bucket
+  assertions want a job whose day is still AHEAD (Waiting/Scheduled); the day-of
+  ladder wants one that is startable, and `JobTracking`'s `isLocked` holds every
+  step until two hours before the start. Moving the date could only ever trade
+  one red for the other. The slot now serves the ladder (`slotAhead(100)`,
+  always inside T-2h) and the expected TAB is derived from the slot's own day
+  with the app's own rule (`jobIsLive`), so it moves with the calendar instead
+  of going stale at midnight.
+- **`toBeVisible` is not `toBeEnabled`, and on this card the gap is a whole
+  product rule.** At 24h out the tracker painted "I'm On My Way" DISABLED under
+  "Actions unlock at 9:40 PM on Sep 22"; the assertion passed on it and the
+  click that followed timed out as a bare `locator.click: Timeout 20000ms`
+  naming no control and no rule. The spec's `press` helper now asserts enabled
+  before clicking, so every future lock or unmet gate in this file reports
+  itself instead.
+
+The registered mutation kills in J2, BEFORE the Stripe leg — `describe.serial`
+skips J3-J5 on that kill, so the mutated half of a scoring funds nothing and
+strands nothing. The baseline half does fund and release one real test-mode
+escrow per scoring, which is the price of this row and was accepted going in.
 
 ### The five proven 2026-09-21, and what each mutation breaks
 

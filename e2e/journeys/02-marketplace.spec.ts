@@ -49,7 +49,29 @@ import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
  * PRICING MODES: the product has exactly one (`jobs.pricing_mode` CHECK allows
  * only 'set_price'; BudgetSection.tsx: "No pricing-mode picker"). The journey
  * posts that one and asserts no mode picker is offered.
+ *
+ * ── Shown able to fail ────────────────────────────────────────────────────
+ * THE MUTATION HAS TO KILL IN J2, BEFORE THE STRIPE LEG, and that is a
+ * constraint the rest of this file's shape imposes. `describe.serial` means a
+ * kill in J2 SKIPS J3-J5, so the mutated half of a scoring funds nothing and
+ * strands nothing; a mutation that only bit later would fund a real test-mode
+ * escrow on every scoring, and `vacuity:all` runs nightly.
+ *
+ * So: the MIME allowlist on the post-job photo picker
+ * (`useJobMediaUpload.handleImageSelect`). Dropping `image/png` from it makes
+ * `safeFiles` empty for this journey's 1×1 PNG, and the only trace is a toast —
+ * `imageFiles` never grows, no preview is created, and "the chosen photo never
+ * appeared in the form" fails 30 seconds later, in the second step, with no job
+ * row written and no card charged.
+ *
+ * It is also the right thing to pin here rather than anywhere else: that
+ * allowlist is the whole gate between a poster's photo and a silent refusal,
+ * and this journey is the ONLY check in the repo that drives a real image file
+ * through the real picker, through compression, into storage and back out onto
+ * a card. A type quietly dropped from that Set would refuse a large share of
+ * what people attach, with nothing in CI to say so.
  */
+// @mutate src/pages/postjob/useJobMediaUpload.ts | new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]) | new Set(["image/jpeg", "image/webp", "image/gif"])
 
 const rotation = rotationFor(1);
 const RUN = `${Date.now().toString(36).slice(-6)}`;
@@ -88,34 +110,56 @@ function slotAhead(minutesAhead: number) {
   return { at: t, isoDay: isoDayIn(t, ZONE), monthDay: `${parts.month} ${parts.day}`, hour: parts.hour, minute: parts.minute, ampm: parts.dayPeriod as "AM" | "PM", hh24 };
 }
 /*
- * TWO DAYS OUT, not 100 minutes — and the difference is the whole reason this
- * journey has been red since 2026-09-19.
+ * 100 MINUTES — THE ONE NUMBER THE WHOLE CHAIN CAN LIVE WITH — AND THE BUCKET
+ * IS DERIVED FROM IT RATHER THAN PINNED BESIDE IT.
  *
- * `slotAhead` takes MINUTES, so `slotAhead(100)` always posted a job for TODAY.
- * The owner's 2026-09-19 reorder (activityFilters.ts `bucketFor`) sends any
- * LIVE job — one whose day has arrived — to "Needs You", on the stated grounds
- * that "Scheduled is a promise about a day still AHEAD of you; once that day
- * arrives the job is the most live thing on the screen". So the job this
- * journey posts stopped being a Waiting/Scheduled job on that date, and every
- * assertion downstream that looks for it there has been asserting the old rule.
- * Confirmed live: the posted row carried date_needed 2026-09-21 with
- * start_time 22:55 — today, 100 minutes out.
+ * Three days of red on this file were all one mistake in two directions:
+ * treating the slot as a free choice and the tab names as constants.
  *
- * The journey's intent is a BOOKED FUTURE job (it asserts Waiting, then
- * Scheduled after the hire), so the slot moves rather than the assertions.
+ *  - `slotAhead` takes MINUTES, so `slotAhead(100)` posts for TODAY, and the
+ *    owner's 2026-09-19 reorder (`bucketFor` / `appliedActivityBucket`, via
+ *    `jobIsLive`) files a job whose day has ARRIVED under "Needs You" on both
+ *    sides. The Waiting/Scheduled assertions were asserting the pre-reorder
+ *    rule, and J2 went red on "the new job is missing from My Posts > Waiting".
+ *  - Moving the slot out to two days, then to one, satisfied those assertions
+ *    and broke J5 instead, because the helper's ladder is LOCKED until two
+ *    hours before the start: `JobTracking`'s `isLocked` is
+ *    `Date.now() < startAt - 2h` whenever `jobs.start_time` exists. At 24h out
+ *    the card renders "I'm On My Way" DISABLED under the caption "Actions
+ *    unlock at 9:40 PM on Sep 22" — visible, so `toBeVisible` passed, and the
+ *    click that followed timed out after 20s against a disabled button.
  *
- * ONE DAY, not two, and the difference is J5. Two days out satisfied every
- * bucket assertion and then failed "the helper card offers neither Still On nor
- * On My Way" — because those are the DAY-OF ladder: "I'm Still On" is the
- * day-before prompt and "I'm On My Way" appears inside T-2h. A job two days out
- * is in neither window, so the tracker correctly offers neither.
+ * There is no slot that is both "a day still ahead of you" (Waiting/Scheduled)
+ * and "startable now" (T-2h): the two windows do not overlap, and no amount of
+ * moving the date makes them. The journey's subject is the DAY-OF LADDER — on
+ * the way, arrived, working, complete — so the slot is chosen to satisfy the
+ * ladder, and the bucket each tab assertion expects is derived from the slot's
+ * own day with the same rule the app uses (`jobIsLive`: the job's day, in the
+ * job's zone, is today). 100 < 120, so the ladder is unlocked from the instant
+ * the job is posted, whatever hour the suite runs at.
  *
- * Tomorrow satisfies both halves at once: still a future DAY, so Waiting and
- * Scheduled hold; and inside the day-before window, so the tracker offers
- * "I'm Still On". That is the only slot where this chain's two requirements —
- * a booked future job AND a day-of confirm — are not in conflict.
+ * And the day-of "I'm Still On" prompt is NOT part of that ladder here:
+ * `helperDayOfConfirmation` counts an accept that itself happened inside the
+ * 24h window as the day-before answer ("don't ask the same question twice"),
+ * and in this chain J4 accepts minutes after J2 posts. So the helper's card
+ * correctly offers no Still On at any slot this chain can use — see the
+ * day-of step for what is asserted instead.
  */
-const SLOT = slotAhead(24 * 60);
+const SLOT = slotAhead(100);
+
+/**
+ * Is this run's job happening TODAY in the job's own zone?
+ *
+ * The same question `jobIsLive` (src/pages/activity/activityFilters.ts) asks,
+ * computed from this spec's own slot and the clock rather than read out of the
+ * app — so the tab a job is expected on moves with the calendar instead of
+ * being a literal that goes stale at midnight. Called, not captured: a run
+ * that starts at 23:59 must not keep yesterday's answer.
+ */
+const liveToday = () => SLOT.isoDay === isoDayIn(new Date(), ZONE);
+/** My Posts / My Jobs tab for this run's job before it is booked, and after. */
+const waitingTab = () => (liveToday() ? "Needs You" : "Waiting") as "Needs You" | "Waiting";
+const scheduledTab = () => (liveToday() ? "Needs You" : "Scheduled") as "Needs You" | "Scheduled";
 
 /**
  * Set the post-job start time on whichever control this viewport renders.
@@ -266,8 +310,9 @@ test.describe.serial("marketplace chain", () => {
       journey.allowReport(/ZIP 99999 resolved to no Louisiana parish/, "deliberate: keeps parish null so no real helper is notified");
       await page.getByRole("textbox", { name: "ZIP code" }).fill("99999");
       await page.getByRole("button", { name: /Date Needed/ }).click();
-      // Soon, not days out: the day-of confirm opens inside 24h and the
-      // tracker's actions unlock at T-2h, so J5 can walk the whole job now.
+      // Soon, not days out: the tracker's actions unlock at T-2h, so a slot
+      // inside that window is the only one J5 can walk. See the SLOT comment
+      // for why the bucket assertions derive from this rather than fix it.
       const slot = SLOT;
       await pickCalendarDay(page, slot.isoDay);
       await expect(
@@ -327,12 +372,14 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("poster sees the job in My Posts", async () => {
       await page.goto("/my-posts");
-      // A just-posted, funded, unapplied job for a FUTURE day is in the
-      // "Waiting" bucket; My Posts opens on "Needs You"
-      // (activityConstants.defaultStatusFilterFor). The "future day" half is
-      // load-bearing since the 2026-09-19 reorder — see the SLOT comment.
-      await openStatusTab(page, "Waiting");
-      await expect(page.getByText(TITLE).first(), "the new job is missing from My Posts > Waiting").toBeVisible({ timeout: 60_000 });
+      // A just-posted, funded, unapplied job is "Waiting" — nothing is on the
+      // poster's desk — UNLESS its day has arrived, which since the 2026-09-19
+      // reorder makes it the most live thing on the screen and files it under
+      // "Needs You". My Posts opens on "Needs You"
+      // (activityConstants.defaultStatusFilterFor). See the SLOT comment.
+      const tab = waitingTab();
+      await openStatusTab(page, tab);
+      await expect(page.getByText(TITLE).first(), `the new job is missing from My Posts > ${tab}`).toBeVisible({ timeout: 60_000 });
       await assertHealthy(page, "my posts");
       await journey.milestone(page, "my-posts");
     });
@@ -475,26 +522,31 @@ test.describe.serial("marketplace chain", () => {
     await test.step("the job shows as funded and hired on both sides", async () => {
       const job = await readJob(request, S.poster, S.jobId!);
       expect(job.payment_status).toBe("escrow");
+      // Booked and confirmed is "Scheduled" on both sides — unless the day has
+      // arrived, in which case both sides file it under "Needs You" (see the
+      // SLOT comment). One derivation, both cards: the poster's `bucketFor`
+      // and the helper's `appliedActivityBucket` ask `jobIsLive` the same way.
+      const tab = scheduledTab();
       await pp.goto("/my-posts");
-      await openStatusTab(pp, "Scheduled");
-      await expect(pp.getByText(TITLE).first(), "the hired job is not in the poster's Scheduled tab").toBeVisible({ timeout: 30_000 });
+      await openStatusTab(pp, tab);
+      await expect(pp.getByText(TITLE).first(), `the hired job is not in the poster's ${tab} tab`).toBeVisible({ timeout: 30_000 });
       await pp.getByText(TITLE).first().click();
       const posterMoney = await pp.getByText(/held|funded|secured|escrow|protected|paid/i).filter({ visible: true }).count();
-      test.info().annotations.push({ type: "funded-indicator", description: `poster Scheduled card money copy matches: ${posterMoney}` });
+      test.info().annotations.push({ type: "funded-indicator", description: `poster ${tab} card money copy matches: ${posterMoney}` });
       await journey.milestone(pp, "poster-scheduled-funded");
       await hp.goto("/my-jobs");
-      await openStatusTab(hp, "Scheduled");
-      await expect(hp.getByText(TITLE).first(), "the hired job is not in the helper's Scheduled tab").toBeVisible({ timeout: 30_000 });
+      await openStatusTab(hp, tab);
+      await expect(hp.getByText(TITLE).first(), `the hired job is not in the helper's ${tab} tab`).toBeVisible({ timeout: 30_000 });
       await hp.getByText(TITLE).first().click();
       const helperMoney = await hp.getByText(/held|funded|secured|escrow|protected|guaranteed/i).filter({ visible: true }).count();
-      test.info().annotations.push({ type: "funded-indicator", description: `helper Scheduled card money copy matches: ${helperMoney}` });
+      test.info().annotations.push({ type: "funded-indicator", description: `helper ${tab} card money copy matches: ${helperMoney}` });
       await assertHealthy(hp, "helper scheduled");
       await journey.milestone(hp, "helper-scheduled-funded");
     });
 
     await test.step("poster messages the helper with an attachment", async () => {
       await pp.goto("/my-posts");
-      await openStatusTab(pp, "Scheduled");
+      await openStatusTab(pp, scheduledTab());
       await pp.getByText(TITLE).first().click();
       await pp.getByRole("button", { name: "Message Helpr" }).first().click();
       await expect(pp).toHaveURL(/\/messages/, { timeout: 30_000 });
@@ -602,6 +654,15 @@ test.describe.serial("marketplace chain", () => {
   async function press(page: Page, scope: ReturnType<Page["locator"]>, name: RegExp, where: string) {
     const btn = scope.getByRole("button", { name }).first();
     await expect(btn, `${where}: no "${name}" control`).toBeVisible({ timeout: 45_000 });
+    /* VISIBLE IS NOT PRESSABLE, and on this card the difference is a whole
+       product rule. Every step of the helper's ladder renders DISABLED until
+       two hours before the start (`JobTracking`'s `isLocked`), and the poster's
+       arrival box renders disabled until the helper has marked themselves
+       there (`posterConfirmationRung`'s `enabled`). Without this line
+       `btn.click()` swallowed both as a bare `locator.click: Timeout 20000ms`
+       naming no control and no rule — which is how a 24h-out slot read as a
+       broken tracker for a day. Same wait, named. */
+    await expect(btn, `${where}: "${name}" is on the card but DISABLED (a lock or an unmet gate, not a missing control)`).toBeEnabled({ timeout: 45_000 });
     await btn.click();
     await page.waitForTimeout(1_000);
     await declineLocation(page);
@@ -617,26 +678,63 @@ test.describe.serial("marketplace chain", () => {
     const pp = journey.track("poster", S.posterPage);
 
     await test.step("day-of confirm, where the app asks for it", async () => {
-      // Inside T-2h the tracker skips the day-before "Still on?" and offers
-      // "I'm On My Way" directly; the journey follows whichever the app shows.
-      const c = await card(hp, "/my-jobs", "Scheduled");
-      const stillOn = c.getByRole("button", { name: /I'm Still On/ });
-      const onWay = c.getByRole("button", { name: /I'm On My Way/ });
+      /* THE APP DOES NOT ASK IT TWICE, and this journey is the case where it
+         has already been answered.
+
+         `HelperTrackerPanel`'s `gateActive` withholds the ladder and portals
+         "I'm Still On" into the row only while `helperDayOfConfirmation` is
+         null — and that helper counts an accept that itself landed inside the
+         job day's 24h window AS the day-before answer ("don't ask the same
+         question twice", JobConfirmation). J4 accepts minutes after J2 posts,
+         so on every slot this chain can use the answer is already in and the
+         row opens straight at "I'm On My Way".
+
+         Both branches are kept because which one runs is a product rule, not a
+         constant, and the branch that runs is recorded either way. What is
+         asserted unconditionally is the thing that actually went wrong: the
+         control the row offers must be PRESSABLE, not merely painted. A
+         24h-out slot rendered "I'm On My Way" disabled under "Actions unlock
+         at 9:40 PM on Sep 22" and this assertion passed on it. */
+      const c = await card(hp, "/my-jobs", scheduledTab());
+      const stillOn = c.getByRole("button", { name: /I'm Still On/ }).first();
+      const onWay = c.getByRole("button", { name: /I'm On My Way/ }).first();
       await expect(stillOn.or(onWay).first(), "the helper card offers neither Still On nor On My Way").toBeVisible({ timeout: 45_000 });
+      await expect(
+        stillOn.or(onWay).first(),
+        "the helper card's day-of control is painted but disabled — the tracker is locked until two hours before the start (JobTracking's isLocked), so this slot is too far out for the journey to walk",
+      ).toBeEnabled({ timeout: 45_000 });
       if (await stillOn.isVisible()) {
+        test.info().annotations.push({ type: "path", description: "the day-before prompt was offered and taken" });
         await stillOn.click();
         const yes = hp.getByRole("button", { name: /Yes, I Confirm/ });
         if (await appears(yes, 5_000)) await yes.click();
-        const pc = await card(pp, "/my-posts", "Needs You");
-        await press(pp, pc, /Confirm This Job/, "poster confirm");
+        /* The POSTER's half of the same control, and it is "I'm Still On"
+           there too (JobConfirmation's `isOwner` branch). There is no "Confirm
+           This Job" button anywhere in `src/`: that string is JobTracking's
+           STEP ACTION phrasing for `job_confirmed`, a step the tracker's
+           next-step block explicitly skips because JobConfirmation owns it. It
+           is pressed when offered rather than required — the poster's window
+           is the narrower of the two (`hoursUntilJob > -12` from the job's
+           midnight, against the helper's -24), so on an evening job it has
+           already closed while the helper's is still open. */
+        const pc = await card(pp, "/my-posts", scheduledTab());
+        const posterStillOn = pc.getByRole("button", { name: /I'm Still On/ }).first();
+        if (await appears(posterStillOn, 10_000)) {
+          await press(pp, pc, /I'm Still On/, "poster confirm");
+          const py = pp.getByRole("button", { name: /Yes, I Confirm/ });
+          if (await appears(py, 5_000)) await py.click();
+          await assertHealthy(pp, "poster day-of confirm");
+        } else {
+          test.info().annotations.push({ type: "path", description: "the poster's day-of window (-12h) has closed; helper's (-24h) has not" });
+        }
       } else {
-        test.info().annotations.push({ type: "path", description: "inside T-2h: no day-of confirm step offered" });
+        test.info().annotations.push({ type: "path", description: "the accept itself answered the day-of question (helperDayOfConfirmation); the row opens at On My Way" });
       }
       await journey.milestone(hp, "helper-ready-to-go");
     });
 
     await test.step("helper heads over and arrives; poster confirms arrival", async () => {
-      let c = await card(hp, "/my-jobs", "Scheduled", false);
+      let c = await card(hp, "/my-jobs", scheduledTab(), false);
       await press(hp, c, /I'm On My Way/, "on my way");
       // The location rationale on the way: this helper declines here (en-route
       // tracking is optional).
@@ -658,9 +756,11 @@ test.describe.serial("marketplace chain", () => {
       // A job with no coordinates has nothing to measure against and the RPC
       // accepts any real fix; Lafayette stands in for that case.
       await hp.context().setGeolocation({ latitude: Number(latitude ?? 30.2241), longitude: Number(longitude ?? -92.0198) });
-      c = await card(hp, "/my-jobs", "Scheduled", false);
+      c = await card(hp, "/my-jobs", scheduledTab(), false);
       const arriveBtn = c.getByRole("button", { name: /I've Arrived/ }).first();
       await expect(arriveBtn, `arrived: no "I've Arrived" control`).toBeVisible({ timeout: 45_000 });
+      // Same rule as `press`: painted is not pressable on this rail.
+      await expect(arriveBtn, `arrived: "I've Arrived" is on the card but DISABLED`).toBeEnabled({ timeout: 45_000 });
       await arriveBtn.click();
       const share = hp.getByRole("button", { name: "Share Location" });
       if (await appears(share, 8_000)) await share.click();
@@ -718,7 +818,16 @@ test.describe.serial("marketplace chain", () => {
         if (await before.isVisible() || await after.isVisible()) {
           const label = (await before.isVisible()) ? "Before" : "After";
           seen.push(`${label} photo`);
-          await c.getByRole("button", { name: /^Add Photo$/ }).click();
+          /* THE CHIP IS THE TRIGGER — there is no "Add Photo" button.
+             That was `PhotoProofStep`'s full-width button, the same removed
+             panel the two stale `getByText` literals above were fixed for on
+             2026-09-21; only half the locator was corrected. The card renders
+             `PhotoProofCaptureChip` in the action row, and the chip's own
+             `onClick` opens the dialog (PhotoProof, `chip` branch). Its
+             accessible name is "<label> — add the <type> photo for this job",
+             so it is matched by prefix, and it stops matching entirely once a
+             photo exists (the label becomes "Before (1)"). */
+          await c.getByRole("button", { name: new RegExp(`^${label} Photo\\b`) }).first().click();
           const dialog = hp.getByRole("dialog").filter({ hasText: `${label} photos` });
           await expect(dialog).toBeVisible();
           await dialog.locator('input[type="file"]').setInputFiles(join(S.fileDir, "job-photo.png"));
@@ -766,16 +875,42 @@ test.describe.serial("marketplace chain", () => {
       }
       test.info().annotations.push({ type: "helper-path", description: seen.join(" > ") });
       await expect.poll(async () => Boolean((await readJob(request, S.poster, S.jobId!)).helper_completed_at), { timeout: 30_000, message: `completion never recorded (path: ${seen.join(" > ")})` }).toBe(true);
-      await expect(hp.getByText(/Waiting for the person who posted this job|Marked Complete/).first()).toBeVisible({ timeout: 45_000 });
+      /* THE SUBMISSION MOVES THE CARD, so the sentence has to be looked for
+         where the card now is. `appliedActivityBucket` files an in-progress job
+         with `helper_completed_at` and no `poster_completed_at` under WAITING
+         ("waiting on the other party by definition"), and the sentence lives
+         inside that card's `SubmittedStep`. This used to be a page-level
+         `getByText` on whatever tab the loop happened to leave open, which
+         after the move renders the job nowhere at all — "element(s) not found",
+         reading as missing copy on a job that had completed perfectly. */
+      const submitted = await card(hp, "/my-jobs", "Waiting");
+      await expect(
+        submitted.getByText(/Waiting for the person who posted this job|Marked Complete/).first(),
+        "the helper's card does not say the submission is with the poster",
+      ).toBeVisible({ timeout: 45_000 });
       await journey.milestone(hp, "submitted");
     });
 
     await test.step("poster requests a revision", async () => {
+      /* THE REVISION ASK LIVES BEHIND APPROVE, NOT BESIDE IT.
+         The poster's in-progress card offers one completion control, the
+         "Approve" chip (`InProgressStep`), and it opens `CompletionChoiceSheet`
+         — two paths, "All Done — Looks Great!" and "I Need Something Fixed
+         First". There is no "Request Revision" button on the card.
+         REPORTED, NOT TOUCHED: the "Request Revision" dialog this step used to
+         drive still exists in `ActivityDialogs.tsx`, and `Activity.tsx` still
+         threads `onRevision` down through PostedJobsTab → PostedJobCard to
+         reach it — but `onRevision(` has ZERO call sites in `src/`, so nothing
+         can open it. The spec was waiting 45s on a control no code path
+         renders, and its failure read as a missing product feature. */
       const c = await card(pp, "/my-posts", "Needs You");
-      await press(pp, c, /Request Revision/, "request revision");
-      await pp.getByRole("textbox", { name: /Describe what needs to be redone|Revision request details/ }).first().fill(`Journey ${RUN}: please redo the corner.`);
+      await press(pp, c, /^Approve\b/, "open the completion choice");
+      const sheet = pp.getByRole("dialog").filter({ hasText: "I Need Something Fixed First" });
+      await expect(sheet, "Approve did not open the two-path completion sheet").toBeVisible({ timeout: 20_000 });
+      await sheet.getByRole("button", { name: /I Need Something Fixed First/ }).click();
+      await pp.getByRole("textbox", { name: "Describe what needs to be redone" }).first().fill(`Journey ${RUN}: please redo the corner.`);
       await journey.milestone(pp, "revision-sheet");
-      await pp.getByRole("dialog").getByRole("button", { name: /Request Revision|Send/ }).last().click();
+      await pp.getByRole("button", { name: "Send Revision Request" }).click();
       await expect.poll(async () => (await readJob(request, S.poster, S.jobId!)).status, { timeout: 30_000 }).toBe("revision_requested");
       await journey.milestone(pp, "revision-requested");
     });
@@ -793,12 +928,18 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("poster approves and releases the payment", async () => {
       const c = await card(pp, "/my-posts", "Needs You");
-      await press(pp, c, /Approve & release payment|Release Payment|Approve/, "approve");
-      const confirm = pp.getByRole("dialog").filter({ hasText: /Release the payment\?/ });
-      if (await appears(confirm, 5_000)) {
-        await journey.milestone(pp, "release-confirm");
-        await confirm.getByRole("button", { name: /Release|Approve|Yes/ }).last().click();
-      }
+      /* The SAME two-path sheet as the revision step, taken the other way.
+         This step used to press Approve and then look for a dialog headed
+         "Release the payment?" — which is `DisputedStep`'s confirm, on the
+         admin/dispute path, and never renders here. When it did not appear the
+         step simply moved on with the sheet still open and nothing released,
+         and the failure surfaced 90 seconds later as "release never settled",
+         which reads as a broken payout rather than an unclicked button. */
+      await press(pp, c, /^Approve\b/, "approve");
+      const sheet = pp.getByRole("dialog").filter({ hasText: "All Done — Looks Great!" });
+      await expect(sheet, "Approve did not open the two-path completion sheet").toBeVisible({ timeout: 20_000 });
+      await journey.milestone(pp, "release-confirm");
+      await sheet.getByRole("button", { name: /All Done/ }).click();
       await expect
         .poll(async () => (await readJob(request, S.poster, S.jobId!)).payment_status, { timeout: 90_000, message: "release never settled" })
         .toMatch(/^(payout_pending|released)$/);
@@ -808,24 +949,44 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("poster reviews the helper and tips", async () => {
       const c = await card(pp, "/my-posts", "Done");
-      const review = pp.getByRole("dialog").filter({ hasText: "How Did It Go?" });
-      if (!(await review.isVisible().catch(() => false))) await press(pp, c, /^Review$/, "poster review");
+      const review = pp.getByRole("dialog").filter({ hasText: "Your overall experience" });
+      /* `^Review\b`, not `^Review$`. Every chip in a job step row composes its
+         accessible name as "<label> — <ariaLabel>" (JobActionRow's
+         composeAccessibleName), so the Done card's chips are named
+         "Review — leave a review for Hallie H." and "Tip Hallie H." — and an
+         anchored `$` matched neither. `\b` still refuses "Reviewed — …" and
+         "Tipped — …", which is the distinction that matters here. */
+      if (!(await review.isVisible().catch(() => false))) await press(pp, c, /^Review\b/, "poster review");
       await expect(review).toBeVisible({ timeout: 30_000 });
       await review.getByRole("radio", { name: /5/ }).or(review.getByRole("button", { name: /5 stars?/i })).first().click();
       await review.getByRole("textbox").first().fill(`Journey ${RUN}: great work.`);
       await journey.milestone(pp, "poster-review");
       await review.getByRole("button", { name: /Submit|Post Review|Send/ }).last().click();
       await expect(review).toBeHidden({ timeout: 30_000 });
-      const c2 = await card(pp, "/my-posts", "Done");
-      await expect(c2.getByRole("button", { name: /Reviewed/ }).or(c2.getByText("Reviewed")).first()).toBeVisible({ timeout: 30_000 });
-      await press(pp, c2, /^Tip$/, "tip");
+      /* RELOAD UNTIL THE BADGE LANDS, not once. The chip flips on
+         `completedJobMeta[job.id].reviewed`, which `useActivityData` builds
+         from a SEPARATE `reviews` query keyed on the completed job ids — so it
+         does not move with the dialog closing, and a single reload can paint
+         the pre-review chip before that query has come back. Measured
+         2026-09-22 on a real released job: the row was in `reviews` at
+         05:02:40 and one reload still drew "Review"; the next reload drew
+         "Reviewed". Polling the reload asserts the same fact without asserting
+         a refresh speed nobody promised. */
+      await expect
+        .poll(
+          async () => (await card(pp, "/my-posts", "Done")).getByRole("button", { name: /^Reviewed\b/ }).count(),
+          { timeout: 90_000, message: "the poster's card never showed the Reviewed badge after the review was submitted" },
+        )
+        .toBeGreaterThan(0);
+      const c2 = await card(pp, "/my-posts", "Done", false);
+      await press(pp, c2, /^Tip\b/, "tip");
       await journey.milestone(pp, "tip-sheet");
     });
 
     await test.step("helper reviews the poster", async () => {
       const c = await card(hp, "/my-jobs", "Done");
-      await press(hp, c, /Leave a review for the poster|Review Poster/, "helper review");
-      const review = hp.getByRole("dialog").filter({ hasText: "How Did It Go?" });
+      await press(hp, c, /^Leave a review for/i, "helper review");
+      const review = hp.getByRole("dialog").filter({ hasText: "Your overall experience" });
       await expect(review).toBeVisible({ timeout: 30_000 });
       await review.getByRole("radio", { name: /5/ }).or(review.getByRole("button", { name: /5 stars?/i })).first().click();
       await review.getByRole("textbox").first().fill(`Journey ${RUN}: clear instructions.`);

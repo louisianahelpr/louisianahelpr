@@ -258,7 +258,61 @@ plus `avatars/…/avatar.jpg` twice. They go out in parallel at ~+150ms so they
 do not lengthen the critical path measurably, but they are three prod round
 trips per page load that nobody needs.
 
-## OPEN — `02-marketplace` has been RED since the 2026-09-19 bucket reorder; J3-J5 have not run since (2026-09-21)
+## OPEN — the poster's "Request Revision" dialog has no way to be opened (2026-09-22)
+
+REPORT, not a change (dead code is a report: count the call sites first).
+Found while fixing `02-marketplace`, which had been waiting 45 seconds for a
+control nothing renders.
+
+- `ActivityDialogs.tsx` still mounts a full **"Request Revision"** dialog —
+  hero, body copy, a `Revision request details` textarea, a Cancel and a
+  Send — gated on `props.revisionJobId`.
+- `Activity.tsx:634` still threads `onRevision={actions.setRevisionJobId}`
+  down through `PostedJobsTab` → `PostedJobCard` → `postedJobCard/types.ts`,
+  which all declare and forward the prop.
+- **`onRevision(` has ZERO call sites in `src/`.** Nothing calls it, so
+  `revisionJobId` is never set and the dialog can never open.
+- The live path is `CompletionChoiceSheet`: the poster's Approve chip opens a
+  two-path sheet, and "I Need Something Fixed First" is the revision. That one
+  works — driven end to end on prod 2026-09-22.
+- So this is ~50 lines of dialog plus a five-file prop chain kept alive for a
+  flow that was replaced. Deleting it is a small, safe cleanup; it is written
+  down rather than done because nothing here asked for it.
+
+## OPEN — hired-and-funded journey leftovers accumulate in escrow (2026-09-22)
+
+Not new, and the disposition is already reasoned — but the count is growing and
+the number was not written anywhere.
+
+- A `02-marketplace` run that fails AFTER J4 leaves its job `accepted`/`escrow`
+  with a helper on it. The spec's `afterAll` sends it to
+  `create-payment { action: "cancel_escrow" }`, which **correctly refuses**:
+  that door is an allowlist of `status = 'open'` with no `helper_id`, and it
+  answers 409 `useCancelJob`. The teardown does not check the response, so the
+  refusal is silent and the file's own header still says the sweeper "unwinds
+  anything a failed run strands".
+- `prod-lifecycle-sweeper.mjs` reaches the same 409 and files these under
+  `deferred` — deliberately, because `poster_cancel_job` on a job a Helpr
+  accepted records a `cancel_with_helper` strike, and three of those restrict
+  `poster-e2e` for 7 days and break every nightly journey. So "settle forward"
+  is the right answer, not a bug.
+- What nothing does is settle them forward. **Measured 2026-09-22: 5 rows in
+  escrow**, the oldest from 2026-09-15 (`2fe9l6`), four of them from tonight's
+  four attempts at this chain (`c36qsx`, `c3in3j`, `c6qn60`, `c729wc`). None
+  has a `helper_completed_at`, so `auto-release-payment` will never see them.
+- Test-mode money, so nothing is at risk; what it costs is a growing pile of
+  `is_seed` rows on the shared accounts that every browse and activity surface
+  renders. Needs a decision, not a patch: either a deliberate admin-side unwind
+  for this exact shape, or accept and record the residue.
+
+## CLOSED 2026-09-22 — `02-marketplace` was RED since the 2026-09-19 bucket reorder; J3-J5 had not run since (2026-09-21)
+
+**Closed: 4 of 4 green in 4.1 minutes on the real backend, registered, out of
+the vacuity baseline.** The diagnosis below was right about the bucket and right
+to refuse to guess; what it could not see from J2 is that the tab is only half
+the conflict — see "02-marketplace: CLOSED" further down for the other half (the
+tracker's T-2h lock, which no choice of date can satisfy at the same time) and
+for the five further stale assertions behind it.
 
 Found while trying to prove `e2e/journeys/02-marketplace.spec.ts` able to fail.
 The chain is red on main, and not for anything money-related — it gets all the
@@ -3647,19 +3701,42 @@ check disarms itself in precisely the circumstance it exists to detect.
   network-dependent AASA fetch and a journeys fixture helper — so a ratchet
   would be mostly noise. Reported rather than guarded, deliberately.
 
-### 02-marketplace: 1 of 4 → 3 of 4, three causes fixed, J4 still red (2026-09-21)
+### 02-marketplace: CLOSED — 4 of 4 green and registered (2026-09-22)
 
-Red since 2026-09-19 with J3–J5 never running. Three separate causes, peeled in
-order; the chain now passes post, apply and hire-and-message.
+Red since 2026-09-19 with J3–J5 never running. **Six** separate causes in the
+end, every one a spec assertion that had gone stale against a UI that moved on;
+the product was correct at every single one. Final run: **4 passed in 4.1
+minutes** against prod, job left `completed` / `payout_pending`. Registered with
+a `@mutate` and removed from `src/test/vacuity.baseline.json`.
 
-- [x] **The slot was always TODAY.** `slotAhead` takes MINUTES, so
-  `slotAhead(100)` posted a job for today, and the owner's 2026-09-19 bucket
-  reorder sends any LIVE job to "Needs You". Every downstream Waiting/Scheduled
-  assertion was asserting the pre-reorder rule. Now **tomorrow** — and one day
-  is the only value that satisfies both halves: a future DAY (so Waiting and
-  Scheduled hold) that is also inside the day-before window (so the tracker
-  offers "I'm Still On"). Two days out satisfied the buckets and then failed
-  the day-of confirm, which is how the conflict surfaced.
+- [x] **The slot cannot satisfy both halves of this chain, and moving the date
+  could only ever trade one red for the other.** The bucket assertions want a
+  job whose day is still AHEAD (Waiting/Scheduled); the day-of ladder wants one
+  that is startable, and `JobTracking`'s `isLocked`
+  (`Date.now() < startAt - 2h`, whenever `jobs.start_time` exists) holds EVERY
+  step of it until two hours before the start. `slotAhead(100)` was always
+  today, so the buckets failed; `slotAhead(24*60)` was a future day, so the
+  ladder was locked. **Fixed by serving the ladder and deriving the bucket:**
+  the slot is back to 100 minutes (always inside T-2h, whatever hour the suite
+  runs at) and the expected TAB is computed from the slot's own day with the
+  app's own rule (`jobIsLive`: the job's day, in the job's zone, is today), so
+  it moves with the calendar instead of going stale at midnight. Proven both
+  ways in one night: a run whose slot crossed into the next Chicago day
+  correctly expected and found Waiting/Scheduled; the green run expected and
+  found Needs You.
+- [x] **The day-of "I'm Still On" prompt can never appear in this chain, and
+  that is by design.** `helperDayOfConfirmation` counts an accept that itself
+  landed inside the job day's 24h window AS the day-before answer ("don't ask
+  the same question twice"), and J4 accepts minutes after J2 posts. So
+  `HelperTrackerPanel`'s `gateActive` is false and the row opens straight at
+  "I'm On My Way". The spec's else-branch already existed but annotated the
+  wrong reason ("inside T-2h"); it now says what actually happened.
+- [x] **`toBeVisible` is not `toBeEnabled`.** At 24h out the card rendered
+  "I'm On My Way" DISABLED under the caption *"Actions unlock at 9:40 PM on
+  Sep 22"* — visible, so the guard passed, and the click that followed died as a
+  bare `locator.click: Timeout 20000ms` naming no control and no rule. The
+  `press` helper now asserts enabled before clicking, so every lock and every
+  unmet gate in this file reports itself by name from here on.
 - [x] **`messy-input` cleaned its own table but not what its write triggered.**
   Sending a message fans out a notification EMBEDDING the body; only the message
   was deleted. 50 rows of adversarial fixture text on the shared accounts since
@@ -3674,11 +3751,39 @@ order; the chain now passes post, apply and hire-and-message.
   `ErrorState`'s real title is "We couldn't load this.", already covered by
   `section/data load failure`, and "Something went wrong" appears nowhere in
   `src/` outside comments — so that line only ever fired on prose.
-- [ ] **J4 (`do-the-job`) is still red, but further along.** It now gets PAST
-  "the helper card offers neither Still On nor On My Way" and fails on a later
-  `locator.click` 20s timeout. Each attempt is a ~8-minute funded chain run, so
-  this was left measured rather than guessed at. Still grandfathered in the
-  vacuity baseline — registering a mutation against a red spec proves nothing.
+- [x] **Three more stale locators in the tail, all of the same class, all found
+  by reading `src/` rather than by re-running.** (a) There is no **"Add Photo"**
+  button: that was `PhotoProofStep`'s, the panel already removed on 2026-09-21 —
+  the card renders `PhotoProofCaptureChip` and the CHIP is the trigger. Only
+  half of that stale pair had been corrected. (b) There is no **"Request
+  Revision"** control on the poster's card: the revision ask lives behind the
+  Approve chip, in `CompletionChoiceSheet`'s two paths ("All Done — Looks
+  Great!" / "I Need Something Fixed First"). The release step had the mirror of
+  it — it pressed Approve, looked for a dialog headed "Release the payment?"
+  (which is `DisputedStep`'s, on the admin path), did not find it, moved on with
+  the sheet still open and nothing released, and surfaced 90 seconds later as
+  *"release never settled"*. (c) The review dialog is titled **"Rate <name>"**,
+  not "How Did It Go?" — that string is `CompletionChoiceSheet`'s own heading, a
+  different dialog entirely. Filtered on "Your overall experience" now, which is
+  in both directions of the form and names nobody.
+- [x] **Two locators that were anchored against composed accessible names.**
+  Every chip in a job step row is named `"<label> — <ariaLabel>"`
+  (`JobActionRow.composeAccessibleName`), so the Done card's controls are
+  "Review — leave a review for Hallie H." and "Tip Hallie H." — `/^Review$/` and
+  `/^Tip$/` matched neither. `\b` instead of `$`, which still refuses
+  "Reviewed — …" and "Tipped — …". The helper's is named from its aria-label
+  alone: "Leave a review for the person who posted this job", not "…for the
+  poster".
+- [x] **Two assertions that were looking where the card no longer is.** Marking
+  the job done moves the helper's card to WAITING (`appliedActivityBucket`:
+  submitted and awaiting approval is "waiting on the other party by
+  definition"), so a page-level `getByText` on whatever tab the loop left open
+  found nothing — asserted inside the card on its new tab now. And the poster's
+  "Reviewed" badge is derived from a SEPARATE `reviews` query
+  (`useActivityData`'s `completedJobMeta`), so it does not move with the dialog
+  closing: measured on a real released job, the row was in `reviews` at 05:02:40
+  and one reload still drew "Review" while the next drew "Reviewed". The spec
+  polls the reload rather than asserting a refresh speed nobody promised.
 
 ### a11y-prod was scoped on a false claim — corrected (2026-09-21)
 

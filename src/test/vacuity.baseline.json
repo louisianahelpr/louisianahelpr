@@ -10,9 +10,7 @@
     "only SHRINK, so no new hollow test can land anywhere while the backlog burns down."
   ],
   "generated": "2026-09-19",
-  "unregistered": [
-    "e2e/journeys/02-marketplace.spec.ts"
-  ],
+  "unregistered": [],
   "noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/activity/appliedJobCard/helperDisputeCopy.test.tsx",

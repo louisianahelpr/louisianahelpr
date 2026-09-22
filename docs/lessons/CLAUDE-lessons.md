@@ -586,6 +586,7 @@ this list tight; project-specific trivia belongs in code comments, not here.
 - End every commit message with:
   `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`
 
+<a id="never-guess"></a>
 ## never-guess
 
 **Owner, 2026-09-22: "you should never guess at anything you need to be certain before saying somehting make that a rule."**

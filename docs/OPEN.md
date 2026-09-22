@@ -3499,6 +3499,52 @@ check disarms itself in precisely the circumstance it exists to detect.
   network-dependent AASA fetch and a journeys fixture helper — so a ratchet
   would be mostly noise. Reported rather than guarded, deliberately.
 
+### 02-marketplace: 1 of 4 → 3 of 4, three causes fixed, J4 still red (2026-09-21)
+
+Red since 2026-09-19 with J3–J5 never running. Three separate causes, peeled in
+order; the chain now passes post, apply and hire-and-message.
+
+- [x] **The slot was always TODAY.** `slotAhead` takes MINUTES, so
+  `slotAhead(100)` posted a job for today, and the owner's 2026-09-19 bucket
+  reorder sends any LIVE job to "Needs You". Every downstream Waiting/Scheduled
+  assertion was asserting the pre-reorder rule. Now **tomorrow** — and one day
+  is the only value that satisfies both halves: a future DAY (so Waiting and
+  Scheduled hold) that is also inside the day-before window (so the tracker
+  offers "I'm Still On"). Two days out satisfied the buckets and then failed
+  the day-of confirm, which is how the conflict surfaced.
+- [x] **`messy-input` cleaned its own table but not what its write triggered.**
+  Sending a message fans out a notification EMBEDDING the body; only the message
+  was deleted. 50 rows of adversarial fixture text on the shared accounts since
+  2026-09-13. Cleanup added, existing rows removed.
+- [x] **The health check fired on the app's own copy — the real one.**
+  `/Something went wrong/i` matched "…message your Helpr, or report a problem if
+  something went wrong.", the notification surface's legitimate text, and
+  reported it as an error screen. Clearing the residue did NOT help, which was
+  the tell: the trigger was never the fixture. Anchored to a sentence start and
+  made case-sensitive; kept rather than deleted, since the standing rule is that
+  every error surface keeps a line. Note what it does and does not catch:
+  `ErrorState`'s real title is "We couldn't load this.", already covered by
+  `section/data load failure`, and "Something went wrong" appears nowhere in
+  `src/` outside comments — so that line only ever fired on prose.
+- [ ] **J4 (`do-the-job`) is still red, but further along.** It now gets PAST
+  "the helper card offers neither Still On nor On My Way" and fails on a later
+  `locator.click` 20s timeout. Each attempt is a ~8-minute funded chain run, so
+  this was left measured rather than guessed at. Still grandfathered in the
+  vacuity baseline — registering a mutation against a red spec proves nothing.
+
+### a11y-prod was scoped on a false claim — corrected (2026-09-21)
+
+Its `specGateEnv` entry carried `SWEEP_ROUTES=/login` on the stated grounds that
+the spec "does not finish inside the 900s spawnSync budget". Measured rather
+than assumed: **148 of 149 tests pass in 552 seconds**, comfortably inside it.
+The scoping had narrowed the proof from 148 screens to 1 for no reason — a
+guard weakened on an unmeasured belief, which is a small version of the defect
+this whole row exists to remove. Scoping removed.
+
+The general rule, since this is the second scoping justified this way:
+`--list` gives a test COUNT and says nothing about wall clock. 149 axe runs
+sounded like too many and were not. Measure before narrowing a proof.
+
 ### Two AA contrast failures from the overlay sweep — REAL, causes UNCONFIRMED (2026-09-21)
 
 Both come from the overlay sweep's axe pass (impact "serious") and both ratios

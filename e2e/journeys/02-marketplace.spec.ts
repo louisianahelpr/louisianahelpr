@@ -102,11 +102,20 @@ function slotAhead(minutesAhead: number) {
  * start_time 22:55 — today, 100 minutes out.
  *
  * The journey's intent is a BOOKED FUTURE job (it asserts Waiting, then
- * Scheduled after the hire), so the slot moves rather than the assertions: a
- * job two days out is unambiguously ahead in every timezone this runs in, and
- * still inside the posting form's calendar.
+ * Scheduled after the hire), so the slot moves rather than the assertions.
+ *
+ * ONE DAY, not two, and the difference is J5. Two days out satisfied every
+ * bucket assertion and then failed "the helper card offers neither Still On nor
+ * On My Way" — because those are the DAY-OF ladder: "I'm Still On" is the
+ * day-before prompt and "I'm On My Way" appears inside T-2h. A job two days out
+ * is in neither window, so the tracker correctly offers neither.
+ *
+ * Tomorrow satisfies both halves at once: still a future DAY, so Waiting and
+ * Scheduled hold; and inside the day-before window, so the tracker offers
+ * "I'm Still On". That is the only slot where this chain's two requirements —
+ * a booked future job AND a day-of confirm — are not in conflict.
  */
-const SLOT = slotAhead(2 * 24 * 60);
+const SLOT = slotAhead(24 * 60);
 
 /**
  * Set the post-job start time on whichever control this viewport renders.

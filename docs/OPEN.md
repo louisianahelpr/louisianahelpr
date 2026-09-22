@@ -8,6 +8,49 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## OPEN — an auto-resolved dispute leaves a job no cron will ever pay (2026-09-22)
+
+Chased from a lead another lane filed; measured live rather than inferred, and
+it is NARROWER than the lead suggested — not permanently stranded, but silently
+dependent on a human.
+
+`auto-resolve-disputes` stamps `disputes.execution_status = 'executed'` having
+moved ZERO cents. That is deliberate — `closeDisputeRecord()` passes
+`_helper_cents: null, _transfer_id: null`, and its own comment says a fabricated
+$0 "would be a claim about money that is simply false". The transfer is meant to
+happen later via release-payout / process-scheduled-payouts.
+
+But the two automatic doors then both close, by DIFFERENT rules:
+
+  process-scheduled-payouts  `.is("disputed_at", null)` (index.ts:82,
+                             "defense-in-depth: never pay out disputed jobs")
+                             -> excluded, `disputed_at` is set
+  claim_dispute_settlement   gates on
+                             `execution_status IS DISTINCT FROM 'executed'`
+                             -> excluded, it IS 'executed'
+
+The manual door IS open, which is why this is not a strand: `release-payout`
+uses `_shared/unsettledDispute.ts`, whose blocker fires on
+`.or("execution_status.is.null,execution_status.neq.executed")` — so an
+'executed' dispute passes and an admin can release it by hand.
+
+Live today, one row in this state: dispute `9756a585` / job `e6979a12`,
+`payout_pending` since 2026-09-17, `payout_split {"helper":1,"poster":0}`,
+`execution_transfer_id` NULL, `dispute_settlement_claims` 0 rows. It is
+`is_seed = true`, so no real money is involved — but nothing about the mechanism
+is seed-specific.
+
+WHAT MAKES IT WORTH A LINE: one enum value carries two meanings. "The split ran
+and moved money" and "the cron closed this and money moves later" are both
+'executed', with no column distinguishing them. A reader — human or code —
+cannot tell a settled dispute from one still owed a transfer. That is also how
+this was nearly misread in the other direction: `execution_status='executed'`
+first read as proof `execute-dispute-split` had run, when it never has.
+
+What would close it: either a distinct status for "closed, transfer still owed",
+or a sweep that reports jobs sitting `payout_pending` with a decided dispute and
+no `execution_transfer_id`.
+
 ## CLOSED 2026-09-22 — functions-deploy called eight discarded edge-function deploys a success
 
 `supabase functions deploy` exiting 0 means an upload was ACCEPTED, not that

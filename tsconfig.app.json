@@ -36,6 +36,12 @@
     "e2e/liveSession.ts",
     "e2e/readRpc.ts",
     "e2e/browserLock.ts",
+    // The ONE error-screen signature list every harness shares.
+    // `src/test/errorScreenPatternsVsAppProse.test.ts` imports it to prove no
+    // pattern fires on the app's own prose (the `/Something went wrong/i` line
+    // matched a real notification body and took out three journey legs). This
+    // project is `composite`, so a file it compiles has to be listed.
+    "e2e/errorScreens.ts",
     "supabase/functions/_shared/businessSeatTiers.ts",
     "supabase/functions/_shared/proTiers.ts",
     "supabase/functions/_shared/tierNames.ts",

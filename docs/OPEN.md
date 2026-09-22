@@ -225,10 +225,47 @@ Measured 2026-09-21 on the real backend: `7 skipped, 5 passed`.
 The whole `apply` group — human double-tap, same-frame double-click, slow
 network, offline-and-retry, back, refresh, session-expiry — skips on its own
 stated GAP: *"no open escrowed job by poster-e2e that helper-e2e has not applied
-to (run scripts/audit/prod-seed.mjs --apply)"*. `.github/workflows/prod-audit.yml`
-does not run the seeder either, so this is not a local-only gap: the seven
-sharpest interruption cases in the repo are exercised by nothing, anywhere,
-while the file reports green.
+to"*. `.github/workflows/prod-audit.yml` does not run the seeder either, so this
+is not a local-only gap: the seven sharpest interruption cases in the repo are
+exercised by nothing, anywhere, while the file reports green.
+
+**THE REMEDY THE SKIP NAMED DID NOT EXIST (2026-09-21).** It said *"(run
+scripts/audit/prod-seed.mjs --apply)"*, and that is why nobody escalated for
+eight days: a permanent environment gap read as one unrun command. Three facts,
+each verified rather than read off a comment:
+
+1. `prod-seed.mjs`'s `jobBase` writes `payment_status: "unpaid"`, and its own
+   `HONEST_GAPS` says of escrow *"Only the real Stripe TEST checkout + webhook +
+   release-payout produce these … never inserted."* `--apply` cannot make this
+   fixture and never could.
+2. The fixture predicate is CORRECT, not over-strict — checked live on prod
+   `fncmgoasalhdgfwzhsqa`: `apply_to_job` carries a server-side funding gate
+   (`job_payment_is_funded`, added 2026-09-06, raises *"This job is not
+   accepting applications yet"*), and `open_jobs_browse` admits a row only at
+   `payment_status IN ('escrow','payout_pending','released')`. An unpaid open
+   job is neither browsable nor applicable.
+3. poster-e2e held **zero** open+escrow jobs: 3 `open` rows, all `abandoned`.
+
+**What would actually close it:** ONE funded, un-applied open job — all seven
+tests can share it, because each withdraws its own application in `afterEach` —
+and the only thing that can create it is a real Stripe TEST checkout as
+poster-e2e, the leg `e2e/prod-lifecycle.spec.ts` already drives. That is the
+same blocker as `01-browse`'s missing fixture below (`enforce_poster_jobs_money_lock`
+raises `42501` on a poster-token `payment_status` write), so it wants the same
+owner decision, not a second mechanism.
+
+**Landed 2026-09-21:** the skip message now states all three facts instead of
+the impossible remedy, and `src/test/prodAuditGapRemedies.test.ts` fails on any
+`GAP:` skip in the e2e tree that offers `prod-seed.mjs --apply` for a state
+prod-seed's own `HONEST_GAPS` disowns (both sides read from source; 1/1 vacuity
+mutation killed). **Not wired:** the funded-job creation itself, and
+`prod-audit.yml` still runs no seeder.
+
+**Same stale-remedy shape, NOT touched (reported):**
+`e2e/prod-audit/deep-links.spec.ts:74` skips the same fixture with the note
+*"(terminal 1 is seeding)"* — a note about a terminal session that ended days
+ago. Lines `:85` and `:108` skip on the same `openJob`, so three deep-link cases
+are dark for this identical reason.
 
 It is also why the burn-down registration for that spec is against
 `useJobSubmit`'s double-submit ref (post a job) and not against `useApplyFlow`:
@@ -311,7 +348,8 @@ measures composited contrast.
 - **The `/jobs/:id` + `/user/:id` stall itself is still undiagnosed, but it is now MEASURED.** The leading hypothesis — request fan-out under CI load (≈35 Supabase calls on `/jobs/:id`, ≈30 on `/user/:id`, vs ≈19 on routes that pass, with four shards concurrent against the free-tier project; `concurrency: prod-load` serialises workflows, not shards) — could not be tested because the harness wired `page.on("request"/"response")` for `netFails` and threw the timings away. `results.json` now carries `rec.net` per route × persona (request count, API count, median/p95/max, five slowest URLs) and the run log prints it. Read those numbers off the next dispatch before theorising again.
 - **`01-browse` still owns no fixture — the blocker is named, the decision is the owner's.** A poster token cannot create a funded row: `enforce_poster_jobs_money_lock` (read live 2026-09-20) raises `42501` on any `payment_status` write where `auth.uid() = jobs.customer_id`, so `escrow` is reachable only through the Stripe-sandbox checkout leg (as `02-marketplace.spec.ts` drives it) or through an admin/service token, which fakes money and fires `trg_notify_helpers_funded_update` + `trg_notify_saved_searches_funded_update` at real helpers. **Landed instead (`0173ae6be`):** the journey now reads the floor from `open_jobs_browse` as anon (`Prefer: count=exact`) BEFORE driving the browser — 0 rows fails in one line with an `announceUncovered` note saying this is prod data and not a browse-component bug; >0 rows makes any empty feed a proven CLIENT defect, quoting the count it should have rendered. That is a diagnosis, not a guarantee. **Owner decision:** (a) 01-browse posts + funds its own job on Stripe test mode each run and refunds it (real charge, ~90 s, couples discovery to payments), or (b) a durable `is_seed` funded row nobody cleans up. Note today all **8** browsable rows are `is_seed` — when the seed flag flips at launch the guest marketplace goes dark unless real funded jobs exist by then.
 - **Verification owed:** one clean `e2e-journeys` dispatch on main (pass = 0 failed in both `journeys` and `journeys-webkit`; the issue closes itself). Run `35562635341` was cancelled while *pending* by the `prod-load` concurrency group — zero jobs started. A `cancelled` prod-load run is never a result.
-- "Not Now" on the push rationale still toasts an error when permission was **already** denied. `requestPush()` returns a bare boolean, so it cannot tell a user's decline from an OS denial (`src/lib/pushPermissionNudge.ts:148`) — fix the signal, not the predicate.
+- "Not Now" on the push rationale still toasts an error when permission was **already** denied. `requestPush()` returns a bare boolean, so it cannot tell a user's decline from an OS denial (`src/lib/pushPermissionNudge.ts:148`) — fix the signal, not the predicate. **STILL OPEN as a product item, but it is no longer a red press (2026-09-21).** On run `35660182220` it failed two presses per bell-bearing route × three personas — `"Notifications › Turn on push notifications › Not Now"` and `"› Turn On Notifications"`, both *"Notifications are off. Turn them on in your browser settings."* — and that toast is TRUE: a Playwright context grants no notification permission, so `Notification.permission` is `"denied"` before the sweep starts and `pushDeclineNeedsSettingsHint` only exempts the undecided `"prompt"` state. The classifier now excuses that toast **only** when all three hold — exact copy (asserted against `NotificationPanel.tsx` itself), press inside the push-permission prompt, and `Notification.permission === "denied"` read from the live page — and lists every excused toast in `coverage.md` under *"Error toasts not counted as defects"*. **Granting the permission instead was rejected:** `showPushRow = pushSupported && !pushEnabled` with `pushEnabled = getPushPermission() === "granted"`, so a granted context deletes the row and both dialog buttons — three pressed controls become zero found, and the app's only ungated entry point to enabling push leaves the inventory. Guard `src/test/pressPermissionRefusal.test.ts`, 2/2 vacuity mutations killed.
+- **`"Notifications" — error boundary / error copy rendered` (customer, `/dashboard` + `/jobs/:id`) was a FALSE POSITIVE, and it is already fixed.** Not a `NotificationPanel` crash: `/Something went wrong/i` in `e2e/errorScreens.ts` matched the overdue-job sweep's own notification body — *"… Message your Helpr, or report a problem if something went wrong."* Customer-only because poster-e2e is the account that owns those overdue jobs. Counted read-only on prod 2026-09-21: of poster-e2e's **388** notification rows, **8** match the old pattern and **0** match the anchored one `320dfba24` shipped, and no other pattern in the list matches any row. Regression guard added (`src/test/errorScreenPatternsVsAppProse.test.ts`, the prose taken verbatim from prod, 1/1 mutation killed) — `320dfba24` had shipped without one. Expect this finding to disappear on the next dispatch; it needs no product change.
 
 ### Landed in this pass — e7e7b4b0d
 - `scripts/e2e/sweepSummary.mjs` + `src/test/sweepSummary.test.ts`: the lifecycle sweeper said *"OK — all stranded rows unwound."* over rows it had just deferred. Prod holds **5** `[E2E DO NOT ACCEPT]` jobs in escrow, oldest 2026-09-15 — "settles forward" is not happening. Now named, aged, and warned past 48 h (warning, not an exit code: the sweeper is not allowed to unwind them).

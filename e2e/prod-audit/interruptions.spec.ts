@@ -21,13 +21,34 @@
  *
  * WHY NOT THE APPLY GROUP, which looks like the obvious subject. Measured
  * 2026-09-21 on this machine: `7 skipped, 5 passed`. All seven `apply` tests
- * skip on their own stated GAP — "no open escrowed job by poster-e2e that
- * helper-e2e has not applied to (run scripts/audit/prod-seed.mjs --apply)" —
- * so anything registered against `useApplyFlow` comes back SURVIVED for a seed
- * reason and convicts a good spec. That is a real coverage gap in the
- * environment, not in the spec, and it is reported rather than papered over:
- * the double-tap, same-frame, slow-network, offline, back, refresh and
- * session-expiry apply cases are currently exercised by nothing local.
+ * skip on their own stated GAP — no open ESCROWED job by poster-e2e that
+ * helper-e2e has not applied to — so anything registered against
+ * `useApplyFlow` comes back SURVIVED for a seed reason and convicts a good
+ * spec. That is a real coverage gap in the environment, not in the spec, and it
+ * is reported rather than papered over: the double-tap, same-frame,
+ * slow-network, offline, back, refresh and session-expiry apply cases are
+ * currently exercised by nothing local.
+ *
+ * WHAT THE GAP ACTUALLY NEEDS (measured on prod 2026-09-21, read-only). The
+ * skip message used to say "run scripts/audit/prod-seed.mjs --apply". It does
+ * not work, and that wrong remedy is why nobody escalated: it made a permanent
+ * environment gap look like one command. Three facts, each verified:
+ *   1. prod-seed.mjs `jobBase` writes `payment_status: "unpaid"`, and its own
+ *      HONEST_GAPS says of escrow "Only the real Stripe TEST checkout +
+ *      webhook + release-payout produce these … never inserted."
+ *   2. `apply_to_job` has a server-side funding gate (`job_payment_is_funded`,
+ *      added 2026-09-06) and `open_jobs_browse` filters
+ *      `payment_status IN ('escrow','payout_pending','released')` — so an
+ *      unpaid open job is neither browsable nor applicable. The fixture
+ *      predicate in `resolveFixtures` is correct, not over-strict.
+ *   3. poster-e2e held ZERO open+escrow jobs: 3 open jobs, all `abandoned`.
+ * So ONE funded, un-applied open job unblocks all seven (each test withdraws
+ * its own application in afterEach, so they can share it), and the only thing
+ * that can create it is a real Stripe TEST checkout as poster-e2e — the flow
+ * `e2e/prod-lifecycle.spec.ts` already drives. prod-audit.yml additionally runs
+ * no seeder at all, so even a working remedy would not run. Not wired here:
+ * adding a card-entry checkout to this suite's beforeAll needs a browser and
+ * the money-loop concurrency group, which is a separate change.
  */
 // @mutate src/pages/postjob/useJobSubmit.ts | if (submittingRef.current \|\| saving) return null; | if (saving) return null;
 import type { APIRequestContext, BrowserContext, Page } from "@playwright/test";
@@ -119,7 +140,27 @@ test.describe("apply", () => {
   let jobId: string;
   test.beforeEach(async ({ request }) => {
     const f = await resolveFixtures(request, poster, helper);
-    test.skip(!f.openJob, "GAP: no open escrowed job by poster-e2e that helper-e2e has not applied to (run scripts/audit/prod-seed.mjs --apply)");
+    /*
+     * THE REMEDY THIS USED TO NAME DOES NOT EXIST. It said "(run
+     * scripts/audit/prod-seed.mjs --apply)", and that command cannot produce
+     * this state: its `jobBase` writes `payment_status: "unpaid"` and its own
+     * HONEST_GAPS table says of escrow "Only the real Stripe TEST checkout +
+     * webhook + release-payout produce these … never inserted." Verified live
+     * on prod 2026-09-21: `apply_to_job` refuses an unfunded job
+     * (`job_payment_is_funded`, added 2026-09-06) and `open_jobs_browse`
+     * filters `payment_status IN ('escrow','payout_pending','released')`, so
+     * the requirement is right — funding is the only way in. poster-e2e held
+     * ZERO open+escrow jobs that day (3 open jobs, all `abandoned`), which is
+     * why all seven tests here skipped. Tracked in docs/OPEN.md;
+     * src/test/prodAuditGapRemedies.test.ts fails on a skip that names an
+     * impossible remedy.
+     */
+    test.skip(
+      !f.openJob,
+      "GAP: no open escrowed job by poster-e2e that helper-e2e has not applied to. " +
+        "prod-seed.mjs cannot make one (every job it writes is payment_status 'unpaid'; its HONEST_GAPS disowns escrow) " +
+        "and apply_to_job refuses an unfunded job — only a real Stripe TEST checkout as poster-e2e produces this state. See docs/OPEN.md.",
+    );
     jobId = f.openJob!.id;
   });
 

@@ -210,6 +210,56 @@ import { PAYMENT_RX } from "./pressProdSafety.mjs";
 export const HOST_ONLY_ASSET_RX = /\/_vercel\/(speed-)?insights\//;
 export const ignoreHostOnlyAsset = (url, base) => HOST_ONLY_ASSET_RX.test(String(url ?? "")) && !/vercel\.app|louisianahelpr\.com/.test(String(base ?? ""));
 
+/**
+ * A TRUTHFUL PERMISSION REFUSAL IS NOT A DEFECT.
+ *
+ * Measured on run 35660182220 (2026-09-21): two presses failed on every route
+ * that carries the bell, for the helper, incomplete and admin personas —
+ *
+ *   "Notifications › Turn on push notifications › Not Now"            error toast
+ *   "Notifications › Turn on push notifications › Turn On Notifications"  same
+ *   → "Notifications are off. Turn them on in your browser settings."
+ *
+ * That toast is the app telling the truth. A Playwright context grants no
+ * notification permission, so `Notification.permission` is already "denied"
+ * before the sweep touches anything, and `NotificationPanel.enablePush()`
+ * (src/components/NotificationPanel.tsx:389-401) surfaces the settings hint for
+ * BOTH buttons: `pushDeclineNeedsSettingsHint` only exempts the undecided
+ * "prompt" state, and in CI the state is never "prompt". The press worked, the
+ * product behaved, and the message was accurate.
+ *
+ * WHY NOT GRANT THE PERMISSION INSTEAD. That looked like the better fix — the
+ * app would never need to refuse — but it deletes the controls. The row is
+ * gated `showPushRow = pushSupported && !pushEnabled`
+ * (NotificationPanel.tsx:547) with `pushEnabled = getPushPermission() === "granted"`
+ * (:295), so a granted context hides the row AND the two rationale-dialog
+ * buttons behind it: three pressed controls become zero found, and the app's
+ * only ungated entry point to enabling push leaves the press inventory
+ * altogether. A fix that shrinks the inventory is not a fix.
+ *
+ * So the denial stays and only the DEMONSTRABLY TRUE toast stops counting. All
+ * three conditions must hold, and the third is read from the live page:
+ *
+ *   1. the toast is EXACTLY the permission-off copy (anchored; the two strings
+ *      are asserted against NotificationPanel.tsx itself in
+ *      src/test/pressPermissionRefusal.test.ts, so a copy change reopens this)
+ *   2. the press is inside the push-permission prompt, not somewhere else
+ *   3. the browser really has notifications denied
+ *
+ * Any of them failing still FAILS the press. The same toast while permission is
+ * "granted" or "default" is a lie and is reported; a different error toast in
+ * the same dialog is reported. This is not "ignore error toasts".
+ */
+export const PERMISSION_OFF_TOAST_RX = /^Notifications are off\.\s+Turn them on in your (?:browser|device) settings\.$/;
+/** The push-permission prompt: the panel row that opens it, and the two buttons inside it. */
+export const PUSH_PROMPT_LABEL_RX = /^(?:turn on push notifications|not now|turn on notifications)$/i;
+
+export function isTruthfulPermissionRefusal({ toast, chain = [], permission } = {}) {
+  if (!PERMISSION_OFF_TOAST_RX.test(String(toast ?? "").trim())) return false;
+  if (permission !== "denied") return false;
+  return chain.some((label) => PUSH_PROMPT_LABEL_RX.test(String(label ?? "").trim()));
+}
+
 const CONSOLE_NOISE = [
   /Service Worker registration blocked by Playwright/i,
   /Download the React DevTools/i,
@@ -738,7 +788,20 @@ async function main() {
           // ---- classify ------------------------------------------------
           const problems = [];
           const newErrToasts = after.errorToasts.filter((t) => !before.errorToasts.includes(t));
-          if (newErrToasts.length) problems.push(`error toast: "${newErrToasts[0]}"`);
+          if (newErrToasts.length) {
+            // The one excuse an error toast gets: it is the permission-off copy,
+            // pressed inside the push-permission prompt, while the browser
+            // really has notifications denied. Read the permission from the page
+            // rather than assuming it — see isTruthfulPermissionRefusal.
+            const permission = await page
+              .evaluate(() => (typeof Notification === "undefined" ? "unsupported" : Notification.permission))
+              .catch(() => "unknown");
+            const real = newErrToasts.filter((t) => !isTruthfulPermissionRefusal({ toast: t, chain: entry.chain, permission }));
+            if (real.length) problems.push(`error toast: "${real[0]}"`);
+            if (real.length < newErrToasts.length) {
+              entry.excused = `truthful permission refusal (Notification.permission = ${permission}): "${newErrToasts.find((t) => !real.includes(t))}"`;
+            }
+          }
           if (ERROR_BOUNDARY_RX.test(after.text) && !ERROR_BOUNDARY_RX.test(before.text)) problems.push("error boundary / error copy rendered");
           const newErrs = consoleErrors.slice(errs0);
           if (newErrs.length) problems.push(`console: ${newErrs[0]}`);
@@ -833,6 +896,11 @@ async function main() {
   for (const s of skips) lines.push(`- ${s.route} (${s.persona}) › ${s.chain.join(" › ")} — ${s.why}${DOCUMENTED_SKIPS.has(s.why) ? "" : "  **UNDOCUMENTED**"}`);
   const mutated = results.flatMap((r) => r.controls.filter((c) => c.mutating && c.result !== "SKIP").map((c) => `- ${r.route} (${r.persona}) › ${c.chain.join(" › ")} — ${c.result}: ${c.outcome ?? ""}`));
   lines.push("", `## Mutating presses on test-owned targets (${mutated.length})`, "", ...mutated);
+  // An excused error toast must be VISIBLE, or the allow becomes the kind of
+  // silent exemption nobody re-reads. Every one is listed with the permission
+  // state that excused it.
+  const excused = results.flatMap((r) => r.controls.filter((c) => c.excused).map((c) => `- ${r.route} (${r.persona}) › ${c.chain.join(" › ")} — ${c.excused}`));
+  lines.push("", `## Error toasts not counted as defects (${excused.length})`, "", ...excused);
   lines.push("", `## Clean-up`, "", ...cleaned.log.map((l) => `- ${l}`), ...cleaned.residue.map((l) => `- **RESIDUE** ${l}`));
   writeFileSync(`${OUT}/coverage.md`, lines.join("\n") + "\n");
   writeFileSync(`${OUT}/results.json`, JSON.stringify({ width: WIDTH, theme: THEME, runId: RUN_ID, uncovered: unavailable, cleanup: cleaned, results }, null, 2));

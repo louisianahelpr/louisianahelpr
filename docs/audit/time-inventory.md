@@ -29,7 +29,7 @@ logic runs: SQL in PGlite, and edge-function cutoffs in unit tests.
 
 | Screen / component | Time behaviour | Boundaries | Proof |
 |---|---|---|---|
-| `JobCardMetaRow` expiry chip (Browse, My Posts, My Jobs) | `formatTimeLeft` floored: "N days/hours/minutes left" → "Expired" at `expires_at` | 21h before; 1 min before; at start; next day; from PT; both DST mornings | **TT**, all passing on prod |
+| `JobCardMetaRow` expiry chip (Browse, My Posts, My Jobs) | `formatTimeLeft` floored: "N days/hours/minutes left" → "Expired" at `expires_at` | 21h before; 1 min before; at start; next day; from PT; both DST mornings | UT `dateUtils`; TT **UNCOVERED** since 2026-09-22 — see below |
 | `JobCardMetaRow` start time | wall-clock string, zone-free (`2000-01-01T..`) | — | read |
 | `activityFilters` buckets | overdue (`isPastDue`, CT day) → Needs You, sorted first | CT midnight | UT; TT screenshot 04 (moves out of Waiting) |
 | `JobCountdown` "Job starts in" | ticks each minute, CT start; "Job time has arrived!" | — | — (needs a hired job) |
@@ -50,6 +50,30 @@ logic runs: SQL in PGlite, and edge-function cutoffs in unit tests.
 | `StrikeBanner`, `banStatus` | `auto_suspended_until` | — | — |
 | `inAppReview`, `nps`, `pushPermissionNudge`, `BirthdayPopup` | cadence gates in localStorage | — | — |
 | Admin (`adminJobsHelpers`, `useCronHealth`, `AdminSubscriptions`) | past-due flags, cron staleness | — | UT (admin jobs) |
+
+### Why the expiry chip left TT on 2026-09-22
+
+`8fdee80ca` filed unpaid jobs as DRAFTS (owner, 2026-09-21): `jobIsUnfundedDraft`
+drops `payment_status` unpaid/abandoned/failed on an OPEN job out of `postedJobs`
+at the source, so those rows leave the My Posts list and its tab counts together,
+and every browse feed already excluded them. The chip renders on exactly three
+surfaces — `PostedJobCard` (My Posts), `AppliedJobCard` (My Jobs) and the Browse
+card — so a draft now reaches none of them.
+
+TT cannot build anything else. The live `enforce_jobs_insert_column_lock` forces
+`status := 'open'` and `payment_status := 'unpaid'` on a poster INSERT;
+`payment_status` is in `enforce_poster_jobs_money_lock`'s `locked_always` on
+UPDATE; and `enforce_job_status_transition` has no `open -> pending_approval`
+edge. The only exit is a real Stripe Checkout, which `e2e/prod-lifecycle.spec.ts`
+and `02-marketplace` own.
+
+What TT still proves on all three dates, including both DST mornings, is the
+STORED `expires_at` — the Louisiana wall clock resolved to an absolute instant,
+which is where the zone arithmetic lives. `formatTimeLeft` itself has no zone in
+it. What is uncovered is the end-to-end re-render of the chip under a moved
+browser clock, and it stays uncovered until a journey owns a funded job.
+`src/test/e2eFixturesHiddenBySourceFilter.test.ts` reds if another prod fixture
+walks into the same shape.
 
 ## 3. Server: sweeps that act on time (live schedule, 2026-09-12)
 

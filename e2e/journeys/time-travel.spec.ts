@@ -37,7 +37,6 @@ import {
 
 const CT = "America/Chicago";
 const PT = "America/Los_Angeles";
-const H = 3_600_000;
 
 /**
  * A wall-clock time in Louisiana, as an absolute instant. Written out here on
@@ -162,7 +161,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     }
   });
 
-  test("a posted job: day before, minute before start, at start, overdue — Central, Pacific and both DST mornings", async ({
+  test("an unfunded job: its expiry instant is stored in Louisiana's zone across both DST mornings, and it is filed as a DRAFT, not a post", async ({
     browser,
     request,
     journey,
@@ -211,39 +210,106 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
       return job as { id: string; title: string };
     }
 
-    async function chipAt(job: { id: string; title: string }, tz: string, at: Date, want: RegExp, name: string) {
-      const { ctx, page } = await openAt(browser, request, tz, at);
+    /*
+     * THE EXPIRY INSTANT, which is the half of this leg that does not need a
+     * card on screen. `postJob` asserts the stored `expires_at` IS
+     * `ct(date, start)` — the Louisiana wall clock resolved to an absolute
+     * instant — and the two DST dates are why: 6:00 AM on the fall-back
+     * Sunday is 12:00Z (CST), an hour after the naive CDT answer, and 6:00 AM
+     * on the spring-forward Sunday is 11:00Z (CDT). A resolver that read the
+     * runner's own zone, or that used a single fixed offset, lands on a
+     * different instant for at least one of these three rows.
+     */
+    const D = centralDate(3);
+    const job = await postJob(D, "09:00", "plain");
+    await postJob("2026-11-01", "06:00", "dst-fall");
+    await postJob("2027-03-14", "06:00", "dst-spring");
+
+    /*
+     * AN UNFUNDED JOB IS A DRAFT, NOT A POST (owner, 2026-09-21; shipped in
+     * 8fdee80ca): "a job can never be posted if it was enver paid for … It
+     * would be in post a job, drafts."
+     *
+     * This is the same fixture the countdown leg below is UNCOVERED for, and
+     * it is asserted here rather than left implicit, because the rule is what
+     * takes that leg away. `jobIsUnfundedDraft` (src/pages/activity/
+     * activityFilters.ts) drops payment_status unpaid/abandoned/failed on an
+     * OPEN job out of `postedJobs` at the source — list AND tab counts — and
+     * `useUnpaidJobDrafts` is the route back to paying for it. Every job this
+     * spec can create is in exactly that state and cannot leave it: the live
+     * `enforce_jobs_insert_column_lock` forces `payment_status := 'unpaid'`
+     * and `status := 'open'` on a poster INSERT, and `payment_status` is in
+     * `enforce_poster_jobs_money_lock`'s `locked_always` on UPDATE.
+     *
+     * Real clock, not a moved one: where a row is filed is not a time question.
+     */
+    await test.step("an unfunded job is a draft in Post a Job, and is not a post in My Posts", async () => {
+      const { ctx, page } = await openAt(browser, request, CT, new Date());
       try {
+        await page.goto("/post-job");
+        const draft = page.locator(`[data-unpaid-draft="${job.id}"]`);
+        await expect(draft, "an unfunded job is not offered as a draft in Post a Job — an abandoned checkout with no route back to paying for it").toBeVisible({
+          timeout: 45_000,
+        });
+        await expect(draft, "the draft row does not name the job it belongs to").toContainText(job.title);
+        await step(journey, page, "unfunded-is-a-draft");
+
         await page.goto(`/my-posts?job=${job.id}`);
-        // The smallest element holding BOTH this job's title and the chip: the card's own row, never a
-        // neighbour's chip (the list holds other jobs).
-        const card = page.locator("div").filter({ hasText: job.title }).filter({ has: page.getByText(want) }).last();
-        await expect(card, `${name}: at ${at.toISOString()} from ${tz}`).toBeVisible({ timeout: 20_000 });
-        await step(journey, page, `job-${name}`);
+        await expect(page.getByRole("heading", { name: "My Posts", level: 1 })).toBeVisible({ timeout: 45_000 });
+        // `?job=` is the app's OWN "take me to this job" link (Activity.tsx):
+        // when the id is in `postedJobs` it sets the status filter to that
+        // job's live bucket and highlights the card, so the row would be on
+        // screen whichever tab it belongs to. That is what makes this absence
+        // an assertion rather than a tautology about the tab we happen to land
+        // on — the app was asked for the job and had nothing to show.
+        //
+        // Wait for the list to have PAINTED first. Without this the absence
+        // would also pass against a still-loading screen; this shared account
+        // has a hundred-odd posts, so some card always renders.
+        await expect(page.getByRole("heading", { level: 2 }).first(), "My Posts never painted a card").toBeVisible({ timeout: 45_000 });
+        await expect(
+          page.getByText(job.title),
+          "an unfunded job is still listed as a post — no Helpr can see it, so it is a card for a job that cannot move",
+        ).toHaveCount(0);
+        await step(journey, page, "unfunded-not-in-my-posts");
       } finally {
         await ctx.close();
       }
-    }
+    });
+  });
 
-    const D = centralDate(3);
-    const job = await postJob(D, "09:00", "plain");
-    const start = ct(D, "09:00");
-    await chipAt(job, CT, new Date(start.getTime() - 21 * H), /(^|\s)21 hours left$/, "day-before");
-    await chipAt(job, CT, new Date(start.getTime() - 60_000), /(^|\s)1 minute left$/, "minute-before");
-    await chipAt(job, CT, start, /(^|\s)Expired$/, "at-start");
-    await chipAt(job, CT, ct(centralDate(4), "00:00"), /(^|\s)Expired$/, "overdue-next-day");
-    // Same instants from Los Angeles: a countdown is an instant, not a wall clock.
-    await chipAt(job, PT, new Date(start.getTime() - 60_000), /(^|\s)1 minute left$/, "pt-minute-before");
-    await chipAt(job, PT, start, /(^|\s)Expired$/, "pt-at-start");
-
-    // 6:00 AM on the fall-back Sunday is 12:00Z (CST), an hour after the naive CDT answer.
-    const fall = await postJob("2026-11-01", "06:00", "dst-fall");
-    await chipAt(fall, CT, new Date("2026-11-01T11:59:00Z"), /(^|\s)1 minute left$/, "dst-fall-minute-before");
-    await chipAt(fall, CT, new Date("2026-11-01T12:00:00Z"), /(^|\s)Expired$/, "dst-fall-at-start");
-    // 6:00 AM on the spring-forward Sunday is 11:00Z (CDT).
-    const spring = await postJob("2027-03-14", "06:00", "dst-spring");
-    await chipAt(spring, CT, new Date("2027-03-14T10:59:00Z"), /(^|\s)1 minute left$/, "dst-spring-minute-before");
-    await chipAt(spring, CT, new Date("2027-03-14T11:00:00Z"), /(^|\s)Expired$/, "dst-spring-at-start");
+  /*
+   * The countdown chip under a moved clock — "21 hours left" / "1 minute left"
+   * / "Expired" on the poster's own card, in Central and from Pacific — ran
+   * here until 2026-09-22 and is now UNCOVERED, for a reason that is about the
+   * fixture and not about the clock.
+   *
+   * `JobCardMetaRow` renders the chip only through `PostedJobCard` (My Posts),
+   * `AppliedJobCard` (My Jobs) and the Browse card, and all three now need a
+   * job that is NOT an unfunded draft. This spec's jobs cannot be anything
+   * else: the poster INSERT lock forces open+unpaid, the money lock forbids
+   * moving `payment_status`, and `enforce_job_status_transition` has no
+   * `open -> pending_approval` edge — so the only way out of the draft state
+   * is a real Stripe Checkout, which is `e2e/prod-lifecycle.spec.ts`'s and
+   * `02-marketplace`'s leg, not this one's. Funding a job here would also add
+   * an escrow row per run to the `[E2E DO NOT ACCEPT]` pile that already does
+   * not settle forward (issue #1595).
+   *
+   * What is NOT lost: `formatTimeLeft` is pure instant arithmetic with no zone
+   * in it (src/lib/dateUtils.ts), covered by unit tests; the zone-and-DST half
+   * of this leg is the stored `expires_at`, still asserted above on all three
+   * dates. What is lost is the end-to-end proof that a moved browser clock
+   * re-renders that chip, and it stays lost until a journey owns a funded job.
+   */
+  test("UNCOVERED: expiry countdown chip under a moved clock", async () => {
+    skipUncovered(
+      "Time travel: expiry countdown chip",
+      "needs a FUNDED job on the E2E poster: every job this suite can create is forced to open+unpaid by " +
+        "enforce_jobs_insert_column_lock, and jobIsUnfundedDraft now keeps open+unpaid rows off My Posts, " +
+        "My Jobs and every browse feed — the only three surfaces that render the chip. Funding means a real " +
+        "Stripe Checkout (prod-lifecycle / 02-marketplace own that leg). The stored expiry instant, which is " +
+        "where the zone and DST arithmetic lives, is still asserted on all three dates above.",
+    );
   });
 
   /*

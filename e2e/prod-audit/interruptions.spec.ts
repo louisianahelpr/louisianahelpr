@@ -8,7 +8,28 @@
  *
  * Every row this file creates carries MARKER and is deleted in afterEach as the
  * account that wrote it (service role is never used from a spec).
+ *
+ * ── Shown able to fail ────────────────────────────────────────────────────
+ * The registered mutation restores the defect measured on prod 2026-09-13:
+ * without the SYNCHRONOUS ref in `runPreSubmitChecks`, two clicks on the final
+ * Post dispatched in one JS task both read `saving === false` and both run the
+ * submit. `disabled={saving}` is not a substitute — the same comment records
+ * that a build with the ref removed passed a Playwright `dblclick`, which is
+ * why "double-tap the final Post creates exactly one job" presses the two
+ * clicks through a single `evaluate`. It then asserts at most one job INSERT on
+ * the wire and exactly one row with that title on prod.
+ *
+ * WHY NOT THE APPLY GROUP, which looks like the obvious subject. Measured
+ * 2026-09-21 on this machine: `7 skipped, 5 passed`. All seven `apply` tests
+ * skip on their own stated GAP — "no open escrowed job by poster-e2e that
+ * helper-e2e has not applied to (run scripts/audit/prod-seed.mjs --apply)" —
+ * so anything registered against `useApplyFlow` comes back SURVIVED for a seed
+ * reason and convicts a good spec. That is a real coverage gap in the
+ * environment, not in the spec, and it is reported rather than papered over:
+ * the double-tap, same-frame, slow-network, offline, back, refresh and
+ * session-expiry apply cases are currently exercised by nothing local.
  */
+// @mutate src/pages/postjob/useJobSubmit.ts | if (submittingRef.current \|\| saving) return null; | if (saving) return null;
 import type { APIRequestContext, BrowserContext, Page } from "@playwright/test";
 import { test as base, expect } from "@playwright/test";
 import { isoDayIn, pickCalendarDay } from "../calendarPicker";

@@ -256,6 +256,29 @@ function specGateEnv(guard) {
       OVERLAY_SWEEP_ROUTES: "/dashboard,/settings",
     },
     "e2e/happy-path/appstore-screenshots.spec.ts": { RUN_APPSTORE_SHOTS: "1" },
+    // SCOPED, third of its kind and for the same reason as the two sweeps
+    // above. The full prod sweep is 149 tests (`--list`, 2026-09-21) — every
+    // anon screen, then the whole authed catalog twice (poster and helper),
+    // then job detail in all eight statuses, then the admin surface — each one
+    // a fresh context, a sign-in, a page load against prod Supabase and a full
+    // axe run. It does not finish inside the 900s spawnSync budget, and a run
+    // killed on the budget observes NOTHING.
+    //
+    // `SWEEP_ROUTES` is the spec's own scoping knob (sweepCore.inScope, set by
+    // `npm run check:changed` for exactly this purpose), so nothing is invented
+    // here. `/login` leaves the one anon screen the registered mutation acts on
+    // plus the `zz gate` test that grades it; every other block is inScope-gated
+    // and drops out. The assertion being proven — captureScreen runs axe
+    // wcag2a/2aa/21a/21aa and assertSweepGate fails on any violation — is
+    // identical at 1 screen and at 148.
+    "e2e/a11y-prod/a11y-prod.spec.ts": { SWEEP_ROUTES: "/login" },
+    // SCOPED for the same reason again. 94 tests (`--list`, 2026-09-21): 29
+    // whole-form sweeps, 14 targeted rules, 51 explore passes, each one a fresh
+    // context and a sign-in against prod. `MESSY_INPUT_SCOPE` is a regex on the
+    // test title (the spec declares everything else as skipped, so `--list` and
+    // the reported inventory are unchanged); this pins the one targeted rule the
+    // registered mutation acts on.
+    "e2e/prod-audit/messy-input.spec.ts": { MESSY_INPUT_SCOPE: "^login: " },
   };
   return GATES[guard] ?? {};
 }

@@ -29,7 +29,18 @@ import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
  * NEVER pressed on these shared accounts, deliberately: "Sign Out Everywhere"
  * (would sign every other lane out), "Change email", "Reset" password (sends
  * mail and is a credential change), "Turn On" two-step, "Delete Account".
+ *
+ * ── Shown able to fail ────────────────────────────────────────────────────
+ * The mutation below is the silent-failure shape this journey's own notes call
+ * out: NotificationPreferences flips local state optimistically BEFORE the
+ * upsert, so a check that only watches the switch proves nothing about the
+ * server. Sending `prefs` (the values from before the tap) instead of
+ * `updated` keeps every visible thing identical — the switch flips, a POST to
+ * notification_preferences goes out and returns 2xx — and the setting simply
+ * does not change. Only the reload-and-re-read in "a notification toggle
+ * persists" can see it.
  */
+// @mutate src/components/NotificationPreferences.tsx | .upsert({ user_id: userId, ...writable(updated) } as any, { onConflict: "user_id" });\n\n    setSavingKey(null); | .upsert({ user_id: userId, ...writable(prefs) } as any, { onConflict: "user_id" });\n\n    setSavingKey(null);
 
 const rotation = rotationFor(2);
 const RUN = Date.now().toString(36).slice(-6);

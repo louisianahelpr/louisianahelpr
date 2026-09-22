@@ -37,6 +37,22 @@
 //   SWEEP_OUTPUT_DIR=/tmp/a11y-prod/webkit npx playwright test --project=a11y-prod-webkit
 // Locally, sessions are minted from .env by scripts/test-signin-link.mjs; in CI
 // from the PLAYWRIGHT_*_EMAIL/_PASSWORD secrets (see e2e/journeys/fixtures.ts).
+//
+// SHOWN ABLE TO FAIL
+// ------------------
+// The registered mutation deletes the accessible name of the show/hide-password
+// control on /login — the one icon-only button on the first screen a stranger
+// sees. Nothing visible changes: the eye still renders, the button still works
+// with a mouse, and every layout, geometry and blank-screen check still passes.
+// A screen reader announces "button", and axe reports button-name (WCAG 4.1.2,
+// serious). That is exactly the class this sweep exists for, and the only thing
+// in the repo that looks at it in a real browser against the deployed bundle.
+//
+// The gate runs this spec with SWEEP_ROUTES=/login (scripts/vacuity/run.mjs,
+// specGateEnv) because the unscoped sweep is 149 tests and does not finish
+// inside the runner's 900s budget; the axe assertion is the same at one screen
+// as at 148.
+// @mutate src/pages/Login.tsx | aria-label={showPassword ? "Hide password" : "Show password"} |
 
 import { test, type Browser, type BrowserContext } from "@playwright/test";
 import { ADMIN_SCREENS, ANON_SCREENS, AUTHED_SCREENS, type ScreenSpec } from "../happy-path/auditRoutes";

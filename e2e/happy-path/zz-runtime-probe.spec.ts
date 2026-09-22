@@ -31,7 +31,17 @@
  *
  * Run it on its own port so it can't kill another lane's preview server:
  *   HAPPY_PATH_PORT=4177 npx playwright test --project=happy-path zz-runtime-probe
+ *
+ * ── Shown able to fail ────────────────────────────────────────────────────
+ * The mutation below is the exact defect `channelNonce()` exists to prevent:
+ * `subscribeWithRecovery` stops appending a nonce, so every subscriber of a
+ * given feature joins ONE topic name and supabase-js silently dedupes the
+ * second one — the channel is never created and the user stops receiving
+ * realtime updates, with no error anywhere. Part 1a's (b-ii) assertion guards
+ * that helper by source because ~12 of the 17 live call sites are trusted
+ * solely because they route through it.
  */
+// @mutate src/lib/realtimeRecovery.ts | opts.stableName ? opts.name : `${opts.name}-${channelNonce()}` | opts.name
 import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";

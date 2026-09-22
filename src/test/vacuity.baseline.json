@@ -11,12 +11,7 @@
   ],
   "generated": "2026-09-19",
   "unregistered": [
-    "e2e/a11y-prod/a11y-prod.spec.ts",
-    "e2e/happy-path/zz-runtime-probe.spec.ts",
     "e2e/journeys/02-marketplace.spec.ts",
-    "e2e/journeys/03-account.spec.ts",
-    "e2e/prod-audit/interruptions.spec.ts",
-    "e2e/prod-audit/messy-input.spec.ts",
     "e2e/visual-audit/desktop-fill.spec.ts"
   ],
   "noInventoryFloor": [

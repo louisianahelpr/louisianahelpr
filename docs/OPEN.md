@@ -59,6 +59,51 @@ registration in that tree — including ones that are green on their own.
   reported 0/4 and four `inconclusive`, and `src/test/vacuityGate.test.ts`
   passes 5/5 here.
 
+## OPEN — two writers own `helper_availability` and disagree, so 03-account goes red (2026-09-21)
+
+Found while proving `e2e/journeys/03-account.spec.ts` able to fail: the spec was
+**RED on main**, and not for anything in the diff.
+
+- The journey requires exactly the seven weekly rows it documents:
+  `expect(week.length, "the helper has no saved weekly hours to start from").toBe(7)`,
+  and seeds a 7-day 09:00-17:00 week when it finds none.
+- `scripts/audit/prod-seed.mjs:684` upserts **six** rows — days 1-6, Mon-Sat,
+  08:00-17:00 (Sat 09:00-13:00) — at deterministic ids, on top of whatever is
+  already there.
+- The journey's own save goes through `save_weekly_availability`, which DELETEs
+  the whole week and re-inserts with random ids. So the seeder's ids are gone
+  after a journey run, and the next seed adds its six back.
+- Measured on prod 2026-09-21: helper-e2e held **13** weekly rows — seven from
+  2026-09-18 08:31 (the journey's 09:00-17:00 week, random ids) and six from
+  2026-09-19 14:12 (the seeder's shape, deterministic ids). J7 failed on its own
+  precondition with `Expected: 7 / Received: 13`, having already passed the
+  bio-edit and crop-dialog steps.
+- REPAIRED read-only-then-minimally: the six seeder rows were deleted by id —
+  exactly what `prod-seed.mjs --teardown:787` deletes — leaving the documented
+  seven. 03-account is green again and is now registered in the burn-down.
+- **STILL OPEN**: the next `prod-seed.mjs` run re-breaks it. One of the two has
+  to own the week (seed all seven days at the journey's hours, or have the
+  journey read the shape instead of pinning 7). That is a design call, not a
+  data repair, so it is filed rather than guessed at — and it wants a guard that
+  fails on the disagreement rather than on the 13th row appearing in prod.
+
+## HEADS-UP — seven of `interruptions.spec.ts`'s twelve tests run nowhere (2026-09-21)
+
+Measured 2026-09-21 on the real backend: `7 skipped, 5 passed`.
+
+The whole `apply` group — human double-tap, same-frame double-click, slow
+network, offline-and-retry, back, refresh, session-expiry — skips on its own
+stated GAP: *"no open escrowed job by poster-e2e that helper-e2e has not applied
+to (run scripts/audit/prod-seed.mjs --apply)"*. `.github/workflows/prod-audit.yml`
+does not run the seeder either, so this is not a local-only gap: the seven
+sharpest interruption cases in the repo are exercised by nothing, anywhere,
+while the file reports green.
+
+It is also why the burn-down registration for that spec is against
+`useJobSubmit`'s double-submit ref (post a job) and not against `useApplyFlow`:
+a registration on the apply path returns SURVIVED for a seed reason and convicts
+a good spec.
+
 ## HEADS-UP — the explore now reaches four screens it never reached (2026-09-20)
 
 `e2e/prod-audit/harness.ts`'s write firewall used to refuse read RPCs, so

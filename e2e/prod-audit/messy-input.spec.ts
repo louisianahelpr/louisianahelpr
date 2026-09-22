@@ -27,7 +27,21 @@
  *      through.
  *   Coverage: inventory − sweep credits − explore credits − stated GAPS must
  *   be empty, so a form added to the app without a sweep fails this file.
+ *
+ * ── Shown able to fail ────────────────────────────────────────────────────
+ * The registered mutation deletes Login.tsx's client-side email check. The
+ * screen still looks and behaves the same to a person — the inline "Enter a
+ * valid email address" copy is driven by `emailError`, which is untouched — but
+ * `not-an-email@` now reaches `signInWithPassword`. That is two defects at
+ * once, and the source comment names both: a malformed address becomes a
+ * network round-trip, and it counts toward the account's five-strike lockout,
+ * so a typo can lock a real person out of their own account. The targeted login
+ * rule watches the wire for exactly that request.
+ *
+ * The gate runs this spec with MESSY_INPUT_SCOPE pinned to that one rule (see
+ * the knob below, and scripts/vacuity/run.mjs specGateEnv).
  */
+// @mutate src/pages/Login.tsx | if (!emailValid) { | if (false) {
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Browser, BrowserContext, Locator, Page } from "@playwright/test";
@@ -67,6 +81,29 @@ import { FORMS, GAPS } from "./messyInputForms";
 const test = base;
 const CREDITS = join("test-results", "messy-input-prod", "credits");
 
+/**
+ * `MESSY_INPUT_SCOPE=<regex>` — run only the tests whose TITLE matches; unset
+ * (the normal case, and every CI job) runs all 94.
+ *
+ * This exists for one reader: the mutation gate (`npm run vacuity`,
+ * scripts/vacuity/run.mjs). It breaks a line of `src/`, runs this spec, and
+ * requires the spec to notice — but it gives a spec 900 seconds, and the full
+ * file is 29 form sweeps (every visible field × a ten-value battery), 14
+ * targeted rules and 51 explore passes, each a fresh context and a sign-in
+ * against prod. It does not come close to finishing in the budget, and a run
+ * killed on the budget observes NOTHING — which is how a timeout used to be
+ * scored as the guard noticing.
+ *
+ * Out-of-scope tests are declared as SKIPPED rather than not declared, so the
+ * run still reports the full inventory and `--list` is unchanged. Same shape as
+ * SWEEP_ROUTES / ERROR_SWEEP_ROLES / OVERLAY_SWEEP_ROUTES elsewhere: the
+ * assertion being proven is identical at one test and at ninety-four.
+ */
+const SCOPE = (process.env.MESSY_INPUT_SCOPE ?? "").trim();
+const SCOPE_RE = SCOPE ? new RegExp(SCOPE) : null;
+const scoped: typeof test = ((...args: Parameters<typeof test>) =>
+  !SCOPE_RE || SCOPE_RE.test(String(args[0])) ? test(...args) : test.skip(...args)) as typeof test;
+
 const sessions = new Map<Account, Session>();
 let fx: Fixtures;
 
@@ -92,7 +129,7 @@ async function open(browser: Browser, f: { url: string; as: Account | null; prep
 
 test.describe("sweep every field on every form", () => {
   for (const f of FORMS) {
-    test(`sweep: ${f.name}`, async ({ browser }, info) => {
+    scoped(`sweep: ${f.name}`, async ({ browser }, info) => {
       const { ctx, page } = await open(browser, f);
       // Nothing the sweep types may be saved: it is not a submit, and a sweep
       // that could write would be a sweep that could store 5,000 chars of Lorem
@@ -133,7 +170,7 @@ test.describe("sweep every field on every form", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("targeted rules", () => {
-  test("login: empty and malformed email are blocked inline; a padded email is trimmed before it leaves", async ({ browser }, info) => {
+  scoped("login: empty and malformed email are blocked inline; a padded email is trimmed before it leaves", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS[0]);
     const auth = watchWrites(page, /\/auth\/v1\/token/);
     // The trimmed request is inspected and then refused at the wire: a real
@@ -162,7 +199,7 @@ test.describe("targeted rules", () => {
     await ctx.close();
   });
 
-  test("forgot-password: malformed email shows an inline alert and sends nothing", async ({ browser }, info) => {
+  scoped("forgot-password: malformed email shows an inline alert and sends nothing", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS[1]);
     const sent = watchWrites(page, /\/auth\/v1\/recover/);
     await page.locator('input[type="email"]').fill("foo@bar");
@@ -174,7 +211,7 @@ test.describe("targeted rules", () => {
     await ctx.close();
   });
 
-  test("signup step 1: malformed email + whitespace password are explained inline and do not advance", async ({ browser }, info) => {
+  scoped("signup step 1: malformed email + whitespace password are explained inline and do not advance", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS[2]);
     const signup = watchWrites(page, /\/auth\/v1\/signup/);
     await page.locator("#email").fill("bob@@example");
@@ -188,7 +225,7 @@ test.describe("targeted rules", () => {
     await ctx.close();
   });
 
-  test("signup step 2: the DOB wheel cannot pick an under-18 year; phone and ZIP formats are refused inline; nothing is sent", async ({ browser }, info) => {
+  scoped("signup step 2: the DOB wheel cannot pick an under-18 year; phone and ZIP formats are refused inline; nothing is sent", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "signup-step2")!);
     const signup = watchWrites(page, /\/auth\/v1\/signup/);
     await expect(page.locator("#firstName"), "step 2 did not open").toBeVisible({ timeout: 10_000 });
@@ -214,7 +251,7 @@ test.describe("targeted rules", () => {
     await ctx.close();
   });
 
-  test("support: whitespace-only required fields are blocked with messages; nothing is sent", async ({ browser }, info) => {
+  scoped("support: whitespace-only required fields are blocked with messages; nothing is sent", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "support")!);
     const sent = watchWrites(page, /functions\/v1\/contact-support/);
     for (const el of await page.locator("input:visible, textarea:visible").all()) await el.fill("   ").catch(() => {});
@@ -226,7 +263,7 @@ test.describe("targeted rules", () => {
     await ctx.close();
   });
 
-  test("complete-profile: under-18 unreachable, 3-digit phone and 4-digit ZIP refused inline, whitespace name refused; no profile write", async ({ browser }, info) => {
+  scoped("complete-profile: under-18 unreachable, 3-digit phone and 4-digit ZIP refused inline, whitespace name refused; no profile write", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "complete-profile")!);
     const writes = watchWrites(page, /\/rest\/v1\/(profiles|rpc\/complete_profile)/);
     await expect(page.locator("#firstName"), "complete-profile did not render for the incomplete seed account").toBeVisible({ timeout: 15_000 });
@@ -251,7 +288,7 @@ test.describe("targeted rules", () => {
   });
 
   for (const [amount, ok] of [["0", false], ["-5", false], ["1e9", false], ["10.555", null], ["25", true]] as const) {
-    test(`gift card: amount ${amount} → ${ok === null ? "normalised" : ok ? "allowed" : "blocked with a message"}`, async ({ browser }, info) => {
+    scoped(`gift card: amount ${amount} → ${ok === null ? "normalised" : ok ? "allowed" : "blocked with a message"}`, async ({ browser }, info) => {
       const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "gift-card")!);
       const sent = watchWrites(page, /functions\/v1\/create-gift-card-checkout|functions\/v1\/.*gift/);
       // A $25 test-mode Checkout session is harmless, but the sweep does not
@@ -300,7 +337,7 @@ test.describe("targeted rules", () => {
     });
   }
 
-  test("auto tip: negative and huge values do not save", async ({ browser }, info) => {
+  scoped("auto tip: negative and huge values do not save", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "auto-tip")!);
     const writes = watchWrites(page, /\/rest\/v1\/profiles|\/rest\/v1\/rpc\/.*tip/);
     const nums = page.locator('input[type="number"]');
@@ -315,7 +352,7 @@ test.describe("targeted rules", () => {
     await ctx.close();
   });
 
-  test("post-job: whitespace-only title cannot advance; price 0, negative, decimal and 1e9 are refused before checkout", async ({ browser }, info) => {
+  scoped("post-job: whitespace-only title cannot advance; price 0, negative, decimal and 1e9 are refused before checkout", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "post-job")!);
     const writes = watchWrites(page, /\/rest\/v1\/(jobs|rpc\/.*job)|functions\/v1\/.*(checkout|job)/);
     const title = page.locator(TEXTLIKE).filter({ visible: true }).first();
@@ -364,7 +401,7 @@ test.describe("targeted rules", () => {
 
   // `request` per test, never the beforeAll one: Playwright refuses a reused
   // beforeAll fixture inside a test.
-  test("chat composer: whitespace-only and 4,001 chars are refused; a marked emoji/multibyte/HTML message is sent once, rendered inert, then deleted", async ({ browser, request }, info) => {
+  scoped("chat composer: whitespace-only and 4,001 chars are refused; a marked emoji/multibyte/HTML message is sent once, rendered inert, then deleted", async ({ browser, request }, info) => {
     test.skip(!fx.inProgressJob, "GAP: no in-progress job between the two accounts");
     const helper = sessions.get("helper")!;
     const poster = sessions.get("poster")!;
@@ -445,7 +482,7 @@ const EXPLORE: Explore[] = [
 test.describe("explore dialog-gated forms from real records", () => {
   test.describe.configure({ timeout: 10 * 60_000 });
 
-  test("post-job: every later step's fields (budget, logistics, address, checkout), never paying", async ({ browser }, info) => {
+  scoped("post-job: every later step's fields (budget, logistics, address, checkout), never paying", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, { url: "/post-job", as: "poster", prepare: async (p) => {
       const fresh = p.getByRole("button", { name: /start fresh/i });
       if (await fresh.isVisible().catch(() => false)) await fresh.click();
@@ -510,7 +547,7 @@ test.describe("explore dialog-gated forms from real records", () => {
   });
 
   for (const ex of EXPLORE) {
-    test(`explore: ${ex.name}`, async ({ browser }, info) => {
+    scoped(`explore: ${ex.name}`, async ({ browser }, info) => {
       const why = ex.needs?.();
       test.skip(!!why, why ?? "");
       const url = ex.url();
@@ -676,7 +713,7 @@ test.describe("explore dialog-gated forms from real records", () => {
 // Coverage: inventory − URL sweep − explore credits − stated gaps must be empty
 // ---------------------------------------------------------------------------
 
-test("coverage: every inventory file was swept, explored, or has a stated gap", async () => {
+scoped("coverage: every inventory file was swept, explored, or has a stated gap", async () => {
   const files = readdirSync(CREDITS);
   const inventory = inventoryFiles();
   const covered = new Set(FORMS.flatMap((f) => f.covers));

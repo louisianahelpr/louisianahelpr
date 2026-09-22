@@ -40,15 +40,41 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 | **`src/test/*.test.ts*`** | 202 | **202 — COMPLETE** | 0 | **0** |
 | **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | 0 | **0** |
 | **colocated beside components** | 343 | **343 — COMPLETE** | 0 | **0** |
-| Playwright `e2e/**` | 60 | 41 | 3 | 16 |
-| **total** | **658** | **639 (97%)** | **3** | **16** |
+| Playwright `e2e/**` | 60 | 50 | 4 | 6 |
+| **total** | **658** | **648 (99%)** | **4** | **6** |
 
 `npm run vacuity` prints the same three numbers on every run, so this table and
 the tool cannot drift apart:
 
 ```
-registration: 639/658 guards register a mutation (3 exempt with a reason, 16 grandfathered)
+registration: 648/658 guards register a mutation (4 exempt with a reason, 6 grandfathered)
 ```
+
+**The six still owed, and why each is still owed** (2026-09-21):
+
+| spec | why |
+|---|---|
+| `auth.spec.ts` | reads `PLAYWRIGHT_TEST_USER_EMAIL`/`_PASSWORD` directly; they exist only as GitHub secrets |
+| `two-role-lifecycle.spec.ts` | needs seeded lifecycle STATE (a poster session, a helper session, a job id), same secrets |
+| `payment-lifecycle.spec.ts`, `prod-lifecycle.spec.ts` | in flight |
+| `visual-audit/desktop-fill.spec.ts` | RED on main for a real `/browse` layout defect; registering against a red spec proves nothing |
+| `journeys/02-marketplace.spec.ts` | the one genuinely hard case: a SERIAL money chain (post → fund on Stripe → apply → hire → do-the-job), so nothing can be scoped away without breaking the chain, and every baseline run funds a real test-mode escrow |
+
+### The five proven 2026-09-21, and what each mutation breaks
+
+| guard | killing mutation | what it proves |
+|---|---|---|
+| `happy-path/zz-runtime-probe` | `realtimeRecovery.ts`: stop appending `channelNonce()` to the channel name | every subscriber of a feature joins ONE topic, supabase-js silently dedupes the second, and realtime dies with no error. 12 of 17 live call sites are trusted purely because they route through this helper |
+| `a11y-prod/a11y-prod` | `Login.tsx`: delete the show/hide-password button's `aria-label` | the one icon-only control on the first screen a stranger sees loses its name. Nothing visible changes; axe reports `button-name` (WCAG 4.1.2). Run scoped to `SWEEP_ROUTES=/login` |
+| `journeys/03-account` | `NotificationPreferences.tsx`: upsert `writable(prefs)` instead of `writable(updated)` | the switch flips, a POST goes out and returns 2xx, and the preference does not change. Only the reload-and-re-read sees it |
+| `prod-audit/interruptions` | `useJobSubmit.ts`: drop `submittingRef.current` from the pre-submit check | two clicks on the final Post in one JS task both read `saving === false` and both submit — the 2026-09-13 prod defect, and `disabled={saving}` is measurably not a substitute |
+| `prod-audit/messy-input` | `Login.tsx`: `if (!emailValid)` → `if (false)` | a malformed address reaches `signInWithPassword` — a network round-trip AND a strike against the five-attempt lockout, so a typo can lock a real person out. Run scoped to `MESSY_INPUT_SCOPE="^login: "` |
+
+Two of the five needed a new scoping knob, for the reason `overlay-sweep` and
+`error-state-sweep` needed theirs: the unscoped spec does not finish inside the
+runner's 900s budget, and a run killed on the budget observes NOTHING. The prod
+a11y sweep is 149 tests; `messy-input` is 94. Both knobs default to running
+everything, so no CI job loses a single test.
 
 ### The three categories, and why lumping them lies in both directions
 

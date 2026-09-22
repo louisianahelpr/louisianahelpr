@@ -630,11 +630,19 @@ never behind the scrim — the message composer (`ChatView`,
 `CancellationDialog` / `DisputeDialog` / `DisputeTimelineDialog`,
 `ReportDialog` / `BlockUserDialog` / `ReviewsSection`, `SavedSearches`,
 `AiJobBuilder` / `CheckoutStep`, `CredentialsTab` / `MonthlyGoalCard` /
-`SavedHelperCard`. The presser only clicks `button`/`[role=button]`/
-`[role=menuitem]` inside `<main>` and the cards that open these are not
-buttons, so no amount of budget reaches them: each needs its own `EXPLORE`
-entry with a URL or `prepare` that opens the surface, the way `FORMS` already
-does. `DeleteAccountDialog.tsx` is a different case — `NEVER_PRESS` blocks
+`SavedHelperCard`. What is VERIFIED about why: the presser collects only
+`button`/`[role="button"]`/`[role="menuitem"]` inside `<main>`, matched by
+visible text or `aria-label`, two levels deep, under a 4-minute budget
+(`messy-input.spec.ts` `pressables`/`press`), and the non-admin explores DID
+run for real on 2026-09-21 — `my-posts`, `my-jobs`, the seven job fixtures and
+both `/messages` explores credited only chrome (`BrowseSearchBar`,
+`ActivityHeader`, `ConversationList`), never the page's own dialogs. NOT yet
+verified: whether each specific entry point is missed because it is not a
+button, because it is deeper than two levels, or because the seeded state does
+not offer it. Diagnose per surface, then give each its own `EXPLORE` entry with
+a URL or `prepare` that opens it, the way `FORMS` already does (`fx.threadJob`
+already exists for the composer, and `deep-links.spec.ts:118` proves
+`/messages/<jobId>` opens it). `DeleteAccountDialog.tsx` is a different case — `NEVER_PRESS` blocks
 "Delete Account" by design, so it wants a stated gap, not a test. Sized as its
 own lane; do NOT close it with invented GAPS entries.
 

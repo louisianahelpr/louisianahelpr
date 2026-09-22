@@ -8,6 +8,56 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## OPEN — a rebuild of `dist/` under a live preview leaves the happy-path app PERMANENTLY BLANK (2026-09-22)
+
+REPRODUCED, 2 failures in 18 runs, under `Emulation.setCPUThrottlingRate: 20`
+against a private preview on :4191. This is the mechanism behind the
+`e2e/happy-path/messages-thread.spec.ts` flake filed today as "`openFirstThread`
+(line 67) timed out at 30s — the mocked inbox never painted a row". It is NOT a
+Messages defect and NOT a `ConversationList` / `inboxDefault` defect: at the
+moment of failure `document.body.textContent` was `""` — no nav, no tabs, no
+text. The app never mounted. Raising the timeout could not have recovered it.
+
+The chain, from the captured console + network log of the failing run:
+
+  1. another lane runs `npm run build` in this shared checkout (`dist/` mtime
+     moved from 11:29 to 11:47:48 mid-run, and `app-shared-IgrYbgHw.js` — one
+     of the chunks that 404'd — is gone from `dist/assets`, replaced by
+     `app-shared-CD5kI19W.js`);
+  2. `vite build` empties `outDir`, so the running `vite preview` starts
+     answering 404 for the hashed chunks the already-loaded `index.html` names:
+     `lucide-*.js`, `react-vendor-*.js`, `app-shared-*.js`, `button-*.js`,
+     `AppShell-*.js`, `PageScaffold-*.js`, … ten of them in one run;
+  3. the failed module preload raises `vite:preloadError`, which is exactly the
+     stale-deploy signal `src/lib/chunkReload.ts` exists for, so it fires
+     `hardReloadBypassCache` → `location.replace(href + "&_v=<now>")`;
+  4. that recovery navigation ALSO 404s (`http404: /messages?_v=1790102794858`)
+     because `dist/index.html` itself is momentarily absent mid-build;
+  5. the document is now blank for good. Every locator in the rest of the file
+     times out, and the first one to do so is whichever assertion comes next —
+     `row.waitFor()` inside `openFirstThread` in the (a)+(b) and (c) tests, or
+     `expect(NAV).toBeVisible()` in (e) (seen once in a separate 88-iteration
+     unthrottled baseline, same file, same blank-page cause).
+
+WHY NOTHING CAUGHT IT: `e2e/happy-path/assertFreshBundle.ts` is exactly the
+right check and it is wired into `fixtures.ts` — but it is `let checked = false;
+if (checked) return;`, i.e. ONCE PER WORKER PROCESS. It proves the bundle was
+fresh when the worker started and is structurally blind to a bundle that goes
+stale DURING the run, which is this whole failure.
+
+THE FIX, not yet made (it edits shared happy-path fixtures, and other lanes were
+mid-run): re-assert bundle freshness per test, or have the happy-path fixture
+detect a blank document / a `?_v=` recovery URL and fail with the named
+stale-bundle message from `src/test/staleBundle.ts` instead of an opaque 30s
+locator timeout. Ship it with a registered `// @mutate` guard proven red-then-
+green, per the standing rule.
+
+CI IS PROBABLY NOT AFFECTED: CI builds once and nothing rebuilds under it. This
+is a local, multi-lane-checkout flake — the same family as the shared-:4173
+problem already documented in `playwright.config.ts`, with a rebuild in place of
+a kill. Until the fixture change lands, a lane that must not be disturbed should
+run its own `HAPPY_PATH_PORT` AND not share a checkout with a lane that builds.
+
 ## OPEN — an auto-resolved dispute leaves a job no cron will ever pay (2026-09-22)
 
 Chased from a lead another lane filed; measured live rather than inferred, and

@@ -606,8 +606,15 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px)" }}
             >
           {tab === "posted" && (
+            /* `space-y-3`, which is what PostedJobsTab and the grouped
+               ActivitySectionedView both use. It said `space-y-2.5` — 10px
+               against the real 12px — the same 2px-per-row drift
+               ActivityPageSkeleton was fixed for on 2026-09-21; a gap is part
+               of the reservation. (The applied branch below still reads
+               `space-y-2.5`; that surface belongs to the /my-jobs report and is
+               filed in docs/OPEN.md rather than changed here.) */
             <Suspense fallback={
-              <div className="px-0 space-y-2.5">
+              <div className="px-0 space-y-3">
                 {[1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
               </div>
             }>

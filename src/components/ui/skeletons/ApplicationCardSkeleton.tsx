@@ -8,8 +8,10 @@ import {
 import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";
 
 /**
- * ApplicationCardSkeleton — the placeholder for the helper-side application
- * card (`src/components/activity/AppliedJobCard.tsx`).
+ * The placeholder for a COLLAPSED ACTIVITY JOB CARD — the helper-side
+ * `AppliedJobCard` (/my-jobs) and, since 2026-09-21, the poster-side
+ * `PostedJobCard` (/my-posts) too. They are the same shell at the same 151px;
+ * see the note beside `ApplicationCardSkeleton` at the foot of this file.
  *
  * It does not re-draw that card's frame; it IMPORTS it. Frame, category rail,
  * category-tab slot and the title row's tab clearance all come from
@@ -76,7 +78,7 @@ import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";
  *   - THE CATEGORY TAB, which overlays the card's top-left corner and is why
  *     the title row runs `pt-6` rather than `py-2.5`.
  */
-export function ApplicationCardSkeleton() {
+export function CollapsedActivityCardSkeleton() {
   return (
     <div className={JOB_CARD_SHELL_FRAME} aria-hidden>
       {/* Category rail — neutral olivewood while loading; the real card
@@ -184,3 +186,21 @@ export function ApplicationCardSkeleton() {
     </div>
   );
 }
+
+/**
+ * BOTH activity tabs draw this one card.
+ *
+ * `ApplicationCardSkeleton` is the applied side (/my-jobs) and
+ * `ActivityCardSkeleton` (src/components/SkeletonLoaders.tsx) is the posted
+ * side (/my-posts). They are the same name for the same box: PostedJobCard and
+ * AppliedJobCard are both JobCardShell + JobCardTitleBar + JobCardMetaRow +
+ * JobStatusStrip, and both measure 151px collapsed at 375. The posted tab used
+ * to hand-draw its own 106px approximation, which is the 45px-per-row jump the
+ * owner reported on 2026-09-21 — the same defect /my-jobs had, through a
+ * different component.
+ *
+ * The file keeps its name (and its path, which
+ * e2e/prod-audit/activity-loading-reserve.spec.ts names in an @mutate
+ * directive); the drawing above is what is shared.
+ */
+export const ApplicationCardSkeleton = CollapsedActivityCardSkeleton;

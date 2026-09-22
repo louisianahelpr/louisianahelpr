@@ -21,6 +21,7 @@ import { render } from "@testing-library/react";
 
 import { JobCardSkeleton, RecommendedJobCardSkeleton } from "./JobCardSkeleton";
 import { ApplicationCardSkeleton } from "./ApplicationCardSkeleton";
+import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { MessageThreadSkeleton } from "./MessageThreadSkeleton";
 import { JOB_CARD_FRAME } from "@/components/job/cardGeometry";
 import { JOB_CARD_SHELL_FRAME } from "@/components/activity/JobCardShell";
@@ -39,6 +40,25 @@ const cases = [
     el: <ApplicationCardSkeleton />,
     frame: JOB_CARD_SHELL_FRAME,
     source: "AppliedJobCard (JobCardShell)",
+    minBones: 8,
+  },
+  {
+    /*
+     * THE POSTED TAB'S PLACEHOLDER (/my-posts, and Activity's posted Suspense
+     * fallback). It was the last activity skeleton still hand-drawing a card:
+     * a `rounded-ds-md skeleton-glass p-4` box with no frame, no category rail
+     * and no category tab, standing in for a PostedJobCard built from the same
+     * JobCardShell + JobCardTitleBar + JobCardMetaRow + JobStatusStrip that
+     * AppliedJobCard is. Measured at 375 on prod, 2026-09-21: 106px of
+     * placeholder against a 151px row.
+     *
+     * Same frame constant as ApplicationCardSkeleton above, and deliberately
+     * so — one card, one drawing.
+     */
+    name: "ActivityCardSkeleton",
+    el: <ActivityCardSkeleton />,
+    frame: JOB_CARD_SHELL_FRAME,
+    source: "PostedJobCard (JobCardShell)",
     minBones: 8,
   },
   {

@@ -102,7 +102,7 @@ row box vs real row box, list response held on the wire). Plus
 markup half. Reverted on a real build, the two loading assertions read
 `220px vs 151px (69 > 8)` and `first-row offset 107px (> 72)`.
 
-## OPEN — /my-posts' placeholder card is a different component and 45px short (2026-09-21)
+## DONE — /my-posts' placeholder card is a different component and 45px short (2026-09-21, fixed the same night)
 
 Found while checking the sibling tab for the same defect, as the owner asked.
 /my-jobs is fixed above; /my-posts is not, and it is not the same file.
@@ -123,6 +123,116 @@ Found while checking the sibling tab for the same defect, as the owner asked.
   instead of redrawing it — and it touches a component shared with Activity's
   posted Suspense fallback, so it was not bundled into the owner's /my-jobs
   report.
+
+**FIXED.** `ActivityCardSkeleton` is now
+`CollapsedActivityCardSkeleton` — the same shell-derived drawing /my-jobs took,
+because `PostedJobCard` and `AppliedJobCard` are the same `JobCardShell` at the
+same 151px. Both of its call sites (`ActivityPageSkeleton`, and Activity's
+posted Suspense fallback, which also moved `space-y-2.5` → `space-y-3`) were
+checked first; there are only those two, and both stand in front of the same
+list. `POSTED_ROW_PIN` is gone from
+`e2e/prod-audit/activity-loading-reserve.spec.ts`, so /my-posts is held to the
+same 8px `ROW_BUDGET` as every other surface. Red-first proof in
+`src/components/ui/skeletons/skeletons.test.tsx`: the posted placeholder was
+asserted to wear `JOB_CARD_SHELL_FRAME` and failed with
+`'rounded-ds-md skeleton-glass p-4 space-y-3'` vs
+`'relative rounded-2xl liquid-glass overflow-hidden'`.
+
+## OPEN — /my-posts' new row height is not yet measured in a browser (2026-09-21)
+
+The fix above was made with the browser lock held by another lane's journey
+run, so the placeholder's new box was never measured on a real build. The
+expected numbers are /my-jobs' own, since it is now the same component:
+placeholder **150px** against a real **151px**, pitch 162 vs 163. Confirm with
+
+    PLAYWRIGHT_WEB_SERVER=1 npx playwright test --project=prod-audit \
+      activity-loading-reserve
+
+and record the number beside the old 106px. Until that runs, the /my-posts
+assertion in that spec is a prediction, not a measurement.
+
+## OPEN — the applied Suspense fallback still says `space-y-2.5` (2026-09-21)
+
+`src/pages/Activity.tsx`, the `tab === "applied"` branch: the in-page Suspense
+fallback wraps its `ApplicationCardSkeleton`s in `space-y-2.5` (10px) while
+`AppliedJobsTab` and the grouped view both use `space-y-3` (12px). 2px per row,
+inside the 8px `ROW_BUDGET` by design, so it is not a visible step on its own —
+but it is the same error `ActivityPageSkeleton` and the posted branch were both
+fixed for, and it is the only copy left. Belongs to the /my-jobs surface, which
+is why this lane reported it instead of changing it.
+
+## OPEN — 44 signed URLs in prod are stored with an `exp`, and they all die in Sept 2027 (2026-09-21)
+
+Found while diagnosing the owner's broken-photo report (which turned out to be
+`/_vercel/image`, see below). Not the cause of that, but the same symptom on a
+timer.
+
+`supabase.storage.from(<private bucket>).createSignedUrl(path, ttl)` returns a
+URL whose `?token=` is a JWT carrying an `exp`. Five files mint one and then
+write it into the database, so the row is correct the day it is written and
+400s forever after — no error at write time, none at read time, just an empty
+box with its alt text. Measured read-only against prod
+(`fncmgoasalhdgfwzhsqa`), decoding the token payloads:
+
+| column | rows | earliest exp | latest exp | expired |
+|---|---|---|---|---|
+| `jobs.proof_before_urls` | 22 | 2027-09-07 | 2027-09-18 | 0 |
+| `jobs.proof_after_urls` | 22 | 2027-09-07 | 2027-09-18 | 0 |
+
+The call sites, all with a 365-day TTL except the last:
+
+- `src/components/PhotoProof.tsx:106` → `jobs.proof_before_urls` / `proof_after_urls`
+- `src/components/DisputeDialog.tsx:144` → dispute evidence via the file-dispute RPC
+- `src/components/DisputeTimelineDialog.tsx:168` → `disputes.evidence_urls`, `jobs.dispute_evidence_urls`
+- `src/components/activity/CompletionChoiceSheet.tsx:127` → `job_revisions` photos + the `jobs` row
+- `src/components/profile/SupportInline.tsx:174` → 30-day token pasted into `reports.description` (the file says so and accepts it)
+
+`disputes.evidence_urls` and `jobs.dispute_evidence_urls` are empty today only
+because no dispute has carried evidence through those paths yet.
+
+The fix is the one the repo already wrote down for `user-documents` in
+`supabase/migrations/20260505220000_split_avatars_bucket_private_user_documents.sql`:
+store the PATH, sign at display time. It is a data change as well as a code one
+(44 rows hold tokens, not paths), which is why it is filed rather than bundled.
+
+Guard, shown red: `src/test/noPersistedSignedUrls.test.ts` fails on any NEW
+`createSignedUrl(path, ttl)` with a ttl of a day or more, and fails again if a
+pinned file stops being an offender without its pin being deleted — so the list
+can only shrink. Proved by pointing `applicationAttachments.ts` at a 365-day
+TTL: `expected [ 'lib/applicationAttachments.ts' ] to deeply equal []`.
+
+## DONE — job photos rendered as broken boxes on every local preview (2026-09-21)
+
+Owner, twice in one night on two surfaces: a job card shows an empty box with
+the literal alt text `Photo 1` instead of the photo (helper `/my-jobs`
+Scheduled cards at 1280, an offered card at 1440).
+
+Not the bucket, not a stale token. `jobs.photos` holds plain public
+`job-photos` object URLs and every one of them resolves — verified read-only on
+prod, and by fetching one: the object URL returns `200 image/jpeg`, and
+`https://www.louisianahelpr.com/_vercel/image?url=…&w=96&q=75` returns
+`200 image/avif`. The bucket is public and holds all 41 objects the rows name.
+
+`buildImageUrl` (`src/lib/imageUrl.ts`) rewrote every non-native web `src` to
+`/_vercel/image?url=…`. That endpoint is not part of the app — Vercel's edge
+adds it in front of the deployment — and this SPA answers unknown paths with
+index.html, so on any other host the `<img>` receives `200 text/html`, fails to
+decode, and paints its alt text. Measured against this repo's own
+`vite preview`:
+
+    GET /_vercel/image?url=…&w=96&q=75  ->  200  content-type: text/html
+
+That preview is where every screenshot comes from: since 2026-09-14 every
+Playwright project serves the HTML locally and talks to prod Supabase
+(playwright.config.ts, "REAL BACKEND, LOCAL FRONTEND"). So every photo in every
+audit screenshot has been a broken box, and a real photo regression would have
+been invisible under that noise. Deployed prod and native were never affected —
+native already had the same guard via `Capacitor.isNativePlatform()`.
+
+Fixed by extending that guard: `servedByVercelEdge(hostname)` passes the source
+through untouched on `localhost`, `127.0.0.1`, `0.0.0.0`, `::1` and `*.local`.
+Red-first proof in `src/lib/imageUrl.test.ts` (three failures, including
+`expected '/_vercel/image?url=…' to be 'https://…/photo.jpg'`).
 
 ## OPEN — `docs/audit/loading-states/measurements.json` is stale for /my-jobs (2026-09-21)
 

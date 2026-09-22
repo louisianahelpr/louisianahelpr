@@ -24,13 +24,18 @@
  *              4th card y    785px → 624px  (real 627px)   jump -195px → -3px
  *
  *   /my-posts  first card y   95px → 138px  (real 202px)   jump +107px → +64px
- *              row height   106px (unchanged — see POSTED_ROW_PIN)
+ *              row height   106px → the shared card (expected 150px against a
+ *                           real 151px, NOT re-measured — see the note below)
  *
  * The /my-jobs numbers come from two fixes: `ApplicationCardSkeleton` now
  * draws the collapsed card's two blocks instead of six bone rows and a footer
  * button, and `ActivityPageSkeleton` reserves the status-tab line that
  * `ActivityHeader` has rendered open-by-default since 2026-09-20 (and uses the
  * lists' own `space-y-3`, not `space-y-2.5`).
+ *
+ * The /my-posts row height comes from one more: `ActivityCardSkeleton` is no
+ * longer a hand-drawn box but `CollapsedActivityCardSkeleton`, the same
+ * shell-derived drawing — one card, one drawing.
  *
  * ── WHAT THIS DOES NOT CLAIM ─────────────────────────────────────────────
  * `scripts/check-loading-state-shape.mjs` is the repo's own check for this
@@ -87,20 +92,28 @@ const ROW_BUDGET = 8;
  */
 const OFFSET_BUDGET = 8;
 
-/**
- * /my-posts' placeholder card is `ActivityCardSkeleton`
- * (src/components/SkeletonLoaders.tsx) — a hand-drawn `rounded-ds-md p-4` box,
- * NOT the shared `JobCardShell` the real PostedJobCard is built from. Measured
- * 2026-09-21 at 375: 106px against a real 151px row.
+/*
+ * THE /my-posts PIN IS GONE (2026-09-21, later the same night).
  *
- * PINNED, NOT EXEMPTED. The number is the measurement, so the surface can get
- * WORSE and this spec will say so; it cannot rot into a silent pass. The fix
- * is the one /my-jobs just took (import the shell's geometry instead of
- * redrawing it), and it is a separate change to a component shared with the
- * posted Suspense fallback — filed in docs/OPEN.md rather than bundled into
- * the owner's /my-jobs report.
+ * It read `POSTED_ROW_PIN = 106` — the measured height of `ActivityCardSkeleton`
+ * (src/components/SkeletonLoaders.tsx), a hand-drawn `rounded-ds-md p-4` box
+ * with no frame, no category rail and no category tab, standing in for a real
+ * 151px PostedJobCard. The pin existed because fixing it meant touching a
+ * component shared with Activity's posted Suspense fallback.
+ *
+ * Both call sites now render `CollapsedActivityCardSkeleton` — the same
+ * shell-derived drawing /my-jobs took, because PostedJobCard and AppliedJobCard
+ * are the same JobCardShell at the same 151px. So /my-posts is held to the same
+ * ROW_BUDGET every other surface is, and the pin would now be a ceiling the
+ * surface has legitimately risen through rather than a floor it must not fall
+ * below.
+ *
+ * NOT RE-MEASURED IN A BROWSER BY THE LANE THAT MADE THIS CHANGE — another lane
+ * held the browser lock for a journey run. The expected number is /my-jobs'
+ * own, since it is now literally the same component: placeholder 150px against
+ * a real 151px row. Running this spec is the confirmation, and it is filed in
+ * docs/OPEN.md.
  */
-const POSTED_ROW_PIN = 106;
 
 interface Surface {
   name: string;
@@ -108,7 +121,12 @@ interface Surface {
   as: "poster" | "helper";
   /** The reads whose delay opens the capture window for the loading frame. */
   hold: RegExp;
-  /** Declared expected row height, when the surface is pinned below budget. */
+  /**
+   * Declared expected row height, when the surface is knowingly below budget.
+   * No surface sets it today — /my-posts was the last, and its placeholder is
+   * now the shared shell-derived card. Kept because the next surface found
+   * below budget needs a way to record the measurement rather than exempt it.
+   */
   pinnedRow?: number;
   /** Why the first row legitimately starts somewhere else. */
   offsetNote?: string;
@@ -127,7 +145,6 @@ const SURFACES: Surface[] = [
     url: "/my-posts",
     as: "poster",
     hold: /supabase\.co\/rest\/v1\/jobs\?select=accepted_at/,
-    pinnedRow: POSTED_ROW_PIN,
     /* The poster's default bucket renders the GROUPED view, so a section
        heading ("Active", "Completed", …) sits above the first card and the
        placeholder draws none. 64px, measured. */

@@ -1,5 +1,6 @@
 import { BACK_BUTTON_BOX_CLASS } from "@/components/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CollapsedActivityCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
 
 /**
  * `JobCardSkeleton` LIVED HERE and does not any more (2026-09-20).
@@ -19,26 +20,41 @@ import { Skeleton } from "@/components/ui/skeleton";
  * exactly one now.
  */
 
-export const ActivityCardSkeleton = () => (
-  // Glass-tinted skeleton shaped like a real activity card. Matches the
-  // brand's liquid-glass material instead of the previous bordered card.
-  <div className="rounded-ds-md skeleton-glass p-4 space-y-3">
-    <div className="flex items-center justify-between">
-      <div className="space-y-2 flex-1">
-        <Skeleton className="h-5 w-40 rounded" />
-        <div className="flex gap-2">
-          <Skeleton className="h-5 w-20 rounded-full" />
-          <Skeleton className="h-5 w-16 rounded-full" />
-        </div>
-      </div>
-      <Skeleton className="h-8 w-24 rounded-md" />
-    </div>
-    <div className="flex gap-3">
-      <Skeleton className="h-3 w-24 rounded" />
-      <Skeleton className="h-3 w-20 rounded" />
-    </div>
-  </div>
-);
+/**
+ * THE POSTED TAB'S PLACEHOLDER — /my-posts, and Activity's posted Suspense
+ * fallback. Those are its only two call sites, and both stand in front of the
+ * same list of PostedJobCards.
+ *
+ * ── WHAT IT DREW BEFORE, AND WHAT THAT COST ──────────────────────────────
+ * A hand-drawn `rounded-ds-md skeleton-glass p-4` box: a title bone, two chip
+ * bones, a button bone and two meta bones. No card frame, no category rail, no
+ * category tab, and none of the card's own padding — for a PostedJobCard built
+ * out of exactly the same primitives AppliedJobCard is (JobCardShell +
+ * JobCardTitleBar + JobCardMetaRow + JobStatusStrip).
+ *
+ * Measured at 375 against prod (poster-e2e, 2026-09-21):
+ *
+ *     placeholder row   106px
+ *     real row          151px
+ *     ────────────────────────
+ *     per row           -45px, and it compounds down the list — every card
+ *                       below the first one moves when the data lands.
+ *
+ * Invisible to CLS for the reason `ApplicationCardSkeleton` documents at
+ * length: the Layout Instability API only scores elements that were in the
+ * previous frame and MOVED, and a skeleton→content swap removes one subtree
+ * and inserts another. /my-jobs measured CLS 0.0000 across ZERO entries while
+ * every card on it slid up to 195px. Boxes, not CLS.
+ *
+ * ── WHAT IT DRAWS NOW ────────────────────────────────────────────────────
+ * `CollapsedActivityCardSkeleton`, which is the drawing /my-jobs took on
+ * 2026-09-21 (commit 21dad148b): the collapsed card's title bar, two meta
+ * lines and status strip, each sized from `JobCardShell`'s own exported
+ * geometry rather than redrawn. ONE drawing, because there is one card — the
+ * posted and applied collapsed cards are the same shell at the same 151px, and
+ * two hand-written descriptions of one box is how they drifted apart.
+ */
+export const ActivityCardSkeleton = CollapsedActivityCardSkeleton;
 
 /**
  * Dashboard panel-interior skeleton. Renders the SAME three-section

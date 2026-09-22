@@ -26,6 +26,30 @@
  *      A recurring monitor (more than one fire per day, i.e. prod-errors)
  *      is exempt from rule 3 — hourly would violate it against itself — but
  *      must keep at least 30 min clear of every daily fire.
+ *   4. a workflow that accepts `workflow_dispatch` must not put that dispatch
+ *      in the SHARED `prod-load` group — the group may be taken for
+ *      `schedule` only. Rule 3 spaces the CRONS so they never queue behind
+ *      each other; nothing spaces a dispatch, and a dispatch is exactly how a
+ *      fix gets re-verified.
+ *
+ * WHAT RULE 4 CATCHES (2026-09-21, issues #1595 and #1626). `cancel-in-progress:
+ * false` does not mean "queue forever". GitHub keeps exactly ONE *pending* run
+ * per concurrency group, so a third run entering the group CANCELS the one
+ * already waiting. At 04:54Z four prod-load workflows were dispatched inside
+ * four minutes and cancelled each other in a chain: e2e-journeys at 04:55:00,
+ * nightly-webkit at 04:55:31, a11y-webkit-prod at 04:58:29; only
+ * press-every-control survived, and it survived by doing the cancelling.
+ *
+ * A run cancelled at the WORKFLOW level has no jobs at all — not even the
+ * `if: always()` notify job that keeps the `nightly-red` issue in sync. So the
+ * cancellation reported nothing, the two issues stayed open on suites whose
+ * failures had in one case already been fixed, and #1595 aged 207 hours.
+ * "Cancelled" is a hidden red: it is neither a pass nor a failure, and only
+ * nightly-red-age.yml eventually notices.
+ *
+ * e2e-real-backend.yml has made this schedule-vs-dispatch split since the
+ * money loop lost a dispatch the same way; rule 4 is that fix, generalised to
+ * every workflow instead of the one that got burned.
  *
  * EXEMPTIONS are BY NAME with a stated reason, in `EXEMPT` below, and only
  * ever lift rules 2 and 3 (frequency and spacing). An exempt workflow must
@@ -198,6 +222,24 @@ export function prodHitting(wfs: Wf[]): Wf[] {
   return wfs.filter((w) => w.crons.length > 0 && PROD_SIGNALS.some((re) => re.test(signalText(w.src))));
 }
 
+/**
+ * Does this workflow accept `workflow_dispatch`? Rule 4 only applies to
+ * workflows a human or an agent can fire by hand — a schedule-only workflow
+ * cannot be dispatched into a queue it would then lose.
+ */
+export function declaresDispatch(src: string): boolean {
+  return /^\s*workflow_dispatch:/m.test(stripComments(src));
+}
+
+/**
+ * Rule 4's group is the SHARED one. A workflow whose dispatch lands in its own
+ * per-workflow group is fine even if that group is a constant: the only run it
+ * can ever cancel is another dispatch of itself, which is what the dispatcher
+ * asked for. What is never fine is a dispatch landing in a group other
+ * workflows also hold, because then an unrelated workflow silently kills it.
+ */
+const SHARED_GROUP = "prod-load";
+
 export function violations(wfs: Wf[]): string[] {
   const out: string[] = [];
   const prod = prodHitting(wfs);
@@ -226,6 +268,14 @@ export function violations(wfs: Wf[]): string[] {
     }
     if (cancel !== "false") {
       out.push(`${w.file}: concurrency cancel-in-progress is "${cancel ?? "(unset)"}", must be false`);
+    }
+    // Rule 4: a workflow_dispatch must not land in the SHARED group.
+    if (group === SHARED_GROUP && declaresDispatch(w.src)) {
+      out.push(
+        `${w.file}: declares workflow_dispatch but its group is the shared "${SHARED_GROUP}" for EVERY event — ` +
+          `a dispatch queued there is cancelled by the next workflow to enter the group. ` +
+          `Use \${{ github.event_name == 'schedule' && '${SHARED_GROUP}' || format('${w.file.replace(/\.ya?ml$/, "")}-{0}', github.run_id) }}`,
+      );
     }
   }
 
@@ -359,6 +409,59 @@ describe("prod-hitting workflow schedules", () => {
     expect(violations([wf("uptime.yml", "  group: prod-load\n  cancel-in-progress: false\n")]).some((v) => v.includes("must NOT sit in prod-load"))).toBe(true);
     // Exempt but cancelling in progress -> red.
     expect(violations([wf("uptime.yml", "  group: uptime\n  cancel-in-progress: true\n")]).some((v) => v.includes("cancel-in-progress"))).toBe(true);
+
+    // Rule 4, shown RED ON THE ORIGINAL BUG: this is the exact concurrency
+    // shape e2e-journeys.yml and nightly-webkit.yml carried on 2026-09-21,
+    // when a four-minute burst of dispatches cancelled them both.
+    const asDispatched = (file: string, group: string): Wf => ({
+      file,
+      src:
+        `on:\n  schedule:\n    - cron: "17 3 * * 2"\n  workflow_dispatch:\n` +
+        `concurrency:\n  group: ${group}\n  cancel-in-progress: false\n` +
+        `env:\n  PLAYWRIGHT_POSTER_EMAIL: x\n`,
+      crons: ["17 3 * * 2"],
+    });
+    const rule4 = (v: string[]) => v.filter((s) => s.includes("declares workflow_dispatch"));
+    // The pre-fix shape: dispatchable, and parked in the shared group.
+    expect(rule4(violations([asDispatched("e2e-journeys.yml", "prod-load")]))).toHaveLength(1);
+    expect(rule4(violations([asDispatched("nightly-webkit.yml", "prod-load")]))).toHaveLength(1);
+    // The fix: prod-load for a schedule, its own group for anything else.
+    expect(
+      violations([
+        asDispatched(
+          "e2e-journeys.yml",
+          "${{ github.event_name == 'schedule' && 'prod-load' || format('e2e-journeys-{0}', github.run_id) }}",
+        ),
+      ]),
+    ).toEqual([]);
+    // Rule 4 is about the SHARED group only. prod-errors sits alone in its own
+    // constant group, so a dispatch there can only ever cancel itself.
+    expect(
+      rule4(
+        violations([
+          {
+            file: "prod-errors.yml",
+            src: 'on:\n  schedule:\n    - cron: "47 5 * * *"\n  workflow_dispatch:\nconcurrency:\n  group: prod-errors\n  cancel-in-progress: false\nx: SUPABASE_PROJECT_REF\n',
+            crons: ["47 5 * * *"],
+          },
+        ]),
+      ),
+    ).toEqual([]);
+    // A schedule-only workflow cannot lose a dispatch it cannot receive.
+    expect(
+      rule4(
+        violations([
+          {
+            file: "cron-only.yml",
+            src: 'on:\n  schedule:\n    - cron: "17 3 * * 2"\nconcurrency:\n  group: prod-load\n  cancel-in-progress: false\nenv:\n  PLAYWRIGHT_POSTER_EMAIL: x\n',
+            crons: ["17 3 * * 2"],
+          },
+        ]),
+      ),
+    ).toEqual([]);
+    // A `workflow_dispatch:` that is only mentioned in a comment is not one.
+    expect(declaresDispatch("on:\n  # workflow_dispatch:\n  schedule:\n")).toBe(false);
+    expect(declaresDispatch("on:\n  workflow_dispatch:\n")).toBe(true);
 
     // Day-of-week aware: same time on different days is not a collision.
     expect(

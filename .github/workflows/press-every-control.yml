@@ -68,7 +68,17 @@ concurrency:
   # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
   # >= 2h apart, and share the prod-load concurrency group; see
   # src/test/prodWorkflowSpacing.test.ts before moving this.
-  group: prod-load
+  #
+  # A SCHEDULED run joins prod-load; a workflow_dispatch gets its OWN group
+  # (2026-09-21, issues #1595/#1626). `cancel-in-progress: false` does NOT mean
+  # "queue forever" — GitHub keeps exactly ONE *pending* run per group, so a
+  # third run entering it CANCELS the one already waiting. On 2026-09-21T04:54Z
+  # four prod-load workflows dispatched inside four minutes cancelled each
+  # other in a chain; this workflow was the one that survived, and it did so by
+  # cancelling a11y-webkit-prod at 04:58:29. Note the second reason above: the
+  # run cancelled that way never reaches its `if: always()` sweep, so being on
+  # either end of this chain leaks fixture rows onto prod.
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('press-every-control-{0}', github.run_id) }}
   cancel-in-progress: false
 
 env:

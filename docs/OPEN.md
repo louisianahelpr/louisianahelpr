@@ -8,6 +8,61 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## DONE 2026-09-22 — a dispatched prod workflow was silently cancelled by the shared `prod-load` group (issues #1595, #1626)
+
+Both long-red nightlies last concluded **`cancelled`**, four seconds apart
+(e2e-journeys run 35562635341, nightly-webkit run 35562638939, both
+2026-09-21T04:54Z). Neither was a product failure.
+
+**Root cause.** Twelve workflows declared `concurrency: group: prod-load` for
+*every* event. `cancel-in-progress: false` does not mean "queue forever" —
+GitHub keeps exactly **one pending run per group**, so a third run entering the
+group cancels the one already waiting. Four prod-load workflows were dispatched
+inside four minutes and cancelled each other in a chain:
+
+| time | workflow | fate |
+| --- | --- | --- |
+| 04:54:54 | e2e-journeys | cancelled 04:55:00 by nightly-webkit |
+| 04:54:58 | nightly-webkit | cancelled 04:55:31 by a11y-webkit-prod |
+| 04:55:29 | a11y-webkit-prod | cancelled 04:58:29 by press-every-control |
+| 04:58:27 | press-every-control | ran, failed |
+
+A workflow-level cancellation leaves a run with **no jobs at all** — not even
+the `if: always()` notify job that keeps the `nightly-red` issue in sync. So
+the cancellation reported nothing either way and both issues just aged (#1595
+to 207h). "Cancelled" is a hidden red.
+
+**Fixed.** A scheduled run still joins `prod-load` (that is what rule 3's cron
+spacing protects); a `workflow_dispatch` now gets its own `…-${{ github.run_id }}`
+group, the split `e2e-real-backend.yml` has made since the money loop lost a
+dispatch the same way. `nightly-webkit.yml` left `prod-load` entirely — it sets
+`PLAYWRIGHT_WEB_SERVER=1` and serves a local preview against mocked Supabase,
+carries none of the guard's prod signals, and was only ever collateral there.
+
+**The check for the class.** `src/test/prodWorkflowSpacing.test.ts` rule 4: a
+prod-hitting workflow that accepts `workflow_dispatch` may not put that
+dispatch in the shared group. Shown red on the original bug —
+`PROD_WORKFLOWS_DIR=<pre-fix checkout>` yields **10** rule-4 violations, the
+fixed tree yields **0**.
+
+## BLOCKED — `prodWorkflowSpacing` is RED on main because of `vacuity.yml` (2026-09-22)
+
+Not mine to fix; `vacuity.yml` is owned by another lane and was off-limits in
+this pass. `418842d6f` ("the gate could not sign in") gave vacuity.yml
+`PLAYWRIGHT_*` credentials, which makes it **prod-hitting** by
+`src/test/prodWorkflowSpacing.test.ts`'s own derivation. It now breaks rules 1
+and 3, 17 violations, every one of them vacuity's:
+
+- group is `vacuity-${{ github.ref }}`, not `prod-load`;
+- `cancel-in-progress` is `${{ github.event_name == 'pull_request' }}`, must be `false`;
+- its 06:10 daily cron is 53 min from db-drift-detect (05:17), 67 min from
+  db-backup (07:17) and 23 min from prod-errors (05:47); the floor is 90 min
+  (30 for a monitor).
+
+These 17 were already red before this pass and are unchanged by it. Either
+vacuity takes a `schedule`-only `prod-load` group and moves its cron into a
+free slot, or it earns a named `EXEMPT` entry with a reason.
+
 ## CLOSED — the review log lived in the directory Playwright wipes (fixed 2026-09-20)
 
 `e2e/reviewLog.ts` writes `REVIEW_LOG = <cwd>/test-results/review-log.jsonl`,

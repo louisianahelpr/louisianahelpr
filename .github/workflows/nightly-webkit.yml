@@ -16,10 +16,27 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
-  # >= 2h apart, and share the prod-load concurrency group; see
-  # src/test/prodWorkflowSpacing.test.ts before moving this.
-  group: prod-load
+  # NOT prod-load, and deliberately so (2026-09-21, issue #1626).
+  #
+  # This workflow does not touch prod at all: it sets PLAYWRIGHT_WEB_SERVER=1
+  # and runs `--project=happy-path-webkit`, which serves THIS commit from a
+  # local preview against mocked Supabase. It carries none of the prod signals
+  # src/test/prodWorkflowSpacing.test.ts derives its prod-hitting set from (no
+  # project ref, no E2E_SUPABASE_URL, no PLAYWRIGHT_* credential, no prod
+  # Playwright project), so the guard never asked it to sit in prod-load.
+  #
+  # Sitting there anyway cost three days. `cancel-in-progress: false` does NOT
+  # mean "queue forever": GitHub keeps exactly ONE *pending* run per group, so
+  # a third run entering the group CANCELS the one already waiting. On
+  # 2026-09-21T04:54Z four prod-load workflows were dispatched inside four
+  # minutes and cancelled each other in a chain — e2e-journeys at 04:55:00,
+  # this one at 04:55:31, a11y-webkit-prod at 04:58:29. A cancelled run has no
+  # jobs at all, so the `notify` job below never ran and issue #1626 stayed
+  # open on a suite whose two real failures had already been fixed.
+  #
+  # Per-run group: a dispatch of this workflow can never be cancelled by, and
+  # can never cancel, anything else.
+  group: nightly-webkit-${{ github.run_id }}
   cancel-in-progress: false
 
 jobs:

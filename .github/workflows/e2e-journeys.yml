@@ -32,7 +32,30 @@ concurrency:
   # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
   # >= 2h apart, and share the prod-load concurrency group; see
   # src/test/prodWorkflowSpacing.test.ts before moving this.
-  group: prod-load
+  #
+  # A SCHEDULED run joins prod-load — that is what keeps the nightly crons off
+  # each other's backs. A workflow_dispatch gets its OWN group instead
+  # (2026-09-21, issue #1595), the same split e2e-real-backend.yml already
+  # makes, for the same reason it documents there:
+  #
+  #   `cancel-in-progress: false` does not mean "queue forever". GitHub keeps
+  #   exactly ONE *pending* run per group, so a third run entering the group
+  #   CANCELS the one already waiting.
+  #
+  # On 2026-09-21T04:54Z four prod-load workflows were dispatched inside four
+  # minutes and cancelled each other in a chain: this workflow was cancelled at
+  # 04:55:00 by nightly-webkit, which was cancelled at 04:55:31 by
+  # a11y-webkit-prod, which was cancelled at 04:58:29 by press-every-control.
+  # A run cancelled at the workflow level has NO jobs, so the `notify` job
+  # never runs and the nightly-red issue is never updated either way — the red
+  # simply ages. Issue #1595 sat open for 207 hours that way.
+  #
+  # Re-verifying a fix is exactly when this bites, because re-verifying means
+  # dispatching. Prod is still protected: the crons keep the shared group, and
+  # the two journey JOBS below hold `prod-lifecycle-shared-accounts`, which is
+  # what actually serialises the shared E2E accounts against prod-audit and
+  # e2e-real-backend.
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('e2e-journeys-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:

@@ -556,14 +556,93 @@ is `nightly-red-ack`. Full evidence is in each issue's 2026-09-20 comment.
 
 | # | workflow | cause | state |
 |---|---|---|---|
-| #1618 | prod-audit | `PLAYWRIGHT_ADMIN_EMAIL` → `admin@louisianahelpr.com`, whose `avatar_url` is NULL, so the Big-7 profile gate bounces it to `/complete-profile` before `AdminRoute` ever runs. 26 tests never touched the admin surface. | **owner decision** (below) |
+| #1618 | prod-audit | ~~`PLAYWRIGHT_ADMIN_EMAIL` → `admin@louisianahelpr.com`, whose `avatar_url` is NULL, so the Big-7 profile gate bounces it to `/complete-profile`.~~ Avatar set since; that gate is open. **The layer underneath it: the same account's `terms_version_accepted` is `''`, so `TermsReconsentDialog` — non-dismissible — covers every admin screen.** | **root cause FIXED `56b96599c`** (below) |
 | #1582 | press-every-control | `Profile request timed out` (`PROFILE_QUERY_TIMEOUT_MS = 6000`) paints an **error boundary on load** on `/user/:id` and `/jobs/:id` for all three roles. Survives the 75b3753a6 auto-heal. Prod query itself is 0.865 ms. | **false-red half FIXED `aa81799a2`** — the harness no longer classifies before the heal can fire. Needs one dispatch to confirm; the underlying stall is still unmeasured (timings now recorded). |
 | #1597 | a11y-webkit-prod | (a) diff CLI `--out` — FIXED 10461897f, never re-run; (b) WebKit: 11 contrast failures, all one `·` at `hsl(var(--burnt-sienna) / 0.5)` = 2.33:1; (c) Chromium: `h-7` renders 29.6 px on the JobTracking step dot. | (a) done, (b) **blocked**, (c) OPEN |
 | #1595 | e2e-journeys | 2 browse failures were a TRUE report of an empty `open_jobs_browse`; 8 rows seeded 2026-09-19 19:25 have since fixed it. 2 real defects remain. | 2 OPEN |
 
-### Owner decision needed — #1618
+## FIXED 2026-09-22 — #1618: a consent gate covered every admin screen, and twenty explores called it a pass
+
+`56b96599c` + `1bbd60705`. Re-dispatched as run
+[35692221560](https://github.com/louisianahelpr/louisianahelpr/actions/runs/35692221560).
+
+Run 35559129731 (2026-09-21) reported ONE failure — *"admin-referrals: no
+text-like field found … the form did not render"* — of a form that had rendered
+perfectly. Its own `error-context.md` snapshot shows the stat tiles, the
+four-tab strip and the Overview panel, with an `alertdialog` stacked over them:
+`TermsReconsentDialog`, the non-dismissible **"Please Take a Moment to
+Re-Agree"** gate. It opens on every authed load whose row carries a
+`terms_version_accepted` behind `LATEST_TERMS_VERSION`.
+`scripts/audit/prod-seed.mjs` pre-accepts the current Terms on every row it
+writes, for exactly this reason — but `admin@louisianahelpr.com` is
+`is_seed = false`, so it was never touched. Read live off prod's `profiles`:
+`terms_version_accepted = ''`, while all 52 seed rows read `'Jun 2026'`. Same
+account as the avatar finding above, one layer down; clearing the avatar gate
+is what exposed it.
+
+**The one visible failure was the small half.** The twenty admin EXPLORES
+pressed nothing, swept nothing, credited nothing behind the same scrim — and
+reported **PASS**. That is how eighteen admin dialogs reached the coverage
+test's *"no sweep, no explore credit and no stated gap"* list, reading as
+missing tests rather than blocked ones. A full-screen gate turned a driving
+suite into a silent no-op that still scored green.
+
+Two halves, both in `e2e/prod-audit/harness.ts`:
+- `clearConsentGate()` presses the gate's own button, as the operator whose
+  account it is would. Called from `settle()`, so it runs on every navigation
+  and — sweep and explore alike — BEFORE `writeFirewall` goes up: the
+  acceptance is a real write, it lands, and the account is clear for this run
+  and every run after. Version-agnostic, so the next `LATEST_TERMS_VERSION`
+  bump heals itself. The appear-wait is spent once per page, not per
+  navigation.
+- `health()` FAILS on a gate it could not clear, naming it. A screen measured
+  through a scrim was not measured and can no longer be scored as measured.
+
+Measured on prod (seed admin row set to `''` to reproduce, restored by the fix
+itself pressing I Agree):
+
+| | before | after |
+|---|---|---|
+| `sweep: admin-referrals` | 0 text-like fields → FAIL, byte-identical to CI | PASS (8.6 s) |
+| `explore: admin-people` | PASS, 0 fields swept, 1 file credited | PASS, 2 swept, 2 credited (+`AdminUserNotes`) |
+| seed admin `terms_version_accepted` | `''` | `'Jun 2026'`, written by the app's own button |
+
+**Shown able to fail:** with the clear mutated out and the row left stale,
+`explore: admin-people` goes red with *"the terms re-consent gate is covering
+the screen, so nothing behind it was measured"* — the same test that reported
+PASS while pressing nothing.
+
+`1bbd60705` also adds `edit email` to `NEVER_PRESS`. GAPS has claimed since
+2026-09-20 that `EditEmailDialog.tsx` is *"reachable … but deliberately NOT
+swept"*; that cost nothing while the scrim covered /admin, and the moment it
+lifted the presser swept "New email" and "Confirm new email" and made the
+coverage test's `staleGaps` assertion right. The refusal now lives where the
+presser reads it.
+
+### Still open under #1618 — the coverage test's non-admin residue
+`coverage: every inventory file was swept, explored, or has a stated gap` had
+**43** unaccounted files on run 35559129731; three landed as stated gaps in
+`f4d51ca26`, and the admin half above accounts for most of the rest. What this
+fix does NOT touch is ~22 files the explore has never reached and that were
+never behind the scrim — the message composer (`ChatView`,
+`RichMessageInput`), the activity dialogs (`EditJobDialog`, `ApplicantsPanel`,
+`DeclineApplicantSheet`, the three `appliedJobCard` sections),
+`CancellationDialog` / `DisputeDialog` / `DisputeTimelineDialog`,
+`ReportDialog` / `BlockUserDialog` / `ReviewsSection`, `SavedSearches`,
+`AiJobBuilder` / `CheckoutStep`, `CredentialsTab` / `MonthlyGoalCard` /
+`SavedHelperCard`. The presser only clicks `button`/`[role=button]`/
+`[role=menuitem]` inside `<main>` and the cards that open these are not
+buttons, so no amount of budget reaches them: each needs its own `EXPLORE`
+entry with a URL or `prepare` that opens the surface, the way `FORMS` already
+does. `DeleteAccountDialog.tsx` is a different case — `NEVER_PRESS` blocks
+"Delete Account" by design, so it wants a stated gap, not a test. Sized as its
+own lane; do NOT close it with invented GAPS entries.
+
+### Superseded — owner decision that was needed for #1618
 Verified by re-run [35535464894](https://github.com/louisianahelpr/louisianahelpr/actions/runs/35535464894):
 `bounced off /admin (view=home) to /complete-profile — the profile gate, not the admin gate`.
+**Answered in practice:** an `avatar_url` was set on `admin@louisianahelpr.com`,
+so `PLAYWRIGHT_ADMIN_EMAIL` still points there and the Big-7 gate is open.
 
 Three accounts hold `role='admin'`. `lexilombas05@gmail.com` and
 `helpr-seed-admin-0912@louisianahelpr.com` both pass the Big-7 gate — **the owner's own

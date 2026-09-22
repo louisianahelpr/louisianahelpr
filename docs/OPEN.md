@@ -76,8 +76,9 @@ avatar hero over three round-avatar person tiles, no "My Pets" h1, no back
 chevron. Fixed by mirroring Profile.tsx's three-way branch onto the shared
 `ProfileTabFallback`, tab read through the same `resolveTab`.
 
-RETRACTED, and this matters: **the 37 `/profile?tab=*` `jump` entries are NOT
-defects.** `ProfileTabFallback`'s docblock records an owner pop-up ruling of
+RETRACTED, and this matters: **the 26 `/profile?tab=*` `jump` entries are NOT
+defects.** (Filed first as 37 — that is the total jump count across ALL
+surfaces; 26 of them are profile tabs. Counted, then corrected.) `ProfileTabFallback`'s docblock records an owner pop-up ruling of
 2026-09-19 — "SKELETON FILLS THE SCREEN, GROWS BELOW" — which explicitly
 DECLINED a per-tab skeleton reserving full content height (Home History's
 3,477px of bones). work_record's 118px->830px "jump" is that ruling working as
@@ -91,10 +92,22 @@ OPEN:
   `media` entries and to see how many of the other 15 tabs' `media`/`rows`
   breaches the same one-line fix already cleared. ~2.5h holding the browser
   lock: belongs in a cloud routine, NOT this Mac.
-- **Move the 37 jump entries out of `baseline.json` into an explicit allow list
-  citing the 2026-09-19 ruling.** While they sit in a file whose header says
-  "clusters that were already wrong", they read as debt and invite exactly the
-  change the owner declined.
+- ~~Move the jump entries into an explicit allow list citing the ruling.~~
+  **DONE.** `baseline.json` now has two lists: `allow` (65, debt, may only
+  shrink) and `byDesign` (26, decided, each carrying the `ruling` it cites).
+  `check-loading-state-shape.mjs` applies the shrink rule to `allow` ONLY, and
+  fails if any `byDesign` entry has no ruling so the list cannot become a
+  dodge. Both behaviours proven: a non-breaching entry in `allow` exits 1, the
+  same entry in `byDesign` exits 0, an unruled `byDesign` entry exits 1.
+
+- **The 11 non-profile jumps are a DIFFERENT class and the ruling does not
+  cover them.** Several are NEGATIVE — the placeholder reserves MORE than the
+  content that replaces it, so the page collapses upward on load:
+  `/user/test #1` 326px -> 141px (-185px), `/user/<id> #1` 326 -> 247 (-79),
+  `/my-jobs #1` 206 -> 154 (-52), `anon /messages #0` 128 -> 62 (-66).
+  "Fills the screen, grows below" says nothing about over-reserving, and
+  content jumping UP is the shift the ruling was meant to prevent. These stay
+  in `allow` as real debt and want a look.
 
 ## OPEN — three more things on the critical path, measured 2026-09-22
 

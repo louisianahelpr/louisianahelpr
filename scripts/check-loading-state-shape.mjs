@@ -124,16 +124,48 @@ function main() {
 
   // 3 + 4. size and shape, against a baseline that may only shrink
   const base = existsSync(BASELINE) ? JSON.parse(readFileSync(BASELINE, "utf8")) : { allow: [] };
+
+  // TWO lists, because they mean opposite things and only one is debt.
+  //
+  //   allow     — wrong, nobody has fixed it yet. MAY ONLY SHRINK: an entry
+  //               that stops breaching is itself a failure, so it cannot rot
+  //               into a permanent excuse.
+  //   byDesign  — a decision was MADE. The 26 `/profile?tab=*` jumps are the
+  //               owner's 2026-09-19 pop-up ruling ("SKELETON FILLS THE SCREEN,
+  //               GROWS BELOW"), which explicitly DECLINED a per-tab skeleton
+  //               reserving full content height. An entry here that stops
+  //               breaching is NOT a failure — a tab whose content happens to
+  //               fit one screenful simply does not jump, and that is no
+  //               evidence the ruling was abandoned.
+  //
+  // They were one list until 2026-09-22, and that was actively dangerous: a
+  // decided design sat in a file whose header reads "clusters that were already
+  // wrong", so it read as debt and invited undoing an owner decision. Every
+  // byDesign entry must cite its ruling, so nobody can quietly park a breach
+  // here to dodge the shrink rule.
   const allow = new Set((base.allow ?? []).map((a) => `${a.key}|${a.kind}`));
+  const byDesign = new Set((base.byDesign ?? []).map((a) => `${a.key}|${a.kind}`));
+  const unruled = (base.byDesign ?? []).filter((a) => !String(a.ruling ?? "").trim());
+  const suppressed = new Set([...allow, ...byDesign]);
   const found = breaches(results);
   const seen = new Set();
   for (const b of found) {
     const id = `${b.key}|${b.kind}`;
     seen.add(id);
-    if (!allow.has(id)) problems.push(`${b.kind.toUpperCase()}: ${b.key} — ${b.detail}`);
+    if (!suppressed.has(id)) problems.push(`${b.kind.toUpperCase()}: ${b.key} — ${b.detail}`);
   }
   // A baseline entry that no longer breaches is stale and must be removed, or
   // the list rots into a permanent excuse the way every unshrinkable one has.
+  if (unruled.length) {
+    problems.push(
+      `BY-DESIGN: ${unruled.length} entr(ies) in baseline.json's \`byDesign\` carry no \`ruling\`. ` +
+        `That list suppresses a breach FOREVER, so each entry must name the decision that makes it ` +
+        `correct. If there is no decision to cite, it belongs in \`allow\` and must be fixed: ` +
+        unruled.map((a) => `${a.key}|${a.kind}`).slice(0, 6).join(", "),
+    );
+  }
+
+  // Only `allow` shrinks. See the comment on the two lists above.
   const stale = [...allow].filter((id) => !seen.has(id));
   if (stale.length) {
     problems.push(`BASELINE: ${stale.length} entr(ies) no longer breach and must be deleted from docs/audit/loading-states/baseline.json: ${stale.slice(0, 6).join(", ")}`);
@@ -144,7 +176,7 @@ function main() {
   } else {
     console.log(`inventory: ${hits.length} loading-state sites across ${c.files} files`);
     console.log(`evidence:  ${results.length} surfaces, ${results.filter((r) => r.status === "measured").length} measured (${ev.base}, ${ev.at})`);
-    console.log(`breaches:  ${found.length} (${allow.size} baselined)\n`);
+    console.log(`breaches:  ${found.length} (${allow.size} baselined debt, ${byDesign.size} by design)\n`);
     for (const p of problems) console.log("  ✗ " + p);
   }
 

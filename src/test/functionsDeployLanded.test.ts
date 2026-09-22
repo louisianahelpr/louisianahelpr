@@ -180,6 +180,24 @@ describe("verifyDeploys — a green deploy must mean prod actually changed", () 
     expect(result.verified).toEqual(["stalled-completion-reminder"]);
   });
 
+  it("names lost AND unaccounted functions as the retry set", () => {
+    // The workflow feeds this list straight back into `supabase functions
+    // deploy`, so an unaccounted-for target belongs in it too: the right
+    // response to "we cannot tell what happened to it" is to deploy it again,
+    // not to drop it.
+    const before = listing([["create-pro-checkout", SHA.proCheckoutStuck]]);
+    const result = verifyDeploys({
+      before,
+      after: before,
+      deployLog: "Deploying Function: create-pro-checkout (script size: 839 kB)",
+      targets: ["create-pro-checkout", "brand-asset"],
+    });
+
+    expect(result.lost).toEqual(["create-pro-checkout"]);
+    expect(result.unaccounted).toEqual(["brand-asset"]);
+    expect(result.ok).toBe(false);
+  });
+
   it("reads the uploaded/deduped inventory out of the CLI's own words", () => {
     expect([...uploadedFunctions(REAL_DEPLOY_LOG)].sort()).toEqual([
       "check-pro-subscription",
@@ -207,6 +225,16 @@ describe("the guard is actually mounted in CI", () => {
   it("snapshots the project before AND after the deploy", () => {
     const snapshots = workflow.match(/api\.supabase\.com\/v1\/projects\/[^/\s]+\/functions/g) ?? [];
     expect(snapshots.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("retries what did not land, and still fails when the retries are exhausted", () => {
+    // Measured loss was intermittent (8/64, then 3/58, different sets), so the
+    // step retries before failing. Both halves matter: without the retry main
+    // is red most days and people learn to ignore the gate; without the exit 1
+    // it is the silent-green defect again.
+    expect(workflow).toContain("--lost-file");
+    expect(workflow).toMatch(/MAX_RETRIES/);
+    expect(workflow).toMatch(/ATTEMPT.*-gt.*MAX_RETRIES[\s\S]{0,400}exit 1/);
   });
 
   it("does not let any step render its own failure green", () => {

@@ -306,15 +306,59 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
           set -euo pipefail
-          curl -sS --fail-with-body \
-            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/functions" \
-            -o functions-after.json
-          node scripts/verify-functions-deployed.mjs \
-            --before functions-before.json \
-            --after functions-after.json \
-            --log functions-deploy.log \
-            --targets "${{ steps.targets.outputs.functions }}"
+
+          # RETRY, THEN FAIL. Measured loss rate on 2026-09-22 was 8 of 64
+          # uploads in one run and 3 of 58 in the next, and the set differed
+          # both times — it is intermittent, not a property of any particular
+          # function. A check that went red on every drop would leave main red
+          # most days, and a gate people learn to ignore is a gate that is off.
+          # So: re-deploy exactly what did not land, up to twice, and fail only
+          # if the platform still will not take it. The run stays green only
+          # when prod genuinely matches what was pushed.
+          snapshot() {
+            curl -sS --fail-with-body \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+              "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/functions" \
+              -o "$1"
+          }
+
+          MAX_RETRIES=2
+          ATTEMPT=0
+          BASE=functions-before.json
+          LOG=functions-deploy.log
+          TARGETS="${{ steps.targets.outputs.functions }}"
+
+          while :; do
+            snapshot functions-after.json
+            if node scripts/verify-functions-deployed.mjs \
+                 --before "$BASE" --after functions-after.json \
+                 --log "$LOG" --targets "$TARGETS" --lost-file lost.txt; then
+              exit 0
+            fi
+
+            ATTEMPT=$((ATTEMPT + 1))
+            if [ "$ATTEMPT" -gt "$MAX_RETRIES" ]; then
+              echo "::error::Still not landed after $MAX_RETRIES retries. Prod is running stale code for the function(s) named above — do not treat this run as deployed."
+              exit 1
+            fi
+
+            RETRY="$(tr '\n' ' ' < lost.txt)"
+            if [ -z "${RETRY// /}" ]; then
+              echo "::error::The verifier failed but named nothing to retry. Failing rather than looping."
+              exit 1
+            fi
+
+            echo "::warning::Deploy attempt $ATTEMPT did not land for:$RETRY — redeploying just those."
+            # This snapshot is the new baseline: the retry must move the hash
+            # from what prod holds NOW, not from what it held before the run.
+            cp functions-after.json "$BASE"
+            LOG="functions-deploy-retry-$ATTEMPT.log"
+            : > "$LOG"
+            for fn in $RETRY; do
+              supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" 2>&1 | tee -a "$LOG"
+            done
+            TARGETS="$RETRY"
+          done
 
       - name: Notify on failure
         # Never gate this step on the secret: a missing SLACK_WEBHOOK_URL must

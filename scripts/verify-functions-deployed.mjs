@@ -182,6 +182,14 @@ function main() {
 
   const result = verifyDeploys({ before, after, deployLog, targets });
 
+  // The retry list, for the caller's loop. Written even when empty so the
+  // caller can distinguish "nothing to retry" from "the file never appeared
+  // because this process died" — the second is not a pass.
+  const lostFile = arg("lost-file");
+  if (lostFile) {
+    fs.writeFileSync(lostFile, [...result.lost, ...result.unaccounted].join("\n"));
+  }
+
   for (const slug of result.deduped) {
     console.log(`· ${slug} — unchanged bundle, CLI skipped upload (nothing to verify)`);
   }

@@ -13,16 +13,12 @@
   "unregistered": [
     "e2e/a11y-prod/a11y-prod.spec.ts",
     "e2e/auth.spec.ts",
-    "e2e/happy-path/error-state-sweep.spec.ts",
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "e2e/happy-path/zz-runtime-probe.spec.ts",
     "e2e/journeys/02-marketplace.spec.ts",
     "e2e/journeys/03-account.spec.ts",
     "e2e/payment-lifecycle.spec.ts",
-    "e2e/prod-audit/activity-tabs-visible.spec.ts",
     "e2e/prod-audit/interruptions.spec.ts",
     "e2e/prod-audit/messy-input.spec.ts",
-    "e2e/prod-audit/profile-tab-scroll-fill.spec.ts",
     "e2e/prod-lifecycle.spec.ts",
     "e2e/two-role-lifecycle.spec.ts",
     "e2e/visual-audit/desktop-fill.spec.ts"

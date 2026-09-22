@@ -84,6 +84,13 @@
 // over a surface that has never been gated, and turning it on before its
 // findings are closed would just red main.
 
+// Shown able to fail on the premise of the whole sweep: that a failed query
+// SURFACES. `unwrap()` is what turns a Supabase error into a thrown error a
+// React Query boundary can render; swallowing it means the screen paints an
+// empty success state instead of its error state, and this sweep — which hangs
+// or 500s every query on every route — would grade that as clean.
+// @mutate src/lib/supabaseResult.ts | if (error) { | if (false) {
+
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";

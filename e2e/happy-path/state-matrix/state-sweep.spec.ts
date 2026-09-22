@@ -41,6 +41,26 @@
  * as UNVERIFIED rather than silently absent.
  */
 
+/**
+ * WHY THIS CARRIES AN EXEMPTION RATHER THAN A MUTATION.
+ *
+ * This file is an EVIDENCE GENERATOR by explicit design, not a checker, and the
+ * case for that is argued at the top of ./observe.ts rather than assumed: every
+ * one of the owner's twenty findings PASSES `scrollWidth <= clientWidth`, axe,
+ * and the 44px tap floor. Two different greens on one rail are both AA. A close
+ * ✕ laid over a price is two elements both >= 44px. A 40px empty band is valid
+ * HTML. Writing a predicate per finding would produce a gate that fires on
+ * every deliberate design choice, so this drives the states, extracts the facts
+ * a human or model judge needs out of a PNG, and stops there.
+ *
+ * Its two real assertions are over its OWN inventory — cell ids are unique (a
+ * duplicate silently overwrites another cell's screenshot) and every non-auto
+ * cell carries a reason. Both are worth having and neither is expressible as a
+ * mutation: CELLS is declared in this file, so there is no `src/` line to break,
+ * and the gate mutates `src/` and rebuilds `dist/`.
+ *
+ * @mutate-exempt Evidence generator by design, not a checker — the reasoning is in ./observe.ts, and the short version is that all twenty of the owner's findings pass every predicate gate this repo has. Its only assertions (unique cell ids, a reason on every non-auto cell) are over the CELLS inventory declared IN THIS FILE, so no src/ mutation can reach them. NOT SHOWN ABLE TO FAIL, and nothing else covers it: the sweep half asserts nothing about what it renders, by intent. What would close it is not a mutation but a judge — the captured records are the input to a human or model critique, and the gap is that nothing checks the critique happened.
+ */
 import { mkdirSync, writeFileSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Page, BrowserContext } from "@playwright/test";

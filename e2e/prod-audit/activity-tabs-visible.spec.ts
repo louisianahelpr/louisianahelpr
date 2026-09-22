@@ -80,6 +80,12 @@
  * CLAUDE.md they are not evidence until someone has LOOKED:
  * `npm run review:record -- <png> <screen> <checked> <ok|defect>`.
  */
+// Shown able to fail on the owner's own report: a status tab that paints no
+// word. The labels are the whole subject — the phone row swaps three of five to
+// a shortLabel below 390px to fit five tabs, a title and a search button into
+// 320-414px, and "it fits" is worthless if the words are gone. Blanking them
+// reds "a tab button painted no word at all".
+// @mutate src/pages/activity/ActivityHeader.tsx |         label: f.label, |         label: "",
 import { test, expect, type Browser, type Page, type TestInfo } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";

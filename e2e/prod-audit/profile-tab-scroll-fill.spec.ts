@@ -38,6 +38,13 @@
  * until someone has LOOKED: `npm run review:record -- <png> <screen> <checked>
  * <ok|defect>`.
  */
+// Shown able to fail on VN-46 itself: the owner reported the Notifications tab
+// clipping its last rows, and the fix made the tab body the scroller. Removing
+// `overflow-y-auto` leaves the content overflowing but unscrollable — scrollTop
+// stays 0 while max stays positive — which is precisely the reported state.
+// Note this spec carries its own vacuity guard ("if the tab fits, 'it scrolls'
+// is unprovable here"), so it cannot silently stop measuring.
+// @mutate src/pages/Profile.tsx | page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 | page-measure w-[calc(100%+1.5rem)] h-full px-3 -mx-3
 import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";

@@ -45,6 +45,73 @@ dispatch in the shared group. Shown red on the original bug —
 `PROD_WORKFLOWS_DIR=<pre-fix checkout>` yields **10** rule-4 violations, the
 fixed tree yields **0**.
 
+## OPEN — PROD IS DOWN RIGHT NOW (2026-09-22 ~08:02 UTC onward), and nothing alarmed
+
+**Read this before reading any red below it.** Every request that actually
+reaches PostgREST or GoTrue on `fncmgoasalhdgfwzhsqa` returns **zero bytes**
+and times out. Measured from two independent places.
+
+From this machine, six consecutive rounds 08:26:23-08:28:24 UTC, then again at
+08:29:22:
+
+| probe | result |
+| --- | --- |
+| `/rest/v1/open_jobs_browse?select=id&limit=1` | `000` — no answer in 12s, 6/6 |
+| `/auth/v1/health` | `000` — no answer in 12s, 6/6 |
+| `/rest/v1/` (no query — Kong rejects without touching the backend) | **401 in 0.09s** |
+| `https://louisianahelpr.com/` (Vercel) | **307 in 0.14s** |
+| MCP `execute_sql` (`select now()`) | *Connection terminated due to connection timeout* |
+| Management API project status | **`ACTIVE_HEALTHY`** |
+
+The edge answers instantly for anything it can refuse on its own; everything
+that needs Postgres hangs. The Management API says the project is healthy, so
+**the dashboard is not going to tell anyone.** The marketing shell still loads,
+which means a real visitor gets the site and then nothing: no browse, no login,
+no messages.
+
+From CI, independently, 24 minutes earlier: `e2e-journeys` run
+**35701358961** never executed a single test on EITHER engine. Both legs died
+in the pre-flight sweep, on three `curl --max-time 20` attempts to
+`/auth/v1/token?grant_type=password`:
+
+```
+poster token mint attempt 1/3 — HTTP 000 — curl: (28) timed out after 20002ms with 0 bytes received
+poster token mint attempt 2/3 — HTTP 000 — …
+poster token mint attempt 3/3 — HTTP 000 — …
+::error::could not mint a poster token
+```
+
+So the outage began no later than **08:02:31 UTC** and was still going at
+**08:29**. Twenty-seven minutes, minimum.
+
+### The alarm exists, is correct, and did not run
+
+`scripts/uptime-check.mjs` handles this exact shape properly — an `AbortError`
+becomes `no answer in Xms`, and `0a5e77de5` additionally made a 200 with zero
+rows count as DOWN. The probe is not the problem. **Its schedule is.**
+`.github/workflows/uptime.yml` declares `cron: "*/10 * * * *"` — 144 runs a day
+— and GitHub actually started it **8 times in the last 48 hours**:
+
+```
+2026-09-22T05:52Z  2026-09-22T00:53Z  2026-09-21T22:12Z  2026-09-21T18:36Z
+2026-09-21T12:59Z  2026-09-21T06:15Z  2026-09-21T01:02Z  2026-09-20T23:02Z
+```
+
+Gaps of 2.7h, 5.0h, 3.6h, 5.6h, 6.7h. The last run was **2.5 hours before this
+outage started**. High-frequency crons are the first thing GitHub drops on a
+busy account, and this repo is very busy. So the one check whose whole job is
+to notice prod being unreachable has never actually been a ten-minute check,
+and the number in the file has been describing an intention, not a schedule.
+
+**This is the gap to close, and it is not "fix the cron".** A monitor that
+depends on the same CI queue as everything else cannot watch that queue's
+platform. It needs a heartbeat that is off GitHub, or a check that at minimum
+FAILS LOUDLY when it notices it has not run in N minutes (the dead-cron
+monitoring this repo already does for Supabase crons, pointed at itself).
+
+**Nothing about the app is implicated.** Every `e2e-journeys` red today, on both
+engines, is downstream of this.
+
 ## DONE 2026-09-22 — #1595's six, attributed: one product rule change, one Stripe outage, three that were prod being slow
 
 Every one reproduced or read off its own trace and screenshot before it was

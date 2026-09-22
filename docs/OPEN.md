@@ -8,6 +8,45 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## OPEN — the Messages disclosure chevron is SHIPPED BUT UNSEEN (2026-09-22, e28d5f55f)
+
+The code is on main. **Nobody has LOOKED at it**, and per the NEVER GUESS rule
+that is stated here rather than implied by silence.
+
+What landed (e28d5f55f): the phone disclosure chevron is back on
+`/messages`, matching ActivityHeader trait for trait, starting OPEN at every
+width. Owner ask, 2026-09-22, three messages ("post jobs and messagess hould
+collpase and expand all the same"). A cross-screen CI check
+(`src/test/filterDisclosureParity.test.ts`) was shown RED on the original bug
+— 9 of 9 parity assertions fail at 320dfba24 — and is green now.
+
+What is NOT done, and must be before this is called finished:
+
+- **Screenshots at 375 and 1440, chevron open AND closed, BEFORE and AFTER**,
+  read as images, each one recorded with `npm run review:record`. Zero were
+  taken. The only live server on this machine (`vite preview`, port 4292) is
+  another lane's, serving the OLD shared `dist/` — it can only show the
+  BEFORE, and rebuilding `dist/` would permanently blank their page (see the
+  entry below). The AFTER needs an isolated build
+  (`--outDir dist-msg-probe`) on its own port.
+- **Proof of fit** at 1440 and 375: `documentElement.scrollWidth <=
+  clientWidth`, no element wider than the viewport, column centred with no
+  dead band. Not measured.
+- **`npm run typecheck` / `npx vitest run` repo-wide.** Not run: a live
+  `vacuity --all` (pid 23191) had mutations applied to several files at the
+  time, so a full run would have been contaminated and meaningless.
+  `scripts/parsecheck.mjs` passed on all three touched files, and the two
+  directly-affected suites (18 tests) pass. CI is the real gate here.
+
+The specific visual risk to look for: this title card was ~118px on phone in
+every state; the chevron restores a ~62px collapsed state. Check the
+collapsed card does not leave the thread list starting at a different y than
+the owner expects, and that the three-button cluster (search · hamburger ·
+chevron) still leaves "Messages" un-truncated at 320 and 375 — the 2026-09-19
+measurement said the cluster was two buttons wide when the strip was moved to
+its own line, and it is three again now. That is the one number this change
+could have moved the wrong way.
+
 ## OPEN — a rebuild of `dist/` under a live preview leaves the happy-path app PERMANENTLY BLANK (2026-09-22)
 
 REPRODUCED, 2 failures in 18 runs, under `Emulation.setCPUThrottlingRate: 20`

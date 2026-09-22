@@ -968,7 +968,38 @@ async function main() {
               await load();
               if (!(await replay(chain))) { skip("opener chain could not be replayed (parent press reported separately)"); continue; }
             }
-          } else if (pageDirty || !atRest() || (await page.locator(OPEN_OVERLAY).count()) > 0) {
+          } else if (
+            pageDirty ||
+            !atRest() ||
+            (await page.locator(OPEN_OVERLAY).count()) > 0 ||
+            // WE MAY NOT EVEN BE ON THIS SCREEN ANY MORE.
+            //
+            // The three conditions above catch a page that CHANGED. None of
+            // them catches a page that was LEFT. If an earlier press navigated
+            // — and plenty do — every control still queued for this screen is
+            // pressed against whatever route we drifted to.
+            //
+            // It stays invisible when the control is gone, because the missing-
+            // control branch below already asks `sameScreen` and dispositions
+            // it. It is NOT invisible when the control PERSISTS ACROSS ROUTES,
+            // which is exactly what the bottom nav does: it still resolves, so
+            // nothing re-addresses and nothing skips, and the click burns its
+            // full 16s budget against an element that belongs to another
+            // screen's layout.
+            //
+            // Measured, run 35768341847: `[/jobs/7d315f44… customer]` found 19
+            // controls, pressed 2, and failed 4 — "Posts", "Jobs", "Messages",
+            // "Profile", every one NOT CLICKABLE at 16000ms. The log gives the
+            // game away: the resolved element is
+            // `<button aria-label="Posts" aria-current="page" …>`. `aria-current`
+            // means we were ALREADY on /my-posts. The job itself does not exist
+            // in prod (`select … where id = '7d315f44-…'` returns no row), so
+            // the route bounced and the sweep kept pressing the old inventory.
+            //
+            // Four fabricated product defects on one page, and the same shape
+            // is available on every screen whose press navigates away.
+            !sameScreen(page.url())
+          ) {
             await load();
             pageDirty = false;
           }

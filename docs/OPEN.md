@@ -93,24 +93,48 @@ STILL OPEN: the money loop has not yet been observed completing. Re-dispatch
 reaches the `release-payout` assertions — a `tr_...` id, a helper-visible `paid`
 row, and the `released` flip. That run is the proof for the payout leg above.
 
-## OPEN — 51 messages are sitting in the two email DLQs and nobody has decided what to do with them (2026-09-22)
+## DONE 2026-09-22 — the 51 stranded email DLQ messages are archived (owner: discard)
 
-Found while closing the monitoring gap below. Read live on prod 2026-09-22:
+Found while closing the monitoring gap below, and put to the owner with replay
+and partial replay offered as alternatives. Owner chose **discard**: the
+transactional backlog is nine-to-ten-day-old notifications about Sept 13
+events, and replaying them would fire stale alerts about things long past.
 
-| queue | depth | what |
-| --- | --- | --- |
-| `pgmq.q_auth_emails_dlq` | 1 | a `recovery` (password reset) for a TEST account, enqueued 2026-09-12 11:23 UTC |
-| `pgmq.q_transactional_emails_dlq` | 50 | app notifications, 2026-09-13 |
+RE-MEASURED immediately before purging (16:24 UTC), not trusted from the
+15:50 reading — unchanged:
 
-DELIBERATELY NOT TOUCHED. Replaying the 50 transactional ones would fire
-nine-day-old notifications at real users; draining them destroys the only
-record of what failed. That is a decision, not a cleanup, and it is the owner's.
-The one auth message is a test account, so nobody is locked out by it today.
+| queue | depth | msg_ids | contents |
+| --- | --- | --- | --- |
+| `pgmq.q_auth_emails_dlq` | 1 | 1 | 1× "Reset your Helpr password" (`label: recovery`), 2026-09-12 11:23 UTC |
+| `pgmq.q_transactional_emails_dlq` | 50 | 1–50 | 30× "New application", 16× "📋 New job offer!", 4× "✅ Arrival confirmed", 2026-09-13 → 09-14 |
 
-Detection is now in place (next section), so this backlog can sit here
-knowingly instead of silently. Whoever picks it up: `sweep_email_dlqs()` has
-already recorded the high-water `msg_id`, so draining these will NOT cause a
-re-alert.
+**Every one of the 51 was addressed to a mailinator test account** — not a
+single real user was in either DLQ. Recipients in full:
+`helpr-e2e-poster-0902@mailinator.com` (1, auth),
+`helpr-seed-heavy-0912@mailinator.com` (30),
+`helpr-e2e-helper-0902@mailinator.com` (20). That is worth recording because
+the discard decision was taken on the understanding that real users would get
+stale mail on a replay; in fact nobody real was ever affected, which makes the
+discard strictly safer than it was assumed to be — and it means the Sept 12-13
+Resend failure hit only test traffic.
+
+ARCHIVED, NOT DELETED: `pgmq.archive('auth_emails_dlq', …)` (1) and
+`pgmq.archive('transactional_emails_dlq', …)` (50), pgmq's own API rather than
+a raw `DELETE`, so the payloads survive in `pgmq.a_auth_emails_dlq` and
+`pgmq.a_transactional_emails_dlq` and can still be read. Nothing was replayed;
+archiving cannot send.
+
+After: both DLQs 0, archives 1 and 50. The live queues `auth_emails` and
+`transactional_emails` were not touched (both 0, healthy, before and after).
+`email_send_log` was not touched either — its 52 `dlq` and 45 `pending` rows
+are the audit trail of the Sept 12-13 Resend failure and remain the historical
+record that these sends were attempted.
+
+The new alerting was proven across the full cycle by this: backlog present →
+alerted (16:06), backlog unchanged → silent (16:21), archived → silent
+(16:36, below). The recorded high-water `msg_id`s (1 and 50) stay in
+`error_logs`, so the next real failure — which gets a higher msg_id, since
+pgmq never reuses one — still alerts.
 
 ## DONE 2026-09-22 — anything landing in an email dead-letter queue now raises an alarm
 

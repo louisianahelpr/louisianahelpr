@@ -11,8 +11,9 @@
   },
   "process-scheduled-payouts": {
     "observable": "payout_transfers where initiated_by<>'admin'",
-    "why": "The cron stamps its own initiator, so admin rows do not count as proof",
-    "status": "NEVER"
+    "why": "PROVEN 2026-09-22T16:40:58Z, money actually moved: Stripe transfer tr_3UILijKp2H4b7tEC1WjXCD25, $22.00, destination acct_1UCU7J4HVr518r7O, destination_payment py_1UIWkX4HVr518r7OLqZDhsQv status=succeeded \u2014 the helper's connected account went $0 -> $22.00 pending. Ledger row initiated_by='system' (not admin), amount_cents=2200, platform_fee_cents=300; job -> released. CAVEAT, stated because it matters: the is_seed deadlock was broken by flipping ONE already-funded fixture to is_seed=false and fast-forwarding payout_scheduled_at, then restoring it. That changed DATA, not code \u2014 the production .eq('is_seed', false) filter ran unmodified and admitted the row on its own merits. So the CODE is proven; a job created non-seed through the real UI is still inferred from the column default, not driven. LIVE-MODE BLOCKER found in the same run: the platform account runs payouts schedule={interval:'daily',delay_days:2}, so two days after a charge its funds are swept to the bank and the charge can no longer fund a transfer (available $0.00). Any payout delayed >2 days past its charge fails balance_insufficient \u2014 retries, dispute holds, late Connect onboarding, the stale payout_pending pile. Owner action: set the schedule to manual.",
+    "status": "PROVEN-BY-EXECUTION",
+    "last_seen": "2026-09-22"
   },
   "auto-release-payment": {
     "observable": "payout_transfers where initiated_by='auto'",

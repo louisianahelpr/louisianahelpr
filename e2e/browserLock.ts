@@ -81,7 +81,9 @@ export async function acquireBrowserLock(): Promise<void> {
       // that window, so a racing acquirer is never robbed, while debris from a
       // process killed inside it is cleared on the next poll.
       if (!ownerReadable) {
-        let ageMs = Infinity;
+        // No seed value: the catch below always `continue`s, so every read of
+        // ageMs is preceded by the assignment in the try.
+        let ageMs: number;
         try { ageMs = Date.now() - statSync(LOCK).mtimeMs; } catch { /* vanished under us — retry the mkdir */ continue; }
         if (ageMs > ORPHAN_GRACE_MS) {
           console.log(`[browser-lock] ${LOCK} has no owner.json and is ${Math.round(ageMs / 1000)}s old — reclaiming an orphaned lock.`);

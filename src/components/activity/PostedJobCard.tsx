@@ -1,7 +1,7 @@
 import { memo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, RotateCcw, RefreshCw, Check, MapPinOff } from "lucide-react";
+import { RotateCcw, RefreshCw, Check, MapPinOff } from "lucide-react";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { SeriesStrip } from "@/components/activity/SeriesStrip";
 import { JobCountdown } from "@/components/activity/JobCountdown";

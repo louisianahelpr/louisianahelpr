@@ -1,3 +1,11 @@
+/* eslint-disable no-irregular-whitespace --
+ * The U+200B ZERO WIDTH SPACEs below are load-bearing, not stray paste debris.
+ * This file documents comment syntax, so its own doc comment has to SHOW a
+ * nested block-comment terminator. Writing that terminator literally would end
+ * the comment it appears in and break the file, so a zero-width space sits
+ * between the asterisk and the slash. Deleting them to satisfy the rule would
+ * not "clean up whitespace" — it would truncate this file at the first example.
+ */
 /**
  * The one correct way to hide comments and string literals from a source scan.
  *

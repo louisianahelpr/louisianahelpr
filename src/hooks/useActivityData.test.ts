@@ -294,15 +294,32 @@ describe("fetchAppliedActivity — My Jobs core", () => {
     expect(result.declinedJobIds.has("j1")).toBe(true);
   });
 
-  it("populates helperReviewedJobIds and start-request check-ins in the FIRST wave", async () => {
+  it("issues MY JOBS as ONE wave — the jobs read does not wait for the applications read", async () => {
     setResponse(APPS_KEY, { data: [{ id: "a1", job_id: "j1", helper_id: "u1" }], error: null });
     setResponse(APPLIED_JOBS_KEY, { data: [{ id: "j1", customer_id: "poster-1" }], error: null });
     setResponse(HELPER_REVIEWS_KEY, { data: [{ job_id: "j1" }], error: null });
 
     const result = await fetchAppliedActivity("u1");
     expect(result.helperReviewedJobIds.has("j1")).toBe(true);
-    // Issued BEFORE the dependent jobs-by-id read.
-    expect(issued.indexOf(HELPER_REVIEWS_KEY)).toBeLessThan(issued.indexOf(APPLIED_JOBS_KEY));
+
+    /* THE WAVE COUNT IS THE ASSERTION (owner, 2026-09-21: /my-jobs "takes
+       long to load").
+       `get_jobs_for_my_applications()` used to be awaited AFTER the
+       applications query, which cost a second serial Supabase round trip —
+       measured on prod at 375: issued at +548ms against the applications
+       query's +180ms, first card at ~1050ms. It never needed it: the RPC is
+       keyed off the caller's applications server-side and takes no id list,
+       which its own comment already said.
+
+       This used to read `indexOf(HELPER_REVIEWS_KEY) < indexOf(APPLIED_JOBS_KEY)`
+       — "reviews does not wait for the jobs list". That is now too weak to
+       state the contract: NOTHING waits, so what has to be true is that all
+       five reads are issued together, before any of them resolves. `issued`
+       records at call time, so a read that waited on another's reply cannot
+       be in this set. */
+    expect(issued.slice(0, 5).sort()).toEqual(
+      [APPS_KEY, APPLIED_JOBS_KEY, OFFERS_KEY, VIOLATIONS_KEY, HELPER_REVIEWS_KEY].sort(),
+    );
   });
 
   it("throws when the jobs-behind-the-applications read fails", async () => {

@@ -338,16 +338,49 @@ export async function fetchPostedActivityDetail(
 // ---------------------------------------------------------------------------
 
 /**
- * TWO waves. Wave 1 is everything answerable from nothing but the user id —
- * the applications, the pending direct offers, the job-denial violations, the
- * reviews this helper has already written, and the start-request check-ins on
- * jobs assigned to them (again an embedded `!inner` filter rather than an id
- * list, so it doesn't have to wait). Wave 2 is the one genuinely dependent
- * read: the job rows behind the applications, without which there is no card.
+ * ONE wave. Everything here is answerable from nothing but the user id — the
+ * applications, the job rows behind them, the pending direct offers, the
+ * job-denial violations, and the reviews this helper has already written.
+ *
+ * ── IT WAS TWO, AND THE SECOND ONE WAS NOT DEPENDENT ─────────────────────
+ * Owner, 2026-09-21: "check into jobs exhaustivly bc it stills jumps really
+ * bad and takes long to load."
+ *
+ * `get_jobs_for_my_applications()` used to be awaited AFTER `appsRes`, inside
+ * `if (apps.length > 0)`. The note on that call already said the reason it
+ * needn't be: "The RPC is keyed off my applications server-side, so it needs
+ * no id list". The only thing the await bought was skipping one cheap RPC for
+ * a helper with zero applications — paid for by a whole extra round trip for
+ * every helper who has any.
+ *
+ * Measured on prod (helper-e2e, /my-jobs at 375, this checkout's local build,
+ * Chromium, 2026-09-21), the request timeline from `goto`:
+ *
+ *     +180ms   GET  applications?select=*          ← wave 1 issued
+ *     +548ms   POST rpc/get_jobs_for_my_applications  ← wave 2, on wave 1's reply
+ *     ~1050ms  first card in the DOM
+ *
+ * Two serial Supabase round trips of ~350-500ms each, for two reads that
+ * could have left together. `directOffersRes` is the proof it was safe: that
+ * RPC is also unconditional, also keyed off the caller, and has always been in
+ * wave 1.
+ *
+ * The `jobIds` intersection is unchanged and still deliberate — the RPC's row
+ * set is scoped to the map of apps in THIS payload, not trusted to match it.
  */
 export async function fetchAppliedActivity(userId: string): Promise<AppliedActivity> {
-  const [appsRes, directOffersRes, violationsRes, helperReviewsRes] = await Promise.all([
+  const [appsRes, jobsRes, directOffersRes, violationsRes, helperReviewsRes] = await Promise.all([
     supabase.from("applications").select("*").eq("helper_id", userId).order("created_at", { ascending: false }),
+    /* The job rows behind my applications. An RPC rather than
+       `.in("id", jobIds)` because a helper with a merely PENDING application
+       is not entitled to the poster's street address, and no RLS policy can
+       withhold one column: `get_jobs_for_my_applications()` returns the
+       identical row set (proven equal to the policy predicates over live data)
+       with the address masked to "City, ST" — unless I'm the poster or the
+       assigned helper, who still get it in full. Keyed off my applications
+       server-side, so it takes no id list and needs nothing from the query
+       above; see the note on this function for what awaiting it cost. */
+    supabase.rpc("get_jobs_for_my_applications"),
     // Pending direct offers come through an RPC, not the table. The street
     // address in `jobs.location` is withheld until the offer is ACCEPTED, and
     // RLS is row-level — a policy that grants the row hands over every column.
@@ -390,20 +423,17 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
   const apps = appsRes.data ?? [];
   if (apps.length > 0) {
     const jobIds = new Set(apps.map((a) => a.job_id));
-    // Also an RPC rather than `.in("id", jobIds)`, for the same reason as the
-    // direct offers above: a helper with a merely PENDING application is not
-    // entitled to the poster's street address, and no RLS policy can withhold
-    // one column. `get_jobs_for_my_applications()` returns the identical row
-    // set (proven equal to the policy predicates over live data) with the
-    // address masked to "City, ST" — unless I'm the poster or the assigned
-    // helper, who still get it in full. The RPC is keyed off my applications
-    // server-side, so it needs no id list; we still intersect with `jobIds`
-    // to keep the map scoped to the apps in this payload.
-    const jobsRes = await supabase.rpc("get_jobs_for_my_applications");
     // The applied-jobs list is meaningless without the job rows behind it —
     // a failed jobs fetch would leave every app with `job: null` and render
     // a blank tab. Surface it as a query error, like the primary fetches.
+    //
+    // Checked HERE rather than beside `primaryError` above, deliberately: a
+    // helper with no applications has no cards for these rows to be missing
+    // from, and failing their whole tab on an RPC whose result would have
+    // been discarded is worse than the extra request the move above costs.
     if (jobsRes.error) throw jobsRes.error;
+    // We still intersect with `jobIds` to keep the map scoped to the apps in
+    // this payload rather than trusting the RPC's row set to match it.
     const jobMap = new Map(
       (jobsRes.data ?? []).filter((j) => jobIds.has(j.id)).map((j) => [j.id, j]),
     );

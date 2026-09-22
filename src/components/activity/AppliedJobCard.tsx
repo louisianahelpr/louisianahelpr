@@ -242,6 +242,39 @@ function AppliedJobCardInner({
         /* An anonymised job carries no address (see `posterId` above); the
            location chip's own normaliser already treats "" as absent. */
         location={job.location ?? ""}
+        /* TAP EXPANDS, HOLD OPENS THE MAP — the same prop PostedJobCard has
+           carried since 2026-09-14, now on this card too.
+           (Owner, 2026-09-21, pointing at a /my-jobs card: "any time i click
+           in this job card, it opens apple maps. ths is not correct.")
+
+           WHY IT WAS SO EASY TO HIT HERE, with the arithmetic. The location
+           slot was an `<a href="https://maps.apple.com/…">`, and once
+           `showFullAddress` below is true the location takes `basis-full` — a
+           line of its own inside the wrapping meta row. That class lands on
+           the ANCHOR, so the link box became the whole row: measured on prod
+           (helper-e2e, Chromium at 375, this checkout's build) every card was
+           301x139 with a live 267x32 maps anchor in it — 89% of the card's
+           width, directly under the title, painted exactly like the plain date
+           text beside it. 15% of the card's in-viewport area left the app. The
+           same probe on /my-posts scored 0%, because My Posts already had this
+           prop; the note on it says "opt-in per card so My Jobs is untouched",
+           and untouched is what the owner is reporting.
+
+           The stopPropagation guards on the maps controls were never going to
+           help: propagation is what makes the CARD also toggle when the map
+           opens. An anchor's own default action is the navigation, so the card
+           tap never reached the card — it activated a link.
+
+           What the prop changes: the visible element becomes a <button> that
+           does not stop the click, so JobCardShell's wrapper onClick expands
+           the card exactly as a tap anywhere else on it does, and the map
+           moves behind a deliberate 500ms hold plus the focus-only anchor that
+           keyboard and screen-reader users already had. Directions are not
+           lost either way — DirectionsButton is a real control in the action
+           row of every state that needs it. Guarded by
+           AppliedJobCard.locationTapExpands.test.tsx (contract) and
+           e2e/prod-audit/card-maps-hit-area.spec.ts (the geometry). */
+        locationPressToMap
         /* THE FULL ADDRESS TAKES THE CITY'S PLACE (owner, 2026-09-19, with a
            screenshot of /my-jobs: "this shouldnt show 2 addresses... the full
            address needs to go where the city place is. not be on a whole

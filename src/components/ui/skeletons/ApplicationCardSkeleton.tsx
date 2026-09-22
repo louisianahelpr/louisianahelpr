@@ -18,24 +18,63 @@ import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";
  * contract `MessageThreadSkeleton` has with `ConversationRow` and
  * `JobCardSkeleton` has with `cardGeometry`.
  *
- * Owner, 2026-09-19: loading states "jump and are not consistent with their
- * info". This one omitted two things every real applied card leads with:
+ * ── WHAT IT DREW BEFORE, AND WHAT THAT COST ──────────────────────────────
+ * Owner, 2026-09-21: "check into jobs exhaustivly bc it stills jumps really
+ * bad and takes long to load."
  *
- *   - THE CATEGORY RAIL, the 6px colour stripe down the left edge. Absent
- *     here, so the bone was a plain card and the real card arrived wearing a
- *     coloured edge.
- *   - THE CATEGORY TAB, which overlays the card's top-left corner. That is
- *     not decoration either: JobCardTitleBar switches from `py-2.5` to
- *     `pt-6 pb-2.5` whenever a category is present, precisely to clear it.
- *     Omitting the tab made the placeholder a title-bar's worth of padding
- *     too short on every row, which is the size half of the report.
+ * This file drew a card with SIX bone rows and a full-width action button in a
+ * footer of its own. The collapsed card it stands in for has neither: a
+ * collapsed AppliedJobCard is a title bar and a status strip, because the
+ * description is behind the expand and the action block is conditional on the
+ * job's state.
  *
- * The bones inside stay deliberately fewer than the card's parts. A
- * placeholder holds the shape and gets out of the way: a title bar, a payout
- * chip, a meta row, two description lines, an attribution line and one
- * action bar. Nothing stands in for the Accept/Decline pair or the tracker
- * panel — both conditional on the real card's state, and drawing them would
- * be inventing content. What has to match is the RESERVATION.
+ * Measured on prod (helper-e2e, /my-jobs, Chromium at 375, this checkout's
+ * local build, 2026-09-21):
+ *
+ *     placeholder row   220px, pitch 230px
+ *     real row          151px, pitch 151px
+ *     ────────────────────────────────────
+ *     per row           -69px, and it compounds down the list: card 2 moved
+ *                       36px, card 3 115px, card 4 195px, the moment the data
+ *                       landed.
+ *
+ * That is "jumps really bad", and it is invisible to CLS: the Layout
+ * Instability API only scores elements that existed in the previous frame and
+ * MOVED, and a skeleton→content swap removes one subtree and inserts another.
+ * Measured CLS on this page was 0.0000 across 0 shifts while every card on it
+ * slid. The number that matters here is the row height, which is what
+ * `scripts/check-loading-state-shape.mjs` measures (ROW_BUDGET 8px) and what
+ * `docs/audit/loading-states/baseline.json` had this surface pinned at
+ * ("customer /my-jobs #1 … row 206px → 154px").
+ *
+ * ── WHAT IT DRAWS NOW ────────────────────────────────────────────────────
+ * The collapsed card's two blocks and nothing else, each sized from the real
+ * one's own box:
+ *
+ *   TITLE BAR  `JOB_CARD_TITLE_PAD_WITH_TAB` (24px tab clearance + 10px) with
+ *              the title beside a money pill — 26px, which is MoneyChip's real
+ *              height (`py-1` on a `text-ds-17 leading-none` figure, plus its
+ *              0.5px border) — then the meta block at `mt-1.5`.
+ *   META       TWO lines, because the four states this card spends most of its
+ *              life in (offered / confirmed / active / disputed) print the
+ *              whole street address, and `JobCardMetaRow` gives an address a
+ *              line of its own (`basis-full`) rather than clipping it to seven
+ *              characters at 320. Line one is the 32px address control, line
+ *              two the 16px date/time run, `gap-y-1` between them.
+ *   STATUS     The strip `JobStatusStrip` paints on every collapsed card
+ *              ("NEEDS YOU — the day has passed"): a hairline top border,
+ *              `px-4 py-2`, a 12px icon and two runs of text.
+ *
+ * Nothing stands in for the Accept/Decline pair, the tracker panel or the
+ * description. All three are conditional on the card's state, and drawing them
+ * is what made the placeholder 69px too tall on every row. What has to match
+ * is the RESERVATION.
+ *
+ * The two things it still leads with, and must (they were added 2026-09-19 for
+ * the first half of the same report):
+ *   - THE CATEGORY RAIL, the 6px colour stripe down the left edge.
+ *   - THE CATEGORY TAB, which overlays the card's top-left corner and is why
+ *     the title row runs `pt-6` rather than `py-2.5`.
  */
 export function ApplicationCardSkeleton() {
   return (
@@ -64,55 +103,81 @@ export function ApplicationCardSkeleton() {
         </span>
       </div>
 
-      {/* Title row — the card's own padding, tab clearance included. */}
+      {/* TITLE BAR — the card's own padding and hairline, tab clearance
+          included, and the meta block inside it exactly as JobCardTitleBar
+          places it (`meta` is rendered in a `mt-1.5` wrapper, not as a
+          sibling block with its own padding). */}
       <div
-        className={`${JOB_CARD_TITLE_PAD_WITH_TAB} flex items-center justify-between`}
+        className={JOB_CARD_TITLE_PAD_WITH_TAB}
         style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
       >
-        <Skeleton
-          className="h-4 w-[55%] rounded"
-          style={{ background: "hsl(var(--olivewood) / 0.14)" }}
-        />
-        <Skeleton
-          className="h-5 w-16 rounded-full shrink-0 ml-3"
-          style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
-        />
-      </div>
-
-      {/* Summary block — date/location meta row + description preview +
-          poster attribution. */}
-      <div className="px-4 py-3 space-y-2.5">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-between">
           <Skeleton
-            className="h-3 w-28 rounded"
-            style={{ background: "hsl(var(--olivewood) / 0.12)" }}
+            className="h-4 w-[55%] rounded"
+            style={{ background: "hsl(var(--olivewood) / 0.14)" }}
           />
+          {/* MoneyChip's real box: 17px figure + `py-1` + 0.5px border = 26px.
+              The old bone was `h-5` (20px), which let the title row collapse
+              6px shorter than it can ever be. */}
           <Skeleton
-            className="h-3 w-24 rounded"
-            style={{ background: "hsl(var(--olivewood) / 0.12)" }}
+            className="h-[26px] w-16 rounded-ds-md shrink-0 ml-3"
+            style={{ background: "hsl(var(--bark) / 0.10)" }}
           />
         </div>
-        <Skeleton
-          className="h-3 w-[90%] rounded"
-          style={{ background: "hsl(var(--olivewood) / 0.10)" }}
-        />
-        <Skeleton
-          className="h-3 w-[60%] rounded"
-          style={{ background: "hsl(var(--olivewood) / 0.10)" }}
-        />
-        <Skeleton
-          className="h-3 w-32 rounded"
-          style={{ background: "hsl(var(--olivewood) / 0.10)" }}
-        />
+
+        <div className="mt-1.5 flex flex-col gap-y-1">
+          {/* LINE 1 — the street address, on a line of its own. 32px is the
+              press-to-map control's real box (`py-2 -my-2` on a 16px chip:
+              the hit area the app puts under every location). */}
+          <div className="flex items-center gap-1.5" style={{ height: "32px" }}>
+            <Skeleton
+              className="h-3 w-3 rounded-full shrink-0"
+              style={{ background: "hsl(var(--olivewood) / 0.14)" }}
+            />
+            <Skeleton
+              className="h-3 w-[70%] rounded"
+              style={{ background: "hsl(var(--olivewood) / 0.12)" }}
+            />
+          </div>
+          {/* LINE 2 — the date, and the start time when the job has one. */}
+          <div className="flex items-center gap-x-3" style={{ height: "16px" }}>
+            <Skeleton
+              className="h-3 w-3 rounded-full shrink-0"
+              style={{ background: "hsl(var(--olivewood) / 0.14)" }}
+            />
+            <Skeleton
+              className="h-3 w-24 rounded"
+              style={{ background: "hsl(var(--olivewood) / 0.12)" }}
+            />
+            <Skeleton
+              className="h-3 w-14 rounded"
+              style={{ background: "hsl(var(--olivewood) / 0.10)" }}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Action footer — single full-width button placeholder. */}
+      {/* STATUS STRIP — JobStatusStrip's own box (`px-4 py-2`, hairline top
+          border, 12px icon), which is what a collapsed card actually ends
+          with. It used to be a `py-3` band holding a 36px full-width button:
+          52px of reservation for a control most states do not draw. */}
       <div
-        className="px-4 py-3"
-        style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
+        className="px-4 py-2 flex items-center gap-1.5"
+        style={{
+          borderTop: "0.5px solid hsl(var(--olivewood) / 0.22)",
+          background: "hsl(var(--olivewood) / 0.08)",
+        }}
       >
         <Skeleton
-          className="h-9 w-full rounded-ds-md"
+          className="h-3 w-3 rounded-full shrink-0"
+          style={{ background: "hsl(var(--olivewood) / 0.20)" }}
+        />
+        <Skeleton
+          className="h-2.5 w-20 rounded"
+          style={{ background: "hsl(var(--olivewood) / 0.16)" }}
+        />
+        <Skeleton
+          className="h-2.5 w-24 rounded ml-auto"
           style={{ background: "hsl(var(--olivewood) / 0.12)" }}
         />
       </div>

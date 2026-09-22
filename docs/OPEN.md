@@ -59,6 +59,95 @@ registration in that tree — including ones that are green on their own.
   reported 0/4 and four `inconclusive`, and `src/test/vacuityGate.test.ts`
   passes 5/5 here.
 
+## DONE 2026-09-21 — the /my-jobs card was a map link, and its placeholder was 69px too tall (owner, two reports)
+
+Owner, verbatim: "any time i click in this job card, it opens apple maps. ths
+is not correct." and "check into jobs exhaustivly bc it stills jumps really
+bad and takes long to load. somethign is not right with jobs so figure it out."
+
+Both reproduced and both fixed. Measured on prod (helper-e2e / poster-e2e,
+Chromium, this checkout's local build, 375 unless noted):
+
+- **The map link.** `JobCardMetaRow`'s location slot was an `<a>` on this card,
+  and `showFullAddress` gives the address `basis-full` — which lands on the
+  ANCHOR, so the link box became the whole row: a live **267x32 maps anchor,
+  89% of a 301x139 card's width**, directly under the title, painted exactly
+  like the plain date beside it. **15% → 0%** of the card's tap area opens
+  Maps. Fixed by `locationPressToMap` on the applied card — the prop My Posts
+  has carried since 2026-09-14, whose own note said "opt-in per card so My Jobs
+  is untouched". Card height 139px → 151px, which is My Posts' number exactly.
+- **The jump, and CLS could not see it.** Measured CLS on /my-jobs was
+  **0.0000 across ZERO layout-shift entries** while every card moved up to
+  195px — the Layout Instability API only scores elements that existed in the
+  previous frame and MOVED, and a skeleton→content swap removes one subtree and
+  inserts another. The real numbers: placeholder row **220px → 150px** against
+  a real 151px; pitch **230px → 162px** against 163px (the lists use
+  `space-y-3`, the skeleton said `space-y-2.5`); first card y **95px → 138px**
+  against 138px (`ActivityHeader`'s status-tab line, open by default since
+  2026-09-20, was not reserved at all); 4th card y **785px → 624px** against
+  627px. `ApplicationCardSkeleton` drew six bone rows and a full-width action
+  footer for a collapsed card that is a title bar and a status strip.
+- **The load.** `get_jobs_for_my_applications` was awaited AFTER the
+  applications query although its own note says it "is keyed off my
+  applications server-side, so it needs no id list". It now leaves in wave 1:
+  issued at **+548ms → +162ms** from `goto`, **two serial Supabase waves →
+  one**. Time to first card in the DOM: ~960-1191ms (n=3) → 681-1001ms (n=4).
+
+Guards, both shown RED on the original and both in the nightly `prod-audit`
+project: `e2e/prod-audit/card-maps-hit-area.spec.ts` (elementFromPoint over a
+grid on every card, at 375 and 1440, with the meta-row consumer list derived
+from `src/`) and `e2e/prod-audit/activity-loading-reserve.spec.ts` (placeholder
+row box vs real row box, list response held on the wire). Plus
+`src/components/activity/AppliedJobCard.locationTapExpands.test.tsx` for the
+markup half. Reverted on a real build, the two loading assertions read
+`220px vs 151px (69 > 8)` and `first-row offset 107px (> 72)`.
+
+## OPEN — /my-posts' placeholder card is a different component and 45px short (2026-09-21)
+
+Found while checking the sibling tab for the same defect, as the owner asked.
+/my-jobs is fixed above; /my-posts is not, and it is not the same file.
+
+- The posted tab's placeholder is `ActivityCardSkeleton`
+  (`src/components/SkeletonLoaders.tsx`) — a hand-drawn `rounded-ds-md p-4
+  space-y-3` box — while the real `PostedJobCard` is the shared
+  `JobCardShell`. Measured 2026-09-21 at 375: **106px placeholder, 151px real
+  row** (+45px each), and the placeholder card has no frame, no category rail
+  and no category tab, so the bones float on the panel with no card edges.
+- Its first row also starts 64px above the real one, because the poster's
+  default bucket renders the GROUPED view and the placeholder draws a flat
+  list. That is down from 107px (the shared title-card fix above), and the
+  remaining 64px is a section heading.
+- `e2e/prod-audit/activity-loading-reserve.spec.ts` PINS the 106px
+  (`POSTED_ROW_PIN`) rather than exempting it: the surface can be fixed, never
+  made worse. The fix is the one /my-jobs took — import the shell's geometry
+  instead of redrawing it — and it touches a component shared with Activity's
+  posted Suspense fallback, so it was not bundled into the owner's /my-jobs
+  report.
+
+## OPEN — `docs/audit/loading-states/measurements.json` is stale for /my-jobs (2026-09-21)
+
+`scripts/check-loading-state-shape.mjs` reads committed evidence, and that
+evidence still records the pre-fix `customer /my-jobs #1 … row 206px → 154px`,
+with the matching `baseline.json` entry. The check is therefore still green on
+a surface that is fixed, and the baseline cannot shrink until the evidence is
+re-generated. `scripts/audit/measure-loading-states.mjs` needs the browser lock
+for every route in `App.tsx` across both personas, so it is a run of its own
+rather than a side effect of this fix — and narrowing it with `ROUTES=` would
+drop every other route's results and break its own "every route was measured"
+assertion.
+
+## HEADS-UP — three duplicate reads on every Activity page load (2026-09-21)
+
+Noticed while measuring the /my-jobs waterfall; reported, not touched.
+`useActivityBadgeCounts` is mounted by BOTH `DesktopSidebarNav` and
+`MobileNav`, and it issues raw `supabase.rpc(...)` / `.select(...)` calls
+rather than going through React Query, so nothing de-duplicates them. Measured
+on /my-jobs: `rpc/get_my_pending_direct_offers` fired **3x** (two from the nav
+pair, one from `useActivityData`) and the `HEAD applications?…` count **2x**,
+plus `avatars/…/avatar.jpg` twice. They go out in parallel at ~+150ms so they
+do not lengthen the critical path measurably, but they are three prod round
+trips per page load that nobody needs.
+
 ## OPEN — `02-marketplace` has been RED since the 2026-09-19 bucket reorder; J3-J5 have not run since (2026-09-21)
 
 Found while trying to prove `e2e/journeys/02-marketplace.spec.ts` able to fail.

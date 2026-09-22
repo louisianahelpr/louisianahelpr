@@ -26,9 +26,53 @@ import { ACTIVITY_HEADER_PADDING } from "@/pages/activity/ActivityHeader";
  */
 export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
   const isWebDesktop = useIsWebDesktop();
+  /**
+   * THE TAB ROW IS PART OF THE TITLE CARD, so the placeholder reserves it.
+   *
+   * Owner, 2026-09-21: "/my-jobs … jumps really bad". Measured on prod
+   * (helper-e2e, Chromium at 375, this checkout's local build, 2026-09-21):
+   * the first PLACEHOLDER card's top sat at y=95 and the first REAL card's at
+   * y=138 — the whole list, every card, slid 43px DOWN the instant the data
+   * landed. The 43px is this row: `ActivityHeader` renders the five status
+   * tabs (`You · Waiting · Soon · Done · Cancel`) on their own line under the
+   * title on phone, OPEN by default at every width since 2026-09-20 — and the
+   * placeholder drew only the 44px title line, so it described a screen that
+   * has not existed since that change. ActivityHeader's own note puts the row
+   * at "the extra 41px of cards"; the arithmetic below agrees.
+   *
+   * Sized from the real row's own box rather than by eye: `py-[13px]` on a
+   * `text-ds-11 leading-none` label (UnderlineTabs, phone = not `dense`) is
+   * 13 + 11 + 13 = 37px, in a wrapper carrying `pb-0.5`. Bones stand in for
+   * the five labels at roughly their measured widths, because a reader who
+   * sees one 32px bone where five words are coming has been told the wrong
+   * shape even when the height is right.
+   *
+   * NOT reserved on the desktop website: there the tabs ride INSIDE the
+   * header row (`inlineFilters`), which the `isWebDesktop` branch below
+   * already sizes at its measured 35px.
+   */
   const headerRow = (
-    <div className="flex items-center" style={{ minHeight: "44px" }} aria-hidden>
-      <Skeleton className="h-4 w-32 rounded" />
+    <div aria-hidden>
+      <div className="flex items-center" style={{ minHeight: "44px" }}>
+        <Skeleton className="h-4 w-32 rounded" />
+      </div>
+      {!isWebDesktop && (
+        // The real scroller's box, class for class (`-mx-5 px-5 … pb-0.5`), so
+        // the reserved line cannot drift from the line it reserves.
+        <div className="-mx-5 px-5 pb-0.5 overflow-hidden">
+          {/* 13 + 15 + 13 = 41px, which is the real row MEASURED at 375 (the
+              tab's own `py-[13px]` around a line box that is taller than its
+              11px label, because UnderlineTabs baseline-aligns the label with
+              a `text-ds-9` count beside it). Reserving 11px for the label
+              alone left the whole panel 4px high, which is 4px every card
+              inherits. */}
+          <div className="flex items-baseline gap-3" style={{ paddingTop: "13px", paddingBottom: "13px" }}>
+            {[24, 42, 30, 30, 36].map((w, i) => (
+              <Skeleton key={i} className="h-[15px] rounded" style={{ width: `${w}px` }} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
   return (
@@ -46,7 +90,14 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
           </div>
         </div>
       )}
-      <div className="flex-1 min-h-0 px-4 pt-3 pb-0 space-y-2.5" aria-hidden>
+      {/* `space-y-3`, which is what BOTH loaded lists use (AppliedJobsTab and
+          PostedJobsTab: `space-y-3 ds-activity-grid`, and the grouped
+          ActivitySectionedView the same). It said `space-y-2.5` — 10px against
+          the real 12px — so even once each card reserved the right HEIGHT the
+          pitch was 2px short per row and the list crept upward as it went:
+          measured at 375, placeholder card 4 landed 13px above the real one.
+          A gap is part of the reservation. */}
+      <div className="flex-1 min-h-0 px-4 pt-3 pb-0 space-y-3" aria-hidden>
         {tab === "applied"
           ? [1, 2, 3, 4].map((i) => <ApplicationCardSkeleton key={i} />)
           : [1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}

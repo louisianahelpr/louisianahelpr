@@ -1,0 +1,341 @@
+/**
+ * WHAT THE PLACEHOLDER RESERVES MUST BE WHAT ARRIVES — the class check for the
+ * second half of the owner's 2026-09-21 report: "check into jobs exhaustivly
+ * bc it stills jumps really bad and takes long to load."
+ *
+ * ── WHY CLS COULD NOT SEE IT, AND WHY THIS FILE EXISTS ───────────────────
+ * Measured on /my-jobs at 375 against prod: CLS 0.0000 across ZERO
+ * layout-shift entries, while every card on the page moved up to 195px the
+ * instant the data landed. That is not a bug in the measurement — the Layout
+ * Instability API scores elements that were in the previous frame and MOVED,
+ * and a skeleton→content swap REMOVES one subtree and INSERTS another. A page
+ * can jump as hard as you like and score a perfect CLS.
+ *
+ * So the jump is measured the only way it can be: the placeholder's row box
+ * and the real row's box, in the same run, on the same page, with the list
+ * response held back long enough to capture the first one.
+ *
+ * ── MEASURED, before → after (prod Supabase, this checkout's local build,
+ *    Chromium at 375, helper-e2e / poster-e2e, 2026-09-21) ─────────────────
+ *
+ *   /my-jobs   row height   220px → 150px   (real 151px)   jump -81px → -1px
+ *              row pitch    230px → 162px   (real 163px)
+ *              first card y   95px → 138px  (real 138px)   jump +43px →  0px
+ *              4th card y    785px → 624px  (real 627px)   jump -195px → -3px
+ *
+ *   /my-posts  first card y   95px → 138px  (real 202px)   jump +107px → +64px
+ *              row height   106px (unchanged — see POSTED_ROW_PIN)
+ *
+ * The /my-jobs numbers come from two fixes: `ApplicationCardSkeleton` now
+ * draws the collapsed card's two blocks instead of six bone rows and a footer
+ * button, and `ActivityPageSkeleton` reserves the status-tab line that
+ * `ActivityHeader` has rendered open-by-default since 2026-09-20 (and uses the
+ * lists' own `space-y-3`, not `space-y-2.5`).
+ *
+ * ── WHAT THIS DOES NOT CLAIM ─────────────────────────────────────────────
+ * `scripts/check-loading-state-shape.mjs` is the repo's own check for this
+ * class, and it reads COMMITTED evidence
+ * (`docs/audit/loading-states/measurements.json`) produced by a full sweep of
+ * every route. That evidence is now STALE for /my-jobs — it still records the
+ * pre-fix `row 206px → 154px`, and its baseline entry with it. Re-running the
+ * whole sweep needs the browser lock for every route and both personas, so it
+ * is filed in docs/OPEN.md rather than half-done here. This spec is the live
+ * repro of the two surfaces the owner named, which the committed evidence
+ * cannot be until that sweep runs.
+ *
+ * Read-only against prod: navigates, delays two GET/RPC reads on the wire,
+ * writes nothing.
+ *
+ * Run:
+ *   PLAYWRIGHT_WEB_SERVER=1 npx playwright test --project=prod-audit \
+ *     activity-loading-reserve
+ */
+// SHOWN ABLE TO FAIL: each fix, reverted, brings its own number back.
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | className="h-[26px] w-16 rounded-ds-md shrink-0 ml-3" | className="h-[26px] w-16 rounded-ds-md shrink-0 ml-3" style={{ height: 96 }}
+// @mutate src/components/ActivityPageSkeleton.tsx | {!isWebDesktop && ( | {false && (
+// The pitch assertion, shown able to fail. `space-y-8` and not the real
+// regression it guards (`space-y-2.5`, the 10px gap this fix replaced with the
+// lists' own 12px): 10 vs 12 is a 2px pitch error, INSIDE the 8px budget by
+// design — a gap that close is not a visible step on its own, it is an error
+// that compounds, and the row-height and first-y assertions are what hold the
+// surface. The mutation therefore proves the assertion is live, at a size that
+// is genuinely out of budget.
+// @mutate src/components/ActivityPageSkeleton.tsx | pb-0 space-y-3" aria-hidden | pb-0 space-y-8" aria-hidden
+
+import { test, expect, type Browser, type Page, type TestInfo } from "@playwright/test";
+import { getSession, type Session } from "./harness";
+import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
+
+/**
+ * How far a placeholder row may differ from the row that replaces it.
+ *
+ * 8px, the same number `scripts/check-loading-state-shape.mjs` uses and for
+ * the same reason (ROW_BUDGET: a row whose content wraps genuinely cannot be
+ * predicted, and sub-pixel rounding costs a pixel either way). Imported as a
+ * literal rather than from that module because it is a `.mjs` script with its
+ * own prod-evidence dependencies; `src/test/` has no copy to share.
+ */
+const ROW_BUDGET = 8;
+
+/**
+ * How far the FIRST row may start from where the real first row starts.
+ *
+ * Looser than ROW_BUDGET on purpose, and declared per surface below rather
+ * than shared: this is everything ABOVE the list — the title card, the tab
+ * line, and on a grouped list the section heading — and a section heading the
+ * placeholder cannot know about is a legitimate offset, not a lie about a row.
+ */
+const OFFSET_BUDGET = 8;
+
+/**
+ * /my-posts' placeholder card is `ActivityCardSkeleton`
+ * (src/components/SkeletonLoaders.tsx) — a hand-drawn `rounded-ds-md p-4` box,
+ * NOT the shared `JobCardShell` the real PostedJobCard is built from. Measured
+ * 2026-09-21 at 375: 106px against a real 151px row.
+ *
+ * PINNED, NOT EXEMPTED. The number is the measurement, so the surface can get
+ * WORSE and this spec will say so; it cannot rot into a silent pass. The fix
+ * is the one /my-jobs just took (import the shell's geometry instead of
+ * redrawing it), and it is a separate change to a component shared with the
+ * posted Suspense fallback — filed in docs/OPEN.md rather than bundled into
+ * the owner's /my-jobs report.
+ */
+const POSTED_ROW_PIN = 106;
+
+interface Surface {
+  name: string;
+  url: string;
+  as: "poster" | "helper";
+  /** The reads whose delay opens the capture window for the loading frame. */
+  hold: RegExp;
+  /** Declared expected row height, when the surface is pinned below budget. */
+  pinnedRow?: number;
+  /** Why the first row legitimately starts somewhere else. */
+  offsetNote?: string;
+  offsetBudget?: number;
+}
+
+const SURFACES: Surface[] = [
+  {
+    name: "my-jobs",
+    url: "/my-jobs",
+    as: "helper",
+    hold: /supabase\.co\/rest\/v1\/(rpc\/get_jobs_for_my_applications|applications\?select=\*)/,
+  },
+  {
+    name: "my-posts",
+    url: "/my-posts",
+    as: "poster",
+    hold: /supabase\.co\/rest\/v1\/jobs\?select=accepted_at/,
+    pinnedRow: POSTED_ROW_PIN,
+    /* The poster's default bucket renders the GROUPED view, so a section
+       heading ("Active", "Completed", …) sits above the first card and the
+       placeholder draws none. 64px, measured. */
+    offsetBudget: 72,
+    offsetNote:
+      "the grouped posted list puts a section heading above the first card (ActivitySectionedView); the placeholder draws a flat list, so 64px of heading is a legitimate offset, not a row lying about its size",
+  },
+];
+
+/**
+ * The list's ROWS, in order — real job cards once loaded, placeholder cards
+ * while loading.
+ *
+ * ── TWO WRONG VERSIONS OF THIS, BOTH OF WHICH LOOKED FINE ────────────────
+ * Getting the row SET right is most of this file's difficulty, and both
+ * mistakes produced numbers rather than errors:
+ *
+ *   1. "a rounded box with no rounded descendant" threw the /my-jobs
+ *      placeholder card away, because the money-pill bone inside it is also
+ *      `rounded-ds-md`. Zero rows reads exactly like a clean result, which is
+ *      what the vacuity floor below exists to catch.
+ *   2. "any card-sized rounded box" picked up boxes INSIDE a card — the
+ *      offer-message panel on an expanded offered card is `rounded-ds-md`,
+ *      301px wide and 82px tall. One run read `real row 82px pitch 347px`
+ *      off a page whose cards are 151px.
+ *
+ * So the two frames are resolved by what identifies a row in each: a real job
+ * card is the shell around a card TITLE (`h2.font-display`, JobCardTitleBar's
+ * own heading), and a placeholder card is the outermost card-sized rounded box
+ * holding a placeholder BONE. Neither rule can wander inside a card.
+ */
+async function rows(page: Page) {
+  return page.evaluate(() => {
+    const box = (e: Element) => {
+      const r = e.getBoundingClientRect();
+      return { h: Math.round(r.height), y: Math.round(r.top) };
+    };
+    const cardSized = (e: Element) => {
+      const r = e.getBoundingClientRect();
+      return r.width > 150 && r.height > 60;
+    };
+
+    // LOADED: one row per card title.
+    const real = [
+      ...new Set(
+        [...document.querySelectorAll("h2.font-display")]
+          .map((h) => h.closest<HTMLElement>("div.rounded-2xl"))
+          .filter((c): c is HTMLElement => !!c && !c.closest("nav")),
+      ),
+    ];
+    if (real.length) return real.map(box);
+
+    // LOADING: the outermost card-sized rounded box that holds a bone. The
+    // ANCESTOR test (not the descendant one) is what keeps the money pill from
+    // discarding its own card.
+    const BONE = '[class*="shimmer"], [class*="animate-pulse"]';
+    const all = [...document.querySelectorAll<HTMLElement>("div.rounded-2xl, div.rounded-ds-md")];
+    const placeholders = all.filter((e) => {
+      if (!cardSized(e) || e.closest("nav") || !e.querySelector(BONE)) return false;
+      for (let p = e.parentElement; p; p = p.parentElement) {
+        if (p.matches("div.rounded-2xl, div.rounded-ds-md") && cardSized(p)) return false;
+      }
+      return true;
+    });
+    return placeholders.map(box);
+  });
+}
+
+/** The middle value — the row height/pitch a list of cards mostly IS. */
+function median(xs: number[]): number {
+  const s = [...xs].sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)];
+}
+
+function note(info: TestInfo, type: string, description: string) {
+  info.annotations.push({ type, description });
+  console.log(`[loading-reserve] ${type}  ${description}`);
+}
+
+let poster: Session;
+let helper: Session;
+test.beforeAll(async ({ request }) => {
+  [poster, helper] = await Promise.all([getSession(request, "poster"), getSession(request, "helper")]);
+});
+
+for (const surface of SURFACES) {
+  test(`${surface.name}: the placeholder reserves the row that arrives`, async ({ browser }, info) => {
+    const ctx = await (async (b: Browser) => {
+      const c = await b.newContext({
+        baseURL: info.project.use.baseURL,
+        viewport: { width: 375, height: 812 },
+        hasTouch: true,
+        serviceWorkers: "block",
+      });
+      await c.addInitScript(
+        ({ key, val }) => {
+          try {
+            localStorage.setItem(key, val);
+            localStorage.setItem(
+              "helpr_onboarding",
+              JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] }),
+            );
+          } catch {
+            /* signed out: the assertions below fail visibly */
+          }
+        },
+        { key: AUTH_STORAGE_KEY, val: JSON.stringify(surface.as === "poster" ? poster : helper) },
+      );
+      return c;
+    })(browser);
+    const page = await ctx.newPage();
+    try {
+      /* HELD ON THE WIRE, NOT MOCKED (owner: no mock mode, ever). The bytes
+         that arrive are the bytes prod sent; the only intervention is a 7s
+         delay, so the loading frame exists long enough to measure. */
+      await page.route(surface.hold, async (route) => {
+        await new Promise((r) => setTimeout(r, 7_000));
+        await route.continue();
+      });
+
+      await page.goto(surface.url, { waitUntil: "commit" });
+      await page.waitForFunction(() => !document.getElementById("boot-loader"), null, { timeout: 45_000 });
+      // Wait on the SAME predicate the measurement uses, so a window that
+      // opened for the waiter but not for `rows()` cannot happen.
+      await page.waitForFunction(
+        () => {
+          const BONE = '[class*="shimmer"], [class*="animate-pulse"]';
+          const cardSized = (e: Element) => {
+            const r = e.getBoundingClientRect();
+            return r.width > 150 && r.height > 60;
+          };
+          return (
+            [...document.querySelectorAll("div.rounded-2xl, div.rounded-ds-md")].filter((e) => {
+              if (!cardSized(e) || e.closest("nav") || !e.querySelector(BONE)) return false;
+              for (let p = e.parentElement; p; p = p.parentElement) {
+                if (p.matches("div.rounded-2xl, div.rounded-ds-md") && cardSized(p)) return false;
+              }
+              return true;
+            }).length >= 2
+          );
+        },
+        null,
+        { timeout: 30_000 },
+      );
+      await page.waitForTimeout(400);
+      const loading = await rows(page);
+      await info.attach(`${surface.name}-loading.png`, { body: await page.screenshot(), contentType: "image/png" });
+
+      await page.waitForSelector("h2.font-display", { state: "visible", timeout: 45_000 });
+      await page.waitForTimeout(2_000);
+      const loaded = await rows(page);
+      await info.attach(`${surface.name}-loaded.png`, { body: await page.screenshot(), contentType: "image/png" });
+
+      // VACUITY FLOOR, both frames. An empty set passes every comparison
+      // below, and a capture window that closed too early looks exactly like
+      // a clean result.
+      expect(loading.length, `${surface.name}: no placeholder rows captured — the hold did not open a window`).toBeGreaterThanOrEqual(2);
+      expect(loaded.length, `${surface.name}: no real rows — nothing was compared`).toBeGreaterThanOrEqual(2);
+
+      /* MEDIANS, not the first row.
+         An EXPANDED card is a legitimate row (a pending direct offer opens
+         with its message, deadline and Accept/Decline pair — measured at
+         456px against a collapsed 151px), and which card is first depends on
+         what the shared test accounts happen to hold that minute. The
+         placeholder reserves the row a list of cards mostly IS, so that is
+         what it is judged against. */
+      const heights = (r: { h: number }[]) => median(r.map((x) => x.h));
+      const pitch = (r: { y: number }[]) =>
+        r.length < 2 ? 0 : median(r.slice(1).map((x, i) => x.y - r[i].y));
+      const loadingH = heights(loading);
+      const loadedH = heights(loaded);
+      note(
+        info,
+        surface.name,
+        `placeholder row ${loadingH}px pitch ${pitch(loading)}px first-y ${loading[0].y} (${loading.length} rows) · ` +
+          `real row ${loadedH}px pitch ${pitch(loaded)}px first-y ${loaded[0].y} (${loaded.length} rows)` +
+          (surface.pinnedRow ? ` · PINNED at ${surface.pinnedRow}px (see POSTED_ROW_PIN)` : ""),
+      );
+
+      if (surface.pinnedRow !== undefined) {
+        // A pin records the measurement, so it can only be held or improved.
+        expect(
+          loadingH,
+          `${surface.name}: the placeholder row is ${loadingH}px, past its pinned ${surface.pinnedRow}px. ` +
+            `This surface is knowingly below budget (see POSTED_ROW_PIN) — it may be FIXED, never made worse.`,
+        ).toBeLessThanOrEqual(surface.pinnedRow);
+      } else {
+        expect(
+          Math.abs(loadingH - loadedH),
+          `${surface.name}: the placeholder reserves ${loadingH}px for a row that arrives at ` +
+            `${loadedH}px — every card below the first one moves by the difference, compounding down the ` +
+            `list. Budget ${ROW_BUDGET}px.`,
+        ).toBeLessThanOrEqual(ROW_BUDGET);
+        expect(
+          Math.abs(pitch(loading) - pitch(loaded)),
+          `${surface.name}: placeholder row PITCH ${pitch(loading)}px vs real ${pitch(loaded)}px. The gap ` +
+            `between rows is part of the reservation — the lists use \`space-y-3\`.`,
+        ).toBeLessThanOrEqual(ROW_BUDGET);
+      }
+
+      expect(
+        Math.abs(loading[0].y - loaded[0].y),
+        `${surface.name}: the first row starts at y=${loading[0].y} while loading and y=${loaded[0].y} once ` +
+          `loaded — the WHOLE list slides by the difference. Everything above the list is reserved by ` +
+          `ActivityPageSkeleton.${surface.offsetNote ? ` Declared offset: ${surface.offsetNote}.` : ""}`,
+      ).toBeLessThanOrEqual(surface.offsetBudget ?? OFFSET_BUDGET);
+    } finally {
+      await ctx.close();
+    }
+  });
+}

@@ -20,7 +20,7 @@ import { expect, test } from "@playwright/test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { findErrorScreen } from "../errorScreens";
-import { newUserContext, sessionFor, settle, SUPABASE_URL } from "./harness";
+import { isConsentAcceptance, newUserContext, sessionFor, settle, SUPABASE_URL } from "./harness";
 
 function adminViews(src = readFileSync(join(process.cwd(), "src/pages/Admin.tsx"), "utf8")): string[] {
   const m = /type View\s*=\s*([^;]+);/.exec(src);
@@ -145,6 +145,11 @@ for (const view of VIEWS) {
       const req = route.request();
       const m = req.method();
       if (m === "GET" || m === "HEAD" || m === "OPTIONS" || READ_RPC.test(req.url()) || /\/auth\/v1\/(token|user)/.test(req.url())) return route.continue();
+      // The terms re-consent acceptance, and nothing else — see
+      // `isConsentAcceptance` in harness.ts. This firewall is armed before the
+      // first goto, so without the exception the gate it raises can never be
+      // cleared here, and /admin is judged through a scrim.
+      if (isConsentAcceptance(m, new URL(req.url()).pathname, req.postData())) return route.continue();
       blocked.push(`${m} ${req.url().replace(SUPABASE_URL, "")}`);
       await route.abort("blockedbyclient").catch(() => {});
     });

@@ -97,6 +97,29 @@ export const SKIP_BUTTON = /back to|^back$|^close$|^×$|dismiss|skip|not now|tog
  * money, and one POST body does not tell them apart. Targeted specs never use
  * this: they make real writes on test-owned rows and clean them up.
  */
+/**
+ * THE ONE WRITE EVERY FIREWALL HAS TO LET THROUGH.
+ *
+ * `TermsReconsentDialog`'s acceptance — `PATCH /rest/v1/profiles` carrying
+ * `terms_version_accepted` — is not an admin action, a money move or anything
+ * a presser could stumble into: it is the tester's own consent record, on the
+ * tester's own row, and it is the ONLY way out of a non-dismissible gate that
+ * otherwise covers every screen behind it (see `clearConsentGate`).
+ *
+ * Refusing it is how run 35692221560 left `admin@louisianahelpr.com` at
+ * `terms_version_accepted = ''` even after 26 admin loads: `admin-views.spec.ts`
+ * installs its firewall on the CONTEXT before its first `goto`, so every
+ * acceptance it pressed was aborted at the wire, and the run ended before an
+ * unfirewalled spec could land one. A fix that only works in the specs that
+ * happen to arm their firewall late is not a fix.
+ *
+ * Narrow on purpose: the method, the path AND the body must all match, so no
+ * other `profiles` write — and nothing on any other table — is let through.
+ */
+export function isConsentAcceptance(method: string, pathname: string, body: string | null): boolean {
+  return method === "PATCH" && /\/rest\/v1\/profiles$/.test(pathname) && !!body && body.includes("terms_version_accepted");
+}
+
 export async function writeFirewall(ctx: BrowserContext): Promise<string[]> {
   const blocked: string[] = [];
   await ctx.route(`${SUPABASE_URL}/**`, async (route) => {
@@ -105,6 +128,7 @@ export async function writeFirewall(ctx: BrowserContext): Promise<string[]> {
     const { pathname } = new URL(req.url());
     if (m === "GET" || m === "HEAD" || m === "OPTIONS" || /\/auth\/v1\/(token|user|logout)/.test(req.url())) return route.continue();
     if (m === "POST" && isReadRpcPath(pathname)) return route.continue();
+    if (isConsentAcceptance(req.method(), pathname, req.postData())) return route.continue();
     blocked.push(`${m} ${pathname} ${(req.postData() ?? "").slice(0, 300)}`);
     await route.abort("blockedbyclient").catch(() => {});
   });

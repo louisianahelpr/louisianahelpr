@@ -148,7 +148,7 @@ money: it asserts a `tr_...` id, a helper-visible `paid` row in
 `payout_transfers`, and the `released` flip. That spec had not completed a run
 since 2026-09-12 (next section).
 
-## OPEN — the production money loop was red for 15 days and a push closed the report each time (2026-09-22)
+## CLOSED — the money loop was red for 15 days and a push closed the report each time (fixed 2026-09-22, a17f27d92; loop green 17:23 and 17:25 UTC)
 
 Every SCHEDULED run of `e2e-real-backend.yml`'s "Full money loop (production,
 Stripe test mode)" has FAILED since 2026-09-07:
@@ -1065,7 +1065,7 @@ Measured 2026-09-21, one full run on the real backend:
 - Until it is green it stays in `vacuity.baseline.json`: registering a mutation
   against a red spec is scored `inconclusive` and proves nothing.
 
-## OPEN — two writers own `helper_availability` and disagree, so 03-account goes red (2026-09-21)
+## CLOSED — two writers owned `helper_availability` and disagreed (fixed 2026-09-22, 2619ee9e6; seeder now owns all 7 days, guard on the disagreement)
 
 Found while proving `e2e/journeys/03-account.spec.ts` able to fail: the spec was
 **RED on main**, and not for anything in the diff.

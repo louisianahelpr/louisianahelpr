@@ -146,9 +146,18 @@ Deno.serve(async (req) => {
 
     const severity: AlertSeverity = effectiveSeverity(body.kind, body.severity)
 
-    // Severity policy: only CRITICAL (and the daily digest itself) posts.
-    // Anything else a caller sends is already in error_logs, which is what the
-    // digest summarises, so it is acknowledged and not posted.
+    // Severity policy lives in _shared/alertPolicy.ts. As of 2026-09-22 EVERY
+    // severity posts (owner: "medium and low alerts should show in slack
+    // also"); volume is held down by per-source throttling in
+    // public.notify_slack_on_error_log, not by dropping tiers here.
+    //
+    // This comment used to say "only CRITICAL posts", which is how the
+    // 2026-09-22 cron outage stayed unreported for nine hours: non-critical
+    // rows were routed to send_ops_daily_digest, which is itself a cron, and
+    // it died in that same outage.
+    //
+    // The call stays. ALWAYS_POST_KINDS still means something, and a future
+    // gate belongs in the policy module rather than inline here.
     if (!postsImmediately(severity, body.kind)) {
       return new Response(
         JSON.stringify({ ok: true, skipped: 'digest', severity }),

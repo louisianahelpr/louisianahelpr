@@ -614,3 +614,25 @@ that leave no record of which one wrote it.
 **Corollary: an agent's report is a claim.** Four of the five above came from
 relaying a subagent's finding without re-verifying it. Re-check anything you
 are about to repeat to the owner, and check negatives hardest.
+
+## name-the-layers
+
+**Owner, 2026-09-22: "always learn from your mistakes, fix it and do better for next time."**
+
+Distinct from [#never-guess](#never-guess), which is about STATEMENTS. This one is about SCOPING WORK — and it cost two agents a full time-box each on the same day.
+
+| I scoped | What was actually there |
+|---|---|
+| "Three signed-URL call sites, **code-only**, zero prod values, mechanical edit" | True of the DATA. The SERVER refused a bare path: `dispute_evidence_url_ok` is enforced by three writers, so the edit would have broken dispute filing that day — trading a fuse dated Sept 2027 for an outage now |
+| "Widen the validator, then convert the two call sites" | There was a **fourth gate on the READ side**. `evidenceUrl.ts → isTrustedEvidenceUrl()` throws on a bare path and counts it WITHHELD, so evidence would have become invisible on `DisputeCard.tsx:84` — the screen an admin decides a money split from |
+
+Both agents refused and were right to. The refusals were the valuable output.
+
+**The shape:** a feature crosses at least five layers — client write, server RPC/validator, DB constraint/trigger, reader/display, and the DEPLOYED artifact — and they routinely disagree. I checked one (row counts), concluded about another (the code path), and scoped the work as if I had checked all of them.
+
+**Sibling instances from the same day, same shape:**
+- `execution_status='executed'` on dispute `9756a585` read as "the split ran." It had not: `auto-resolve-disputes` stamps that value having moved **zero cents**, deliberately (its own comment says a fabricated $0 "would be a claim about money that is simply false"). Two writers overload one enum; `execution_transfer_id` and `execution_refund_id` are both NULL and `dispute_settlement_claims` is empty.
+- 41 jobs at `payout_pending`/`released` looked like a working payout path. All `is_seed=true`, and both payout crons filter `is_seed=false` — the fixtures and the production code were mutually exclusive by construction.
+- `create-pro-checkout` merged and "deployed" for 15 days while the deployed artifact stayed pinned at v87.
+
+**The rule:** before calling anything mechanical, enumerate the layers it crosses and say which you actually read. A status column, a row count, or a grep of `src/` is evidence about ONE layer. Write the layers you checked into the brief so the agent knows what is assumption and what is measurement.

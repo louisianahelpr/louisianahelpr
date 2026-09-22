@@ -32,6 +32,11 @@ stories go in the lessons file, never here.
   transfer is not "the balance is empty". If you have not checked the exact claim you are about to
   make, either check it or say plainly that you have not. "I don't know yet" is always allowed;
   a confident wrong answer costs the owner a decision. [L](docs/lessons/CLAUDE-lessons.md#never-guess)
+- **Name the LAYERS before calling work mechanical.** A feature crosses client write,
+  server RPC/validator, DB constraint/trigger, reader/display, and deployed artifact — and
+  they disagree. Checking one and scoping as if you checked all of them is how a "mechanical,
+  code-only" task turns out to break dispute filing. State which layers you actually read.
+  [L](docs/lessons/CLAUDE-lessons.md#name-the-layers)
 - **An agent's report is a claim, not a fact.** Re-verify anything you are about to repeat to the
   owner, especially a negative ("never", "nothing", "no call sites"). [L](docs/lessons/CLAUDE-lessons.md#never-guess)
 - **LOOK AT IT.** Verify every visual change (layout, spacing, colour, type, empty states, dark mode, every breakpoint that matters, 375 above all) by an actual screenshot of the actual screen, before AND after, and look at it before saying fixed. [L](docs/lessons/CLAUDE-lessons.md#look-at-it)

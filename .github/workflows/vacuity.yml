@@ -60,6 +60,37 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    # WHY THIS JOB HOLDS TEST-ACCOUNT CREDENTIALS.
+    #
+    # Until 2026-09-22 it held none, so any push touching a guard that signs in
+    # went red for a reason that had nothing to do with the guard. That is what
+    # happened to e2e/prod-audit/activity-loading-reserve.spec.ts: its mutation
+    # is real and kills locally (placeholder row 150px -> 220px against a 151px
+    # real row, both surfaces), but in CI the spec never reached its assertions
+    # — e2e/journeys/fixtures.ts found no PLAYWRIGHT_*_EMAIL/_PASSWORD, fell
+    # through to its local service-role path, and died on `no .env`. The gate
+    # scored that `inconclusive`, which is a hard failure by design, and the red
+    # read as "this guard cannot fail" when the guard was fine.
+    #
+    # PASSWORDS ONLY, DELIBERATELY. prod-audit.yml additionally fetches a
+    # service-role key, because the incomplete-profile and admin seed accounts
+    # have no password stored anywhere. Nothing registered here needs those, so
+    # this job takes the four poster/helper secrets and stops there rather than
+    # widening the blast radius of a job whose whole purpose is to run mutated
+    # source. fixtures.ts prefers these over the service-role path, so that
+    # path is never taken here.
+    #
+    # Two existing exemptions (e2e/auth.spec.ts, e2e/payment-lifecycle.spec.ts)
+    # name exactly this as what would close them, and both note it is cheap
+    # because those specs sign in and read, leaving no funded residue.
+    env:
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+
     steps:
       - name: Checkout
         # Full history: the per-push scope is a diff against origin/main, and a
@@ -83,6 +114,20 @@ jobs:
         # machine with no browsers reported green nightlies, so CI must install
         # them rather than let the check be "green because nothing ran".
         run: npx playwright install --with-deps chromium webkit
+
+      - name: Give the build the app's public Supabase config
+        # The gate rebuilds the bundle itself for Playwright guards, so it does
+        # not go through .github/actions/local-preview and needs VITE_* here.
+        # Both values are publishable — the same pair prod-audit.yml falls back
+        # to in plain text — and no secret is written by this step.
+        run: |
+          set -euo pipefail
+          umask 077
+          {
+            printf 'VITE_SUPABASE_URL=%s\n' "${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}"
+            printf 'VITE_SUPABASE_ANON_KEY=%s\n' "${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}"
+          } > .env
+          test -s .env
 
       - name: Vacuity gate
         # Per push: ratchet + static scan + harness preflight + mutations for

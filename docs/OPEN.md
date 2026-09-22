@@ -186,6 +186,40 @@ OPEN:
   DO NOT delete baseline entries on the strength of this note alone — it is
   reasoning over an existing measurement file, not a fresh measurement.
 
+## OPEN — press is fixed enough to see REAL defects now; 199 remain (2026-09-22)
+
+The self-inflicted sign-out (aaa561573) is largely gone and the sweep now
+reports session deaths explicitly instead of hiding them as press failures.
+
+  run 35761400822 (before)  62 + 90 + 66 + 56 = 274 failures, session cascade
+                            (183 session_not_found), 3,284 controls found
+  run 35768341847 (after)    8 + 90 + 33 + 68 = 199 failures, 2 session deaths
+                            (shard 4 only), 4,605 controls found
+
+It pressed 40% MORE controls and failed 27% fewer, because sessions survived
+instead of dying early. Shard 1 went 62 -> 8.
+
+STILL OPEN:
+- **2 session deaths in shard 4.** The SESSION_END_RX guard never fired in this
+  run (grepped the log: 0 occurrences of its skip string), so these are NOT the
+  sign-out cause that was fixed. Different mechanism, not yet identified.
+- **Bottom-nav buttons unclickable on job detail pages.** On
+  `/jobs/7d315f44…` as customer, "Posts", "Jobs", "Messages" and "Profile" all
+  failed with `locator.click: Timeout 16000ms` — "waiting for element to be
+  visible, enabled and stable". The elements RESOLVE (the log shows the real
+  `<button aria-label="Posts" aria-current="page" …>`), so they exist and are
+  found; something keeps them from ever being stable/clickable. 4 of 5 presses
+  on that page failed this way. This one smells like a genuine product defect
+  and is the highest-value lead in the run.
+- **400 on proof-photo storage uploads.** Repeated
+  `400 POST <uuid>/before-<ts>.png` and `after-<ts>.png` across several
+  notification presses. Worth checking against the proofPhotoStorage path
+  changes.
+- **"We can't open this job right now — it may have been filled or taken
+  down"** on pressing "Helpr home" from a job page.
+
+Shard 2 was unchanged at 90 failures and has not been looked at.
+
 ## OPEN — `/` is down to two loading surfaces, and the two still disagree (2026-09-22)
 
 Owner: "the loading for the webpage should go straight to the webpage not load

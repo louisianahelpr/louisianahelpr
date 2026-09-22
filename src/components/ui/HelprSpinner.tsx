@@ -25,11 +25,22 @@
  * the operation always takes >1s (e.g. Stripe payout creation) and you
  * want immediate "we got it" feedback.
  *
- * Why a slow rotation (1.4s linear)
- * ---------------------------------
- * The default `animate-spin` is 1s, which feels impatient and a little
- * cheap for a premium brand. 1.4s linear is calm and confident — it
- * reads as "we're working on it" rather than "hurry up".
+ * Why it BREATHES rather than spins (owner, 2026-09-22)
+ * -----------------------------------------------------
+ * It used to rotate at 1.4s. The problem was not the speed: this mark is
+ * wrought iron with a fleur-de-lis off its centre, and a detailed
+ * asymmetric shape cannot rotate cleanly at 20-44px — the ornament smears
+ * and the fleur tumbles, which reads as cheap no matter how slow it goes.
+ * A radially symmetric shape (a plain arc) is what rotates well.
+ *
+ * So the mark stays UPRIGHT and pulses instead: opacity 1 -> 0.62 with a
+ * 0.94 scale over 1.8s. Opacity carries the life; the slight scale stops
+ * it reading as a flicker. The mark is legible in every frame, which a
+ * rotating one never was.
+ *
+ * The export is still called HelprSpinner — 14 call sites across 13 files
+ * name it, and renaming would touch every one of them for no behavioural
+ * gain. It is a loading indicator; it no longer spins.
  */
 
 import { useEffect, useState } from "react";
@@ -83,7 +94,7 @@ export const HelprSpinner = ({
         draggable={false}
         width={size}
         height={size}
-        className="select-none motion-safe:animate-[spin_1.4s_linear_infinite]"
+        className="select-none motion-safe:animate-mark-breathe"
         style={{
           width: size,
           height: size,

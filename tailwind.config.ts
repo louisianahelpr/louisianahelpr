@@ -220,6 +220,15 @@ export default {
           "0%, 100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-14px)" },
         },
+        // The loading mark BREATHES, it does not spin (owner, 2026-09-22).
+        // Rotating the wrought-iron H smeared its ornament and tumbled the
+        // fleur-de-lis — a detailed asymmetric mark cannot rotate cleanly at
+        // 20-44px. Opacity carries the life; the 0.94 scale keeps it from
+        // reading as a flicker. Paired with `motion-safe:` at the call site.
+        "mark-breathe": {
+          "0%, 100%": { opacity: "1", transform: "scale(1)" },
+          "50%": { opacity: "0.62", transform: "scale(0.94)" },
+        },
         // Instagram-style double-tap heart: pops in over-scale, settles,
         // then fades + drifts up. Centered overlay, runs once (~600ms).
         "heart-pop": {
@@ -238,6 +247,7 @@ export default {
         "float-slow": "float-slow 5s ease-in-out infinite",
         "float-slower": "float-slower 7s ease-in-out infinite",
         "heart-pop": "heart-pop 600ms cubic-bezier(0.22, 1, 0.36, 1) forwards",
+        "mark-breathe": "mark-breathe 1.8s ease-in-out infinite",
       },
     },
   },

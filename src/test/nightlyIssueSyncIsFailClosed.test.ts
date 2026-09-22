@@ -44,10 +44,12 @@ const WORKFLOWS = resolve(__dirname, "../../.github/workflows");
 describe("nightly-issue-sync reports are fail-closed", () => {
   it("no workflow derives 'success' from the absence of a failure", () => {
     const offenders: string[] = [];
+    const reporters: string[] = [];
 
     for (const name of readdirSync(WORKFLOWS).filter((f) => f.endsWith(".yml"))) {
       const src = readFileSync(join(WORKFLOWS, name), "utf8");
       if (!src.includes("nightly-issue-sync")) continue;
+      reporters.push(name);
 
       for (const line of src.split("\n")) {
         const trimmed = line.trim();
@@ -70,6 +72,17 @@ describe("nightly-issue-sync reports are fail-closed", () => {
       }
     }
 
+    /* THE FLOOR. This guard reads the world and iterates what it finds, so an
+       empty inventory would make every assertion below pass without checking
+       anything. There were 11 workflows calling nightly-issue-sync on
+       2026-09-22; the floor is deliberately well under that so adding or
+       retiring one reporter does not fail the build, while a glob that stops
+       matching does. */
+    expect(
+      reporters.length,
+      "found no workflow calling nightly-issue-sync — the scan is broken, not the repo clean",
+    ).toBeGreaterThan(6);
+
     expect(
       offenders,
       "This expression closes a nightly-red issue whenever nothing explicitly FAILED — so a run " +
@@ -86,4 +99,4 @@ describe("nightly-issue-sync reports are fail-closed", () => {
 });
 
 // The exact expression the money loop reported green with for fifteen days.
-// @mutate .github/workflows/e2e-real-backend.yml | status: ${{ (needs.anon-surface.result == 'success' && needs.prod-lifecycle.result == 'success') && 'success' || 'failure' }} | status: ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
+// @mutate .github/workflows/e2e-real-backend.yml | status: ${{ (needs.anon-surface.result == 'success' && needs.prod-lifecycle.result == 'success') && 'success' \|\| 'failure' }} | status: ${{ contains(needs.*.result, 'failure') && 'failure' \|\| 'success' }}

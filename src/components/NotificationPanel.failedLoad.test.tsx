@@ -143,6 +143,30 @@ describe("NotificationPanel: a failed load renders the error card, never the emp
     expect(screen.queryByText(EMPTY_COPY)).toBeNull();
   });
 
+  /*
+   * "LOADING" MUST BE SAYABLE TO A MACHINE, NOT ONLY DRAWN.
+   *
+   * The pending state renders a spinner and "Loading notifications…" but said
+   * nothing a waiter could read, so anything that decides a screen is settled
+   * — assistive tech, and every harness in this repo, all of which key on
+   * `[aria-busy="true"]` — treated a panel that had not answered yet as a
+   * panel with nothing in it. press-every-control run 35692554813 shows both
+   * halves of the damage on ONE screen: two shards walked the /dashboard bell
+   * with zero rows in it and passed, a third enumerated 50 rows and then could
+   * not find a single one of them again.
+   */
+  it("says it is BUSY while the first load is still in flight", async () => {
+    state.mode = "hang";
+    await mountAndOpen();
+    expect(document.querySelector('[role="status"][aria-busy="true"]')).not.toBeNull();
+  });
+
+  it("control: a panel that has answered is NOT busy", async () => {
+    await mountAndOpen();
+    expect(screen.queryByText(EMPTY_COPY)).not.toBeNull();
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+  });
+
   it("a HUNG load gives up and shows the error card", async () => {
     state.mode = "hang";
     await mountAndOpen();
@@ -158,3 +182,6 @@ describe("NotificationPanel: a failed load renders the error card, never the emp
 // owner's report is back: auth 500s, the store is cleared, and a poster with
 // 313 unread is told "Nothing new yet."
 // @mutate src/components/NotificationPanel.tsx | if (sessionError) throw sessionError; |
+// And proof the aria-busy pair can fail: drop the attribute and the pending
+// state goes back to looking settled to every waiter.
+// @mutate src/components/NotificationPanel.tsx | aria-busy="true" | aria-busy={undefined}

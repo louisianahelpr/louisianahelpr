@@ -3996,6 +3996,44 @@ WAS done: the happy-path guard now asserts the call is `apply_to_job` **by name
 and arguments**, because a rename is exactly what produces the PGRST202 that
 opens the door.
 
+### press-every-control run 2 (35692554813): 228 → 54, and the rest told apart (2026-09-22)
+
+Three different things, not one:
+
+1. **50 notification rows on `/signup-pending customer` — FIXED.** Not the
+   consuming class: the panel was READ BEFORE IT ANSWERED. Its pending state
+   renders a spinner and "Loading notifications…" but carried no `aria-busy`,
+   and `settle()` keys on exactly that. Probed against prod 2026-09-22: the
+   panel sits on four controls for **over 4.5 seconds**, perfectly stable and
+   completely wrong. Both halves of the damage are in that one run — shards 1
+   and 3 walked the `/dashboard` bell with ZERO rows in it and passed
+   (**vacuously green**), shard 4 enumerated 50 rows and then re-opened the
+   panel 50 times before the rows arrived. Fixed at the source (`aria-busy` on
+   the pending state, so every harness in the repo sees it) and in the harness
+   (an overlay is not read while anything claims to be busy).
+2. **The three 503s — NOT an app defect, and NOT the press script's to fix.**
+   `prod-load` covers three workflows; `e2e-real-backend`, `e2e-happy-path`,
+   `prod-audit`, `prod-freshness`, `ui-sweep` and `mobile-viewports` each carry
+   their own per-ref group, so three pushes to main between 06:10 and 06:40 UTC
+   fanned out ~6 prod-touching runs each, alongside this sweep's four shards, on
+   the free tier. The same shape reproduced locally afterwards ("Profile request
+   timed out", `api=0`). **OWNER DECISION NEEDED:** widening `prod-load` to those
+   six would serialise a large part of CI. Not done unilaterally.
+3. **Two lone "control not found" — FIXED, and they were my own over-reach.**
+   `/account-banned` redirects to `/dashboard` once `profile` resolves, so it
+   renders once, is enumerated, then bounces on every later load. Worse, the
+   consumed-row excuse fired on SEVEN page-level controls there. A page is not a
+   feed: the excuse is now overlay-only, and "off the screen" is asked first.
+   `isBounce` also read the SHARDED route list, so shard 4 did not recognise
+   `/signup-pending` → `/dashboard` as a bounce and walked the dashboard a
+   second time — a second browser on the same account, pressing the same live
+   feed shard 3 was pressing. It reads the full set now.
+
+Measured after, against prod, on the screens that failed:
+`/profile?tab=wrapped` customer 1 → 0 · incomplete 1 → 0 ·
+`/account-banned` customer 1 fail + 7 false excuses → 0 + 0 ·
+`/signup-pending` customer 50 → redirect-skipped (walked once, on `/dashboard`).
+
 ### press-every-control: the nine-day red was ONE class — a self-consuming list (2026-09-21)
 
 Run `35660182220` failed **228** presses. Triaged properly (the earlier triage

@@ -350,6 +350,23 @@ export function looseSignature(sig) {
  */
 export const BOUNCED_SKIP = "the screen redirected away on a later load; its controls are walked on the screen it went to";
 
+/**
+ * WHAT A MISSING CONTROL MEANS — one decision, in one place, so the two call
+ * sites cannot drift and a test can drive it.
+ *
+ *   off the screen entirely  → BOUNCED: a late-resolving gate took us away;
+ *                              the controls belong to where it went.
+ *   on the screen, in a feed → CONSUMED, but only with proof (see above).
+ *   on the screen, on a PAGE → nothing excuses it. A page is not a feed. Run
+ *                              35692554813 excused seven page-level controls
+ *                              on /account-banned before this line existed.
+ */
+export function missingControlDisposition({ scope, onSameScreen, consumed }) {
+  if (!onSameScreen) return BOUNCED_SKIP;
+  if (scope === "overlay" && consumed) return CONSUMED_SKIP;
+  return null;
+}
+
 const CONSOLE_NOISE = [
   /Service Worker registration blocked by Playwright/i,
   /Download the React DevTools/i,
@@ -472,6 +489,38 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base }) => {
   return out;
 };
 
+/**
+ * AN OVERLAY THAT IS STILL FILLING IS NOT AN OVERLAY YET.
+ *
+ * `settle()` waits on `aria-busy` and `animate-pulse`, and the notification
+ * panel's first-load state carried neither — it renders `role="status"` with a
+ * spinner and "Loading notifications…". So on run 35692554813 the panel was
+ * enumerated before its rows landed, with two opposite outcomes on the same
+ * screen in the same run:
+ *
+ *   - shards 1 and 3 enumerated FOUR controls (Close / Unread / All / the push
+ *     row) and walked the /dashboard bell with ZERO rows in it. Green, and
+ *     vacuous: the rows the sweep exists to press were never seen.
+ *   - shard 4 enumerated 50 rows and then re-opened the panel 50 times, each
+ *     time before the rows arrived. All 50 were "control not found".
+ *
+ * So: after anything opens an overlay, wait for its control count and text
+ * length to stop moving before reading it. Bounded — a feed that never settles
+ * must not hang the sweep, it must be walked as it is.
+ */
+const OVERLAY_FINGERPRINT = ({ overlaySel, controlSel }) => {
+  const root = [...document.querySelectorAll(overlaySel)].pop();
+  if (!root) return "none";
+  // STILLNESS IS NOT DONENESS. Measured against prod 2026-09-22: the panel sat
+  // on "Loading notifications…" with exactly FOUR controls for over 4.5s —
+  // perfectly stable, and the wrong answer. So while anything says it is busy
+  // the fingerprint is deliberately unequal to its own next sample, and the
+  // poll cannot conclude early; two stable samples are only accepted once the
+  // screen has stopped claiming it is still working.
+  if (document.querySelectorAll('[aria-busy="true"]').length) return `busy:${Date.now()}`;
+  return `${root.querySelectorAll(controlSel).length}|${(root.innerText || "").length}`;
+};
+
 /** Structural fingerprint of the page; any difference is "something happened". */
 const SNAPSHOT = ({ overlaySel }) => {
   const stripStyle = (html) => html.replace(/\sstyle="[^"]*"/g, "").replace(/\sdata-(?:focus-visible|highlighted)[^\s>]*/g, "");
@@ -505,6 +554,9 @@ async function main() {
   const PERSONAS = (process.env.PERSONAS ?? "anon,customer,helper,admin,incomplete").split(",");
   const SETTLE_MS = Number(process.env.SETTLE_MS ?? 600);
   const PRESS_TIMEOUT = Number(process.env.PRESS_TIMEOUT ?? 8000);
+  // The panel's own give-up is LOAD_TIMEOUT_MS = 15s (NotificationPanel.tsx),
+  // so anything shorter here enumerates a screen the app has not finished with.
+  const OVERLAY_FILL_MS = Number(process.env.OVERLAY_FILL_MS ?? 16_000);
   const RUN_ID = process.env.RUN_ID ?? `${Date.now()}-${process.pid}`;
   const runStart = Date.now();
   mkdirSync(OUT, { recursive: true });
@@ -557,6 +609,13 @@ async function main() {
       return hit.length ? hit : [{ url: u, base: u, personas: ["anon", "customer", "helper", "incomplete"], redirect: false }];
     });
   }
+  // WHETHER A LANDING URL IS "WALKED ON ITS OWN ROW" IS A PROPERTY OF THE APP,
+  // NOT OF THIS SHARD. `isBounce` used the sharded list, so on run 35692554813
+  // shard 4's /signup-pending → /dashboard was NOT recognised as a bounce (the
+  // dashboard lives in shard 3) and the dashboard was walked a second time —
+  // by a second browser, signed in as the SAME shared poster account, against
+  // the SAME live notification feed shard 3 was pressing. Hence the full set.
+  const allRoutes = routeSet;
   if (process.env.SHARD) {
     const [i, n] = process.env.SHARD.split("/").map(Number);
     routeSet = routeSet.filter((_, k) => k % n === i - 1);
@@ -707,7 +766,7 @@ async function main() {
       const isBounce = (u) => {
         const x = new URL(u);
         return /^\/(login|signup|signup-pending|account-pending|account-denied|account-banned|complete-profile)(\/|$)/.test(x.pathname)
-          || (!x.search && routeSet.some((r) => r.url === x.pathname && r.personas.includes(persona)));
+          || (!x.search && allRoutes.some((r) => r.url === x.pathname && r.personas.includes(persona)));
       };
       const atRest = () => page.url() === restingUrl;
       const snapshot = () => page.evaluate(SNAPSHOT, { overlaySel: OPEN_OVERLAY });
@@ -715,6 +774,22 @@ async function main() {
       // stays a plain exported function a unit test can drive.
       const enumerate = async (scope) =>
         withSignatures(await page.evaluate(ENUMERATE, { controlSel: CONTROL_SEL, overlaySel: OPEN_OVERLAY, scope, base: BASE }));
+      /**
+       * Wait until the newest open overlay stops changing shape. Two identical
+       * samples 250ms apart, capped at OVERLAY_FILL_MS; a still-moving overlay
+       * is read as it is rather than hanging the run.
+       */
+      const settleOverlay = async () => {
+        const fp = () => page.evaluate(OVERLAY_FINGERPRINT, { overlaySel: OPEN_OVERLAY, controlSel: CONTROL_SEL }).catch(() => "err");
+        let last = await fp();
+        for (let waited = 0; waited < OVERLAY_FILL_MS; waited += 250) {
+          await page.waitForTimeout(250);
+          const now = await fp();
+          if (now === last) return true;
+          last = now;
+        }
+        return false;
+      };
       const slug = (s) => s.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "").slice(0, 80);
       const shoot = async (name) => {
         const file = `${OUT}/${slug(`${route.url}-${persona}-${name}`)}-${shots++}.png`;
@@ -766,6 +841,7 @@ async function main() {
             await page.waitForFunction(([sel, n]) => document.querySelectorAll(sel).length > n, [OPEN_OVERLAY, before], { timeout: 3000 }).catch(() => {});
             await page.waitForTimeout(SETTLE_MS);
             if ((await page.locator(OPEN_OVERLAY).count()) <= before) return false;
+            await settleOverlay();
           }
           return true;
         };
@@ -789,6 +865,21 @@ async function main() {
           rec.found++; totalFound++;
 
           const skip = (why) => { entry.result = "SKIP"; entry.why = why; rec.skipped++; };
+          /**
+           * Find this control again by IDENTITY rather than position: its
+           * signature, then a digit-blind match (a badge that ticked is the
+           * same control, accepted only when unambiguous), then the old
+           * tag/label/ordinal.
+           */
+          const reAddress = (now, m) => {
+            const bySig = now.filter((c) => c.sig === m.sig);
+            const loose = m.sig ? now.filter((c) => looseSignature(c.sig) === looseSignature(m.sig)) : [];
+            return (
+              bySig[Math.min(m.sigOrdinal ?? 0, Math.max(bySig.length - 1, 0))] ??
+              (loose.length === 1 ? loose[0] : undefined) ??
+              now.find((c) => c.tag === m.tag && c.label === m.label && c.ordinal === m.ordinal)
+            );
+          };
           /**
            * Is this control gone because THIS RUN pressed it away? Only a scope
            * that has also lost a control this run clicked earns that answer;
@@ -838,22 +929,22 @@ async function main() {
             // re-address it: signature first — the whole text, so two rows of
             // the same feed are told apart — then the old tag/label/ordinal.
             const now = await enumerate(item.step.scope);
-            const bySig = now.filter((c) => c.sig === meta.sig);
-            // A control whose own badge ticked ("Posts 2" → "Posts 3") is the
-            // same control; accepted only when the loose match is unambiguous.
-            const loose = meta.sig ? now.filter((c) => looseSignature(c.sig) === looseSignature(meta.sig)) : [];
-            const again =
-              bySig[Math.min(meta.sigOrdinal ?? 0, Math.max(bySig.length - 1, 0))] ??
-              (loose.length === 1 ? loose[0] : undefined) ??
-              now.find((c) => c.tag === meta.tag && c.label === meta.label && c.ordinal === meta.ordinal);
+            const again = reAddress(now, meta);
             if (again) { item.step.path = again.path; target = locate(item.step); entry.relocated = true; }
             else {
-              // Not there at all. Did this run itself remove it? Only a list
-              // that has demonstrably lost rows THIS RUN PRESSED earns that
-              // answer, and the proof is recorded.
-              if (await consumedHere(now)) { skip(CONSUMED_SKIP); continue; }
-              // Or did the screen itself bounce on this later load?
-              if (!sameScreen(page.url()) && isBounce(page.url())) { skip(BOUNCED_SKIP); continue; }
+              // A route whose gate resolves after the first paint
+              // (/account-banned for an un-banned account goes to /dashboard
+              // once `profile` lands; /profile for the incomplete persona goes
+              // to /complete-profile) renders once, is enumerated, and then
+              // redirects on EVERY later load — so ask where we are first.
+              const onSameScreen = sameScreen(page.url());
+              if (!onSameScreen) entry.bouncedTo = page.url().replace(BASE, "");
+              const why = missingControlDisposition({
+                scope: item.step.scope,
+                onSameScreen,
+                consumed: item.step.scope === "overlay" ? await consumedHere(now) : false,
+              });
+              if (why) { skip(why); continue; }
             }
           }
           if (!(await target.count())) {
@@ -921,12 +1012,33 @@ async function main() {
               try { await target.click({ timeout: PRESS_TIMEOUT * 2 }); last = null; }
               catch (e3) { last = e3; }
             }
+            if (last && (await target.count()) === 0) {
+              // THE CONTROL LEFT BETWEEN BEING ADDRESSED AND BEING CLICKED.
+              // Measured on /profile?tab=wrapped: "Go back" resolved, then
+              // the tab re-rendered under it and the click spent its whole
+              // budget waiting for a node that no longer existed. That is a
+              // moved control, not an unclickable one — so look it up again by
+              // identity and press it once more before saying anything.
+              const now = await enumerate(item.step.scope);
+              const again = reAddress(now, meta);
+              if (again) {
+                item.step.path = again.path;
+                target = locate(item.step).first();
+                entry.relocated = true;
+                try { await target.click({ timeout: PRESS_TIMEOUT }); last = null; } catch (e4) { last = e4; }
+              }
+              if (last) {
+                const onSameScreen = sameScreen(page.url());
+                if (!onSameScreen) entry.bouncedTo = page.url().replace(BASE, "");
+                const why = missingControlDisposition({
+                  scope: item.step.scope,
+                  onSameScreen,
+                  consumed: item.step.scope === "overlay" ? await consumedHere(now) : false,
+                });
+                if (why) { skip(why); pageDirty = true; continue; }
+              }
+            }
             if (last) {
-              // The row can go away BETWEEN being re-addressed and being
-              // clicked — a realtime INSERT re-sorts a feed mid-press. If it
-              // is gone and this run is what ate its siblings, that is the
-              // same documented skip, not an unclickable control.
-              if ((await target.count()) === 0 && (await consumedHere())) { skip(CONSUMED_SKIP); pageDirty = true; continue; }
               entry.result = "FAIL"; entry.why = "NOT CLICKABLE: " + String(last.message).replace(/\s+/g, " ").slice(0, 600);
               rec.failed++; failedPresses++;
               entry.shot = await shoot(`unclickable-${slug(label)}`);
@@ -993,6 +1105,9 @@ async function main() {
 
           // ---- recurse into what it opened -----------------------------
           if (after.overlays > before.overlays && item.depth < MAX_DEPTH) {
+            // Let it finish arriving, or the inventory is whatever happened to
+            // have rendered in the first 600ms — see OVERLAY_FINGERPRINT.
+            entry.overlayFilled = await settleOverlay();
             const inner = await enumerate("overlay");
             const key = inner.map((c) => c.path + c.label).join("|");
             if (inner.length && !seenOverlays.has(key)) {

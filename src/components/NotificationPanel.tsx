@@ -714,6 +714,16 @@ const NotificationPanel = () => {
                (LOAD_TIMEOUT_MS). */
             <div
               role="status"
+              /* `aria-busy` is the MACHINE-READABLE half of "Loading
+                 notifications…". Without it this state announces its text but
+                 claims to be settled, and everything that waits on a screen
+                 being done — assistive tech, and every harness in this repo,
+                 all of which key on that attribute — reads a panel that
+                 has not answered yet as a panel with nothing in it. Measured
+                 on press-every-control run 35692554813: two shards walked the
+                 /dashboard bell with zero rows in it and passed, while a third
+                 enumerated 50 rows and then could not find one of them. */
+              aria-busy="true"
               className="px-6 py-7 flex flex-col items-center text-center gap-2"
             >
               <Loader2

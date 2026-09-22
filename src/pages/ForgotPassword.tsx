@@ -10,7 +10,7 @@ import { Mail, Loader2, Check, X } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
-import { captureException } from "@/lib/sentry";
+import { report as reportError } from "@/lib/errorLogger";
 
 const RESEND_COOLDOWN_S = 60;
 
@@ -85,9 +85,20 @@ const ForgotPassword = () => {
       // and gives operators the one signal they had no way to get. The email
       // is deliberately NOT included in the payload — that would recreate the
       // oracle inside the monitoring tool.
-      captureException(error, {
+      // errorLogger, NOT `@/lib/sentry` directly. A static `@/lib/sentry`
+      // import here pulled all of @sentry/react into the shared chunk, which
+      // defeated main.tsx's deliberate `import("./lib/sentry")` deferral —
+      // the one its own comment says was costing ~4s of FCP on slow
+      // connections. errorLogger fans out to Sentry and PostHog behind a
+      // dynamic import for exactly this reason (see its comment above
+      // `fanOutToObservability`), and also writes the `error_logs` row, so
+      // this reports strictly MORE than the direct call did.
+      reportError(error, {
+        severity: "error",
         tags: { area: "auth", flow: "password-reset-request" },
-        note: "resetPasswordForEmail failed; user was shown the neutral success state",
+        context: {
+          note: "resetPasswordForEmail failed; user was shown the neutral success state",
+        },
       });
     }
     hapticSuccess();

@@ -94,6 +94,17 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_test_key_for_e2e_only
         run: npm run build
 
+      - name: No deferred vendor on the critical path
+        # A SIZE budget cannot express "this vendor must stay LAZY", and that
+        # gap is not hypothetical: ForgotPassword.tsx's static `@/lib/sentry`
+        # import put all 68.8 kB gzip of @sentry/react on the critical path,
+        # defeating main.tsx's deliberate deferral — and the initial bundle was
+        # 1409 kB raw against the 1500 kB cap below, so this job stayed GREEN
+        # through the whole regression. Total bytes were never the signal;
+        # WHICH bytes was. This step walks the built static-import graph and
+        # fails if a chunk main.tsx defers is reachable before first paint.
+        run: npm run check:deferred-vendors
+
       - name: Check chunk sizes
         # Budgets only apply to chunks that ship on the INITIAL page load
         # (the entry chunk + its static imports parsed from index.html).

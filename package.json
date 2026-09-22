@@ -51,6 +51,7 @@
     "loading-states:inventory": "node scripts/loading-state-inventory.mjs",
     "loading-states:measure": "node scripts/audit/measure-loading-states.mjs",
     "check:loading-states": "node scripts/check-loading-state-shape.mjs",
+    "check:deferred-vendors": "node scripts/check-deferred-vendors.mjs",
     "vacuity": "node scripts/vacuity/index.mjs",
     "vacuity:all": "node scripts/vacuity/index.mjs --all",
     "vacuity:report": "node scripts/vacuity/index.mjs --report --no-mutate"

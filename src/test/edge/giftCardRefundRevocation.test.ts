@@ -274,3 +274,69 @@ describe("the gift claim email is handed a client so it can queue", () => {
 });
 
 // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const emailed = await sendGiftCardEmail(supabase, { | const emailed = await sendGiftCardEmail({
+
+/**
+ * An INQUIRY is not a chargeback.
+ *
+ * Stripe delivers inquiries and early-fraud warnings through the same
+ * `charge.dispute.created` event, with a `warning_*` status, and they withdraw
+ * NOTHING from the platform balance. Revocation is deliberately one-way — even
+ * a WON dispute is not auto-restored, because un-revoking is a mint and a
+ * redelivered event would repeat it — so revoking on an inquiry destroys a live
+ * gift permanently over a question the bank may never turn into a chargeback.
+ */
+describe("an inquiry does not destroy the gift", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+
+  function disputeEvent(status: string, id: string) {
+    return {
+      id,
+      type: "charge.dispute.created",
+      data: {
+        object: {
+          id: "dp_x",
+          charge: "ch_g",
+          payment_intent: "pi_gift_inq",
+          amount: 7500,
+          reason: "fraudulent",
+          status,
+        },
+      },
+    };
+  }
+
+  it("leaves the credit alone on warning_needs_response", async () => {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue(
+      disputeEvent("warning_needs_response", "evt_inq_1"),
+    );
+    scenario.rpc.revoke_gift_card_for_refund = UNSPENT;
+    scenario.reads.jobs = { rows: [] };
+
+    await fn.fetch(webhookRequest(fn, "{}"));
+
+    expect(revokeCalls()).toHaveLength(0);
+  });
+
+  it("still revokes on a real chargeback", async () => {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue(
+      disputeEvent("needs_response", "evt_real_1"),
+    );
+    scenario.rpc.revoke_gift_card_for_refund = UNSPENT;
+    scenario.reads.jobs = { rows: [] };
+
+    await fn.fetch(webhookRequest(fn, "{}"));
+
+    expect(revokeCalls()).toHaveLength(1);
+  });
+});
+
+// 5: revoke on an inquiry — the pre-fix code, which permanently destroyed a
+//    live gift over a bank question that withdrew nothing.
+// @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | const isInquiry = typeof dispute.status === "string" && dispute.status.startsWith("warning_"); | const isInquiry = false;

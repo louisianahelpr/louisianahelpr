@@ -690,6 +690,15 @@ export async function handleCheckoutSessionCompleted(
       .update({ status: "redeemed", redeemed_at: new Date().toISOString() })
       .eq("id", giftCardId)
       .eq("status", "reserved")
+      // …and still FUNDED. `revoke_gift_card_for_refund` revokes reserved rows
+      // (nothing has moved for them yet) by setting payment_status='refunded'
+      // and leaving `status` alone. A shortfall Checkout Session lives ~24h, so
+      // a chargeback can land while the recipient is mid-payment; without this
+      // the reservation would still be consumed, the job would flip to escrow,
+      // and release-payout would pay the helper from the platform balance —
+      // silently, because the revocation had already reported success.
+      // The zero-row branch below is the correct outcome when that happens.
+      .eq("payment_status", "paid")
       .select("id")
       .maybeSingle();
     if (consumeErr) {

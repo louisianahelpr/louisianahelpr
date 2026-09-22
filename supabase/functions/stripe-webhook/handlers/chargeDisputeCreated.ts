@@ -55,7 +55,22 @@ export async function handleChargeDisputeCreated(
   // so leaving the credit spendable means paying a helper from money we no
   // longer have — the same reasoning as the payout block below, applied to the
   // gift ledger. Returns `no_gift` for an ordinary job escrow PI.
-  await revokeGiftCardForRefund(supabase, disputePiId, "chargeback", logStep);
+  //
+  // …but ONLY for a real chargeback. Stripe delivers inquiries and early-fraud
+  // warnings through this same event with a `warning_*` status, and those
+  // withdraw NOTHING — the comment above is simply untrue for them. Revocation
+  // is deliberately one-way (un-revoking is a mint, so even a won dispute is
+  // not auto-restored), which means revoking on an inquiry destroys a live gift
+  // permanently over a question the bank may never turn into a chargeback.
+  const isInquiry = typeof dispute.status === "string" && dispute.status.startsWith("warning_");
+  if (isInquiry) {
+    logStep("Dispute is an inquiry — gift credit left alone", {
+      id: dispute.id,
+      status: dispute.status,
+    });
+  } else {
+    await revokeGiftCardForRefund(supabase, disputePiId, "chargeback", logStep);
+  }
 
   // Set when the job already carried a dispute hold the chargeback left alone,
   // so the page tells ops the job has two things going on at once.

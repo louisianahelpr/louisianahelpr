@@ -76,7 +76,7 @@ export async function revokeGiftCardForRefund(
         severity: "critical",
         title: "Gift card revocation RPC missing — refunded gifts stay spendable",
         message:
-          "`revoke_gift_card_for_refund` is not in the schema cache, so a refunded/disputed gift card was NOT revoked and its credit is still spendable. Deploy the migration, then re-run this event from the Stripe dashboard.",
+          "`revoke_gift_card_for_refund` is not in the schema cache, so a refunded/disputed gift card was NOT revoked and its credit is still spendable.\n\nRECOVERY, both steps — a Stripe dashboard resend alone is a NO-OP. It redelivers the SAME event id, which hits the webhook's unique-constraint dedupe and 200-skips without ever entering the handler.\n  1. Deploy the migration (db-deploy), then confirm `to_regprocedure('public.revoke_gift_card_for_refund(text,text)')` is non-null.\n  2. DELETE the `stripe_webhook_events` row for the event id below.\n  3. Only then resend the event from the Stripe dashboard.\n\nNote PGRST202 also means an argument-signature mismatch, not only a missing function — if the migration IS deployed, check the parameter names.",
         fields: { "Payment Intent": paymentIntentId, Reason: reason },
       });
       return { ...NO_GIFT, outcome: "unavailable" };
@@ -87,14 +87,38 @@ export async function revokeGiftCardForRefund(
   }
 
   const row = (data ?? null) as Record<string, unknown> | null;
-  if (!row || row.outcome !== "revoked") return NO_GIFT;
+  if (!row || row.outcome !== "revoked") {
+    // `no_gift` is the ordinary answer for a job escrow PI and must stay quiet.
+    // An unparseable or unrecognised answer is NOT the same thing, and this is
+    // the one branch in a module written to end silent no-ops that could not
+    // tell them apart.
+    if (row?.outcome !== "no_gift") {
+      logStep("WARNING: unrecognised answer from revoke_gift_card_for_refund", {
+        paymentIntentId,
+        answer: row === null ? "null" : JSON.stringify(row).slice(0, 200),
+      });
+    }
+    return NO_GIFT;
+  }
 
+  // `Number(x)` yields NaN for anything non-numeric, and `NaN > 0` is FALSE —
+  // which would silently downgrade the page below from critical to warning and
+  // print "$NaN" on the one alert that says the platform is out of pocket.
+  // Coerce to a real number, and treat an unreadable figure as the worst case
+  // rather than the best.
+  const num = (v: unknown): number => {
+    const n = Number(v ?? 0);
+    return Number.isFinite(n) ? n : Number.NaN;
+  };
+  const spentCentsRaw = num(row.spent_cents);
   const result: GiftRevokeResult = {
     outcome: "revoked",
-    revokedCount: Number(row.revoked_count ?? 0),
-    revokedCents: Number(row.revoked_cents ?? 0),
-    spentCount: Number(row.spent_count ?? 0),
-    spentCents: Number(row.spent_cents ?? 0),
+    revokedCount: num(row.revoked_count),
+    revokedCents: num(row.revoked_cents),
+    spentCount: num(row.spent_count),
+    // Unreadable => assume money is gone, so the alert escalates instead of
+    // reassuring. The number is still shown as-is so the garbage is visible.
+    spentCents: Number.isNaN(spentCentsRaw) ? Number.POSITIVE_INFINITY : spentCentsRaw,
     spentJobIds: Array.isArray(row.spent_job_ids) ? (row.spent_job_ids as string[]) : [],
   };
 
@@ -219,6 +243,19 @@ export async function alertGiftDisputeClosed(
   }
   if (!data) return false;
 
+  if (isInquiryClose) {
+    logStep("Inquiry on a gift donation closed — nothing was revoked", {
+      paymentIntentId,
+      outcome,
+    });
+    return true;
+  }
+
+  // `warning_closed` is an INQUIRY that closed with no chargeback ever filed.
+  // Collapsing everything-not-"won" into the lost branch paged ops CRITICAL
+  // with "The cardholder won this chargeback" — false, and the credit was never
+  // revoked for an inquiry in the first place, so there is nothing to restore.
+  const isInquiryClose = typeof outcome === "string" && outcome.startsWith("warning_");
   const won = outcome === "won";
   logStep("Chargeback on a gift donation closed", { paymentIntentId, outcome });
   await postSlackOpsAlert({

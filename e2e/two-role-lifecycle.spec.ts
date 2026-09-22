@@ -36,6 +36,11 @@ import { test, expect, type BrowserContext, type Page } from "@playwright/test";
 const RUN = process.env.PLAYWRIGHT_TWO_ROLE === "1";
 const BASE = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:8080";
 const STORAGE_KEY = "sb-fncmgoasalhdgfwzhsqa-auth-token";
+/* Same defaults as e2e/journeys/fixtures.ts, restated rather than imported: this
+   spec is in the `chromium` project and that module pulls the journeys fixture
+   chain with it. */
+const SUPABASE_URL = (process.env.PLAYWRIGHT_SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
+const SUPABASE_ANON = process.env.PLAYWRIGHT_SUPABASE_ANON_KEY || "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP";
 
 async function seededPage(ctx: BrowserContext, sessionJson: string): Promise<Page> {
   const page = await ctx.newPage();
@@ -89,9 +94,39 @@ test.describe("two-role lifecycle", () => {
     await expect(stillOn, "day-of confirm card must be visible inside the 24h window").toBeVisible({ timeout: 15_000 });
     await stillOn.click();
     await helper.getByRole("button", { name: /Yes, I Confirm/i }).click();
-    // The 2026-08-24 regression surfaced here: the write 403'd and the chip
-    // stayed Pending. Assert the SUCCESS state, not just dialog closure.
-    await expect(helper.getByText(/You:\s*Confirmed/i)).toBeVisible({ timeout: 15_000 });
+    /* THE SUCCESS STATE FOR A HELPER IS THE CONTROL LEAVING, and asserting
+       "You: Confirmed" here could never have passed.
+       That chip lives in JobConfirmation's STANDALONE-CARD variant. The Helpr's
+       control portals into their step card's single action row instead (the
+       component says so: a permanent inert box would occupy the primary slot
+       the tracker's own next-step CTA needs), and in that variant `rowCta`
+       becomes `null` once confirmed — the labelled "Confirmed" button is
+       `isOwner` only. So the Helpr sees the control go, not a chip arrive.
+       This spec had never executed in any environment, so nobody found that.
+       PROVEN POSITIVE, not just absent: the write is read back from the row
+       itself. A control that vanished because the write 403'd — the 2026-08-24
+       regression this spec exists for — leaves the stamp NULL, so the stamp is
+       what the assertion rests on, and the disappearance is the corroboration
+       rather than the proof. */
+    await expect(stillOn, "the day-of control should leave once it is answered").toBeHidden({
+      timeout: 15_000,
+    });
+    const stamped = await helper.evaluate(
+      async ([url, anon, id]) => {
+        const raw = localStorage.getItem("sb-fncmgoasalhdgfwzhsqa-auth-token");
+        const token = raw ? (JSON.parse(raw) as { access_token: string }).access_token : "";
+        const r = await fetch(`${url}/rest/v1/jobs?id=eq.${id}&select=helper_dayof_confirmed_at`, {
+          headers: { apikey: anon, Authorization: `Bearer ${token}` },
+        });
+        return (await r.json()) as { helper_dayof_confirmed_at: string | null }[];
+      },
+      [SUPABASE_URL, SUPABASE_ANON, jobId] as const,
+    );
+    expect(
+      stamped[0]?.helper_dayof_confirmed_at,
+      "the day-of confirm did not land — this is the 403 regression of 2026-08-24, " +
+        "not a rendering problem",
+    ).toBeTruthy();
 
     // ── Poster: sees the mutual confirm without reloading ──
     await poster.goto(BASE + `/my-posts?job=${jobId}`);
@@ -111,6 +146,6 @@ test.describe("two-role lifecycle", () => {
   });
 });
 
-// NEVER EXECUTED ANYWHERE. This is the uncomfortable one.
+// SHOWN ABLE TO FAIL 2026-09-22 — by hand, because the gate cannot stage it.
 //
-// @mutate-exempt Needs PLAYWRIGHT_TWO_ROLE=1, PLAYWRIGHT_POSTER_SESSION, PLAYWRIGHT_HELPER_SESSION and PLAYWRIGHT_LIFECYCLE_JOB_ID — a seeded job in a specific lifecycle state, not just credentials. NOT SHOWN ABLE TO FAIL, and the reason is worse than a missing mutation: its job in e2e-real-backend.yml is `skipped` in EVERY scheduled run checked, 2026-09-13 through 2026-09-21 inclusive. It has never run, in any environment, and nothing said so — the workflow is green while this spec does nothing, which is the exact shape this burn-down exists to remove. The three defects its header credits it with (the day-of confirm 403, the tracker's ungated Done, the fee-preview race) were caught by a MANUAL audit on 2026-08-24, not by this file. What would close it is owner-side: seed the two sessions and a job in the right state, set the four vars, and confirm the job stops reporting `skipped`.
+// @mutate-exempt Needs PLAYWRIGHT_TWO_ROLE=1 plus two minted SESSIONS and a job in a specific lifecycle state, which the vacuity gate cannot supply: sessions expire in an hour and the job id is fixture-specific, so a registered mutation would return SURVIVED for an environment reason and convict a working spec. SHOWN ABLE TO FAIL INSTEAD, 2026-09-22, by re-introducing the exact regression this spec was written for — JobConfirmation's `const field = isOwner ? "poster_confirmed_at" : "helper_dayof_confirmed_at"` changed back to `helper_confirmed_at` (the 2026-08-24 bug: that column is stamped at ACCEPT time, possibly days early, so re-writing it makes the day-of card a no-op). RED with the mutation, GREEN without, source restored and `git status` verified clean. Until 2026-09-22 this spec had NEVER executed in any environment — `skipped` in every scheduled run from 2026-09-13 — and running it found FOUR stale preconditions, every one of which read like a product bug: it cleared the wrong column, navigated to a tab that cannot show the card, left the card collapsed when the control is in the expanded body, and asserted "You: Confirmed", a chip that exists only in the POSTER's variant (the Helpr's control portals into their step row, where it becomes null once confirmed). REPRODUCIBLE STAGE, so the next person need not rediscover it: mint both sessions with `node scripts/test-signin-link.mjs <poster|helper>-e2e --session --json` and read `.value`; take a seed job that is `accepted`/`escrow` between the two test accounts, set `date_needed`/`start_time` 2–24h out, `helper_confirmed_at` NOT NULL, and `helper_dayof_confirmed_at` NULL. What would close the exemption is CI holding a seeded stage, not a mutation.

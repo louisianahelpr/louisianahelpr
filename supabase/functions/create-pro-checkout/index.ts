@@ -144,15 +144,41 @@ serve(async (req) => {
       // Prefer a record that actually carries the active subscription, so the
       // checkout attaches to the right customer rather than an empty duplicate.
       customerId = customers.data[0].id;
-      if (billing_cycle !== "one_time") {
-        for (const customer of customers.data) {
-          const subs = await stripe.subscriptions.list({ customer: customer.id, status: "active", limit: 10 });
-          if (subs.data.length > 0) {
-            return new Response(JSON.stringify({ error: "You already have an active subscription. Manage it from the portal to switch tiers." }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-              status: 400,
-            });
-          }
+      // EVERY cadence is blocked by an active subscription — one_time included.
+      //
+      // This used to read `if (billing_cycle !== "one_time")`, so a member
+      // holding a live monthly/annual was refused a second recurring plan (400)
+      // but WAVED THROUGH to buy a one-time pass. Measured on prod 2026-09-22.
+      //
+      // Overlapping access is not a product we sell, and the exemption was not
+      // a considered choice — it was the shape of the code. Three reasons it is
+      // wrong, in order of how much they cost the member:
+      //
+      // 1. The pass buys NOTHING. A one-time pass grants the same tier perks
+      //    for ONE_TIME_PASS_DAYS (30) that the live subscription is already
+      //    granting. Tiers do not stack — there is no quantity, no extra seat,
+      //    no second entitlement to hold. The member pays a second time for
+      //    access they already have.
+      // 2. It can DESTROY the window they paid for. The pass is granted through
+      //    `oneTimePassLinkage()` + a now+30d expiry, while
+      //    `check-pro-subscription` runs on every dashboard load and rewrites
+      //    `subscription_expires_at` from the Stripe subscription's own
+      //    current_period_end. Whichever writer lands last wins, so the paid-for
+      //    30 days can be silently overwritten by the renewal date.
+      // 3. It is the double-charge shape the sibling Apple/Stripe eligibility
+      //    check above exists to prevent. Refusing a purchase costs a retry;
+      //    allowing this one costs a refund and a support ticket.
+      //
+      // A member who wants to change what they hold goes through the portal
+      // (switch tiers) or cancels and lets it lapse — both are reachable from
+      // the membership tab, which is what the error message points at.
+      for (const customer of customers.data) {
+        const subs = await stripe.subscriptions.list({ customer: customer.id, status: "active", limit: 10 });
+        if (subs.data.length > 0) {
+          return new Response(JSON.stringify({ error: "You already have an active subscription. Manage it from the portal to switch tiers." }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          });
         }
       }
     }

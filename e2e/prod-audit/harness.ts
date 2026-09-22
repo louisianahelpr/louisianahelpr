@@ -444,8 +444,18 @@ export async function clearConsentGate(page: Page, appearMs = 2_500): Promise<bo
   await agree.click({ timeout: 5_000 }).catch(() => {});
   // The dialog stays up while the write runs (TermsReconsentDialog keeps it
   // open on purpose), so wait for it to go rather than for the click.
+  //
+  // Bounded, because one caller cannot clear it and must not pay for trying:
+  // `admin-views.spec.ts` installs its own write firewall on the CONTEXT before
+  // its first goto, so the acceptance PATCH is refused there and the gate stays
+  // up for all 26 of its views. That is survivable (it asserts the landed path
+  // and the error-screen list, neither of which the gate touches) and it is
+  // self-limiting — `deep-links.spec.ts` runs three spec files later with no
+  // firewall and clears it for the rest of the run — but a 20s wait × 26 views
+  // is six minutes of a 300-minute budget spent waiting for a write that was
+  // refused before it left the page.
   const gone = await gate
-    .waitFor({ state: "hidden", timeout: 20_000 })
+    .waitFor({ state: "hidden", timeout: 12_000 })
     .then(() => true)
     .catch(() => false);
   test.info().annotations.push({

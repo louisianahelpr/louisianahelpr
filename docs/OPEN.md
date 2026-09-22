@@ -1157,7 +1157,16 @@ They are explored for real now, so their `credits/*.json` files grow. If
 gap but actually exercised"**, that is why, and the answer is to remove the
 stale `GAPS` entry, not to re-narrow the firewall.
 
-## OPEN — `messages-thread.spec.ts` (c) flakes in the FULL happy-path run only (2026-09-20)
+## CLOSED — `messages-thread.spec.ts` (c) flaked on a STUCK state, not a slow one (fixed 2026-09-22, 78d1b475b)
+
+**A SECOND, DIFFERENT flake surfaced while proving this one, and is NOT fixed.**
+`openFirstThread` (line 67) timed out at 30s because the mocked inbox never
+painted a row — different stage, different assertion, different timeout from
+the history-pop race. Seen once in 20 runs. It sits in `ConversationList`
+territory (`b43ac5d89` row layout, `0c5a89383` `src/lib/inboxDefault.ts`),
+which is the code the flake investigation was asked about and cleared for the
+ORIGINAL race. A lead, not a finding — nobody has reproduced it deliberately.
+
 
 Found while fixing the two red happy-path smokes (a305479e7, fa5759ec9); NOT
 caused by them and not in their diff.

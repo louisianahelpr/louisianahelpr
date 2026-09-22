@@ -126,11 +126,27 @@ prints the total) or walk the graph yourself from `dist/index.html`.
   stray import — a real piece of work with a visual risk, so it needs a look
   and probably an owner decision, not a quiet swap.
 
-- **36 chunks under 2 kB gz carrying 24 kB between them.** 36 round trips for
-  almost nothing. Irrelevant on a fast desktop link, not irrelevant on LTE
-  where latency dominates. Worth a `manualChunks` merge of the small
-  shell-level chunks in `vite.config.ts`. Low risk, unmeasured benefit — MEASURE
-  it on a throttled connection before claiming it helped.
+- **~39 critical-path chunks under 2 kB gz, carrying ~25 kB between them.**
+  Read twice, hours apart: 36 chunks / 24 kB, then 39 / 25.5 kB — `dist/` is
+  rebuilt by other lanes in this shared checkout, so RE-DERIVE the exact list at
+  fix time rather than trusting these figures. The shape is stable and that is
+  the point: dozens of requests for a few hundred bytes each.
+
+  They are all the app's OWN shell primitives, which Rollup split because they
+  are shared across routes — AppShell, PageScaffold, PageHeader, BackButton,
+  button, skeleton, SkeletonLoaders, JobCardSkeleton, EarningsPageSkeleton,
+  ProfileTabFallback, ProfileTabBody, RouteSuspenseFallback, SegmentedControl,
+  UnderlineTabs, ScreenHeaderRow, DashboardTitleBar, HelprMark, CategoryIcon,
+  PullToRefreshWrapper, AnimatePresence, and ~19 more of 0.1-1.3 kB each.
+
+  A `manualChunks` rule in `vite.config.ts` folding the shell primitives into
+  one `shell` chunk turns ~39 requests into 1. HTTP/2 multiplexes, so this is
+  NOT 39 serial round trips — the win is per-request overhead and parse setup,
+  not latency x 39. That makes it a REAL but MODEST win, and easy to overstate.
+
+  MEASURE IT on a throttled connection before claiming it helped. If the number
+  does not move, say so and revert: 25 kB spread across small files is exactly
+  the size where intuition is unreliable.
 
 - **`forms-*.js`, 21.7 kB gz — and it is NOT what its name says.** The
   `manualChunks` rule at `vite.config.ts:601` lumps react-hook-form, zod and

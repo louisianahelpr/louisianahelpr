@@ -8,6 +8,40 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## OPEN (RETRACTED as an upload bug; 33 dangling seed rows remain) — the press sweep's proof-photo 400s are failed SIGNING (2026-09-22)
+
+Press run 35768341847 (375px, PROD) showed repeated `400 POST
+.../proof-photos/<jobId>/before-<ts>-<rand>.png`. Read as rejected UPLOADS.
+They are not. `createSignedUrl` is itself a POST to
+`/object/sign/<bucket>/<path>`; prod `edge_logs` for 2026-09-22T19:37:31Z has
+every 400 on `/object/sign/proof-photos/...` and NONE on
+`/object/proof-photos/...`. Nothing was rejected on the way in.
+
+Measured live: `proof-photos` is private, 10 MiB, mime allow-list covers png —
+none of those is the cause. 87 stored proof-photo references across
+`public.jobs`; 54 resolve to a live object, **33 dangle**. All 33 are on
+`is_seed` jobs, **0 on real jobs**, so no user-reachable screen is broken.
+
+Today's store-a-path change (`src/lib/proofPhotoStorage.ts`,
+`src/hooks/useProofPhotoUrls.ts`) did not create them — it made them loud. A
+persisted signed URL turned a dangling row into one broken `<img>` GET;
+signing at display time turns it into an XHR the sweep sees and Sentry logs.
+
+SHIPPED: `scripts/proof-photo-reference-check.mjs` — the row-points-at-nothing
+check for proof photos (the avatars equivalent is
+`src/test/avatarRowObjectAgreement.test.ts`; `scripts/storage-orphan-sweep.mjs`
+only covers the opposite direction). Read-only, exit 1 on any dangling
+reference, exit 2 on harness failure. Proven RED on this defect: it names
+`90395fd0.../before-1790095700559-14qs17g47aj.png`, `0c8bab55`, `7f63fca4`
+and `4e3f708d` among the 33.
+
+STILL OPEN, two things:
+1. Clear the 33 dangling `is_seed` proof-photo references (test-owned, safe),
+   or re-seed the objects. Until then the sweep keeps reporting these 400s and
+   Sentry keeps recording them.
+2. Wire `proof-photo-reference-check.mjs` into a nightly workflow so it guards
+   forward rather than only on demand.
+
 ## CLOSED 2026-09-22 — the Messages disclosure chevron is SHIPPED BUT UNSEEN (2026-09-22, e28d5f55f)
 
 **LOOKED AT, 2026-09-22 — the feared regression did not happen.** Captured live

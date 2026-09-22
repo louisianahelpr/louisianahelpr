@@ -101,16 +101,40 @@ test.describe("Messages — the bottom nav can never strand the user", () => {
     await openFirstThread(page);
     expect(new URL(page.url()).searchParams.get("chat")).toBe("1");
 
+    // WAIT FOR THE RISING EDGE BEFORE POPPING IT. `openFirstThread` only waits
+    // on the composer dock, which renders off `activeConvo` (component state).
+    // The `?chat=1` push is in `window.location` synchronously — which is what
+    // the assertion above reads — but React Router commits that location in a
+    // transition, a render or more later. Pop the history entry inside that
+    // window and the app never observes the flag going true, so the falling-edge
+    // effect in src/pages/Messages.tsx (`wasFlagged && !threadFlagInUrl`) never
+    // fires, `activeConvo` is never cleared, and the thread stays on screen for
+    // good. That is the flake: not slow, STUCK — hence 14 polls across the full
+    // 5s and no recovery. The nav going hidden is the app's own acknowledgement
+    // that the flagged location is committed, so it is the honest precondition
+    // for a back gesture. Raising the timeout could never have fixed this.
+    await expect(page.locator(NAV)).toBeHidden();
+
     await page.goBack();
     await page.waitForLoadState("networkidle");
 
     // Still in Messages, on the list, with a way out.
-    expect(new URL(page.url()).pathname).toBe("/messages");
-    expect(new URL(page.url()).searchParams.has("chat")).toBe(false);
+    //
+    // Assert the LIST'S OWN landmark, not the absence of the thread's. Messages
+    // mounts exactly one pane (`!activeConvo ? listEl : chatEl`), so the inbox
+    // search trigger is present if and only if the thread is really closed —
+    // whereas "the back button is hidden" is equally satisfied by a pane that
+    // has not rendered yet, which is how an absence check passes for the wrong
+    // reason in the other direction.
+    await expect(
+      page.getByRole("button", { name: "Search conversations" }),
+    ).toBeVisible();
     await expect(page.locator(NAV)).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Back to conversations" }),
     ).toBeHidden();
+    expect(new URL(page.url()).pathname).toBe("/messages");
+    expect(new URL(page.url()).searchParams.has("chat")).toBe(false);
   });
 
   test("(d) deep-linked straight into a thread, then back → list with nav", async ({ page, context, baseURL }) => {

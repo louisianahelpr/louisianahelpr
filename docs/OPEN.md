@@ -58,7 +58,114 @@ problem already documented in `playwright.config.ts`, with a rebuild in place of
 a kill. Until the fixture change lands, a lane that must not be disturbed should
 run its own `HAPPY_PATH_PORT` AND not share a checkout with a lane that builds.
 
-## OPEN — an auto-resolved dispute leaves a job no cron will ever pay (2026-09-22)
+## OPEN — three more things on the critical path, measured 2026-09-22
+
+Owner asked whether website loading can be sped up. The largest single win is
+CLOSED below; these are what the same measurement turned up and nobody has done.
+
+Critical path today: **49 chunks, 391 kB gzip (1192 kB raw)** before React can
+mount. Reproduce with `npm run build && npm run check:deferred-vendors` (it
+prints the total) or walk the graph yourself from `dist/index.html`.
+
+- **framer-motion, 38.1 kB gz** (`proxy-*.js`). The biggest remaining single
+  item, and it is genuinely shell-level rather than an accident: statically
+  imported by `MobileNav`, `PageScaffold`, `ScrollToTop`, `PageTransition`,
+  `AnimatePresence`, `Dashboard`, `Messages`, `PostJob`, `Legal` and more.
+  Cutting it means replacing the SHELL's animations with CSS, not deleting a
+  stray import — a real piece of work with a visual risk, so it needs a look
+  and probably an owner decision, not a quiet swap.
+
+- **36 chunks under 2 kB gz carrying 24 kB between them.** 36 round trips for
+  almost nothing. Irrelevant on a fast desktop link, not irrelevant on LTE
+  where latency dominates. Worth a `manualChunks` merge of the small
+  shell-level chunks in `vite.config.ts`. Low risk, unmeasured benefit — MEASURE
+  it on a throttled connection before claiming it helped.
+
+- **`forms-*.js`, 21.7 kB gz** (react-hook-form + zod). On the critical path,
+  but no form is on screen at first paint on any route. Likely a static import
+  from a shell-level module; worth the same treatment the Sentry one got.
+
+NOT a lead: `app-shared` (134.7 kB gz) is the app's own shared code and the
+single biggest chunk, but it is not one import to move. Anything here needs a
+real look at what is in it.
+
+## CLOSED 2026-09-22 — Sentry was on the critical path despite being deferred (-70 kB gz)
+
+`main.tsx` defers Sentry behind an idle callback on purpose; its own comment
+says loading it before the first frame cost "~4s of FCP on slow connections",
+and `errorLogger.ts` guards the same hazard internally with its own comment
+("Static imports here would pull ~100KB of vendor code into the entry chunk ...
+defeating the deferred init").
+
+Both were right. Both were defeated by ONE line: `ForgotPassword.tsx:13`,
+`import { captureException } from "@/lib/sentry"`. Rollup hoists a module
+imported both statically and dynamically into the shared chunk, so all of
+@sentry/react landed in `app-shared` and the deferral bought nothing —
+`index-*.js -> app-shared-*.js -> sentry-*.js`.
+
+  before  50 chunks  1409 kB raw  461 kB gzip
+  after   49 chunks  1192 kB raw  391 kB gzip
+
+FIXED (ede8b383f) by routing the call through `report()` in
+`src/lib/errorLogger.ts` — the repo's own documented primitive, which fans out
+to Sentry AND PostHog behind a dynamic import and also writes the `error_logs`
+row, so the site now reports strictly MORE than before. Anti-enumeration
+preserved: the email is still not in the payload.
+
+WHY NOTHING CAUGHT IT, and this is the part worth keeping: `bundle-size.yml`
+budgets the initial graph at `MAX_INITIAL_KB=1500` raw. The regression sat at
+1409 — comfortably GREEN for its whole life. A size budget cannot express "this
+vendor must stay LAZY". Total bytes were never the signal; WHICH bytes was.
+
+CHECK: `scripts/check-deferred-vendors.mjs`, wired into `bundle-size.yml` beside
+the budget it complements. It walks the built static-import graph of the real
+entry chunk — not a `src/` grep, because the hazard is transitive and the
+offender need not name the vendor. Proven RED on the original defect (names the
+chunk, the +68.8 kB, the full chain, and the fix), and it fails loudly if the
+entry cannot be found or the walk reaches under two chunks, so a scan broken by
+a build-layout change cannot report success.
+
+## OPEN (detector shipped; ONE live row still needs a human) — an auto-resolved dispute leaves a job no cron will ever pay (2026-09-22)
+
+**UPDATE 2026-09-22, 1e79f1ebc.** Chased to the live rows. The mechanism is
+confirmed, and the entry below was NARROWER than it read: keying the detector on
+`execution_transfer_id IS NULL`, as it implied, would have paged on the most
+ordinary outcome there is. Both 'executed' disputes on prod have a NULL transfer
+id and only ONE is owed anything:
+
+  28c4943d  {helper:0,poster:1}  refund re_3UH3JZKp2H4b7tEC14591UJd, 2689
+            cents, payment_status 'refunded'  -> SETTLED. A poster-100%
+            decision moves money by REFUND, not by Connect transfer, so a NULL
+            transfer id is CORRECT there.
+  9756a585  {helper:1,poster:0}  transfer, refund, both cents columns and
+            execution_error all NULL  -> OWED.
+
+So the discriminator is that EVERY money field is empty: a dispute that moved
+money always records HOW; one that recorded nothing did nothing.
+
+SHIPPED: `sweep_disputes_closed_without_payment()` (migration
+20260922183808), hourly at :43, with its own `cron_work_expectations` row.
+Non-seed -> 'fatal' (pages #ops-alerts); seed -> 'error' (daily digest);
+separate `tags.source` per severity so a seed row cannot silence a real page
+inside the Slack trigger's 10-minute throttle. Deduped on the dispute id, so
+each is reported once and a new one always is. DETECTION ONLY — it moves no
+money. PGlite, prod-shaped, applied 3x verbatim, then proven on the three real
+row shapes; second run reports 0.
+
+CHECK: `src/test/disputeClosedWithoutPaymentIsWatched.test.ts` (8 tests, 2
+registered mutations). A DRIFT guard, because the sweep is only correct while
+both gates stay shut — widen either and its own alert text becomes false.
+
+STILL OPEN, and it is a HUMAN step, not code: dispute `9756a585` / job
+`e6979a12` has sat `payout_pending` since 2026-09-17 with the Helpr owed 100%.
+It is `is_seed = true`, so no real money — but only a manual `release-payout`
+will clear it, and that is an admin decision about money, which is why the
+sweep does not do it.
+
+---
+
+### Original entry (2026-09-22)
+
 
 Chased from a lead another lane filed; measured live rather than inferred, and
 it is NARROWER than the lead suggested — not permanently stranded, but silently

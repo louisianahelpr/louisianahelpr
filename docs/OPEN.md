@@ -8,6 +8,53 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## OPEN — 51 messages are sitting in the two email DLQs and nobody has decided what to do with them (2026-09-22)
+
+Found while closing the monitoring gap below. Read live on prod 2026-09-22:
+
+| queue | depth | what |
+| --- | --- | --- |
+| `pgmq.q_auth_emails_dlq` | 1 | a `recovery` (password reset) for a TEST account, enqueued 2026-09-12 11:23 UTC |
+| `pgmq.q_transactional_emails_dlq` | 50 | app notifications, 2026-09-13 |
+
+DELIBERATELY NOT TOUCHED. Replaying the 50 transactional ones would fire
+nine-day-old notifications at real users; draining them destroys the only
+record of what failed. That is a decision, not a cleanup, and it is the owner's.
+The one auth message is a test account, so nobody is locked out by it today.
+
+Detection is now in place (next section), so this backlog can sit here
+knowingly instead of silently. Whoever picks it up: `sweep_email_dlqs()` has
+already recorded the high-water `msg_id`, so draining these will NOT cause a
+re-alert.
+
+## DONE 2026-09-22 — anything landing in an email dead-letter queue now raises an alarm
+
+THE GAP: `process-email-queue` moves permanently-failed mail into
+`pgmq.q_auth_emails_dlq` / `pgmq.q_transactional_emails_dlq` and **nothing read
+those tables**. `_dlq` occurred in exactly one file in the repo — the edge
+function that writes it. No cron, no CI check, no alert, no test, while every
+other email signal read healthy (140 sent / 0 failed over 7 days).
+
+Why it mattered: `ProtectedRoute.tsx:392` blocks on `email_confirmed_at`, so
+email confirmation is the only gate between signup and account access. A real
+person whose confirmation mail exhausted its retries was permanently locked out
+with nobody told.
+
+FIX (`supabase/migrations/20260922155258_email_dlq_alerting.sql`):
+`public.sweep_email_dlqs()`, scheduled `6,21,36,51 * * * *`, writes into the
+existing `error_logs` alert path — `auth_emails_dlq` at `severity='fatal'`, so
+`trg_error_logs_slack` pages #ops-alerts immediately; `transactional_emails_dlq`
+at `'error'`, so it lands in `send_ops_daily_digest()`. Deduped on the DLQ's
+highest pgmq `msg_id`, so a stuck message is reported once and a new failure is
+always reported — it cannot loop the way the 2026-09-14 trigger did (616 rows in
+three days). The sweep itself has a `cron_work_expectations` row (1 hour).
+
+CHECK: `src/test/emailDlqIsWatched.test.ts` reads the DLQ inventory out of
+`process-email-queue`'s own queue list and fails if any DLQ it can write to is
+unwatched, if the auth DLQ is graded below the severity the Slack trigger pages
+on, or if the sweep's dedupe is replaced by a clock. Both `@mutate`
+registrations shown red.
+
 ## OPEN — CI should run against a separate database from real users, not before launch (owner, 2026-09-22)
 
 **Owner: "add that to the open bc i dont thiun its really necessary before

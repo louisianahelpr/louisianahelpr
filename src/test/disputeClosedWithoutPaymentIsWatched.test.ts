@@ -41,12 +41,20 @@ const read = (p: string) => readFileSync(join(root, p), "utf8");
 /** The migration that owns the sweep — found by content, not by filename. */
 const sweepSql = (() => {
   const dir = join(root, "supabase", "migrations");
-  const hit = readdirSync(dir)
+  // The LAST definition wins on replay, and that is the one prod runs.
+  // This asserted "exactly one migration" until 2026-09-22, which was wrong in
+  // a way that only showed when the function was legitimately replaced:
+  // 20260922224023 added the `FOR SHARE OF j` row lock the race-class guard
+  // requires, and a correct follow-up migration broke the test. A CREATE OR
+  // REPLACE chain is the normal way this schema evolves; pinning the count
+  // forbids fixing the thing it guards.
+  const hits = readdirSync(dir)
     .filter((f) => f.endsWith(".sql"))
+    .sort()
     .map((f) => ({ f, body: readFileSync(join(dir, f), "utf8") }))
     .filter(({ body }) => body.includes("FUNCTION public.sweep_disputes_closed_without_payment"));
-  expect(hit, "the sweep must be defined in exactly one migration").toHaveLength(1);
-  return hit[0].body;
+  expect(hits.length, "the sweep must be defined somewhere").toBeGreaterThan(0);
+  return hits[hits.length - 1].body;
 })();
 
 /**
@@ -67,12 +75,24 @@ const sweepBody = (() => {
 
 describe("a dispute closed without moving money is watched", () => {
   it("the sweep exists, is scheduled, and is not callable by a client", () => {
+    // SETUP lives in whichever migration performs it, which is NOT necessarily
+    // the one holding the newest body: 20260922224023 replaced the function to
+    // add a row lock and does not re-schedule the cron. Asserting all of this
+    // against the latest definition made a correct follow-up migration fail.
+    const dir = join(root, "supabase", "migrations");
+    const all = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .map((f) => readFileSync(join(dir, f), "utf8"))
+      .filter((b) => b.includes("sweep_disputes_closed_without_payment"));
+    expect(all.length, "the sweep must be defined somewhere").toBeGreaterThan(0);
+    const anywhere = all.join("\n");
+
     expect(sweepSql).toContain("CREATE OR REPLACE FUNCTION public.sweep_disputes_closed_without_payment");
-    expect(sweepSql).toMatch(/cron\.schedule\('sweep-disputes-unsettled'/);
+    expect(anywhere).toMatch(/cron\.schedule\('sweep-disputes-unsettled'/);
     // Money-shaped state: anon and authenticated have no business reading it.
-    expect(sweepSql).toMatch(/REVOKE ALL ON FUNCTION public\.sweep_disputes_closed_without_payment\(\)\s*FROM PUBLIC, anon, authenticated;/);
+    expect(anywhere).toMatch(/REVOKE ALL ON FUNCTION public\.sweep_disputes_closed_without_payment\(\)\s*FROM PUBLIC, anon, authenticated;/);
     // A watcher nobody watches is the gap this closes.
-    expect(sweepSql).toContain("'sweep-disputes-unsettled', interval");
+    expect(anywhere).toContain("'sweep-disputes-unsettled', interval");
   });
 
   it("PREMISE 1: process-scheduled-payouts still excludes disputed jobs", () => {

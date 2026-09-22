@@ -118,3 +118,12 @@ BEGIN
   RETURN jsonb_build_object('reported', v_reported, 'disputes', v_seen);
 END;
 $fn$;
+
+-- CREATE OR REPLACE FUNCTION preserves existing privileges, so these are a
+-- restatement rather than a repair — stated anyway so this migration is
+-- readable on its own and a from-scratch replay never depends on the reader
+-- knowing that rule. 20260922183808 set the same three.
+REVOKE ALL ON FUNCTION public.sweep_disputes_closed_without_payment()
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.sweep_disputes_closed_without_payment()
+  TO service_role;

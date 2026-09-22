@@ -147,6 +147,30 @@ const OWNED = {
   admin: { email: "helpr-seed-admin-0912@louisianahelpr.com", full_name: "Seed Admin Tester", approval_status: "approved", ban_status: "active", role: "admin" },
   heavy: { email: "helpr-seed-heavy-0912@mailinator.com", full_name: "Marie-Thérèse Boudreaux-Fontenot de la Houssaye 🦞 (Seed Heavy)", approval_status: "approved", ban_status: "active" },
 };
+/**
+ * THE HELPER'S WEEKLY HOURS — the SEEDER owns them, and it owns all SEVEN days.
+ *
+ * Two writers used to disagree about this table. This seeder upserted SIX rows
+ * (Mon-Sat, at deterministic ids), while e2e/journeys/03-account.spec.ts writes
+ * the week through `save_weekly_availability` — which DELETEs the whole week and
+ * re-inserts it with random ids — and then requires exactly the SEVEN rows it
+ * documents. Whichever ran last won: on 2026-09-21 helper-e2e held 13 rows (the
+ * journey's 7 plus this seeder's 6 coming back) and J7 failed its own
+ * precondition with `Expected: 7 / Received: 13`.
+ *
+ * Owner ruling (2026-09-21): the seeder owns it and seeds all seven, at the
+ * hours the journey's own DEFAULT_WEEK uses — every day 09:00-17:00, which is
+ * also the grid e2e/journeys/time-travel.spec.ts reads for its 5 PM boundary.
+ * Both writers now produce the SAME seven rows, so neither can leave a leftover.
+ *
+ * src/test/seedWeeklyAvailabilityAgreement.test.ts fails on the DISAGREEMENT
+ * itself — it derives the day count from this array and the expected count from
+ * the spec — rather than waiting for a 13th row to appear on prod.
+ */
+const SEED_AVAILABILITY_DAYS = [0, 1, 2, 3, 4, 5, 6];
+const SEED_AVAILABILITY_START = "09:00:00";
+const SEED_AVAILABILITY_END = "17:00:00";
+
 const APPLICANT_COUNT = 45;
 for (let i = 1; i <= APPLICANT_COUNT; i++) {
   const n = String(i).padStart(2, "0");
@@ -681,8 +705,8 @@ async function apply() {
   await retireStuckSeedSplits();
 
   // Helper profile surfaces.
-  await upsert("helper_availability", [1, 2, 3, 4, 5, 6].map((d) => ({
-    id: sid(`avail:${d}`), helper_id: helperId, day_of_week: d, start_time: d === 6 ? "09:00:00" : "08:00:00", end_time: d === 6 ? "13:00:00" : "17:00:00", is_available: true, specific_date: null,
+  await upsert("helper_availability", SEED_AVAILABILITY_DAYS.map((d) => ({
+    id: sid(`avail:${d}`), helper_id: helperId, day_of_week: d, start_time: SEED_AVAILABILITY_START, end_time: SEED_AVAILABILITY_END, is_available: true, specific_date: null,
   })));
   await upsert("helper_credentials", [
     { id: sid("cred:license"), user_id: helperId, credential_type: "trade_license", trade_category: "handyman", license_number: "SEED-LA-HIC-0000", license_state: "LA", status: "submitted" },
@@ -784,7 +808,7 @@ async function teardown() {
   await del("reviews", `id=${inList([sid("review:p2h"), sid("review:h2p")])}`);
   await del("saved_jobs", `id=eq.${sid("saved:helper-pets")}`);
   await del("reports", `id=${inList(["user", "job", "message", "support"].map((k) => sid(`report:${k}`)))}`);
-  await del("helper_availability", `id=${inList([1, 2, 3, 4, 5, 6].map((d) => sid(`avail:${d}`)))}`);
+  await del("helper_availability", `id=${inList(SEED_AVAILABILITY_DAYS.map((d) => sid(`avail:${d}`)))}`);
   await del("helper_credentials", `id=${inList(["license", "insurance", "bond"].map((k) => sid(`cred:${k}`)))}`);
   await del("pet_profiles", `id=${inList([sid("pet:dog"), sid("pet:cat")])}`);
   await del("favorite_helpers", `id=${inList([sid("fav:helper"), sid("fav:applicant01")])}`);
@@ -934,7 +958,7 @@ async function verify() {
     rows.push({ state: "helper avatar_url resolves", n: ok ? 1 : 0, min: 1, ok, source: "prod-seed", err });
   }
   await check("helper credentials", `helper_credentials?user_id=eq.${helperId}&select=id`, 3);
-  await check("helper availability", `helper_availability?helper_id=eq.${helperId}&select=id`, 6);
+  await check("helper availability", `helper_availability?helper_id=eq.${helperId}&select=id`, SEED_AVAILABILITY_DAYS.length);
   await check("pets", `pet_profiles?owner_id=eq.${posterId}&select=id`, 2);
   await check("saved Helprs", `favorite_helpers?customer_id=eq.${posterId}&select=id`, 2);
   await check("saved searches", `saved_searches?user_id=${inList([posterId, helperId])}&select=id`, 2);

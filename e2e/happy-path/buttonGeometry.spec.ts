@@ -148,10 +148,26 @@ test.describe("detectButtonGeometry — sibling mismatch", () => {
     // pushed with --no-verify because of it.
     await page.setContent(BASE + `<div><button class="h-14"
       style="box-sizing:border-box;height:56px;width:56px;padding:0;border:1px solid #000">+</button></div>`);
-    expect(await page.evaluate(() => {
+    const geom = await page.evaluate(() => {
       const el = document.querySelector("button")!;
       return { rect: el.getBoundingClientRect().height, box: getComputedStyle(el).boxSizing };
-    })).toEqual({ rect: 56, box: "border-box" });
+    });
+    expect(geom.box).toBe("border-box");
+    /* 56, NOT 58 — that difference is the whole precondition. Asserted to a
+       sub-pixel tolerance rather than exactly, because `getBoundingClientRect()`
+       is a float out of the engine's internal layout unit and the two engines
+       do not round it the same way: WebKit returns 56.000003814697266 here
+       where Chromium returns exactly 56. This line was written as
+       `toEqual({ rect: 56, ... })` against Chromium and reddened
+       nightly-webkit on 2026-09-22 (run 35690913061) on a button that is
+       correct — the fourth WebKit-only defect this repo has found in a check
+       that passed its author's browser.
+
+       `toBeCloseTo(56, 1)` admits 0.05px. That is 40x tighter than the 2px a
+       double-counted border adds, so the regression this test exists for
+       still reds it — and 13000x looser than the 3.8e-6 WebKit actually
+       reports, which is well inside a 1/64px LayoutUnit either way. */
+    expect(geom.rect).toBeCloseTo(56, 1);
     expect((await page.evaluate(detectButtonGeometry, undefined)).requestedNotRendered).toEqual([]);
 
     // And the other branch still works: under content-box the same declared

@@ -59,6 +59,28 @@ const RETRY_DELAYS_MS = [1_000, 2_000, 5_000, 10_000, 20_000, 30_000];
 /** Statuses that mean "this channel is not delivering". */
 const DEAD_STATUSES = new Set(["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"]);
 
+/**
+ * Consecutive failed attempts before an outage is worth a row in `error_logs`.
+ *
+ * MEASURED, 2026-09-22: `realtimeRecovery` was the single highest-volume source
+ * in `error_logs` — 216 warnings in 7 days, every one of them from ONE user.
+ * Read properly, the rows come in bursts that share an IDENTICAL `created_at`,
+ * six or seven channels at a time, carrying `socket closed: 1000` (a NORMAL
+ * websocket closure) and occasionally `1006`. That is not six failures: it is
+ * one socket dropping and every channel riding on it filing its own report.
+ * The recovery then worked — `reportedThisOutage` only clears on SUBSCRIBED,
+ * so the repeat rows per channel are themselves proof of successful
+ * resubscribes, some of them 28 seconds apart.
+ *
+ * So the first dead status is not news; it is the routine drop this module was
+ * built to absorb, and logging it buried the cron failures underneath it. What
+ * IS news is a channel that keeps failing — the case where the user really has
+ * stopped receiving live updates. Four attempts spans the 1s/2s/5s/10s head of
+ * RETRY_DELAYS_MS, so a drop that reconnects inside ~18s stays silent and
+ * anything still down after that reports exactly once.
+ */
+const REPORT_AFTER_ATTEMPTS = 4;
+
 // ── Health registry ─────────────────────────────────────────────────────────
 // Module-level rather than context: channels are opened from hooks, module
 // singletons (useCurrentUser's refcounted registry) and async callbacks alike,
@@ -286,14 +308,23 @@ export function subscribeWithRecovery(
       if (!DEAD_STATUSES.has(status)) return;
 
       markDown();
-      if (!reportedThisOutage) {
+      // Retry FIRST: scheduleRetry is what advances `attempt`, and the report
+      // below is gated on it. The banner has already gone up via markDown(),
+      // so the user is told immediately either way — this gate only decides
+      // whether the outage is durable enough to be worth a persisted row.
+      scheduleRetry();
+      if (!reportedThisOutage && attempt >= REPORT_AFTER_ATTEMPTS) {
         reportedThisOutage = true;
         report(err ?? new Error(`realtime channel ${status}`), {
           severity: "warning",
-          tags: { source: "realtimeRecovery", channel: opts.name, status },
+          tags: {
+            source: "realtimeRecovery",
+            channel: opts.name,
+            status,
+            attempts: String(attempt),
+          },
         });
       }
-      scheduleRetry();
     });
   };
 

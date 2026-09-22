@@ -98,7 +98,9 @@ describe("subscribeWithRecovery", () => {
     first.cb?.("SUBSCRIBED");
 
     first.cb?.("CHANNEL_ERROR", new Error("socket died"));
-    expect(reportMock).toHaveBeenCalledTimes(1);
+    // Rebuilding is immediate; REPORTING waits for REPORT_AFTER_ATTEMPTS, so a
+    // drop that comes straight back never reaches error_logs at all.
+    expect(reportMock).not.toHaveBeenCalled();
     expect(created).toHaveLength(1); // backoff not elapsed yet
 
     vi.advanceTimersByTime(1_500);
@@ -160,10 +162,11 @@ describe("subscribeWithRecovery", () => {
   it("reports only once per outage, not once per retry", () => {
     const sub = makeSub({ name: "admin-realtime" });
     last().cb?.("SUBSCRIBED");
-    last().cb?.("CHANNEL_ERROR");
-    vi.advanceTimersByTime(1_500);
-    last().cb?.("CHANNEL_ERROR");
-    vi.advanceTimersByTime(3_000);
+    // Ten consecutive failures, well past REPORT_AFTER_ATTEMPTS: still one row.
+    for (let i = 0; i < 10; i += 1) {
+      last().cb?.("CHANNEL_ERROR");
+      vi.advanceTimersByTime(31_000);
+    }
     expect(reportMock).toHaveBeenCalledTimes(1);
     sub.close();
   });
@@ -231,6 +234,42 @@ describe("subscribeWithRecovery", () => {
       sub.close();
     });
     expect(result.current).toBe(false);
+  });
+
+  // ── Report volume ────────────────────────────────────────────────────────
+  // MEASURED ON PROD (error_logs, 7 days to 2026-09-22): 216 `realtimeRecovery`
+  // warnings, ALL from one user, arriving in bursts whose rows share an
+  // IDENTICAL `created_at` — 6-7 channels at once — with messages
+  // `socket closed: 1000` / `1006`. That is one websocket dropping and every
+  // channel riding on it reporting the same event separately, and 1000 is a
+  // NORMAL closure the client reconnects from within seconds. Proof the
+  // recovery works: `reportedThisOutage` only resets on SUBSCRIBED, so the
+  // repeat rows for a given channel could not exist unless it had resubscribed
+  // in between. The defect is the logging, not the socket.
+  it("does not report a drop that recovers — only a SUSTAINED outage", () => {
+    const sub = makeSub({ name: "unread-nav-u1" });
+    act(() => {
+      last().cb?.("SUBSCRIBED");
+    });
+
+    // A routine socket close that comes back on the first retry.
+    act(() => {
+      last().cb?.("CHANNEL_ERROR", new Error("socket closed: 1000"));
+      vi.advanceTimersByTime(1_500);
+      last().cb?.("SUBSCRIBED");
+    });
+    // This is the row that was filling the table 216 times.
+    expect(reportMock).not.toHaveBeenCalled();
+
+    // An outage that keeps failing IS worth a row — that is the real signal.
+    act(() => {
+      for (let i = 0; i < 6; i += 1) {
+        last().cb?.("CHANNEL_ERROR", new Error("socket closed: 1006"));
+        vi.advanceTimersByTime(60_000);
+      }
+    });
+    expect(reportMock).toHaveBeenCalledTimes(1);
+    sub.close();
   });
 
   it("exposes the live channel through `current`", () => {

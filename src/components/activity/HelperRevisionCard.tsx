@@ -18,6 +18,7 @@
  * the legacy jobs.revision_note column instead.
  */
 import { useEffect, useState } from "react";
+import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { AlertTriangle, Check, ChevronDown, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,11 @@ interface HelperRevisionCardProps {
   onAcceptedChange?: (accepted: boolean) => void;
 }
 
+/** Stable empty array: a fresh `[]` each render would be a new identity, and
+ *  while useProofPhotoUrls is content-keyed against exactly that, there is no
+ *  reason to hand it churn. */
+const EMPTY_PHOTOS: string[] = [];
+
 interface RevisionRow {
   id: string;
   description: string;
@@ -68,6 +74,15 @@ export function HelperRevisionCard({
   /** Inside the helper's step card, "I'll Fix It" is that card's primary and
    *  renders in its one action row (owner, 2026-09-14, VN-21). */
   const inStepRow = useInJobStepRow();
+  /**
+   * `job_revisions.photos` holds storage PATHS in a private bucket, so the
+   * renderable URL is minted HERE, for this view, with a ten-minute ticket —
+   * never written down (see src/lib/proofPhotoStorage.ts). Called before the
+   * `if (!revision)` early return below, because a hook cannot be conditional;
+   * an empty array is the no-photos case and costs nothing. Legacy full signed
+   * URLs still resolve, so any row written before this shipped renders too.
+   */
+  const photoUrls = useProofPhotoUrls(revision?.photos ?? EMPTY_PHOTOS);
 
   useEffect(() => {
     // Try to load from the formal table; fall back to the legacy note.
@@ -230,18 +245,32 @@ export function HelperRevisionCard({
       {/* Photos */}
       {revision.photos && revision.photos.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
-          {revision.photos.map((url, i) => (
-            <a
-              key={i}
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="w-14 h-14 rounded-ds-sm overflow-hidden border border-border/40 active:opacity-70"
-            >
-              <img src={url} alt={`Revision photo ${i + 1}`} className="w-full h-full object-cover" />
-            </a>
-          ))}
+          {revision.photos.map((_, i) => {
+            // Still being signed (or unsignable): the tile keeps its place and
+            // its size rather than collapsing the row or flashing alt text.
+            const url = photoUrls[i];
+            if (!url) {
+              return (
+                <span
+                  key={i}
+                  aria-hidden="true"
+                  className="w-14 h-14 rounded-ds-sm overflow-hidden border border-border/40 bg-muted/40"
+                />
+              );
+            }
+            return (
+              <a
+                key={i}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="w-14 h-14 rounded-ds-sm overflow-hidden border border-border/40 active:opacity-70"
+              >
+                <img src={url} alt={`Revision photo ${i + 1}`} className="w-full h-full object-cover" />
+              </a>
+            );
+          })}
         </div>
       )}
 

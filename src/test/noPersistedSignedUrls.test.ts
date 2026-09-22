@@ -49,8 +49,27 @@
  *
  * PhotoProof.tsx — the only one with data behind it — was fixed on 2026-09-22
  * (path stored, signed at display time) and its 93 stored values converted by
- * 20260922170321_proof_photo_urls_to_paths.sql. FOUR pins remain, all of them
- * code-only: nothing has yet been written through those paths in prod.
+ * 20260922170321_proof_photo_urls_to_paths.sql. CompletionChoiceSheet.tsx
+ * followed the same day. THREE pins remain, all code-only: nothing has yet
+ * been written through those paths in prod.
+ *
+ * ── WHY THE TWO DISPUTE PINS ARE NOT A CODE-ONLY EDIT ───────────────────────
+ * DisputeDialog and DisputeTimelineDialog cannot simply store the path: the
+ * DATABASE refuses one. `public.dispute_evidence_url_ok(_url, _uploader,
+ * _job_id)` — read live from prod 2026-09-22 — requires each element to match
+ *
+ *   ^https://fncmgoasalhdgfwzhsqa\.supabase\.co/storage/v1/object/sign/
+ *   proof-photos/<uploader>/disputes/<job>/[^/?#]+([?][^#]*)?$
+ *
+ * and THREE writers enforce it: open_dispute_as (reached by rpc_open_dispute),
+ * rpc_add_dispute_evidence, and a BEFORE UPDATE trigger on `disputes` that
+ * holds the opener's direct UPDATE to the same rule. A bare path fails the
+ * anchor and the filing raises `dispute_evidence_invalid_url` — so writing the
+ * path without first widening the validator would not fix a dated fuse, it
+ * would break dispute filing outright, today, on the money path. These two
+ * stay pinned until a migration relaxes the validator to accept
+ * `<uploader>/disputes/<job>/<file>` alongside the legacy URL shape; the data
+ * half is already done (20260922170321 converts both evidence columns).
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -74,8 +93,12 @@ const PINNED: Record<string, string> = {
     "365-day token -> dispute evidence via the file-dispute RPC",
   "components/DisputeTimelineDialog.tsx":
     "365-day token -> disputes.evidence_urls and jobs.dispute_evidence_urls",
-  "components/activity/CompletionChoiceSheet.tsx":
-    "365-day token -> job_revisions photos and the jobs row it updates",
+  // components/activity/CompletionChoiceSheet.tsx was here. FIXED 2026-09-22:
+  // it writes the storage PATH into job_revisions.photos and the one component
+  // that renders them (activity/HelperRevisionCard.tsx) signs at display time
+  // via useProofPhotoUrls. Nothing had been written through it in prod, and
+  // `job_revisions.photos` has no server-side URL validator — only
+  // trg_ban_gate_job_revisions — so the change needed no migration.
   "components/profile/SupportInline.tsx":
     "30-day token pasted into reports.description; the file says so and accepts it ('older ones can be re-fetched by path if needed')",
 };
@@ -157,7 +180,7 @@ describe("a signed URL is never persisted", () => {
     expect(
       longLivedTokens().length,
       "the scan found no long-lived signed URL at all — it cannot have run",
-    ).toBeGreaterThanOrEqual(4);
+    ).toBeGreaterThanOrEqual(3);
   });
 
   it("the threshold does not swallow the app's real display-time TTLs", () => {

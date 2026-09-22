@@ -98,8 +98,17 @@ export function CompletionChoiceSheet({
     hapticMedium();
     setSubmitting(true);
     try {
-      // Upload photos
-      const photoUrls: string[] = [];
+      // Upload photos. What lands in `job_revisions.photos` is the storage
+      // PATH, never a signed URL: `proof-photos` is private, so this used to
+      // mint a 365-day signed URL and write THAT down, and the `?token=` on
+      // such a URL is a JWT carrying an `exp` — the row is correct the day it
+      // is written and 400s forever after, with no error at write time and
+      // none at read time. The helper would just see an empty box where the
+      // photo of the thing they are being asked to fix should be. The path is
+      // signed at display time instead (HelperRevisionCard, via
+      // useProofPhotoUrls — src/lib/proofPhotoStorage.ts says why), the same
+      // pattern PhotoProof.tsx uses for proof photos.
+      const photoPaths: string[] = [];
       let uploadFailed = false;
       for (const file of photos.slice(0, 3)) {
         const ext = file.name.split(".").pop();
@@ -122,14 +131,7 @@ export function CompletionChoiceSheet({
           report(upErr, { tags: { source: "CompletionChoiceSheet.uploadPhoto" } });
           continue;
         }
-        const { data: urlData, error: signedUrlError } = await supabase.storage
-          .from("proof-photos")
-          .createSignedUrl(path, 60 * 60 * 24 * 365);
-        if (signedUrlError) {
-          report(signedUrlError, { tags: { source: "CompletionChoiceSheet.createSignedUrl" } });
-          continue;
-        }
-        if (urlData?.signedUrl) photoUrls.push(urlData.signedUrl);
+        photoPaths.push(path);
       }
 
       // Tell the user if their evidence didn't attach. The revision request
@@ -138,7 +140,7 @@ export function CompletionChoiceSheet({
       // with nothing to act on and the poster believing they had sent proof.
       if (uploadFailed) {
         toast.error(
-          photoUrls.length > 0
+          photoPaths.length > 0
             ? "Some photos couldn't be attached — your revision request was still sent."
             : "Your photos couldn't be attached — your revision request was still sent.",
         );
@@ -149,7 +151,7 @@ export function CompletionChoiceSheet({
         job_id: jobId,
         requested_by: userId,
         description: description.trim(),
-        photos: photoUrls,
+        photos: photoPaths,
         status: "pending",
       });
 

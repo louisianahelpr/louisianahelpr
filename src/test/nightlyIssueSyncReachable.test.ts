@@ -249,3 +249,11 @@ describe("a nightly red is clearable by a dispatch", () => {
     ).toBe(true);
   });
 });
+
+// Proof this is able to fail: take `workflow_dispatch` out of the events the
+// notify job allows, which is the exact shape that kept #1595 open for 207
+// hours — every dispatched verification run came back green and closed
+// nothing. The pipes are ESCAPED (\|\|); unescaped, the parser would keep only
+// the text before the later pipes and score the guard's failure to load as a
+// kill.
+// @mutate .github/workflows/e2e-journeys.yml | \|\| (github.event_name == 'workflow_dispatch' && inputs.scenario == '') | \|\| (github.event_name == 'schedule' && inputs.scenario == '')

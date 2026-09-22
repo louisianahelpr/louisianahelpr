@@ -27,8 +27,15 @@
  * @mutate scripts/audit/press-every-control.mjs | String(c.sigText ?? c.label ?? "") | String(c.label ?? "")
  * @mutate scripts/audit/press-every-control.mjs | .replace(RELATIVE_TIME_RX, "<rel>") | .replace(/(?!)/g, "<rel>")
  * @mutate scripts/audit/press-every-control.mjs | const gone = [...(pressed ?? [])].filter((s) => s !== sig && !present.has(s) && !loose.has(looseSignature(s))); | const gone = ["anything"];
- * @mutate scripts/audit/press-every-control.mjs | if (!sig || present.has(sig)) return null; | if (!sig) return null;
+ * The pipes in this one are ESCAPED (\|). An unescaped `||` inside a field
+ * makes the parser keep only the text before the 2nd and 3rd pipes, splice
+ * unparseable code into the target, and then score the guard's failure to LOAD
+ * as "killed" — a proof that never ran. Seventeen registrations were in that
+ * state on 2026-09-21, four of them on money paths.
+ * @mutate scripts/audit/press-every-control.mjs | if (!sig \|\| present.has(sig)) return null; | if (!sig) return null;
  * @mutate scripts/audit/press-every-control.mjs | return String(sig).replace(/\d+/g, "#"); | return String(sig);
+ * @mutate scripts/audit/press-every-control.mjs | if (scope === "overlay" && consumed) return CONSUMED_SKIP; | if (consumed) return CONSUMED_SKIP;
+ * @mutate scripts/audit/press-every-control.mjs | if (!onSameScreen) return BOUNCED_SKIP; | if (false) return BOUNCED_SKIP;
  */
 import { describe, it, expect } from "vitest";
 // @ts-expect-error - plain .mjs tool script, no types
@@ -40,6 +47,9 @@ const withSignatures = harness.withSignatures as <T extends Control>(l: T[]) => 
 const consumedByEarlierPress = harness.consumedByEarlierPress as (a: {
   sig: string; present: Set<string>; pressed: Set<string>;
 }) => string[] | null;
+const missingControlDisposition = harness.missingControlDisposition as (a: {
+  scope: string; onSameScreen: boolean; consumed: boolean;
+}) => string | null;
 const CONSUMED_SKIP = harness.CONSUMED_SKIP as string;
 const BOUNCED_SKIP = harness.BOUNCED_SKIP as string;
 const DOCUMENTED_SKIPS = harness.DOCUMENTED_SKIPS as Set<string>;
@@ -123,6 +133,29 @@ describe("press-every-control: addressing a control in a self-consuming list", (
   it("never excuses a control that is right there", () => {
     const sig = controlSignature(rowA);
     expect(consumedByEarlierPress({ sig, present: new Set([sig]), pressed: new Set(["gone"]) })).toBeNull();
+  });
+
+  /*
+   * The excuse is for FEEDS, not for pages. On run 35692554813 the unrestricted
+   * rule excused seven page-level controls on /account-banned — the header
+   * logo, the footer links — where the real cause was that the screen
+   * redirects to /dashboard once `profile` resolves, i.e. every later load
+   * landed somewhere else entirely. A page is not a list; a control that
+   * vanishes from one is never explained by "the list consumed it".
+   */
+  it("only a FEED may claim it consumed its own rows; a page never can", () => {
+    expect(missingControlDisposition({ scope: "overlay", onSameScreen: true, consumed: true })).toBe(CONSUMED_SKIP);
+    expect(missingControlDisposition({ scope: "page", onSameScreen: true, consumed: true })).toBeNull();
+  });
+
+  it("a control missing because the screen bounced is neither a failure nor a consumed row", () => {
+    expect(missingControlDisposition({ scope: "page", onSameScreen: false, consumed: false })).toBe(BOUNCED_SKIP);
+    expect(missingControlDisposition({ scope: "overlay", onSameScreen: false, consumed: true })).toBe(BOUNCED_SKIP);
+  });
+
+  it("a control that is simply gone, on the screen it belongs to, is still a FAILED press", () => {
+    expect(missingControlDisposition({ scope: "page", onSameScreen: true, consumed: false })).toBeNull();
+    expect(missingControlDisposition({ scope: "overlay", onSameScreen: true, consumed: false })).toBeNull();
   });
 
   it("registers both new skip reasons, or the coverage gate counts them undocumented", () => {

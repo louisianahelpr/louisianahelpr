@@ -368,7 +368,12 @@ function loadWorkflows(): Wf[] {
     });
 }
 
-// @mutate .github/workflows/prod-audit.yml | group: prod-load | group: prod-audit-nightly
+// Re-anchored 2026-09-22: prod-audit.yml no longer carries a literal
+// `group: prod-load`. Its group became a schedule-only expression when the
+// dispatch/schedule split landed, so the old find-string stopped matching and
+// the registration failed rather than proving anything. Breaking the STRING
+// the expression yields is the same proof against the new shape.
+// @mutate .github/workflows/prod-audit.yml | github.event_name == 'schedule' && 'prod-load' | github.event_name == 'schedule' && 'prod-audit-nightly'
 describe("prod-hitting workflow schedules", () => {
   const wfs = loadWorkflows();
 

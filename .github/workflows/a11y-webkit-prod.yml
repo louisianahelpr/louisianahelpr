@@ -37,15 +37,17 @@ concurrency:
   # >= 2h apart, and share the prod-load concurrency group; see
   # src/test/prodWorkflowSpacing.test.ts before moving this.
   #
-  # A SCHEDULED run joins prod-load; a workflow_dispatch gets its OWN group
-  # (2026-09-21, issues #1595/#1626). `cancel-in-progress: false` does NOT mean
-  # "queue forever" — GitHub keeps exactly ONE *pending* run per group, so a
-  # third run entering it CANCELS the one already waiting. On 2026-09-21T04:54Z
-  # four prod-load workflows dispatched inside four minutes cancelled each
-  # other in a chain, and a workflow-level cancellation leaves a run with NO
-  # jobs, so nothing reports it. See e2e-real-backend.yml, which has made this
-  # split since the money loop lost a dispatch the same way.
-  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('a11y-webkit-prod-{0}', github.run_id) }}
+  # THE EXCEPTION to the dispatch split, by name in
+  # src/test/prodWorkflowSpacing.test.ts's DISPATCH_SHARES_GROUP (2026-09-22).
+  # This workflow signs in as the shared prod test accounts and has no
+  # job-level `prod-lifecycle-shared-accounts` lock, because its matrix would
+  # be serialised against itself by one. prod-load IS its account lock. Giving
+  # its dispatch a private group — as e2e-journeys and prod-audit now do, since
+  # their JOBS hold that lock — would let a dispatched run drive poster-e2e
+  # beside another suite already driving it, and two runs signed in as the same
+  # account corrupt each other's fixtures. Losing a queued dispatch is
+  # recoverable and loud; corrupted prod fixtures are neither.
+  group: prod-load
   cancel-in-progress: false
 
 jobs:

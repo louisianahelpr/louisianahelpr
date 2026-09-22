@@ -240,6 +240,37 @@ export function declaresDispatch(src: string): boolean {
  */
 const SHARED_GROUP = "prod-load";
 
+/**
+ * Workflows allowed to keep their DISPATCH in the shared group, by file name,
+ * each with the reason losing a queued run is the safer of the two failures.
+ *
+ * The split rule 4 asks for is only safe when something ELSE still stops two
+ * runs driving the shared prod test accounts at once. e2e-journeys.yml and
+ * prod-audit.yml have that something: their JOBS hold
+ * `prod-lifecycle-shared-accounts`, so a private workflow-level group costs
+ * them nothing. These three do not, and cannot cheaply — each fans out over a
+ * matrix that one shared job-level lock would serialise against itself — so
+ * for them `prod-load` IS the account lock, and taking their dispatch out of
+ * it would let a dispatched run drive poster-e2e beside another suite already
+ * driving it.
+ *
+ * Losing a queued dispatch is recoverable and, since 2026-09-22, loud.
+ * Corrupted prod fixtures are neither. Prefer a job-level lock and delete the
+ * entry whenever a workflow's shape allows one.
+ */
+export const DISPATCH_SHARES_GROUP: Record<string, string> = {
+  "press-every-control.yml":
+    "Signs in as poster/helper/admin/incomplete and presses mutating controls on real rows, " +
+    "across a 4-way shard matrix that a shared job-level lock would serialise against itself. " +
+    "Its own header says two runs must never press the same rows at once.",
+  "a11y-webkit-prod.yml":
+    "Drives the shared accounts across a browser matrix for the WebKit-vs-Chromium diff, " +
+    "with no job-level account lock available that would not also serialise the two engines.",
+  "e2e-abuse-notifications.yml":
+    "Signs in as both shared accounts and exercises strike/report/block paths that write " +
+    "moderation state; a second run against the same accounts changes what it is asserting.",
+};
+
 export function violations(wfs: Wf[]): string[] {
   const out: string[] = [];
   const prod = prodHitting(wfs);
@@ -269,8 +300,9 @@ export function violations(wfs: Wf[]): string[] {
     if (cancel !== "false") {
       out.push(`${w.file}: concurrency cancel-in-progress is "${cancel ?? "(unset)"}", must be false`);
     }
-    // Rule 4: a workflow_dispatch must not land in the SHARED group.
-    if (group === SHARED_GROUP && declaresDispatch(w.src)) {
+    // Rule 4: a workflow_dispatch must not land in the SHARED group, unless
+    // that group is the only thing keeping it off the shared prod accounts.
+    if (group === SHARED_GROUP && declaresDispatch(w.src) && !DISPATCH_SHARES_GROUP[w.file]) {
       out.push(
         `${w.file}: declares workflow_dispatch but its group is the shared "${SHARED_GROUP}" for EVERY event — ` +
           `a dispatch queued there is cancelled by the next workflow to enter the group. ` +
@@ -359,6 +391,29 @@ describe("prod-hitting workflow schedules", () => {
     }
   });
 
+  it("every rule-4 exemption names a real file that really is in the shared group", () => {
+    const byName = Object.fromEntries(wfs.map((w) => [w.file, w]));
+    for (const [file, reason] of Object.entries(DISPATCH_SHARES_GROUP)) {
+      // A stale exemption is worse than none — it would silently cover a file
+      // that no longer exists, or one that has since been given a safe group.
+      expect(byName[file], `${file} is rule-4 exempt but is not a workflow file`).toBeDefined();
+      expect(concurrencyOf(byName[file].src).group, `${file} is rule-4 exempt but is not in ${SHARED_GROUP}`).toBe(
+        SHARED_GROUP,
+      );
+      expect(declaresDispatch(byName[file].src), `${file} is rule-4 exempt but takes no dispatch`).toBe(true);
+      expect(reason.length, `${file} rule-4 exemption needs a stated reason`).toBeGreaterThan(40);
+      // The exemption exists BECAUSE there is no job-level account lock. If one
+      // appears, prod-load has stopped being load-bearing and the entry goes.
+      // stripComments, because each of these files EXPLAINS the missing lock
+      // by name in the comment above its group — the word being present is not
+      // the lock being present.
+      expect(
+        stripComments(byName[file].src).includes("prod-lifecycle-shared-accounts"),
+        `${file} now has a job-level account lock — drop its rule-4 exemption and split the dispatch`,
+      ).toBe(false);
+    }
+  });
+
   it("no overlaps, prod-load concurrency on each, nothing more often than hourly", () => {
     expect(violations(wfs)).toEqual([]);
   });
@@ -422,6 +477,10 @@ describe("prod-hitting workflow schedules", () => {
       crons: ["17 3 * * 2"],
     });
     const rule4 = (v: string[]) => v.filter((s) => s.includes("declares workflow_dispatch"));
+    // The rule-4 exemption is BY NAME and lifts nothing else: the same file
+    // shape not named in DISPATCH_SHARES_GROUP is still red.
+    expect(rule4(violations([asDispatched("press-every-control.yml", "prod-load")]))).toEqual([]);
+    expect(rule4(violations([asDispatched("not-exempt-suite.yml", "prod-load")]))).toHaveLength(1);
     // The pre-fix shape: dispatchable, and parked in the shared group.
     expect(rule4(violations([asDispatched("e2e-journeys.yml", "prod-load")]))).toHaveLength(1);
     expect(rule4(violations([asDispatched("nightly-webkit.yml", "prod-load")]))).toHaveLength(1);

@@ -252,7 +252,45 @@ test(j7, async ({ browser, request, journey }) => {
 
   await test.step("a notification toggle persists, then restore", async () => {
     await openFromProfile(hp, /^Notifications/, "Notifications");
+
+    /**
+     * ESTABLISH THE PRECONDITION. "Daily match digest" is a CHILD switch:
+     * NotificationPreferences.tsx:815 renders it
+     * `disabled={!loaded || !prefs.push_enabled || !prefs.job_matches}`.
+     * With either parent off it is correctly `disabled`, and clicking it can
+     * only ever time out.
+     *
+     * This step assumed both parents were on, and that assumption is what kept
+     * #1595 red for 221 hours — self-perpetuatingly. `keyboard-focus.spec.ts`
+     * walks `page.getByRole("switch")` — EVERY switch on the screen — and
+     * activates them, which turns the master push toggle off and LEAVES it
+     * off. Measured on prod after tonight's run: both E2E accounts had
+     * `push_enabled = false` with `updated_at` inside the run (helper
+     * 23:02:59, poster 23:03:20), while every other seed account had it true.
+     * So the first failure poisoned the account, and every run after it
+     * started already broken.
+     *
+     * Turning the parents on here rather than fixing the other spec is
+     * deliberate: a step that needs a precondition should assert it, not
+     * inherit it from whatever ran before. That holds however the account got
+     * into this state.
+     */
+    for (const parent of ["Push notifications master toggle", "Job Matches push"]) {
+      const sw = hp.getByRole("switch", { name: parent });
+      await expect(sw, `${parent} never became interactive`).toBeEnabled({ timeout: 30_000 });
+      if ((await sw.getAttribute("aria-checked")) !== "true") {
+        const on = hp.waitForResponse(
+          (r) => r.request().method() === "POST" && r.url().includes("/rest/v1/notification_preferences") && r.ok(),
+          { timeout: 60_000 },
+        );
+        await sw.click();
+        await on;
+        await expect(sw, `${parent} did not turn on`).toHaveAttribute("aria-checked", "true", { timeout: 30_000 });
+      }
+    }
+
     const digest = hp.getByRole("switch", { name: "Daily match digest" });
+    await expect(digest, "the digest switch is still disabled — a parent is off").toBeEnabled({ timeout: 30_000 });
     const was = await digest.getAttribute("aria-checked");
     /**
      * Wait for the WRITE, never a fixed timeout.

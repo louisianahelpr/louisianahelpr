@@ -8,6 +8,48 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## OPEN — OWNER ACTION: the Stripe TEST-mode balance is empty, so no payout can succeed (2026-09-22)
+
+This is the root cause of the payout drought below, and it is a dashboard
+action, not a code fix.
+
+`process-scheduled-payouts` ran at 16:35:56 UTC today and attempted a real
+transfer. Stripe refused it:
+
+    payout_transfers d3f4276b-c100-43a3-aea2-1e0a6004f5a8
+      job             dd9e4db7-2173-428c-b612-bc02f4def187
+      destination     acct_1UCU7J4HVr518r7O  (the E2E helper's Connect account)
+      amount          2200c  +  300c platform fee
+      status          failed        stripe_transfer_id  NULL
+      failure_reason  "You have insufficient available funds in your Stripe
+                       account. Try adding funds directly to your available
+                       balance by creating Charges using the 4000000000000077
+                       test card."
+
+The function returned HTTP 500 with
+`{"status":"transfer_failed", ...}` — loudly, not silently.
+
+WHY IT DRAINED: the 13 transfers that succeeded between 2026-09-07 and
+2026-09-12 total exactly $286.00. That was the balance. In Stripe test mode an
+escrow charge does not reliably create *available* balance, so transfers are
+not self-funding and the account does not refill itself.
+
+THE FIX (owner, Stripe dashboard, test mode): add funds to the available
+balance with the `4000000000000077` test card.
+https://stripe.com/docs/testing#available-balance
+
+UNTIL THEN: `e2e-real-backend.yml`'s money loop physically cannot finish — it
+asserts a real `tr_...` id from `release-payout`. Re-dispatching it will keep
+failing at the same hop and will keep stranding a funded row each time. Do not
+read that as a regression.
+
+WHAT THIS PROVED, and it is the good news: the automatic payout path executes
+correctly end to end up to the Stripe call. It selected the job, computed the
+right split from the tier (12% -> 2200c/300c on a $25 budget), targeted the
+correct connected account, recorded the failure with a reason and a
+`failed_at`, and left the job at `payout_pending` rather than advancing it to
+`released`. No silent failure and no falsely-settled money.
+
 ## OPEN — no real user has ever been paid out, and the automatic payout path has never run (2026-09-22)
 
 Read live on prod 2026-09-22 while verifying the four money legs end to end.

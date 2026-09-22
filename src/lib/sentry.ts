@@ -298,10 +298,34 @@ export function initSentry() {
   }
 }
 
+// Supabase PostgrestError / AuthError / StorageError are plain objects with
+// a `message` key, not Error instances. When passed to Sentry's
+// captureException directly, the SDK titles the event "Object captured as
+// exception with keys: code, details, hint, message" — a form that the
+// isBenignEvent / beforeSend filter cannot match against BENIGN_MESSAGE_PATTERNS.
+// Normalising to an Error instance first lets the existing filter work (e.g.
+// a network "Failed to fetch" wrapped in a PostgrestError is correctly dropped),
+// and also gives real errors (RLS 42501, PGRST202, etc.) a readable message
+// in Sentry instead of the opaque "Object captured…" title.
+function normalizeToError(err: unknown): Error | unknown {
+  if (err instanceof Error) return err;
+  if (err && typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    const msg =
+      typeof o.message === "string" && o.message
+        ? o.message
+        : JSON.stringify(err) ?? "captured object";
+    const normalized = new Error(msg);
+    (normalized as Error & { cause?: unknown }).cause = err;
+    return normalized;
+  }
+  return err;
+}
+
 export function captureException(err: unknown, context?: Record<string, unknown>) {
   if (!initialized) return;
   try {
-    sentryCaptureException(err, context ? { extra: context } : undefined);
+    sentryCaptureException(normalizeToError(err), context ? { extra: context } : undefined);
   } catch { /* ignore */ }
 }
 

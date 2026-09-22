@@ -338,6 +338,42 @@ describe("captureException", () => {
     initSentry();
     expect(() => captureException(new Error("x"))).not.toThrow();
   });
+
+  it("passes Error instances through unchanged", async () => {
+    const { initSentry, captureException } = await loadFresh();
+    initSentry();
+    const err = new Error("real error");
+    captureException(err);
+    expect(captureExceptionMock.mock.calls[0][0]).toBe(err);
+  });
+
+  it("normalizes plain Supabase error objects to Error instances (enables isBenignEvent filtering)", async () => {
+    const { initSentry, captureException } = await loadFresh();
+    initSentry();
+    const supabaseError = {
+      code: "",
+      details: "TypeError: Failed to fetch",
+      hint: "",
+      message: "TypeError: Failed to fetch (fncmgoasalhdgfwzhsqa.supabase.co)",
+    };
+    captureException(supabaseError);
+    const calledWith = captureExceptionMock.mock.calls[0][0] as unknown;
+    expect(calledWith).toBeInstanceOf(Error);
+    expect((calledWith as Error).message).toBe(
+      "TypeError: Failed to fetch (fncmgoasalhdgfwzhsqa.supabase.co)",
+    );
+    expect((calledWith as Error & { cause?: unknown }).cause).toBe(supabaseError);
+  });
+
+  it("normalizes a Supabase RLS error to an Error with its message", async () => {
+    const { initSentry, captureException } = await loadFresh();
+    initSentry();
+    const rlsError = { code: "42501", details: null, hint: null, message: "new row violates row-level security policy" };
+    captureException(rlsError);
+    const calledWith = captureExceptionMock.mock.calls[0][0] as unknown;
+    expect(calledWith).toBeInstanceOf(Error);
+    expect((calledWith as Error).message).toBe("new row violates row-level security policy");
+  });
 });
 
 describe("setSentryUser", () => {

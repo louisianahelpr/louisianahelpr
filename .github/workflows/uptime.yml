@@ -81,6 +81,9 @@ jobs:
 
       - name: Read the report back
         id: report
+        # `always()`: a CRASHED probe is the case this whole job exists to
+        # catch, and a skipped report step is how it used to go quiet.
+        if: always()
         run: |
           set -euo pipefail
           if [ -f uptime-report.md ]; then
@@ -96,12 +99,17 @@ jobs:
       # Opens `prod-down: uptime` on the first down verdict, comments the probe
       # table on each later one, and CLOSES it on the first run that passes.
       - name: Open, update or close the prod-down issue
+        if: always()
         uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: uptime
           label: prod-down
           label-description: "Production is not answering; auto-opened and auto-closed by the uptime check"
-          status: ${{ steps.probe.outputs.status == 'down' && 'failure' || 'success' }}
+          # FAIL-CLOSED: only an explicit `up` closes the issue. The old form
+          # asked `== 'down'` and defaulted to success, so a probe that CRASHED
+          # (unset output) reported the site healthy. A monitor must never go
+          # quiet at the moment it breaks — an unknown verdict is a failure.
+          status: ${{ steps.probe.outputs.status == 'up' && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           body-extra: ${{ steps.report.outputs.body }}

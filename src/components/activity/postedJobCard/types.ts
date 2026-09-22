@@ -42,7 +42,6 @@ export interface PostedJobCardProps {
   onCancel: (job: Job) => void;
   onComplete: (jobId: string) => void;
   completingJobId: string | null;
-  onRevision: (jobId: string) => void;
   onNoShow: (jobId: string) => void;
   onTip: (jobId: string, helperName: string) => void;
   onReview: (job: Job) => void;

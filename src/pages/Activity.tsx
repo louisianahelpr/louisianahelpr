@@ -638,7 +638,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onCancel={actions.tryCancelJob}
               onComplete={actions.completeJob}
               completingJobId={actions.completingJobId}
-              onRevision={actions.setRevisionJobId}
               onNoShow={actions.setNoShowJobId}
               onTip={(jobId, name) => { actions.setEnhancedTipJobId(jobId); actions.setEnhancedTipHelperName(name); }}
               onReview={actions.openReviewForPosted}
@@ -716,9 +715,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
       <ActivityDialogs
         user={user ? { id: user.id } : null}
-        revisionJobId={actions.revisionJobId}
-        setRevisionJobId={actions.setRevisionJobId}
-        onRevisionRequested={refresh}
         editJob={actions.editJob}
         setEditJob={actions.setEditJob}
         boostJobId={actions.boostJobId}

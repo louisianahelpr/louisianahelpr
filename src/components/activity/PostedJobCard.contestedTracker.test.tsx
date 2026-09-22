@@ -92,7 +92,7 @@ function renderCard(status: string, expanded: boolean) {
         completedJobMeta={{}}
         userId="poster-1"
         onBoost={noop} onEdit={noop} onCancel={noop} onComplete={noop} completingJobId={null}
-        onRevision={noop} onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop} onReport={noop}
+        onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop} onReport={noop}
         onViewDispute={noop} onConfirmArrival={noop} confirmingArrivalJobId={null}
         onConfirmWorking={noop} confirmingWorkingJobId={null}
         onLoadApplications={noop} onLoadInlineApplicants={noop}

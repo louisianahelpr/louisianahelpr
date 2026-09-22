@@ -662,7 +662,7 @@ function renderPosted(
       completedJobMeta={completion ? { [j.id]: completion } : {}}
       userId={POSTER}
       onBoost={noop} onEdit={noop} onCancel={noop} onComplete={noop} completingJobId={null}
-      onRevision={noop} onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop} onReport={noop}
+      onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop} onReport={noop}
       onViewDispute={noop} onConfirmArrival={noop} confirmingArrivalJobId={null}
       onConfirmWorking={noop} confirmingWorkingJobId={null}
       onLoadApplications={noop} onLoadInlineApplicants={noop}

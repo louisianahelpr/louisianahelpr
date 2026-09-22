@@ -265,7 +265,7 @@ describe("the poster's collapsed card announces the dispute", () => {
           job={job} applicantCounts={{}} expandedJobIds={new Set()} toggleExpandedJobId={noop}
           helperNames={{}} helperAvatars={{}} completedJobMeta={{}} userId="poster-1"
           onBoost={noop} onEdit={noop} onCancel={noop} onComplete={noop} completingJobId={null}
-          onRevision={noop} onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop}
+          onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop}
           onReport={noop} onViewDispute={noop} onConfirmArrival={noop} confirmingArrivalJobId={null}
           onConfirmWorking={noop} confirmingWorkingJobId={null} onLoadApplications={noop}
           onLoadInlineApplicants={noop} inlineApplicants={{}} loadingApplicants={{}}

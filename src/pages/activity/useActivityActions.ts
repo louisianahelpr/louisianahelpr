@@ -74,7 +74,6 @@ export function useActivityActions({
   const [enhancedTipHelperName, setEnhancedTipHelperName] = useState("");
   const [noShowJobId, setNoShowJobId] = useState<string | null>(null);
   const [cancelDialogJob, setCancelDialogJob] = useState<Job | null>(null);
-  const [revisionJobId, setRevisionJobId] = useState<string | null>(null);
   const [deadlineDialogApp, setDeadlineDialogApp] = useState<EnrichedApplication | null>(null);
   const [completionPromptJob, setCompletionPromptJob] = useState<{ job: Job; revieweeId: string; revieweeName: string } | null>(null);
   const [disputeJob, setDisputeJob] = useState<Job | null>(null);
@@ -191,7 +190,6 @@ export function useActivityActions({
     enhancedTipHelperName, setEnhancedTipHelperName,
     noShowJobId, setNoShowJobId,
     cancelDialogJob, setCancelDialogJob,
-    revisionJobId, setRevisionJobId,
     deadlineDialogApp, setDeadlineDialogApp,
     completionPromptJob, setCompletionPromptJob,
     disputeJob, setDisputeJob,

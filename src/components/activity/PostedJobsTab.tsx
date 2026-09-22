@@ -48,7 +48,6 @@ interface PostedJobsTabProps {
   onCancel: (job: Job) => void;
   onComplete: (jobId: string) => void;
   completingJobId: string | null;
-  onRevision: (jobId: string) => void;
   onNoShow: (jobId: string) => void;
   onTip: (jobId: string, helperName: string) => void;
   onReview: (job: Job) => void;
@@ -283,7 +282,7 @@ export const PostedJobsTab = ({
   helperNames, helperAvatars, completedJobMeta,
   latestTracking, groupHelpersByJob, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
-  onRevision, onNoShow, onTip, onReview, onDispute, onReport, onViewDispute, onConfirmArrival, confirmingArrivalJobId, onConfirmWorking, confirmingWorkingJobId,
+  onNoShow, onTip, onReview, onDispute, onReport, onViewDispute, onConfirmArrival, confirmingArrivalJobId, onConfirmWorking, confirmingWorkingJobId,
   onLoadApplications, selectedJob, setSelectedJob, applications,
   applicationsLoading = false, applicationsError = false,
   onAcceptApplication, onDeclineApplication, onLoadInlineApplicants,
@@ -369,7 +368,6 @@ export const PostedJobsTab = ({
         onCancel={onCancel}
         onComplete={onComplete}
         completingJobId={completingJobId}
-        onRevision={onRevision}
         onNoShow={onNoShow}
         onTip={onTip}
         onReview={onReview}

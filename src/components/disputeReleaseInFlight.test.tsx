@@ -92,7 +92,7 @@ describe("dispute release — same-frame double click sends one request", () => 
         <PostedJobActions
           job={job} userId="poster-1" helperNames={{ "helper-1": "Hallie H." }} completedJobMeta={{}}
           onBoost={noop} onEdit={noop} onCancel={noop} onComplete={noop} completingJobId={null}
-          onRevision={noop} onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop} onReport={noop}
+          onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop} onReport={noop}
           onViewDispute={noop} onConfirmArrival={noop} confirmingArrivalJobId={null}
           onConfirmWorking={noop} confirmingWorkingJobId={null} onActionComplete={noop}
         />
@@ -139,7 +139,7 @@ describe("dispute release — same-frame double click sends one request", () => 
         <PostedJobActions
           job={job} userId="poster-1" helperNames={{ "helper-1": "Hallie H." }} completedJobMeta={{}}
           onBoost={noop} onEdit={noop} onCancel={noop} onComplete={noop} completingJobId={null}
-          onRevision={noop} onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop} onReport={noop}
+          onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop} onReport={noop}
           onViewDispute={noop} onConfirmArrival={noop} confirmingArrivalJobId={null}
           onConfirmWorking={noop} confirmingWorkingJobId={null} onActionComplete={noop}
         />

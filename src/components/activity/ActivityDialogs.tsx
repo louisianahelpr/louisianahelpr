@@ -1,5 +1,4 @@
-import { useState, lazy, Suspense } from "react";
-import { Textarea } from "@/components/ui/textarea";
+import { lazy, Suspense } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,10 +10,6 @@ import {
   DialogDestructiveAction,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { report } from "@/lib/errorLogger";
-import { currentScreen } from "@/lib/currentScreen";
-import { hapticSuccess, hapticError } from "@/lib/haptics";
-import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 // The consequence this dialog promises is stated ONCE, next to the ladder the
 // RPC actually runs (report_helper_no_show → apply_consequence_ladder). This
@@ -46,10 +41,6 @@ type DeadlineDialogApp = EnrichedApplication;
 
 interface ActivityDialogsProps {
   user: { id: string } | null;
-  // Revision
-  revisionJobId: string | null;
-  setRevisionJobId: (id: string | null) => void;
-  onRevisionRequested: () => void;
   // Edit
   editJob: Job | null;
   setEditJob: (job: Job | null) => void;
@@ -98,31 +89,6 @@ interface ActivityDialogsProps {
 }
 
 export function ActivityDialogs(props: ActivityDialogsProps) {
-  const [revisionNote, setRevisionNote] = useState("");
-  const [requestingRevision, setRequestingRevision] = useState(false);
-
-  const requestRevision = async () => {
-    if (!props.revisionJobId) return;
-    setRequestingRevision(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-payment", {
-        body: { action: "request_revision", jobId: props.revisionJobId, note: revisionNote.trim() },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      hapticSuccess();
-      props.setRevisionJobId(null);
-      setRevisionNote("");
-      props.onRevisionRequested();
-    } catch (err) {
-      hapticError();
-      report(err, { tags: { source: "money.requestRevision", action: "request_revision", screen: currentScreen() }, context: { jobId: props.revisionJobId } });
-      toast.error(err instanceof Error ? err.message : "Couldn't request a revision — try again?");
-    } finally {
-      setRequestingRevision(false);
-    }
-  };
-
   return (
     <>
       {/* Poster reviewing helper */}
@@ -145,27 +111,6 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           <ReviewForm revieweeRole="poster" open={!!props.helperReviewJob} onClose={() => { props.setHelperReviewJob(null); props.onRefresh(); }} jobId={props.helperReviewJob.jobId} revieweeId={props.helperReviewJob.posterId} revieweeName={props.helperReviewJob.posterName} />
         </Suspense>
       )}
-
-      {/* Revision Request Dialog */}
-      <Dialog open={!!props.revisionJobId} onOpenChange={() => props.setRevisionJobId(null)}>
-        <DialogContent>
-          <DialogHero
-            title="Request Revision"
-          />
-          <div className="space-y-4">
-            <DialogBody>
-              <p>Describe what needs to be fixed or redone. The Helpr will be notified.</p>
-            </DialogBody>
-            <Textarea value={revisionNote} onChange={(e) => setRevisionNote(e.target.value)} rows={3} aria-label="Revision request details" />
-          </div>
-          <DialogFooter>
-            <DialogSecondaryAction onClick={() => props.setRevisionJobId(null)}>Cancel</DialogSecondaryAction>
-            <DialogPrimaryAction onClick={requestRevision} disabled={requestingRevision || !revisionNote.trim()}>
-              {requestingRevision ? "Sending…" : "Request Revision"}
-            </DialogPrimaryAction>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Edit Job Dialog — only fetch the chunk once a job is being edited;
           EditJobDialog gates its own mounting on the `job` prop. */}

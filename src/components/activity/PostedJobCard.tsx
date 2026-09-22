@@ -49,7 +49,6 @@ function PostedJobCardInner({
   onCancel,
   onComplete,
   completingJobId,
-  onRevision,
   onNoShow,
   onTip,
   onReview,
@@ -787,7 +786,6 @@ function PostedJobCardInner({
                 onCancel={onCancel}
                 onComplete={onComplete}
                 completingJobId={completingJobId}
-                onRevision={onRevision}
                 onNoShow={onNoShow}
                 onTip={onTip}
                 onReview={onReview}

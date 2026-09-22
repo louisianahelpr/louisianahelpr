@@ -168,7 +168,7 @@ describe("Posts: the brief groups with the meta line, not with the tracker", () 
         toggleExpandedJobId={noop} helperNames={{ [HELPER]: "Hallie H." }}
         helperAvatars={{ [HELPER]: null }} completedJobMeta={{}} userId={POSTER}
         onBoost={noop} onEdit={noop} onCancel={noop} onComplete={noop} completingJobId={null}
-        onRevision={noop} onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop}
+        onNoShow={noop} onTip={noop} onReview={noop} onDispute={noop}
         onReport={noop} onViewDispute={noop} onConfirmArrival={noop} confirmingArrivalJobId={null}
         onConfirmWorking={noop} confirmingWorkingJobId={null} onLoadApplications={noop}
         onLoadInlineApplicants={noop} inlineApplicants={{}} loadingApplicants={{}}

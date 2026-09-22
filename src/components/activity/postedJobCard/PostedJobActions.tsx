@@ -30,21 +30,6 @@ interface PostedJobActionsProps {
   onCancel: (job: Job) => void;
   onComplete: (jobId: string) => void;
   completingJobId: string | null;
-  /**
-   * NO LONGER READ HERE — kept only so PostedJobCard keeps compiling while it
-   * still passes it.
-   *
-   * It opened the revision dialog from the `completed` action row, and the
-   * server can never accept that: `create-payment`'s `request_revision` branch
-   * requires `job.status === 'in_progress'`, and the transition matrix in
-   * 20260828020000_cancellation_requires_rpc.sql has no `completed ->
-   * revision_requested` edge. The poster typed their note FIRST
-   * (ActivityDialogs gates submit on non-empty text), so every tap threw their
-   * writing away behind an error. The revision path that DOES work is
-   * CompletionChoiceSheet's — offered on the in_progress card, where the
-   * server accepts it. Drop this prop from PostedJobCard and Activity.tsx.
-   */
-  onRevision: (jobId: string) => void;
   onNoShow: (jobId: string) => void;
   onTip: (jobId: string, helperName: string) => void;
   onReview: (job: Job) => void;
@@ -128,7 +113,6 @@ export function PostedJobActions({
   onCancel,
   onComplete,
   completingJobId,
-  // onRevision — deliberately not destructured; see the interface note.
   onNoShow,
   onTip,
   onReview,

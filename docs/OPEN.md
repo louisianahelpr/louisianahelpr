@@ -353,7 +353,7 @@ dispatch in the shared group. Shown red on the original bug —
 `PROD_WORKFLOWS_DIR=<pre-fix checkout>` yields **10** rule-4 violations, the
 fixed tree yields **0**.
 
-## OPEN — PROD IS DOWN RIGHT NOW (2026-09-22 ~08:02 UTC onward), and nothing alarmed
+## CLOSED — PROD WAS DOWN 2026-09-22 07:57-14:40 UTC; recovered by restart, nothing alarmed (that half fixed in uptime 079d03194)
 
 **Read this before reading any red below it.** Every request that actually
 reaches PostgREST or GoTrue on `fncmgoasalhdgfwzhsqa` returns **zero bytes**
@@ -796,7 +796,7 @@ placeholder **150px** against a real **151px**, pitch 162 vs 163. Confirm with
 and record the number beside the old 106px. Until that runs, the /my-posts
 assertion in that spec is a prediction, not a measurement.
 
-## OPEN — the applied Suspense fallback still says `space-y-2.5` (2026-09-21)
+## CLOSED — the applied Suspense fallback said `space-y-2.5` (fixed 2026-09-22, cad3843b1)
 
 `src/pages/Activity.tsx`, the `tab === "applied"` branch: the in-page Suspense
 fallback wraps its `ApplicationCardSkeleton`s in `space-y-2.5` (10px) while
@@ -903,7 +903,7 @@ plus `avatars/…/avatar.jpg` twice. They go out in parallel at ~+150ms so they
 do not lengthen the critical path measurably, but they are three prod round
 trips per page load that nobody needs.
 
-## OPEN — the poster's "Request Revision" dialog has no way to be opened (2026-09-22)
+## CLOSED — the poster's "Request Revision" dialog had no way to be opened (removed 2026-09-22, 178d1948e)
 
 REPORT, not a change (dead code is a report: count the call sites first).
 Found while fixing `02-marketplace`, which had been waiting 45 seconds for a
@@ -1594,7 +1594,7 @@ fails instead of being recorded. Re-run 2026-09-20: 16 passed, 2 skipped;
 0px at all three, and deleting `[data-search-trigger-slot]` from the live DOM
 brings 44px of overlap straight back, so (c) is still falsifiable here.
 
-## OPEN — the Messages empty inbox still hides its tabs and its Select/Search cluster (2026-09-20)
+## CLOSED — the Messages empty inbox hid its tabs and Select/Search (fixed 2026-09-20, b43ac5d89 + 0c5a89383; measurement recorded in ConversationList.tsx:594)
 
 Raised beside the Activity tab-row fix, checked, and DELIBERATELY NOT CHANGED
 there, because it is the same SYMPTOM with a different cause and the change is

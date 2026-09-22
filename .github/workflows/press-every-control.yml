@@ -225,7 +225,7 @@ jobs:
       - uses: supabase/setup-cli@v3
         with:
           version: latest
-      - name: Remove the cancelled fixture jobs the poster cannot delete
+      - name: Remove the cancelled fixture jobs, then check every proof-photo reference resolves
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -245,6 +245,14 @@ jobs:
           # Exit 1 = a real problem (over the cap, or a delete failed): red, loudly.
           SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
             node scripts/e2e/prod-audit-sweeper.mjs
+          # CLASS CHECK for the 400 POST /object/sign/proof-photos/… stream this
+          # workflow's own run 35768341847 produced: a jobs row naming an object
+          # storage does not have. READ-ONLY, and it belongs here because this is
+          # the workflow that surfaces it — it presses the screens that sign those
+          # paths. Exit 1 = a dangling reference; the nightly-red job below files
+          # it. Same $KEY, same masked shell, shredded in the next step.
+          SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
+            node scripts/proof-photo-reference-check.mjs
       - name: Shred the key
         if: always()
         run: rm -f .env

@@ -72,6 +72,19 @@ test.describe("two-role lifecycle", () => {
        guessing a tab name or scrolling a list whose shape it would have to
        know. Same technique as prod-lifecycle.spec.ts. */
     await helper.goto(BASE + `/my-jobs?job=${jobId}`);
+    /* EXPAND THE CARD. The collapsed card carries only its status strip — the
+       screenshot showed the seeded job first under Scheduled, reading
+       "You're confirmed", with no control on it at all. `JobConfirmation`
+       (and so "I'm Still On") renders in the EXPANDED body, so the deep link
+       gets the reader to the card and this opens it.
+       Clicked by the card's own title rather than anywhere on the card: a tap
+       on the body can hit the location chip, which is its own defect the owner
+       reported the same day. */
+    const card = helper.locator("div.liquid-glass").filter({ hasText: "[E2E DO NOT ACCEPT]" }).first();
+    await expect(card, `the helper's Scheduled tab never rendered job ${jobId}`).toBeVisible({
+      timeout: 30_000,
+    });
+    await card.getByRole("heading").first().click();
     const stillOn = helper.getByRole("button", { name: /I'm Still On/i });
     await expect(stillOn, "day-of confirm card must be visible inside the 24h window").toBeVisible({ timeout: 15_000 });
     await stillOn.click();

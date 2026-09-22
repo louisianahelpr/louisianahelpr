@@ -430,6 +430,24 @@ test.describe("targeted rules", () => {
     const enc = encodeURIComponent(`*${MARKER}*`);
     const r = await restAs(request, helper, "delete", `messages?content=like.${enc}&sender_id=eq.${helper.user.id}&select=id`);
     expect(r.ok(), `cleanup: ${r.status()} ${await r.text()}`).toBe(true);
+    /* AND THE NOTIFICATION IT GENERATED, which this did not delete.
+       Sending a message fans out a notification that EMBEDS the message body,
+       so deleting the message alone left the adversarial fixture text on the
+       recipient's account. Measured 2026-09-21: 50 such rows had accumulated on
+       the shared accounts since 2026-09-13, and they were not inert — the
+       marked body contains "report a problem if something went wrong", which is
+       one of the phrases `assertHealthy` treats as generic failure copy. So
+       this spec's residue was failing ANOTHER spec: 02-marketplace's apply step
+       read an "error screen" on /dashboard that was really this notification.
+       A test that cleans up its own table and not the row its write triggered
+       has not cleaned up. */
+    const n = await restAs(
+      request,
+      helper,
+      "delete",
+      `notifications?message=like.${enc}&select=id`,
+    );
+    expect(n.ok(), `notification cleanup: ${n.status()} ${await n.text()}`).toBe(true);
     await ctx.close();
   });
 });

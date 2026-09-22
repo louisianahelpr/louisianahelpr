@@ -87,7 +87,26 @@ function slotAhead(minutesAhead: number) {
   // e2e/calendarPicker.ts for why a regex over the day label cannot be used.
   return { at: t, isoDay: isoDayIn(t, ZONE), monthDay: `${parts.month} ${parts.day}`, hour: parts.hour, minute: parts.minute, ampm: parts.dayPeriod as "AM" | "PM", hh24 };
 }
-const SLOT = slotAhead(100);
+/*
+ * TWO DAYS OUT, not 100 minutes — and the difference is the whole reason this
+ * journey has been red since 2026-09-19.
+ *
+ * `slotAhead` takes MINUTES, so `slotAhead(100)` always posted a job for TODAY.
+ * The owner's 2026-09-19 reorder (activityFilters.ts `bucketFor`) sends any
+ * LIVE job — one whose day has arrived — to "Needs You", on the stated grounds
+ * that "Scheduled is a promise about a day still AHEAD of you; once that day
+ * arrives the job is the most live thing on the screen". So the job this
+ * journey posts stopped being a Waiting/Scheduled job on that date, and every
+ * assertion downstream that looks for it there has been asserting the old rule.
+ * Confirmed live: the posted row carried date_needed 2026-09-21 with
+ * start_time 22:55 — today, 100 minutes out.
+ *
+ * The journey's intent is a BOOKED FUTURE job (it asserts Waiting, then
+ * Scheduled after the hire), so the slot moves rather than the assertions: a
+ * job two days out is unambiguously ahead in every timezone this runs in, and
+ * still inside the posting form's calendar.
+ */
+const SLOT = slotAhead(2 * 24 * 60);
 
 /**
  * Set the post-job start time on whichever control this viewport renders.
@@ -299,8 +318,10 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("poster sees the job in My Posts", async () => {
       await page.goto("/my-posts");
-      // A just-posted, funded, unapplied job is in the "Waiting" bucket; My Posts
-      // opens on "Needs You" (activityConstants.defaultStatusFilterFor).
+      // A just-posted, funded, unapplied job for a FUTURE day is in the
+      // "Waiting" bucket; My Posts opens on "Needs You"
+      // (activityConstants.defaultStatusFilterFor). The "future day" half is
+      // load-bearing since the 2026-09-19 reorder — see the SLOT comment.
       await openStatusTab(page, "Waiting");
       await expect(page.getByText(TITLE).first(), "the new job is missing from My Posts > Waiting").toBeVisible({ timeout: 60_000 });
       await assertHealthy(page, "my posts");

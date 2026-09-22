@@ -10,7 +10,24 @@
 export const ERROR_SCREEN_PATTERNS: { name: string; re: RegExp }[] = [
   { name: "route crash (RouteErrorBoundary)", re: /This page hit a problem/i },
   { name: "app crash (ErrorBoundary)", re: /Something went sideways/i },
-  { name: "generic failure copy", re: /Something went wrong/i },
+  /*
+   * ANCHORED, and case-sensitive on the capital S. `/Something went wrong/i`
+   * matched any prose containing the phrase, and on 2026-09-21 that made
+   * 02-marketplace's apply step report an "error screen" on /dashboard whose
+   * actual excerpt was "…message your Helpr, or report a problem if something
+   * went wrong." — the notification surface's own legitimate copy. J3 through
+   * J5 of that journey were dead behind it.
+   *
+   * Left in rather than deleted, because the owner's instruction behind this
+   * list is that every error surface gets a line. But note what the app really
+   * renders: ErrorState's title is "We couldn't load this.", already covered by
+   * "section/data load failure" below, and "Something went wrong" appears
+   * nowhere in src/ except comments. So this line exists for a surface we do
+   * not currently paint — a third party or an edge-function body — and it only
+   * needs to fire when the phrase IS the message, not when it is the tail of
+   * someone's sentence.
+   */
+  { name: "generic failure copy", re: /(?:^|[.!?]\s+|\n\s*)Something went wrong/ },
   { name: "retired 'Update ready' screen", re: /Update ready|A newer version of the app/i },
   { name: "boot watchdog failure", re: /Helpr couldn't load/i },
   { name: "account load failure (ProtectedRoute)", re: /We couldn't load your account/i },

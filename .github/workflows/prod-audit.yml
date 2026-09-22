@@ -234,7 +234,21 @@ jobs:
   notify:
     name: Report nightly result
     needs: [preflight, prod-audit]
-    if: always() && github.event_name == 'schedule'
+    # A FULL run reports, whoever started it (2026-09-21; see
+    # src/test/nightlyIssueSyncReachable.test.ts and e2e-journeys.yml, which
+    # carried the same bug against issue #1595). Gating on `schedule` alone
+    # made the red unclearable by the one action that clears reds: fix it,
+    # dispatch it to prove it, watch it go green — and the issue stays open,
+    # because a dispatch was not allowed to say so. #1618 has been open since
+    # 2026-09-17 partly for that reason.
+    #
+    # `grep` narrows this workflow to the tests matching it (Playwright -g), so
+    # a dispatch reports only when it is empty: a whole-suite run, exactly what
+    # the schedule fires. A pinned run has not earned the right to close a
+    # suite's issue and stays silent instead.
+    if: >-
+      always() && (github.event_name == 'schedule'
+      || (github.event_name == 'workflow_dispatch' && inputs.grep == ''))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

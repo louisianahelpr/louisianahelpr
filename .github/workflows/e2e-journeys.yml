@@ -259,7 +259,24 @@ jobs:
   notify:
     name: Report nightly result
     needs: [preflight, journeys, journeys-webkit]
-    if: always() && github.event_name == 'schedule'
+    # A FULL run reports, whoever started it (2026-09-21, issue #1595).
+    #
+    # This used to be `github.event_name == 'schedule'` alone, which made the
+    # red unclearable by the one action that clears reds: you fix the journeys,
+    # dispatch them to prove it, they go green — and the issue stays open,
+    # because a dispatch was not allowed to say so. #1595 sat open 207 hours
+    # over journeys whose four failures had all been fixed days earlier. The
+    # next scheduled run is Tue/Thu/Fri, so the proof waited on the calendar.
+    #
+    # The gate that IS needed is the one race-runner.yml already makes: a
+    # PINNED run must not report, because it did not run the suite. `scenario`
+    # narrows this workflow to a single test (SCENARIO=<id>), so a dispatch
+    # reports only when it is empty — a whole-suite run, exactly what the
+    # schedule fires. Anything narrower stays silent rather than closing an
+    # issue it has not earned.
+    if: >-
+      always() && (github.event_name == 'schedule'
+      || (github.event_name == 'workflow_dispatch' && inputs.scenario == ''))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

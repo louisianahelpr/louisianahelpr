@@ -45,6 +45,31 @@ dispatch in the shared group. Shown red on the original bug —
 `PROD_WORKFLOWS_DIR=<pre-fix checkout>` yields **10** rule-4 violations, the
 fixed tree yields **0**.
 
+## DONE 2026-09-22 — a dispatched verification run could not close the red it was dispatched to clear (issue #1595)
+
+Second fault behind #1595, found while re-dispatching it. `e2e-journeys.yml`'s
+`notify` job — the only thing that ever closes a `nightly-red` issue — was
+gated `if: always() && github.event_name == 'schedule'`.
+
+So the loop a session actually runs (read the red → fix it → **dispatch** it to
+prove it) could never close the issue, however green the run came back. #1595
+sat open 207 hours over four journey failures that had all been fixed days
+earlier; the proof was waiting on a Tue/Thu/Fri cron. The workflow reported to
+nobody precisely on the runs a human was watching.
+
+`prod-audit.yml` carried the identical gate, and #1618 has been open since
+2026-09-17 partly for that reason. Both now report on a dispatch too — but only
+on a **whole-suite** run (`inputs.scenario == ''`, `inputs.grep == ''`), which
+is the narrowing `race-runner.yml` already made: a run pinned to one test has
+not earned the right to close a suite's issue.
+
+**The check for the class.** New: `src/test/nightlyIssueSyncReachable.test.ts` —
+any workflow that syncs a `nightly-red` issue and accepts `workflow_dispatch`
+must have that job reachable on a dispatch. It evaluates the condition with
+`github.event_name = 'workflow_dispatch'` rather than pattern-matching, so
+`!= 'pull_request'` (prod-freshness, e2e-real-backend) reads as reachable and
+an input narrowing stays allowed. Before: **2** violations; after: **0**.
+
 ## BLOCKED — `prodWorkflowSpacing` is RED on main because of `vacuity.yml` (2026-09-22)
 
 Not mine to fix; `vacuity.yml` is owned by another lane and was off-limits in

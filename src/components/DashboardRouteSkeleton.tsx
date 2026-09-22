@@ -52,7 +52,32 @@ const DashboardRouteSkeleton = () => (
       panelElevation="raised"
       titleCard={
         <div className="flex items-center justify-between gap-1 sm:gap-2" aria-hidden>
-          <HelprMark to={null} emblemOnly size="md" />
+          {/* MIRRORS DashboardTitleBar's emblem PROP FOR PROP, because three
+              ways of not doing so were measured on prod 2026-09-22 (1440,
+              throttled, signed in) as a visible header rearrangement between
+              this skeleton and the real bar:
+
+                size      this said "md" (emblemOnly -> h-10, 40px); the real
+                          bar says "sm" (h-8, 32px). An 8px jump on phone.
+                desktop   the real emblem carries `dashboard-title-emblem`,
+                          which index.css:1581 sets to `display:none !important`
+                          on `html.web-desktop` — the full-bleed DashboardHeader
+                          already shows one there. This skeleton had no such
+                          class, so on desktop it drew an emblem the real bar
+                          does not have.
+                shrink-0  load-bearing on the real one (see its comment: the
+                          emblem resolved to 0x44 at 375 without it).
+
+              Reusing the two EXISTING classes rather than adding a width
+              branch here: one rule, one place, and this cannot drift from the
+              bar again without the bar changing too. `to={null}` is the one
+              deliberate difference — a placeholder must not be a live link. */}
+          <HelprMark
+            to={null}
+            emblemOnly
+            size="sm"
+            className="shrink-0 dashboard-title-emblem"
+          />
           {/* THREE controls, not one. The real row (DashboardTitleBar +
               BrowseTasksActions) ends in search · filters · bell — two
               `h-10 w-10` ghost buttons and one `size="icon"` Button, which is
@@ -68,7 +93,11 @@ const DashboardRouteSkeleton = () => (
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 -mr-2">
             <Skeleton className="h-10 w-10 rounded-ds-md" />
             <Skeleton className="h-10 w-10 rounded-ds-md" />
-            <span className="h-14 w-14 flex items-center justify-center">
+            {/* `dashboard-title-bell` for the same reason as the emblem:
+                index.css:1582 hides the real bell on web-desktop, where the
+                top nav carries it. Without this the skeleton reserved a
+                56px bell the real bar never renders there. */}
+            <span className="dashboard-title-bell h-14 w-14 flex items-center justify-center">
               <Skeleton className="h-10 w-10 rounded-full" />
             </span>
           </div>

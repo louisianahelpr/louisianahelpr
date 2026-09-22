@@ -261,23 +261,31 @@ function specGateEnv(guard) {
     // anon screen, then the whole authed catalog twice (poster and helper),
     // then job detail in all eight statuses, then the admin surface — each one
     // a fresh context, a sign-in, a page load against prod Supabase and a full
-    // axe run. It does not finish inside the 900s spawnSync budget, and a run
-    // killed on the budget observes NOTHING.
+    // axe run.
     //
-    // `SWEEP_ROUTES` is the spec's own scoping knob (sweepCore.inScope, set by
-    // `npm run check:changed` for exactly this purpose), so nothing is invented
-    // here. `/login` leaves the one anon screen the registered mutation acts on
-    // plus the `zz gate` test that grades it; every other block is inScope-gated
-    // and drops out. The assertion being proven — captureScreen runs axe
-    // wcag2a/2aa/21a/21aa and assertSweepGate fails on any violation — is
-    // identical at 1 screen and at 148.
-    "e2e/a11y-prod/a11y-prod.spec.ts": { SWEEP_ROUTES: "/login" },
-    // SCOPED for the same reason again. 94 tests (`--list`, 2026-09-21): 29
-    // whole-form sweeps, 14 targeted rules, 51 explore passes, each one a fresh
-    // context and a sign-in against prod. `MESSY_INPUT_SCOPE` is a regex on the
-    // test title (the spec declares everything else as skipped, so `--list` and
-    // the reported inventory are unchanged); this pins the one targeted rule the
-    // registered mutation acts on.
+    // NOT SCOPED, and the claim that it had to be was WRONG. This carried
+    // `SWEEP_ROUTES: "/login"` on the stated grounds that the spec "does not
+    // finish inside the 900s spawnSync budget". Measured 2026-09-21 rather than
+    // assumed: 148 of 149 tests pass in 552 SECONDS — comfortably inside the
+    // budget. The scoping narrowed the proof from 148 screens to 1 for no
+    // reason, which is its own small version of the defect this whole row
+    // exists to remove: a guard weakened on an unmeasured belief.
+    //
+    // A runtime estimate is a measurement, not an intuition. `--list` gives the
+    // test count and says nothing about wall clock; 149 axe runs sounded like
+    // too many and were not.
+    /* SCOPED, and unlike a11y-prod's the claim is MEASURED: the full spec takes
+       3705 SECONDS — just over an hour — against the 900s spawnSync budget.
+       Four times over, so a mutation run here would be scored on the timeout.
+       (a11y-prod carried the same justification on an unmeasured belief and
+       turned out to finish in 552s; its scoping is gone. Same sentence, one
+       true and one false, which is the argument for measuring rather than
+       estimating: `--list` gives a COUNT and says nothing about wall clock.)
+       94 tests: 29 whole-form sweeps, 14 targeted rules, 51 explore passes,
+       each a fresh context and a sign-in against prod. `MESSY_INPUT_SCOPE` is a
+       regex on the test title, and the spec declares everything else SKIPPED so
+       `--list` and the reported inventory are unchanged; this pins the one
+       targeted rule the registered mutation acts on. */
     "e2e/prod-audit/messy-input.spec.ts": { MESSY_INPUT_SCOPE: "^login: " },
   };
   return GATES[guard] ?? {};

@@ -263,6 +263,16 @@ export async function health(page: Page, ctx: string, opts: { layout?: boolean; 
   const text = await page.evaluate(() => document.body.innerText).catch(() => "");
   const err = findErrorScreen(text, opts.allow ?? []);
   if (err) problems.push(`${ctx}: error screen "${err.name}" — ${err.excerpt}`);
+  // A screen measured through a non-dismissible scrim was not measured. See
+  // `clearConsentGate`: without this, the whole admin half of the suite counted
+  // zero fields, credited zero files and reported PASS (prod, 2026-09-21).
+  if (await consentGate(page).count().catch(() => 0)) {
+    problems.push(
+      `${ctx}: the terms re-consent gate is covering the screen, so nothing behind it was measured. ` +
+        `clearConsentGate() could not clear it — the account under test has a profiles.terms_version_accepted ` +
+        `behind LATEST_TERMS_VERSION and the acceptance write did not land (a write firewall refuses it).`,
+    );
+  }
   const xss = await page
     .evaluate(() => ({ ran: (window as unknown as { __lhXss?: number }).__lhXss ?? 0, img: document.querySelectorAll('img[src="x"]').length }))
     .catch(() => ({ ran: 0, img: 0 }));
@@ -346,6 +356,90 @@ export async function settle(page: Page, ms = 600): Promise<void> {
     await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
     await page.waitForTimeout(ms);
   }
+  // Last, so it sees the screen the spec is about to measure. A no-op on every
+  // load whose account is current — which, after the first clear, is all of
+  // them. See `clearConsentGate`.
+  await clearConsentGate(page).catch(() => false);
+}
+
+/**
+ * THE RE-CONSENT GATE IS NOT "THE SCREEN" — CLEAR IT, OR SAY SO OUT LOUD.
+ *
+ * `TermsReconsentDialog` (src/components/TermsReconsentDialog.tsx) opens on
+ * EVERY authed load whose profile row carries a `terms_version_accepted` behind
+ * `LATEST_TERMS_VERSION`, and it is deliberately non-dismissible: "I Agree" is
+ * the only way out, Escape does nothing, and Radix leaves everything behind it
+ * `aria-hidden` with `pointer-events: none`.
+ *
+ * MEASURED ON PROD, run 35559129731 (2026-09-21). The account behind
+ * `PLAYWRIGHT_ADMIN_EMAIL` is not one of the seed accounts, so
+ * scripts/audit/prod-seed.mjs — which pre-accepts the current Terms on every
+ * row it writes — never touched it, and its row still read
+ * `terms_version_accepted = ''`. This gate therefore covered all twenty-one
+ * admin screens of that run:
+ *
+ *   - `sweep: admin-referrals` counted ZERO visible text-like fields and
+ *     reported "the form did not render" — of a form that had rendered
+ *     perfectly behind the scrim. Its own error-context snapshot shows the
+ *     stat tiles, the tab strip and the Overview panel, with the alertdialog
+ *     stacked on top.
+ *   - the twenty admin EXPLORES pressed nothing, swept nothing, credited
+ *     nothing — and reported PASS. Eighteen admin dialogs then landed in the
+ *     coverage test's "no sweep, no explore credit and no stated gap" list,
+ *     where they read as missing tests rather than as blocked ones.
+ *
+ * That is the defect class, and it is a vacuity class: one full-screen gate
+ * turns a driving suite into a silent no-op that still reports green. Two
+ * halves, both needed —
+ *
+ *   1. PRESS THE GATE'S OWN BUTTON, exactly as the operator whose account this
+ *      is would. Called from `settle`, so it runs on every navigation and, for
+ *      the sweep and the explore alike, BEFORE `writeFirewall` goes up — the
+ *      acceptance is a real write, it lands, and the account is clear for the
+ *      rest of the run and every run after it. Version-agnostic: the next bump
+ *      of LATEST_TERMS_VERSION heals itself the same way.
+ *   2. `health()` FAILS ON A GATE IT COULD NOT CLEAR (below), so a screen
+ *      measured through a scrim can never again be scored as measured.
+ */
+export function consentGate(page: Page): Locator {
+  return page
+    .locator('[role="alertdialog"], [role="dialog"]')
+    .filter({ hasText: /take a moment to re-?agree/i })
+    .filter({ visible: true })
+    .first();
+}
+
+/**
+ * Pages this process has already given the gate its grace period. The gate
+ * mounts only once the profiles read resolves, so the FIRST load of a context
+ * is worth waiting on; every later navigation on the same page is not, and
+ * paying that wait on all of them would add minutes to a run that reloads
+ * after every press. `health()` is the backstop for a late one.
+ */
+const gateWaited = new WeakSet<Page>();
+
+/** Press "I Agree" on the re-consent gate if it is up. True when one was cleared. */
+export async function clearConsentGate(page: Page, appearMs = 2_500): Promise<boolean> {
+  const gate = consentGate(page);
+  if (appearMs > 0 && !gateWaited.has(page)) {
+    gateWaited.add(page);
+    await gate.waitFor({ state: "visible", timeout: appearMs }).catch(() => {});
+  }
+  if (!(await gate.count().catch(() => 0))) return false;
+  const agree = gate.getByRole("button", { name: /^i agree$/i }).first();
+  if (!(await agree.isVisible().catch(() => false))) return false;
+  await agree.click({ timeout: 5_000 }).catch(() => {});
+  // The dialog stays up while the write runs (TermsReconsentDialog keeps it
+  // open on purpose), so wait for it to go rather than for the click.
+  const gone = await gate
+    .waitFor({ state: "hidden", timeout: 20_000 })
+    .then(() => true)
+    .catch(() => false);
+  test.info().annotations.push({
+    type: "consent-gate",
+    description: `${gone ? "cleared" : "STILL UP after pressing I Agree"} at ${page.url()}`,
+  });
+  return gone;
 }
 
 /** Dismiss the onboarding tour / birthday / any stray modal that is not the one under test. */

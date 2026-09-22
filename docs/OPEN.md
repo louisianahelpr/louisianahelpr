@@ -8,6 +8,63 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## OPEN — CI should run against a separate database from real users, not before launch (owner, 2026-09-22)
+
+**Owner: "add that to the open bc i dont thiun its really necessary before
+launch but i will try to do it before laucn i just dont have much usage
+left."** Explicitly NOT a launch blocker. Attempt before launch if there's
+time; if not, this waits.
+
+**The problem, precisely.** Every CI workflow that drives real journeys
+(e2e-journeys, prod-audit, press-every-control, e2e-real-backend,
+a11y-webkit-prod, race-runner, ...) points at the SAME production Postgres
+instance real users hit — via the shared test accounts, per the standing "no
+mock mode, ever" rule. Today's incident (see the DONE entry below this one)
+showed the shape concretely: four of those workflows dispatched together, on
+top of a database still recovering from a 6.7h outage, made the live site slow
+to the point of being unusable — 3.7-14s per read where baseline is ~0.3s, one
+request timed out outright at 20s.
+
+Two mitigations already exist and are NOT enough on their own:
+  - the nightly SCHEDULE deliberately spreads these across low-traffic hours
+    (roughly 9pm-4am Central) — but Louisiana traffic at 2am isn't zero, and
+  - the shared `prod-lifecycle-shared-accounts` job-level lock stops them
+    running CONCURRENTLY — but serialized-and-slow is still slow for whoever
+    is on the site at that moment.
+
+**Why this is not "the mock stuff" the owner correctly flagged and asked
+about.** Mock mode (banned 2026-09-12, "get rid of mock entirely... no mock
+mode ever") meant tests hit hand-written fake responses instead of a real
+database, and the fake responses described behavior the real database didn't
+actually enforce — tests passed against a fantasy while the app was broken. A
+Supabase BRANCH is not that: same schema, same migrations, same RLS policies,
+same triggers, full real Postgres enforcement. The only difference from `main`
+is that it holds separate data on a separate instance, so a test run has zero
+effect on whoever is using the real site. Nothing is faked; the isolation is
+of DATA, not of correctness-checking.
+
+**Why this is real work, not a toggle — sized honestly so "before launch, if
+there's time" is a real estimate and not a guess.**
+  1. Two persistent branches already exist in this project from May PRs
+     (`fix/migration-timestamp-collision-...`, `perf/db-hot-path-indexes-pass2`)
+     and both sit in `MIGRATIONS_FAILED`, inactive. Root cause not yet
+     diagnosed — first step is finding out why before trusting a third
+     attempt.
+  2. A working branch needs every migration replayed cleanly and the shared
+     test accounts (poster-e2e, helper-e2e, admin-e2e, incomplete-e2e) seeded
+     onto it — CI expects specific fixture state, not an empty schema.
+  3. Every prod-hitting workflow file needs its Supabase URL/key secrets
+     repointed at the branch instead of `main` — this repo has well over a
+     dozen such workflows.
+  4. The branch itself likely carries its own small compute cost, separate
+     from `main`'s (unconfirmed number — check before committing).
+
+**What would close this.** Diagnose the two failed May branches, stand up one
+clean persistent branch with migrations + seed data verified, repoint the CI
+workflows' secrets at it, confirm a full suite run against the branch touches
+zero rows on `main`. Until then, Micro compute (applied today) plus the
+existing schedule/lock discipline is the mitigation in place.
+
 ## DONE 2026-09-22 — a dispatched prod workflow was silently cancelled by the shared `prod-load` group (issues #1595, #1626)
 
 Both long-red nightlies last concluded **`cancelled`**, four seconds apart

@@ -2,13 +2,38 @@
 // and meaningful"). Pure TypeScript, no Deno or network, so vitest imports it
 // directly.
 //
-//   CRITICAL  posts to #ops-alerts immediately. Reserved for:
-//               - prod down (scheduler blackout, a cron that stopped firing)
-//               - money at risk (payout/transfer/refund/dispute/charge failures)
-//               - deploy failed (GitHub Actions, posted by the workflow itself)
-//               - security (fraud flags, signature failures, suspensions)
-//   WARNING   never posts on its own. Recorded in error_logs and summarised by
-//   INFO      the once-a-day digest (public.send_ops_daily_digest, 14:40 UTC).
+//   CRITICAL  posts immediately, throttled hard. Prod down, money at risk,
+//             deploy failed, security.
+//   WARNING   ALSO POSTS, throttled far harder (owner, 2026-09-22).
+//   INFO      ALSO POSTS, throttled hardest.
+//
+// ── WHY THIS CHANGED, 2026-09-22 ───────────────────────────────────────────
+// The 2026-09-14 policy was "make alerts few and meaningful": warning and info
+// never posted, they waited for the once-a-day digest
+// (public.send_ops_daily_digest, 14:40 UTC). That was a reasonable rule with
+// one property nobody had tested — THE DIGEST IS ITSELF A CRON.
+//
+// On 2026-09-22 pg_cron refused to START 457 scheduled runs between 06:00 and
+// 15:00 UTC ("job startup timeout" — the jobs did not run late, they did not
+// run). `ops-daily-digest` was one of the nine daily jobs killed. So the
+// outage was reported at severity 'error', 'error' was routed to the digest,
+// and the digest was part of the outage. Nine hours passed with nobody told.
+//
+// Owner, same day: "I feel like medium and low alerts should show in slack
+// also so that can be fixed."
+//
+// THE ANSWER TO VOLUME IS THROTTLING, NOT SILENCE. Measured over the 7 days to
+// 2026-09-22, error_logs carried 629 rows — ~90/day, which would drown
+// #ops-alerts and teach everyone to skim it. Throttled one-post-per-source per
+// the windows below, those same 7 days would have produced roughly:
+//
+//     fatal     0.1/day      (10 min window)
+//     error     ~7/day       (60 min)
+//     warning   ~4/day       (240 min)
+//     info      ~1/day       (720 min)
+//
+// ~12 posts a day, every distinct source still visible within hours, and no
+// severity's report depends on a cron surviving.
 //
 // ALWAYS_POST_KINDS is the third case: not an operator page, but not something
 // that can wait a day either. A person asking for help (`support_request`) has
@@ -78,9 +103,36 @@ export function effectiveSeverity(kind: string | undefined, raw: unknown): Alert
  */
 export const ALWAYS_POST_KINDS = ['digest', 'support_request'] as const
 
-/** Posts to Slack now, or waits for the daily digest. */
-export function postsImmediately(severity: AlertSeverity, kind?: string): boolean {
-  return severity === 'critical' || (!!kind && (ALWAYS_POST_KINDS as readonly string[]).includes(kind))
+/**
+ * Minutes one SOURCE stays quiet after posting, keyed on the `error_logs`
+ * severity (four levels) rather than AlertSeverity (three), because the
+ * throttle is about how noisy a tier is, not how it is coloured.
+ *
+ * MIRRORED IN SQL by public.notify_slack_on_error_log — src/test/alertPolicy
+ * .test.ts asserts the two agree, the same way it already pins
+ * CRITICAL_ERROR_LOG_SOURCES. Change a number here, change it there.
+ */
+export const SLACK_THROTTLE_MINUTES: Record<string, number> = {
+  fatal: 10,
+  error: 60,
+  warning: 240,
+  info: 720,
+}
+
+/**
+ * Posts to Slack now.
+ *
+ * Every severity does, as of 2026-09-22 — see the header. What keeps
+ * #ops-alerts readable is now SLACK_THROTTLE_MINUTES, applied per source, not
+ * a gate that drops whole severities on the floor. A dropped severity is
+ * indistinguishable from a healthy system, which is exactly how a nine-hour
+ * outage went unreported.
+ *
+ * Kept as a function, and kept called, because ALWAYS_POST_KINDS still means
+ * something: those kinds post regardless of any future gate added here.
+ */
+export function postsImmediately(_severity: AlertSeverity, _kind?: string): boolean {
+  return true
 }
 
 /**

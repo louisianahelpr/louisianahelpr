@@ -33,6 +33,7 @@ import {
   effectiveSeverity,
   normalizeSeverity,
   postsImmediately,
+  SLACK_THROTTLE_MINUTES,
   utcDayStartIso,
 } from "../../supabase/functions/_shared/alertPolicy";
 
@@ -120,12 +121,69 @@ const MUST_PAGE = [
   /Cancellation-fee payout could not read helper account/,
 ];
 
+/** The newest definition of notify_slack_on_error_log — the one prod runs. */
+function latestTriggerSql(): string {
+  const dir = join(__dirname, "..", "..", "supabase", "migrations");
+  const hits = readdirSync(dir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .map((f) => readFileSync(join(dir, f), "utf8"))
+    .filter((b) => b.includes("FUNCTION public.notify_slack_on_error_log()"));
+  expect(hits.length, "notify_slack_on_error_log must be defined somewhere").toBeGreaterThan(0);
+  return hits[hits.length - 1];
+}
+
 describe("alertPolicy", () => {
-  it("only critical (and the digest itself) posts immediately", () => {
+  it("EVERY severity posts — a dropped severity looks like a healthy system", () => {
+    // Reversed on 2026-09-22, deliberately. The old rule ("few and meaningful")
+    // sent warning and info to send_ops_daily_digest — which is itself a cron,
+    // `ops-daily-digest`. When pg_cron refused to start 457 jobs that day, the
+    // digest was one of the nine daily jobs that never ran, so the outage was
+    // reported at 'error', routed to the digest, and the digest was part of the
+    // outage. Nine hours, nobody told.
+    //
+    // Owner: "I feel like medium and low alerts should show in slack also so
+    // that can be fixed." Volume is now handled by SLACK_THROTTLE_MINUTES, not
+    // by dropping tiers on the floor.
     expect(postsImmediately("critical")).toBe(true);
-    expect(postsImmediately("warning")).toBe(false);
-    expect(postsImmediately("info")).toBe(false);
+    expect(postsImmediately("warning")).toBe(true);
+    expect(postsImmediately("info")).toBe(true);
     expect(postsImmediately("info", "digest")).toBe(true);
+  });
+
+  it("the throttle is what keeps the channel readable, and it rises with quietness", () => {
+    // Measured over the 7 days to 2026-09-22: 629 error_logs rows (~90/day).
+    // Posted raw that drowns #ops-alerts; one-per-source-per-window it is ~12.
+    const t = SLACK_THROTTLE_MINUTES;
+    expect(t.fatal).toBeLessThan(t.error);
+    expect(t.error).toBeLessThan(t.warning);
+    expect(t.warning).toBeLessThan(t.info);
+    // A throttle of 0 would mean "post every row" — the noise the 2026-09-14
+    // policy existed to prevent, reintroduced by the back door.
+    for (const [sev, mins] of Object.entries(t)) {
+      expect(mins, `${sev} must have a real throttle window`).toBeGreaterThan(0);
+    }
+  });
+
+  it("the SQL trigger's throttle windows match SLACK_THROTTLE_MINUTES", () => {
+    // Same reason CRITICAL_ERROR_LOG_SOURCES is pinned below: two copies of a
+    // policy drift, and the SQL one is the half that actually runs in prod.
+    const sql = latestTriggerSql();
+    for (const [sev, mins] of Object.entries(SLACK_THROTTLE_MINUTES)) {
+      const re = new RegExp(`WHEN '${sev}'\\s+THEN interval '${mins} minutes'`);
+      expect(
+        re.test(sql),
+        `notify_slack_on_error_log must throttle '${sev}' at ${mins} minutes to match ` +
+          `SLACK_THROTTLE_MINUTES in alertPolicy.ts. Change both or neither.`,
+      ).toBe(true);
+    }
+  });
+
+  it("a client-written row still never pages, at any severity", () => {
+    // The guard that matters MORE now that warning and info post: a row a
+    // browser can write must not be able to reach an operator.
+    const sql = latestTriggerSql();
+    expect(sql).toMatch(/NEW\.tags ->> 'origin' = 'client'[\s\S]{0,80}?RETURN NEW;/);
   });
 
   it("keeps the SQL watchers' 'error' critical, and a missing severity is a warning", () => {

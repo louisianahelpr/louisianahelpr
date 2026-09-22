@@ -512,6 +512,37 @@ type Journey = {
 };
 
 export const test = base.extend<{ journey: Journey }>({
+  /**
+   * THE HARNESS'S OWN REST CALLS ARE NOT UI ACTIONS, AND MUST NOT SHARE A BUDGET
+   * WITH THEM.
+   *
+   * `APIRequestContext` inherits `use.actionTimeout`, which for these projects
+   * is 20s — a deliberately tight bound on a CLICK, where 20s means the control
+   * is not there. Applied to a prod round trip it means something else
+   * entirely, and run 35696480072 spent all four of its failures saying so:
+   *
+   *   TimeoutError: apiRequestContext.post: Timeout 20000ms exceeded.
+   *     → POST …/auth/v1/token?grant_type=password        (×3)
+   *     → POST …/rest/v1/jobs?select=id                   (×1)
+   *
+   * Not one of them was about the app. The run before it (35691377627) had
+   * already measured the same backend from inside the browser at 43.8s for
+   * `/rest/v1/messages` and 44.1s for `/rest/v1/profiles`, so a 20s ceiling on
+   * a prod write sits WELL BELOW the service's observed worst case — the exact
+   * mistake bffd11f5c names for the password grant, which is why that one now
+   * carries its own 45s and a retry. This is the same bound for every other
+   * call, set once, where every spec picks it up without each having to
+   * remember: 60s, comfortably above the 44.1s actually seen.
+   *
+   * It buys no test any extra leniency about being WRONG — a 404, a 42501 or a
+   * bad payload still answers in milliseconds and still fails. It only stops a
+   * slow answer being reported as no answer.
+   */
+  request: async ({ playwright }, provide) => {
+    const api = await playwright.request.newContext({ timeout: 60_000 });
+    await provide(api);
+    await api.dispose();
+  },
   journey: async ({ request }, provide, testInfo: TestInfo) => {
     const startedAt = new Date(Date.now() - 5_000).toISOString();
     resetBackendLatency();

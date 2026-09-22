@@ -992,10 +992,37 @@ test.describe("full money loop against production", () => {
         "Confirm This Job -> I'm On My Way -> I've Arrived -> Start Working",
     ).toBeHidden({ timeout: 30_000 });
 
-    const beforePath = await uploadProofThroughTheApp(page, helper, job.id, runId, "before", proofDir, false);
+    /* AFTER FIRST, THEN BEFORE — the order the app actually asks in on THIS
+       step, which is not the order the work happens in.
 
-    // No navigation: the card must move to the After ask by itself.
+       `HelperPhotoAsk` renders exactly one chip, chosen by the tracker step
+       (HelperPhotoAsk.tsx:138):
+
+           if (step === "working") {
+             if (afterUrls.length === 0) return afterAsk;
+             if (beforeUrls.length === 0) return beforeAsk;
+
+       `on_site` starts from the Before; `working` starts from the After. This
+       journey backdates `poster_confirmed_working_at` to clear the 30-minute
+       completion floor, which puts the card on `working` — so the Before ask
+       never renders first, and asking for it hangs for 30s and then reports
+       "the card never asked for the before photo" on a card that is open,
+       unlocked and offering the After chip.
+
+       Run 35755581796's artefact is unambiguous: an expanded card, a full
+       "Job progress" rail, `button "After Photo — add the after photo for this
+       job"`, and the caption "Before & after photos are required — they're the
+       proof that releases your payment."
+
+       This spec's own @mutate-exempt note records the MIRROR of this bug on
+       2026-09-21 — "an ordering that asked for the After photo on a step that
+       only offers Before". The order was flipped then and the step changed
+       underneath it. Both chips are still required by
+       `enforce_helper_completion_gates`; only the order of the asks is fixed. */
     const afterPath = await uploadProofThroughTheApp(page, helper, job.id, runId, "after", proofDir, false);
+
+    // No navigation: the card must move to the Before ask by itself.
+    const beforePath = await uploadProofThroughTheApp(page, helper, job.id, runId, "before", proofDir, false);
 
     /* THE OBJECT EXISTS — asked of storage, not of the app that just claimed
        it. Listed as the HELPER (the `Users can read proof photos for their

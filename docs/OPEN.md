@@ -8,6 +8,91 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## OPEN — no real user has ever been paid out, and the automatic payout path has never run (2026-09-22)
+
+Read live on prod 2026-09-22 while verifying the four money legs end to end.
+
+`payout_transfers` holds **13 rows, all `status='paid'` with a real
+`stripe_transfer_id`, totalling $286.00 — and all 13 are
+`initiated_by = 'admin'`.** The newest is 2026-09-12 19:41. Every one is on an
+`is_seed` job.
+
+So the transfer mechanism itself is PROVEN: `release-payout` creates a genuine
+Stripe Connect transfer, and the amounts reconcile exactly ($25 budget, 12%
+helper commission -> `amount_cents` 2200 / `platform_fee_cents` 300, matching
+`jobs.platform_fee_amount` and the `$22` the helper's card renders).
+
+What has never happened is the AUTOMATIC one. Both cron payout paths filter
+seeded rows out —
+
+    process-scheduled-payouts/index.ts:84   if (!includeSeed) ... .eq("is_seed", false)
+    auto-release-payment/index.ts:521       if (!includeSeed) ... .eq("is_seed", false)
+
+— and `jobs.payment_status` has **zero non-seed rows in `payout_pending` or
+`released`, ever**. Every job that has ever reached a payout state is an E2E
+fixture the crons deliberately skip. The 18 rows sitting in `payout_pending`
+today are that residue, not a stuck queue.
+
+This is NOT "payouts are broken", and it should not be filed as one. The path is
+armed: the deployed `auto-release-payment` answered `"autoPayoutEnabled":true`
+on its 15:35 UTC run, so `RELEASE_PAYOUT_AUTO=1` is set in production. It simply
+has no real work and never has.
+
+The launch risk is that the FIRST real payout will be the first execution of
+`process-scheduled-payouts` / `auto-release-payment` Phase 2 against a
+non-seeded job, on a path no test can reach by construction. Worth deciding
+before launch: either run one non-seed job through it deliberately, or give the
+crons a seeded rehearsal via the `?include_seed=1` door they already have.
+
+Related, and deliberately not conflated: `02-marketplace.spec.ts:1052` accepts
+`/^(payout_pending|released)$/` as a successful release, and
+`scripts/e2e/settleForward.mjs` calls `payout_pending` one of the "statuses that
+mean the money already moved". Neither is true — `payout_pending` means a
+transfer is QUEUED. `e2e/prod-lifecycle.spec.ts` is the one spec that proves the
+money: it asserts a `tr_...` id, a helper-visible `paid` row in
+`payout_transfers`, and the `released` flip. That spec had not completed a run
+since 2026-09-12 (next section).
+
+## OPEN — the production money loop was red for 15 days and a push closed the report each time (2026-09-22)
+
+Every SCHEDULED run of `e2e-real-backend.yml`'s "Full money loop (production,
+Stripe test mode)" has FAILED since 2026-09-07:
+
+    gh api "repos/louisianahelpr/louisianahelpr/actions/workflows/e2e-real-backend.yml/runs?event=schedule"
+    35517320519 2026-09-20 failure   34597839611 2026-09-11 failure
+    35359823676 2026-09-18 failure   34475707694 2026-09-10 failure
+    35115323180 2026-09-16 failure   34350583896 2026-09-09 failure
+    34853774256 2026-09-14 failure   34224580935 2026-09-08 failure
+    34757946539 2026-09-13 failure   34127933976 2026-09-07 failure
+    34691563824 2026-09-12 failure
+
+Nobody knew, because the report deleted itself. `prod-lifecycle` is deliberately
+off the push trigger, so on a push it is `skipped`; the notify job computed
+`contains(needs.*.result, 'failure') && 'failure' || 'success'`, and `skipped`
+is not `failure`, so a push reported SUCCESS and `nightly-issue-sync` CLOSED the
+issue the scheduled failure had just opened. #1636 lived 3m25s. #1634 lived 43
+seconds. Twelve `nightly-red` issues have that shape.
+
+FIXED `a17f27d92` — the notify job no longer runs when `prod-lifecycle` was
+skipped, and the status expression is fail-closed, matching every other
+`nightly-issue-sync` caller in the repo (this was the only fail-open one).
+Guard: `src/test/nightlyIssueSyncIsFailClosed.test.ts`, shown red on the
+original expression by `npm run vacuity`.
+
+The failures themselves were three stacked faults, each hiding the next:
+  1. a stuck disputed fixture failed the PRE-SWEEP, so the spec never ran at all
+     from 2026-09-19 (fixed `f986180d0` / `cdb44700c`; the pre-sweep passed
+     today for the first time);
+  2. before that, `rpc_helper_mark_done` failing on 2026-09-16/18;
+  3. today, revealed once 1 and 2 cleared: the spec reached for the before-photo
+     chip on a card it never expanded (fixed `4352d12a8`, guard
+     `src/test/trackerControlsNeedAnExpandedCard.test.ts`).
+
+STILL OPEN: the money loop has not yet been observed completing. Re-dispatch
+`e2e-real-backend.yml` once the shared-accounts lock is free and confirm it
+reaches the `release-payout` assertions — a `tr_...` id, a helper-visible `paid`
+row, and the `released` flip. That run is the proof for the payout leg above.
+
 ## OPEN — 51 messages are sitting in the two email DLQs and nobody has decided what to do with them (2026-09-22)
 
 Found while closing the monitoring gap below. Read live on prod 2026-09-22:

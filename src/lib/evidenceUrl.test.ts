@@ -100,8 +100,42 @@ describe("the server-side write gate still exists", () => {
   });
 });
 
+describe("the storage PATH shape (stored since 2026-09-22) is trusted, and only it", () => {
+  const UP = "11111111-2222-3333-4444-555555555555";
+  const JOB = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+  const OK = `${UP}/disputes/${JOB}/1758000000-abc.jpg`;
+
+  it("renders the path both writers now store", () => {
+    // Before this, `new URL(path)` THREW and every path-shaped value was
+    // counted as WITHHELD — invisible to the admin deciding the money split.
+    expect(isTrustedEvidenceUrl(OK, BASE)).toBe(true);
+    expect(partitionEvidenceUrls([OK], BASE)).toEqual({ trusted: [OK], withheld: 0 });
+  });
+
+  it("still withholds anything that could name a host we do not own", () => {
+    for (const hostile of [
+      `//evil.example/${UP}/disputes/${JOB}/x.jpg`,   // protocol-relative
+      `/${UP}/disputes/${JOB}/x.jpg`,                  // leading slash -> authority
+      `https://evil.example/${UP}/disputes/${JOB}/x.jpg`,
+      `javascript:${UP}/disputes/${JOB}/x.jpg`,
+      `${UP}/disputes/${JOB}/x.jpg?next=//evil.example`, // query smuggling
+      `${UP}/disputes/${JOB}/../../other/x.jpg`,       // traversal
+      `${UP}/disputes/${JOB}/a/b.jpg`,                 // extra segment
+      `not-a-uuid/disputes/${JOB}/x.jpg`,              // uploader not pinned
+      `${UP}/evidence/${JOB}/x.jpg`,                   // not the disputes prefix
+    ]) {
+      expect(isTrustedEvidenceUrl(hostile, BASE), hostile).toBe(false);
+    }
+  });
+});
+
 // The origin check IS the guard: without it any host serving the same path
 // renders as a link and an <img> in the admin queue and in both parties'
 // dialog — a phishing tile plus an IP leak, which is the finding this file
 // was written for.
 // @mutate src/lib/evidenceUrl.ts | u.origin === base.origin && | true &&
+
+// The path branch is a SECOND trust surface, so it gets its own proof it can
+// fail: widen it to accept any leading segment and a foreign host walks back in
+// through the door the URL branch closes.
+// @mutate src/lib/evidenceUrl.ts | /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/disputes\/ | /^.*\/disputes\/

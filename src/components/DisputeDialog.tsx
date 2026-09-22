@@ -141,13 +141,13 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: Disput
           failedUploads += 1;
           continue;
         }
-        const { data: urlData, error: signedUrlError } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
-        if (signedUrlError) {
-          report(signedUrlError, { tags: { source: "DisputeDialog.createSignedUrl" } });
-          failedUploads += 1;
-          continue;
-        }
-        if (urlData?.signedUrl) evidenceUrls.push(urlData.signedUrl);
+        // Store the PATH, never a signed URL. A signed URL carries an `exp`
+        // (this used to mint 365 days), so the row is correct the day it is
+        // written and 400s forever after — no error at write, none at read,
+        // just an empty box on the screen an admin decides the money from.
+        // Both readers sign at display time via useProofPhotoUrls, and
+        // dispute_evidence_url_ok accepts this shape as of 20260922172945.
+        evidenceUrls.push(path);
       }
       // Evidence decides the dispute, so a silent partial upload is not
       // acceptable: stop and let them retry rather than filing short.

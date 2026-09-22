@@ -108,10 +108,19 @@ const PINNED: Record<string, string> = {
   // storage PATH and signs at display time (src/lib/proofPhotoStorage.ts,
   // src/hooks/useProofPhotoUrls.ts), and the 93 values already written down
   // were converted by 20260922170321_proof_photo_urls_to_paths.sql.
-  "components/DisputeDialog.tsx":
-    "365-day token -> dispute evidence via the file-dispute RPC",
-  "components/DisputeTimelineDialog.tsx":
-    "365-day token -> disputes.evidence_urls and jobs.dispute_evidence_urls",
+  // components/DisputeDialog.tsx and components/DisputeTimelineDialog.tsx were
+  // here. FIXED 2026-09-22, as ONE coordinated change across four layers,
+  // because the two writers could not move alone:
+  //   1. the DB validator (dispute_evidence_url_ok) now accepts the bare path
+  //      — 20260922172945, verified live in prod before the writers moved;
+  //   2. the 2 stored values were converted by 20260922170321;
+  //   3. both writers store `<uid>/disputes/<jobId>/<file>`;
+  //   4. src/lib/evidenceUrl.ts trusts that path shape (a bare path used to
+  //      THROW in `new URL()` and be counted as WITHHELD), and both readers —
+  //      DisputeTimelineDialog and admin/adminDisputes/DisputeCard, the screen
+  //      an admin decides a money split from — sign at display time via
+  //      useProofPhotoUrls. Converting (3) without (4) would have filed
+  //      disputes whose evidence the deciding admin could not see.
   // components/activity/CompletionChoiceSheet.tsx was here. FIXED 2026-09-22:
   // it writes the storage PATH into job_revisions.photos and the one component
   // that renders them (activity/HelperRevisionCard.tsx) signs at display time
@@ -199,7 +208,11 @@ describe("a signed URL is never persisted", () => {
     expect(
       longLivedTokens().length,
       "the scan found no long-lived signed URL at all — it cannot have run",
-    ).toBeGreaterThanOrEqual(3);
+      // Floor steps DOWN with the pin list, never up: 3 -> 1 when the two
+      // dispute writers were converted on 2026-09-22. SupportInline.tsx is the
+      // one remaining offender, so 1 is the most this can assert and still be
+      // a real vacuity check rather than a permanent exemption.
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it("the threshold does not swallow the app's real display-time TTLs", () => {

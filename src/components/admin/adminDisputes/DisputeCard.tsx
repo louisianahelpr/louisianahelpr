@@ -9,6 +9,7 @@ import { hasPerk } from "@/lib/subscriptionTiers";
 import { previewDisputeSplit } from "@/lib/disputeSplitPreview";
 import { isUnsettled, unsettledReason } from "./unsettled";
 import { partitionEvidenceUrls } from "@/lib/evidenceUrl";
+import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
 
 /**
  * The split readout is ONE money column — net, gross and deduction stacked.
@@ -84,6 +85,10 @@ export const DisputeCard = ({
   const evidence = partitionEvidenceUrls(
     record?.evidence_urls?.length ? record.evidence_urls : (job.dispute_evidence_urls ?? []),
   );
+  // Evidence is STORED as a storage path; the renderable URL is minted here,
+  // for the ten minutes this card is open. Same length and order as
+  // `evidence.trusted`, so the two zip. A legacy full URL still resolves.
+  const evidenceSrcs = useProofPhotoUrls(evidence.trusted);
   // A decision on record whose money never moved. The card MUST say so: the
   // green DECIDED badge alone told an admin the case was closed while $180 of
   // a poster's escrow sat unmoved with no id, no reason and no retry anywhere
@@ -163,11 +168,14 @@ export const DisputeCard = ({
               </p>
             )}
             <div className="flex gap-2 flex-wrap">
-              {evidence.trusted.map((url, i) => (
-                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors">
-                  <img loading="lazy" decoding="async" src={url} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
-                </a>
-              ))}
+              {evidence.trusted.map((_, i) => {
+                const src = evidenceSrcs[i];
+                return (
+                  <a key={i} href={src ?? undefined} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors">
+                    <img loading="lazy" decoding="async" src={src ?? PENDING_PHOTO_SRC} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
+                  </a>
+                );
+              })}
             </div>
           </div>
         )}

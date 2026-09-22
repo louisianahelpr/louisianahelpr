@@ -28,6 +28,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Upload, X, Clock, CheckCircle2, FileImage } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { disputeEvidenceChannel, isAdminReopened } from "@/components/disputeEvidenceChannel";
@@ -165,14 +166,11 @@ export const DisputeTimelineDialog = ({
           failedUploads += 1;
           continue;
         }
-        const { data: urlData, error: signedUrlError } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
-        if (signedUrlError) {
-          report(signedUrlError, { tags: { source: "DisputeTimelineDialog.createSignedUrl" } });
-          failedUploads += 1;
-          continue;
-        }
-        if (urlData?.signedUrl) newUrls.push(urlData.signedUrl);
-        else failedUploads += 1;
+        // Store the PATH, never a signed URL — same rule as DisputeDialog, and
+        // the same reason: a stored `exp` turns decisive evidence into an empty
+        // box a year later with nothing failing on either side. Signed at
+        // display time by useProofPhotoUrls in both readers.
+        newUrls.push(path);
       }
 
       // Fail LOUD on a partial upload — the same rule DisputeDialog already
@@ -281,6 +279,10 @@ export const DisputeTimelineDialog = ({
   const { trusted: evidenceUrls, withheld: withheldEvidence } = partitionEvidenceUrls(
     dispute?.evidence_urls?.length ? dispute.evidence_urls : (legacy?.evidence_urls ?? []),
   );
+  // Stored as a storage path, signed here for the life of this dialog. Same
+  // length and order as `evidenceUrls`, so the two zip; a legacy full URL
+  // still resolves through extractProofPhotoPath.
+  const evidenceSrcs = useProofPhotoUrls(evidenceUrls);
   const decidedAt = dispute?.decided_at ?? legacy?.dispute_resolved_at ?? null;
   const decisionText = dispute?.decision_text ?? null;
   const payoutSplit = dispute?.payout_split ?? null;
@@ -369,17 +371,20 @@ export const DisputeTimelineDialog = ({
                 )
               ) : (
                 <div className="flex gap-2 flex-wrap mt-1.5">
-                  {evidenceUrls.map((url, i) => (
-                    <a
-                      key={i}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block w-16 h-16 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors"
-                    >
-                      <img loading="lazy" decoding="async" src={url} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
-                    </a>
-                  ))}
+                  {evidenceUrls.map((_, i) => {
+                    const src = evidenceSrcs[i];
+                    return (
+                      <a
+                        key={i}
+                        href={src ?? undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-16 h-16 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors"
+                      >
+                        <img loading="lazy" decoding="async" src={src ?? PENDING_PHOTO_SRC} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
+                      </a>
+                    );
+                  })}
                 </div>
               )}
             </div>

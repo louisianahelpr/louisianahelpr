@@ -493,6 +493,7 @@ const AdminPayoutBatches = () => {
           honours the iOS safe-area inset) while a selection is active. */}
       {tab === "ready" && selected.size > 0 && (
         <div
+          data-rail-inset
           className="fixed left-0 right-0 z-40 px-4 py-3 bg-background/95 backdrop-blur border-t border-border shadow-[0_-4px_12px_-4px_rgba(0,0,0,0.08)]"
           style={{
             bottom: "calc(var(--safe-area-bottom, 0px) + 4.5rem)",

@@ -23,6 +23,7 @@ export function BulkDismissBar({
     <div
       role="toolbar"
       aria-label="Bulk dismiss action bar"
+      data-rail-inset
       className="fixed inset-x-0 z-40 px-4"
       // Sit above the bottom-nav dock — same safe-area math the rest of
       // the app uses for dock-adjacent floating UI.

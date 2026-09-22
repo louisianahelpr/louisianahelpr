@@ -1552,6 +1552,7 @@ export function ConversationList({
               // Embedded (desktop split): anchor inside the list pane so the
               // bar doesn't stretch across the thread pane; standalone keeps
               // the fixed viewport-bottom float above the nav dock.
+              data-rail-inset={embedded ? undefined : ""}
               className={`${embedded ? "absolute" : "fixed"} inset-x-0 z-40 px-4`}
               style={{ bottom: embedded ? "1rem" : "calc(var(--safe-area-bottom, 0px) + 80px)" }}
             >

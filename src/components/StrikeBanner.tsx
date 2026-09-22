@@ -89,7 +89,7 @@ export default function StrikeBanner() {
     const until = new Date(status.auto_suspended_until);
     if (until > new Date()) {
       return (
-        <div ref={contentRef} className="fixed left-0 right-0 z-[59] w-full bg-destructive text-destructive-foreground border-b border-destructive/40" style={{ top: `calc(var(--safe-area-top, 0px) + ${offlineOffset}px)` }}>
+        <div ref={contentRef} data-rail-inset className="fixed left-0 right-0 z-[59] w-full bg-destructive text-destructive-foreground border-b border-destructive/40" style={{ top: `calc(var(--safe-area-top, 0px) + ${offlineOffset}px)` }}>
           <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-2 text-ds-13">
             <ShieldAlert className="w-4 h-4 shrink-0" />
             <span className="flex-1">
@@ -104,7 +104,7 @@ export default function StrikeBanner() {
 
   if (status.ban_status === "final_warning") {
     return (
-      <div ref={contentRef} className="fixed left-0 right-0 z-[59] w-full bg-accent text-accent-foreground border-b border-accent/60" style={{ top: `calc(var(--safe-area-top, 0px) + ${offlineOffset}px)` }}>
+      <div ref={contentRef} data-rail-inset className="fixed left-0 right-0 z-[59] w-full bg-accent text-accent-foreground border-b border-accent/60" style={{ top: `calc(var(--safe-area-top, 0px) + ${offlineOffset}px)` }}>
         <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-2 text-ds-13">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span className="flex-1">

@@ -23,6 +23,7 @@ export function SaveBar({ dirty, saving, justSaved, onBack, onSave }: SaveBarPro
   if (!dirty && !saving && !justSaved) return null;
   return (
     <div
+      data-rail-inset
       className="fixed bottom-0 left-0 right-0 z-40 px-4 pt-3 pb-3 flex items-center gap-2"
       style={{
         // `var(--safe-area-bottom)`, never a bare `env(safe-area-inset-bottom)`.

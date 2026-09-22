@@ -1397,6 +1397,39 @@ html.web-desktop {
     right: calc(var(--desktop-sidebar-w) + 24px);
   }
 
+  /* EVERY OTHER `position: fixed` PAGE SURFACE CLEARS THE RAIL TOO
+     (owner, 2026-09-22: "in webpage, the messages go behind the right panel.
+     fix this and any other occurances this happens with").
+
+     Same shape as the toast rule above, and for the same reason: the two
+     shared insets — `.app-shell-frame { right }` at the top of this block and
+     `#root { padding-right }` further down — move the DOCUMENT. A fixed
+     element's containing block is the viewport (or the nearest transformed
+     ancestor), so neither inset reaches it and it keeps spanning to x=1440
+     with the rail sitting on top of its right 248px.
+
+     `data-rail-inset` is the opt-in, carried by the fixed page-level bars:
+     the Messages bulk-select toolbar (ConversationList, standalone only — the
+     embedded split-pane copy is `absolute` inside the list pane and already
+     inset), Activity's BulkDismissBar, the profile-edit SaveBar, the admin
+     payout-batch bar, the offline banner and both strike banners.
+
+     It is an attribute rather than a utility class because every one of these
+     bars already carries Tailwind's `right-0` / `inset-x-0`; a class would tie
+     on specificity and lose on source order. Three classes plus an attribute
+     beats a single utility class cleanly, in both directions, with no
+     `!important`.
+
+     NOT tagged, deliberately: DesktopTopNav and the admin top bar span the
+     full width ON PURPOSE — the hamburger that opens and closes this very rail
+     lives in their right edge, so insetting them would put the toggle under
+     the thing it toggles. MobileNav and Navbar never coexist with the rail
+     (phone only). Radix overlays are `inset-0` scrims, which are meant to
+     cover the rail as well. */
+  html.web-desktop.desktop-rail.side-panel-open [data-rail-inset] {
+    right: var(--desktop-sidebar-w);
+  }
+
   /* THE PAGE COLOUR RUNS BEHIND THE PANEL TOO.
      The frame stops at the rail's edge, so the strip behind and around the
      side panel was never painted by the app at all — what showed through was

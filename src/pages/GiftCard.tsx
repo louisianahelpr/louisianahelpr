@@ -39,7 +39,7 @@
  *     redemption + $0/difference math happens server-side at checkout).
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Gift, Sparkles } from "lucide-react";
@@ -49,7 +49,8 @@ import { unwrap, functionErrorMessage } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { hapticMedium, hapticSuccess } from "@/lib/haptics";
-import { STRIPE_PCT, STRIPE_FLAT_CENTS } from "@/lib/stripeFees";
+import { posterServiceFeeCents } from "@/lib/posterFees";
+import { formatPriceExact } from "@/lib/format";
 import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -132,6 +133,27 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
   const rawAmount = selectedAmount ?? (customAmount ? parseFloat(customAmount) : null);
   const effectiveAmount =
     rawAmount == null || !Number.isFinite(rawAmount) ? rawAmount : Math.round(rawAmount * 100) / 100;
+  // What the donor is ACTUALLY charged, derived from the same function the
+  // server bills with — `create-gift-card-checkout` does
+  // `posterServiceFeeCents(amountCents, 0)` and charges face + fee as one line.
+  //
+  // The screen used to show the face value only, under a hand-typed sentence
+  // that read "a card-processing fee (2.9% + 30c) is added at checkout". That
+  // formula is WRONG: with feePercent 0 the fee is Stripe's cost GROSSED UP by
+  // /(1 - 2.9%), because the fee is itself part of the charge Stripe takes its
+  // cut of. On a $50 gift the copy implied $51.75 and the real charge was
+  // $51.81; at the $10 minimum the surcharge is 6.10%, not 3.2%. Deriving it
+  // here (client mirror, pinned to the edge copy by posterFees.parity.test.ts)
+  // means the number on this screen, the number Stripe shows and the number the
+  // card is billed are one number that cannot drift.
+  const giftAmountCents =
+    effectiveAmount != null && Number.isFinite(effectiveAmount) && effectiveAmount > 0
+      ? Math.round(effectiveAmount * 100)
+      : null;
+  const giftFeeCents = giftAmountCents == null ? null : posterServiceFeeCents(giftAmountCents, 0);
+  const giftTotalCents =
+    giftAmountCents == null || giftFeeCents == null ? null : giftAmountCents + giftFeeCents;
+
   const trimmedRecipient = recipientEmail.trim().toLowerCase();
   const emailValid = EMAIL_RE.test(trimmedRecipient);
   const isSelfGiftEmail = !!myEmail && trimmedRecipient === myEmail;
@@ -148,12 +170,23 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     if (gift === "cancelled") {
       toast("Gift cancelled", { description: "No charge was made." });
     }
+    // `success` had no branch at all: the donor came back from Stripe having
+    // been charged, the param was silently stripped, and nothing on the page
+    // acknowledged it. Nothing invalidated the sent list either, so the gift
+    // they had just bought was usually still missing from "Gift cards you've
+    // sent" — the row is minted asynchronously by the webhook.
+    if (gift === "success") {
+      toast("Gift sent", {
+        description: "We've emailed your recipient a link to claim it. It'll appear below in a moment.",
+      });
+      void queryClient.invalidateQueries({ queryKey: ["gift-cards-sent"] });
+    }
     if (gift) {
       searchParams.delete("gift");
       setSearchParams(searchParams, { replace: true });
     }
     // Only react to the param on mount / when it changes.
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, queryClient]);
 
   // ── Claim a directed gift (?claim=<token>) ────────────────────────────────
   // The donor's email carried a claim link. This route is ProtectedRoute-
@@ -162,17 +195,14 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
   // who should own the gift. The edge function is the authority: it enforces
   // the email-match guard, idempotency, and the race-safe atomic bind; we just
   // surface its verdict.
-  useEffect(() => {
-    const claimToken = searchParams.get("claim");
-    if (!claimToken) return;
-    // Wait for the session to resolve — on a cold start `user` is briefly null
-    // while ProtectedRoute settles; acting now would misread "not signed in".
-    if (authLoading || !user?.id) return;
-    // Exactly-once per token.
-    if (claimedTokenRef.current === claimToken) return;
-    claimedTokenRef.current = claimToken;
-
-    void (async () => {
+  // Extracted from the ?claim= effect so the SAME path serves the emailed link
+  // and the in-app "Claim This Gift" button on an unclaimed card. Before this
+  // there was no claim affordance anywhere in the UI: claiming fired only from
+  // the URL, so a recipient who arrived via the dashboard teaser instead of the
+  // email had no way to bind their gift, and a transient 500 on the link burned
+  // the token for the session with no retry.
+  const claimGift = useCallback(
+    async (claimToken: string) => {
       setClaiming(true);
       try {
         const { data, error } = await supabase.functions.invoke("claim-gift-card", {
@@ -185,21 +215,61 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
         if (!data?.ok) throw new Error("Couldn't claim this gift. Please try again.");
 
         hapticSuccess();
-        // Surface the freshly-attached credit in the received list.
-        await queryClient.invalidateQueries({ queryKey: ["gift-cards-received"] });
+        // Claiming used to be entirely silent — same haptic, no words. The
+        // server already tells us whether this was the real bind or a repeat
+        // click, and `already_claimed` was read and thrown away.
+        toast(
+          data.already_claimed ? "Already yours" : "Gift claimed",
+          {
+            description: data.already_claimed
+              ? "This gift is already attached to your account."
+              : "It's attached to your account and ready to use.",
+          },
+        );
+        // Surface the freshly-attached credit in the received list, and clear
+        // the dashboard teaser's 5-minute cache so it stops saying a gift is
+        // waiting for one that has just been claimed.
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["gift-cards-received"] }),
+          queryClient.invalidateQueries({ queryKey: ["gift-card-count"] }),
+        ]);
+        return true;
       } catch (e) {
         report(e, { tags: { source: "GiftCard.claim" } });
         errorToast("Couldn't claim gift card", {
           description: e instanceof Error ? e.message : "Try again?",
         });
+        return false;
       } finally {
         setClaiming(false);
-        // Strip ?claim so a refresh / back-nav doesn't replay it.
-        searchParams.delete("claim");
-        setSearchParams(searchParams, { replace: true });
       }
+    },
+    [queryClient],
+  );
+
+  useEffect(() => {
+    const claimToken = searchParams.get("claim");
+    if (!claimToken) return;
+    // Wait for the session to resolve — on a cold start `user` is briefly null
+    // while ProtectedRoute settles; acting now would misread "not signed in".
+    if (authLoading || !user?.id) return;
+    // Exactly-once per token.
+    if (claimedTokenRef.current === claimToken) return;
+    claimedTokenRef.current = claimToken;
+
+    void (async () => {
+      const ok = await claimGift(claimToken);
+      // A FAILED claim must not burn the token. The ref exists to stop the
+      // effect double-firing, not to make one transient 500 permanent — and
+      // because the URL is stripped below, clearing it cannot re-trigger the
+      // effect. The card's own "Claim This Gift" button is the real retry.
+      if (!ok) claimedTokenRef.current = null;
+      // Strip ?claim so a refresh / back-nav doesn't replay it — and so the
+      // bearer token stops riding in the URL (and in analytics pageviews).
+      searchParams.delete("claim");
+      setSearchParams(searchParams, { replace: true });
     })();
-  }, [searchParams, setSearchParams, authLoading, user?.id, queryClient]);
+  }, [searchParams, setSearchParams, authLoading, user?.id, claimGift]);
 
   // ── Queries ───────────────────────────────────────────────────────────────
   // isError is load-bearing on both lists: these are real, paid gift cards.
@@ -672,7 +742,10 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                   className="font-sans text-ds-11 mt-1.5"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
-                  ${MIN_GIFT}–${MAX_GIFT} per gift card. A card-processing fee ({(STRIPE_PCT * 100).toFixed(1)}% + {STRIPE_FLAT_CENTS}¢) is added at checkout.
+                  ${MIN_GIFT}–${MAX_GIFT} per gift card.{" "}
+                  {giftTotalCents == null
+                    ? "A card-processing fee is added at checkout."
+                    : `You'll be charged $${formatPriceExact(giftTotalCents / 100)} — $${formatPriceExact(giftAmountCents! / 100)} for them, $${formatPriceExact(giftFeeCents! / 100)} card processing.`}
                 </p>
               </div>
 
@@ -773,7 +846,10 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                       key={credit.id}
                       credit={credit}
                       perspective="received"
+                      currentUserId={user?.id ?? null}
                       onRedeem={handleUseGift}
+                      onClaim={(token) => void claimGift(token)}
+                      claiming={claiming}
                     />
                   ))}
                 </div>

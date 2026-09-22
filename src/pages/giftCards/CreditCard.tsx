@@ -7,10 +7,18 @@ import type { GiftCardRow } from "./types";
 export function CreditCard({
   credit,
   onRedeem,
+  onClaim,
+  claiming = false,
+  currentUserId,
   perspective = "received",
 }: {
   credit: GiftCardRow;
   onRedeem?: (id: string) => void;
+  /** Bind an emailed-but-unclaimed gift to this account. */
+  onClaim?: (token: string) => void;
+  claiming?: boolean;
+  /** The signed-in user, so redeemability can check OWNERSHIP like the server does. */
+  currentUserId?: string | null;
   /** "received" shows who it's from; "sent" shows who it went to. */
   perspective?: "received" | "sent";
 }) {
@@ -29,12 +37,41 @@ export function CreditCard({
   const parsedExpiry = credit.expires_at ? new Date(credit.expires_at) : null;
   const expiresAt = parsedExpiry && !isNaN(parsedExpiry.getTime()) ? parsedExpiry : null;
   const isExpired = expiresAt !== null && expiresAt.getTime() < Date.now();
-  const effectiveStatus = isExpired ? "expired" : credit.status;
   // Directed gifts are redeemable while in the "sent" (paid, unredeemed) state;
   // the legacy pool used "available". Accept either so the button surfaces
   // correctly during the model transition.
-  const redeemable =
-    !isExpired && (credit.status === "sent" || credit.status === "available");
+  const spendableStatus = credit.status === "sent" || credit.status === "available";
+  // The FUNDING gate. `redeem_gift_card` refuses anything that is not 'paid',
+  // and `revoke_gift_card_for_refund` revokes a refunded/charged-back donation
+  // by setting payment_status='refunded' while deliberately leaving `status`
+  // alone — so a revoked gift still reads 'sent' and, without this, still
+  // rendered "Ready to use" with a live button.
+  const isFunded = credit.payment_status === "paid";
+  // The OWNERSHIP gate. `redeem_gift_card` raises 42501 unless recipient_id IS
+  // the caller. A gift that reached this list by the RLS email clause but was
+  // never claimed has recipient_id = null and would be refused.
+  const isMine = !!currentUserId && credit.recipient_id === currentUserId;
+  // Funded, live, addressed to me — but never bound to my account. That is not
+  // a dead gift, it is an unclaimed one, and it is one tap from working. Before
+  // this, the card offered "Use This Gift", sent the user through the whole
+  // post-a-job form, and only at checkout said the gift "may already be used,
+  // expired, or sent to a different account" — none of which was true.
+  // Scoped to the RECEIVED perspective. On the donor's "Gift cards you've sent"
+  // list the same row is unbound too, and without this the pill would tell the
+  // SENDER to "Claim it" — a gift they bought for somebody else.
+  const needsClaim =
+    perspective === "received" &&
+    !isExpired && isFunded && spendableStatus && !credit.recipient_id && !!credit.claim_token;
+  const effectiveStatus = isExpired
+    ? "expired"
+    : !isFunded && spendableStatus
+      ? "refunded"
+      : needsClaim
+        ? "unclaimed"
+        : credit.status;
+  // All four conditions the server checks, in the same order. Anything less
+  // offers a button that is going to be refused.
+  const redeemable = !isExpired && isFunded && isMine && spendableStatus;
   // Moot once the money is spent — only unredeemed cards can still lapse.
   const showExpiry = expiresAt !== null && credit.status !== "redeemed";
   return (
@@ -103,6 +140,22 @@ export function CreditCard({
           }}
         >
           Use This Gift
+        </Button>
+      )}
+
+      {onClaim && needsClaim && credit.claim_token && (
+        <Button
+          size="sm"
+          disabled={claiming}
+          onClick={() => onClaim(credit.claim_token as string)}
+          className="w-full rounded-ds-sm font-sans font-semibold text-ds-13"
+          style={{
+            background: "hsl(var(--success-ink))",
+            color: "hsl(var(--parchment))",
+            border: "none",
+          }}
+        >
+          {claiming ? "Claiming…" : "Claim This Gift"}
         </Button>
       )}
     </div>

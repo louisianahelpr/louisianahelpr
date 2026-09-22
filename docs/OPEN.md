@@ -220,6 +220,59 @@ OPEN:
   DO NOT delete baseline entries on the strength of this note alone — it is
   reasoning over an existing measurement file, not a fresh measurement.
 
+## OPEN — the three red nightlies, diagnosed 2026-09-22 (re-runs pending)
+
+Worked top-down at the owner's direction. All three now have a cause; none is
+closed until its own re-run is green, and the re-runs must be SERIALISED —
+a manual `workflow_dispatch` gets its OWN concurrency group, NOT `prod-load`,
+so two dispatched prod workflows really do run at once. That is what caused
+the 2026-09-21 four-in-four-minutes incident.
+
+### #1618 prod-audit — COLLATERAL OF THE CRON OUTAGE, not 36 defects
+Today's run (35705632232, 08:35 UTC) failed 36 tests. The first error is the
+whole story:
+
+    Error: sign-in failed for the poster twice (45000ms each, 2s apart)
+      POST /auth/v1/token?grant_type=password — Timeout 45000ms exceeded
+
+08:35 UTC sits inside the 06:00-15:00 window where pg_cron successes fell from
+~78/hour to 8. Auth itself was timing out, so all 14 `/admin?view=…` failures
+are downstream of a sign-in that never happened — not fourteen broken screens.
+
+Measured now that it has recovered: that same endpoint answers 401 (a correct
+rejection for a bogus credential) in **0.18s**, against 45s timeouts during the
+incident. ~250x.
+
+The OLDER run the issue links (35201023071, 09-17) failed differently — the
+admin was bounced `/admin` -> `/complete-profile`. That one is ALSO stale: the
+seed admin's profile is complete on prod right now (full_name, avatar_url,
+date_of_birth, phone, location all present; approved; active), checked against
+`PROFILE_GATE_FIELDS` in ProtectedRoute.tsx.
+
+### #1582 press — all 199 failures map to three causes, all three fixed today
+Classified every one from the run log rather than sampling:
+
+    75  /jobs/9076d322 (helper 39 + customer 36)  `400 POST <uuid>/…`
+    53  /profile?tab=notifications (27 + 26)      disabled switches
+    16  /dashboard helper                         same 400s
+    ~9  /jobs/7d315f44                            nav tabs NOT CLICKABLE
+    rest spread thin, same three shapes
+
+  * the 400s are the dangling proof-photo references — cleared, and verified
+    independently since: 62 refs remain, 0 on real jobs, and the two prefixes
+    named in the log (`4e3f708d`, `90395fd0`) are gone;
+  * the switches were `disabled={!loaded}` forever because auth was sampled
+    once on mount — fixed, with the class guard that found four more;
+  * the nav tabs were the sweep pressing one screen's inventory against
+    another after a navigation — fixed with `!sameScreen(page.url())`.
+
+### #1595 e2e-journeys — one failure, and its fix landed after the run
+Run 35751533019 failed ONE test: `page.goto("/profile")` interrupted by a
+navigation to `/user/<id>?_v=…`. The `?_v=` is chunkReload's stale-deploy
+recovery firing from the previous page and winning the race. `6fb3335fa`
+(speculative prefetch may not trigger destructive recovery) landed AFTER that
+run. Re-running on current main to find out.
+
 ## OPEN — press is fixed enough to see REAL defects now; 199 remain (2026-09-22)
 
 The self-inflicted sign-out (aaa561573) is largely gone and the sweep now

@@ -100,14 +100,34 @@ OPEN:
   dodge. Both behaviours proven: a non-breaching entry in `allow` exits 1, the
   same entry in `byDesign` exits 0, an unruled `byDesign` entry exits 1.
 
-- **The 11 non-profile jumps are a DIFFERENT class and the ruling does not
-  cover them.** Several are NEGATIVE — the placeholder reserves MORE than the
-  content that replaces it, so the page collapses upward on load:
-  `/user/test #1` 326px -> 141px (-185px), `/user/<id> #1` 326 -> 247 (-79),
-  `/my-jobs #1` 206 -> 154 (-52), `anon /messages #0` 128 -> 62 (-66).
-  "Fills the screen, grows below" says nothing about over-reserving, and
-  content jumping UP is the shift the ruling was meant to prevent. These stay
-  in `allow` as real debt and want a look.
+- **CORRECTION, and it points at the check rather than the app.** I first
+  filed the 11 non-profile jumps as real debt because several are NEGATIVE —
+  the placeholder reserving MORE than the content that replaces it, so the page
+  would collapse upward on load. Then I checked the DOM paths in
+  `measurements.json` instead of trusting the deltas, and most are MEASUREMENT
+  ARTIFACTS, not defects:
+
+    `/user/test #1`      -185px  its path is the ANCESTOR of cluster #0 — the
+    `/user/<id> #1`       -79px  same DOM counted twice at two nesting levels
+    `anon /messages #0`   -66px  path is `body`: the whole document as one
+                                 "row", the same fallback that produces the
+                                 `anon /` +1374px entry
+    `/jobs/<id> #0`       -14px  path is `div#root > nav > …` — the fixed
+                                 BOTTOM NAV, compared against page content
+
+  Only `/my-jobs #1` (-52px) and `anon /browse #0` (-9px) are standalone
+  clusters with no nesting, and -9px is not worth anyone's afternoon.
+
+  So the real item is a HARNESS defect: `measure-loading-states.mjs` emits
+  clusters that are ancestors of other clusters, falls back to `body`, and
+  treats the fixed bottom nav as a content cluster. Those inflate the breach
+  count — and 91 baselined breaches is the number driving all of this work, so
+  it is worth knowing how many are real. Fix: drop a cluster whose path is a
+  strict prefix of another's, drop the `body` fallback, and exclude
+  `div#root > nav`. Then re-measure and see what the true number is.
+
+  DO NOT delete baseline entries on the strength of this note alone — it is
+  reasoning over an existing measurement file, not a fresh measurement.
 
 ## OPEN — three more things on the critical path, measured 2026-09-22
 

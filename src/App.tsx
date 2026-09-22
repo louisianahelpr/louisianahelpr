@@ -167,7 +167,32 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
 
           Every other public route is deliberately NOT wrapped — see the
           per-route notes below and the block comment in MarketingRedirect. */}
-      <Route path="/" element={<RouteErrorBoundary><MarketingRedirect>{routeEl(<PageTransition><Index /></PageTransition>)}</MarketingRedirect></RouteErrorBoundary>} />
+      {/* THE SAME FIX /browse GOT, on the route more people actually land on.
+          MarketingRedirect's `fallback` defaults to a BLANK
+          `min-h-screen bg-premium-page`, and this route never overrode it — so
+          a token-holding visitor on `/` got, measured on prod at 1440 with the
+          network throttled to ~1.2Mbps and CPU 4x:
+
+            400ms   the inline FCP shell (brand mark)
+            890ms   a loading surface carrying RouteSuspenseFallback's own
+                    sr-only "Loading…"
+            1403ms  Dashboard's OWN loading branch — "Loading jobs near you…",
+                    a completely different shape
+            2497ms  real content ("8 jobs")
+
+          Three different-shaped surfaces before the page, which is the owner's
+          report twice over: "the home dashboard webpage goes through like 3
+          different loading screens then opens" (2026-09-19, fixed for
+          /dashboard by DashboardRouteSkeleton) and "the loading for the webpage
+          should go straight to the webpage not load another thing then go to
+          webpage" (2026-09-22).
+
+          DashboardRouteSkeleton is the shape of where a signed-in visitor is
+          GOING, so the redirect lands in a frame it keeps — the reasoning
+          spelled out on /browse above, which fixed the identical hop. Guests
+          are untouched: `hasPersistedAuthToken()` returns false for them and
+          `children` renders on exactly the same tick as before. */}
+      <Route path="/" element={<RouteErrorBoundary><MarketingRedirect fallback={<DashboardRouteSkeleton />}>{routeEl(<PageTransition><Index /></PageTransition>)}</MarketingRedirect></RouteErrorBoundary>} />
       <Route path="/login" element={<RouteErrorBoundary>{routeEl(<PageTransition><Login /></PageTransition>, <LoginRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/signup" element={<RouteErrorBoundary>{routeEl(<PageTransition><Signup /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/signup-pending" element={<RouteErrorBoundary>{routeEl(<PageTransition><SignupPending /></PageTransition>)}</RouteErrorBoundary>} />

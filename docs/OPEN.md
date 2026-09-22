@@ -742,10 +742,13 @@ teardown reads the answer it had been throwing away.
   bound and `.ok()`-tested — the class, not the one line — and pins the
   disposition (settle forward on the funded branch, `poster_cancel_job` only on
   the unfunded one). Shown red on the original defect via its `@mutate`.
-- **The backlog.** 16 rows, not 5: the oldest `2fe9l6` from 2026-09-15 plus the
-  `automated lifecycle` rows `prod-lifecycle` had been stranding since
-  2026-09-16. All 16 settled to `payout_pending` with
-  `node scripts/e2e/settle-stranded-escrow.mjs`, each verified by re-query.
+- **The backlog.** 18 rows, not 5: 16 at the start — the oldest `2fe9l6` from
+  2026-09-15, plus the `automated lifecycle` rows `prod-lifecycle` had been
+  stranding since 2026-09-16 — and 2 more that a CI money loop stranded while
+  the cleanup was running. All 18 settled to `payout_pending` with
+  `node scripts/e2e/settle-stranded-escrow.mjs`; re-queried afterwards, every
+  one is `completed`/`payout_pending` with both completion stamps and a
+  scheduled payout, and `user_strikes` for both accounts is still 0.
   The disputed fixture `e7e09075` was deliberately NOT touched — that escrow is
   the admin's to place.
 - **Still open, small:** `prod-lifecycle-sweeper.mjs` can now settle forward

@@ -6,10 +6,8 @@ import {
   DialogBody,
   DialogFooter,
   DialogSecondaryAction,
-  DialogPrimaryAction,
   DialogDestructiveAction,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 // The consequence this dialog promises is stated ONCE, next to the ladder the
 // RPC actually runs (report_helper_no_show → apply_consequence_ladder). This

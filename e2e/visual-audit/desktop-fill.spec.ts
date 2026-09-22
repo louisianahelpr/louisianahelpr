@@ -32,6 +32,27 @@ interface Route {
       brand pane companion, so 65% still applies). Leave false for any
       real content page. */
   exempt?: boolean;
+  /**
+   * The element that actually holds this route's content, when the generic
+   * scan cannot find it.
+   *
+   * The scan looks at `h1, h2, .container, [class*='max-w-'], article, section`.
+   * /browse's content column is a plain `div.grid.md:grid-cols-2`
+   * (DashboardGuest's FEED_GRID_CLASS) and matches none of them, so the widest
+   * thing it ever found was a HEADING INSIDE A CARD: it reported 568px / 39%
+   * while the feed grid measured 1344px — 93% of a 1440px viewport. /browse was
+   * carried as a 39%-fill layout defect for days on that number, and the number
+   * itself wandered (568, 568, 444, 568, 568 across five identical runs)
+   * because it depended on which card heading happened to be widest.
+   *
+   * Widening the generic selector was tried and REJECTED: adding grid/flex
+   * containers made the check insensitive — with the feed grid forced to
+   * `max-w-sm` it still passed, because some other full-bleed grid was matched
+   * instead. A check that cannot fail is worse than one that measures the wrong
+   * element, so the route names its own container rather than the scan guessing
+   * wider.
+   */
+  contentSelector?: string;
 }
 
 const ROUTES: Route[] = [
@@ -43,7 +64,7 @@ const ROUTES: Route[] = [
   // screen. Nobody saw it because nothing ran this spec (see the note below).
   { path: "/help", auth: "anon" },
   { path: "/legal", auth: "anon" },
-  { path: "/browse", auth: "anon" },
+  { path: "/browse", auth: "anon", contentSelector: "div[class*='md:grid-cols-2']" },
   // /data-rights is not listed: since 2026-08-18 it is a redirect into
   // /profile?tab=legal, so as an anon route it only ever measured the login
   // page. /profile in the authed block below carries the same content
@@ -105,19 +126,36 @@ test.describe("desktop content fills the viewport", () => {
       // Give the app a moment to hydrate + any lazy-loaded routes to swap in.
       await page.waitForLoadState("networkidle").catch(() => {});
 
-      const measurement = await page.evaluate(() => {
+      const measurement = await page.evaluate((contentSelector) => {
         const vw = window.innerWidth;
         const main = document.querySelector("main, #main-content") || document.body;
-        const nodes = Array.from(
-          main.querySelectorAll("h1, h2, .container, [class*='max-w-'], article, section"),
-        );
+        const nodes = contentSelector
+          ? Array.from(main.querySelectorAll(contentSelector))
+          : Array.from(
+              main.querySelectorAll("h1, h2, .container, [class*='max-w-'], article, section"),
+            );
         let maxWidth = 0;
         for (const n of nodes) {
           const rect = n.getBoundingClientRect();
           if (rect.width > maxWidth && rect.width <= vw) maxWidth = rect.width;
         }
-        return { vw, contentW: Math.round(maxWidth), pct: Math.round((maxWidth / vw) * 100) };
-      });
+        return {
+          vw,
+          contentW: Math.round(maxWidth),
+          pct: Math.round((maxWidth / vw) * 100),
+          found: nodes.length,
+        };
+      }, route.contentSelector ?? null);
+
+      // A declared selector that matches nothing would measure 0 and fail with a
+      // misleading reason, or (if it ever defaulted) pass on the wrong element.
+      if (route.contentSelector) {
+        expect(
+          measurement.found,
+          `${route.path} declares contentSelector ${route.contentSelector} and it matched NOTHING — ` +
+            `the selector is stale, not the layout`,
+        ).toBeGreaterThan(0);
+      }
 
       // Hard-coded reason so a CI failure tells the reader WHY, not just
       // "assertion failed on line 90".
@@ -129,3 +167,10 @@ test.describe("desktop content fills the viewport", () => {
     });
   }
 });
+
+// The defect class this spec exists for: a content column stranded narrow in a
+// wide viewport. Capping the guest feed grid drops /browse to 27% (384px of
+// 1440). Registered against the MEASURED container deliberately — before the
+// contentSelector above, this spec was reading a heading inside a card and
+// reporting 39% whatever the layout did.
+// @mutate src/pages/DashboardGuest.tsx | md:grid-cols-2 md:gap-4"; | md:grid-cols-2 md:gap-4 max-w-sm";

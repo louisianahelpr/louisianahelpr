@@ -251,10 +251,11 @@ jobs:
         # defect. They point at PLAYWRIGHT_BASE_URL, which this job has already
         # set to the local preview built from this commit.
         #
-        # desktop-fill is deliberately NOT here — it fails on a genuine defect
-        # (/browse fills 39% of 1440px against its own 65% floor) and wiring it
-        # would either ship a permanently red workflow or invite someone to
-        # mask the finding. See its NOT_RUN_IN_CI entry for the way out.
+        # desktop-fill joined them 2026-09-21. It was held out because /browse
+        # "filled 39% of 1440px" — which turned out to be the MEASUREMENT, not
+        # the layout: the spec was reading a heading inside a card, while the
+        # feed grid measured 1344px (93%). The route now declares its own
+        # content container and the suite is 16/16.
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
           PLAYWRIGHT_TEST_USER_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_USER_EMAIL }}
@@ -262,7 +263,7 @@ jobs:
         # ONE line, for the same reason as the step above: the reachability
         # guard reads workflow files line by line, and a `\` continuation would
         # hide these spec names from it.
-        run: npx playwright test --project=chromium e2e/post-and-apply.spec.ts e2e/smoke.spec.ts e2e/a11y.spec.ts e2e/visual-audit/responsive.spec.ts --reporter=list
+        run: npx playwright test --project=chromium e2e/post-and-apply.spec.ts e2e/smoke.spec.ts e2e/a11y.spec.ts e2e/visual-audit/responsive.spec.ts e2e/visual-audit/desktop-fill.spec.ts --reporter=list
       - name: Upload report on failure
         if: failure()
         uses: actions/upload-artifact@v7

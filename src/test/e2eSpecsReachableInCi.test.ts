@@ -107,12 +107,6 @@ const NOT_RUN_IN_CI: Record<string, string> = {
    * findings nobody had ever seen, one of them a spec that had been red for a
    * long time on a stale locator and one a real layout defect.
    */
-  "visual-audit/desktop-fill.spec.ts":
-    "HELD BACK ON A REAL DEFECT, not a constraint. It fails today because /browse fills 39% " +
-    "of a 1440px viewport (contentW=568px) against this spec's own 65% floor. Wiring it now " +
-    "would either ship a permanently red workflow or invite someone to set `exempt: true` on " +
-    "the route, which would mask the finding the spec exists to make. Fix the browse layout, " +
-    "then wire it and delete this entry in the same change.",
 };
 
 /**

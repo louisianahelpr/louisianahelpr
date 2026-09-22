@@ -444,6 +444,92 @@ two implementations of it were half-done.
 the defect at all.** A guard whose instrument is blind looks identical to a
 guard that does not assert, and the fix is completely different.
 
+### A verdict is only as good as the rule behind it
+
+The other direction of the same coin, and it cost me a tick I had already
+claimed.
+
+The per-element overflow check above needs one more clause: skip any element
+whose ancestor clips or SCROLLS on the x-axis, because a side-scrolling tab
+strip's last tab sitting past the edge is the feature, not a defect.
+`measureLayout` in `auditRoutes.ts` already had that walk — it is how it splits
+`overflowOffenders` from `clippedWideElements` — and I had written a cruder rule
+instead. It false-positived immediately, on `/my-posts@320`:
+`<button.group> right=326 > 320`, inside `overflow-x-auto`.
+
+Adding the correct clause **turned one of my own `killed` verdicts into
+`SURVIVED`.** The 1400px-element mutation is inside a clipping ancestor, and
+this repo deliberately does not call clipped wide elements a defect. So the
+original kill had been measuring a case the codebase does not consider broken.
+
+Two rules out of that:
+
+- **After tightening any predicate, re-run every mutation it was credited
+  with.** A verdict recorded under the old rule is not evidence under the new
+  one.
+- **Prefer a mutation you can argue is a real user-visible defect**, not merely
+  one the current rule happens to notice. The second kind passes the gate and
+  teaches you nothing.
+
+And reuse the repo's existing rule rather than writing a second one — a
+duplicated predicate is the registry-checked-against-itself trap in another
+costume.
+
+## An error boundary turns a crash into a valid-looking page
+
+The most important finding of the e2e row, and the one that generalises furthest.
+
+`e2e/mobile-viewports.spec.ts` loads four public routes at five viewports — 20
+page-loads — and asserts no horizontal scroll, nothing past the right edge, and
+**no uncaught JS errors**. A null dereference injected into the landing hero's
+render left **all five viewports GREEN**.
+
+Why, in order:
+
+1. `RouteErrorBoundary` catches the throw. It is supposed to. So nothing ever
+   reaches `page.on("pageerror")` and the "no uncaught JS errors" assertion —
+   the one written for exactly this — cannot fire.
+2. The boundary paints a small centred card ("This page hit a problem."). That
+   card has no horizontal scroll and nothing past the right edge, so every
+   remaining assertion passes.
+
+**It passes HARDEST when the page is most broken**, because the fallback is
+smaller and simpler than the page it replaced. Twenty public page-loads could
+not distinguish a working page from a crashed one.
+
+The general form, worth carrying to every page-level spec in the repo:
+
+> An error boundary converts a crash into a structurally valid page. Any check
+> whose assertions are all about LAYOUT will therefore pass on a crashed route —
+> and a caught exception is invisible to `pageerror` by construction.
+
+This is the same family as a route sweep grading its redirect destination
+(above): every invariant true, of the wrong screen. A 404, a login screen, a
+redirect destination and an error card are all "a perfectly good page" to a
+predicate gate.
+
+**The test to apply:** does the spec assert the page rendered ITS OWN content — a
+heading it owns, a control only it has? If every assertion would also hold on an
+error card, the spec cannot tell you the route works. `assertHealthy` +
+`findErrorScreen` in `e2e/journeys/fixtures.ts` is the richer version already in
+the repo; the cheap one is to fail on the boundary's own copy.
+
+### A name that asserts nothing is worse than a missing test
+
+Found in the same file. `landing — phone cluster fits viewport` aside, all 20
+tests were named `… — FAB reachable`, and the file header listed "assert the
+bottom-nav post-job FAB is reachable + not clipped" among what the suite does.
+
+**There is no assertion about a FAB anywhere in that file, and never was.** The
+words existed only in the header and in the test names. A missing test is a
+known gap; a NAME is counted — it appears in CI output, in the count of what
+runs, and in anyone's reading of what is covered. These pages are public-only
+and the FAB is session-gated, so the check could not have been written as
+stated either.
+
+Renamed, and the header now RECORDS both removed claims rather than quietly
+dropping them, so the next reader learns the suite once claimed more than it did.
+
 ## A check that SKIPS when its selector misses has deleted itself
 
 `test.skip(true, "…update selector")` reads as caution and behaves as deletion,

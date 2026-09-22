@@ -61,8 +61,17 @@ test.describe("two-role lifecycle", () => {
     const poster = await seededPage(posterCtx, posterSession);
     const helper = await seededPage(helperCtx, helperSession);
 
-    // ── Helper: find the job, answer the day-before question ──
-    await helper.goto(BASE + "/my-jobs");
+    /* ── Helper: find the job, answer the day-before question ──
+       DEEP-LINKED BY JOB ID, not just "/my-jobs". The page opens on its default
+       tab — "Needs You" — and a confirmed booking whose day is still ahead sits
+       under "Scheduled", so this looked for the button on a tab that could
+       never show it. Diagnosed from the failure screenshot: Needs You 11,
+       Waiting 4, Scheduled 8, and the seeded job in the third of those.
+       `?job=` is the app's own highlight link (the one every notification
+       uses), so product code brings the card into view rather than this spec
+       guessing a tab name or scrolling a list whose shape it would have to
+       know. Same technique as prod-lifecycle.spec.ts. */
+    await helper.goto(BASE + `/my-jobs?job=${jobId}`);
     const stillOn = helper.getByRole("button", { name: /I'm Still On/i });
     await expect(stillOn, "day-of confirm card must be visible inside the 24h window").toBeVisible({ timeout: 15_000 });
     await stillOn.click();
@@ -72,7 +81,7 @@ test.describe("two-role lifecycle", () => {
     await expect(helper.getByText(/You:\s*Confirmed/i)).toBeVisible({ timeout: 15_000 });
 
     // ── Poster: sees the mutual confirm without reloading ──
-    await poster.goto(BASE + "/my-posts");
+    await poster.goto(BASE + `/my-posts?job=${jobId}`);
     await expect(
       poster.getByText(/Confirmed/i).first(),
       "poster's tracker must reflect the helper's confirm (realtime)",

@@ -381,7 +381,14 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
      returns Needs You for `revision_requested` unconditionally, so a Helpr who
      has already resubmitted is told they still owe something. */
   revision_sent: { detail: "Your fix is with them", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
-  overdue: { detail: "The day has passed" },
+  /* THE HELPER'S SIDE OF THE SAME CHANGE (owner, 2026-09-21: "all of this also
+     goes for jobs"). The poster's table got state-then-action and this one was
+     missed on the first pass — caught by looking at a /my-jobs screenshot,
+     which still read "The day has passed" while /my-posts had moved on.
+     Both actions genuinely exist on this side: a Helpr can mark the job done,
+     and `helper_cancel_booking` is the other way out, so the sentence is the
+     same one rather than a softer helper-only variant. */
+  overdue: { detail: "Day passed — mark it done or cancel" },
   dispute: { detail: "Payment on hold", eyebrow: "Dispute open", tone: "alarm" },
   dispute_escalated: { detail: "Payment on hold", eyebrow: "Admin reviewing", tone: "alarm" },
   done_paid: { detail: "Paid out" },

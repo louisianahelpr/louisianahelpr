@@ -550,7 +550,26 @@ test.describe("full money loop against production", () => {
         category: "cleaning",
         budget: 25,
         location: "Baton Rouge, LA",
-        date_needed: new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10),
+        /* TODAY, because the helper's ladder is LOCKED until the job's day
+           arrives and this journey's whole subject is walking that ladder.
+
+           `JobTracking`'s `isLocked` (JobTracking.tsx:2463) is
+           `Date.now() < startAt - 2h` when `jobs.start_time` exists and
+           `todayStartMs < jobDayMs` when it does not. This insert sets no
+           `start_time`, so the day gate is the one that applies — and at
+           `+3 days` it was always true. The 2026-09-22 failure artefact shows
+           exactly that: an OPEN card, a fully rendered "Job progress" rail
+           stopped at Arrived, `button "Mark Job Complete" [disabled]` and
+           `paragraph: Actions available on Sep 25`. The tracker could never
+           reach Working, so the before-photo ask it gates never rendered and
+           the run died reporting a missing photo chip.
+
+           02-marketplace.spec.ts already paid for this lesson — its header
+           records moving the slot out to two days and then one and breaking J5
+           each time, and it settled on `slotAhead(100)`, i.e. today. Same
+           choice here, same reason. There is no slot that is both "a day still
+           ahead of you" and "startable now"; this journey wants startable. */
+        date_needed: new Date().toISOString().slice(0, 10),
         status: "open",
         payment_status: "unpaid",
         pricing_mode: "set_price",

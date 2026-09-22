@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { coerceInboxView, defaultInboxTab, INBOX_TAB_LABEL, INBOX_TAB_ORDER, UNFILTERED_INBOX_TAB } from "@/lib/inboxDefault";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { CheckSquare, Menu, MessageSquare, Pin, RotateCcw, Search, Trash2, X } from "lucide-react";
+import { CheckSquare, ChevronDown, Menu, MessageSquare, Pin, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -146,13 +146,40 @@ const MESSAGES_HEADER_PADDING = "!py-1.5 lg:!py-2";
  * (deliberately — that is what makes the landing tab stable), so 0 is a
  * truthful stand-in for "whatever the rule says".
  *
- * There is no `DEFAULT_INBOX_TAB` constant here any more, and no
- * `INBOX_TABS_ID` either: both existed only for the phone disclosure — the
- * first to darken the chevron's ink while a non-default slice was on, the
- * second as its `aria-controls` target. The strip is inline at every width as
- * of 2026-09-19 (owner), so there is no control to label and no panel to
- * point at. `defaultInboxTab` itself is still read, once, by the seeding
- * effect below.
+ * There is no `DEFAULT_INBOX_TAB` constant here any more. `defaultInboxTab`
+ * itself is still read, once, by the seeding effect below — and again by
+ * `isDefaultInboxFilter`, which is what darkens the disclosure chevron's ink
+ * while a non-default slice is on.
+ *
+ * ── THE PHONE DISCLOSURE: REMOVED 2026-09-19, RESTORED 2026-09-22 ─────────
+ * This block used to state as FACT that there was "no control to label and
+ * no panel to point at". That sentence is false as of 2026-09-22, and the
+ * history has to read straight or the next reader will "fix" it back:
+ *
+ *   2026-09-19 (owner) — the chevron was DELETED at every width. The desktop
+ *     website showed `Active · All` inline in the header row while phone hid
+ *     the SAME control behind a chevron, and the one the reader had to
+ *     discover was the phone's. `INBOX_TABS_ID` and `isDefaultInboxFilter`
+ *     went with it, having no remaining purpose.
+ *   2026-09-22 (owner, three messages) — asked for it BACK, by name and by
+ *     reference to the two screens it has to match: "message shouod be
+ *     collapsed like post and jobs on a smaller view" / "post jobs and
+ *     messagess hould collpase and expand all the same" / "no it needs to be
+ *     a drop down like post an djobs to show active and all".
+ *
+ * This is a deliberate reversal of a three-day-old decision, not a
+ * regression. What makes the two asks compatible is the DEFAULT: the strip
+ * still STARTS OPEN at every width, exactly as ActivityHeader's does, so
+ * nothing is hidden from a reader who never presses anything and the
+ * 2026-09-19 complaint (the phone's filter was the undiscoverable one) does
+ * not come back. The chevron is an opt-in fold, not a closed drawer.
+ *
+ * ActivityHeader (src/pages/activity/ActivityHeader.tsx) is the SOURCE OF
+ * TRUTH for this affordance's behaviour — read the long docblock at its
+ * `tabsOpenPhone` before changing anything here. Do not ship it
+ * closed-by-default on either screen: that shipped once on Activity and cost
+ * the phone ALL five tab words (measured, 320/375/414). The two screens are
+ * held together by src/test/filterDisclosureParity.test.ts.
  */
 
 /**
@@ -168,9 +195,23 @@ const MESSAGES_HEADER_PADDING = "!py-1.5 lg:!py-2";
  *
  * `h-11` is 44px, the HIG target index.css already floors every button at.
  */
-const HEADER_ICON_BUTTON_CLASS =
+const HEADER_ICON_BUTTON_BASE_CLASS =
   "rounded-ds-md flex items-center justify-center btn-press transition " +
-  "text-muted-foreground hover:text-foreground hover:bg-secondary/60 h-11 w-11";
+  "hover:bg-secondary/60 h-11 w-11";
+/** The resting ink. Split out ONLY so the disclosure chevron can darken to
+ *  `--bark` while a non-default slice is on without two `text-*` utilities
+ *  fighting in one class string (the loser is decided by CSS order, not by
+ *  which one you wrote last — the trap documented on `btn-grad-primary`). */
+const HEADER_ICON_BUTTON_INK_CLASS = "text-muted-foreground hover:text-foreground";
+const HEADER_ICON_BUTTON_CLASS =
+  `${HEADER_ICON_BUTTON_BASE_CLASS} ${HEADER_ICON_BUTTON_INK_CLASS}`;
+
+/** `aria-controls` target for the phone disclosure chevron — restored with the
+ *  chevron on 2026-09-22. Only ONE of the two placements (desktop header-row
+ *  `meta`, phone line below) ever renders, so the id stays unique and the
+ *  reference resolves on both surfaces — the same arrangement, and the same
+ *  reason, as ActivityHeader's "activity-status-tabs". */
+const INBOX_TABS_ID = "inbox-filter-tabs";
 
 /**
  * ConversationList — the inbox surface of the Messages page: the
@@ -289,6 +330,33 @@ export function ConversationList({
      the default (see coerceInboxView). `null` is preserved by the seeding
      effect below, which owns the "not chosen yet" distinction. */
   const inboxTab = coerceInboxView(inboxFilter);
+
+  /* THE FILTER STRIP STARTS OPEN. ALWAYS, AT EVERY WIDTH.
+     Behaviour copied faithfully from ActivityHeader (the source of truth —
+     see the docblock at its `tabsOpenPhone`, and the one above
+     MESSAGES_HEADER_PADDING for why this screen has a chevron again). Not
+     lifted into a shared hook: the two headers differ in their whole row
+     composition (select-mode takeover, overflow menu, a different search
+     contract), and the shared part is three lines of state plus one effect —
+     forking a hook for that would be the bigger divergence, not the smaller.
+     What IS shared is the real chrome: ScreenHeaderRow, UnderlineTabs and the
+     icon-button class, all imported, and the parity test that pins the rest. */
+  const isDefaultInboxFilter = inboxTab === defaultInboxTab(0);
+  const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
+  /* On the desktop website the strip simply STAYS UP — it rides inline in the
+     header row, where there is width to spare, so folding two short words
+     behind a chevron buys nothing and costs a press. Same call ActivityHeader
+     makes under `inlineFilters`; the chevron is a phone affordance. */
+  const tabsOpen = isWebDesktop || tabsOpenPhone;
+  /* A FILTER ARRIVING LATER RE-OPENS A ROW THE READER FOLDED AWAY. The
+     disclosure may hide a control; it may never hide an ACTIVE filter —
+     looking at a slice of your threads with nothing on screen saying why is
+     the "silently filtered" state 2026-09-19 was right to be afraid of. The
+     initial state is open regardless, so this only fires on a strip the
+     reader collapsed themselves. */
+  useEffect(() => {
+    if (!isDefaultInboxFilter) setTabsOpenPhone(true);
+  }, [isDefaultInboxFilter]);
   // Bump this nonce after a pin/unpin so the derived order re-reads
   // sessionStorage (the pin set is read directly to avoid a parallel
   // state branch). Cheap, scoped to a paint.
@@ -865,7 +933,7 @@ export function ConversationList({
      ruling, see the note on `hasThreads`. Still conditional on the desktop
      website, because on a phone this slot has no room for anything at all
      (the widths are measured in the note above). */
-  const headerMeta = isWebDesktop ? inboxTabs : undefined;
+  const headerMeta = isWebDesktop ? <div id={INBOX_TABS_ID}>{inboxTabs}</div> : undefined;
 
   /* The trailing icon cluster.
      Search · hamburger · chevron, in that order (owner, 2026-09-14, VN-35:
@@ -967,12 +1035,38 @@ export function ConversationList({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {/* NO DISCLOSURE. The chevron that used to sit here — third in the
-          cluster, after search and the hamburger — is gone at every width
-          (owner, 2026-09-19): the Active / All strip is inline in this row
-          now, on phone as well as on the desktop website, so there is nothing
-          left for it to fold away. Removing it also bought back the ~48px
-          this row needed to seat the strip at 320. */}
+      {/* THE DISCLOSURE CHEVRON — third in the cluster, after search and the
+          hamburger (owner, 2026-09-14, VN-35: "on messages, move the chevron
+          to the right of the hamburger"). Restored 2026-09-22 after its
+          2026-09-19 removal; the history and the owner's words are in the
+          docblock above MESSAGES_HEADER_PADDING, and ActivityHeader is the
+          source of truth for how it behaves.
+
+          Phone only, and identical to ActivityHeader's: haptic on press,
+          `aria-expanded` on the state, `aria-controls` only while the panel
+          EXISTS (the strip unmounts when collapsed, and pointing at a missing
+          id is `aria-valid-attr-value` critical in axe and a real lie to a
+          screen reader), rotation carrying open/closed, and the ink darkening
+          to `--bark` while a non-default slice is on so a folded-away filter
+          is never silent. No filled pill: a tinted box beside a plain
+          magnifier makes two siblings read as different kinds of control. */}
+      {!isWebDesktop && (
+        <button
+          type="button"
+          onClick={() => { hapticLight(); setTabsOpenPhone((v) => !v); }}
+          aria-expanded={tabsOpen}
+          aria-controls={tabsOpen ? INBOX_TABS_ID : undefined}
+          aria-label={tabsOpen ? "Hide conversation filters" : "Filter conversations"}
+          className={`${HEADER_ICON_BUTTON_BASE_CLASS} ${
+            isDefaultInboxFilter ? HEADER_ICON_BUTTON_INK_CLASS : "text-[hsl(var(--bark))]"
+          }`}
+        >
+          <ChevronDown
+            className={`w-4 h-4 transition-transform duration-200 ${tabsOpen ? "rotate-180" : ""}`}
+            strokeWidth={2.25}
+          />
+        </button>
+      )}
     </>
   );
 
@@ -1095,13 +1189,13 @@ export function ConversationList({
               outcomes is what makes the empty inbox's thread area start at the
               same y as the populated one's (127 either way, measured; it used
               to be 83 against 127). */}
-          {!isWebDesktop && !searchOpen && !selectMode && (
+          {!isWebDesktop && tabsOpen && !searchOpen && !selectMode && (
             /* `-mx-1 px-1 pb-0.5` are ActivityHeader's exact classes, so this
                card matches My Posts / My Jobs. The negative margin keeps the
                tabs' focus rings inside the scroller rather than clipped by it;
                the scroller itself is insurance for 320px, where two labels are
                already comfortable. */
-            <div className="shrink-0 -mx-1 px-1 pb-0.5 overflow-x-auto scrollbar-hide">
+            <div id={INBOX_TABS_ID} className="shrink-0 -mx-1 px-1 pb-0.5 overflow-x-auto scrollbar-hide">
               {inboxTabs}
             </div>
           )}

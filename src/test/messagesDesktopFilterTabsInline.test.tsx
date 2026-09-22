@@ -46,8 +46,16 @@
  *   - `disclosure()` is kept (not removed) so the absence is asserted by the
  *     same query that used to assert the presence.
  *
- * @mutate src/components/messages/ConversationList.tsx | {!isWebDesktop && !searchOpen && !selectMode && ( | {!isWebDesktop && false && !searchOpen && !selectMode && (
- * @mutate src/components/messages/ConversationList.tsx | const headerMeta = isWebDesktop ? inboxTabs : undefined; | const headerMeta = undefined;
+ * OWNER, 2026-09-22 — THE DISCLOSURE IS BACK ON PHONE, and this file was
+ * rewritten rather than deleted. What it forbade ("no chevron at any width")
+ * is no longer the rule; what it was PROTECTING is, and that survives
+ * verbatim: the tabs must be on screen on FIRST PAINT, with no click, at
+ * every width. The chevron is an opt-in fold that starts open, exactly as
+ * ActivityHeader's does. Desktop still has no chevron at all.
+ * See src/test/filterDisclosureParity.test.ts for the cross-screen guard.
+ *
+ * @mutate src/components/messages/ConversationList.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(true); | const [tabsOpenPhone, setTabsOpenPhone] = useState(false);
+ * @mutate src/components/messages/ConversationList.tsx | const headerMeta = isWebDesktop ? <div id={INBOX_TABS_ID}>{inboxTabs}</div> : undefined; | const headerMeta = undefined;
  * @mutate src/lib/inboxDefault.ts | active: "Active", | active: "Unread",
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
@@ -180,17 +188,39 @@ describe("Messages inbox filter tabs — always visible, never behind a disclosu
   });
 
   for (const [label, webDesktop] of WIDTHS) {
-    it(`${label}: Active / All are visible in the top bar, with no disclosure`, () => {
+    it(`${label}: Active / All are visible on FIRST PAINT, no click required`, () => {
       setWebDesktop(webDesktop);
       renderInbox();
 
-      // On FIRST PAINT, with no click: the phone half of this used to require
-      // `fireEvent.click(chevron)` to see anything at all.
+      // On FIRST PAINT, with no click. This is the assertion that survived the
+      // 2026-09-22 reversal intact, and it is the one that actually mattered:
+      // the 2026-09-19 complaint was never "a chevron exists", it was "the
+      // phone's filter is the one you have to discover". The chevron is back
+      // (owner, 2026-09-22, "it needs to be a drop down like post an djobs"),
+      // but it opens OPEN, so nothing is hidden from a reader who never
+      // presses it.
       expect(filterTabs()).toEqual(EXPECTED_TABS);
-      expect(
-        disclosure(),
-        "no width may hide two visible words behind a chevron — one control, one state",
-      ).toBeNull();
+
+      if (webDesktop) {
+        // Desktop keeps NO chevron: the strip rides inline in the header row
+        // where there are 884px to spare, so folding two short words behind a
+        // press buys nothing. Same call ActivityHeader makes under
+        // `inlineFilters`.
+        expect(
+          disclosure(),
+          "the desktop website has room for the strip; a chevron there costs a press and saves nothing",
+        ).toBeNull();
+      } else {
+        const chevron = disclosure();
+        expect(
+          chevron,
+          "phone must offer the same fold My Posts / My Jobs do (owner, 2026-09-22)",
+        ).toBeTruthy();
+        expect(
+          chevron!.getAttribute("aria-expanded"),
+          "STARTS OPEN. Shipping this closed-by-default on Activity cost the phone all five tab words",
+        ).toBe("true");
+      }
     });
 
     it(`${label}: exactly ONE strip renders — never both placements, never neither`, () => {

@@ -32,6 +32,10 @@ import { UNPAID_DRAFT_PAYMENT_STATES } from "@/hooks/useUnpaidJobDrafts";
  * it stood before the fix (checked in below as the shape it had), and requires
  * it to be reported.
  */
+// Break the product rule this guard reads and the second case fails: a job the
+// insert lock forces to open+unpaid is no longer recognised as hidden, which is
+// the exact reading that decides whether an e2e fixture is safe on My Posts.
+// @mutate src/pages/activity/activityFilters.ts | return moneyNeverLanded && j.status === "open"; | return false;
 
 const REPO = join(__dirname, "..", "..");
 

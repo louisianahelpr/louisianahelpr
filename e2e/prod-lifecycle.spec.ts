@@ -690,7 +690,7 @@ test.describe("full money loop against production", () => {
       await page.waitForTimeout(6_000);
       /* Read the URL ONCE. Reading it again inside the message is a race the
          happy path loses: on 2026-09-22 this printed "Stripe Checkout did not
-         submit — still on https://www.louisianahelpr.com/payment-success?job_id=…",
+         submit — still on <the prod origin>/payment-success?job_id=…",
          which is self-contradictory and points the reader at the wrong page.
          The charge had gone through; the URL simply changed between the test
          and the message. A warning that names the success page as the failure

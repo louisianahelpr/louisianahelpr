@@ -543,7 +543,29 @@ jobs:
   notify:
     name: Report nightly result
     needs: [preflight, anon-surface, authenticated, two-role, prod-lifecycle, boundary-report]
-    if: always() && github.event_name != 'pull_request'
+    # A PUSH MUST NOT REPORT ON A MONEY LOOP IT DID NOT RUN (2026-09-22).
+    #
+    # `prod-lifecycle` is deliberately off the push trigger (see its own gate
+    # above), so on a push it is `skipped` — and `skipped` is not `failure`, so
+    # `contains(needs.*.result, 'failure')` was false and this job reported
+    # SUCCESS. nightly-issue-sync closes the nightly-red issue on a success.
+    #
+    # The effect: every scheduled run of the money loop since 2026-09-07 failed,
+    # each one opened a nightly-red issue, and the next push to main — minutes
+    # later, dozens a day — closed it again having run nothing. #1636 lived
+    # 3m25s; #1634 lived 43 seconds. Twelve issues in the label's history are
+    # that pattern. The money loop was red for fifteen days and the one
+    # mechanism built to say so was erasing the evidence faster than anyone
+    # could read it.
+    #
+    # So the gate is the one e2e-journeys.yml and prod-audit.yml already make,
+    # in the form this workflow needs: report only when the leg being reported
+    # on actually executed. `anon-surface` is unaffected — it runs on every push
+    # and is deliberately allowed to FAIL THE BUILD, which is its signal; the
+    # nightly-red issue exists for the scheduled runs nobody is watching.
+    if: >-
+      always() && github.event_name != 'pull_request'
+      && needs.prod-lifecycle.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -553,6 +575,13 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: e2e-real-backend
-          status: ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
+          # FAIL-CLOSED, like every other nightly-issue-sync caller in this repo.
+          # `contains(needs.*.result, 'failure') && 'failure' || 'success'` reads
+          # "success" from the ABSENCE of a failure, so a skipped or cancelled
+          # leg reported green. Naming the legs and requiring each to be
+          # explicitly `success` means a leg that did not run cannot close an
+          # issue. `two-role` is deliberately absent: it is manual-only and is
+          # `skipped` on every schedule, so requiring it would pin this red.
+          status: ${{ (needs.anon-surface.result == 'success' && needs.prod-lifecycle.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

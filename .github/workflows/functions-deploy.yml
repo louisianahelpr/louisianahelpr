@@ -224,6 +224,22 @@ jobs:
         run: |
           supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
 
+      # The BEFORE half of the landed-check below. Taken after the CLI is
+      # installed and before anything is uploaded, so the comparison is against
+      # what prod was actually serving when this run started.
+      - name: Snapshot deployed bundles (before)
+        if: steps.precheck.outputs.skip != 'true' && steps.targets.outputs.skip_deploy != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          set -euo pipefail
+          curl -sS --fail-with-body \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/functions" \
+            -o functions-before.json
+          node -e 'const d=require("./functions-before.json");console.log("Recorded "+((Array.isArray(d)?d:d.functions||[]).length)+" function(s).")'
+
       - name: Deploy each function
         if: steps.precheck.outputs.skip != 'true' && steps.targets.outputs.skip_deploy != 'true'
         env:
@@ -231,12 +247,19 @@ jobs:
         run: |
           set -eo pipefail
           FAIL=0
+          # The CLI's output is EVIDENCE, not just log noise: the verify step
+          # below reads back out of it which functions were actually UPLOADED
+          # and which the CLI deduped ("No change found in Function: x"), and
+          # only asserts on the former. `tee -a` keeps both the live log and the
+          # file; `2>&1` because the CLI writes those lines to stderr, and losing
+          # them would make a correctly-deduped function look unaccounted for.
+          : > functions-deploy.log
           for fn in ${{ steps.targets.outputs.functions }}; do
             echo ""
             echo "::group::Deploying $fn"
             # --no-verify-jwt is set per-function in supabase/config.toml
             # so we don't need to pass it here. The CLI reads config.toml.
-            if supabase functions deploy "$fn" --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"; then
+            if supabase functions deploy "$fn" --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" 2>&1 | tee -a functions-deploy.log; then
               echo "✓ $fn deployed"
             else
               echo "::error::$fn deploy FAILED"
@@ -250,6 +273,48 @@ jobs:
             echo "::error::One or more function deploys failed. See per-function logs above."
             exit 1
           fi
+
+      # THE DEPLOY IS NOT DONE UNTIL PROD SAYS SO. Added 2026-09-22.
+      #
+      # WHAT THIS CATCHES: the CLI reporting a successful deploy that the
+      # platform silently discarded.
+      #
+      # Everything above this step tests the CLIENT. `supabase functions deploy`
+      # exiting 0 means an upload was accepted; it does not mean the function
+      # changed. On 2026-09-22 run 35756822730 printed "Deploying Function: …"
+      # and then "Deployed Functions on project ***: …" for all 73 functions and
+      # concluded success, while EIGHT of those uploads never landed:
+      # create-pro-checkout kept serving its 2026-09-07 build and claim-gift-card
+      # its 2026-09-13 one — the latter missing the gift-card funding gate that
+      # had landed that morning, so a refunded gift card stayed claimable in
+      # production. A second run (35757178581) re-uploaded create-pro-checkout,
+      # reported success again, and was discarded again. Nothing went red; the
+      # pipe between main and prod was simply open at one end.
+      #
+      # Same family as the DIFF_BASE bug and the missing-secrets skip above, and
+      # as the vercel.json schema break: a green pipeline over a stale prod. The
+      # answer each time is the same shape — assert the OUTCOME, not the step.
+      #
+      # `always()` so it also reports when the deploy loop failed: which
+      # functions did and did not land is exactly what the next person needs.
+      # It must never be `continue-on-error` — that would re-create the defect
+      # it exists to close (src/test/functionsDeployLanded.test.ts asserts this).
+      - name: Verify every deploy actually landed
+        if: always() && steps.precheck.outputs.skip != 'true' && steps.targets.outputs.skip_deploy != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          set -euo pipefail
+          curl -sS --fail-with-body \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/functions" \
+            -o functions-after.json
+          node scripts/verify-functions-deployed.mjs \
+            --before functions-before.json \
+            --after functions-after.json \
+            --log functions-deploy.log \
+            --targets "${{ steps.targets.outputs.functions }}"
 
       - name: Notify on failure
         # Never gate this step on the secret: a missing SLACK_WEBHOOK_URL must

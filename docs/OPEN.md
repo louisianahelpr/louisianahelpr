@@ -58,6 +58,44 @@ problem already documented in `playwright.config.ts`, with a rebuild in place of
 a kill. Until the fixture change lands, a lane that must not be disturbed should
 run its own `HAPPY_PATH_PORT` AND not share a checkout with a lane that builds.
 
+## OPEN — the loading-state baseline needs a full re-measure, and 37 of its entries are not debt (2026-09-22)
+
+Owner, 2026-09-22: "check the loading skeltons bc alot load with the incorrect
+stuff." `npm run check:loading-states` PASSES, but only because
+`docs/audit/loading-states/baseline.json` baselines 91 breaches (37 jump, 33
+media, 21 rows), 52 of them on `/profile?tab=*`.
+
+ONE REAL DEFECT FOUND AND FIXED (3225ea26b): `ProfileRouteSkeleton.tsx:46`
+still read `isEarningsTabUrl() ? <EarningsPageSkeleton /> : <ProfilePageSkeleton
+/>` — character-for-character the expression `Profile.tsx:604` documents itself
+as having REPLACED on 2026-09-19. The 09-19 fix landed in Profile.tsx's own
+loading branch and never reached the route-level Suspense fallback that paints
+FIRST, so the landing's shape stood in for all 23 non-earnings tabs on the first
+frame of every cold deep link. Measured at 375 on prod: `?tab=pets` painted an
+avatar hero over three round-avatar person tiles, no "My Pets" h1, no back
+chevron. Fixed by mirroring Profile.tsx's three-way branch onto the shared
+`ProfileTabFallback`, tab read through the same `resolveTab`.
+
+RETRACTED, and this matters: **the 37 `/profile?tab=*` `jump` entries are NOT
+defects.** `ProfileTabFallback`'s docblock records an owner pop-up ruling of
+2026-09-19 — "SKELETON FILLS THE SCREEN, GROWS BELOW" — which explicitly
+DECLINED a per-tab skeleton reserving full content height (Home History's
+3,477px of bones). work_record's 118px->830px "jump" is that ruling working as
+decided; the reader only ever sees one screenful and the reserve below the bones
+is blank canvas. Chasing that metric would have undone an owner decision.
+
+OPEN:
+- **Full-catalog re-measure.** `baseline.json` is untouched and correctly so —
+  it may only shrink against fresh evidence, and a three-route probe is not a
+  regenerated `measurements.json`. A full run is needed to retire the pets
+  `media` entries and to see how many of the other 15 tabs' `media`/`rows`
+  breaches the same one-line fix already cleared. ~2.5h holding the browser
+  lock: belongs in a cloud routine, NOT this Mac.
+- **Move the 37 jump entries out of `baseline.json` into an explicit allow list
+  citing the 2026-09-19 ruling.** While they sit in a file whose header says
+  "clusters that were already wrong", they read as debt and invite exactly the
+  change the owner declined.
+
 ## OPEN — three more things on the critical path, measured 2026-09-22
 
 Owner asked whether website loading can be sped up. The largest single win is

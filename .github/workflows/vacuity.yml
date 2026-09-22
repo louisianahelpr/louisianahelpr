@@ -58,6 +58,11 @@ on:
     # than crowd two database jobs with a Playwright sweep.
     - cron: "17 14 * * *"
   workflow_dispatch:
+    inputs:
+      full:
+        description: "Run every registered mutation (the nightly set), not just what changed"
+        type: boolean
+        default: false
 
 # The SCHEDULED run joins the shared prod-load lock, because that is the run
 # that signs into prod and drives the real test accounts through every
@@ -151,7 +156,12 @@ jobs:
         # Per push: ratchet + static scan + harness preflight + mutations for
         # what changed. Nightly (schedule): every registered mutation.
         run: |
-          if [ "${{ github.event_name }}" = "schedule" ]; then
+          # The full set on the nightly schedule, or on demand. Waiting until
+          # 14:17 to find out whether a change to this job's credentials or
+          # scope actually works is how the e2e half stayed unproven for so
+          # long — a dispatch that cannot reproduce the nightly is not a
+          # reproduction.
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.full }}" = "true" ]; then
             npm run vacuity:all
           else
             npm run vacuity

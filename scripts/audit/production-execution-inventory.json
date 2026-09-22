@@ -66,9 +66,9 @@
     "status": "UNVERIFIED"
   },
   "check-pro-subscription": {
-    "observable": "profiles.subscription_tier + subscription_billing_cycle",
-    "why": "Column right, attribution weak: this function and stripe-webhook write the same columns and nothing records which wrote. Measured 2026-09-22 on prod: exactly 1 profile holds a tier (pro, expires 2026-10-04) and it is is_seed=true; all 5 non-seed profiles have subscription_tier NULL, so no real user has ever held a tier by any path",
-    "status": "EXECUTED-SEED-ONLY"
+    "observable": "profiles.subscription_tier + subscription_expires_at + subscription_billing_cycle + stripe_subscription_id",
+    "why": "EXECUTED against prod Stripe (test mode) 2026-09-22T16:41Z. POST /functions/v1/check-pro-subscription with a live JWT for helpr-audit-web-0824@mailinator.com (user 96c9899e-87a2-49e2-bbdd-268717d52aee) returned HTTP 200 {\"subscribed\":true,\"tier\":\"pro\",\"subscription_end\":\"2026-10-04T15:55:50.000Z\"} - it reaches Stripe, lists customers by email, resolves a live subscription object and maps its product to a tier. Row after: subscription_tier=pro, subscription_expires_at=2026-10-04T15:55:50+00, subscription_billing_cycle=monthly, stripe_subscription_id=sub_1UBzT2Kp2H4b7tECcjtUHAPr, stripe_customer_id=cus_V9xc6v6SnZd69Q. Corroborating: stripe_webhook_events holds 4 customer.subscription.created, 3 invoice.paid, 2 customer.subscription.updated, 2 customer.subscription.deleted (2026-09-01..2026-09-07), so the subscription purchase path HAS executed in production - it is not an unexercised code path. Still is_seed=true only; all non-seed profiles remain subscription_tier NULL. ATTRIBUTION IS UNRESOLVABLE: this function (check-pro-subscription/index.ts:113-121) and stripe-webhook (handlers/checkoutSessionCompleted.ts:140-147) write the IDENTICAL column set through the same _shared/subscriptionLinkage.ts projection, neither stamps subscription_source (NULL on the one tiered row), and stripe_webhook_events carries only (event_id,event_type,processed_at) with no user/target column. Nothing in the database distinguishes a webhook grant from a dashboard-load reconciliation grant, and check-pro-subscription runs on every dashboard load - so a non-null subscription_tier is NOT evidence the webhook works.",
+    "status": "EXECUTED-ATTRIBUTION-BLIND"
   },
   "expire-subscriptions": {
     "observable": "notifications.title='Membership expired' for the downgrade; cron.job_run_details for invocation",
@@ -100,9 +100,9 @@
     "last_seen": "2026-09-22"
   },
   "instant-job-match": {
-    "observable": "notifications type='job_match' AND title LIKE '% Match for you%' (link '/dashboard?quickApply=<id>'), plus match_digest_queue rows",
-    "why": "Guess too loose: type='job_match' is NOT attributable - the notify_matching_helpers DB trigger and daily-match-digest write the same type. This function's rows are identifiable by the title it composes ('<emoji> Match for you') and the '/dashboard?quickApply=' link (index.ts:312-322), and its deferred branch upserts match_digest_queue (index.ts:330). Measured 2026-09-22 on prod: 117 job_match notifications exist (2026-09-07..2026-09-20) and ZERO carry either shape; match_digest_queue has 0 rows ever. It is also not a cron and has no invoker - no functions.invoke('instant-job-match') anywhere in src/ or supabase/, only test files reference it",
-    "status": "NEVER"
+    "observable": "notifications titled '% Match for you%' / link '/dashboard?quickApply='",
+    "why": "CORRECTED 2026-09-22: a prior pass called this unreachable after searching src/ and the function dirs. It IS invoked \u2014 stripe-webhook/handlers/checkoutSessionCompleted.ts:877 calls it on every funded job, so it runs on the money path with no UI, which is why it is not visible on any page. Migration 20260902015059 records 485 notifications from this producer historically, but 0 current rows carry its title or link, so it is executed-but-not-currently-attributable. Fails soft: the webhook logs WARN and continues if it throws.",
+    "status": "EXECUTED-HISTORICALLY-NOT-ATTRIBUTABLE"
   },
   "email-unsubscribe": {
     "observable": "suppressed_emails",

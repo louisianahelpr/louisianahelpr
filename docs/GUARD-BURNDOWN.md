@@ -55,7 +55,24 @@ registration: 648/658 guards register a mutation (8 exempt with a reason, 2 gran
 | spec | why |
 |---|---|
 | `visual-audit/desktop-fill.spec.ts` | RED on main for a real `/browse` layout defect; a registration against a red spec is scored `inconclusive` and proves nothing |
-| `journeys/02-marketplace.spec.ts` | the one genuinely hard case: a SERIAL money chain (post → fund on Stripe → apply → hire → do-the-job). Nothing can be scoped away without breaking the chain, so the gate must run the WHOLE chain green as a baseline and then again mutated — twice per scoring, each time funding a real test-mode escrow, and nightly `vacuity:all` would do it every night. `.describe.serial` does at least make the mutated half cheap: a kill in J2 skips J3-J5. |
+| `journeys/02-marketplace.spec.ts` | **also RED on main**, measured 2026-09-21 — see below |
+
+**`02-marketplace` is red for a stale assertion, not for anything hard.** One
+full run on the real backend: J2 posts, funds through Stripe and returns
+(`payment-return` milestone captured, `payment_status` = `escrow`), then fails
+on *"the new job is missing from My Posts > Waiting"*. `bucketFor`
+(`activityFilters.ts:242`) has sent any job whose `date_needed` is TODAY to
+**Needs You** since `80b84f6b7` (2026-09-19, "and today is live"), and the
+journey posts `slotAhead(100)`. Because the chain is `describe.serial`, J3-J5
+have not executed since that commit either. Full write-up, including the
+knock-on in J4 and why it was not fixed by guessing, in `docs/OPEN.md`.
+
+It is ALSO the expensive case, which is why it should be fixed before it is
+registered rather than after: nothing can be scoped away without breaking the
+chain, so the gate must run the whole chain green as a baseline and then again
+mutated — twice per scoring, each time funding a real test-mode escrow, and
+nightly `vacuity:all` would do it every night. `.describe.serial` at least makes
+the mutated half cheap: a kill in J2 skips J3-J5 and funds nothing.
 
 ### The five proven 2026-09-21, and what each mutation breaks
 

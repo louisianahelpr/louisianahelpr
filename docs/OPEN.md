@@ -59,6 +59,48 @@ registration in that tree — including ones that are green on their own.
   reported 0/4 and four `inconclusive`, and `src/test/vacuityGate.test.ts`
   passes 5/5 here.
 
+## OPEN — `02-marketplace` has been RED since the 2026-09-19 bucket reorder; J3-J5 have not run since (2026-09-21)
+
+Found while trying to prove `e2e/journeys/02-marketplace.spec.ts` able to fail.
+The chain is red on main, and not for anything money-related — it gets all the
+way through Stripe and then reads the wrong tab.
+
+Measured 2026-09-21, one full run on the real backend:
+
+- J2 posts, funds and returns from Stripe. The `stripe-checkout` and
+  `payment-return` milestones are both captured and `payment_status` reaches
+  `escrow`, so the money leg is fine.
+- It then fails at **"the new job is missing from My Posts > Waiting"**, 60s.
+- Screenshot inspected (recorded in the review log): the Waiting tab holds two
+  seed jobs and shows `Needs You 17`. The new job is in Needs You.
+- Root cause, read from the app not guessed: `bucketFor`
+  (`src/pages/activity/activityFilters.ts:242`) sends ANY non-terminal job whose
+  `date_needed` is today to `needs_you`. The journey posts `slotAhead(100)` —
+  now + 100 minutes in America/Chicago — which is today except in the last ~100
+  minutes of the Chicago day. Confirmed live: the posted row carried
+  `date_needed = 2026-09-21`, `start_time = 22:55`.
+- That branch arrived in **`80b84f6b7` (2026-09-19)**, "Needs You · Waiting ·
+  Scheduled · Done · Cancelled, and today is live". The spec still carries the
+  pre-reorder comment: *"A just-posted, funded, unapplied job is in the
+  'Waiting' bucket"*. It was true until that commit.
+- **Knock-on, not yet measured but the same rule**: J4 asserts the hired job is
+  in **Scheduled** on both sides. After the helper accepts, status is `accepted`
+  with `helper_confirmed_at` still null, which `bucketFor` files under
+  `waiting`. Expect the same staleness one test later.
+- **`test.describe.serial`** means J3 (apply), J4 (hire + message) and J5
+  (do-the-job → revision → release → review → tip) have not executed since
+  2026-09-19 either. Five journeys, silently.
+- No residue: the spec's own `afterAll` unwound the job — verified live,
+  `status = cancelled`, `payment_status = cancelled`.
+- **Not fixed here on purpose.** Each attempt at the right tab costs one full
+  funded chain run, and guessing at two or three stale assertions in a row is
+  exactly the iterate-on-a-money-path loop that cost this project an evening.
+  Whoever owns the reorder should say what the journey ought to assert (the tab
+  derived from the slot's day, or simply "the job is somewhere in My Posts"),
+  and it can be proven in one run.
+- Until it is green it stays in `vacuity.baseline.json`: registering a mutation
+  against a red spec is scored `inconclusive` and proves nothing.
+
 ## OPEN — two writers own `helper_availability` and disagree, so 03-account goes red (2026-09-21)
 
 Found while proving `e2e/journeys/03-account.spec.ts` able to fail: the spec was

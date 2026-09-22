@@ -18,10 +18,18 @@ mkdirSync(OUT, { recursive: true });
 
 const ROUTES = (process.env.PROBE_ROUTES || "/messages,/dashboard,/my-jobs,/activity,/profile,/browse,/notifications,/settings").split(",");
 
-const raw = JSON.parse(execSync("node scripts/test-signin-link.mjs poster-e2e --session --json", { encoding: "utf8", maxBuffer: 1 << 24 }));
+const raw = JSON.parse(execSync(`node scripts/test-signin-link.mjs ${process.env.PROBE_ROLE || "poster-e2e"} --session --json`, { encoding: "utf8", maxBuffer: 1 << 24 }));
 
 const browser = await chromium.launch();
-const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+// Width is a PARAMETER, not a constant. The first run of this probe was
+// hard-coded to 1440 and reported /messages clean — then the owner said the
+// overlap was "at full desktop width". At 1440 the content column stops around
+// 1168px and simply never reaches the 1192px rail edge, so the bug is invisible
+// there. A fixed viewport in an overlap probe tests the width you chose, not
+// the width the defect lives at.
+const VW = Number(process.env.PROBE_W || 1440);
+const VH = Number(process.env.PROBE_H || 900);
+const ctx = await browser.newContext({ viewport: { width: VW, height: VH } });
 await ctx.addInitScript(([k, v]) => {
   try {
     localStorage.setItem(k, v);

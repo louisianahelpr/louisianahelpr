@@ -203,9 +203,42 @@ export function loadBaseline() {
 }
 
 /** Files changed vs a merge base — used for the per-push subset. */
+/**
+ * THE MUTATION PHASE RAN ON NOTHING FOR EVERY PUSH TO MAIN.
+ *
+ * The base was always `origin/main`, and on a push to main HEAD *is*
+ * origin/main — so `origin/main...HEAD` is empty and every run printed
+ * "nothing in scope (no guard or guarded file changed since origin/main)".
+ * Measured 2026-09-21 across the day's pushes: not one of them mutated a single
+ * registration. The gate's scan and ratchet halves were working; its PROOF half
+ * was inert on the branch that ships.
+ *
+ * The cost is not theoretical — it is how a registration reached main unproven
+ * the same day, removed from the grandfather list without ever having been
+ * scored. The nightly full sweep would have caught it eventually, which means
+ * "eventually" was doing all the work.
+ *
+ * So when HEAD already equals the base, fall back to the PREVIOUS COMMIT, which
+ * is what "changed" means for a push. Local runs are unaffected: a working tree
+ * ahead of origin/main still diffs against origin/main, which is the wider and
+ * correct answer there.
+ */
+function effectiveBase(base) {
+  try {
+    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: REPO, encoding: "utf8" }).trim();
+    const at = execFileSync("git", ["rev-parse", base], { cwd: REPO, encoding: "utf8" }).trim();
+    if (head !== at) return base;
+    // HEAD is the base: a push. "Changed" means changed by this commit.
+    return "HEAD~1";
+  } catch {
+    return base;
+  }
+}
+
 export function changedFiles(base = "origin/main") {
   try {
-    const out = execFileSync("git", ["diff", "--name-only", `${base}...HEAD`], {
+    const resolved = effectiveBase(base);
+    const out = execFileSync("git", ["diff", "--name-only", `${resolved}...HEAD`], {
       cwd: REPO,
       encoding: "utf8",
     });

@@ -15,8 +15,8 @@
  * @mutate scripts/vacuity/run.mjs | verdict = r.green ? "SURVIVED" : "killed"; | verdict = "killed";
  */
 import { beforeAll, describe, it, expect } from "vitest";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 // Loaded by URL at runtime, not by a static specifier: scripts/ is outside
@@ -168,3 +168,40 @@ describe("the vacuity gate can itself fail", () => {
     expect(parseDirectives("src/test/shellConsistency.test.ts").mutations.length).toBeGreaterThan(0);
   });
 });
+
+/*
+ * THE MUTATION PHASE MUST NOT BE INERT ON THE BRANCH THAT SHIPS.
+ *
+ * `changedFiles` diffed against `origin/main`, and on a push to main HEAD IS
+ * origin/main — so the range was empty and every run printed "nothing in scope".
+ * Measured 2026-09-21: not one push to main that day mutated a single
+ * registration. The scan and ratchet halves worked; the PROOF half did nothing
+ * on the only branch that matters.
+ *
+ * That is how a registration reached main unproven and left the grandfather
+ * list without ever being scored — the nightly would have caught it, which
+ * means "eventually" was doing all the work.
+ */
+describe("the diff base is not the commit it is comparing", () => {
+  const LIB = readFileSync(resolve(__dirname, "..", "..", "scripts", "vacuity", "lib.mjs"), "utf8");
+
+  it("falls back to the previous commit when HEAD already equals the base", () => {
+    expect(LIB, "changedFiles must resolve its base, not use it raw").toMatch(/effectiveBase/);
+    expect(
+      LIB,
+      'without a HEAD~1 fallback, every push to main reports "nothing in scope" and proves nothing',
+    ).toMatch(/HEAD~1/);
+  });
+
+  it("the resolved base is what the diff actually uses", () => {
+    // A correct helper nobody calls is how the other three fake-proof channels
+    // survived; pin the wiring, not just the function.
+    const at = LIB.indexOf("git\", [\"diff\", \"--name-only\", `${resolved}...HEAD`]");
+    expect(at, "changedFiles still interpolates the raw base into its diff range").toBeGreaterThan(0);
+  });
+});
+
+// Remove the fallback and the mutation phase goes inert on every push to main —
+// the state in which an unproven registration reached main and left the
+// grandfather list unscored.
+// @mutate scripts/vacuity/lib.mjs | return "HEAD~1"; | return base;

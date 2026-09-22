@@ -229,7 +229,17 @@ function runBuild() {
 function specGateEnv(guard) {
   const GATES = {
     "e2e/happy-path/empty-state-sweep.spec.ts": { RUN_EMPTY_SWEEP: "1" },
-    "e2e/happy-path/error-state-sweep.spec.ts": { RUN_ERROR_SWEEP: "1" },
+    // SCOPED, for the same reason overlay-sweep is. The full sweep is 272 tests
+    // at --workers=1 and was measured reaching only 209 when spawnSync's 900s
+    // timeout hit — so an unscoped mutation here is scored on the TIMEOUT, which
+    // used to read as `killed` and is now `inconclusive`. One role and the error
+    // pass exercise the same assertion code path as all four variants, which is
+    // what the mutation proves.
+    "e2e/happy-path/error-state-sweep.spec.ts": {
+      RUN_ERROR_SWEEP: "1",
+      ERROR_SWEEP_ROLES: "customer",
+      ERROR_SWEEP_MODES: "error",
+    },
     // Found 2026-09-21 by selfGatedSpecsAreRunnable, not by anyone reading the
     // tree: ~91 components in src/ render an overlay and none was ever audited
     // until this sweep existed.

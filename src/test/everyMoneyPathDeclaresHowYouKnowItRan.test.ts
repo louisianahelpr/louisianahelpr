@@ -109,4 +109,9 @@ describe("every money path declares how you would know it ran", () => {
 // Proof this is able to fail: remove a declaration and the guard names the
 // function that can no longer be checked. Targets the DECLARATIONS, not this
 // file's own pattern — a guard whose inventory is also its oracle cannot fail.
-// @mutate scripts/audit/production-execution-inventory.json | "execute-dispute-split":       { "observable": "dispute_settlement_claims", | "execute-dispute-split":       { "observable": "",
+// Re-anchored 2026-09-22: the JSON was reformatted to pretty-printed
+// multi-line by a later edit, so the original single-line anchor stopped
+// matching and this registration went stale — vacuity reported the
+// find-string as absent. Anchored on the observable VALUE, which is unique
+// to this key and survives reformatting.
+// @mutate scripts/audit/production-execution-inventory.json | "observable": "dispute_settlement_claims", | "observable": "",

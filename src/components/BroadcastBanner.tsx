@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Info, AlertTriangle, Megaphone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,9 +26,15 @@ const BroadcastBanner = () => {
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
+  const { user: authUser, isReady: authReady } = useAuthReady();
+
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      // See src/test/authSampledOnceStrandsControls.test.tsx: a one-shot
+      // getUser() in a `[]` effect makes a pending auth state permanent. Here
+      // it meant a signed-in user silently never saw an announcement.
+      if (!authReady) return;
+      const user = authUser;
       if (!user) return;
       setUserId(user.id);
 
@@ -55,7 +62,7 @@ const BroadcastBanner = () => {
       setBroadcasts(active.filter(b => !dismissedIds.has(b.id)));
     };
     load();
-  }, []);
+  }, [authReady, authUser]);
 
   const dismiss = async (broadcastId: string) => {
     setBroadcasts(prev => prev.filter(b => b.id !== broadcastId));

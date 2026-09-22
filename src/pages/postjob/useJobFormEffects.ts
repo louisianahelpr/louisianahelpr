@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef } from "react";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { formatName } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -198,8 +199,18 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
   // drafts had never reached checkout got a red "You have 5 open jobs" and a
   // disabled submit for a post the database would have accepted. A client
   // guard that refuses what the server allows is the worse direction to drift.
+  // See src/test/authSampledOnceStrandsControls.test.tsx. A one-shot
+  // `auth.getUser()` in a `[]` effect makes a PENDING auth state permanent:
+  // null while a token refresh is in flight can never be revisited. Here that
+  // is money-adjacent — this effect loads both the open-job count AND the
+  // poster's setup-fee/subscription tier, so skipping it silently leaves the
+  // shown service fee and total on their fallbacks while `create-payment`
+  // charges from the real ones.
+  const { user: authUser, isReady: authReady } = useAuthReady();
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    if (!authReady) return;
+    void Promise.resolve({ data: { user: authUser } }).then(({ data: { user } }) => {
       if (!user) return;
       supabase
         .from("jobs")
@@ -234,7 +245,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
           }
         });
     });
-  }, []);
+  }, [authReady, authUser]);
 
   // One-tap rebook: load from query params
   useEffect(() => {

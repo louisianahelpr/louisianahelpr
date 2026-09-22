@@ -209,6 +209,14 @@ export default {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        // The Reduce Motion counterpart: opacity only, no translate, and
+        // quick. PageScaffold expressed exactly this in framer-motion
+        // (`{ opacity: 0 } -> { opacity: 1 }, duration 0.12`); moving it here
+        // is what lets that component drop framer entirely.
+        "ds-page-in-fade": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
         shimmer: {
           "100%": { transform: "translateX(100%)" },
         },
@@ -244,6 +252,7 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.6s ease-out forwards",
         "ds-page-in": "ds-page-in 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards",
+        "ds-page-in-fade": "ds-page-in-fade 120ms linear forwards",
         "float-slow": "float-slow 5s ease-in-out infinite",
         "float-slower": "float-slower 7s ease-in-out infinite",
         "heart-pop": "heart-pop 600ms cubic-bezier(0.22, 1, 0.36, 1) forwards",

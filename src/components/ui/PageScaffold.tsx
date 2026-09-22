@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from "react";
-import { motion, useReducedMotion } from "framer-motion";
 import { useHiddenAtMount } from "@/hooks/useHiddenAtMount";
 import AppShell from "@/components/AppShell";
 // The two-step title-card / panel material. Lives in its own module because
@@ -91,7 +90,6 @@ export function PageScaffold({
   className,
   titleCardClassName,
 }: PageScaffoldProps) {
-  const reducedMotion = useReducedMotion();
   const titleCardClass = titleCardClassName
     ? `${TITLE_CARD_CLASS} ${titleCardClassName}`
     : TITLE_CARD_CLASS;
@@ -108,55 +106,50 @@ export function PageScaffold({
 
   const panelStyle: CSSProperties = panelSurfaceStyle(panelElevation);
 
-  // Single unified page-entry: title card + panel rise together with the
-  // exact same opacity/translate/timing as the `ds-page-in` keyframe used
-  // by the non-scaffold pages (PostJob etc.), so every screen enters the
-  // same way instead of some pages staggering and others snapping.
-  // When the user has Reduce Motion on, skip the translate and shorten the
-  // duration to a near-instant opacity crossfade so the page still "appears"
-  // without the y-movement.
-  // Nobody was watching, so there is nothing to play — and framer's rAF-driven
-  // tween would have frozen this panel at `opacity: 0` until frames resumed.
-  // See useHiddenAtMount.
+  /**
+   * PAGE ENTRY IS CSS NOW, NOT framer-motion.
+   *
+   * This component animated the title card and panel with `motion.div` for a
+   * 0.28s fade-and-rise. The values were already duplicated in Tailwind's
+   * `ds-page-in` keyframe — the comment here said so: "the exact same
+   * opacity/translate/timing as the `ds-page-in` keyframe used by the
+   * non-scaffold pages (PostJob etc.)". Identical, checked:
+   *   framer   opacity 0->1, y 8->0, duration 0.28, ease [0.22,1,0.36,1]
+   *   keyframe opacity 0->1, translateY(8px)->0, 280ms cubic-bezier(same)
+   *
+   * WHAT IT COST. `vite.config.ts` says framer-motion is deliberately NOT
+   * manually chunked because "letting framer-motion ride with those
+   * lazy-loaded consumers keeps it off the critical path entirely", and lists
+   * them: PageTransition, ScrollToTop, MobileNav, DesktopSidebarNav.
+   * PageScaffold is not on that list and is NOT lazy — it is the shared page
+   * primitive. Measured on the real build, the shortest static chain from the
+   * entry was:  index -> PageScaffold -> proxy (framer-motion), 38.1 kB gzip
+   * on the critical path of every page, for a fade.
+   *
+   * REDUCE MOTION is preserved exactly, and moves to the media query it
+   * belongs in: `motion-reduce:` gets `ds-page-in-fade` (opacity only, 120ms),
+   * which is what the framer branch did. `useReducedMotion()` goes with it.
+   *
+   * useHiddenAtMount STAYS. Its docblock names `the ds-page-in keyframe`
+   * among the animations that freeze at `opacity: 0` on a hidden tab, so this
+   * hazard is not framer-specific and CSS does not fix it. When the document
+   * was hidden at mount there is nothing to watch, so render the final state
+   * with no animation class at all.
+   */
   const hiddenAtMount = useHiddenAtMount();
-  const PAGE_IN = hiddenAtMount
-    ? { initial: false as const, animate: { opacity: 1, y: 0 }, transition: { duration: 0 } }
-    : reducedMotion
-    ? {
-        initial: { opacity: 0 },
-        animate: { opacity: 1 },
-        transition: { duration: 0.12 },
-      }
-    : {
-        initial: { opacity: 0, y: 8 },
-        animate: { opacity: 1, y: 0 },
-        transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const },
-      };
+  const enterClass =
+    animate && !hiddenAtMount
+      ? " motion-safe:animate-ds-page-in motion-reduce:animate-ds-page-in-fade"
+      : "";
 
-  const titleEl = !titleCard ? null : animate ? (
-    <motion.div
-      {...PAGE_IN}
-      className={titleCardClass}
-      style={TITLE_CARD_STYLE}
-    >
-      {titleCard}
-    </motion.div>
-  ) : (
-    <div className={titleCardClass} style={TITLE_CARD_STYLE}>
+  const titleEl = !titleCard ? null : (
+    <div className={titleCardClass + enterClass} style={TITLE_CARD_STYLE}>
       {titleCard}
     </div>
   );
 
-  const panelEl = animate ? (
-    <motion.section
-      {...PAGE_IN}
-      className={PANEL_CLASS}
-      style={panelStyle}
-    >
-      {children}
-    </motion.section>
-  ) : (
-    <section className={PANEL_CLASS} style={panelStyle}>
+  const panelEl = (
+    <section className={PANEL_CLASS + enterClass} style={panelStyle}>
       {children}
     </section>
   );

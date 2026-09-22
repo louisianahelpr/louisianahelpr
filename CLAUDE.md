@@ -26,6 +26,14 @@ stories go in the lessons file, never here.
 - **The six efficiency changes** are all mandatory, tracked in `docs/OPEN.md` under "Working forwards": lint for root-cause patterns, changed-screen checks before push, owner reports become failing tests first, one open-work list, automatic browser lock + per-worktree ports, nightly WebKit + real backend.
 
 ## Verification
+- **NEVER GUESS. Be certain before you say it** (owner, 2026-09-22, after five wrong statements in one session).
+  State only what you MEASURED, and say which measurement. A proxy is not the thing: rows in one
+  table is not "the feature never ran", a grep of `src/` is not "nothing calls it", one failed
+  transfer is not "the balance is empty". If you have not checked the exact claim you are about to
+  make, either check it or say plainly that you have not. "I don't know yet" is always allowed;
+  a confident wrong answer costs the owner a decision. [L](docs/lessons/CLAUDE-lessons.md#never-guess)
+- **An agent's report is a claim, not a fact.** Re-verify anything you are about to repeat to the
+  owner, especially a negative ("never", "nothing", "no call sites"). [L](docs/lessons/CLAUDE-lessons.md#never-guess)
 - **LOOK AT IT.** Verify every visual change (layout, spacing, colour, type, empty states, dark mode, every breakpoint that matters, 375 above all) by an actual screenshot of the actual screen, before AND after, and look at it before saying fixed. [L](docs/lessons/CLAUDE-lessons.md#look-at-it)
 - **Look first, then measure.** The screenshot says what is wrong, the measurement says the number moved; neither substitutes for the other. [L](docs/lessons/CLAUDE-lessons.md#look-at-it)
 - **A fix is not done until its own number moves.** Re-run the finding's own repro and record the new number beside the old; never close a finding on a diff. [L](docs/lessons/CLAUDE-lessons.md#remeasure)

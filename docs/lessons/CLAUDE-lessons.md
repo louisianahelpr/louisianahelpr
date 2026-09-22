@@ -585,3 +585,31 @@ this list tight; project-specific trivia belongs in code comments, not here.
   billed — you cannot launch it; recommend it, don't attempt it.
 - End every commit message with:
   `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`
+
+## never-guess
+
+**Owner, 2026-09-22: "you should never guess at anything you need to be certain before saying somehting make that a rule."**
+
+Five statements made as fact in one session, all wrong, all the same shape — a
+proxy measured, the thing reported:
+
+| Said | Actually |
+|---|---|
+| "Subscriptions have never been confirmed in production, not once, monthly or annual" | 4 subscriptions created and webhook-processed Sept 1-7; `sub_1UBzT2Kp2H4b7tECcjtUHAPr` live and active. I queried `profiles.subscription_tier`, saw one `is_seed` row, and read "on a test account" as "never ran" |
+| "Top up the Stripe test balance with 4000000000000077" | The balance was not the cause. The platform account has automatic daily payouts (`delay_days: 2`); after 2 days a charge's funds are swept to the bank and can no longer fund a transfer. Advice would have wasted the owner's time and left the real blocker in place |
+| "`uptime.yml` is fail-open — it reports success and closes the issue" | The expression is fail-open in form, but the notify step has no `if: always()`, so a crashed probe skips it entirely. Silent, not falsely green. Overstated severity without reading the step conditions |
+| "boost: NEVER" (as the whole picture) | True for boost, but urgent is a SEPARATE purchase path that had no inventory entry at all, so it was never measured. The summary implied urgent was unused when 2 jobs carried an urgent fee |
+| "`instant-job-match` has no invoker anywhere" | `stripe-webhook/handlers/checkoutSessionCompleted.ts:877` invokes it on every funded job. The search covered `src/` and the function dirs; the call came from a sibling edge function |
+
+**The rule this produces.** Say what you measured and name the measurement.
+Before making a claim, ask what would have to be true for it to be false, and
+whether you checked *that*. Negatives are the dangerous ones — "never",
+"nothing", "no call sites", "unreachable" — because they assert about
+everywhere you did not look. An edge function can be called from another edge
+function, from `pg_cron` via `net.http_post`, or from a trigger; a feature can
+be real while its table is empty; a column can be written by three code paths
+that leave no record of which one wrote it.
+
+**Corollary: an agent's report is a claim.** Four of the five above came from
+relaying a subagent's finding without re-verifying it. Re-check anything you
+are about to repeat to the owner, and check negatives hardest.

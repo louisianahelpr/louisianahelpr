@@ -1,4 +1,4 @@
-import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
+import { test, expect, type APIRequestContext, type Page, type Locator } from "@playwright/test";
 import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -292,6 +292,33 @@ async function readJob(api: APIRequestContext, session: Session, jobId: string) 
  *
  * @returns the object path inside the bucket, e.g. `<jobId>/before-….png`.
  */
+/**
+ * OPEN A JOB CARD, and prove it opened.
+ *
+ * `JobCardShell` renders every card COLLAPSED, and a collapsed card carries no
+ * tracker: no rung buttons, no photo asks. Anything this suite wants to press
+ * on the helper's card has to come through here first.
+ *
+ * The handle is the level-2 heading, and the proof is the `role="group"
+ * aria-label="Job progress"` step rail (`JobTracking.tsx`). That is exactly how
+ * `e2e/journeys/02-marketplace.spec.ts`'s `card()` helper does it — deliberately
+ * the same mechanism rather than a second one. The sr-only "Expand Job Details"
+ * button is NOT used: it is a 1px clipped element whose accessible name flips to
+ * "Collapse Job Details", which makes it awkward both to click and to assert on.
+ *
+ * Idempotent: called on an already-open card it does nothing, so the second
+ * photo ask (which deliberately does not re-navigate) is free.
+ */
+async function openCard(card: Locator) {
+  const progress = card.getByRole("group", { name: /Job progress/ });
+  if (await progress.isVisible().catch(() => false)) return;
+  await card.getByRole("heading", { level: 2 }).first().click();
+  await expect(
+    progress,
+    "the card did not open when its heading was clicked, so the tracker (and every control on it) can never render",
+  ).toBeVisible({ timeout: 30_000 });
+}
+
 async function uploadProofThroughTheApp(
   page: Page,
   helper: Session,
@@ -361,14 +388,7 @@ async function uploadProofThroughTheApp(
      is NOT used as the handle — it is a 1px clipped element whose accessible
      name flips to "Collapse Job Details", which makes it both awkward to click
      and awkward to assert on. */
-  const progress = card.getByRole("group", { name: /Job progress/ });
-  if (!(await progress.isVisible().catch(() => false))) {
-    await card.getByRole("heading", { level: 2 }).first().click();
-    await expect(
-      progress,
-      "the card did not open when its heading was clicked, so the tracker (and the photo ask) can never render",
-    ).toBeVisible({ timeout: 30_000 });
-  }
+  await openCard(card);
 
   // ONE PHOTO ASK AT A TIME, TIED TO THE TRACKER STEP (owner, 2026-09-11,
   // HelperPhotoAsk.tsx). The card no longer carries a "Before Photos" /
@@ -929,6 +949,14 @@ test.describe("full money loop against production", () => {
       trackerCard,
       `the helper's /my-jobs never rendered the card for run ${runId}`,
     ).toBeVisible({ timeout: 60_000 });
+    /* OPEN IT BEFORE WALKING THE LADDER. Every press below is guarded by `if
+       (await cta.isVisible())`, so on a COLLAPSED card not one of them fires —
+       and the "Start Working is hidden" assertion that follows then passes
+       trivially, because nothing on the tracker is rendered at all. That is a
+       vacuous pass which leaves the tracker at the wrong rung and makes the
+       before-photo ask below unreachable; it is the same collapsed-card fault,
+       one step earlier, and fixing only the photo step would not have moved it. */
+    await openCard(trackerCard);
     for (const action of ["I'm On My Way", "I've Arrived", "Start Working"]) {
       const cta = trackerCard.getByRole("button", { name: action, exact: true });
       if (await cta.isVisible().catch(() => false)) {

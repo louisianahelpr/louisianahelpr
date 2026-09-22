@@ -677,8 +677,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           )}
 
           {tab === "applied" && (
+            /* `space-y-3`, matching AppliedJobsTab and the grouped view —
+               the same 2px-per-row drift fixed on the posted branch above and
+               on ActivityPageSkeleton 2026-09-21; a gap is part of the
+               reservation. */
             <Suspense fallback={
-              <div className="px-0 space-y-2.5">
+              <div className="px-0 space-y-3">
                 {[1, 2, 3, 4].map((i) => <ApplicationCardSkeleton key={i} />)}
               </div>
             }>

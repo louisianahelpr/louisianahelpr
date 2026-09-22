@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Camera } from "lucide-react";
 import { formatShortDate } from "@/lib/format";
+import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
 
 type PortfolioItem = {
   jobTitle: string;
@@ -45,6 +46,13 @@ export function HelperPortfolio({ helperId }: { helperId: string }) {
     setLoading(false);
   };
 
+  // The cover of each card, signed at display time. `proof_after_urls` holds
+  // storage PATHS in a private bucket (see src/lib/proofPhotoStorage.ts) — it
+  // used to hold year-long signed URLs, which made a portfolio a wall of empty
+  // boxes on the anniversary of the job. One hook call for the whole grid,
+  // because a hook cannot live inside the map below.
+  const coverSrcs = useProofPhotoUrls(items.map((item) => item.afterUrls[0] ?? ""));
+
   if (loading || items.length === 0) return null;
 
   return (
@@ -58,7 +66,7 @@ export function HelperPortfolio({ helperId }: { helperId: string }) {
             {/* Show the first after photo as the main image */}
             <div className="relative aspect-[4/3]">
               <img
-                src={item.afterUrls[0]}
+                src={coverSrcs[idx] ?? PENDING_PHOTO_SRC}
                 alt={`${item.jobTitle} - completed`}
                 className="w-full h-full object-cover"
                 loading="lazy"

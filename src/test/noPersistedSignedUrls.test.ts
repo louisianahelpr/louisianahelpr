@@ -44,10 +44,13 @@
  * carried evidence through those paths yet; the code that fills them is the
  * same code.
  *
- * The five that exist today are PINNED with the column their token lands in,
- * so the list can only shrink: fix one and this test tells you to delete its
- * pin. Fixing them is a data change as well as a code change (44 rows hold
- * tokens, not paths), so it is filed in docs/OPEN.md rather than bundled here.
+ * Offenders are PINNED with the column their token lands in, so the list can
+ * only shrink: fix one and this test tells you to delete its pin.
+ *
+ * PhotoProof.tsx — the only one with data behind it — was fixed on 2026-09-22
+ * (path stored, signed at display time) and its 93 stored values converted by
+ * 20260922170321_proof_photo_urls_to_paths.sql. FOUR pins remain, all of them
+ * code-only: nothing has yet been written through those paths in prod.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -63,8 +66,10 @@ const DISPLAY_TTL_CEILING = 60 * 60 * 24;
 
 /** Known offenders, each with the column the token lands in. */
 const PINNED: Record<string, string> = {
-  "components/PhotoProof.tsx":
-    "365-day token -> jobs.proof_before_urls / jobs.proof_after_urls (44 rows in prod, exp 2027-09)",
+  // components/PhotoProof.tsx was here. FIXED 2026-09-22: it stores the
+  // storage PATH and signs at display time (src/lib/proofPhotoStorage.ts,
+  // src/hooks/useProofPhotoUrls.ts), and the 93 values already written down
+  // were converted by 20260922170321_proof_photo_urls_to_paths.sql.
   "components/DisputeDialog.tsx":
     "365-day token -> dispute evidence via the file-dispute RPC",
   "components/DisputeTimelineDialog.tsx":
@@ -152,7 +157,7 @@ describe("a signed URL is never persisted", () => {
     expect(
       longLivedTokens().length,
       "the scan found no long-lived signed URL at all — it cannot have run",
-    ).toBeGreaterThanOrEqual(5);
+    ).toBeGreaterThanOrEqual(4);
   });
 
   it("the threshold does not swallow the app's real display-time TTLs", () => {

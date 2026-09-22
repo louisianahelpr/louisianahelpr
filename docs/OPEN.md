@@ -806,7 +806,34 @@ but it is the same error `ActivityPageSkeleton` and the posted branch were both
 fixed for, and it is the only copy left. Belongs to the /my-jobs surface, which
 is why this lane reported it instead of changing it.
 
-## OPEN — 44 signed URLs in prod are stored with an `exp`, and they all die in Sept 2027 (2026-09-21)
+## PARTLY DONE — 44 signed URLs in prod are stored with an `exp`, and they all die in Sept 2027 (2026-09-21)
+
+**2026-09-22 — PhotoProof is FIXED, code and data. Four call sites remain (see
+the list below); none of them has written a single value into prod yet, so what
+is left is code-only.**
+
+- Code: `src/lib/proofPhotoStorage.ts` + `src/hooks/useProofPhotoUrls.ts` store
+  the storage PATH and mint a ten-minute ticket at display time.
+  `PhotoProof.tsx` (upload + all four render sites) and `HelperPortfolio.tsx`
+  (the cover of each portfolio card — the other reader of these columns) both
+  go through it. The reader still accepts a legacy full URL, so old rows render
+  correctly whether or not the backfill has run.
+- Data: `supabase/migrations/20260922170321_proof_photo_urls_to_paths.sql`.
+  93 stored values across 44 rows; the 85 token-bearing ones were verified
+  element-by-element against the `url` claim DECODED out of their own JWT —
+  85/85 exact, 0 mismatches. The 8 `https://example.invalid/…` seed
+  placeholders do not parse and are kept byte for byte in place (no element
+  dropped, no array shortened, no row skipped). Re-applying the expression to
+  its own output changes nothing on all 93, so the migration is idempotent.
+- Scope note worth having: **all 44 rows are on `is_seed = true` jobs.** No real
+  customer's proof photo is among them. The fuse was real for every future
+  upload; the rows that were already lit are test data.
+- Also measured: 33 of the 85 paths have no object in `storage.objects` at all,
+  so those URLs are already dead for a different reason (the file is gone, not
+  the token). Seed rows again — not investigated further.
+
+### Original report
+
 
 Found while diagnosing the owner's broken-photo report (which turned out to be
 `/_vercel/image`, see below). Not the cause of that, but the same symptom on a
@@ -826,7 +853,7 @@ box with its alt text. Measured read-only against prod
 
 The call sites, all with a 365-day TTL except the last:
 
-- `src/components/PhotoProof.tsx:106` → `jobs.proof_before_urls` / `proof_after_urls`
+- ~~`src/components/PhotoProof.tsx:106` → `jobs.proof_before_urls` / `proof_after_urls`~~ **FIXED 2026-09-22**
 - `src/components/DisputeDialog.tsx:144` → dispute evidence via the file-dispute RPC
 - `src/components/DisputeTimelineDialog.tsx:168` → `disputes.evidence_urls`, `jobs.dispute_evidence_urls`
 - `src/components/activity/CompletionChoiceSheet.tsx:127` → `job_revisions` photos + the `jobs` row
@@ -845,6 +872,11 @@ Guard, shown red: `src/test/noPersistedSignedUrls.test.ts` fails on any NEW
 pinned file stops being an offender without its pin being deleted — so the list
 can only shrink. Proved by pointing `applicationAttachments.ts` at a 365-day
 TTL: `expected [ 'lib/applicationAttachments.ts' ] to deeply equal []`.
+
+The shrink half was proved on 2026-09-22 too: with PhotoProof fixed, re-adding
+its pin fails —
+`expected [ 'components/PhotoProof.tsx' ] to deeply equal []` — and deleting
+the pin makes the file green again (4 passed).
 
 ## DONE — job photos rendered as broken boxes on every local preview (2026-09-21)
 

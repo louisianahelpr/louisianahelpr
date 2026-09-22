@@ -18,6 +18,7 @@ import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative } from "@/lib/nativeCamera";
 import { JOB_ACTION_CHIP_CLASS, JOB_ROW_LABEL_CLASS, jobActionChipStyle } from "@/components/activity/JobActionRow";
+import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
 
 type PhotoProofProps = {
   jobId: string;
@@ -52,6 +53,9 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip 
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  // Stored values are storage PATHS; the ticket is minted here, for this open
+  // dialog, and lives ten minutes.
+  const existingSrcs = useProofPhotoUrls(existingUrls);
 
   const addFiles = (selected: File[]) => {
     if (selected.length === 0) return;
@@ -103,13 +107,18 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip 
         report(error, { tags: { source: "PhotoProof.upload", proof_type: type } });
         continue;
       }
-      const { data, error: signError } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
-      if (signError) {
-        report(signError, { tags: { source: "PhotoProof.createSignedUrl", proof_type: type } });
-        toast.error("Uploaded, but couldn't generate a preview link.");
-      } else if (data?.signedUrl) {
-        urls.push(data.signedUrl);
-      }
+      // THE PATH, NOT A SIGNED URL. `proof-photos` is private, so this used to
+      // mint a 365-day signed URL here and store THAT — a JWT with an `exp`
+      // written into `jobs.proof_before_urls`. The row is correct the day it
+      // is written and 400s forever after, with no error on either side: the
+      // reader just gets an empty box with its alt text. Proof photos are the
+      // evidence a dispute is decided on and the thing that releases a
+      // payout, so an expiry date on them is not a cosmetic bug.
+      //
+      // Storing the path moves the ticket to display time
+      // (`useProofPhotoUrls`), which is the pattern the repo already wrote
+      // down for `user-documents` in 20260505220000.
+      urls.push(path);
     }
 
     // Nothing new landed in storage — do not write, and do not close as if it
@@ -230,8 +239,8 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip 
                     <img
                       loading="lazy"
                       decoding="async"
-                      key={i}
-                      src={url}
+                      key={url ?? i}
+                      src={existingSrcs[i] ?? PENDING_PHOTO_SRC}
                       alt={`Job photo ${i + 1}`}
                       className="w-20 h-20 rounded-2xl object-cover"
                       style={{
@@ -361,6 +370,8 @@ export const PhotoProofDialog = ({
 }) => {
   const hasBefore = beforeUrls.length > 0;
   const hasAfter = afterUrls.length > 0;
+  const beforeSrcs = useProofPhotoUrls(beforeUrls);
+  const afterSrcs = useProofPhotoUrls(afterUrls);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -373,8 +384,8 @@ export const PhotoProofDialog = ({
               <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
               <div className="grid grid-cols-3 gap-2">
                 {beforeUrls.map((url, i) => (
-                  <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                    <img loading="lazy" decoding="async" src={url} alt={`Before ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                  <a key={url ?? i} href={beforeSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer">
+                    <img loading="lazy" decoding="async" src={beforeSrcs[i] ?? PENDING_PHOTO_SRC} alt={`Before ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}
               </div>
@@ -385,8 +396,8 @@ export const PhotoProofDialog = ({
               <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">After</p>
               <div className="grid grid-cols-3 gap-2">
                 {afterUrls.map((url, i) => (
-                  <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                    <img loading="lazy" decoding="async" src={url} alt={`After ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                  <a key={url ?? i} href={afterSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer">
+                    <img loading="lazy" decoding="async" src={afterSrcs[i] ?? PENDING_PHOTO_SRC} alt={`After ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}
               </div>
@@ -488,6 +499,10 @@ export const PhotoProofGroup = ({
   const hasBefore = beforeUrls.length > 0;
   const hasAfter = afterUrls.length > 0;
   const [viewOpen, setViewOpen] = useState(false);
+  // Only the three thumbnails this panel actually paints get a ticket; the
+  // rest are behind "View All", which signs its own.
+  const beforeSrcs = useProofPhotoUrls(beforeUrls.slice(0, 3));
+  const afterSrcs = useProofPhotoUrls(afterUrls.slice(0, 3));
 
   // If no photos at all and can't upload, show a minimal empty state
   if (!hasBefore && !hasAfter && !showBeforeUpload && !showAfterUpload) {
@@ -529,8 +544,8 @@ export const PhotoProofGroup = ({
             {hasBefore ? (
               <div className="flex gap-1.5 flex-wrap">
                 {beforeUrls.slice(0, 3).map((url, i) => (
-                  <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                    <img loading="lazy" decoding="async" src={url} alt={`Before ${i + 1}`} className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                  <a key={url ?? i} href={beforeSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer">
+                    <img loading="lazy" decoding="async" src={beforeSrcs[i] ?? PENDING_PHOTO_SRC} alt={`Before ${i + 1}`} className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}
                 {beforeUrls.length > 3 && (
@@ -553,8 +568,8 @@ export const PhotoProofGroup = ({
             {hasAfter ? (
               <div className="flex gap-1.5 flex-wrap">
                 {afterUrls.slice(0, 3).map((url, i) => (
-                  <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                    <img loading="lazy" decoding="async" src={url} alt={`After ${i + 1}`} className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
+                  <a key={url ?? i} href={afterSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer">
+                    <img loading="lazy" decoding="async" src={afterSrcs[i] ?? PENDING_PHOTO_SRC} alt={`After ${i + 1}`} className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}
                 {afterUrls.length > 3 && (

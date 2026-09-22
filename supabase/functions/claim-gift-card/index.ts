@@ -71,7 +71,7 @@ serve(async (req) => {
     // fall through to "invalid" and hide a transient outage as a bad link.
     const { data: credit, error: readErr } = await supabaseAdmin
       .from("gift_cards")
-      .select("id, recipient_id, recipient_email, status, expires_at")
+      .select("id, recipient_id, recipient_email, status, expires_at, payment_status")
       .eq("claim_token", claimToken)
       .maybeSingle();
     if (readErr) {
@@ -98,6 +98,16 @@ serve(async (req) => {
       return json(410, { error: "This gift has expired." });
     }
     if (credit.status !== "sent" && credit.status !== "available") {
+      return json(409, { error: "This gift is no longer available to claim." });
+    }
+    // The funding gate. `redeem_gift_card` has always refused anything that is
+    // not 'paid', but CLAIMING did not check it at all — so a gift whose charge
+    // was refunded or charged back (revoke_gift_card_for_refund sets
+    // payment_status='refunded' and deliberately leaves `status` alone) could
+    // still be bound to a recipient's account. They would then see a live-looking
+    // credit in "Gifts sent to you" and only discover it was dead at checkout.
+    // Same wording as the state gate above so a probe cannot tell the two apart.
+    if (credit.payment_status !== "paid") {
       return json(409, { error: "This gift is no longer available to claim." });
     }
     if (credit.expires_at && new Date(credit.expires_at) < new Date()) {

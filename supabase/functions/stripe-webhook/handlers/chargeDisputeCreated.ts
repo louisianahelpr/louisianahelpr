@@ -10,6 +10,7 @@ import {
   findInternalPayoutHold,
   holdReasons,
 } from "./_chargebackHold.ts";
+import { revokeGiftCardForRefund } from "./_giftCardRefund.ts";
 
 export async function handleChargeDisputeCreated(
   event: Stripe.Event,
@@ -47,6 +48,14 @@ export async function handleChargeDisputeCreated(
       logStep("Could not retrieve charge for dispute", { error: String(e) });
     }
   }
+
+  // A GIFT CARD donation's PaymentIntent never reaches `jobs`, so the lookup
+  // below cannot see it and this handler used to no-op on a charged-back gift.
+  // Stripe has ALREADY withdrawn the disputed amount from the platform balance,
+  // so leaving the credit spendable means paying a helper from money we no
+  // longer have — the same reasoning as the payout block below, applied to the
+  // gift ledger. Returns `no_gift` for an ordinary job escrow PI.
+  await revokeGiftCardForRefund(supabase, disputePiId, "chargeback", logStep);
 
   // Set when the job already carried a dispute hold the chargeback left alone,
   // so the page tells ops the job has two things going on at once.

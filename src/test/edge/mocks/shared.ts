@@ -144,10 +144,16 @@ export const giftCardEmails: unknown[] = [];
 
 /**
  * giftCardEmail.ts re-export — records the send attempt and reports success
- * so the webhook's `if (!emailed)` warning branch stays quiet in tests. The
- * real helper does network I/O (Resend), so it's mocked network-free.
+ * so the webhook's `if (!emailed)` warning branch stays quiet in tests.
+ *
+ * SIGNATURE MATTERS. The real helper takes `(supabase, opts)`: it no longer
+ * calls Resend directly but hands the message to `queueEmail`, which needs a
+ * client to write `email_send_log` and call `enqueue_email`. This mock used to
+ * take `(opts)` alone, so after that change it would have silently recorded the
+ * SUPABASE CLIENT as the email options and any assertion on the captured value
+ * would have been quietly meaningless.
  */
-export const sendGiftCardEmail = vi.fn(async (opts: unknown) => {
+export const sendGiftCardEmail = vi.fn(async (_supabase: unknown, opts: unknown) => {
   giftCardEmails.push(opts);
   return true;
 });

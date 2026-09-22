@@ -1,6 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { alertPartialGiftRefund, revokeGiftCardForRefund } from "./_giftCardRefund.ts";
 
 export async function handleChargeRefunded(
   event: Stripe.Event,
@@ -29,6 +30,21 @@ export async function handleChargeRefunded(
   const latestRefund = charge.refunds?.data?.[0];
   const isOnboardingFeeCorrection =
     (latestRefund?.metadata as Record<string, string> | null)?.reason === "duplicate_onboarding_fee";
+
+  // A GIFT CARD donation's PaymentIntent never reaches `jobs`, so the lookup
+  // below cannot see it and this handler used to no-op on a refunded gift,
+  // leaving the credit `payment_status = 'paid'` and fully spendable. Revoke
+  // the unspent value first; `revokeGiftCardForRefund` returns `no_gift` for an
+  // ordinary job escrow PI, which is every other event that reaches here.
+  if (!isOnboardingFeeCorrection) {
+    if (isFullRefund) {
+      await revokeGiftCardForRefund(supabase, refundPiId, "refund", logStep);
+    } else {
+      // Partial refunds are not auto-revoked (all-or-nothing walk), but they
+      // must not be silent either — see alertPartialGiftRefund.
+      await alertPartialGiftRefund(supabase, refundPiId, charge.amount_refunded, logStep);
+    }
+  }
 
   if (refundPiId && isFullRefund && !isOnboardingFeeCorrection) {
     const { data: refundedJob, error: jobLookupErr } = await supabase

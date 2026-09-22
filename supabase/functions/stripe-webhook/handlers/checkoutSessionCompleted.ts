@@ -662,7 +662,7 @@ export async function handleCheckoutSessionCompleted(
 
           // ALWAYS email the named address — the claim link both onboards a
           // brand-new recipient and doubles as a receipt for a registered one.
-          const emailed = await sendGiftCardEmail({
+          const emailed = await sendGiftCardEmail(supabase, {
             recipientEmail,
             donorName,
             amountCents,

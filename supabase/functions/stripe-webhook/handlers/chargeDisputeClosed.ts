@@ -9,6 +9,7 @@ import {
   isChargebackDisputeStatus,
   type InternalPayoutHold,
 } from "./_chargebackHold.ts";
+import { alertGiftDisputeClosed } from "./_giftCardRefund.ts";
 
 export async function handleChargeDisputeClosed(
   event: Stripe.Event,
@@ -43,6 +44,11 @@ export async function handleChargeDisputeClosed(
       logStep("Could not retrieve charge for closed dispute", { error: String(e) });
     }
   }
+
+  // A GIFT CARD donation's PaymentIntent never reaches `jobs`, so everything
+  // below is blind to it. Report-only — see alertGiftDisputeClosed for why a
+  // "won" dispute does not auto-restore the credit.
+  await alertGiftDisputeClosed(supabase, closedPiId, outcome, logStep);
 
   const finalDisputeStatus =
     outcome === "won" ? "dispute_won"

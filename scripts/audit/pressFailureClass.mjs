@@ -42,6 +42,25 @@
 export const TELEMETRY_HOST_RX = /(^|\.)(sentry\.io|posthog\.com)$/i;
 
 /**
+ * THE SWEEP SENDS NOTHING TO SENTRY (docs/OPEN.md Q296). The press builds the
+ * app with the prod env and src/lib/sentry.ts carries a hardcoded DSN, so every
+ * error a press provoked went to the PROD Sentry project, spent its quota and
+ * drew 429s on `envelope/` (6 presses in run 35837735324) — the same window in
+ * which a real user's event could be dropped. Its beforeSend drops only
+ * `localhost`, and the preview is served on 127.0.0.1. The harness therefore
+ * answers every Sentry ingest request itself with a 200 (as
+ * e2e/happy-path/fixtures.ts does): the SDK is satisfied, nothing leaves the
+ * runner. The app is untouched (Q275 owns src/lib/sentry.ts).
+ */
+export const SENTRY_INGEST_RX = /^https:\/\/([a-z0-9-]+\.)*(ingest\.([a-z]+\.)?)?sentry\.io\//i;
+
+/** Install the local Sentry answer on a browser context. Returns the pattern it routed. */
+export async function answerSentryLocally(ctx) {
+  await ctx.route(SENTRY_INGEST_RX, (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
+  return SENTRY_INGEST_RX;
+}
+
+/**
  * Vendor hosts the app's CSP lets the page reach (index.html), plus Amazon Pay,
  * which Stripe's payment sheet calls from its own frame.
  */

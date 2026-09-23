@@ -33,11 +33,17 @@ runs:
         VITE_SUPABASE_PROJECT_ID: fncmgoasalhdgfwzhsqa
         VITE_SUPABASE_URL: ${{ inputs.supabase-url }}
         VITE_SUPABASE_PUBLISHABLE_KEY: ${{ inputs.supabase-publishable-key }}
+        # Q296: src/lib/sentry.ts falls back to a HARDCODED DSN, so leaving
+        # VITE_SENTRY_DSN unset does NOT keep test builds out of Sentry, and
+        # its environment defaults to "production". Any event a CI suite's
+        # build does send is tagged with this instead, so it can be told
+        # apart and filtered from real users' errors.
+        VITE_SENTRY_ENV: ci-local-preview
       run: |
         set -euo pipefail
         test -d node_modules || { echo "::error::local-preview needs npm install to run first"; exit 1; }
-        # No VITE_SENTRY_DSN / VITE_POSTHOG_KEY on purpose: test sessions no
-        # longer land in production analytics or error reporting either.
+        # No VITE_POSTHOG_KEY on purpose: test sessions do not land in
+        # production analytics. Sentry: see VITE_SENTRY_ENV above.
         npm run build
 
     - name: Serve dist/ with vite preview on 127.0.0.1

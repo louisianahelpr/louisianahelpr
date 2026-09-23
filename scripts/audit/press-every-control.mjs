@@ -64,7 +64,7 @@ import {
 } from "./pressProdSafety.mjs";
 import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
-  FOREIGN_FIXTURE_SKIP, NOT_REACHED_STATUS, classifyConsoleError, classifyFailedResponse, clickFailureReason,
+  FOREIGN_FIXTURE_SKIP, NOT_REACHED_STATUS, answerSentryLocally, classifyConsoleError, classifyFailedResponse, clickFailureReason,
   isForeignSweepFixture, overTimeBudget, refusalIsDeath, tokenNeedsRefresh,
 } from "./pressFailureClass.mjs";
 import { recordRouteProbePasses, routeProbePasses } from "./pressRouteProbe.mjs";
@@ -930,6 +930,8 @@ async function main() {
         // made every press look like a 401 (first run, 2026-09-12).
         serviceWorkers: "block",
       });
+      // Q296: the sweep's errors never reach the prod Sentry project.
+      await answerSentryLocally(ctx);
       await ctx.addInitScript((t) => { try { localStorage.setItem("helpr-theme", t); localStorage.setItem("helpr_welcomed", "1"); } catch { /* blocked */ } }, THEME);
       if (session) {
         await ctx.addInitScript(([k, v]) => {

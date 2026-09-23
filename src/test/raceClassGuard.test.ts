@@ -242,7 +242,10 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
       // LIVE body to change only its role test, so it restates the fix — exclude
       // it too, or the pre-guard baseline still finds a definition.
       trg: latestDefinition("enforce_completion_on_live_job", [COMPLETION_FIX, RESTATES_FIX]),
-      block: latestDefinition("block_user_and_settle", [COMPLETION_FIX]),
+      // 20260923075415 (Q88: fee tier follows commitment) restates the whole
+      // function WITH the done-stamp guard, so the pre-guard baseline must
+      // exclude it too — same as RESTATES_FIX above.
+      block: latestDefinition("block_user_and_settle", [COMPLETION_FIX, "20260923075415"]),
       // Also exclude the arrival migration (20260915044137): it legitimately
       // made report_helper_no_show read helper_completed_at for a STRONGER
       // no-show guard (refuses if arrived OR completed). The pre-guard baseline

@@ -89,7 +89,7 @@ const AdminReports = () => {
       // the top (they need triage soonest). For resolved/all, newest-first
       // matches the rest of admin views.
       const ascending = filter === "pending" || filter === "investigating";
-      let query = (supabase.from as any)("reports")
+      let query = supabase.from("reports")
         .select("*")
         .neq("reported_type", "support")
         .order("created_at", { ascending });
@@ -199,11 +199,11 @@ const AdminReports = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     setUpdating(id);
-    // assigned_to lives in a recent migration; cast through any so this
-    // works against generated types that may not include the column yet.
+    // assigned_to lives in a recent migration (now in the generated types);
+    // the 42703 fallback below still covers a database that lacks the column.
     // .select("id") on both paths: a zero-row update returns error === null, and
     // the queue would log an audit entry claiming this admin took the report.
-    const { data: rows, error } = await (supabase.from as any)("reports")
+    const { data: rows, error } = await supabase.from("reports")
       .update({ assigned_to: user.id, status: "investigating" })
       .eq("id", id)
       .select("id");
@@ -214,7 +214,7 @@ const AdminReports = () => {
         try {
           unwrapMutation(
             await supabase.from("reports")
-              .update({ status: "investigating" as any })
+              .update({ status: "investigating" })
               .eq("id", id)
               .select("id"),
             {

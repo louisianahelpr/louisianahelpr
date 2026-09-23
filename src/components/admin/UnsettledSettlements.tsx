@@ -49,7 +49,7 @@ export const UnsettledSettlements = () => {
     key: ["admin-unsettled-settlements"],
     fallback: [],
     fetcher: async () => {
-      const res = await (supabase.from as any)("disputes")
+      const res = await supabase.from("disputes")
         .select("id, job_id, decided_at, execution_status, execution_error, jobs:job_id ( title, budget, payment_status )")
         .eq("status", "decided")
         // NULL is admitted alongside 'pending': `execution_status <> 'executed'`

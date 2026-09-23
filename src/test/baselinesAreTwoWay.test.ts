@@ -151,6 +151,9 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
   "scripts/audit/write-contract.baseline.json": {
     accepted: "src/test/writeContract.test.ts:baseline has no stale entries",
   },
+  "scripts/any-baseline.json": {
+    files: "src/test/anyRatchet.test.ts:FELL from",
+  },
   "scripts/deadcode-baseline.json": {
     exports: "src/test/deadcodeRatchet.test.ts:FELL from",
     types: "src/test/deadcodeRatchet.test.ts:FELL from",

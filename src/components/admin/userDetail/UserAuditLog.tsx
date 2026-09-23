@@ -41,7 +41,7 @@ interface TimelineEntry {
   /** Optional context — reason, duration, etc. */
   detail?: string;
   /** Display name of the actor (admin) — empty for system events. */
-  actor?: string;
+  actor?: string | null;
   source: "audit" | "violation" | "notification";
   /**
    * Raw user_violations.id, on violation rows only. Present so the row can
@@ -120,7 +120,7 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
       // 1) Canonical audit log — every logAdminAction() lands here.
       // target_id matches the affected user_id for user-level actions.
       try {
-        const { data: auditRows, error } = await (supabase.from as any)("admin_audit_log")
+        const { data: auditRows, error } = await supabase.from("admin_audit_log")
           .select("id, admin_id, action, target_type, details, created_at")
           .or(`target_id.eq.${userId}`)
           .order("created_at", { ascending: false })
@@ -128,7 +128,7 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
         if (error && error.code !== "PGRST205" && error.code !== "42P01") {
           report(error, { tags: { source: "UserAuditLog.audit" } });
         }
-        for (const row of (auditRows as any[] | null) ?? []) {
+        for (const row of auditRows ?? []) {
           merged.push({
             id: `audit-${row.id}`,
             ts: row.created_at,

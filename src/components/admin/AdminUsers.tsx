@@ -17,7 +17,7 @@ import { FormalWarningDialog } from "./FormalWarningDialog";
 import { AdminUserDetailDialog } from "./AdminUserDetailDialog";
 import { type Profile } from "./adminUserHelpers";
 import { useAdminUserSummaries } from "./useAdminUserSummaries";
-import { makeOpenProfile } from "./adminusers/useOpenProfile";
+import { makeOpenProfile, type AdminProfileBan, type AdminProfileJob, type AdminProfileViolation } from "./adminusers/useOpenProfile";
 import { makeAdminUserActions } from "./adminusers/useAdminUserActions";
 import { filterAndSortProfiles, getTabCounts, type Tab, type SortDir } from "./adminusers/useAdminUsersFilter";
 import { AdminUserRow } from "./adminusers/AdminUserRow";
@@ -62,13 +62,13 @@ const AdminUsers = () => {
   const [viewProfile, setViewProfile] = useState<Profile | null>(null);
   const [profileReviews, setProfileReviews] = useState<{ rating: number; feedback: string | null; reviewer_name: string; created_at?: string; job_title?: string }[]>([]);
   const [profileReviewsLeft, setProfileReviewsLeft] = useState<{ rating: number; feedback: string | null; reviewee_name: string; created_at?: string; job_title?: string }[]>([]);
-  const [profileViolations, setProfileViolations] = useState<any[]>([]);
-  const [, setProfileBans] = useState<any[]>([]);
+  const [profileViolations, setProfileViolations] = useState<AdminProfileViolation[]>([]);
+  const [, setProfileBans] = useState<AdminProfileBan[]>([]);
   const [emailTracking, setEmailTracking] = useState<{ event_type: string; email_type: string; created_at: string }[]>([]);
   const [emailSendStats, setEmailSendStats] = useState<{ template_name: string; count: number; last_sent: string }[]>([]);
   // Jobs history (worked as helper + posted as customer) — the Jobs-tab
   // filter/sort state lives inside AdminUserDetailDialog now.
-  const [profileJobs, setProfileJobs] = useState<any[]>([]);
+  const [profileJobs, setProfileJobs] = useState<AdminProfileJob[]>([]);
 
   // Deny dialog — moved into DenyUserDialog component. Parent only
   // tracks "which profile is being denied right now"; the dialog

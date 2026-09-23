@@ -4,10 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { TabsContent } from "@/components/ui/tabs";
 import { formatTimestamp, formatCategory, formatShortDate } from "@/lib/format";
 import type { Profile } from "../adminUserHelpers";
+import type { AdminProfileViolation } from "../adminusers/useOpenProfile";
 
 interface OverviewTabProps {
   viewProfile: Profile;
-  profileViolations: any[];
+  profileViolations: AdminProfileViolation[];
 }
 
 export function OverviewTab({ viewProfile, profileViolations }: OverviewTabProps) {
@@ -102,7 +103,7 @@ export function OverviewTab({ viewProfile, profileViolations }: OverviewTabProps
             <AlertTriangle className="w-4 h-4 text-destructive" /> Violations ({profileViolations.length})
           </h4>
           <div className="space-y-2 max-h-48 overflow-y-auto">
-            {profileViolations.map((v: any) => (
+            {profileViolations.map((v) => (
               <div key={v.id} className="p-3 rounded-2xl bg-destructive/5 border border-destructive/20">
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium ${

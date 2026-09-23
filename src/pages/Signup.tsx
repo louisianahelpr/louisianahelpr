@@ -489,7 +489,7 @@ const Signup = () => {
       });
       hapticSuccess();
       navigate("/signup-pending", { state: { email } });
-    } catch (err: any) {
+    } catch (err: unknown) {
       hapticError();
       // Reported, not just toasted: this catch guards the whole signup funnel
       // (signUp → complete-signup → referral), and a failure here can
@@ -508,7 +508,7 @@ const Signup = () => {
       // userFacingError guarantees the raw text still reaches the console; on
       // the auth branch it is never called, so log it here rather than lose
       // the breadcrumb a bug report depends on.
-      const authCopy = recognizedAuthError(err?.message);
+      const authCopy = recognizedAuthError((err as { message?: string } | null | undefined)?.message);
       if (authCopy) console.error("[signup:auth]", err);
       toast.error(authCopy ?? userFacingError(err, "Couldn't create your account — try again?"));
     } finally {

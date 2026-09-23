@@ -60,7 +60,7 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
     if (!name.trim() || !agreed) return;
     setSubmitting(true);
     try {
-      const { error } = await (supabase.from as any)("helper_w9_records").insert({
+      const { error } = await supabase.from("helper_w9_records").insert({
         helper_id: helperId,
         job_id: jobId,
         business_id: businessId ?? null,
@@ -73,9 +73,10 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
       onOpenChange(false);
       // Reset for any future opens.
       setName(""); setAgreed(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       hapticError();
-      if (err?.code === "42P01" || err?.code === "PGRST204") {
+      const e = err as { code?: string } | null | undefined;
+      if (e?.code === "42P01" || e?.code === "PGRST204") {
         toast.error("We couldn't record your signature right now — try again.");
       } else {
         toast.error(userFacingError(err, "We couldn't record that signature — try again."));

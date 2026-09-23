@@ -11,6 +11,7 @@
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type Profile } from "./adminUserHelpers";
+import type { AdminProfileJob, AdminProfileViolation } from "./adminusers/useOpenProfile";
 import { DetailHeader } from "./userDetail/DetailHeader";
 import { OverviewTab } from "./userDetail/OverviewTab";
 import { JobsTab } from "./userDetail/JobsTab";
@@ -26,8 +27,8 @@ interface AdminUserDetailDialogProps {
   /** Supplemental detail the parent loads when a profile is opened. */
   profileReviews: { rating: number; feedback: string | null; reviewer_name: string; created_at?: string; job_title?: string }[];
   profileReviewsLeft: { rating: number; feedback: string | null; reviewee_name: string; created_at?: string; job_title?: string }[];
-  profileViolations: any[];
-  profileJobs: any[];
+  profileViolations: AdminProfileViolation[];
+  profileJobs: AdminProfileJob[];
   emailTracking: { event_type: string; email_type: string; created_at: string }[];
   emailSendStats: { template_name: string; count: number; last_sent: string }[];
   /** Per-user last-login map — tells whether an approved user is active yet. */

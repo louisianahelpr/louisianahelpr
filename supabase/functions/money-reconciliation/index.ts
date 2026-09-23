@@ -124,6 +124,29 @@ const STRIPE_LOOKBACK_DAYS = 30;
 const STRIPE_LOOKBACK_MS = STRIPE_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
 const MAX_STRIPE_READS = 300;
 const STRIPE_READ_CONCURRENCY = 10;
+/**
+ * Wall-clock budget for the Stripe phase. The cron calls this function through
+ * pg_net with `timeout_milliseconds := 30000` (cron.job 51, read live
+ * 2026-09-23), and a timed-out call is what the cron watchers see.
+ *
+ * MEASURED on prod 2026-09-23 (?include_seed=1, function_edge_logs
+ * execution_time_ms): 79 PaymentIntent reads at concurrency 10 took the WHOLE
+ * run 2,246 ms (2,368 ms on a second run); the same run without Stripe reads
+ * took 648 ms. So 300 reads projects to roughly 8 s, well inside 30 s.
+ *
+ * ALSO MEASURED: the Edge runtime keeps running after the caller hangs up. A
+ * call with pg_net timeout_milliseconds := 400 timed out at 401 ms
+ * (net._http_response 595), and the function still finished at 2,368 ms and
+ * recorded its critical alert in ops_alert_ledger (last_seen 07:54:12.52Z).
+ * A slow run therefore does not lose the Slack/ledger alert, only the HTTP
+ * status the cron watchers read.
+ *
+ * The budget keeps that status too: past it the phase stops, and the jobs it
+ * did not reach are reported as a truncated scan (a defect, 500), never
+ * silently dropped. 20 s leaves 10 s for the DB scans before and the alert
+ * after, both measured well under 1 s.
+ */
+const STRIPE_PHASE_BUDGET_MS = 20_000;
 
 type Severity = "critical" | "warning" | "info";
 
@@ -336,7 +359,7 @@ serve(async (req) => {
       // ── The DB's settled state vs Stripe's (docs/OPEN.md Q50) ──────────
       // Every check above grades the DB against itself. A job the DB says is
       // settled — payment_status 'cancelled' or 'refunded' — was only ever
-      // TRUSTED to have had its money returned. These four ask Stripe.
+      // TRUSTED to have had its money returned. These ask Stripe.
       stripeHoldLive: new Check(
         "stripe_money_live_on_settled_job",
         "critical",
@@ -347,10 +370,20 @@ serve(async (req) => {
         "critical",
         "A cancelled, undisputed job's charge is captured at Stripe and the platform kept more than the cancellation fee plus the non-refundable service fee (floored at Stripe's real processing cost) — the same ceiling void-cancelled-payments and cancel_escrow refund against. The poster was not given back money the DB says they were.",
       ),
-      stripeRefundLedger: new Check(
-        "stripe_refund_ledger_mismatch",
+      stripeRefundShort: new Check(
+        "stripe_refund_recorded_not_at_stripe",
+        "critical",
+        "The payment_refunds ledger records MORE refunded on this job than Stripe's charge shows (amount_refunded). The DB, and the poster's screen, say money went back that Stripe never sent (or a refund later failed) — the poster is owed the difference.",
+      ),
+      stripeRefundUntracked: new Check(
+        "stripe_refund_untracked",
         "warning",
-        "Stripe's amount_refunded on this job's charge differs from the sum of its payment_refunds ledger rows — a refund moved with no record, or a recorded refund never reached Stripe (or later failed).",
+        "Stripe refunded MORE on this job's charge than its payment_refunds ledger rows record — a refund moved with no ledger row (a dashboard refund, or a write that failed after the Stripe call). The poster has the money; the books do not.",
+      ),
+      stripeChargeShape: new Check(
+        "stripe_charge_not_the_payment",
+        "warning",
+        "The PaymentIntent's latest_charge did not capture what the PaymentIntent received (amount_received). This reconciler assumes one charge carries a PaymentIntent's money; here another charge does, so its captured/refunded figures would be partial. Not graded — look at the PaymentIntent's charges in Stripe.",
       ),
       stripePiMissing: new Check(
         "stripe_payment_intent_not_found",
@@ -896,6 +929,41 @@ serve(async (req) => {
           }
         }
 
+        // Which of these jobs had their refund DECIDED by a dispute split. Not
+        // `jobs.dispute_status`: rpc_withdraw_dispute (20260908024937) stamps
+        // dispute_status='resolved' permanently on a WITHDRAWN dispute, and
+        // poster_cancel_job then cancels such a job normally, so "any
+        // dispute_status" exempted ordinary cancellations from the ceiling
+        // (lh-money-escrow review, 2026-09-23). Only the disputes row knows —
+        // the same ambiguity _shared/unsettledDispute.ts and
+        // stripe-webhook/handlers/_chargebackHold.ts document. A decided split
+        // that has not EXECUTED did not move this money, so it is graded.
+        // A failed/short read falls back to the old, wider exemption (skip any
+        // job with a dispute_status) and says so: a missing row would
+        // otherwise grade a real split against the ladder and page falsely.
+        const splitScan = await scanAllIn<{ job_id: string; status: string | null; execution_status: string | null }>(
+          "disputes",
+          batch.map((j) => j.id as string),
+          (chunk, countOpt) =>
+            admin
+              .from("disputes")
+              .select("job_id, status, execution_status", countOpt)
+              .order("id", { ascending: true })
+              .eq("status", "decided")
+              .in("job_id", chunk),
+        );
+        const splitCap = scanDefect("disputes", splitScan);
+        let decidedBySplit: Set<string> | null = null;
+        if (splitCap) {
+          notes.push(`stripe under-refund check: dispute-split lookup failed (${splitCap}); every job with a dispute_status was skipped`);
+        } else {
+          decidedBySplit = new Set(
+            splitScan.rows
+              .filter((d) => d.status === "decided" && d.execution_status === "executed")
+              .map((d) => d.job_id),
+          );
+        }
+
         const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
         const failures: string[] = [];
         const inspect = async (job: Record<string, unknown>) => {
@@ -928,22 +996,53 @@ serve(async (req) => {
             failures.push(`${job.id}: PaymentIntent ${piId} succeeded but its charge was not returned`);
             return;
           }
-          const capturedCents = Math.round(Number(charge.amount_captured ?? pi.amount_received ?? 0));
+          // ONE CHARGE PER PAYMENTINTENT is assumed below. A PaymentIntent
+          // that succeeds has exactly one successful charge (failed attempts
+          // before it move no money), and `latest_charge` is that charge. Not
+          // listed with charges.list: that would double the Stripe reads this
+          // phase is budgeted on. Instead the assumption is CHECKED — the
+          // charge must have captured what the PaymentIntent received — and a
+          // PaymentIntent where it did not is a finding, not graded on partial
+          // numbers.
+          const capturedCents = Math.round(Number(charge.amount_captured ?? 0));
+          const receivedCents = Math.round(Number(pi.amount_received ?? 0));
           const refundedCents = Math.round(Number(charge.amount_refunded ?? 0));
+          if (capturedCents !== receivedCents) {
+            checks.stripeChargeShape.add({
+              ...base,
+              latest_charge: charge.id,
+              amount_received_cents: receivedCents,
+              latest_charge_captured_cents: capturedCents,
+            });
+            return;
+          }
 
-          if (ledgerCents && refundedCents !== (ledgerCents.get(job.id as string) ?? 0)) {
-            checks.stripeRefundLedger.add({
+          if (ledgerCents) {
+            const ledgerRefunded = ledgerCents.get(job.id as string) ?? 0;
+            const ledgerBase = {
               ...base,
               stripe_refunded_cents: refundedCents,
-              ledger_refunded_cents: ledgerCents.get(job.id as string) ?? 0,
-            });
+              ledger_refunded_cents: ledgerRefunded,
+              difference_cents: Math.abs(refundedCents - ledgerRefunded),
+            };
+            // The DB says more went back than Stripe sent: the poster is owed it.
+            if (refundedCents < ledgerRefunded) {
+              checks.stripeRefundShort.add({ ...ledgerBase, direction: "ledger_more_than_stripe" });
+            }
+            // Stripe sent a refund the books never recorded.
+            if (refundedCents > ledgerRefunded) {
+              checks.stripeRefundUntracked.add({ ...ledgerBase, direction: "stripe_more_than_ledger" });
+            }
           }
 
           // The retention ceiling only has one defined truth on a plain
-          // cancellation. A disputed job settles by the admin's split, and a
-          // 'refunded' job that was never cancelled is a dispute/admin refund —
-          // neither is graded against the cancellation ladder.
-          if (job.status !== "cancelled" || job.dispute_status != null) return;
+          // cancellation. A job whose refund an executed dispute split decided
+          // settles by the admin's split, and a 'refunded' job that was never
+          // cancelled is a dispute/admin refund — neither is graded against
+          // the cancellation ladder. A WITHDRAWN dispute is not a split: see
+          // decidedBySplit above.
+          if (job.status !== "cancelled") return;
+          if (decidedBySplit === null ? job.dispute_status != null : decidedBySplit.has(job.id as string)) return;
           const feeCents = Math.round(computeCancellationFee({
             budget: money(job.budget),
             date_needed: job.date_needed as string | null,
@@ -969,8 +1068,19 @@ serve(async (req) => {
             });
           }
         };
+        const stripeStartedMs = Date.now();
+        let reached = 0;
         for (let i = 0; i < batch.length; i += STRIPE_READ_CONCURRENCY) {
-          await Promise.all(batch.slice(i, i + STRIPE_READ_CONCURRENCY).map(inspect));
+          if (Date.now() - stripeStartedMs > STRIPE_PHASE_BUDGET_MS) {
+            // Truncation is a defect (caps -> 500), never a quiet sample.
+            caps.push(
+              `stripe comparison stopped at its ${Math.round(STRIPE_PHASE_BUDGET_MS / 1000)}s budget: ${reached} of ${batch.length} checked`,
+            );
+            break;
+          }
+          const slice = batch.slice(i, i + STRIPE_READ_CONCURRENCY);
+          await Promise.all(slice.map(inspect));
+          reached += slice.length;
         }
         if (failures.length) {
           // A job Stripe could not be asked about is unverified, not clean.

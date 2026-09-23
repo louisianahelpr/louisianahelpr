@@ -19,10 +19,14 @@
  * RED WITH THE COMPARISON REMOVED — each mutation below turns a named test red:
  * @mutate supabase/functions/money-reconciliation/index.ts | if (pi.status === "requires_capture" \|\| pi.status === "processing") { | if (false) {
  * @mutate supabase/functions/money-reconciliation/index.ts | if (retainedCents > maxRetainedCents + 1) { | if (false) {
- * @mutate supabase/functions/money-reconciliation/index.ts | if (ledgerCents && refundedCents !== (ledgerCents.get(job.id as string) ?? 0)) { | if (false) {
+ * @mutate supabase/functions/money-reconciliation/index.ts | if (refundedCents < ledgerRefunded) { | if (false) {
+ * @mutate supabase/functions/money-reconciliation/index.ts | if (refundedCents > ledgerRefunded) { | if (false) {
+ * @mutate supabase/functions/money-reconciliation/index.ts | if (decidedBySplit === null ? job.dispute_status != null : decidedBySplit.has(job.id as string)) return; | if (job.dispute_status != null) return;
+ * @mutate supabase/functions/money-reconciliation/index.ts | if (capturedCents !== receivedCents) { | if (false) {
+ * @mutate supabase/functions/money-reconciliation/index.ts | if (Date.now() - stripeStartedMs > STRIPE_PHASE_BUDGET_MS) { | if (false) {
  * @mutate supabase/functions/money-reconciliation/index.ts | (j.payment_status === "cancelled" \|\| j.payment_status === "refunded") && | false &&
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
@@ -134,8 +138,10 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
     expect(b.checks_run).toEqual(expect.arrayContaining([
       "stripe_money_live_on_settled_job",
       "stripe_charge_not_refunded_on_cancelled_job",
-      "stripe_refund_ledger_mismatch",
+      "stripe_refund_recorded_not_at_stripe",
+      "stripe_refund_untracked",
       "stripe_payment_intent_not_found",
+      "stripe_charge_not_the_payment",
     ]));
     expect(res.status).toBe(200);
     expect(b.clean).toBe(true);
@@ -168,7 +174,8 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
 
     expect(finding(b, "stripe_charge_not_refunded_on_cancelled_job")).toMatchObject({ severity: "critical", count: 1 });
     // The ledger agrees with Stripe (both 0), so this is not ALSO a ledger finding.
-    expect(finding(b, "stripe_refund_ledger_mismatch")).toBeUndefined();
+    expect(finding(b, "stripe_refund_recorded_not_at_stripe")).toBeUndefined();
+    expect(finding(b, "stripe_refund_untracked")).toBeUndefined();
     expect(res.status).toBe(500);
   });
 
@@ -204,24 +211,88 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
     expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toMatchObject({ count: 1 });
   });
 
-  it("does not grade a disputed job against the cancellation ceiling", async () => {
-    // Prod job e7e09075 (2026-09-23): an admin dispute refund of $26.89 of $28.
-    // A split decision may keep far more; only the ledger is compared.
+  it("does not grade a job whose refund an executed dispute split decided", async () => {
+    // Prod job e7e09075 (2026-09-23): dispute decided {poster:1,helper:0},
+    // execution_status 'executed', $26.89 of $28 refunded. A split decision
+    // may keep far more than the ladder; only the ledger is compared.
     const fn = await load();
     seed(cancelledJob({ payment_status: "refunded", dispute_status: "resolved" }), 500);
+    scenario.reads.disputes = { rows: [{ job_id: "job-c", status: "decided", execution_status: "executed" }] };
     stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi({ refunded: 500 }));
 
     const { b } = await run(fn);
     expect(finding(b, "stripe_charge_not_refunded_on_cancelled_job")).toBeUndefined();
   });
 
-  it("warns when Stripe's refunded total disagrees with the payment_refunds ledger", async () => {
+  it("DOES grade a withdrawn-then-cancelled job: a withdrawal leaves dispute_status='resolved' forever", async () => {
+    // rpc_withdraw_dispute stamps jobs.dispute_status='resolved' and
+    // poster_cancel_job later cancels normally without touching it. The refund
+    // on that job is the cancellation ladder's, not a split's.
+    const fn = await load();
+    seed(cancelledJob({ dispute_status: "resolved" }), 0);
+    scenario.reads.disputes = { rows: [{ job_id: "job-c", status: "withdrawn", execution_status: null }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi({ refunded: 0 }));
+
+    const { res, b } = await run(fn);
+    expect(finding(b, "stripe_charge_not_refunded_on_cancelled_job")).toMatchObject({ severity: "critical", count: 1 });
+    expect(res.status).toBe(500);
+  });
+
+  it("an unreadable disputes table degrades the run and falls back to skipping any job with a dispute_status", async () => {
+    const fn = await load();
+    seed(cancelledJob({ dispute_status: "resolved" }), 0);
+    scenario.reads.disputes = { error: { message: "boom", code: "XX000" } };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi({ refunded: 0 }));
+
+    const { b } = await run(fn);
+    expect(finding(b, "stripe_charge_not_refunded_on_cancelled_job")).toBeUndefined();
+    expect(b.ok).toBe(false);
+    expect((b.notes as string[]).join(" ")).toMatch(/dispute-split lookup failed/);
+  });
+
+  it("warns when Stripe refunded MORE than the payment_refunds ledger records (an untracked refund)", async () => {
     const fn = await load();
     seed(cancelledJob(), null); // refund went out, no ledger row
     stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi());
 
     const { b } = await run(fn);
-    expect(finding(b, "stripe_refund_ledger_mismatch")).toMatchObject({ severity: "warning", count: 1 });
+    const f = finding(b, "stripe_refund_untracked") as any;
+    expect(f).toMatchObject({ severity: "warning", count: 1 });
+    expect(f.sample[0]).toMatchObject({ direction: "stripe_more_than_ledger", stripe_refunded_cents: 2500, ledger_refunded_cents: 0, difference_cents: 2500 });
+    expect(finding(b, "stripe_refund_recorded_not_at_stripe")).toBeUndefined();
+  });
+
+  it("pages CRITICAL when the ledger records a refund Stripe never sent (the poster is owed money)", async () => {
+    const fn = await load();
+    seed(cancelledJob(), 2500);
+    // Ledger says $25 went back; Stripe refunded only $10. The ceiling check
+    // also fires here; the ledger finding is what names the missing refund.
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi({ refunded: 1000 }));
+
+    const { res, b } = await run(fn);
+    const f = finding(b, "stripe_refund_recorded_not_at_stripe") as any;
+    expect(f).toMatchObject({ severity: "critical", count: 1 });
+    expect(f.sample[0]).toMatchObject({ direction: "ledger_more_than_stripe", stripe_refunded_cents: 1000, ledger_refunded_cents: 2500, difference_cents: 1500 });
+    expect(finding(b, "stripe_refund_untracked")).toBeUndefined();
+    expect(res.status).toBe(500);
+  });
+
+  it("warns when the PaymentIntent's latest charge is not the one that took its money (more than one charge)", async () => {
+    const fn = await load();
+    seed();
+    const pi = refundedPi();
+    // amount_received 2800, but latest_charge only captured 1500: a second
+    // charge holds the rest, and every figure read from latest_charge is partial.
+    pi.latest_charge.amount_captured = 1500;
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(pi);
+
+    const { b } = await run(fn);
+    const f = finding(b, "stripe_charge_not_the_payment") as any;
+    expect(f).toMatchObject({ severity: "warning", count: 1 });
+    expect(f.sample[0]).toMatchObject({ amount_received_cents: 2800, latest_charge_captured_cents: 1500 });
+    // Not graded on partial numbers.
+    expect(finding(b, "stripe_charge_not_refunded_on_cancelled_job")).toBeUndefined();
+    expect(finding(b, "stripe_refund_untracked")).toBeUndefined();
   });
 
   it("warns when the PaymentIntent does not exist for this key (test/live mismatch)", async () => {
@@ -261,6 +332,28 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
     const { b } = await run(fn);
     expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
     expect(b.scanned.settled_jobs_with_payment_intent).toBe(0);
+  });
+
+  describe("time budget", () => {
+    afterEach(() => vi.restoreAllMocks());
+    it("stops the Stripe phase at its time budget and reports the unchecked jobs as a truncated scan", async () => {
+      const fn = await load();
+      const jobs = Array.from({ length: 25 }, (_, i) => cancelledJob({ id: `job-${i}`, stripe_payment_intent_id: `pi_${i}` }));
+      seed(jobs[0]);
+      scenario.reads.jobs = { rows: jobs };
+      scenario.reads.payment_refunds = { rows: jobs.map((j) => ({ job_id: j.id, amount_cents: 2500 })) };
+      const realNow = Date.now.bind(Date);
+      let skew = 0;
+      vi.spyOn(Date, "now").mockImplementation(() => realNow() + skew);
+      // Each read "takes" 3s of wall clock: the first round of 10 spends 30s.
+      stripeMock.paymentIntents.retrieve.mockImplementation(async () => { skew += 3_000; return refundedPi(); });
+
+      const { res, b } = await run(fn);
+      expect(stripeMock.paymentIntents.retrieve.mock.calls.length).toBeLessThan(25);
+      expect((b.scan_caps as string[]).join(" ")).toMatch(/stripe comparison stopped at its \d+s budget: \d+ of 25 checked/);
+      expect(b.ok).toBe(false);
+      expect(res.status).toBe(500);
+    });
   });
 
   it("is READ-ONLY at Stripe: retrieve only, never a refund, capture, cancel or transfer", async () => {

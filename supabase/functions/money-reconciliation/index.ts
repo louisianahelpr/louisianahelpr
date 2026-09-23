@@ -38,7 +38,9 @@
 // inside a week. Default scope is therefore `is_seed = false`. Pass
 // `?include_seed=1` for a manual run that also scans fixtures — useful for
 // proving the checks actually fire, since (as of 2026-08-25) every prod job
-// that has ever touched Stripe is a seed row.
+// that has ever touched Stripe is a seed row. Hits on seed jobs are returned
+// as `seed_findings` and go to the daily digest (postSlackOpsAlert `seed`);
+// they never page and never fail the run (docs/OPEN.md Q90).
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
@@ -175,15 +177,17 @@ class Check {
   get count() {
     return this.hits.length;
   }
-  finding(): Finding | null {
-    if (!this.hits.length) return null;
+  /** The finding over the hits `keep` accepts (all of them by default). */
+  finding(keep: (hit: unknown) => boolean = () => true): Finding | null {
+    const hits = this.hits.filter(keep);
+    if (!hits.length) return null;
     return {
       check: this.name,
       severity: this.severity,
       detail: this.detail,
-      count: this.hits.length,
-      sample: this.hits.slice(0, MAX_IDS_PER_CHECK),
-      truncated: this.hits.length > MAX_IDS_PER_CHECK,
+      count: hits.length,
+      sample: hits.slice(0, MAX_IDS_PER_CHECK),
+      truncated: hits.length > MAX_IDS_PER_CHECK,
     };
   }
 }
@@ -1106,8 +1110,29 @@ serve(async (req) => {
     // before), every one of which was torn down afterwards. If you are looking
     // at a 500 here, compare `scanned.jobs` against the previous run before
     // believing anything about the money.
+    //
+    // SEED FINDINGS DO NOT PAGE (docs/OPEN.md Q90). A `?include_seed=1` run
+    // (manual, to prove the checks fire) used to post every hit to
+    // #ops-alerts at `critical` and fail the run with a 500: 2026-09-23
+    // ~07:54Z it opened ops_alert_ledger c974c7b3 for 17 discrepancies, every
+    // one on an is_seed job. A hit is SEED when the job it names is is_seed;
+    // those go to `seed_findings`, to the daily digest (postSlackOpsAlert
+    // `seed: true`), and never count as a defect. Everything else (a real
+    // job's hit, or a hit that names no job, e.g. the gift-card tree) pages
+    // exactly as before. On the default run `jobRows` holds no seed job, so
+    // nothing here changes what the nightly cron reports.
+    const seedJobIds = new Set(
+      jobRows.filter((j) => j.is_seed === true).map((j) => j.id as string),
+    );
+    const isSeedHit = (hit: unknown): boolean => {
+      const id = (hit as { job_id?: unknown } | null)?.job_id;
+      return typeof id === "string" && seedJobIds.has(id);
+    };
     const findings = Object.values(checks)
-      .map((c) => c.finding())
+      .map((c) => c.finding((h) => !isSeedHit(h)))
+      .filter((f): f is Finding => f !== null);
+    const seedFindings = Object.values(checks)
+      .map((c) => c.finding(isSeedHit))
       .filter((f): f is Finding => f !== null);
 
     const summary = {
@@ -1140,6 +1165,9 @@ serve(async (req) => {
       },
       checks_run: Object.values(checks).map((c) => c.name),
       findings,
+      // Hits on is_seed jobs (only possible with ?include_seed=1). Reported,
+      // sent to the digest, never paged and never a defect; see above.
+      seed_findings: seedFindings,
       notes,
       scan_caps: caps,
       run_at: new Date().toISOString(),
@@ -1157,17 +1185,35 @@ serve(async (req) => {
     // night is an alarm nobody reads. A degraded run (a check that could not
     // run at all) does speak, because a silent reconciler that scanned nothing
     // is indistinguishable from a healthy one.
-    if (worst) {
+    const findingFields = (list: Finding[]): Record<string, string | number> => {
       const fields: Record<string, string | number> = {
         scope: summary.scope,
         jobs_scanned: jobRows.length,
       };
-      for (const f of findings) {
+      for (const f of list) {
         fields[f.check] = `${f.count}${f.truncated ? "+" : ""} — ${f.sample
           .map((s) => (s as { job_id?: string; time_credit_id?: string }).job_id ??
             (s as { time_credit_id?: string }).time_credit_id ?? "?")
           .join(", ")}`;
       }
+      return fields;
+    };
+    if (seedFindings.length) {
+      const seedWorst: Severity = seedFindings.some((f) => f.severity === "critical")
+        ? "critical"
+        : seedFindings.some((f) => f.severity === "warning") ? "warning" : "info";
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: seedWorst,
+        seed: true,
+        title: `Money reconciliation found ${seedFindings.length} discrepanc${seedFindings.length === 1 ? "y" : "ies"} on SEED jobs`,
+        message:
+          "Every job named here is is_seed (a ?include_seed=1 run). Digest only, it does not page. Real jobs are reported separately.",
+        fields: findingFields(seedFindings),
+      });
+    }
+    if (worst) {
+      const fields = findingFields(findings);
       await postSlackOpsAlert({
         kind: "money_at_risk",
         severity: worst,

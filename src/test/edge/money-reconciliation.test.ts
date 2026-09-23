@@ -205,6 +205,54 @@ describe("money-reconciliation edge function", () => {
     expect(slackAlerts).toHaveLength(1);
   });
 
+  // ── include_seed runs never page (docs/OPEN.md Q90) ─────────────────────
+  // 2026-09-23 ~07:54Z: manual `?include_seed=1` verification runs found 17
+  // discrepancies, every one on an is_seed job, and paged #ops-alerts at
+  // critical (ops_alert_ledger c974c7b3). Seed findings are real output — they
+  // prove the checks fire — but they belong in the digest, not the channel.
+  describe("seed findings (?include_seed=1)", () => {
+    const seedUrl = "https://edge.test/fn?include_seed=1";
+    const seedOnly = () => {
+      seedCleanLedger();
+      const jobs = scenario.reads.jobs as { rows: Array<Record<string, unknown>> };
+      jobs.rows[0].is_seed = true;
+      scenario.reads.payout_transfers = { rows: [] };
+    };
+
+    it("a seed-only discrepancy goes to the digest: no page, no defect, still in the body", async () => {
+      const fn = await loadConfigured();
+      seedOnly();
+      const res = await fn.fetch(cronRequest(fn, seedUrl));
+      const b = await body(res);
+
+      const paged = (slackAlerts as Array<{ seed?: boolean }>).filter((a) => !a.seed);
+      expect(paged).toHaveLength(0);
+      expect(slackAlerts).toHaveLength(1);
+      expect((slackAlerts[0] as { seed?: boolean }).seed).toBe(true);
+      expect(res.status).toBe(200);
+      expect(b.findings).toEqual([]);
+      const seedFindings = b.seed_findings as Array<{ check: string }>;
+      expect(seedFindings.map((f) => f.check)).toContain("released_without_payout_transfer");
+    });
+
+    it("a REAL discrepancy on the same run still pages, naming only the real job", async () => {
+      const fn = await loadConfigured();
+      seedOnly();
+      const jobs = scenario.reads.jobs as { rows: Array<Record<string, unknown>> };
+      jobs.rows.push({ ...jobs.rows[0], id: "job-real", is_seed: false });
+      const res = await fn.fetch(cronRequest(fn, seedUrl));
+      const b = await body(res);
+
+      const paged = (slackAlerts as Array<{ seed?: boolean; fields?: Record<string, string> }>).filter((a) => !a.seed);
+      expect(paged).toHaveLength(1);
+      expect(paged[0].fields?.released_without_payout_transfer).toContain("job-real");
+      expect(paged[0].fields?.released_without_payout_transfer).not.toContain("job-1");
+      expect(res.status).toBe(500);
+      const findings = b.findings as Array<{ check: string; count: number }>;
+      expect(findings.find((f) => f.check === "released_without_payout_transfer")?.count).toBe(1);
+    });
+  });
+
   // ── refunded_with_live_payout class check ─────────────────────────────────
   // A job flipped to payment_status='refunded' while a live (paid) payout_transfers
   // row still exists is the double-outflow: the poster was refunded and the Helpr

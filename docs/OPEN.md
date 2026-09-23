@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 20 done, 5 partly done (fixed, protection pending), 64 open. Source of truth for work.
+- **Queue (this file):** 20 done, 5 partly done (fixed, protection pending), 66 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 90 items — 20 done, 5 partly done (fixed, protection pending), 65 open.**
+**Queue: 91 items — 20 done, 5 partly done (fixed, protection pending), 66 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1695,3 +1695,11 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   ops_alert_close evidence. Also: include_seed runs must never page the
   owner's channel. Route them like the seed-policy rule (Q2), then verify
   with a re-run.
+- [ ] **Q91 Three more include_seed functions still page for seed subjects.**
+  auto-release-payment, process-scheduled-payouts and
+  subscription-reconciliation read `?include_seed=1` and post per-job alerts
+  with no `seed:` flag, so a manual seed run of any of them pages
+  #ops-alerts. Route each alert by its subject's is_seed (as
+  money-reconciliation now does), then remove it from KNOWN_UNROUTED in
+  src/test/includeSeedRunsNeverPage.test.ts (the list is exact and
+  shrink-only). Money-moving code: REVIEW ONLY pass required.

@@ -202,6 +202,18 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/disputePayoutStamp.ts";`,
   );
 
+  // Q202: the job price cap and the 3D Secure rule have ZERO imports, so the
+  // generated file points at the REAL modules. They are the behaviour under
+  // test (jobBudgetCapIsOneConstant / threeDSecureOnLargeCharges).
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/jobBudgetLimits\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/jobBudgetLimits.ts";`,
+  );
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/threeDSecure\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/threeDSecure.ts";`,
+  );
+
   // Captured-escrow resolver: `_shared/capturedEscrow.ts` has ZERO imports (it
   // is structurally typed over the PaymentIntent), so the generated file points
   // at the REAL module — same reasoning as payoutClaim above. It is the single

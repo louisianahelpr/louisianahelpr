@@ -631,7 +631,7 @@ async function apply() {
       title: LONG("SEED Complete post-hurricane cleanup of a raised Acadian cottage: tear out soaked drywall, haul debris, mold-treat the crawlspace and re-hang every shutter 🌀", 150),
       description: LONG("SEED audit fixture. The water reached thirty-one inches inside; everything below that line comes out. Référence DOSSIER-FEMA-caseAX-QLR. ", 5000),
       category: "storm_prep",
-      budget: 5000,
+      budget: 1000, // MAX_JOB_BUDGET_DOLLARS (_shared/jobBudgetLimits.ts, Q202)
       status: "open",
     },
     ...Array.from({ length: 110 }, (_, i) => ({
@@ -639,7 +639,7 @@ async function apply() {
       customer_id: ids.heavy,
       title: ["SEED Mow, edge and blow a corner lot 🌿", "SEED Déménagement: 3 chambres, 2e étage", "SEED Assemble IKEA PAX ×4 — 有说明书", "SEED Supercalifragilisticexpialidociousfencerepairjob", "SEED Clean gutters"][i % 5],
       category: ["cleaning", "yard_work", "moving", "errands", "handyman", "painting", "delivery", "assembly", "other", "events"][i % 10],
-      budget: [10, 45, 180, 999, 2500, 4999, 5000][i % 7],
+      budget: [10, 45, 180, 450, 750, 999, 1000][i % 7],
       status: "open",
     })),
   ].map((j) => ({ ...jobBase, ...j }));

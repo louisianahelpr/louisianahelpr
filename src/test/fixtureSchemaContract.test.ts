@@ -142,7 +142,8 @@ describe("the constraint reader really read the constraints", () => {
       "cancelled", "abandoned", "failed", "chargeback", "cancelling",
     ]);
     expect((jobs.get("jobs_pricing_mode_check") as { values: string[] }).values).toEqual(["set_price"]);
-    expect(jobs.get("jobs_budget_range")).toMatchObject({ kind: "range", min: 10, max: 5000 });
+    // 5000 until Q202 (2026-09-23); the one shared constant is jobBudgetLimits.ts.
+    expect(jobs.get("jobs_budget_range")).toMatchObject({ kind: "range", min: 10, max: 1000 });
 
     // Replacement semantics: notifications.type was defined inline with 7
     // values and later re-added with 18. Only the newer one may survive.

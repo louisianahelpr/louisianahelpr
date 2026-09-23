@@ -121,7 +121,8 @@ describe("the helper is told when the money actually moves", () => {
     // The regression that hurt most was SILENCE. Assert the terminal branch
     // still speaks to the payout rather than reverting to a bare chip.
     expect(terminalBranch()).toMatch(/payout/i);
-    expect(terminalBranch()).toContain("PAYOUT_HOLD_HOURS");
+    // Q202: approval is not the clock any more; the job being marked done is.
+    expect(terminalBranch()).toContain("STANDARD_PAYOUT_PHRASE");
   });
 
   it("distinguishes released from merely approved", () => {
@@ -138,20 +139,23 @@ describe("the schedule the copy describes is the one the cron runs", () => {
     expect(PAYOUT_HOLD_HOURS).toBeGreaterThan(0);
   });
 
-  it("matches the hold create-payment actually writes", () => {
-    // The source of the whole finding: an unconditional +24h at the release
-    // write. If that literal changes, this fails and the copy gets revisited.
+  it("matches the schedule create-payment actually writes", () => {
+    // The source of the whole finding was an unconditional +24h at the release
+    // write. Since Q202 (2026-09-23) the release write schedules the standard
+    // payout 3 days after the job was marked done, from the shared function
+    // the copy's STANDARD_PAYOUT_PHRASE is built from. A literal comes back → red.
     const fn = readFileSync(
       resolve(process.cwd(), "supabase/functions/create-payment/index.ts"),
       "utf8",
     );
-    expect(fn).toContain("Date.now() + 24 * 60 * 60 * 1000");
-    expect(PAYOUT_HOLD_HOURS).toBe(24);
+    expect(fn).toMatch(/const payoutTime = standardPayoutAtIso\(/);
+    expect(fn).not.toContain("Date.now() + 24 * 60 * 60 * 1000");
+    expect(PAYOUT_HOLD_HOURS).toBe(48);
   });
 });
 
 // SILENCE IN THE COMPLETED STATE — the regression this file exists for. Until
 // 2026-09-21 this exact mutation SURVIVED (terminalBranch() ran to the end of
 // the file and read the other branch's copy); it now fails on the missing
-// PAYOUT_HOLD_HOURS inside the approved arm.
-// @mutate src/components/activity/appliedJobCard/steps/SubmittedStep.tsx | Approved. Your payout releases {PAYOUT_HOLD_HOURS} hours after approval, | Approved.
+// STANDARD_PAYOUT_PHRASE inside the approved arm (PAYOUT_HOLD_HOURS before Q202).
+// @mutate src/components/activity/appliedJobCard/steps/SubmittedStep.tsx | Approved. Your payout is sent {STANDARD_PAYOUT_PHRASE}, | Approved.

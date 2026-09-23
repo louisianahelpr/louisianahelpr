@@ -12,13 +12,13 @@
 //
 // Shown able to fail 2026-09-20, once per load-bearing claim:
 //   * the DB-constraint claim — one budget over the `jobs_budget_range` ceiling
-//     (5000 → 5001) turns "stays inside the constraints the database enforces"
+//     (1000 → 1001 since Q202) turns "stays inside the constraints the database enforces"
 //     red on job 1e…006a;
 //   * the additive claim — dropping the normal seed out of `add()` turns "is
 //     additive: every normal table and every normal id is still present" red
 //     with the normal ids listed as missing.
 //
-// @mutate e2e/happy-path/seedDataHeavy.ts | budget: [10, 45, 180, 999, 2500, 4999, 5000][i % 7], | budget: [10, 45, 180, 999, 2500, 4999, 5001][i % 7],
+// @mutate e2e/happy-path/seedDataHeavy.ts | budget: [10, 45, 180, 450, 750, 999, 1000][i % 7], | budget: [10, 45, 180, 450, 750, 999, 1001][i % 7],
 // @mutate e2e/happy-path/seedDataHeavy.ts | => [...(SEED_TABLES[table] ?? []), ...extra]; | => [...extra];
 //
 // Imported by computed path on purpose: a static `import "../../e2e/…"` would
@@ -28,6 +28,7 @@ import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Constants } from "@/integrations/supabase/types";
+import { MAX_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS } from "../../supabase/functions/_shared/jobBudgetLimits";
 import { extractConstraints } from "./helpers/schemaConstraints";
 
 const E2E = resolve(__dirname, "../../e2e/happy-path");
@@ -151,8 +152,8 @@ describe("heavy seed", () => {
     const t = heavy.HEAVY_TABLES;
     for (const j of t.jobs as R[]) {
       expect(Number(j.budget), String(j.id)).toBeGreaterThanOrEqual(10);
-      expect(Number(j.budget), String(j.id)).toBeLessThanOrEqual(5000);
-      if (j.urgent_fee != null) expect(Number(j.urgent_fee)).toBeLessThanOrEqual(5000);
+      expect(Number(j.budget), String(j.id)).toBeLessThanOrEqual(MAX_JOB_BUDGET_DOLLARS);
+      if (j.urgent_fee != null) expect(Number(j.urgent_fee)).toBeLessThanOrEqual(MAX_URGENT_FEE_DOLLARS);
       expect(j.pricing_mode).toBe("set_price");
     }
     for (const tip of t.tips as R[]) expect(Number(tip.amount)).toBeLessThanOrEqual(1000);

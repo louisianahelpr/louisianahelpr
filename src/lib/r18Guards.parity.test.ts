@@ -101,12 +101,17 @@ describe("R18 — money duplications that had no guard", () => {
 
     expect(
       hoursInSource.length,
-      "auto-release-payment no longer expresses its windows as N * 60 * 60 * 1000 — " +
+      "auto-release-payment no longer expresses its cutoff as N * 60 * 60 * 1000 — " +
         "update this guard to read whatever replaced it, do not delete it",
-    ).toBeGreaterThanOrEqual(2);
+    ).toBeGreaterThanOrEqual(1);
 
     expect(hoursInSource).toContain(AUTO_COMPLETE_HOURS);
-    expect(hoursInSource).toContain(PAYOUT_HOLD_HOURS);
+    // Q202: the payout time is no longer a literal. It is 3 days after the job
+    // was marked done, from the shared function (PAYOUT_HOLD_HOURS after an
+    // auto-complete). A literal `+ N * 60 * 60 * 1000` payout time is the drift.
+    expect(cron).toMatch(/const payoutTime = standardPayoutAtIso\(job\.helper_completed_at\);/);
+    expect(hoursInSource.filter((h) => h !== AUTO_COMPLETE_HOURS)).toEqual([]);
+    expect(PAYOUT_HOLD_HOURS).toBe(48);
   });
 
   // ── 3. Stripe's cut, hardcoded a third time in SQL ─────────────────────

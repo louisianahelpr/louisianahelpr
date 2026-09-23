@@ -64,7 +64,7 @@ const transfer = (id: string, amount: number, over: Record<string, unknown> = {}
   id, amount, amount_reversed: 0, created: 1, destination: "acct_helper", transfer_group: "job_job-1", ...over,
 });
 const row = (over: Record<string, unknown> = {}) => ({
-  id: "cb-1", dispute_id: "dp_1", job_id: "job-1", helper_id: "helper-1", stripe_transfer_id: "tr_1",
+  id: "cb-1", dispute_id: "dp_1", job_id: "job-1", helper_id: "helper-1", original_transfer_id: "tr_1",
   stripe_account_id: "acct_helper", transfer_amount_cents: 9000, reversed_cents: 9000,
   stripe_reversal_id: "trr_1", repay_transfer_id: null, status: "reversed", ...over,
 });
@@ -112,7 +112,7 @@ describe("card-dispute clawback (Q202)", () => {
 
       // Claimed in the ledger before the call, marked reversed after it.
       const claim = writesTo("chargeback_clawbacks", "insert")[0];
-      expect(payload(claim)).toMatchObject({ dispute_id: "dp_1", stripe_transfer_id: "tr_1", reversed_cents: 9000, status: "reversing" });
+      expect(payload(claim)).toMatchObject({ dispute_id: "dp_1", original_transfer_id: "tr_1", reversed_cents: 9000, status: "reversing" });
       expect(writesTo("chargeback_clawbacks", "update").some((w) => payload(w).status === "reversed")).toBe(true);
 
       // The payee is told, in role-neutral words.
@@ -182,7 +182,7 @@ describe("card-dispute clawback (Q202)", () => {
       const res = await post(fn);
       expect(res.status).toBe(200);
       const failed = writesTo("chargeback_clawbacks", "update").find((w) => payload(w).status === "reverse_failed");
-      expect(payload(failed!).error).toMatch(/Insufficient funds/);
+      expect(payload(failed!).failure_reason).toMatch(/Insufficient funds/);
       expect(alerts().some((a) => a.severity === "critical" && /clawback REFUSED/.test(a.title))).toBe(true);
     });
 

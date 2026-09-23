@@ -14,7 +14,7 @@
 --   reversing     -> the reversal is being attempted (claimed before the Stripe call)
 --   reversed      -> Stripe reversal created (stripe_reversal_id, reversed_cents)
 --   reverse_failed-> Stripe refused (e.g. the connected account's balance is
---                    short); error says why; ops is paged (critical alert ledger)
+--                    short); failure_reason says why; ops is paged (critical alert ledger)
 --   repaying      -> dispute WON, the pay-back transfer is being attempted
 --   repaid        -> pay-back transfer created (repay_transfer_id)
 --   repay_failed  -> pay-back refused; ops paged
@@ -37,7 +37,7 @@ BEGIN
     dispute_id text NOT NULL,
     job_id uuid NOT NULL REFERENCES public.jobs(id) ON DELETE RESTRICT,
     helper_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
-    stripe_transfer_id text NOT NULL,
+    original_transfer_id text NOT NULL,
     stripe_account_id text,
     transfer_amount_cents integer NOT NULL CHECK (transfer_amount_cents >= 0),
     reversed_cents integer NOT NULL DEFAULT 0 CHECK (reversed_cents >= 0),
@@ -45,14 +45,14 @@ BEGIN
     repay_transfer_id text,
     status text NOT NULL DEFAULT 'reversing'
       CHECK (status IN ('reversing', 'reversed', 'reverse_failed', 'repaying', 'repaid', 'repay_failed', 'kept')),
-    error text,
+    failure_reason text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT chargeback_clawbacks_dispute_transfer_key UNIQUE (dispute_id, stripe_transfer_id)
+    CONSTRAINT chargeback_clawbacks_dispute_transfer_key UNIQUE (dispute_id, original_transfer_id)
   );
 
   CREATE INDEX IF NOT EXISTS chargeback_clawbacks_job_id_idx ON public.chargeback_clawbacks (job_id);
-  CREATE INDEX IF NOT EXISTS chargeback_clawbacks_transfer_idx ON public.chargeback_clawbacks (stripe_transfer_id);
+  CREATE INDEX IF NOT EXISTS chargeback_clawbacks_transfer_idx ON public.chargeback_clawbacks (original_transfer_id);
   CREATE INDEX IF NOT EXISTS chargeback_clawbacks_helper_idx ON public.chargeback_clawbacks (helper_id);
 
   ALTER TABLE public.chargeback_clawbacks ENABLE ROW LEVEL SECURITY;

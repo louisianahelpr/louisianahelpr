@@ -275,6 +275,79 @@ export type Database = {
         }
         Relationships: []
       }
+      chargeback_clawbacks: {
+        Row: {
+          created_at: string
+          dispute_id: string
+          failure_reason: string | null
+          helper_id: string | null
+          id: string
+          job_id: string
+          original_transfer_id: string
+          repay_transfer_id: string | null
+          reversed_cents: number
+          status: string
+          stripe_account_id: string | null
+          stripe_reversal_id: string | null
+          transfer_amount_cents: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dispute_id: string
+          failure_reason?: string | null
+          helper_id?: string | null
+          id?: string
+          job_id: string
+          original_transfer_id: string
+          repay_transfer_id?: string | null
+          reversed_cents?: number
+          status?: string
+          stripe_account_id?: string | null
+          stripe_reversal_id?: string | null
+          transfer_amount_cents: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dispute_id?: string
+          failure_reason?: string | null
+          helper_id?: string | null
+          id?: string
+          job_id?: string
+          original_transfer_id?: string
+          repay_transfer_id?: string | null
+          reversed_cents?: number
+          status?: string
+          stripe_account_id?: string | null
+          stripe_reversal_id?: string | null
+          transfer_amount_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chargeback_clawbacks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chargeback_clawbacks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chargeback_clawbacks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cron_catchup_policy: {
         Row: {
           catch_up: boolean

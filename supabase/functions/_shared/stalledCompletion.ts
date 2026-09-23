@@ -58,11 +58,13 @@
 //   24h — `escrowTiming.ts` AUTO_COMPLETE_HOURS. That is already the window
 //         this app gives a silent party to act before anything happens to
 //         their job; the second nudge lands exactly at it.
-//   48h — `escrowTiming.ts` TOTAL_TO_PAYOUT_HOURS (24 auto-complete + 24
-//         payout hold): the moment funds WOULD have reached the Helpr had
-//         either side marked the job done. The owner's rule is that money
-//         never moves here — so at the instant it would have moved, a person
-//         is asked instead. Same clock, different outcome.
+//   48h — chosen as the moment funds WOULD have reached the Helpr under the
+//         schedule of the day (24 auto-complete + 24 payout hold). The owner's
+//         rule is that money never moves here, so a person is asked instead.
+//         Q202 (2026-09-23) moved standard pay to 3 days after the job is
+//         marked done (TOTAL_TO_PAYOUT_HOURS = 72) to buffer card disputes; that
+//         is a money-safety wait, not a reason to page an admin a day later
+//         about a job nobody marked done, so this stays 48 on its own.
 //
 // And one guard borrowed from `arrivalNudge.ts`: never escalate in the same
 // breath as a late first nudge. If this sweep ships (or recovers from an

@@ -20,19 +20,19 @@
  *   - 45 extra counterparty profiles: very long, hyphenated, accented, CJK,
  *     Vietnamese, Arabic and emoji names; 1000-character bios.
  *   - 1 job with a 150-character title, a ~5000-character description, the
- *     maximum budget and urgent fee the DB admits (5000 / 5000), and 45
+ *     maximum budget and urgent fee the DB admits (1000 / 1000 since Q202), and 45
  *     applicants with long messages.
  *   - 110 extra OPEN jobs in browse (so the feed holds 110+ on its own),
- *     emoji and multibyte titles, budgets up to the 5000 ceiling.
+ *     emoji and multibyte titles, budgets up to the 1000 ceiling.
  *   - A 220-message thread between the two test accounts, including 4000-char
  *     messages (the `char_length(content) <= 4000` ceiling), emoji-only lines
  *     and unbroken strings.
- *   - 60 completed, released jobs for the helper at 3000–5000 each, with
- *     payouts of up to $4,400 and a single $250,000 admin payout row, tips at
+ *   - 60 completed, released jobs for the helper at 500–1000 each, with
+ *     payouts of up to $880 and a single $250,000 admin payout row, tips at
  *     the 1000 ceiling: earnings totals in six figures.
  *   - 60 notifications per test account; 50 long reviews for the helper.
  *
- * Constraint notes: `jobs_budget_range` caps budget at 5000 and
+ * Constraint notes: `jobs_budget_range` caps budget at 1000 (Q202) and
  * `tips_amount_positive` caps a tip at 1000, so "very large money" comes from
  * volume and from the uncapped `payout_transfers.amount_cents` /
  * `gift_cards.amount`, never from an impossible row. No client or DB maximum
@@ -147,8 +147,8 @@ const heavyOpenJobs = Array.from({ length: 110 }, (_, i) => ({
   category: CATEGORIES[i % CATEGORIES.length],
   status: "open" as const,
   payment_status: "escrow",
-  budget: [10, 45, 180, 999, 2500, 4999, 5000][i % 7],
-  urgent_fee: i % 5 === 0 ? 5000 : null,
+  budget: [10, 45, 180, 450, 750, 999, 1000][i % 7],
+  urgent_fee: i % 5 === 0 ? 1000 : null,
   is_urgent: i % 5 === 0,
   is_group_job: i % 9 === 0,
   helpers_needed: i % 9 === 0 ? 12 : 1,
@@ -167,8 +167,8 @@ const bigJob = {
   category: "storm_prep" as const,
   status: "open" as const,
   payment_status: "escrow",
-  budget: 5000,
-  urgent_fee: 5000,
+  budget: 1000,
+  urgent_fee: 1000,
   is_urgent: true,
   location: "1234 Rue de la Paix Extraordinairement Longue, Apartment 5B, Saint-Martinville, LA 70582",
   parish: "St. Martin",
@@ -187,7 +187,7 @@ const threadJob = {
   category: "handyman" as const,
   status: "in_progress" as const,
   payment_status: "escrow",
-  budget: 5000,
+  budget: 1000,
   location: "New Orleans, LA",
   parish: "Orleans",
   date_needed: DATE(0),
@@ -205,9 +205,9 @@ const heavyCompleted = Array.from({ length: 60 }, (_, i) => ({
   category: CATEGORIES[(i + 2) % CATEGORIES.length],
   status: "completed" as const,
   payment_status: "released",
-  budget: 3000 + ((i * 97) % 2001),
-  urgent_fee: i % 4 === 0 ? 5000 : null,
-  platform_fee_amount: Math.round((3000 + ((i * 97) % 2001)) * 12) / 100,
+  budget: 500 + ((i * 97) % 501),
+  urgent_fee: i % 4 === 0 ? 1000 : null,
+  platform_fee_amount: Math.round((500 + ((i * 97) % 501)) * 12) / 100,
   helper_fee_percent: 12,
   location: "Lafayette, LA",
   parish: PARISHES[i % PARISHES.length],

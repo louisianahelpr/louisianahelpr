@@ -7,7 +7,8 @@
  * `RELEASE_PAYOUT_AUTO=1` — hands matured jobs to `release-payout`.
  *
  * WHY THIS FILE EXISTS. Phase 1's helper notification quotes a dollar figure:
- * "$X will be transferred to your account in 24 hours." No money moves here —
+ * "$X will be sent to your account 3 days after the job is marked done." (Q202)
+ * No money moves here —
  * `process-scheduled-payouts` re-resolves the rate and pays — so a wrong number
  * on this path is not a wrong payout. It is a wrong PROMISE, which is the same
  * defect class as a report emailing the wrong figure, and the helper has no way
@@ -223,7 +224,7 @@ function helperNotification(): Record<string, unknown> | undefined {
 /** The whole-dollar figure the helper was promised, parsed back out of the copy. */
 function previewedDollars(): number {
   const msg = String(helperNotification()?.message ?? "");
-  const m = msg.match(/\$([\d,]+) will be transferred/);
+  const m = msg.match(/\$([\d,]+) will be sent/);
   if (!m) throw new Error(`no payout figure in helper notification: ${msg}`);
   return Number(m[1].replace(/,/g, ""));
 }

@@ -7,7 +7,7 @@ import type { CategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { categoryPricing, getSmartPrice } from "@/lib/pricingGuide";
 import { formatPrice, formatPriceExact } from "@/lib/format";
-import { URGENT_FEE_FLOOR_DOLLARS } from "@/lib/moneyLimits";
+import { MAX_JOB_BUDGET_DOLLARS, URGENT_FEE_FLOOR_DOLLARS, formatDollarsWhole } from "@/lib/moneyLimits";
 
 /**
  * PRICING_MODE_REMOVED — 2026-08-19.
@@ -168,6 +168,7 @@ export function BudgetSection({
   // file, the FORM the poster actually reads, hand-typed the floor. If the form
   // and the validator ever disagree, the user is shown a minimum the submit
   // path then rejects.
+  const overBudgetCap = (parseFloat(budget) || 0) > MAX_JOB_BUDGET_DOLLARS;
   const urgentFeeNum = parseFloat(urgentFee) || 0;
   const showUrgentMinWarning =
     isUrgent && urgentFee.trim() !== "" && urgentFeeNum < URGENT_FEE_FLOOR_DOLLARS;
@@ -238,6 +239,24 @@ export function BudgetSection({
             >
               <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
                 Jobs under ${lowballFloor} rarely get applicants
+              </p>
+            </div>
+          )}
+
+          {/* Price cap (Q202, $1,000 since 2026-09-23). Said the moment the
+              typed budget passes it, not only as a submit-time toast. The
+              number is the shared constant the server and the DB CHECK use. */}
+          {overBudgetCap && (
+            <div
+              className="flex items-center gap-2 rounded-ds-md px-3 py-2 border"
+              style={{
+                background: "hsl(var(--amber-tint) / 0.10)",
+                borderColor: "hsl(var(--amber-tint) / 0.30)",
+              }}
+              role="status"
+            >
+              <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                The most a job can be is {formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}. Split a bigger project into separate jobs.
               </p>
             </div>
           )}

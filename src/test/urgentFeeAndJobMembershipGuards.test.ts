@@ -142,12 +142,12 @@ describe("create-payment recomputes the urgent fee, never trusts the stored colu
     "utf8",
   );
 
-  it("charges the urgent tip only when is_urgent, floored at $5 and ceilinged at $5,000", () => {
+  it("charges the urgent tip only when is_urgent, floored at $5 and ceilinged at the shared budget ceiling ($1,000 since Q202)", () => {
     // Anchored at the start of a line so a trailing `// ... = 500` comment
     // cannot satisfy the pin while the real constant is lowered (proved
     // 2026-09-20: `= 1; // was URGENT_FEE_FLOOR_CENTS = 500;` kept this green).
     expect(src).toMatch(/^\s*const URGENT_FEE_FLOOR_CENTS = 500;/m);
-    expect(src).toMatch(/^\s*const URGENT_FEE_CEILING_CENTS = 500000;/m);
+    expect(src).toMatch(/^\s*const URGENT_FEE_CEILING_CENTS = MAX_URGENT_FEE_DOLLARS \* 100;/m);
     // The charge branches on is_urgent and floors via Math.max, never reads the
     // raw column back into the line item.
     expect(flat(src)).toMatch(/urgentFeeCents = job\.is_urgent \? Math\.min\( Math\.max\(storedUrgentFeeCents, URGENT_FEE_FLOOR_CENTS\)/);

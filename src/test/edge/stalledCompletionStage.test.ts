@@ -64,10 +64,14 @@ describe("the thresholds are the app's own constants, not new numbers", () => {
     expect(STALLED_SECOND_AFTER_HOURS).toBe(AUTO_COMPLETE_HOURS);
   });
 
-  it("a human is asked at TOTAL_TO_PAYOUT_HOURS — the instant the money would have landed", () => {
+  it("a human is asked at 48h — decoupled from TOTAL_TO_PAYOUT_HOURS since Q202", () => {
     // The owner's rule is that money never moves on this path. So at the exact
     // moment the normal path would have paid out, a person is asked instead.
-    expect(STALLED_ESCALATE_AFTER_HOURS).toBe(TOTAL_TO_PAYOUT_HOURS);
+    // Q202 (2026-09-23) lengthened the standard payout to 72h after done as a
+    // card-dispute buffer. The admin escalation for a job NOBODY marked done
+    // was not part of that decision and stays at 48h (see stalledCompletion.ts).
+    expect(STALLED_ESCALATE_AFTER_HOURS).toBe(48);
+    expect(STALLED_ESCALATE_AFTER_HOURS).toBeLessThan(TOTAL_TO_PAYOUT_HOURS);
   });
 
   it("the first-nudge grace is the app's finest lateness unit", () => {

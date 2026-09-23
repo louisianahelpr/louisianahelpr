@@ -7783,7 +7783,7 @@ sure someone hears it and closes it.
   which resolves against the app origin. Sign them at display time (ties to
   Q23), with a check that every portfolio reader resolves paths. Found by the
   Q22 review.
-- [ ] **Q38 No watch for NOT VALID constraints on user-written tables.** If a
+- [x] **Q38 DONE: scripts/check-unvalidated-constraints.mjs runs after every db-deploy and nightly in db-drift-detect.** Live 2026-09-23: 281 public constraints, all validated (the only NOT VALID one on prod is Supabase-owned realtime.messages). --inject-fake exits 1; a read under 50 constraints refuses to report clean. Was: No watch for NOT VALID constraints on user-written tables. If a
   VALIDATE ever fails, the migration only logs a WARNING, and every later
   UPDATE of that row fails with an opaque check_violation. Add a live check
   (pg_constraint.convalidated = false on public tables) to db-deploy post-apply

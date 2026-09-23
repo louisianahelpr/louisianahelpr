@@ -227,6 +227,19 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/audit/function-body-drift.mjs
 
+      # A constraint left NOT VALID (a migration's VALIDATE fell back to a
+      # WARNING) fails the next UPDATE of the violating row with an opaque
+      # check_violation. Nothing read pg_constraint.convalidated until
+      # 2026-09-23 (Q38). Same continue-on-error + fail-at-the-end shape.
+      - name: Every public constraint is validated
+        id: unvalidated_constraints
+        continue-on-error: true
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-unvalidated-constraints.mjs
+
       - name: Compute drift
         id: drift
         if: steps.precheck.outputs.skip != 'true'
@@ -449,6 +462,7 @@ jobs:
           LIVE_PRIVILEGES: ${{ steps.live_privileges.outcome }}
           ANON_TABLE_GRANTS: ${{ steps.anon_table_grants.outcome }}
           FUNCTION_BODY_DRIFT: ${{ steps.function_body_drift.outcome }}
+          UNVALIDATED_CONSTRAINTS: ${{ steps.unvalidated_constraints.outcome }}
         run: |
           set -euo pipefail
           if [ "${TYPES_FRESH:-success}" = "failure" ]; then
@@ -472,6 +486,10 @@ jobs:
           if [ "${ANON_TABLE_GRANTS:-success}" = "failure" ]; then
             echo "::error::An exposed-schema table carries an excess anon grant — an anon write no policy backs, or an anon SELECT on a sensitive table. See 'No exposed-schema table carries an excess anon grant' above."
             echo "::error::FIX: in the migration that owns the table, REVOKE ALL ON <table> FROM anon, PUBLIC (or REVOKE SELECT for a read-only offender), keeping authenticated's explicit grants. A CREATE TABLE re-opens it via default privileges."
+            failed=1
+          fi
+          if [ "${UNVALIDATED_CONSTRAINTS:-success}" = "failure" ]; then
+            echo "::error::A public constraint is NOT VALID (a row violates it; its next UPDATE will fail) — or the live read failed. See 'Every public constraint is validated' above."
             failed=1
           fi
           if [ "${FUNCTION_BODY_DRIFT:-success}" = "failure" ]; then

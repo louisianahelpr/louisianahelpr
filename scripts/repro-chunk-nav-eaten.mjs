@@ -14,7 +14,7 @@
  *
  * Run: node scripts/repro-chunk-nav-eaten.mjs
  */
-import { webkit } from "playwright";
+import { webkit } from "@playwright/test";
 
 const ORIGIN = process.env.REPRO_ORIGIN || "http://localhost:4199";
 const CHUNK_DELAY_MS = Number(process.env.CHUNK_DELAY_MS || 3000);

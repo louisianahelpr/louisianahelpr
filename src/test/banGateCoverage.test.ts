@@ -66,7 +66,7 @@ const migGated = [...(MIG.match(/FOREACH v_pair IN ARRAY ARRAY\[([\s\S]*?)\]/)?.
 // see rpc_settle_dispute_without_payment (20260923205812), so db-deploy went
 // red after the push (run 35921603040) instead of CI before it.
 const SNAP_VERSION = SNAP.captured.replace(/\D/g, "").slice(0, 14);
-function postSnapshotUngatedRpcs(): string[] {
+function migrationRpcs(): { lastBody: Map<string, string>; granted: Set<string> } {
   const files = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort();
   const lastBody = new Map<string, string>();
   const granted = new Set<string>();
@@ -81,6 +81,11 @@ function postSnapshotUngatedRpcs(): string[] {
       if (/\bauthenticated\b/i.test(m[2])) granted.add(m[1]);
     }
   }
+  return { lastBody, granted };
+}
+const gatedInRepo = (fn: string) => /is_caller_banned\s*\(/.test(migrationRpcs().lastBody.get(fn) ?? "");
+function postSnapshotUngatedRpcs(): string[] {
+  const { lastBody, granted } = migrationRpcs();
   // The live check counts VOLATILE functions only; a STABLE/IMMUTABLE one writes nothing.
   const volatile = (fn: string) => !/\b(STABLE|IMMUTABLE)\b/i.test((lastBody.get(fn) ?? "").replace(/\$(\w*)\$[\s\S]*?\$\1\$/, ""));
   return [...granted].filter((fn) => volatile(fn) && !/is_caller_banned\s*\(/.test(lastBody.get(fn) ?? "")).sort();
@@ -132,7 +137,10 @@ describe("Q281 ban gate: every client write path is gated or exempt with a reaso
 
   it("every live VOLATILE authenticated RPC is exempt with a reason, and no exemption is stale", () => {
     const exempt = new Set(rpcExempt.map((e) => e.fn));
-    const universe = new Set([...SNAP.rpcs, ...postSnapshotUngatedRpcs()]);
+    // A snapshot RPC whose newest migration body now calls is_caller_banned()
+    // leaves the universe: the live check reports its exemption stale (Q301,
+    // block_user_and_settle, db-deploy run 35934404847 red after the push).
+    const universe = new Set([...SNAP.rpcs.filter((f) => !gatedInRepo(f)), ...postSnapshotUngatedRpcs()]);
     expect([...universe].filter((f) => !exempt.has(f)), "RPC with no classification").toEqual([]);
     expect([...exempt].filter((f) => !universe.has(f)), "exemption for an RPC prod does not expose").toEqual([]);
   });

@@ -186,7 +186,6 @@ rpc_exempt(fn, why) AS (
   ('search_profiles_by_name', 'a read; its only write is its own rate-limit log'),
   ('rpc_record_application_attempt', 'writes only application_rate_log; the apply it precedes is ban-gated'),
   -- Allowed by product decision.
-  ('block_user_and_settle', 'blocking is protective; its settle step writes jobs, which stays ban-gated'),
   ('toggle_thread_mute', 'muting is protective and only reduces what the account is sent'),
   ('set_thread_snooze', 'snoozing is muting with an end date'),
   ('clear_thread_mute', 'unmuting an unusable thread changes nothing another person sees'),

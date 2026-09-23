@@ -25,13 +25,13 @@
 
 // @mutate supabase/migrations/20260312150324_6037fdd9-3624-4d54-8522-8ce71ca43cb0.sql | ('id-documents', 'id-documents', false), | ('id-documents-x', 'id-documents-x', false),
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
+import { declaredBuckets } from "@/test/helpers/declaredBuckets";
 
 const ROOT = resolve(__dirname, "..", "..");
-const MIGRATIONS_DIR = resolve(ROOT, "supabase", "migrations");
 
 /**
  * Files whose mention of a bucket is CLEANUP, not use. A bucket named only
@@ -39,6 +39,7 @@ const MIGRATIONS_DIR = resolve(ROOT, "supabase", "migrations");
  */
 const CLEANUP_ONLY = [
   "supabase/functions/_shared/accountPurge.ts",
+  "supabase/functions/_shared/purgeBuckets.ts",
   "supabase/functions/_shared/jobMedia.ts",
 ];
 
@@ -53,42 +54,6 @@ const EXTERNALLY_USED: Record<string, string> = {};
 // @two-way src/test/noOrphanedStorageBuckets.test.ts:retired bucket dropped or used again
 // Empty since Q196 (2026-09-23): id-documents was dropped by 20260923165718.
 const RETIRED_PENDING_DROP: Record<string, string> = {};
-
-/** Replay every INSERT/DELETE against storage.buckets in timestamp order. */
-function declaredBuckets(): string[] {
-  const live = new Set<string>();
-  for (const f of readdirSync(MIGRATIONS_DIR).filter((x) => x.endsWith(".sql")).sort()) {
-    const sql = readFileSync(resolve(MIGRATIONS_DIR, f), "utf8");
-    for (const m of sql.matchAll(
-      /insert\s+into\s+storage\.buckets\s*\([^)]*\)\s*values\s*([\s\S]*?)(?:on\s+conflict|;)/gi,
-    )) {
-      for (const q of m[1].matchAll(/'([a-z0-9][a-z0-9-]*)'/gi)) live.add(q[1]);
-    }
-    /*
-     * A later migration may remove one; honour that or every dropped bucket
-     * would be reported forever.
-     *
-     * BOTH forms. This originally matched only `WHERE id = 'x'`, and then
-     * 20260921212141 was rewritten to delete three buckets with `WHERE id IN
-     * (...)` — inside a DO block, because storage.protect_delete() requires
-     * its GUC escape hatch. The replay stopped seeing the deletions and this
-     * guard went red on main against buckets that were already gone from prod.
-     * A parser that silently understands one spelling of the thing it grades
-     * is the same failure as a hand-written list.
-     */
-    for (const m of sql.matchAll(
-      /delete\s+from\s+storage\.buckets\s+where\s+id\s*=\s*'([^']+)'/gi,
-    )) {
-      live.delete(m[1]);
-    }
-    for (const m of sql.matchAll(
-      /delete\s+from\s+storage\.buckets\s+where\s+id\s+in\s*\(([^)]*)\)/gi,
-    )) {
-      for (const q of m[1].matchAll(/'([^']+)'/g)) live.delete(q[1]);
-    }
-  }
-  return [...live].sort();
-}
 
 const BUCKETS = declaredBuckets();
 

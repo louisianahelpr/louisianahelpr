@@ -18,7 +18,7 @@
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Buckets whose objects identify a PERSON, keyed `<userId>/...`. */
-export const USER_BUCKETS = ["avatars", "user-documents", "profile-videos"];
+export const USER_BUCKETS = ["avatars", "user-documents"];
 
 /**
  * Identity documents. The owner said: never delete from these unless the owner

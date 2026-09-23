@@ -35,7 +35,7 @@
  * @mutate supabase/migrations/20260923145614_drop_retired_id_document_upload.sql | DROP POLICY IF EXISTS "Admins can view all ID documents"        ON storage.objects; | SELECT 1;
  * @mutate supabase/functions/complete-signup/index.ts | if (phone) updateData.phone = phone; | if (phone) updateData.phone = phone; if (body.idBase64) updateData.id_document_url = "x";
  * @mutate src/components/admin/adminusers/useOpenProfile.ts | setViewProfile(profile); | setViewProfile(profile); void supabase.storage.from("id-documents").createSignedUrl("x", 1);
- * @mutate supabase/functions/_shared/accountPurge.ts | "avatars", | "avatars", "id-documents",
+ * @mutate supabase/functions/_shared/purgeBuckets.ts | "avatars", | "avatars", "id-documents",
  * @mutate src/components/ProtectedRoute.tsx | avatar_url?: string \| null; | avatar_url?: string \| null; id_document_url?: string \| null;
  */
 import { describe, it, expect } from "vitest";

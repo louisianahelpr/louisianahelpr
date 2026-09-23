@@ -33,7 +33,7 @@ export function jobMediaPrefixes(job) {
 /** Everything stored under a user's own folder, in every bucket that has one. */
 export function userStoragePrefixes(userId) {
   if (!UUID_RE.test(userId)) return [];
-  return ["avatars", "user-documents", "profile-videos", "application-attachments", "proof-photos", "job-photos"].map(
+  return ["avatars", "user-documents", "application-attachments", "proof-photos", "job-photos"].map(
     (bucket) => ({ bucket, prefix: userId }),
   );
 }
@@ -87,17 +87,29 @@ export async function removePrefixes({ base, headers, prefixes, source = "storag
   const failures = [];
   // Prod load: list each bucket's top level ONCE and skip every prefix whose
   // first folder is not there, instead of one list call per job per bucket.
+  // One promise per bucket, so a missing bucket is asked about once and then
+  // fails every prefix in it without another round trip.
   const roots = new Map();
-  const rootOf = async (bucket) => {
+  const rootOf = (bucket) => {
     if (!roots.has(bucket)) {
-      const names = new Set();
-      for (let offset = 0; ; offset += 100) {
-        const rows = await call(base, headers, "POST", `/object/list/${bucket}`, { prefix: "", limit: 100, offset });
-        for (const r of rows ?? []) names.add(r.name);
-        if (!rows || rows.length < 100) break;
-        if (offset > 20_000) throw new Error(`top level of ${bucket} exceeded 20k entries`);
-      }
-      roots.set(bucket, names);
+      roots.set(
+        bucket,
+        (async () => {
+          // Q219: listing a bucket that does not exist answers [] with HTTP
+          // 200, so a dropped or misspelled bucket read as "nothing to
+          // remove". Ask for the bucket itself first; its absence is a
+          // failure, never a skip.
+          await call(base, headers, "GET", `/bucket/${encodeURIComponent(bucket)}`);
+          const names = new Set();
+          for (let offset = 0; ; offset += 100) {
+            const rows = await call(base, headers, "POST", `/object/list/${bucket}`, { prefix: "", limit: 100, offset });
+            for (const r of rows ?? []) names.add(r.name);
+            if (!rows || rows.length < 100) break;
+            if (offset > 20_000) throw new Error(`top level of ${bucket} exceeded 20k entries`);
+          }
+          return names;
+        })(),
+      );
     }
     return roots.get(bucket);
   };
@@ -112,7 +124,6 @@ export async function removePrefixes({ base, headers, prefixes, source = "storag
       if (n < paths.length) failures.push(`${bucket}/${prefix}: removed ${n} of ${paths.length}`);
     } catch (e) {
       const msg = String(e?.message || e);
-      if (/Bucket not found/i.test(msg)) continue;
       failures.push(`${bucket}/${prefix}: ${msg}`);
     }
   }

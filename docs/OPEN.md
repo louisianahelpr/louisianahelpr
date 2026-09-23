@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 139 done, 22 partly done (fixed, protection pending), 133 open. Source of truth for work.
+- **Queue (this file):** 139 done, 22 partly done (fixed, protection pending), 134 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 294 items — 139 done, 22 partly done (fixed, protection pending), 133 open.**
+**Queue: 295 items — 139 done, 22 partly done (fixed, protection pending), 134 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -2500,3 +2500,4 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q295 /admin?view=credentials "Open" scored "no observable change (focus moved, nothing else)" (press run 35837735324, found by Q128).** SignedOpenLink (AdminCredentialQueue.tsx) awaits createSignedUrl and then `window.open(…, "_blank", "noopener")`; the press listens for new pages on the context, so either the popup landed after the after-snapshot, the click lost user activation across the await, or the signed URL failed without a toast. Not measured (needs a live admin session). Guard to name when fixed: the press run's credentials row green, or a unit test on SignedOpenLink's outcome.
 - [ ] **Q296 The press sweep's own Sentry events are rate-limited by Sentry (429 on envelope/, 6 presses in run 35837735324; found by Q128).** The press builds the app with the prod VITE_* env, so every sweep error reaches the PROD Sentry project and spends its quota until Sentry answers 429 — which also means a real user's event could be dropped in that window. Now listed in coverage.md ("Request failures that are not the app's", telemetry count, ::warning), no longer counted against the control. Decide: tag or drop sweep events (environment "press"/beforeSend on a test flag), or route them to a separate project. Guard to name when fixed: a test that the press build's Sentry env is not production.
 - [ ] **Q297 Vacuity registration broken on main: e2e/journeys/profile-tab-shell-parity.spec.ts:169 @mutate find-string `export const PROFILE_TAB_BODY_CLASS = "space-y-4";` is no longer in src/components/profile/ProfileTabBody.tsx (seen by the Q94/Q128/Q132 lane's vacuity run, 2026-09-23; 14a40c072 Q191 changed the section scale).** Update the find-string to the current declaration. Guard: scripts/vacuity/index.mjs itself (it reports the stale registration).
+- [ ] **Q298 Harden the Q94 route-probe close rule (lh-authz-rls review of 8e686d57c, 2026-09-23; review verdict PASS).** (a) ops_alert_condition: a user-error-screen item with no screen maps to ops_route_key(null/'') = '/', so any press pass on / would close it, contradicting its own comment; add `IF nullif(p_sample_ref->>'screen','') IS NULL THEN RETURN true; END IF;` before the probe check (0 such open items today). (b) record_route_probe_passes: bound p_routes (cardinality <= 1000, left(r,512)). Restate from the newest body (20260923182022), PGlite red on a screenless item closing via /. Guard: extend src/test/routeProbeCloseRule.test.ts.

@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 16 done, 4 partly done (fixed, protection pending), 65 open. Source of truth for work.
+- **Queue (this file):** 16 done, 5 partly done (fixed, protection pending), 64 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 85 items — 16 done, 4 partly done (fixed, protection pending), 65 open.**
+**Queue: 85 items — 16 done, 5 partly done (fixed, protection pending), 64 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -528,11 +528,28 @@ sure someone hears it and closes it.
   found itself in the shared checkout mid-task. Make the session-start hook
   create or enter a per-session worktree (or warn loudly), and treat the main
   checkout as read-only for sessions.
-- [ ] **Q48 Messages search: the close ✕ overlaps where the magnifier returns**
+- [~] **Q48 Messages search: the close ✕ overlaps where the magnifier returns**
   (prod-audit run 35817028797 on 3c81624d0): by 28px at 320 and 26px at 375.
   Pressing ✕ to dismiss puts the next tap on the re-open control. Found by
   e2e/prod-audit/expanding-search-geometry.spec.ts:559. Fix the geometry,
   re-run that spec, and screenshot at 320/375 before and after.
+  **375 AND UP FIXED (2026-09-22)**, guard e2e/prod-audit/expanding-search-geometry.spec.ts
+  (messages@375 red before: ✕ 192…220 vs magnifier 194…238 = 26px; green after:
+  ✕ 144…172 = 0px, field 141px vs floor 120, slot-deleted vacuity back to 26px;
+  1440 unchanged 0px). ConversationList holds the hidden chevron's 44px box while
+  search is open from 360px up, so the cluster no longer shifts 48px right
+  (the hamburger also stopped jumping 242 → 290). Full spec locally, prod
+  backend + local build: 15 passed, 1 failed (messages@320). Shots ~/.lh-shots/q48/.
+  **320 STILL RED — OWNER DECISION, the two clauses cannot both hold there.**
+  Resting magnifier left edge is x139, the row starts at x41, the row gap is
+  8px: a ✕ that clears the magnifier caps the field at 90px, under the 120px
+  floor (d) that e794385ab restored. Measured both: box held → field 90px, ✕
+  clear ("Se" visible); box not held (shipped) → field 138px, ✕ overlaps 28px.
+  Options: (A) accept a 90px field at 320 and pin `minFieldPx` for messages
+  with the reason; (B) keep the 28px overlap at 320; (C) reorder the resting
+  cluster so the magnifier is rightmost below 360 (changes VN-35's order);
+  (D) open the field on its own line under the title below 360 (it is where
+  the tab strip sits, which search already hides).
 - [ ] **Q49 7 of the 21 new messy-input FormSpecs fail on prod** (same run;
   they were written without a local run because the credentials are CI-only):
   report-user-dialog (the dialog never opened: "no text-like field"),

@@ -1068,6 +1068,32 @@ export function ConversationList({
 
           `tabsOpen` state is untouched by this: the chevron reappears with the
           strip the moment search closes, in whatever state it was left. */}
+      {/* …BUT ITS BOX STAYS HELD while search is open, from 360px up (Q48).
+          Hiding the chevron shifted the whole open cluster 48px right, so the
+          held-open magnifier slot (SearchTriggerSlot) no longer sat where the
+          magnifier comes back, and the ✕ landed on it. prod-audit run
+          35817028797, e2e/prod-audit/expanding-search-geometry.spec.ts:
+
+            375   ✕ 192…220 vs magnifier 194…238  →  26px overlap
+                  (and the hamburger jumped 242 → 290 when search opened)
+
+          With this box held: ✕ 144…172, overlap 0px, field 141px (floor 120),
+          hamburger at 242 in both states. Measured on a local build against
+          prod, signed in.
+
+          BELOW 360 IT IS NOT HELD, and that is a known, open conflict — not a
+          fix (docs/OPEN.md Q48). At 320 the resting magnifier's left edge is
+          at 139 and the row starts at 41, so with the row's 8px gap the field
+          can be at most 90px if the ✕ is to clear it — under the 120px floor
+          e794385ab restored. Holding the box at 320 measured exactly that:
+          field 90px, ✕ clear. Not holding it: field 138px, ✕ overlapping the
+          magnifier by 28px. Both clauses of the geometry spec cannot hold at
+          320 with three 44px controls in this order; which one yields is the
+          owner's call. `max-[359px]` is the same breakpoint as the row's
+          `max-[359px]:gap-2` below. */}
+      {!isWebDesktop && searchOpen && (
+        <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch max-[359px]:hidden" />
+      )}
       {!isWebDesktop && !searchOpen && (
         <button
           type="button"

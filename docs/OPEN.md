@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 19 done, 4 partly done (fixed, protection pending), 64 open. Source of truth for work.
+- **Queue (this file):** 20 done, 4 partly done (fixed, protection pending), 64 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 87 items — 19 done, 4 partly done (fixed, protection pending), 64 open.**
+**Queue: 88 items — 20 done, 4 partly done (fixed, protection pending), 64 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -939,6 +939,32 @@ sure someone hears it and closes it.
   10 in parallel, so a busy month could time the cron's HTTP call out (a
   cron-http failure, not a silent pass). Measure run time once real
   cancellations exist; raise the timeout or split the Stripe check out.
+  (c) MEASURED 2026-09-23 07:52Z (Q88): 79 Stripe reads = 2.2s whole run;
+  the runtime finishes and records its alert even after pg_net hangs up
+  (400ms timeout test); a 20s Stripe-phase budget now reports truncation as
+  a defect. (c) is closed; (a) and (b) stay open.
+- [x] **Q88 money-reconciliation Stripe checks: review fixes (lh-money-escrow
+  review of Q50, 2026-09-23).** (1) The under-refund ceiling skipped every job
+  with any dispute_status, but a WITHDRAWN dispute leaves dispute_status
+  'resolved' forever and the job then cancels normally: now only a disputes
+  row status 'decided' + execution_status 'executed' exempts a job (read
+  failure falls back to the old skip and marks the run degraded). (2) The one
+  ledger warning is split: Stripe refunded LESS than payment_refunds =
+  `stripe_refund_recorded_not_at_stripe` (critical, poster owed money); MORE
+  = `stripe_refund_untracked` (warning); both carry direction and cents.
+  (3) Run time measured (see Q86c); 20s budget on the Stripe phase, a stop is
+  a truncated scan. (4) latest_charge must have captured the PI's
+  amount_received, else `stripe_charge_not_the_payment` (warning, not graded).
+  (5) block_user_and_settle priced the fee, late flag and strike on
+  helper_id IS NOT NULL, not commitment (live pg_get_functiondef); fixed by
+  migration 20260923075415 (PGlite 3x: uncommitted -> fee 0, no strike;
+  committed -> 25%, strike). Prod had 0 rows of that shape (the block path
+  has never cancelled a job) but 6 seed jobs were in the reachable state;
+  cancellation_fee_mismatch (critical) would have flagged a stored fee.
+  Guards: src/test/edge/money-reconciliation-stripe.test.ts (16 tests, 8
+  @mutate killed) and src/test/cancelFeeSqlUsesCommitment.test.ts (class:
+  every SQL caller of cancellation_fee_percent/is_late_cancellation; red on
+  96ae77309 naming block_user_and_settle).
 6. **Messages search at 320px (Q48): pick one.** It's fixed at 375 and up. At
    320 a close-✕ that clears the magnifier leaves the field only 90px (below
    the 120px minimum that e794385ab restored). (A) accept 90px at 320;

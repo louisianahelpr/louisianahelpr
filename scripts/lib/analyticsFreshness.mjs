@@ -127,6 +127,21 @@ export const KEY_EVENTS = [
                LEFT JOIN public.profiles rp ON rp.user_id = r.reviewer_id
               WHERE r.created_at > $SINCE`,
   },
+  {
+    event: "message_sent",
+    label: "message sent",
+    windowDays: 7,
+    // Q283. sendHandlers.ts fires it once per stored message. Only that path
+    // stamps client_id, which separates it from server-written rows
+    // (is_system notices and any edge insert). client_id exists since
+    // 20260923181707 (0 of 402 rows had one on 2026-09-23: no message had been
+    // sent since), so a window reaching before it undercounts, never overcounts.
+    ground: `SELECT count(*) FILTER (WHERE NOT coalesce(sp.is_seed, false)) AS real,
+                    count(*) FILTER (WHERE sp.is_seed) AS test
+               FROM public.messages m
+               LEFT JOIN public.profiles sp ON sp.user_id = m.sender_id
+              WHERE m.created_at > $SINCE AND NOT coalesce(m.is_system, false) AND m.client_id IS NOT NULL`,
+  },
 ];
 
 /**

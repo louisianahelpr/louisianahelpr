@@ -167,6 +167,8 @@ import PaymentSuccess from "@/pages/PaymentSuccess";
 import { ReviewForm } from "@/components/reviewPanel/ReviewForm";
 import { useJobSubmit, type UseJobSubmitParams } from "@/pages/postjob/useJobSubmit";
 import { useApplyFlow } from "@/pages/dashboard/useApplyFlow";
+import { createSendHandlers } from "@/pages/messages/messagesData/sendHandlers";
+import type { Conversation } from "@/components/messages/types";
 import { useActivityActions } from "@/pages/activity/useActivityActions";
 import type { Application, Job } from "@/components/activity/activityConstants";
 
@@ -289,7 +291,7 @@ async function driveJobAccepted(): Promise<string> {
 }
 
 async function drivePaymentMade(): Promise<string> {
-  const JOB = "job-paid-1";
+  const JOB = "30000000-0000-4000-8000-0000000000cc"; // a UUID: PaymentSuccess ignores a malformed job_id (Q305)
   h.state.fromHandler = (c, t) =>
     c.table === "jobs" && t === "maybeSingle"
       ? { data: { budget: 120, category: "cleaning", payment_status: "escrow" }, error: null }
@@ -335,6 +337,29 @@ async function driveReviewLeft(): Promise<string> {
   return JOB;
 }
 
+function sendHandlersFor(jobId: string) {
+  const convo = { jobId, otherUserId: "20000000-0000-4000-8000-0000000000bb" } as unknown as Conversation;
+  return createSendHandlers({
+    userId: h.USER_ID,
+    cachedUser: null,
+    activeConvo: convo,
+    messages: [],
+    warningShown: false,
+    setWarningShown: vi.fn(),
+    setMessages: vi.fn(),
+    setConversations: vi.fn(),
+    scrollToBottom: vi.fn(),
+    activeConvoRef: { current: convo },
+    loadConversations: async () => undefined,
+  });
+}
+
+async function driveMessageSent(): Promise<string> {
+  const JOB = "job-message-1";
+  await sendHandlersFor(JOB).sendMessage("See you at nine");
+  return JOB;
+}
+
 /**
  * Event -> the real path that emits it. The inventory test holds these keys
  * equal to KEY_EVENTS both ways; each driver returns the job_id the event must
@@ -348,6 +373,7 @@ const DRIVERS: Record<string, () => Promise<string | undefined>> = {
   payment_made: drivePaymentMade,
   job_completed: driveJobCompleted,
   review_left: driveReviewLeft,
+  message_sent: driveMessageSent,
 };
 
 let createObjectURLBefore: typeof URL.createObjectURL | undefined;
@@ -404,6 +430,21 @@ describe("job_completed counts a completion once", () => {
   });
 });
 
+describe("message_sent counts a stored message once (Q283)", () => {
+  it("a retry that only recovers the row an earlier attempt stored emits nothing", async () => {
+    h.state.fromHandler = (c, t) => {
+      if (c.table !== "messages") return undefined;
+      if (c.ops.some((o) => o.m === "insert")) return { data: null, error: { code: "23505", message: "duplicate key" } };
+      if (t === "maybeSingle") return { data: { id: "msg-existing" }, error: null };
+      return undefined;
+    };
+    await sendHandlersFor("job-message-dup").sendMessage("hello again");
+    flushAnalytics();
+    await waitFor(() => expect(h.state.fromCalls.some((c) => c.table === "messages" && c.ops.some((o) => o.m === "eq"))).toBe(true));
+    expect(h.state.analyticsRows.filter((r) => r.event === "message_sent")).toEqual([]);
+  });
+});
+
 describe("inventory", () => {
   it("covers exactly the KEY_EVENTS the freshness monitor watches (two-way)", () => {
     const monitored = KEY_EVENTS.map((k) => k.event).sort();
@@ -424,3 +465,5 @@ describe("inventory", () => {
 // @mutate src/pages/activity/activityActions/useLifecycleHandlers.ts | trackJobCompleted(jobId, data, "activity", user?.id); | void 0;
 // @mutate src/lib/jobCompletedEvent.ts | if (emitted.has(jobId)) return false; | void 0;
 // @mutate src/components/reviewPanel/ReviewForm.tsx | track(AhaEvent.ReviewLeft, { job_id: jobId, rating }); | void 0;
+// @mutate src/pages/messages/messagesData/sendHandlers.ts | if (!alreadyLanded) track("message_sent" | if (false) track("message_sent"
+// @mutate src/pages/messages/messagesData/sendHandlers.ts | if (!alreadyLanded) track("message_sent" | track("message_sent"

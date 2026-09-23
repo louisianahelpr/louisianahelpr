@@ -1,6 +1,7 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticError } from "@/lib/haptics";
+import { track } from "@/lib/analytics";
 import { toast } from "sonner";
 import { scanMessage } from "@/lib/messageScanner";
 import { requireOnline } from "@/lib/requireOnline";
@@ -146,6 +147,8 @@ export function createSendHandlers({
       .single();
 
     let { data, error } = await insertRow(true);
+    // A retry whose first INSERT already landed was counted then (Q283).
+    let alreadyLanded = false;
     // Deploy lag: a database that predates messages.client_id answers PGRST204
     // for the unknown column. Send without the key rather than fail the send.
     if (error && (error as { code?: string }).code === "PGRST204" && /client_id/.test(error.message ?? "")) {
@@ -164,6 +167,7 @@ export function createSendHandlers({
       if (!existing.error && existing.data) {
         data = existing.data;
         error = null;
+        alreadyLanded = true;
       }
     }
 
@@ -263,6 +267,10 @@ export function createSendHandlers({
       );
       return;
     }
+
+    // Key product event (Q283): once per stored message, never for a retry
+    // that only recovered a row an earlier attempt already wrote.
+    if (!alreadyLanded) track("message_sent", { job_id: optimistic.job_id });
 
     // Reconcile: swap the optimistic bubble for the confirmed server row.
     // If the realtime echo raced ahead and already appended the real row,

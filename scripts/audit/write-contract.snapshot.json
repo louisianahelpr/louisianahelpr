@@ -4968,7 +4968,7 @@
   },
   "helper_credentials": {
    "checks": [
-    "CHECK ((credential_type = ANY (ARRAY['identity'::text, 'background_check'::text, 'trade_license'::text, 'insurance'::text, 'bond'::text])))",
+    "CHECK ((credential_type = ANY (ARRAY['identity'::text, 'background_check'::text, 'trade_license'::text, 'insurance'::text])))",
     "CHECK ((status = ANY (ARRAY['unverified'::text, 'submitted'::text, 'verified'::text, 'expired'::text, 'rejected'::text])))"
    ],
    "columnGrants": {

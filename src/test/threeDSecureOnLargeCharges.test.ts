@@ -27,6 +27,7 @@
  * @mutate supabase/functions/create-payment/index.ts | // (tax is only known once Checkout has the address; it can only add).\n        payment_method_options: threeDSecureOptions( | // (tax is only known once Checkout has the address; it can only add).\n        payment_method_options_unused: threeDSecureOptions(
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | payment_method_options: threeDSecureOptions(chargeCents), | payment_method_options: undefined,
  * @mutate supabase/functions/create-payment/index.ts | const abandonedChallenge = prior.status === "open" && priorPi?.status === "requires_action"; | const abandonedChallenge = false;
+ * @mutate supabase/functions/create-payment/index.ts |               await stripe.paymentIntents.cancel(priorPi.id); |               void priorPi;
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -203,10 +204,19 @@ describe("create-payment escrow checkout — behaviour (edge harness)", () => {
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
-  it("an abandoned 3DS challenge (open session, PI requires_action) can be paid again", async () => {
+  it("an abandoned 3DS challenge (open session, PI requires_action) can be paid again, and its PI is canceled", async () => {
     const { body } = await escrowFor(400, { status: "open", piStatus: "requires_action" });
     expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_old");
+    expect(stripeMock.paymentIntents.cancel).toHaveBeenCalledWith("pi_old");
     expect(body.url).toBe("https://checkout.stripe.test/cs_new");
+  });
+
+  it("a challenge completed meanwhile (the PI can no longer be canceled) is refused, never re-minted", async () => {
+    stripeMock.paymentIntents.cancel.mockRejectedValue(new Error("This PaymentIntent's status is succeeded"));
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_old", status: "succeeded" });
+    const { body } = await escrowFor(400, { status: "open", piStatus: "requires_action" });
+    expect(String(body.error)).toMatch(/still being processed/i);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
   it("a PI that is actually processing is still refused", async () => {

@@ -238,18 +238,25 @@ export async function handleChargeDisputeClosed(
           supabase,
           "stripe-webhook.chargeDisputeClosed.won",
         );
+        // Worded from what actually happened per row, never assumed.
+        const nothingTaken = repaid.neverTaken === repaid.rows;
         for (const adminId of wonAdminIds) {
-          await supabase.from("notifications").insert({
+          const { error: noticeErr } = await supabase.from("notifications").insert({
             user_id: adminId,
             title: repaid.failed.length > 0
               ? "Chargeback WON — paying the Helpr back FAILED"
+              : nothingTaken
+              ? "Chargeback WON — nothing had been taken back"
               : "Chargeback WON — Helpr paid back automatically",
             message: `Stripe ruled in our favor on the $${(closedDispute.amount / 100).toFixed(2)} chargeback for "${closedJob.title}". ${repaid.failed.length > 0
               ? "The payout taken back when it was filed could not be paid back to the Helpr. Pay it by hand from the Admin panel."
+              : nothingTaken
+              ? "The Helpr's payout was never reversed (Stripe refused the clawback), so there is nothing to pay back. Nothing to release."
               : "The payout taken back when it was filed has been paid back to the Helpr. Nothing to release."}`,
             type: "payment",
             link: "/admin",
           });
+          if (noticeErr) logStep("Won-dispute admin notice failed", { adminId, error: noticeErr.message });
         }
       } else if (outcome === "won") {
         // Funds are back on the platform balance. Notify admins to
@@ -442,7 +449,7 @@ export async function handleChargeDisputeClosed(
     message:
       outcome === "won"
         ? repaid && repaid.rows > 0
-          ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. The Helpr's clawed-back payout was ${repaid.failed.length > 0 ? "NOT fully paid back (see the separate alert)" : "paid back automatically"}.`
+          ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. The Helpr's clawed-back payout was ${repaid.failed.length > 0 ? "NOT fully paid back (see the separate alert)" : repaid.neverTaken === repaid.rows ? "never reversed, so nothing was owed back" : "paid back automatically"}.`
           : `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds restored — release the helper's blocked payout manually via the Admin panel.`
         : outcome === "lost"
         ? `Stripe ruled against us on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds permanently withdrawn. Reconcile the loss.`

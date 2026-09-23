@@ -241,6 +241,22 @@ serve(async (req) => {
             }
             console.log(`[create-payment] prior session ${previousSessionId} was already retired by a concurrent re-mint (status=${recheck.status})`);
           }
+          // An abandoned 3D Secure challenge: do not rely on the expiry alone to
+          // cancel its PaymentIntent. Cancel it explicitly; if it can no longer
+          // be canceled, the challenge was completed meanwhile, so refuse
+          // rather than open a second payable checkout (money-escrow review
+          // 2026-09-23).
+          if (abandonedChallenge && priorPi) {
+            try {
+              await stripe.paymentIntents.cancel(priorPi.id);
+            } catch (cancelErr) {
+              const again = await stripe.paymentIntents.retrieve(priorPi.id);
+              if (again.status !== "canceled") {
+                console.error(`[create-payment] abandoned-challenge PI ${priorPi.id} could not be canceled (status=${again.status}) for job ${jobId}:`, cancelErr);
+                throw new PublicError("A payment for this job is still being processed. Give it a moment and refresh before trying again.");
+              }
+            }
+          }
         }
       }
 

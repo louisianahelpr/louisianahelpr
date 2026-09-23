@@ -786,13 +786,11 @@ export async function handleCheckoutSessionCompleted(
 
     if (isRepay) {
       updateData.payment_status = "payout_pending";
-      // STANDARD PAY: 3 days after the job was marked done, never before now
-      // (Q202, _shared/escrowTiming.ts). A re-pay lands after the work is done,
-      // so this is usually "now + whatever is left of the 3 days".
-      const { data: repayJob, error: repayJobErr } = await supabase
-        .from("jobs").select("helper_completed_at").eq("id", jobId).maybeSingle();
-      if (repayJobErr) throw new Error(`Re-pay: job read failed for ${jobId}: ${repayJobErr.message}`);
-      updateData.payout_scheduled_at = standardPayoutAtIso(repayJob?.helper_completed_at ?? null);
+      // STANDARD PAY (Q202, _shared/escrowTiming.ts), anchored on NOW: a re-pay
+      // is a brand-new card charge, and the 3-day wait is its card-dispute
+      // buffer. Anchoring on the old done stamp would pay it out at once
+      // (money-escrow review 2026-09-23).
+      updateData.payout_scheduled_at = standardPayoutAtIso(null);
       logStep("Re-payment completed, scheduling payout", { jobId, pi: piId });
     }
 

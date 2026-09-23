@@ -13,22 +13,28 @@
 // lost it all.
 //
 // Now:
-//   created (a real chargeback, never an inquiry) on a RELEASED job →
+//   a real chargeback (never an inquiry) on a job whose Helpr was paid →
 //     reverse the Helpr's transfer(s) for the job, up to the disputed amount;
 //   closed WON  → pay each reversed amount back to the same account;
 //   closed LOST → the reversal stands.
-// The Helpr is told each time, in-app.
+// The payee is told each time, in-app.
 //
-// Every reversal and re-payment is keyed twice so it can never happen twice:
+// NEVER TWICE. Each reversal and re-payment is guarded three ways:
 //   - a `chargeback_clawbacks` row per (dispute, transfer), claimed BEFORE the
-//     Stripe call (unique on dispute_id + original_transfer_id), and
+//     Stripe call (unique on dispute_id + original_transfer_id);
+//   - on any RESUME (a row left 'reversing' / 'reverse_failed' / 'repaying' /
+//     'repay_failed'), Stripe is asked first whether the money already moved:
+//     the transfer's reversals are listed for one carrying this dispute's
+//     metadata, the job's transfer group for a re-payment carrying it. Found →
+//     adopted, never re-issued. Stripe keeps an idempotency key ~24h and
+//     retries a webhook for ~3 days, so the key alone is not enough;
 //   - Stripe's idempotency key `clawback-<dispute>-<transfer>` /
 //     `clawback-repay-<dispute>-<transfer>`, with the SAME amount and metadata
 //     on every retry (the amount is read back from the claimed row).
-// A refusal from Stripe (the connected account's balance is short, the
-// transfer was already reversed, ...) is recorded on the row and paged as a
-// critical alert (the ops alert ledger). A transient Stripe failure (network,
-// 5xx, rate limit) is thrown so the webhook answers 500 and Stripe redelivers.
+// A refusal from Stripe (the connected account's balance is short, ...) is
+// recorded on the row and paged as a critical alert (the ops alert ledger). A
+// transient failure (network, 5xx, rate limit, an idempotency conflict) is
+// thrown so the webhook answers 500 and Stripe redelivers.
 
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
@@ -56,12 +62,19 @@ const ROW_COLS =
 /** Row statuses that mean "this transfer's money is back with the platform". */
 export const CLAWED_BACK_STATUSES = ["reversed", "repaying", "repay_failed", "kept"] as const;
 
+const REVERSAL_SOURCE = "chargeback-clawback";
+const REPAY_SOURCE = "chargeback-repay";
+
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
-/** Stripe failures worth a redelivery: the request may not have reached Stripe. */
+/**
+ * Stripe failures worth a redelivery. An idempotency conflict (a concurrent
+ * request on the same key) is included: the first request may have succeeded.
+ */
 function isTransientStripeError(err: unknown): boolean {
   const t = (err as { type?: string })?.type ?? "";
-  return t === "StripeConnectionError" || t === "StripeAPIError" || t === "StripeRateLimitError";
+  return t === "StripeConnectionError" || t === "StripeAPIError" || t === "StripeRateLimitError" ||
+    t === "StripeIdempotencyError";
 }
 
 function errMessage(err: unknown): string {
@@ -83,40 +96,63 @@ export async function readClawbackRows(
 /**
  * Every payout transfer for this job, from Stripe (transfer_group job_<id>)
  * and from the payout_transfers ledger (a transfer the group list does not
- * carry is retrieved by id). Oldest first.
+ * carry is retrieved by id). Oldest first. A ledger id Stripe refuses to
+ * return (not a transient failure) is reported in `unreadable`, not thrown:
+ * the transfers that WERE found are still clawed back.
  */
 async function jobTransfers(
   stripe: Stripe,
   supabase: Db,
   jobId: string,
-): Promise<{ transfers: Stripe.Transfer[]; helperByTransfer: Map<string, string | null>; error?: string }> {
+): Promise<{ transfers: Stripe.Transfer[]; helperByTransfer: Map<string, string | null>; unreadable: string[] }> {
   const helperByTransfer = new Map<string, string | null>();
   const { data: ledger, error: ledgerErr } = await supabase
     .from("payout_transfers")
     .select("stripe_transfer_id, helper_id, status")
     .eq("job_id", jobId);
-  if (ledgerErr) return { transfers: [], helperByTransfer, error: `payout_transfers: ${ledgerErr.message}` };
+  if (ledgerErr) throw new Error(`Clawback: payout_transfers read failed for job ${jobId}: ${ledgerErr.message}`);
   for (const r of (ledger ?? []) as Array<{ stripe_transfer_id: string | null; helper_id: string | null }>) {
     if (r.stripe_transfer_id) helperByTransfer.set(r.stripe_transfer_id, r.helper_id ?? null);
   }
 
   const byId = new Map<string, Stripe.Transfer>();
+  const unreadable: string[] = [];
+  // A list failure of any kind throws: without it nothing can be reversed, and
+  // the dispute page and admin notices have already gone out before this runs.
   const grouped = await stripe.transfers.list({ transfer_group: `job_${jobId}`, limit: 100 });
   for (const t of grouped?.data ?? []) byId.set(t.id, t);
   for (const id of helperByTransfer.keys()) {
-    if (!byId.has(id)) byId.set(id, await stripe.transfers.retrieve(id));
+    if (byId.has(id)) continue;
+    try {
+      byId.set(id, await stripe.transfers.retrieve(id));
+    } catch (err) {
+      if (isTransientStripeError(err)) throw err;
+      unreadable.push(`${id}: ${errMessage(err)}`);
+    }
   }
   const transfers = [...byId.values()].sort((a, b) => (a.created ?? 0) - (b.created ?? 0));
-  return { transfers, helperByTransfer };
+  return { transfers, helperByTransfer, unreadable };
 }
 
-async function helperForAccount(supabase: Db, accountId: string | null): Promise<string | null> {
+/** The payee of a connected account, or null. A read error is paged, not dropped. */
+async function helperForAccount(supabase: Db, accountId: string | null, disputeId: string): Promise<string | null> {
   if (!accountId) return null;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("user_id")
     .eq("stripe_account_id", accountId)
     .maybeSingle();
+  if (error) {
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Card-dispute clawback — payee lookup failed",
+      message: `Dispute ${disputeId}: the owner of connected account ${accountId} could not be read, so the payee will not be told about the clawback in-app.`,
+      fields: { "Dispute ID": disputeId, "Account": accountId, "DB error": error.message.slice(0, 200) },
+      oncePerDayKey: `clawback-payee-lookup:${disputeId}`,
+    });
+    return null;
+  }
   return (data as { user_id?: string } | null)?.user_id ?? null;
 }
 
@@ -127,6 +163,57 @@ async function setRow(supabase: Db, id: string, patch: Record<string, unknown>, 
     .eq("id", id)
     .in("status", where.status)
     .select("id");
+}
+
+/** A money-moved-but-not-recorded page. Never throws: the money already moved. */
+async function recordLagPage(title: string, message: string, fields: Record<string, string>, disputeId: string) {
+  await postSlackOpsAlert({
+    kind: "money_at_risk",
+    severity: "critical",
+    title,
+    message,
+    fields,
+    link: `https://dashboard.stripe.com/disputes/${disputeId}`,
+  });
+}
+
+/** Stripe's own answer to "did this dispute already reverse this transfer?" */
+async function existingReversal(stripe: Stripe, transferId: string, disputeId: string): Promise<Stripe.TransferReversal | null> {
+  const list = await stripe.transfers.listReversals(transferId, { limit: 100 });
+  return (list?.data ?? []).find((r) =>
+    (r.metadata as Record<string, string> | null)?.source === REVERSAL_SOURCE &&
+    (r.metadata as Record<string, string> | null)?.dispute_id === disputeId
+  ) ?? null;
+}
+
+/** Stripe's own answer to "was this clawed-back amount already paid back?" */
+async function existingRepay(stripe: Stripe, row: ClawbackRow, disputeId: string): Promise<Stripe.Transfer | null> {
+  const list = await stripe.transfers.list({ transfer_group: `job_${row.job_id}`, limit: 100 });
+  return (list?.data ?? []).find((t) =>
+    (t.metadata as Record<string, string> | null)?.source === REPAY_SOURCE &&
+    (t.metadata as Record<string, string> | null)?.dispute_id === disputeId &&
+    (t.metadata as Record<string, string> | null)?.original_transfer_id === row.original_transfer_id
+  ) ?? null;
+}
+
+async function notifyPayee(supabase: Db, userId: string, jobId: string, title: string, message: string, disputeId: string) {
+  const { error } = await supabase.from("notifications").insert({
+    user_id: userId,
+    title,
+    message,
+    type: "payment",
+    link: `/my-jobs?job=${jobId}`,
+  });
+  if (error) {
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Card-dispute clawback — payee notice NOT sent",
+      message: `Dispute ${disputeId}: the in-app notice "${title}" to the payee of job ${jobId} failed to insert. Tell them by hand.`,
+      fields: { "Dispute ID": disputeId, "Job ID": jobId, "User": userId, "DB error": error.message.slice(0, 200) },
+      oncePerDayKey: `clawback-notice:${disputeId}:${userId}:${title}`,
+    });
+  }
 }
 
 export type ClawbackResult = {
@@ -141,8 +228,8 @@ export type ClawbackResult = {
 };
 
 /**
- * Reverse the Helpr's transfer(s) for a RELEASED job whose charge is disputed,
- * up to the disputed amount. Idempotent per (dispute, transfer).
+ * Reverse the Helpr's transfer(s) for a job whose charge is disputed, up to
+ * the disputed amount. Idempotent per (dispute, transfer).
  *
  * Throws only for a DB failure or a transient Stripe failure, so the webhook
  * answers 500 and Stripe redelivers (the claimed rows make the redelivery
@@ -160,8 +247,7 @@ export async function clawBackReleasedPayout(
   if (existing.error) throw new Error(`chargeback_clawbacks read failed for ${dispute.id}: ${existing.error}`);
   const rowByTransfer = new Map(existing.rows.map((r) => [r.original_transfer_id, r]));
 
-  const { transfers, helperByTransfer, error: listErr } = await jobTransfers(stripe, supabase, job.id);
-  if (listErr) throw new Error(`Clawback transfer lookup failed for job ${job.id}: ${listErr}`);
+  const { transfers, helperByTransfer, unreadable } = await jobTransfers(stripe, supabase, job.id);
 
   // Already clawed back for this dispute counts against the disputed amount.
   let remaining = Math.max(0, Number(dispute.amount) || 0);
@@ -172,6 +258,23 @@ export async function clawBackReleasedPayout(
     }
   }
 
+  // The job must not read 'released' while its money is being taken back:
+  // transfer.reversed re-queues a 'released' job, and every screen would say
+  // "paid". A payout that settled after the dispute handler's read (a race the
+  // status read cannot see) is caught here. Compare-and-set, idempotent.
+  let jobMarked = false;
+  const markJob = async () => {
+    if (jobMarked) return;
+    const { error: markErr } = await supabase
+      .from("jobs")
+      .update({ payment_status: "chargeback" })
+      .eq("id", job.id)
+      .eq("payment_status", "released")
+      .select("id");
+    if (markErr) throw new Error(`Clawback: could not mark job ${job.id} chargeback: ${markErr.message}`);
+    jobMarked = true;
+  };
+
   for (const t of transfers) {
     if (remaining <= 0) break;
     let row = rowByTransfer.get(t.id);
@@ -179,15 +282,38 @@ export async function clawBackReleasedPayout(
 
     let amount: number;
     if (row) {
-      // Resume with the SAME amount the claim recorded: Stripe's idempotency
-      // key refuses a retry whose parameters differ.
+      // RESUME. Ask Stripe first: the reversal may have gone through while
+      // its record did not (a lost response, a killed function, a key older
+      // than Stripe's ~24h idempotency window).
+      const found = await existingReversal(stripe, t.id, dispute.id);
+      if (found) {
+        const { data: adopted, error: adoptErr } = await setRow(
+          supabase, row.id,
+          { status: "reversed", stripe_reversal_id: found.id, reversed_cents: found.amount, failure_reason: null },
+          { status: ["reversing", "reverse_failed"] },
+        );
+        if (adoptErr || !adopted || adopted.length === 0) {
+          await recordLagPage(
+            "Card-dispute clawback — reversal found at Stripe, ledger row NOT updated",
+            `Transfer ${t.id} already carries reversal ${found.id} for dispute ${dispute.id}, but chargeback_clawbacks row ${row.id} could not be marked 'reversed'. Mark it by hand; do NOT reverse again.`,
+            { "Dispute ID": dispute.id, "Job ID": job.id, "Transfer": t.id, "DB error": adoptErr?.message ?? "matched 0 rows" },
+            dispute.id,
+          );
+        }
+        remaining -= found.amount;
+        result.reversedTotalCents += found.amount;
+        logStep("Clawback: adopted an existing reversal", { disputeId: dispute.id, transferId: t.id, reversalId: found.id });
+        continue;
+      }
+      // Not at Stripe: retry with the SAME amount the claim recorded (Stripe's
+      // idempotency key refuses a retry whose parameters differ).
       amount = row.reversed_cents;
     } else {
       const reversible = Math.max(0, (t.amount ?? 0) - (t.amount_reversed ?? 0));
       amount = Math.min(reversible, remaining);
       if (amount <= 0) continue;
       const destination = typeof t.destination === "string" ? t.destination : (t.destination as { id?: string } | null)?.id ?? null;
-      const helperId = helperByTransfer.get(t.id) ?? (await helperForAccount(supabase, destination));
+      const helperId = helperByTransfer.get(t.id) ?? (await helperForAccount(supabase, destination, dispute.id));
       const { data: claimed, error: claimErr } = await supabase
         .from("chargeback_clawbacks")
         .insert({
@@ -213,12 +339,13 @@ export async function clawBackReleasedPayout(
       if (!row) throw new Error(`chargeback_clawbacks claim for ${dispute.id}/${t.id} returned no row`);
     }
 
+    await markJob();
     try {
       const reversal = await stripe.transfers.createReversal(
         t.id,
         {
           amount,
-          metadata: { source: "chargeback-clawback", dispute_id: dispute.id, job_id: job.id },
+          metadata: { source: REVERSAL_SOURCE, dispute_id: dispute.id, job_id: job.id },
         },
         { idempotencyKey: `clawback-${dispute.id}-${t.id}` },
       );
@@ -229,18 +356,14 @@ export async function clawBackReleasedPayout(
         { status: ["reversing", "reverse_failed"] },
       );
       if (doneErr || !done || done.length === 0) {
-        // The money moved; only the record lags. Page, do not throw: a throw
-        // would redeliver, and the resume above would read the row as
-        // 'reversing' and replay the same idempotent call, which is harmless,
-        // but the page is what gets the record fixed.
-        await postSlackOpsAlert({
-          kind: "money_at_risk",
-          severity: "critical",
-          title: "Card-dispute clawback — Stripe reversal done, ledger row NOT updated",
-          message: `Transfer ${t.id} was reversed (${dollars(amount)}, reversal ${reversal.id}) for dispute ${dispute.id}, but chargeback_clawbacks row ${row.id} could not be marked 'reversed'. Set it by hand so a won dispute pays it back.`,
-          fields: { "Dispute ID": dispute.id, "Job ID": job.id, "Transfer": t.id, "DB error": doneErr?.message ?? "matched 0 rows" },
-          link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
-        });
+        // The money moved; only the record lags. Page, do not throw. A resume
+        // would find this reversal at Stripe and adopt it (never re-issue).
+        await recordLagPage(
+          "Card-dispute clawback — Stripe reversal done, ledger row NOT updated",
+          `Transfer ${t.id} was reversed (${dollars(amount)}, reversal ${reversal.id}) for dispute ${dispute.id}, but chargeback_clawbacks row ${row.id} could not be marked 'reversed'. Set it by hand so a won dispute pays it back.`,
+          { "Dispute ID": dispute.id, "Job ID": job.id, "Transfer": t.id, "DB error": doneErr?.message ?? "matched 0 rows" },
+          dispute.id,
+        );
       }
       remaining -= amount;
       result.reversedNowCents += amount;
@@ -263,17 +386,18 @@ export async function clawBackReleasedPayout(
     }
   }
 
-  if (result.failed.length > 0) {
+  if (result.failed.length > 0 || unreadable.length > 0) {
     await postSlackOpsAlert({
       kind: "money_at_risk",
       severity: "critical",
       title: "Card dispute on a PAID job — clawback REFUSED by Stripe",
-      message: `Dispute ${dispute.id} (${dollars(dispute.amount)}) is on a job whose Helpr was already paid. Stripe refused to reverse ${result.failed.length} transfer(s), so the platform is carrying the loss. Most often the Helpr's Stripe balance is short: recover it by hand (Stripe Dashboard → Connect → the account) and mark the chargeback_clawbacks row.`,
+      message: `Dispute ${dispute.id} (${dollars(dispute.amount)}) is on a job whose Helpr was already paid. ${result.failed.length} transfer(s) could not be reversed and ${unreadable.length} could not be read, so the platform is carrying that loss. Most often the Helpr's Stripe balance is short: recover it by hand (Stripe Dashboard → Connect → the account) and mark the chargeback_clawbacks row.`,
       fields: {
         "Dispute ID": dispute.id,
         "Job ID": job.id,
         "Reversed so far": dollars(result.reversedTotalCents),
-        "Refused": result.failed.map((f) => `${f.transferId}: ${f.error}`).join(" | ").slice(0, 900),
+        "Refused": result.failed.map((f) => `${f.transferId}: ${f.error}`).join(" | ").slice(0, 600) || "—",
+        "Unreadable": unreadable.join(" | ").slice(0, 300) || "—",
       },
       link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
       oncePerDayKey: `clawback-refused:${dispute.id}`,
@@ -292,36 +416,70 @@ export async function clawBackReleasedPayout(
 
   // Tell each payee, in-app. Role-neutral: it names the job and the money.
   for (const [userId, cents] of result.payees) {
-    const { error: noteErr } = await supabase.from("notifications").insert({
-      user_id: userId,
-      title: "Payment disputed by the card holder",
-      message: `The card used to pay for "${job.title ?? "a job"}" has been disputed with the bank, so the ${dollars(cents)} paid to you for it has been taken back while the bank reviews the dispute. If the dispute is decided in our favor, it is paid back to you automatically. Questions? Contact support.`,
-      type: "payment",
-      link: `/my-jobs?job=${job.id}`,
-    });
-    if (noteErr) logStep("Clawback: payee notification failed", { userId, error: noteErr.message });
+    await notifyPayee(
+      supabase, userId, job.id,
+      "Payment disputed by the card holder",
+      `The card used to pay for "${job.title ?? "a job"}" has been disputed with the bank, so the ${dollars(cents)} paid to you for it has been taken back while the bank reviews the dispute. If the dispute is decided in our favor, it is paid back to you automatically. Questions? Contact support.`,
+      dispute.id,
+    );
   }
   return result;
 }
 
-export type RepayResult = { repaidNowCents: number; failed: Array<{ transferId: string; error: string }>; rows: number };
-
 /**
- * Dispute WON: pay back every amount this dispute clawed back. Idempotent per
- * (dispute, transfer). Returns rows = how many clawback rows this dispute has.
+ * A row whose reversal never recorded ('reversing' / 'reverse_failed'): did
+ * Stripe reverse it after all? Found → the row is promoted to 'reversed' and
+ * returned as such; not found → null (nothing was taken from the payee).
  */
+async function reconcileUnrecorded(
+  stripe: Stripe,
+  supabase: Db,
+  row: ClawbackRow,
+  disputeId: string,
+): Promise<ClawbackRow | null> {
+  const found = await existingReversal(stripe, row.original_transfer_id, disputeId);
+  if (!found) return null;
+  const { data, error } = await setRow(
+    supabase, row.id,
+    { status: "reversed", stripe_reversal_id: found.id, reversed_cents: found.amount, failure_reason: null },
+    { status: ["reversing", "reverse_failed"] },
+  );
+  if (error || !data || data.length === 0) {
+    throw new Error(`chargeback_clawbacks: could not record reversal ${found.id} on row ${row.id}: ${error?.message ?? "matched 0 rows"}`);
+  }
+  return { ...row, status: "reversed", stripe_reversal_id: found.id, reversed_cents: found.amount };
+}
+
+export type RepayResult = {
+  repaidNowCents: number;
+  failed: Array<{ transferId: string; error: string }>;
+  /** Clawback rows this dispute has (any status). */
+  rows: number;
+  /** Rows whose money was never taken (the reversal failed or never ran). */
+  neverTaken: number;
+};
+
+/** Dispute WON: pay back every amount this dispute clawed back. Idempotent per (dispute, transfer). */
 export async function repayClawback(
   { stripe, supabase, logStep }: WebhookContext,
   dispute: Stripe.Dispute,
   job: { id: string; title?: string | null },
 ): Promise<RepayResult> {
-  const out: RepayResult = { repaidNowCents: 0, failed: [], rows: 0 };
+  const out: RepayResult = { repaidNowCents: 0, failed: [], rows: 0, neverTaken: 0 };
   const { rows, error } = await readClawbackRows(supabase, dispute.id);
   if (error) throw new Error(`chargeback_clawbacks read failed for ${dispute.id}: ${error}`);
   out.rows = rows.length;
   const payees = new Map<string, number>();
 
-  for (const row of rows) {
+  for (let row of rows) {
+    if (row.status === "reversing" || row.status === "reverse_failed") {
+      const reconciled = await reconcileUnrecorded(stripe, supabase, row, dispute.id);
+      if (!reconciled) {
+        out.neverTaken++;
+        continue;
+      }
+      row = reconciled;
+    }
     if (!["reversed", "repaying", "repay_failed"].includes(row.status)) continue;
     if (!row.stripe_account_id || row.reversed_cents <= 0) {
       out.failed.push({ transferId: row.original_transfer_id, error: "no destination account or amount on the clawback row" });
@@ -337,14 +495,17 @@ export async function repayClawback(
     if (!claimed || claimed.length === 0) continue; // another delivery took it
 
     try {
-      const transfer = await stripe.transfers.create(
+      // A resumed row may already have been paid back (a lost response, or a
+      // key past Stripe's ~24h window). Adopt that transfer; never pay twice.
+      const prior = row.status === "reversed" ? null : await existingRepay(stripe, row, dispute.id);
+      const transfer = prior ?? await stripe.transfers.create(
         {
           amount: row.reversed_cents,
           currency: "usd",
           destination: row.stripe_account_id,
           transfer_group: `job_${row.job_id}`,
           metadata: {
-            source: "chargeback-repay",
+            source: REPAY_SOURCE,
             dispute_id: dispute.id,
             job_id: row.job_id,
             original_transfer_id: row.original_transfer_id,
@@ -352,35 +513,64 @@ export async function repayClawback(
         },
         { idempotencyKey: `clawback-repay-${dispute.id}-${row.original_transfer_id}` },
       );
-      const { error: doneErr } = await setRow(
+      const { data: done, error: doneErr } = await setRow(
         supabase,
         row.id,
         { status: "repaid", repay_transfer_id: transfer.id, failure_reason: null },
-        { status: ["repaying"] },
+        { status: ["repaying", "repay_failed"] },
       );
-      if (doneErr) {
-        await postSlackOpsAlert({
-          kind: "money_at_risk",
-          severity: "critical",
-          title: "Card dispute won — Helpr re-paid, ledger row NOT updated",
-          message: `Transfer ${transfer.id} re-paid ${dollars(row.reversed_cents)} for dispute ${dispute.id}, but chargeback_clawbacks row ${row.id} could not be marked 'repaid'. Mark it by hand; do NOT pay it again.`,
-          fields: { "Dispute ID": dispute.id, "Job ID": row.job_id, "DB error": doneErr.message },
-          link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
-        });
+      if (doneErr || !done || done.length === 0) {
+        await recordLagPage(
+          "Card dispute won — Helpr re-paid, ledger row NOT updated",
+          `Transfer ${transfer.id} re-paid ${dollars(row.reversed_cents)} for dispute ${dispute.id}, but chargeback_clawbacks row ${row.id} could not be marked 'repaid'. Mark it by hand; do NOT pay it again.`,
+          { "Dispute ID": dispute.id, "Job ID": row.job_id, "DB error": doneErr?.message ?? "matched 0 rows" },
+          dispute.id,
+        );
       }
-      // The original transfer's ledger row was flipped to 'reversed' by the
-      // transfer.reversed webhook. The money is back with the Helpr, so it is
-      // no longer a hold (findInternalPayoutHold reads 'reversed' as one).
-      const { error: clearErr } = await supabase
+      // The re-payment is a payout: it goes in the payout ledger, so the
+      // reconciler counts the job as paid, the unrecorded-transfer checks
+      // (payoutClaim.checkUnrecordedTransfers, create-payment's admin paths)
+      // see it as recorded, and a later transfer.failed / transfer.canceled
+      // on it is handled. The ORIGINAL row stays 'reversed' (Stripe's truth);
+      // 'reversal_cleared' would mean "an operator allowed a re-pay".
+      const { data: origRows } = await supabase
         .from("payout_transfers")
-        .update({ status: "reversal_cleared" })
+        .select("amount_cents, platform_fee_cents")
         .eq("stripe_transfer_id", row.original_transfer_id)
-        .eq("status", "reversed")
+        .limit(1);
+      const orig = ((origRows ?? []) as Array<{ amount_cents: number; platform_fee_cents: number }>)[0];
+      const feeCents = orig && orig.amount_cents > 0
+        ? Math.round((orig.platform_fee_cents * row.reversed_cents) / orig.amount_cents)
+        : 0;
+      const { error: ledgerErr } = await supabase
+        .from("payout_transfers")
+        .upsert({
+          job_id: row.job_id,
+          helper_id: row.helper_id,
+          stripe_transfer_id: transfer.id,
+          stripe_account_id: row.stripe_account_id,
+          amount_cents: row.reversed_cents,
+          currency: "usd",
+          platform_fee_cents: feeCents,
+          status: "paid",
+          initiated_by: "system",
+          paid_at: new Date().toISOString(),
+          metadata: { source: REPAY_SOURCE, dispute_id: dispute.id, original_transfer_id: row.original_transfer_id },
+        }, { onConflict: "stripe_transfer_id" })
         .select("id");
-      if (clearErr) logStep("Clawback repay: payout_transfers clear failed", { transferId: row.original_transfer_id, error: clearErr.message });
-      out.repaidNowCents += row.reversed_cents;
-      if (row.helper_id) payees.set(row.helper_id, (payees.get(row.helper_id) ?? 0) + row.reversed_cents);
-      logStep("Clawback repaid", { disputeId: dispute.id, transferId: transfer.id, amount: row.reversed_cents });
+      if (ledgerErr) {
+        await recordLagPage(
+          "Card dispute won — Helpr re-paid, payout_transfers row NOT written",
+          `Re-payment transfer ${transfer.id} (${dollars(row.reversed_cents)}) for dispute ${dispute.id} has no payout_transfers row, so the reconciler and the payout guards cannot see it. Insert it by hand.`,
+          { "Dispute ID": dispute.id, "Job ID": row.job_id, "Transfer": transfer.id, "DB error": ledgerErr.message.slice(0, 200) },
+          dispute.id,
+        );
+      }
+      if (!prior) {
+        out.repaidNowCents += row.reversed_cents;
+        if (row.helper_id) payees.set(row.helper_id, (payees.get(row.helper_id) ?? 0) + row.reversed_cents);
+      }
+      logStep("Clawback repaid", { disputeId: dispute.id, transferId: transfer.id, amount: row.reversed_cents, adopted: !!prior });
     } catch (err) {
       const message = errMessage(err);
       await setRow(supabase, row.id, { status: "repay_failed", failure_reason: message }, { status: ["repaying"] });
@@ -408,31 +598,38 @@ export async function repayClawback(
   }
 
   for (const [userId, cents] of payees) {
-    const { error: noteErr } = await supabase.from("notifications").insert({
-      user_id: userId,
-      title: "Disputed payment returned to you",
-      message: `The card dispute on "${job.title ?? "a job"}" was decided in our favor, so the ${dollars(cents)} taken back has been paid to you again.`,
-      type: "payment",
-      link: `/my-jobs?job=${job.id}`,
-    });
-    if (noteErr) logStep("Clawback repay: payee notification failed", { userId, error: noteErr.message });
+    await notifyPayee(
+      supabase, userId, job.id,
+      "Disputed payment returned to you",
+      `The card dispute on "${job.title ?? "a job"}" was decided in our favor, so the ${dollars(cents)} taken back has been paid to you again.`,
+      dispute.id,
+    );
   }
   return out;
 }
 
 /**
  * Dispute LOST: the reversal stands. Marks the rows final and tells each payee.
- * A reversal that had FAILED is now a permanent platform loss, so it pages.
+ * A reversal that never happened is now a permanent platform loss, so it pages.
  */
 export async function finalizeLostClawback(
-  { supabase, logStep }: WebhookContext,
+  { stripe, supabase, logStep }: WebhookContext,
   dispute: Stripe.Dispute,
   job: { id: string; title?: string | null },
 ): Promise<{ rows: number }> {
   const { rows, error } = await readClawbackRows(supabase, dispute.id);
   if (error) throw new Error(`chargeback_clawbacks read failed for ${dispute.id}: ${error}`);
   const payees = new Map<string, number>();
-  for (const row of rows) {
+  const unrecovered: ClawbackRow[] = [];
+  for (let row of rows) {
+    if (row.status === "reversing" || row.status === "reverse_failed") {
+      const reconciled = await reconcileUnrecorded(stripe, supabase, row, dispute.id);
+      if (!reconciled) {
+        unrecovered.push(row);
+        continue;
+      }
+      row = reconciled;
+    }
     if (row.status !== "reversed") continue;
     const { data: kept, error: keptErr } = await setRow(supabase, row.id, { status: "kept" }, { status: ["reversed"] });
     if (keptErr) throw new Error(`chargeback_clawbacks 'kept' write failed for ${row.id}: ${keptErr.message}`);
@@ -440,27 +637,25 @@ export async function finalizeLostClawback(
       payees.set(row.helper_id, (payees.get(row.helper_id) ?? 0) + row.reversed_cents);
     }
   }
-  const unrecovered = rows.filter((r) => r.status === "reverse_failed" || r.status === "reversing");
   if (unrecovered.length > 0) {
     await postSlackOpsAlert({
       kind: "money_at_risk",
       severity: "critical",
       title: "Card dispute LOST on a paid job — clawback never completed",
-      message: `Dispute ${dispute.id} was lost. ${unrecovered.length} payout transfer(s) for the job were never reversed, so the Helpr still holds that money and the platform has paid the cardholder. Recover it by hand.`,
+      message: `Dispute ${dispute.id} was lost. ${unrecovered.length} payout transfer(s) for the job were never reversed (checked at Stripe), so the Helpr still holds that money and the platform has paid the cardholder. Recover it by hand.`,
       fields: { "Dispute ID": dispute.id, "Job ID": job.id, "Transfers": unrecovered.map((r) => r.original_transfer_id).join(", ") },
       link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
     });
   }
   for (const [userId, cents] of payees) {
-    const { error: noteErr } = await supabase.from("notifications").insert({
-      user_id: userId,
-      title: "Card dispute closed",
-      message: `The bank decided the card dispute on "${job.title ?? "a job"}" for the card holder, so the ${dollars(cents)} taken back for this job stays with them. Questions? Contact support.`,
-      type: "payment",
-      link: `/my-jobs?job=${job.id}`,
-    });
-    if (noteErr) logStep("Clawback lost: payee notification failed", { userId, error: noteErr.message });
+    await notifyPayee(
+      supabase, userId, job.id,
+      "Card dispute closed",
+      `The bank decided the card dispute on "${job.title ?? "a job"}" for the card holder, so the ${dollars(cents)} taken back for this job stays with them. Questions? Contact support.`,
+      dispute.id,
+    );
   }
+  logStep("Clawback lost: finalized", { disputeId: dispute.id, rows: rows.length, unrecovered: unrecovered.length });
   return { rows: rows.length };
 }
 

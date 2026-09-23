@@ -20,7 +20,7 @@
  * @mutate supabase/functions/_shared/escrowTiming.ts | export const STANDARD_PAYOUT_DAYS_AFTER_DONE = 3; | export const STANDARD_PAYOUT_DAYS_AFTER_DONE = 2;
  * @mutate supabase/functions/auto-release-payment/index.ts | const payoutTime = standardPayoutAtIso(job.helper_completed_at); | const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
  * @mutate supabase/functions/create-payment/index.ts | const payoutTime = standardPayoutAtIso(isHelper ? null : job.helper_completed_at); | const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
- * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | updateData.payout_scheduled_at = standardPayoutAtIso(repayJob?.helper_completed_at ?? null); | updateData.payout_scheduled_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+ * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | updateData.payout_scheduled_at = standardPayoutAtIso(null); | updateData.payout_scheduled_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
  * @mutate supabase/functions/auto-release-payment/index.ts | will be sent to your account ${STANDARD_PAYOUT_PHRASE}.`\n            : `"${job.title}" was auto-completed | will be transferred to your account in 24 hours.`\n            : `"${job.title}" was auto-completed
  * @mutate src/components/profile/earningsTab/EarningsSummaryCard.tsx | `Approved — sent ${STANDARD_PAYOUT_PHRASE}` | `Approved — releases 24 hours after approval`
  */

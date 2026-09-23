@@ -20,7 +20,7 @@
  *   transfer.reversed recognises the clawback and does not freeze the job.
  *
  * Each mutation below undoes one of those and must turn this file red.
- * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | if (!isInquiry && (chargebackJob.payment_status === "released" | if (false && (chargebackJob.payment_status === "released"
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | if (!isInquiry) clawbackJob = { id: chargebackJob.id, title: chargebackJob.title ?? null }; | if (false) clawbackJob = { id: chargebackJob.id, title: chargebackJob.title ?? null };
  * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | if (row && row.status !== "reversing" && row.status !== "reverse_failed") continue; | if (false) continue;
  * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | amount = Math.min(reversible, remaining); | amount = reversible;
  * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | { idempotencyKey: `clawback-${dispute.id}-${t.id}` }, | {},
@@ -29,6 +29,13 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | repaid = await repayClawback({ stripe, supabase, logStep }, closedDispute, { id: closedJob.id, title: closedJob.title }); | repaid = { repaidNowCents: 0, failed: [], rows: 0 };
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | await finalizeLostClawback({ stripe, supabase, logStep }, closedDispute, { id: closedJob.id, title: closedJob.title }); | void 0;
  * @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | } else if (ours.disputeId) { | } else if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | const found = await existingReversal(stripe, t.id, dispute.id); | const found = null;
+ * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | const prior = row.status === "reversed" ? null : await existingRepay(stripe, row, dispute.id); | const prior = null;
+ * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts |     await markJob();\n    try { |     try {
+ * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts |           status: "paid",\n          initiated_by: "system", |           status: "pending",\n          initiated_by: "system",
+ * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts |         out.neverTaken++; |         void 0;
+ * @mutate supabase/functions/stripe-webhook/index.ts |   "charge.dispute.funds_withdrawn": handleChargeDisputeFundsWithdrawn, |   // (unregistered)
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts |   if (mode === "created" \|\| changed) await postSlackOpsAlert({ |   if (mode === "created") await postSlackOpsAlert({
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -196,6 +203,11 @@ describe("card-dispute clawback (Q202)", () => {
       );
       const res = await post(fn);
       expect(res.status).toBe(500);
+      // The failure is the reversal itself (not a crash before it), it is on
+      // the row, and it is not reported as a Stripe REFUSAL.
+      expect(stripeMock.transfers.createReversal).toHaveBeenCalledTimes(1);
+      expect(writesTo("chargeback_clawbacks", "update").some((w) => payload(w).status === "reverse_failed")).toBe(true);
+      expect(alerts().some((a) => /clawback REFUSED/.test(a.title))).toBe(false);
     });
 
     it("an escrow job is still blocked as before, and nothing is reversed", async () => {
@@ -263,13 +275,136 @@ describe("card-dispute clawback (Q202)", () => {
     });
   });
 
-  it("inventory floor: the clawback reaches Stripe through both money calls", async () => {
-    const fn = await load();
-    event("evt_f", "charge.dispute.created", dispute("needs_response"));
-    scenario.reads.jobs = { rows: [releasedJob()] };
-    stripeMock.transfers.list.mockResolvedValue({ data: [transfer("tr_1", 9000)] });
-    stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_1" });
-    await post(fn);
-    expect(stripeMock.transfers.createReversal.mock.calls.length).toBeGreaterThan(0);
+  describe("review follow-ups (lh-money-escrow + lh-silent-failure, 2026-09-23)", () => {
+    it("a 'reversed' write that matches 0 rows pages critical (money moved, record lagged)", async () => {
+      const fn = await load();
+      event("evt_z", "charge.dispute.created", dispute("needs_response"));
+      scenario.reads.jobs = { rows: [releasedJob()] };
+      stripeMock.transfers.list.mockResolvedValue({ data: [transfer("tr_1", 9000)] });
+      stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_1" });
+      scenario.writeSelectRows["chargeback_clawbacks:update"] = [];
+      await post(fn);
+      expect(alerts().some((a) => a.severity === "critical" && /ledger row NOT updated/.test(a.title))).toBe(true);
+    });
+
+    it("a RESUMED row whose reversal already exists at Stripe is adopted, never reversed again", async () => {
+      const fn = await load();
+      event("evt_adopt", "charge.dispute.created", dispute("needs_response"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row({ status: "reverse_failed", stripe_reversal_id: null })] };
+      stripeMock.transfers.list.mockResolvedValue({ data: [transfer("tr_1", 9000, { amount_reversed: 9000 })] });
+      stripeMock.transfers.listReversals.mockResolvedValue({
+        data: [{ id: "trr_old", amount: 9000, metadata: { source: "chargeback-clawback", dispute_id: "dp_1" } }],
+      });
+      await post(fn);
+      expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
+      const adopted = writesTo("chargeback_clawbacks", "update").find((w) => payload(w).status === "reversed");
+      expect(payload(adopted!).stripe_reversal_id).toBe("trr_old");
+    });
+
+    it("a job read as escrow whose payout raced out is still clawed back, and marked chargeback first", async () => {
+      const fn = await load();
+      event("evt_race", "charge.dispute.created", dispute("needs_response"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "payout_pending" })] };
+      scenario.reads.payout_transfers = { rows: [{ stripe_transfer_id: "tr_1", helper_id: "helper-1", status: "pending" }] };
+      stripeMock.transfers.list.mockResolvedValue({ data: [transfer("tr_1", 9000)] });
+      stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_1" });
+      await post(fn);
+      expect(stripeMock.transfers.createReversal).toHaveBeenCalledTimes(1);
+      const marks = writesTo("jobs", "update").filter((w) =>
+        payload(w).payment_status === "chargeback" &&
+        w.filters.some((f) => f.op === "eq" && f.column === "payment_status" && f.value === "released"));
+      expect(marks.length).toBeGreaterThan(0);
+    });
+
+    it("the Stripe chargeback page goes out even when the clawback then fails transiently", async () => {
+      const fn = await load();
+      event("evt_page", "charge.dispute.created", dispute("needs_response"));
+      scenario.reads.jobs = { rows: [releasedJob()] };
+      stripeMock.transfers.list.mockRejectedValue(Object.assign(new Error("reset"), { type: "StripeConnectionError" }));
+      const res = await post(fn);
+      expect(res.status).toBe(500);
+      expect(alerts().some((a) => a.title === "Stripe chargeback filed")).toBe(true);
+    });
+
+    it("WON on a row that was never reversed (checked at Stripe) pays nothing back and says so", async () => {
+      const fn = await load();
+      event("evt_w_nt", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row({ status: "reverse_failed", stripe_reversal_id: null })] };
+      scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+      await post(fn);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const admin = notices().find((n) => n.user_id === "admin-1");
+      expect(admin?.title).toMatch(/nothing had been taken back/);
+      expect(admin?.message).not.toMatch(/has been paid back/);
+    });
+
+    it("WON on a stuck 'reversing' row whose reversal DID happen reconciles it, then pays back", async () => {
+      const fn = await load();
+      event("evt_w_rc", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row({ status: "reversing", stripe_reversal_id: null })] };
+      stripeMock.transfers.listReversals.mockResolvedValue({
+        data: [{ id: "trr_1", amount: 9000, metadata: { source: "chargeback-clawback", dispute_id: "dp_1" } }],
+      });
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_repay" });
+      await post(fn);
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(9000);
+    });
+
+    it("WON records the re-payment in payout_transfers as paid (the reconciler and payout guards see it)", async () => {
+      const fn = await load();
+      event("evt_w_led", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row()] };
+      scenario.reads.payout_transfers = { rows: [{ amount_cents: 9000, platform_fee_cents: 1200 }] };
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_repay" });
+      await post(fn);
+      const ledger = writesTo("payout_transfers", "insert").map(payload).find((r) => r.stripe_transfer_id === "tr_repay");
+      expect(ledger).toMatchObject({ status: "paid", amount_cents: 9000, platform_fee_cents: 1200, job_id: "job-1" });
+      // The original stays 'reversed' (reversal_cleared would read as an operator re-pay).
+      expect(writesTo("payout_transfers", "update").some((w) => payload(w).status === "reversal_cleared")).toBe(false);
+    });
+
+    it("a RESUMED re-payment that already reached Stripe is adopted, never paid twice", async () => {
+      const fn = await load();
+      event("evt_w_res", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row({ status: "repay_failed" })] };
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [{ id: "tr_repay_old", amount: 9000, metadata: { source: "chargeback-repay", dispute_id: "dp_1", original_transfer_id: "tr_1" } }],
+      });
+      await post(fn);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const done = writesTo("chargeback_clawbacks", "update").find((w) => payload(w).status === "repaid");
+      expect(payload(done!).repay_transfer_id).toBe("tr_repay_old");
+    });
+
+    it("funds_withdrawn after an escalated inquiry claws back and pages; after an ordinary chargeback it is quiet", async () => {
+      let fn = await load();
+      event("evt_fw1", "charge.dispute.funds_withdrawn", dispute("needs_response"));
+      scenario.reads.jobs = { rows: [releasedJob()] };
+      stripeMock.transfers.list.mockResolvedValue({ data: [transfer("tr_1", 9000)] });
+      stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_1" });
+      let res = await post(fn);
+      expect(res.status).toBe(200);
+      expect(stripeMock.transfers.createReversal).toHaveBeenCalledTimes(1);
+      expect(alerts().some((a) => /escalated to a chargeback/.test(a.title))).toBe(true);
+
+      resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+      fn = await load();
+      event("evt_fw2", "charge.dispute.funds_withdrawn", dispute("needs_response"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row()] };
+      scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+      stripeMock.transfers.list.mockResolvedValue({ data: [transfer("tr_1", 9000, { amount_reversed: 9000 })] });
+      res = await post(fn);
+      expect(res.status).toBe(200);
+      expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
+      expect(alerts().some((a) => /chargeback/i.test(a.title))).toBe(false);
+      expect(notices().some((n) => n.user_id === "admin-1")).toBe(false);
+    });
   });
 });

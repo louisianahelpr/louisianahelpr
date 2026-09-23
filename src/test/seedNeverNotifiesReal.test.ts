@@ -208,6 +208,7 @@ const KNOWN_GAP: Record<string, string> = {
   "ts:supabase/functions/stripe-idv-webhook/index.ts#2": "member (admin alert)",
   "ts:supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts#1": "job (admin alert)",
   "ts:supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts#2": "job (admin alert)",
+  "ts:supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts#3": "job (admin alert)",
   "ts:supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts#1": "job (admin alert)",
   "ts:supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts#1": "job (tip)",
   "ts:supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts#3": "donor (actor)",

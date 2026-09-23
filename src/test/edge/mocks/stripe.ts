@@ -45,6 +45,8 @@ export interface StripeMock {
      * scenario silently took the `giveUp()` decline branch instead.
      */
     create: ReturnType<typeof vi.fn>;
+    /** Q202: an abandoned 3D Secure challenge's PaymentIntent is canceled on re-mint. */
+    cancel: ReturnType<typeof vi.fn>;
   };
   /** Saved-card lookup — what makes an off-session auto-tip possible at all. */
   paymentMethods: {
@@ -70,6 +72,8 @@ export interface StripeMock {
     retrieve: ReturnType<typeof vi.fn>;
     /** Card-dispute clawback (Q202): stripe.transfers.createReversal. */
     createReversal: ReturnType<typeof vi.fn>;
+    /** Q202: a resumed clawback asks Stripe whether the reversal already happened. */
+    listReversals: ReturnType<typeof vi.fn>;
   };
   accounts: {
     retrieve: ReturnType<typeof vi.fn>;
@@ -130,6 +134,7 @@ export const stripeMock: StripeMock = {
   paymentIntents: {
     retrieve: vi.fn(),
     create: vi.fn(),
+    cancel: vi.fn(),
   },
   paymentMethods: {
     list: vi.fn(),
@@ -147,6 +152,7 @@ export const stripeMock: StripeMock = {
     list: vi.fn().mockResolvedValue({ data: [] }),
     retrieve: vi.fn(),
     createReversal: vi.fn(),
+    listReversals: vi.fn().mockResolvedValue({ data: [] }),
   },
   accounts: {
     retrieve: vi.fn(),
@@ -215,6 +221,7 @@ export function resetStripeMock() {
   // on a resume, and a reset mock returning undefined would make every resume
   // fail closed with "could not verify prior transfers".
   stripeMock.transfers.list.mockResolvedValue({ data: [] });
+  stripeMock.transfers.listReversals.mockResolvedValue({ data: [] });
   // create-payment awaits `checkout.sessions.expire` on the re-mint path before
   // it creates the replacement session; a reset mock resolves to undefined,
   // which is harmless, but a real Session shape keeps the double honest.

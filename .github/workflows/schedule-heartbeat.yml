@@ -146,6 +146,20 @@ jobs:
             fi
           done
 
+          # Q293: a scheduled prod-load run cancelled while PENDING (a third run
+          # entered the group) runs no job at all, not even its notify, so no
+          # nightly-red issue is filed and the staleness rule above still sees
+          # "a scheduled run". Every such run in the last 8 days counts here.
+          # Exit 2 (unread runs) fails this step: not checked is not clean.
+          node scripts/ci/cancelled-prod-load-runs.mjs > /tmp/cancelled.txt
+          CANCELLED=$(sed -n 's/^cancelled=//p' /tmp/cancelled.txt)
+          if [ -z "$CANCELLED" ]; then
+            echo "::error::cancelled-prod-load-runs.mjs printed no count"
+            exit 1
+          fi
+          sed -n '/^|/p' /tmp/cancelled.txt >> /tmp/rows.md
+          STALE_COUNT=$((STALE_COUNT + CANCELLED))
+
           echo "stale=$STALE_COUNT" >> $GITHUB_OUTPUT
 
           {
@@ -162,6 +176,7 @@ jobs:
             echo "**Likely causes, in order:**"
             echo "- GitHub disables \`schedule\` triggers on repos with **60 days of no activity** and does not re-enable them. Re-enable with \`gh workflow enable <file>\`."
             echo "- The workflow was disabled by hand (\`gh workflow list --all\` shows \`disabled_manually\`). This is what happened to \`test.yml\`, which everyone believed was gating commits while it had not run since 2026-04-26."
+            echo "- **cancelled** rows: a scheduled prod-load run was cancelled while pending (GitHub keeps one pending run per concurrency group), so none of its jobs ran and nothing was reported. Re-dispatch it (\`gh workflow run <file>\`) and find what crowded the prod-load group."
             echo "- The \`schedule:\` block was commented out in the file but left in this workflow's \`WATCHED\` list."
             echo ""
             echo "_Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}_"

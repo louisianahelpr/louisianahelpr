@@ -5,6 +5,10 @@
     {
       "version": "20260923104534",
       "why": "Q120. Applied by the Supabase GitHub integration (Q121), not db-deploy: prod workflow_run_logs 2026-09-23T10:53:46Z 'Applying migration... file=20260923104534_blank_credential_url_is_absent.sql' after 'Cloning git repo... git_ref=main' at 10:53:39Z (push of 6e6af2a8a at ~10:53:00Z); 0 rows in migration_deploy_ledger at 10:53:57Z."
+    },
+    {
+      "version": "20260923105333",
+      "why": "Q122. Applied by the Supabase GitHub integration (Q121), not db-deploy: prod workflow_run_logs 2026-09-23T11:00:27Z 'Applying migration... file=20260923105333_throttle_drops_kind_rename.sql' after 'Cloning git repo... git_ref=main' at 11:00:19Z (push of d27c41cfb at 10:59:45Z); db-deploy 35851951886 red only at 'Verify every prod migration was applied by db-deploy' (all gates green): no receipt."
     }
   ]
 }

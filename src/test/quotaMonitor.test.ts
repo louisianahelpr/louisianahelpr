@@ -238,7 +238,7 @@ describe("check-quota-usage.mjs (stub APIs)", () => {
 
   // Q275: Sentry showed "Replay Quota Exceeded" (2026-09-23) and no monitor saw it.
   // @mutate scripts/check-quota-usage.mjs |   await Promise.all([readSql(), readEdgeInvocations(), readDeploys(), readSentry(), readSentryReplays()]); |   await Promise.all([readSql(), readEdgeInvocations(), readDeploys(), readSentry()]);
-  // @mutate scripts/check-quota-usage.mjs |       value: by.accepted + by.rate_limited,\n      note: \`org stats_v2 category=replay: |       value: by.accepted,\n      note: \`org stats_v2 category=replay:
+  // @mutate scripts/check-quota-usage.mjs |       value: by.accepted + by.rate_limited,\n      note: `org stats_v2 category=replay: |       value: by.accepted,\n      note: `org stats_v2 category=replay:
   it("replays dropped by the Sentry quota -> the replay row reads OVER and alerts", async () => {
     const low = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", replays: "low" });
     expect(low.code, low.out).toBe(0);
@@ -253,7 +253,7 @@ describe("check-quota-usage.mjs (stub APIs)", () => {
   // a genuinely quiet window from one where events are being dropped (quota /
   // rate limit). Ask for every outcome and count accepted + rate_limited
   // against the quota, the way the replay reader already does.
-  // @mutate scripts/check-quota-usage.mjs |       value: by.accepted + by.rate_limited,\n      note: \`org stats_v2 category=error: |       value: by.accepted,\n      note: \`org stats_v2 category=error:
+  // @mutate scripts/check-quota-usage.mjs |       value: by.accepted + by.rate_limited,\n      note: `org stats_v2 category=error: |       value: by.accepted,\n      note: `org stats_v2 category=error:
   it("errors dropped by the Sentry quota -> the errors row includes them and warns", async () => {
     const low = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", errors: "low" });
     expect(low.code, low.out).toBe(0);

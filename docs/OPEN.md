@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 118 done, 11 partly done (fixed, protection pending), 86 open. Source of truth for work.
+- **Queue (this file):** 118 done, 13 partly done (fixed, protection pending), 86 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 215 items — 118 done, 11 partly done (fixed, protection pending), 86 open.**
+**Queue: 217 items — 118 done, 13 partly done (fixed, protection pending), 86 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -535,6 +535,8 @@ sure someone hears it and closes it.
 - [ ] **Q215 /profile?tab=gift_card at 1440 showed content running under the right rail (seen in Q191's desktop shots, 2026-09-23).** Identical before and after Q191. The shots came from a scratch context with a mobile user agent at 1440, so it may be that context; shell-spacing.spec's real desktop context passed its past-the-right-edge check. Not verified either way: re-shoot in a desktop context and fix if real.
 - [x] **Q216 DONE 2026-09-23: the schedule heartbeat no longer calls a newly scheduled workflow dead before its first slot (nightly-red #1696: scoreboard.yml's schedule was added 06:07Z, first slot 19:17Z, flagged 15:28Z). The never-ran branch reads the schedule's age from git (first commit adding a cron: line, full-history checkout) and reports 'not yet due' while younger than its budget. GUARD: src/test/scheduleHeartbeatGrace.test.ts (2 @mutate lines, red when the grace or the full checkout is removed).
 - [ ] **Q217 /legal search at 1440: the desktop right rail intercepts the magnifier click (found by the Q143 lane, 2026-09-23).** e2e/prod-audit/expanding-search-geometry.spec.ts "legal ... @1440" failed on a local build (this lane's code, which does not touch /legal or the rail): page.click on `button[aria-label="Search all policies"]` timed out because a button inside `nav[aria-label="Primary"]` (the fixed right rail) "subtree intercepts pointer events". Either the legal page's search trigger sits under the rail (a rail-inset defect, CLAUDE.md "desktop rail") or the spec clicks a covered point. Not investigated further; the shell lane (Q191) was editing shells at the time, so re-run on main first. Log: ~/.lh-shots/q142-q143/after.log. Guard to name when fixed: the same spec's legal@1440 case going green.
+- [ ] **Q218 supabase-usage.yml grades against the wrong plans (found by the Q63 lane, 2026-09-23).** scripts/supabase-usage-check.mjs still warns against the Supabase FREE tier (500 MB database, 1 GB storage) though the plan is now PRO, and scripts/lib/vercelUsage.mjs grades Vercel against PRO included amounts though the team is on the FREE (Hobby) plan. Its numbers are therefore wrong in both directions. Decide: retarget both, or retire the headroom half now that quota-monitor.yml (Q63) grades the Pro/Hobby limits daily. Guard when done: src/test/checkVercelUsage.test.ts / src/test/quotaMonitor.test.ts pin the limits.
+- [ ] **Q219 No "job completed" analytics event (found by the Q72 lane, 2026-09-23).** No `track(` call emits a completion event: AhaEvent.FirstJobCompleted and AhaEvent.FirstHelperHired are declared in src/lib/analytics.ts and never emitted (dead declarations, reported not removed). So the funnel stops at review_left and Q72 cannot watch "completed". Build: emit job_completed where a job completes, then move it from MISSING_MILESTONES to KEY_EVENTS in scripts/lib/analyticsFreshness.mjs (ground truth jobs.completed_at). Guard: src/test/analyticsFreshness.test.ts fails the day it is emitted and not monitored.
 - [x] **Q194 DONE 2026-09-23 (f6977f697, 41c4ede8c; migration 20260923152630): every redirect route is gone and every emitter names the current page.** Deleted from src/App.tsx: /activity /earnings /warnings /schedule /availability /saved-helprs /saved-helpers /gift-card /help-center /settings /data-rights and the short links /j/:id /u/:id /m/:id /messages/:id /post-job/* /legal/:tab (ActivityLegacyRedirect, ShortLinkRedirect, DataRightsRedirect deleted; deepLinkRoute short-link table and 9 AASA claims removed). /data-rights went too: the "App Store listing" claim was never proven (fastlane privacy_url is /privacy) and the app has not launched (owner). Emitters fixed: FilterSheet, GiftCardTeaser, CheckoutStep, SaveHelperButton, DataExportCard; 6 edge-function /earnings links, 2 /gift-card links, the gift email claim URL and the Stripe gift success/cancel URLs; nav/prefetch/launch lists. DB: notify_helper_on_tip + notify_on_payment_escrowed now write /profile?tab=earnings; apply_consequence_ladder + apply_job_denial_consequence restated so the newest textual definition matches live (live already wrote /profile?tab=warnings via 20260831232514). Prod, measured: notifications.link on a retired path 75 -> 0 (/profile?tab=earnings 0 -> 75, all helper-e2e), notification_dedupe_suppressions 19 -> 0; live function scan finds no retired address in code. Click-through at 375 on prod (helper-e2e): old /earnings renders the 404; "Payout released" in the notification panel lands on /profile?tab=earnings; gift_card, saved_helpers, availability tabs render (6 screenshots in ~/.lh-shots/q194/, recorded). GUARD: src/test/noLegacyRedirectRoutes.test.ts (source + edge functions + AASA + sitemap + newest SQL function bodies emit no retired address; App.tsx has no redirect-only route; RETIRED re-derived from App.tsx history two-way; 4 @mutate lines, each shown red). Was:** OWNER (2026-09-23): old addresses must not be redirects; every link goes DIRECT to the current page.** Owner: "The old address shouldn't be redirects it should be direct." Redirect routes in src/App.tsx: /availability /earnings /gift-card /help-center /saved-helpers /saved-helprs /schedule /settings /warnings /activity /data-rights (plus ShortLinkRedirect /j /u /m /messages/:id /legal/:tab /post-job/*, which are share links: decide per route and say why). Still EMITTED 2026-09-23 by: app code (FilterSheet, GiftCardTeaser, SaveHelperButton, mobileNavHelpers, desktopNavRoutes, LegalTab, ProtectedRoute, DesktopSidebarNav), live DB functions that write /warnings links into notifications (migrations 20260824243000, 20260824257000, 20260825183000, 20260826040000), 75 stored notifications linking /earnings on prod, emails (check supabase/functions templates), sitemap, audit route lists. Do: point every emitter at the current URL, rewrite stored notification links (replay-safe migration), then delete the redirect routes; guard: no source/DB function emits an old address and App.tsx has no Navigate-only legacy route (red first).
 - [x] **Q195 DONE 2026-09-23: main was red on 3 checks (found by the Q135/Q136 cloud lane on e992a4901 and 49747af6b).** (1) `npm run typecheck`: src/test/stripeWebhooksRefuseUnverified.test.ts:86 used `Array.prototype.at` (not in the app lib); now index arithmetic. (2) offeredHelperPrivacy: e2e/prod-audit/fundedOpenJob.ts:212 named its columns only in the 2nd half of a split URL, which the guard reads as `SELECT *`; `select=` moved to the first segment. (3) workflowFalseGreenShapes SET_PLUS_E: the new Q156 negative self-test step in stripe-webhook-guard.yml re-reads its code like its two siblings; the allowlist match now covers all three. GUARD: those three checks themselves (npm run typecheck, src/test/offeredHelperPrivacy.test.ts, src/test/workflowFalseGreenShapes.test.ts), all green again locally.
 - [x] **Q40 DONE 2026-09-23: the retired "upload your ID to us" path is gone from every layer (owner: "Remove id"; Stripe Identity collects the ID).** Client: Profile.tsx handleIdUpload, uploadProfileFiles idFile, CompleteProfile, AccountPending idDone, the public-profile select. Admin: People -> Documents "ID Document" section and its id-documents signer. Edge: complete-signup idBase64 and portfolioFiles (the only writer of bare paths into portfolio_urls, so Q23 closes with it); a DENIED account is now refused (403 denied_resubmission) where a raw call with idBase64 used to re-approve it over the admin's denial, and the approving UPDATE carries a not-denied WHERE (authz review L1). DB (migration 20260923145614, PGlite 3x): purge_user_data rebuilt without the column (md5-identical to live otherwise), the 4 id-documents storage policies dropped (bucket kept, private, closed to clients), profiles.id_document_url emptied, pinned NULL by CHECK profiles_id_document_url_retired, client UPDATE revoked. NOT dropped: shipped app builds still select it on every public profile (silent-failure review F1), so the DROP is Q196. Measured before: 53 rows with a value (52 is_seed placeholders + the owner's), 1 object in id-documents (the owner's). The owner's file was deleted via the Storage API (service role) and re-listed: 0 objects. GUARD: src/test/retiredIdUploadStaysGone.test.ts (source + migration halves; red on the old code: 14 hits in 9 files; 7 @mutate killed) + src/test/edge/complete-signup-retired-id-upload.test.ts (red on the old function: 2 of 2; 4 @mutate killed). Was: Legacy upload paths the product no longer has: (a) "upload your ID to us" (b) complete-signup portfolioFiles.
@@ -1241,11 +1243,29 @@ sure someone hears it and closes it.
   tokens (Supabase access token, GitHub PAT, Resend, Sentry), the domain
   registration, SSL. Inventory each with its expiry, alert 30 days ahead,
   and add each to the scoreboard.
-- [ ] **Q63 Quota and limit monitor, before any free-tier limit bites.**
+- [~] **Q63 Quota and limit monitor, before any free-tier limit bites.**
   Supabase (DB size, egress, connections, edge invocations, realtime
   messages; supabase-usage.yml covers part of it), Vercel (deploys,
   bandwidth, function time), GitHub Actions minutes, Resend send volume,
   Sentry quota. Alert at 70% and 90%, and show each on the scoreboard.
+  **STATUS 2026-09-23 (cloud/q63-q72-monitors; built and stub-verified, NOT yet run on prod, so [~]):**
+  `.github/workflows/quota-monitor.yml` (daily 23:17 UTC, prod-load slot) runs
+  `scripts/check-quota-usage.mjs` (limits + maths in `scripts/lib/quotaMonitor.mjs`). READS: Supabase DB
+  size (pg_database_size vs 8 GB Pro), client connections vs the LIVE max_connections, file storage
+  (storage.objects bytes vs 100 GB), edge invocations (function_edge_logs 24h x 30 vs 2M/month, logs.all);
+  Vercel deployments in 24h (GitHub deployments API, all environments, vs the Hobby cap of 100/day; a floor,
+  CLI deploys make none); Resend sends month-to-date and 24h (email_send_log 'sent' vs ASSUMED free plan
+  3,000/month, 100/day; a floor, Auth SMTP mail is not logged); Sentry accepted errors 30d (stats_v2, falls
+  back to project stats on 401/403; vs ASSUMED Developer plan 5,000). NOT MONITORED, ::warning every run:
+  Supabase egress and Realtime messages (no API; Management API usage routes 404, measured 2026-09-14).
+  ALERTS through the ops alert ledger (warning at 80%, error at 100%, verify-ref quota-monitor.yml);
+  UNREADABLE quota = ledger error + red run (nightly-issue-sync). Limits were NOT re-read from vendor
+  pricing (egress-blocked in the cloud session); each has an LH_QUOTA_* override. GUARD:
+  src/test/quotaMonitor.test.ts (maths, unreadable -> red, empty read -> red, no-API rows never "ok"; 6
+  @mutate lines, each shown red) + both scripts in src/test/liveCheckScriptsFailClosed.test.ts. SQL executed
+  in PGlite on a prod-shaped schema. OPEN: first prod run by the lead (dispatch quota-monitor.yml);
+  GitHub Actions minutes (no API with GITHUB_TOKEN); 70/90% two-step and per-quota scoreboard rows (the
+  workflow's own row is on the scoreboard); stale limits in supabase-usage.yml -> Q218.
 - [ ] **Q64 User-reported problems become tracked items.** In-app "report a
   problem" / support messages / App Store reviews mentioning a bug create
   an alert-ledger item (source `user-report`), so they're fixed and
@@ -1280,10 +1300,23 @@ sure someone hears it and closes it.
   route inventory in CI (both themes, 375 + 1440), failing on
   serious/critical issues, plus a real VoiceOver pass on iOS each release,
   recorded with review:record.
-- [ ] **Q72 Analytics that silently stop.** Key product events (signup, job
+- [~] **Q72 Analytics that silently stop.** Key product events (signup, job
   posted, application, message sent, payment completed, review left) should
   never fall to zero for a day without an alert. Add volume monitors to the
   ledger, and verify the events fire in a journey test.
+  **STATUS 2026-09-23 (cloud/q63-q72-monitors; built and stub-verified, NOT yet run on prod, so [~]):**
+  `scripts/check-analytics-freshness.mjs` (logic in `scripts/lib/analyticsFreshness.mjs`), second job of
+  quota-monitor.yml, daily. For each key event (signup_completed, job_posted, job_applied, job_accepted,
+  payment_made, review_left; 7-day window) one read-only SQL compares analytics_events against the rows
+  REAL (not is_seed) users wrote for the same action: events >= 1 OK; zero events but real actions BROKEN
+  (ledger error); events < 50% of >= 10 real actions DEGRADED (ledger warning); zero and zero QUIET
+  (reported, never alerted: pre-launch); job_accepted and payment_made have no trustworthy ground truth
+  (hires are also confirmed server-side by instant_book_claim / respond_to_direct_offer / group roster;
+  jobs has no paid-at column), so a zero there is UNVERIFIED, never BROKEN. Unreadable = red run. GUARD:
+  src/test/analyticsFreshness.test.ts derives the emitted event list from every non-test `track(` call in
+  src/ and holds KEY_EVENTS + NOT_MONITORED equal to it both ways (6 key + 27 not monitored = 33 emitted events today), plus the
+  quiet/broken maths and the CLI on a stub (6 @mutate lines, each shown red). OPEN: "completed" has NO
+  event (Q219); the journey-test half ("verify the events fire in a journey test") is not built.
 - [ ] **Q73 Email deliverability.** Verify SPF/DKIM/DMARC for the sending domain,
   seed-inbox placement (inbox vs spam), bounce and complaint rates from
   Resend, and why test mail dead-letters (Q29/Q2). Show them on the scoreboard.

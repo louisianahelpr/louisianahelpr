@@ -115,3 +115,15 @@ export function resolveApplyErrorCopy(message: string | null | undefined): strin
   }
   return null;
 }
+
+/**
+ * The server saying this helper already has an application on this job:
+ * apply_to_job's RAISE, or UNIQUE(job_id, helper_id) (23505) refusing the
+ * direct-INSERT fallback. useApplyFlow reads it as SUCCESS when the previous
+ * attempt's outcome was unknown (Q269): a lost response, then a retry.
+ */
+export function isAlreadyAppliedRefusal(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const { code, message } = err as { code?: unknown; message?: unknown };
+  return code === "23505" || message === "Already applied to this job";
+}

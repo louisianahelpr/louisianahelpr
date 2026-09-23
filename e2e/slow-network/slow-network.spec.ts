@@ -38,7 +38,7 @@ import { HANG_MS, NETWORK_3G, PROGRESS_GRACE_MS, stepTitle } from "./steps";
  * scripts/e2e/prod-lifecycle-sweeper.mjs before and after the run.
  * Guard: src/test/slowNetworkCoversEverySteps.test.ts.
  *
- * @mutate-exempt Runs only against prod with PLAYWRIGHT_POSTER/HELPER_EMAIL+_PASSWORD (GitHub secrets) and drives shared accounts, funds via Stripe test mode and posts rows; a mutation run is many such runs. Its STRUCTURE is guarded by src/test/slowNetworkCoversEverySteps.test.ts (5 @mutate lines, all red 2026-09-23: a step or mode dropped, the exactly-once check removed, a throttle removed, a fake route, the 1-worker wiring). GAP, stated plainly: written 2026-09-23 in a session with no prod access, so it has not yet been SEEN failing live; by code read post/pay-start/message drop are expected red (docs/OPEN.md Q267, Q268), which the first nightly run will confirm or refute.
+ * @mutate-exempt Runs only against prod with PLAYWRIGHT_POSTER/HELPER_EMAIL+_PASSWORD (GitHub secrets) and drives shared accounts, funds via Stripe test mode and posts rows; a mutation run is many such runs. Its STRUCTURE is guarded by src/test/slowNetworkCoversEverySteps.test.ts (5 @mutate lines, all red 2026-09-23: a step or mode dropped, the exactly-once check removed, a throttle removed, a fake route, the 1-worker wiring). GAP, stated plainly: written 2026-09-23 in a session with no prod access, so it has not yet been SEEN failing live; by code read post/pay-start/message drop were expected red (docs/OPEN.md Q267, Q268), fixed by cloud/q267-q270-retries (client keys + migration 20260923181707), which the first nightly run after it lands will confirm or refute.
  */
 
 const RUN = Date.now().toString(36).slice(-6);
@@ -396,10 +396,10 @@ test(stepTitle("apply", "drop"), async ({ browser, request, journey }) => {
     await expect(apply, "the apply button never came back after a lost response (hang)").toBeEnabled({ timeout: 60_000 });
     await apply.click();
     await expectExactlyOnce(request, helper, q, "applications row");
-    // Finding when present: the retry of a write that DID land is told it failed.
-    if (await page.getByText(/already applied/i).first().isVisible().catch(() => false)) {
-      test.info().annotations.push({ type: "finding", description: "retry after a lost apply response says 'already applied' — true, but the user was just told it failed" });
-    }
+    // Q269: the retry of an apply that DID land is told it worked, not
+    // "already applied" straight after being told it failed.
+    await expect(page.getByText(/Application sent/i).first(), "the retry of an apply that landed was not confirmed").toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/already applied/i), "retry after a lost apply response said 'already applied' after saying it failed").toHaveCount(0);
   });
   await ctx.close();
 });
@@ -507,6 +507,11 @@ test(stepTitle("pay-start", "drop"), async ({ browser, request, journey }) => {
   await loseNextResponse(page, `${SUPABASE_URL}/functions/v1/create-payment**`);
   await submit.click();
   const firstJobId = ((await (await firstInsert).json().catch(() => ({}))) as { id?: string }).id;
+  // A payment failure clears the "reviewed all details" consent on purpose
+  // (useJobSubmit), so the person ticks it again before retrying, as they must.
+  const consent = page.getByRole("checkbox", { name: /reviewed all details/i });
+  await expect(consent, "the checkout step never came back after a lost create-payment response (hang)").toBeVisible({ timeout: 60_000 });
+  if (!(await consent.isChecked())) await consent.click();
   await expect(submit, "the pay button never came back after a lost create-payment response (hang)").toBeEnabled({ timeout: 60_000 });
   await Promise.all([page.waitForURL(/checkout\.stripe\.com/, { timeout: 120_000 }), submit.click()]);
   // Idempotency: the retry must pay for the SAME job, not post a second one

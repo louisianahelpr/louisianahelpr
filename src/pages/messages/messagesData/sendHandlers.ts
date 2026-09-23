@@ -115,9 +115,15 @@ export function createSendHandlers({
   // its bubble with the server row (or marks it failed). Shared by the
   // first-attempt send path and the retry path so both stay in sync.
   const dispatchMessage = async (optimistic: Message) => {
-    const { data, error } = await supabase
+    const insertRow = (withClientId: boolean) => supabase
       .from("messages")
       .insert({
+        // Q268 idempotency key. The bubble's clientId is minted once in
+        // sendMessage and reused by retryMessage, so "Tap to Retry" on a send
+        // whose RESPONSE was lost resends the SAME key and the server's
+        // UNIQUE (sender_id, client_id) refuses the second row (23505),
+        // handled below as "it already landed".
+        ...(withClientId && optimistic.clientId ? { client_id: optimistic.clientId } : {}),
         job_id: optimistic.job_id,
         sender_id: optimistic.sender_id,
         receiver_id: optimistic.receiver_id,
@@ -138,6 +144,28 @@ export function createSendHandlers({
       })
       .select("*")
       .single();
+
+    let { data, error } = await insertRow(true);
+    // Deploy lag: a database that predates messages.client_id answers PGRST204
+    // for the unknown column. Send without the key rather than fail the send.
+    if (error && (error as { code?: string }).code === "PGRST204" && /client_id/.test(error.message ?? "")) {
+      ({ data, error } = await insertRow(false));
+    }
+    // The retry of a send that already landed: the first INSERT reached the
+    // server and only its response was lost. That row IS this message, so read
+    // it back and reconcile the bubble with it instead of calling it failed.
+    if (error && (error as { code?: string }).code === "23505" && optimistic.clientId) {
+      const existing = await supabase
+        .from("messages")
+        .select("*")
+        .eq("sender_id", optimistic.sender_id)
+        .eq("client_id", optimistic.clientId)
+        .maybeSingle();
+      if (!existing.error && existing.data) {
+        data = existing.data;
+        error = null;
+      }
+    }
 
     if (error || !data) {
       // Keep the text on screen and let the user retry it.

@@ -7360,6 +7360,7 @@
       "cancelled_at",
       "cancelled_by",
       "category",
+      "client_request_id",
       "commission_tax_amount",
       "completed_at",
       "created_at",
@@ -7557,6 +7558,13 @@
      "hasDefault": true,
      "notNull": true,
      "type": "job_category"
+    },
+    "client_request_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
     },
     "commission_tax_amount": {
      "enum": null,
@@ -9561,6 +9569,13 @@
      "hasDefault": false,
      "notNull": false,
      "type": "text"
+    },
+    "client_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
     },
     "content": {
      "enum": null,

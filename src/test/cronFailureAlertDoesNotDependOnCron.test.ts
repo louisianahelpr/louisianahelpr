@@ -100,4 +100,4 @@ describe("a cron outage is not reported through a cron", () => {
 
 // Proof this is able to fail — 'error' is exactly the routing that left the
 // 2026-09-22 outage unreported for nine hours.
-// @mutate supabase/migrations/20260922220930_cron_startup_timeout_pages_immediately.sql | 'fatal',\n    format('pg_cron could not START | 'error',\n    format('pg_cron could not START
+// @mutate supabase/migrations/20260923050055_cron_fleet_failures_any_kind.sql |    AND d.status = 'failed'; |    AND d.status = 'never';

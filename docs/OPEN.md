@@ -7752,7 +7752,7 @@ sure someone hears it and closes it.
   normalisation), #1607 (role-neutral copy) and several dependency bumps.
   Land, rebase or close each. Nothing auto-merges green dependency PRs (see
   memory dep-bumps-enable-auto-merge).
-- [ ] **Q33 A "connection failed" burst: 18 crons at 2026-09-22 19:00 UTC.**
+- [x] **Q33 DONE (20260923050055): confirmed NOTHING alerted on the 19:00Z burst** (error_logs 19:00-21:00 had no cron row). sweep_cron_startup_failures matched only "startup timeout", and cron-dead needs 3 consecutive failures of one job. It now counts ANY failed run (floor 3 in 20 min, same window dedupe, same source, so the ledger close rule still holds) and names the failure kinds. PGlite: applied 3x; a simulated 18x "connection failed" burst pages fatal; the repeat is deduped; 1 failure stays quiet. The mutation moved to the new migration. Was: A "connection failed" burst: 18 crons at 2026-09-22 19:00 UTC.
   Not a startup timeout. Confirm whether cron-dead / sweep_cron_startup_failures
   alerted on it; if nothing did, it's a hole in the cron monitoring.
 - [ ] **Q34 Press leftovers:** "Copy Mon to all" stays red (the test accounts

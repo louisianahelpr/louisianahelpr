@@ -7621,7 +7621,7 @@ sure someone hears it and closes it.
 - [x] **Q5 DONE 2026-09-23 — owner chose DELETE; ReuploadIdDialog removed.** (Server-side `admin-user-actions` re-upload action + its email template are now unused by the UI — reported, not removed.) Was: Nothing opens ReuploadIdDialog. No button leads to it. OWNER
   DECISION: should admins be able to request an ID re-upload? Then wire it up
   or delete it.
-- [ ] **Q6 Admin People badge says "ID Not Submitted"** on profiles that have
+- [x] **Q6 DONE: the admin Stripe-Identity badge now has an honest label for every idv_status.** Owner clarified 2026-09-23 that users never send an ID to us; Stripe Identity collects it. "ID Not Submitted" was wrong twice: Stripe mid-check (pending/processing) now shows "Stripe Checking", and not started/skipped/none shows "Not Verified". Stripe Verified / ID Verified / Admin Verified / Stripe Flagged are unchanged. Guard adminIdBadgeStates.test.tsx walks every status in profiles_idv_status_check (red on old code: 2 of 3). The seed profiles' id_document_url is legacy data (see Q40). Was: Admin People badge says "ID Not Submitted" on profiles that have
   an id_document_url. It reads a different column. Fix it to use one source
   of truth, and add a check for this class.
 - [ ] **Q7 WebKit only: the bottom nav isn't frosted.** Verify on the iOS 26.1
@@ -7805,3 +7805,11 @@ sure someone hears it and closes it.
   non-seed only, fingerprint = screen + message), and close it when that
   screen stops being shown to real users for 24h AND a synthetic check of the
   route passes. Found while measuring Q12.
+- [ ] **Q40 A legacy "upload your ID to us" path still exists, but the product has none.**
+  Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
+  collects the ID. Yet src/pages/Profile.tsx (~line 467) writes
+  profiles.id_document_url, admin DocumentsTab has an "ID Document" section,
+  there is an id-documents bucket, and 52 seed profiles hold data: images there.
+  Measure whether any UI can reach that upload today. Then remove the path and
+  its admin section, or report what depends on it. It is a leftover of a retired
+  flow and a stored-XSS surface we just had to harden (3c81624d0).

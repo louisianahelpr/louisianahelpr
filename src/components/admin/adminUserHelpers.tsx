@@ -70,5 +70,14 @@ export const stripeBadge = (profile: Profile) => {
   if (s === "manual_review" || s === "failed") {
     return <Badge className="bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30 text-ds-10 gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />Stripe Flagged</Badge>;
   }
-  return <Badge variant="outline" className="text-muted-foreground text-ds-10 gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />ID Not Submitted</Badge>;
+  // Users never send an ID to us — Stripe Identity collects it (owner,
+  // 2026-09-23). So the only honest states are Stripe's: checking, or not
+  // verified. Until 2026-09-23 "pending"/"processing" (Stripe mid-check) fell
+  // through to "ID Not Submitted", and that label implied a submission to us
+  // that the product does not have. adminIdBadgeStates.test.tsx walks every
+  // value profiles_idv_status_check allows so a new one cannot fall through.
+  if (s === "pending" || s === "processing") {
+    return <Badge className="bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30 text-ds-10 gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />Stripe Checking</Badge>;
+  }
+  return <Badge variant="outline" className="text-muted-foreground text-ds-10 gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />Not Verified</Badge>;
 };

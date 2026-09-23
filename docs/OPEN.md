@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 122 done, 11 partly done (fixed, protection pending), 84 open. Source of truth for work.
+- **Queue (this file):** 122 done, 13 partly done (fixed, protection pending), 84 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 217 items — 122 done, 11 partly done (fixed, protection pending), 84 open.**
+**Queue: 219 items — 122 done, 13 partly done (fixed, protection pending), 84 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1242,11 +1242,29 @@ sure someone hears it and closes it.
   tokens (Supabase access token, GitHub PAT, Resend, Sentry), the domain
   registration, SSL. Inventory each with its expiry, alert 30 days ahead,
   and add each to the scoreboard.
-- [ ] **Q63 Quota and limit monitor, before any free-tier limit bites.**
+- [~] **Q63 Quota and limit monitor, before any free-tier limit bites.**
   Supabase (DB size, egress, connections, edge invocations, realtime
   messages; supabase-usage.yml covers part of it), Vercel (deploys,
   bandwidth, function time), GitHub Actions minutes, Resend send volume,
   Sentry quota. Alert at 70% and 90%, and show each on the scoreboard.
+  **STATUS 2026-09-23 (cloud/q63-q72-monitors; built and stub-verified, NOT yet run on prod, so [~]):**
+  `.github/workflows/quota-monitor.yml` (daily 23:17 UTC, prod-load slot) runs
+  `scripts/check-quota-usage.mjs` (limits + maths in `scripts/lib/quotaMonitor.mjs`). READS: Supabase DB
+  size (pg_database_size vs 8 GB Pro), client connections vs the LIVE max_connections, file storage
+  (storage.objects bytes vs 100 GB), edge invocations (function_edge_logs 24h x 30 vs 2M/month, logs.all);
+  Vercel deployments in 24h (GitHub deployments API, all environments, vs the Hobby cap of 100/day; a floor,
+  CLI deploys make none); Resend sends month-to-date and 24h (email_send_log 'sent' vs ASSUMED free plan
+  3,000/month, 100/day; a floor, Auth SMTP mail is not logged); Sentry accepted errors 30d (stats_v2, falls
+  back to project stats on 401/403; vs ASSUMED Developer plan 5,000). NOT MONITORED, ::warning every run:
+  Supabase egress and Realtime messages (no API; Management API usage routes 404, measured 2026-09-14).
+  ALERTS through the ops alert ledger (warning at 80%, error at 100%, verify-ref quota-monitor.yml);
+  UNREADABLE quota = ledger error + red run (nightly-issue-sync). Limits were NOT re-read from vendor
+  pricing (egress-blocked in the cloud session); each has an LH_QUOTA_* override. GUARD:
+  src/test/quotaMonitor.test.ts (maths, unreadable -> red, empty read -> red, no-API rows never "ok"; 6
+  @mutate lines, each shown red) + both scripts in src/test/liveCheckScriptsFailClosed.test.ts. SQL executed
+  in PGlite on a prod-shaped schema. OPEN: first prod run by the lead (dispatch quota-monitor.yml);
+  GitHub Actions minutes (no API with GITHUB_TOKEN); 70/90% two-step and per-quota scoreboard rows (the
+  workflow's own row is on the scoreboard); stale limits in supabase-usage.yml -> Q221.
 - [ ] **Q64 User-reported problems become tracked items.** In-app "report a
   problem" / support messages / App Store reviews mentioning a bug create
   an alert-ledger item (source `user-report`), so they're fixed and
@@ -1281,10 +1299,23 @@ sure someone hears it and closes it.
   route inventory in CI (both themes, 375 + 1440), failing on
   serious/critical issues, plus a real VoiceOver pass on iOS each release,
   recorded with review:record.
-- [ ] **Q72 Analytics that silently stop.** Key product events (signup, job
+- [~] **Q72 Analytics that silently stop.** Key product events (signup, job
   posted, application, message sent, payment completed, review left) should
   never fall to zero for a day without an alert. Add volume monitors to the
   ledger, and verify the events fire in a journey test.
+  **STATUS 2026-09-23 (cloud/q63-q72-monitors; built and stub-verified, NOT yet run on prod, so [~]):**
+  `scripts/check-analytics-freshness.mjs` (logic in `scripts/lib/analyticsFreshness.mjs`), second job of
+  quota-monitor.yml, daily. For each key event (signup_completed, job_posted, job_applied, job_accepted,
+  payment_made, review_left; 7-day window) one read-only SQL compares analytics_events against the rows
+  REAL (not is_seed) users wrote for the same action: events >= 1 OK; zero events but real actions BROKEN
+  (ledger error); events < 50% of >= 10 real actions DEGRADED (ledger warning); zero and zero QUIET
+  (reported, never alerted: pre-launch); job_accepted and payment_made have no trustworthy ground truth
+  (hires are also confirmed server-side by instant_book_claim / respond_to_direct_offer / group roster;
+  jobs has no paid-at column), so a zero there is UNVERIFIED, never BROKEN. Unreadable = red run. GUARD:
+  src/test/analyticsFreshness.test.ts derives the emitted event list from every non-test `track(` call in
+  src/ and holds KEY_EVENTS + NOT_MONITORED equal to it both ways (6 key + 27 not monitored = 33 emitted events today), plus the
+  quiet/broken maths and the CLI on a stub (6 @mutate lines, each shown red). OPEN: "completed" has NO
+  event (Q222); the journey-test half ("verify the events fire in a journey test") is not built.
 - [ ] **Q73 Email deliverability.** Verify SPF/DKIM/DMARC for the sending domain,
   seed-inbox placement (inbox vs spam), bounce and complaint rates from
   Resend, and why test mail dead-letters (Q29/Q2). Show them on the scoreboard.
@@ -2281,3 +2312,5 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   REPAIR write on a seed profile in subscription-reconciliation still counts
   as a defect (500) — a broken write, deliberately left counted; confirm.
 - [ ] **Q218 An HTTP cron without the request tag is invisible to the failure sweep (Q174 review, 2026-09-23).** Since Q174, sweep_cron_http_failures only sees responses whose request id is in cron_http_requests. A cron added from the dashboard/SQL editor, or re-set by a later `cron.alter_job(command := ...)` without `cron_http_tag(`, would fail silently. Fix: the sweep also lists active cron.job rows with `net.http_post(` but no `cron_http_tag(` and files one error_logs row per job per day (source cron-http-untagged), included in its Slack post; prove red with an untagged job in the PGlite proof. Same class, sibling: sweep_silent_cron_failures copies any net._http_response with `"fn":"..."` into cron_run_log without joining cron_http_requests, so a manual probe counts as a cron run; join it too. Guard to add: extend src/test/cronHttpRequestsAreTagged.test.ts.
+- [ ] **Q221 supabase-usage.yml grades against the wrong plans (found by the Q63 lane, 2026-09-23).** scripts/supabase-usage-check.mjs still warns against the Supabase FREE tier (500 MB database, 1 GB storage) though the plan is now PRO, and scripts/lib/vercelUsage.mjs grades Vercel against PRO included amounts though the team is on the FREE (Hobby) plan. Its numbers are therefore wrong in both directions. Decide: retarget both, or retire the headroom half now that quota-monitor.yml (Q63) grades the Pro/Hobby limits daily. Guard when done: src/test/checkVercelUsage.test.ts / src/test/quotaMonitor.test.ts pin the limits.
+- [ ] **Q222 No "job completed" analytics event (found by the Q72 lane, 2026-09-23).** No `track(` call emits a completion event: AhaEvent.FirstJobCompleted and AhaEvent.FirstHelperHired are declared in src/lib/analytics.ts and never emitted (dead declarations, reported not removed). So the funnel stops at review_left and Q72 cannot watch "completed". Build: emit job_completed where a job completes, then move it from MISSING_MILESTONES to KEY_EVENTS in scripts/lib/analyticsFreshness.mjs (ground truth jobs.completed_at). Guard: src/test/analyticsFreshness.test.ts fails the day it is emitted and not monitored.

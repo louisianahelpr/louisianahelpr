@@ -1,0 +1,96 @@
+name: Quota and analytics monitors
+
+# docs/OPEN.md Q63 + Q72, daily.
+#
+# quota     scripts/check-quota-usage.mjs: Supabase database size, connections
+#           (against the LIVE max_connections), file storage and edge-function
+#           invocations; Vercel deployments in 24h against the free (Hobby)
+#           plan's daily cap; Resend sends (month + day) from email_send_log;
+#           Sentry accepted errors over 30 days. Every limit, its source and
+#           its override live in scripts/lib/quotaMonitor.mjs. >= 80% of a
+#           limit -> ops alert ledger warning (>= 100% -> error). A quota that
+#           cannot be read -> ledger error AND a red run. Quotas with no API
+#           (Supabase egress, Realtime messages) print a ::warning every run.
+#
+# analytics scripts/check-analytics-freshness.mjs: each key product event
+#           (signup, job posted, applied, hired, paid, reviewed) against the
+#           rows real users wrote for the same action. BROKEN (real actions,
+#           zero events) -> ledger error; QUIET (nobody did it, pre-launch) is
+#           reported and never alerts. An unreadable read -> red run.
+#
+# Both read prod through the Management API with read_only SQL (one statement
+# each) plus one logs.all query; nothing is written except ledger items.
+# The alert path is the ops alert ledger (scripts/lib/opsAlertLedger.mjs), the
+# same one prod-errors / supabase-usage use; its items carry verify-ref
+# quota-monitor.yml, so `ops-alert-ledger.mjs sync` closes each only after a
+# green run of THIS workflow that started after the last occurrence.
+
+on:
+  schedule:
+    # 23:17 UTC daily: 120 min after expiry-monitor (21:17), 120 min before
+    # supabase-usage (Sat 01:17), 30 min clear of the hourly :47 monitors
+    # (src/test/prodWorkflowSpacing.test.ts).
+    - cron: "17 23 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: read
+
+concurrency:
+  # Scheduled runs share prod-load; a dispatch gets its own group
+  # (src/test/prodWorkflowSpacing.test.ts rule 4).
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('quota-monitor-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+jobs:
+  quota:
+    name: Quotas and limits (Q63)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Read every quota
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: node scripts/check-quota-usage.mjs
+
+  analytics:
+    name: Analytics freshness (Q72)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Read each key event against real actions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-analytics-freshness.mjs
+
+  notify:
+    name: Report nightly result
+    needs: [quota, analytics]
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: quota-monitor
+          status: ${{ (needs.quota.result == 'success' && needs.analytics.result == 'success') && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

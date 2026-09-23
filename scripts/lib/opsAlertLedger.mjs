@@ -23,7 +23,7 @@ export async function sql(query, { readOnly = false, timeoutMs = 20000 } = {}) {
   const token = process.env.SUPABASE_ACCESS_TOKEN;
   const ref = process.env.SUPABASE_PROJECT_REF;
   if (token && ref) {
-    const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+    const res = await fetch(`${process.env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com"}/v1/projects/${ref}/database/query`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(readOnly ? { query, read_only: true } : { query }),

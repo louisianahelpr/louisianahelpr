@@ -202,6 +202,17 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "Management API 500", args: ["check"], env: MGMT("fail"), says: /could not check migration provenance: Management API query failed: 500/ },
     { label: "Management API []", args: ["check"], env: MGMT("empty"), says: /schema_migrations read returned no rows — refusing to report clean/ },
   ],
+  // Q63 / Q72 (quota-monitor.yml). Both read prod through the Management API
+  // (LH_SUPABASE_API_BASE); their ledger writes land on the same stub.
+  "scripts/check-quota-usage.mjs": [
+    { label: "Management API 500", env: MGMT("fail"), says: /could not read the usage SQL: Management API SQL 500/ },
+    { label: "Management API []", env: MGMT("empty"), says: /the usage SQL returned no row — refusing to report clean/ },
+  ],
+  "scripts/check-analytics-freshness.mjs": [
+    { label: "no credentials", says: /could not read analytics_events: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
+    { label: "Management API 500", env: MGMT("fail"), says: /could not read analytics_events: Management API SQL 500/ },
+    { label: "Management API []", env: MGMT("empty"), says: /expected \d+ rows, got 0 — refusing to report clean/ },
+  ],
   "scripts/check-test-account-strikes.mjs": [
     { label: "REST read fails", env: { SUPABASE_URL: "@HTTP@/fail", SUPABASE_SERVICE_ROLE_KEY: "stub" }, says: /could not check: GET profiles → 500/ },
     { label: "REST read is empty", env: { SUPABASE_URL: "@HTTP@/empty", SUPABASE_SERVICE_ROLE_KEY: "stub" }, says: /no shared test account profiles found/ },

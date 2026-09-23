@@ -247,9 +247,11 @@ describe("create-notification — server-built copy only (Q223)", () => {
     expect(notificationInserts()).toHaveLength(0);
   });
 
-  it("a legacy (pre-template) client body is mapped by title and still gets SERVER copy", async () => {
-    // The shipped native bundle still sends title/message/type. The title is
-    // only a lookup key; none of its words reach the row.
+  it("a legacy (pre-template) client body with only title/message/type is refused (Q309: shim removed, app has not launched)", async () => {
+    // The LEGACY_TITLE_TEMPLATE shim (a title->template lookup for pre-launch
+    // clients that predated `template`) was removed: the app has never
+    // launched, so no such client exists. A caller with no `template` and no
+    // admin role falls through to "Unknown or missing notification template".
     scenario.authUser = { id: POSTER };
     scenario.reads.jobs = { rows: [job({ customer_id: POSTER, helper_id: TARGET })] };
     const fn = await load();
@@ -265,14 +267,8 @@ describe("create-notification — server-built copy only (Q223)", () => {
         },
       }),
     );
-    expect(res.status).toBe(200);
-    const ins = notificationInserts();
-    expect(ins).toHaveLength(1);
-    expect(ins[0].payload).toMatchObject({
-      title: "✅ Arrival confirmed",
-      message: 'The person who posted this job confirmed you\'ve arrived for "Mow the lawn".',
-      type: "success",
-    });
+    expect(res.status).toBe(400);
+    expect(notificationInserts()).toHaveLength(0);
   });
 
   it("a non-admin's free text to THEMSELVES is refused too; the self test is fixed copy", async () => {

@@ -1107,6 +1107,19 @@ function posterCells(): StateCell[] {
       for (const expanded of [false, true]) {
         // R9 — the first sub-state of each status is the status-defining cell.
         const primaryOnly = !(i === 0 && expanded);
+        // `pending_approval` is retired: nothing writes it from the post flow
+        // any more (useJobSubmit.ts:527-532), the business-approval feature
+        // that used to produce it was removed (migration
+        // 20260831232522_retire_business_approval_residue.sql, which also
+        // migrated the two prod rows still carrying it to in_progress), and a
+        // live prod check on 2026-09-23 confirmed `jobs` has zero rows with
+        // this status (a lone leftover was an uncleaned is_seed fixture,
+        // since deleted). The enum label itself is deliberately kept (see that
+        // migration's comment) so old rows never fail to parse, but no code
+        // path can ever produce a new one — so this substate is unreachable,
+        // not `auto`, and stays enumerated (not deleted) precisely so a
+        // regression that starts writing it again shows up as a manifest diff.
+        const isRetiredPendingApproval = status === "pending_approval";
         cells.push({
           id: slug(`posted-${status}-${sub.key}-${expanded ? "expanded" : "collapsed"}`),
           surface: "posted-card",
@@ -1121,7 +1134,16 @@ function posterCells(): StateCell[] {
             content: "default",
           },
           expanded,
-          reachable: "auto",
+          reachable: isRetiredPendingApproval ? "unreachable" : "auto",
+          ...(isRetiredPendingApproval
+            ? {
+                reason:
+                  "pending_approval is retired: no code path writes it (business-post-approval " +
+                  "was removed, migration 20260831232522), and prod holds zero jobs in this " +
+                  "status. Enumerated, not deleted, so a regression that starts writing it again " +
+                  "shows up here.",
+              }
+            : {}),
           shots: shotsFor(primaryOnly),
           fixture: {
             job: { ...BASE_JOB, status, ...sub.job } as CellFixture["job"],

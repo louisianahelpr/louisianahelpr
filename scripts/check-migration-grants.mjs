@@ -33,6 +33,7 @@ const allMigrationFiles = () =>
   existsSync(MIGRATIONS_DIR)
     ? readdirSync(MIGRATIONS_DIR)
         .filter((f) => f.endsWith(".sql"))
+        .sort()
         .map((f) => join(MIGRATIONS_DIR, f))
     : [];
 
@@ -55,7 +56,26 @@ for (const file of allMigrationFiles()) {
   const sql = readFileSync(file, "utf8");
   let m;
   while ((m = grantRe.exec(sql)) !== null) granted.add(m[1].toLowerCase());
+  // Q263: a dynamic grant loop — `EXECUTE format('GRANT|REVOKE … ON FUNCTION
+  // %s …', f)` over an array of 'public.fn(args)' literals — grants every
+  // function named in that file's literals.
+  if (/execute\s+format\(\s*'(?:grant|revoke)\b[^']*\bon\s+function\s+%s/i.test(sql)) {
+    for (const lit of sql.matchAll(/'(?:public\.)?([a-z0-9_]+)\([^')]*\)'/gi)) granted.add(lit[1].toLowerCase());
+  }
 }
+
+// Q263: with --all, a function a LATER migration drops (and never re-creates)
+// no longer exists, so its historical definition cannot leak a grant.
+const dropRe = /\bdrop\s+function\s+(?:if\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi;
+const createRe = /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?([a-z0-9_]+)"?\s*\(/gi;
+const lastCreate = new Map();
+const lastDrop = new Map();
+allMigrationFiles().forEach((file, i) => {
+  const sql = readFileSync(file, "utf8");
+  for (const d of sql.matchAll(dropRe)) lastDrop.set(d[1].toLowerCase(), i);
+  for (const c of sql.matchAll(createRe)) lastCreate.set(c[1].toLowerCase(), i);
+});
+const droppedForGood = (name) => (lastDrop.get(name) ?? -1) >= (lastCreate.get(name) ?? -1);
 
 // New function definitions in the changed files.
 const fnRe = /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?([a-z0-9_]+)"?\s*\(/gi;
@@ -69,6 +89,7 @@ for (const file of changedFiles) {
     // those functions are invoked by the trigger machinery, never granted.
     const sig = sql.slice(m.index, m.index + 600);
     if (/\breturns\s+(trigger|event_trigger)\b/i.test(sig)) continue;
+    if (scanAll && droppedForGood(name.toLowerCase())) continue;
     if (!granted.has(name.toLowerCase())) violations.push({ file, name });
   }
 }

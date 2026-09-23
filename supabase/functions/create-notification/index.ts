@@ -62,39 +62,10 @@ function sanitizeLink(link: unknown): string | null {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// App Store / deploy-lag compatibility (Q223). The shipped native bundle and
-// any open web tab predate `template` and still send the old
-// `{title, message, type, link}` body. The TITLE is used here only as a
-// lookup key into the template list — none of the caller's words reach the
-// notification; the server builds the copy exactly as for a `template` call.
-// A title that is not one of these gets no notification. Safe to delete once
-// no client older than the template change is in use.
-const LEGACY_TITLE_TEMPLATE: Record<string, string> = {
-  "Work has started": "work_started",
-  "Dispute withdrawn": "dispute_withdrawn",
-  "Helpr responded to dispute": "dispute_response",
-  "Helpr acknowledged the revision": "revision_acknowledged",
-  "The person who posted this job confirmed it!": "job_confirmed",
-  "Helpr confirmed the job!": "job_confirmed",
-  "Dispute resolved ✓": "dispute_resolved",
-  "Revision requested": "revision_requested",
-  "✅ Arrival confirmed": "arrival_confirmed",
-  "✅ Work confirmed": "work_confirmed",
-  "📋 New job offer!": "job_offer",
-  "Application declined": "application_declined",
-  "⛔ Account banned for no-show": "no_show_reported",
-  "⛔ Account restricted for 7 days": "no_show_reported",
-  "⚠️ No-show warning": "no_show_reported",
-  "Test from Helpr": SELF_TEST_TEMPLATE,
-};
-
-/** The template a body names, or the legacy title's template, or null. */
+/** The template a body names, or null. */
 function resolveTemplateName(body: Record<string, unknown> | null): string | null {
   if (!body) return null;
   if (typeof body.template === "string") return body.template;
-  if (typeof body.title === "string" && Object.prototype.hasOwnProperty.call(LEGACY_TITLE_TEMPLATE, body.title)) {
-    return LEGACY_TITLE_TEMPLATE[body.title];
-  }
   return null;
 }
 

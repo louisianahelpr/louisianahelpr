@@ -93,10 +93,16 @@ serve(async (req) => {
 
     const systemPrompt = `You are Helpr's AI Job Builder. You help users create job postings on Helpr, a local services marketplace.
 
+CANONICAL NOUNS — house style, follow exactly: the person who does the job is
+always "Helpr", capitalized, and never any other common noun for that role;
+the person who posted the job is always "poster" or "you" — never "customer"
+or "client". Use these exact terms in the title, description and any special
+requirements text you write.
+
 Given a brief description of what the user needs help with, generate a complete job posting with:
-1. A clear, concise title (max 32 chars — the form's title field hard-caps at 32 and rejects anything longer)
+1. A clear, concise title (target 24 chars or fewer — the form's title field hard-caps at exactly 32 and rejects anything longer, so aim well under the cap rather than skimming it)
 2. A detailed description (2-3 paragraphs) covering scope, expectations, and any relevant details
-3. A recommended category from: cleaning, yard_work, moving, errands, handyman, painting, delivery, pet_care, assembly, other
+3. A recommended category from: cleaning, yard_work, moving, errands, handyman, painting, delivery, pet_care, assembly, storm_prep, events, other
 4. Estimated hours needed
 5. A suggested budget range (min and max in USD)
 6. Any special requirements or notes
@@ -133,12 +139,12 @@ Always respond using the generate_job_posting tool.`;
               parameters: {
                 type: "object",
                 properties: {
-                  title: { type: "string", description: "Job title, max 32 chars" },
+                  title: { type: "string", description: "Job title, target 24 chars or fewer, hard cap 32" },
                   description: { type: "string", description: "Detailed job description" },
-                  category: { 
-                    type: "string", 
-                    enum: ["cleaning", "yard_work", "moving", "errands", "handyman", "painting", "delivery", "pet_care", "assembly", "other"],
-                    description: "Best matching job category" 
+                  category: {
+                    type: "string",
+                    enum: ["cleaning", "yard_work", "moving", "errands", "handyman", "painting", "delivery", "pet_care", "assembly", "storm_prep", "events", "other"],
+                    description: "Best matching job category"
                   },
                   estimated_hours: { type: "number", description: "Estimated hours to complete" },
                   budget_min: { type: "number", description: "Minimum suggested budget in USD" },

@@ -54,6 +54,10 @@ const sentRows = (): SentRow[] =>
   fetchSpy.mock.calls.flatMap((c) => JSON.parse(String(c[1].body)) as SentRow[]);
 const rowsWithMessage = (m: string) => sentRows().filter((r) => r.message === m);
 
+// supabase-js keys the session by the client URL's first host label
+// (unit tests point it at https://unit-test.invalid, Q55a).
+const AUTH_TOKEN_KEY = `sb-${new URL(String(import.meta.env.VITE_SUPABASE_URL)).hostname.split(".")[0]}-auth-token`;
+
 const atProd = () =>
   Object.defineProperty(window, "location", {
     value: new URL("https://www.louisianahelpr.com/dashboard"),
@@ -84,7 +88,8 @@ describe("report() does not depend on a lazy chunk (Q161)", () => {
     const call = fetchSpy.mock.calls.find((c) => String(c[1].body).includes("q161 persisted"))!;
     const [url, init] = call;
     // Mirrors what supabase.from("error_logs").insert(batch) sent.
-    expect(url).toMatch(/^https:\/\/fncmgoasalhdgfwzhsqa\.supabase\.co\/rest\/v1\/error_logs\?columns=/);
+    // Built from the configured client URL (unit tests: https://unit-test.invalid, Q55a).
+    expect(url.startsWith(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/error_logs?columns=`)).toBe(true);
     expect(decodeURIComponent(url.split("columns=")[1])).toBe(
       '"user_id","severity","message","stack","url","user_agent","tags","context"',
     );
@@ -101,7 +106,7 @@ describe("report() does not depend on a lazy chunk (Q161)", () => {
 
   it("sends the signed-in user's unexpired access token, and retries once as anon on a 401", async () => {
     localStorage.setItem(
-      "sb-fncmgoasalhdgfwzhsqa-auth-token",
+      AUTH_TOKEN_KEY,
       JSON.stringify({ access_token: "user-access-token", expires_at: Math.floor(Date.now() / 1000) + 3600 }),
     );
     fetchSpy.mockImplementationOnce(async () => new Response(null, { status: 401 }));
@@ -157,7 +162,7 @@ describe("a failed background import is visible, once per session (Q161)", () =>
     // but the request goes out as anon, so user_id must be dropped or RLS
     // (user_id null or auth.uid()) refuses the whole batch.
     localStorage.setItem(
-      "sb-fncmgoasalhdgfwzhsqa-auth-token",
+      AUTH_TOKEN_KEY,
       JSON.stringify({ access_token: "expired.jwt.token", expires_at: 1, user: { id: "00000000-0000-0000-0000-0000000000aa" } }),
     );
     vi.useFakeTimers();

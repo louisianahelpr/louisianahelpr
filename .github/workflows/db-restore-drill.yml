@@ -123,8 +123,27 @@ jobs:
           # empty new project — the thing a disaster restore would target.
           supabase init --yes
           T0=$(date +%s)
-          supabase start -x analytics,edge-runtime,functions,imgproxy,inbucket,kong,meta,realtime,rest,studio,vector
-          echo "stack up in $(( $(date +%s) - T0 ))s"
+          # Only db + auth + storage matter (they create the auth/storage
+          # schemas a restore lands in). With kong excluded the CLI's API
+          # health probe can never pass, so it is skipped and the DATABASE is
+          # health-checked directly below instead — a stack whose db is not
+          # answering still fails this step.
+          supabase start --ignore-health-check \
+            -x analytics,edge-runtime,functions,imgproxy,inbucket,kong,meta,realtime,rest,studio,vector
+          for i in $(seq 1 60); do
+            if psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -XAtc \
+                 "select to_regclass('auth.users') is not null and to_regclass('storage.objects') is not null" \
+                 2>/dev/null | grep -qx t; then
+              echo "stack up (db answering, auth.users + storage.objects exist) in $(( $(date +%s) - T0 ))s"
+              break
+            fi
+            if [ "$i" -eq 60 ]; then
+              echo "::error::local db never exposed auth.users + storage.objects — no restore target"
+              docker ps -a
+              exit 1
+            fi
+            sleep 5
+          done
 
       - name: Restore and compare with prod
         env:

@@ -21,7 +21,7 @@ interface CheckoutStepViewProps {
  */
 export function CheckoutStepView({ form }: CheckoutStepViewProps) {
   return (
-    <div key="checkout-step" className="space-y-6 animate-ds-page-in">
+    <div key="checkout-step" className="space-y-section animate-ds-page-in">
       <CheckoutStepIndicator onBackToForm={() => form.setStep("form")} />
       {/* The PostingQualityMeter ("Post quality: Good 73%" + a checklist) used
           to sit here. Removed on owner instruction: this is the pay screen, and

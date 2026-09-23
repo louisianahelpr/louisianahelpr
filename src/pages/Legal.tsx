@@ -703,7 +703,13 @@ const Legal = () => {
                 somewhere to disappear. */}
             <div
               ref={stickyRowRef}
-              className="sticky z-30 -mx-5 px-5 py-2"
+              // `-my-2` (Q190/Q191): the band keeps its py-2 so pinned policy
+              // text has somewhere to disappear, but in flow that padding put
+              // the tabs 8px under the shared 12px title gap and the policy 8px
+              // further below them. The negative margins cancel the padding in
+              // flow so both sides land on the rhythm; once pinned, margin is
+              // irrelevant.
+              className="sticky z-30 -mx-5 px-5 py-2 -my-2"
               style={{
                 top: webBandStickyTop,
                 // No solid fill (owner). `--background` is a flat neutral and

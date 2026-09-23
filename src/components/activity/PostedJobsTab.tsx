@@ -476,14 +476,15 @@ export const PostedJobsTab = ({
        auto` is what stops a LONG list being compressed to fit the panel instead
        of scrolling past it.
 
-       `gap-4` replaces the `space-y-4` this container used to carry, and that
+       `gap-section` (Q191, the shared --section-gap: 12px phone, 16px sm+;
+       was `gap-4`) replaces the `space-y-4` this container used to carry, and that
        swap is load-bearing, not cosmetic: Tailwind compiles `space-y-4` to
        `.space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem }`, whose
        specificity BEATS the `.mt-auto` utility — so with `space-y-4` on the
        parent, ListTail's `mt-auto` was silently overwritten by a 1rem margin
        and the tail stopped 245px short of the bottom (measured). A flex `gap`
        produces the identical rhythm without touching margins. */
-    <div className="flex flex-col gap-4 flex-1">
+    <div className="flex flex-col gap-section flex-1">
       {/* Only with cards on screen to point at — see LocationPressHint. */}
       {!locationHintSeen && visibleJobs.length > 0 && (
         <LocationPressHint onDismiss={dismissLocationHint} />

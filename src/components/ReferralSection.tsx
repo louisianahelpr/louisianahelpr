@@ -182,7 +182,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   }
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-section pb-24">
       {/* Code card — hero of the page */}
       <div className="rounded-2xl liquid-glass border-2 border-primary/30 p-6 space-y-4 text-center"
         style={{

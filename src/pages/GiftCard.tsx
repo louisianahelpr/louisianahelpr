@@ -470,9 +470,9 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
             of the viewport while the "sent to you" / "sent by you" lists
             scrolled up underneath it, reading as everything overlapping the
             card. Removed along with the dead col-span classes. */}
-        <div className="space-y-6">
+        <div className="space-y-section">
           {/* ── Left rail: context + primary action ─────────────────────────── */}
-          <aside className="space-y-6">
+          <aside className="space-y-section">
             {/* What is this? */}
             {/* Card radius + padding are the canonical profile-card values
                 (`rounded-2xl … p-5`). Only the FILL stays gift-tinted — the
@@ -809,7 +809,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
               canonical bottom-nav clearance (safe-area + 96px dock + 1rem), and
               a second per-page pad is the double-inset CLAUDE.md warns about —
               it only adds dead space under the last card. */}
-          <section className="space-y-6">
+          <section className="space-y-section">
             {/* Gifts sent to you */}
             <div>
               <p className="text-ds-13 font-sans font-semibold mb-3" style={{ color: "hsl(var(--ink-deep))" }}>

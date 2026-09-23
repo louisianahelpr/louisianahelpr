@@ -582,7 +582,9 @@ const Admin = () => {
             {view !== "home" && (
               <AdminSectionHeader title={viewLabels[view]} onBack={() => handleViewChange("home")} />
             )}
-            <Suspense fallback={<div role="status" aria-label="Loading…" className="flex items-center justify-center py-12"><div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
+            {/* The app's one loading mark (HelprSpinner, which carries its own
+                role="status"), not a hand-rolled border spinner (Q191). */}
+            <Suspense fallback={<div className="flex items-center justify-center py-12"><HelprSpinner size={32} /></div>}>
               {renderContent()}
             </Suspense>
           </main>

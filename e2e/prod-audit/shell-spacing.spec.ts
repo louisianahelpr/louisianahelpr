@@ -42,7 +42,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { getSession, type Session } from "./harness";
 import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
-import { readShellSpacing, spacingScreens, type SpacingRow, type SpacingScreen } from "./shellSpacing";
+import { readSectionSpacing, readShellSpacing, spacingScreens, type SpacingRow, type SpacingScreen } from "./shellSpacing";
 
 const OUT = process.env.LH_SHELL_SPACING_OUT;
 const SHOTS = process.env.LH_SHELL_SPACING_SHOTS;
@@ -70,21 +70,15 @@ const GAP = shellGapPx();
 const NOT_A_TITLE_ROW = new Set(["landing", "not-found", "payment-success"]);
 
 /**
- * Page-owned offsets BELOW the title, exact (measured 2026-09-23, after the
- * fix). Each is the page's own first element, not a shell value; Q190 asks the
- * owner whether to fold them in. Asserted exactly so a page that changes is
- * noticed and this list shrinks with it.
+ * Page-owned offsets BELOW the title, exact. EMPTY since Q190 (2026-09-23):
+ * the three pages that sat further down — /legal (and /terms, /privacy, /rules)
+ * 20px, Profile Legal 16px, Wrapped 20px, each because of its own first
+ * element — were folded into the 12px rhythm (owner: tighter everywhere). A
+ * page that needs an exception again lists its EXACT value here, with why.
  */
-const TITLE_TO_CONTENT_EXCEPTIONS: Record<string, { px: number; why: string }> = {
-  "legal-terms": { px: GAP + 8, why: "Legal's sticky tab band carries py-2 so pinned text has somewhere to disappear" },
-  "legal-privacy": { px: GAP + 8, why: "same Legal page, other tab" },
-  "legal-community": { px: GAP + 8, why: "same Legal page, other tab" },
-  privacy: { px: GAP + 8, why: "renders Legal" },
-  terms: { px: GAP + 8, why: "renders Legal" },
-  rules: { px: GAP + 8, why: "renders Legal" },
-  "profile-legal": { px: GAP + 4, why: "the Profile Legal tab's own tab band" },
-  wrapped: { px: GAP + 8, why: "Wrapped's first card sits in its own padded hero" },
-};
+// @mutate src/pages/Legal.tsx | className="sticky z-30 -mx-5 px-5 py-2 -my-2" | className="sticky z-30 -mx-5 px-5 py-2"
+// @mutate src/pages/HelprWrapped.tsx | <div className="pb-2 flex flex-col items-center"> | <div className="py-2 flex flex-col items-center">
+const TITLE_TO_CONTENT_EXCEPTIONS: Record<string, { px: number; why: string }> = {};
 
 let poster: Session;
 test.beforeAll(async ({ request }) => {
@@ -241,5 +235,139 @@ test("every route holds the one phone rhythm, and 1440 holds 24", async ({ brows
   const after = await page.evaluate(readShellSpacing);
   expect(before.headerToTitle, "vacuity page measured no title").not.toBeNull();
   expect(after.headerToTitle! - before.headerToTitle!, "an 8px shift did not move header→title — the measure is blind").toBe(8);
+  await page.context().close();
+});
+
+// ─── IN-PAGE SECTION RHYTHM (Q191) ─────────────────────────────────────────
+// Owner, 2026-09-23: "update the spacing on every other phone width. Like all
+// the profile tabs everything that you think needs to be tighter." Below the
+// title, the gap between a page's sections is `--section-gap` (12px on a
+// phone; src/index.css), read by ProfileTabBody and Tailwind's `section`
+// spacing key. Measured before/after on the built app against prod
+// (~/.lh-shots/q191/{before,after}.json): Profile tabs 16 → 12, After a Job /
+// Home History / Legal 20 → 12, Gift Card / Help 24 → 12, My Posts 16 → 12.
+//
+// The claim, at 320/375/390/430 on every catalog screen: every gap between the
+// sections of the page's own stack (readSectionSpacing) equals --section-gap
+// ±1, unless the screen is listed below with its EXACT gaps (two-way: a listed
+// screen that measures the default fails until its entry goes), and every
+// screen either has a stack or is listed as having none (two-way again).
+//
+// Red on the original: the build of origin/main 80ef9f186 fails this test with
+// 91 violations (every Profile tab at 16, Legal 20, Help / Gift Card 24, After
+// a Job / Home History 20, My Posts 16) and the rhythm test above with 32 (the
+// Q190 pages); both green on the fix, vacuity leg included (2026-09-23).
+
+/** The token, read from the stylesheet. */
+function sectionGapPx(): number {
+  const css = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8");
+  const m = /--section-gap:\s*([\d.]+)rem;/.exec(css);
+  if (!m) throw new Error("--section-gap not found in src/index.css");
+  return Math.round(parseFloat(m[1]) * 16);
+}
+const SECTION_GAP = sectionGapPx();
+
+/**
+ * Stacks whose gaps are NOT section gaps, with their exact phone value.
+ * `first: true` holds only the first gap (the rest is a flexible filler).
+ */
+const SECTION_EXCEPTIONS: Record<string, { px: number; first?: boolean; why: string }> = {
+  "browse-guest": { px: 10, why: "the guest job feed is a LIST (GUEST_FEED_GRID_CLASS gap-2.5), not page sections; unifying the job-card list rhythm (8 dashboard, 10 here, 12 Activity) is Q213" },
+  dashboard: { px: 8, why: "the virtualized job feed's own row pitch (BrowseTasksFeed pb-2) — a list, not sections" },
+  "complete-profile": { px: 8, why: "a complete account lands on /dashboard: same feed" },
+  "job-detail-1": { px: 8, why: "the catalog's fake job id lands on /dashboard: same feed" },
+  "job-detail-missing": { px: 8, why: "a missing job lands on /dashboard: same feed" },
+  messages: { px: 20, why: "conversation rows are a divided list (row padding either side of a hairline), not cards" },
+  "my-posts": { px: SECTION_GAP, first: true, why: "after the list, ListTail's mt-auto fills the panel's leftover height — a filler, not a gap" },
+  "profile-support": { px: 24, why: "the Help Center row sits a deliberate DOUBLE rhythm (!mt-6) below the form so it does not read as part of it" },
+};
+
+/** Screens with no multi-section stack under the title (one card, a form, a centred composition). */
+const NO_SECTION_STACK = new Set([
+  "signup", "login", "forgot-password", "reset-password", "signup-pending", "account-banned", "support",
+  "my-jobs", "user-profile", "user-profile-customer", "user-profile-missing",
+  "profile-notifications", "profile-warnings", "analytics", "str-settings", "work-record", "wrapped",
+]);
+
+// Shown able to fail on the original (every Profile tab back on its 16px, a
+// page back on its 24px) and on the token:
+// @mutate src/components/profile/ProfileTabBody.tsx | export const PROFILE_TAB_BODY_CLASS = "space-y-section"; | export const PROFILE_TAB_BODY_CLASS = "space-y-4";
+// @mutate src/pages/HelpCenter.tsx | <div className="mx-auto page-measure space-y-section"> | <div className="mx-auto page-measure space-y-6">
+// @mutate src/index.css | --section-gap: 0.75rem; | --section-gap: 1rem;
+test("every page's sections sit --section-gap apart at every phone width", async ({ browser }, info) => {
+  test.setTimeout(40 * 60_000);
+  expect(SECTION_GAP, "--section-gap is the 12px phone rhythm").toBe(12);
+  const names = SCREENS.map((s) => s.name);
+  for (const n of [...Object.keys(SECTION_EXCEPTIONS), ...NO_SECTION_STACK]) {
+    expect(names, `section exception "${n}" names no catalog screen — stale`).toContain(n);
+  }
+  const wrong: string[] = [];
+  let measured = 0;
+  let lastPhone: Page | null = null;
+  for (const auth of ["guest", "poster"] as const) {
+    const ctx = await ctxFor(browser, auth, 375, info.project.use.baseURL);
+    const phone = await ctx.newPage();
+    for (const s of SCREENS.filter((x) => x.auth === auth)) {
+      await phone.setViewportSize({ width: 375, height: 812 });
+      await phone.goto(s.url, { waitUntil: "domcontentloaded" });
+      await settle(phone);
+      // A centred composition has no title row to hang sections under (and the
+      // landing hero is LOCKED): the same NOT_A_TITLE_ROW the shell test skips.
+      if (NOT_A_TITLE_ROW.has(s.name)) continue;
+      for (const vw of PHONES) {
+        await phone.setViewportSize({ width: vw, height: 812 });
+        await phone.waitForTimeout(250);
+        const row = await phone.evaluate(readSectionSpacing);
+        await scrollHome(phone);
+        const at = `${s.name}@${vw} (${row.landedOn})`;
+        if (NO_SECTION_STACK.has(s.name)) {
+          if (row.stack) wrong.push(`${at}: listed as having no section stack, but ${row.stack} stacks ${row.sections} sections ${JSON.stringify(row.sectionGaps)} — take it off NO_SECTION_STACK`);
+          continue;
+        }
+        if (!row.stack || !row.sectionGaps.length) {
+          wrong.push(`${at}: no section stack found (${row.why ?? "no gaps"}) — list it in NO_SECTION_STACK if it genuinely has one section`);
+          continue;
+        }
+        measured++;
+        const exc = SECTION_EXCEPTIONS[s.name];
+        const want = exc?.px ?? SECTION_GAP;
+        const held = exc?.first ? row.sectionGaps.slice(0, 1) : row.sectionGaps;
+        const off = held.filter((g) => Math.abs(g - want) > 1);
+        if (off.length) {
+          wrong.push(
+            `${at}: section gaps ${JSON.stringify(row.sectionGaps)} in ${row.stack}, want ${want}` +
+              (exc ? ` (listed: ${exc.why} — if the page changed, update the list)` : ` (--section-gap)`),
+          );
+        }
+        if (exc && !exc.first && exc.px !== SECTION_GAP && row.sectionGaps.every((g) => Math.abs(g - SECTION_GAP) <= 1)) {
+          wrong.push(`${at}: listed exception now measures the shared ${SECTION_GAP} — remove it from SECTION_EXCEPTIONS`);
+        }
+      }
+    }
+    lastPhone = phone;
+    if (auth === "guest") await ctx.close();
+  }
+  expect(measured, "no section stack was measured anywhere — the probe is blind").toBeGreaterThan(80);
+  expect(
+    wrong,
+    `In-page section spacing drifted from the one scale (--section-gap = ${SECTION_GAP}px on a phone; owner ` +
+      `2026-09-23: "update the spacing on every other phone width … make sure nothing is hand rolled"). ` +
+      `Use \`space-y-section\` / \`gap-section\` / <ProfileTabBody>, never a per-page space-y-N.`,
+  ).toEqual([]);
+
+  // ── VACUITY: one section 8px lower must move the measured gap by 8 ──────
+  const page = lastPhone!;
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/profile?tab=security", { waitUntil: "domcontentloaded" });
+  await settle(page);
+  const before = await page.evaluate(readSectionSpacing);
+  expect(before.sectionGaps.length, "vacuity page measured no section gaps").toBeGreaterThan(1);
+  await page.evaluate(() => {
+    const kids = Array.from(document.querySelectorAll("h1")[0]?.closest(".space-y-section")?.children ?? []);
+    const third = kids[2] as HTMLElement | undefined; // [header, section 1, section 2, …]
+    if (third) third.style.marginTop = "calc(var(--section-gap) + 8px)";
+  });
+  const after = await page.evaluate(readSectionSpacing);
+  expect(after.sectionGaps[0] - before.sectionGaps[0], "an 8px shift did not move the section gap — the measure is blind").toBe(8);
   await page.context().close();
 });

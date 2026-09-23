@@ -115,7 +115,7 @@ export const ProfileTabBodyReserve = () => {
       style={{ minHeight: reserve }}
       aria-hidden
       data-testid="profile-tab-fallback"
-      className="space-y-4"
+      className="space-y-section"
     >
       <div className="rounded-2xl liquid-glass p-5 space-y-3">
         <Skeleton className="h-5 w-32 rounded" />

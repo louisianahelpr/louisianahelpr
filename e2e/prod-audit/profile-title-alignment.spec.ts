@@ -237,7 +237,7 @@ async function measure(page: Page, url: string, tag: string): Promise<TitleBox> 
 // ProfileTabHeader moves every TAB off the landing's column, which is the same
 // disagreement seen from the other side — and the fix then was to put the
 // landing on this shell, not to nudge a number, so this is the contract.
-// @mutate src/components/profile/ProfileTabHeader.tsx | <div className="-mb-4"> | <div className="-mb-4 pl-8">
+// @mutate src/components/profile/ProfileTabHeader.tsx | <div className="-mb-[var(--section-gap)]"> | <div className="-mb-[var(--section-gap)] pl-8">
 
 for (const vw of WIDTHS) {
   test(`every Profile title starts on the same x @${vw}`, async ({ browser }, info) => {

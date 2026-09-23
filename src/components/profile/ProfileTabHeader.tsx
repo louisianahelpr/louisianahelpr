@@ -48,26 +48,24 @@ interface ProfileTabHeaderProps {
  * 24px each side) and bodies contribute neither.
  *
  * ONE exception, and it lives here rather than on the shell: every tab's
- * outer wrapper is `space-y-4` (asserted byte-for-byte in
+ * outer wrapper is `space-y-section` (asserted byte-for-byte in
  * `profileTabShell.test.ts`, no room for a `pb-0` variant), which puts its
- * own `margin-top: 1rem` on whatever follows this header — stacking a second
+ * own `margin-top: var(--section-gap)` on whatever follows this header — stacking a second
  * 16px onto PageHeader's own bottom padding and making the gap below the
  * title larger than the one above it. Padding never collapses with a
- * sibling's margin, so nesting alone can't cancel it. `-mb-4` on this wrapper
- * DOES collapse against that `space-y-4` margin (adjoining margins net to
- * their sum: 16px + -16px = 0), leaving PageHeader's own padding as the only
+ * sibling's margin, so nesting alone can't cancel it. `-mb-[var(--section-gap)]`
+ * on this wrapper DOES collapse against that margin (adjoining margins net to
+ * their sum: gap + -gap = 0), leaving PageHeader's own padding as the only
  * contributor below the title, equal to the one above it.
  *
- * `-mb-4` is keyed to the SHELL's `space-y-4` (16px), NOT to PageHeader's
- * padding — so it stays correct when that padding changes (it did, 16 → 24).
- * If the shared tab shell ever stops being `space-y-4`, this number moves
- * with it. This is the one place allowed to touch spacing outside PageHeader
+ * The negative margin reads the SHELL's own token (--section-gap, Q191), NOT
+ * PageHeader's padding — so it stays correct when either changes. This is the one place allowed to touch spacing outside PageHeader
  * itself, because the alternative is loosening the shell test's exact-match
  * guard for every tab.
  */
 export function ProfileTabHeader({ title, onBack, backTo, rightSlot }: ProfileTabHeaderProps) {
   return (
-    <div className="-mb-4">
+    <div className="-mb-[var(--section-gap)]">
       <PageHeader
         title={title}
         onBack={onBack}

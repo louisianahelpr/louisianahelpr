@@ -193,6 +193,10 @@ export default {
         // of empty space below the last element on every guest page. See
         // `html.no-bottom-nav` in index.css.
         "safe-nav": "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 1rem)",
+        // The gap between a page's sections under its title (Q191): 12px on a
+        // phone, 16px from `sm` — the value lives in --section-gap (index.css).
+        // `space-y-section` / `gap-section`; never a per-page space-y-5/6.
+        section: "var(--section-gap)",
       },
       transitionTimingFunction: {
         "ds-out": "cubic-bezier(0.22, 1, 0.36, 1)",

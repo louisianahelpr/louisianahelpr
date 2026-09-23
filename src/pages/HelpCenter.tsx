@@ -254,7 +254,7 @@ const HelpCenter = () => {
         className="scroll-mt-24"
       >
         <h2 id="faq-heading" className="sr-only">Frequently asked questions</h2>
-        <div className="mx-auto page-measure space-y-6">
+        <div className="mx-auto page-measure space-y-section">
           <div className="space-y-3 sm:space-y-4">
             {FAQ_SECTIONS.map((section) => (
               <TopicSection

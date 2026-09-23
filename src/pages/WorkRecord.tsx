@@ -340,9 +340,9 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
     // below already prints "Employment & Earnings Record" as its own heading.
     <ProfileTabBody>
       <ProfileTabHeader title="Work Record" onBack={onBack} />
-      {/* `space-y-5` preserved from the old body wrapper — it spaces the
-          document card from the share/print controls under it. */}
-      <div className="space-y-5">
+      {/* The shared section rhythm (--section-gap, Q191) between the
+          document card and the share/print controls — was space-y-5. */}
+      <div className="space-y-section">
         {/* The SAME placeholder this tab showed a moment ago while its chunk
             loaded — not a second, differently-shaped one. It used to be three
             JobCardSkeletons: job-card rows with badge chips, a price tile and

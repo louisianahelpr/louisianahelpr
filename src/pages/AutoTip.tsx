@@ -224,7 +224,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
           column. This tab contributes nothing but its own vertical rhythm;
           adding a `page-measure`/gutter wrapper here would be a second
           max-width inside Profile's own. */}
-      <div className="space-y-5">
+      <div className="space-y-section">
         <section className="liquid-glass rounded-ds-md p-5 space-y-4">
           <h2 className="font-display font-bold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
             Automatic Tip

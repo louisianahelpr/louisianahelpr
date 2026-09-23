@@ -164,7 +164,7 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
   const hasNoActivity = lifetimeSpent === 0 && lifetimeEarned === 0;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-section">
       {connectReturn && (
         <div
           className="flex items-start gap-3 px-4 py-3 rounded-2xl"

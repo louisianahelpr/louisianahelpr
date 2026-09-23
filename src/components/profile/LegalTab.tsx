@@ -152,7 +152,13 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
       <Tabs value={doc} onValueChange={setDoc} className="w-full">
         <TabsList
           aria-label="Legal document"
-          className="flex items-center gap-1 sm:gap-2 rounded-2xl p-1 h-auto bg-transparent border-0 w-full"
+          // `px-1 py-0`, not `p-1` (Q190/Q191): the track is transparent, so its
+          // vertical padding painted nothing and only pushed the pills 4px
+          // under the shared 12px title gap (measured 16). A negative margin
+          // cannot pull them up — it collapses into the header's own
+          // -mb-[var(--section-gap)] — so the padding goes, and the 4px it gave
+          // the document below moves onto the panel's margin (mt-2 -> mt-3).
+          className="flex items-center gap-1 sm:gap-2 rounded-2xl px-1 py-0 h-auto bg-transparent border-0 w-full"
         >
           {VALID_TABS.map((key) => {
             const isActive = key === doc;
@@ -223,7 +229,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             (ProfileTabHeader + 44px triggers), that is the public page shell
             (PublicHeaderPage + its own search). The CONTENT is identical. */}
         {VALID_TABS.map((key) => (
-          <TabsContent key={key} value={key} className="mt-2">
+          <TabsContent key={key} value={key} className="mt-3">
             <motion.div key={`${key}-panel`} {...fadeMotion}>
               {POLICY_CONTENT[key]}
             </motion.div>

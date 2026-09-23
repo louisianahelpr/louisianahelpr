@@ -59,7 +59,7 @@ export function FormStep({ form }: FormStepProps) {
   }
 
   return (
-    <div key="form-step" className="space-y-5 animate-ds-page-in">
+    <div key="form-step" className="space-y-section animate-ds-page-in">
       {form.offerToHelperId && (
         <DirectOfferBanner
           offerToHelperName={form.offerToHelperName}

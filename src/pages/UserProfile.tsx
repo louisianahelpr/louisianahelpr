@@ -221,7 +221,8 @@ const UserProfile = () => {
         />
         <div className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8">
           {/* The SAME wrapper the loaded body uses below — full page measure,
-              one column, gap-6. It used to carry `max-w-2xl mx-auto`, a cap no
+              one column, gap-section (Q191; this said gap-6 while the loaded body
+              below used gap-5, so the swap moved every card). It used to carry `max-w-2xl mx-auto`, a cap no
               other state on this page has: 86545cb12 moved all four states onto
               the shared shell and dropped that cap from the error and not-found
               branches, but missed this one. Measured at 1440: the skeleton
@@ -234,7 +235,7 @@ const UserProfile = () => {
               (~300px) were standing in for a body that runs 600–1500px, so the
               page grew vertically too, on every viewport including phone where
               the width cap never binds. */}
-          <div className="flex flex-col gap-6 items-stretch">
+          <div className="flex flex-col gap-section items-stretch">
             {proReturn && (
               <div
                 className="flex items-start gap-3 px-4 py-3 rounded-2xl"
@@ -288,7 +289,7 @@ const UserProfile = () => {
                 </div>
               </div>
             </div>
-            <div className="space-y-5">
+            <div className="space-y-section">
               {/* Endorsements, availability and portfolio each run their OWN
                   fetch and return null until it lands, so they arrive in a
                   second wave after this skeleton is already gone. One bone
@@ -537,7 +538,7 @@ const UserProfile = () => {
             goes 2-up → 6-up, the chip rows wrap, and prose carries its own
             reading cap. That is how a single column fills a 1440 frame without
             reintroducing a layout the owner has already rejected. */}
-        <div className="flex flex-col gap-5 items-stretch">
+        <div className="flex flex-col gap-section items-stretch">
           {/* ── MASTHEAD ──
               ONE card: who this person is, what they have earned, and what
               their record says. It used to be four separate cards stacked in a
@@ -654,7 +655,7 @@ const UserProfile = () => {
               availability, portfolio, member-since, report affordance.
               This column takes the scroll so the masthead can stay
               pinned as the viewer reads reviews. */}
-          <div className="space-y-5">
+          <div className="space-y-section">
             {/* The "Boost your profile" completion card used to sit here, on the
                 owner's own view of this page. It is gone (owner, 2026-08-27:
                 "preview shouldn't have that at all").

@@ -452,7 +452,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
           column), so this tab adds only the card's own centering. No
           `page-measure`/gutter wrapper here — that would be a second
           max-width inside Profile's. */}
-      <div className="py-2 flex flex-col items-center">
+      <div className="pb-2 flex flex-col items-center">
         <div
           className="w-full max-w-[420px] rounded-ds-lg overflow-hidden"
           style={{

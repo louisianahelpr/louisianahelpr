@@ -299,9 +299,9 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
     // content column that used to come from AppPage.
     <ProfileTabBody>
       <ProfileTabHeader title="Home History" onBack={onBack} />
-      {/* `space-y-5` preserved from the old body wrapper — it separates the
-          per-year timeline sections. */}
-      <div className="space-y-5">
+      {/* The shared section rhythm (--section-gap, Q191) between the
+          per-year timeline sections — was a hand-typed space-y-5. */}
+      <div className="space-y-section">
         {/* The SAME placeholder this tab showed a moment ago while its chunk
             loaded — not a second, differently-shaped one. It used to be three
             JobCardSkeletons: job-card rows with badge chips, a price tile and

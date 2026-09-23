@@ -156,7 +156,7 @@ export function ProfileEditForm({
         onBack={onBack}
       />
 
-      <form onSubmit={onSave} className="space-y-4">
+      <form onSubmit={onSave} className="space-y-section">
         {/* Photo + Name section */}
         <PhotoNameSection
           profile={profile}

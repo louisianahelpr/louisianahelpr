@@ -46,7 +46,10 @@ import type { CSSProperties, ReactNode } from "react";
  * The tab body's own classes. Exported ONLY so the guard can assert what it
  * is; render `<ProfileTabBody>`, never this string.
  */
-export const PROFILE_TAB_BODY_CLASS = "space-y-4";
+// Q191: the shared in-page section rhythm (--section-gap: 12px phone, 16px
+// from sm), not a literal — the 16px it used to type was the loosest phone gap
+// the owner asked to tighten.
+export const PROFILE_TAB_BODY_CLASS = "space-y-section";
 
 export interface ProfileTabBodyProps {
   children: ReactNode;

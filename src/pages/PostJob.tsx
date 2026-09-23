@@ -57,11 +57,11 @@ const PostJob = () => {
     <AppPage title={header.title} onBack={form.handlePostJobBack}>
       {form.redirecting && <RedirectingOverlay />}
       {form.step === "entry" ? (
-        <div className="space-y-6">
+        <div className="space-y-section">
           <EntryChoice form={form} />
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-section">
             {/* STEP 1: FORM */}
             {form.step === "form" && <FormStep form={form} />}
 

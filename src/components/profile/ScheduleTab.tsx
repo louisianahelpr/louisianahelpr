@@ -399,14 +399,15 @@ const UPCOMING_FILTERS: { value: UpcomingFilter; label: string }[] = [
  * it has to match WEB_DESKTOP_QUERY), and at 900 with the 248px rail open the
  * content box is ~604px: two columns there would squeeze the list to ~260px.
  * Below 1024 the page stacks exactly as before, calendar then list; the gap
- * is `gap-4`, the same 16px the `space-y-4` stack used.
+ * is `gap-section` (--section-gap, Q191: 12px on a phone, 16px from sm),
+ * the same rhythm as every other Profile tab's section stack.
  *
  * While loading, the tab shows the shared ProfileTabBodyReserve (Q169) and
  * the whole layout arrives at once. Pinned by ScheduleTab.layout.test.tsx,
  * which compiles this string through the real Tailwind config.
  */
 export const SCHEDULE_LAYOUT_CLASS =
-  "grid grid-cols-1 gap-4 items-start min-[1024px]:grid-cols-[clamp(320px,42%,480px)_minmax(0,1fr)] min-[1024px]:gap-6";
+  "grid grid-cols-1 gap-section items-start min-[1024px]:grid-cols-[clamp(320px,42%,480px)_minmax(0,1fr)] min-[1024px]:gap-6";
 
 export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack, hideHeader = false }: ScheduleTabProps) {
   // The viewer's own tier rate — the fallback used for assigned jobs whose

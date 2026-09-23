@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 37 done, 5 partly done (fixed, protection pending), 72 open. Source of truth for work.
+- **Queue (this file):** 38 done, 5 partly done (fixed, protection pending), 72 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 114 items — 37 done, 5 partly done (fixed, protection pending), 72 open.**
+**Queue: 115 items — 38 done, 5 partly done (fixed, protection pending), 72 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -450,6 +450,7 @@ sure someone hears it and closes it.
 - [x] **Q112 DONE: profileProtectedColumnWrites.test.ts resolved variable payloads by text proximity (Q99 review).** It found `key:` tokens between a payload's declaration and the call, so a spread of a const built elsewhere, a helper or an imported constant could hide a protected column (measured: the old resolver passed `{ ...EMPTY, insurance_url: null }` in CredentialsTab.tsx and a `{ ...BASE }` fixture in src/lib). It now resolves payloads with the TypeScript AST (object literals, spreads, ternaries both branches, `&&`/`||`/`??`, in-file identifiers plus later `x.col =`/`Object.assign`), and anything it cannot follow is UNRESOLVED and fails unless in the exact two-way KNOWN_UNRESOLVED (empty: 0 of 23 writes unresolved on 2026-09-23). Guard: src/test/profileProtectedColumnWrites.test.ts "resolves every payload it inspects" + "payload resolver fixtures (Q112)" (spread, ternary, helper, import, computed key); new @mutate `...EMPTY` spread killed.
 - [ ] **Q113 (MEDIUM, Q106/Q98 authz review) One anonymous caller can blind guest error logging, silently.** throttle_client_error_log (20260923094457) has ONE shared guest bucket (120 client rows/minute). Anyone with the public anon key can fill it; every real guest's rows are then dropped (RETURN NULL) for that minute and nothing records a drop, so incident detection goes blind during the incident. Fix both halves: (a) one source cannot fill the bucket for everyone (per-fingerprint guest sub-cap under a raised global cap, sized from prod's 30-day guest distribution); (b) drops are VISIBLE: a bounded, lock-free, never-raising per-minute drop counter, and an ops_alert_condition/ledger path (Q53 pattern) that opens on sustained throttling and closes only on an observed clean minute.
 - [ ] **Q114 The Q106 PGlite proof never ran RLS.** src/test/pglite/userErrorScreenRepeatCap.pglite.mjs grants anon/authenticated INSERT directly and never enables RLS on error_logs or creates anyone_can_insert_errors (live with_check `((user_id IS NULL) OR (user_id = ( SELECT auth.uid() AS uid)))`), so "the BEFORE stamp runs before WITH CHECK" is unproven. Add both to the harness and prove: authenticated user_id NULL passes and is stamped; authenticated claiming another uid passes and is stamped to the caller; anon with a non-null user_id is REFUSED; and with the stamp removed the other-uid case is refused.
+- [ ] **Q115 The happy-path mock still describes the actionless credential row Q102 made impossible (found by the Q102 lane, 2026-09-23).** e2e/happy-path/seedData.ts seeds helper_credentials 68000000-…-0003 (trade_license, 'submitted') with no document_url, which prod now refuses (helper_credentials_pending_review_needs_document), and its mocked get_pending_credentials returns license_url: null for every row, so any mocked spec of the admin queue renders the no-actions row. Give the seed row a document and make the mock mirror the live RPC (or delete the mock per NO MOCK MODE); guard: fixtureSchemaContract skips multi-column CHECKs, so extend it or assert this row directly. Also: e2e/prod-audit/harness.ts's "attach a document to a document-less pending credential" branch is now unreachable, and its undo (PATCH document_url back to null) would be refused if it ever ran.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes
@@ -747,7 +748,7 @@ sure someone hears it and closes it.
   src/test/errorScreenPatternsVsAppProse.test.ts (quoted -> null, unquoted
   and quoted+real -> "account load failure"; @mutate killed). Not yet
   re-run: the admin-health explore itself (needs the browser).
-- [ ] **Q102 The admin credential queue can show a row with no Approve or
+- [x] **Q102 The admin credential queue can show a row with no Approve or
   Reject.** `get_pending_credentials` lists any helper_credentials row in
   unverified/submitted, but AdminCredentialQueue renders the actions only
   when that row has a document (license_status pending AND license_url).
@@ -755,7 +756,17 @@ sure someone hears it and closes it.
   pending row can sit in the queue with nothing for an admin to act on
   (prod's seeded one still does outside a messy-input run, until prod-seed.mjs
   is re-applied). Either require a document server-side or
-  render the row as "no document yet".
+  render the row as "no document yet". DONE 2026-09-23 (20260923101130):
+  VALIDATED CHECK helper_credentials_pending_review_needs_document (a
+  trade_license/insurance row in unverified/submitted needs a non-blank
+  document_url; background_check stays exempt because stripe-webhook inserts
+  it 'submitted' with no document), and get_pending_credentials() reads only
+  documented rows, reports 'pending' only with a document (either store) and
+  lists a person only when one credential is actionable. Prod violators before
+  the change: 0 of 3 rows. Guards: src/test/pendingCredentialNeedsDocument.test.ts
+  (7 @mutate, all killed; 5 of 7 red on the chain without the migration) and
+  src/test/pglite/pendingCredentialNeedsDocument.pglite.mjs (3x apply, ALL
+  PASS; NEW_MIGRATION=skip -> 8 FAILED). Needs an lh-authz-rls REVIEW-ONLY pass.
 - [x] **Q106 A signed-in client can log error rows as a guest (MEDIUM, review
   of 469cf4e3f, 2026-09-23).** Live policy anyone_can_insert_errors checks
   `user_id IS NULL OR user_id = auth.uid()`, so an authenticated session may

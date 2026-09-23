@@ -29,9 +29,9 @@
  *
  * @mutate supabase/migrations/20260923145117_weekly_report_catch_up_safe.sql | ('charge-recurring-visits',         false, | ('charge-recurring-visits',         true,
  * @mutate supabase/migrations/20260923145117_weekly_report_catch_up_safe.sql | ('ops-daily-digest',                true, | ('ops-daily-digest-gone',           true,
- * @mutate supabase/migrations/20260923133021_cron_missed_slot_catch_up.sql | IF NOT pg_try_advisory_xact_lock(hashtext( | IF NOT pg_advisory_xact_lock(hashtext(
- * @mutate supabase/migrations/20260923133021_cron_missed_slot_catch_up.sql | AND NOT EXISTS (SELECT 1 FROM public.cron_catchup_runs c | AND EXISTS (SELECT 1 FROM public.cron_catchup_runs c
- * @mutate supabase/migrations/20260923133021_cron_missed_slot_catch_up.sql | ELSIF r.catch_up IS NOT TRUE THEN | ELSIF false THEN
+ * @mutate supabase/migrations/20260923145516_catch_up_too_late_wording.sql | IF NOT pg_try_advisory_xact_lock(hashtext( | IF NOT pg_advisory_xact_lock(hashtext(
+ * @mutate supabase/migrations/20260923145516_catch_up_too_late_wording.sql | AND NOT EXISTS (SELECT 1 FROM public.cron_catchup_runs c | AND EXISTS (SELECT 1 FROM public.cron_catchup_runs c
+ * @mutate supabase/migrations/20260923145516_catch_up_too_late_wording.sql | ELSIF r.catch_up IS NOT TRUE THEN | ELSIF false THEN
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

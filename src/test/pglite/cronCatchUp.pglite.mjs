@@ -25,10 +25,11 @@ import os from "node:os";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
-const MIGRATION = readFileSync(
-  new URL("../../../supabase/migrations/20260923133021_cron_missed_slot_catch_up.sql", import.meta.url).pathname,
-  "utf8",
-);
+// 20260923145516 (Q189) redefines the function with the corrected too-late
+// wording; both apply in order, exactly as on prod.
+const MIGRATION = ["20260923133021_cron_missed_slot_catch_up.sql", "20260923145516_catch_up_too_late_wording.sql"]
+  .map((f) => readFileSync(new URL(`../../../supabase/migrations/${f}`, import.meta.url).pathname, "utf8"))
+  .join("\n");
 
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -174,6 +175,9 @@ const sev = await q(`SELECT DISTINCT severity FROM public.error_logs WHERE tags-
 check("caught-up rows are warnings with the job tag", sev.length === 1 && sev[0].severity === "warning"
   && (await one(`SELECT count(*)::int n FROM public.error_logs WHERE tags->>'job' = 'digest-a'`)).n === 1, JSON.stringify(sev));
 check("tick 1: 4 'cron-missed-slot' errors (unsafe, unclassified, too late, failed)", (await logs("cron-missed-slot")) === 4);
+const lateMsg = (await one(`SELECT message FROM public.error_logs WHERE tags->>'job' = 'late-f'`))?.message ?? "";
+check("too-late alert states the rule (older than its window), not a guess about DB health (Q189)",
+  lateMsg.includes("older than its") && !lateMsg.includes("not healthy again"), lateMsg.slice(0, 160));
 
 // ── tick 2 and 3: never twice ───────────────────────────────────────────────
 await sweep();

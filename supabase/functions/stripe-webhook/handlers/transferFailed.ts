@@ -110,11 +110,14 @@ export async function handleTransferFailed(
     }
   }
   if (failedLedger?.job_id && !requeueBlocked) {
-    const { error: jobResetErr } = await supabase
+    // `.select("id")`: a zero-row match returns a null error (Q244), so
+    // without it a job that was not 'released' read as re-queued.
+    const { data: resetRows, error: jobResetErr } = await supabase
       .from("jobs")
       .update({ payment_status: "payout_pending" })
       .eq("id", failedLedger.job_id)
-      .eq("payment_status", "released");
+      .eq("payment_status", "released")
+      .select("id");
     if (jobResetErr) {
       // The job is stuck in "released" with no real payment — the payout cron
       // won't re-queue it. Throw so Stripe retries the delivery.
@@ -133,7 +136,25 @@ export async function handleTransferFailed(
       });
       throw new Error(`Failed to reset job ${failedLedger.job_id} to payout_pending after failed transfer ${transfer.id}: ${jobResetErr.message}`);
     }
-    logStep("Failed transfer — job reset to payout_pending for retry", { jobId: failedLedger.job_id });
+    if ((resetRows?.length ?? 0) === 0) {
+      // Zero rows: the job was not 'released' when this landed (refunded,
+      // charged back, or the flip to released never happened), so it was NOT
+      // re-queued. Retrying cannot change that, so page instead of throwing.
+      await postSlackOpsAlert({
+        kind: "payout_failed",
+        severity: "critical",
+        title: "Helpr payout failed — job reset matched ZERO rows, job not re-queued",
+        message: `Stripe transfer ${transfer.id} failed, but job ${failedLedger.job_id} was not in 'released', so the reset to 'payout_pending' matched zero rows and the Helpr's payout was not re-queued. Read the job's payment_status and reconcile by hand.`,
+        fields: {
+          "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
+          "Transfer ID": transfer.id,
+          "Job ID": String(failedLedger.job_id),
+        },
+        oncePerDayKey: `transfer-failed-reset-zero-rows:${failedLedger.job_id}`,
+      });
+    } else {
+      logStep("Failed transfer — job reset to payout_pending for retry", { jobId: failedLedger.job_id });
+    }
   }
 
   // Operator alert — failed payouts always need human eyes.

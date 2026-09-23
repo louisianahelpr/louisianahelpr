@@ -18,6 +18,13 @@ export type Application = Database["public"]["Tables"]["applications"]["Row"] & 
    */
   flagged_hidden?: boolean | null;
   flag_reason?: string | null;
+  /**
+   * Why the SYSTEM closed this application (migration 20260923205811, Q274;
+   * not yet in the generated types, same reason as above). 'job_cancelled':
+   * its job was cancelled, so it went to 'rejected' without anyone turning the
+   * applicant down. Read it before saying "Not selected" or "Declined".
+   */
+  closed_reason?: string | null;
 };
 
 export type Tab = "posted" | "applied";

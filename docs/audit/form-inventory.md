@@ -12,7 +12,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/admin/AdminBanReview.tsx` | textarea×2 |  |  | Ban reason · Dismissal note |
 | `src/components/admin/AdminBroadcasts.tsx` | input×1, textarea×1, select×2 | text | 100, 500 | broadcast-title · broadcast-message · We · broadcast-type · Broadcast type · broadcast-duration · Broadcast duration · Delete broadcast |
 | `src/components/admin/AdminCredentialQueue.tsx` | input×3, textarea×1, date/calendar×1 | checkbox, date |  | Credential rejection reason |
-| `src/components/admin/adminDisputes/DisputeCard.tsx` | input×1, textarea×1 | range | 1000 | Helpr |
+| `src/components/admin/adminDisputes/DisputeCard.tsx` | input×1, textarea×2 | range | 500, 1000 | e.g. the job was never paid for · Helpr |
 | `src/components/admin/AdminExceptionQueue.tsx` | input×1, textarea×2 | checkbox |  | Resolution note |
 | `src/components/admin/AdminFraudDashboard.tsx` | select×1 |  |  | Flag type |
 | `src/components/admin/AdminIDVReview.tsx` | input×1, textarea×1 | checkbox |  | Note or reason |

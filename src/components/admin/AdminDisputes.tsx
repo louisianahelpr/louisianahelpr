@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 
 const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
@@ -79,12 +80,12 @@ const AdminDisputes = () => {
     const [openRes, decidedRes, unsettledRes] = await Promise.all([
       supabase
         .from("jobs")
-        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount")
+        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount")
         .eq("status", "disputed")
         .order("disputed_at", { ascending: false }),
       supabase
         .from("jobs")
-        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, dispute_resolved_at, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount")
+        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, dispute_resolved_at, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount")
         .not("dispute_resolved_at", "is", null)
         .order("dispute_resolved_at", { ascending: false })
         .limit(50),
@@ -149,7 +150,7 @@ const AdminDisputes = () => {
       const { data: strandedJobs, error: strandedErr } = await supabase
         .from("jobs")
         .select(
-          "id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount",
+          "id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount",
         )
         .in("id", strandedIds);
       if (strandedErr) {
@@ -416,6 +417,39 @@ const AdminDisputes = () => {
       await settle(job, disputeId);
     } catch (err: unknown) {
       toast.error(userFacingError(err, "Couldn't retry that settlement — try again"));
+    } finally {
+      setRetrying(null);
+      loadDisputes();
+    }
+  };
+
+  /**
+   * Close a decided dispute whose job has NO payment on file (Q235). The split
+   * refuses such a job ("no payment intent on file"), so "Retry settlement"
+   * can only fail again; this records the settlement as moving nothing, with
+   * the admin's reason, through rpc_settle_dispute_without_payment. The RPC
+   * re-checks every condition under row locks and raises on anything it did
+   * not write, so a null error here means the dispute row changed.
+   */
+  const closeWithoutPayment = async (job: DisputedJob, note: string) => {
+    const disputeId = disputeRecords[job.id]?.id ?? null;
+    if (!disputeId) {
+      toast.error("This dispute has no formal record to close.");
+      return;
+    }
+    const ok = await requireBiometric("Confirm closing this settlement with no payment");
+    if (!ok) return;
+    setRetrying(job.id);
+    try {
+      const { error } = await supabase.rpc(
+        "rpc_settle_dispute_without_payment" as never,
+        { _dispute_id: disputeId, _note: note.trim() } as never,
+      );
+      if (error) {
+        toast.error(rpcErrorMessage("rpc_settle_dispute_without_payment", error) ?? userFacingError(error, "Couldn't close that settlement — try again"));
+        return;
+      }
+      confirmConsequential("Settlement closed. No payment was on file, so nothing moved.");
     } finally {
       setRetrying(null);
       loadDisputes();
@@ -727,6 +761,7 @@ const AdminDisputes = () => {
               setActivePanelJobId={setActivePanelJobId}
               decide={decide}
               retrySettlement={retrySettlement}
+              closeWithoutPayment={closeWithoutPayment}
               retrying={retrying}
             />
           ))

@@ -22,7 +22,8 @@ import { toneBadgeClasses } from "@/components/admin/tones";
  *
  * Read-only on purpose. Retrying a settlement moves real money and belongs on
  * the dispute card, next to the decision it is executing — this is the alarm,
- * not the switch.
+ * not the switch. So does the close for a job with no payment on file
+ * (rpc_settle_dispute_without_payment, Q235), which the split can never settle.
  */
 /**
  * "PENDING" reads as "in progress", which is the one thing this state is not —
@@ -89,7 +90,7 @@ export const UnsettledSettlements = () => {
   return (
     <AdminCard
       title="Unsettled Settlements"
-      subtitle="A decision was recorded and both parties were told — but the escrow has not moved. Retry each one from the Disputes queue."
+      subtitle="A decision was recorded and both parties were told — but the escrow has not moved. Retry each one from the Disputes queue, or close it there if the job has no payment on file."
       action={
         rows.length > 0 ? (
           <span className={cn("inline-flex items-center justify-center rounded-full text-ds-11 font-bold px-2.5 py-1", toneBadgeClasses.danger)}>

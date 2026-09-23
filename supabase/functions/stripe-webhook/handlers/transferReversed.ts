@@ -90,13 +90,16 @@ export async function handleTransferReversed(
   // manually. Scope to a currently-"released" job so we never regress one an
   // operator has already refunded / charged back.
   let freezeFailed = false;
+  let zeroRowFreeze = false;
   if (reversedLedger?.job_id) {
     // This write is the freeze — it MUST NOT be fire-and-forget. If it fails,
     // the job stays "released" with no hard-block markers and the next payout
     // run could pay the helper a SECOND time on money that was already clawed
     // back. Check the error and escalate the ops alert so a human reconciles
     // manually rather than trusting a silent success.
-    const { error: freezeErr } = await supabase
+    // `.select("id")`: a zero-row match returns a null error (Q244), so
+    // without it a job that was not 'released' read as frozen.
+    const { data: frozenRows, error: freezeErr } = await supabase
       .from("jobs")
       .update({
         payment_status: "payout_pending",
@@ -104,7 +107,8 @@ export async function handleTransferReversed(
         dispute_status: "reversal_hold",
       })
       .eq("id", reversedLedger.job_id)
-      .eq("payment_status", "released");
+      .eq("payment_status", "released")
+      .select("id");
     if (freezeErr) {
       freezeFailed = true;
       console.error(
@@ -128,6 +132,25 @@ export async function handleTransferReversed(
           "DB error": freezeErr.message.slice(0, 200),
         },
       });
+    } else if ((frozenRows?.length ?? 0) === 0) {
+      // Zero rows: the job was not 'released', so it got NO reversal_hold
+      // marker. If it sits in 'payout_pending' a payout run could pay the
+      // clawed-back money again. Retrying cannot change the match, so page
+      // instead of throwing, and skip the routine warning below.
+      zeroRowFreeze = true;
+      await postSlackOpsAlert({
+        kind: "payout_reversed",
+        severity: "critical",
+        title: "Helpr payout reversed — freeze matched ZERO rows, job NOT frozen",
+        message: `Stripe transfer ${transfer.id} was reversed, but job ${reversedLedger.job_id} was not in 'released', so the freeze matched zero rows and no reversal_hold was set. Read the job's payment_status NOW; if it is payable, set dispute_status='reversal_hold' before the next payout run.`,
+        fields: {
+          "Transfer ID": transfer.id,
+          "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
+          "Destination": String(transfer.destination ?? "—"),
+          "Job": String(reversedLedger.job_id),
+        },
+        oncePerDayKey: `transfer-reversed-freeze-zero-rows:${reversedLedger.job_id}`,
+      });
     } else {
       logStep("Reversed transfer — job frozen (payout_pending + disputed_at) for manual reconciliation", {
         jobId: reversedLedger.job_id,
@@ -140,6 +163,9 @@ export async function handleTransferReversed(
   // duplicate here and throw instead so the outer handler rolls back the
   // idempotency row and returns 500 — letting Stripe retry and re-run the freeze
   // once the DB recovers.
+  if (zeroRowFreeze) {
+    return;
+  }
   if (!freezeFailed) {
     await postSlackOpsAlert({
       kind: "payout_reversed",

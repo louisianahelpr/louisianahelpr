@@ -10,6 +10,8 @@ export interface DisputedJob {
   customer_id: string;
   helper_id: string | null;
   stripe_payment_intent_id: string | null;
+  /** A session the split can still find a PaymentIntent through (Q235). */
+  stripe_session_id?: string | null;
   /**
    * Everything below is what the split panel needs to quote a NET figure
    * rather than a gross one. The admin decides on a percentage; the parties

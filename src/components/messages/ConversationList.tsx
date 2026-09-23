@@ -1050,7 +1050,25 @@ export function ConversationList({
           to `--bark` while a non-default slice is on so a folded-away filter
           is never silent. No filled pill: a tinted box beside a plain
           magnifier makes two siblings read as different kinds of control. */}
-      {!isWebDesktop && (
+      {/* AND NOT WHILE SEARCH HAS THE ROW. The strip this chevron discloses is
+          already unmounted when search is open — see the `!searchOpen` gate on
+          its render below — so in that state this is a control with nothing to
+          control, and it was costing the one thing the row cannot spare.
+
+          MEASURED, prod-audit run 35798352756 at 320:
+
+            the open search field is 90px wide, under the 120px floor. 76px of
+            it is the magnifier and the ✕, so what is left cannot be typed in
+
+          90 + 44 (this button) = 134, over the floor. Restoring the chevron
+          earlier today took exactly one button's width out of the open field,
+          on the one screen width where there was none to take. The row already
+          documents that it "has 20px to spare at 320" CLOSED and none open —
+          I verified the closed state at 320 and never opened the search.
+
+          `tabsOpen` state is untouched by this: the chevron reappears with the
+          strip the moment search closes, in whatever state it was left. */}
+      {!isWebDesktop && !searchOpen && (
         <button
           type="button"
           onClick={() => { hapticLight(); setTabsOpenPhone((v) => !v); }}

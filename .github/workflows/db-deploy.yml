@@ -372,6 +372,19 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-live-privileges.mjs
 
+      # types.ts must describe what was just deployed. Until 2026-09-23 this was
+      # checked only by the nightly drift detector, and types.ts went 59
+      # differences stale (28 RPCs, 31 columns) with call sites papering over it
+      # with `as any`. Checked here, the migration that adds an RPC and the
+      # types.ts that declares it land on the SAME commit or this goes red (and
+      # main-red-watch files it). Fix: npm run db:types, commit types.ts.
+      - name: Verify types.ts matches the live schema just deployed
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-types-fresh.mjs
+
       - name: Notify on failure
         # Never gate this step on the secret: a missing SLACK_WEBHOOK_URL must
         # show as a warning on the run, not as a silently skipped step.

@@ -1,0 +1,99 @@
+name: Main red watch
+
+# A PUSH workflow that fails on main must land somewhere a person will see.
+#
+# 2026-09-23: Vitest was red on main for ~11 hours across ~30 pushes (last
+# green 7c7774b34, 09-22 16:45). Five guards failed and every session kept
+# pushing. The nightly-issue-sync convention deliberately skipped push
+# failures ("visible on the commit") — and nobody reads the commit's checks.
+#
+# This watches every push-on-main workflow (the list is enforced by
+# src/test/everyPushWorkflowIsWatched.test.ts, so a new one cannot ship
+# unwatched). On a red run it opens ONE `nightly-red` issue titled
+# `nightly-red: main: <workflow>` — which the session-start check, the
+# "Nightly reds nobody read" gate and nightly-red-age all already read — and
+# posts to Slack only when that issue is NEW (a red streak does not spam).
+# The next green run of the same workflow on main closes it.
+#
+# `cancelled` is ignored: superseded pushes are cancelled by concurrency groups
+# on every busy evening. `timed_out` counts as red.
+#
+# Not watched: "Nightly reds nobody read" — it IS the alarm, and fails by design
+# while any red is open; watching it would loop.
+
+on:
+  workflow_run:
+    workflows:
+      - Bundle Size Check
+      - Supabase DB Deploy
+      - Deploy iOS (TestFlight / App Store)
+      - E2E happy-path smoke
+      - E2E real backend
+      - Supabase Edge Functions Deploy
+      - Migration Timestamp Guard
+      - Mobile viewport spot-check
+      - Prod freshness
+      - Race Runner
+      - Sentry Release
+      - Sitemap drift
+      - Stripe Webhook Endpoint Guard
+      - Test
+      - UI sweep
+      - Vacuity
+      - Vitest
+    types: [completed]
+
+permissions:
+  issues: write
+
+concurrency:
+  group: main-red-watch-${{ github.event.workflow_run.name }}
+  cancel-in-progress: false
+
+jobs:
+  report:
+    name: Report main result
+    if: >-
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push' &&
+      contains(fromJSON('["success","failure","timed_out"]'), github.event.workflow_run.conclusion)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Is this red new?
+        id: prior
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: "nightly-red: main: ${{ github.event.workflow_run.name }}"
+        run: |
+          set -euo pipefail
+          OPEN=$(gh issue list --repo "${{ github.repository }}" --label nightly-red --state open \
+            --search "in:title \"${TITLE}\"" --json title --jq "[.[] | select(.title == env.TITLE)] | length" || echo 0)
+          echo "open=${OPEN}" >> "$GITHUB_OUTPUT"
+
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: "main: ${{ github.event.workflow_run.name }}"
+          status: ${{ github.event.workflow_run.conclusion == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.event.workflow_run.html_url }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          body-extra: "Commit ${{ github.event.workflow_run.head_sha }} — `${{ github.event.workflow_run.display_title }}`. Read the red run itself: gh run view ${{ github.event.workflow_run.id }} --log-failed"
+
+      - name: Slack, once per new red
+        if: github.event.workflow_run.conclusion != 'success' && steps.prior.outputs.open == '0'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          NAME: ${{ github.event.workflow_run.name }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          # A missing webhook must not turn this job red and hide the issue it
+          # just filed; say so in the log instead.
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "::warning::SLACK_WEBHOOK_URL is not set — the nightly-red issue was filed, no Slack post."
+            exit 0
+          fi
+          jq -n --arg t ":rotating_light: ${NAME} went red on main — ${SHA:0:9}. ${URL}" '{text:$t}' \
+            | curl -sS --fail -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"

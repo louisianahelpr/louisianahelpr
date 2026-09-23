@@ -17,7 +17,6 @@ import { toneBadgeClasses } from "@/components/admin/tones";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
-import { logAdminAction } from "@/lib/adminAudit";
 import { userFacingError } from "@/lib/userFacingError";
 import { formatPriceExact, formatShortDate, formatTimestamp } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -155,11 +154,8 @@ const StalledJobsInner = () => {
       if (!changed) {
         toast("Already cleared — someone got to this one first.");
       } else {
-        await logAdminAction("resolve_stalled_job_flag", "job", row.job_id, {
-          escalated_at: row.escalated_at,
-          payment_status: row.payment_status,
-          budget: row.budget,
-        });
+        // The audit row is written by the RPC itself, in the same transaction
+        // as the resolve (20260923162243, Q76) — not from here.
         toast.success("Marked reviewed. The escrow is untouched.");
       }
       qc.invalidateQueries({ queryKey: ["admin-stalled-job-queue"] });

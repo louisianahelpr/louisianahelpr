@@ -8,6 +8,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
+import { logAdminAction } from "@/lib/adminAudit";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import type { Profile } from "../adminUserHelpers";
@@ -120,6 +121,10 @@ export const makeAdminUserActions = ({
       loadProfiles();
       return;
     }
+
+    await logAdminAction("unban_user", "user", profile.user_id, {
+      bans_cleared: (clearedBans ?? []).length,
+    });
 
     // The user-facing notification is best-effort: the ban IS lifted at this
     // point, so a failed notify must not report the unban as failed. Reported,

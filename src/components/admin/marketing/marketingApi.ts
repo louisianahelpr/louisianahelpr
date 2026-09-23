@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { unwrap } from "@/lib/supabaseResult";
 import { unwrapMutation } from "@/lib/mutationResult";
+import { logAdminAction } from "@/lib/adminAudit";
 import type {
   MarketingContentRow,
   MarketingDraftInput,
@@ -136,6 +137,7 @@ export async function updateMarketingSettings(
       context: { keys: Object.keys(patch).join(",") },
     },
   );
+  await logAdminAction("marketing_settings_update", "marketing_settings", "singleton", { ...patch });
 }
 
 /** Create a row. Always starts as `draft` or `scheduled` — never anything the
@@ -144,7 +146,7 @@ export async function createMarketingContent(
   input: MarketingDraftInput,
   status: Extract<MarketingStatus, "draft" | "scheduled">,
 ): Promise<void> {
-  unwrapMutation(
+  const created = unwrapMutation(
     await supabase
       .from("marketing_content")
       .insert([
@@ -170,6 +172,7 @@ export async function createMarketingContent(
       .select("id"),
     { action: "create this post", context: { channel: input.channel, status } },
   );
+  await logAdminAction("marketing_post_create", "marketing_content", created[0]?.id, { channel: input.channel, status });
 }
 
 /**
@@ -206,6 +209,7 @@ export async function updateMarketingContent(
       context: { id },
     },
   );
+  await logAdminAction("marketing_post_edit", "marketing_content", id);
 }
 
 /** draft → scheduled. */
@@ -226,6 +230,7 @@ export async function scheduleMarketingContent(
       context: { id },
     },
   );
+  await logAdminAction("marketing_post_schedule", "marketing_content", id, { scheduled_for: scheduledFor });
 }
 
 /**
@@ -251,6 +256,7 @@ export async function cancelMarketingContent(id: string): Promise<void> {
       context: { id },
     },
   );
+  await logAdminAction("marketing_post_cancel", "marketing_content", id);
 }
 
 /**
@@ -284,6 +290,7 @@ export async function retryMarketingContent(
       context: { id },
     },
   );
+  await logAdminAction("marketing_post_retry", "marketing_content", id, { scheduled_for: scheduledFor });
 }
 
 /** cancelled → draft, so a stopped post can be reworked instead of retyped. */
@@ -297,6 +304,7 @@ export async function reopenMarketingContent(id: string): Promise<void> {
       .select("id"),
     { action: "reopen this post", context: { id } },
   );
+  await logAdminAction("marketing_post_reopen", "marketing_content", id);
 }
 
 /** Delete — drafts and cancelled rows only. A published row is a receipt and
@@ -316,4 +324,5 @@ export async function deleteMarketingContent(id: string): Promise<void> {
       context: { id },
     },
   );
+  await logAdminAction("marketing_post_delete", "marketing_content", id);
 }

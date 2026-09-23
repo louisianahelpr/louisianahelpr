@@ -270,6 +270,15 @@ const AdminJobs = () => {
         },
       );
 
+      // The status trigger logs a bare job_status_override when the status
+      // actually changes; this row carries WHAT the admin did and WHY (Q76).
+      await logAdminAction("remove_job", "job", detailJob.id, {
+        from_status: detailJob.status,
+        reason: deleteReason.trim(),
+        customer_id: detailJob.customer_id,
+        helper_id: detailJob.helper_id,
+      });
+
       // Notify the job poster — on THEIR surface (My Posts), on the job.
       // Guarded on a non-null `customer_id`: since 20260901033011 an account
       // deletion anonymises the job instead of removing it, so a job can

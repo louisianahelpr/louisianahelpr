@@ -60,6 +60,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
 
 /**
@@ -1638,6 +1639,29 @@ serve(async (req) => {
       disputeUpdateErr,
     );
   }
+
+  // Q76: the decision itself is audited by rpc_decide_dispute; THIS row is
+  // the money moving on it, by this admin. Non-fatal (the split is settled and
+  // the job terminal), never silent — writeAdminAudit alerts on a lost row.
+  await writeAdminAudit(supabaseAdmin, {
+    adminId: adminUserId,
+    action: "execute_dispute_split",
+    targetType: "dispute",
+    targetId: disputeId,
+    details: {
+      job_id: job.id,
+      helper_share: helperShare,
+      poster_share: posterShare,
+      helper_cents: movedHelperCents,
+      refund_cents: refundCents,
+      gift_restored_cents: restoredGiftCents,
+      stripe_transfer_id: transferId,
+      stripe_refund_id: refundId,
+      resumed: isResume,
+      reason: dispute.decision_text ?? null,
+    },
+    source: "execute-dispute-split",
+  }, postSlackOpsAlert);
 
   // ── 10. Tell both sides what actually moved ──────────────────────────────
   // Amounts come from `moved*`, so a resume quotes the settled transfer rather

@@ -2462,11 +2462,13 @@ serve(async (req) => {
         }
       }
 
-      await supabaseAdmin.from("admin_audit_log").insert({
-        admin_id: user.id,
+      // Q76: this row used to be a bare insert whose error was dropped — a
+      // refund that moved real money could leave no trail and nobody would
+      // know. logAdminMoneyAction reads the row count and alerts on a miss.
+      await logAdminMoneyAction(supabaseAdmin, {
+        adminId: user.id,
         action: isPartial ? "job_admin_refund_partial" : "job_admin_refund",
-        target_type: "job",
-        target_id: jobId,
+        jobId,
         details: {
           reason: reason || null,
           job_title: job.title,

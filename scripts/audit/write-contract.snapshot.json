@@ -11934,7 +11934,6 @@
       "hear_about_us",
       "hourly_rate",
       "id",
-      "id_document_url",
       "id_verification_status",
       "identity_sha256",
       "idv_attempt_count",
@@ -12253,13 +12252,6 @@
      "hasDefault": true,
      "notNull": true,
      "type": "uuid"
-    },
-    "id_document_url": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "text"
     },
     "id_verification_status": {
      "enum": null,

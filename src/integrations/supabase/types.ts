@@ -3297,7 +3297,6 @@ export type Database = {
           hear_about_us: string | null
           hourly_rate: number | null
           id: string
-          id_document_url: string | null
           id_verification_status: string
           identity_sha256: string | null
           idv_attempt_count: number
@@ -3401,7 +3400,6 @@ export type Database = {
           hear_about_us?: string | null
           hourly_rate?: number | null
           id?: string
-          id_document_url?: string | null
           id_verification_status?: string
           identity_sha256?: string | null
           idv_attempt_count?: number
@@ -3505,7 +3503,6 @@ export type Database = {
           hear_about_us?: string | null
           hourly_rate?: number | null
           id?: string
-          id_document_url?: string | null
           id_verification_status?: string
           identity_sha256?: string | null
           idv_attempt_count?: number

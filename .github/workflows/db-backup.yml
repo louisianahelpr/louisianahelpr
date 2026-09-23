@@ -178,8 +178,8 @@ jobs:
           fi
 
           # Storage RLS policies, same reason: schema.sql is `public` only, so
-          # the policies guarding the private buckets (id-documents,
-          # proof-photos, user-documents ...) are in no dump — 36 on prod on
+          # the policies guarding the private buckets (user-documents,
+          # proof-photos, message-attachments ...) are in no dump — 36 on prod on
           # 2026-09-23. A restored project would serve none of those files.
           PQ="select coalesce(string_agg(format('CREATE POLICY %I ON %I.%I AS %s FOR %s TO %s%s%s;', policyname, schemaname, tablename, permissive, cmd, (select string_agg(quote_ident(r), ', ') from unnest(roles) r), coalesce(' USING (' || qual || ')', ''), coalesce(' WITH CHECK (' || with_check || ')', '')), E'\n' order by tablename, policyname), '') as sql, count(*) as n from pg_policies where schemaname = 'storage'"
           RES=$(curl -sS --fail-with-body -X POST \

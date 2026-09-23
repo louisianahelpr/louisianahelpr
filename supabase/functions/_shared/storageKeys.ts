@@ -122,9 +122,9 @@ const LEGACY_EXT_MIME: Readonly<Record<string, string>> = {
  * Content type → extension for the two PRIVATE document buckets.
  *
  * Wider than the avatar map on purpose: these hold whatever a member photographs
- * or scans, and `id-documents` / `user-documents` set no `allowed_mime_types`
- * of their own (verified against prod 2026-09-01), so this table is the only
- * thing describing what is expected.
+ * or scans, and `user-documents` set no `allowed_mime_types` of its own
+ * (verified against prod 2026-09-01; `id-documents` was dropped 2026-09-23,
+ * Q196), so this table is the only thing describing what is expected.
  */
 const DOCUMENT_MIME_EXT: Readonly<Record<string, string>> = {
   "image/jpeg": "jpg",
@@ -226,7 +226,8 @@ export function avatarObjectNameFromUrl(url: string | null | undefined, userId: 
 }
 
 /**
- * NOTE ON WHAT IS *NOT* SWEPT.
+ * NOTE ON WHAT IS *NOT* SWEPT. (Historical: the ID upload and the
+ * `id-documents` bucket are gone since Q40/Q196, 2026-09-23.)
  *
  * `id-document.<ext>` has the same orphan-on-extension-swap shape, and it is
  * deliberately left alone. The sweep exists because an orphan in `avatars` is

@@ -51,10 +51,8 @@ const EXTERNALLY_USED: Record<string, string> = {};
  * (delete it here) or once feature code uses it again (then it is not retired).
  */
 // @two-way src/test/noOrphanedStorageBuckets.test.ts:retired bucket dropped or used again
-const RETIRED_PENDING_DROP: Record<string, string> = {
-  "id-documents":
-    "Q40 (2026-09-23) removed the ID upload, deleted the one real object and every storage policy (0 objects, closed to clients); account purge still clears it, so the DROP lands with the purge change in Q196.",
-};
+// Empty since Q196 (2026-09-23): id-documents was dropped by 20260923165718.
+const RETIRED_PENDING_DROP: Record<string, string> = {};
 
 /** Replay every INSERT/DELETE against storage.buckets in timestamp order. */
 function declaredBuckets(): string[] {

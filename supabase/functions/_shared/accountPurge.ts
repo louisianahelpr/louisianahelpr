@@ -104,7 +104,9 @@ interface StorageListLike {
  */
 const IDENTITY_BUCKETS = [
   "avatars",
-  "id-documents",
+  // `id-documents` removed with the bucket itself (Q196): Stripe Identity
+  // collects the ID, the upload path went in Q40 and the bucket held 0 objects
+  // when its migration deleted it.
   "user-documents",
   // `profile-videos` removed 2026-09-21 along with the bucket itself
   // (20260921212141). The helper intro-video feature was deleted long before,

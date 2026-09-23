@@ -19,9 +19,10 @@
  * KNOWN_READERS is EXACT and two-way (see each entry's reason).
  *
  * DATABASE HALF (20260923145614 emptied the column, pinned it NULL with a CHECK
- * — shipped app builds still select it, so the DROP waits on Q196 — and dropped
- * the bucket's four client policies): read from supabase/migrations with SQL
- * comments blanked,
+ * and dropped the bucket's four client policies; 20260923165718 (Q196) then
+ * dropped the column, its CHECK and the id-documents bucket itself — the app
+ * had not launched, so no shipped build still selected it): read from
+ * supabase/migrations with SQL comments blanked,
  *   - the column is either dropped or still pinned NULL (its retired CHECK's
  *     last statement is the ADD);
  *   - no function's NEWEST definition names the column (plpgsql binds columns
@@ -30,11 +31,12 @@
  *   - each of the four id-documents policies' last statement is its DROP.
  *
  * @mutate supabase/migrations/20260923145614_drop_retired_id_document_upload.sql |        SET full_name                = NULL, |        SET full_name                = NULL, id_document_url = NULL,
- * @mutate supabase/migrations/20260923145614_drop_retired_id_document_upload.sql |   ADD CONSTRAINT profiles_id_document_url_retired CHECK (id_document_url IS NULL); |   ALTER COLUMN id_document_url SET DEFAULT NULL;
+ * @mutate supabase/migrations/20260923165718_drop_retired_id_document_column_and_bucket.sql | ALTER TABLE IF EXISTS public.profiles DROP COLUMN IF EXISTS id_document_url; | SELECT 1;
  * @mutate supabase/migrations/20260923145614_drop_retired_id_document_upload.sql | DROP POLICY IF EXISTS "Admins can view all ID documents"        ON storage.objects; | SELECT 1;
  * @mutate supabase/functions/complete-signup/index.ts | if (phone) updateData.phone = phone; | if (phone) updateData.phone = phone; if (body.idBase64) updateData.id_document_url = "x";
  * @mutate src/components/admin/adminusers/useOpenProfile.ts | setViewProfile(profile); | setViewProfile(profile); void supabase.storage.from("id-documents").createSignedUrl("x", 1);
- * @mutate supabase/functions/_shared/accountPurge.ts | "id-documents", | "user-documents-2",
+ * @mutate supabase/functions/_shared/accountPurge.ts | "avatars", | "avatars", "id-documents",
+ * @mutate src/components/ProtectedRoute.tsx | avatar_url?: string \| null; | avatar_url?: string \| null; id_document_url?: string \| null;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -57,12 +59,9 @@ const RETIRED: { token: RegExp; what: string }[] = [
 
 /** `file :: what`, each with why it may stay. */
 // @two-way src/test/retiredIdUploadStaysGone.test.ts:const staleReaders =
-const KNOWN_READERS: Record<string, string> = {
-  "supabase/functions/_shared/accountPurge.ts :: the id-documents bucket":
-    "the bucket itself is kept (closed to clients since 20260923145614); account deletion keeps sweeping it with the service role, so anything that ever lands there is still erased",
-  "src/components/ProtectedRoute.tsx :: profiles.id_document_url":
-    "an optional key on the local GateProfile TYPE, never selected or written; the file belonged to the Q180 lane when Q40 landed. Delete the key and this entry together",
-};
+// Empty since Q196 (2026-09-23): the bucket and the column are both dropped, so
+// accountPurge no longer sweeps the bucket and GateProfile no longer names it.
+const KNOWN_READERS: Record<string, string> = {};
 
 const MIGRATIONS = join(REPO, "supabase", "migrations");
 const COLUMN = /\bid_document_url\b/;

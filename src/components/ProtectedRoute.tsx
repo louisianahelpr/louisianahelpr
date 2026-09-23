@@ -91,7 +91,6 @@ export const isProfileGateAllowed = (pathname: string, search: string): boolean 
 type GateProfile = {
   full_name?: string | null;
   avatar_url?: string | null;
-  id_document_url?: string | null;
   bio?: string | null;
   date_of_birth?: string | null;
   phone?: string | null;

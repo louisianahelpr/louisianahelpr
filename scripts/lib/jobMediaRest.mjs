@@ -33,7 +33,7 @@ export function jobMediaPrefixes(job) {
 /** Everything stored under a user's own folder, in every bucket that has one. */
 export function userStoragePrefixes(userId) {
   if (!UUID_RE.test(userId)) return [];
-  return ["avatars", "id-documents", "user-documents", "profile-videos", "application-attachments", "proof-photos", "job-photos"].map(
+  return ["avatars", "user-documents", "profile-videos", "application-attachments", "proof-photos", "job-photos"].map(
     (bucket) => ({ bucket, prefix: userId }),
   );
 }

@@ -63,7 +63,7 @@ const NATIVE_ORIGIN_RULES = [
    (3c81624d0 and its follow-up). Wrap it: `href={safeDocumentUrl(x.col) ??
    undefined}`. The exhaustive version (every sink, any expression) is
    src/test/navigationSinksAreClassified.test.ts; this is the editor-time hint. */
-const USER_URL_COLUMN = "/^(avatar_url|portfolio_urls|photos|photo_url|photo_urls|external_url|media_urls|scope_video_url|document_url|license_url|insurance_url|id_document_url|attachment_url|attachment_urls|evidence_urls|dispute_evidence_urls|proof_before_urls|proof_after_urls|ical_url|link|url)$/";
+const USER_URL_COLUMN = "/^(avatar_url|portfolio_urls|photos|photo_url|photo_urls|external_url|media_urls|scope_video_url|document_url|license_url|insurance_url|attachment_url|attachment_urls|evidence_urls|dispute_evidence_urls|proof_before_urls|proof_after_urls|ical_url|link|url)$/";
 const USER_URL_HREF_MESSAGE =
   "A stored URL column must not reach href/window.open raw — wrap it in safeDocumentUrl() (src/lib/storagePath.ts).";
 const USER_URL_HREF_RULES = [

@@ -53,7 +53,7 @@ describe("orphanReason — path schemes", () => {
     ["avatars", `${U_GONE}/avatar.png`, "user gone"],
     ["avatars", `${U_LIVE}/avatar.png`, null],
     ["user-documents", `${U_GONE}/credentials/license-1.png`, "user gone"],
-    ["id-documents", `${U_LIVE}/id-document-1.png`, null],
+    ["user-documents", `${U_LIVE}/credentials/license-1.png`, null],
     ["application-attachments", `${U_LIVE}/${J_GONE}/1-a.png`, "job gone"],
     ["application-attachments", `${U_LIVE}/${J_LIVE}/1-a.png`, null],
     ["proof-photos", `${J_GONE}/after-1.png`, "job gone"],
@@ -125,7 +125,7 @@ describe("age floor", () => {
 describe("identity documents", () => {
   it("are kept while the owner is in auth.users even without a profile", () => {
     const w = world({ profileUserIds: new Set(), authUserIds: new Set([U_GONE]) });
-    expect(identityDocumentDeletable("id-documents", `${U_GONE}/id-1.png`, w)).toBe(false);
+    expect(identityDocumentDeletable("user-documents", `${U_GONE}/credentials/l-1.png`, w)).toBe(false);
     expect(orphanReason("user-documents", `${U_GONE}/credentials/l.png`, w)).toBeNull();
   });
   it("are kept while the owner has a profile even without an auth row", () => {
@@ -158,7 +158,7 @@ describe("caps", () => {
   });
 
   it("5 orphans in a tiny bucket (100%) are cleaned, not capped", () => {
-    const objects = many("id-documents", 5);
+    const objects = many("user-documents", 5);
     expect(checkCaps({ orphans: objects, objects }).tripped).toBe(false);
   });
 

@@ -18,15 +18,16 @@
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Buckets whose objects identify a PERSON, keyed `<userId>/...`. */
-export const USER_BUCKETS = ["avatars", "id-documents", "user-documents", "profile-videos"];
+export const USER_BUCKETS = ["avatars", "user-documents", "profile-videos"];
 
 /**
  * Identity documents. The owner said: never delete from these unless the owner
  * is confirmed absent from BOTH profiles and auth.users. The sweep applies that
  * to every user-keyed check (it is the stricter reading), but these two are
- * named so a later loosening elsewhere cannot reach them.
+ * named so a later loosening elsewhere cannot reach them. (`id-documents` was
+ * dropped in Q196; `user-documents` is the one left.)
  */
-export const IDENTITY_DOCUMENT_BUCKETS = ["id-documents", "user-documents"];
+export const IDENTITY_DOCUMENT_BUCKETS = ["user-documents"];
 
 export const DEFAULTS = Object.freeze({
   minAgeDays: 7,

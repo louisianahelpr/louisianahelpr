@@ -14,7 +14,7 @@
  *      at least --wait-minutes (default 10) apart within this run.
  *   2. Objects younger than --min-age-days (default 7) are never touched, so an
  *      upload whose row is not written yet cannot be mistaken for an orphan.
- *   3. id-documents / user-documents: only when the owner is absent from BOTH
+ *   3. user-documents (identity documents): only when the owner is absent from BOTH
  *      profiles and auth.users.
  *   4. Hard caps: over --max-files (50) orphans, or any bucket whose orphans are
  *      BOTH over 5 files AND over --max-bucket-pct (5%) of it, deletes NOTHING and posts a critical alert —

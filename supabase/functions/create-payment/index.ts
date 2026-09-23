@@ -924,7 +924,7 @@ serve(async (req) => {
             user_id: job.helper_id,
             title: "Job completed!",
             message: `"${job.title}" is complete. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`,
-            type: "payment", link: "/earnings",
+            type: "payment", link: "/profile?tab=earnings",
           });
         }
         await supabaseAdmin.from("notifications").insert({
@@ -1799,7 +1799,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Dispute resolved — payment released!",
           message: `The dispute on "${job.title}" has been resolved in your favor. $${formatPayoutDollars(helperPayout)} has been transferred.`,
-          type: "payment", link: "/earnings",
+          type: "payment", link: "/profile?tab=earnings",
         });
       }
       await supabaseAdmin.from("notifications").insert({

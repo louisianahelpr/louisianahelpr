@@ -6,16 +6,9 @@
  * Capacitor `appUrlOpen` listener in `nativePush.ts` strips the host and
  * hands the remainder to React Router via `navigate()`.
  *
- * Some link shapes we ship in shares / SMS / email don't 1:1 map to the
- * routes defined in `src/App.tsx`:
- *
- *   - Short share links — `/j/:id` (job), `/u/:id` (user), `/m/:id`
- *     (message thread) — we don't want long ugly URLs in SMS, but the
- *     App Router only knows `/jobs/:id`, `/user/:id`, `/messages`.
- *   - `/post-job/draft/:id` style sub-paths that should still land on
- *     `/post-job`.
- *
- * This module owns the translation table. Kept separate so it is
+ * Every link we mint is already a real `src/App.tsx` route (Q194), so this
+ * module no longer translates paths: it filters hosts, refuses auth/admin/root
+ * and keeps the query and fragment. Kept separate so it is
  * unit-testable without spinning up React Router, and so the AASA file
  * (`public/.well-known/apple-app-site-association`) and the JS routing
  * stay in lock-step — the same set of paths is claimed in AASA and
@@ -54,13 +47,9 @@ const ALLOWED_DEEP_LINK_HOSTS = new Set<string>([
  *
  * Examples:
  *   /jobs/abc      → /jobs/abc
- *   /j/abc         → /jobs/abc
  *   /user/xyz     → /user/xyz
- *   /u/xyz        → /user/xyz
  *   /messages     → /messages
- *   /m/abc        → /messages?jobId=abc
  *   /legal        → /legal
- *   /legal/terms  → /legal?tab=terms
  *   /post-job     → /post-job
  *   /legal#refunds → /legal#refunds   (the fragment is preserved — see below)
  *   /             → null  (cold-launch sentinel, handled elsewhere)
@@ -118,50 +107,12 @@ export function normalizeDeepLinkUrl(rawUrl: string): string | null {
   // excludes these; the JS guard is belt-and-suspenders.
   if (path.startsWith("/auth/") || path.startsWith("/admin")) return null;
 
-  // Short user link → canonical /user/:id route.
-  const uMatch = /^\/u\/([^/]+)$/.exec(path);
-  if (uMatch) return `/user/${uMatch[1]}${search}${hash}`;
-
-  // Short job link → /jobs/:id, which is a real route (JobDetail, App.tsx).
-  // The previous comment here said the route did not exist yet and the user
-  // would land on the in-app 404 — that stopped being true once JobDetail
-  // shipped, and it misled anyone reasoning about short-link behaviour.
-  const jMatch = /^\/j\/([^/]+)$/.exec(path);
-  if (jMatch) return `/jobs/${jMatch[1]}${search}${hash}`;
-
-  // Short message-thread link → /messages?jobId=:id (the existing
-  // Messages page reads `jobId` + `userId` query params to auto-open a
-  // thread; see src/pages/Messages.tsx).
-  // Accept BOTH the short `/m/:id` form and the long `/messages/:id` form.
-  // The AASA file claims `/messages/*` (and its components block documents it
-  // as "Messages thread deep link"), but App.tsx only defines `/messages` —
-  // there is no `/messages/:id` route — and this normalizer had no branch for
-  // it, so a shared thread link fell through to the verbatim pass-through and
-  // landed on the in-app 404. That violated this module's own contract above:
-  // every AASA-claimed path must match an App.tsx route or normalize to one.
-  const mMatch = /^\/(?:m|messages)\/([^/]+)$/.exec(path);
-  if (mMatch) {
-    const params = new URLSearchParams(search);
-    params.set("jobId", mMatch[1]);
-    return `/messages?${params.toString()}${hash}`;
-  }
-
-  // /legal/:tab → /legal?tab=:tab (mirrors the in-app /terms, /privacy,
-  // /rules redirects already defined in App.tsx).
-  const legalMatch = /^\/legal\/([^/]+)$/.exec(path);
-  if (legalMatch) {
-    const params = new URLSearchParams(search);
-    if (!params.has("tab")) params.set("tab", legalMatch[1]);
-    const qs = params.toString();
-    return qs ? `/legal?${qs}${hash}` : `/legal${hash}`;
-  }
-
-  // /post-job/* sub-paths (e.g. draft restore) → just /post-job for now.
-  // PostJob owns its own internal step state; the sub-path is reserved
-  // for future deep-restore behavior.
-  if (path === "/post-job" || path.startsWith("/post-job/")) {
-    return `/post-job${search}${hash}`;
-  }
+  // NO SHORT-LINK TABLE (Q194, owner 2026-09-23: "The old address shouldn't
+  // be redirects, it should be direct"). `/j/:id`, `/u/:id`, `/m/:id`,
+  // `/messages/:id`, `/legal/:tab` and `/post-job/*` used to be rewritten here
+  // onto their real routes. Nothing we ship ever minted one (no source, SQL
+  // function, email template or stored notification/message on prod), so the
+  // table, the AASA claims and the web routes went together.
 
   // Everything else: pass through verbatim. React Router will match it
   // (e.g. /jobs/:id, /user/:userId, /messages, /legal) or fall through

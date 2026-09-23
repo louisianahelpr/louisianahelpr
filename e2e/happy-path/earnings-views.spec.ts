@@ -109,7 +109,7 @@ test("earnings tab renders one view at a time", async ({ helperPage: page }) => 
 });
 
 // `/profile?tab=earnings` is the link every notification and email uses, and
-// `/earnings` redirects onto it. `?view=payouts` is the new, additive way for a
+// the old `/earnings` redirect is gone (Q194). `?view=payouts` is the new, additive way for a
 // payout-specific one to land on the payout half — without it, a "your payout
 // arrived" push would open on the earnings summary.
 test("?view=payouts opens the payouts half, and the plain deep link still opens earnings", async ({ helperPage: page }) => {

@@ -81,8 +81,10 @@ export function inferCategoryFromLink(link: string | null | undefined): PushCate
   }
 
   // A job you could take: the browse feed (job_match is 470 of the 619
-  // /dashboard rows) and the direct-offer notifications on /activity.
-  if (path.startsWith('/dashboard') || path.startsWith('/activity')) return 'JOB_APPLY'
+  // /dashboard rows). Direct offers link /my-jobs?job= now (the /activity
+  // route they used to name was deleted with Q194), so they take the
+  // JOB_ACCEPTED branch above.
+  if (path.startsWith('/dashboard')) return 'JOB_APPLY'
 
   return undefined
 }

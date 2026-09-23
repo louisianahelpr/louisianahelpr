@@ -119,14 +119,6 @@ const ALLOWED_UNRESOLVED: Record<string, string> = {
  */
 const UNSWEPT_ROUTES: Record<string, string> = {
   "*": "The NotFound catch-all; the `not-found` catalog row is what renders it.",
-  "/warnings": "Navigate to /profile?tab=warnings — the catalog sweeps the profile tab.",
-  "/help-center": "Navigate to /help — an alias for the URL people type; the catalog sweeps /help.",
-  "/j/:id": "ShortLinkRedirect — resolves an id and navigates; paints nothing.",
-  "/u/:id": "ShortLinkRedirect — resolves an id and navigates; paints nothing.",
-  "/m/:id": "ShortLinkRedirect — resolves an id and navigates; paints nothing.",
-  "/messages/:id": "ShortLinkRedirect onto the real /messages thread, which the catalog sweeps.",
-  "/post-job/*": "ShortLinkRedirect for legacy /post-job/* deep links onto /post-job.",
-  "/legal/:tab": "ShortLinkRedirect onto /legal?tab=…, which the catalog sweeps.",
 };
 
 /** The element source for a given `path=`, so an excuse can be verified. */
@@ -141,8 +133,8 @@ function elementFor(path: string): string | null {
  * Is this route element an UNCONDITIONAL forward?
  *
  * Two shapes count: a literal `<Navigate …>` at the route, and a wrapper
- * component whose whole body is one (ActivityLegacyRedirect, DataRightsRedirect,
- * ShortLinkRedirect).
+ * component whose whole body is one (DataRightsRedirect; ActivityLegacyRedirect
+ * and ShortLinkRedirect were deleted with their routes, Q194).
  *
  * `<MarketingRedirect>` is the shape that must NOT count, and the reason the
  * test below is derived rather than name-matched: it takes `children` and
@@ -180,7 +172,7 @@ function isUnconditionalRedirect(element: string): boolean {
 // Proves the alias classification is load-bearing: drop the declaration off a
 // row whose route is a <Navigate> and it goes back to being counted as an
 // independently audited screen.
-// @mutate e2e/happy-path/auditRoutes.ts | { name: "settings", url: "/settings", redirectsTo: "/profile" }, | { name: "settings", url: "/settings" },
+// @mutate e2e/happy-path/auditRoutes.ts | { name: "data-rights", url: "/data-rights", redirectsTo: "/privacy" }, | { name: "data-rights", url: "/data-rights" },
 // Proves reclassification cannot open a hole: remove the row that actually
 // audits the gift_card tab and /gift-card's alias target is orphaned.
 // @mutate e2e/happy-path/auditRoutes.ts | { name: "profile-gift-card", url: "/profile?tab=gift_card" }, | 

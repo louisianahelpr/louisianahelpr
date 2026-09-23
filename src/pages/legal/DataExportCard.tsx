@@ -9,7 +9,7 @@ import { JOB_READABLE_COLUMNS } from "@/lib/jobColumns";
 import { hapticError } from "@/lib/haptics";
 import { saveOrShareFile } from "@/lib/fileExport";
 import { toast } from "sonner";
-import { DATA_EXPORT_ANCHOR } from "./dataExportAnchor";
+import { DATA_EXPORT_ANCHOR, dataRightsTarget } from "./dataExportAnchor";
 
 /** The card's anchor. `/data-rights` lands on it (DataRightsRedirect): the
  *  Legal tab's Privacy panel when signed in, `/privacy` when signed out. */
@@ -166,10 +166,11 @@ export function DataExportCard() {
             </Button>
           ) : (
             <Button variant="primary" size="sm" className="shrink-0" asChild>
-              {/* Back through /data-rights, not straight to /privacy: once
-                  signed in, that route lands on this card inside the app's
-                  Legal tab instead of the nav-less public page. */}
-              <Link to={`/login?redirect=${encodeURIComponent("/data-rights")}`}>
+              {/* Straight to where a signed-in reader finds this card — the
+                  in-app Legal tab — not through /data-rights (Q194: no link we
+                  mint goes through a redirect), and not /privacy, which is the
+                  nav-less public page. */}
+              <Link to={`/login?redirect=${encodeURIComponent(dataRightsTarget(true))}`}>
                 Sign In to Download
               </Link>
             </Button>

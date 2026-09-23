@@ -24,7 +24,9 @@ import { join } from "node:path";
 
 function redirectRoutes(app: string): string[] {
   const out: string[] = [];
-  for (const m of app.matchAll(/<Route\s+path="([^"]+)"\s+element=\{\s*<(\w+)[^}]*\}\s*\/>/g)) {
+  // `routeEl(<XRedirect …>)` too: since Q194 the only redirect route left is
+  // /data-rights, which is wrapped that way, and a bare-`<` parser found none.
+  for (const m of app.matchAll(/<Route\s+path="([^"]+)"\s+element=\{\s*(?:routeEl\(\s*)?<(\w+)[^}]*\}\s*\/>/g)) {
     if (m[2] === "Navigate" || /Redirect$/.test(m[2])) out.push(m[1]);
   }
   return out;

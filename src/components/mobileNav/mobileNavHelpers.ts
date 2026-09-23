@@ -47,7 +47,7 @@ export const rightItems = [
   { path: "/profile", icon: UserRound, label: "Profile" },
 ];
 
-export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs/", "/browse", "/saved-helprs", "/saved-helpers",
+export const authPages = ["/dashboard", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/user", "/jobs/", "/browse",
   // Standalone settings sub-pages keep the bottom tab bar so they share the
   // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
   // "/benefits" left this list 2026-08-31 with the page itself — the route is
@@ -56,7 +56,7 @@ export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/
   // `?tab=pets` tab, and /profile is already covered above. A stale entry here
   // would only give the 404 screen a bottom dock, exactly as the note about
   // "/benefits" above says.
-  "/gift-card", "/help", "/data-rights",
+  "/help", "/data-rights",
   // /auto-tip ("After a Job") was the ONE settings sub-page on that list of
   // siblings that never reached this one — measured 2026-08-31 at 320/375/768:
   // no bottom dock rendered at all, on a screen whose only other way out is the
@@ -93,9 +93,9 @@ export const tabStacks: Record<string, string[]> = {
   // the floating "+" FAB, not from the Posts tab, so lighting Posts up while
   // the user is mid-post claimed they were somewhere they hadn't navigated to —
   // and it competed with the FAB, which is the control they actually pressed.
-  // The tab highlights for the Posts LIST and its /activity alias only.
-  "/my-posts": ["/activity"],
-  "/my-jobs": ["/earnings"],
+  // The tab highlights for the Posts LIST only.
+  "/my-posts": [],
+  "/my-jobs": [],
   "/messages": [],
-  "/profile": ["/support", "/user", "/admin", "/schedule", "/availability", "/saved-helprs", "/saved-helpers"],
+  "/profile": ["/support", "/user", "/admin"],
 };

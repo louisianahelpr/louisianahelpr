@@ -404,8 +404,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
 
     const active =
       location.pathname === effectivePath ||
-      (path === "/my-posts" && location.pathname === "/activity" && !new URLSearchParams(location.search).get("tab")) ||
-      (path === "/my-jobs" && location.pathname === "/activity" && new URLSearchParams(location.search).get("tab") === "applied") ||
       (isGuest && path === "/dashboard" && location.pathname === "/browse");
 
     const inStack = !isGuest && isInStack(path);

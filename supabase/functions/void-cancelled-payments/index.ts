@@ -124,7 +124,7 @@ serve(async (req) => {
             title: "Your gift is back",
             message: `"${job.title}" was cancelled, so the $${formatPayoutDollars(dollars)} gift you used on it is available again.`,
             type: "payment",
-            link: "/gift-card",
+            link: "/profile?tab=gift_card",
           });
           if (noteErr) {
             console.error(
@@ -375,7 +375,7 @@ serve(async (req) => {
           title: "Cancellation fee received",
           message: `You received a $${formatPayoutDollars(helperPayout)} cancellation fee for "${job.title}" (${commissionPercent}% commission deducted).`,
           type: "payment",
-          link: "/earnings",
+          link: "/profile?tab=earnings",
         });
       } catch (transferErr: any) {
         console.error(`Failed to transfer cancellation fee to helper ${job.helper_id}:`, transferErr);

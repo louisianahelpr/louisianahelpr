@@ -8,7 +8,7 @@ type ParsedRoute = { path: string; redirect: boolean; protected: boolean; admin:
 type DerivedRow = { url: string; base: string; personas: string[]; redirect: boolean };
 const deriveRouteSet = harness.deriveRouteSet as (o: { seedJobId: string; jobIds?: string[]; helperId: string; customerId: string; adminViews: string[] }) => DerivedRow[];
 const parseAdminViews = harness.parseAdminViews as () => string[];
-const parseAppRoutes = harness.parseAppRoutes as () => ParsedRoute[];
+const parseAppRoutes = harness.parseAppRoutes as (appSrc?: string) => ParsedRoute[];
 const parseProfileTabs = harness.parseProfileTabs as () => string[];
 const DOCUMENTED_SKIPS = harness.DOCUMENTED_SKIPS as Set<string>;
 
@@ -44,8 +44,11 @@ describe("press-every-control route derivation", () => {
   it("marks pure redirect routes so their targets are not pressed twice", () => {
     const parsed = parseAppRoutes();
     const byPath = Object.fromEntries(parsed.map((r) => [r.path, r]));
-    expect(byPath["/earnings"].redirect).toBe(true);
-    expect(byPath["/settings"].redirect).toBe(true);
+    // App.tsx has no bare <Navigate> route left since Q194 (the one survivor,
+    // /data-rights, waits on auth and is walked like a page), so the positive
+    // case is a synthetic route table.
+    const synthetic = parseAppRoutes(`<Route path="/old" element={<Navigate to="/profile" replace />} />`);
+    expect(synthetic).toEqual([expect.objectContaining({ path: "/old", redirect: true })]);
     expect(byPath["/dashboard"].redirect).toBe(false);
     // A wrapper that contains a page (MarketingRedirect around <Index />) is a
     // page, not a redirect.

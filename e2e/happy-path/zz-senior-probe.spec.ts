@@ -43,9 +43,7 @@ const ROUTES = [
   { name: "messages", url: "/messages" },
   { name: "my-jobs", url: "/my-jobs" },
   { name: "my-posts", url: "/my-posts" },
-  { name: "activity", url: "/activity" },
   { name: "analytics", url: "/profile?tab=analytics" },
-  { name: "settings", url: "/settings" },
   { name: "profile-notifications", url: "/profile?tab=notifications" },
   { name: "profile-accessibility", url: "/profile?tab=accessibility" },
   { name: "profile-availability", url: "/profile?tab=availability" },
@@ -347,7 +345,6 @@ test("reduced transparency", async ({ context, page, baseURL }) => {
     { name: "browse", url: "/browse" },
     { name: "landing", url: "/" },
     { name: "profile-landing", url: "/profile" },
-    { name: "activity", url: "/activity" },
     { name: "job-detail", url: "/jobs/10000000-0000-4000-8000-000000000001" },
   ]) {
     await page.goto(r.url, { waitUntil: "domcontentloaded" });
@@ -394,7 +391,6 @@ test("shots", async ({ context, page, baseURL }) => {
     await page.setViewportSize({ width: w, height: 900 });
     for (const r of [
       { name: "messages", url: "/messages" },
-      { name: "activity", url: "/activity" },
       { name: "profile-subscription", url: "/profile?tab=subscription" },
       { name: "profile-notifications", url: "/profile?tab=notifications" },
       { name: "profile-landing", url: "/profile" },

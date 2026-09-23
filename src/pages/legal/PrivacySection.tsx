@@ -205,7 +205,7 @@ export const PrivacyContent = () => (
     </PolicySection>
 
     {/* The export control, right under the section that grants the right.
-        `/data-rights` redirects to this anchor (DataRightsRedirect). Visible
+        The /data-rights route redirects to this anchor (DataRightsRedirect). Visible
         during a search whenever the row that links here is — see
         ExportCardOnSearch. */}
     <ExportCardOnSearch>

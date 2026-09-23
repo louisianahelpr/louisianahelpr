@@ -36,37 +36,11 @@ describe("normalizeDeepLinkUrl", () => {
     ).toBeNull();
   });
 
-  it("short /j/:id maps to /jobs/:id", () => {
-    expect(normalizeDeepLinkUrl("https://louisianahelpr.com/j/abc-123")).toBe(
-      "/jobs/abc-123",
-    );
-  });
-
-  it("short /u/:id maps to /user/:id", () => {
-    expect(normalizeDeepLinkUrl("https://louisianahelpr.com/u/xyz")).toBe(
-      "/user/xyz",
-    );
-  });
-
-  it("short /m/:id maps to /messages?jobId=:id", () => {
-    expect(normalizeDeepLinkUrl("https://louisianahelpr.com/m/job-1")).toBe(
-      "/messages?jobId=job-1",
-    );
-  });
-
-  it("preserves existing query strings on short-link expansion", () => {
-    expect(
-      normalizeDeepLinkUrl("https://louisianahelpr.com/u/xyz?ref=share"),
-    ).toBe("/user/xyz?ref=share");
-  });
-
-  it("/legal/:tab becomes /legal?tab=:tab", () => {
-    expect(
-      normalizeDeepLinkUrl("https://louisianahelpr.com/legal/terms"),
-    ).toBe("/legal?tab=terms");
-    expect(
-      normalizeDeepLinkUrl("https://louisianahelpr.com/legal/privacy"),
-    ).toBe("/legal?tab=privacy");
+  it("old short-link shapes are passed through verbatim, not rewritten (Q194)", () => {
+    // The short-link table is gone with its routes and AASA claims; nothing we
+    // ship mints these, and an old address is not redirected any more.
+    expect(normalizeDeepLinkUrl("https://louisianahelpr.com/j/abc-123")).toBe("/j/abc-123");
+    expect(normalizeDeepLinkUrl("https://louisianahelpr.com/legal/terms")).toBe("/legal/terms");
   });
 
   it("/legal passes through unchanged", () => {
@@ -75,13 +49,10 @@ describe("normalizeDeepLinkUrl", () => {
     );
   });
 
-  it("/post-job sub-paths collapse to /post-job", () => {
+  it("/post-job passes through unchanged", () => {
     expect(normalizeDeepLinkUrl("https://louisianahelpr.com/post-job")).toBe(
       "/post-job",
     );
-    expect(
-      normalizeDeepLinkUrl("https://louisianahelpr.com/post-job/draft/abc"),
-    ).toBe("/post-job");
   });
 
   it("strips trailing slashes", () => {
@@ -105,23 +76,7 @@ describe("normalizeDeepLinkUrl", () => {
   });
 });
 
-describe("AASA contract — every claimed path resolves", () => {
-  // deepLinkRoute.ts states: "All allowed paths in AASA must either match an
-  // App.tsx route or normalize to one here." /messages/* was claimed by the
-  // AASA file but had neither a route nor a normalizer branch, so a shared
-  // thread link 404'd inside the app. This pins the contract.
-  it("normalizes the long /messages/:id form, not just /m/:id", () => {
-    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/messages/job-123"))
-      .toBe("/messages?jobId=job-123");
-    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/m/job-123"))
-      .toBe("/messages?jobId=job-123");
-  });
-
-  it("preserves an existing userId query param on a thread link", () => {
-    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/messages/job-1?userId=u-9"))
-      .toBe("/messages?userId=u-9&jobId=job-1");
-  });
-
+describe("host allowlist on a thread-shaped path", () => {
   it("still refuses a foreign host", () => {
     expect(normalizeDeepLinkUrl("https://louisianahelpr.com.evil.example.com/messages/x")).toBeNull();
   });
@@ -149,11 +104,6 @@ describe("URL fragment survives normalization", () => {
       .toBe("/legal#cancellations");
   });
 
-  it("keeps the fragment on a /legal/:tab rewrite", () => {
-    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/legal/terms#refunds"))
-      .toBe("/legal?tab=terms#refunds");
-  });
-
   it("keeps a Supabase recovery fragment on /reset-password", () => {
     // The exact shape auth-email-hook's redirect_to produces. The access token
     // must reach ResetPassword.tsx, which reads window.location.hash directly.
@@ -169,18 +119,13 @@ describe("URL fragment survives normalization", () => {
       .toBe("/signup-pending#access_token=t&type=signup");
   });
 
-  it("keeps the fragment alongside a query string on short links", () => {
-    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/j/job-9?ref=sms#apply"))
+  it("keeps the fragment alongside a query string", () => {
+    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/jobs/job-9?ref=sms#apply"))
       .toBe("/jobs/job-9?ref=sms#apply");
-    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/u/user-9#reviews"))
+    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/user/user-9#reviews"))
       .toBe("/user/user-9#reviews");
-    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/post-job/draft/7?x=1#step2"))
-      .toBe("/post-job?x=1#step2");
-  });
-
-  it("keeps the fragment on a message-thread rewrite", () => {
-    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/m/job-1#last"))
-      .toBe("/messages?jobId=job-1#last");
+    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/legal?tab=terms#refunds"))
+      .toBe("/legal?tab=terms#refunds");
   });
 
   it("adds nothing when there is no fragment", () => {

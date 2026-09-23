@@ -38,11 +38,14 @@ describe("DataExportCard waits for auth before choosing its control", () => {
     expect(screen.getByRole("button", { name: "Download My Data" })).toBeDisabled();
   });
 
-  it("signed out once ready: the Sign In link, returning through /data-rights", () => {
+  it("signed out once ready: the Sign In link, returning straight to the in-app Legal tab card", () => {
     auth.state = { user: null, isReady: true };
     renderCard();
     const link = screen.getByRole("link", { name: "Sign In to Download" });
-    expect(link).toHaveAttribute("href", `/login?redirect=${encodeURIComponent("/data-rights")}`);
+    expect(link).toHaveAttribute(
+      "href",
+      `/login?redirect=${encodeURIComponent("/profile?tab=legal&doc=privacy#download-your-data")}`,
+    );
   });
 
   it("signed in once ready: the enabled export button", () => {

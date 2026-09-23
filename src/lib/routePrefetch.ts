@@ -18,20 +18,11 @@ const prefetchers: Record<string, () => Promise<unknown>> = {
   // Profile tab system, so this key pointed at the Profile chunk — which
   // meant hovering the link warmed a chunk the route never renders).
   "/support": () => import("@/pages/Support"),
-  // /schedule /availability /saved-helpers still redirect into the Profile
-  // tab system — prefetch the Profile chunk so the shell is ready when the
-  // redirect lands.
-  "/schedule": () => import("@/pages/Profile"),
-  "/availability": () => import("@/pages/Profile"),
-  "/saved-helprs": () => import("@/pages/Profile"),
-  "/saved-helpers": () => import("@/pages/Profile"),
 
   
   "/login": () => import("@/pages/Login"),
   "/signup": () => import("@/pages/Signup"),
   "/user": () => import("@/pages/UserProfile"),
-  "/activity": () => import("@/pages/Activity"),
-  "/earnings": () => import("@/pages/Profile"),
   "/browse": () => import("@/pages/DashboardGuest"),
 
   // THE FOOTER'S OWN DESTINATIONS. Every other nav surface in the app —

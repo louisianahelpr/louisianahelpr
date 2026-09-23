@@ -1004,19 +1004,13 @@ test("3b · deepLinkRoute normalizer mapping + host allowlist", async ({ page })
     ["https://louisianahelpr.com/user/u-1", "/user/u-1"],
     ["https://louisianahelpr.com/messages", "/messages"],
     ["https://louisianahelpr.com/legal", "/legal"],
-    // short links
-    ["https://louisianahelpr.com/u/u-1", "/user/u-1"],
-    ["https://louisianahelpr.com/j/j-1", "/jobs/j-1"],
-    ["https://louisianahelpr.com/m/j-1", "/messages?jobId=j-1"],
-    ["https://louisianahelpr.com/m/j-1?userId=u-9", "/messages?userId=u-9&jobId=j-1"],
-    // legal tabs
-    ["https://louisianahelpr.com/legal/terms", "/legal?tab=terms"],
-    ["https://louisianahelpr.com/legal/privacy", "/legal?tab=privacy"],
-    ["https://louisianahelpr.com/legal/community", "/legal?tab=community"],
-    // post-job sub-paths collapse
+    // Retired short-link shapes (Q194) are no longer rewritten: verbatim.
+    ["https://louisianahelpr.com/j/j-1", "/j/j-1"],
+    ["https://louisianahelpr.com/legal/terms", "/legal/terms"],
+    // query survives a pass-through
+    ["https://louisianahelpr.com/legal?tab=privacy", "/legal?tab=privacy"],
     ["https://louisianahelpr.com/post-job", "/post-job"],
-    ["https://louisianahelpr.com/post-job/draft/7", "/post-job"],
-    ["https://louisianahelpr.com/post-job/draft/7?resume=1", "/post-job?resume=1"],
+    ["https://louisianahelpr.com/post-job?resume=1", "/post-job?resume=1"],
     // trailing slash
     ["https://louisianahelpr.com/browse/", "/browse"],
     // ignored
@@ -1053,73 +1047,9 @@ test("3b · deepLinkRoute normalizer mapping + host allowlist", async ({ page })
   expect(mismatches).toEqual([]);
 });
 
-/**
- * The AASA claims paths the WEB router may not serve. Every claimed path must
- * either match a route in src/App.tsx or normalize to one — otherwise a shared
- * link opened on a device without the app lands on the in-app 404.
- */
-// AASA-claimed short-link paths. These were "native only" — claimed for the
-// app, no web route — so a link shared to someone WITHOUT the app installed
-// dead-ended on the in-app 404. `ShortLinkRedirect` now serves all of them on
-// the web by replaying the same normalizer `deepLinkRoute.ts` uses natively,
-// so the two can't drift.
-//
-// `/legal/terms` is here because it had the identical defect and was NOT
-// enumerated when this list was written: `/legal/*` is claimed and normalizes
-// to `/legal?tab=`, while `/terms` and `/privacy` worked — so the short form
-// was the one that broke.
-const AASA_SHORT_LINK_PATHS = [
-  "/j/abc123",
-  "/u/user-1",
-  "/m/job-1",
-  "/messages/thread-1",
-  "/post-job/draft/7",
-  "/legal/terms",
-];
-
-test("3c · every AASA-claimed short link resolves on the web, not the in-app 404", async ({ page }) => {
-  test.slow();
-  const findings: { path: string; httpStatus: number; renders: string; isNotFound: boolean }[] = [];
-
-  for (const path of AASA_SHORT_LINK_PATHS) {
-    const resp = await page.goto(path, { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(1200);
-    const heading = (await page.locator("h1, h2").first().innerText().catch(() => "")).trim();
-    const body = await page.locator("body").innerText();
-    const isNotFound =
-      /page not found|doesn't exist|404/i.test(body) || /404/.test(heading);
-    findings.push({
-      path,
-      httpStatus: resp?.status() ?? -1,
-      renders: heading.replace(/\s+/g, " ").slice(0, 80),
-      isNotFound,
-    });
-  }
-
-  writeArtifact("deeplink-web-behaviour.json", findings);
-  console.log("[deeplink/web]\n" + JSON.stringify(findings, null, 2));
-
-  // The SPA rewrite means these are HTTP 200 with an in-app 404 body — NOT a
-  // real HTTP 404. Record it either way; assert only that nothing white-screens.
-  for (const f of findings) {
-    expect(f.httpStatus, `${f.path} should be served by the SPA shell`).toBe(200);
-  }
-  const notFound = findings.filter((f) => f.isNotFound).map((f) => f.path);
-  test.info().annotations.push({
-    type: "AASA-claimed paths still rendering the in-app 404 on the web",
-    description: notFound.join(", ") || "(none)",
-  });
-  // THIS ASSERTION IS INVERTED FROM WHAT IT USED TO SAY, deliberately.
-  //
-  // It previously asserted that every path in this list DID render the in-app
-  // 404 — pinning the defect, with a note that a future fix should flip it.
-  // That fix has landed, so the list is now the set that must resolve. Left
-  // as a set comparison rather than a bare emptiness check so that a path
-  // regressing to NotFound names itself in the failure.
-  expect(new Set(notFound), "an AASA-claimed link dead-ends for anyone without the app").toEqual(
-    new Set<string>(),
-  );
-});
+// 3c (AASA short links resolve on the web) was deleted with the short links
+// themselves (Q194, 2026-09-23): /j, /u, /m, /messages/:id, /post-job/* and
+// /legal/:tab are no longer claimed, routed or minted anywhere.
 
 // ───────────────────────────────────────────────────────────────────────────
 

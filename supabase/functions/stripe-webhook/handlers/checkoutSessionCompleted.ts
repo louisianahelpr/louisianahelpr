@@ -262,7 +262,7 @@ export async function handleCheckoutSessionCompleted(
             title: "You received a tip!",
             message: `Someone tipped you for a completed job. Thanks for the great work!`,
             type: "payment",
-            link: "/earnings",
+            link: "/profile?tab=earnings",
           });
         }
       } else {
@@ -700,7 +700,7 @@ export async function handleCheckoutSessionCompleted(
               title: "You received a Helpr credit!",
               message: `${donorName} sent you a $${(amountCents / 100).toFixed(0)} credit to use toward any job. Tap to redeem it.`,
               type: "payment",
-              link: "/gift-card",
+              link: "/profile?tab=gift_card",
             });
           }
 

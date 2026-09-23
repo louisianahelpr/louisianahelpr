@@ -21,11 +21,9 @@
  * `AppPage` behind `/gift-card`. Owner, 2026-09-11: "THEY SHIULD ALL BE THE
  * SAME EVERY SINGLIE FUCKING ONE".
  *
- * `/gift-card` still resolves — it redirects to the tab and CARRIES `?claim=`
- * with it (App.tsx), because that is the address in every gift email
- * (`supabase/functions/_shared/giftCardEmail.ts`). Prod holds 3 `gift_cards`
- * rows, all seed, none with a claim token, so nothing live depends on it
- * today — the redirect exists so that stays true of tomorrow's emails too.
+ * `/gift-card` is gone (Q194, 2026-09-23): the gift email, the Stripe return
+ * and every in-app link now name `/profile?tab=gift_card` (with `&claim=` /
+ * `&gift=`) directly. Prod held 0 `gift_cards` rows when the redirect went.
  *
  * Directed-gift model: a donor NAMES a recipient by email and pays Stripe up
  * front; only that person can redeem. There is no public "browse credits near

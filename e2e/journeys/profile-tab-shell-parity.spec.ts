@@ -17,8 +17,8 @@ import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
  * all 25 tabs render into an identical content box: [24, 1168] inside a
  * [0, 1192] `.app-shell-frame` at 1440, and [20, 355] of 375 on a phone —
  * gift_card and home_history included, because both are `?tab=` panels inside
- * ProfileTabPanels, not separate routes (`/gift-card` and `/home-history` are
- * `<Navigate>` redirects into the tab). There is no second shell and no extra
+ * ProfileTabPanels, not separate routes (`/gift-card` and `/home-history` were
+ * `<Navigate>` redirects into the tab, since deleted). There is no second shell and no extra
  * gutter to remove, and CHANGING the padding would have split Profile from
  * Dashboard / Posts / Jobs / Messages, which is precisely the VN-37 attempt
  * documented and reverted in Profile.tsx.

@@ -391,7 +391,7 @@ serve(async (req) => {
         title: "Instant payout on the way",
         message: `$${formatPayoutCents(netCents)} is heading to your debit card. Arrives in ~30 min.`,
         type: "financial_alerts",
-        link: "/earnings",
+        link: "/profile?tab=earnings",
       });
 
       return new Response(

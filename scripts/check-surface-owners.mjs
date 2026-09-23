@@ -52,24 +52,14 @@ const OWNERS = {
   "/": ["lh-seo-web", "lh-copy-content"],
   "/browse": ["lh-browse-discovery"],
   "/jobs/:id": ["lh-browse-discovery", "lh-seo-web", "lh-trust-safety"],
-  "/j/:id": ["lh-browse-discovery"],
-  "/u/:id": ["lh-trust-safety"],
-  "/m/:id": ["lh-notifications"],
   "/legal": ["lh-compliance-store", "lh-copy-content"],
-  "/legal/:tab": ["lh-compliance-store", "lh-copy-content"],
   "/privacy": ["lh-compliance-store"],
   "/terms": ["lh-compliance-store"],
   "/rules": ["lh-trust-safety", "lh-copy-content"],
   "/support": ["lh-copy-content"],
   "/help": ["lh-copy-content"],
-  // The footer linked here and it 404'd. Same content, same owner as /help —
-  // it is an alias, added 2026-09-07 so an advertised link resolves.
-  "/help-center": ["lh-copy-content"],
   "/data-rights": ["lh-compliance-store", "lh-account-lifecycle"],
-  // /gift-card is a redirect to the tab as of 2026-09-11 (it still carries
-  // ?claim= out of gift emails), so both addresses are listed and both are
-  // owned by the same two lanes.
-  "/gift-card": ["lh-compliance-store", "lh-subscriptions-credits"],
+  // /gift-card (a redirect onto this tab) was deleted with Q194, 2026-09-23.
   "?tab=gift_card": ["lh-compliance-store", "lh-subscriptions-credits"],
 
   // ── auth / account state ─────────────────────────────────────────────────
@@ -86,26 +76,16 @@ const OWNERS = {
 
   // ── core loop ────────────────────────────────────────────────────────────
   "/dashboard": ["lh-design-holes", "lh-copy-content"],
-  "/activity": ["lh-design-holes", "lh-scheduling-time"],
   "/my-jobs": ["lh-design-holes"],
   "/my-posts": ["lh-design-holes"],
   "/post-job": ["lh-input-boundary", "lh-money-escrow"],
-  "/post-job/*": ["lh-input-boundary", "lh-money-escrow"],
   "/messages": ["lh-trust-safety"],
-  "/messages/:id": ["lh-trust-safety", "lh-input-boundary"],
   // The Stripe checkout RETURN. Was owned only by lh-native-bridge, which
   // covers the native handoff and not what this page asserts about the money.
   "/payment-success": ["lh-money-escrow", "lh-native-bridge"],
-  "/earnings": ["lh-money-escrow"],
-  "/saved-helprs": ["lh-trust-safety"],
-  "/saved-helpers": ["lh-trust-safety"],
-  "/schedule": ["lh-scheduling-time"],
-  "/availability": ["lh-scheduling-time"],
-  "/warnings": ["lh-trust-safety", "lh-admin-moderation"],
 
   // ── settings / profile / long tail ───────────────────────────────────────
   "/profile": ["lh-input-boundary"],
-  "/settings": ["lh-onboarding-auth"],
   "/user/:userId": ["lh-trust-safety"],
   "/admin": ["lh-admin-moderation"],
 

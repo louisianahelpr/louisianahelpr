@@ -87,8 +87,6 @@ const NON_RENDERING: Record<string, string> = {
  * here MUST use a shell — that is the point of the file.
  */
 const NO_SHELL_BY_DESIGN: Record<string, string> = {
-  "ActivityLegacyRedirect.tsx": "renders <Navigate>, never any UI",
-  "ShortLinkRedirect.tsx": "renders <Navigate>, never any UI",
   "Messages.tsx": "delegates entirely to ConversationList / ChatView, each of which owns a shell",
 };
 

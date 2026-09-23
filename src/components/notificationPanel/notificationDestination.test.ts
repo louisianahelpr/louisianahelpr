@@ -10,7 +10,7 @@ describe("notificationDestination", () => {
       ["/my-jobs?filter=done", "/my-jobs?filter=done"],
       [`/my-posts?job=${JOB}`, `/my-posts?job=${JOB}`],
       ["/admin?view=disputes", "/admin?view=disputes"],
-      ["/earnings", "/earnings"],
+      ["/profile?tab=earnings", "/profile?tab=earnings"],
       ["/profile?tab=reviews", "/profile?tab=reviews"],
     ])("passes %s through untouched", (link, expected) => {
       expect(notificationDestination({ link, job_id: null })).toBe(expected);
@@ -80,11 +80,10 @@ describe("notificationDestination", () => {
     });
 
     it.each([
-      ["/earnings"],
       ["/profile?tab=earnings"],
       ["/admin"],
       ["/admin?view=disputes"],
-      ["/gift-card"],
+      ["/profile?tab=gift_card"],
       [`/messages?jobId=${JOB}&userId=u1`],
       [`/dashboard?quickApply=${JOB}`],
       [`/jobs/${JOB}`],

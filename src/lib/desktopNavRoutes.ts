@@ -13,9 +13,9 @@ const AUTH_PREFIXES = [
   // named here or the nav still never renders. Both halves are required; this
   // is the pair that actually turns it on.
   "/admin",
-  "/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile",
-  "/messages", "/schedule", "/availability", "/user", "/earnings",
-  "/browse", "/saved-helprs", "/saved-helpers",
+  "/dashboard", "/my-posts", "/my-jobs", "/post-job", "/profile",
+  "/messages", "/user",
+  "/browse",
   // Strictly-authed (ProtectedRoute) app pages with no public sibling that
   // shares their prefix. They belong to the signed-in app chrome, so the
   // desktop left rail must own their navigation too — otherwise the page
@@ -24,9 +24,10 @@ const AUTH_PREFIXES = [
   // "/benefits" was removed from this list 2026-08-31 along with the page and
   // its route; an allow-list entry for a path that now renders NotFound would
   // dress the 404 in the signed-in rail.
-  "/gift-card", // "/pets" removed 2026-09-02 with its route (now the Profile `?tab=pets`
-  // tab); an allow-list entry for a path that renders NotFound would dress the
-  // 404 in the signed-in rail.
+  // "/pets" left 2026-09-02 and "/gift-card", "/activity", "/earnings",
+  // "/schedule", "/availability", "/saved-helprs", "/saved-helpers" left
+  // 2026-09-23 (Q194) with their routes; an allow-list entry for a path that
+  // renders NotFound would dress the 404 in the signed-in rail.
   // /analytics — Advanced Analytics. Strictly authed, document-scroll, reached
   // from the Earnings tab. Absent from this allow-list it would render with no
   // rail and no top bar, and the `#root` inset keyed off it would never apply —
@@ -40,11 +41,10 @@ const AUTH_PREFIXES = [
   // rendered with no rail and no top bar (caught by the 2026-08-24 B-lane
   // overnight audit at 1440).
   // /data-rights is NOT a page any more — since 2026-08-18 it is a
-  // <Navigate> into /profile?tab=legal. It stays listed for the same reason
-  // /schedule, /availability and /saved-helpers do (they are also redirects
-  // into Profile tabs): <Navigate> still costs one render at the OLD
-  // pathname, and if that pathname doesn't match here the rail — and the
-  // #root inset keyed off it — flicker off for a frame before /profile
+  // <Navigate> into /profile?tab=legal, and the one redirect route Q194 kept
+  // (see noLegacyRedirectRoutes.test.ts). <Navigate> still costs one render at
+  // the OLD pathname, and if that pathname doesn't match here the rail — and
+  // the #root inset keyed off it — flicker off for a frame before /profile
   // turns them back on.
   "/data-rights",
   // ── The dual-surface pages ────────────────────────────────────────────

@@ -73,18 +73,17 @@ describe("inferCategoryFromLink", () => {
   it("gives an OPPORTUNITY the Apply/Save pair", () => {
     expect(inferCategoryFromLink("/dashboard")).toBe("JOB_APPLY"); // job_match feed
     expect(inferCategoryFromLink("/dashboard?job=1")).toBe("JOB_APPLY");
-    expect(inferCategoryFromLink("/activity")).toBe("JOB_APPLY"); // direct offer
   });
 
   it("leaves links with no honest button pair uncategorised", () => {
     for (const link of [
       "/admin", // 627 rows — ops alerts
       "/admin?view=disputes",
-      "/earnings", // "Payout released"
+      "/profile?tab=earnings", // "Payout released"
       "/profile",
       "/post-job", // "Job auto-cancelled"
       "/support",
-      "/warnings",
+      "/profile?tab=warnings",
       "/rules",
       "/account-banned",
       "",

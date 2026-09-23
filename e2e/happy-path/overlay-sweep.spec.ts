@@ -104,10 +104,11 @@ const landings: Record<string, string> = {};
 //    `/dashboard :: dialog :: no-accessible-name` appears, which is not in the
 //    baseline.
 // @mutate src/components/NotificationPanel.tsx | aria-labelledby={titleId} | data-unlabelled="1"
-// 2. the bounce check — /settings is an alias declared as landing on /profile.
-//    Point it somewhere else and the sweep must notice it audited the wrong
-//    screen, which is the thing it could not do at all before today.
-// @mutate src/App.tsx | <Route path="/settings" element={<Navigate to="/profile" replace />} /> | <Route path="/settings" element={<Navigate to="/my-jobs" replace />} />
+// 2. the bounce check — signed-in /browse is declared to land on /dashboard.
+//    Send it somewhere else and the sweep must notice it audited the wrong
+//    screen. (It used to mutate the /settings <Navigate>; that route was
+//    deleted, Q194.)
+// @mutate src/components/MarketingRedirect.tsx |   to = "/dashboard", |   to = "/my-jobs",
 
 const BASELINE_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "overlay-sweep.baseline.json");
 
@@ -191,12 +192,13 @@ const baseline = readBaseline();
  * 2026-09-21 by running the sweep and diffing each requested route against
  * `landings`: EIGHT of 66 routes landed somewhere else.
  *
- * Six of the eight are catalog aliases and are NOT listed here — they are
- * declared once on the catalog row (`redirectsTo` in auditRoutes.ts) and read
- * back through `catalogLandingFor`. What that measurement showed: /settings,
- * /schedule, /earnings, /availability, /saved-helprs and /saved-helpers all
- * resolve into the Profile shell, so six of this sweep's 66 "routes probed"
- * were re-probes of Profile tabs it had already probed under their own names.
+ * Six of the eight were catalog aliases: /settings, /schedule, /earnings,
+ * /availability, /saved-helprs and /saved-helpers all resolved into the
+ * Profile shell, so six of this sweep's 66 "routes probed" were re-probes of
+ * Profile tabs it had already probed under their own names. All six routes
+ * were deleted on 2026-09-23 (Q194) and left this list with them; any alias
+ * still declared on a catalog row (`redirectsTo` in auditRoutes.ts) is read
+ * back through `catalogLandingFor`.
  *
  * A NEW bounce is a failure. If ProtectedRoute, AdminRoute or a router redirect
  * regresses, every route collapses onto one destination — and without this
@@ -220,10 +222,9 @@ const EXPECTED_LANDING: Record<string, string> = {
 };
 
 /**
- * Catalog aliases (`redirectsTo` in auditRoutes.ts) are the shared half, so
- * /settings, /earnings, /schedule, /availability, /saved-helprs and
- * /saved-helpers are NOT repeated above. The local map holds only what depends
- * on this sweep's own fixture and session.
+ * Catalog aliases (`redirectsTo` in auditRoutes.ts) are the shared half and
+ * are NOT repeated above. The local map holds only what depends on this
+ * sweep's own fixture and session.
  */
 const expectedLandingFor = (path: string): string | undefined =>
   EXPECTED_LANDING[path] ?? catalogLandingFor(path);
@@ -266,8 +267,6 @@ const ROUTES = [
   // under two names that no longer exist — while `accessibility`, the tab that
   // replaced them, went unprobed. Same correction auditRoutes.ts made.
   "/profile?tab=accessibility",
-  "/settings",
-  "/schedule",
   "/profile?tab=pets",
   // REMOVED 2026-09-21: "/family", "/subscription", "/job-history". None is a
   // registered route — /family is behind FAMILY_ENABLED (off), and the other
@@ -278,14 +277,10 @@ const ROUTES = [
   // has no overlays, so nothing is lost by dropping them — and the guard in
   // src/test/auditCatalogRoutes.test.ts now fails if this list drifts again.
   "/profile?tab=analytics",
-  "/earnings",
-  "/saved-helprs",
-  "/saved-helpers",
   "/profile?tab=str_settings",
   "/profile?tab=auto_tip",
   "/profile?tab=work_record",
   "/profile?tab=home_history",
-  "/availability",
   "/jobs/10000000-0000-4000-8000-000000000001",
   `/user/${FAKE_CUSTOMER.id}`,
   // Every admin ?view=, not just the default one. `/admin` alone probed the

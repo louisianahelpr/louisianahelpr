@@ -80,14 +80,9 @@ export interface ScreenSpec {
    * number that counts the same screen twice is the same defect as a row that
    * renders NotFound and reports clean — the number flatters, silently.
    *
-   * NOTHING IS DELETED. Every one of these is a live inbound link:
-   * `_shared/giftCardEmail.ts` mails `/gift-card?claim=<token>`;
-   * `ActivityLegacyRedirect` exists specifically because a bare <Navigate>
-   * dropped the query string off links already in the wild; App.tsx documents
-   * `/saved-helpers` as the US spelling people type and `/data-rights` as a URL
-   * published in the Privacy Policy and the App Store listing. Deleting the row
-   * would stop regressing a redirect real users depend on. Reclassifying it
-   * keeps the visit and stops the double count.
+   * Since Q194 (2026-09-23) all of those redirect routes are DELETED except
+   * `/data-rights`, an address printed in the App Store listing, outside our
+   * control; its row stays so it keeps proving it does not 404.
    *
    * `auditCatalogRoutes.test.ts` derives the truth from App.tsx rather than from
    * this field, so a row that redirects and does NOT declare it fails, and a
@@ -301,10 +296,6 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // every remaining route is enumerated here. Dynamic segments get concrete
   // fixture values; a route that redirects (many of these do, depending on
   // profile state) still gets audited, just as whatever it lands on.
-  // ALIAS. ActivityLegacyRedirect -> /my-posts, preserving the query string
-  // (a bare <Navigate> dropped it, which is why the wrapper component exists —
-  // i.e. there are live links in the wild carrying params).
-  { name: "activity", url: "/activity", redirectsTo: "/my-posts" },
   // RESTORED 2026-09-01. It was removed on 2026-08-23 because /analytics had
   // become a <Navigate> to /profile?tab=earnings, so the row would have audited
   // the Earnings tab under the wrong name and counted it twice. /analytics is a
@@ -315,8 +306,6 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // and both want auditing; the seeded audit helper is Elite.
   { name: "analytics", url: "/profile?tab=analytics" },
   { name: "auto-tip", url: "/profile?tab=auto_tip" },
-  { name: "availability", url: "/availability", redirectsTo: "/profile?tab=availability" },
-  { name: "earnings", url: "/earnings", redirectsTo: "/profile?tab=earnings" },
   // REMOVED 2026-08-23: Family & Care is behind FAMILY_ENABLED, which is off
   // (owner: "it seems pointless — you literally just post the job on their
   // behalf"). With the routes unregistered both rows rendered NotFound and
@@ -358,27 +347,14 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "user-profile-missing", url: "/user/10000000-0000-4000-8000-00000000dead" },
   // Both were listed as ANON until 2026-08-22, where ProtectedRoute meant they
   // rendered the login screen and the sweep filed it under their name.
-  // ALIAS, and the one that mattered most: `_shared/giftCardEmail.ts` mails
-  // /gift-card?claim=<token>, so this URL is in sent email. It forwards into
-  // the Profile Gift Card tab CARRYING the query (App.tsx builds the target by
-  // hand for exactly that reason). Reclassifying it revealed that the tab it
-  // lands on had no row of its own — `profile-gift-card` below is new, and
-  // until it existed the gift_card tab was audited only by accident, through
-  // an alias nobody had noticed was an alias.
-  { name: "gift-card", url: "/gift-card", redirectsTo: "/profile?tab=gift_card" },
   { name: "profile-gift-card", url: "/profile?tab=gift_card" },
   // "benefits" (/benefits) removed 2026-08-31 with the page and its route —
   // the path now renders NotFound, which `not-found` already covers once.
   { name: "pets", url: "/profile?tab=pets" },
-  { name: "saved-helprs", url: "/saved-helprs", redirectsTo: "/profile?tab=saved_helpers" },
-  // Double hop: /saved-helpers -> /saved-helprs -> /profile?tab=saved_helpers.
-  // The US spelling of the brand's "helpr"; App.tsx keeps it because people
-  // type it. `redirectsTo` names the FINAL landing, which is what a sweep sees.
-  { name: "saved-helpers", url: "/saved-helpers", redirectsTo: "/profile?tab=saved_helpers" },
-  { name: "schedule", url: "/schedule", redirectsTo: "/profile?tab=schedule" },
-  // The only one of the seven that lands on BARE /profile — App.tsx deliberately
-  // does not pin it to a tab. So it is a duplicate of `profile-landing`.
-  { name: "settings", url: "/settings", redirectsTo: "/profile" },
+  // The alias rows for /activity, /availability, /earnings, /gift-card,
+  // /saved-helprs, /saved-helpers, /schedule and /settings went with their
+  // routes (Q194, 2026-09-23): every link now names the tab directly, and each
+  // tab has its own row above.
   { name: "str-settings", url: "/profile?tab=str_settings" },
   { name: "work-record", url: "/profile?tab=work_record" },
   { name: "wrapped", url: "/profile?tab=wrapped" },

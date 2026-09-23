@@ -205,12 +205,13 @@ serve(async (req) => {
       mode: "payment",
       automatic_tax: { enabled: true },
       payment_intent_data: { metadata: sharedMeta },
-      // `/gift-card`, NOT a legacy path. This is where Stripe sends the
+      // The Gift Card PROFILE TAB, directly. This is where Stripe sends the
       // buyer the instant they finish paying, so a stale path here is a 404 at
       // the end of a successful purchase — the worst possible place for one.
-      // The legacy route was deleted 2026-09-02.
-      success_url: buildRedirectUrl(`/gift-card?gift=success`, isNative),
-      cancel_url: buildRedirectUrl(`/gift-card?gift=cancelled`, isNative),
+      // `/gift-card` was a redirect onto this tab until 2026-09-23 and is gone
+      // (Q194: every link we mint is the current address, never a redirect).
+      success_url: buildRedirectUrl(`/profile?tab=gift_card&gift=success`, isNative),
+      cancel_url: buildRedirectUrl(`/profile?tab=gift_card&gift=cancelled`, isNative),
       metadata: sharedMeta,
     }, {
       // Same donor + recipient + amount collapses to ONE charge on a double-tap

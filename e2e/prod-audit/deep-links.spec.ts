@@ -1,17 +1,17 @@
 /**
  * DEEP LINKS on prod — the URLs a real person taps from a push, a text or an
- * email: /jobs/:id, /j/:id, /messages/:id, /u/:id, /profile?tab=…, signed in
- * and signed out, including a job that is gone. Each must land on a real
+ * email: /jobs/:id, /messages?jobId=, /user/:id, /profile?tab=…, signed in
+ * and signed out, including a job that is gone. The short shapes /j/:id,
+ * /messages/:id and /u/:id were deleted with Q194 (2026-09-23): nothing we
+ * ship mints them, and every link now names the current page directly. Each must land on a real
  * screen (or the sign-in that returns them there), never an error screen or a
  * 404. Drives the deployed app as the shared test accounts (no mocks).
  */
-// Shown able to fail on the contract it exists for: a short link must land on
-// the canonical route. Point /u/:id at /profile instead and
-// "/u/:id opens the other person's profile" stops seeing the poster's page —
-// it waits out `waitForURL(/user/<posterId>/)` and fails. Chosen because the
-// redirect is the WHOLE claim of a deep-link spec: a share link that lands on
-// the right-looking screen for the wrong person is the defect this guards.
-// @mutate src/lib/deepLinkRoute.ts | if (uMatch) return `/user/${uMatch[1]}${search}${hash}`; | if (uMatch) return `/profile${search}${hash}`;
+// Shown able to fail on the contract it exists for: a link must land on the
+// person it names. Move the /user/:userId route and "/user/:id opens the other
+// person's profile" stops seeing the poster's page — it waits out
+// `waitForURL(/user/<posterId>/)` on the 404 and fails.
+// @mutate src/App.tsx | <Route path="/user/:userId" | <Route path="/users/:userId"
 import { test as base, expect } from "@playwright/test";
 import {
   assertHealthy,
@@ -44,9 +44,8 @@ test.beforeAll(async ({ request, browser }, info) => {
 test.describe("signed out", () => {
   for (const [from, intended] of [
     ["/jobs/{open}", "/jobs/{open}"],
-    ["/j/{open}", "/jobs/{open}"],
-    ["/messages/{open}", "/messages?jobId={open}"],
-    ["/u/{poster}", "/user/{poster}"],
+    ["/messages?jobId={open}", "/messages?jobId={open}"],
+    ["/user/{poster}", "/user/{poster}"],
     ["/profile?tab=earnings", "/profile?tab=earnings"],
     ["/jobs/{gone}", "/jobs/{gone}"],
   ] as const) {
@@ -64,7 +63,7 @@ test.describe("signed out", () => {
     });
   }
 
-  test("/j/<not-a-shape> renders the designed 404, not a crash", async ({ browser }, info) => {
+  test("an unknown path renders the designed 404, not a crash", async ({ browser }, info) => {
     const ctx = await newUserContext(browser, null);
     const page = await ctx.newPage();
     await page.goto("/messages/a/b/c");
@@ -87,11 +86,11 @@ test.describe("signed in (helper)", () => {
     await ctx.close();
   });
 
-  test("/j/:id share link opens that job's sheet", async ({ browser }, info) => {
+  test("/jobs/:id?ref=share share link opens that job's sheet", async ({ browser }, info) => {
     test.skip(!fx.openJob, "GAP: no open escrowed job to open");
     const ctx = await newUserContext(browser, helper);
     const page = await ctx.newPage();
-    await page.goto(`/j/${fx.openJob!.id}`);
+    await page.goto(`/jobs/${fx.openJob!.id}?ref=share`);
     await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
     await expect(page.getByRole("dialog").getByText(fx.openJob!.title).first()).toBeVisible({ timeout: 30_000 });
     await assertHealthy(page, info, "share-open");
@@ -121,11 +120,11 @@ test.describe("signed in (helper)", () => {
     await ctx.close();
   });
 
-  test("/messages/:id (a notification's jobId-only link) opens that thread when it is the only one for the job", async ({ browser }, info) => {
+  test("/messages?jobId= (a notification's jobId-only link) opens that thread when it is the only one for the job", async ({ browser }, info) => {
     test.skip(!fx.threadJob, "GAP: no message thread between the two accounts");
     const ctx = await newUserContext(browser, helper);
     const page = await ctx.newPage();
-    await page.goto(`/messages/${fx.threadJob!.id}`);
+    await page.goto(`/messages?jobId=${fx.threadJob!.id}`);
     await page.waitForURL(/\/messages\?jobId=/, { timeout: 30_000 });
     await settle(page);
     await assertHealthy(page, info, "messages-thread");
@@ -144,30 +143,30 @@ test.describe("signed in (helper)", () => {
     await ctx.close();
   });
 
-  test("/messages/<gone job id> leaves the inbox usable", async ({ browser }, info) => {
+  test("/messages?jobId=<gone job id> leaves the inbox usable", async ({ browser }, info) => {
     const ctx = await newUserContext(browser, helper);
     const page = await ctx.newPage();
-    await page.goto(`/messages/${fx.goneJobId}`);
+    await page.goto(`/messages?jobId=${fx.goneJobId}`);
     await settle(page);
     await assertHealthy(page, info, "messages-gone");
     await expect(page.getByRole("heading", { name: /messages/i }).first()).toBeVisible();
     await ctx.close();
   });
 
-  test("/u/:id opens the other person's profile", async ({ browser }, info) => {
+  test("/user/:id opens the other person's profile", async ({ browser }, info) => {
     const ctx = await newUserContext(browser, helper);
     const page = await ctx.newPage();
-    await page.goto(`/u/${poster.user.id}`);
+    await page.goto(`/user/${poster.user.id}`);
     await page.waitForURL(new RegExp(`/user/${poster.user.id}`), { timeout: 30_000 });
     await settle(page);
     await assertHealthy(page, info, "user-profile");
     await ctx.close();
   });
 
-  test("/u/<unknown id> is a designed empty state, not a crash", async ({ browser }, info) => {
+  test("/user/<unknown id> is a designed empty state, not a crash", async ({ browser }, info) => {
     const ctx = await newUserContext(browser, helper);
     const page = await ctx.newPage();
-    await page.goto(`/u/${fx.goneJobId}`);
+    await page.goto(`/user/${fx.goneJobId}`);
     await settle(page);
     await assertHealthy(page, info, "user-gone", { allow: ["404 on a real route"] });
     await ctx.close();

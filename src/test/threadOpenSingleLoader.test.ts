@@ -17,7 +17,8 @@
  *   - PUSH / NOTIFICATION TAP: the server builds the link
  *     (notify_message_recipient, latest migration defining it) and the app
  *     navigates to it (nativePush.ts) — also the deep-link effect.
- *   - SHORT LINKS: deepLinkRoute.ts rewrites `/m/:id` to `/messages?jobId=`.
+ *   - (SHORT LINKS: `/m/:id` was rewritten to `/messages?jobId=` by deepLinkRoute.ts
+ *     until Q194 deleted the short links; nothing mints them now.)
  *   - INBOX TAP: every JSX `openConvo=` / `openConvo(` call site.
  * Then the one funnel is asserted: the page feeds `jobId`/`userId` into the
  * hook, the deep-link effect calls `openConvo`, and no other code anywhere
@@ -124,8 +125,6 @@ describe("every way of opening a message thread goes through openConvo", () => {
     for (const where of ["appliedJobCard/", "postedJobCard/", "MobileNav.tsx", "JobDetailDialog.tsx"]) {
       expect(linkSites.some((s) => s.includes(where)), `no /messages?jobId= link found in ${where}\n${linkSites.join("\n")}`).toBe(true);
     }
-    // Short links.
-    expect(fs.readFileSync(path.join(SRC, "lib/deepLinkRoute.ts"), "utf8")).toMatch(/\/messages\?/);
     // Inbox tap.
     expect(inboxTapSites.some((s) => s.endsWith("ConversationRow.tsx")), inboxTapSites.join("\n")).toBe(true);
     // Push / notification tap: server builds the link, app navigates to it.

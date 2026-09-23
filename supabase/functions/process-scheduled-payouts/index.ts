@@ -1128,7 +1128,7 @@ serve(async (req) => {
           user_id: helperId,
           title: "Payout sent!",
           message: `$${formatPayoutDollars(helperPayout)} for "${job.title}" has been transferred to your account${feeNote}.`,
-          type: "payment", link: "/earnings",
+          type: "payment", link: "/profile?tab=earnings",
         });
 
         processed++;

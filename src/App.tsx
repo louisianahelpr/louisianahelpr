@@ -1,12 +1,7 @@
 import { lazy, Suspense, forwardRef, useEffect, useState, type ReactElement } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
-// Static, not lazy: it renders a <Navigate> and nothing else, so a code-split
-// chunk (and a Suspense frame) would cost more than the component.
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { lazyWithPreload } from "@/lib/lazyWithPreload";
-import ActivityLegacyRedirect from "./pages/ActivityLegacyRedirect";
-// Same rationale: a <Navigate> wrapper, statically imported.
-import ShortLinkRedirect from "./pages/ShortLinkRedirect";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -150,13 +145,6 @@ const routeEl = (node: ReactElement, fallback: ReactElement = <RouteSuspenseFall
   <Suspense fallback={fallback}>{node}</Suspense>
 );
 
-/* PreserveQueryRedirect lived here until 2026-09-02. Its ONLY caller was
-   the gift card's retired legacy path, which carried a `?claim=<token>` out of a gift email and
-   needed the query to survive the hop to /gift-card; a bare <Navigate to="/x">
-   drops the query, which had already broken that link once. Both the route and
-   the helper are gone with the rename — every remaining redirect here either
-   takes no query or hard-codes its own params. Bring it back the moment a
-   redirect target needs to preserve one; do not reach for bare <Navigate>. */
 
 const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
@@ -220,15 +208,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/payment-success" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PaymentSuccess /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* Legacy route. Routes to the poster OR helper surface based on the
-          query it was linked with, instead of always dumping helpers on My
-          Posts — and preserves the query string, which the old bare
-          <Navigate> silently dropped. See ActivityLegacyRedirect. */}
-      <Route path="/activity" element={<ActivityLegacyRedirect />} />
-      {/* → the EARNINGS TAB, not the Profile landing. `/earnings` is the
-          deep link people bookmark and the one older notifications point at;
-          dropping them on the landing made them find the tab themselves. */}
-      <Route path="/earnings" element={<Navigate to="/profile?tab=earnings" replace />} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /support is linked from PolicyFooter (the card that closes the legal
           policy tabs AND the Help Center), and the three account-gate screens (pending / denied /
@@ -289,23 +268,17 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* /data-rights was a standalone page until 2026-08-18, then a card on
           the Profile Legal tab; since 2026-09-14 (owner, VN-47) the GDPR/CCPA
           data export lives inside the Privacy Policy. The route is KEPT as a
-          redirect rather than deleted: the iOS App Store privacy listing
-          points at this URL, so it must keep resolving somewhere that offers
-          the download. Signed in, that is the export card inside the Legal
+          redirect rather than deleted — the ONE entry on Q194's allowlist
+          (src/test/noLegacyRedirectRoutes.test.ts): the iOS App Store privacy
+          listing is recorded as pointing at this URL, an address printed
+          outside our control, so it must keep resolving somewhere that offers
+          the download. Nothing we mint links here any more. Signed in, that is the export card inside the Legal
           tab's Privacy panel (/profile?tab=legal&doc=privacy — in-app nav,
           and open to a half-onboarded account via isProfileGateAllowed);
           signed out, the same card on the public /privacy page. It waits for
           auth to settle before choosing — see DataRightsRedirect. */}
       <Route path="/data-rights" element={routeEl(<DataRightsRedirect />, <div className="min-h-screen bg-premium-page" />)} />
 
-      {/* Two live prod notifications link here — "Cancellation warning (1 of 2)"
-          and "Your Elite shield absorbed this one" — and there has never been a
-          route, so both landed on NotFound. A consequence notice that dead-ends
-          is the worst one to lose: the reader is being told something is on
-          their record and cannot see what. Two DB producers still emit this
-          path, so a redirect (not a producer rewrite) is what fixes the rows
-          already sent. Same reasoning as /data-rights above. */}
-      <Route path="/warnings" element={<Navigate to="/profile?tab=warnings" replace />} />
 
       {/* Public, deep-linkable job preview. Shared links (ShareJobButton →
           /jobs/{id}?ref=share) land here: guests get a read-only preview,
@@ -323,23 +296,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           crawlers and hands humans the same SPA, so a shared job still shows a
           real card in Messages and on social. */}
       <Route path="/jobs/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PageTransition><JobDetail /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* SHORT / ALTERNATE LINK SHAPES — the web half of the AASA contract.
-          All five are claimed in public/.well-known/apple-app-site-association
-          and mapped by normalizeDeepLinkUrl, but only INSIDE the app. On the
-          web they fell through to `path="*"` and rendered NotFound — i.e. the
-          one visitor a short link exists for (someone without the app) got a
-          404. ShortLinkRedirect replays the same normalizer, so the two halves
-          cannot drift; src/test/aasaRouteParity.test.ts pins that. */}
-      <Route path="/j/:id" element={<ShortLinkRedirect />} />
-      <Route path="/u/:id" element={<ShortLinkRedirect />} />
-      <Route path="/m/:id" element={<ShortLinkRedirect />} />
-      <Route path="/messages/:id" element={<ShortLinkRedirect />} />
-      <Route path="/post-job/*" element={<ShortLinkRedirect />} />
-      {/* `/legal/*` is the same defect and was not in the original count: it is
-          claimed, it is normalized to /legal?tab=:tab, and there was no
-          /legal/:tab route — so a shared …/legal/terms 404'd on the web while
-          /terms and /privacy (which ARE routes) worked. */}
-      <Route path="/legal/:tab" element={<ShortLinkRedirect />} />
       {/* Guest "home dashboard" — what iOS native users see before signing up.
           Mirrors /dashboard's chrome and JobCard rendering, but every action
           routes to /signup. Public web visitors can hit it too if they want
@@ -372,42 +328,20 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           marketing. No signed-in bounce. Real route, not a redirect, for the
           same reason (owner, 2026-09-11) — see the comment above /terms. */}
       <Route path="/rules" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* The Community page was removed; keep old links landing somewhere sane. */}
-
-      {/* Settings-style pages live inside the Profile shell so the
-          shared back button + safe-area top padding stay consistent.
-          Standalone routes redirect into the Profile tab system so
-          deep links (notifications, push opens, share URLs) still land
-          where the user expects. */}
-      <Route path="/schedule" element={<Navigate to="/profile?tab=schedule" replace />} />
-      <Route path="/availability" element={<Navigate to="/profile?tab=availability" replace />} />
-      <Route path="/saved-helprs" element={<Navigate to="/profile?tab=saved_helpers" replace />} />
-      {/* Old spelling, kept so existing links and notifications still land. */}
-      <Route path="/saved-helpers" element={<Navigate to="/saved-helprs" replace />} />
-      {/* Public so the footer "Plans" link and marketing CTAs resolve for
-          logged-out visitors. The page renders read-only for guests (current
-          plan shows Free); tapping Upgrade routes them to sign in first. */}
-      {/* Gift Card — send a Helpr gift card to someone */}
-      {/* Gift Card is a PROFILE TAB now, like every one of its siblings (owner,
-          2026-09-11). `/gift-card` stays alive as a redirect and must carry
-          `?claim=<token>` through with it — that is the link in every gift
-          email (`_shared/giftCardEmail.ts`), and a bare <Navigate> drops the
-          query, which has already broken this exact link once. Reading
-          `window.location.search` rather than `useSearchParams` keeps this to
-          one route element; it is exact here because <Navigate> renders only
-          once this path has matched. */}
-      <Route path="/gift-card" element={<Navigate replace to={`/profile?tab=gift_card${window.location.search.replace(/^\?/, "&")}`} />} />
-      {/* NO LEGACY GIFT CARD ROUTE. The feature is the Helpr gift card and is
-          named one everywhere now, database included (owner, 2026-09-02 and
-          2026-09-12).
-
-          The redirect was kept for one reason — it was the claim URL in gift
-          emails already sent, and deleting it would turn a paid, unclaimed gift
-          into a 404. Checked prod before removing it rather than reasoning about
-          it: `gift_cards` holds 3 rows, ALL seed data, 0 with a claim_token and
-          0 that are not seed. The gift feature has never been used for real, so
-          there is no live claim link anywhere and nothing to preserve.
-          `giftCardEmail.ts` now mails /gift-card?claim=<token>. */}
+      {/* NO LEGACY REDIRECT ROUTES (owner, 2026-09-23, Q194: "The old address
+          shouldn't be redirects, it should be direct"). /activity, /earnings,
+          /warnings, /schedule, /availability, /saved-helprs, /saved-helpers,
+          /gift-card, /help-center, /settings and the short-link shapes /j/:id,
+          /u/:id, /m/:id, /messages/:id, /post-job/*, /legal/:tab were all
+          <Navigate>-only hops. Every emitter (client code, SQL functions, edge
+          functions, gift email, stored notifications.link rows) now writes the
+          current address instead, and the routes are gone: an old address is
+          a 404. Measured before deleting, 2026-09-23: nothing on prod linked a
+          short-link shape (notifications, messages, error_logs outside our own
+          probes), gift_cards held 0 rows, push_tokens held 0 rows (no delivered
+          push carries an old link). src/test/noLegacyRedirectRoutes.test.ts
+          keeps both halves shut; its allowlist names the one survivor
+          (/data-rights, above) and why. */}
       {/* /analytics — Advanced Analytics, the perk printed on the $10 Pro card.
           It was a <Navigate> to the Earnings tab from 2026-08-23, and that was
           the right call at the time: the old page rendered the SAME body as the
@@ -439,14 +373,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           Center"), so it is upstream of the in-app surface, not a marketing
           duplicate of it. Support must stay reachable from anywhere. */}
       <Route path="/help" element={<RouteErrorBoundary>{routeEl(<PageTransition><HelpCenter /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* The name of the page is "Help Center", and the canonical path is
-          `/help`. Every link we mint points there (Footer, SupportInline,
-          Navbar), but `/help-center` is what a person types, what an outside
-          site links, and what an LLM guesses — and it fell through to the `*`
-          catch-all 404. A 404 on the support page is the worst 404 we have:
-          the visitor is already stuck. Alias it rather than rename the route,
-          so no existing link changes. */}
-      <Route path="/help-center" element={<Navigate to="/help" replace />} />
       {/* /parishes, /parish/:slug, /impact, /local-guide, /community and
           /browse-jobs were removed along with their redirect stubs (2352466e).
           Same as above: no redirect exists, and none is warranted on current
@@ -467,18 +393,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Pet care — manage pet profiles and vet notes */}
       {/* /evacuation was removed; its redirect to /pets went with it in
           2352466e. The path now 404s. */}
-      {/* Legacy paths surfaced by 404s in error_logs (external links, old
-          bookmarks, search-engine indexes) — redirect to their modern
-          equivalents instead of dumping users on the NotFound page. */}
-      {/* `?tab=profile` — the EDIT screen, not the Profile landing. Both legacy
-          settings paths used to land on bare `/profile`, which threw away the
-          one thing that made this path more specific than `/settings`: someone
-          following an old link or bookmark to their profile EDITOR arrived at
-          the menu instead and had to find it again. Every other legacy
-          redirect here already targets its own tab (`/saved-helpers` ->
-          `?tab=saved_helpers`, `/schedule` -> `?tab=schedule`); this one was
-          the exception. */}
-      <Route path="/settings" element={<Navigate to="/profile" replace />} />
       <Route path="*" element={<RouteErrorBoundary>{routeEl(<NotFound />)}</RouteErrorBoundary>} />
     </Routes>
   );

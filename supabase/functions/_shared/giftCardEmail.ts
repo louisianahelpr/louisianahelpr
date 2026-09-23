@@ -47,10 +47,12 @@ async function renderGiftCardEmail(
   const donorSafe = sanitizeHeaderValue(opts.donorName, 80) || "Someone";
   // Claim link carries only an opaque token — no email in the query string, so
   // the link isn't a PII-leaking, guessable-by-address URL.
-  // `/gift-card` is the link a recipient actually clicks. It stays alive as a
-  // query-preserving redirect to the profile tab (App.tsx), because deleting it
-  // would turn a paid, unclaimed gift in an already-sent email into a 404.
-  const claimUrl = `${getAppUrl()}/gift-card?claim=${encodeURIComponent(opts.claimToken)}`;
+  // The Gift Card profile tab, DIRECTLY (Q194, 2026-09-23). This used to be
+  // `/gift-card?claim=`, a redirect route kept alive for already-sent emails;
+  // prod held 0 gift_cards rows and 0 gift emails in email_send_log when it
+  // was deleted, so no sent email carried it. GiftCard.tsx reads `claim` off
+  // the tab's own query.
+  const claimUrl = `${getAppUrl()}/profile?tab=gift_card&claim=${encodeURIComponent(opts.claimToken)}`;
   const note = opts.message?.trim();
 
   const { html, text } = await renderEmail(

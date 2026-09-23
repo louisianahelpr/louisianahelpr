@@ -37,7 +37,7 @@ const GiftCardTeaser = ({ giftCardCount }: GiftCardTeaserProps) => {
         style={{ color: "hsl(var(--gift-green-soft))" }}
       >
         Ready to spend on your next job ·{" "}
-        <Link to="/gift-card" className="underline">
+        <Link to="/profile?tab=gift_card" className="underline">
           {giftCardCount > 1 ? "See them" : "See it"}
         </Link>
       </p>

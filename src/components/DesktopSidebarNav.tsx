@@ -139,17 +139,7 @@ const DesktopSidebarNav = () => {
     return 0;
   };
 
-  const isActive = (path: string) => {
-    if (location.pathname === path) return true;
-    if (path === "/my-posts")
-      return location.pathname === "/activity" && !new URLSearchParams(location.search).get("tab");
-    if (path === "/my-jobs")
-      return (
-        location.pathname === "/activity" &&
-        new URLSearchParams(location.search).get("tab") === "applied"
-      );
-    return false;
-  };
+  const isActive = (path: string) => location.pathname === path;
 
   return (
     <nav

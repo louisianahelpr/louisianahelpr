@@ -246,7 +246,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
      `?view=payouts` opens on the other half. READ ONCE, at mount, and never
      written back: every deep link into this screen is `/profile?tab=earnings`
-     (plus the `/earnings` redirect onto it), and this is the hook that lets a
+     (the `/earnings` redirect is gone, Q194), and this is the hook that lets a
      payout-specific notification land on the payout half without any of those
      links changing. Mirroring the switch INTO the URL is deliberately not done
      — WebKit throttles replaceState and this repo has already paid for that

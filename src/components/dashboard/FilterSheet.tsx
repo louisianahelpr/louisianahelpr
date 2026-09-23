@@ -714,7 +714,7 @@ function AvailabilityRow({
             Add your weekly hours first —{" "}
             <button
               type="button"
-              onClick={() => navigate("/availability")}
+              onClick={() => navigate("/profile?tab=availability")}
               className="inline-flex items-center gap-0.5 font-semibold text-primary underline underline-offset-2 hover:text-primary/80 transition-colors btn-press"
             >
               set hours

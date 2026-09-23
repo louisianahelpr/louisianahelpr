@@ -96,7 +96,7 @@ describe("createNotification — happy path", () => {
       user_id: "user-1",
       title: "T",
       message: "M",
-      link: "/earnings",
+      link: "/profile?tab=earnings",
       job_id: "job-42",
     });
 
@@ -106,7 +106,7 @@ describe("createNotification — happy path", () => {
         title: "T",
         message: "M",
         type: "info",
-        link: "/earnings",
+        link: "/profile?tab=earnings",
         job_id: "job-42",
       },
     });

@@ -457,7 +457,7 @@ export function CheckoutStep({
               We couldn't apply your gift card to this job — it may already be
               used, expired, or sent to a different account. The total below is
               the full price. Check it on your{" "}
-              <a href="/gift-card" className="underline font-semibold">
+              <a href="/profile?tab=gift_card" className="underline font-semibold">
                 gift cards
               </a>{" "}
               before you pay.

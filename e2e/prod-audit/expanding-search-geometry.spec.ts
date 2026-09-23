@@ -65,7 +65,7 @@
 // (measured 187 -> 235, the first run of this clause).
 // @mutate src/components/messages/ConversationList.tsx | <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch" /> | <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch max-[359px]:hidden" />
 
-import { test, expect, type Page, type Browser, type TestInfo } from "@playwright/test";
+import { test, expect, type Page, type Browser, type TestInfo } from "../prodTest";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { getSession, type Session } from "./harness";

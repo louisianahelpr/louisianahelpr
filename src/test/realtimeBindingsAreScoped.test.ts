@@ -25,7 +25,7 @@
  * assertion; here, a comment would have FAILED one. Comments are blanked
  * before scanning, offsets preserved so reported line numbers stay true.
  *
- * @mutate src/components/NotificationPanel.tsx | { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` } | { event: "INSERT", schema: "public", table: "notifications" }
+ * @mutate src/lib/userRealtimeBus.ts | { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` } | { event: "INSERT", schema: "public", table: "notifications" }
  * @mutate src/lib/realtimeRecovery.ts | `${opts.name}#${channelNonce()}` | `${opts.name}`
  */
 import { describe, it, expect } from "vitest";
@@ -102,8 +102,12 @@ function bindings(): Binding[] {
 describe("realtime bindings are scoped server-side", () => {
   it("finds the bindings at all — a broken scan must not pass vacuously", () => {
     const all = bindings();
-    // 20 on 2026-09-21. A scan that finds far fewer has rotted, not improved.
-    expect(all.length, "the postgres_changes scan found almost nothing").toBeGreaterThanOrEqual(15);
+    // 20 on 2026-09-21; 12 on 2026-09-23 after Q105 moved the duplicated
+    // per-user bindings onto one shared channel (src/lib/userRealtimeBus.ts).
+    // This regex sees only double-quoted bindings; the EXACT inventory, which
+    // also sees Admin.tsx's single-quoted pair, is realtimeChannelInventory.
+    // A scan that finds far fewer has rotted, not improved.
+    expect(all.length, "the postgres_changes scan found almost nothing").toBeGreaterThanOrEqual(10);
     expect(new Set(all.map((b) => b.table)).size, "every binding resolved to the same table — the option parse is wrong")
       .toBeGreaterThan(3);
   });

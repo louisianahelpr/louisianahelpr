@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { test, expect, type Page, type Route } from "./prodTest";
 import { LOCAL_BASE_URL } from "./localBase";
 
 // E2E coverage for the job lifecycle through PAYMENT — the escrow /

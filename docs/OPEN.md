@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 128 done, 13 partly done (fixed, protection pending), 136 open. Source of truth for work.
+- **Queue (this file):** 128 done, 15 partly done (fixed, protection pending), 134 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 277 items — 128 done, 13 partly done (fixed, protection pending), 136 open.**
+**Queue: 277 items — 128 done, 15 partly done (fixed, protection pending), 134 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -379,14 +379,14 @@ sure someone hears it and closes it.
   useNavUnreadCount AND DesktopSidebarNav's mirrored unread query both run
   (messages: 24,549 CI requests in 24 h) — same shared-store treatment, and add
   it to src/test/hotQueryLoad.test.ts.
-- [ ] **Q104 CI browser suites are ~94% of prod REST traffic; give each a measured load budget (Q53 follow-up, ties to Q60).**
+- [~] **Q104 PARTLY DONE 2026-09-23 (branch cloud/q104-q105): every prod-hitting browser run is now METERED and BUDGETED; per-test budgets await their first measured run. Meter: e2e/requestMeter.mjs counts every Supabase request (rest/rpc/auth/functions/storage/realtime, password sign-ins, GETs repeated within 2 s per context, requests per wall-clock minute) for every context a worker's browser creates, via the metered `test` in e2e/prodTest.ts (27 prod-hitting e2e files switched to it; 0 before) and in press-every-control.mjs / measure-loading-states.mjs. Budget: scripts/e2e/request-budget.mjs runs after the browser step in 11 workflow jobs (e2e-journeys x2, e2e-real-backend x3, prod-audit, a11y-webkit-prod matrix, e2e-abuse-notifications matrix, press-every-control, loading-states-refresh, core-loop-canary; 0 before), prints a per-run table to the job summary and fails the run over e2e/request-budgets.json: ceilingPerMinute 400 on every label (policy; derivation in the file), perTest + signIns two-way (over fails, under half fails as stale) but `null` until calibrated. Trim: Admin.tsx's `jobs` realtime binding now filtered `is_seed=eq.false`, so seed (CI) job writes no longer fire the ~25-query admin stats reload (was every job write anywhere). GUARD: src/test/requestBudget.test.ts (3 of 8 cases red on the pre-change tree: 26 unmetered files, 8 unbudgeted workflow runs; its per-JOB check then found the prod-lifecycle job still unbudgeted). OPEN: (1) the lead writes perTest/signIns per label from the first nightly summaries (the run prints the number to write); (2) trim what the summaries' "Top repeated GETs" and sign-ins columns show; (3) re-measure prod REST from the CI origin after landing (edge_logs by run window). Was:** CI browser suites are ~94% of prod REST traffic; give each a measured load budget (Q53 follow-up, ties to Q60).
   24 h to 09:00Z 2026-09-23: 105,824 of >=112,356 badge requests came from
   127.0.0.1:4173 (CI preview builds); REST from that referer peaked at
   104,445 requests in the 03:00Z hour (~29/s) with no real users. One press
   admin session made 18,035 REST calls in 29 min. Record requests/min per
   workflow run (edge_logs by run window), set a ceiling below the level the
   db-saturation-check thresholds trip at, and fail the run that exceeds it.
-- [ ] **Q105 Realtime is the largest DB cost; measure and cut it (Q53 follow-up).**
+- [~] **Q105 PARTLY DONE 2026-09-23 (branch cloud/q104-q105): duplicate realtime subscriptions removed from source, inventory pinned exactly. Counted from source (TypeScript AST, both quote styles): 22 postgres_changes bindings on 10 channel sites -> 17 on 8. Four consumers (nav badges, every bell, Dashboard push, Activity) each opened their own channel with the identical `notifications` INSERT user_id binding and two also duplicated `jobs` customer_id / `applications` helper_id; all now share ONE ref-counted per-user channel, src/lib/userRealtimeBus.ts. Subscription rows per signed-in user, from source: any page (nav + bell) 5 -> 4; Dashboard 6 -> 4; Activity 11 -> 7. Admin.tsx's two bindings were single-quoted and invisible to realtimeBindingsAreScoped's regex; its `jobs` one is now filtered is_seed=eq.false, `reports` stays whole-table (admin only, documented exemption). No channel is opened before an early return that renders nothing (checked by the guard; none found). GUARD: src/test/realtimeChannelInventory.test.ts (exact inventory, every binding user/job-scoped except DELETE and admin, no two channels bind the same table+filter with overlapping events; 5 of 7 cases red before the fix, 16 duplicate pairs) + src/lib/userRealtimeBus.test.ts (one channel per user, topic routing, recovery fan-out, close with last listener). OPEN: (1) the unread-nav `messages *` receiver_id binding still overlaps Messages page's receiver INSERT/UPDATE (listed in KNOWN_OVERLAPS; moving the inbound-message path onto the bus is its own change); (2) `job_checkins` and `platform_settings` are in supabase_realtime (replayed from migrations) but no client subscribes: drop them in a migration; (3) lead re-counts live realtime.subscription rows and realtime.list_changes after landing; (4) sweep_dead_crons() EXPLAIN (below) not done. Was:** Realtime is the largest DB cost; measure and cut it (Q53 follow-up).
   pg_stat_statements 15:23Z 09-22 -> 08:54Z 09-23: realtime.list_changes
   121,403 calls / 1,124 s (35% of all 3,200 s of SQL time) plus the
   publication scan 271,282 calls / 211 s; 136 live realtime.subscription rows

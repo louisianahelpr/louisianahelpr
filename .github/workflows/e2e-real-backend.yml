@@ -264,6 +264,11 @@ jobs:
         # guard reads workflow files line by line, and a `\` continuation would
         # hide these spec names from it.
         run: npx playwright test --project=chromium e2e/post-and-apply.spec.ts e2e/smoke.spec.ts e2e/a11y.spec.ts e2e/visual-audit/responsive.spec.ts e2e/visual-audit/desktop-fill.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
+      - name: Backend request budget (Q104)
+        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
+        # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label chromium
       - name: Upload report on failure
         if: failure()
         uses: actions/upload-artifact@v7
@@ -313,6 +318,11 @@ jobs:
           PLAYWRIGHT_HELPER_SESSION: ${{ secrets.PLAYWRIGHT_HELPER_SESSION }}
           PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
         run: npx playwright test --project=chromium e2e/two-role-lifecycle.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
+      - name: Backend request budget (Q104)
+        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
+        # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label chromium
 
   # ---------------------------------------------------------------------
   # Leg 4 — the full money loop against PRODUCTION, on a Stripe test key.
@@ -422,6 +432,11 @@ jobs:
           PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
           PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
         run: npx playwright test --project=chromium e2e/prod-lifecycle.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts --trace=on
+      - name: Backend request budget (Q104)
+        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
+        # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label chromium
 
       # The whole point of this job is the legs a mock cannot cover, and when
       # one of them breaks the log says "waitForURL timed out" — which names the

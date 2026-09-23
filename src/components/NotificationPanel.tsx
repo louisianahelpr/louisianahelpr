@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState, useMemo, useSyncExternalStore, type
 import type { MotionProps } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { subscribeWithRecovery, type RecoveringSubscription } from "@/lib/realtimeRecovery";
+import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { useReducedMotion } from "@/lib/accessibility";
 import { AlertTriangle, BellRing, CheckCheck, Loader2 } from "lucide-react";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
@@ -360,87 +360,77 @@ const NotificationPanel = () => {
     // We resolve the userId upfront so we can pass a server-side filter,
     // scoping the postgres_changes subscription to only this user's rows
     // (avoids receiving every platform-wide notification INSERT).
-    let sub: RecoveringSubscription | null = null;
+    let unsubscribe: (() => void) | null = null;
     // The session read is async — if the component unmounts before it
-    // resolves, the cleanup below has already run against a null `sub`
+    // resolves, the cleanup below has already run against a null `unsubscribe`
     // and the subscription would leak. The flag closes that race.
     let cancelled = false;
     supabase.auth.getSession().then(({ data: { session } }) => {
       const userId = session?.user?.id;
       if (!userId || cancelled) return;
-      sub = subscribeWithRecovery(
-        // Still unique per mount — the nonce now comes from
-        // subscribeWithRecovery, which re-mints one per attempt.
-        // NotificationPanel renders in both the header and the admin shell,
-        // and a shared channel name would collide.
-        (name) => supabase
-        .channel(name)
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-          async (payload) => {
-            const n = payload.new as Notification;
-            // A realtime INSERT can race the initial fetch (both can carry the
-            // same row), and React would then render two elements with the same
-            // key. Dedupe on id — the badge count is derived from this list, so
-            // a duplicate would also overcount unread.
-            setNotifications((prev) => {
-              if (prev.some((x) => x.id === n.id)) return prev;
-              // THE TOTAL MOVES WITH THE LIST. `unreadTotal` used to be written
-              // in exactly one place — the initial count query — so every
-              // realtime arrival grew the list and left the badge behind, and
-              // the bell under-reported by one per notification received while
-              // the app stayed open. Incremented INSIDE the dedupe branch so a
-              // row that arrives twice (realtime racing the initial fetch)
-              // counts once, which is the same reason the dedupe exists.
-              if (!n.read) setUnreadTotal((t) => (t === null ? t : t + 1));
-              return [n, ...prev];
-            });
-            // Play notification chime + vibrate
-            try {
-              const ctx = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
-              const osc = ctx.createOscillator();
-              const gain = ctx.createGain();
-              osc.connect(gain);
-              gain.connect(ctx.destination);
-              osc.frequency.setValueAtTime(830, ctx.currentTime);
-              osc.frequency.setValueAtTime(990, ctx.currentTime + 0.1);
-              gain.gain.setValueAtTime(0.15, ctx.currentTime);
-              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-              osc.start(ctx.currentTime);
-              osc.stop(ctx.currentTime + 0.3);
-              // Browsers cap concurrent AudioContexts (~6); without this
-              // the chime silently stops firing after a handful of
-              // notifications. Release it once the tone finishes.
-              osc.onended = () => { ctx.close().catch(() => {}); };
-            } catch {}
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-            if (document.hidden && getPushPermission() === "granted") {
-              // Same resolution as a tap in the panel — a realtime row must
-              // not open somewhere different from the row it just inserted.
-              showLocalNotification(n.title, n.message, notificationDestination(n) ?? undefined);
-            }
-          },
-        ),
+      // The binding (notifications INSERT, user_id=eq.<me>) lives on the ONE
+      // shared per-user channel (src/lib/userRealtimeBus.ts, Q105). Every
+      // mounted bell, the nav badges and Dashboard's push hook used to open
+      // their own copy of it, one realtime.subscription row each.
+      unsubscribe = subscribeUserRealtime(
+        userId,
+        "notifications:insert",
+        async (payload) => {
+          const n = payload.new as Notification;
+          // A realtime INSERT can race the initial fetch (both can carry the
+          // same row), and React would then render two elements with the same
+          // key. Dedupe on id — the badge count is derived from this list, so
+          // a duplicate would also overcount unread.
+          setNotifications((prev) => {
+            if (prev.some((x) => x.id === n.id)) return prev;
+            // THE TOTAL MOVES WITH THE LIST. `unreadTotal` used to be written
+            // in exactly one place — the initial count query — so every
+            // realtime arrival grew the list and left the badge behind, and
+            // the bell under-reported by one per notification received while
+            // the app stayed open. Incremented INSIDE the dedupe branch so a
+            // row that arrives twice (realtime racing the initial fetch)
+            // counts once, which is the same reason the dedupe exists.
+            if (!n.read) setUnreadTotal((t) => (t === null ? t : t + 1));
+            return [n, ...prev];
+          });
+          // Play notification chime + vibrate
+          try {
+            const ctx = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(830, ctx.currentTime);
+            osc.frequency.setValueAtTime(990, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.3);
+            // Browsers cap concurrent AudioContexts (~6); without this
+            // the chime silently stops firing after a handful of
+            // notifications. Release it once the tone finishes.
+            osc.onended = () => { ctx.close().catch(() => {}); };
+          } catch {}
+          if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+          if (document.hidden && getPushPermission() === "granted") {
+            // Same resolution as a tap in the panel — a realtime row must
+            // not open somewhere different from the row it just inserted.
+            showLocalNotification(n.title, n.message, notificationDestination(n) ?? undefined);
+          }
+        },
         {
-          name: "notifications-realtime",
           // This channel is the bell's only live feed. A drop leaves the badge
           // frozen on a count that is no longer true, so re-read the list
           // rather than resuming from whatever arrives next.
           onRecovered: () => void loadNotifications(),
         },
       );
-      // Unmounted while subscribe was in flight — tear it down right away.
-      if (cancelled) {
-        sub.close();
-        sub = null;
-      }
     });
 
     return () => {
       clearTimeout(timer);
       cancelled = true;
-      sub?.close();
+      unsubscribe?.();
     };
   }, []);
 

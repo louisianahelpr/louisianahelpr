@@ -44,6 +44,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveRouteSet } from "./press-every-control.mjs";
 import { mintAccounts, prodSelect } from "./pressProdSafety.mjs";
+import { RequestMeter } from "../../e2e/requestMeter.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "../..");
@@ -515,6 +516,12 @@ async function main() {
   }
 
   const browser = await chromium.launch();
+  // Q104: count this run's backend requests; scripts/e2e/request-budget.mjs
+  // checks them against e2e/request-budgets.json. Flushed on exit too, so a
+  // run that dies midway still leaves its load on the record.
+  const requestMeter = new RequestMeter("loading-states");
+  requestMeter.attachBrowser(browser);
+  process.on("exit", () => requestMeter.flush());
   const results = [];
   const byPersona = new Map();
   const contextFor = async (persona) => {
@@ -562,6 +569,7 @@ async function main() {
   for (const p of new Set(targets.map((t) => t.persona))) await contextFor(p);
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
   for (const ctx of byPersona.values()) await ctx.close();
+  requestMeter.flush();
   await browser.close();
 
   mkdirSync(OUT, { recursive: true });

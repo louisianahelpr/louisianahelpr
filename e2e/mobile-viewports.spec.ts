@@ -1,4 +1,4 @@
-import { test, expect, devices } from "@playwright/test";
+import { test, expect, devices } from "./prodTest";
 import { LOCAL_BASE_URL } from "./localBase";
 
 // Mobile viewport spot-check, replaces what humans had to do by hand

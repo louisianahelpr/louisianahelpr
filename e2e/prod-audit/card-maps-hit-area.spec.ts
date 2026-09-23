@@ -56,7 +56,7 @@
 
 import { mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { test, expect, type Browser, type Page, type TestInfo } from "@playwright/test";
+import { test, expect, type Browser, type Page, type TestInfo } from "../prodTest";
 import { getSession, type Session } from "./harness";
 import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
 

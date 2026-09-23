@@ -132,6 +132,11 @@ jobs:
         # src/test/e2eSpecsReachableInCi.test.ts, which reads this file.
         run: npx playwright test --project=${{ matrix.project }} --reporter=list,./e2e/reporters/skipReporter.ts
 
+      - name: Backend request budget (Q104)
+        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
+        # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label ${{ matrix.project }}
       - name: Surface a missing axe baseline (Q181)
         # assertSweepGate (sweepCore.ts) writes this file and fails the sweep
         # above when e2e/happy-path/axe-known-violations.json does not exist —

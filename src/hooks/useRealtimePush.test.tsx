@@ -55,19 +55,26 @@ beforeEach(() => {
   capturedBinding = null;
 
   // Build chainable channel mock that captures the postgres_changes handler
-  channelMock.mockImplementation(() => ({
-    on: (
-      event: string,
-      opts: unknown,
-      handler: (payload: { new: unknown }) => void,
-    ) => {
-      if (event === "postgres_changes") {
-        capturedHandler = handler;
-        capturedBinding = opts as Record<string, unknown>;
-      }
-      return { subscribe: () => ({}) };
-    },
-  }));
+  // The hook now listens on the SHARED per-user channel
+  // (src/lib/userRealtimeBus.ts, Q105), which chains several bindings — so the
+  // mock chains too, and captures the `notifications` one.
+  channelMock.mockImplementation(() => {
+    const chan = {
+      on: (
+        event: string,
+        opts: unknown,
+        handler: (payload: { new: unknown }) => void,
+      ) => {
+        if (event === "postgres_changes" && (opts as { table?: string }).table === "notifications") {
+          capturedHandler = handler;
+          capturedBinding = opts as Record<string, unknown>;
+        }
+        return chan;
+      },
+      subscribe: () => chan,
+    };
+    return chan;
+  });
 });
 
 afterEach(() => {
@@ -93,7 +100,7 @@ describe("useRealtimePush", () => {
 
   it("subscribes to a per-user channel when userId is provided", () => {
     renderHook(() => useRealtimePush("user-1"));
-    expect(channelMock).toHaveBeenCalledWith(expect.stringMatching(/^push-notifications-user-1-/));
+    expect(channelMock).toHaveBeenCalledWith(expect.stringMatching(/^user-realtime-user-1-/));
   });
 
   it("binds SERVER-SIDE to this user's notification rows and nobody else's", () => {
@@ -186,7 +193,7 @@ describe("useRealtimePush", () => {
 
     rerender({ uid: "user-2" });
     expect(channelMock).toHaveBeenCalledTimes(2);
-    expect(channelMock).toHaveBeenLastCalledWith(expect.stringMatching(/^push-notifications-user-2-/));
+    expect(channelMock).toHaveBeenLastCalledWith(expect.stringMatching(/^user-realtime-user-2-/));
     // …and the server-side filter follows the new id. A filter built once
     // outside the effect would leave user-2 subscribed to user-1's rows.
     expect(capturedBinding).toMatchObject({ filter: "user_id=eq.user-2" });
@@ -195,4 +202,4 @@ describe("useRealtimePush", () => {
   });
 });
 
-// @mutate src/hooks/useRealtimePush.ts | filter: `user_id=eq.${userId}`, |
+// @mutate src/lib/userRealtimeBus.ts | table: "notifications", filter: `user_id=eq.${userId}` } | table: "notifications" }

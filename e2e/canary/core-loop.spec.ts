@@ -51,7 +51,7 @@
 // write. Scored by the weekly vacuity run (vacuity.yml holds the shared-account
 // secrets this spec needs; no local machine does).
 // @mutate src/pages/dashboard/useApplyFlow.ts | supabase.rpc("apply_to_job", { | supabase.rpc("apply_to_job_canary_mutant" as "apply_to_job", {
-import { test, expect, type APIRequestContext, type BrowserContext, type Page } from "@playwright/test";
+import { test, expect, type APIRequestContext, type BrowserContext, type Page } from "../prodTest";
 import { appendFileSync } from "node:fs";
 import {
   SUPABASE_URL,

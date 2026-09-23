@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./prodTest";
 import AxeBuilder from "@axe-core/playwright";
 
 // Accessibility sweep on the two highest-friction public surfaces:

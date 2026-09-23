@@ -1,4 +1,4 @@
-import { test, expect, type BrowserContext, type Page } from "@playwright/test";
+import { test, expect, type BrowserContext, type Page } from "./prodTest";
 
 // Two-role lifecycle E2E — the gap payment-lifecycle.spec.ts documents
 // ("accept → in_progress → complete needs a SECOND account plus seeded job

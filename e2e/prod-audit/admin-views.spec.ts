@@ -16,7 +16,7 @@
  * refused it. Every refused request is now named in the failure message, so a
  * load failure the firewall caused says which call it blocked.
  */
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../prodTest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { findErrorScreen, readScreenText } from "../errorScreens";

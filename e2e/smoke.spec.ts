@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./prodTest";
 import { LOCAL_BASE_URL } from "./localBase";
 
 // Lean smoke tests for the deployed app. Goal: catch hard breakages

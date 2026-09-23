@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
+import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { safeStorage } from "@/lib/safeStorage";
 
 /**
@@ -189,46 +189,31 @@ function openStore(userId: string): BadgeStore {
 
   loadCounts();
 
-  const sub = subscribeWithRecovery(
-    (name) => supabase
-    .channel(name)
-    // postgres_changes filters are single-column and scoped per project
-    // rule (no unfiltered `event: "*"`). The Jobs badge (direct offers to
-    // me) updates live via the notifications INSERT below. The Posts
-    // badge (foreign applicants on my jobs) can't be filtered by poster —
-    // `applications` has no customer_id column — so a stranger's INSERT
-    // won't push live; instead the count re-reads whenever a job I own
-    // changes (e.g. I accept/decline an applicant) and on every nav
-    // mount/navigation. We deliberately do NOT open an unfiltered
-    // applications channel just to catch that one case.
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "applications", filter: `helper_id=eq.${userId}` },
-      () => scheduleLoad(),
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "jobs", filter: `customer_id=eq.${userId}` },
-      () => scheduleLoad(),
-    )
-    // Not a `jobs` filter any more: the helper has no RLS SELECT grant on an
-    // unaccepted offer (that policy leaked the street address) and Realtime
-    // only delivers rows the subscriber can read. The trigger that creates
-    // the offer also inserts a notification addressed to the offered helper,
-    // so this channel is the same wake-up on a row they're entitled to.
-    .on(
-      "postgres_changes",
-      { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-      () => scheduleLoad(),
-    ),
-    { name: `nav-activity-badges-${userId}`, onRecovered: scheduleLoad },
-  );
+  // Realtime rides the ONE shared per-user channel (src/lib/userRealtimeBus.ts,
+  // Q105) instead of a channel of its own: the bell, Dashboard's push hook and
+  // Activity bind the same rows, and each duplicate was its own
+  // realtime.subscription row. Every binding there is server-side scoped.
+  //
+  // The Jobs badge (direct offers to me) updates live via the notifications
+  // INSERT: the helper has no RLS SELECT grant on an unaccepted offer (that
+  // policy leaked the street address) and Realtime only delivers rows the
+  // subscriber can read, but the trigger that creates the offer also inserts a
+  // notification addressed to the offered helper. The Posts badge (foreign
+  // applicants on my jobs) can't be filtered by poster — `applications` has no
+  // customer_id column — so a stranger's INSERT won't push live; instead the
+  // count re-reads whenever a job I own changes and on every nav mount. We
+  // deliberately do NOT open an unfiltered applications channel for that case.
+  const unsubs = [
+    subscribeUserRealtime(userId, "applications:helper", () => scheduleLoad(), { onRecovered: scheduleLoad }),
+    subscribeUserRealtime(userId, "jobs:customer", () => scheduleLoad(), { onRecovered: scheduleLoad }),
+    subscribeUserRealtime(userId, "notifications:insert", () => scheduleLoad(), { onRecovered: scheduleLoad }),
+  ];
 
   store.close = () => {
     if (timer) clearTimeout(timer);
     timer = null;
     if (typeof document !== "undefined") document.removeEventListener("visibilitychange", onVisibility);
-    sub.close();
+    for (const u of unsubs) u();
   };
   return store;
 }

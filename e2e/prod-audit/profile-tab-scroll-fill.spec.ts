@@ -45,7 +45,7 @@
 // Note this spec carries its own vacuity guard ("if the tab fits, 'it scrolls'
 // is unprovable here"), so it cannot silently stop measuring.
 // @mutate src/pages/Profile.tsx | page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 | page-measure w-[calc(100%+1.5rem)] h-full px-3 -mx-3
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "../prodTest";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { getSession, settle, type Session } from "./harness";

@@ -166,6 +166,11 @@ jobs:
             npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
           fi
 
+      - name: Backend request budget (Q104)
+        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
+        # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label prod-audit
       - name: Keep failure screenshots, samples and traces
         if: always()
         uses: actions/upload-artifact@v4

@@ -153,3 +153,6 @@ docs/audit/a11y-separators/**/*.png
 # test-results/, which Playwright wipes each run. See e2e/reviewLog.ts.
 .review/
 .review-log.jsonl
+
+# Q104 per-run backend request samples (e2e/requestMeter.mjs)
+request-budget/

@@ -1,4 +1,4 @@
-import { test, expect, type APIRequestContext, type Page, type Locator } from "@playwright/test";
+import { test, expect, type APIRequestContext, type Page, type Locator } from "./prodTest";
 import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

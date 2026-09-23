@@ -37,7 +37,7 @@
  * saves 375 + 1440 shots of a representative set. Shots are not evidence until
  * someone LOOKED: `npm run review:record -- <png> <screen> <checked> <ok|defect>`.
  */
-import { test, expect, type Browser, type Page } from "@playwright/test";
+import { test, expect, type Browser, type Page } from "../prodTest";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { getSession, type Session } from "./harness";

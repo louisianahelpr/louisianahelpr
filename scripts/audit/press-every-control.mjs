@@ -209,6 +209,7 @@ export const SENTRY_PROBE_RX = /uncaught:\s*Sentry uncaught test\b/i;
 export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout)\b/i;
 export { ACCOUNT_DESTROY_RX, SESSION_END_RX, PAYMENT_RX, SELF_ROUTE_RX } from "./pressProdSafety.mjs";
 import { PAYMENT_RX, isAccountSettingToggle, isAdminStateToggle } from "./pressProdSafety.mjs";
+import { RequestMeter } from "../../e2e/requestMeter.mjs";
 /** Console lines the HARNESS causes, not the app. */
 /**
  * Scripts only Vercel's edge serves. The harness runs against a local
@@ -772,6 +773,12 @@ async function main() {
   await acquireBrowserLock();
   process.on("exit", () => releaseBrowserLock());
   const browser = await chromium.launch();
+  // Q104: count this run's backend requests; scripts/e2e/request-budget.mjs
+  // checks them against e2e/request-budgets.json. Flushed on exit too, so a
+  // run that dies midway still leaves its load on the record.
+  const requestMeter = new RequestMeter("press-every-control");
+  requestMeter.attachBrowser(browser);
+  process.on("exit", () => requestMeter.flush());
   // Shared across every route × persona: create-payment's limiter is per
   // account, and the same test accounts are walked row after row.
   const PAYMENT_PACE_MS = paymentPaceMs();
@@ -1576,6 +1583,7 @@ async function main() {
       console.log(`[${route.url} ${persona}] found=${rec.found} pressed=${rec.pressed} pass=${rec.passed} fail=${rec.failed} skip=${rec.skipped}${rec.failed ? " :: " + rec.controls.filter((c) => c.result === "FAIL").slice(0, 4).map((c) => `"${c.chain.join(" › ")}" — ${c.why}`).join(" ;; ") : ""}`);
     }
   }
+  requestMeter.flush();
   await browser.close();
 
   // ---- clean up what the presses created --------------------------------------

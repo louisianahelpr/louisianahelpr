@@ -102,6 +102,11 @@ jobs:
 
       - name: Run the slow-network steps
         run: npx playwright test --project=slow-network --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
+      - name: Backend request budget (Q104)
+        # Meters every Supabase request this run made (e2e/requestMeter.mjs) and
+        # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label slow-network
 
       - name: Keep wait timings, failure screenshots and traces
         if: always()

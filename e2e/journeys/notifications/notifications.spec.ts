@@ -16,7 +16,7 @@
  * which is a coin-toss dressed as a proof. Registerable only once the link set
  * is pinned to a fixture this spec owns.
  *
- * @mutate-exempt 5 of 6 tests are create-notification edge-function behaviour over REST and the gate never deploys a function (measured 2026-09-21). SHOWN ABLE TO FAIL in the right medium by src/test/edge/create-notification.test.ts, which carries a registered @mutate against supabase/functions/create-notification/index.ts and covers the 403 stranger-relationship gate and the 400 length cap directly. GAP, stated plainly: that edge test does NOT cover the stored-link sanitisation to "/dashboard", the notification-preference round-trip, or the email_send_log row. The 6th test drives a browser but over rows read live from prod, so a mutation against it is data-dependent; it becomes registerable once its links come from a fixture this spec owns.
+ * @mutate-exempt 5 of 6 tests are create-notification edge-function behaviour over REST and the gate never deploys a function (measured 2026-09-21). SHOWN ABLE TO FAIL in the right medium by src/test/edge/create-notification.test.ts, which carries a registered @mutate against supabase/functions/create-notification/index.ts and covers the 403 stranger-relationship gate and the 400 length cap directly. GAP, stated plainly: that edge test does NOT cover the stored-link sanitisation to "/dashboard", the notification-preference round-trip, or the email_send_log row. The 6th test drives a browser but over rows read live from prod, so a mutation against it is data-dependent; it becomes registerable once its links come from a fixture this spec owns. The 5 "…notification is not exercised here" tests added for Q230 (2026-09-23) are pure skipUncovered() calls with no assertion of their own to mutate — they exist so the header's completeness claim is true, and src/test/notificationsSpecAnnotatesEveryNamedLeg.test.ts is the real guard, shown able to fail by dropping one of the five names.
  */
 import { test, expect, getSession, rest, newUserContext, sessionsAvailable, assertHealthy, SUPABASE_URL, ANON, announceUncovered, skipUncovered } from "../fixtures";
 
@@ -36,8 +36,11 @@ import { test, expect, getSession, rest, newUserContext, sessionsAvailable, asse
  *      in-app row AND an email_send_log row — guarded to a funded thread the
  *      lifecycle spec leaves behind, else reported uncovered rather than funded.
  *
- * Legs needing a third account or a paid tip are annotated uncovered, never
- * silently skipped (owner: no silent passes).
+ * Legs needing a third account, geo-matched fixtures, or a paid tip are
+ * annotated uncovered, never silently skipped (owner: no silent passes):
+ * direct offer, saved-search match, job-match fan-out, tip, and cron
+ * notifications each have their own named test below stating exactly why
+ * (Q230, 2026-09-23).
  */
 
 const avail = sessionsAvailable();
@@ -153,6 +156,64 @@ test.describe("notifications & email", () => {
       await journey.milestone(page, `link${row.link.replace(/[^a-z0-9]+/gi, "_")}`);
     }
     await ctx.close();
+  });
+
+  /*
+   * Q230 (2026-09-23): the header above claims every leg needing a third
+   * account or a paid tip is "annotated uncovered, never silently skipped" —
+   * but five legs had no annotation AT ALL, no test, nothing: a reader could
+   * not tell them apart from a leg nobody had thought of. Each is real
+   * server-side behaviour (grep supabase/migrations/*.sql), named here with
+   * why the two shared accounts over REST cannot drive it, so the claim in
+   * the header is true of the file that makes it. src/test/
+   * notificationsSpecAnnotatesEveryNamedLeg.test.ts holds this list two-way
+   * against this file's own text.
+   */
+  test("direct-offer notification is not exercised here", async () => {
+    skipUncovered(
+      "Direct-offer notification uncovered",
+      "notify_helper_on_direct_offer fires AFTER INSERT OR UPDATE OF offered_to_helper_id ON public.jobs " +
+        "(trg_notify_helper_on_direct_offer, 20260423025644). Setting that column is the app's direct-offer " +
+        "flow, which this REST-level spec does not drive; needs the client offer path or its RPC, verified live.",
+    );
+  });
+
+  test("saved-search-match notification is not exercised here", async () => {
+    skipUncovered(
+      "Saved-search-match notification uncovered",
+      "notify_saved_searches_on_new_job fans out on a jobs insert/update to every helper whose saved_searches " +
+        "row matches the new job (20260505171500 / 20260901035245). Driving it needs a saved_searches fixture " +
+        "for the shared helper account that a freshly posted test job actually matches, which this spec does " +
+        "not set up.",
+    );
+  });
+
+  test("job-match fan-out notification is not exercised here", async () => {
+    skipUncovered(
+      "Job-match fan-out notification uncovered",
+      "notify_helpers_on_job_post fires AFTER INSERT on every public.jobs row (notify_helpers_on_job_post_trigger, " +
+        "20260418081253), fanning out to helpers whose profile matches the job's category/parish. Whether the " +
+        "shared helper account matches a freshly posted test job is not guaranteed by this spec's fixtures.",
+    );
+  });
+
+  test("tip notification is not exercised here", async () => {
+    skipUncovered(
+      "Tip notification uncovered",
+      "notify_helper_on_tip fires AFTER INSERT OR UPDATE on public.tips (trg_notify_helper_tip, 20260418215317). " +
+        "A real tip needs a completed job and a Stripe charge (even in test mode) that this spec does not drive; " +
+        "the money journey itself is a separate suite.",
+    );
+  });
+
+  test("cron notifications are not exercised here", async () => {
+    skipUncovered(
+      "Cron notifications uncovered",
+      "sweep_job_start_reminders / sweep_no_show_alerts / sweep_daily_job_digest / sweep_dayof_confirm_reminders / " +
+        "sweep_release_last_chance run on pg_cron's own schedule with no client-callable trigger; an e2e spec " +
+        "authenticated as a normal user cannot invoke them, so delivery can only be read from rows a real cron " +
+        "run already produced, not driven here.",
+    );
   });
 
   test("a message on a funded thread writes the recipient's row and an email_send_log row", async ({ request }) => {

@@ -250,10 +250,26 @@ export function clientHitsInSource(relPath, src, kind = "client") {
     const what = opaque
       ? `opaque:${upd.args.trim().replace(/\s+/g, " ").slice(0, 30)}`
       : lifecycle.join("+");
-    const base = `${kind}:${relPath}::${what}`;
+    const line = src.slice(0, m.index).split("\n").length;
+    /*
+     * KEYED BY CALL SITE (file + LINE), not just file::columns (Q245,
+     * 2026-09-23). The old key was `${kind}:${relPath}::${what}`, with same-
+     * shape repeats in one file disambiguated only by a running occurrence
+     * COUNT (`#2`, `#3`, …) assigned in regex-scan order. A brand-new
+     * unguarded write of the same shape inserted ABOVE an already-audited one
+     * shifts every count below it — the new, unreviewed write inherits the
+     * old, already-allowlisted bare key, and the genuinely audited write
+     * shifts onto a key that looks new instead. The new write then hides
+     * behind a baseline reason that was never about it. Line number is
+     * intrinsic to each call site, so a write's identity does not depend on
+     * how many same-shape siblings happen to sit above it in the file, and a
+     * hit that is actually new can never silently borrow an old line's key.
+     * `#n` is kept only as a true-collision tiebreaker (two hits landing on
+     * the exact same line, e.g. minified/one-line code).
+     */
+    const base = `${kind}:${relPath}:${line}::${what}`;
     const n = (seen.get(base) ?? 0) + 1;
     seen.set(base, n);
-    const line = src.slice(0, m.index).split("\n").length;
     hits.push({ key: n === 1 ? base : `${base}#${n}`, file: relPath, line });
   }
   return hits;

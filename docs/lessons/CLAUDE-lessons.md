@@ -243,8 +243,14 @@ this list tight; project-specific trivia belongs in code comments, not here.
   WebKit bug; here, the dev server cannot see a Chromium one. Fix is an
   `@supports` block the minifier cannot collapse. **Verify any CSS claim
   against `dist/assets/*.css` after `npm run build`, not against the dev
-  server** — `grep -c "backdrop-filter:none" dist/assets/*.css` is the whole
-  check, and it distinguishes the two states in one command.
+  server** — but NOT with `grep -c`: the minifier collapses the whole bundle
+  onto one (or a handful of) line(s), and `-c` counts MATCHING LINES, not
+  occurrences, so it silently collapses every count above 1 down to "1 line
+  matched" — it cannot tell "18 frosted elements" from "1" or catch a
+  regression from 18 to 2. Use `grep -o "backdrop-filter:none"
+  dist/assets/*.css | wc -l`, which counts every individual match wherever it
+  falls on the line — that is the whole check, and it is the only form of it
+  that distinguishes the two states. (Q227, 2026-09-23.)
 
   Related, same lane: setting every glass class to `hsl(var(--background))`
   does not remove transparency, it removes the MATERIAL. `.liquid-glass` is

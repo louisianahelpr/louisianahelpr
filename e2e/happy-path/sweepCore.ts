@@ -149,14 +149,29 @@ export const ALL_VARIANTS: Variant[] = [
   { tag: "desktop-dark", width: 1440, height: 900, theme: "dark" },
 ];
 
-// (unset) → phone-light only · "all" → the whole matrix · or a comma list of
-// tags ("phone-dark,desktop-light"). The comma list exists so a finding from
-// the empty-state sweep can be re-run SEEDED at the same variant — that is the
-// only way to tell "this breaks when the user has no data" apart from "this is
-// broken everywhere and nobody had looked at this viewport before".
+/*
+ * (unset) → phone-light + phone-dark · "all" → the whole matrix · or a comma
+ * list of tags ("phone-dark,desktop-light"). The comma list exists so a
+ * finding from the empty-state sweep can be re-run SEEDED at the same
+ * variant — that is the only way to tell "this breaks when the user has no
+ * data" apart from "this is broken everywhere and nobody had looked at this
+ * viewport before".
+ *
+ * DARK ADDED TO THE DEFAULT (Q256, 2026-09-23; audit finding #11,
+ * docs/archive/FULL-SURFACE-2026-08-31.md). Phone-light alone was the
+ * default since this file's origin; the single worst a11y defect the last
+ * audit found — 35 screens — lived ONLY in dark mode, because nothing
+ * scheduled without an explicit `variants:` input ever rendered it. COST:
+ * this roughly doubles a default run's screenshot and comparison volume (two
+ * themes at one width, not one) — accepted because a defect class this size
+ * going permanently unseen costs more than the extra frames. Desktop stays
+ * opt-in (`all`, or an explicit tag list): the rail/hero/two-column layout is
+ * a genuinely different surface, not just a repaint, so it is not "the same
+ * screens, darker" the way phone-dark is.
+ */
 export const VARIANTS: Variant[] = (() => {
   const want = process.env.SWEEP_VARIANTS;
-  if (!want) return [ALL_VARIANTS[0]];
+  if (!want) return [ALL_VARIANTS[0], ALL_VARIANTS[1]];
   if (want === "all") return ALL_VARIANTS;
   const tags = want.split(",").map((t) => t.trim());
   const picked = ALL_VARIANTS.filter((v) => tags.includes(v.tag));

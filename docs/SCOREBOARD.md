@@ -16,7 +16,7 @@ Recomputed from committed files and diffed on every push by
 
 | group | signal | status | pass | fail | skipped | total | measured at | source | note |
 |---|---|---|---|---|---|---|---|---|---|
-| open work | OPEN.md queue (done / partly / open) | **WARN** | 140 | 133 | 22 partly | 295 | HEAD (diffed every push) | [docs/OPEN.md](OPEN.md) · scripts/queue-count.mjs | 140 done, 22 partly done (fixed, protection pending), 133 open |
+| open work | OPEN.md queue (done / partly / open) | **WARN** | 145 | 127 | 24 partly | 296 | HEAD (diffed every push) | [docs/OPEN.md](OPEN.md) · scripts/queue-count.mjs | 145 done, 24 partly done (fixed, protection pending), 127 open |
 | open work | audit bus findings (open / launch blockers) | **FAIL** | 205 | 165 | — | 429 | HEAD (diffed every push) | [ROLLUP.md](audit/launch-2026-09/ROLLUP.md) · `node scripts/audit-bus.mjs list --blockers` | 165 open, 8 open launch blockers; 205 fixed, 14 retracted, 28 duplicate, 0 wontfix, 17 obsolete |
 | guards | vacuity: guards proven able to fail / exempt / owed | **PASS** | 833 | 0 | 9 exempt | 842 | HEAD (diffed every push) | [GUARD-BURNDOWN.md](GUARD-BURNDOWN.md) · `npm run vacuity` | registered @mutate per guard; whether each mutation is KILLED is the full-sweep row below |
 | number currency | dead-code baseline (unused exports / types ceiling) | **INFO** | — | — | — | 96 exports, 11 types | HEAD (diffed every push) | scripts/deadcode-baseline.json · src/test/deadcodeRatchet.test.ts | a ratchet ceiling; whether knip stays under it is the test.yml Dead code step (live section) |

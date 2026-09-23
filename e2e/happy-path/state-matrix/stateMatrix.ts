@@ -1099,10 +1099,34 @@ const APPLIED_STATES: AppliedState[] = [
 
 const slug = (s: string) => s.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
 
+/*
+ * Q251 (2026-09-23): `pending_approval` is a RETIRED status. Migration
+ * 20260831232522_retire_business_approval_residue.sql moved every existing
+ * pending_approval row to in_progress and its own header says the enum
+ * value is kept deliberately (an enum value cannot be dropped without a
+ * rewrite) while the feature that wrote it — a business spend-approval
+ * threshold — is gone: the businesses/business_members tables were removed
+ * in 20260828011811. jobSubmitHelpers.ts confirms the write side: "NO
+ * `status` KEY IS EVER WRITTEN HERE… the businesses / business_members
+ * tables were removed, no call site ever set it… Don't reintroduce a status
+ * override here." STATUS_EXHAUSTIVE above still requires this module to
+ * enumerate the label (job_status is a real DB enum member), but nothing in
+ * the app can create a job in it any more, so the sweep must not spend a
+ * driven "auto" cell pretending prod can still show it.
+ */
+const RETIRED_STATUSES: Partial<Record<JobStatus, string>> = {
+  pending_approval:
+    "Retired: the only writer (a business spend-approval threshold) was removed in 20260828011811 / " +
+    "20260831232522, which also migrated every existing pending_approval row to in_progress. " +
+    "jobSubmitHelpers.ts: no call site writes `status` on post any more. Kept in JOB_STATUSES only " +
+    "because job_status is a real (undroppable) DB enum member.",
+};
+
 function posterCells(): StateCell[] {
   const cells: StateCell[] = [];
   for (const status of JOB_STATUSES) {
     const subs = POSTER_SUBSTATES[status];
+    const retiredReason = RETIRED_STATUSES[status];
     subs.forEach((sub, i) => {
       for (const expanded of [false, true]) {
         // R9 — the first sub-state of each status is the status-defining cell.
@@ -1121,8 +1145,13 @@ function posterCells(): StateCell[] {
             content: "default",
           },
           expanded,
-          reachable: "auto",
-          shots: shotsFor(primaryOnly),
+          reachable: retiredReason ? "unreachable" : "auto",
+          ...(retiredReason ? { reason: retiredReason } : {}),
+          // `shots: []` is what actually excludes a cell from the drive loop
+          // (state-sweep.spec.ts filters on `c.shots.length > 0`, not on
+          // `reachable`) — a non-empty shots list here would still screenshot
+          // a status the app can no longer produce.
+          shots: retiredReason ? [] : shotsFor(primaryOnly),
           fixture: {
             job: { ...BASE_JOB, status, ...sub.job } as CellFixture["job"],
             applicants: sub.applicants ?? 0,

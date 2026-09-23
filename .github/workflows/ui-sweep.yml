@@ -200,7 +200,14 @@ jobs:
           # push/pull_request keep their existing defaults ('empty' unless a
           # dispatch input says otherwise).
           SWEEPS: ${{ github.event.inputs.sweeps || (github.event.schedule == '0 5 * * 3' && 'error') || (github.event.schedule == '0 5 * * 5' && 'overlay') || 'empty' }}
-          VARIANTS: ${{ github.event.inputs.variants || 'phone-light' }}
+          # Dark added to the default (Q256, 2026-09-23): phone-light alone
+          # missed the single worst a11y defect class the last audit found —
+          # 35 screens, dark-mode-only (sweepCore.ts's own default mirrors
+          # this; keep the two in sync). Costs roughly double the default
+          # run's screenshot volume (two themes at one width); accepted for
+          # the same reason. Desktop stays opt-in via an explicit `variants:`
+          # input or `all` — it is a genuinely different layout, not a repaint.
+          VARIANTS: ${{ github.event.inputs.variants || 'phone-light,phone-dark' }}
         run: |
           set -euo pipefail
           case "$SWEEPS" in

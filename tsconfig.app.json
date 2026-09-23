@@ -101,7 +101,14 @@
     // the inventory from the config is the whole point — a hand-typed mirror
     // in the test is what let `text-ds-10` silently eat `text-primary-foreground`
     // on <Badge>. This project is `composite`, so every compiled file is listed.
-    "tailwind.config.ts"
+    "tailwind.config.ts",
+    // src/test/stateMatrixRetiresPendingApproval.test.ts (Q251) imports
+    // enumerateStates() directly rather than grepping the file as text, so it
+    // proves the real Reachability/shots values the sweep will use, not just
+    // that some matching string exists. No Playwright import here (pure data
+    // + Database types), unlike sweepCore.ts beside it. Pinned by
+    // src/test/e2eImportsInAppTsconfig.test.ts.
+    "e2e/happy-path/state-matrix/stateMatrix.ts"
   ],
   "exclude": [
     "src/test/edge/**/*.gen.ts",

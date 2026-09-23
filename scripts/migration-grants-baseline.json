@@ -1,0 +1,20 @@
+{
+  "_doc": "check-migration-grants.mjs --all: exact two-way baseline (Q263, 2026-09-23). Every entry here is a function `--all` still finds no GRANT/REVOKE (static or dynamic) for in the migration history — a genuine open question this script cannot answer from source, since a Supabase-advisor pass has repeatedly stripped the default PUBLIC EXECUTE (the #355/#358/#364/#366 saga). Each needs a LIVE check: SELECT proacl FROM pg_proc WHERE proname = '<name>' AND pronamespace = 'public'::regnamespace (no prod access in the session that built this baseline). May only SHRINK — remove an entry once its grant is confirmed live (or added explicitly), and a name check-migration-grants.mjs no longer flags must be removed here or the check fails as stale. 12 distinct functions across 15 migration@name pairs (a later migration's CREATE OR REPLACE re-flags the same never-granted name).",
+  "unverified": [
+    "count_profiles@supabase/migrations/20260312230949_0e4c3b84-fbdc-4c6c-9917-572203730f25.sql",
+    "get_approved_helpers@supabase/migrations/20260312230949_0e4c3b84-fbdc-4c6c-9917-572203730f25.sql",
+    "is_category_taxable@supabase/migrations/20260418080453_ce2b12ea-eef6-43e2-9c38-72cb390ecf39.sql",
+    "get_hero_parishes@supabase/migrations/20260418080453_ce2b12ea-eef6-43e2-9c38-72cb390ecf39.sql",
+    "can_review_job@supabase/migrations/20260420214414_33f20ef4-3091-4332-a31f-ac6e5796c9c8.sql",
+    "get_user_business_ids@supabase/migrations/20260425233224_ddac4ad3-1b57-4894-8e61-01a1f99be4b8.sql",
+    "is_user_verified_business_member@supabase/migrations/20260425235407_ea778f7d-6a47-46ee-adf8-6cb423ecf7b1.sql",
+    "get_approved_helpers@supabase/migrations/20260504142454_fix_role_checks_via_user_roles.sql",
+    "get_hero_parishes@supabase/migrations/20260504142454_fix_role_checks_via_user_roles.sql",
+    "get_hero_parishes@supabase/migrations/20260509195035_rewrite_helper_filters_behavior_based.sql",
+    "get_approved_helpers@supabase/migrations/20260509195035_rewrite_helper_filters_behavior_based.sql",
+    "get_hero_parishes@supabase/migrations/20260701000000_canonical_rating_filter_in_rpcs.sql",
+    "can_review_job@supabase/migrations/20260823200000_reviews_unblocked_and_anon_claim_closed.sql",
+    "redact_audit_snapshot@supabase/migrations/20260825150000_money_audit_truthful_actor_nonblocking.sql",
+    "cancellation_fee_percent@supabase/migrations/20260826200000_block_user_and_settle.sql"
+  ]
+}

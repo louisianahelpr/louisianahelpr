@@ -177,6 +177,9 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
     allow: "scripts/check-race-class.mjs:stale: allowed.filter((k) => !hitKeys.has(k))",
     safe: "scripts/check-race-class.mjs:stale: allowed.filter((k) => !hitKeys.has(k))",
   },
+  "scripts/migration-grants-baseline.json": {
+    unverified: "scripts/check-migration-grants.mjs:const stale = [...known].filter((k) => !flaggedKeys.has(k))",
+  },
   "src/test/vacuity.baseline.json": {
     unregistered: "scripts/vacuity/index.mjs:const staleBaseline =",
     noInventoryFloor: "scripts/vacuity/index.mjs:const staleA =",

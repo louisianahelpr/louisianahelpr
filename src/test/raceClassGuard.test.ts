@@ -31,6 +31,18 @@ const OFFER_HANDLERS = "src/pages/activity/activityActions/useOfferHandlers.ts";
 
 type Hit = { key: string; file: string; line?: number };
 
+const reEscape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/**
+ * Keys are now `${kind}:${file}:${line}::${what}` (Q245, 2026-09-23: keyed by
+ * call site, not just file::columns — see check-race-class.mjs). Fixture line
+ * numbers are incidental to what each test is proving, so assertions here
+ * match the SHAPE (kind, file, what) at any line rather than pinning an exact
+ * line that would drift every time a fixture gains or loses a line above the
+ * hit.
+ */
+const hasHitShape = (keys: string[], kind: "client" | "edge", file: string, what: string) =>
+  keys.some((k) => new RegExp(`^${kind}:${reEscape(file)}:\\d+::${reEscape(what)}$`).test(k));
+
 // @mutate src/components/JobTracking.tsx | .in("status", ["accepted", "in_progress", "revision_requested"]) |
 describe("race-class guard — red on the pre-fix code, green on the fix", () => {
   it("flags enforce_application_job_state when the FOR SHARE migration is absent", () => {
@@ -48,7 +60,7 @@ describe("race-class guard — red on the pre-fix code, green on the fix", () =>
   it("flags the pre-fix helper confirm (helper_confirmed_at, no status predicate)", () => {
     const src = readFileSync(resolve(FIXTURES, "useOfferHandlers.prefix.ts.txt"), "utf8");
     const keys = guard.clientHitsInSource(OFFER_HANDLERS, src).map((h: Hit) => h.key);
-    expect(keys).toContain(`client:${OFFER_HANDLERS}::helper_confirmed_at`);
+    expect(hasHitShape(keys, "client", OFFER_HANDLERS, "helper_confirmed_at")).toBe(true);
   });
 
   it("passes the fixed helper confirm (.eq(\"status\", \"accepted\"))", () => {
@@ -96,13 +108,13 @@ describe("race-class guard — dispute settlement wave (BUILT 2026-09-14, no pro
   it("flags the pre-fix dispute filing (status, no status predicate)", () => {
     const src = readFileSync(resolve(FIXTURES, "DisputeDialog.prefix.tsx.txt"), "utf8");
     const keys = guard.clientHitsInSource(DISPUTE_DIALOG, src).map((h: Hit) => h.key);
-    expect(keys).toContain(`client:${DISPUTE_DIALOG}::status`);
+    expect(hasHitShape(keys, "client", DISPUTE_DIALOG, "status")).toBe(true);
   });
 
   it("passes the live dispute filing now that the fallback carries .in(\"status\", …)", () => {
     const src = readFileSync(resolve(REPO_ROOT, DISPUTE_DIALOG), "utf8");
     const keys = guard.clientHitsInSource(DISPUTE_DIALOG, src).map((h: Hit) => h.key);
-    expect(keys).not.toContain(`client:${DISPUTE_DIALOG}::status`);
+    expect(hasHitShape(keys, "client", DISPUTE_DIALOG, "status")).toBe(false);
   });
 
   it("keeps the whole inventory baselined — 0 new, 0 stale", () => {
@@ -117,18 +129,16 @@ describe("race-class guard — edge functions (create-payment release, proven on
   it("flags the three pre-fix id-only lifecycle writes", () => {
     const src = readFileSync(resolve(FIXTURES, "createPaymentRelease.prefix.ts.txt"), "utf8");
     const keys = guard.clientHitsInSource(CP, src, "edge").map((h: Hit) => h.key);
-    expect(keys).toEqual([
-      `edge:${CP}::opaque:updateFields`,
-      `edge:${CP}::payment_status+status`,
-      `edge:${CP}::payment_status+status#2`,
-    ]);
+    expect(keys.filter((k: string) => hasHitShape([k], "edge", CP, "opaque:updateFields"))).toHaveLength(1);
+    expect(keys.filter((k: string) => hasHitShape([k], "edge", CP, "payment_status+status"))).toHaveLength(2);
+    expect(keys).toHaveLength(3);
   });
 
   it("the live release / Quick Release / Quick Refund writes carry a status predicate", () => {
     const live = readFileSync(resolve(__dirname, "../..", CP), "utf8");
     const keys = guard.clientHitsInSource(CP, live, "edge").map((h: Hit) => h.key);
-    expect(keys).not.toContain(`edge:${CP}::opaque:updateFields`);
-    const flips = keys.filter((k: string) => k.startsWith(`edge:${CP}::payment_status+status`));
+    expect(hasHitShape(keys, "edge", CP, "opaque:updateFields")).toBe(false);
+    const flips = keys.filter((k: string) => hasHitShape([k], "edge", CP, "payment_status+status"));
     // Only cancel_escrow's claim-only fallback flip (audited safe 2026-09-14,
     // in baseline.safe) remains. admin_refund_general's full-refund flip left
     // the inventory on the dispute-races branch: it is pinned to the status and
@@ -148,16 +158,20 @@ describe("race-class guard — edge functions (create-payment release, proven on
     const AR = "supabase/functions/auto-release-payment/index.ts";
     const AD = "supabase/functions/auto-resolve-disputes/index.ts";
     const CB = "supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts";
-    expect(prefix).toEqual([
-      `edge:${AR}::payment_status+status`,
-      `edge:${AD}::payment_status+status`,
-      `edge:${CP}::opaque:{ stripe_session_id: newSessio`,
-      `edge:${CP}::status`,
-      `edge:${CP}::revision_completed_at`,
-      `edge:${CP}::payment_status`,
-      `edge:${CP}::payment_status+status`,
-      `edge:${CB}::opaque:{ ...(shouldBlockPayout ? { pa`,
-    ]);
+    expect(prefix).toHaveLength(8);
+    const expectedShapes: Array<["client" | "edge", string, string]> = [
+      ["edge", AR, "payment_status+status"],
+      ["edge", AD, "payment_status+status"],
+      ["edge", CP, "opaque:{ stripe_session_id: newSessio"],
+      ["edge", CP, "status"],
+      ["edge", CP, "revision_completed_at"],
+      ["edge", CP, "payment_status"],
+      ["edge", CP, "payment_status+status"],
+      ["edge", CB, "opaque:{ ...(shouldBlockPayout ? { pa"],
+    ];
+    expectedShapes.forEach(([kind, file, what], i) => {
+      expect(hasHitShape([prefix[i]], kind, file, what), `prefix[${i}]=${prefix[i]}`).toBe(true);
+    });
 
     const liveKeys = (p: string) =>
       guard.clientHitsInSource(p, readFileSync(resolve(__dirname, "../..", p), "utf8"), "edge").map((h: Hit) => h.key);
@@ -165,7 +179,7 @@ describe("race-class guard — edge functions (create-payment release, proven on
     expect(liveKeys(AR)).toEqual([]);
     expect(liveKeys(AD)).toEqual([]);
     const cp = liveKeys(CP);
-    for (const gone of ["status", "revision_completed_at", "payment_status"]) expect(cp).not.toContain(`edge:${CP}::${gone}`);
+    for (const gone of ["status", "revision_completed_at", "payment_status"]) expect(hasHitShape(cp, "edge", CP, gone)).toBe(false);
     // payment_status-CAS fixes the scanner cannot read are pinned by source, and
     // listed in baseline.safe — never in the grandfathered `allow`.
     const cpSrc = readFileSync(resolve(__dirname, "../..", CP), "utf8");
@@ -176,17 +190,20 @@ describe("race-class guard — edge functions (create-payment release, proven on
     const baseline = guard.loadBaseline() as { allow: Record<string, string>; safe: Record<string, string> };
     // cancel_escrow's fallback: forced cancelled only while OUR claim still holds, and paged.
     expect(cpSrc).toMatch(/\.eq\("id", jobId\)\.eq\("payment_status", "cancelling"\)\.select\("id"\);\s*\n\s*cancelUpdated = forced;/);
-    expect(Object.keys(baseline.safe)).toEqual(expect.arrayContaining([
-      `edge:${CP}::opaque:{ stripe_session_id: newSessio`,
-      `edge:${CP}::payment_status+status`,
-      `edge:${CB}::payment_status`,
-    ]));
+    const safeKeys = Object.keys(baseline.safe);
+    for (const [file, what] of [
+      [CP, "opaque:{ stripe_session_id: newSessio"],
+      [CP, "payment_status+status"],
+      [CB, "payment_status"],
+    ] as const) {
+      expect(hasHitShape(safeKeys, "edge", file, what), `${file}::${what}`).toBe(true);
+    }
     // The two writes deferred to the dispute-races branch are closed there:
     // admin_refund_general's flip carries a status predicate (no hit at all),
     // and execute-dispute-split's settlement write runs under the shared
     // settlement claim (audited safe). Nothing edge-side is grandfathered.
     expect(Object.keys(baseline.allow).filter((k) => k.startsWith("edge:"))).toEqual([]);
-    expect(Object.keys(baseline.safe)).toContain("edge:supabase/functions/execute-dispute-split/index.ts::opaque:jobPatch");
+    expect(hasHitShape(safeKeys, "edge", "supabase/functions/execute-dispute-split/index.ts", "opaque:jobPatch")).toBe(true);
     expect(readFileSync(resolve(__dirname, "../..", "supabase/functions/execute-dispute-split/index.ts"), "utf8"))
       .toMatch(/"claim_dispute_settlement",\s*\n\s*\{ _job_id: job\.id, _action: "split"/);
   });
@@ -213,13 +230,13 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
   it("flags the pre-fix Done stamp (helper_completed_at, id predicate only)", () => {
     const src = readFileSync(resolve(FIXTURES, "JobTrackingDone.prefix.tsx.txt"), "utf8");
     const keys = guard.clientHitsInSource(JT, src).map((h: Hit) => h.key);
-    expect(keys).toContain(`client:${JT}::helper_completed_at`);
+    expect(hasHitShape(keys, "client", JT, "helper_completed_at")).toBe(true);
   });
 
   it("the live Done stamp carries the live-status predicate", () => {
     const live = readFileSync(resolve(__dirname, "../..", JT), "utf8");
     const keys = guard.clientHitsInSource(JT, live).map((h: Hit) => h.key);
-    expect(keys).not.toContain(`client:${JT}::helper_completed_at`);
+    expect(hasHitShape(keys, "client", JT, "helper_completed_at")).toBe(false);
   });
 
   it("without the fix migration there is no status guard on helper_completed_at and a done job is cancellable", () => {
@@ -313,15 +330,15 @@ describe("race-class guard — detector units", () => {
   it("client: lifecycle column without status predicate is flagged; .eq/.in status clears it; non-lifecycle ignored", () => {
     const hit = (s: string) => guard.clientHitsInSource("a.ts", s).map((h: Hit) => h.key);
     expect(hit(`await supabase.from("jobs").update({ status: "cancelled" }).eq("id", id);`)).toEqual([
-      "client:a.ts::status",
+      "client:a.ts:1::status",
     ]);
     expect(hit(`await supabase.from("jobs").update({ payment_status: "paid" }).eq("id", id).eq("status", "accepted");`)).toEqual([]);
     expect(hit(`await supabase\n  .from("jobs")\n  .update({ helper_id: h })\n  .in("status", ["open"]);`)).toEqual([]);
     expect(hit(`await supabase.from("jobs").update({ title: t }).eq("id", id);`)).toEqual([]);
     expect(hit(`await supabase.from("jobs").update({ poster_completed_at: n }).eq("id", id);`)).toEqual([
-      "client:a.ts::poster_completed_at",
+      "client:a.ts:1::poster_completed_at",
     ]);
-    expect(hit(`await supabase.from("jobs").update(patch).eq("id", id);`)).toEqual(["client:a.ts::opaque:patch"]);
+    expect(hit(`await supabase.from("jobs").update(patch).eq("id", id);`)).toEqual(["client:a.ts:1::opaque:patch"]);
     expect(hit(`await supabase.from("jobs").update({ ...rest, title }).eq("id", id);`)).toHaveLength(1);
   });
 });

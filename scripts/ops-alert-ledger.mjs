@@ -20,8 +20,11 @@
  *           issue; closed by a person does NOT close it (not a re-run);
  *        3. a workflow item closes when its workflow's newest completed run on
  *           main is green AND started after the item's last_seen;
- *        4. Sentry unresolved issues (if SENTRY_AUTH_TOKEN/ORG/PROJECT are
- *           set) become items; otherwise it SAYS it skipped Sentry;
+ *        4. every Sentry issue with an event in the last 25h, WHATEVER its
+ *           Sentry status (Sentry auto-resolves after 1h; Q11), becomes or
+ *           bumps an item at its real lastSeen, so a regression reopens a
+ *           closed item (token: SENTRY_READ_TOKEN, else SENTRY_AUTH_TOKEN;
+ *           plus SENTRY_ORG/PROJECT); otherwise it SAYS it skipped Sentry;
  *        5. public.ops_alert_verify() re-asks every sql_condition item.
  *
  *   node scripts/ops-alert-ledger.mjs close --id <uuid> --evidence <what was re-run and what it showed> \
@@ -31,6 +34,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { OPEN_ITEMS_SQL, lit, newestNightlyIssueByTitle, recordOpsAlert, sql } from "./lib/opsAlertLedger.mjs";
+import { sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
 
 const [, , cmd, ...rest] = process.argv;
 const opt = (name, dflt = undefined) => {
@@ -169,32 +173,29 @@ async function sync() {
   // 4. Sentry. A sync that cannot read Sentry is itself an alert: it goes in
   // the ledger (so it stays open until a sync reads Sentry again) instead of
   // turning this hourly job red and burying steps 5-6.
-  const { SENTRY_AUTH_TOKEN: st, SENTRY_ORG: so, SENTRY_PROJECT: sp } = process.env;
+  const { SENTRY_ORG: so, SENTRY_PROJECT: sp } = process.env;
+  const st = sentryReadToken(process.env);
   let sentryProblem = null;
   if (st && so && sp) {
     try {
-      const res = await fetch(`https://sentry.io/api/0/projects/${so}/${sp}/issues/?query=is:unresolved&statsPeriod=24h&limit=50`, {
+      const res = await fetch(sentryIssuesUrl(so, sp), {
         headers: { Authorization: `Bearer ${st}` }, signal: AbortSignal.timeout(15000),
       });
       if (!res.ok) throw new Error(`Sentry ${res.status}: ${(await res.text()).slice(0, 200)}`);
       const issues = await res.json();
-      for (const i of issues) {
-        await recordOpsAlert({
-          sourceKind: "sentry", source: `sentry:${i.culprit ?? "unknown"}`.slice(0, 120), title: i.title,
-          severity: i.level === "fatal" ? "fatal" : i.level === "warning" ? "warning" : "error",
-          sample: `${i.title} — ${i.permalink}`, sampleRef: { sentry_id: i.id, url: i.permalink }, seenAt: i.lastSeen,
-        });
-      }
-      log.push(`sentry: ${issues.length} unresolved issue(s) synced`);
+      if (!Array.isArray(issues)) throw new Error(`Sentry answered without an issue list: ${JSON.stringify(issues).slice(0, 160)}`);
+      for (const i of issues) await recordOpsAlert(sentryIssueToAlert(i));
+      const resolved = issues.filter((i) => i.status === "resolved").length;
+      log.push(`sentry: ${issues.length} issue(s) with an event in the last 25h synced (${resolved} of them already "resolved" in Sentry)`);
     } catch (e) {
       sentryProblem = `Sentry could not be read: ${String(e.message).slice(0, 200)}`;
     }
   } else {
-    sentryProblem = "Sentry is not synced: SENTRY_AUTH_TOKEN/SENTRY_ORG/SENTRY_PROJECT not all set";
+    sentryProblem = "Sentry is not synced: SENTRY_READ_TOKEN (or SENTRY_AUTH_TOKEN)/SENTRY_ORG/SENTRY_PROJECT not all set";
   }
   if (sentryProblem) {
     log.push(`sentry: NOT SYNCED — ${sentryProblem}`);
-    console.log(`::warning title=Sentry alerts are NOT in the ops alert ledger::${sentryProblem}. OWNER ACTION: a Sentry token with project:read + event:read (repo secret SENTRY_AUTH_TOKEN).`);
+    console.log(`::warning title=Sentry alerts are NOT in the ops alert ledger::${sentryProblem}. OWNER ACTION: a Sentry token with project:read + event:read (repo secret SENTRY_READ_TOKEN).`);
     await recordOpsAlert({
       sourceKind: "workflow", source: "ops-alert-ledger", title: "Sentry alerts are not synced into the ops alert ledger",
       severity: "warning", sample: sentryProblem, verifyKind: "workflow", verifyRef: "prod-errors.yml",

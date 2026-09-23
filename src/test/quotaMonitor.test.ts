@@ -58,7 +58,7 @@ describe("quota inventory", () => {
     const ids = QUOTAS.map((q) => q.id);
     for (const id of [
       "supabase.db_size", "supabase.egress", "supabase.connections", "supabase.edge_invocations",
-      "supabase.realtime_messages", "supabase.storage", "vercel.deploys_per_day", "resend.sends_month", "sentry.errors_30d",
+      "supabase.realtime_messages", "supabase.storage", "vercel.deploys_per_day", "resend.sends_month", "sentry.errors_30d", "sentry.replays_30d",
     ]) expect(ids, id).toContain(id);
     expect(new Set(ids).size).toBe(ids.length);
   });
@@ -119,7 +119,10 @@ describe("evaluateQuotas", () => {
 });
 
 // ── the CLI, end to end, against a stub API ─────────────────────────────────
-type Mode = { sql: "ok" | "empty" | "fail" | "full" | "zero"; logs: "ok" | "fail"; gh: "ok" | "empty"; sentry: "ok" | "forbidden" };
+type Mode = {
+  sql: "ok" | "empty" | "fail" | "full" | "zero"; logs: "ok" | "fail"; gh: "ok" | "empty"; sentry: "ok" | "forbidden";
+  replays?: "low" | "dropping";
+};
 let server: Server;
 let base = "";
 let mode: Mode = { sql: "ok", logs: "ok", gh: "ok", sentry: "ok" };
@@ -143,6 +146,18 @@ beforeAll(async () => {
     }
     if (url.includes("/stats_v2/")) {
       if (mode.sentry === "forbidden") return send(403, { detail: "forbidden" });
+      if (url.includes("category=replay")) {
+        // Q275: the replay quota. "dropping" = the state of 2026-09-23: the
+        // cap reached and Sentry refusing the rest (outcome rate_limited).
+        const dropped = mode.replays === "dropping";
+        return send(200, {
+          intervals: ["2026-09-22T00:00:00Z"],
+          groups: [
+            { by: { outcome: "accepted" }, totals: { "sum(quantity)": dropped ? 50 : 3 } },
+            { by: { outcome: "rate_limited" }, totals: { "sum(quantity)": dropped ? 37 : 0 } },
+          ],
+        });
+      }
       return send(200, { intervals: ["2026-09-22T00:00:00Z"], groups: [{ by: {}, totals: { "sum(quantity)": 42 } }] });
     }
     if (url.includes("/stats/")) return send(403, { detail: "forbidden" });
@@ -203,6 +218,19 @@ describe("check-quota-usage.mjs (stub APIs)", () => {
     const { code, out } = await runCli({ sql: "zero", logs: "ok", gh: "ok", sentry: "ok" });
     expect(code).toBe(1);
     expect(out).toMatch(/database size read as 0 — refusing to report clean/);
+  }, 90_000);
+
+  // Q275: Sentry showed "Replay Quota Exceeded" (2026-09-23) and no monitor saw it.
+  // @mutate scripts/check-quota-usage.mjs |   await Promise.all([readSql(), readEdgeInvocations(), readDeploys(), readSentry(), readSentryReplays()]); |   await Promise.all([readSql(), readEdgeInvocations(), readDeploys(), readSentry()]);
+  // @mutate scripts/check-quota-usage.mjs |       value: by.accepted + by.rate_limited, |       value: by.accepted,
+  it("replays dropped by the Sentry quota -> the replay row reads OVER and alerts", async () => {
+    const low = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", replays: "low" });
+    expect(low.code, low.out).toBe(0);
+    expect(low.out).toMatch(/Session replays sent: accepted \+ dropped by quota \(last 30 days\) \| 3 \| 50/);
+    const full = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", replays: "dropping" });
+    expect(full.code, full.out).toBe(0);
+    expect(full.out).toMatch(/::warning title=Quota at 174%::Sentry Session replays sent/);
+    expect(full.out).toMatch(/50 accepted, 37 dropped by quota/);
   }, 90_000);
 
   it("Sentry refusing both endpoints -> red with both statuses", async () => {

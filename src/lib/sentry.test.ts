@@ -9,6 +9,7 @@ const initMock = vi.fn();
 const setUserMock = vi.fn();
 const captureExceptionMock = vi.fn();
 const addIntegrationMock = vi.fn();
+const setTagMock = vi.fn();
 
 vi.mock("@sentry/react", () => ({
   init: (...args: unknown[]) => initMock(...args),
@@ -20,6 +21,7 @@ vi.mock("@sentry/react", () => ({
   // block is gated behind import.meta.env.PROD so this stays unused,
   // but the symbol must exist for the named import to resolve.
   addIntegration: (...args: unknown[]) => addIntegrationMock(...args),
+  setTag: (...args: unknown[]) => setTagMock(...args),
   // Stub the integration helpers — the real ones return objects but the
   // init mock doesn't actually wire them so just return placeholders.
   breadcrumbsIntegration: () => ({ name: "breadcrumbs" }),
@@ -39,6 +41,7 @@ beforeEach(() => {
   setUserMock.mockReset();
   captureExceptionMock.mockReset();
   addIntegrationMock.mockReset();
+  setTagMock.mockReset();
 });
 
 async function loadFresh() {
@@ -377,3 +380,53 @@ describe("setSentryUser", () => {
 //     Sentry still reports as configured.
 // @mutate src/lib/sentry.ts | maskAllText: true, | maskAllText: false,
 // @mutate src/lib/sentry.ts | if (pattern.test(text)) return true; | return true;
+
+// Q275: automation spent the Sentry replay quota. MEASURED 2026-09-23 (30 days):
+// 39 of 63 replays carried a Playwright build signature (Chrome 151.0.7922 =
+// Playwright 1.62's Chromium; Mobile Safari 16.0/26.5 = its iPhone
+// descriptors), and none were recorded after 2026-09-14 ("Replay Quota
+// Exceeded"). An automated browser (navigator.webdriver) records no replay in a
+// PROD build; a person's browser still does. Errors still report, tagged.
+// @mutate src/lib/sentry.ts |     const recordReplays = import.meta.env.PROD && !automated; |     const recordReplays = import.meta.env.PROD;
+// @mutate src/lib/sentry.ts |     return typeof navigator !== "undefined" && navigator.webdriver === true; |     return false;
+// @mutate src/lib/sentry.ts |     if (recordReplays) { |     if (import.meta.env.PROD) {
+describe("Session Replay in automated browsers (Q275)", () => {
+  async function initProd(webdriver: boolean) {
+    vi.stubEnv("PROD", true);
+    vi.stubEnv("DEV", false);
+    // jsdom's navigator has no `webdriver`; define it for this case only.
+    Object.defineProperty(navigator, "webdriver", { configurable: true, get: () => webdriver });
+    vi.useFakeTimers();
+    try {
+      const { initSentry } = await loadFresh();
+      initSentry();
+      await vi.advanceTimersByTimeAsync(6_000);
+      // the deferred registration is a dynamic import: let it settle
+      vi.useRealTimers();
+      await new Promise((r) => setTimeout(r, 50));
+      return initMock.mock.calls[0][0] as { replaysSessionSampleRate: number; replaysOnErrorSampleRate: number };
+    } finally {
+      vi.useRealTimers();
+      delete (navigator as { webdriver?: boolean }).webdriver;
+      vi.unstubAllEnvs();
+    }
+  }
+
+  it("a person's browser in a PROD build samples and registers Replay", async () => {
+    const config = await initProd(false);
+    expect(config.replaysSessionSampleRate).toBeGreaterThan(0);
+    expect(config.replaysOnErrorSampleRate).toBe(1);
+    const names = addIntegrationMock.mock.calls.map((c) => (c[0] as { name?: string })?.name);
+    expect(names).toContain("replay");
+    expect(setTagMock).toHaveBeenCalledWith("automated", "false");
+  });
+
+  it("an automated browser (navigator.webdriver) records no replay at all, but still reports errors tagged", async () => {
+    const config = await initProd(true);
+    expect(initMock).toHaveBeenCalledOnce();
+    expect(config.replaysSessionSampleRate).toBe(0);
+    expect(config.replaysOnErrorSampleRate).toBe(0);
+    expect(addIntegrationMock).not.toHaveBeenCalled();
+    expect(setTagMock).toHaveBeenCalledWith("automated", "true");
+  });
+});

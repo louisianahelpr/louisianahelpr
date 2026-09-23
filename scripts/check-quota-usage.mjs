@@ -13,6 +13,9 @@
  *   4. Sentry REST: accepted error events over 30 days (org stats_v2; on a
  *      401/403 falls back to the project stats endpoint, which needs only
  *      project:read).
+ *   5. Sentry REST: session replays over 30 days, accepted + rate_limited
+ *      (org stats_v2 category=replay; Q275). No project-level fallback
+ *      exists for replays, so a refused read is UNREADABLE.
  *
  * At >= 80% of a limit: a warning item in the ops alert ledger (>= 100%: an
  * error item), verify-ref quota-monitor.yml, so the item closes only when this
@@ -184,8 +187,36 @@ async function readSentry() {
   }
 }
 
+async function readSentryReplays() {
+  const id = "sentry.replays_30d";
+  const { SENTRY_AUTH_TOKEN: t, SENTRY_ORG: org } = env;
+  if (!t || !org) return fail([id], "could not read: SENTRY_AUTH_TOKEN and SENTRY_ORG are required");
+  try {
+    const res = await fetch(
+      `${SENTRY}/api/0/organizations/${org}/stats_v2/?field=sum(quantity)&category=replay&outcome=accepted&outcome=rate_limited&groupBy=outcome&statsPeriod=30d&interval=1d`,
+      { headers: { Authorization: `Bearer ${t}` }, signal: AbortSignal.timeout(20_000) },
+    );
+    if (!res.ok) throw new Error(`Sentry stats_v2 (replay) ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const body = await res.json();
+    if (!Array.isArray(body?.groups) || !Array.isArray(body?.intervals) || body.intervals.length === 0) {
+      throw new Error(`Sentry stats_v2 (replay) answered without groups/intervals — refusing to report clean: ${JSON.stringify(body).slice(0, 160)}`);
+    }
+    const by = { accepted: 0, rate_limited: 0 };
+    for (const g of body.groups) {
+      const o = g?.by?.outcome === "rate_limited" ? "rate_limited" : "accepted";
+      by[o] += num(g?.totals?.["sum(quantity)"] ?? 0);
+    }
+    readings[id] = {
+      value: by.accepted + by.rate_limited,
+      note: `org stats_v2 category=replay: ${by.accepted} accepted, ${by.rate_limited} dropped by quota (rate_limited)`,
+    };
+  } catch (e) {
+    fail([id], `could not read Sentry replays: ${e?.message ?? e}`);
+  }
+}
+
 async function main() {
-  await Promise.all([readSql(), readEdgeInvocations(), readDeploys(), readSentry()]);
+  await Promise.all([readSql(), readEdgeInvocations(), readDeploys(), readSentry(), readSentryReplays()]);
   const res = evaluateQuotas(readings, { env, live });
   console.log(res.report);
   if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, res.report + "\n");

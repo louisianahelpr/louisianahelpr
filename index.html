@@ -73,7 +73,7 @@
          (scripts/check-csp-inline-scripts.mjs). Never add inline on*= handlers
          or javascript: URLs; use addEventListener. -->
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-iaYz71JxY8Sw94WGIk/jceJCUErTkA84wZQdpIAhpYo=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-qO2kOy/eF+W8D9m2qrNSEKwtzV7MTpLNJGhAKPoEHCA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -363,6 +363,12 @@
       in the DOM (React removes it on first commit), so a lazy chunk failing
       AFTER mount is left to the in-app recovery.
 
+      One exception (Q178): a <link data-lh-page-preload> is the CURRENT PAGE's
+      chunk, fetched early by src/boot/routePreload.ts beside the app. The
+      shell is fine when only that fails, so it is left to the in-app route
+      recovery ("This page hit a problem."), exactly as when the page chunk was
+      fetched only after the app had rendered.
+
       Same contract as recoverFromChunkError(): one cache-busting hard reload,
       guarded by the same 10s sessionStorage key so the two layers never loop
       between them; offline never reloads. If the reload does not recover, it
@@ -428,6 +434,7 @@
           if (fired || !t || t === window) return;
           var src = (t.tagName === "SCRIPT" && t.src) || (t.tagName === "LINK" && t.href) || "";
           if (!src) return;
+          if (t.hasAttribute("data-lh-page-preload")) return;
           var u;
           try { u = new URL(src, location.href); } catch (e) { return; }
           if (u.origin !== location.origin || u.pathname.indexOf("/assets/") !== 0 || !/\.js$/.test(u.pathname)) return;
@@ -551,6 +558,6 @@
              boot-failure fallback, which keys off #boot-loader. -->
       </div>
     </div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/entry.ts"></script>
   </body>
 </html>

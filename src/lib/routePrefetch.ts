@@ -70,6 +70,9 @@ const warmed = new Set<string>();
  */
 export function prefetchRoutesWhenIdle(paths: string[]): () => void {
   if (typeof window === "undefined") return () => {};
+  // Q178: a visitor who asked the browser to save data, or who is on a 2G-class
+  // link, pays for every speculative byte and gains least from it.
+  if (isConstrainedNetwork()) return () => {};
   const run = () => {
     for (const p of paths) prefetchRoute(p);
   };
@@ -77,14 +80,112 @@ export function prefetchRoutesWhenIdle(paths: string[]): () => void {
     requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
     cancelIdleCallback?: (id: number) => void;
   };
-  if (typeof w.requestIdleCallback === "function") {
-    const id = w.requestIdleCallback(run, { timeout: 3000 });
-    return () => w.cancelIdleCallback?.(id);
+  let cancel = () => {};
+  const schedule = () => {
+    if (typeof w.requestIdleCallback === "function") {
+      const id = w.requestIdleCallback(run, { timeout: 3000 });
+      cancel = () => w.cancelIdleCallback?.(id);
+      return;
+    }
+    // Safari / WKWebView has no requestIdleCallback — a plain timer is the
+    // fallback, held back far enough that the current route has settled.
+    const t = window.setTimeout(run, 1500);
+    cancel = () => window.clearTimeout(t);
+  };
+  // Q178: never while the CURRENT page is still loading (see whenPageSettled).
+  const stopWaiting = whenPageSettled(schedule);
+  return () => {
+    stopWaiting();
+    cancel();
+  };
+}
+
+/**
+ * Call `cb` once the page the visitor is looking at has finished loading
+ * (Q178): after `load`, AND after the network has gone quiet — no resource
+ * (chunk, image, API call) finished for `quietMs`. `load` alone is not enough:
+ * measured on a slow phone, `load` fired at ~1.06 s while the landing's chunks
+ * and data kept arriving until ~3.4 s, and an idle callback can run in any gap
+ * between two responses. A prefetch that starts then takes bandwidth from the
+ * page being waited on. Capped at `maxWaitMs` after `load` so a page that
+ * polls forever still gets its prefetch eventually.
+ */
+export function whenPageSettled(cb: () => void, quietMs = 1000, maxWaitMs = 10_000): () => void {
+  if (typeof window === "undefined") return () => {};
+  let done = false;
+  let timer: number | undefined;
+  let observer: PerformanceObserver | undefined;
+  let lastActivity = performance.now();
+  let loadedAt = 0;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    observer?.disconnect();
+    cb();
+  };
+  const check = () => {
+    if (done) return;
+    const now = performance.now();
+    const quietFor = now - lastActivity;
+    if (quietFor >= quietMs || now - loadedAt >= maxWaitMs) finish();
+    else timer = window.setTimeout(check, Math.max(100, quietMs - quietFor));
+  };
+  try {
+    observer = new PerformanceObserver(() => {
+      lastActivity = performance.now();
+    });
+    observer.observe({ type: "resource", buffered: false });
+  } catch {
+    observer = undefined; // no PerformanceObserver: `load` + quietMs alone
   }
-  // Safari / WKWebView has no requestIdleCallback — a plain timer is the
-  // fallback, held back far enough that the current route has settled.
-  const t = window.setTimeout(run, 1500);
-  return () => window.clearTimeout(t);
+  const onLoad = () => {
+    loadedAt = performance.now();
+    lastActivity = Math.max(lastActivity, loadedAt);
+    check();
+  };
+  if (document.readyState === "complete") onLoad();
+  else window.addEventListener("load", onLoad, { once: true });
+  return () => {
+    done = true;
+    observer?.disconnect();
+    window.clearTimeout(timer);
+    window.removeEventListener("load", onLoad);
+  };
+}
+
+/**
+ * Save-Data on, or a 2G-class effective connection (Network Information API;
+ * absent in Safari, where this is false and prefetch proceeds).
+ */
+export function isConstrainedNetwork(): boolean {
+  try {
+    const c = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    if (!c) return false;
+    return c.saveData === true || c.effectiveType === "slow-2g" || c.effectiveType === "2g";
+  } catch {
+    // A feature probe: an exotic navigator that throws on read just means we
+    // cannot tell, and prefetching (the pre-Q178 behaviour) is the default.
+    return false;
+  }
+}
+
+/**
+ * Where a visitor most likely goes next (Q178, owner 2026-09-23: "make sure
+ * everything is loading as fast as possible"). Warmed once the page they
+ * landed on has loaded (src/entry.ts), so the first tap to any of these finds
+ * its chunk already in memory. The signed-in list is the dock's tabs plus the
+ * post-job FAB; MobileNav warms the same set whenever the dock is shown, and
+ * this covers pages without a dock. `prefetchRoute`'s `warmed` set keeps each
+ * to one fetch whichever caller gets there first.
+ */
+export const LIKELY_NEXT_ROUTES = {
+  guest: ["/browse", "/login", "/signup"],
+  signedIn: ["/dashboard", "/messages", "/my-jobs", "/post-job", "/profile"],
+} as const;
+
+export function prefetchLikelyNextRoutes(signedIn: boolean, currentPath: string): () => void {
+  const list: readonly string[] = signedIn ? LIKELY_NEXT_ROUTES.signedIn : LIKELY_NEXT_ROUTES.guest;
+  return prefetchRoutesWhenIdle(list.filter((p) => p !== currentPath));
 }
 
 export function prefetchRoute(path: string): void {

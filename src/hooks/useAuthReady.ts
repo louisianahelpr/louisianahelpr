@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { recordColdLaunchPhase } from "@/lib/coldLaunchPhases";
 
 const AUTH_BOOTSTRAP_TIMEOUT_MS = 2500;
 // How long we will wait for a session RESTORE that we know is in flight (a
@@ -84,9 +85,10 @@ const emitAuthSnapshot = (rawSnapshot: AuthSnapshot) => {
     });
   }
   if (justBecameReady) {
-    void import("@/lib/sentry").then(({ markColdLaunchPhase }) =>
-      markColdLaunchPhase("auth-ready-resolved"),
-    );
+    // Buffered, not `import("@/lib/sentry")`: that fetched the whole Sentry
+    // SDK mid cold-load for a breadcrumb it then dropped (Q178). sentry.ts
+    // replays it on init; see coldLaunchPhases.ts.
+    recordColdLaunchPhase("auth-ready-resolved");
   }
   authListeners.forEach((listener) => listener(snapshot));
 };

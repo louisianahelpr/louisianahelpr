@@ -62,6 +62,14 @@ const STEPS = [
       why: "no dist/ — run `npm run build` first if you touched the bundle",
     },
   ],
+  [
+    "critical-path budget (built graph, Q178)",
+    "node scripts/perf/critical-path.mjs --check",
+    {
+      skipIf: () => !existsSync("dist/index.html"),
+      why: "no dist/ — run `npm run build` first if you touched the bundle",
+    },
+  ],
   ["repo-wide vitest", "npx vitest run", { skipIf: () => FAST, why: "--fast" }],
 ];
 

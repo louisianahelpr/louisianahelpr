@@ -533,8 +533,25 @@ export default defineConfig(({ mode }) => ({
     // for the entry's static graph but stops the recursive walk into
     // dynamic-import branches. Lazy chunks still load on demand when the
     // user navigates — they just aren't preloaded ahead of time.
+    //
+    // CORRECTED 2026-09-23 (Q178). `() => []` also emptied the list for
+    // DYNAMIC imports, not just index.html, so every lazy chunk walked its
+    // static graph one network round per level: the landing's own chunk was
+    // 20 JS rounds deep and requested last, at ~3.9 s on a slow phone. For a
+    // dynamic import the list is exactly that chunk's static closure — code
+    // the import will fetch anyway — so handing it over costs no unused bytes
+    // and only makes the fetches parallel. index.html's list is the entry's
+    // own static graph, which is now just the ~1 KB preload helper (the entry,
+    // src/entry.ts, reaches the app only through dynamic imports), so the
+    // 77-preload FCP regression above cannot come back through it;
+    // scripts/perf/critical-path.mjs fails if the entry's static graph grows.
+    // The page chunk the entry starts early (src/boot/routePreload.ts) gets
+    // its list too; routePreload marks those links so index.html's boot
+    // watchdog does not mistake a stale PAGE chunk for a stale HTML page.
+    // Measured: withholding the list instead (a plain import()) cost the
+    // landing +232 ms (2662 -> 2894 ms), its page-only deps walking 4 rounds.
     modulePreload: {
-      resolveDependencies: () => [],
+      resolveDependencies: (_filename, deps) => deps,
     },
     // "hidden" = .map files are still emitted (so Sentry / DevTools can
     // symbolicate uploaded stacks) but no `//# sourceMappingURL=` comment
@@ -660,6 +677,17 @@ export default defineConfig(({ mode }) => ({
                 if (id.includes("@sentry") || id.includes("sentry-internal")) return "sentry";
                 if (id.includes("posthog-js")) return "posthog";
               },
+            },
+            // Vite's dynamic-import preload helper (Q178). Every chunk that
+            // lazy-loads imports it, so rolldown parked it inside app-shared —
+            // and the entry (src/entry.ts), which exists to be tiny, then
+            // statically pulled all 138 KB of app-shared plus Supabase just to
+            // call it. Its own ~1 KB chunk keeps the entry to itself.
+            {
+              name: "preload-helper",
+              test: /vite\/preload-helper/,
+              priority: 50,
+              minSize: 0,
             },
             // ── First-party shared code ───────────────────────────────────
             // Without this group, every src/ module imported by two or more

@@ -50,6 +50,7 @@ import {
   httpContextIntegration,
 } from "@sentry/react";
 import { resolveSentryRelease } from "./sentryRelease";
+import { attachColdLaunchSink } from "./coldLaunchPhases";
 
 /**
  * Audit #2 from the 2026-05-27 cold-launch regression triage: a tag that
@@ -243,6 +244,9 @@ export function initSentry() {
     });
     initialized = true;
     markColdLaunchStart();
+    // Phases recorded before Sentry loaded (Q178: nothing imports this SDK
+    // early just to drop a breadcrumb any more) land now, at their real time.
+    attachColdLaunchSink(markColdLaunchPhase);
 
     // Defer Replay registration off the critical path. Privacy defaults:
     // - maskAllText: true — every text node (incl. <input> values) is
@@ -340,14 +344,14 @@ function markColdLaunchStart() {
  *   - "first-route-rendered"— `<App>` rendered its first non-Suspense child
  *   - "native-redirect-decided" — `NativeRedirect` picked /dashboard or /browse
  */
-export function markColdLaunchPhase(phase: string) {
+export function markColdLaunchPhase(phase: string, timestampSeconds: number = Date.now() / 1000) {
   if (!initialized) return;
   try {
     addBreadcrumb({
       category: "cold-launch",
       message: phase,
       level: "info",
-      timestamp: Date.now() / 1000,
+      timestamp: timestampSeconds,
     });
   } catch { /* ignore */ }
 }

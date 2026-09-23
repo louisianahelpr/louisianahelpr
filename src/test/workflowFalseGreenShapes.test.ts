@@ -128,7 +128,6 @@ const DIAG = "diagnostic output only (version strings / listings printed for a h
 /** `|| true` and friends that are truthful. `match` is a substring of `job / step :: line`. */
 const SWALLOW_OK: Allow[] = [
   { file: ".github/workflows/broken-links.yml", match: `|| echo "000")`, reason: "curl failing to connect becomes status 000, which the case statement below treats as BROKEN (FAIL=1) — the swallow converts a transport error into a failure, not a pass" },
-  { file: ".github/workflows/bundle-size.yml", match: "INITIAL_CHUNKS=$(grep -oE", reason: "grep exits 1 on no match; the EMPTY-GREP GUARD immediately below fails the step when INITIAL_CHUNKS is empty, so an empty read cannot pass" },
   { file: ".github/workflows/db-backup.yml", match: "N=$(grep -cF", reason: "grep -c prints 0 and exits 1 on no match; the next line fails the dump (FAIL=1) when N < 1, so zero rows is a failure" },
   { file: ".github/workflows/db-backup.yml", match: "TABLES=$(grep -cE", reason: "grep -c prints 0 and exits 1 on no match; the floor check right after fails when fewer than 30 tables carry data" },
   { file: ".github/workflows/db-deploy.yml", match: "supabase migration list --", reason: DIAG + "; the real push step below fails on its own if the CLI cannot reach prod" },

@@ -110,6 +110,23 @@ const walk = (file) => {
   }
 };
 walk(entry);
+// Q178: the entry (src/entry.ts) is now tiny and reaches the app shell —
+// main.tsx and everything it imports statically, the graph this check has
+// always meant — through a DYNAMIC import fired on its first tick, with the
+// whole static closure preloaded. That chunk is a root too; walking the entry
+// alone would reach only the preload helper and pass having checked nothing.
+// (The per-route page chunks the entry also starts are not roots, exactly as
+// before: each is fetched only on its own route.)
+{
+  const entrySrc = readFileSync(`${ASSETS}/${entry}`, "utf8");
+  const mainChunk = [...entrySrc.matchAll(/import\(\s*["'`]\.\/(main-[^"'`]+\.js)["'`]\s*\)/g)].map((x) => x[1])[0];
+  if (!mainChunk) {
+    fail(`${entry} has no dynamic import of main-*.js — the boot layout changed (see src/entry.ts). ` +
+         `Fix this walk rather than deleting it: without that root it cannot see the app.`);
+  }
+  parent.set(mainChunk, entry);
+  walk(mainChunk);
+}
 
 if (reached.size < 2) {
   fail(`the static-import walk reached ${reached.size} chunk(s) from ${entry}. ` +

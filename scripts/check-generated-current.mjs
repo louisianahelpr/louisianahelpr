@@ -200,6 +200,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/audit/press-every-control.mjs": "results to test-results/ (CI artifact)",
   "scripts/audit/measure-page-settle.mjs": "Q169 audit table to ~/.lh-shots/cls (evidence outside the repo); the CI budget is e2e/prod-audit/page-settle.spec.ts",
   "scripts/audit/rail-overlap-probe.mjs": "test-results/rail-probe",
+  "scripts/perf/measure-load.mjs": "Q178 load timings to ~/.lh-shots/q178 (evidence outside the repo); the CI budget is scripts/perf/critical-path.mjs --check",
   "scripts/audit/walk-every-control.mjs": "/tmp/lh-audit",
   "scripts/build-og-shell.mjs": "dist/ (build output)",
   "scripts/check-changed.mjs": "docs/audit/prepush-skips.log (untracked local log)",

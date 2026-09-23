@@ -1,7 +1,8 @@
-import { lazy, Suspense, forwardRef, useEffect, useState, type ReactElement } from "react";
+import { lazy, Suspense, forwardRef, useEffect, useState, type ComponentType, type ReactElement, type ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { lazyWithPreload } from "@/lib/lazyWithPreload";
+import { whenPageSettled } from "@/lib/routePrefetch";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -13,16 +14,32 @@ import { queryClient } from "@/lib/queryClient";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import RouteSuspenseFallback from "@/components/RouteSuspenseFallback";
-import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
-import DashboardRouteSkeleton from "@/components/DashboardRouteSkeleton";
-// Per-route Suspense fallbacks. Each is built ONLY from primitives already in
-// this entry chunk (Skeleton, PageScaffold/AppShell) so it paints on the first
-// tick, in the shape its route's own loading branch uses — see the block
-// comment in DashboardRouteSkeleton for why three different-shaped frames in
-// a row read as three loading screens.
-import ActivityRouteSkeleton from "@/components/ActivityRouteSkeleton";
-import ProfileRouteSkeleton from "@/components/ProfileRouteSkeleton";
-import LoginRouteSkeleton from "@/components/LoginRouteSkeleton";
+// Per-route Suspense fallbacks, in the shape each route's own loading branch
+// uses — see the block comment in DashboardRouteSkeleton for why three
+// different-shaped frames in a row read as three loading screens.
+//
+// Q178: lazy, each behind the plain page ground. Imported statically they put
+// every route's skeleton (and DashboardTitleBar -> NotificationPanel ->
+// popover -> Radix, ~45 KB gzip) on EVERY cold load, the landing's included,
+// competing for the same bandwidth as the page actually being opened. Since the
+// entry now starts the page chunk in the first round, a skeleton chunk lands
+// in the same round as the page it stands in for.
+const skeletonOnDemand = <P extends object>(load: () => Promise<{ default: ComponentType<P> }>) => {
+  // Typed back to the plain component: LazyExoticComponent widens props to
+  // PropsWithRef<P>, which a generic P cannot be proven to satisfy.
+  const Lazy = lazy(load) as unknown as ComponentType<P>;
+  const Skeleton = (props: P) => (
+    <Suspense fallback={<div className="min-h-screen bg-premium-page" aria-busy="true" />}>
+      <Lazy {...props} />
+    </Suspense>
+  );
+  return Skeleton;
+};
+const GuestBrowseSkeleton = skeletonOnDemand(() => import("@/components/GuestBrowseSkeleton"));
+const DashboardRouteSkeleton = skeletonOnDemand(() => import("@/components/DashboardRouteSkeleton"));
+const ActivityRouteSkeleton = skeletonOnDemand(() => import("@/components/ActivityRouteSkeleton"));
+const ProfileRouteSkeleton = skeletonOnDemand(() => import("@/components/ProfileRouteSkeleton"));
+const LoginRouteSkeleton = skeletonOnDemand(() => import("@/components/LoginRouteSkeleton"));
 // OfflineBanner statically imports WifiOff from lucide-react, which would
 // otherwise pull the entire lucide chunk onto the critical initial load path.
 // It's only ever visible when the network drops (rare), so lazy-loading is safe.
@@ -63,7 +80,37 @@ const SuccessMomentHost = lazy(() => import("@/components/feedback/SuccessMoment
 // PageTransition and ScrollToTop both import framer-motion. Lazy-loading
 // them breaks the static App.tsx → framer-motion import chain so the
 // "motion" chunk stays off the synchronous critical path.
-const PageTransition = lazy(() => import("@/components/PageTransition"));
+//
+// Q178: but `lazy()` alone still left framer ON the path. A lazy wrapper
+// suspends its CHILDREN until its own chunk lands, so every route written
+// `<PageTransition><Page /></PageTransition>` could not even REQUEST its page
+// chunk until PageTransition + framer (~40 KB gzip) had downloaded. Measured on
+// `/` at 375 on a slow phone: framer landed at 3.9 s and only then was Index
+// requested — the landing's own chunk, last. So the wrapper below never
+// suspends: until the animated component has loaded it renders the same plain
+// keyed <div> PageTransition itself renders for a route mounted while hidden
+// (useHiddenAtMount). A cold-loaded first page needs no enter animation (it is
+// the owner's plain background, then the page) and has no history for the
+// edge-swipe to go back to. The animated component is loaded once the page
+// has finished loading, and every route mounted after that animates as
+// before. The choice is made ONCE per mount (useState), so a page never
+// swaps wrappers — which would remount it — mid-life.
+let AnimatedPageTransition: ComponentType<{ children: ReactNode }> | null = null;
+const loadAnimatedPageTransition = () =>
+  import("@/components/PageTransition").then((m) => {
+    AnimatedPageTransition = m.default;
+  });
+whenPageSettled(() => {
+  void loadAnimatedPageTransition().catch(() => {
+    /* transitions are decoration: without them pages still render, plainly */
+  });
+});
+const PageTransition = ({ children }: { children: ReactNode }) => {
+  const location = useLocation();
+  const [Animated] = useState(() => AnimatedPageTransition);
+  if (!Animated) return <div key={location.key}>{children}</div>;
+  return <Animated>{children}</Animated>;
+};
 const ScrollToTop = lazy(() => import("@/components/ScrollToTop"));
 const MobileNav = lazy(() => import("./components/MobileNav"));
 const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));

@@ -73,6 +73,14 @@ function countDocumentLoads(page: Page): { n: number } {
 }
 
 async function setup(page: Page, context: BrowserContext, rc: RouteCase, baseURL: string) {
+  // Every start page now warms the likely next routes once it has loaded
+  // (Q178: guests get /browse, /login and /signup; src/lib/routePrefetch.ts
+  // LIKELY_NEXT_ROUTES). That would fetch `path`'s chunk during the warm-up and
+  // break this spec's own precondition (RouteCase.start "must not pre-fetch
+  // path's chunk"). Save-Data is the switch the app honours for exactly that.
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "connection", { value: { saveData: true }, configurable: true });
+  });
   if (rc.authed) {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL);
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });

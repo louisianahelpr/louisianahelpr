@@ -105,6 +105,16 @@ jobs:
         # fails if a chunk main.tsx defers is reachable before first paint.
         run: npm run check:deferred-vendors
 
+      - name: Critical path budget (Q178)
+        # The current page's own chunk must be requested in the FIRST round
+        # after the entry, and the whole path must stay 2 rounds deep. Before
+        # Q178 the landing's chunk was requested in round 7 and ready after 11
+        # (H1 at ~4.5 s on a slow phone); nothing here could see it, because
+        # every step above weighs BYTES and none counts ROUNDS. Budget:
+        # scripts/perf/critical-path-budget.json (rounds exact both ways, KB in
+        # a band). Unit-tested by src/test/criticalPathBudget.test.ts.
+        run: node scripts/perf/critical-path.mjs --check
+
       - name: Check chunk sizes
         # Budgets only apply to chunks that ship on the INITIAL page load
         # (the entry chunk + its static imports parsed from index.html).
@@ -120,9 +130,12 @@ jobs:
           MAX_INITIAL_KB=1500    # total JS parsed/executed on first paint
           FAIL=0
 
-          # Extract chunks referenced by index.html (entry + modulepreload).
-          # These are the only files the browser fetches before user interaction.
-          INITIAL_CHUNKS=$(grep -oE 'assets/[^"]+\.js' dist/index.html | sort -u || true)
+          # Every chunk a cold load fetches before the app shell can run.
+          # Q178: index.html now names only the tiny entry (src/entry.ts) and
+          # the preload helper; the app arrives through the entry's dynamic
+          # import of main-*.js, so grepping index.html would weigh ~4 KB and
+          # pass having measured nothing. critical-path.mjs walks the real graph.
+          INITIAL_CHUNKS=$(node scripts/perf/critical-path.mjs --boot-list)
 
           # EMPTY-GREP GUARD. Added 2026-08-31.
           #

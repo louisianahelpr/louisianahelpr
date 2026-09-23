@@ -1,8 +1,10 @@
 {
-  "generated": "2026-09-23T20:47:15.253Z",
-  "guards": 851,
-  "registered": 851,
-  "unregistered": [],
+  "generated": "2026-09-23T20:55:46.409Z",
+  "guards": 854,
+  "registered": 853,
+  "unregistered": [
+    "src/test/noGrepCountOnBundles.test.ts"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/activity/appliedJobCard/helperDisputeCopy.test.tsx",
@@ -28,6 +30,7 @@
     "src/test/messageToneInvariant.test.ts",
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
+    "src/test/noGrepCountOnBundles.test.ts",
     "src/test/profileTabParserMatchesTabTitles.test.ts",
     "src/test/storageBucketLimits.test.ts",
     "src/test/unknownZipIsNeverSilent.test.ts"

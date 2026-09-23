@@ -47,6 +47,7 @@ import { chromium } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseProfileTabKeys } from './lib/profileTabs.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
@@ -113,11 +114,7 @@ const AUTHED_ROUTES = [
 const TAB_TITLES_SRC = fs.readFileSync(
   new URL('../src/pages/profile/types.ts', import.meta.url), 'utf8',
 );
-const TAB_BLOCK = TAB_TITLES_SRC.slice(
-  TAB_TITLES_SRC.indexOf('TAB_TITLES'),
-  TAB_TITLES_SRC.indexOf('};', TAB_TITLES_SRC.indexOf('TAB_TITLES')),
-);
-const PROFILE_TABS = [...TAB_BLOCK.matchAll(/^\s*(\w+):\s*"/gm)].map((m) => m[1]);
+const PROFILE_TABS = parseProfileTabKeys(TAB_TITLES_SRC);
 if (PROFILE_TABS.length < 10) {
   throw new Error(
     `audit-capture: parsed only ${PROFILE_TABS.length} Profile tabs from types.ts — ` +

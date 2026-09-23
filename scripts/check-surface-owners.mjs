@@ -37,6 +37,7 @@
  * reproduce the exact bug this file exists to break.
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { parseProfileTabKeys } from "./lib/profileTabs.mjs";
 
 const STRUCTURAL = new Set([
   "lh-route-walker", "lh-state-matrix", "lh-visual-critic",
@@ -143,14 +144,8 @@ for (const m of readFileSync("src/App.tsx", "utf8").matchAll(/path="([^"]+)"/g))
 // ── enumerate: profile tabs, from the same constant the app routes on ──────
 if (existsSync("src/pages/profile/types.ts")) {
   const t = readFileSync("src/pages/profile/types.ts", "utf8");
-  const i = t.indexOf("TAB_TITLES");
-  // The opening quote may be `"` or a BACKTICK. It used to require `"`, which
-  // silently assumed every tab's title is a typed-in literal — so the moment
-  // `wrapped` became a template computed from `wrappedSeasonLabel()`, the tab
-  // dropped out of the enumeration entirely and this script reported it as a
-  // surface that "no longer exists in the app". The tab was fine; the parser
-  // was reading values when all it needs is KEYS.
-  for (const m of t.slice(i, t.indexOf("};", i)).matchAll(/^\s*(\w+):\s*["'`]/gm)) enumerated.push(`?tab=${m[1]}`);
+  // Shared parser (scripts/lib/profileTabs.mjs): keys only, any opening quote.
+  for (const k of parseProfileTabKeys(t)) enumerated.push(`?tab=${k}`);
 }
 
 // ── enumerate: post-job entry paths ────────────────────────────────────────

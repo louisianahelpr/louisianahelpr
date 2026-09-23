@@ -7587,7 +7587,7 @@ rows are non-tappable; panel identical in WebKit and Chromium.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 57 items — 11 done, 4 partly done (fixed, protection pending), 42 open.**
+**Queue: 58 items — 11 done, 4 partly done (fixed, protection pending), 43 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -8068,3 +8068,21 @@ sure someone hears it and closes it.
    setting: Settings -> Actions -> General -> Workflow permissions -> "Read
    and write permissions" + tick "Allow GitHub Actions to create and approve
    pull requests". Without it, stale numbers can only be fixed by hand.
+- [ ] **Q58 ONE place for everything open (owner, 2026-09-23: "all tracked in 1
+  place so new sessions can easily pick up and leave").** Tonight open work
+  lived in five places: this file; docs/audit/OPEN_ITEMS.md (stale 935
+  commits); the audit bus findings.jsonl (334 open); the ops_alert_ledger
+  table (35 open alerts); GitHub nightly-red issues; plus handoff notes in
+  memory. Make docs/OPEN.md the single entry point:
+  (a) retire OPEN_ITEMS.md (fold its live rows into the audit bus or here,
+  then leave a one-line pointer);
+  (b) a GENERATED "Everything open" block at the top of OPEN.md with the live
+  count and link for each source: queue items, audit-bus open findings and
+  blockers, ledger open alerts, open nightly-red issues. A scheduled refresh
+  plus check:generated keep it current;
+  (c) session-start hook prints that same block first;
+  (d) handoff memories POINT here instead of carrying their own lists, and the
+  session end (pause/handoff) updates this file;
+  (e) a guard that fails if a new doc declares itself an open/todo list or
+  grows unchecked checkbox lists outside docs/OPEN.md (allowlist with reasons,
+  two-way).

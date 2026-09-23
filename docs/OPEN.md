@@ -7663,7 +7663,7 @@ sure someone hears it and closes it.
   screen are also resolved with no fix recorded. Find out what resolves them
   (auto-resolve setting? a script?). Feed Sentry into the Q1 ledger; a regression
   must reopen it.
-- [ ] **Q12 A real user saw "We couldn't load your account"** (Sentry 2F/2E/2G,
+- [x] **Q12 DONE (measured 2026-09-23): not recurring.** 14 days of error_logs: 1 non-seed occurrence, the OWNER's account at 2026-09-22 15:10Z, right after the pg_cron/DB outage window (14:00-15:00Z). The rest were E2E test accounts (09-13, 09-15). Follow-up is Q39. Was: A real user saw "We couldn't load your account" (Sentry 2F/2E/2G,
   09-22, profile request timed out). Was it the pg_cron outage window, or does it
   still happen? Measure the profile-fetch timeout rate.
 - [ ] **Q13 CSP allows `'unsafe-inline'` in script-src.** It is what turned tonight's
@@ -7798,3 +7798,10 @@ sure someone hears it and closes it.
    Auth Tokens (or Custom Integrations) -> new token with `project:read` +
    `event:read` -> `gh secret set SENTRY_READ_TOKEN`. I'll wire the sync to
    that name, so it closes the "Sentry not synced" ledger item on the next hourly run.
+- [ ] **Q39 A real user seeing a full ERROR SCREEN is not tracked anywhere.**
+  The alert ledger skips client-origin error_logs rows (by design, to keep
+  noise out). But "Error screen shown: ..." for a NON-SEED user is exactly the
+  alert the owner means. Record it in the ledger (source kind `user-error-screen`,
+  non-seed only, fingerprint = screen + message), and close it when that
+  screen stops being shown to real users for 24h AND a synthetic check of the
+  route passes. Found while measuring Q12.

@@ -13,6 +13,10 @@
     {
       "version": "20260923110759",
       "why": "Q127. Applied by the Supabase GitHub integration (Q121), not db-deploy: prod workflow_run_logs 2026-09-23T11:17:52Z 'Applying migration... file=20260923110759_credential_url_is_own_document.sql' after 'Cloning git repo... git_ref=main' at 11:17:46Z (push of a161f37aa at ~11:17:16Z); db-deploy 35853658191 red only at 'Verify every prod migration was applied by db-deploy' (all gates green): no receipt."
+    },
+    {
+      "version": "20260923113829",
+      "why": "Q130. Applied by the Supabase GitHub integration (Q121), not db-deploy: prod workflow_run_logs 2026-09-23T11:54:44Z 'Applying migration... file=20260923113829_helper_credential_document_is_own.sql' after 'Cloning git repo... git_ref=main' at 11:54:37Z (push of 9d96d1dba at 11:54:05Z); 0 rows for it in migration_deploy_ledger; db-deploy 35857226638 red only at 'Verify every prod migration was applied by db-deploy' (all gates green): no receipt."
     }
   ]
 }

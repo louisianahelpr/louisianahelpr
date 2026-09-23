@@ -679,6 +679,33 @@ export type Database = {
         }
         Relationships: []
       }
+      error_log_throttle_drops: {
+        Row: {
+          backend_pid: number
+          dropped: number
+          first_at: string
+          kind: string
+          last_at: string
+          minute: string
+        }
+        Insert: {
+          backend_pid: number
+          dropped?: number
+          first_at?: string
+          kind: string
+          last_at?: string
+          minute: string
+        }
+        Update: {
+          backend_pid?: number
+          dropped?: number
+          first_at?: string
+          kind?: string
+          last_at?: string
+          minute?: string
+        }
+        Relationships: []
+      }
       error_logs: {
         Row: {
           context: Json
@@ -4953,6 +4980,7 @@ export type Database = {
         Returns: Json
       }
       check_dispute_velocity: { Args: { p_user_id: string }; Returns: boolean }
+      check_error_log_throttle: { Args: never; Returns: Json }
       check_ops_digest_delivery: { Args: never; Returns: Json }
       check_push_token_health: { Args: never; Returns: Json }
       check_stale_dispute_settlement_claims: { Args: never; Returns: Json }
@@ -5963,6 +5991,10 @@ export type Database = {
         }[]
       }
       reap_stranded_instant_payouts: { Args: never; Returns: Json }
+      record_error_log_throttle_drop: {
+        Args: { p_kind: string }
+        Returns: undefined
+      }
       record_job_view: { Args: { p_job_id: string }; Returns: string }
       record_profile_view: {
         Args: { p_viewed_user_id: string }

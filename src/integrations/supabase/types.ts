@@ -335,6 +335,93 @@ export type Database = {
         }
         Relationships: []
       }
+      db_saturation_samples: {
+        Row: {
+          active_conns: number | null
+          calls_per_s: number | null
+          client_conns: number | null
+          conn_pct: number | null
+          db_problems: string[]
+          exec_ms_per_s: number | null
+          id: number
+          idle_in_xact: number | null
+          log_problem: string | null
+          log_timeouts: number | null
+          log_window_minutes: number | null
+          longest_active_s: number | null
+          max_conns: number | null
+          origin: string
+          p95_ms: number | null
+          sampled_at: string
+          window_app_calls: number | null
+          window_s: number | null
+        }
+        Insert: {
+          active_conns?: number | null
+          calls_per_s?: number | null
+          client_conns?: number | null
+          conn_pct?: number | null
+          db_problems?: string[]
+          exec_ms_per_s?: number | null
+          id?: number
+          idle_in_xact?: number | null
+          log_problem?: string | null
+          log_timeouts?: number | null
+          log_window_minutes?: number | null
+          longest_active_s?: number | null
+          max_conns?: number | null
+          origin?: string
+          p95_ms?: number | null
+          sampled_at?: string
+          window_app_calls?: number | null
+          window_s?: number | null
+        }
+        Update: {
+          active_conns?: number | null
+          calls_per_s?: number | null
+          client_conns?: number | null
+          conn_pct?: number | null
+          db_problems?: string[]
+          exec_ms_per_s?: number | null
+          id?: number
+          idle_in_xact?: number | null
+          log_problem?: string | null
+          log_timeouts?: number | null
+          log_window_minutes?: number | null
+          longest_active_s?: number | null
+          max_conns?: number | null
+          origin?: string
+          p95_ms?: number | null
+          sampled_at?: string
+          window_app_calls?: number | null
+          window_s?: number | null
+        }
+        Relationships: []
+      }
+      db_saturation_state: {
+        Row: {
+          app_stats: Json
+          id: number
+          sampled_at: string
+          total_calls: number
+          total_ms: number
+        }
+        Insert: {
+          app_stats?: Json
+          id?: number
+          sampled_at: string
+          total_calls: number
+          total_ms: number
+        }
+        Update: {
+          app_stats?: Json
+          id?: number
+          sampled_at?: string
+          total_calls?: number
+          total_ms?: number
+        }
+        Relationships: []
+      }
       dispute_settlement_claims: {
         Row: {
           action: string
@@ -4861,6 +4948,10 @@ export type Database = {
         Args: { p_has_helper: boolean; p_hours_until: number }
         Returns: number
       }
+      check_db_saturation: {
+        Args: { p_log_timeouts?: number; p_log_window_minutes?: number }
+        Returns: Json
+      }
       check_dispute_velocity: { Args: { p_user_id: string }; Returns: boolean }
       check_ops_digest_delivery: { Args: never; Returns: Json }
       check_push_token_health: { Args: never; Returns: Json }
@@ -4945,6 +5036,8 @@ export type Database = {
           schedule: string
         }[]
       }
+      db_saturation_problems: { Args: { p: Json }; Returns: string[] }
+      db_saturation_thresholds: { Args: never; Returns: Json }
       decline_job_offer: { Args: { p_application_id: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }

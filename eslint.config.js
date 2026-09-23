@@ -290,6 +290,13 @@ const OPACITY_STATE_LEGACY = [
 ];
 
 export default tseslint.config(
+  // A `// eslint-disable-next-line X` that no longer suppresses anything (the
+  // rule was removed, the code around it changed) is a silent lie: it reads
+  // as "known issue, intentionally skipped" forever after the issue is gone.
+  // Q246 found one in scripts/state-review.mjs that pre-dated this repo ever
+  // enabling `no-await-in-loop` at all. This is the class fix, not a one-off:
+  // any future stale disable directive, anywhere, now fails `npm run lint`.
+  { linterOptions: { reportUnusedDisableDirectives: "error" } },
   // `.claude/**` excludes agent worktree copies under `.claude/worktrees/` —
   // without this, `eslint .` lints a duplicate of the whole codebase per
   // worktree (slow) and reports `supabase/functions` errors the top-level

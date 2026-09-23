@@ -215,8 +215,8 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
           // printing claims it cannot keep does not get to open with one.
           body={
             data.market?.demand
-              ? "Apply for a job and finish one, and this page starts answering where your money comes from. The posting clock below already works."
-              : "Apply for a job and finish one, and this page starts answering where your money comes from and when to be looking."
+              ? "Any account can do this: take a job and finish it, and this page starts answering where your money comes from. The posting clock below already works."
+              : "Any account can do this: take a job and finish it, and this page starts answering where your money comes from and when to be looking."
           }
         />
       )}

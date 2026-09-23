@@ -270,7 +270,8 @@ owner, and dead tables still carry RLS policies that must be reasoned about.
 |---|---|
 | **Entire B2B / business tier** | `businesses`, `business_members`, `business_api_keys`, `business_webhooks`, `business_job_templates`, and every `business_*` RPC — **especially `create_business_api_key`** (customer-facing API keys for a deleted product). **No public API, no outbound webhooks.** |
 | **Time banking** | `time_credits`, and its handling inside `money-reconciliation` |
-| **Pet evacuation** | `evacuation_pets` only. **Pet profiles stay** — `pet_profiles`, `job_pets`, `pet_report_cards`, `care_relationships` are live |
+| **Pet evacuation** | `evacuation_pets` only. **Pet profiles stay** — `pet_profiles`, `job_pets` are live. (`pet_report_cards` was dropped 2026-09-13, proven dead on prod — Q246; `care_relationships` was never part of pet evacuation, see the Family & Care row below — do not read either as still live here.) |
+| **Family & Care dashboard** (`/family`) | `care_relationships`, dropped 2026-09-01 owner decision (`20260829083842_drop_family_care.sql`). The `senior_mode` / `preferred_helper_id` columns on `profiles` from the same original migration are unrelated and stay live (Senior Mode, Profile → Accessibility). |
 | **Community posts** | `community_posts`, `community_post_likes` |
 | ~~**Broadcast messages**~~ | **THIS ROW WAS WRONG — the feature is LIVE. See the correction below.** |
 | **Retainer agreements** | `retainer_agreements` |

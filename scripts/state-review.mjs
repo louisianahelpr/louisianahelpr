@@ -405,7 +405,6 @@ if (DO_REVIEW) {
   // Serial on purpose — rate limits, and a review run is not the hot path.
   for (const p of packets) {
     process.stderr.write(`reviewing ${p.cellId} @ ${p.shot} … `);
-    // eslint-disable-next-line no-await-in-loop
     const r = await reviewOne(p);
     findings.push(r);
     process.stderr.write(`${r.error ? "ERROR" : `${(r.findings ?? []).length} findings`}\n`);

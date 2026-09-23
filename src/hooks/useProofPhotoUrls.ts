@@ -60,7 +60,6 @@ export function useProofPhotoUrls(
     };
     // `values` is intentionally absent: its identity changes every render at
     // most call sites, `key` is its content.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, expiresInSeconds]);
 
   if (state.key !== key) return values.map(() => null);

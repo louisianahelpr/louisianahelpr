@@ -140,7 +140,7 @@ jobs:
         run: node scripts/e2e/request-budget.mjs --label ${{ matrix.project }}
       - name: Keep milestones, failure screenshots and traces
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: abuse-notifications-${{ matrix.project }}
           path: |

@@ -110,6 +110,7 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
 
   // ── failure: the skip means nothing was tested ─────────────────────────────
   { file: "e2e/journeys/", match: "test.skip(!avail.ok, avail.why)", verdict: "failure", why: MISSING_CREDS },
+  { file: "e2e/slow-network/", match: "test.skip(!avail.ok, avail.why)", verdict: "failure", why: MISSING_CREDS },
   { file: "e2e/journeys/time-travel.spec.ts", match: "sessionsAvailable().why", verdict: "failure", why: MISSING_CREDS },
   { file: "e2e/journeys/trailing-icon-fields.spec.ts", match: "!session,", verdict: "failure", why: MISSING_CREDS },
   { file: "e2e/auth.spec.ts", match: "!haveCreds", verdict: "failure", why: MISSING_CREDS },

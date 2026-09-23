@@ -86,6 +86,8 @@ function storagePolicies(): Map<string, { cmd: string; text: string; file: strin
   return live;
 }
 
+// Exact both ways: the trigger's extension set must EQUAL this list.
+// @two-way src/test/credentialUrlIsOwnDocument.test.ts:expect([...new Set(exts)].sort()).toEqual(ALLOWED_EXT);
 const ALLOWED_EXT = ["heic", "jpeg", "jpg", "pdf", "png", "webp"];
 
 describe("a credential URL is the member's own uploaded document (Q127)", () => {

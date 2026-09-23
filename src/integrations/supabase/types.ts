@@ -5770,6 +5770,10 @@ export type Database = {
         Returns: string
       }
       helper_cancel_booking: { Args: { p_job_id: string }; Returns: Json }
+      helper_credential_document_ok: {
+        Args: { p_path: string; p_type: string; p_user_id: string }
+        Returns: boolean
+      }
       helper_has_advanced_analytics: {
         Args: { p_user_id: string }
         Returns: boolean

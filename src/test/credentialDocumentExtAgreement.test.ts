@@ -4,7 +4,7 @@
 // @mutate supabase/functions/complete-signup/index.ts | /credentials/license-${Date.now()}.${licenseDoc.ext}` | /credentials/license-${Date.now()}.${safeDocumentExt(licenseContentType, licenseExt)}`
 // @mutate supabase/functions/complete-signup/index.ts | contentType: insuranceDoc.contentType, | contentType: insuranceContentType \|\| "application/octet-stream",
 // @mutate supabase/migrations/20260921092104_cap_private_storage_buckets.sql | 'image/heic','application/pdf'] | 'image/heic','application/pdf','image/gif']
-// @mutate src/components/profile/CredentialsTab.tsx | const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"]; | const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf", "image/tiff"];
+// @mutate src/components/profile/CredentialsTab.tsx | "image/webp", "application/pdf"]; | "image/webp", "application/pdf", "image/tiff"];
 // @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql | [Pp][Nn][Gg]\|[Jj][Pp][Ee]?[Gg]\|[Ww][Ee][Bb][Pp]\|[Hh][Ee][Ii][Cc])$') THEN | [Pp][Nn][Gg]\|[Jj][Pp][Ee]?[Gg]\|[Ww][Ee][Bb][Pp])$') THEN
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";

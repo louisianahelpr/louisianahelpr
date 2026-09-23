@@ -81,6 +81,8 @@ function newestFunction(name: string): Def | null {
 const allFrom = (from: string) => files.filter((f) => f >= from).map((f) => ws(sqlOf.get(f)!)).join(" ");
 const everything = files.map((f) => ws(sqlOf.get(f)!));
 
+// Exact both ways: the helper's extension set must EQUAL this list.
+// @two-way src/test/helperCredentialDocumentIsOwn.test.ts:expect(extensionsOf(b)).toEqual(ALLOWED_EXT);
 const ALLOWED_EXT = ["heic", "jpeg", "jpg", "pdf", "png", "webp"];
 function extensionsOf(body: string): string[] {
   const alt = body.match(/-\[0-9\]\{13\}\\\.\(([^)]*)\)\$'\)/);

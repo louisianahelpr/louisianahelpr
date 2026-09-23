@@ -53,7 +53,7 @@ function run(dbPool: number | null, pools: number[]): Promise<{ code: number; ou
 
 describe("Q317: the pool budget is graded", () => {
   it("pools that overflow the 57 usable slots are red", async () => {
-    // 30 + 20 + 8 other + 10 cron = 68 > 57
+    // fixture arithmetic (SQL_ROW, measured 2026-09-23): 30 + 20 + 8 other + 10 cron = 68 > 57
     const r = await run(30, [20]);
     expect(r.code).not.toBe(0);
     expect(r.out).toMatch(/pools may hold 68 connections but only 57 are usable/);

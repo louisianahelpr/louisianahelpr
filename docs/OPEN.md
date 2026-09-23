@@ -7587,7 +7587,7 @@ rows are non-tappable; panel identical in WebKit and Chromium.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 67 items — 12 done, 4 partly done (fixed, protection pending), 51 open.**
+**Queue: 74 items — 12 done, 4 partly done (fixed, protection pending), 58 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -8165,3 +8165,31 @@ sure someone hears it and closes it.
 - [ ] **Q67 An automatic morning page.** Generated daily: what shipped (commits
   grouped), what's red (scoreboard), new alerts, and the decisions waiting on
   the owner. The owner should never have to ask "what happened overnight".
+- [ ] **Q68 Slow and patchy networks (rural Louisiana).** Run the core journeys
+  (sign in, browse, post, apply, message, pay) on throttled 3G, and with
+  the connection dropping mid-action. Every wait shows progress, retries are
+  safe (no double post or pay), and nothing hangs silently. Add a CI budget
+  (Playwright network throttling) so it can't regress.
+- [ ] **Q69 Rollback drill.** Practise and time the three undo paths: a Vercel
+  rollback to the previous deploy, reverting a migration (write the down
+  migration, apply it in PGlite, and document the prod steps), and pulling or
+  expediting an app build. Write the runbook, and re-drill quarterly.
+- [ ] **Q70 Privacy requests end to end, monthly.** Account deletion and data
+  export run against a test account on a schedule: every table the user
+  touched is anonymised/deleted per policy, the export contains everything,
+  and a job outliving its poster still renders (CLAUDE.md "a job can outlive
+  its poster").
+- [ ] **Q71 Accessibility on every route.** An automated axe scan across the full
+  route inventory in CI (both themes, 375 + 1440), failing on
+  serious/critical issues, plus a real VoiceOver pass on iOS each release,
+  recorded with review:record.
+- [ ] **Q72 Analytics that silently stop.** Key product events (signup, job
+  posted, application, message sent, payment completed, review left) should
+  never fall to zero for a day without an alert. Add volume monitors to the
+  ledger, and verify the events fire in a journey test.
+- [ ] **Q73 Email deliverability.** Verify SPF/DKIM/DMARC for the sending domain,
+  seed-inbox placement (inbox vs spam), bounce and complaint rates from
+  Resend, and why test mail dead-letters (Q29/Q2). Show them on the scoreboard.
+- [ ] **Q74 App crash rate.** iOS/Android crash-free sessions from Sentry native
+  + App Store Connect, on the scoreboard with a target (e.g. >= 99.5%), and
+  a crash spike creates a ledger alert.

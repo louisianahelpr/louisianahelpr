@@ -40,15 +40,18 @@ grants as (
     group by table_name, grantee) g group by table_name
 ),
 colgrants as (
-  -- Column-level INSERT/UPDATE grants, only where the role lacks the table-level
-  -- privilege (e.g. profiles: UPDATE granted on 92 of 103 columns).
+  -- Column-level INSERT/UPDATE/SELECT grants, only where the role lacks the
+  -- table-level privilege (e.g. profiles: UPDATE granted on 92 of 103 columns;
+  -- jobs: SELECT per column since the privacy hardening). SELECT was missing
+  -- until 2026-09-23 (Q124), so every jobs write that reads back or filters its
+  -- row was reported as rejected although prod accepts it.
   select relname, jsonb_object_agg(grantee, privs) as colgrants from (
     select relname, grantee, jsonb_object_agg(privilege_type, cols) as privs from (
       select cg.table_name as relname, cg.grantee, cg.privilege_type,
         jsonb_agg(cg.column_name order by cg.column_name) as cols
       from information_schema.role_column_grants cg
       where cg.table_schema = 'public' and cg.grantee in ('anon', 'authenticated')
-        and cg.privilege_type in ('INSERT', 'UPDATE')
+        and cg.privilege_type in ('INSERT', 'UPDATE', 'SELECT')
         and not exists (select 1 from information_schema.role_table_grants tg
           where tg.table_schema = 'public' and tg.table_name = cg.table_name
             and tg.grantee = cg.grantee and tg.privilege_type = cg.privilege_type)

@@ -1,8 +1,11 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 // Two halves, two mutations. The first is a real bad write in src/ — the
 // defect class this guard exists for. The second disables the engine's
 // unknown-column check, which is what the "each check can fail" block below
 // pins.
 // @mutate src/pages/dashboard/useSaveJob.ts | .upsert({ user_id: userId, job_id: jobId } | .upsert({ user_id: userId, jobb_id: jobId }
+// @mutate scripts/audit/write-contract.sql | cg.privilege_type in ('INSERT', 'UPDATE', 'SELECT') | cg.privilege_type in ('INSERT', 'UPDATE')
 // @mutate scripts/audit/write-contract.mjs | if (!col) { reject("unknown_column" | if (!col) { if (false) reject("unknown_column"
 import { describe, it, expect } from "vitest";
 // @ts-expect-error — plain .mjs script, no type declarations
@@ -112,3 +115,15 @@ describe("write contract against the prod schema snapshot", () => {
     });
   });
 });
+describe("the snapshot records column-level SELECT grants (Q124)", () => {
+  it("the refresh query collects SELECT column grants, and jobs has them", () => {
+    const sql = readFileSync(join(__dirname, "../../scripts/audit/write-contract.sql"), "utf8");
+    // jobs grants SELECT per column (privacy hardening). Without SELECT here,
+    // every jobs write that reads back or filters its row was reported as
+    // rejected although prod accepts it (22 false REJECTs on 2026-09-23).
+    expect(sql).toMatch(/cg\.privilege_type in \('INSERT', 'UPDATE', 'SELECT'\)/);
+    const snap = JSON.parse(readFileSync(join(__dirname, "../../scripts/audit/write-contract.snapshot.json"), "utf8"));
+    expect((snap.tables.jobs.columnGrants?.authenticated?.SELECT ?? []).length).toBeGreaterThan(50); // 109 on 2026-09-23
+  });
+});
+

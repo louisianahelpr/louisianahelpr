@@ -380,7 +380,11 @@ export function checkWrite(w, snapshot) {
       const granted = (table.grants[role] ?? []).includes(priv);
       if (!granted) {
         const colGranted = table.columnGrants?.[role]?.[priv];
-        if (colGranted && w.payload) {
+        if (priv === "SELECT" && colGranted?.length) {
+          // SELECT is needed to read the row back or to filter; the columns it
+          // needs are the selected/filtered ones, not the payload's. A column
+          // grant covers that as long as it exists (Q124); RLS is still checked below.
+        } else if (colGranted && w.payload) {
           // Column-level grant: every column the payload names must be covered.
           const denied = Object.keys(w.payload.keys).filter((k) => table.columns[k] && !colGranted.includes(k));
           for (const k of denied) reject("no_column_grant", `${role} has no ${priv} privilege on column ${w.target}.${k}`);

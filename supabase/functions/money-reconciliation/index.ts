@@ -3,7 +3,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // THIS FUNCTION IS STRICTLY READ-ONLY. It reports; it NEVER "fixes" money.
 // Every Supabase call below is a `.select()`. No insert, no update, no upsert,
-// no Stripe call, no RPC with side effects. If a future edit adds a write to
+// no RPC with side effects. The ONLY Stripe calls are
+// `paymentIntents.retrieve` (docs/OPEN.md Q50: the DB's word that a cancelled
+// job's money went back is checked against Stripe's own) — never a create,
+// capture, cancel or refund. If a future edit adds a write to
 // this file, that edit is wrong: a reconciler that repairs its own findings
 // can no longer be trusted to report them, and an automated money-mutator is
 // exactly the thing nobody should build without a human in the loop.
@@ -38,6 +41,7 @@
 // that has ever touched Stripe is a seed row.
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { computeCancellationFee, helperIsCommitted, hoursUntilJob } from "../_shared/cancellationFee.ts";
@@ -46,6 +50,7 @@ import { AUTO_COMPLETE_HOURS } from "../_shared/escrowTiming.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
+import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 
 /** Offending ids reported per check. A bad day must not emit a 10MB payload. */
 const MAX_IDS_PER_CHECK = 10;
@@ -106,6 +111,19 @@ const SETTLE_WINDOW_MS = SETTLE_WINDOW_HOURS * 60 * 60 * 1000;
  */
 const PAYOUT_WINDOW_HOURS = 6;
 const PAYOUT_WINDOW_MS = PAYOUT_WINDOW_HOURS * 60 * 60 * 1000;
+
+/**
+ * Stripe-side comparison window (docs/OPEN.md Q50). Every run asks Stripe about
+ * each settled job's PaymentIntent, one `retrieve` per job, so the set has to be
+ * bounded. 30 days: a disagreement is reported on every daily run for a month
+ * before the job ages out, and an uncaptured card hold expires at Stripe after
+ * 7 days anyway. The per-run ceiling is a safety valve, not a sample: hitting it
+ * is reported as a truncated scan (a defect), never silently accepted.
+ */
+const STRIPE_LOOKBACK_DAYS = 30;
+const STRIPE_LOOKBACK_MS = STRIPE_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
+const MAX_STRIPE_READS = 300;
+const STRIPE_READ_CONCURRENCY = 10;
 
 type Severity = "critical" | "warning" | "info";
 
@@ -315,6 +333,30 @@ serve(async (req) => {
         "critical",
         `payment_status='payout_pending' more than ${PAYOUT_WINDOW_HOURS}h past payout_scheduled_at — the Helpr was told they would be paid and nothing has moved. This is the END STATE of an unguarded release write (a zero-row flip after the transfer went out) and of a payout that failed with nothing recorded, and until now NOTHING detected it: this reconciler only looked at 'escrow'.`,
       ),
+      // ── The DB's settled state vs Stripe's (docs/OPEN.md Q50) ──────────
+      // Every check above grades the DB against itself. A job the DB says is
+      // settled — payment_status 'cancelled' or 'refunded' — was only ever
+      // TRUSTED to have had its money returned. These four ask Stripe.
+      stripeHoldLive: new Check(
+        "stripe_money_live_on_settled_job",
+        "critical",
+        "The DB says this job's payment is settled (payment_status 'cancelled'/'refunded'), but Stripe's PaymentIntent is still requires_capture (a live card hold) or processing (money still arriving). Nothing will release or refund it: the settlement paths only select jobs still in 'escrow'.",
+      ),
+      stripeUnderRefunded: new Check(
+        "stripe_charge_not_refunded_on_cancelled_job",
+        "critical",
+        "A cancelled, undisputed job's charge is captured at Stripe and the platform kept more than the cancellation fee plus the non-refundable service fee (floored at Stripe's real processing cost) — the same ceiling void-cancelled-payments and cancel_escrow refund against. The poster was not given back money the DB says they were.",
+      ),
+      stripeRefundLedger: new Check(
+        "stripe_refund_ledger_mismatch",
+        "warning",
+        "Stripe's amount_refunded on this job's charge differs from the sum of its payment_refunds ledger rows — a refund moved with no record, or a recorded refund never reached Stripe (or later failed).",
+      ),
+      stripePiMissing: new Check(
+        "stripe_payment_intent_not_found",
+        "warning",
+        "jobs.stripe_payment_intent_id names a PaymentIntent the configured Stripe key cannot see (resource_missing). Either the id is wrong or it belongs to the other key mode (test vs live) — so this job's money cannot be reconciled at all.",
+      ),
       // `time_credit_balance_drift` was retired with the table it graded.
       // `public.time_credits` was dropped by migration 20260901035602 (its RLS
       // let any signed-in user mint their own credits, and nothing in the app
@@ -343,7 +385,7 @@ serve(async (req) => {
       const q = admin
         .from("jobs")
         .select(
-          "id, is_seed, status, payment_status, budget, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at",
+          "id, is_seed, status, payment_status, budget, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at, stripe_payment_intent_id, customer_fee_amount",
           countOpt,
         )
         // Paging without an ORDER BY is sampling, not paging: the cap and the
@@ -798,6 +840,145 @@ serve(async (req) => {
       }
     }
 
+    // ── Settled jobs vs Stripe (docs/OPEN.md Q50) ────────────────────────────
+    // WHY: on 2026-09-23 the DB showed 79 cancelled jobs with a PaymentIntent,
+    // every one payment_status 'cancelled'/'refunded' — "no live holds". That
+    // was the DB grading itself. A one-off read of Stripe that day agreed (0
+    // requires_capture, all 79 captured then refunded, each refund equal to its
+    // payment_refunds row), but nothing would have noticed the day they did
+    // not: void-cancelled-payments and cancel_escrow only select jobs still in
+    // 'escrow', so a job flipped settled while its money stayed at Stripe is
+    // never looked at again. This is the standing comparison.
+    //
+    // seed-policy: follows the run's seed scope (`jobRows` is is_seed = false unless
+    // ?include_seed=1). READ-ONLY: paymentIntents.retrieve and nothing else.
+    const settledWithPi = jobRows
+      .filter((j) =>
+        (j.payment_status === "cancelled" || j.payment_status === "refunded") &&
+        typeof j.stripe_payment_intent_id === "string" && j.stripe_payment_intent_id !== ""
+      )
+      .map((j) => ({ job: j, at: ts(j.cancelled_at) ?? ts(j.updated_at) ?? 0 }))
+      // An unknown timestamp sorts oldest but is NOT exempted by the window:
+      // "we cannot tell when" must not become a silent pass.
+      .filter(({ at }) => at === 0 || nowMs - at <= STRIPE_LOOKBACK_MS)
+      .sort((a, b) => b.at - a.at);
+    let stripeReads = 0;
+    if (settledWithPi.length) {
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!stripeKey) {
+        notes.push(`stripe comparison skipped: STRIPE_SECRET_KEY not set (${settledWithPi.length} settled job(s) unchecked)`);
+      } else {
+        if (settledWithPi.length > MAX_STRIPE_READS) {
+          caps.push(`stripe comparison: ${settledWithPi.length} settled jobs in the last ${STRIPE_LOOKBACK_DAYS}d, only the newest ${MAX_STRIPE_READS} checked`);
+        }
+        const batch = settledWithPi.slice(0, MAX_STRIPE_READS).map((x) => x.job);
+
+        // The refund ledger for exactly these jobs. A short or failed read would
+        // MANUFACTURE ledger mismatches, so either one skips that check only.
+        const refundScan = await scanAllIn<{ job_id: string; amount_cents: number | null }>(
+          "payment_refunds",
+          batch.map((j) => j.id as string),
+          (chunk, countOpt) =>
+            admin
+              .from("payment_refunds")
+              .select("job_id, amount_cents", countOpt)
+              .order("id", { ascending: true })
+              .in("job_id", chunk),
+        );
+        const refundCap = scanDefect("payment_refunds", refundScan);
+        let ledgerCents: Map<string, number> | null = null;
+        if (refundCap) {
+          notes.push(`stripe refund-ledger check skipped: ${refundCap}`);
+        } else {
+          ledgerCents = new Map();
+          for (const r of refundScan.rows) {
+            ledgerCents.set(r.job_id, (ledgerCents.get(r.job_id) ?? 0) + Math.round(Number(r.amount_cents ?? 0)));
+          }
+        }
+
+        const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+        const failures: string[] = [];
+        const inspect = async (job: Record<string, unknown>) => {
+          const piId = job.stripe_payment_intent_id as string;
+          let pi: Stripe.PaymentIntent;
+          try {
+            pi = await stripe.paymentIntents.retrieve(piId, { expand: ["latest_charge.balance_transaction"] });
+            stripeReads++;
+          } catch (e) {
+            const err = e as { statusCode?: number; code?: string; message?: string };
+            if (err?.statusCode === 404 || err?.code === "resource_missing") {
+              checks.stripePiMissing.add({ job_id: job.id, payment_intent: piId });
+            } else {
+              failures.push(`${job.id}: ${err?.message ?? String(e)}`);
+            }
+            return;
+          }
+          const base = { job_id: job.id, payment_intent: piId, db_payment_status: job.payment_status, stripe_status: pi.status };
+
+          if (pi.status === "requires_capture" || pi.status === "processing") {
+            checks.stripeHoldLive.add({ ...base, amount_capturable: pi.amount_capturable, amount: pi.amount });
+            return;
+          }
+          if (pi.status !== "succeeded") return; // canceled / never paid: nothing is held.
+
+          const charge = (pi.latest_charge && typeof pi.latest_charge === "object")
+            ? pi.latest_charge as Stripe.Charge
+            : null;
+          if (!charge) {
+            failures.push(`${job.id}: PaymentIntent ${piId} succeeded but its charge was not returned`);
+            return;
+          }
+          const capturedCents = Math.round(Number(charge.amount_captured ?? pi.amount_received ?? 0));
+          const refundedCents = Math.round(Number(charge.amount_refunded ?? 0));
+
+          if (ledgerCents && refundedCents !== (ledgerCents.get(job.id as string) ?? 0)) {
+            checks.stripeRefundLedger.add({
+              ...base,
+              stripe_refunded_cents: refundedCents,
+              ledger_refunded_cents: ledgerCents.get(job.id as string) ?? 0,
+            });
+          }
+
+          // The retention ceiling only has one defined truth on a plain
+          // cancellation. A disputed job settles by the admin's split, and a
+          // 'refunded' job that was never cancelled is a dispute/admin refund —
+          // neither is graded against the cancellation ladder.
+          if (job.status !== "cancelled" || job.dispute_status != null) return;
+          const feeCents = Math.round(computeCancellationFee({
+            budget: money(job.budget),
+            date_needed: job.date_needed as string | null,
+            start_time: job.start_time as string | null,
+            cancelled_at: job.cancelled_at as string | null,
+            helper_id: job.helper_id as string | null,
+            helper_confirmed_at: job.helper_confirmed_at as string | null,
+          }) * 100);
+          const nonRefundableCents = Math.max(
+            Math.round(money(job.customer_fee_amount) * 100),
+            actualOrEstimatedFeeCents(pi, capturedCents),
+          );
+          const maxRetainedCents = feeCents + nonRefundableCents;
+          const retainedCents = capturedCents - refundedCents;
+          // One cent of slack for the two roundings above.
+          if (retainedCents > maxRetainedCents + 1) {
+            checks.stripeUnderRefunded.add({
+              ...base,
+              captured_cents: capturedCents,
+              refunded_cents: refundedCents,
+              retained_cents: retainedCents,
+              max_retained_cents: maxRetainedCents,
+            });
+          }
+        };
+        for (let i = 0; i < batch.length; i += STRIPE_READ_CONCURRENCY) {
+          await Promise.all(batch.slice(i, i + STRIPE_READ_CONCURRENCY).map(inspect));
+        }
+        if (failures.length) {
+          // A job Stripe could not be asked about is unverified, not clean.
+          notes.push(`stripe comparison incomplete: ${failures.length} of ${batch.length} read(s) failed (${failures.slice(0, 3).join(" | ")})`);
+        }
+      }
+    }
+
     // ── Emit ─────────────────────────────────────────────────────────────────
     //
     // A NON-2xx STATUS FROM THIS FUNCTION IS BY DESIGN, NOT A CRASH.
@@ -841,6 +1022,11 @@ serve(async (req) => {
           payout_transfers: transferScan.total,
         },
         pages: jobScan.pages + transferScan.pages,
+        // PaymentIntents actually retrieved from Stripe this run (Q50). Next to
+        // the settled-job count so "no Stripe findings" can be read against how
+        // many were really asked about.
+        stripe_payment_intents: stripeReads,
+        settled_jobs_with_payment_intent: settledWithPi.length,
       },
       checks_run: Object.values(checks).map((c) => c.name),
       findings,

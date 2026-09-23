@@ -61,7 +61,9 @@ inputs:
     description: >
       Space-separated workflow files to dispatch on the bot branch when running
       on github.token (their checks must cover main's required status checks).
-      Empty = "test.yml vitest.yml".
+      Empty = "test.yml vitest.yml e2e-happy-path.yml mobile-viewports.yml": main's
+      three required checks (Vitest unit tests + the two Playwright jobs) plus
+      the lint/typecheck job. Guarded by src/test/refreshWorkflowsOpenPrs.test.ts.
     required: false
     default: ""
 
@@ -176,7 +178,7 @@ runs:
             exit 1
           fi
           if [ "$GH_TOKEN" = "$DEFAULT_TOKEN" ]; then
-            for wf in ${CHECK_WORKFLOWS:-test.yml vitest.yml}; do
+            for wf in ${CHECK_WORKFLOWS:-test.yml vitest.yml e2e-happy-path.yml mobile-viewports.yml}; do
               gh workflow run "$wf" --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
               echo "Dispatched $wf on $BRANCH (a github.token PR triggers no pull_request runs)."
             done

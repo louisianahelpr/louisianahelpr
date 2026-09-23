@@ -3,6 +3,7 @@
 // @mutate .github/workflows/staleness-watch.yml | if: github.event_name != 'push' && needs.generated-current.result != 'cancelled' | if: needs.generated-current.result != 'cancelled'
 // @mutate .github/actions/refresh-pr/action.yml | --auto --squash | --squash
 // @mutate .github/actions/refresh-pr/action.yml | if git diff --cached --quiet; then | if false; then
+// @mutate .github/actions/refresh-pr/action.yml | test.yml vitest.yml e2e-happy-path.yml mobile-viewports.yml} | test.yml vitest.yml}
 /*
  * CLASS GUARD (docs/OPEN.md Q57): a scheduled workflow that PROVES a committed
  * file stale must also LAND the fresh copy, through the one shared step.
@@ -257,5 +258,53 @@ describe("no workflow pushes with git directly — refresh-pr is the only pusher
 
   it("no workflow in .github/workflows contains a `git push` run step", () => {
     expect(offenders(workflows)).toEqual([]);
+  });
+});
+
+/**
+ * Q32 (2026-09-23): bot refresh PR #1713 sat BLOCKED with auto-merge on. With
+ * github.token its PR triggers no pull_request runs, so the step dispatches
+ * `CHECK_WORKFLOWS` on the bot branch, and the default was "test.yml
+ * vitest.yml", which produces only ONE of main's three required checks. The two
+ * Playwright contexts never reported, so the PR could not merge even on a green
+ * main.
+ *
+ * REQUIRED_CHECKS is a dated measurement of a GitHub setting (not in the repo):
+ * `gh api repos/louisianahelpr/louisianahelpr/branches/main/protection
+ * --jq .required_status_checks.contexts` on 2026-09-23. If branch protection
+ * changes, re-measure and update this list in the same commit.
+ */
+const REQUIRED_CHECKS = [
+  "Playwright happy-path smoke (mocked Supabase, mobile viewport)",
+  "Playwright mobile viewports (320 / 375 / 414 / 768 / 1024)",
+  "Vitest unit tests",
+];
+
+describe("refresh PRs dispatch every workflow behind main's required checks (Q32)", () => {
+  type Wf = { on?: unknown; jobs?: Record<string, { name?: string } | null> };
+  const files = readdirSync(WF_DIR).filter((f) => /\.ya?ml$/.test(f));
+  const parsed = files.map((f) => ({ file: f, wf: parse(readFileSync(join(WF_DIR, f), "utf8")) as Wf }));
+  const producersOf = (check: string) =>
+    parsed.filter(({ wf }) => Object.values(wf.jobs ?? {}).some((j) => j?.name === check)).map((p) => p.file);
+
+  it("each required check is produced by exactly one workflow job, and that workflow is dispatchable", () => {
+    expect(REQUIRED_CHECKS.length).toBeGreaterThan(2);
+    for (const check of REQUIRED_CHECKS) {
+      const producers = producersOf(check);
+      expect(producers, check).toHaveLength(1);
+      const on = parsed.find((p) => p.file === producers[0])!.wf.on as Record<string, unknown>;
+      expect(Object.keys(on ?? {}), `${producers[0]} needs workflow_dispatch`).toContain("workflow_dispatch");
+    }
+  });
+
+  it("the step's default dispatch list covers every required check's workflow", () => {
+    const text = readFileSync(ACTION_FILE, "utf8");
+    const m = text.match(/\$\{CHECK_WORKFLOWS:-([^}]*)\}/);
+    expect(m, "default dispatch list not found").not.toBeNull();
+    const defaults = m![1].trim().split(/\s+/);
+    for (const f of defaults) expect(files, `${f} does not exist`).toContain(f);
+    const needed = REQUIRED_CHECKS.flatMap(producersOf);
+    expect(needed.length).toBe(REQUIRED_CHECKS.length);
+    expect(needed.filter((f) => !defaults.includes(f))).toEqual([]);
   });
 });

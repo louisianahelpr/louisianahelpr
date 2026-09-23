@@ -7715,7 +7715,7 @@ sure someone hears it and closes it.
 - [ ] **Q26 Server-side ID re-upload action + email template are unused** now
   that ReuploadIdDialog is gone (Q5). This is a report: count the callers, then
   let the owner decide.
-- [ ] **Q27 Press sweep: 37 left** (from 126). Triage in progress: about 25 are the
+- [x] **Q27 DONE (de19e4b14, e31b23c4d, 726dba74a, 801555189, 5152014f3): all 37 triaged.** Real fixes: aria-pressed on 18 selected-option buttons (selectedStateIsExposed guard); "Edge Function returned a non-2xx" replaced by the server message at 8 sites (edgeFunctionErrorReachesTheUser guard); "Finish Paying" now behind the sweep payment gate; auto-tip Save confirms; Add-Admin search disabled when empty; create-payment 500 no longer echoes raw Stripe text. Everything else fixed in the harness. NEXT: re-dispatch press after prod-audit finishes. Was: Press sweep: 37 left (from 126). Triage in progress: about 25 are the
   sweep re-pressing the already-selected option; real candidates are the
   /complete-profile checkbox, admin Manual Override > Re-open, silent auto-tip
   Save, and the create-payment 429.
@@ -7745,3 +7745,11 @@ sure someone hears it and closes it.
 - [ ] **Q33 A "connection failed" burst: 18 crons at 2026-09-22 19:00 UTC.**
   Not a startup timeout. Confirm whether cron-dead / sweep_cron_startup_failures
   alerted on it; if nothing did, it's a hole in the cron monitoring.
+- [ ] **Q34 Press leftovers:** "Copy Mon to all" stays red (the test accounts
+  have no availability rows): add fixture data, don't skip. Screenshot AutoTip
+  "Saved" and the disabled Add-Admin search at 375. Punctuation: a server
+  message ending "?"/"!" gets ". Please try again." appended.
+- [ ] **Q35 Exhaustive all-systems gap audit (owner, 2026-09-23: "make sure all
+  systems are checked exhaustively for gaps").** Run the launch-audit fleet
+  (39 lanes) in waves. Every finding lands in this queue with a check or a
+  tracker entry.

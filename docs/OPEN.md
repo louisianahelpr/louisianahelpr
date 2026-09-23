@@ -7777,7 +7777,7 @@ sure someone hears it and closes it.
     ("lower the baseline"), and a meta-guard (derived by scanning for baseline
     and KNOWN_ files) requires each to have that two-way check, shown red with
     a planted stale entry.
-- [ ] **Q37 Portfolio photos from signup render BROKEN on the public profile.**
+- [x] **Q37 DONE: not reachable today, and it can no longer render broken.** No client sends portfolioFiles to complete-signup, and prod has 0 portfolio elements. HelperWorkPhotos now renders only safeDocumentUrl-displayable entries: a bare private path or an unsafe scheme is dropped, never shown as a broken tile. Test added (red on the old code: 2 of 5). The dead portfolioFiles path in complete-signup (private user-documents, "1-year signed URL" comment that no longer matches the code) folds into Q40. Was: Portfolio photos from signup render BROKEN on the public profile.
   complete-signup stores portfolio_urls as bare storage paths
   (index.ts:516,700); HelperWorkPhotos.tsx:45 uses them directly as <img src>,
   which resolves against the app origin. Sign them at display time (ties to
@@ -7805,7 +7805,7 @@ sure someone hears it and closes it.
   non-seed only, fingerprint = screen + message), and close it when that
   screen stops being shown to real users for 24h AND a synthetic check of the
   route passes. Found while measuring Q12.
-- [ ] **Q40 A legacy "upload your ID to us" path still exists, but the product has none.**
+- [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes
   profiles.id_document_url, admin DocumentsTab has an "ID Document" section,

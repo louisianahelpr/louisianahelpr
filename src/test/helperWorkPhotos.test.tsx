@@ -86,3 +86,23 @@ describe("HelperWorkPhotos", () => {
 // 2. The component's own empty contract: an empty portfolio must render
 //    NOTHING, not a bare "Recent Work" heading over an empty grid.
 // @mutate src/components/profile/HelperWorkPhotos.tsx | if (!urls \|\| urls.length === 0) return null; | if (!urls) return null;
+
+// complete-signup once wrote bare PRIVATE storage paths into portfolio_urls;
+// on the public profile those were broken images. Only displayable URLs render.
+describe("HelperWorkPhotos renders only displayable URLs", () => {
+  it("drops bare storage paths and unsafe schemes, keeps https", () => {
+    render(
+      <HelperWorkPhotos
+        urls={["abc-uid/123-x.jpg", "javascript:alert(1)", "https://cdn.example/ok.jpg"]}
+      />,
+    );
+    const imgs = screen.getAllByRole("img");
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0].getAttribute("src")).toBe("https://cdn.example/ok.jpg");
+  });
+
+  it("renders nothing when no URL is displayable", () => {
+    const { container } = render(<HelperWorkPhotos urls={["abc-uid/123-x.jpg"]} />);
+    expect(container.textContent).toBe("");
+  });
+});

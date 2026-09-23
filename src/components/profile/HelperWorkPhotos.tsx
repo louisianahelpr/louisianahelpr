@@ -23,7 +23,13 @@ import { safeDocumentUrl } from "@/lib/storagePath";
  * need no signing.
  */
 export function HelperWorkPhotos({ urls }: { urls: string[] }) {
-  if (!urls || urls.length === 0) return null;
+  // Only what a browser can actually show. complete-signup once wrote bare
+  // PRIVATE user-documents paths here, which render as broken images on the
+  // public profile (and must not be signed for public view). No client sends
+  // those today (0 on prod, 2026-09-23), but a bad element must never render
+  // as a broken tile — and never as a raw href.
+  const shown = (urls ?? []).map((u) => safeDocumentUrl(u)).filter((u): u is string => !!u);
+  if (shown.length === 0) return null;
 
   return (
     <div className="space-y-3">
@@ -31,7 +37,7 @@ export function HelperWorkPhotos({ urls }: { urls: string[] }) {
         <ImageIcon className="w-5 h-5 text-primary" /> Recent Work
       </h2>
       <div className="grid grid-cols-3 gap-2">
-        {urls.map((url, i) => (
+        {shown.map((url, i) => (
           <a
             key={url}
             // profiles.portfolio_urls is the helper's own column (no shape

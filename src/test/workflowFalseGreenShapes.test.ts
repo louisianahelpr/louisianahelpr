@@ -210,7 +210,7 @@ const SET_PLUS_E_OK: Allow[] = [
   { file: ".github/workflows/a11y-webkit-prod.yml", match: "Diff WebKit against Chromium", reason: "captures the diff script's own code via PIPESTATUS[0] through `| tee` and ends with `exit \"$rc\"`" },
   { file: ".github/workflows/prod-audit.yml", match: "Shared test accounts carry no strikes", reason: "captures the code and maps it: 0 passes, 1 (strike) and 2 (could not read — fixed to fail in Q52) and anything else all exit non-zero" },
   { file: ".github/workflows/prod-audit.yml", match: "Remove leftover prod-audit jobs this run could not clean up itself", reason: "captures the code and maps it: 0 passes, 1 (cap/delete failed) and 2 (could not read — fixed to fail in Q52) and anything else all exit non-zero" },
-  { file: ".github/workflows/stripe-webhook-guard.yml", match: "Self-test — the guard must go red on the", reason: "a NEGATIVE self-test: runs the guard on a known-bad fixture and fails the step if the guard exits 0 — errexit must be off to observe the expected failure" },
+  { file: ".github/workflows/stripe-webhook-guard.yml", match: "Self-test — the guard must go red on", reason: "a NEGATIVE self-test: runs the guard on a known-bad fixture and fails the step if the guard exits 0 — errexit must be off to observe the expected failure" },
 ];
 
 const used = new Set<Allow>();

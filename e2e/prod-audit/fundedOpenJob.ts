@@ -209,8 +209,8 @@ export async function ensureFundedOpenJob(
   const log: string[] = [];
   const rows = await readJson<Row[]>(
     await api.get(
-      `${SUPABASE_URL}/rest/v1/jobs?customer_id=eq.${poster.user.id}&is_seed=is.true&status=eq.open` +
-        `&title=like.${encodeURIComponent(`${FUNDED_FIXTURE_TITLE}*`)}&select=${COLS}&order=created_at.desc&limit=50`,
+      `${SUPABASE_URL}/rest/v1/jobs?select=${COLS}&customer_id=eq.${poster.user.id}&is_seed=is.true&status=eq.open` +
+        `&title=like.${encodeURIComponent(`${FUNDED_FIXTURE_TITLE}*`)}&order=created_at.desc&limit=50`,
       { headers: headers(poster) },
     ),
     "list fixture jobs",

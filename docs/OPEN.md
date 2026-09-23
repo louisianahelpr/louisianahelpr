@@ -7587,7 +7587,7 @@ rows are non-tappable; panel identical in WebKit and Chromium.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 58 items — 11 done, 4 partly done (fixed, protection pending), 43 open.**
+**Queue: 59 items — 11 done, 4 partly done (fixed, protection pending), 44 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -8086,3 +8086,23 @@ sure someone hears it and closes it.
   (e) a guard that fails if a new doc declares itself an open/todo list or
   grows unchecked checkbox lists outside docs/OPEN.md (allowlist with reasons,
   two-way).
+- [ ] **Q59 A live SCOREBOARD of everything we test or track (owner,
+  2026-09-23: "it should show numbers of we test this this is what's passing
+  / failing").** A generated docs/SCOREBOARD.md, linked from the top of this
+  file (built together with Q58). One row per signal, each with pass / fail /
+  total, when it was last measured, and the link to the run:
+  - Vitest (files and tests, last main run); lint and typecheck; `npm run gate` steps
+  - Vacuity: guards proven / exempt / owed; mutations killed / survived
+    (weekly full sweep: should be nightly, see Q52)
+  - press-every-control: controls found / pressed / failed; session deaths
+  - prod-audit, e2e-journeys, e2e-real-backend, nightly-webkit, ui-sweep: specs passed / failed / SKIPPED
+  - every scheduled and push workflow: last result, and red for how long
+  - ops alert ledger: open / verifying / closed, by severity
+  - audit bus: open findings and open blockers
+  - this queue: done / partly done / open
+  - numbers: deadcode baseline, undated counts, stale evidence, types freshness, migration drift
+  - DB health (from Q53): statement-timeout rate, connection use %, slowest queries
+  Built by scripts/scoreboard.mjs from gh run data + local generators +
+  read-only SQL, refreshed by a scheduled workflow (commits via Q57) and at
+  session start, with each row's "measured at" stamp covered by the
+  staleness watch. A row that can't be measured shows UNKNOWN, never green.

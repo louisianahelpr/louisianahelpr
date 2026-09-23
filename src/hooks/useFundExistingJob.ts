@@ -6,6 +6,7 @@ import { openExternalUrl } from "@/lib/openExternalUrl";
 import { hapticError } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
 import { functionErrorMessage } from "@/lib/supabaseResult";
+import { endSentence } from "@/lib/endSentence";
 
 /**
  * Fund a job that ALREADY EXISTS, by sending its poster to Stripe Checkout.
@@ -87,7 +88,7 @@ export function useFundExistingJob(): FundJobResult {
         // Deliberately says the job is untouched. The host is looking at a real
         // turnover for a real guest, and "couldn't start payment" alone reads
         // like it might have been cancelled.
-        toast.error(`Couldn't start payment: ${message}. The job is still here — try again.`);
+        toast.error(`Couldn't start payment: ${endSentence(message)} The job is still here — try again.`);
         return;
       }
 

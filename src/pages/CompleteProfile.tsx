@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { contactLeakFieldError, contactLeakRejectionMessage } from "@/lib/contactLeakField";
 import { FieldError } from "@/components/ui/FieldError";
-import { AlertCircle, Camera, Check, Circle, Loader2, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, Camera, Check, Circle, Loader2, ShieldCheck, Trash2, X } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { DatePickerField } from "@/components/DatePickerField";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
@@ -38,12 +38,29 @@ import {
   withTimeout,
   formatPhone,
 } from "./completeProfile/constants";
+import { useDeleteAccount } from "@/hooks/useDeleteAccount";
+
+// Q292: an incomplete account cannot reach /profile (the gate sends it here),
+// so in-app deletion (Apple 5.1.1(v), GDPR Art. 17) has to be offered here.
+// Same hook, same dialog as Profile and AccountBanned: never a second handler.
+const DeleteAccountDialog = lazy(() =>
+  import("@/components/profile/DeleteAccountDialog").then((m) => ({ default: m.DeleteAccountDialog })),
+);
 
 const CompleteProfile = () => {
   usePageTitle("Complete Your Profile — Helpr");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, profile, isLoading, refresh } = useCurrentUser();
+  const deleteAccount = useDeleteAccount();
+  // Rendered by every branch below that can show while the flow is open: the
+  // profile query may refetch (to "loading" or "no profile") once the account
+  // is gone, and the dialog must survive that to say "Your account is deleted."
+  const deleteDialog = deleteAccount.isOpen ? (
+    <Suspense fallback={null}>
+      <DeleteAccountDialog {...deleteAccount.dialogProps} />
+    </Suspense>
+  ) : null;
   const [searchParams] = useSearchParams();
   // Where the user was actually headed when the completeness gate
   // intercepted them (ProtectedRoute passes it as `?next=`). Before this,
@@ -484,6 +501,7 @@ const CompleteProfile = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-premium-page">
         <HelprSpinner size={24} />
+        {deleteDialog}
       </div>
     );
   }
@@ -512,6 +530,7 @@ const CompleteProfile = () => {
             <X className="w-4 h-4 mr-2" /> Sign Out
           </Button>
         </div>
+        {deleteDialog}
       </div>
     );
   }
@@ -922,6 +941,18 @@ const CompleteProfile = () => {
               <X className="w-4 h-4 mr-2" /> Sign Out
             </Button>
 
+            {/* Same treatment as AccountBanned's, the other account-state
+                screen: a quiet ghost button, destructive-coloured. */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={deleteAccount.requestDelete}
+              className="w-full text-destructive hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4 mr-1" /> Delete Account
+            </Button>
+
             {/* The only route to a human from inside the gate. ProtectedRoute's
                 PROFILE_GATE_ALLOWED set lets a half-onboarded user reach
                 /support, /terms, /rules, /privacy and /profile?tab=legal — but
@@ -940,6 +971,7 @@ const CompleteProfile = () => {
           </form>
       </div>
       {avatarCropDialog}
+      {deleteDialog}
     </AuthShell>
   );
 };

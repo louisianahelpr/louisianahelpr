@@ -578,6 +578,32 @@ async function pushTokenRows(sqlFn, now) {
   }
 }
 
+/**
+ * Q240: every verified profile carries its identity fingerprint. The webhook
+ * writes identity_sha256 only for verifications after 20260908002148; older
+ * ones need scripts/backfill-identity-fingerprints.mjs (STRIPE_SECRET_KEY).
+ * Until that runs, the identity ban-evasion layer does not bind for them.
+ */
+export const IDENTITY_FP_SQL =
+  "SELECT count(*) FILTER (WHERE idv_status = 'verified' AND idv_session_id IS NOT NULL AND identity_sha256 IS NULL)::int AS missing, " +
+  "count(*) FILTER (WHERE idv_status = 'verified' AND idv_session_id IS NOT NULL)::int AS verified FROM public.profiles";
+export async function identityFingerprintRows(sqlFn, now) {
+  const signal = "verified profiles carry an identity fingerprint (identity_sha256)";
+  try {
+    const [r] = await sqlFn(IDENTITY_FP_SQL);
+    // Number(null) is 0: a null must read as "not measured", never as PASS.
+    const num = (v) => (typeof v === "number" || (typeof v === "string" && /^\d+$/.test(v)) ? Number(v) : NaN);
+    const missing = num(r?.missing);
+    const verified = num(r?.verified);
+    if (!Number.isInteger(missing) || !Number.isInteger(verified)) throw new Error("unexpected result shape");
+    return [{ group: "alerts", signal, status: missing === 0 ? "PASS" : "FAIL", pass: verified - missing, fail: missing, total: verified, at: iso(now),
+      source: "public.profiles (read-only) · OPEN.md Q240",
+      note: missing === 0 ? "every verified profile has its fingerprint" : `${missing} verified profile(s) lack it: run scripts/backfill-identity-fingerprints.mjs --apply (needs STRIPE_SECRET_KEY)` }];
+  } catch (e) {
+    return [unknown("alerts", signal, `read-only SQL failed: ${errMsg(e)}`)];
+  }
+}
+
 function remoteBranchRows(now) {
   try {
     sh("git", ["fetch", "--quiet", "--prune", "origin"], { timeout: 60000 });
@@ -635,7 +661,7 @@ export async function liveRows({ now = new Date(), sqlFn } = {}) {
   rows.push(...suiteRows);
   const ledger = await ledgerRows(readOnly);
   const red = nightlyRedRows(now);
-  rows.push(...ledger.rows, ...red.rows, ...(await pushTokenRows(readOnly, now)));
+  rows.push(...ledger.rows, ...red.rows, ...(await pushTokenRows(readOnly, now)), ...(await identityFingerprintRows(readOnly, now)));
   rows.push(...currencyRows(wf.runsByFile, now));
   const branches = remoteBranchRows(now);
   rows.push(...branches.rows);

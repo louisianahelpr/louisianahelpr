@@ -383,6 +383,118 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
   });
 });
 
+/**
+ * Q292: an account that never finished signup can still delete itself.
+ *
+ * ProtectedRoute's profile gate (isProfileComplete: name, avatar, DOB, phone,
+ * city) bounces an incomplete account from /profile — where Delete Account
+ * lives — to /complete-profile. Structural for Sign in with Apple (no photo).
+ * So /complete-profile itself must offer deletion (Apple 5.1.1(v), GDPR Art.
+ * 17), through the same hook and dialog as every other entry point.
+ */
+// @mutate src/pages/CompleteProfile.tsx | onClick={deleteAccount.requestDelete} | onClick={() => {}}
+const INCOMPLETE_TAG = `${RUN_TAG.slice(0, 13)}inc`;
+const INCOMPLETE_EMAIL = disposableEmail(INCOMPLETE_TAG);
+
+test("privacy requests: an INCOMPLETE profile deletes itself from /complete-profile, and is purged", async ({ browser, request }) => {
+  test.setTimeout(5 * 60_000);
+  let userId = "";
+  let token = "";
+  let deleted = false;
+  const disposable = async () => {
+    const r = await request.get(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, { headers: SR });
+    expect(r.ok(), `auth user ${userId}: ${r.status()}`).toBe(true);
+    const user = (await r.json()) as { email?: string; created_at?: string };
+    const [p] = await srGet<{ is_seed: boolean | null }[]>(request, `profiles?user_id=eq.${userId}&select=is_seed`);
+    assertDisposable({ runTag: INCOMPLETE_TAG, runStartedAt: RUN_STARTED, email: user.email, isSeed: p?.is_seed ?? null, authCreatedAt: user.created_at });
+  };
+  try {
+    await test.step("create a disposable account that never completed its profile (no avatar)", async () => {
+      const r = await request.post(`${SUPABASE_URL}/auth/v1/admin/users`, {
+        headers: SR,
+        data: { email: INCOMPLETE_EMAIL, password: PASSWORD, email_confirm: true, user_metadata: { full_name: "SEED Privacy Incomplete" } },
+      });
+      expect(r.ok(), `create ${INCOMPLETE_EMAIL}: ${r.status()} ${await r.text()}`).toBe(true);
+      userId = ((await r.json()) as { id: string }).id;
+      let prof: { user_id: string }[] = [];
+      for (let i = 0; i < 20 && !prof.length; i++) {
+        prof = await srGet(request, `profiles?user_id=eq.${userId}&select=user_id`);
+        if (!prof.length) await new Promise((res) => setTimeout(res, 500));
+      }
+      expect(prof, "no profile row after signup").toHaveLength(1);
+      // Consent and a verified email, but NO avatar/DOB/phone/city: the gate's case.
+      await srWrite(request, "PATCH", "profiles", `user_id=eq.${userId}`, {
+        is_seed: true,
+        full_name: "SEED Privacy Incomplete",
+        terms_version_accepted: "Jun 2026",
+        terms_accepted_at: new Date().toISOString(),
+        email_verified: true,
+      });
+      const [row] = await srGet<{ avatar_url: string | null; is_legacy_user: boolean | null }[]>(
+        request, `profiles?user_id=eq.${userId}&select=avatar_url,is_legacy_user`);
+      expect(row.avatar_url, "the incomplete account must have no avatar").toBeNull();
+      expect(row.is_legacy_user, "a legacy account bypasses the gate; this one must not").not.toBe(true);
+      const grant = await request.post(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        headers: { apikey: ANON, "Content-Type": "application/json" },
+        data: { email: INCOMPLETE_EMAIL, password: PASSWORD },
+        timeout: 45_000,
+      });
+      expect(grant.ok(), `sign in ${INCOMPLETE_EMAIL}: ${grant.status()}`).toBe(true);
+      const session = (await grant.json()) as Session;
+      token = session.access_token;
+      await disposable();
+
+      const ctx = await newUserContext(browser, session);
+      const page = await ctx.newPage();
+      try {
+        await test.step("the profile gate sends it from /profile to /complete-profile", async () => {
+          await page.goto("/profile");
+          await expect(page).toHaveURL(/\/complete-profile/, { timeout: 30_000 });
+          await assertHealthy(page, "complete-profile gate");
+          // Evidence for review (uploaded with test-results/): the gate at desktop and at 375.
+          await page.screenshot({ path: "test-results/q292-complete-profile-desktop.png", fullPage: true });
+          await page.setViewportSize({ width: 375, height: 812 });
+          await page.screenshot({ path: "test-results/q292-complete-profile-375.png", fullPage: true });
+        });
+        await test.step("delete from /complete-profile: Delete Account -> Continue -> DELETE -> Delete Forever", async () => {
+          await page.getByRole("button", { name: "Delete Account" }).click();
+          await page.getByRole("button", { name: "Continue" }).click();
+          await page.getByRole("textbox", { name: /Type DELETE to confirm account deletion/ }).fill("DELETE");
+          await disposable();
+          const [res] = await Promise.all([
+            page.waitForResponse((r) => r.url().includes("/functions/v1/delete-own-account") && r.request().method() === "POST", { timeout: 90_000 }),
+            page.getByRole("button", { name: "Delete Forever" }).click(),
+          ]);
+          const body = (await res.json().catch(() => ({}))) as { success?: boolean };
+          expect(res.status(), `delete-own-account: ${JSON.stringify(body).slice(0, 600)}`).toBe(200);
+          deleted = true;
+          expect(body.success).toBe(true);
+          await expect(page.getByText("Your account is deleted.")).toBeVisible({ timeout: 20_000 });
+        });
+      } finally {
+        await ctx.close();
+      }
+    });
+    await test.step("verify: auth user and profile row are gone", async () => {
+      const authUser = await request.get(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, { headers: SR });
+      expect(authUser.status(), "auth user still exists").toBe(404);
+      expect(await srGet(request, `profiles?user_id=eq.${userId}&select=user_id`), "profile row still exists").toHaveLength(0);
+    });
+  } finally {
+    // A run that died before the UI delete: the product's own purge, only
+    // after the same fail-closed check. Never a hand-rolled delete.
+    if (userId && token && !deleted) {
+      await disposable();
+      const gone = await request.post(`${SUPABASE_URL}/functions/v1/delete-own-account`, {
+        headers: { apikey: ANON, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        data: { confirmation: "DELETE MY ACCOUNT" },
+        timeout: 90_000,
+      });
+      expect(gone.ok(), `cleanup: delete-own-account ${gone.status()} ${await gone.text()} — ${INCOMPLETE_EMAIL} may be LEFT on prod`).toBe(true);
+    }
+  }
+});
+
 test.afterAll(async ({ playwright }) => {
   if (!svc) return;
   // afterAll may only use worker-scoped fixtures: make our own request context.

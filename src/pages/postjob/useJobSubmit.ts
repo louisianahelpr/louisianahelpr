@@ -30,6 +30,7 @@ import { removeJobPhotos } from "@/lib/storageCleanup";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { userFacingError } from "@/lib/userFacingError";
 import { CONNECTION_TROUBLE_COPY, isNetworkFailure } from "@/lib/networkFailure";
+import { endSentence } from "@/lib/endSentence";
 
 /**
  * Remove a job whose payment setup failed, and PROVE it went.
@@ -731,12 +732,12 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         // sentence is in the response body (see functionErrorMessage).
         const errorMsg = outcomeUnknown
           ? ""
-          : (
+          : endSentence(
             paymentData?.error ||
-            (paymentError ? await functionErrorMessage(paymentError, "Payment setup failed") : "Payment setup failed")
-          ).replace(/[.\s]+$/, "");
+            (paymentError ? await functionErrorMessage(paymentError, "Payment setup failed") : "Payment setup failed"),
+          );
         hapticError();
-        toast.error(outcomeUnknown ? CONNECTION_TROUBLE_COPY : `Couldn't start payment: ${errorMsg}. Please try again.`);
+        toast.error(outcomeUnknown ? CONNECTION_TROUBLE_COPY : `Couldn't start payment: ${errorMsg} Please try again.`);
         setRedirecting(false);
         setStep("checkout");
         // Reset consent — payment failed, so the user must re-confirm

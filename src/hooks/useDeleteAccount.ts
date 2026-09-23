@@ -10,11 +10,14 @@ import { functionErrorMessage } from "@/lib/supabaseResult";
  * Account deletion, as one flow, for every screen that offers it.
  *
  * ── Why this is a hook and not a copied handler ─────────────────────────────
- * There are now TWO entry points: the Profile landing (the ordinary one) and
+ * There are THREE entry points: the Profile landing (the ordinary one),
  * /account-banned (the only screen a suspended or banned user can reach, and
  * therefore the only place Apple's in-app-deletion requirement can be met for
  * them — `ProtectedRoute` runs the ban gate on every protected route, so
- * each one bounces them here).
+ * each one bounces them here), and /complete-profile (Q292: the profile gate
+ * sends an incomplete account there from /profile, so it is the only place
+ * such an account can delete itself; proven on prod by
+ * e2e/privacy/privacy-requests.spec.ts).
  *
  * A second copy of this handler is not a hypothetical risk in this file's
  * history. In-app deletion was 100% broken for every user for a day because a

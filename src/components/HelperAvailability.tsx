@@ -98,38 +98,42 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
   // "Weekdays 9–5" is the most common helper schedule; "Weekends off"
   // is one tap for that adjustment; "Copy Mon to all" repeats whatever
   // window the user already set for Monday across every other day.
-  const applyWeekdays9to5 = () => {
-    setSlots((prev) =>
-      prev.map((s) => {
-        const isWeekday = s.day_of_week >= 1 && s.day_of_week <= 5;
-        return {
-          ...s,
-          is_available: isWeekday,
-          start_time: isWeekday ? "09:00" : s.start_time,
-          end_time: isWeekday ? "17:00" : s.end_time,
-        };
-      }),
-    );
-  };
-  const applyWeekendsOff = () => {
-    setSlots((prev) =>
-      prev.map((s) =>
-        s.day_of_week === 0 || s.day_of_week === 6 ? { ...s, is_available: false } : s,
-      ),
-    );
-  };
-  const copyMondayToAll = () => {
-    const monday = slots.find((s) => s.day_of_week === 1);
-    if (!monday) return;
-    setSlots((prev) =>
-      prev.map((s) => ({
+  //
+  // Each preset is a pure function of the week, so the row can tell when one
+  // would change NOTHING and disable it (Q34): on the default week (every day
+  // 09:00-17:00) "Copy Mon to all" was a live button whose press did nothing
+  // at all, which the press sweep rightly flagged as a silent no-op.
+  const weekdays9to5 = (prev: AvailabilitySlot[]) =>
+    prev.map((s) => {
+      const isWeekday = s.day_of_week >= 1 && s.day_of_week <= 5;
+      return {
         ...s,
-        is_available: monday.is_available,
-        start_time: monday.start_time,
-        end_time: monday.end_time,
-      })),
+        is_available: isWeekday,
+        start_time: isWeekday ? "09:00" : s.start_time,
+        end_time: isWeekday ? "17:00" : s.end_time,
+      };
+    });
+  const weekendsOff = (prev: AvailabilitySlot[]) =>
+    prev.map((s) =>
+      s.day_of_week === 0 || s.day_of_week === 6 ? { ...s, is_available: false } : s,
     );
+  const mondayToAll = (prev: AvailabilitySlot[]) => {
+    const monday = prev.find((s) => s.day_of_week === 1);
+    if (!monday) return prev;
+    return prev.map((s) => ({
+      ...s,
+      is_available: monday.is_available,
+      start_time: monday.start_time,
+      end_time: monday.end_time,
+    }));
   };
+  const changesWeek = (preset: (prev: AvailabilitySlot[]) => AvailabilitySlot[]) =>
+    preset(slots).some(
+      (s, i) =>
+        s.is_available !== slots[i].is_available ||
+        s.start_time !== slots[i].start_time ||
+        s.end_time !== slots[i].end_time,
+    );
 
   const handleSave = async () => {
     setSaving(true);
@@ -289,15 +293,16 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
           Quick set:
         </span>
         {[
-          { label: "Weekdays 9–5", onClick: applyWeekdays9to5 },
-          { label: "Weekends off", onClick: applyWeekendsOff },
-          { label: "Copy Mon to all", onClick: copyMondayToAll },
+          { label: "Weekdays 9–5", apply: weekdays9to5 },
+          { label: "Weekends off", apply: weekendsOff },
+          { label: "Copy Mon to all", apply: mondayToAll },
         ].map((preset) => (
           <button
             key={preset.label}
             type="button"
-            onClick={preset.onClick}
-            className="shrink-0 inline-flex items-center rounded-full px-3 h-7 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all"
+            onClick={() => setSlots(preset.apply)}
+            disabled={!changesWeek(preset.apply)}
+            className="shrink-0 inline-flex items-center rounded-full px-3 h-7 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all disabled:opacity-50 disabled:active:scale-100"
             style={{
               background: "var(--surface-premium)",
               border: "1px solid hsl(var(--olivewood) / 0.18)",

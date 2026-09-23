@@ -5,12 +5,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 **117 files render form controls, across 24 route groups.** Primitives in `src/components/ui/` are excluded. Messy-input coverage: `e2e/prod-audit/messy-input.spec.ts` (PROD, no mocks).
 
-## /account-banned, /profile
-
-| File | Controls | input types | maxLength | hints |
-|---|---|---|---|---|
-| `src/components/profile/DeleteAccountDialog.tsx` | input×1 | text |  |  |
-
 ## /admin
 
 | File | Controls | input types | maxLength | hints |
@@ -62,6 +56,12 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/DatePickerField.tsx` | date/calendar×1 |  |  | Choose a date |
 | `src/components/postjob/CityAutocomplete.tsx` | input×1 | text | 100 | City |
 | `src/pages/CompleteProfile.tsx` | input×5, textarea×1, checkbox/switch/radio×1 | file, text, tel | 14, 5 | avatar · firstName · lastName · dob · phone · city · zipCode · 70801 |
+
+## /complete-profile, /account-banned, /profile
+
+| File | Controls | input types | maxLength | hints |
+|---|---|---|---|---|
+| `src/components/profile/DeleteAccountDialog.tsx` | input×1 | text |  |  |
 
 ## /complete-profile, /dashboard
 

@@ -105,7 +105,7 @@ Read `pg_tables`, `pg_proc`, `pg_constraint`, `pg_indexes`, `information_schema`
    where it must survive, `RESTRICT` where deletion should be refused. A money row that
    cascades away with its parent is a finding; so is an orphan left behind.
 2. **Account deletion actually purges.** `delete-own-account`, `admin-delete-user` and
-   `purge_user_data` exist. Trace a full deletion: which of the ~108 tables retain rows
+   `purge_user_data` exist. Trace a full deletion: which of the public tables (81 base tables in prod on 2026-09-23) retain rows
    referencing the deleted user? **Orphaned relational references after deletion are a
    GDPR/CCPA finding**, and Apple requires in-app deletion to work. Coordinate with
    `lh-compliance-store`. Prove it with a real deletion on a test account and a

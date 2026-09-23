@@ -164,6 +164,9 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
   "scripts/migration-raise-codes-allowlist.json": {
     allowed: "scripts/check-migration-raise-codes.mjs:export function staleAllowlistEntries",
   },
+  "scripts/stated-counts-baseline.json": {
+    undated: "scripts/check-stated-counts.mjs:const stale = [...base].filter((k) => !undated.has(k));",
+  },
   "scripts/race-class-baseline.json": {
     allow: "scripts/check-race-class.mjs:stale: allowed.filter((k) => !hitKeys.has(k))",
     safe: "scripts/check-race-class.mjs:stale: allowed.filter((k) => !hitKeys.has(k))",

@@ -127,17 +127,20 @@ Each of these has been filed as a real finding before and was wrong:
 A lane that found nothing may have looked at nothing. For each lane:
 
 - Compare its coverage manifest against `docs/audit/launch-2026-09/SURFACE.md` —
-  **802 addressable surfaces: 34 routes, 14 redirects, 23 tabs, 24 admin views,
-  139 overlay instances, 40 forms, 517 toast messages, 20 emails.**
-  **Routes are 4% of the surface.** The last audit walked routes, reported coverage, and
+  read the class counts THERE (it is regenerated and diffed on every push); this
+  file used to copy them and the copy went stale (it said 802 surfaces and 139
+  overlays; SURFACE.md measured 1,064 and 151 on 2026-09-23).
+  **Routes are a small fraction of the surface** (`COVERAGE.md` prints the
+  current share). The last audit walked routes, reported coverage, and
   never opened most of the dialogs. Any lane whose manifest covers routes but not the
   overlays, forms and toasts in its scope has **not completed**, regardless of how many
   findings it filed. Send it back.
-- Three counts in that manifest are worth knowing when you grade a claim: 6 overlays are
+- Three classes in that manifest are worth knowing when you grade a claim: the
   **hand-rolled portals on no dialog primitive** (the containing-block risk concentrates
-  there), 28 confirmations route through a shared `BrandConfirmDialog` that never says
-  `<Dialog>`, and the notification-type count is an explicit **floor** taken from `src/`
-  rather than from `notification_type_pref_map`.
+  there), the confirmations routed through a shared `BrandConfirmDialog` that never says
+  `<Dialog>`, and the notification types, parsed from the migrations that fill
+  `notification_type_pref_map` (18, matching prod's table, on 2026-09-23). Their current
+  counts are SURFACE.md's rows, not numbers copied here.
 - Confirm each lane ran `npm run check:audit-evidence` on its report.
 - A lane that reports "no findings" on a substantial surface owes an explicit statement of
   what it checked and how. Absence of evidence is not evidence of absence.

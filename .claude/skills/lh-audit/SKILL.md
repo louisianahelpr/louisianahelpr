@@ -1321,7 +1321,7 @@ on the way to their first success.
   (`Dashboard.tsx` — greeting, "Your Helprs" rebook row, feed, quick actions),
   **Post** (`PostJob.tsx` — the 3-step wizard above), **Jobs** (`Activity.tsx` —
   BOTH tabs, every status filter), **Messages** (thread list + a real 2-way
-  conversation), **Profile** (`Profile.tsx` — the 18 tabs below). For each: the
+  conversation), **Profile** (`Profile.tsx` — every `Tab`, below). For each: the
   active-tab indicator is correct, deep-linking/refresh directly into the route
   renders it (not only via in-app nav), and every button/link/tab/toggle on it is
   actually exercised (§1 Method 3) — no primary-route control is assumed to work
@@ -1373,10 +1373,13 @@ on the way to their first success.
     the auto-fall-back + notification on schedule (not early, not never). A deadline
     that renders one number but expires on another is a finding — same "one source of
     truth for time" class as timezone correctness.
-- **Every profile `?tab=` and self-service surface is driven.** `/profile` has 18
-  tabs (`src/pages/Profile.tsx` `Tab` type): landing, profile, earnings, schedule,
-  availability, payment, security, legal, reviews, referral, subscription, support,
-  notifications, posted_jobs, completed_jobs, warnings, credentials, saved_helpers.
+- **Every profile `?tab=` and self-service surface is driven.** `/profile` has one
+  tab per value of the `Tab` type in `src/pages/profile/types.ts` — read the list
+  from there (or the `profile:` rows of `docs/audit/launch-2026-09/SURFACE.md`,
+  which is regenerated and diffed on every push), never from a copy here. This
+  line used to hard-code "18 tabs" with a list that had drifted: measured
+  2026-09-23, the type holds 25, two listed ids (posted_jobs, completed_jobs) no
+  longer exist and nine real ones were missing.
   EACH is a must-drive cell (`/profile?tab=<id>`) at all four breakpoints on both
   surfaces — render + operate (edit profile saves, payment/payout setup works,
   notification prefs persist, security email/password change, reviews list,

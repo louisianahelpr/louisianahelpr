@@ -144,17 +144,20 @@ on a payment screen costs more trust than a slow query.
 
 ## Scope
 
-Every string a user can read, across all **802** addressable surfaces in
-`docs/audit/launch-2026-09/SURFACE.md`.
+Every string a user can read, across every surface in
+`docs/audit/launch-2026-09/SURFACE.md` (regenerated and diffed on every push — read
+the counts there; copies here went stale: this file said 802 surfaces and 517 toasts,
+SURFACE.md measured 1,064 and 552 on 2026-09-23).
 
-**Your single biggest surface is the 517 toast messages across 134 files** — that is
+**Your single biggest surface is the toast messages** (SURFACE.md's "Toast messages"
+row, counted by call site) — that is
 the largest body of user-facing copy in the app, and no previous audit counted it at
 all. Toasts are where error copy is worst, because each one is written inline at the
 call site by whoever was fixing that bug. Grade every one: does it say what happened,
 what to do, and does it avoid blaming the user for a server failure? Also check for
 leaked internals (raw error text, ids, table names) and inconsistent tone.
 
-Then the **139 overlay instances** and **40 forms** — copy audits usually stop at the
+Then the **overlay instances** and **forms** (their SURFACE.md rows) — copy audits usually stop at the
 page level and never open these.
 
 ## What you check
@@ -174,7 +177,7 @@ page level and never open these.
    `lh-state-matrix` — they force the state, you grade the words.
 5. **No placeholder or development text ships.** Lorem ipsum, "TODO", "test", dummy
    names, `example.com`, a developer's own email or phone.
-6. **Every link resolves.** Internal routes (mind the 14 redirect-only routes preserve
+6. **Every link resolves.** Internal routes (mind that the redirect-only routes — SURFACE.md lists them — preserve
    their query strings) and external links. `broken-links.yml` runs weekly — read it
    first and extend to anything it does not cover, including links inside emails and
    inside overlays.

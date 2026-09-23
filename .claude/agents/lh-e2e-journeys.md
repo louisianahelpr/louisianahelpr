@@ -114,7 +114,7 @@ and no single-session test would have caught it.
 
 ## Known traps
 
-- `e2e/happy-path/` already has 26 specs including `two-role-lifecycle.spec.ts` and
+- `e2e/happy-path/` already has many specs (28 on 2026-09-23) including `two-role-lifecycle.spec.ts` and
   `payment-lifecycle.spec.ts`. **Read them first.** Extend, do not duplicate. A journey no
   spec covers is itself a finding -- message `lh-test-ci`.
 - "This page hit a problem" mid-journey is usually the WebKit `replaceState` throttle, not

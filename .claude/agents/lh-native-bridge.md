@@ -108,7 +108,7 @@ appears dead in a way no amount of TypeScript explains. Read the AppDelegate.
 
 ## Scope
 
-All 16 Capacitor plugins: App, Browser, Camera, Filesystem, Geolocation, Haptics,
+All 16 Capacitor plugins (package.json on 2026-09-23, excluding cli/core/ios): App, Browser, Camera, Filesystem, Geolocation, Haptics,
 Keyboard, Network, Preferences, PushNotifications, Share, SplashScreen, StatusBar, plus
 `@aparajita/capacitor-biometric-auth`, `@capawesome/capacitor-badge`,
 `@capgo/capacitor-social-login`.

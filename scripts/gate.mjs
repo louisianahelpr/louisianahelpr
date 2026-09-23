@@ -51,6 +51,7 @@ const STEPS = [
   ["migration timestamps", "node scripts/check-migration-versions.mjs"],
   ["loading-state shape", "npm run check:loading-states"],
   ["generated inventories current", "npm run check:generated"],
+  ["stated counts dated", "npm run check:counts"],
   [
     "deferred vendors (built graph)",
     "npm run check:deferred-vendors",

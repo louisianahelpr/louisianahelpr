@@ -58,6 +58,7 @@
     "vacuity:all": "node scripts/vacuity/index.mjs --all",
     "vacuity:report": "node scripts/vacuity/index.mjs --report --no-mutate",
     "check:generated": "node scripts/check-generated-current.mjs",
+    "check:counts": "node scripts/check-stated-counts.mjs",
     "check:staleness": "node scripts/check-staleness.mjs",
     "burndown:score": "node scripts/burndown-score.mjs"
   },

@@ -1,6 +1,6 @@
 ---
 name: "lh-edge-functions"
-description: "Systematic audit of all 66 Supabase edge functions: auth checks, secret handling, CORS, input validation, idempotency, error propagation, webhook signature verification and dead functions. Launch-audit fleet, sweep phase."
+description: "Systematic audit of every Supabase edge function (73 on 2026-09-23): auth checks, secret handling, CORS, input validation, idempotency, error propagation, webhook signature verification and dead functions. Launch-audit fleet, sweep phase."
 model: opus
 memory: project
 permissionMode: plan
@@ -88,7 +88,8 @@ permissionMode: plan
 
 ## Mission
 
-66 edge functions in `supabase/functions/` are the app's real backend API. Each one is a
+The edge functions in `supabase/functions/` (73 directories besides `_shared`, counted
+2026-09-23 — `ls supabase/functions` for today's list) are the app's real backend API. Each one is a
 publicly reachable HTTP endpoint. Audit them as such.
 
 ## Sampling strategy -- state yours explicitly

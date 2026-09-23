@@ -48,6 +48,9 @@ jobs:
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       - name: Regenerate every CI-runnable inventory and diff
         run: npm run check:generated
+      - name: Every stated count is generated, dated, or baselined (two-way)
+        if: always()
+        run: npm run check:counts
 
   staleness:
     name: Nothing stale

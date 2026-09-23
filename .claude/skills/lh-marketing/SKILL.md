@@ -77,8 +77,9 @@ ID verification exists (`HowItWorksSection.tsx:55` — "Verify your ID once, the
 work"). **What you may say about this is tightly limited — see §4.**
 
 **The 12 job categories.** The `job_category` Postgres enum, canonical order and
-labels from `src/lib/jobCategories.ts:22-34` (post-a-job popularity order,
-"Other" last):
+labels from `JOB_CATEGORY_LABELS` in `src/lib/jobCategories.ts` (post-a-job
+popularity order, "Other" last; 12 entries, counted 2026-09-23 — the enum is the
+source, re-read it before relying on the count):
 
 | value | label |
 |---|---|

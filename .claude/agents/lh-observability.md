@@ -122,7 +122,7 @@ and will the report be readable?"**
   profile complete, job posted, application submitted, bid accepted, payment completed,
   job completed, review left. Duplicate or missing events make the funnel a lie.
 - Screen views fire on route change and do not double-fire on redirect routes — note
-  there are 14 redirect-only routes.
+  there are redirect-only routes (SURFACE.md lists them; 17 on 2026-09-23).
 - **PII is scrubbed.** No email, phone, street address, or payment detail in analytics
   payloads. Check the identify call and every event property. This is a privacy-policy
   claim as well as a technical one — message `lh-compliance-store`.

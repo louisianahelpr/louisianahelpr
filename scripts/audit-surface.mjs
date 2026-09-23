@@ -3,9 +3,10 @@
  * audit-surface — enumerate the app's ACTUAL auditable surface.
  *
  * WHY: a previous audit pass walked routes and reported coverage, but missed
- * "a ton of dialog screens and other paths". Routes are roughly a quarter of
- * the real surface: the app has ~49 routes but ~86 components that render an
- * overlay, plus tab and view variants. An agent that walks routes and stops
+ * "a ton of dialog screens and other paths". Routes are a small fraction of
+ * the real surface (SURFACE.md prints every class; COVERAGE.md prints the
+ * share), dwarfed by overlays, tab and view variants, forms and toasts. An
+ * agent that walks routes and stops
  * has audited a fraction of the app while sounding complete.
  *
  * This script produces the authoritative checklist every audit lane must cover

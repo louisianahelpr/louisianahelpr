@@ -115,7 +115,7 @@ the runtime probes `.then`, the Proxy invents one, the bridge rejects with
 `return { App }` works** -- one word, and the broken version reads perfectly. Behind a
 fail-open `catch` it becomes a feature that never fires and never says why.
 `AppLockGate.tsx`, `nativePush.ts` and `appLifecycle.ts` already destructure at the
-import. Check all 16 Capacitor plugins for the same pattern.
+import. Check every Capacitor plugin in package.json (16 on 2026-09-23) for the same pattern.
 
 **4. Realtime subscriptions that silently do nothing.**
 Every `postgres_changes` channel needs a **server-side `filter` scoped to the user**

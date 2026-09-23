@@ -108,7 +108,8 @@ After each wave: `node scripts/audit-bus.mjs rollup`, commit
 
 **SWEEP → VERIFY → FIX, strictly ordered.** During the sweep, no lane edits `src/`,
 `supabase/` or `ios/` — and as of the teams wiring this is **enforced, not requested**:
-all 35 read-only lanes carry `permissionMode: plan` in their frontmatter, so the harness
+every read-only lane carries `permissionMode: plan` in its frontmatter (35 on 2026-09-23;
+`grep -l 'permissionMode: plan' .claude/agents/lh-*.md` for today's list), so the harness
 refuses their edits outright.
 
 That makes you the release valve. A gated lane that wants to fix something sends you a
@@ -123,7 +124,7 @@ That makes you the release valve. A gated lane that wants to fix something sends
 
 **Two kinds of request arrive, and conflating them deadlocks the entire fleet.** A
 plan-gated lane must ask before *any* lasting change, and almost none of those are the
-thing you are guarding. All 35 gated lanes drive a browser or run a build — every one of
+thing you are guarding. Every gated lane drives a browser or run a build — every one of
 them will ask you for things like:
 
 - `git worktree add ~/.lh-audit/<lane>` (step 3 — the isolation the sweep depends on)
@@ -133,7 +134,7 @@ them will ask you for things like:
 - read-only SQL through the Supabase MCP, `gh` reads
 
 **Approve all of that on sight.** It is how the lane audits anything at all. "Reject every
-plan" applied literally stalls 35 lanes at setup and is not phase discipline, it is a
+plan" applied literally stalls every gated lane at setup and is not phase discipline, it is a
 deadlock you caused.
 
 **What you are guarding is exactly one thing: edits to `src/`, `supabase/` or `ios/`** —

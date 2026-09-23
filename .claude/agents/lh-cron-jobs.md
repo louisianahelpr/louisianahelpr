@@ -1,6 +1,6 @@
 ---
 name: "lh-cron-jobs"
-description: "Audits every scheduled sweep, cron function and automated job for silent death, missed runs, double-execution and unbounded growth. The app has ~20 sweep functions and its own dead-cron monitoring. Launch-audit fleet, sweep phase."
+description: "Audits every scheduled sweep, cron function and automated job for silent death, missed runs, double-execution and unbounded growth. Prod had 54 active pg_cron jobs on 2026-09-23 (`select count(*) from cron.job where active`), plus its own dead-cron monitoring. Launch-audit fleet, sweep phase."
 model: opus
 memory: project
 permissionMode: plan

@@ -112,7 +112,7 @@ signup and login (incl. social), profile completion, post a job, browse and filt
 accept a bid, **pay into escrow**, complete, **release payout**, refund, dispute, review,
 message, ban enforcement, account deletion.
 
-- 26 specs exist in `e2e/happy-path/`, plus `e2e/visual-audit/`. Map each critical
+- The specs in `e2e/happy-path/` (28 on 2026-09-23; `ls` it), plus `e2e/visual-audit/`. Map each critical
   journey to a spec; the unmapped ones are your findings. Message `lh-e2e-journeys`.
 - Unit coverage on the money and authz helpers specifically: `subscriptionTiers.test.ts`,
   `mutationRowGuard.test.ts`, `migrationVersions.test.ts`, `src/test/edge/*`.
@@ -122,7 +122,7 @@ message, ban enforcement, account deletion.
 
 ## Guard inventory
 
-Confirm each of the 24 workflows: enabled, triggered on push to `main`, and **blocking**
+Confirm each workflow in `.github/workflows/` (45 on 2026-09-23): enabled, triggered on push to `main`, and **blocking**
 rather than advisory — `a11y-axe`, `bundle-size`, `db-deploy`, `db-drift-detect`,
 `db-smoke`, `e2e-happy-path`, `edge-function-smoke`, `lighthouse`, `migration-guard`,
 `migration-lint`, `mobile-viewports`, `prod-freshness`, `schedule-heartbeat`,

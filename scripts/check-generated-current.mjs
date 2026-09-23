@@ -154,6 +154,7 @@ export const TWO_WAY = {
   "src/test/vacuity.baseline.json": "scripts/vacuity/index.mjs ratchet (stale entry fails)",
   "src/test/controlInteractionLedger.json": "src/test/controlInteractionSameness.test.ts (no-longer-a-violation fails)",
   "docs/audit/loading-states/baseline.json": "scripts/check-loading-state-shape.mjs (entry that no longer breaches fails)",
+  "scripts/stated-counts-baseline.json": "scripts/check-stated-counts.mjs (an entry nothing matches fails; a new undated count fails)",
 };
 
 /**
@@ -201,6 +202,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/vacuity/run.mjs": "temporarily mutates a guarded file and restores it",
   "scripts/verify-functions-deployed.mjs": "--lost-file for the deploy retry",
   "scripts/check-generated-current.mjs": "restores generator outputs after each comparison",
+  "scripts/check-stated-counts.mjs": "rewrites scripts/stated-counts-baseline.json only on --write-baseline, which refuses to grow it",
 };
 
 const WRITE_RE = /\b(writeFileSync|appendFileSync|writeFile)\s*\(/;

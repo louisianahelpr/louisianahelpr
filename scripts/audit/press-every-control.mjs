@@ -195,6 +195,7 @@ export function deriveRouteSet({ seedJobId, helperId, customerId, adminViews, jo
 import { ERROR_SCREEN_PATTERNS } from "../../e2e/errorScreens.ts";
 export const ERROR_BOUNDARY_RX = new RegExp(ERROR_SCREEN_PATTERNS.filter((p) => p.name !== "404 on a real route").map((p) => p.re.source).join("|"), "i");
 /** Labels that MUTATE something. Pressed only on a test-owned target (see pressProdSafety.mjs). */
+export const SENTRY_PROBE_RX = /uncaught:\s*Sentry uncaught test\b/i;
 export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout)\b/i;
 export { ACCOUNT_DESTROY_RX, SESSION_END_RX, PAYMENT_RX, SELF_ROUTE_RX } from "./pressProdSafety.mjs";
 import { PAYMENT_RX } from "./pressProdSafety.mjs";
@@ -832,6 +833,47 @@ async function main() {
           || (!x.search && allRoutes.some((r) => r.url === x.pathname && r.personas.includes(persona)));
       };
       const atRest = () => page.url() === restingUrl;
+      /**
+       * THE BOTTOM DOCK HIDES ON SCROLL, AND A HIDDEN DOCK IS NOT A DEAD BUTTON.
+       *
+       * `MobileNav` slides the whole bar (curtain + pill + "Post a new job" FAB)
+       * off the bottom edge when the user scrolls DOWN, and brings it back on
+       * scroll UP. The buttons stay in the DOM the whole time, fully enabled, so
+       * they enumerate, they resolve, and `scrollIntoViewIfNeeded` cannot help:
+       * the bar is translated out of the viewport by CSS, not scrolled out of a
+       * container. Playwright then burns its full 16s budget and the run reports
+       * "NOT CLICKABLE".
+       *
+       * MEASURED, run 35805671843: 22 of the 48 non-switch failures were exactly
+       * this — "Home"/"Posts"/"Jobs"/"Messages"/"Profile"/"Post a new job" on
+       * /data-rights (which lands on /profile?tab=legal#download-your-data, i.e.
+       * an ANCHOR that scrolls the page down on load) and on the two /jobs/<id>
+       * rows. The Playwright log names it: "element is visible, enabled and
+       * stable - scrolling into view if needed - done scrolling - element is
+       * outside of the viewport". The screenshot of the failure shows the page
+       * scrolled to the anchor with no dock on screen at all.
+       *
+       * So before pressing anything that is off-viewport, scroll every surface
+       * that can scroll back to the top — the scroll-UP is what the component
+       * listens for — and give it the transition to finish. Real dead controls
+       * are unaffected: they are on screen, so this does nothing to them.
+       */
+      const revealIfScrolledAway = async (target) => {
+        const box = await target.boundingBox().catch(() => null);
+        const vh = page.viewportSize()?.height ?? 0;
+        const offscreen = !box || box.y >= vh || box.y + box.height <= 0;
+        if (!offscreen) return;
+        await page
+          .evaluate(() => {
+            window.scrollTo({ top: 0, behavior: "auto" });
+            document.querySelectorAll("*").forEach((el) => {
+              if (el instanceof HTMLElement && el.scrollTop > 0) el.scrollTop = 0;
+            });
+          })
+          .catch(() => {});
+        // The bar's return is a CSS transition, so a settled DOM is not enough.
+        await page.waitForTimeout(700);
+      };
       const snapshot = () => page.evaluate(SNAPSHOT, { overlaySel: OPEN_OVERLAY });
       // Signatures are computed HERE, not in the page, so `controlSignature`
       // stays a plain exported function a unit test can drive.
@@ -1114,6 +1156,7 @@ async function main() {
             .catch(() => false);
           const errs0 = consoleErrors.length, net0 = netFails.length, pop0 = popups.length, dl0 = downloads.length;
           try {
+            await revealIfScrolledAway(target);
             await target.scrollIntoViewIfNeeded({ timeout: 2500 }).catch(() => {});
             await target.click({ timeout: PRESS_TIMEOUT });
           } catch (e) {
@@ -1194,7 +1237,19 @@ async function main() {
             }
           }
           if (ERROR_BOUNDARY_RX.test(after.text) && !ERROR_BOUNDARY_RX.test(before.text)) problems.push("error boundary / error copy rendered");
-          const newErrs = consoleErrors.slice(errs0);
+          // THE ONE CONSOLE ERROR THAT IS THE FEATURE.
+          //
+          // `/admin?view=health` ships a "Throw Uncaught" button whose entire
+          // job is to throw an uncaught error so an admin can confirm Sentry is
+          // still wired (`src/components/admin/AdminHealth.tsx:288-293` — a
+          // `setTimeout` that throws `Sentry uncaught test — <ISO>`). Reporting
+          // it is reporting the probe working. Narrow on purpose: the excuse is
+          // keyed to that exact message, so any OTHER uncaught error from that
+          // same button — or this message from any other press — is still red.
+          const newErrs = consoleErrors.slice(errs0).filter((e) => !SENTRY_PROBE_RX.test(e));
+          if (consoleErrors.slice(errs0).length > newErrs.length) {
+            entry.excused = `deliberate Sentry probe: the "Throw Uncaught" button on /admin?view=health exists to raise this error`;
+          }
           if (newErrs.length) problems.push(`console: ${newErrs[0]}`);
           const newNet = netFails.slice(net0);
           if (newNet.length) problems.push(`network: ${[...new Set(newNet)].slice(0, 3).join(" | ")}`);

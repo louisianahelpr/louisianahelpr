@@ -53,7 +53,7 @@ export const TermsContent = () => {
   <div className="space-y-3">
     <TldrCard
       items={[
-        "You must be 18+. All accounts are reviewed before approval.",
+        "You must be 18+. Every account verifies its email address before it can post or take jobs.",
         "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",
         `Both sides pay a plan-based platform fee: the poster pays a service fee added at checkout (${TIER_PERKS.free.platformFeePercent}% on Free down to ${FEE_FLOOR.platformFeePercent}% on ${FEE_FLOOR.name}), and the Helpr's platform fee (${FEE_FLOOR.platformFeePercent}–${TIER_PERKS.free.platformFeePercent}%, on the same ladder) is deducted from their payout. Each side's own plan determines their own %.`,
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",
@@ -75,7 +75,7 @@ export const TermsContent = () => {
           <>
             <p><strong className="text-foreground">18+ only.</strong> Age verification is mandatory at signup.</p>
             <p><strong className="text-foreground">Account responsibility:</strong> You are responsible for the security of your credentials and all activity under your account.</p>
-            <p><strong className="text-foreground">Account approval:</strong> All new accounts are subject to review and remain pending until approved. Denied accounts receive an explanation and may reapply.</p>
+            <p><strong className="text-foreground">Email verification:</strong> You must verify your email address to use your account. We may suspend or close an account that breaks these Terms or our Community Rules.</p>
           </>
         }
       />

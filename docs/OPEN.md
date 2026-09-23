@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 65 done, 11 partly done (fixed, protection pending), 77 open. Source of truth for work.
+- **Queue (this file):** 65 done, 11 partly done (fixed, protection pending), 78 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 153 items — 65 done, 11 partly done (fixed, protection pending), 77 open.**
+**Queue: 154 items — 65 done, 11 partly done (fixed, protection pending), 78 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -489,7 +489,7 @@ sure someone hears it and closes it.
 - [ ] **Q151 Audit the right-side panel overlap on every signed-in page (owner 2026-09-23: "you audit it and check"; carried from Q10).** With the desktop rail open, measure every signed-in route at 1024, 1280, 1440 and 1920: nothing under the rail, .app-shell-frame inset exactly --desktop-sidebar-w, zero horizontal overflow, column centred in the post-rail area. Screenshot each failure plus a sample, record reviews, fix at the shared layer only.
 - [ ] **Q153 A dispute settled by a manual release-payout still says it moved no money (found by Q148, 2026-09-23).** After Q148, dispute 9756a585 still has execution_transfer_id / execution_helper_cents NULL although tr_3UCwOtKp2H4b7tEC1UMtZPxp paid 3520c, because release-payout never writes the disputes row. Measure what DisputeTimelineDialog (reads the execution_* figures) and the admin dispute views show for 9756a585, then make release-payout stamp execution_transfer_id + execution_helper_cents when it pays a job whose dispute is executed with nothing recorded (or read them from payout_transfers). Guard: an edge test that pays such a job and expects the dispute row stamped.
 - [ ] **Q152 LAST STEP: cut the TestFlight build (`bundle exec fastlane ios beta`) only after every other queue item is done (owner, 2026-09-23: "wait on test flight until everything in Que is done").** Claude runs it from main; then the owner installs it, signs in, and taps Enable -> Allow on the notifications pill (MORNING QUESTIONS 5 / Q82), and push_tokens gets its first real device row.
-- [x] **Q154 DONE 2026-09-23: conflict markers can no longer reach main unnoticed.** A rebase stopped on a conflict in generated docs; a follow-up `git commit -a` recorded the conflicted files and the --no-verify push put `<<<<<<<`/`>>>>>>>` into docs/OPEN.md, docs/SCOREBOARD.md and docs/audit/vacuity-report.json (invalid JSON) at 88ee54f74; repaired in 6dc6a5e0b. Guard: src/test/noConflictMarkers.test.ts (every tracked text file, floor 1500; red on a planted marker naming docs/OPEN.md).
+- [x] **Q155 DONE 2026-09-23: conflict markers can no longer reach main unnoticed.** A rebase stopped on a conflict in generated docs; a follow-up `git commit -a` recorded the conflicted files and the --no-verify push put `<<<<<<<`/`>>>>>>>` into docs/OPEN.md, docs/SCOREBOARD.md and docs/audit/vacuity-report.json (invalid JSON) at 88ee54f74; repaired in 6dc6a5e0b. Guard: src/test/noConflictMarkers.test.ts (every tracked text file, floor 1500; red on a planted marker naming docs/OPEN.md).
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes

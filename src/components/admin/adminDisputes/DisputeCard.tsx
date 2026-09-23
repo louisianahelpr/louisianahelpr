@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -53,6 +54,8 @@ interface DisputeCardProps {
   decide: (job: DisputedJob) => void;
   /** Re-invoke `execute-dispute-split` for a decision whose money never moved. */
   retrySettlement: (job: DisputedJob) => void;
+  /** Close a decided dispute whose job has no payment on file (Q235). */
+  closeWithoutPayment: (job: DisputedJob, note: string) => void;
   /** job.id currently being retried, if any. */
   retrying: string | null;
 }
@@ -77,6 +80,7 @@ export const DisputeCard = ({
   setActivePanelJobId,
   decide,
   retrySettlement,
+  closeWithoutPayment,
   retrying,
 }: DisputeCardProps) => {
   const record = disputeRecords[job.id];
@@ -94,6 +98,11 @@ export const DisputeCard = ({
   // a poster's escrow sat unmoved with no id, no reason and no retry anywhere
   // on the screen.
   const unsettled = isUnsettled(record);
+  // No PaymentIntent and no session to find one through: the split can never
+  // settle this (it refuses "no payment intent on file"), so the retry alone
+  // was a dead end (Q235). The server also refuses a gift-funded job.
+  const noPaymentOnFile = !job.stripe_payment_intent_id && !job.stripe_session_id;
+  const [closeNote, setCloseNote] = useState("");
   // What each side actually receives at the current slider position.
   const preview = previewDisputeSplit(job, helperShare / 100, job.helper_id ? tiers[job.helper_id] : null);
   const isActivePanel = activePanelJobId === job.id;
@@ -247,6 +256,30 @@ export const DisputeCard = ({
                 <RefreshCw className={`w-4 h-4 mr-1 ${retrying === job.id ? "animate-spin" : ""}`} />
                 {retrying === job.id ? "Settling…" : "Retry settlement"}
               </Button>
+              {noPaymentOnFile && (
+                <div className="space-y-1.5 border-t border-destructive/20 pt-2">
+                  <Label htmlFor={`close-note-${job.id}`} className="text-ds-11">
+                    No payment on file, so there is nothing to split. Close it and say why:
+                  </Label>
+                  <Textarea
+                    id={`close-note-${job.id}`}
+                    value={closeNote}
+                    onChange={(e) => setCloseNote(e.target.value)}
+                    maxLength={500}
+                    rows={2}
+                    placeholder="e.g. the job was never paid for"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    onClick={() => closeWithoutPayment(job, closeNote)}
+                    disabled={retrying === job.id || closeNote.trim().length === 0}
+                  >
+                    Close with no payment
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 

@@ -47,6 +47,7 @@ const renderAt = (helperShare: number) => {
       setActivePanelJobId={vi.fn()}
       decide={vi.fn()}
       retrySettlement={vi.fn()}
+      closeWithoutPayment={vi.fn()}
       retrying={null}
       submittingDecision={false}
       openDecisionPanel={vi.fn()}

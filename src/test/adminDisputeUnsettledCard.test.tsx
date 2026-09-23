@@ -76,6 +76,7 @@ const renderCard = (over: Partial<React.ComponentProps<typeof DisputeCard>> = {}
     setActivePanelJobId: vi.fn(),
     decide: vi.fn(),
     retrySettlement: vi.fn(),
+    closeWithoutPayment: vi.fn(),
     retrying: null as string | null,
     ...over,
   };

@@ -278,6 +278,16 @@ export const RPC_ERROR_COPY = {
     dispute_payment_being_cancelled: "This job's payment is being cancelled and refunded, so it can't be disputed. Refresh to see where it stands — if that looks wrong, contact support.",
     dispute_evidence_invalid_url: "A photo couldn't be attached to this dispute. Remove it and try again.",
   },
+  // AdminDisputes — closing a decided dispute whose job has no payment on file
+  // (Q235, 20260923190510). Admin-facing.
+  rpc_settle_dispute_without_payment: {
+    settle_note_required: "Write why there's no payment to move. It's the only record of this close.",
+    dispute_not_decided: "This dispute hasn't been decided yet, so there's no settlement to close.",
+    dispute_already_settled: "This dispute's settlement is already closed. Refresh to see it.",
+    dispute_settlement_in_progress: "A settlement run holds this dispute right now. Refresh in a few minutes.",
+    dispute_has_payment: "This job has a payment on file, so the split has to move it. Use Retry settlement.",
+    admin_is_party: "You're a party to this job, so another admin has to close its settlement.",
+  },
   // DisputeTimelineDialog — adding evidence to a dispute an admin re-opened.
   rpc_add_dispute_evidence: {
     dispute_evidence_empty: "Attach between one and ten photos, then try again.",

@@ -1429,6 +1429,9 @@ serve(async (req) => {
         }
       }
 
+      // The job's pending applications are closed in the same UPDATE by
+      // trg_close_pending_applications_on_job_cancel (Q274, 20260923185622).
+      //
       // The refund is already out — a failed status flip here must be LOUD,
       // or the job stays "in progress" on a refunded payment (helper still
       // sees it, auto-release could treat it as payable).

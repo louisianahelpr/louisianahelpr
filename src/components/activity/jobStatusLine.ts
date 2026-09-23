@@ -403,7 +403,9 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
 export function deriveHelperWait(app: AppliedApp): HelperWait {
   const job = app.job;
   if (!job) return "job_gone";
-  if (app.status === "rejected") return "not_selected";
+  // A job-cancel close (Q274) is 'rejected' too, but nobody passed on this
+  // applicant: let the job's own status speak.
+  if (app.status === "rejected" && app.closed_reason !== "job_cancelled") return "not_selected";
 
   switch (job.status) {
     case "cancelled":

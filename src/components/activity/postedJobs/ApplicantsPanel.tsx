@@ -560,7 +560,8 @@ export function ApplicantsPanel({
                               Selected
                             </span>
                           )}
-                          {app.status === "rejected" && (
+                          {/* Not on a job-cancel close (Q274): the poster cancelled the job, they declined nobody. */}
+                          {app.status === "rejected" && app.closed_reason !== "job_cancelled" && (
                             <span className="inline-flex items-center gap-1 text-ds-11 px-2.5 py-[3px] rounded-ds-pill font-semibold leading-none min-h-[22px] bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.8)]">
                               <span className="shrink-0 w-[5px] h-[5px] rounded-full bg-[hsl(var(--olivewood)/0.7)]" aria-hidden="true" />
                               Declined

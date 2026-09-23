@@ -114,7 +114,9 @@ function AppliedJobCardInner({
         <JobCardShell expandable={false} expanded={false} onToggle={() => {}}>
           <div className="px-4 py-3 space-y-1">
             <p className="text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-              {app.status === "rejected" ? "Not selected" : "Job no longer available"}
+              {app.closed_reason === "job_cancelled"
+                ? "Job cancelled"
+                : app.status === "rejected" ? "Not selected" : "Job no longer available"}
             </p>
             <p className="text-ds-11 text-muted-foreground">
               This job has closed, so its details aren’t available any more.

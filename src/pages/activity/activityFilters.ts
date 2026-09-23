@@ -288,9 +288,10 @@ export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
   // Measured in prod: 15 such applications across 10 helpers, against 3
   // genuinely pending.
   //
-  // Deliberately NOT done by writing applications.status: the only terminal
-  // values are accepted/rejected, and 'rejected' would tell those 10 people a
-  // poster turned them down when the job was merely cancelled.
+  // Since Q274 (20260923185622) a job's cancel DOES close its pending
+  // applications as 'rejected', but stamps closed_reason='job_cancelled' so no
+  // reader tells the applicant a poster turned them down. A job that merely
+  // closed to someone else is still read here, from the missing job row.
   if (!app.job) return "cancelled";
   if (app.status === "rejected" || jobStatus === "cancelled") return "cancelled";
   if (jobStatus === "completed") return "done";

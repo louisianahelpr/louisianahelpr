@@ -30,7 +30,8 @@
  * @mutate supabase/functions/create-payment/index.ts |               await stripe.paymentIntents.cancel(priorPi.id); |               void priorPi;
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { THREE_D_SECURE_MIN_CENTS, threeDSecureOptions } from "../../supabase/functions/_shared/threeDSecure";
 import { BOOST_FEE_CENTS, BGC_FEE_CENTS } from "../../supabase/functions/_shared/productPrices";
@@ -127,15 +128,15 @@ describe("3D Secure on large card charges (Q202)", () => {
   });
 
   it("no client code confirms a PaymentIntent itself: requires_action is handled by hosted Checkout on web and native", () => {
-    const files: string[] = [];
-    const walk = (dir: string) => {
-      for (const e of readdirSync(dir)) {
-        const p = join(dir, e);
-        if (statSync(p).isDirectory()) walk(p);
-        else if (/\.(ts|tsx)$/.test(e) && !/\.test\./.test(e)) files.push(p);
-      }
-    };
-    walk(join(ROOT, "src"));
+    // From git, not a directory walk: other tests write and delete temporary
+    // fixtures under src/test while this runs (CI 2026-09-23: ENOENT on a
+    // q136Control-*.ts that existed for milliseconds). Tracked files only, and
+    // one deleted in the working tree is skipped.
+    const files = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })
+      .trim().split("\n")
+      .filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\./.test(f))
+      .map((f) => join(ROOT, f))
+      .filter((f) => existsSync(f));
     expect(files.length).toBeGreaterThan(200);
     const offenders = files.filter((f) =>
       /@stripe\/stripe-js|\.confirmCardPayment\(|\.handleNextAction\(|\.handleCardAction\(|stripe\.confirmPayment\(/.test(

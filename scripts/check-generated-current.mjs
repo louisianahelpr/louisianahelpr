@@ -210,6 +210,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/check-vercel-usage.mjs": "CI report + GITHUB_OUTPUT",
   "scripts/check-analytics-freshness.mjs": "GITHUB_STEP_SUMMARY only (Q72 daily check in quota-monitor.yml)",
   "scripts/check-quota-usage.mjs": "GITHUB_STEP_SUMMARY only (Q63 daily check in quota-monitor.yml)",
+  "scripts/check-stripe-balance.mjs": "GITHUB_STEP_SUMMARY only (Q3 daily check in quota-monitor.yml)",
   "scripts/db-saturation-check.mjs": "GITHUB_STEP_SUMMARY only (Q53 hourly check in prod-errors.yml)",
   "scripts/gate.mjs": "~/.lh-gate/last.json — per-machine record of the last local gate, read by the scoreboard's gate row",
   "scripts/gateLock.mjs": "lock file",

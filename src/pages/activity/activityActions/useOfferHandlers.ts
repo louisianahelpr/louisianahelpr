@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
-import { createNotification } from "@/lib/notifications";
+import { createNotification, notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -95,7 +95,8 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
   const declineApplication = async (
     app: EnrichedApplication,
     note: string,
-    jobTitle: string,
+    // Unused since Q223: the server reads the job title itself.
+    _jobTitle: string,
   ) => {
     hapticMedium();
     // `.eq("status", "pending")` makes the decline conditional. Without it, a
@@ -162,29 +163,9 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     // notification (with the reason and a working link) and this is skipped —
     // sending here too is exactly the duplicate this change removes.
     if (columnMissing && declineNote) {
-      // Fetch the poster's first name from their profile for the message.
-      const posterFirstName = user
-        ? await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("user_id", user.id)
-            .single()
-            .then(({ data }) => (data?.full_name ?? "").split(" ")[0] || "The person who posted this job")
-        : "The person who posted this job";
-      await createNotification({
-        user_id: app.helper_id,
-        title: "Application declined",
-        message: `${posterFirstName} declined your application for "${jobTitle}": ${declineNote}`,
-        type: "info",
-        // `?job=`, not `?filter=cancelled`. `cancelled` IS a live chip and a
-        // declined application looks terminal — but it is not: a later direct
-        // offer for the same job promotes the SAME applications row back to
-        // `accepted` (respond_to_direct_offer, ON CONFLICT DO UPDATE), and the
-        // card moves out of Cancelled while this notification is still unread.
-        // Kept in lockstep with notify_on_application(), which is the primary
-        // producer for this event and now writes the same shape.
-        link: `/my-jobs?job=${app.job_id}`,
-      });
+      // Server-built copy (Q223): it reads the stored decline_reason and the
+      // poster's first name itself.
+      await notifyJobParty({ user_id: app.helper_id, job_id: app.job_id, template: "application_declined" });
     }
   };
 
@@ -328,7 +309,8 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     // just set to `accepted` above, so `?job=` resolves against it and Activity
     // both selects the live bucket ("Needs you", since the offer is being held
     // for them) and pulses the card.
-    await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: `/my-jobs?job=${selectedJob.id}` });
+    // Server-built copy (Q223): the deadline comes from jobs.response_deadline.
+    await notifyJobParty({ user_id: deadlineDialogApp.helper_id, job_id: selectedJob.id, template: "job_offer" });
     // Success moment — the poster just hired an applicant. hapticSuccess is
     // a result haptic (fires even under Reduce Motion); the overlay itself
     // self-respects reduced motion (static check, no draw-in).

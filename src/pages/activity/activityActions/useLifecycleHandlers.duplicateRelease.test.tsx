@@ -48,7 +48,7 @@ vi.mock("@/lib/haptics", () => ({ hapticLight: vi.fn(), hapticMedium: vi.fn(), h
 vi.mock("@/lib/successMoment", () => ({ fireSuccessMoment: (...a: unknown[]) => successMomentMock(...a) }));
 vi.mock("@/lib/celebrate", () => ({ maybeCelebrate: (...a: unknown[]) => { celebrateMock(...a); return Promise.resolve(); } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
-vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn() }));
+vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn(), notifyJobParty: vi.fn() }));
 vi.mock("@/lib/pushPermissionNudge", () => ({ usePushPermissionNudge: () => vi.fn() }));
 vi.mock("@/hooks/useStripeConnectCheck", () => ({
   useStripeConnectCheck: () => ({ checkHelperAwardEligibility: async () => ({ ok: true }) }),

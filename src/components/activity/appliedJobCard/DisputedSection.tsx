@@ -10,7 +10,7 @@ import { report } from "@/lib/errorLogger";
 import { isExpectedLifecycleRefusal, lifecycleErrorMessage } from "@/lib/lifecycleErrors";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
-import { createNotification } from "@/lib/notifications";
+import { notifyJobParty } from "@/lib/notifications";
 import { formatDistanceToNow } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import { JobStepCard } from "@/components/activity/JobStepCard";
@@ -100,15 +100,8 @@ export function DisputedSection({
         return;
       }
       if (job.customer_id) {
-        await createNotification({
-          user_id: job.customer_id,
-          title: "Dispute withdrawn",
-          message: `The Helpr withdrew the dispute on "${job.title}". The payment is off hold and back on its normal schedule.`,
-          type: "info",
-          // `?job=` — the job returns to whichever bucket its restored status
-          // computes; a fixed `?filter=` would be wrong for one of the two.
-          link: `/my-posts?job=${job.id}`,
-        });
+        // Copy and link (`/my-posts?job=`) are built server-side (Q223).
+        await notifyJobParty({ user_id: job.customer_id, job_id: job.id, template: "dispute_withdrawn" });
       }
       hapticSuccess();
       confirmConsequential("Dispute withdrawn — the payment is off hold.");
@@ -336,9 +329,9 @@ export function DisputedSection({
                       : { dispute_helper_response: disputeResponse.trim() };
                   const { data: saved, error } = await supabase.from("jobs").update(patch).eq("id", app.job_id).select("id");
                   if (error || !saved || saved.length === 0) { hapticError(); toast.error("We couldn't submit your response — please try again."); setSubmittingResponse(false); return; }
-                  if (job.customer_id) await createNotification({ user_id: job.customer_id, title: "Helpr responded to dispute", message: awaitingAdmin ? `The Helpr added their side of the dispute on "${job.title}". An admin is reviewing it.` : `The Helpr has responded to the dispute on "${job.title}". Please review and mark resolved or escalate.`, // `?job=` — `disputed` has no chip; an open dispute buckets to
-          // "Needs you" and moves the moment it resolves.
-          type: "info", link: `/my-posts?job=${job.id}` });
+                  // Server-built copy (Q223); it reads dispute_status for the
+                  // "an admin is reviewing it" variant.
+                  if (job.customer_id) await notifyJobParty({ user_id: job.customer_id, job_id: job.id, template: "dispute_response" });
                   hapticSuccess();
                   setSubmittingResponse(false);
                   setRespondingJobId(null);

@@ -29,7 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError, hapticMedium } from "@/lib/haptics";
-import { createNotification } from "@/lib/notifications";
+import { notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 
@@ -198,15 +198,9 @@ export function CompletionChoiceSheet({
 
       // Notify helper
       if (helperId) {
-        await createNotification({
-          user_id: helperId,
-          title: "Revision requested",
-          message: `The person who posted this job wants a small fix on "${description.trim().slice(0, 80)}${description.length > 80 ? "…" : ""}". Tap to see details.`,
-          type: "warning",
-          // `?job=` — `revision_requested` has no chip; the live bucket is
-          // "Needs you" for the helper and moves once they resubmit.
-          link: `/my-jobs?job=${jobId}`,
-        });
+        // Server-built copy (Q223): it quotes the job_revisions row written
+        // above, not this form's text.
+        await notifyJobParty({ user_id: helperId, job_id: jobId, template: "revision_requested" });
       }
 
       hapticSuccess();

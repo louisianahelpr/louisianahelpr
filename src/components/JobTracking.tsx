@@ -1533,17 +1533,12 @@ export function JobTracking({
       const { data: job, error: notifyErr } = await supabase.from("jobs").select("title, customer_id").eq("id", jobId).single();
       if (notifyErr) report(notifyErr, { tags: { source: "JobTracking.notifyPoster" } });
       if (job?.customer_id) {
-        const { createNotification } = await import("@/lib/notifications");
-        const { error: pushErr } = await createNotification({
+        const { notifyJobParty } = await import("@/lib/notifications");
+        // Copy and link (`/my-posts?job=`) are built server-side (Q223).
+        const { error: pushErr } = await notifyJobParty({
           user_id: job.customer_id,
-          title: "Work has started",
-          message: `Your Helpr started working on "${job.title}".`,
-          type: "info",
-          // `?job=`, not `?filter=scheduled`. `scheduled` IS a live chip, but it
-          // is not stable: the same job is in "Needs you" the moment its day has
-          // passed (jobIsOverdue, activityFilters.ts), and this notification can
-          // sit unread across that boundary. Activity resolves the live bucket.
-          link: `/my-posts?job=${jobId}`,
+          job_id: jobId,
+          template: "work_started",
         });
         if (pushErr) posterNotified = false;
       } else {

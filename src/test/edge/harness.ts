@@ -219,6 +219,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/disputePayoutStamp.ts";`,
   );
 
+  // Q223: `_shared/notification-templates.ts` has ZERO imports, so the
+  // generated file points at the REAL module. The server-built copy IS the
+  // behaviour under test in create-notification.test.ts; a mock would put the
+  // words a non-admin can cause outside the guard that pins them.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/notification-templates\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/notification-templates.ts";`,
+  );
+
   // Q202: the job price cap and the 3D Secure rule have ZERO imports, so the
   // generated file points at the REAL modules. They are the behaviour under
   // test (jobBudgetCapIsOneConstant / threeDSecureOnLargeCharges).

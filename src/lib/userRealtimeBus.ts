@@ -55,6 +55,8 @@ function openBus(userId: string): Bus {
       try {
         l.onChange(payload);
       } catch (e) {
+        // Not swallowed: re-thrown on a microtask so the global error handler
+        // (Sentry) reports it, while the remaining listeners still run.
         queueMicrotask(() => {
           throw e;
         });

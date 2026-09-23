@@ -305,7 +305,7 @@ export default tseslint.config(
   // prior run were adding 176 phantom typecheck errors and 28 lint warnings to
   // the local gate — the gate CLAUDE.md treats as load-bearing — training us to
   // ignore it. Excluded here and in tsconfig.app.json so the gate stays honest.
-  { ignores: ["dist", "build", "**/build/**", "ios/**", ".claude/**", ".remember/**", "supabase/functions/**", "src/test/edge/**/*.gen.ts", "playwright-fixture.ts", "playwright.config.ts"] },
+  { ignores: ["dist", "build", "**/build/**", "ios/**", ".claude/**", ".remember/**", "supabase/functions/**", "src/test/edge/**/*.gen.ts", ".lh-edge-gen/**", "playwright-fixture.ts", "playwright.config.ts"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

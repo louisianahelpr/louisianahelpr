@@ -1139,7 +1139,7 @@ sure someone hears it and closes it.
   queries a page waits on). Deliver a ranked list: what it costs now, what
   the change is, the expected gain. Each speed fix ships with a budget check
   (e.g. bundle-size budgets, a Lighthouse/LCP budget in CI) so it can't regress.
-- [ ] **Q57 Nightly refresh jobs can PROVE a file is stale but can't UPDATE it.**
+- [ ] **Q57 Nightly refresh jobs can PROVE a file is stale but can't UPDATE it.** STATUS 2026-09-23: OWNER SETTING DONE (verified via API: default_workflow_permissions=write, can_approve_pull_request_reviews=true). Wiring the refresh workflows to open auto-merging PRs is running in cloud session cloud/q57-refresh-prs.
   GitHub Actions here cannot push to main or open PRs
   (can_approve_pull_request_reviews=false; found by Q36). So re-measured
   evidence (loading states, press ledger, overlay baseline) must be committed

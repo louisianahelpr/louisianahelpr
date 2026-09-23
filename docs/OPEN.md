@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 124 done, 14 partly done (fixed, protection pending), 129 open. Source of truth for work.
+- **Queue (this file):** 124 done, 14 partly done (fixed, protection pending), 130 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 267 items — 124 done, 14 partly done (fixed, protection pending), 129 open.**
+**Queue: 268 items — 124 done, 14 partly done (fixed, protection pending), 130 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -2364,3 +2364,4 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q268 "Tap to Retry" on a message whose response was lost sends it twice (found by Q68, code read 2026-09-23).** src/pages/messages/messagesData/sendHandlers.ts:118 inserts `messages` with no key; the bubble's clientId (crypto.randomUUID) never leaves the client and there is no unique index, so retryMessage (:340) re-inserts the same content. Fix: send client_id, UNIQUE(sender_id, client_id), treat 23505 as success. Proof: slow-network message·drop goes green.
 - [ ] **Q269 A retried apply that already landed is told it failed, then "already applied" (found by Q68, code read 2026-09-23).** A lost apply_to_job response shows "Couldn't send your application through" (src/pages/dashboard/useApplyFlow.ts:257); the retry is refused by the RPC and shows "You've already applied to this job." (applyErrorCopy.ts:29). No duplicate row (UNIQUE(job_id, helper_id)), but the user is told twice that something went wrong when it didn't. Fix: map "Already applied" after a failed attempt to the success state. Proof: slow-network apply·drop records a `finding` annotation when the copy shows; turn it into an assertion with the fix.
 - [ ] **Q270 A network failure on Post shows the raw error text (found by Q68, code read 2026-09-23).** useJobSubmit.ts:477 toasts `error?.message` for any insert failure, so a dropped connection shows whatever postgrest-js puts in `message` for a failed fetch (expected to read like "TypeError: Failed to fetch"; not yet seen live), not offline copy. requireOnline() (:370) only catches the case where navigator.onLine is already false. Proof: the slow-network post·drop run's failure screenshot shows the text; fix with the same connection copy as authErrors.ts.
+- [ ] **Q271 Vercel production deploys hit the Hobby cap of 100/day (found by the Q63 quota monitor's first prod run, 2026-09-23).** Measured: Vercel list_deployments for prj_pDcXQcTz4zPMNwewE9wmz09PvNag returned 100 non-cancelled deployments between 03:42Z and 17:20Z (87 READY production), and quota-monitor run 35894409825 counted 118 GitHub deployments in 24h. scripts/vercel-ignore.sh only skips pushes that change no deploy path, and every landing touches src/. At the cap Vercel stops deploying, so prod goes stale behind green CI. Fix (owner decision pending, pop-up 2026-09-23): either debounce production deploys (skip in vercel-ignore.sh when the previous deploy is under N minutes old, plus a scheduled trailing deploy through a Vercel deploy hook so the last push always ships) or move to Vercel Pro. Guard: the quota monitor already alerts at 80%; add a vitest pinning the debounce once built.

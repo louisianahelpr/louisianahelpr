@@ -13,7 +13,7 @@
  *   5. Tapping a push notification opens the app and routes to the link
  *      embedded in the notification's data payload.
  */
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,6 +73,7 @@ let authListenerAttached = false;
 // sign-out can delete just this device's row instead of nuking the user's
 // tokens on every other device they're signed in on.
 let currentDeviceToken: string | null = null;
+let currentDevicePlatform: "ios" | "android" | null = null;
 
 /**
  * Translate Capacitor's `PermissionState` ("granted" | "denied" | "prompt" |
@@ -113,9 +114,17 @@ async function persistPushToken(userId: string, token: string, platform: "ios" |
     );
     if (error) {
       report(error, { tags: { source: "persistPushToken.upsert" }, context: { userId } });
+      track("push_token_save_failed", { platform, code: error.code ?? null });
+      return;
     }
+    // The only positive signal that a device became reachable. analytics_events
+    // keeps it after the push_tokens row itself is gone (sign-out, APNs
+    // rejection), which is what lets the Q82 monitor tell "never registered"
+    // from "registered, then removed".
+    track("push_token_saved", { platform });
   } catch (err) {
     report(err, { tags: { source: "persistPushToken" }, context: { userId } });
+    track("push_token_save_failed", { platform, code: "exception" });
   }
 }
 
@@ -123,16 +132,32 @@ function attachAuthListenerOnce() {
   if (authListenerAttached) return;
   authListenerAttached = true;
   supabase.auth.onAuthStateChange((event, session) => {
-    if ((event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") && session?.user && pendingToken) {
+    if (!session?.user) return;
+    if ((event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") && pendingToken) {
       const { token, platform } = pendingToken;
       pendingToken = null;
       void persistPushToken(session.user.id, token, platform);
+      return;
+    }
+    // SIGN-OUT THEN SIGN-IN WITHOUT A COLD LAUNCH. unregisterPushOnSignOut
+    // deleted this device's row, and APNs does not hand the token over again
+    // until the next register() — i.e. the next cold launch. The token is
+    // still in hand, so save it for whoever just signed in; otherwise the
+    // device is unreachable for the rest of the session (Q82). The upsert on
+    // (user_id, token) is idempotent, so a repeated SIGNED_IN costs one no-op
+    // write.
+    if (event === "SIGNED_IN" && currentDeviceToken && currentDevicePlatform) {
+      void persistPushToken(session.user.id, currentDeviceToken, currentDevicePlatform);
     }
   });
 }
 
 async function savePushToken(token: string, platform: "ios" | "android") {
   currentDeviceToken = token;
+  currentDevicePlatform = platform;
+  // From the moment a token exists, every later sign-in must be able to save
+  // it — not only the case where it had to be buffered (see SIGNED_IN above).
+  attachAuthListenerOnce();
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
@@ -174,12 +199,29 @@ function appendRef(path: string, ref: string): string {
  */
 export function useNativePushSetup() {
   const navigate = useNavigate();
+  // NAVIGATE_REF. `navigate` changes identity on EVERY pathname change in
+  // react-router 7 (locationPathname is in useNavigate's useCallback deps).
+  // This effect used to list it as a dependency, so a native cold launch —
+  // which starts at "/" and is redirected at once by NativeLaunchRouter — ran
+  // the cleanup (cancelled = true) while the setup below was still awaiting
+  // the plugin import. The re-run was blocked by the module-level
+  // `listenersAttached`, and the in-flight setup returned BEFORE
+  // checkPermissions()/register() and BEFORE App.addListener("appUrlOpen").
+  // For that whole session: no push token requested, no Universal Link or
+  // helpr:/// Stripe return handled. No error, no log (docs/OPEN.md Q82;
+  // src/lib/nativePush.bootRegister.test.tsx). The setup is a once-per-process
+  // singleton, so it runs once, to completion, and reads the CURRENT navigate
+  // through this ref.
+  const navigateRef = useRef(navigate);
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
 
   useEffect(() => {
     if (!isNativePlatform || listenersAttached) return;
     listenersAttached = true;
+    const navigate = (to: string) => navigateRef.current(to);
 
-    let cancelled = false;
     (async () => {
       try {
         const { PushNotifications } = await import("@capacitor/push-notifications");
@@ -307,7 +349,6 @@ export function useNativePushSetup() {
           }
         });
 
-        if (cancelled) return;
 
         // Auto-register on every app boot when permission is already
         // granted. Capacitor's PushNotifications plugin does NOT cache or
@@ -334,7 +375,6 @@ export function useNativePushSetup() {
           report(regErr, { tags: { source: "push.autoRegister" } });
         }
 
-        if (cancelled) return;
 
         // Universal Links / App Links — handle taps from outside the app.
         //
@@ -422,11 +462,9 @@ export function useNativePushSetup() {
         report(err, { tags: { source: "useNativePushSetup" } });
       }
     })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [navigate]);
+    // No cleanup: the listeners are process-lifetime (listenersAttached), and
+    // App — the only mount — never unmounts.
+  }, []); // setup-once: see NAVIGATE_REF note
 }
 
 /**

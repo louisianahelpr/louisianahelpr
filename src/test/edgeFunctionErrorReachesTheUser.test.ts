@@ -31,6 +31,8 @@
  *      passing it through `userFacingError` or `functionErrorMessage`.
  *
  * The fix in both shapes is `functionErrorMessage(error, fallback)`.
+ *
+ * @mutate src/hooks/useFundExistingJob.ts | (error ? await functionErrorMessage(error, "Payment setup failed") : "Payment setup failed") | (error?.message ?? "Payment setup failed")
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
@@ -136,7 +138,11 @@ describe("an edge function's refusal reaches the user in its own words (run 3581
   });
 
   it("no call site in src/ shows supabase-js's wrapper instead of the function's error", () => {
-    const hits = walk(path.join(ROOT, "src")).flatMap((f) => findRawFunctionErrors(f, fs.readFileSync(f, "utf8")));
+    const files = walk(path.join(ROOT, "src"));
+    // Floor: 50 files call functions.invoke on 2026-09-22. If the scan stops
+    // finding them it is checking nothing.
+    expect(files.filter((f) => fs.readFileSync(f, "utf8").includes("functions.invoke")).length).toBeGreaterThan(40);
+    const hits = files.flatMap((f) => findRawFunctionErrors(f, fs.readFileSync(f, "utf8")));
     expect(hits).toEqual([]);
   });
 });

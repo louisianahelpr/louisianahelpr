@@ -31,6 +31,8 @@
  *     setter link is what separates "this option is chosen" from any other
  *     comparison (`color === "destructive"` in PriorityAlert is a tone, not a
  *     choice, and its onClick sets nothing).
+ *
+ * @mutate src/components/profile/SubscriptionTab.tsx | aria-pressed={active} | data-cycle-active={active}
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
@@ -142,7 +144,10 @@ describe("a selected option exposes its state (press-every-control run 358131774
   });
 
   it("no button in src/ paints a selection it does not expose", () => {
-    const violations = walk(SRC).flatMap((f) => findUnexposedSelection(f, fs.readFileSync(f, "utf8")));
+    const files = walk(SRC);
+    // Floor: 501 component files on 2026-09-22. An empty walk passes vacuously.
+    expect(files.length).toBeGreaterThan(400);
+    const violations = files.flatMap((f) => findUnexposedSelection(f, fs.readFileSync(f, "utf8")));
     expect(violations.map((v) => `${v.file}:${v.line} (${v.condition})`)).toEqual([]);
   });
 });

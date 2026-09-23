@@ -16,7 +16,7 @@
  * @mutate scripts/audit/press-every-control.mjs | const html = stripStyle((rootEl ? rootEl.innerHTML : "") + overlayHtml); | const html = stripStyle(rootEl ? rootEl.innerHTML : "");
  * @mutate scripts/audit/press-every-control.mjs | return tag === "input" && ariaHidden === "true" && Number(tabIndex) === -1 && pointerEvents === "none"; | return tag === "input";
  * @mutate scripts/audit/press-every-control.mjs | return VALIDATION_REFUSALS.some((v) => v.toast === t && changed === v.requires); | return VALIDATION_REFUSALS.some((v) => v.toast === t);
- * @mutate scripts/audit/pressProdSafety.mjs | export const PAYMENT_RX = /\b(pay|paying|checkout | export const PAYMENT_RX = /\b(pay|checkout
+ * @mutate scripts/audit/pressProdSafety.mjs | export const PAYMENT_RX = /\b(pay\|paying\|checkout | export const PAYMENT_RX = /\b(pay\|checkout
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -73,6 +73,7 @@ describe("press-every-control rules from run 35813177418", () => {
 
   it("a validation refusal is excused only with its exact copy and the fix opening", () => {
     const ok = harness.isDesignedValidationRefusal as (a: { toast: string; changed: string }) => boolean;
+    expect((harness.VALIDATION_REFUSALS as unknown[]).length).toBeGreaterThan(0);
     for (const v of harness.VALIDATION_REFUSALS as Array<{ toast: string; source: string; requires: string }>) {
       // anti-vacuity: the copy is still what the app prints
       expect(readFileSync(resolve(repoRoot, v.source), "utf8")).toContain(v.toast);

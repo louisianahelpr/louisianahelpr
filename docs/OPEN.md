@@ -1407,6 +1407,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 ### Launch checklist (owner decisions that flip at launch)
 Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] Switch Stripe to live (stripe-sandbox-off.sh) — Switch Stripe to live (stripe-sandbox-off.sh) (archive L5630)
+- [ ] At the same moment: retarget the Stripe webhook-endpoint check (scripts/check-stripe-webhook*, now fail-closed on 0 endpoints; Q52 area 3) and money-reconciliation's Stripe reads to the LIVE key/account, and confirm both run green against live. The sandbox green does not carry over.
 - [ ] Hide seed/demo jobs publicly (seed_jobs_hidden_publicly()) — Hide seed/demo jobs publicly (seed_jobs_hidden_publicly()) (archive L5631)
 
 ### Routine consolidation (2026-09-12)

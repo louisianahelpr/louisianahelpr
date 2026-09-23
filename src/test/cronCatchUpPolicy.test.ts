@@ -47,6 +47,8 @@ const files = readdirSync(MIG)
 /** Exactly the jobs that may be re-run late, each with its reason in the migration. */
 const CATCH_UP_SAFE = [
   "cleanup-notifications",
+  "cleanup-observability-tables",
+  "cleanup-stripe-webhook-events",
   "daily-match-digest",
   "detect-suspicious-user-patterns",
   "engagement-automations",

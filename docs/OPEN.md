@@ -7556,3 +7556,25 @@ THE RULE:
 5. Do the small things in the lead session instead of spawning for them.
 6. If a job genuinely cannot be cut below 10 minutes (a prod-audit suite run is
    ~1.1h of wall clock by itself), SAY SO and name the irreducible part.
+
+## OPEN — three visual findings from the 2026-09-23 verification pass (none caused by that night's commits)
+
+Verified OK on prod, same pass: admin Documents tab renders the seed data: image (no
+sign request, no data: POST); notification rows animate out and in; read dead-link
+rows are non-tappable; panel identical in WebKit and Chromium.
+
+1. **Notification panel bottom edge jumps 71px in one frame** when a row leaves
+   and the list is shorter than the panel max height (736->665 at 375, both
+   engines), while the rows are still sliding: ~200ms of empty gap at the top, bottom
+   row clipped by the push-notifications footer. It predates d498580fb (the
+   animation props are unchanged). The fix is to animate the panel height (layout
+   animation on the container). The screenshots were lost with the verifying
+   agent's worktree, so re-capture them before fixing.
+2. **WebKit only: the bottom nav is not frosted.** Feed text shows sharp under
+   the icons in Playwright WebKit. Computed backdrop-filter is identical in both
+   engines (blur(40px) saturate(1.8), -webkit- form present), so this may be
+   headless WebKit not rendering it. Needs a look on the iOS 26.1 simulator or a
+   device before it is called an app bug.
+3. **Admin People header badge says "ID Not Submitted"** on seed profiles that
+   HAVE an id_document_url. The badge reads a different column (unchecked which):
+   the same "one fact, several columns" class.

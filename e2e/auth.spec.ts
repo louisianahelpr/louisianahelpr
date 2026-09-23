@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./prodTest";
 import { LOCAL_BASE_URL } from "./localBase";
 
 // Authenticated smoke tests. Insurance against RLS or auth-flow

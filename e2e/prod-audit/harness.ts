@@ -9,7 +9,7 @@
  * `cleanupMarked` can remove exactly what a run created.
  */
 import type { APIRequestContext, BrowserContext, Locator, Page, Request, TestInfo } from "@playwright/test";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../prodTest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { findErrorScreen, readScreenText } from "../errorScreens";

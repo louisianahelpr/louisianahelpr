@@ -86,7 +86,7 @@
 // 320-414px, and "it fits" is worthless if the words are gone. Blanking them
 // reds "a tab button painted no word at all".
 // @mutate src/pages/activity/ActivityHeader.tsx |         label: f.label, |         label: "",
-import { test, expect, type Browser, type Page, type TestInfo } from "@playwright/test";
+import { test, expect, type Browser, type Page, type TestInfo } from "../prodTest";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { getSession, sessionFor, type Session } from "./harness";

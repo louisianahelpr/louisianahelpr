@@ -12,7 +12,7 @@
 // person's profile" stops seeing the poster's page — it waits out
 // `waitForURL(/user/<posterId>/)` on the 404 and fails.
 // @mutate src/App.tsx | <Route path="/user/:userId" | <Route path="/users/:userId"
-import { test as base, expect } from "@playwright/test";
+import { test as base, expect } from "../prodTest";
 import {
   assertHealthy,
   ensureFundedOpenJob,

@@ -73,7 +73,7 @@
  * evidence until someone has LOOKED:
  * `npm run review:record -- <png> <screen> <checked> <ok|defect>`.
  */
-import { test, expect, type Browser, type Page } from "@playwright/test";
+import { test, expect, type Browser, type Page } from "../prodTest";
 import { mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { getSession, type Session } from "./harness";

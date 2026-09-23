@@ -24,7 +24,7 @@
  * /browse at 375 0.0416, both outside KNOWN.
  */
 // @mutate src/pages/postjob/EntryChoice.tsx |   if (!entryReady) return <EntryChoiceSkeleton />; |
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../prodTest";
 import { newUserContext, sessionFor, POSTER_ID, HELPER_ID, SUPABASE_URL, ANON } from "./harness";
 // @ts-expect-error -- plain Node ESM with no .d.mts (same as src/test/pressEveryControlRoutes.test.ts)
 import { deriveRouteSet } from "../../scripts/audit/press-every-control.mjs";

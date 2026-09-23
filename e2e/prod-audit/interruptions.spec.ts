@@ -56,7 +56,7 @@
  */
 // @mutate src/pages/postjob/useJobSubmit.ts | if (submittingRef.current \|\| saving) return null; | if (saving) return null;
 import type { APIRequestContext, BrowserContext, Page } from "@playwright/test";
-import { test as base, expect } from "@playwright/test";
+import { test as base, expect } from "../prodTest";
 import { isoDayIn, pickCalendarDay } from "../calendarPicker";
 import {
   MARKER,

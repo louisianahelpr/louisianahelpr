@@ -54,7 +54,7 @@
 // as at 148.
 // @mutate src/pages/Login.tsx | aria-label={showPassword ? "Hide password" : "Show password"} |
 
-import { test, type Browser, type BrowserContext } from "@playwright/test";
+import { test, type Browser, type BrowserContext } from "../prodTest";
 import { ADMIN_SCREENS, ANON_SCREENS, AUTHED_SCREENS, type ScreenSpec } from "../happy-path/auditRoutes";
 import { VARIANTS, captureScreen, writeReport, inScope, assertSweepGate, OUTPUT_DIR, reportMeta } from "../happy-path/sweepCore";
 import { ANON, AUTH_STORAGE_KEY, SUPABASE_URL, getSession, optionalSession, rest, sessionsAvailable, type Session } from "../journeys/fixtures";

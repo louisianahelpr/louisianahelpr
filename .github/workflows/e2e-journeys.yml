@@ -141,6 +141,11 @@ jobs:
       - name: Run the journeys
         run: npx playwright test --project=journeys --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
 
+      - name: Backend request budget (Q104)
+        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
+        # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label journeys
       - name: Keep milestones, failure screenshots and traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -228,6 +233,11 @@ jobs:
       - name: Run the journeys
         run: npx playwright test --project=journeys-webkit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
 
+      - name: Backend request budget (Q104)
+        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
+        # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label journeys-webkit
       - name: Keep milestones, failure screenshots and traces
         if: always()
         uses: actions/upload-artifact@v4

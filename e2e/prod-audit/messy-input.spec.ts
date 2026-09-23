@@ -45,7 +45,7 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Browser, BrowserContext, Locator, Page } from "@playwright/test";
-import { test as base, expect } from "@playwright/test";
+import { test as base, expect } from "../prodTest";
 import { ADMIN_VIEWS } from "../happy-path/auditRoutes";
 import {
   LONG_WORD,

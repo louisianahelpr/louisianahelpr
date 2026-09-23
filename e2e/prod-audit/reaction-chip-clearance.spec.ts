@@ -26,7 +26,7 @@
  * that very class.
  */
 // @mutate src/components/messages/MessageBubble.tsx | -mt-2 flex items-center gap-0.5 | -mt-10 flex items-center gap-0.5
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "../prodTest";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { getSession, rest, settle, SUPABASE_URL, type Session } from "./harness";

@@ -74,7 +74,7 @@
 // is genuinely out of budget.
 // @mutate src/components/ActivityPageSkeleton.tsx | pb-0 space-y-3" aria-hidden | pb-0 space-y-8" aria-hidden
 
-import { test, expect, type Browser, type Page, type TestInfo } from "@playwright/test";
+import { test, expect, type Browser, type Page, type TestInfo } from "../prodTest";
 import { getSession, type Session } from "./harness";
 import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
 

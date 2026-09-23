@@ -6,7 +6,7 @@ import {
   type BrowserContext,
   type Page,
   type TestInfo,
-} from "@playwright/test";
+} from "../prodTest";
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";

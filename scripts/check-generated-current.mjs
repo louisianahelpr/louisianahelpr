@@ -208,6 +208,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/check-gitleaksignore.mjs": "redacted gitleaks report to an os.tmpdir() dir, deleted before exit",
   "scripts/check-vercel-usage.mjs": "CI report + GITHUB_OUTPUT",
   "scripts/db-saturation-check.mjs": "GITHUB_STEP_SUMMARY only (Q53 hourly check in prod-errors.yml)",
+  "scripts/e2e/request-budget.mjs": "request-budget/summary.json (gitignored, per CI run) + GITHUB_STEP_SUMMARY (Q104)",
   "scripts/gate.mjs": "~/.lh-gate/last.json — per-machine record of the last local gate, read by the scoreboard's gate row",
   "scripts/gateLock.mjs": "lock file",
   "scripts/generate-ios-icons.mjs": "binary app icons from the source artwork; ios-icon-sync.yml",

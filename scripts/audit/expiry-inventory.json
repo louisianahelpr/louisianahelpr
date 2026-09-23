@@ -1,0 +1,290 @@
+{
+  "$comment": "Q62 expiry monitor inventory. Read by scripts/expiry-check.mjs (daily, .github/workflows/expiry-monitor.yml) and proved exact two-way by src/test/expiryMonitor.test.ts: every secret/env NAME the repo references (workflow `secrets.X`, edge-function Deno.env.get/readEnv, .env.example keys) is in exactly one item's `env` or in `undated`, every *.louisianahelpr.com host the shipped code references has a `tls` item, and nothing here is unreferenced. read.method: tls | rdap | jwt-exp | x509-p12 | x509-pem | asc-api | vercel-token | meta-debug-token | supabase-auth-apple | no-expiry | manual. `manual` with date null is reported UNREADABLE every day until the owner records a date (or \"never\") with `recorded`.",
+  "warnDays": 30,
+  "items": [
+    {
+      "id": "ssl-www",
+      "label": "SSL certificate www.louisianahelpr.com",
+      "env": [],
+      "hosts": ["www.louisianahelpr.com"],
+      "sourceOfTruth": "TLS handshake to www.louisianahelpr.com:443 (Vercel-issued, auto-renewed)",
+      "read": { "method": "tls", "host": "www.louisianahelpr.com" },
+      "ciReadable": true
+    },
+    {
+      "id": "ssl-apex",
+      "label": "SSL certificate louisianahelpr.com",
+      "env": [],
+      "hosts": ["louisianahelpr.com"],
+      "sourceOfTruth": "TLS handshake to louisianahelpr.com:443 (Vercel-issued, auto-renewed)",
+      "read": { "method": "tls", "host": "louisianahelpr.com" },
+      "ciReadable": true
+    },
+    {
+      "id": "domain-registration",
+      "label": "Domain registration louisianahelpr.com",
+      "env": [],
+      "hosts": [],
+      "sourceOfTruth": "RDAP (IANA bootstrap -> .com registry) event 'expiration'",
+      "read": { "method": "rdap", "domain": "louisianahelpr.com" },
+      "ciReadable": true
+    },
+    {
+      "id": "mapkit-js-token",
+      "label": "MapKit JS static token (fallback)",
+      "env": ["VITE_APPLE_MAPKIT_TOKEN"],
+      "hosts": [],
+      "sourceOfTruth": "JWT exp claim of VITE_APPLE_MAPKIT_TOKEN (CI secret when set, else .env.example)",
+      "read": { "method": "jwt-exp", "env": "VITE_APPLE_MAPKIT_TOKEN", "file": ".env.example" },
+      "ciReadable": true
+    },
+    {
+      "id": "supabase-legacy-anon-jwt",
+      "label": "Supabase legacy anon (publishable) JWT",
+      "env": ["VITE_SUPABASE_PUBLISHABLE_KEY", "SUPABASE_ANON_KEY"],
+      "hosts": [],
+      "sourceOfTruth": "JWT exp claim of VITE_SUPABASE_PUBLISHABLE_KEY (CI secret when set, else .env.example)",
+      "read": { "method": "jwt-exp", "env": "VITE_SUPABASE_PUBLISHABLE_KEY", "file": ".env.example" },
+      "ciReadable": true
+    },
+    {
+      "id": "supabase-legacy-service-role-jwt",
+      "label": "Supabase legacy service-role JWT",
+      "env": ["SUPABASE_SERVICE_ROLE_KEY"],
+      "hosts": [],
+      "sourceOfTruth": "JWT exp claim of SUPABASE_SERVICE_ROLE_KEY (optional CI secret)",
+      "read": { "method": "jwt-exp", "env": "SUPABASE_SERVICE_ROLE_KEY" },
+      "ciReadable": true
+    },
+    {
+      "id": "apple-distribution-cert",
+      "label": "Apple Distribution certificate (.p12 used by ios-beta)",
+      "env": ["IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64", "IOS_DISTRIBUTION_CERTIFICATE_PASSWORD"],
+      "hosts": [],
+      "sourceOfTruth": "x509 notAfter inside IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 (openssl pkcs12)",
+      "read": { "method": "x509-p12", "env": "IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64", "passwordEnv": "IOS_DISTRIBUTION_CERTIFICATE_PASSWORD" },
+      "ciReadable": true
+    },
+    {
+      "id": "apple-certificates-asc",
+      "label": "Apple certificates on the team (distribution + Pass Type ID)",
+      "env": [],
+      "hosts": [],
+      "sourceOfTruth": "App Store Connect API GET /v1/certificates expirationDate (soonest of DISTRIBUTION / IOS_DISTRIBUTION / PASS_TYPE_ID)",
+      "read": { "method": "asc-api", "resource": "certificates", "types": ["DISTRIBUTION", "IOS_DISTRIBUTION", "PASS_TYPE_ID"] },
+      "ciReadable": true
+    },
+    {
+      "id": "apple-provisioning-profiles",
+      "label": "Apple provisioning profiles (App Store, active)",
+      "env": [],
+      "hosts": [],
+      "sourceOfTruth": "App Store Connect API GET /v1/profiles?filter[profileState]=ACTIVE expirationDate (soonest)",
+      "read": { "method": "asc-api", "resource": "profiles" },
+      "ciReadable": true
+    },
+    {
+      "id": "asc-api-key",
+      "label": "App Store Connect API key (.p8)",
+      "env": ["ASC_KEY_ID", "ASC_ISSUER_ID", "ASC_KEY_CONTENT", "ASC_KEY_BASE64"],
+      "hosts": [],
+      "sourceOfTruth": "Apple: team API keys carry no expiry date; revocation only. Revocation shows up as the asc-api reads above failing 401.",
+      "read": { "method": "no-expiry", "reason": "App Store Connect team API keys have no expiry date (revocable only)" },
+      "ciReadable": false
+    },
+    {
+      "id": "apns-auth-key",
+      "label": "APNs auth key (.p8, send-push-notification)",
+      "env": ["APNS_AUTH_KEY", "APNS_KEY_ID"],
+      "hosts": [],
+      "sourceOfTruth": "Apple: token-auth .p8 keys carry no expiry date; revocation only (push liveness is check_push_token_health)",
+      "read": { "method": "no-expiry", "reason": "APNs token-auth .p8 keys have no expiry date (revocable only)" },
+      "ciReadable": false
+    },
+    {
+      "id": "apple-iap-key",
+      "label": "App Store Server API in-app purchase key (.p8)",
+      "env": ["APPLE_IAP_PRIVATE_KEY", "APPLE_IAP_KEY_ID", "APPLE_IAP_ISSUER_ID"],
+      "hosts": [],
+      "sourceOfTruth": "Apple: in-app purchase .p8 keys carry no expiry date; revocation only",
+      "read": { "method": "no-expiry", "reason": "App Store in-app purchase .p8 keys have no expiry date (revocable only)" },
+      "ciReadable": false
+    },
+    {
+      "id": "apple-mapkit-key",
+      "label": "MapKit JS signing key (.p8, mapkit-token function)",
+      "env": ["APPLE_MAPKIT_PRIVATE_KEY", "APPLE_MAPKIT_KEY_ID"],
+      "hosts": [],
+      "sourceOfTruth": "Apple: MapKit .p8 keys carry no expiry date; the tokens it mints live 1 hour",
+      "read": { "method": "no-expiry", "reason": "MapKit .p8 keys have no expiry date (revocable only)" },
+      "ciReadable": false
+    },
+    {
+      "id": "apple-pass-cert",
+      "label": "Apple Wallet Pass Type ID certificate",
+      "env": ["PASS_CERT_PEM", "PASS_KEY_PEM"],
+      "hosts": [],
+      "sourceOfTruth": "x509 notAfter of PASS_CERT_PEM (edge secret; CI sees it through apple-certificates-asc PASS_TYPE_ID)",
+      "read": { "method": "x509-pem", "env": "PASS_CERT_PEM" },
+      "ciReadable": false
+    },
+    {
+      "id": "apple-wwdr-cert",
+      "label": "Apple WWDR intermediate used to sign passes",
+      "env": ["PASS_WWDR_PEM"],
+      "hosts": [],
+      "sourceOfTruth": "x509 notAfter of PASS_WWDR_PEM (edge secret only)",
+      "read": { "method": "x509-pem", "env": "PASS_WWDR_PEM" },
+      "ciReadable": false
+    },
+    {
+      "id": "apple-signin-web-secret",
+      "label": "Sign in with Apple web OAuth client secret (Supabase Auth, clientId com.Helpr.signin)",
+      "env": [],
+      "hosts": [],
+      "literal": { "file": "src/lib/socialAuth.ts", "text": "com.Helpr.signin" },
+      "sourceOfTruth": "Supabase Management API GET /v1/projects/{ref}/config/auth external_apple_secret (a JWT Apple caps at 6 months)",
+      "read": { "method": "supabase-auth-apple" },
+      "ciReadable": true
+    },
+    {
+      "id": "vercel-token",
+      "label": "Vercel API token (usage check)",
+      "env": ["VERCEL_TOKEN"],
+      "hosts": [],
+      "sourceOfTruth": "Vercel API GET /v5/user/tokens/current expiresAt",
+      "read": { "method": "vercel-token", "env": "VERCEL_TOKEN" },
+      "ciReadable": true
+    },
+    {
+      "id": "meta-page-token",
+      "label": "Meta (Facebook/Instagram) page access token",
+      "env": ["META_PAGE_ACCESS_TOKEN", "META_APP_SECRET"],
+      "hosts": [],
+      "sourceOfTruth": "Graph API /debug_token expires_at / data_access_expires_at (edge secrets only)",
+      "read": { "method": "meta-debug-token", "env": "META_PAGE_ACCESS_TOKEN", "appIdEnv": "META_APP_ID", "appSecretEnv": "META_APP_SECRET" },
+      "ciReadable": false
+    },
+    {
+      "id": "supabase-access-token",
+      "label": "Supabase personal access token (CI Management API)",
+      "env": ["SUPABASE_ACCESS_TOKEN"],
+      "hosts": [],
+      "sourceOfTruth": "Supabase dashboard > Account > Access Tokens (expiry chosen at creation; no API reads it)",
+      "read": { "method": "manual", "date": null, "recorded": null },
+      "ciReadable": false
+    },
+    {
+      "id": "sentry-auth-token",
+      "label": "Sentry auth token (sentry-release, ledger sync)",
+      "env": ["SENTRY_AUTH_TOKEN"],
+      "hosts": [],
+      "sourceOfTruth": "Sentry > Settings > Auth Tokens (no API reads the calling token's expiry)",
+      "read": { "method": "manual", "date": null, "recorded": null },
+      "ciReadable": false
+    },
+    {
+      "id": "stripe-secret-keys",
+      "label": "Stripe secret keys (edge STRIPE_SECRET_KEY, CI STRIPE_TEST_SECRET_KEY)",
+      "env": ["STRIPE_SECRET_KEY", "STRIPE_TEST_SECRET_KEY"],
+      "hosts": [],
+      "sourceOfTruth": "Stripe Dashboard > Developers > API keys (an expiry exists only after a roll; no API reads it)",
+      "read": { "method": "manual", "date": null, "recorded": null },
+      "ciReadable": false
+    },
+    {
+      "id": "stripe-webhook-secrets",
+      "label": "Stripe webhook signing secrets (payments + Identity)",
+      "env": ["STRIPE_WEBHOOK_SECRET", "STRIPE_IDV_WEBHOOK_SECRET"],
+      "hosts": [],
+      "sourceOfTruth": "Stripe Dashboard > Webhooks > endpoint > Signing secret (an expiry exists only after a roll; no API reads it)",
+      "read": { "method": "manual", "date": null, "recorded": null },
+      "ciReadable": false
+    },
+    {
+      "id": "resend-api-key",
+      "label": "Resend API key",
+      "env": ["RESEND_API_KEY"],
+      "hosts": [],
+      "sourceOfTruth": "Resend dashboard > API Keys (the API lists keys without an expiry field)",
+      "read": { "method": "manual", "date": null, "recorded": null },
+      "ciReadable": false
+    },
+    {
+      "id": "fcm-service-account",
+      "label": "Firebase (FCM) service-account key",
+      "env": ["FCM_SERVICE_ACCOUNT"],
+      "hosts": [],
+      "sourceOfTruth": "Google Cloud IAM > service account > Keys (expiry only under an org key-expiry policy)",
+      "read": { "method": "manual", "date": null, "recorded": null },
+      "ciReadable": false
+    },
+    {
+      "id": "github-actions-token",
+      "label": "GitHub token used by workflows (GITHUB_TOKEN)",
+      "env": ["GITHUB_TOKEN"],
+      "hosts": [],
+      "sourceOfTruth": "Minted per job by GitHub Actions; no PAT is referenced by any workflow",
+      "read": { "method": "no-expiry", "reason": "GITHUB_TOKEN is minted per job and cannot lapse on a calendar date" },
+      "ciReadable": false
+    }
+  ],
+  "undated": {
+    "APNS_BUNDLE_ID": "config, not a credential",
+    "APNS_TEAM_ID": "identifier, not a credential",
+    "APNS_USE_SANDBOX": "config flag",
+    "APPLE_IAP_BUNDLE_ID": "config, not a credential",
+    "APPLE_IAP_ENVIRONMENT": "config flag",
+    "APPLE_MAPKIT_TEAM_ID": "identifier, not a credential",
+    "APPLE_TEAM_ID": "identifier, not a credential",
+    "APP_URL": "config, not a credential",
+    "ASC_TEAM_ID": "identifier, not a credential",
+    "BACKUP_PASSPHRASE": "self-generated passphrase; no issuer, no expiry",
+    "CERTIFICIAL_WEBHOOK_SECRET": "shared HMAC secret; no expiry at the vendor",
+    "CHECKR_WEBHOOK_SECRET": "shared HMAC secret; no expiry at the vendor",
+    "CRON_SECRET": "self-generated shared secret",
+    "DEVELOPER_TEAM_ID": "identifier, not a credential",
+    "EMAIL_UNSUBSCRIBE_SECRET": "self-generated HMAC secret",
+    "FASTLANE_APPLE_ID": "identifier, not a credential",
+    "FASTLANE_PASSWORD": "Apple ID password; no expiry date (liveness is ios-beta itself)",
+    "FCM_PROJECT_ID": "identifier, not a credential",
+    "GEMINI_API_KEY": "Google AI API key; no expiry date",
+    "HELPR_POSTAL_ADDRESS": "config, not a credential",
+    "KEYCHAIN_PASSWORD": "self-generated passphrase for a throwaway CI keychain",
+    "LOVABLE_API_KEY": "API key; no expiry date",
+    "MARKETING_CLAIM_LIMIT": "config number",
+    "META_APP_ID": "identifier, not a credential",
+    "META_IG_USER_ID": "identifier, not a credential",
+    "META_PAGE_ID": "identifier, not a credential",
+    "PASS_TYPE_IDENTIFIER": "identifier, not a credential",
+    "PLAYWRIGHT_ADMIN_EMAIL": "test account identifier",
+    "PLAYWRIGHT_ADMIN_PASSWORD": "test account password; no expiry",
+    "PLAYWRIGHT_HELPER_EMAIL": "test account identifier",
+    "PLAYWRIGHT_HELPER_PASSWORD": "test account password; no expiry",
+    "PLAYWRIGHT_HELPER_SESSION": "test session blob refreshed by the suites that use it",
+    "PLAYWRIGHT_INCOMPLETE_EMAIL": "test account identifier",
+    "PLAYWRIGHT_INCOMPLETE_PASSWORD": "test account password; no expiry",
+    "PLAYWRIGHT_LIFECYCLE_JOB_ID": "test fixture id",
+    "PLAYWRIGHT_POSTER_EMAIL": "test account identifier",
+    "PLAYWRIGHT_POSTER_PASSWORD": "test account password; no expiry",
+    "PLAYWRIGHT_POSTER_SESSION": "test session blob refreshed by the suites that use it",
+    "PLAYWRIGHT_TEST_USER_EMAIL": "test account identifier",
+    "PLAYWRIGHT_TEST_USER_PASSWORD": "test account password; no expiry",
+    "PUBLISHABLE_KEY": "Supabase sb_publishable_ key; not a JWT, no expiry date",
+    "RELEASE_PAYOUT_AUTO": "config flag",
+    "RESEND_WEBHOOK_SECRET": "shared HMAC secret; no expiry at the vendor",
+    "SECRET_KEY": "Supabase sb_secret_ key; not a JWT, no expiry date",
+    "SEND_EMAIL_HOOK_SECRET": "Supabase auth hook HMAC secret; no expiry",
+    "SENTRY_ORG": "identifier, not a credential",
+    "SENTRY_PROJECT": "identifier, not a credential",
+    "SLACK_API_KEY": "Slack bot token; expires only if token rotation is enabled on the app (it is not referenced as a refresh flow)",
+    "SLACK_OPS_CHANNEL": "identifier, not a credential",
+    "SLACK_WEBHOOK_URL": "incoming webhook URL; no expiry date",
+    "SUPABASE_DB_PASSWORD": "database password; no expiry date",
+    "SUPABASE_PROJECT_REF": "identifier, not a credential",
+    "SUPABASE_URL": "config, not a credential",
+    "SUPPORT_INBOX_EMAIL": "config, not a credential",
+    "VITE_SUPABASE_PROJECT_ID": "identifier, not a credential",
+    "VITE_SUPABASE_URL": "config, not a credential"
+  }
+}

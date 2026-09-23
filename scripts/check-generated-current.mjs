@@ -222,6 +222,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/prune-git-hygiene.mjs": "~/.lh-hygiene log",
   "scripts/state-review.mjs": "/tmp/lh-state-review",
   "scripts/storage-orphan-sweep.mjs": "sweep log",
+  "scripts/expiry-check.mjs": "expiry-report.md (CI step summary) + GITHUB_OUTPUT",
   "scripts/supabase-usage-check.mjs": "CI report + GITHUB_OUTPUT",
   "scripts/sync-ios-metadata.mjs": "native project files during sync:ios; verified by verify-ios-metadata.sh",
   "scripts/typecheck-edge.mjs": "temporary canary file, deleted after the probe",

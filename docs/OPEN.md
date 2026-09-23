@@ -1231,7 +1231,7 @@ sure someone hears it and closes it.
   run on prod (sign in -> browse -> open a job -> apply -> message ->
   test-mode checkout start, then clean up) that pages through the ledger on
   failure.
-- [ ] **Q62 Expiry monitor.** Things that die silently on a date: the Apple APNs
+- [ ] **Q62 Expiry monitor.** STATUS 2026-09-23 (landed from cloud/q62-expiry-monitor): inventory scripts/audit/expiry-inventory.json (25 items), reader scripts/expiry-check.mjs, daily .github/workflows/expiry-monitor.yml (ledger + nightly-red + Slack at 30 days; unreadable items reported loudly), guard src/test/expiryMonitor.test.ts. First local read (lead, Mac): SSL www 2026-12-04, apex 2026-12-06; DOMAIN louisianahelpr.com 2026-11-13 (51 days, Squarespace: owner to confirm auto-renew); MapKit token 2027-02-14. Tick after the first CI run is green. Things that die silently on a date: the Apple APNs
   key and distribution certificate/profiles, the Stripe webhook secret, API
   tokens (Supabase access token, GitHub PAT, Resend, Sentry), the domain
   registration, SSL. Inventory each with its expiry, alert 30 days ahead,

@@ -44,6 +44,7 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { queueCounts } from "./queue-count.mjs";
 import { countFindings, foldFindings, parseFindingsLog } from "./lib/auditFindings.mjs";
+import { INVENTORY as EXPIRY_INVENTORY, inventoryCounts, runAll as runExpiry, scoreboardRows as expiryScoreboardRows } from "./lib/expiryMonitor.mjs";
 
 export const REPO = resolve(import.meta.dirname, "..");
 export const SCOREBOARD = "docs/SCOREBOARD.md";
@@ -133,6 +134,18 @@ export function localRows(read = (p) => readFileSync(join(REPO, p), "utf8")) {
       note: "each is a number in prose with no date; new ones already fail check:counts" });
   } catch (e) {
     rows.push(unknown("number currency", "undated stated counts (baselined, may only shrink)", e.message, { at: AT_HEAD }));
+  }
+
+  // Q62 expiry monitor: what is inventoried and how each is read. The dates
+  // themselves change without a commit, so they are LIVE rows (expiryRows).
+  try {
+    const c = inventoryCounts(JSON.parse(read(EXPIRY_INVENTORY)));
+    rows.push({ group: "expiry", signal: "expiry inventory (items with no date source yet)", status: c.manualNoDate ? "WARN" : "PASS",
+      pass: c.measured + c.manualDated, fail: c.manualNoDate, skipped: `${c.noExpiry} no-expiry`, total: c.items, at: AT_HEAD,
+      source: `${EXPIRY_INVENTORY} · src/test/expiryMonitor.test.ts`,
+      note: `${c.measured} read by handshake/RDAP/JWT/API (${c.ciReadable} in CI), ${c.manualDated} owner-recorded dates, ${c.manualNoDate} manual with no date recorded, ${c.noExpiry} vendor no-expiry; ${c.undated} referenced names classified undated` });
+  } catch (e) {
+    rows.push(unknown("expiry", "expiry inventory (items with no date source yet)", `could not read ${EXPIRY_INVENTORY}: ${e.message}`, { at: AT_HEAD }));
   }
 
   rows.push({ group: "notes", signal: "Zod v4 `script-src eval` CSP report per page", status: "INFO", at: "2026-09-23 (Q13 note)",
@@ -536,6 +549,17 @@ async function dbSaturationRows(sqlFn, now) {
 }
 
 /** Q82's live monitor, read the same way its daily cron reads it. */
+/** Q62: one row per inventoried credential/cert, read where this runs (CI reads more: expiry-monitor.yml). */
+async function expiryRows(now) {
+  try {
+    const inv = JSON.parse(readFileSync(join(REPO, EXPIRY_INVENTORY), "utf8"));
+    const { results } = await runExpiry(inv, now, { root: REPO });
+    return expiryScoreboardRows(results, iso(now));
+  } catch (e) {
+    return [unknown("expiry", "credential and certificate expiry", `expiry readers failed: ${errMsg(e)}`)];
+  }
+}
+
 async function pushTokenRows(sqlFn, now) {
   const signal = "push notifications can reach a device (check_push_token_health)";
   try {
@@ -613,6 +637,7 @@ export async function liveRows({ now = new Date(), sqlFn } = {}) {
   rows.push(...branches.rows);
   rows.push(...(await dbHealthRows(readOnly, now)));
   rows.push(...(await dbSaturationRows(readOnly, now)));
+  rows.push(...(await expiryRows(now)));
   if (wf.summary) {
     const s = wf.summary;
     rows.push({ group: "CI", signal: "all workflows on main (last conclusive run)", status: s.FAIL || s.UNKNOWN || s.STALE ? "FAIL" : "PASS",

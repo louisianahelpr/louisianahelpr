@@ -1,0 +1,129 @@
+name: Expiry monitor
+
+# docs/OPEN.md Q62: things that die silently on a date — the Apple
+# distribution certificate and provisioning profiles, the Sign in with Apple
+# web secret (Apple caps it at 6 months), the domain registration, SSL, the
+# MapKit JS static token, the Supabase legacy JWTs, API tokens.
+#
+# scripts/audit/expiry-inventory.json lists every one, with how its expiry is
+# READ; src/test/expiryMonitor.test.ts keeps that list exact two-way against
+# the secrets and env names the repo references. scripts/expiry-check.mjs reads
+# each one it can and:
+#   - exits 1 when anything expires within 30 days (or has expired), which
+#     fails this run -> the notify job opens a `nightly-red` issue, and the
+#     "Tell Slack" step records an ops alert ledger item and pages #ops-alerts;
+#   - with --ci, ALSO exits 1 when an item the inventory marks ciReadable came
+#     back UNREADABLE (a secret went missing, an API started refusing): the
+#     monitor went blind where it promised to see;
+#   - prints every other UNREADABLE item (manual dates nobody has recorded yet,
+#     edge-only secrets CI is never given) as a ::warning:: and counts it in
+#     the summary. Never a silent green.
+#
+# It reads the Supabase Management API (Sign in with Apple secret) with the
+# project-ref secret, which puts it in the prod-load group for its scheduled
+# run (src/test/prodWorkflowSpacing.test.ts): 21:17 UTC is 2 hours clear of
+# scoreboard (19:17) and of supabase-usage (Sat 01:17), and 30 minutes clear
+# of prod-errors (:47). It sends no query to the database.
+
+on:
+  schedule:
+    - cron: "17 21 * * *"
+  workflow_dispatch:
+    inputs:
+      warn_days:
+        description: "Warn this many days before an expiry"
+        required: false
+        default: "30"
+
+permissions:
+  contents: read
+
+concurrency:
+  # Schedule joins prod-load; a dispatch gets its own group (rule 4 of
+  # src/test/prodWorkflowSpacing.test.ts — a third run in a shared group
+  # cancels the one waiting).
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('expiry-monitor-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+jobs:
+  expiry:
+    name: Credential and certificate expiry
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Read every expiry
+        id: expiry
+        env:
+          WARN_DAYS: ${{ inputs.warn_days || '30' }}
+          VITE_APPLE_MAPKIT_TOKEN: ${{ secrets.VITE_APPLE_MAPKIT_TOKEN }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: node scripts/expiry-check.mjs --ci --warn-days "$WARN_DAYS"
+
+      # Only when something is inside the window. A missing webhook fails
+      # loudly rather than skipping (the run is already red either way).
+      - name: Tell Slack
+        if: ${{ !cancelled() && steps.expiry.outputs.warn == 'true' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SUMMARY: ${{ steps.expiry.outputs.summary }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # Ops alert ledger (docs/OPEN.md Q1): the Slack post scrolls away; the
+          # ledger item stays open until this workflow's own re-run is green.
+          # Recorded FIRST so a missing webhook cannot skip it; never fails the step.
+          node scripts/ops-alert-ledger.mjs record --source-kind workflow --source "expiry-monitor" \
+            --title "A credential or certificate expires within 30 days" --severity error --verify-ref "expiry-monitor.yml" \
+            --sample "${SUMMARY}" --run-url "${RUN_URL}" || true
+          set -euo pipefail
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "::error::Something expires within 30 days and there is no SLACK_WEBHOOK_URL repo secret. OWNER ACTION: add it (Settings -> Secrets and variables -> Actions)."
+            exit 1
+          fi
+          TEXT=":hourglass: Expiring soon — ${SUMMARY}
+          ${RUN_URL}"
+          curl -sS --fail-with-body -X POST -H 'content-type: application/json' \
+            --data "$(jq -nc --arg t "$TEXT" '{text:$t}')" "$SLACK_WEBHOOK_URL"
+
+      - name: Summary
+        if: always()
+        run: |
+          # The verdict is the "Read every expiry" step's exit code; this only copies its report.
+          if [ -f expiry-report.md ]; then cat expiry-report.md >> "$GITHUB_STEP_SUMMARY"; else echo "expiry-check wrote no report" >> "$GITHUB_STEP_SUMMARY"; fi
+
+  # A red run lands in a `nightly-red` issue (closed by the next green run),
+  # which the ops alert ledger sync and the scoreboard both read. Same shape as
+  # every other scheduled workflow (src/test/everyScheduledWorkflowReportsItsResult.test.ts).
+  notify:
+    name: Report nightly result
+    needs: [expiry]
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: expiry-monitor
+          status: ${{ needs.expiry.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

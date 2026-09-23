@@ -160,6 +160,7 @@ const SWALLOW_OK: Allow[] = [
   { file: ".github/workflows/schedule-heartbeat.yml", match: "STATE=$(gh api", reason: "fail-closed: a failed read becomes state 'unknown', which is != 'active' and counts the workflow STALE with an ::error::" },
   { file: ".github/workflows/schedule-heartbeat.yml", match: "LAST=$(gh api", reason: "fail-closed: a failed read becomes an empty LAST, which is reported as 'no scheduled run ever' with an ::error::" },
   { file: ".github/workflows/security-audit.yml", match: "npm audit --audit-level=low || true", reason: "prints the full all-severity report for review; the gating command is the next one, `npm audit --omit=dev --audit-level=moderate`, with no swallow" },
+  { file: ".github/workflows/expiry-monitor.yml", match: "Tell Slack :: node scripts/ops-alert-ledger.mjs record", reason: LEDGER },
   { file: ".github/workflows/supabase-usage.yml", match: "Tell Slack :: node scripts/ops-alert-ledger.mjs record", reason: LEDGER },
   { file: ".github/workflows/supabase-usage.yml", match: "Page Vercel usage to Slack :: node scripts/ops-alert-ledger.mjs record", reason: LEDGER },
   { file: ".github/workflows/supabase-usage.yml", match: "Summary :: cat ", reason: "copies a report into the step summary; the usage verdict is decided by the measuring steps above" },

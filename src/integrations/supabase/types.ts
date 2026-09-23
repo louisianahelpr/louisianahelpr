@@ -3317,7 +3317,6 @@ export type Database = {
           apple_original_transaction_id: string | null
           application_count: number
           approval_email_count: number
-          approval_status: string
           auto_release_on_complete: boolean
           auto_suspended_until: string | null
           auto_tip_cap: number | null
@@ -3420,7 +3419,6 @@ export type Database = {
           apple_original_transaction_id?: string | null
           application_count?: number
           approval_email_count?: number
-          approval_status?: string
           auto_release_on_complete?: boolean
           auto_suspended_until?: string | null
           auto_tip_cap?: number | null
@@ -3523,7 +3521,6 @@ export type Database = {
           apple_original_transaction_id?: string | null
           application_count?: number
           approval_email_count?: number
-          approval_status?: string
           auto_release_on_complete?: boolean
           auto_suspended_until?: string | null
           auto_tip_cap?: number | null

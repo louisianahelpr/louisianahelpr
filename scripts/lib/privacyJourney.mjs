@@ -74,7 +74,7 @@ export const EXPECTED_PURGE_STEPS = [
 /** Steps that appear only when the purge REFUSES (a malformed user id): absent on a good run. */
 export const CONDITIONAL_PURGE_STEPS = ["input"];
 
-/** accountPurge.ts IDENTITY_BUCKETS: every one is listed at <uid>/ after deletion and must be empty. */
+/** purgeBuckets.ts IDENTITY_BUCKETS (the ones accountPurge.ts erases): every one is listed at <uid>/ after deletion and must be empty. */
 export const IDENTITY_BUCKETS = ["avatars", "user-documents", "application-attachments"];
 
 /** Top-level sections of the "Download My Data" JSON (src/pages/legal/DataExportCard.tsx). */

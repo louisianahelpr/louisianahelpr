@@ -53,7 +53,7 @@ function seed() {
     } as unknown as { email?: string; email_confirmed_at?: string | null },
   };
   scenario.reads.profiles = {
-    rows: [{ bio: null, approval_status: "pending", full_name: "Dana R", location: "Baton Rouge", user_id: USER_ID }],
+    rows: [{ bio: null, full_name: "Dana R", location: "Baton Rouge", user_id: USER_ID }],
   };
   scenario.writeSelectRows.profiles = [{ user_id: USER_ID }];
 }

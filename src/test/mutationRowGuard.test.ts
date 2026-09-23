@@ -89,7 +89,6 @@ const RISK_COLUMNS = [
   "auto_suspended_until",
   "violation_count",
   // verification / credentials
-  "approval_status",
   "idv_status",
   "license_status",
   "insurance_status",

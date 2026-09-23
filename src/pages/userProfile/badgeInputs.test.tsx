@@ -63,7 +63,7 @@ const statsRow = {
   revision_rate: null,
   repeat_client_sample: 0,
   repeat_hire_percent: null,
-  approval_status: "approved",
+  
   is_id_verified: true,
   has_stripe_account: true,
   is_background_checked: false,

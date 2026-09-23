@@ -66,7 +66,7 @@ function seedFreshSignup() {
     rows: [
       {
         bio: null,
-        approval_status: "pending",
+        
         full_name: "Dana R",
         location: "Baton Rouge",
         user_id: USER_ID,

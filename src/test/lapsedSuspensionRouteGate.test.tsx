@@ -39,7 +39,6 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 
 // A fully-complete, approved profile so the ONLY gate under test is the ban one.
 const baseProfile = {
-  approval_status: "approved",
   is_legacy_user: true,
   full_name: "Test User",
   avatar_url: "https://example.com/a.png",

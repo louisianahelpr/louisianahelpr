@@ -217,14 +217,15 @@ jobs:
         #
         # Note: handle_new_user() trigger auto-creates the profiles row
         # when auth.users is inserted (per migration 20260505230500), so we
-        # UPDATE the auto-created row to set approval_status='approved'
+        # UPDATE the auto-created row to pass the entry gate (a confirmed
+        # email, email_verified; approval_status was dropped in Q288)
         # instead of INSERTing a duplicate.
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
           BEGIN;
           INSERT INTO auth.users (id, email) VALUES (gen_random_uuid(), 'smoke@helpr.test');
           UPDATE public.profiles
-            SET full_name = 'Smoke Tester', approval_status = 'approved'
+            SET full_name = 'Smoke Tester', email_verified = true
             WHERE user_id = (SELECT id FROM auth.users WHERE email='smoke@helpr.test');
           INSERT INTO public.jobs (
             title, description, category, budget, location, parish, status,

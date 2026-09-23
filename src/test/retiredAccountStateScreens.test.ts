@@ -37,7 +37,10 @@
  * @mutate src/lib/authRedirects.ts | => `${getPublicOrigin()}/signup-pending`; | => `${getPublicOrigin()}/account-pending`;
  * @mutate src/pages/Signup.tsx | emailRedirectTo: getSignupConfirmRedirect(), | emailRedirectTo: `${window.location.origin}/signup-pending`,
  * @mutate supabase/functions/stripe-idv-webhook/index.ts | idv_failure_reason: "Identity matched a previously removed account.", | idv_failure_reason: "Identity matched a previously removed account.", approval_status: "denied",
- * @mutate supabase/migrations/20260923153703_retire_denied_approval_status.sql | CHECK (approval_status IN ('pending', 'approved')); | CHECK (approval_status IN ('pending', 'approved', 'denied'));
+ *   (Q288: the mutation that re-admitted 'denied' to 20260923153703's CHECK
+ *   is retired; 20260923205943 drops the column, so that CHECK no longer
+ *   decides anything. The mutation below, keeping the column, is its heir.)
+ * @mutate supabase/migrations/20260923205943_drop_profiles_approval_status.sql |   ALTER TABLE public.profiles DROP COLUMN approval_status; |   SELECT 1;
  * @mutate public/robots.txt | Disallow: /account-banned | Disallow: /account-pending
  */
 import { describe, it, expect } from "vitest";
@@ -147,15 +150,26 @@ describe("Q193: the pending and denied account screens stay deleted", () => {
     expect(writes).toEqual([]);
   });
 
-  it("the newest migration statement about the constraint ADDs it, without 'denied'", () => {
+  // Q288 dropped the column (20260923205943), taking the CHECK with it. Then
+  // 'denied' is unstorable because there is nowhere to store it; the CHECK may
+  // only be dropped if the column's own last DDL is its DROP.
+  it("the newest migration statement about the constraint ADDs it without 'denied', or the column is gone", () => {
     const dir = join(REPO, "supabase/migrations");
     let last: { verb: string; body: string } | null = null;
+    let lastColumn: string | null = null;
     const re = /\b(add|drop)\s+constraint\s+(?:if\s+exists\s+)?profiles_approval_status_no_denied\b([^;]*);/gi;
+    const col = /\bdrop\s+column\s+(?:if\s+exists\s+)?approval_status\b/gi;
     for (const f of readdirSync(dir).filter((x) => x.endsWith(".sql")).sort()) {
       const sql = blankSqlComments(readFileSync(join(dir, f), "utf8"));
       for (const m of sql.matchAll(re)) last = { verb: m[1].toLowerCase(), body: m[2] };
+      if (col.test(sql)) lastColumn = f;
+      col.lastIndex = 0;
     }
     expect(last, "no migration defines profiles_approval_status_no_denied").not.toBeNull();
+    if (last!.verb === "drop") {
+      expect(lastColumn, "the CHECK is dropped but approval_status is not: 'denied' is storable again").not.toBeNull();
+      return;
+    }
     expect(last!.verb).toBe("add");
     expect(last!.body).toMatch(/check\s*\(\s*approval_status\s+in\s*\(/i);
     expect(last!.body).not.toMatch(/'denied'/);

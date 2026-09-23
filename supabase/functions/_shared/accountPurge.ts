@@ -42,6 +42,7 @@
  */
 
 import { removeJobMedia, type JobMediaOwner } from "./jobMedia.ts";
+import { IDENTITY_BUCKETS, missingBuckets } from "./purgeBuckets.ts";
 
 /**
  * Structural, not `SupabaseClient`.
@@ -74,6 +75,8 @@ interface PurgeCapableClient {
   storage: {
     // deno-lint-ignore no-explicit-any
     from(bucket: string): any;
+    // deno-lint-ignore no-explicit-any
+    listBuckets(): any;
   };
 }
 
@@ -88,33 +91,7 @@ interface StorageListLike {
   error: { message: string } | null;
 }
 
-/**
- * Buckets holding media that identifies the PERSON. These are erased.
- *
- * Deliberately NOT in this list: `job-photos`, `proof-photos`,
- * and `message-attachments`. Those are keyed by job, not by user, and they are
- * evidence attached to a record that
- * survives — a completed job, a settled dispute. Deleting them would destroy
- * the counterparty's evidence to satisfy this user's request, which is the
- * same mistake as cascading their reviews away.
- *
- * That reasoning holds only while the job row exists. The jobs
- * `purge_user_data()` itself deletes have their media removed afterwards by
- * `removeMediaOfDeletedJobs` (_shared/jobMedia.ts), never blocking.
- */
-const IDENTITY_BUCKETS = [
-  "avatars",
-  // `id-documents` removed with the bucket itself (Q196): Stripe Identity
-  // collects the ID, the upload path went in Q40 and the bucket held 0 objects
-  // when its migration deleted it.
-  "user-documents",
-  // `profile-videos` removed 2026-09-21 along with the bucket itself
-  // (20260921212141). The helper intro-video feature was deleted long before,
-  // but its bucket outlived it: world-readable and open to any authenticated
-  // upload. Both loops below already tolerate a missing bucket, so this entry
-  // was harmless — just dead.
-  "application-attachments",
-] as const;
+// IDENTITY_BUCKETS and the existence check live in ./purgeBuckets.ts (Q219).
 
 export interface PurgeStep {
   step: string;
@@ -470,13 +447,30 @@ async function purgeIdentityStorage(
 
   const targets: { bucket: string; paths: string[] }[] = [];
 
-  for (const bucket of IDENTITY_BUCKETS) {
+  // Q219: a list of a bucket that does not exist answers [] with no error, so
+  // "missing" reads as "empty" and the step would report ok while erasing
+  // nothing. Ask Storage which buckets exist, and fail on any we do not know.
+  let present: string[] = [];
+  try {
+    const missing = await missingBuckets(admin, IDENTITY_BUCKETS);
+    for (const bucket of missing) {
+      console.error(`[accountPurge] identity bucket ${bucket} does not exist`);
+      failures.push(`${bucket}: bucket does not exist — nothing there could be erased`);
+      allOk = false;
+    }
+    present = IDENTITY_BUCKETS.filter((b) => !missing.includes(b));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[accountPurge] could not check identity buckets exist:`, msg);
+    failures.push(`buckets: ${msg}`);
+    allOk = false;
+  }
+
+  for (const bucket of present) {
     try {
       targets.push({ bucket, paths: await listAllObjects(admin, bucket, userId) });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      // A missing bucket is fine (environments differ); a real failure is not.
-      if (/not found|does not exist/i.test(msg)) continue;
       console.error(`[accountPurge] list ${bucket}/${userId} failed:`, msg);
       failures.push(`${bucket}: ${msg}`);
       allOk = false;
@@ -504,7 +498,7 @@ async function purgeIdentityStorage(
   // Verify by re-listing rather than trusting the null error. This is the
   // storage twin of the "a null error does not mean the write happened" rule,
   // and it matters here because these are government ID scans.
-  for (const bucket of IDENTITY_BUCKETS) {
+  for (const bucket of present) {
     try {
       const left = await listAllObjects(admin, bucket, userId);
       if (left.length > 0) {
@@ -513,7 +507,6 @@ async function purgeIdentityStorage(
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (/not found|does not exist/i.test(msg)) continue;
       failures.push(`${bucket}: could not verify removal (${msg})`);
       allOk = false;
     }

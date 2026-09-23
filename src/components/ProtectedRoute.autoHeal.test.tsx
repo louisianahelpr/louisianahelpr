@@ -91,7 +91,7 @@ describe("ProtectedRoute — recoverable profile error auto-heals", () => {
     // The retry lands the profile: the hook now returns it, no error.
     useCurrentUserMock.mockReturnValue({
       user: { id: "u1", email_confirmed_at: "2026-08-01T00:00:00Z" },
-      profile: { full_name: "Ada", approval_status: "approved", is_legacy_user: true },
+      profile: { full_name: "Ada", is_legacy_user: true },
       isLoading: false,
       isError: false,
       refresh,

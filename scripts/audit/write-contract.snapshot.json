@@ -11931,7 +11931,6 @@
       "accepted_terms_at",
       "application_count",
       "approval_email_count",
-      "approval_status",
       "auto_release_on_complete",
       "auto_suspended_until",
       "auto_tip_cap",
@@ -12055,13 +12054,6 @@
      "hasDefault": true,
      "notNull": true,
      "type": "integer"
-    },
-    "approval_status": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "text"
     },
     "auto_release_on_complete": {
      "enum": null,

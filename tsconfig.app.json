@@ -90,6 +90,9 @@
     // Storage removal for deleted jobs; src/test/storageDeletionPaths.test.ts
     // parity-tests it against scripts/lib/jobMediaRest.mjs.
     "supabase/functions/_shared/jobMedia.ts",
+    // Account-deletion bucket list + existence check (Q219);
+    // src/test/purgeBucketsAreDeclared.test.ts runs it.
+    "supabase/functions/_shared/purgeBuckets.ts",
     // Apple IAP. appleAppStore.ts is imported by src/test/appleIap.test.ts to
     // test the product registry and entitlement maths directly; jwt.ts comes
     // with it because appleAppStore mints the App Store Server API bearer

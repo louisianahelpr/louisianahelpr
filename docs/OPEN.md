@@ -7788,3 +7788,13 @@ sure someone hears it and closes it.
   UPDATE of that row fails with an opaque check_violation. Add a live check
   (pg_constraint.convalidated = false on public tables) to db-deploy post-apply
   and to the drift detector.
+
+## MORNING QUESTIONS (held overnight 2026-09-23 while the owner sleeps)
+
+1. **Sentry read token (Q11).** The existing SENTRY_AUTH_TOKEN is an upload
+   token (403 on reading issues), so the alert ledger can't sync Sentry. You
+   said "you can do it", but creating and copying an API token is a credential
+   step I'm not allowed to do. It takes about 2 minutes: Sentry -> Settings ->
+   Auth Tokens (or Custom Integrations) -> new token with `project:read` +
+   `event:read` -> `gh secret set SENTRY_READ_TOKEN`. I'll wire the sync to
+   that name, so it closes the "Sentry not synced" ledger item on the next hourly run.

@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 59 done, 10 partly done (fixed, protection pending), 82 open. Source of truth for work.
+- **Queue (this file):** 60 done, 9 partly done (fixed, protection pending), 82 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 151 items — 59 done, 10 partly done (fixed, protection pending), 82 open.**
+**Queue: 151 items — 60 done, 9 partly done (fixed, protection pending), 82 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1241,7 +1241,7 @@ sure someone hears it and closes it.
   every remote branch with ahead/behind counts vs main. A branch fully merged
   can be deleted; one with unlanded commits is REPORTED to the owner (it may
   be lost work: memory orphan-branch-leak). Never delete unmerged.
-- [~] **Q80 PARTLY DONE 2026-09-23: 28 superseded handoff index lines folded into one pointer (memory/handoff-history-index.md); MEMORY.md 145 -> 118 lines; backup ~/.lh-backups/memory-20260923T*. REMAINING: merge the overlapping feedback rules (never-guess x3, look-at-it x3, ping x3, parallel x2).** Memory index hygiene. MEMORY.md (loaded into EVERY session) has
+- [x] **Q80 DONE 2026-09-23: MEMORY.md 145 -> 113 lines. 28 superseded handoff lines folded into memory/handoff-history-index.md; overlapping rules grouped into one line each (pings, visual proof, never-guess, throughput) with every file still linked; backup ~/.lh-backups/memory-20260923T*. NO-GUARD: memory lives outside the repo; no CI check can read it.** Memory index hygiene. MEMORY.md (loaded into EVERY session) has
   100+ entries, including many superseded HANDOFFs (July to mid-September) and
   overlapping feedback rules. Archive the superseded handoffs (keep the file,
   drop the index line, or fold them into one "history" pointer), merge duplicate

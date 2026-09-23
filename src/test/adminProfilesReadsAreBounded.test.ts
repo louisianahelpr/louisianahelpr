@@ -68,7 +68,7 @@ export function unboundedProfileReads(files: string[], readSrc: (f: string) => s
 const KNOWN_UNBOUNDED_ADMIN_PROFILE_READS = [
   // Export is the whole table by definition (CSV download).
   "src/components/admin/AdminExport.tsx#1",
-  // The rest are Q300 (next free number at filing): analytics loads every
+  // The rest are Q306: analytics loads every
   // non-seed profile (#1) and its Users drill-down lists them all (#3); the
   // subscriptions drill-down (#2), AdminSubscriptions' two lists, the health
   // fan-out parish map and the dashboard's new-user sparkline windows read

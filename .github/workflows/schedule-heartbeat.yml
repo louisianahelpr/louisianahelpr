@@ -63,6 +63,10 @@ jobs:
         # that actually exist — a name left in the list after its workflow was
         # deleted would otherwise be a watcher watching nothing.
         uses: actions/checkout@v7
+        with:
+          # Full history: a workflow whose schedule was added less than its
+          # budget ago has had no chance to fire yet (see the never-ran branch).
+          fetch-depth: 0
 
       - name: Check every scheduled workflow has run recently
         id: check
@@ -111,6 +115,15 @@ jobs:
             fi
 
             if [ -z "$LAST" ]; then
+              # A schedule added less than its budget ago has not had its first
+              # chance to fire (scoreboard.yml, 2026-09-23: added 06:07Z, first
+              # slot 19:17Z, reported red at 15:28Z). Age of the schedule = the
+              # first commit that added a `cron:` line to this file.
+              ADDED=$(git log --reverse --format=%ct -S "cron:" -- ".github/workflows/$FILE" | head -1)
+              if [ -n "$ADDED" ] && [ $(( (NOW - ADDED) / 86400 )) -lt "$MAX_DAYS" ]; then
+                echo "| \`$FILE\` | active | _not yet due_ | ⏳ schedule added $(( (NOW - ADDED) / 3600 ))h ago |" >> /tmp/rows.md
+                continue
+              fi
               STALE_COUNT=$((STALE_COUNT + 1))
               echo "| \`$FILE\` | active | _never_ | 🔴 no scheduled run ever |" >> /tmp/rows.md
               echo "::error::$FILE has never had a schedule-triggered run."

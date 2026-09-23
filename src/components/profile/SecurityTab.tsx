@@ -30,7 +30,9 @@ import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { toast } from "sonner";
 import { getPublicResetPasswordUrl, getPublicSiteUrl } from "@/lib/authRedirects";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import { TwoFactorCard } from "@/components/profile/TwoFactorCard";
+import { TwoFactorCard, useVerifiedFactor } from "@/components/profile/TwoFactorCard";
+import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
+import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { report } from "@/lib/errorLogger";
 import { userFacingError } from "@/lib/userFacingError";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -176,6 +178,8 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
     staleTime: 60_000,
     gcTime: 5 * 60_000,
   });
+  const { isLoading: factorLoading } = useVerifiedFactor();
+  const securityReady = useArrivalGate(!sessionsLoading, !factorLoading);
 
   // Global sign-out confirmation. Routed through BrandConfirmDialog
   // rather than window.confirm() — native dialogs are off-brand and
@@ -397,6 +401,15 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         secondaryLabel="Cancel"
       />
 
+      {/* ONE PAINT (Q169). The two-step row and the session list each
+          loaded on their own, so the page painted, then the two-step row grew
+          its button and the sessions card grew three rows, moving everything
+          below twice (CLS 0.019 at 375, content in two waves). The tab keeps
+          its chunk placeholder until both have settled (capped), then lands. */}
+      {!securityReady ? (
+        <ProfileTabBodyReserve />
+      ) : (
+      <>
       {/* Email / Password / Two-step / Face ID all share ONE card shape:
           [icon] title (+ its real value) … [action] on the title row, with a
           single line of prose underneath. The two cards below used to spend a
@@ -704,6 +717,8 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         )}
       </div>
 
+      </>
+      )}
       {/* Delete Account moved to the landing tab, directly under
           Sign out — keeps all destructive account actions grouped at
           the bottom of the profile rather than buried in Security. */}

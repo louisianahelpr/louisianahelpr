@@ -151,7 +151,10 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
         // populated hero geometry: big rating number + star row + count
         // line) plus two review-row placeholders so the page doesn't
         // collapse to a single line of text mid-fetch.
-        <div className="space-y-3">
+        // key: a DIFFERENT element from the loaded list below (Q169). Both
+        // are div.space-y-3, so React reused this one for the list and the
+        // browser saw the skeleton slide 123px down under the new hero.
+        <div key="reviews-loading" className="space-y-3">
           <div className="rounded-2xl liquid-glass px-5 py-4 flex items-center gap-4">
             <div className="shrink-0 text-center space-y-2">
               <Skeleton className="h-9 w-12" />

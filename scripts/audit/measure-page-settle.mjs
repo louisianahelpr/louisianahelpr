@@ -146,12 +146,15 @@ async function measureOne(browser, { url, persona, session, width }) {
   const ctx = await browser.newContext({ viewport: { width, height: width < 800 ? 812 : 900 }, serviceWorkers: "block" });
   await ctx.addInitScript(SETTLE_INIT, PLACEHOLDER_SEL);
   if (session) {
-    await ctx.addInitScript(([k, v]) => {
+    await ctx.addInitScript(([k, v, returning]) => {
       try {
         localStorage.setItem(k, v);
+        // RETURNING=1: a device that has seen this account before (the
+        // account's Senior Mode flag is cached, as it is after any visit).
+        if (returning) localStorage.setItem("helpr_profile_senior_mode", "1");
         localStorage.setItem("helpr_onboarding", JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] }));
       } catch { /* reported as signed-out, never a fake pass */ }
-    }, [session.key, session.value]);
+    }, [session.key, session.value, process.env.RETURNING === "1"]);
   }
   const page = await ctx.newPage();
   if (THROTTLE) {

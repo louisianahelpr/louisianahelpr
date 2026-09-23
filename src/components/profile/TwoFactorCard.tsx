@@ -25,13 +25,12 @@ interface VerifiedFactor {
 // Authenticator-app (TOTP) two-step verification, backed by Supabase's
 // native MFA — no SMS, no third-party vendor. A verified factor here is
 // what the login-time challenge gate (Login.tsx) enforces on sign-in.
-export function TwoFactorCard() {
-  const {
-    data: verified,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery<VerifiedFactor | null>({
+/**
+ * The verified-factor read, shared by this card and SecurityTab's arrival gate
+ * (Q169) — same key, so one request.
+ */
+export function useVerifiedFactor() {
+  return useQuery<VerifiedFactor | null>({
     queryKey: ["security", "mfa-factor"],
     queryFn: async () => {
       const { data, error } = await supabase.auth.mfa.listFactors();
@@ -47,6 +46,10 @@ export function TwoFactorCard() {
     },
     staleTime: 30_000,
   });
+}
+
+export function TwoFactorCard() {
+  const { data: verified, isLoading, isError, refetch } = useVerifiedFactor();
 
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);

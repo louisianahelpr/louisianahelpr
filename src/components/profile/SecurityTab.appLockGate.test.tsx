@@ -114,15 +114,19 @@ async function drain() {
   });
 }
 
-function renderTab() {
+async function renderTab() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
+  const r = render(
     <MemoryRouter>
       <QueryClientProvider client={qc}>
         <SecurityTab email="helper@example.com" onBack={() => {}} />
       </QueryClientProvider>
     </MemoryRouter>,
   );
+  // The tab holds its placeholder until its sessions and two-step reads have
+  // settled (Q169), so the controls exist only after that.
+  await screen.findByRole("switch", { name: "Require Face ID to open Helpr" });
+  return r;
 }
 
 const lockSwitch = () => screen.getByRole("switch", { name: "Require Face ID to open Helpr" });
@@ -141,7 +145,7 @@ beforeEach(() => {
 
 describe("SecurityTab — the gate on arming the Face ID lock", () => {
   it("a passed confirmation arms the lock and persists the flag", async () => {
-    renderTab();
+    await renderTab();
     fireEvent.click(lockSwitch());
 
     await waitFor(() => expect(setAppLockEnabledMock).toHaveBeenCalledWith(true));
@@ -153,7 +157,7 @@ describe("SecurityTab — the gate on arming the Face ID lock", () => {
 
   it("a refused prompt ARMS NOTHING — the flag is never written, the switch stays off", async () => {
     requireBiometricMock.mockResolvedValue(false);
-    renderTab();
+    await renderTab();
     fireEvent.click(lockSwitch());
 
     // Wait for the GATE to have resolved, then drain. Asserting the absence
@@ -182,7 +186,7 @@ describe("SecurityTab — the gate on arming the Face ID lock", () => {
     // option (or flipping it to "allow") would make `requireBiometric` return
     // true on a phone with no biometry and no passcode, arming a lock nothing
     // on that device can open.
-    renderTab();
+    await renderTab();
     fireEvent.click(lockSwitch());
     await waitFor(() => expect(requireBiometricMock).toHaveBeenCalled());
     expect(requireBiometricMock.mock.calls[0][1]).toEqual({ onUnsecurableDevice: "deny" });
@@ -191,7 +195,7 @@ describe("SecurityTab — the gate on arming the Face ID lock", () => {
   it("the OS prompt names the lock, not a generic 'confirm'", async () => {
     // A vague reason string on the sheet is how people learn to approve every
     // prompt without reading it.
-    renderTab();
+    await renderTab();
     fireEvent.click(lockSwitch());
     await waitFor(() => expect(requireBiometricMock).toHaveBeenCalled());
     expect(String(requireBiometricMock.mock.calls[0][0])).toMatch(/lock/i);
@@ -203,7 +207,7 @@ describe("SecurityTab — the gate on arming the Face ID lock", () => {
     // hardening — the account is still protected by the session, by
     // server-side authz, and by the gates on the money actions themselves.
     lockEnabled = true;
-    renderTab();
+    await renderTab();
     expect(lockSwitch()).toBeChecked();
     fireEvent.click(lockSwitch());
 

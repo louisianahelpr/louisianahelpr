@@ -106,7 +106,11 @@ const SaveHelperButton = ({
         variant="ghost"
         size={variant === "icon" ? "icon" : "sm"}
         disabled
-        className={`rounded-ds-md ${className}`}
+        // The icon variant's own box (Q169): without `h-10 w-10 shrink-0` the
+        // loading button took the Button default size, so the profile header
+        // grew 8px while the saved status loaded and shrank back when it
+        // landed (CLS 0.039 on /user/:id at 375).
+        className={`rounded-ds-md ${variant === "icon" ? "h-10 w-10 shrink-0 " : ""}${className}`}
         aria-label="Loading saved status"
       >
         <Loader2 className="w-4 h-4 animate-spin" />

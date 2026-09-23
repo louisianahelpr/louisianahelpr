@@ -25,7 +25,7 @@
  */
 // @mutate src/pages/postjob/EntryChoice.tsx |   if (!entryReady) return <EntryChoiceSkeleton />; |
 import { test, expect } from "@playwright/test";
-import { newUserContext, sessionFor, POSTER_ID, HELPER_ID } from "./harness";
+import { newUserContext, sessionFor, POSTER_ID, HELPER_ID, SUPABASE_URL, ANON } from "./harness";
 import { deriveRouteSet } from "../../scripts/audit/press-every-control.mjs";
 import { SETTLE_INIT, settlePage } from "../../scripts/audit/measure-page-settle.mjs";
 import { PLACEHOLDER_SEL } from "../../scripts/audit/measure-loading-states.mjs";
@@ -38,8 +38,6 @@ const KNOWN: Record<string, string> = {
 };
 
 interface RouteRow { url: string; personas: string[]; redirect: boolean }
-
-test.describe.configure({ mode: "serial" });
 
 for (const width of WIDTHS) {
   test(`every route settles in one paint at ${width}px (CLS < ${CLS_BUDGET}, one content wave)`, async ({ browser, request }) => {
@@ -54,11 +52,26 @@ for (const width of WIDTHS) {
     expect(routes.length).toBeGreaterThan(40);
 
     const session = await sessionFor(request, "poster");
+    const prof = await request.get(`${SUPABASE_URL}/rest/v1/profiles?select=senior_mode&user_id=eq.${POSTER_ID}`, {
+      headers: { apikey: ANON, Authorization: `Bearer ${session.access_token}` },
+    });
+    expect(prof.ok(), "read the poster's own profile").toBe(true);
+    const seniorMode = !!(await prof.json())[0]?.senior_mode;
     const breaches: Record<string, string> = {};
     for (const r of routes) {
       const signedIn = r.personas.includes("customer") && r.personas.includes("helper");
       const ctx = await newUserContext(browser, signedIn ? session : null, { desktop: width === 1440 });
       await ctx.addInitScript(SETTLE_INIT, PLACEHOLDER_SEL);
+      // A RETURNING device: the account's Senior Mode flag is cached after
+      // any visit (src/lib/simpleMode.ts), so the first paint is already the
+      // right text size. Seeded from the live profile, not assumed. A device's
+      // very FIRST visit still grows once when the profile lands; that case
+      // is Q170 (docs/OPEN.md), not measured here.
+      if (signedIn) {
+        await ctx.addInitScript((on: boolean) => {
+          try { localStorage.setItem("helpr_profile_senior_mode", on ? "1" : "0"); } catch { /* storage blocked */ }
+        }, seniorMode);
+      }
       const page = await ctx.newPage();
       await page.setViewportSize({ width, height: width < 800 ? 812 : 900 });
       const m = await settlePage(page, new URL(r.url, test.info().project.use.baseURL).toString(), { quietMs: 2500, maxMs: 15000 });

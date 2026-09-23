@@ -26,6 +26,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 const root = join(__dirname, "..", "..");
 const PREFS = join(root, "src/components/NotificationPreferences.tsx");
@@ -65,7 +66,7 @@ describe("journeys establish a gated switch's preconditions", () => {
 
     for (const f of readdirSync(JOURNEYS).filter((n) => n.endsWith(".spec.ts"))) {
       const src = readFileSync(join(JOURNEYS, f), "utf8");
-      const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+      const code = blankComments(src);
       for (const label of gated) {
         if (!code.includes(`"${label}"`)) continue;
         // It touches a gated child. It must ALSO turn a parent on, or assert
@@ -90,8 +91,7 @@ describe("journeys establish a gated switch's preconditions", () => {
 
   it("03-account turns BOTH of the digest's parents on", () => {
     // Named explicitly because this is the one that cost 221 hours.
-    const code = readFileSync(join(JOURNEYS, "03-account.spec.ts"), "utf8")
-      .replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    const code = blankComments(readFileSync(join(JOURNEYS, "03-account.spec.ts"), "utf8"));
     expect(code).toContain("Push notifications master toggle");
     expect(code).toContain("Job Matches push");
     expect(code).toMatch(/toBeEnabled\(/);

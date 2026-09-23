@@ -32,6 +32,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 const root = join(__dirname, "..", "..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
@@ -76,8 +77,7 @@ describe("DashboardRouteSkeleton mirrors DashboardTitleBar", () => {
     // testing caught it: one of the two registered mutations SURVIVED. A claim
     // about the code is not the code, the same trap as trusting a comment
     // beside a CSS declaration.
-    const code = (src: string) =>
-      src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    const code = (src: string) => blankComments(src);
     const skeletonCode = code(skeleton);
     const barCode = code(bar);
 

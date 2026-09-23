@@ -155,7 +155,7 @@ describe("slack-ops-alert — the contract the SQL watchers actually speak", () 
  * posted, the channel hit Slack's rate limit, and each `ratelimited` refusal
  * was logged as a new row that posted again.
  */
-describe("slack-ops-alert — only critical posts; the rest waits for the digest", () => {
+describe("slack-ops-alert — every severity posts, with its own icon and colour", () => {
   beforeEach(() => {
     resetSupabaseMock();
     resetSharedMocks();
@@ -174,13 +174,35 @@ describe("slack-ops-alert — only critical posts; the rest waits for the digest
     vi.unstubAllGlobals();
   });
 
-  for (const severity of ["warning", "info", undefined]) {
-    it(`does NOT post severity ${String(severity)}, and answers 200 so no caller retries`, async () => {
+  /**
+   * REVERSED 2026-09-22, deliberately. These three used to assert
+   * `skipped: "digest"` — warning and info never posted, they waited for
+   * `send_ops_daily_digest`.
+   *
+   * That digest IS A CRON (`ops-daily-digest`, 14:40 UTC). When pg_cron
+   * refused to start 457 jobs that morning it was one of the nine daily jobs
+   * that never ran, so the outage was reported at 'error', routed to the
+   * digest, and the digest was part of the outage. Nine hours, nobody told.
+   *
+   * Owner: "I feel like medium and low alerts should show in slack also so
+   * that can be fixed." Volume is now held down by SLACK_THROTTLE_MINUTES in
+   * the SQL trigger (one post per source per severity-dependent window), not
+   * by dropping whole tiers — a dropped severity is indistinguishable from a
+   * healthy system.
+   *
+   * A missing severity still normalises to 'warning' (`normalizeSeverity`),
+   * which is why `undefined` belongs in this list and posts amber.
+   */
+  for (const [severity, colour] of [["warning", "#f59e0b"], ["info", "#3b82f6"], [undefined, "#f59e0b"]] as const) {
+    it(`posts severity ${String(severity)} with its own colour, not dressed as critical`, async () => {
       const fn = await load();
       const res = await fn.fetch(call(fn, { title: "t", message: "m", severity }));
       expect(res.status).toBe(200);
-      expect(await json(res)).toMatchObject({ ok: true, skipped: "digest" });
-      expect(slackPosts).toHaveLength(0);
+      expect(await json(res)).toMatchObject({ ok: true });
+      expect(slackPosts).toHaveLength(1);
+      // The tier has to stay legible: a page must still look different from a
+      // notice, or routing everything here would just make everything urgent.
+      expect(slackPosts[0].attachments[0].color).toBe(colour);
     });
   }
 

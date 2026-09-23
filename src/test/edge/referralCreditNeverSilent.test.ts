@@ -39,6 +39,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import { blankComments } from "../helpers/blankNonCode";
 import { join } from "node:path";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -110,7 +111,11 @@ function clientSourceFiles(dir = SRC): string[] {
  * why the client call was REMOVED — a guard that fires on its own fix.
  */
 function stripComments(text: string): string {
-  return text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+  // `blankComments` rather than a delete-based regex: a `/` + `*` inside a URL
+  // or regex literal makes the hand-rolled form swallow the rest of the file
+  // (293 of 1,053 files emptied by >60% repo-wide), and a guard that scans an
+  // emptied file reports GREEN. Enforced by local/no-deleting-comment-stripper.
+  return blankComments(text);
 }
 
 

@@ -30,12 +30,13 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 const FILE = "scripts/audit/press-every-control.mjs";
 const src = readFileSync(join(__dirname, "..", "..", FILE), "utf8");
 
 /** Executable text only — a comment describing the guard is not the guard. */
-const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+const code = blankComments(src);
 
 describe("press restores the screen it is auditing", () => {
   it("read a real file (cannot pass vacuously)", () => {
@@ -47,7 +48,12 @@ describe("press restores the screen it is auditing", () => {
     // The restore condition must consult sameScreen(). Matched on the
     // condition's own text rather than a line number so ordinary edits nearby
     // do not break it.
-    const cond = code.match(/else if \(([\s\S]{0,400}?)\)\s*\{\s*await load\(\);/);
+    // 3000, not 400: `blankComments` BLANKS comments to spaces rather than
+    // deleting them (deleting is what guardsDoNotDeleteSource.test.ts forbids,
+    // because a `/`+`*` inside a URL swallows the rest of a file). The
+    // condition therefore carries its explanatory comment as whitespace, and a
+    // tight window stopped matching the moment the stripper became safe.
+    const cond = code.match(/else if \(([\s\S]{0,3000}?)\)\s*\{\s*await load\(\);/);
     expect(cond, "the restore-before-press branch must still exist").toBeTruthy();
     expect(
       cond![1],
@@ -60,7 +66,7 @@ describe("press restores the screen it is auditing", () => {
 
   it("still restores for the three original reasons", () => {
     // Adding the navigation case must not displace the ones that were there.
-    const cond = code.match(/else if \(([\s\S]{0,400}?)\)\s*\{\s*await load\(\);/)![1];
+    const cond = code.match(/else if \(([\s\S]{0,3000}?)\)\s*\{\s*await load\(\);/)![1];
     for (const clause of ["pageDirty", "!atRest()", "OPEN_OVERLAY"]) {
       expect(cond, `restore condition lost its "${clause}" clause`).toContain(clause);
     }

@@ -5,6 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 import noSilentCatch from "./scripts/eslint-rules/no-silent-catch.js";
 import noButtonHeightOverride from "./scripts/eslint-rules/no-button-height-override.js";
+import noDeletingCommentStripper from "./scripts/eslint-rules/no-deleting-comment-stripper.js";
 import BUTTON_HEIGHT_LEGACY from "./scripts/eslint-rules/button-height-legacy.json" with { type: "json" };
 
 
@@ -285,10 +286,22 @@ export default tseslint.config(
     plugins: {
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
-      local: { rules: { "no-silent-catch": noSilentCatch, "no-button-height-override": noButtonHeightOverride } },
+      local: {
+        rules: {
+          "no-silent-catch": noSilentCatch,
+          "no-button-height-override": noButtonHeightOverride,
+          "no-deleting-comment-stripper": noDeletingCommentStripper,
+        },
+      },
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // Refuses the hand-rolled comment stripper that deletes the code it is
+      // about to search. src/test/guardsDoNotDeleteSource.test.ts already
+      // catches it — but only in a repo-wide `vitest run`, i.e. after a push.
+      // eslint runs on every staged file via lint-staged, so the same defect
+      // is refused at the commit boundary where it costs nothing to fix.
+      "local/no-deleting-comment-stripper": "error",
       // Disabled: we intentionally co-locate small helpers, types, and
       // constants with their owning component (shadcn/ui pattern + our own
       // HelperBadges/OnboardingTour/TimePickerSelect/JobFilters). HMR still

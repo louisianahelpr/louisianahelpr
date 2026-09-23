@@ -32,6 +32,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 const root = join(__dirname, "..", "..");
 const SRC = join(root, "src");
@@ -48,8 +49,7 @@ const walk = (dir: string, out: string[] = []): string[] => {
 const files = walk(SRC);
 
 /** Strip comments — a comment naming getUser() is not a call to it. */
-const codeOf = (src: string) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+const codeOf = (src: string) => blankComments(src);
 
 /**
  * Files that still sample auth once, each with the reason it is acceptable

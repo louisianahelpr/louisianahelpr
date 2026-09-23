@@ -923,6 +923,12 @@ export const test = baseTest.extend<HappyPathFixtures>({
         try {
           lostChunks.push(new URL(r.url()).pathname);
         } catch {
+          // Silence is correct: this is a display fallback, not a failure.
+          // `new URL()` throws only on a malformed URL, and the whole purpose
+          // of this list is to NAME the chunks that 404'd in a diagnostic
+          // message. A URL we cannot parse is still worth printing whole —
+          // reporting the parse error instead would replace the evidence with
+          // a complaint about the evidence.
           lostChunks.push(r.url());
         }
       }

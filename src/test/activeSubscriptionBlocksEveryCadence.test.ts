@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { blankComments } from "./helpers/blankNonCode";
 import { describe, expect, it } from "vitest";
 import { IAP_CADENCES } from "@/lib/iap";
 
@@ -22,9 +23,18 @@ import { IAP_CADENCES } from "@/lib/iap";
 const FN = "supabase/functions/create-pro-checkout/index.ts";
 const source = readFileSync(FN, "utf8");
 
-/** Source with `//` and block comments stripped, so prose cannot satisfy or trip a check. */
+/**
+ * Source with comments blanked, so prose cannot satisfy or trip a check.
+ *
+ * Was a hand-rolled `replace(/\/\*...\*\//g, "")`. That DELETES, and a `/`
+ * followed by `*` inside a URL or regex opens a "comment" running to the next
+ * `*` + `/` anywhere later — repo-wide it empties 293 of 1,053 files by >60%,
+ * and a guard scanning an emptied file reports GREEN. `blankComments` is
+ * string-aware and blanks in place, so offsets survive and string bodies stay
+ * readable. Enforced by local/no-deleting-comment-stripper.
+ */
 function stripComments(s: string): string {
-  return s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
+  return blankComments(s);
 }
 
 const code = stripComments(source);

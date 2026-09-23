@@ -1,4 +1,5 @@
-// @mutate src/hooks/useActivityBadgeCounts.ts | () => scheduleLoad(), | () => loadCounts(),
+// @mutate src/hooks/useActivityBadgeCounts.ts | filter: `customer_id=eq.${userId}` },\n      () => scheduleLoad(), | filter: `customer_id=eq.${userId}` },\n      () => loadCounts(),
+// @mutate src/hooks/useActivityBadgeCounts.ts | onRecovered: scheduleLoad } | onRecovered: loadCounts }
 // @mutate src/hooks/useActivityBadgeCounts.ts | if (isHidden()) { | if (false) {
 // @mutate src/hooks/useActivityBadgeCounts.ts | let store = stores.get(userId); | let store = undefined as BadgeStore \| undefined;
 // @mutate src/hooks/useActivityBadgeCounts.ts | const BADGE_REFRESH_DEBOUNCE_MS = 400; | const BADGE_REFRESH_DEBOUNCE_MS = 0;
@@ -172,7 +173,8 @@ describe("hot-query load (Q53)", () => {
         if (ts.isPropertyAssignment(n) && ts.isIdentifier(n.name) && n.name.text === "onRecovered") onRecovered = n.initializer.getText(sf);
       });
       expect(handlers.length).toBeGreaterThanOrEqual(3);
-      for (const h of handlers) expect(h).toMatch(/^\(\)\s*=>\s*scheduleLoad\(\)$/);
+      const direct = handlers.filter((h) => !/^\(\)\s*=>\s*scheduleLoad\(\)$/.test(h));
+      expect(direct, "a realtime handler that loads directly skips the coalescing and the hidden-hold").toEqual([]);
       expect(onRecovered).toBe("scheduleLoad");
     });
 

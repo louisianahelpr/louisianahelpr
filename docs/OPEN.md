@@ -7587,7 +7587,7 @@ rows are non-tappable; panel identical in WebKit and Chromium.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 56 items — 11 done, 4 partly done (fixed, protection pending), 41 open.**
+**Queue: 57 items — 11 done, 4 partly done (fixed, protection pending), 42 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -8056,3 +8056,15 @@ sure someone hears it and closes it.
   queries a page waits on). Deliver a ranked list: what it costs now, what
   the change is, the expected gain. Each speed fix ships with a budget check
   (e.g. bundle-size budgets, a Lighthouse/LCP budget in CI) so it can't regress.
+- [ ] **Q57 Nightly refresh jobs can PROVE a file is stale but can't UPDATE it.**
+  GitHub Actions here cannot push to main or open PRs
+  (can_approve_pull_request_reviews=false; found by Q36). So re-measured
+  evidence (loading states, press ledger, overlay baseline) must be committed
+  by hand, which is exactly how numbers went stale. OWNER SETTING: Repo ->
+  Settings -> Actions -> General -> Workflow permissions -> "Read and write" +
+  "Allow GitHub Actions to create and approve pull requests". Then wire the
+  refresh workflows to open an auto-merging PR with the regenerated files.
+3. **Let GitHub Actions commit the nightly re-measurements (Q57).** One
+   setting: Settings -> Actions -> General -> Workflow permissions -> "Read
+   and write permissions" + tick "Allow GitHub Actions to create and approve
+   pull requests". Without it, stale numbers can only be fixed by hand.

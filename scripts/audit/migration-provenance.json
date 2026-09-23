@@ -33,6 +33,14 @@
     {
       "version": "20260923130621",
       "why": "Q157/Q160. Applied by the Supabase GitHub integration (Q121), not db-deploy: prod workflow_run_logs 2026-09-23T13:22:40Z 'Applying migration... file=20260923130621_seed_boundary_honest_skips_and_monitor.sql' after 'Cloning git repo... git_ref=main' at 13:22:33Z (push of 934573d26 at ~13:22:00Z); 0 rows for it in migration_deploy_ledger; db-deploy 35866559404 red only at 'Verify every prod migration was applied by db-deploy' (all gates green): no receipt."
+    },
+    {
+      "version": "20260923133021",
+      "why": "Q30. Applied by the Supabase GitHub integration (Q121), not db-deploy: present in supabase_migrations.schema_migrations on 2026-09-23 ~14:40Z with 0 rows in migration_deploy_ledger; db-deploy 35868272440 (fa1282a18) red only at 'Verify every prod migration was applied by db-deploy'."
+    },
+    {
+      "version": "20260923143321",
+      "why": "Q167. Applied by the Supabase GitHub integration (Q121), not db-deploy: present in supabase_migrations.schema_migrations and cron.job has cleanup-stripe-webhook-events (25 4 * * *) and cleanup-observability-tables (35 4 * * *) at ~14:40Z 2026-09-23, 0 rows in migration_deploy_ledger (push of a24c76f00)."
     }
   ]
 }

@@ -675,7 +675,11 @@ sure someone hears it and closes it.
   caused two broken @mutate lines and lost screenshots. Put it in one file
   (e.g. .claude/AGENT-BRIEF.md) that CLAUDE.md tells every spawn to read, and
   keep it current.
-
+4. **FYI, found overnight, a launch blocker: push notifications have NEVER
+   worked.** push_tokens has 0 rows ever; 348 pushes were skipped in 7 days
+   for having no device. CLAUDE.md's "push-token bug is FIXED" was never
+   verified against the data. An agent is on it (Q82); anything that needs
+   Apple credentials or your device will be listed here.
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

@@ -150,25 +150,39 @@ async function sync() {
     }
   }
 
-  // 4. Sentry
+  // 4. Sentry. A sync that cannot read Sentry is itself an alert: it goes in
+  // the ledger (so it stays open until a sync reads Sentry again) instead of
+  // turning this hourly job red and burying steps 5-6.
   const { SENTRY_AUTH_TOKEN: st, SENTRY_ORG: so, SENTRY_PROJECT: sp } = process.env;
+  let sentryProblem = null;
   if (st && so && sp) {
-    const res = await fetch(`https://sentry.io/api/0/projects/${so}/${sp}/issues/?query=is:unresolved&statsPeriod=24h&limit=50`, {
-      headers: { Authorization: `Bearer ${st}` }, signal: AbortSignal.timeout(15000),
-    });
-    if (!res.ok) throw new Error(`Sentry ${res.status}: ${(await res.text()).slice(0, 200)}`);
-    const issues = await res.json();
-    for (const i of issues) {
-      await recordOpsAlert({
-        sourceKind: "sentry", source: `sentry:${i.culprit ?? "unknown"}`.slice(0, 120), title: i.title,
-        severity: i.level === "fatal" ? "fatal" : i.level === "warning" ? "warning" : "error",
-        sample: `${i.title} — ${i.permalink}`, sampleRef: { sentry_id: i.id, url: i.permalink }, seenAt: i.lastSeen,
+    try {
+      const res = await fetch(`https://sentry.io/api/0/projects/${so}/${sp}/issues/?query=is:unresolved&statsPeriod=24h&limit=50`, {
+        headers: { Authorization: `Bearer ${st}` }, signal: AbortSignal.timeout(15000),
       });
+      if (!res.ok) throw new Error(`Sentry ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      const issues = await res.json();
+      for (const i of issues) {
+        await recordOpsAlert({
+          sourceKind: "sentry", source: `sentry:${i.culprit ?? "unknown"}`.slice(0, 120), title: i.title,
+          severity: i.level === "fatal" ? "fatal" : i.level === "warning" ? "warning" : "error",
+          sample: `${i.title} — ${i.permalink}`, sampleRef: { sentry_id: i.id, url: i.permalink }, seenAt: i.lastSeen,
+        });
+      }
+      log.push(`sentry: ${issues.length} unresolved issue(s) synced`);
+    } catch (e) {
+      sentryProblem = `Sentry could not be read: ${String(e.message).slice(0, 200)}`;
     }
-    log.push(`sentry: ${issues.length} unresolved issue(s) synced`);
   } else {
-    log.push("sentry: SKIPPED — SENTRY_AUTH_TOKEN/SENTRY_ORG/SENTRY_PROJECT not all set, so Sentry alerts are NOT in the ledger");
-    console.log("::warning::Sentry is not synced into the ops alert ledger (SENTRY_AUTH_TOKEN/SENTRY_ORG/SENTRY_PROJECT).");
+    sentryProblem = "Sentry is not synced: SENTRY_AUTH_TOKEN/SENTRY_ORG/SENTRY_PROJECT not all set";
+  }
+  if (sentryProblem) {
+    log.push(`sentry: NOT SYNCED — ${sentryProblem}`);
+    console.log(`::warning title=Sentry alerts are NOT in the ops alert ledger::${sentryProblem}. OWNER ACTION: a Sentry token with project:read + event:read (repo secret SENTRY_AUTH_TOKEN).`);
+    await recordOpsAlert({
+      sourceKind: "workflow", source: "ops-alert-ledger", title: "Sentry alerts are not synced into the ops alert ledger",
+      severity: "warning", sample: sentryProblem, verifyKind: "workflow", verifyRef: "prod-errors.yml",
+    });
   }
 
   // 5. re-ask every sql_condition item.

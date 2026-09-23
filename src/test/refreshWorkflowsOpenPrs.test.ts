@@ -53,6 +53,10 @@ const NOT_LANDED: Record<string, string> = {
 const ALSO_LANDED: Record<string, string> = {
   "morning-page.yml":
     "docs/morning/<date>.md is a DATED daily record (WRITES_NOT_COMMITTED in check-generated-current.mjs), not a living inventory; Q67 is ticked when the first one lands on main through this step",
+  "ios-icon-sync.yml":
+    "regenerates the AppIcon set via `bundle exec fastlane ios sync_app_icon`, not a scripts/check-generated-current.mjs generator; Q285 moved its old direct `git push` onto this shared step because a manual dispatch on main was rejected by branch protection",
+  "ios-metadata.yml":
+    "regenerates the Xcode project/Info.plist/capacitor.config.ts and the App Store name/URL/category files via `bundle exec fastlane ios sync_xcode_metadata`, not a scripts/check-generated-current.mjs generator; Q285 moved its old direct `git push` onto this shared step for the same branch-protection reason",
 };
 
 type Step = { run?: string; uses?: string; with?: Record<string, unknown> };
@@ -195,5 +199,63 @@ describe("scheduled refresh workflows land their files through ONE auto-merging 
       wf("e.yml", { schedule: [] }, "npx playwright test overlay-sweep"),
     ]);
     expect(got).toEqual(["a.yml", "b.yml", "e.yml"]);
+  });
+});
+
+/*
+ * CLASS GUARD (Q285): NO workflow may push with git directly. ios-icon-sync.yml
+ * and ios-metadata.yml each ended their "commit" step with a plain `git push`
+ * using github.token — on a dispatch against `main` that push is rejected by
+ * branch protection, so both workflows regenerated their files and then died
+ * on the last step. Both were moved onto .github/actions/refresh-pr (this
+ * file's own subject above): it rebuilds ONE bot branch from latest main,
+ * opens/updates ONE PR and auto-merges it, and is itself the ONLY thing
+ * allowed to push (only ever to its own `bot/refresh/<id>` branch, never
+ * `main` — already asserted above).
+ *
+ * The inventory here is every file in .github/workflows (not
+ * .github/actions — the composite lives there and is the one allowed
+ * pusher, so it is out of scope by construction). Comments are stripped
+ * first (whole-line, same convention as workflowFalseGreenShapes.test.ts's
+ * `logicalLines`) so a comment that happens to mention "git push" in prose
+ * cannot fail this guard, and so a `#`-commented-out `git push` cannot hide
+ * from it either way — only live run-step text counts.
+ */
+describe("no workflow pushes with git directly — refresh-pr is the only pusher (Q285)", () => {
+  /** Whole-line `#` comments dropped; a run step's shell text, not YAML. */
+  function stripLineComments(text: string): string {
+    return text
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("#"))
+      .join("\n");
+  }
+
+  const GIT_PUSH = /\bgit\s+push\b/;
+
+  function offenders(all: Wf[]): string[] {
+    return all
+      .filter((w) => GIT_PUSH.test(stripLineComments(runs(w))))
+      .map((w) => w.file)
+      .sort();
+  }
+
+  it("the detector matches a real `git push` run step and ignores one mentioned only in a comment (a check that finds nothing cannot fail)", () => {
+    const wf = (file: string, run: string): Wf => ({ file, on: {}, jobs: { a: { steps: [{ run }] } } });
+    // The exact shape ios-icon-sync.yml and ios-metadata.yml carried before
+    // Q285: a plain `git push` as the last line of a "commit" step.
+    expect(
+      offenders([wf("x.yml", 'git config user.name "github-actions[bot]"\ngit add foo\ngit commit -m "x"\ngit push')]),
+    ).toEqual(["x.yml"]);
+    expect(offenders([wf("y.yml", "# do not git push here\necho hi")])).toEqual([]);
+  });
+
+  it("neither ios-icon-sync.yml nor ios-metadata.yml pushes directly any more (Q285)", () => {
+    const named = workflows.filter((w) => w.file === "ios-icon-sync.yml" || w.file === "ios-metadata.yml");
+    expect(named.map((w) => w.file).sort()).toEqual(["ios-icon-sync.yml", "ios-metadata.yml"]);
+    expect(offenders(named)).toEqual([]);
+  });
+
+  it("no workflow in .github/workflows contains a `git push` run step", () => {
+    expect(offenders(workflows)).toEqual([]);
   });
 });

@@ -1,7 +1,11 @@
 name: iOS Icon Sync
 
 # Manual-only — regenerates every iOS AppIcon size from the single source
-# of truth at public/app-icon-1024.png and commits the result.
+# of truth at public/app-icon-1024.png and lands the result through the
+# shared .github/actions/refresh-pr composite (Q285: this used to `git push`
+# with github.token straight to the dispatched branch, which main's branch
+# protection rejects — it never pushes directly now; it rebuilds ONE bot
+# branch from LATEST main and merges it through a PR instead).
 #
 # Run from the Actions tab → "iOS Icon Sync" → "Run workflow" any time
 # the marketing icon changes. Cheap (Linux runner, no Xcode, no signing).
@@ -13,20 +17,24 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   sync-icons:
-    name: Regenerate AppIcon set
+    name: Land the regenerated AppIcon set (Q57/Q285 refresh PR)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    # The ONLY write grant in this workflow (Q285): push the bot branch, open
+    # or update its PR, and dispatch its checks (a github.token PR triggers
+    # none).
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          # Need write access to push the regenerated PNGs back to the branch.
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install ImageMagick
         run: |
@@ -40,17 +48,11 @@ jobs:
           bundler-cache: true
           working-directory: .
 
-      - name: Run fastlane sync_app_icon
-        run: bundle exec fastlane ios sync_app_icon
-
-      - name: Commit regenerated icons
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ios/App/App/Assets.xcassets/AppIcon.appiconset/
-          if git diff --cached --quiet; then
-            echo "No icon changes — nothing to commit."
-            exit 0
-          fi
-          git commit -m "chore(ios): sync AppIcon set from public/app-icon-1024.png"
-          git push
+      - uses: ./.github/actions/refresh-pr
+        with:
+          id: ios-icons
+          title: "chore(ios): sync AppIcon set from public/app-icon-1024.png"
+          paths: ios/App/App/Assets.xcassets/AppIcon.appiconset/
+          regenerate: bundle exec fastlane ios sync_app_icon
+          github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
+          check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}

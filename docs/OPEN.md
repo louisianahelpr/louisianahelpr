@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 55 done, 7 partly done (fixed, protection pending), 87 open. Source of truth for work.
+- **Queue (this file):** 55 done, 7 partly done (fixed, protection pending), 88 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 149 items — 55 done, 7 partly done (fixed, protection pending), 87 open.**
+**Queue: 150 items — 55 done, 7 partly done (fixed, protection pending), 88 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -156,7 +156,7 @@ sure someone hears it and closes it.
   review, e.g. a review-log entry that CI checks for commits touching
   supabase/migrations or RLS-sensitive files. It reports; it does not block.
 - [ ] **Q10 Owner-side, carried over:** release dispute 9756a585's payout;
-  **ANSWERED 2026-09-23:** dispute 9756a585 (seed): Claude settles it in TEST mode (work item Q148); Stripe payouts: MANUAL (owner sets it: Stripe Dashboard > Settings > Payouts); sales tax: Stripe collects it (create-payment already sends automatic_tax enabled; owner must register Louisiana in Stripe Tax, or Stripe collects nothing); right-panel overlap screenshot still owed.
+  **ANSWERED 2026-09-23:** dispute 9756a585 (seed): Claude settles it in TEST mode (work item Q148); Stripe payouts: MANUAL (owner sets it: Stripe Dashboard > Settings > Payouts); sales tax: Stripe collects it (create-payment already sends automatic_tax enabled; owner must register Louisiana in Stripe Tax, or Stripe collects nothing); right-panel overlap: owner asked Claude to audit it (Q151).
   set Stripe payouts to manual; decide Louisiana sales tax; send a screenshot
   or window width for the right-panel overlap.
 - [x] **Stored-XSS class: user-writable URL column -> raw href** (follow-up to
@@ -485,6 +485,7 @@ sure someone hears it and closes it.
 - [ ] **Q148 Settle seed dispute 9756a585 in Stripe TEST mode (owner approved 2026-09-23).** Through the admin dispute path; verify the dispute-unsettled-seed ledger item closes.
 - [ ] **Q149 Turn on leaked-password (HIBP) protection (owner decision 2026-09-23, Pro plan).** Supabase Auth password security setting; verify the advisor clears and a breached password is refused at signup with a clear message.
 - [ ] **Q150 Triage stale remote branches (owner decision 2026-09-23).** Delete the 26 fully merged; for each of the 34 with patches not on main (git cherry), say what it holds and whether it is worth landing; list for the owner; delete the rest only after that list.
+- [ ] **Q151 Audit the right-side panel overlap on every signed-in page (owner 2026-09-23: "you audit it and check"; carried from Q10).** With the desktop rail open, measure every signed-in route at 1024, 1280, 1440 and 1920: nothing under the rail, .app-shell-frame inset exactly --desktop-sidebar-w, zero horizontal overflow, column centred in the post-rail area. Screenshot each failure plus a sample, record reviews, fix at the shared layer only.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes

@@ -10,6 +10,9 @@ import { TIER_ORDER, TIER_PERK_MATRIX } from "../_shared/tierPerks.ts";
 // dropped Plus when Plus was restored (found 2026-09-14, VN-44 review).
 const REPORT_TIERS = TIER_ORDER.filter((t) => TIER_PERK_MATRIX[t].advancedAnalytics);
 
+/** The report's notification title; also the key its once-a-week check reads. */
+const WEEKLY_REPORT_TITLE = "Weekly Performance Report";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -116,9 +119,37 @@ Deno.serve(async (req) => {
       return new Date(h.subscription_expires_at) > now;
     });
 
+    // Q188: one report per helper per week, whoever invokes the function. A
+    // manual re-run, a retry or a catch-up must not deliver a second copy, so
+    // helpers who already have this week's report are skipped. The window is 6
+    // days, not 7, so next Monday's on-time run is never mistaken for a repeat.
+    // A failed read throws (the run answers 500 and alerts) rather than
+    // guessing "nobody was sent" and duplicating every report.
+    const sentWindowISO = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString();
+    const alreadyScan = await scanAllIn<{ user_id: string }>(
+      "reports already sent this week",
+      activeHelpers.map((h) => h.user_id),
+      (chunk, countOpt) =>
+        supabase
+          .from("notifications")
+          .select("user_id", countOpt)
+          .order("user_id", { ascending: true })
+          .in("user_id", chunk)
+          .eq("title", WEEKLY_REPORT_TITLE)
+          .gte("created_at", sentWindowISO),
+    );
+    const alreadyDefect = scanDefect("reports already sent this week", alreadyScan);
+    if (alreadyDefect) throw new Error(alreadyDefect);
+    const alreadySent = new Set(alreadyScan.rows.map((r) => r.user_id));
+
     let sent = 0;
+    let skippedAlreadySent = 0;
 
     for (const helper of activeHelpers) {
+      if (alreadySent.has(helper.user_id)) {
+        skippedAlreadySent++;
+        continue;
+      }
       // Gather weekly stats
       const [jobsRes, reviewsRes, earningsRes, appsRes] = await Promise.all([
         supabase
@@ -234,7 +265,7 @@ Deno.serve(async (req) => {
         .from("notifications")
         .insert({
           user_id: helper.user_id,
-          title: "Weekly Performance Report",
+          title: WEEKLY_REPORT_TITLE,
           message,
           type: "info",
           link: "/profile?tab=earnings",
@@ -259,7 +290,7 @@ Deno.serve(async (req) => {
 
     return cronResult(
       "weekly-helper-report",
-      { sent, total: activeHelpers.length, scanned_jobs: rosterScan.rows.length },
+      { sent, skipped_already_sent: skippedAlreadySent, total: activeHelpers.length, scanned_jobs: rosterScan.rows.length },
       defects.defects,
       corsHeaders,
     );

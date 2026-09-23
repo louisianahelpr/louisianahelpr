@@ -19,6 +19,8 @@
  * `_shared/paginate.ts` and `_shared/cron-result.ts`, so whether a run that
  * dropped work answers non-2xx — the only signal `sweep_cron_http_failures()`
  * can see — is genuinely under test.
+ *
+ * @mutate supabase/functions/weekly-helper-report/index.ts | if (alreadySent.has(helper.user_id)) { | if (false) {
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -92,6 +94,33 @@ describe("weekly-helper-report edge function", () => {
     expect(b.sent).toBe(1);
     expect(b.defects).toBe(0);
     expect(reportWrites()).toHaveLength(1);
+  });
+
+  // Q188: a second invocation in the same week (manual re-run, retry,
+  // catch-up) must not deliver a second copy.
+  it("skips a helper who already has this week's report", async () => {
+    const fn = await loadConfigured();
+    seedOneHelper();
+    scenario.reads.notifications = { rows: [{ user_id: "helper-1" }] };
+
+    const res = await fn.fetch(cronRequest(fn));
+    const b = await body(res);
+
+    expect(res.status).toBe(200);
+    expect(b.sent).toBe(0);
+    expect(b.skipped_already_sent).toBe(1);
+    expect(reportWrites()).toHaveLength(0);
+  });
+
+  it("fails closed when the already-sent read errors: no sends, run answers 500", async () => {
+    const fn = await loadConfigured();
+    seedOneHelper();
+    scenario.reads.notifications = { rows: [], error: { message: "boom" } };
+
+    const res = await fn.fetch(cronRequest(fn));
+
+    expect(res.status).toBe(500);
+    expect(reportWrites()).toHaveLength(0);
   });
 
   it("proves the notification INSERT is guarded: zero rows written is a DEFECT, not a send", async () => {

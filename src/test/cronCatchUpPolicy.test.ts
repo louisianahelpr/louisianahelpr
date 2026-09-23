@@ -27,8 +27,8 @@
  *     skips claimed slots, never queues behind a lock, and treats a missing
  *     policy row as unsafe.
  *
- * @mutate supabase/migrations/20260923143321_schedule_unscheduled_pruners.sql | ('charge-recurring-visits',         false, | ('charge-recurring-visits',         true,
- * @mutate supabase/migrations/20260923143321_schedule_unscheduled_pruners.sql | ('ops-daily-digest',                true, | ('ops-daily-digest-gone',           true,
+ * @mutate supabase/migrations/20260923145117_weekly_report_catch_up_safe.sql | ('charge-recurring-visits',         false, | ('charge-recurring-visits',         true,
+ * @mutate supabase/migrations/20260923145117_weekly_report_catch_up_safe.sql | ('ops-daily-digest',                true, | ('ops-daily-digest-gone',           true,
  * @mutate supabase/migrations/20260923133021_cron_missed_slot_catch_up.sql | IF NOT pg_try_advisory_xact_lock(hashtext( | IF NOT pg_advisory_xact_lock(hashtext(
  * @mutate supabase/migrations/20260923133021_cron_missed_slot_catch_up.sql | AND NOT EXISTS (SELECT 1 FROM public.cron_catchup_runs c | AND EXISTS (SELECT 1 FROM public.cron_catchup_runs c
  * @mutate supabase/migrations/20260923133021_cron_missed_slot_catch_up.sql | ELSIF r.catch_up IS NOT TRUE THEN | ELSIF false THEN
@@ -66,6 +66,7 @@ const CATCH_UP_SAFE = [
   "sweep-old-email-send-log",
   "sweep-old-error-logs",
   "sweep-old-notifications",
+  "weekly-helper-report",
 ];
 
 /** Names that move money, change entitlements or delete accounts: never catch-up-safe. */

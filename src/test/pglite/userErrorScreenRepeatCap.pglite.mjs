@@ -7,6 +7,8 @@
  *   node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs       # RED: neither fix
  *   NEW_MIGRATION=skip-q106 node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs  # RED: Q96/Q97 only
+ *   NEW_MIGRATION=skip-q113 node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs  # RED: no Q113 fix
+ *   MUTATE=no-stamp node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs          # RED: Q106 stamp line removed
  *
  * pglite is not a dependency (CLAUDE.md): it is loaded from ~/.lh-pglite
  * (override with PGLITE_DIR). The fixture schema is the Q39 proof's
@@ -28,6 +30,20 @@
  *   Q98  - (fixture sizes, 2026-09-23) a client account's 70 inserts in a minute store 60 (one by one AND
  *         in one batch INSERT); guests together store 120; a back-dated
  *         created_at is re-stamped; server rows are never throttled.
+ *   Q114 - error_logs has RLS ON and the LIVE anyone_can_insert_errors policy
+ *         (copied from prod pg_policies 2026-09-23), so the Q106 cases prove the
+ *         BEFORE stamp runs before WITH CHECK: authenticated NULL -> stored and
+ *         stamped; authenticated claiming another uid -> stored, stamped to the
+ *         caller; anon with a non-null user_id -> REFUSED. MUTATE=no-stamp
+ *         removes the stamp line and the other-uid case is then refused.
+ *   Q113 - (20260923100454) one guest fingerprint stores at most 20 a minute and
+ *         cannot block a different guest error; guests together store 300; every
+ *         drop is counted per kind in error_log_throttle_drops; the recorder
+ *         never raises; check_error_log_throttle opens a ledger item on drops in
+ *         >= 2 of the last 10 complete minutes (once per 15 min); the close rule
+ *         is NULL before a complete minute after the occurrence, failing while
+ *         the latest complete minute dropped, cleared on a clean one, and
+ *         ops_alert_verify closes it only then.
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -41,9 +57,11 @@ const CHAIN = [
   "20260923052520_seed_alerts_go_to_the_digest.sql",
   "20260923055631_push_token_health_monitor.sql",
   "20260923085642_user_error_screens_reach_the_ledger.sql",
+  "20260923090536_db_saturation_monitor.sql",
 ];
 const Q96 = "20260923092838_user_error_screen_repeat_cap_and_client_seed_tag.sql";
 const Q106 = "20260923094457_error_logs_client_identity_and_throttle.sql";
+const Q113 = "20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql";
 
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -81,6 +99,11 @@ CREATE TABLE public.error_logs (
   severity text DEFAULT 'error', message text, url text, stack text, user_id uuid, user_agent text,
   tags jsonb NOT NULL DEFAULT '{}'::jsonb, context jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now());
 CREATE INDEX idx_error_logs_user ON public.error_logs USING btree (user_id, created_at DESC);
+-- Q114: RLS and the insert policy exactly as live (pg_policies, prod 2026-09-23).
+ALTER TABLE public.error_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY anyone_can_insert_errors ON public.error_logs AS PERMISSIVE FOR INSERT
+  TO anon, authenticated, service_role
+  WITH CHECK (((user_id IS NULL) OR (user_id = ( SELECT auth.uid() AS uid))));
 CREATE FUNCTION public.stamp_error_log_origin() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF current_user NOT IN ('anon', 'authenticated') THEN
@@ -125,7 +148,7 @@ for (const f of CHAIN) {
   }
 }
 const MODE = process.env.NEW_MIGRATION ?? "";
-const NEWS = MODE === "skip" ? [] : MODE === "skip-q106" ? [Q96] : [Q96, Q106];
+const NEWS = MODE === "skip" ? [] : MODE === "skip-q106" ? [Q96] : MODE === "skip-q113" ? [Q96, Q106] : [Q96, Q106, Q113];
 if (MODE) console.log(`NEW_MIGRATION=${MODE}: running against a partly UNFIXED chain (expect FAILs)`);
 for (const f of NEWS) {
   for (let i = 1; i <= 3; i++) {
@@ -136,6 +159,18 @@ for (const f of NEWS) {
       check(`apply ${f.slice(0, 14)} pass #${i}`, false, e.message);
     }
   }
+}
+
+// MUTATE=no-stamp: the newest stamp_error_log_origin with its Q106 line removed.
+if (process.env.MUTATE === "no-stamp") {
+  const src = mig(Q106);
+  const start = src.indexOf("CREATE OR REPLACE FUNCTION public.stamp_error_log_origin()");
+  const end = src.indexOf("$function$;", start) + "$function$;".length;
+  const body = src.slice(start, end);
+  const cut = body.replace("NEW.user_id := auth.uid();", "NULL;");
+  if (cut === body) throw new Error("MUTATE=no-stamp: stamp line not found");
+  await db.exec(cut);
+  console.log("MUTATE=no-stamp: stamp_error_log_origin no longer sets user_id (expect FAILs)");
 }
 
 // A client insert, as PostgREST makes it: a signed-in session is role
@@ -155,6 +190,15 @@ const ins = async (uid, tags, msg, claim = uid) =>
   asClient(uid, () =>
     db.query(`INSERT INTO public.error_logs (user_id, severity, message, tags) VALUES ($1, 'warning', $2, $3::jsonb)`,
       [claim, msg, JSON.stringify(tags)]));
+// Same insert, but a refusal is returned, not thrown (Q114: RLS is ON).
+const tryIns = async (uid, tags, msg, claim = uid) => {
+  try {
+    await ins(uid, tags, msg, claim);
+    return null;
+  } catch (e) {
+    return e.message;
+  }
+};
 const item = async (like) =>
   (await q(`SELECT id, count::int n, status, sample_ref FROM public.ops_alert_ledger
              WHERE source_kind = 'user-error-screen' AND title LIKE $1 AND NOT coalesce((sample_ref->>'overflow')::boolean, false)`, [like]))[0];
@@ -192,7 +236,11 @@ for (let i = 0; i < 12; i++) {
 it = await item("/user/<id>%");
 check("Q96: varying the id in the screen is the same fingerprint, still capped at 5", it?.n === 5, `count=${it?.n}`);
 
-for (let i = 0; i < 40; i++) await ins(null, tag("/guest", { source: "ErrorBoundary" }), "guest crash");
+// 40 hits in two batches a minute apart: one guest fingerprint stores at most
+// 20 a minute (Q113), and this is about the hourly ledger budget.
+for (let i = 0; i < 20; i++) await ins(null, tag("/guest", { source: "ErrorBoundary" }), "guest crash");
+await db.exec(`UPDATE public.error_logs SET created_at = now() - interval '2 minutes' WHERE tags->>'screen' = '/guest'`);
+for (let i = 0; i < 20; i++) await ins(null, tag("/guest", { source: "ErrorBoundary" }), "guest crash");
 it = await item("/guest%");
 check("Q96: guests (no account) share ONE budget of 20 per screen per hour", it?.n === 20, `count=${it?.n}`);
 check("Q96: ... all 40 guest rows stored", (await rows("/guest", null)) === 40);
@@ -213,16 +261,23 @@ check("Q97: server rows keep the tag (seed:true / '-seed' source -> seed)", s1 =
 check("Q97: a client row's seed tag is ignored by error_log_is_seed", c1 === false, JSON.stringify({ c1 }));
 
 // ── Q106: a signed-in client cannot log as a guest ──────────────────────────
-for (let i = 0; i < 30; i++) await ins(THR3, tag("/q106"), "Error screen shown: q106", null);
+let q106err = null;
+for (let i = 0; i < 30; i++) q106err ??= await tryIns(THR3, tag("/q106"), "Error screen shown: q106", null);
+check("Q114: under RLS, an authenticated insert with user_id NULL PASSES WITH CHECK", q106err === null, q106err ?? "");
 check("Q106: an authenticated insert with user_id NULL is stored with the caller's id",
   (await rows("/q106", THR3)) === 30 && (await rows("/q106", null)) === 0,
   `mine=${await rows("/q106", THR3)} guest=${await rows("/q106", null)}`);
 it = await item("/q106%");
 check("Q106: ... so its repeats are capped at 5 (account cap), not 20 (guest cap)", it?.n === 5, `count=${it?.n}`);
 check("Q106: ... and the ledger item is not marked as a guest's", it?.sample_ref?.signed_in === true, JSON.stringify(it?.sample_ref));
-await ins(THR3, tag("/q106b"), "Error screen shown: q106b", REAL);
+const otherErr = await tryIns(THR3, tag("/q106b"), "Error screen shown: q106b", REAL);
+check("Q114: under RLS, an authenticated insert claiming ANOTHER uid PASSES WITH CHECK (the BEFORE stamp ran first)",
+  otherErr === null, otherErr ?? "");
 check("Q106: an authenticated insert claiming ANOTHER account's id is stamped with the caller's",
   (await rows("/q106b", THR3)) === 1 && (await rows("/q106b", REAL)) === 0);
+const anonErr = await tryIns(null, tag("/q114anon"), "Error screen shown: q114 anon", REAL);
+check("Q114: an ANON insert carrying a non-null user_id is REFUSED by anyone_can_insert_errors",
+  /row-level security/i.test(anonErr ?? "") && (await rows("/q114anon", REAL)) === 0, anonErr ?? "accepted");
 await ins(null, tag("/q106c"), "Error screen shown: q106c");
 check("Q106: a guest (anon) insert is still stored as a guest row", (await rows("/q106c", null)) === 1);
 
@@ -236,11 +291,43 @@ check("Q98: one account's 70 client rows in a minute store only 60", (await clie
 await asClient(THR2, () => db.query(`INSERT INTO public.error_logs (user_id, severity, message, tags)
   SELECT $1::uuid, 'warning', 'batch ' || g, '{"source":"batch"}'::jsonb FROM generate_series(1, 70) g`, [THR2]));
 check("Q98: ... and a single 70-row batch INSERT stores only 60", (await clientRows(THR2)) === 60, `stored=${await clientRows(THR2)}`);
+// ── Q113: one guest fingerprint cannot fill the shared guest bucket ─────────
+// A name made only of non-hex letters (g..z): ops_alert_normalise keeps it, so
+// each i is its own fingerprint (digits would all collapse to '#').
+const word = (i) => String.fromCharCode(103 + (i % 20)) + String.fromCharCode(103 + (Math.floor(i / 20) % 20)) +
+  String.fromCharCode(103 + Math.floor(i / 400));
+const hasDrops = !!(await q(`SELECT to_regclass('public.error_log_throttle_drops') t`))[0].t;
+const drops = async (kind) =>
+  hasDrops ? (await q(`SELECT coalesce(sum(dropped), 0)::int n FROM public.error_log_throttle_drops WHERE kind = $1`, [kind]))[0].n : -1;
+const fpRows = async (msgLike) =>
+  (await q(`SELECT count(*)::int n FROM public.error_logs WHERE user_id IS NULL AND message LIKE $1
+             AND created_at > now() - interval '1 minute'`, [msgLike]))[0].n;
+// one flooding source: the same error with a changing id and counter, on the same page with a changing id
+for (let i = 0; i < 30; i++) {
+  await asClient(null, () => db.query(`INSERT INTO public.error_logs (message, url, tags) VALUES ($1, $2, '{"source":"flood"}')`,
+    [`flood failed for order ${1000 + i} after ${i} ms`, `https://louisianahelpr.com/job/${crypto.randomUUID()}?x=${i}`]));
+}
+check("Q113: ONE guest fingerprint (message + path, ids/numbers normalised) stores at most 20 a minute",
+  (await fpRows("flood failed%")) === 20, `stored=${await fpRows("flood failed%")}`);
+check("Q113: ... and each of its 10 drops is counted (kind guest_fp)", (await drops("guest_fp")) === 10,
+  `guest_fp=${await drops("guest_fp")}`);
+await ins(null, { source: "real-guest" }, "a real guest crash while the flood runs");
+check("Q113: ... while a DIFFERENT guest error is still stored", (await fpRows("a real guest crash%")) === 1);
+const [{ fpTag }] = await q(`SELECT tags->>'guest_fp' "fpTag" FROM public.error_logs WHERE message LIKE 'a real guest crash%'`);
+check("Q113: the fingerprint is stored on the row (tags.guest_fp)", /^[0-9a-f]{32}$/.test(fpTag ?? ""), fpTag ?? "none");
+await asClient(null, () => db.query(`INSERT INTO public.error_logs (message, tags) VALUES ('forged fp', $1::jsonb)`,
+  [JSON.stringify({ source: "forge", guest_fp: fpTag ?? "x" })]));
+const [{ forged }] = await q(`SELECT tags->>'guest_fp' forged FROM public.error_logs WHERE message = 'forged fp'`);
+check("Q113: a client cannot pick its fingerprint (tags.guest_fp is overwritten)", !!fpTag && forged !== fpTag, `${forged}`);
 
+// guests together, all DIFFERENT fingerprints: the shared bucket
 const guestBefore = await clientRows(null);
-for (let i = 0; i < 130; i++) await ins(null, { source: "guest-loop" }, `guest ${i}`);
-check("Q98: guests together store at most 120 client rows a minute", (await clientRows(null)) === 120,
+for (let i = 0; i < 330; i++) await ins(null, { source: "guest-loop" }, `guest ${word(i)}`);
+check("Q98/Q113: guests together store at most 300 client rows a minute", (await clientRows(null)) === 300,
   `before=${guestBefore} after=${await clientRows(null)}`);
+check("Q113: ... and every row the global cap dropped is counted (kind guest)",
+  (await drops("guest")) === 330 - (300 - guestBefore), `guest=${await drops("guest")} expected=${330 - (300 - guestBefore)}`);
+check("Q113: the 20 account-cap drops above are counted (kind account)", (await drops("account")) === 20, `account=${await drops("account")}`);
 
 await asClient(THR3, () => db.query(`INSERT INTO public.error_logs (user_id, message, tags, created_at)
   VALUES ($1, 'backdated', '{"source":"bd"}'::jsonb, '2000-01-01')`, [THR3]));
@@ -256,6 +343,48 @@ for (let i = 0; i < 200; i++) {
 const [{ srv }] = await q(`SELECT count(*)::int srv FROM public.error_logs WHERE message LIKE 'server %' AND tags->>'origin' = 'server'`);
 check("Q98: server rows are never throttled (400 of 400 stored, for a capped account and for NULL)", srv === 400, `stored=${srv}`);
 
+// ── Q113: drops are visible and sustained throttling reaches the ledger ────
+const exists = async (sig) => !!(await q(`SELECT to_regprocedure($1)::text p`, [sig]))[0].p;
+if (hasDrops && (await exists("public.check_error_log_throttle()"))) {
+  const [{ neverRaises }] = await q(`SELECT (SELECT 1 FROM (SELECT public.record_error_log_throttle_drop('not-a-kind')) x) = 1 "neverRaises"`);
+  check("Q113: recording a drop never raises (a CHECK violation is swallowed)", neverRaises === true);
+  // Only the current (incomplete) minute has drops: nothing is judged yet.
+  let [{ r }] = await q(`SELECT public.check_error_log_throttle() r`);
+  check("Q113: drops only in the current, incomplete minute do not raise", r.raised === false && r.minutes === 0, JSON.stringify(r));
+  // Sustained: drops in two of the last 10 complete minutes.
+  await db.exec(`UPDATE public.error_log_throttle_drops SET minute = minute - interval '3 minutes' WHERE kind = 'guest';
+                 UPDATE public.error_log_throttle_drops SET minute = minute - interval '2 minutes' WHERE kind = 'guest_fp';
+                 DELETE FROM public.error_log_throttle_drops WHERE kind NOT IN ('guest', 'guest_fp');`);
+  [{ r }] = await q(`SELECT public.check_error_log_throttle() r`);
+  check("Q113: drops in 2 of the last 10 complete minutes raise", r.raised === true && r.minutes === 2, JSON.stringify(r));
+  const led = async () => (await q(`SELECT id, status, verify_kind, verify_ref, count::int n, last_seen FROM public.ops_alert_ledger
+                                     WHERE source = 'error-log-throttled'`))[0];
+  let L = await led();
+  check("Q113: ... as an OPEN ledger item verified by sql_condition 'error-log-throttled'",
+    L?.status === "open" && L?.verify_kind === "sql_condition" && L?.verify_ref === "error-log-throttled", JSON.stringify(L));
+  [{ r }] = await q(`SELECT public.check_error_log_throttle() r`);
+  check("Q113: a second check inside 15 minutes writes no second row", r.raised === false && (await led())?.n === 1,
+    `${JSON.stringify(r)} n=${(await led())?.n}`);
+  const c = async (since) =>
+    (await q(`SELECT public.ops_alert_condition('error-log-throttled', '{}'::jsonb, ${since}, false) c`))[0].c;
+  check("Q113: close rule is NULL (cannot tell) before a complete minute after the occurrence", (await c("now()")) === null);
+  await db.exec(`INSERT INTO public.error_log_throttle_drops (minute, backend_pid, kind, dropped)
+                 VALUES (date_trunc('minute', now()) - interval '1 minute', 1, 'guest', 3)`);
+  check("Q113: close rule says FAILING while the latest complete minute dropped rows",
+    (await c("now() - interval '10 minutes'")) === true);
+  await db.exec(`UPDATE public.ops_alert_ledger SET last_seen = now() - interval '10 minutes' WHERE source = 'error-log-throttled'`);
+  await q(`SELECT public.ops_alert_verify()`);
+  check("Q113: ops_alert_verify keeps it open while throttling continues", (await led())?.status === "open", (await led())?.status);
+  await db.exec(`DELETE FROM public.error_log_throttle_drops WHERE minute = date_trunc('minute', now()) - interval '1 minute'`);
+  check("Q113: close rule says CLEARED on a clean complete minute after the occurrence",
+    (await c("now() - interval '10 minutes'")) === false);
+  await q(`SELECT public.ops_alert_verify()`);
+  L = await led();
+  check("Q113: ops_alert_verify closes it on the clean minute", L?.status === "closed", L?.status);
+} else {
+  check("Q113: check_error_log_throttle() and error_log_throttle_drops exist", false, "not in this chain");
+}
+
 // ── privileges ──────────────────────────────────────────────────────────────
 for (const role of ["anon", "authenticated"]) {
   for (const fn of [
@@ -263,9 +392,14 @@ for (const role of ["anon", "authenticated"]) {
     "public.user_error_screen_is_real(uuid, jsonb)",
     "public.ops_alert_record_user_error_screen(uuid, uuid, text, jsonb, timestamptz)",
     ...(NEWS.includes(Q106) ? ["public.throttle_client_error_log()", "public.stamp_error_log_origin()"] : []),
+    ...(NEWS.includes(Q113) ? ["public.record_error_log_throttle_drop(text)", "public.check_error_log_throttle()"] : []),
   ]) {
     const [{ ok }] = await q(`SELECT has_function_privilege('${role}', '${fn}', 'EXECUTE') ok`);
     check(`${role} cannot execute ${fn}`, ok === false);
+  }
+  if (hasDrops) {
+    const [{ t }] = await q(`SELECT has_table_privilege('${role}', 'public.error_log_throttle_drops', 'SELECT,INSERT,UPDATE,DELETE') t`);
+    check(`${role} has no privilege on error_log_throttle_drops`, t === false);
   }
 }
 

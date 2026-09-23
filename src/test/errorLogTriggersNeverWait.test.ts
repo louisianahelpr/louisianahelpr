@@ -24,6 +24,7 @@
  *
  * @mutate supabase/migrations/20260923050059_ops_alert_ledger_never_blocks_and_keeps_status_codes.sql | PERFORM set_config('lock_timeout', '100ms', true); | PERFORM 1;
  * @mutate supabase/migrations/20260923050059_ops_alert_ledger_never_blocks_and_keeps_status_codes.sql | EXCEPTION WHEN lock_not_available OR deadlock_detected THEN | EXCEPTION WHEN division_by_zero THEN
+ * @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | PERFORM set_config('lock_timeout', '50ms', true); | PERFORM 1;
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -90,6 +91,8 @@ describe("triggers on error_logs never wait on another transaction", () => {
     // 3 at 2026-09-23: 00_stamp_origin, slack, zz_ledger.
     expect(live.length).toBeGreaterThanOrEqual(3);
     expect(reached.has("ops_alert_record")).toBe(true);
+    // Q113 (20260923100454): the throttle's drop counter is an upsert on the insert path.
+    expect(reached.has("record_error_log_throttle_drop")).toBe(true);
     expect(reached.size).toBeGreaterThanOrEqual(4);
   });
 

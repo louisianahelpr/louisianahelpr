@@ -17,9 +17,9 @@ permissions:
 
 on:
   schedule:
-    # Nightly 23:17 UTC: 240 min from the nearest prod suite, 30 from the
-    # hourly prod-errors monitor (src/test/prodWorkflowSpacing.test.ts).
-    - cron: "17 23 * * *"
+    # Tue + Fri 01:17 UTC: the only slot 90+ min from every other prod suite
+    # (src/test/prodWorkflowSpacing.test.ts); daily slots are all taken.
+    - cron: "17 1 * * 2,5"
   workflow_dispatch:
 
 concurrency:

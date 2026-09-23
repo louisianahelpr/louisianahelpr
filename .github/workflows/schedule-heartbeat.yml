@@ -88,6 +88,7 @@ jobs:
           quota-monitor.yml:2
           scoreboard.yml:2
           security-audit.yml:14
+          slow-network.yml:4
           "
 
           NOW=$(date -u +%s)

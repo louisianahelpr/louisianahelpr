@@ -62,6 +62,36 @@ if (migrationSql.length < 50) {
 }
 
 /**
+ * Every `CREATE OR REPLACE FUNCTION public.<name>(...) ... AS <tag> body <tag>`
+ * in one file, whatever the dollar-quote tag (`$$`, `$function$`, `$fn$`).
+ * It used to match only `$function$` lazily, so a `$$` body let the match run
+ * on into the NEXT function in the same file and read the wrong body (Q205b's
+ * migration, 2026-09-23: CI red on three functions that were unchanged).
+ */
+function definitions(sql: string): { name: string; body: string }[] {
+  const out: { name: string; body: string }[] = [];
+  const head = /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.(\w+)\s*\(/gi;
+  for (const m of sql.matchAll(head)) {
+    const rest = sql.slice(m.index!);
+    const open = /\bAS\s+(\$\w*\$)/i.exec(rest);
+    if (!open) continue;
+    const start = open.index + open[0].length;
+    const end = rest.indexOf(open[1], start);
+    if (end === -1) continue;
+    out.push({ name: m[1], body: rest.slice(start, end) });
+  }
+  return out;
+}
+
+/**
+ * A producer INSERTs a notifications row of type 'job_match'. Logging the word
+ * into notification_logs (match_digest_queue_seed_boundary records a
+ * suppressed seed row that way) produces nothing a user sees.
+ */
+const writesJobMatch = (body: string) =>
+  /INSERT\s+INTO\s+public\.notifications\s*\([^)]*\)\s*(?:VALUES|SELECT)[\s\S]{0,600}?'job_match'/i.test(body);
+
+/**
  * The LAST definition of a function in replay order — the one that is live.
  * Reading an earlier one is how a "verified" gate turns out to have been
  * replaced three migrations later.
@@ -69,16 +99,12 @@ if (migrationSql.length < 50) {
 function liveFunctionBody(name: string): string {
   let body: string | null = null;
   for (const { sql } of migrationSql) {
-    const re = new RegExp(
-      `CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.${name}\\s*\\([\\s\\S]*?\\$function\\$([\\s\\S]*?)\\$function\\$`,
-      "gi",
-    );
-    for (const m of sql.matchAll(re)) body = m[1];
+    for (const d of definitions(sql)) if (d.name === name) body = d.body;
   }
   if (body === null) {
     throw new Error(
       `No CREATE OR REPLACE FUNCTION public.${name} found in supabase/migrations — ` +
-        "it was renamed or the body delimiter changed, and this assertion is now blind.",
+        "it was renamed, and this assertion is now blind.",
     );
   }
   return body;
@@ -97,14 +123,10 @@ describe("job_match respects the user's Job Matches preference", () => {
     // to write this type, it shows up here before it ships unmuteable.
     const writers = new Set<string>();
     for (const { sql } of migrationSql) {
-      for (const m of sql.matchAll(
-        /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.(\w+)\s*\([\s\S]*?\$function\$([\s\S]*?)\$function\$/gi,
-      )) {
-        if (/'job_match'/.test(m[2])) writers.add(m[1]);
-      }
+      for (const d of definitions(sql)) if (writesJobMatch(d.body)) writers.add(d.name);
     }
     // Only functions whose LIVE body still writes the type count.
-    const live = [...writers].filter((n) => /'job_match'/.test(liveFunctionBody(n))).sort();
+    const live = [...writers].filter((n) => writesJobMatch(liveFunctionBody(n))).sort();
     expect(live).toEqual([...SQL_PRODUCERS].sort());
   });
 

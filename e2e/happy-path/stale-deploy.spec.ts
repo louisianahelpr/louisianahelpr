@@ -22,18 +22,23 @@
  *           inline boot watchdog can act; before it existed the boot mark
  *           spun forever.
  *
- * For each, with the bounded reload guard (`helpr_chunk_reload_at`, see
- * src/lib/chunkReload.ts) ARMED the boundary must show the honest card and a
- * Try Again button; NOT armed, exactly one reload must happen and then the
- * honest card (a second, backoff-delayed attempt fires only after 30s, past
- * this spec's wait; capped at 2, see chunkReload.test.ts). Never blank, never "Update ready"/"newer version".
+ * For each, with the bounded reload guard (`helpr_chunk_reload_at` +
+ * `helpr_chunk_reload_count`, see src/lib/chunkReload.ts) ARMED (every
+ * automatic attempt spent) the boundary must show the honest card and a Try
+ * Again button; with ONE attempt left, exactly one reload must happen and then
+ * the honest card, no loop. The full schedule (CHUNK_RELOAD_SCHEDULE_MS, about
+ * a minute of quiet retries, Q199) is driven against a real build swap in
+ * deploy-stale-chunk.spec.ts and chunkReload.test.ts; here it would cost a
+ * minute per route. Never blank, never "Update ready"/"newer version".
  * And Try Again, once the chunk is reachable again, must actually recover.
  */
 import type { Page, BrowserContext, Route } from "@playwright/test";
 
 import { test, expect, FAKE_CUSTOMER, installSupabaseMocks, seedAuthedSession } from "./fixtures";
+import { CHUNK_RELOAD_MAX_ATTEMPTS, CHUNK_RELOAD_SCHEDULE_MS } from "../../src/lib/chunkReload";
 
 const GUARD_KEY = "helpr_chunk_reload_at";
+const COUNT_KEY = "helpr_chunk_reload_count";
 const HONEST = /This page hit a problem\.|You're offline\./;
 const FORBIDDEN = /Update ready|newer version/i;
 
@@ -119,8 +124,27 @@ async function clientNav(page: Page, path: string) {
   }, path);
 }
 
+/** Every automatic attempt spent: recovery must decline at once. */
 async function armGuard(page: Page) {
-  await page.evaluate((k) => sessionStorage.setItem(k, String(Date.now())), GUARD_KEY);
+  await page.evaluate(
+    ([k, c, max]) => {
+      sessionStorage.setItem(k, String(Date.now()));
+      sessionStorage.setItem(c, String(max));
+    },
+    [GUARD_KEY, COUNT_KEY, CHUNK_RELOAD_MAX_ATTEMPTS] as const,
+  );
+}
+
+/** One attempt left, and its scheduled delay already elapsed: it fires at once. */
+async function leaveOneAttempt(page: Page) {
+  const last = CHUNK_RELOAD_MAX_ATTEMPTS - 1;
+  await page.evaluate(
+    ([k, c, n, ago]) => {
+      sessionStorage.setItem(k, String(Date.now() - ago));
+      sessionStorage.setItem(c, String(n));
+    },
+    [GUARD_KEY, COUNT_KEY, last, CHUNK_RELOAD_SCHEDULE_MS[last] + 1_000] as const,
+  );
 }
 
 async function expectHonestCard(page: Page, label: string) {
@@ -185,20 +209,20 @@ for (const rc of ROUTES) {
       await page.screenshot({ path: test.info().outputPath("recovered.png") });
     });
 
-    test("warm, guard NOT armed: exactly one reload, no loop, then honest card", async ({ page, context, baseURL }) => {
+    test("warm, one attempt left: exactly one reload, no loop, then honest card", async ({ page, context, baseURL }) => {
       test.slow();
       await setup(page, context, rc, baseURL ?? "");
       const seen = trackJs(page);
       const forbidden = watchForbidden(page);
       await page.goto(rc.start, { waitUntil: "load" });
       await page.waitForTimeout(1500);
-      await page.evaluate((k) => sessionStorage.removeItem(k), GUARD_KEY);
+      await leaveOneAttempt(page);
       const docs = countDocumentLoads(page);
       const block = await blockChunks(page, new Set(seen));
       await clientNav(page, rc.path);
       await expectHonestCard(page, `${rc.path} warm unarmed`);
-      // Give a would-be loop time to show itself (guard window is 10s; a loop
-      // would reload again immediately after the first).
+      // Give a would-be loop time to show itself (the spent cap must hold: a
+      // loop would reload again right after the first).
       await page.waitForTimeout(4000);
       expect(block.aborted.size).toBeGreaterThan(0);
       expect(docs.n, "exactly one automatic reload").toBe(1);
@@ -207,14 +231,14 @@ for (const rc of ROUTES) {
       expect(forbidden.hits).toEqual([]);
     });
 
-    test("cold load with route chunk aborted: one reload, no loop, honest card", async ({ page, context, baseURL }) => {
+    test("cold load with route chunk aborted, one attempt left: one reload, no loop, honest card", async ({ page, context, baseURL }) => {
       test.slow();
       await setup(page, context, rc, baseURL ?? "");
       const seen = trackJs(page);
       const forbidden = watchForbidden(page);
       await page.goto(rc.start, { waitUntil: "load" });
       await page.waitForTimeout(1500);
-      await page.evaluate((k) => sessionStorage.removeItem(k), GUARD_KEY);
+      await leaveOneAttempt(page);
       const block = await blockChunks(page, new Set(seen));
       const docs = countDocumentLoads(page);
       await page.goto(rc.path, { waitUntil: "domcontentloaded" });
@@ -251,13 +275,20 @@ async function breakEntryGraph(page: Page) {
 
 for (const rc of [ROUTES[3], ROUTES[6]]) {
   test.describe(`stale deploy · boot · ${rc.path}`, () => {
-    test("stale HTML, guard NOT armed: one reload, then an honest message, never an endless spinner", async ({ page, context, baseURL }) => {
+    test("stale HTML, one attempt left: one reload, then an honest message, never an endless spinner", async ({ page, context, baseURL }) => {
       test.slow();
       await setup(page, context, rc, baseURL ?? "");
+      await page.goto(rc.start, { waitUntil: "load" });
+      await leaveOneAttempt(page);
+      // Leave the app before breaking the graph, so no chunk the start page
+      // still loads can spend that attempt (sessionStorage survives in the tab).
+      await page.goto("about:blank");
       const forbidden = watchForbidden(page);
       const block = await breakEntryGraph(page);
       const docs = countDocumentLoads(page);
-      await page.goto(rc.path, { waitUntil: "domcontentloaded" });
+      // "commit": the watchdog's reload fires before DOMContentLoaded, which
+      // would abort a goto that waits for it.
+      await page.goto(rc.path, { waitUntil: "commit" });
       await expect
         .poll(async () => BOOT_FAIL.test(await bodyText(page)), { message: "boot failure message", timeout: 15_000 })
         .toBe(true);
@@ -302,12 +333,7 @@ for (const rc of [ROUTES[3], ROUTES[6]]) {
 
 // Proof this guard can fail.
 //
-// `armGuard` (above) writes ONLY the `helpr_chunk_reload_at` timestamp — the
-// shape a tab from the previous build leaves behind. `readState` turns that
-// timestamp-without-a-counter into "one attempt already spent", which is the
-// whole reason the six "guard armed" tests can assert `docs.n === 0` (no
-// automatic reload, honest card straight away). Drop that bridge and an armed
-// guard reads as a fresh episode, so every armed case reloads once instead of
-// zero times. The unarmed and cold cases are untouched, so the cap still
-// holds and nothing can loop.
-// @mutate src/lib/chunkReload.ts | if (last > 0 && rawCount === null) count = Math.max(count, 1); | if (last > 0 && rawCount === null) count = Math.max(count, 0);
+// `armGuard` (above) spends every attempt, which is the whole reason the
+// "guard armed" tests can assert `docs.n === 0` (no automatic reload, honest
+// card straight away). Lift the cap and an armed guard reloads anyway.
+// @mutate src/lib/chunkReload.ts | if (count >= CHUNK_RELOAD_MAX_ATTEMPTS) return { reload: false }; | if (count >= 99) return { reload: false };

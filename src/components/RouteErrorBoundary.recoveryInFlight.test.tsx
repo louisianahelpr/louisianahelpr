@@ -114,7 +114,7 @@ describe("RouteErrorBoundary while a recovery reload is in flight", () => {
 // Arming the flag is what turns the error card and the Sentry report off. If
 // hardReloadBypassCache stops setting it, the WebKit stale-deploy sequence is
 // back: card at +15ms, pagehide at +37ms, one bogus Sentry event per reload.
-// @mutate src/lib/chunkReload.ts | recoveryReloadInFlight = true; | recoveryReloadInFlight = false;
+// @mutate src/lib/chunkReload.ts | // arrive on the very next microtasks.\n  recoveryReloadInFlight = true; | // arrive on the very next microtasks.\n  recoveryReloadInFlight = false;
 // And the boundary must read it on the FIRST fallback render, not only in
 // componentDidCatch — otherwise the card commits for a frame before the quiet
 // state replaces it, which is the thing the owner saw.

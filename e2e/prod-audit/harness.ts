@@ -374,12 +374,13 @@ export function watchWrites(page: Page, re: RegExp): Request[] {
  *
  * Plus a deploy-in-flight guard. When a lazy chunk 404s because a new build
  * landed mid-navigation, the app recovers itself (chunkReload.ts): it drops the
- * service worker and caches and reloads once with `?_v=<now>`. Its own 10s
- * guard then refuses a second reload, so if that one reload still lands on a
- * half-propagated deploy the visitor sees "Something went sideways" — measured
- * on prod 2026-09-13 at /messages/a/b/c, which renders the designed 404 on
- * every attempt before and after. That is a deploy artifact, not the screen
- * under test, so once (and only once) we let the recovery finish and reload.
+ * service worker and caches and reloads with `?_v=<now>`. Until Q199
+ * (2026-09-23) its 10s guard then refused a second reload, so a reload that
+ * landed on a half-propagated deploy showed an error screen — measured on prod
+ * 2026-09-13 at /messages/a/b/c. It now retries quietly on
+ * CHUNK_RELOAD_SCHEDULE_MS; either way the `?_v=` URL is a deploy artifact,
+ * not the screen under test, so once (and only once) we let the recovery
+ * finish and reload.
  */
 export async function settle(page: Page, ms = 600): Promise<void> {
   await page.waitForLoadState("domcontentloaded").catch(() => {});

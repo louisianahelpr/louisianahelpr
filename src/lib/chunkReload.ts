@@ -7,8 +7,8 @@
  * lazy `import()` throws "Failed to fetch dynamically imported module"
  * (or Vite fires a `vite:preloadError` event before any boundary catches).
  * The only real fix is a hard reload that bypasses the SW/HTTP cache so the
- * browser pulls the fresh chunk manifest. A one-shot session guard keeps us
- * from looping if the reload itself can't recover.
+ * browser pulls the fresh chunk manifest. A bounded session counter
+ * (CHUNK_RELOAD_SCHEDULE_MS) keeps us from looping if reloading can't recover.
  */
 
 /** True when `err` looks like a stale-chunk / mismatched-React-instance failure. */
@@ -37,13 +37,26 @@ const RELOAD_FLAG = "helpr_chunk_reload_at";
 const RELOAD_COUNT = "helpr_chunk_reload_count";
 
 /**
- * Hard cap on automatic reloads per failure episode. The first reload can
- * itself land on the OLD build (edge still propagating mid-deploy), so one
- * attempt was not enough; two rides out a propagation window and cannot loop.
+ * Hard cap on automatic reloads per failure episode, and the wait before each.
+ *
+ * Q199 (2026-09-23): a visitor mid-deploy got "Helpr couldn't load." on
+ * /support and /legal, and everything loaded a minute later. Reproduced in
+ * e2e/happy-path/deploy-stale-chunk.spec.ts: when the page reloaded for a
+ * stale chunk lands on the PREVIOUS build's HTML again (the deploy still
+ * propagating), its chunks are already gone, and both layers gave up at once:
+ * index.html's boot watchdog showed the error screen for any failure within
+ * 10s of a reload, and a route chunk waited 30s behind the honest error card.
+ * A reload that lands on a consistent build always recovers, so recovery now
+ * keeps trying on this schedule, quietly, for about a minute, and only then
+ * shows an error: a genuinely broken build still ends on the error screen,
+ * after CHUNK_RELOAD_MAX_ATTEMPTS reloads and never more.
+ *
+ * Index = attempts already spent; the delay is measured from the previous
+ * attempt. index.html's boot watchdog carries a copy of this schedule (it runs
+ * before the bundle exists); src/lib/chunkReload.test.ts holds them equal.
  */
-export const CHUNK_RELOAD_MAX_ATTEMPTS = 2;
-/** Minimum gap between attempt 1 and attempt 2, long enough for a deploy to settle. */
-export const CHUNK_RELOAD_BACKOFF_MS = 30_000;
+export const CHUNK_RELOAD_SCHEDULE_MS: readonly number[] = [0, 5_000, 15_000, 40_000];
+export const CHUNK_RELOAD_MAX_ATTEMPTS = 4;
 /**
  * An attempt older than this belongs to a previous episode (a later deploy),
  * so the counter starts over. Also the minimum age before a successful chunk
@@ -69,6 +82,28 @@ const readState = (): { count: number; last: number } => {
   }
   if (last > 0 && Date.now() - last > CHUNK_RELOAD_EPISODE_MS) return { count: 0, last: 0 };
   return { count, last };
+};
+
+/**
+ * THE reload decision, pure, shared by every recovery path: given the attempts
+ * already spent this episode and when the last one was, reload after
+ * `delayMs` (0 = now), or give up and show the error. index.html's boot
+ * watchdog implements the same function in ES5 (it runs before this module
+ * exists); chunkReload.test.ts runs both over the same grid of states.
+ */
+export type ChunkReloadDecision = { reload: true; delayMs: number } | { reload: false };
+export const decideChunkReload = (state: { count: number; last: number }, now: number, offline: boolean): ChunkReloadDecision => {
+  // Offline is not a stale deploy: reloading cannot fetch the chunk, and the
+  // purge would destroy the offline precache (see hardReloadBypassCache).
+  if (offline) return { reload: false };
+  let { count, last } = state;
+  if (last > 0 && now - last > CHUNK_RELOAD_EPISODE_MS) {
+    count = 0;
+    last = 0;
+  }
+  if (count >= CHUNK_RELOAD_MAX_ATTEMPTS) return { reload: false };
+  const wait = count === 0 ? 0 : CHUNK_RELOAD_SCHEDULE_MS[count] - (now - last);
+  return { reload: true, delayMs: Math.max(0, wait) };
 };
 
 /**
@@ -391,60 +426,71 @@ export const hardReloadBypassCache = async () => {
 };
 
 /**
- * Recover from a stale-chunk error with a bounded retry:
+ * Recover from a stale-chunk error with a bounded retry, on
+ * CHUNK_RELOAD_SCHEDULE_MS (decided by decideChunkReload):
  *   attempt 1: immediately;
- *   attempt 2: no sooner than CHUNK_RELOAD_BACKOFF_MS after attempt 1, because
- *              the first reload can land on the old build mid-deploy;
- *   then none. The cap is a sessionStorage counter, so it holds across the
- *   reloads themselves and can never loop.
+ *   attempts 2..MAX: each a little later, because a reload can land on the old
+ *              build mid-deploy (Q199), then none. The cap is a sessionStorage
+ *              counter, so it holds across the reloads themselves and can
+ *              never loop.
  *
- * Returns true only when a reload is starting NOW (the caller may show a quiet
- * "updating" state). While attempt 2 waits on its backoff it returns false, so
- * the caller shows its honest error card, and the retry fires on a timer.
+ * Returns true when a reload is starting now OR is scheduled: either way this
+ * page is on its way out, so the caller shows its quiet reloading state, never
+ * the error card (Q199: the card during the wait was the error the visitor
+ * saw). Returns false only when recovery is over (offline, or the attempts are
+ * spent): then the caller shows its honest error card.
  */
 export const recoverFromChunkError = (): boolean => {
-  // Same offline guard as hardReloadBypassCache, checked here too so callers
-  // get an honest `false` (= "I did not start a reload, show your error UI")
-  // rather than a true that promises a recovery which will never arrive.
-  // A chunk that failed because the device is offline is not stale, and no
-  // amount of reloading will fetch it.
+  // Checked here too (decideChunkReload also refuses offline) so the early
+  // return below cannot touch storage for an offline failure.
   if (isOffline()) return false;
-  const { count, last } = readState();
-  if (count >= CHUNK_RELOAD_MAX_ATTEMPTS) {
+  const now = Date.now();
+  const state = readState();
+  const decision = decideChunkReload(state, now, false);
+  if (!decision.reload) {
     // Still failing after the cap: keep the episode alive, so a page that
-    // errors steadily never ages out into a fresh pair of reloads.
+    // errors steadily never ages out into a fresh round of reloads.
     try {
-      sessionStorage.setItem(RELOAD_FLAG, String(Date.now()));
+      sessionStorage.setItem(RELOAD_FLAG, String(now));
     } catch {
       /* no storage: nothing to extend, and nothing reloads either */
     }
     return false;
   }
 
-  const wait = count === 0 ? 0 : CHUNK_RELOAD_BACKOFF_MS - (Date.now() - last);
-  if (wait <= 0) {
+  if (decision.delayMs <= 0) {
     // Without working storage the counter reads 0 on every load, so the only
     // marker that survives the reload is our own `_v` cache-buster. Attempt 1
     // proceeds only if this page is not itself a recent recovery reload; any
     // later attempt requires the counter to have persisted.
-    if (!writeAttempt(count + 1)) {
-      if (count > 0 || landedFromRecentRecoveryReload()) return false;
+    if (!writeAttempt(state.count + 1)) {
+      if (state.count > 0 || landedFromRecentRecoveryReload()) return false;
     }
     void hardReloadBypassCache();
     return true;
   }
 
   if (!pendingRetry) {
-    pendingRetry = setTimeout(() => {
+    // Committed to reloading: from now until the page goes away, errors from
+    // the dead chunk are symptoms, not new failures (see recoveryReloadInFlight).
+    recoveryReloadInFlight = true;
+    const fire = () => {
       pendingRetry = null;
-      // Re-check everything at fire time: the device may have gone offline,
-      // or another tab/boundary may have spent the attempt meanwhile.
-      if (isOffline()) return;
+      // Offline at fire time: wait for the network rather than give up, so
+      // the quiet state this page is showing still ends in a reload.
+      if (isOffline()) {
+        window.addEventListener("online", fire, { once: true });
+        return;
+      }
+      // Re-check at fire time: another boundary may have spent the attempt.
       const current = readState();
-      if (current.count >= CHUNK_RELOAD_MAX_ATTEMPTS) return;
-      if (!writeAttempt(current.count + 1)) return;
+      if (!decideChunkReload(current, Date.now(), false).reload || !writeAttempt(current.count + 1)) {
+        recoveryReloadInFlight = false;
+        return;
+      }
       void hardReloadBypassCache();
-    }, wait);
+    };
+    pendingRetry = setTimeout(fire, decision.delayMs);
   }
-  return false;
+  return true;
 };

@@ -54,6 +54,7 @@ import {
   installSupabaseMocks,
   seedAuthedSession,
 } from "./fixtures";
+import { CHUNK_RELOAD_MAX_ATTEMPTS } from "../../src/lib/chunkReload";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, "..", "..");
@@ -596,12 +597,15 @@ async function driveChunk404(
 ) {
   await context.addInitScript(installPreloadErrorProbe);
   if (opts.armReloadGuard) {
-    // Arm the one-shot 10s reload guard so recoverFromChunkError() declines to
-    // reload — the deterministic "second failure" state a user reaches when the
-    // auto-reload didn't fix it.
-    await context.addInitScript(() => {
-      try { sessionStorage.setItem("helpr_chunk_reload_at", String(Date.now())); } catch { /* private mode */ }
-    });
+    // Spend every automatic reload attempt so recoverFromChunkError() declines
+    // to reload — the deterministic state a user reaches when the scheduled
+    // reloads (CHUNK_RELOAD_SCHEDULE_MS) didn't fix it.
+    await context.addInitScript((max) => {
+      try {
+        sessionStorage.setItem("helpr_chunk_reload_at", String(Date.now()));
+        sessionStorage.setItem("helpr_chunk_reload_count", String(max));
+      } catch { /* private mode */ }
+    }, CHUNK_RELOAD_MAX_ATTEMPTS);
   }
   await page.route("**/assets/DashboardGuest-*.js", (route) => route.abort("failed"));
   await page.goto("/browse", { waitUntil: "domcontentloaded" });

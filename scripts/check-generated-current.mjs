@@ -105,6 +105,13 @@ export const GENERATED = [
     outputs: ["docs/GUARD-BURNDOWN.md"],
     what: "guard burn-down score table (proven / exempt / owed per scope)",
   },
+  {
+    id: "queue-count",
+    script: "scripts/queue-count.mjs",
+    cmd: ["node", "scripts/queue-count.mjs", "--write"],
+    outputs: ["docs/OPEN.md"],
+    what: "the OPEN.md queue score line (done / partly done / open), owner 2026-09-23",
+  },
 ];
 
 /**

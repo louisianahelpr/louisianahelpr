@@ -11,6 +11,8 @@
  * with nothing left to regress).
  */
 import { describe, it, expect } from "vitest";
+// @ts-expect-error — plain .mjs script, no declaration file
+import { queueCounts, countLine, storedLine } from "../../scripts/queue-count.mjs";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -87,5 +89,19 @@ describe("every DONE queue item names the guard that stops it recurring", () => 
     const fake = "- [x] **Q999 DONE: fixed it.**\n";
     const f = doneItems(fake)[0];
     expect(!/NO-GUARD:/.test(f.text) && guardsNamed(f.text).length === 0).toBe(true);
+  });
+});
+
+describe("the queue's count line is current", () => {
+  it("matches the items (run `node scripts/queue-count.mjs --write` when you change one)", () => {
+    const c = queueCounts(open);
+    expect(c.total).toBeGreaterThanOrEqual(40);
+    expect(storedLine(open), "docs/OPEN.md has no queue-count line").not.toBeNull();
+    expect(storedLine(open)).toBe(countLine(c));
+  });
+
+  it("is RED when an item changes state without the line", () => {
+    const md = "<!-- generated: queue-count (node scripts/queue-count.mjs --write) -->\n" + countLine({ total: 1, done: 0, partial: 0, open: 1 }) + "\n<!-- /generated: queue-count -->\n- [x] **Q1 DONE**\n";
+    expect(storedLine(md)).not.toBe(countLine(queueCounts(md)));
   });
 });

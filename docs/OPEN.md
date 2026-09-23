@@ -7586,6 +7586,10 @@ rows are non-tappable; panel identical in WebKit and Chromium.
 
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
+<!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
+**Queue: 56 items — 11 done, 4 partly done (fixed, protection pending), 41 open.**
+<!-- /generated: queue-count -->
+
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
 
 Owner order: every alert, from anywhere, is fixed AND verified fixed (CLAUDE.md).

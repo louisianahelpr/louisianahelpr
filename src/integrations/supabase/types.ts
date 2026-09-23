@@ -377,21 +377,30 @@ export type Database = {
           action: string
           decided_at: string
           detail: string | null
+          http_checked_at: string | null
+          http_status: number | null
           jobname: string
+          request_id: number | null
           slot: string
         }
         Insert: {
           action: string
           decided_at?: string
           detail?: string | null
+          http_checked_at?: string | null
+          http_status?: number | null
           jobname: string
+          request_id?: number | null
           slot: string
         }
         Update: {
           action?: string
           decided_at?: string
           detail?: string | null
+          http_checked_at?: string | null
+          http_status?: number | null
           jobname?: string
+          request_id?: number | null
           slot?: string
         }
         Relationships: []
@@ -417,6 +426,24 @@ export type Database = {
           jobname?: string | null
           schedule?: string
           since?: string
+        }
+        Relationships: []
+      }
+      cron_http_requests: {
+        Row: {
+          created_at: string
+          jobname: string
+          request_id: number
+        }
+        Insert: {
+          created_at?: string
+          jobname: string
+          request_id: number
+        }
+        Update: {
+          created_at?: string
+          jobname?: string
+          request_id?: number
         }
         Relationships: []
       }
@@ -2948,6 +2975,24 @@ export type Database = {
         }
         Relationships: []
       }
+      ops_route_probe: {
+        Row: {
+          passed_at: string
+          route: string
+          run_ref: string | null
+        }
+        Insert: {
+          passed_at: string
+          route: string
+          run_ref?: string | null
+        }
+        Update: {
+          passed_at?: string
+          route?: string
+          run_ref?: string | null
+        }
+        Relationships: []
+      }
       payment_refunds: {
         Row: {
           amount_cents: number
@@ -5252,6 +5297,10 @@ export type Database = {
           schedule: string
         }[]
       }
+      cron_http_tag: {
+        Args: { p_jobname: string; p_request_id: number }
+        Returns: number
+      }
       db_saturation_problems: { Args: { p: Json }; Returns: string[] }
       db_saturation_thresholds: { Args: never; Returns: Json }
       decline_job_offer: { Args: { p_application_id: string }; Returns: Json }
@@ -6163,7 +6212,12 @@ export type Database = {
         }
         Returns: string
       }
+      ops_alert_record_user_report: {
+        Args: { p_report_id: string }
+        Returns: string
+      }
       ops_alert_verify: { Args: never; Returns: Json }
+      ops_route_key: { Args: { p_route: string }; Returns: string }
       poster_cancel_job: {
         Args: { p_job_id: string; p_reason?: string }
         Returns: Json
@@ -6173,6 +6227,7 @@ export type Database = {
         Returns: boolean
       }
       profiles_locked_update_columns: { Args: never; Returns: string[] }
+      prune_cron_http_requests: { Args: never; Returns: undefined }
       prune_cron_run_log: { Args: never; Returns: undefined }
       prune_edge_rate_limit_log: { Args: never; Returns: Json }
       purge_user_data: { Args: { p_user_id: string }; Returns: Json }
@@ -6209,6 +6264,10 @@ export type Database = {
       record_referral_signup: {
         Args: { p_new_user_id: string; p_referral_code: string }
         Returns: boolean
+      }
+      record_route_probe_passes: {
+        Args: { p_routes: string[]; p_run_ref?: string }
+        Returns: number
       }
       redact_audit_snapshot: { Args: { p_row: Json }; Returns: Json }
       redeem_gift_card: {
@@ -6405,6 +6464,16 @@ export type Database = {
       user_may_see_job_address: {
         Args: { _job_id: string; _user_id: string }
         Returns: boolean
+      }
+      user_report_is_open: { Args: { p_status: string }; Returns: boolean }
+      user_report_is_real: { Args: { p_reporter_id: string }; Returns: boolean }
+      user_report_severity: {
+        Args: { p_reason: string; p_reported_type: string }
+        Returns: string
+      }
+      user_report_title: {
+        Args: { p_reason: string; p_reported_type: string }
+        Returns: string
       }
     }
     Enums: {

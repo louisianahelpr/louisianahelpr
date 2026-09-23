@@ -53,6 +53,8 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: { getUser: async () => ({ data: { user: { id: "admin-1" } } }) },
     functions: { invoke: (...args: unknown[]) => invokeMock(...args) },
+    // Q157 seed-boundary question asked before each notification: a real job.
+    rpc: async () => ({ data: false, error: null }),
     from: (table: string) => {
       if (table === "jobs") {
         return {

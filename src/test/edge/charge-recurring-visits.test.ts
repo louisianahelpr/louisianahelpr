@@ -731,6 +731,51 @@ describe("charge-recurring-visits edge function", () => {
     expect(b.funded).toBe(1);
   });
 
+  // Q158: the Q137 trigger drops a seed series' row to a REAL party by design,
+  // so a single row back is the rule working, not a failed write. Before the fix
+  // this scenario answered 500 ("inserted" fewer than both) and paged Slack every night.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (crossesSeed === true) {\n            console.log( |           if (crossesSeed === "never") {\n            console.log(
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | notifyRows.length < expected) { | notifyRows.length < bookingRows.length) {
+  it("a seed series with a REAL party: the trigger's drop is expected, not a defect (Q158)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    // The poster is real, the series is seed: the boundary says the poster's
+    // row crosses it, and the trigger would return only the helper's row.
+    scenario.rpc.notification_crosses_seed_boundary = (a?: unknown) =>
+      (a as { p_recipient?: string }).p_recipient === POSTER_ID;
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    const asked = (scenario.rpcCalls ?? []).filter((c) => c.name === "notification_crosses_seed_boundary");
+    expect(asked.map((c) => (c.args as { p_recipient: string }).p_recipient).sort()).toEqual([HELPER_ID, POSTER_ID].sort());
+    for (const c of asked) expect((c.args as { p_job_id: unknown }).p_job_id).toBeTruthy();
+    const insert = scenario.writes.find((w) => w.table === "notifications");
+    const rows = insert?.payload as Array<{ user_id: string }>;
+    expect(rows.map((r) => r.user_id)).toEqual([HELPER_ID]);
+    expect(res.status).toBe(200);
+    expect(reasons(b)).not.toContain("booking notifications not delivered");
+    expect(slackAlerts.find((a) => (a as { title?: string }).title === "Recurring visit funding had failures")).toBeUndefined();
+    expect(b.funded).toBe(1);
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (seedErr \|\| typeof crossesSeed !== "boolean") { |           if (false) {
+  it("a seed-boundary check that cannot answer is counted as a defect (Q158)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.rpcErrors = { notification_crosses_seed_boundary: { message: "function does not exist", code: "PGRST202" } };
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(res.status).toBe(500);
+    expect(reasons(b)).toContain("seed boundary check failed");
+    // The rows are still offered to the trigger, which decides.
+    expect(scenario.writes.find((w) => w.table === "notifications")).toBeDefined();
+    expect(b.funded).toBe(1);
+  });
+
   it("records a defect when the poster/helper decline notice itself fails to write", async () => {
     const fn = await loadConfigured();
     seedHappyPath();

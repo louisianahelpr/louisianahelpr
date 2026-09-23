@@ -266,6 +266,9 @@ function freshScenario(): SupabaseScenario {
       // M2). `true` is the neutral answer; a scenario about a lost claim sets
       // it to `false`.
       stamp_dispute_settlement_claim: true,
+      // Q137 seed boundary: `false` (a real subject) is the neutral answer; a
+      // scenario ABOUT a seed subject sets `true` (or a function of the args).
+      notification_crosses_seed_boundary: false,
     },
     rpcErrors: {},
     rpcCalls: [],

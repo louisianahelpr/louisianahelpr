@@ -4874,6 +4874,10 @@ export type Database = {
         Args: { _reason: string; _review_id: string }
         Returns: undefined
       }
+      admin_notification_crosses_seed_boundary: {
+        Args: { p_job_id: string; p_link: string; p_recipient: string }
+        Returns: boolean
+      }
       admin_reverse_violation: {
         Args: {
           p_reason: string
@@ -5007,6 +5011,7 @@ export type Database = {
       check_error_log_throttle: { Args: never; Returns: Json }
       check_ops_digest_delivery: { Args: never; Returns: Json }
       check_push_token_health: { Args: never; Returns: Json }
+      check_seed_boundary_failures: { Args: never; Returns: Json }
       check_stale_dispute_settlement_claims: { Args: never; Returns: Json }
       claim_dispute_settlement: {
         Args: { _action: string; _admin_id?: string; _job_id: string }

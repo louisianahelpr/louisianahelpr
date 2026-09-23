@@ -58,6 +58,14 @@ let notifyResult: { data: unknown[] | null; error: { message: string } | null } 
   data: [{ id: "n1" }],
   error: null,
 };
+/**
+ * Q157: what admin_notification_crosses_seed_boundary answers, per recipient
+ * (default: false, a real job). Every call is recorded so a test can prove the
+ * question was asked with the trigger's own arguments.
+ */
+let seedAnswer: Record<string, { data: unknown; error: { message: string } | null }> = {};
+let seedCalls: Array<{ fn: string; args: Record<string, unknown> }> = [];
+
 let jobUpdateResult: { data: unknown[] | null; error: { message: string } | null } = {
   data: [{ id: JOB_ID }],
   error: null,
@@ -66,6 +74,10 @@ let jobUpdateResult: { data: unknown[] | null; error: { message: string } | null
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: { getUser: async () => ({ data: { user: { id: "admin-1" } } }) },
+    rpc: async (fn: string, args: Record<string, unknown>) => {
+      seedCalls.push({ fn, args });
+      return seedAnswer[String(args.p_recipient)] ?? { data: false, error: null };
+    },
     from: (table: string) => {
       if (table === "jobs") {
         return {
@@ -111,12 +123,13 @@ vi.mock("@/integrations/supabase/client", () => ({
 
 const toastError = vi.fn();
 const toastSuccess = vi.fn();
+const toastMessage = vi.fn();
 vi.mock("sonner", () => ({
   toast: {
     error: (...a: unknown[]) => toastError(...a),
     success: (...a: unknown[]) => toastSuccess(...a),
     warning: vi.fn(),
-    message: vi.fn(),
+    message: (...a: unknown[]) => toastMessage(...a),
   },
 }));
 
@@ -133,14 +146,17 @@ const renderAdminJobs = () =>
   );
 
 /** Open the job, hit Remove, give a reason, confirm. */
-async function removeTheJob() {
+async function removeTheJob(expectInserts = 2) {
   renderAdminJobs();
   const removeBtn = await screen.findByRole("button", { name: /Remove Job/i });
   fireEvent.click(removeBtn);
   const reason = await screen.findByLabelText(/Reason for cancelling job/i);
   fireEvent.change(reason, { target: { value: "Violates community guidelines" } });
   fireEvent.click(await screen.findByRole("button", { name: /Remove & Notify/i }));
-  await waitFor(() => expect(notifyCalls.length).toBe(2));
+  // Each party is asked the seed question first; wait for both answers, then
+  // for the inserts the answers allow.
+  await waitFor(() => expect(seedCalls.length).toBe(2));
+  await waitFor(() => expect(notifyCalls.length).toBe(expectInserts));
 }
 
 beforeEach(() => {
@@ -149,7 +165,10 @@ beforeEach(() => {
   jobUpdateResult = { data: [{ id: JOB_ID }], error: null };
   toastError.mockReset();
   toastSuccess.mockReset();
+  toastMessage.mockReset();
   reportMock.mockReset();
+  seedAnswer = {};
+  seedCalls = [];
   window.localStorage.clear();
 });
 
@@ -211,3 +230,50 @@ describe("AdminJobs — the notification insert cannot fail silently", () => {
 // /my-jobs is the HELPER surface. Sending the poster there lands them on a
 // screen the job they posted can never appear on.
 // @mutate src/components/admin/AdminJobs.tsx | role === "poster" ? `/my-posts?job=${jobId}` : `/my-jobs?job=${jobId}`; | `/my-jobs?job=${jobId}`;
+
+// Q157: the notifications BEFORE INSERT trigger (Q137) drops a seed job's row
+// to a REAL account. That drop is the rule working, not a failed write, and the
+// admin must not be told "could not be notified" for it.
+// @mutate src/components/admin/AdminJobs.tsx |     } else if (crossesSeed === true) { |     } else if (crossesSeed === "never") {
+// @mutate src/components/admin/AdminJobs.tsx |       { p_recipient: row.user_id, p_job_id: row.job_id, p_link: row.link }, |       { p_recipient: row.user_id, p_job_id: row.job_id, p_link: "" },
+// @mutate src/components/admin/AdminJobs.tsx | was not notified: this is a test job | could not be notified: this is a test job
+describe("AdminJobs — a seed job never notifies a real account, and says so honestly (Q157)", () => {
+  it("asks the boundary with the trigger's own arguments before each insert", async () => {
+    await removeTheJob();
+    expect(seedCalls).toEqual([
+      { fn: "admin_notification_crosses_seed_boundary", args: { p_recipient: POSTER_ID, p_job_id: JOB_ID, p_link: `/my-posts?job=${JOB_ID}` } },
+      { fn: "admin_notification_crosses_seed_boundary", args: { p_recipient: HELPER_ID, p_job_id: JOB_ID, p_link: `/my-jobs?job=${JOB_ID}` } },
+    ]);
+    // The row carries its subject itself, so the trigger judges the same job.
+    for (const c of notifyCalls) expect(c.row.job_id).toBe(JOB_ID);
+  });
+
+  it("a TRUE answer skips the insert with honest copy: no error toast, no error report", async () => {
+    seedAnswer[POSTER_ID] = { data: true, error: null };
+    await removeTheJob(1);
+    expect(notifyCalls.map((c) => c.row.user_id)).toEqual([HELPER_ID]);
+    expect(toastError).not.toHaveBeenCalled();
+    expect(reportMock).not.toHaveBeenCalled();
+    const said = toastMessage.mock.calls.flat().join(" ");
+    expect(said).toMatch(/The poster was not notified: this is a test job/);
+    expect(said).not.toMatch(/could not be notified|couldn't be notified/i);
+  });
+
+  it("a FALSE answer followed by a zero-row insert is still a real rejection", async () => {
+    notifyResult = { data: [], error: null };
+    await removeTheJob();
+    expect(toastError).toHaveBeenCalled();
+    expect(toastError.mock.calls.flat().join(" ")).toMatch(/could not be notified|couldn't be notified/i);
+    expect(toastMessage).not.toHaveBeenCalled();
+  });
+
+  it("an unanswerable question is reported and the insert still goes ahead (the trigger still enforces)", async () => {
+    seedAnswer[POSTER_ID] = { data: null, error: { message: "Could not find the function" } };
+    await removeTheJob();
+    expect(notifyCalls).toHaveLength(2);
+    expect(reportMock).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Could not find the function" }),
+      expect.objectContaining({ tags: { source: "AdminJobs.notifyJobParty.seedCheck" } }),
+    );
+  });
+});

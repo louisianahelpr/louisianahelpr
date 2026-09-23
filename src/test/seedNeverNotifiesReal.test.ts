@@ -46,7 +46,17 @@ import { walkSource } from "./helpers/walkSource";
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql | '[?&](?:userId\|offerTo\|user)= | '[?&](?:userId\|user)=
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql | notification_crosses_seed_boundary(uuid, uuid, text, uuid) FROM PUBLIC, anon, authenticated; | notification_crosses_seed_boundary(uuid, uuid, text, uuid) FROM PUBLIC;
 // @mutate supabase/functions/send-notification-email/index.ts |     if (crossesSeed === true) { |     if (crossesSeed === 'never') {
-// @mutate supabase/functions/send-notification-email/index.ts |     } else if (seedCheckError \|\| typeof crossesSeed !== 'boolean') { |     } else if (false) {
+// @mutate supabase/functions/send-notification-email/index.ts |     if (seedCheckError \|\| typeof crossesSeed !== 'boolean') { |     if (false) {
+// @mutate supabase/functions/send-notification-email/index.ts |     if (seedCheckError \|\| typeof crossesSeed !== 'boolean') { |     if (seedCheckError?.code !== 'PGRST202' && (seedCheckError \|\| typeof crossesSeed !== 'boolean')) {
+// @mutate supabase/functions/send-notification-email/index.ts |       await logSkip('failed', `seed boundary check failed, not sent: ${why}`) |       await logSkip('failed', `seed_boundary_check_failed: ${why}`)
+// @mutate supabase/functions/send-notification-email/index.ts |       await postSlackOpsAlert({\n        kind: 'custom',\n        severity: 'critical',\n        title: 'Notification email refused |      void ({\n        kind: 'custom',\n        severity: 'critical',\n        title: 'Notification email refused
+// @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |   RETURN public.notification_crosses_seed_boundary(p_recipient, p_job_id, p_link, NULL); |   RETURN public.notification_crosses_seed_boundary(p_recipient, p_job_id, NULL, NULL);
+// @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |   IF NOT COALESCE(public.has_role(auth.uid(), 'admin'::public.app_role), false) THEN |   IF false THEN
+// @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql | admin_notification_crosses_seed_boundary(uuid, uuid, text) FROM PUBLIC, anon; | admin_notification_crosses_seed_boundary(uuid, uuid, text) FROM PUBLIC;
+// @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |      AND l.error_message LIKE 'seed boundary check failed%';\n\n  IF v_24h = 0 THEN |      AND l.error_message LIKE 'seed_boundary_check_failed%';\n\n  IF v_24h = 0 THEN
+// @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |   ELSIF p_source = 'seed-boundary-check-failed' THEN |   ELSIF p_source = 'seed-boundary-check-failed-x' THEN
+// @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |     PERFORM cron.schedule('seed-boundary-failures', '41 * * * *', |     PERFORM cron.schedule('seed-boundary-failures', '41 3 1 1 *',
+// @mutate .github/workflows/functions-deploy.yml |         run: node scripts/check-edge-rpcs-live.mjs --wait 300\n |         run: echo skipped\n
 // @mutate supabase/functions/create-notification/index.ts |         p_actor: user.id, |         p_actor: null,
 // @mutate supabase/functions/create-notification/index.ts |     if (crossesSeed === true) { |     if (crossesSeed === "never") {
 // @mutate supabase/functions/daily-match-digest/index.ts | .from("notifications").insert(notifications) | .from("notifications").insert(notifications); await supabase.from("notifications").insert({ user_id: userId, title, message, type: "job_match" })
@@ -337,7 +347,9 @@ describe("Q137: a seed subject never notifies a real person", () => {
     expect(ask).toBeGreaterThan(0);
     expect(ask).toBeLessThan(mail.indexOf("rpc('enqueue_email'"));
     expect(ask).toBeLessThan(mail.indexOf("sendWithResend("));
-    expect(ws(mail)).toContain("} else if (seedCheckError || typeof crossesSeed !== 'boolean') {");
+    expect(ws(mail)).toContain("if (seedCheckError || typeof crossesSeed !== 'boolean') {");
+    // Q159: NO error code falls through to a send (PGRST202 used to).
+    expect(mail).not.toMatch(/PGRST202/);
     expect(ws(mail)).toMatch(/if \(crossesSeed === true\) \{ await logSkip\('suppressed_seed'/);
     const cn = codeOf.get(join(FN_ROOT, "create-notification", "index.ts"))!;
     const ask2 = cn.indexOf('"notification_crosses_seed_boundary"');
@@ -345,5 +357,73 @@ describe("Q137: a seed subject never notifies a real person", () => {
     expect(ask2).toBeLessThan(cn.indexOf('.from("notifications")'));
     expect(ws(cn)).toContain("p_actor: user.id,");
     expect(ws(cn)).toMatch(/if \(crossesSeed === true\) \{ return new Response/);
+  });
+});
+
+// ── Q157 / Q159 / Q160 (review of Q137, 2026-09-23) ─────────────────────────
+const HONEST = "20260923130621_seed_boundary_honest_skips_and_monitor.sql";
+describe("Q157/Q159/Q160: the seed boundary is honest and observable", () => {
+  it("Q157: admins can ask the trigger's exact question, and only admins", () => {
+    const d = liveDef("admin_notification_crosses_seed_boundary");
+    expect(d, "admin_notification_crosses_seed_boundary defined").toBeTruthy();
+    const b = ws(d!.body);
+    // Same arguments as trg_notifications_seed_boundary (user_id, job_id, link; no actor).
+    expect(b).toContain("RETURN public.notification_crosses_seed_boundary(p_recipient, p_job_id, p_link, NULL);");
+    expect(b).toMatch(/IF NOT COALESCE\(public\.has_role\(auth\.uid\(\), 'admin'::public\.app_role\), false\) THEN RAISE EXCEPTION/);
+    const mig = ws(sqlOf.get(HONEST)!);
+    expect(mig).toContain("REVOKE ALL ON FUNCTION public.admin_notification_crosses_seed_boundary(uuid, uuid, text) FROM PUBLIC, anon;");
+    expect(mig).toContain("GRANT EXECUTE ON FUNCTION public.admin_notification_crosses_seed_boundary(uuid, uuid, text) TO authenticated, service_role;");
+    // The client asks it BEFORE the insert and treats TRUE as a skip.
+    const admin = codeOf.get(join(ROOT, "src", "components", "admin", "AdminJobs.tsx"))!;
+    const ask = admin.indexOf('"admin_notification_crosses_seed_boundary"');
+    expect(ask).toBeGreaterThan(0);
+    expect(ask).toBeLessThan(admin.indexOf('.from("notifications").insert(row)'));
+  });
+
+  it("Q160: every writer of a check-failure row uses the prefix the monitor reads", () => {
+    const PREFIX = "seed boundary check failed";
+    const trg = liveDef("notifications_seed_boundary")!.body;
+    const q = liveDef("match_digest_queue_seed_boundary")!.body;
+    for (const [name, body] of [["notifications_seed_boundary", trg], ["match_digest_queue_seed_boundary", q]] as const) {
+      expect(body, name).toContain(`v_reason := '${PREFIX}, dropped: ' || SQLERRM;`);
+    }
+    const mail = codeOf.get(join(FN_ROOT, "send-notification-email", "index.ts"))!;
+    expect(mail).toContain("await logSkip('failed', `" + PREFIX + ", not sent: ${why}`)");
+    // A deliberate suppression must NOT match the prefix, or every seed skip pages.
+    expect("seed subject to a non-seed recipient".startsWith(PREFIX)).toBe(false);
+    const chk = ws(liveDef("check_seed_boundary_failures")!.body);
+    expect(chk).toContain(`AND l.error_message LIKE '${PREFIX}%';`);
+    expect(chk).toContain("jsonb_build_object('source', 'seed-boundary-check-failed', 'area', 'notifications')");
+    expect(chk).toMatch(/IF v_reported IS NULL OR v_newest > v_reported THEN INSERT INTO public\.error_logs/);
+    const cond = ws(liveDef("ops_alert_condition")!.body);
+    expect(cond).toMatch(
+      new RegExp(`ELSIF p_source = 'seed-boundary-check-failed' THEN IF p_probe_only THEN RETURN true; END IF; RETURN EXISTS \\( SELECT 1 FROM public\\.notification_logs l WHERE l\\.created_at > now\\(\\) - interval '24 hours' AND l\\.error_message LIKE '${PREFIX}%'\\);`),
+    );
+    const mig = ws(sqlOf.get(HONEST)!);
+    expect(mig).toContain("PERFORM cron.schedule('seed-boundary-failures', '41 * * * *', 'SELECT public.check_seed_boundary_failures();');");
+    expect(mig).toContain("VALUES ('seed-boundary-failures', interval '3 hours',");
+  });
+
+  it("Q159: the email path fails closed on every check error, and says so", () => {
+    const mail = codeOf.get(join(FN_ROOT, "send-notification-email", "index.ts"))!;
+    const refuse = mail.indexOf("if (seedCheckError || typeof crossesSeed !== 'boolean') {");
+    expect(refuse).toBeGreaterThan(0);
+    const branch = mail.slice(refuse, mail.indexOf("if (crossesSeed === true) {", refuse));
+    expect(branch).toContain("postSlackOpsAlert(");
+    expect(branch).toContain("status: 503");
+    expect(refuse).toBeLessThan(mail.indexOf("sendWithResend("));
+  });
+
+  it("Q159: functions-deploy fails while an RPC an edge function calls is missing on prod, before uploading", () => {
+    const wf = readFileSync(join(ROOT, ".github", "workflows", "functions-deploy.yml"), "utf8");
+    const step = wf.indexOf("run: node scripts/check-edge-rpcs-live.mjs --wait 300\n");
+    expect(step).toBeGreaterThan(0);
+    expect(step).toBeLessThan(wf.indexOf("- name: Deploy each function"));
+    const block = wf.slice(wf.lastIndexOf("- name:", step), step);
+    expect(block).not.toMatch(/continue-on-error/);
+    // The script's inventory is derived from source, so it covers this RPC.
+    const script = readFileSync(join(ROOT, "scripts", "check-edge-rpcs-live.mjs"), "utf8");
+    expect(script).toContain("/\\.rpc\\(\\s*[\"'`]([a-z_][a-z_0-9]*)[\"'`]/g");
+    expect(script).toContain("process.exit(1);");
   });
 });

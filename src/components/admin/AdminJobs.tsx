@@ -74,10 +74,40 @@ const activityLinkFor = (role: "poster" | "helper", jobId: string): string =>
  * not told, so they can reach out by hand.
  */
 const notifyJobParty = async (
-  row: { user_id: string; title: string; message: string; type: string; link: string },
+  row: { user_id: string; job_id: string; title: string; message: string; type: string; link: string },
   who: "the poster" | "the helpr",
   context: Record<string, unknown>,
 ): Promise<void> => {
+  // Q157: a seed (test) job never notifies a REAL account. The notifications
+  // BEFORE INSERT trigger (Q137, trg_notifications_seed_boundary) drops such a
+  // row, and a dropped row comes back as zero rows, which unwrapMutation below
+  // would report as "could not be notified" when the rule worked. So ask the
+  // same question first, with the same arguments the trigger uses, and call a
+  // TRUE answer what it is: a deliberate skip. A zero-row insert after a FALSE
+  // answer is still a real rejection (RLS, stale id) and is still reported.
+  // If the question itself cannot be answered, it is reported and the insert
+  // goes ahead: the trigger still enforces the rule, never this client.
+  try {
+    const { data: crossesSeed, error: seedCheckError } = await supabase.rpc(
+      "admin_notification_crosses_seed_boundary",
+      { p_recipient: row.user_id, p_job_id: row.job_id, p_link: row.link },
+    );
+    if (seedCheckError) {
+      report(seedCheckError, {
+        severity: "warning",
+        tags: { source: "AdminJobs.notifyJobParty.seedCheck" },
+        context,
+      });
+    } else if (crossesSeed === true) {
+      toast.message(
+        `That change is saved. ${who === "the poster" ? "The poster" : "The helpr"} was not notified: this is a test job and they are a real account, and test jobs never notify real people.`,
+      );
+      return;
+    }
+  } catch (err) {
+    report(err, { severity: "warning", tags: { source: "AdminJobs.notifyJobParty.seedCheck" }, context });
+  }
+
   try {
     // .select("id"): without it `data` comes back null and the row count is
     // unobservable, so unwrapMutation cannot tell a landed write from a no-op.
@@ -253,6 +283,7 @@ const AdminJobs = () => {
             message: `Your job "${detailJob.title}" was removed. Reason: ${deleteReason}`,
             type: "warning",
             link: activityLinkFor("poster", detailJob.id),
+            job_id: detailJob.id,
           },
           "the poster",
           { jobId: detailJob.id, adminAction: "remove_job" },
@@ -269,6 +300,7 @@ const AdminJobs = () => {
             message: `The job "${detailJob.title}" you were assigned to was removed by an admin.`,
             type: "warning",
             link: activityLinkFor("helper", detailJob.id),
+            job_id: detailJob.id,
           },
           "the helpr",
           { jobId: detailJob.id, adminAction: "remove_job" },
@@ -401,6 +433,7 @@ const AdminJobs = () => {
             message: `"${detailJob.title}" was set to ${overrideStatus} by an admin. Reason: ${overrideReason.trim()}`,
             type: "info",
             link: activityLinkFor(isPoster ? "poster" : "helper", detailJob.id),
+            job_id: detailJob.id,
           },
           isPoster ? "the poster" : "the helpr",
           { jobId: detailJob.id, adminAction: "manual_status_override", toStatus: overrideStatus },

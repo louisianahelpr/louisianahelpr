@@ -988,13 +988,10 @@ serve(async (req) => {
           });
         }
 
-        // `.select("id")` for the same reason as the application row above:
-        // `notifications.id` exists (verified against prod 2026-09-01), and a
-        // silently-zero-row insert is the exact failure this notification is
-        // here to prevent — a booked date nobody was told about.
-        const { data: notifyRows, error: notifyErr } = await supabase.from("notifications").insert([
+        const bookingRows = [
           {
             user_id: parent.recurring_helper_id,
+            job_id: child.id,
             title: "Your next visit is booked",
             message: `"${parent.title}" on ${visitDate} is confirmed and paid. Can't make it? Release the date from My Jobs.`,
             type: "job_updates",
@@ -1004,27 +1001,67 @@ serve(async (req) => {
           },
           {
             user_id: parent.customer_id,
+            job_id: child.id,
             title: "Next visit funded",
             message: `"${parent.title}" on ${visitDate} is booked and held in escrow.`,
             type: "job_updates",
             link: `/my-posts?job=${child.id}`,
           },
-        ]).select("id");
-        // Not fatal to the VISIT — it exists and is funded either way — but the
-        // whole reason the helper's copy was added is that a booked date they
-        // are not told about is a date they do not show up for. A silently
-        // dropped insert reproduces exactly that. It was logged and then left
-        // out of every counter, so the run still answered `200 ok:true` and the
-        // console line was the only trace. It is a failed DB write on a money
-        // path: a defect, and it is now counted like one.
-        if (notifyErr || !notifyRows || notifyRows.length < 2) {
-          console.error(
-            `[charge-recurring-visits] booking notifications failed for visit ${child.id} (series ${parent.id}, ${visitDate})`,
-            notifyErr ?? `inserted ${notifyRows?.length ?? 0} of 2 rows`,
+        ];
+        // Q158: a seed (test) series never notifies a REAL party. The
+        // notifications BEFORE INSERT trigger (Q137) drops that row, so a seed
+        // series with one real party inserts only the seed party's row BY DESIGN — which the
+        // count below read as a failed write and paged Slack for, every night.
+        // Ask the trigger's own question first (same function, same
+        // user_id / job_id / link) and expect only the rows it allows. A check
+        // that cannot answer is a defect in its own right: it is counted, and
+        // the row is still offered to the trigger, which decides.
+        const toSend: typeof bookingRows = [];
+        let expected = 0;
+        for (const row of bookingRows) {
+          const { data: crossesSeed, error: seedErr } = await supabase.rpc(
+            "notification_crosses_seed_boundary",
+            { p_recipient: row.user_id, p_job_id: row.job_id, p_link: row.link },
           );
-          fail(
-            `series ${parent.id} ${visitDate}: booking notifications not delivered for visit ${child.id} (${notifyErr?.message ?? `inserted ${notifyRows?.length ?? 0} of 2`})`,
-          );
+          if (seedErr || typeof crossesSeed !== "boolean") {
+            fail(
+              `series ${parent.id} ${visitDate}: seed boundary check failed for visit ${child.id} (${seedErr?.message ?? "no boolean answer"})`,
+            );
+            toSend.push(row);
+            continue;
+          }
+          if (crossesSeed === true) {
+            console.log(
+              `[charge-recurring-visits] visit ${child.id}: not notifying ${row.user_id} (seed series, real recipient; Q137)`,
+            );
+            continue;
+          }
+          toSend.push(row);
+          expected++;
+        }
+
+        // `.select("id")` for the same reason as the application row above:
+        // `notifications.id` exists (verified against prod 2026-09-01), and a
+        // silently-zero-row insert is the exact failure this notification is
+        // here to prevent — a booked date nobody was told about.
+        if (toSend.length > 0) {
+          const { data: notifyRows, error: notifyErr } = await supabase.from("notifications").insert(toSend).select("id");
+          // Not fatal to the VISIT — it exists and is funded either way — but the
+          // whole reason the helper's copy was added is that a booked date they
+          // are not told about is a date they do not show up for. A silently
+          // dropped insert reproduces exactly that. It was logged and then left
+          // out of every counter, so the run still answered `200 ok:true` and the
+          // console line was the only trace. It is a failed DB write on a money
+          // path: a defect, and it is now counted like one.
+          if (notifyErr || !notifyRows || notifyRows.length < expected) {
+            console.error(
+              `[charge-recurring-visits] booking notifications failed for visit ${child.id} (series ${parent.id}, ${visitDate})`,
+              notifyErr ?? `inserted ${notifyRows?.length ?? 0} of ${expected} rows`,
+            );
+            fail(
+              `series ${parent.id} ${visitDate}: booking notifications not delivered for visit ${child.id} (${notifyErr?.message ?? `inserted ${notifyRows?.length ?? 0} of ${expected}`})`,
+            );
+          }
         }
 
         results.funded++;

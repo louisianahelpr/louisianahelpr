@@ -38,6 +38,19 @@
     "nargs": 2
    }
   ],
+  "admin_notification_crosses_seed_boundary": [
+   {
+    "anon": false,
+    "args": [
+     "p_recipient",
+     "p_job_id",
+     "p_link"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
   "admin_reverse_violation": [
    {
     "anon": false,

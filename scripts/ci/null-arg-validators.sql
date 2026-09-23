@@ -61,6 +61,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_helper_shadowbanned',        'deny',     'TRUE hides the helper'),
   ('is_submitted_credential_object','deny',     'TRUE freezes the object (storage UPDATE/DELETE policies use NOT)'),
   ('is_thread_muted',               'deny',     'TRUE suppresses the notification'),
+  ('admin_notification_crosses_seed_boundary','deny', 'TRUE: the admin client skips the notification (Q157)'),
   ('notification_crosses_seed_boundary','deny', 'TRUE suppresses the notification'),
   ('error_log_is_seed',             'classify', 'labels an error_logs row as seed traffic'),
   ('is_category_taxable',           'classify', 'labels an earnings export row Taxable/Exempt'),

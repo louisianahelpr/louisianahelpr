@@ -225,6 +225,24 @@ jobs:
         run: |
           supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
 
+      # A FUNCTION MUST NOT SHIP AHEAD OF AN RPC IT CALLS. Added 2026-09-23 (Q159).
+      #
+      # send-notification-email asks notification_crosses_seed_boundary()
+      # before every mail and fails CLOSED when it cannot (it used to SEND on
+      # PGRST202). Either way, a caller live before its function is a prod
+      # defect: mail about seed jobs to real people, or no mail at all. This
+      # reads every `.rpc("<name>"` in supabase/functions against prod's
+      # pg_proc and fails the deploy, before anything is uploaded, while one is
+      # missing. --wait: the migration that adds the RPC usually lands in the
+      # same push and the Supabase GitHub integration applies it about a minute
+      # later, so a missing name is re-read for up to 5 minutes first.
+      - name: Verify every RPC an edge function calls exists on prod
+        if: steps.precheck.outputs.skip != 'true' && steps.targets.outputs.skip_deploy != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-edge-rpcs-live.mjs --wait 300
+
       # The BEFORE half of the landed-check below. Taken after the CLI is
       # installed and before anything is uploaded, so the comparison is against
       # what prod was actually serving when this run started.

@@ -7,6 +7,7 @@ import { buildUnsubscribeUrl, unsubscribeHeaders } from '../_shared/unsubscribe.
 import { NotificationEmail } from '../_shared/email-templates/notification.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
+import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 
 // Map notification "type" values to (a) the email pref column and (b) the
 // log category used for admin observability.
@@ -182,20 +183,36 @@ Deno.serve(async (req) => {
     // the link) never emails a NON-seed recipient, whatever the launch switch
     // says. The same rule the notifications BEFORE INSERT trigger applies, from
     // the same function, so the two channels cannot disagree. Checked against
-    // the RAW link (the job/actor ids survive sanitizing either way). Fails
-    // CLOSED: if the check cannot answer, nothing is sent (503 + a failed log
-    // row), because a mail about a fake job cannot be recalled.
+    // the RAW link (the job/actor ids survive sanitizing either way).
     const { data: crossesSeed, error: seedCheckError } = await supabase.rpc(
       'notification_crosses_seed_boundary',
       { p_recipient: user_id, p_job_id: job_id ?? null, p_link: typeof link === 'string' ? link : null },
     )
-    // PGRST202 = the RPC is not deployed yet (this function can go live a
-    // minute before migration 20260923121354 does). Only that code falls
-    // through, loudly; the in-app row is still dropped by the DB trigger.
-    if (seedCheckError?.code === 'PGRST202') {
-      console.warn('[send-notification-email] notification_crosses_seed_boundary not deployed yet (PGRST202); sending without the Q137 check')
-    } else if (seedCheckError || typeof crossesSeed !== 'boolean') {
-      await logSkip('failed', `seed_boundary_check_failed: ${seedCheckError?.message ?? 'no boolean answer'}`)
+    // Q159: FAILS CLOSED on EVERY check error, PGRST202 (function missing)
+    // included. Until 2026-09-23 a missing function fell through and SENT with
+    // only a console.warn. Refusing is the safer side: a mail about a fake job
+    // cannot be recalled, while a refused mail leaves the in-app row (which
+    // the DB trigger judges on its own) and a 'failed' notification_logs row.
+    // It is LOUD, not silent: the log row carries the 'seed boundary check
+    // failed' prefix that check_seed_boundary_failures() (hourly, Q160) raises
+    // an ops ledger item for, and Slack is paged once per day. A missing
+    // function cannot reach prod unnoticed either: functions-deploy.yml runs
+    // scripts/check-edge-rpcs-live.mjs, which fails the deploy while any RPC an
+    // edge function calls is absent on prod.
+    if (seedCheckError || typeof crossesSeed !== 'boolean') {
+      const why = seedCheckError
+        ? `${seedCheckError.code ?? 'error'}: ${seedCheckError.message}`
+        : 'no boolean answer'
+      await logSkip('failed', `seed boundary check failed, not sent: ${why}`)
+      await postSlackOpsAlert({
+        kind: 'custom',
+        severity: 'critical',
+        title: 'Notification email refused: the seed-boundary check is failing',
+        message:
+          'send-notification-email could not ask notification_crosses_seed_boundary(), so it refused to send (it fails closed). Every notification email is being held back until the check answers again.',
+        fields: { error: why, type: String(type ?? '') },
+        oncePerDayKey: 'send-notification-email:seed-boundary-check-failed',
+      })
       return new Response(
         JSON.stringify({ skipped: true, reason: 'seed_boundary_check_failed' }),
         { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

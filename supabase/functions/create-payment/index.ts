@@ -102,7 +102,14 @@ serve(async (req) => {
     const { data, error: userErr } = await supabaseClient.auth.getUser(token);
     if (userErr) console.error("[create-payment] auth.getUser error:", userErr.message);
     const user = data.user;
-    if (!user?.email) throw new PublicError("Not authenticated");
+    // 401, not a thrown PublicError: the catch answers every PublicError 500,
+    // which told an expired session "the charge broke" and to retry (Q255).
+    if (!user?.email) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
 
     const body = await req.json();
     const isNative = isNativeRequest(body);

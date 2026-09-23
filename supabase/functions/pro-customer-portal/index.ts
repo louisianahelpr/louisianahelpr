@@ -18,13 +18,24 @@ serve(async (req) => {
     // Read once: native callers get a return URL the app can intercept.
     const isNative = isNativeRequest(await req.json().catch(() => ({})));
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header");
+    // Every auth failure answers 401 (Q255 / bus EF-010). They used to throw
+    // into the catch below and answer 500 "Internal server error", so an
+    // expired session read as a broken billing portal.
+    const unauthorized = () =>
+      new Response(JSON.stringify({ error: "Not authenticated" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    if (!authHeader) return unauthorized();
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(userError.message);
+    if (userError) {
+      console.error("[pro-customer-portal] auth.getUser error:", userError.message);
+      return unauthorized();
+    }
     const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated");
+    if (!user?.email) return unauthorized();
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",

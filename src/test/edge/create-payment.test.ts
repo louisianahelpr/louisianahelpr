@@ -86,13 +86,13 @@ describe("create-payment edge function", () => {
       expect((await json(res)).error).toMatch(/authorization header/i);
     });
 
-    it("returns 500 'Not authenticated' when the JWT resolves to no user", async () => {
+    it("returns 401 'Not authenticated' when the JWT resolves to no user (Q255; was 500)", async () => {
       scenario.authUser = null;
       const fn = await load();
       const res = await fn.fetch(
         fn.request({ headers: AUTH, body: { action: "escrow" } }),
       );
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(401);
       expect((await json(res)).error).toMatch(/not authenticated/i);
     });
 

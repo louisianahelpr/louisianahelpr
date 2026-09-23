@@ -2,12 +2,14 @@ import { report } from "@/lib/errorLogger";
 import { useEffect, type MutableRefObject } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
+import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import type { Conversation, Message } from "@/components/messages/types";
 
 /**
- * Realtime subscription. Two channels — one for messages I receive
- * (any thread, drives the conversation-list patch), one for messages
- * I send (so the active thread sees my echo immediately). Server-side
+ * Realtime subscription. Messages I receive (any thread, drives the
+ * conversation-list patch) arrive on the shared per-user bus; messages I
+ * send (so the active thread sees my echo immediately) and deletes on this
+ * page's own channel. Server-side
  * filter so we don't receive every INSERT in public.messages — at
  * scale that broadcast firehose would dwarf actual relevant traffic.
  *
@@ -59,90 +61,112 @@ export function useMessagesRealtime({
 }) {
   useEffect(() => {
     if (!userId) return;
+    const onInboundInsert = (payload: { new: unknown }) => {
+      const msg = payload.new as Message;
+      const active = activeConvoRef.current;
+      // A status announcement closes (or re-dates) the thread BEFORE the
+      // user touches anything. Unconditional on the active thread: the
+      // inbox row's chip has to move too, and this is the only delivery
+      // path that says the job changed.
+      if (msg.is_system) onJobStatusAnnouncement(msg);
+      // Same-job is not enough: a poster can have several applicant
+      // threads on ONE job, and a message from applicant B must not be
+      // appended into (or marked read by) applicant A's open thread.
+      // System rows have no human counterparty and always belong.
+      if (
+        active &&
+        msg.job_id === active.jobId &&
+        (msg.is_system || msg.sender_id === active.otherUserId)
+      ) {
+        setMessages((prev) => [...prev, msg]);
+        // A bare builder never fires — PostgrestBuilder issues its fetch
+        // inside then(). This read-receipt was never sent, so messages the
+        // user was actively reading stayed unread forever.
+        // `read` ONLY. This wrote `{ read, read_at }` and every call was a
+        // 403: 20260824180000 (R11) locked the table to column-level
+        // `GRANT UPDATE (read)` so a recipient cannot rewrite a sender's
+        // message, and 20260830233932 added `read_at` six days later
+        // without extending the grant. Postgres refuses the whole
+        // statement when any named column is unprivileged, so from
+        // 2026-08-30 no client could mark a message read through this
+        // path — reproduced live 2026-09-07 as the poster: PATCH
+        // {read,read_at} → 42501, PATCH {read} → 200. The optimistic flag
+        // then reverted and the unread badge came straight back.
+        // `read_at` belongs to the database (a trigger stamping it when
+        // `read` flips, or the grant widened); the client never needs to
+        // send it.
+        void supabase
+          .from("messages")
+          .update({ read: true })
+          .eq("id", msg.id)
+          .then(({ error }) => {
+            if (error) report(error, { tags: { source: "useMessagesRealtime.markRead" } });
+          });
+        // The insert also spawned a type='message' notifications row via
+        // trigger; the user is looking at this thread, so clear it now to
+        // keep the bell from counting a message they're actively reading.
+        // Same dead-`void` pattern: without a .then() the request is
+        // never issued, so the bell kept counting a message the user was
+        // looking at.
+        // The link (`/messages?jobId=<id>`) carries no sender, so scope
+        // the clear by time: the trigger inserts the notification in the
+        // same transaction as the message (identical created_at), and we
+        // only get here for messages from the open thread's counterparty
+        // — so rows newer than this message (other threads' later
+        // traffic) are left alone.
+        void supabase
+          .from("notifications")
+          .update({ read: true })
+          .eq("user_id", userId)
+          .eq("type", "message")
+          .eq("read", false)
+          .like("link", `%jobId=${msg.job_id}%`)
+          .lte("created_at", msg.created_at)
+          .then(({ error }) => {
+            if (error) report(error, { tags: { source: "useMessagesRealtime.clearMessageNotif" } });
+          });
+        scrollToBottom();
+      }
+      // Patch just the affected conversation row instead of
+      // re-running the whole 200-row + RPC `loadConversations` on
+      // every inbound message — that full refetch is a visible lag
+      // spike in an active chat.
+      patchConversationForMessage(msg);
+    };
+    // Mirrors the sender-side UPDATE listener below, but for messages
+    // *received* by this user — otherwise a sender's edit (see
+    // supabase/migrations/20260831003117_add_message_editing.sql) never
+    // reaches the other participant's open thread until they leave and
+    // reopen it.
+    const onInboundUpdate = (payload: { new: unknown }) => {
+      const updated = payload.new as Message;
+      setMessages((prev) => prev.map((m) => m.id === updated.id ? updated : m));
+    };
+    // Both drop together on a socket loss; re-read once, not once per channel.
+    let lastRecovery = 0;
+    const recover = () => {
+      const now = Date.now();
+      if (now - lastRecovery < 2000) return;
+      lastRecovery = now;
+      onRecovered();
+    };
+    // Messages I RECEIVE ride the shared per-user channel
+    // (src/lib/userRealtimeBus.ts, topic `messages:inbound`, one
+    // `messages *` receiver_id binding) that the nav unread badge already
+    // holds open on every signed-in page, instead of a second copy of the
+    // same subscription here (Q105). Split by event type.
+    const unsubscribeInbound = subscribeUserRealtime(
+      userId,
+      "messages:inbound",
+      (payload) => {
+        if (payload.eventType === "INSERT") onInboundInsert(payload);
+        else if (payload.eventType === "UPDATE") onInboundUpdate(payload);
+      },
+      { onRecovered: recover },
+    );
     const sub = subscribeWithRecovery(
       (name) => supabase
       .channel(name)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `receiver_id=eq.${userId}`,
-        },
-        (payload) => {
-          const msg = payload.new as Message;
-          const active = activeConvoRef.current;
-          // A status announcement closes (or re-dates) the thread BEFORE the
-          // user touches anything. Unconditional on the active thread: the
-          // inbox row's chip has to move too, and this is the only delivery
-          // path that says the job changed.
-          if (msg.is_system) onJobStatusAnnouncement(msg);
-          // Same-job is not enough: a poster can have several applicant
-          // threads on ONE job, and a message from applicant B must not be
-          // appended into (or marked read by) applicant A's open thread.
-          // System rows have no human counterparty and always belong.
-          if (
-            active &&
-            msg.job_id === active.jobId &&
-            (msg.is_system || msg.sender_id === active.otherUserId)
-          ) {
-            setMessages((prev) => [...prev, msg]);
-            // A bare builder never fires — PostgrestBuilder issues its fetch
-            // inside then(). This read-receipt was never sent, so messages the
-            // user was actively reading stayed unread forever.
-            // `read` ONLY. This wrote `{ read, read_at }` and every call was a
-            // 403: 20260824180000 (R11) locked the table to column-level
-            // `GRANT UPDATE (read)` so a recipient cannot rewrite a sender's
-            // message, and 20260830233932 added `read_at` six days later
-            // without extending the grant. Postgres refuses the whole
-            // statement when any named column is unprivileged, so from
-            // 2026-08-30 no client could mark a message read through this
-            // path — reproduced live 2026-09-07 as the poster: PATCH
-            // {read,read_at} → 42501, PATCH {read} → 200. The optimistic flag
-            // then reverted and the unread badge came straight back.
-            // `read_at` belongs to the database (a trigger stamping it when
-            // `read` flips, or the grant widened); the client never needs to
-            // send it.
-            void supabase
-              .from("messages")
-              .update({ read: true })
-              .eq("id", msg.id)
-              .then(({ error }) => {
-                if (error) report(error, { tags: { source: "useMessagesRealtime.markRead" } });
-              });
-            // The insert also spawned a type='message' notifications row via
-            // trigger; the user is looking at this thread, so clear it now to
-            // keep the bell from counting a message they're actively reading.
-            // Same dead-`void` pattern: without a .then() the request is
-            // never issued, so the bell kept counting a message the user was
-            // looking at.
-            // The link (`/messages?jobId=<id>`) carries no sender, so scope
-            // the clear by time: the trigger inserts the notification in the
-            // same transaction as the message (identical created_at), and we
-            // only get here for messages from the open thread's counterparty
-            // — so rows newer than this message (other threads' later
-            // traffic) are left alone.
-            void supabase
-              .from("notifications")
-              .update({ read: true })
-              .eq("user_id", userId)
-              .eq("type", "message")
-              .eq("read", false)
-              .like("link", `%jobId=${msg.job_id}%`)
-              .lte("created_at", msg.created_at)
-              .then(({ error }) => {
-                if (error) report(error, { tags: { source: "useMessagesRealtime.clearMessageNotif" } });
-              });
-            scrollToBottom();
-          }
-          // Patch just the affected conversation row instead of
-          // re-running the whole 200-row + RPC `loadConversations` on
-          // every inbound message — that full refetch is a visible lag
-          // spike in an active chat.
-          patchConversationForMessage(msg);
-        },
-      )
       .on(
         "postgres_changes",
         {
@@ -203,24 +227,6 @@ export function useMessagesRealtime({
       )
       .on(
         "postgres_changes",
-        // Mirrors the sender-side UPDATE listener above, but for messages
-        // *received* by this user — otherwise a sender's edit (see
-        // supabase/migrations/20260831003117_add_message_editing.sql) never
-        // reaches the other participant's open thread until they leave and
-        // reopen it.
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "messages",
-          filter: `receiver_id=eq.${userId}`,
-        },
-        (payload) => {
-          const updated = payload.new as Message;
-          setMessages((prev) => prev.map((m) => m.id === updated.id ? updated : m));
-        },
-      )
-      .on(
-        "postgres_changes",
         // No server-side filter here, deliberately: a DELETE payload carries
         // only the old row's primary key (REPLICA IDENTITY default), so a
         // receiver_id filter can never match and would silently drop every
@@ -235,10 +241,13 @@ export function useMessagesRealtime({
           setMessages((prev) => prev.filter((m) => m.id !== deletedId));
         },
       ),
-      { name: `messages-realtime-${userId}`, onRecovered },
+      { name: `messages-realtime-${userId}`, onRecovered: recover },
     );
 
-    return () => { sub.close(); };
+    return () => {
+      unsubscribeInbound();
+      sub.close();
+    };
     // Depends only on the stable `userId`: the channel is created once and
     // stays subscribed for the page's lifetime. The handlers read the live
     // `activeConvo` via `activeConvoRef` rather than a closed-over value,

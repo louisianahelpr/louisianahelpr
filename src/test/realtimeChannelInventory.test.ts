@@ -29,7 +29,8 @@
  * `'postgres_changes'` and its two whole-table bindings were invisible to it.
  * The AST does not care how a string is quoted, and never reads a comment.
  *
- * @mutate src/components/mobileNav/useNavUnreadCount.ts | table: "messages", filter: `receiver_id=eq.${userId}` } | table: "messages" }
+ * @mutate src/lib/userRealtimeBus.ts | table: "messages", filter: `receiver_id=eq.${userId}` } | table: "messages" }
+ * @mutate src/pages/messages/useMessagesRealtime.ts | const sub = subscribeWithRecovery( | void supabase.channel("dup").on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${userId}` }, () => {}); const sub = subscribeWithRecovery(
  * @mutate src/pages/Admin.tsx | table: 'jobs', filter: 'is_seed=eq.false' | table: 'jobs'
  * @mutate src/hooks/useActivityData.ts | .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `helper_id=eq.${userId}` }, invalidate) | .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `helper_id=eq.${userId}` }, invalidate).on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, invalidate)
  */
@@ -126,25 +127,26 @@ const key = (b: Binding) => `${b.file} | ${b.channel} | ${b.table} ${b.event} | 
  * EXACT. One line per binding: file | channel base name | table event | filter.
  * 2026-09-23 after Q105: 17 bindings on 8 channel sites (was 22 on 10, two of
  * them the Admin bindings the old double-quote-only regex could not see).
+ * 2026-09-23 Q105 follow-up: 15 on 7 — the unread-nav channel is gone and the
+ * Messages page's receiver INSERT + UPDATE are one `messages *` binding on the
+ * shared user bus.
  */
 // @two-way src/test/realtimeChannelInventory.test.ts:expect(all().map(key).sort()).toEqual(
 const CHANNEL_INVENTORY = [
   "components/JobTracking.tsx | tracking-${jobId} | job_tracking * | job_id=eq.${jobId}",
   "components/JobTracking.tsx | tracking-${jobId} | jobs UPDATE | id=eq.${jobId}",
   "components/messages/useMessageReactions.ts | message_reactions:${jobId} | message_reactions * | job_id=eq.${jobId}",
-  "components/mobileNav/useNavUnreadCount.ts | unread-nav-${userId} | messages * | receiver_id=eq.${userId}",
   "hooks/useActivityData.ts | activity-realtime | job_tracking * | helper_id=eq.${userId}",
   "hooks/useActivityData.ts | activity-realtime | jobs * | helper_id=eq.${userId}",
   "hooks/useActivityData.ts | activity-reviews | reviews INSERT | reviewee_id=eq.${userId}",
   "lib/userRealtimeBus.ts | user-realtime-${userId} | applications * | helper_id=eq.${userId}",
   "lib/userRealtimeBus.ts | user-realtime-${userId} | jobs * | customer_id=eq.${userId}",
+  "lib/userRealtimeBus.ts | user-realtime-${userId} | messages * | receiver_id=eq.${userId}",
   "lib/userRealtimeBus.ts | user-realtime-${userId} | notifications INSERT | user_id=eq.${userId}",
   "pages/Admin.tsx | admin-realtime | jobs * | is_seed=eq.false",
   "pages/Admin.tsx | admin-realtime | reports * | (none)",
   "pages/messages/useMessagesRealtime.ts | messages-realtime-${userId} | messages DELETE | (none)",
-  "pages/messages/useMessagesRealtime.ts | messages-realtime-${userId} | messages INSERT | receiver_id=eq.${userId}",
   "pages/messages/useMessagesRealtime.ts | messages-realtime-${userId} | messages INSERT | sender_id=eq.${userId}",
-  "pages/messages/useMessagesRealtime.ts | messages-realtime-${userId} | messages UPDATE | receiver_id=eq.${userId}",
   "pages/messages/useMessagesRealtime.ts | messages-realtime-${userId} | messages UPDATE | sender_id=eq.${userId}",
 ];
 
@@ -160,17 +162,13 @@ const CHANNEL_INVENTORY = [
 const ADMIN_EXEMPT = new Set(["pages/Admin.tsx | admin-realtime | jobs * | is_seed=eq.false", "pages/Admin.tsx | admin-realtime | reports * | (none)"]);
 
 /**
- * Overlapping subscriptions that are NOT yet shared, each with why. The unread
- * nav badge (`messages *` to me) and the Messages page (`messages` INSERT /
- * UPDATE to me) overlap while Messages is open. Messages is the only delivery
- * path for an inbound message, so moving it onto the shared bus is its own
- * change (docs/OPEN.md Q105 follow-up), not a rider on this one.
+ * Overlapping subscriptions that are NOT yet shared, each with why. EMPTY since
+ * the Q105 follow-up: the unread nav badge (`messages *` to me) and the
+ * Messages page (`messages` INSERT / UPDATE to me) overlapped while Messages
+ * was open; both now read topic `messages:inbound` on the shared user bus.
  */
 // @two-way src/test/realtimeChannelInventory.test.ts:stale overlap entry
-const KNOWN_OVERLAPS = new Set([
-  "messages receiver_id=eq.${userId}: components/mobileNav/useNavUnreadCount.ts * ~ pages/messages/useMessagesRealtime.ts INSERT",
-  "messages receiver_id=eq.${userId}: components/mobileNav/useNavUnreadCount.ts * ~ pages/messages/useMessagesRealtime.ts UPDATE",
-]);
+const KNOWN_OVERLAPS = new Set<string>([]);
 
 const eventsOverlap = (a: string, b: string) => a === "*" || b === "*" || a === b;
 
@@ -238,9 +236,9 @@ describe("realtime channel inventory (Q105)", () => {
     expect(stale, "stale overlap entry: it no longer overlaps, remove it").toEqual([]);
   });
 
-  it("the shared user channel is the ONLY place its three subscriptions are bound", () => {
+  it("the shared user channel is the ONLY place its four subscriptions are bound", () => {
     const bus = all().filter((b) => b.file === "lib/userRealtimeBus.ts");
-    expect(bus.length).toBe(3);
+    expect(bus.length).toBe(4);
     const busKeys = new Set(bus.map((b) => `${b.table} ${b.filter}`));
     const elsewhere = all().filter((b) => b.file !== "lib/userRealtimeBus.ts" && busKeys.has(`${b.table} ${b.filter}`));
     expect(elsewhere.map(key)).toEqual([]);
@@ -248,9 +246,11 @@ describe("realtime channel inventory (Q105)", () => {
     const consumers = files.filter((f) => /\bsubscribeUserRealtime\(/.test(readFileSync(f, "utf8")) && !f.endsWith("userRealtimeBus.ts"));
     expect(consumers.map((f) => relative(SRC, f)).sort()).toEqual([
       "components/NotificationPanel.tsx",
+      "components/mobileNav/useNavUnreadCount.ts",
       "hooks/useActivityBadgeCounts.ts",
       "hooks/useActivityData.ts",
       "hooks/useRealtimePush.ts",
+      "pages/messages/useMessagesRealtime.ts",
     ]);
   });
 

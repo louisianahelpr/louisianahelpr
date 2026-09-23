@@ -14,7 +14,8 @@ import { subscribeWithRecovery, type RecoveringSubscription } from "@/lib/realti
  * (useActivityBadgeCounts, mounted on every signed-in page), every mounted
  * bell (NotificationPanel), Dashboard's browser-push hook (useRealtimePush)
  * and Activity (useActivityData). Two of them also each bound `jobs`
- * `customer_id=eq.<me>` and `applications` `helper_id=eq.<me>`. Measured from
+ * `customer_id=eq.<me>` and `applications` `helper_id=eq.<me>`, and the nav
+ * unread badge and the Messages page both bound `messages` `receiver_id=eq.<me>`. Measured from
  * source on Activity (nav + one bell + Activity): 10 subscription rows on 4
  * channels, of which 5 were byte-identical duplicates.
  *
@@ -24,10 +25,10 @@ import { subscribeWithRecovery, type RecoveringSubscription } from "@/lib/realti
  * `onRecovered` runs, so each consumer still re-reads what it owns.
  *
  * Guarded by src/test/realtimeChannelInventory.test.ts (the exact channel
- * inventory, and that no other file re-binds one of these three).
+ * inventory, and that no other file re-binds one of these four).
  */
 
-export type UserRealtimeTopic = "notifications:insert" | "jobs:customer" | "applications:helper";
+export type UserRealtimeTopic = "notifications:insert" | "jobs:customer" | "applications:helper" | "messages:inbound";
 export type UserRealtimePayload = RealtimePostgresChangesPayload<Record<string, unknown>>;
 
 interface Listener {
@@ -80,6 +81,16 @@ function openBus(userId: string): Bus {
       "postgres_changes",
       { event: "*", schema: "public", table: "applications", filter: `helper_id=eq.${userId}` },
       dispatch("applications:helper"),
+    )
+    // Every change to a message I RECEIVE (Q105 follow-up). The nav unread
+    // badge (useNavUnreadCount, mounted on every signed-in page) recounts on
+    // any of them; the Messages page reads the INSERT and UPDATE ones by
+    // `payload.eventType`. Before this, each bound it on its own channel, so
+    // with Messages open every inbound message was two subscription rows.
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${userId}` },
+      dispatch("messages:inbound"),
     ),
     {
       name: `user-realtime-${userId}`,

@@ -257,14 +257,19 @@ test("1a · static: every postgres_changes binding is nonced and user-filtered",
   writeArtifact("realtime-static-enumeration.json", table);
   console.log("[realtime/static]\n" + JSON.stringify(table, null, 2));
 
-  // Sanity: the parser actually found the sites we know exist.
-  expect(sites.length, "expected to find the known .channel() call sites").toBeGreaterThanOrEqual(12);
+  // Sanity: the parser actually found the sites we know exist. Exact floor,
+  // measured 2026-09-23 after the Q105 follow-up: 8 sites, 16 bindings. Q105
+  // merged four per-consumer channels into src/lib/userRealtimeBus.ts and its
+  // follow-up folded the unread-nav channel in too, so the old 12 / 20 floors
+  // (set when every consumer opened its own channel) were red for a good
+  // change. The exact per-binding inventory is src/test/realtimeChannelInventory.test.ts.
+  expect(sites.length, "expected to find the known .channel() call sites").toBeGreaterThanOrEqual(8);
   // Floor, not a count: it only proves the parser is reading real code. 25
   // was the total when the three UNFILTERED bindings (notification_logs
   // INSERT, profiles '*') still existed; bf0cd91c8 removed them, which is what
   // (c) below asks for, and the floor kept the suite red for a good change.
   expect(allBindings.length, "expected to find the known postgres_changes bindings")
-    .toBeGreaterThanOrEqual(20);
+    .toBeGreaterThanOrEqual(16);
 
   // (b) unique name via channelNonce(). Scoped to channels that carry a
   //     postgres_changes binding — that is what the CLAUDE.md rule covers.

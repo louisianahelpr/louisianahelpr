@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
+import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { getBlockedUserIds } from "@/lib/userBlocks";
 import { isArchived, ARCHIVE_CHANGED_EVENT } from "@/lib/archivedConversations";
 import { setAppIconBadge } from "@/lib/appBadge";
@@ -11,11 +11,11 @@ import { readCachedUnread, writeCachedUnread } from "./mobileNavHelpers";
 
 /**
  * Owns the Messages badge unread count for the bottom nav: the durable-cache
- * seeded state, the live count query, its realtime `messages` channel + the
+ * seeded state, the live count query, its realtime `messages` subscription + the
  * local archive-changed listener that recompute it, the native app-icon badge
  * mirror, and the best-effort mark-all-read action. Extracted verbatim from
- * MobileNav — hook call order, `useEffect` dep arrays, the realtime channel's
- * `filter` + the per-attempt nonce, and the query's error handling are unchanged.
+ * MobileNav — hook call order, `useEffect` dep arrays and the query's error
+ * handling are unchanged; the realtime binding moved onto the shared user bus.
  */
 type UnreadListener = (n: number) => void;
 
@@ -95,22 +95,16 @@ function openStore(userId: string): UnreadStore {
 
   loadCounts();
 
-  const sub = subscribeWithRecovery(
-    // The nonce now comes from subscribeWithRecovery, which re-mints one on
-    // every reconnect attempt — same collision guarantee, plus a fresh name
-    // for the rebuilt channel.
-    (name) => supabase
-    .channel(name)
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${userId}` },
-      () => loadCounts()
-    ),
-    // A frozen unread badge is the single most misleading stale surface in
-    // the app — it is the thing people check INSTEAD of opening Messages —
-    // so recount the moment the channel is back.
-    { name: `unread-nav-${userId}`, onRecovered: () => void loadCounts() },
-  );
+  // Every change to a message I receive recounts. The binding lives on the
+  // shared per-user channel (src/lib/userRealtimeBus.ts, topic
+  // `messages:inbound`), which the Messages page reads too, so an open inbox
+  // no longer doubles the subscription (Q105).
+  // A frozen unread badge is the single most misleading stale surface in
+  // the app — it is the thing people check INSTEAD of opening Messages —
+  // so recount the moment the channel is back.
+  const unsubscribe = subscribeUserRealtime(userId, "messages:inbound", () => void loadCounts(), {
+    onRecovered: () => void loadCounts(),
+  });
 
   // Archiving/unarchiving a thread changes which unread messages the badge
   // should count, but it's a local action with no `messages` write — so the
@@ -120,7 +114,7 @@ function openStore(userId: string): UnreadStore {
   window.addEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
 
   store.close = () => {
-    sub.close();
+    unsubscribe();
     window.removeEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
   };
   return store;

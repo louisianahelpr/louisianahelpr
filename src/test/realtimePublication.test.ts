@@ -118,6 +118,14 @@ function boundTables(): Map<string, string[]> {
 // @two-way src/test/realtimePublication.test.ts:const staleKnown =
 const KNOWN_UNPUBLISHED_BINDINGS = new Set<string>([]);
 
+/**
+ * Published tables no client binds, each with why. EMPTY (2026-09-23, Q105):
+ * the last two, job_checkins and platform_settings, were dropped by
+ * 20260923230730.
+ */
+// @two-way src/test/realtimePublication.test.ts:stale KNOWN_PUBLISHED_UNBOUND entry
+const KNOWN_PUBLISHED_UNBOUND = new Set<string>([]);
+
 // @mutate src/hooks/useActivityData.ts | table: "jobs", filter | table: "profiles", filter
 describe("realtime publication coverage", () => {
   it("every postgres_changes binding targets a published table", () => {
@@ -155,6 +163,24 @@ describe("realtime publication coverage", () => {
     // excusing nothing — and would silently excuse the next bad binding on it.
     const staleKnown = [...KNOWN_UNPUBLISHED_BINDINGS].filter((t) => published.has(t) || !bound.has(t));
     expect(staleKnown.map((t) => `stale baseline entry ${t} — remove it (lower the baseline)`)).toEqual([]);
+  });
+
+  // @mutate supabase/migrations/20260923230730_drop_unsubscribed_realtime_tables.sql | EXECUTE 'ALTER PUBLICATION supabase_realtime DROP TABLE public.platform_settings'; | NULL;
+  it("every published table has a subscriber (Q105: a published table costs WAL decoding on every write)", () => {
+    // The other direction. A table in supabase_realtime that no client binds
+    // is decoded by realtime.list_changes on every write, for nobody: live on
+    // 2026-09-23, job_checkins and platform_settings were published (10
+    // tables) with no binding anywhere; 20260923230730 dropped them (8 left).
+    const published = publishedTables();
+    const bound = boundTables();
+    expect(published.size, "the publication replay found almost nothing").toBeGreaterThan(5);
+    const unsubscribed = [...published].filter((t) => !bound.has(t) && !KNOWN_PUBLISHED_UNBOUND.has(t)).sort();
+    expect(
+      unsubscribed,
+      "published to supabase_realtime but bound by no client postgres_changes: drop it in a guarded migration",
+    ).toEqual([]);
+    const stale = [...KNOWN_PUBLISHED_UNBOUND].filter((t) => !published.has(t) || bound.has(t));
+    expect(stale, "stale KNOWN_PUBLISHED_UNBOUND entry, remove it").toEqual([]);
   });
 
   it("the activity feed's tables are published", () => {

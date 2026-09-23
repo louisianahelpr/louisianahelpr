@@ -37,8 +37,10 @@
  *
  * @mutate src/components/messages/jobStatusAnnouncement.ts | { matches: /\bcancell?ed\b/i, jobStatus: "cancelled", closesAt: (at) => at }, | { matches: /\bcancell?ed\b/i, jobStatus: "cancelled", closesAt: null },
  * @mutate src/components/messages/jobStatusAnnouncement.ts | messagingClosesAt: patch.messagingClosesAt ?? convo.messagingClosesAt, | messagingClosesAt: convo.messagingClosesAt,
- * @mutate src/pages/messages/useMessagesRealtime.ts | if (msg.is_system) onJobStatusAnnouncement(msg);\n          // Same-job is not enough | // Same-job is not enough
+ * @mutate src/pages/messages/useMessagesRealtime.ts | if (msg.is_system) onJobStatusAnnouncement(msg);\n      // Same-job is not enough | // Same-job is not enough
  * @mutate src/pages/messages/useMessagesRealtime.ts | if (msg.is_system) onJobStatusAnnouncement(msg);\n          // Only echo into the active thread | // Only echo into the active thread
+ * @mutate src/pages/messages/useMessagesRealtime.ts | if (payload.eventType === "INSERT") onInboundInsert(payload); | if (payload.eventType !== "DELETE") onInboundInsert(payload);
+ * @mutate src/pages/messages/useMessagesRealtime.ts | else if (payload.eventType === "UPDATE") onInboundUpdate(payload); | void onInboundUpdate;
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, screen, cleanup, act, renderHook } from "@testing-library/react";
@@ -295,7 +297,7 @@ describe("2. both realtime listeners deliver the announcement", () => {
   ])("%s gets the thread closed for them", (_who, filter) => {
     const spy = mountRealtime();
     const listener = hoisted.listeners.find((l) => l.filter === filter)!;
-    listener.handler({ new: announcement() });
+    listener.handler({ eventType: "INSERT", new: announcement() });
     expect(spy).toHaveBeenCalledTimes(1);
     expect((spy.mock.calls[0][0] as Message).content).toBe("✕ Job cancelled");
   });
@@ -305,9 +307,65 @@ describe("2. both realtime listeners deliver the announcement", () => {
     for (const filter of ["receiver_id=eq.me", "sender_id=eq.me"]) {
       hoisted.listeners
         .find((l) => l.filter === filter)!
-        .handler({ new: announcement({ is_system: false, content: "on my way" }) });
+        .handler({ eventType: "INSERT", new: announcement({ is_system: false, content: "on my way" }) });
     }
     expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+describe("2b. inbound messages ride the shared user bus and split by event type (Q105)", () => {
+  // The receiver binding is ONE `messages *` subscription shared with the nav
+  // unread badge, so the page must tell an INSERT from an UPDATE itself: an
+  // edit appended as a new bubble (or a new message silently dropped) is the
+  // failure this pins.
+  function mount(active: Conversation | null) {
+    const setMessages = vi.fn();
+    const patch = vi.fn();
+    const onRecovered = vi.fn();
+    const hook = renderHook(() =>
+      useMessagesRealtime({
+        userId: "me",
+        activeConvoRef: { current: active },
+        setMessages,
+        scrollToBottom: vi.fn(),
+        patchConversationForMessage: patch,
+        onJobStatusAnnouncement: vi.fn(),
+        onRecovered,
+      }),
+    );
+    const inbound = hoisted.listeners.filter((l) => l.filter === "receiver_id=eq.me");
+    return { setMessages, patch, onRecovered, inbound, hook };
+  }
+  const human = announcement({ is_system: false, content: "on my way", sender_id: "u2" });
+
+  it("binds the receiver filter exactly once (the bus's `*`), not once per event", () => {
+    const { inbound } = mount(null);
+    expect(inbound.length).toBe(1);
+  });
+
+  it("an inbound INSERT appends to the open thread and patches the inbox row", () => {
+    const { setMessages, patch, inbound } = mount(convo());
+    inbound[0].handler({ eventType: "INSERT", new: human });
+    expect(patch).toHaveBeenCalledTimes(1);
+    const updater = setMessages.mock.calls[0][0] as (prev: Message[]) => Message[];
+    expect(updater([]).map((m) => m.id)).toEqual(["sys-1"]);
+  });
+
+  it("an inbound UPDATE edits in place and never appends or patches the inbox", () => {
+    const { setMessages, patch, inbound } = mount(convo());
+    const edited = { ...human, content: "on my way (edited)" };
+    inbound[0].handler({ eventType: "UPDATE", new: edited });
+    expect(patch).not.toHaveBeenCalled();
+    const updater = setMessages.mock.calls[0][0] as (prev: Message[]) => Message[];
+    expect(updater([human]).map((m) => m.content)).toEqual(["on my way (edited)"]);
+    expect(updater([]).length).toBe(0);
+  });
+
+  it("a DELETE on the shared binding does nothing here", () => {
+    const { setMessages, patch, inbound } = mount(convo());
+    inbound[0].handler({ eventType: "DELETE", new: {}, old: { id: "sys-1" } });
+    expect(setMessages).not.toHaveBeenCalled();
+    expect(patch).not.toHaveBeenCalled();
   });
 });
 

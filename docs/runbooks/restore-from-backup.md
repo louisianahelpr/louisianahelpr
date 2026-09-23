@@ -107,10 +107,15 @@ mkdir sql && tar xzf b.tar.gz -C sql && rm b.tar.gz
 8. `psql "$TARGET" -f sql/storage-policies.sql`
 
 The drill runs this against a local `supabase start` stack. Two steps differ
-there, and both are local-only: the storage-owned statements run as the local
-`supabase_admin`, and two newer `storage.buckets` columns
-(`lifecycle_configuration`, `lifecycle_configuration_generation`) are added,
-because the CLI's storage image is older than hosted storage.
+there, and both are local-only. First, the storage-owned statements run as the
+local `supabase_admin`. Second, the CLI's auth and storage images are older
+than hosted Supabase, so before the data load the drill adds prod's columns
+to every auth/storage table the dump fills. On 2026-09-23 those images lacked
+`storage.buckets.lifecycle_configuration`, `lifecycle_configuration_generation`
+and `auth.one_time_tokens.expires_at`, and each table's rows failed to load
+without them. A hosted target is at least as new as prod, so skip this step
+there. If a hosted restore does print "column ... does not exist", this is
+the cause, and the fix is the same `ALTER TABLE ... ADD COLUMN`.
 
 ### 3.3 Verify, before anything points at it
 
@@ -180,6 +185,8 @@ real user to check an escrow-held job against Stripe.
 |---|---|---|---|
 | 2026-09-23 | 35836045277 | red | first ever restore: all public data restored, but 306/306 functions anon-executable, 0/55 cron jobs, 0 buckets (local image), pgmq queues missing, `ensure_rls` missing |
 | 2026-09-23 | 35837914689 | **green** | after steps 2, 4, 5, 7: 0 restore errors; 17/321 anon (= backup); 82 tables, 198 policies, 7 event triggers, 10 realtime tables; auth.users 60/60, jobs 303 vs 309 live (6 created since the backup), every money-ledger table exact |
+| 2026-09-23 | 35838927109 | red | a newer backup held `auth.one_time_tokens` rows, and the local auth image lacked `expires_at` (see the venue note in §3) |
+| 2026-09-23 | 35839296119 | **green** | all 8 steps, 0 restore errors; storage policies 36/36, cron 55/55, buckets 8/8, objects 152/152 (rows only), anon 17/321; restore 3 s |
 
 Weekly after that: Tuesdays 14:17 UTC. A red run opens a `nightly-red` issue
 titled `db-restore-drill` and closes it on the next green run. #1659 did

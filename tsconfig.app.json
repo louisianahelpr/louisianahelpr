@@ -59,6 +59,8 @@
     "supabase/functions/_shared/payoutClaim.ts",
     "supabase/functions/_shared/productPrices.ts",
     "supabase/functions/_shared/escrowTiming.ts",
+    "supabase/functions/_shared/jobBudgetLimits.ts",
+    "supabase/functions/_shared/threeDSecure.ts",
     "supabase/functions/_shared/arrivalRule.ts",
     "supabase/functions/_shared/arrivalNudge.ts",
     // The stalled-completion rule (d738344c1). The POSTER'S CARD reads it —

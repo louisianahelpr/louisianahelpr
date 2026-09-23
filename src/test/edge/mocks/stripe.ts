@@ -68,6 +68,8 @@ export interface StripeMock {
     list: ReturnType<typeof vi.fn>;
     /** Verifies a transfer id stamped on the dispute row actually exists. */
     retrieve: ReturnType<typeof vi.fn>;
+    /** Card-dispute clawback (Q202): stripe.transfers.createReversal. */
+    createReversal: ReturnType<typeof vi.fn>;
   };
   accounts: {
     retrieve: ReturnType<typeof vi.fn>;
@@ -144,6 +146,7 @@ export const stripeMock: StripeMock = {
     // test that isn't exercising recovery — proceeds to create one.
     list: vi.fn().mockResolvedValue({ data: [] }),
     retrieve: vi.fn(),
+    createReversal: vi.fn(),
   },
   accounts: {
     retrieve: vi.fn(),

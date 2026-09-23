@@ -7,6 +7,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { clawbackForTransfer } from "./_chargebackClawback.ts";
 
 export async function handleTransferReversed(
   event: Stripe.Event,
@@ -45,6 +46,32 @@ export async function handleTransferReversed(
       },
     });
     throw new Error(`payout_transfers status flip failed for reversed transfer ${transfer.id}: ${ledgerUpdateErr.message}`);
+  }
+
+  // OUR OWN reversal: a card-dispute clawback (Q202, _chargebackClawback.ts).
+  // chargeDisputeCreated already moved the job to payment_status='chargeback'
+  // before reversing, and the chargeback_clawbacks row is the record a won
+  // dispute pays back from, so there is nothing to freeze and nothing for ops
+  // to investigate. The ledger flip above still happened (it mirrors Stripe).
+  // A failed lookup falls through to the ordinary, more cautious path.
+  const ours = await clawbackForTransfer(supabase, transfer.id);
+  if (ours.error) {
+    logStep("Clawback lookup failed on transfer.reversed; treating as an unexplained reversal", { error: ours.error });
+  } else if (ours.disputeId) {
+    logStep("Transfer reversed by a card-dispute clawback — no freeze", { transferId: transfer.id, disputeId: ours.disputeId });
+    await postSlackOpsAlert({
+      kind: "payout_reversed",
+      severity: "info",
+      title: "Helpr payout reversed for a card dispute (automatic clawback)",
+      message: `Stripe transfer ${transfer.id} was reversed by the clawback for card dispute ${ours.disputeId}. A won dispute pays it back automatically.`,
+      fields: {
+        "Amount reversed": `$${((transfer.amount_reversed ?? transfer.amount) / 100).toFixed(2)}`,
+        "Dispute ID": ours.disputeId,
+        ...(reversedLedger?.job_id ? { "Job": String(reversedLedger.job_id) } : {}),
+      },
+      link: `https://dashboard.stripe.com/disputes/${ours.disputeId}`,
+    });
+    return;
   }
 
   // transfer.created optimistically flipped the job to "released". A reversal

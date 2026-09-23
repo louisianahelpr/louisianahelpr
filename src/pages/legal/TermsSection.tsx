@@ -20,7 +20,7 @@ import { LAST_UPDATED } from "./legalSections";
 // the cron enforces rather than restating "48"/"72" as prose literals.
 import {
   COPY_AUTO_RELEASE_HOURS,
-  PAYOUT_HOLD_HOURS,
+  STANDARD_PAYOUT_PHRASE,
   TOTAL_TO_PAYOUT_HOURS,
 } from "../../../supabase/functions/_shared/escrowTiming";
 import { legalFmtMo } from "./legalSections";
@@ -144,7 +144,7 @@ export const TermsContent = () => {
         title="Payouts & Stripe Connect"
         body={
           <>
-            <p><strong className="text-foreground">Payout schedule:</strong> Payouts release {PAYOUT_HOLD_HOURS} hours after dual confirmation.</p>
+            <p><strong className="text-foreground">Payout schedule:</strong> Standard payouts are sent {STANDARD_PAYOUT_PHRASE}.</p>
             <p><strong className="text-foreground">Stripe Connect:</strong> Helprs must link a Stripe Connect Express account before accepting offers or receiving payouts.</p>
           </>
         }

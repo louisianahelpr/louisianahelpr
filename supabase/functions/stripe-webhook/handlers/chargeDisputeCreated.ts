@@ -17,6 +17,7 @@ import {
   holdReasons,
 } from "./_chargebackHold.ts";
 import { revokeGiftCardForRefund } from "./_giftCardRefund.ts";
+import { clawBackReleasedPayout, readClawbackRows, type ClawbackResult } from "./_chargebackClawback.ts";
 
 export async function handleChargeDisputeCreated(
   event: Stripe.Event,
@@ -81,6 +82,8 @@ export async function handleChargeDisputeCreated(
   // Set when the job already carried a dispute hold the chargeback left alone,
   // so the page tells ops the job has two things going on at once.
   let keptHold: string | null = null;
+  // Set when this dispute clawed back an already-paid Helpr payout (Q202).
+  let clawback: ClawbackResult | null = null;
 
   if (disputePiId) {
     const { data: chargebackJob, error: chargebackJobErr } = await supabase
@@ -110,9 +113,81 @@ export async function handleChargeDisputeCreated(
     }
 
     if (chargebackJob) {
-      // Only flip payment_status if the payout hasn't been finalized yet —
-      // 'released' jobs already paid the helper so we leave the status alone
-      // and let ops handle the net loss manually.
+      // ── CLAW BACK a payout that already went out (Q202, owner 2026-09-23) ──
+      // A 'released' job already paid the Helpr. That used to be left alone
+      // ("ops handles the net loss manually"), so the Helpr kept the money and
+      // the platform paid the cardholder plus Stripe's fee. Now the Helpr's
+      // transfer(s) for the job are reversed, up to the disputed amount, and a
+      // WON dispute pays them back (chargeDisputeClosed). Never on an inquiry:
+      // those withdraw nothing.
+      //
+      // Order matters. The job is flipped released -> 'chargeback' FIRST, as a
+      // compare-and-set: the reversal fires transfer.reversed, whose handler
+      // re-queues a still-'released' job to payout_pending/'reversal_hold'. On
+      // a redelivery the job reads 'chargeback' already, and the clawback
+      // resumes from its ledger rows (it never reverses twice).
+      if (!isInquiry && (chargebackJob.payment_status === "released" || chargebackJob.payment_status === "chargeback")) {
+        let proceed = chargebackJob.payment_status === "released";
+        if (proceed) {
+          const { data: flipped, error: flipErr } = await supabase
+            .from("jobs")
+            .update({ payment_status: "chargeback" })
+            .eq("id", chargebackJob.id)
+            .eq("payment_status", "released")
+            .select("id");
+          if (flipErr) {
+            await postSlackOpsAlert({
+              kind: "dispute_filed",
+              severity: "critical",
+              title: "Stripe chargeback on a PAID job — clawback NOT started (DB error)",
+              message: `A chargeback fired on a released job, but marking it payment_status='chargeback' failed, so the Helpr's payout was not reversed. Stripe will retry this webhook.`,
+              fields: { "Dispute ID": dispute.id, "Job ID": String(chargebackJob.id), "DB error": flipErr.message.slice(0, 200) },
+              link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
+            });
+            throw new Error(`Clawback flip failed for job ${chargebackJob.id}: ${flipErr.message}`);
+          }
+          if (!flipped || flipped.length === 0) {
+            proceed = false;
+            await postSlackOpsAlert({
+              kind: "dispute_filed",
+              severity: "critical",
+              title: "Stripe chargeback on a paid job — job changed underneath, clawback skipped",
+              message: `Dispute ${dispute.id}: the job read as released but its payment_status changed before the clawback could start. Check the job and reverse the Helpr's transfer by hand if it was paid.`,
+              fields: { "Dispute ID": dispute.id, "Job ID": String(chargebackJob.id) },
+              link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
+            });
+          }
+        } else {
+          // Already 'chargeback': a redelivery of this event after the flip, or
+          // a job blocked before it was ever paid. Resume only when this
+          // dispute has clawback rows or the job has a PAID payout transfer.
+          const prior = await readClawbackRows(supabase, dispute.id);
+          if (prior.error) throw new Error(`chargeback_clawbacks read failed for ${dispute.id}: ${prior.error}`);
+          if (prior.rows.length > 0) {
+            proceed = true;
+          } else {
+            const { data: paidRows, error: paidErr } = await supabase
+              .from("payout_transfers")
+              .select("id")
+              .eq("job_id", chargebackJob.id)
+              .eq("status", "paid")
+              .limit(1);
+            if (paidErr) throw new Error(`payout_transfers read failed for job ${chargebackJob.id}: ${paidErr.message}`);
+            proceed = (paidRows ?? []).length > 0;
+          }
+        }
+        if (proceed) {
+          clawback = await clawBackReleasedPayout(
+            { stripe, supabase, logStep },
+            dispute,
+            { id: chargebackJob.id, title: chargebackJob.title },
+            { alertIfNoTransfer: chargebackJob.payment_status === "released" },
+          );
+        }
+      }
+
+      // Only flip payment_status to block a payout that hasn't gone out yet.
+      // A 'released' job is handled by the clawback above.
       let shouldBlockPayout = ["payout_pending", "escrow"].includes(
         chargebackJob.payment_status,
       );
@@ -303,6 +378,12 @@ export async function handleChargeDisputeCreated(
             .split("T")[0]
         : "—",
       ...(keptHold ? { "Existing hold kept": keptHold } : {}),
+      ...(clawback
+        ? {
+          "Helpr payout clawed back": `$${(clawback.reversedTotalCents / 100).toFixed(2)}`,
+          ...(clawback.failed.length ? { "Clawback refused": String(clawback.failed.length) } : {}),
+        }
+        : {}),
     },
     link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
   });

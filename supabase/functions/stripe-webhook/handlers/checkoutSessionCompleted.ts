@@ -12,6 +12,7 @@ import { TIER_FEE_PERCENT } from "../../_shared/helperFees.ts";
 import { ONE_TIME_PASS_DAYS } from "../../_shared/proTiers.ts";
 import { sendGiftCardEmail } from "../../_shared/giftCardEmail.ts";
 import { settleOnboardingFee } from "./settleOnboardingFee.ts";
+import { standardPayoutAtIso } from "../../_shared/escrowTiming.ts";
 import { subscriptionCurrentPeriodEndISO } from "../../_shared/stripeSubscriptionPeriod.ts";
 import {
   type SubscriptionLinkage,
@@ -785,7 +786,13 @@ export async function handleCheckoutSessionCompleted(
 
     if (isRepay) {
       updateData.payment_status = "payout_pending";
-      updateData.payout_scheduled_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      // STANDARD PAY: 3 days after the job was marked done, never before now
+      // (Q202, _shared/escrowTiming.ts). A re-pay lands after the work is done,
+      // so this is usually "now + whatever is left of the 3 days".
+      const { data: repayJob, error: repayJobErr } = await supabase
+        .from("jobs").select("helper_completed_at").eq("id", jobId).maybeSingle();
+      if (repayJobErr) throw new Error(`Re-pay: job read failed for ${jobId}: ${repayJobErr.message}`);
+      updateData.payout_scheduled_at = standardPayoutAtIso(repayJob?.helper_completed_at ?? null);
       logStep("Re-payment completed, scheduling payout", { jobId, pi: piId });
     }
 

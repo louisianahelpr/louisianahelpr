@@ -7,6 +7,7 @@ import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 import {
   COPY_AUTO_RELEASE_HOURS,
   PAYOUT_HOLD_HOURS,
+  STANDARD_PAYOUT_PHRASE,
 } from "../../../supabase/functions/_shared/escrowTiming";
 // Cancellation percentages and the standard payout window are binding money
 // figures with one owner each. Same rule as legal/CommunitySection: derive,
@@ -210,7 +211,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // file's guards exist to stop. "The standard schedule" is now named:
         // STANDARD_PAYOUT_WINDOW, the same constant InstantPayoutDialog and
         // PayoutHistory interpolate.
-        a: `Payment releases to your Helpr account after the person who posted the job confirms completion, then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout; every standard payout after that is free. Instant Payout — cashing out the same day — is a Basic, Pro or Elite membership feature and charges a small percentage fee.`,
+        a: `Payment is sent to your Helpr account ${STANDARD_PAYOUT_PHRASE}, once the person who posted it confirms (or it completes automatically), then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout; every standard payout after that is free. Instant Payout — cashing out the same day — is a Basic, Pro or Elite membership feature and charges a small percentage fee.`,
       },
       {
         q: "What if the person who posted the job doesn't confirm completion?",

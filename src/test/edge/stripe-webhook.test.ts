@@ -968,7 +968,13 @@ describe("stripe-webhook edge function", () => {
         expect(payloadOf(marker!).dispute_status).toBe("stripe_chargeback");
         expect(marker?.filters).toContainEqual({ op: "or", column: "", value: "dispute_status.eq.resolved" });
         expect(marker?.selectCols).toBe("id");
-        expect(jobUpdates().some((w) => "payment_status" in payloadOf(w))).toBe(false);
+        // Q202: the only payment_status write on a released job is the
+        // clawback's CAS released -> chargeback (chargebackClawback.test.ts);
+        // the payable-set block (escrow/payout_pending) never touches it.
+        const paymentWrites = jobUpdates().filter((w) => "payment_status" in payloadOf(w));
+        expect(paymentWrites).toHaveLength(1);
+        expect(payloadOf(paymentWrites[0]).payment_status).toBe("chargeback");
+        expect(paymentWrites[0].filters).toContainEqual({ op: "eq", column: "payment_status", value: "released" });
       });
 
       it("created on a released 'resolved' job whose split has NOT executed leaves the markers alone", async () => {

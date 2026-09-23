@@ -16,6 +16,7 @@ import {
   type InternalPayoutHold,
 } from "./_chargebackHold.ts";
 import { alertGiftDisputeClosed } from "./_giftCardRefund.ts";
+import { finalizeLostClawback, repayClawback, type RepayResult } from "./_chargebackClawback.ts";
 
 export async function handleChargeDisputeClosed(
   event: Stripe.Event,
@@ -64,6 +65,9 @@ export async function handleChargeDisputeClosed(
   // True when a dismissed inquiry restored the payment state but left a hold
   // the job carried on its own, so the closing alert does not claim an unblock.
   let heldAfterDismissal = false;
+  // Set when this dispute had clawed back a paid Helpr payout (Q202) and a WON
+  // outcome paid it back.
+  let repaid: RepayResult | null = null;
 
   if (closedPiId) {
     const { data: closedJob, error: closedJobErr } = await supabase
@@ -197,7 +201,57 @@ export async function handleChargeDisputeClosed(
         });
       }
 
+      // ── Clawback settlement (Q202) ──
+      // chargeDisputeCreated reversed the Helpr's transfer(s) when the job had
+      // already been paid. WON: pay each reversed amount back (idempotent per
+      // dispute + transfer), then return the job to 'released'. LOST: the
+      // reversal stands; the rows are marked final. Both tell the payee.
       if (outcome === "won") {
+        repaid = await repayClawback({ stripe, supabase, logStep }, closedDispute, { id: closedJob.id, title: closedJob.title });
+        if (repaid.rows > 0 && repaid.failed.length === 0) {
+          const { data: back, error: backErr } = await supabase
+            .from("jobs")
+            .update({ payment_status: "released" })
+            .eq("id", closedJob.id)
+            .eq("payment_status", "chargeback")
+            .select("id");
+          if (backErr) {
+            await postSlackOpsAlert({
+              kind: "dispute_won",
+              severity: "critical",
+              title: "Chargeback WON — Helpr re-paid, job NOT returned to released (DB error)",
+              message: `Dispute ${closedDispute.id}: the Helpr was paid back, but the job could not be set back to payment_status='released'. Set it by hand; do NOT release another payout.`,
+              fields: { "Dispute ID": closedDispute.id, "Job ID": String(closedJob.id), "DB error": backErr.message.slice(0, 200) },
+              link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
+            });
+          } else if (!back || back.length === 0) {
+            logStep("Clawback repaid; job was not in 'chargeback' (left as is)", { jobId: closedJob.id });
+          }
+        }
+      } else if (outcome === "lost") {
+        await finalizeLostClawback({ stripe, supabase, logStep }, closedDispute, { id: closedJob.id, title: closedJob.title });
+      }
+
+      if (outcome === "won" && repaid && repaid.rows > 0) {
+        // The Helpr's clawed-back payout was paid back automatically above.
+        const { ids: wonAdminIds } = await loadAdminIds(
+          supabase,
+          "stripe-webhook.chargeDisputeClosed.won",
+        );
+        for (const adminId of wonAdminIds) {
+          await supabase.from("notifications").insert({
+            user_id: adminId,
+            title: repaid.failed.length > 0
+              ? "Chargeback WON — paying the Helpr back FAILED"
+              : "Chargeback WON — Helpr paid back automatically",
+            message: `Stripe ruled in our favor on the $${(closedDispute.amount / 100).toFixed(2)} chargeback for "${closedJob.title}". ${repaid.failed.length > 0
+              ? "The payout taken back when it was filed could not be paid back to the Helpr. Pay it by hand from the Admin panel."
+              : "The payout taken back when it was filed has been paid back to the Helpr. Nothing to release."}`,
+            type: "payment",
+            link: "/admin",
+          });
+        }
+      } else if (outcome === "won") {
         // Funds are back on the platform balance. Notify admins to
         // release the helper's payout that was blocked at dispute.created.
         // Admin uses admin_release_dispute (which sets payment_status =
@@ -387,7 +441,9 @@ export async function handleChargeDisputeClosed(
         : "ℹ️ Stripe early-fraud warning closed",
     message:
       outcome === "won"
-        ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds restored — release the helper's blocked payout manually via the Admin panel.`
+        ? repaid && repaid.rows > 0
+          ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. The Helpr's clawed-back payout was ${repaid.failed.length > 0 ? "NOT fully paid back (see the separate alert)" : "paid back automatically"}.`
+          : `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds restored — release the helper's blocked payout manually via the Admin panel.`
         : outcome === "lost"
         ? `Stripe ruled against us on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds permanently withdrawn. Reconcile the loss.`
         : heldAfterDismissal

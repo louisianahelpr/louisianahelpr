@@ -6,7 +6,7 @@ import { formatShortDate } from "@/lib/format";
 // The payout hold is the cron's own constant, shared with `release-payout` and
 // `process-scheduled-payouts`. Interpolated, never restated as a literal — the
 // same rule ActiveJobSection and JobTracking follow.
-import { PAYOUT_HOLD_HOURS } from "../../../../supabase/functions/_shared/escrowTiming";
+import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
 
 /**
  * WHY THIS CARD EXISTS (owner, 2026-08-30: "357 is oddly placed. Fix it.").
@@ -178,7 +178,7 @@ export function EarningsSummaryCard({
                 constant the cron schedules on — never a retyped "24". */}
             {releasingAt
               ? `Approved — reaches your wallet ${formatShortDate(releasingAt)}`
-              : `Approved — releases ${PAYOUT_HOLD_HOURS} hours after approval`}
+              : `Approved — sent ${STANDARD_PAYOUT_PHRASE}`}
           </span>
           <span
             className="font-sans font-bold tabular-nums text-ds-15 shrink-0"

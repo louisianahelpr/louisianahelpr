@@ -1,7 +1,7 @@
 import { CheckCircle2 } from "lucide-react";
 import { CardSubPanel } from "@/components/ui/CardSubPanel";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
-import { AUTO_COMPLETE_HOURS, PAYOUT_HOLD_HOURS, hoursToMs } from "../../../../../supabase/functions/_shared/escrowTiming";
+import { AUTO_COMPLETE_HOURS, PAYOUT_HOLD_HOURS, STANDARD_PAYOUT_PHRASE, hoursToMs } from "../../../../../supabase/functions/_shared/escrowTiming";
 import { JobStepCard } from "@/components/activity/JobStepCard";
 import type { HelperStepProps } from "./stepContract";
 
@@ -13,9 +13,10 @@ import type { HelperStepProps } from "./stepContract";
  * {@link CardSubPanel}, which is the shape the "Marked Complete" box was
  * hand-drawing (a primary-tinted header strip with an icon and a padded body).
  *
- * The copy is unchanged, including the two numbers: approval is NOT payment —
- * the payout releases PAYOUT_HOLD_HOURS after it, and both figures come from
- * escrowTiming, which the cron reads too.
+ * Approval is NOT payment: the payout is sent STANDARD_PAYOUT_PHRASE (3 days
+ * after the job is marked done, Q202), and on the auto-complete path
+ * PAYOUT_HOLD_HOURS after the auto-complete. Every figure comes from
+ * escrowTiming, which the crons read too.
  */
 export function SubmittedStep({
   job,
@@ -38,7 +39,7 @@ export function SubmittedStep({
         </p>
       ) : (
         <p className="text-ds-10 text-muted-foreground/70 pt-1">
-          Approved. Your payout releases {PAYOUT_HOLD_HOURS} hours after approval,
+          Approved. Your payout is sent {STANDARD_PAYOUT_PHRASE},
           then lands in your bank on your usual payout schedule.
         </p>
       )}
@@ -58,7 +59,7 @@ export function SubmittedStep({
         </ul>
         <p className="text-ds-10 text-muted-foreground/70 pt-1">
           {posterInstantRelease
-            ? `They approve instantly — then your payout is released ${PAYOUT_HOLD_HOURS} hours later.`
+            ? `They approve instantly. Your payout is sent ${STANDARD_PAYOUT_PHRASE}.`
             : `If the person who posted this job doesn't respond within ${AUTO_COMPLETE_HOURS} hours, the job completes automatically and your payout is released ${PAYOUT_HOLD_HOURS} hours after that.`}
         </p>
         {/* No countdown when the poster releases instantly (owner,

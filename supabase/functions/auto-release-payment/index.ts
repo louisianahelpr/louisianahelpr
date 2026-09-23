@@ -5,6 +5,7 @@ import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT 
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
+import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTiming.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 
 const corsHeaders = {
@@ -398,7 +399,9 @@ serve(async (req) => {
       }
 
       // ── Step 3: Schedule the payout ──
-      const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      // STANDARD PAY: 3 days after the job was marked done (Q202, was a flat
+      // now + 24h here = ~48h after done). _shared/escrowTiming.ts owns it.
+      const payoutTime = standardPayoutAtIso(job.helper_completed_at);
 
       // Optimistic concurrency: guard on payment_status="escrow" so that if a
       // Stripe chargeback webhook fires between our read (above) and this write,
@@ -468,8 +471,8 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Job auto-completed!",
           message: instantIds.has(job.id)
-            ? `"${job.title}" is complete — the person who posted it releases payment instantly. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`
-            : `"${job.title}" was auto-completed after 24 hours. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`,
+            ? `"${job.title}" is complete — the person who posted it releases payment instantly. $${formatPayoutDollars(helperPayout)} will be sent to your account ${STANDARD_PAYOUT_PHRASE}.`
+            : `"${job.title}" was auto-completed after 24 hours. $${formatPayoutDollars(helperPayout)} will be sent to your account ${STANDARD_PAYOUT_PHRASE}.`,
           // `?job=`, not `?filter=completed`: `completed` is a legacy filter key
           // with no chip in the five-bucket strip (the bucket is `done`), and the
           // bucket is resolved live by Activity from the job id.
@@ -481,8 +484,8 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Job auto-completed",
           message: instantIds.has(job.id)
-            ? `"${job.title}" released instantly per your Instant Release setting. The Helpr will be paid in 24 hours.`
-            : `"${job.title}" was automatically marked complete after 24 hours. The helpr will be paid in 24 hours.`,
+            ? `"${job.title}" released instantly per your Instant Release setting. The Helpr is paid ${STANDARD_PAYOUT_PHRASE}.`
+            : `"${job.title}" was automatically marked complete after 24 hours. The Helpr is paid ${STANDARD_PAYOUT_PHRASE}.`,
           type: "info", link: `/my-posts?job=${job.id}`,
         });
       }

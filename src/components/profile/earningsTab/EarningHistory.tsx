@@ -8,7 +8,7 @@ import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { stripeProcessingCostCents } from "@/lib/stripeFees";
 import { isAwaitingTransfer, isEarnedJob } from "./earningsTabHelpers";
 // Same constant the payout cron schedules on — see EarningsSummaryCard.
-import { PAYOUT_HOLD_HOURS } from "../../../../supabase/functions/_shared/escrowTiming";
+import { STANDARD_PAYOUT_DAYS_AFTER_DONE } from "../../../../supabase/functions/_shared/escrowTiming";
 import type { Job } from "./types";
 
 interface EarningHistoryProps {
@@ -219,7 +219,7 @@ export function EarningHistory({
                       <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                         {job.payout_scheduled_at
                           ? `on its way · ${formatShortDate(job.payout_scheduled_at)}`
-                          : `on its way · ${PAYOUT_HOLD_HOURS}h after approval`}
+                          : `on its way · ${STANDARD_PAYOUT_DAYS_AFTER_DONE} days after done`}
                       </p>
                     )}
                     {returnedPayment && (

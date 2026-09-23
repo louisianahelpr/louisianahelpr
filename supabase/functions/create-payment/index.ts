@@ -20,6 +20,9 @@ import { formatPayoutDollars } from "../_shared/money.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { PublicError, publicErrorMessage } from "../_shared/publicError.ts";
+import { jobBudgetOutOfRange, MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS } from "../_shared/jobBudgetLimits.ts";
+import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
+import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTiming.ts";
 
 /**
  * Tax is ADDED to `unit_amount`, never carved out of it — pinned rather than
@@ -168,6 +171,18 @@ serve(async (req) => {
         throw new PublicError("This job's payment has already been processed. Open the job to see its payment status.");
       }
 
+      // ─── Price cap, enforced where the money is taken (Q202) ───
+      // The DB CHECK (jobs_budget_range) and validate_job_budget() refuse a new
+      // or edited budget outside the range, but rows stored before a cap change
+      // are not re-checked until their budget is written. This is the charge-time
+      // twin: no checkout is opened for a budget outside the shared limits
+      // (_shared/jobBudgetLimits.ts, the one constant client + server + DB share).
+      if (jobBudgetOutOfRange(job.budget)) {
+        throw new PublicError(
+          `Job budgets run from $${MIN_JOB_BUDGET_DOLLARS.toLocaleString("en-US")} to $${MAX_JOB_BUDGET_DOLLARS.toLocaleString("en-US")}. Edit the budget, or split a bigger project into separate jobs.`,
+        );
+      }
+
       // ─── Retire the previous Checkout Session before minting another ───
       //
       // Two live sessions on one job is the double-funding shape, so the old
@@ -185,7 +200,13 @@ serve(async (req) => {
           expand: ["payment_intent"],
         });
         const priorPi = prior.payment_intent as Stripe.PaymentIntent | null;
-        const priorPiLive = !!priorPi &&
+        // `requires_action` on a still-OPEN session is a 3D Secure challenge the
+        // poster walked away from (Q202 requests 3DS from $300): no money has
+        // moved, and expiring the open session below cancels that
+        // PaymentIntent. Treating it as live stranded "Finish paying" for up to
+        // 24h (the session's own expiry) on exactly the large charges 3DS is for.
+        const abandonedChallenge = prior.status === "open" && priorPi?.status === "requires_action";
+        const priorPiLive = !!priorPi && !abandonedChallenge &&
           !["requires_payment_method", "canceled"].includes(priorPi.status);
         if (prior.status === "complete" || prior.payment_status === "paid" || priorPiLive) {
           console.error(
@@ -346,6 +367,8 @@ serve(async (req) => {
           }],
           mode: "payment",
           automatic_tax: { enabled: true },
+          // 3D Secure from $300 (Q202): the hosted page runs the challenge.
+          payment_method_options: threeDSecureOptions(differenceCents),
           payment_intent_data: {
             metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId },
           },
@@ -477,9 +500,10 @@ serve(async (req) => {
       // stored: an urgent job is charged the stored fee but never below the
       // floor, a non-urgent job is never charged an urgent tip regardless of
       // what the column holds. Floor/ceiling mirror URGENT_FEE_FLOOR_DOLLARS
-      // ($5) and MAX_URGENT_FEE_DOLLARS ($5,000) in src/lib/moneyLimits.ts.
+      // ($5) and MAX_URGENT_FEE_DOLLARS (the budget ceiling, $1,000 since Q202)
+      // in _shared/jobBudgetLimits.ts, which src/lib/moneyLimits.ts re-exports.
       const URGENT_FEE_FLOOR_CENTS = 500;
-      const URGENT_FEE_CEILING_CENTS = 500000;
+      const URGENT_FEE_CEILING_CENTS = MAX_URGENT_FEE_DOLLARS * 100;
       const storedUrgentFeeCents = Math.round((job.urgent_fee ?? 0) * 100);
       const urgentFeeCents = job.is_urgent
         ? Math.min(
@@ -606,6 +630,11 @@ serve(async (req) => {
         line_items: lineItems,
         mode: "payment",
         automatic_tax: { enabled: true },
+        // 3D Secure from $300 (Q202), on the pre-tax total of the line items
+        // (tax is only known once Checkout has the address; it can only add).
+        payment_method_options: threeDSecureOptions(
+          lineItems.reduce((sum: number, li: any) => sum + Number(li?.price_data?.unit_amount ?? 0) * Number(li?.quantity ?? 1), 0),
+        ),
         payment_intent_data: paymentIntentExtras,
         success_url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative),
         cancel_url: buildRedirectUrl(`/post-job`, isNative),
@@ -847,7 +876,8 @@ serve(async (req) => {
           }
 
           // Charge confirmed — schedule payout
-          const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+          // STANDARD PAY: 3 days after the job was marked done (Q202, was now + 24h).
+          const payoutTime = standardPayoutAtIso(isHelper ? null : job.helper_completed_at);
           updateFields.payout_scheduled_at = payoutTime;
           updateFields.status = "completed";
           updateFields.payment_status = "payout_pending";
@@ -923,14 +953,14 @@ serve(async (req) => {
           await supabaseAdmin.from("notifications").insert({
             user_id: job.helper_id,
             title: "Job completed!",
-            message: `"${job.title}" is complete. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`,
+            message: `"${job.title}" is complete. $${formatPayoutDollars(helperPayout)} will be sent to your account ${STANDARD_PAYOUT_PHRASE}.`,
             type: "payment", link: "/profile?tab=earnings",
           });
         }
         await supabaseAdmin.from("notifications").insert({
           user_id: job.customer_id,
           title: "Job completed!",
-          message: `"${job.title}" is complete. Payment has been captured. The helpr will be paid in 24 hours.`,
+          message: `"${job.title}" is complete. Payment has been captured. The Helpr is paid ${STANDARD_PAYOUT_PHRASE}.`,
           type: "payment", link: `/my-posts?job=${job.id}`,
         });
       }
@@ -1135,6 +1165,8 @@ serve(async (req) => {
           quantity: 1,
         }],
         mode: "payment",
+        // 3D Secure from $300 (Q202), same rule as the job charge.
+        payment_method_options: threeDSecureOptions(tipCents),
         payment_intent_data: {
           transfer_data: {
             destination: helperProfile.stripe_account_id,

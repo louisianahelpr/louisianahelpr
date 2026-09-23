@@ -4,6 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { posterServiceFeeCents } from "../_shared/posterFees.ts";
+import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -204,6 +205,8 @@ serve(async (req) => {
       }],
       mode: "payment",
       automatic_tax: { enabled: true },
+      // 3D Secure from $300 (docs/OPEN.md Q202): the hosted page runs the challenge.
+      payment_method_options: threeDSecureOptions(chargeCents),
       payment_intent_data: { metadata: sharedMeta },
       // The Gift Card PROFILE TAB, directly. This is where Stripe sends the
       // buyer the instant they finish paying, so a stale path here is a 404 at

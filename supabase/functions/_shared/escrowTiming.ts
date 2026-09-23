@@ -19,7 +19,8 @@
 // Reconciled 2026-07-02; TIGHTENED 2026-08-24 (owner, during the two-role
 // lifecycle E2E): the poster's confirm-or-dispute window is 24 hours, not 48 —
 // "allow the poster 24 hours to confirm before pay is released". Total time
-// until funds LAND is now 48h (24h auto-complete + 24h payout hold). Every
+// until funds LAND was 48h (24h auto-complete + 24h payout hold); since
+// 2026-09-23 (Q202) it is 3 days after the job is marked done (24h + 48h). Every
 // user-facing copy site derives from COPY_AUTO_RELEASE_HOURS, and the vitest
 // parity guards read the cron's own arithmetic, so changing this constant and
 // the cron literal together is the entire change.
@@ -30,11 +31,43 @@
 /** Hours after one-sided completion before the job auto-completes (cron cutoff). */
 export const AUTO_COMPLETE_HOURS = 24;
 
-/** Additional hold (hours) after auto-complete before the payout transfer fires. */
-export const PAYOUT_HOLD_HOURS = 24;
+/**
+ * STANDARD PAY: the payout transfer fires this many days after the job is
+ * marked done (owner decision 2026-09-23, docs/OPEN.md Q202, was ~48h). The
+ * wait is the card-dispute buffer: money that has not left the platform can
+ * still be held when the cardholder disputes the charge. The paid instant
+ * payout (instant-payout, _shared/instantPayoutFee.ts) is unchanged: it moves
+ * money already SENT to a Helpr's Stripe balance to their card in minutes.
+ */
+export const STANDARD_PAYOUT_DAYS_AFTER_DONE = 3;
+
+/** STANDARD_PAYOUT_DAYS_AFTER_DONE in hours. */
+export const STANDARD_PAYOUT_HOURS_AFTER_DONE = STANDARD_PAYOUT_DAYS_AFTER_DONE * 24;
+
+/** Additional hold (hours) after an AUTO-complete before the payout transfer
+ *  fires: whatever is left of the standard wait once the auto-complete window
+ *  has run. */
+export const PAYOUT_HOLD_HOURS = STANDARD_PAYOUT_HOURS_AFTER_DONE - AUTO_COMPLETE_HOURS;
 
 /** Total hours from one-sided completion until funds actually reach the helper. */
 export const TOTAL_TO_PAYOUT_HOURS = AUTO_COMPLETE_HOURS + PAYOUT_HOLD_HOURS;
+
+/**
+ * When a standard payout is due: STANDARD_PAYOUT_HOURS_AFTER_DONE after the job
+ * was marked done (`doneAtIso`, the Helpr's helper_completed_at), never earlier
+ * than now. With no done stamp (the poster confirmed first), the job is done
+ * NOW. Every writer of jobs.payout_scheduled_at on the standard path uses this:
+ * auto-release-payment, create-payment's two-sided release and the re-pay
+ * checkout (src/test/standardPayoutThreeDays.test.ts).
+ */
+export function standardPayoutAtIso(doneAtIso: string | null | undefined, nowMs: number = Date.now()): string {
+  const doneMs = doneAtIso ? Date.parse(doneAtIso) : NaN;
+  const anchor = Number.isFinite(doneMs) && doneMs <= nowMs ? doneMs : nowMs;
+  return new Date(Math.max(nowMs, anchor + hoursToMs(STANDARD_PAYOUT_HOURS_AFTER_DONE))).toISOString();
+}
+
+/** "3 days after the job is marked done" — the one phrase user copy interpolates. */
+export const STANDARD_PAYOUT_PHRASE = `${STANDARD_PAYOUT_DAYS_AFTER_DONE} days after the job is marked done`;
 
 /**
  * The auto-release ACTION window as stated to users across Legal / Terms /

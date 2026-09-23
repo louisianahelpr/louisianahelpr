@@ -25,8 +25,6 @@ const THE_LIST = "docs/OPEN.md";
 /** Docs allowed to carry unchecked boxes or an open-list title, each with why. */
 // @two-way src/test/onlyOneOpenList.test.ts:allowlisted but no longer an open list
 export const ALLOWED: Record<string, string> = {
-  "TODO.md":
-    "legacy backlog last touched 2026-08-31, predates the one-list rule; its live rows are not yet folded into docs/OPEN.md — queue item Q84 reconciles it and retires the file to a pointer",
   "docs/audit/OPEN_ITEMS.md":
     "retired to a 3-line pointer by Q16 (2026-09-23); its H1 still reads 'Open items — retired' so readers of old links land on the pointer",
   "docs/audit/launch-2026-09/SURFACE.md":

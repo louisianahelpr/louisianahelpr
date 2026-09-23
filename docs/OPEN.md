@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 86 done, 11 partly done (fixed, protection pending), 82 open. Source of truth for work.
+- **Queue (this file):** 87 done, 11 partly done (fixed, protection pending), 88 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 179 items — 86 done, 11 partly done (fixed, protection pending), 82 open.**
+**Queue: 186 items — 87 done, 11 partly done (fixed, protection pending), 88 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1358,13 +1358,16 @@ sure someone hears it and closes it.
   short-circuits it. Do: set it once in the entry file before any schema
   parses; prove it by counting CSP reports on one page before/after; add a
   guard that the config call stays (and that nothing re-enables JIT).
-- [ ] **Q84 Retire TODO.md into docs/OPEN.md (2026-09-23).** TODO.md (last
-  touched 2026-08-31) still carries 44 unchecked boxes — a second backlog the
-  one-list rule forbids; src/test/onlyOneOpenList.test.ts allowlists it only
-  until this is done. Re-check each row against main/prod, close what is
-  done with evidence, carry the rest here as queue lines, leave a one-line
-  pointer, and delete its allowlist entry (the test fails two-way if the
-  entry outlives the list).
+- [x] **Q84 DONE 2026-09-23: TODO.md retired to a one-line pointer; the file is archived at docs/archive/TODO-2026-08-31.md. GUARD: src/test/onlyOneOpenList.test.ts (the TODO.md allowlist entry is removed, so any unchecked box in TODO.md fails CI).** Each of its 44 open rows was checked against main/prod on 2026-09-23:
+  - DONE, measured: F-MONEY-03 (admin_release_dispute rethrows on transfer failure, create-payment/index.ts ~1683-1701); F-SEC-06/07 (live: 0 public SECURITY DEFINER fns without search_path, 0 volatile public fns anon can EXECUTE); F-SEC-05 (partner_applications no longer exists, to_regclass null); F-TRUST-01 (the equivalence test is src/lib/messageScanner.test.ts); F-PERF-03 (Activity chunk 39 KB, was 220 KB); Coverage/e2e fixture (vitest.yml on main, nightly e2e-real-backend, two-account harness); Supabase GitHub secrets (present in `gh secret list`); PR #29 (MERGED); F-SEC-08 HIBP (= Q149); iOS build #17+ (superseded by Q152); skeleton screens (= Q169); `npm run sync:ios` (a process note, not work).
+  - CARRIED as Q181–Q187 below.
+- [ ] **Q181 Accessibility gate: WCAG 2.2 AA + best-practice axe run in CI (from TODO.md, 2026-08-31).** No workflow runs axe with the `wcag22aa` tag (grep on e2e/ and .github/ 2026-09-23: none). Overlaps Q71; do them together.
+- [ ] **Q182 `open_jobs_browse` is still a SECURITY DEFINER view (F-SEC-04, from TODO.md).** Live 2026-09-23: reloptions `security_invoker=false`. Either document in the view's migration why definer is required (anon browse of an RLS'd table) and pin its column list with a test, or recreate it `security_invoker` with the policies it needs.
+- [ ] **Q183 Trust tuning (from TODO.md F-TRUST-02/03, auto-restrict, fraud).** A spelled-number evasion heuristic for the off-platform scanner; the fixed 2-flag/24h auto-suspend → warn-first; check whether `cash` tokens over-fire; retune the 1/2/3 auto-restrict ladder after 2-3 weeks of real data; fraud signals beyond burst-job. Post-launch data needed for the tuning half.
+- [ ] **Q184 Code health (from TODO.md).** `any` in non-test src/: 164 on 2026-09-23 (was 385), burn down money/auth paths first; keep extracting god components; move Profile/Dashboard/Messages to `useProfile()` (0 call sites today); raise test coverage; fix `~/.npm/_cacache` ownership on the dev box.
+- [ ] **Q185 OWNER launch-store tasks (from TODO.md).** App Store metadata refresh (docs/APP_STORE_REVIEW_SUBMISSION.md) and the review submission when the owner says go; logo uploads to Stripe branding, the Google OAuth consent screen and Gmail sender avatar (docs/LOGO_UPDATE_RUNBOOK.md); revoke the old GitHub PAT `claude-cli-codeql-fixes-2026-05-11`; Stripe DNS records for branded receipts; notification copy decisions; real name vs first-name+initial display (`formatName()`); paste the 5 Sentry alert rules.
+- [ ] **Q186 Native polish (from TODO.md).** Alternate app icon for small notification thumbnails (rasterise with scripts/generate-ios-icons.mjs, add to Xcode); Apple Sign-In native iOS rewire (re-check whether it shipped before starting); Leaflet → Apple MapKit spike (F-PERF-02; owner roadmap picked MapKit).
+- [ ] **Q187 Post-launch product ideas (from TODO.md).** BusinessTeam seats/roles/invoicing; recurring job templates; notification cadence review of sweep-daily-job-digest. Ideas, not defects; feed them to Q19 (lh-suggester).
 - [x] **Q85 DONE 2026-09-23: every superseded handoff memory (29 files) now opens with "SUPERSEDED: history only; open work lives ONLY in docs/OPEN.md"; the 2026-09-23 START-HERE handoff already points only to OPEN.md. NO-GUARD: memory lives outside the repo, so no CI check can read it; the rule is in CLAUDE.md ("docs/OPEN.md is the only open-work list") and the brief. Was:** Handoffs POINT to docs/OPEN.md (Q58d, split out 2026-09-23).
   Handoff memories under ~/.claude/projects/.../memory still carry their own
   open lists. Each should say "open work: docs/OPEN.md (Everything-open block

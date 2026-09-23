@@ -17,7 +17,7 @@
  * Nothing regenerated `public/sitemap.xml` from the route table, so it drifted
  * from the app in both directions: it advertised `/subscription` long after
  * that route was deleted (crawlers got the 404 page; the real screen is
- * `/profile?tab=subscription`), and TODO.md F-SEO-01 tracks public pages that
+ * `/profile?tab=subscription`), and docs/archive/TODO-2026-08-31.md F-SEO-01 tracks public pages that
  * were never added. Hand-maintenance is the defect — this derives the list.
  *
  * `src/App.tsx` is read ONLY. This script never modifies application source.

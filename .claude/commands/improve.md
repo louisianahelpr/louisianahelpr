@@ -84,7 +84,7 @@ instead of fighting them.
 
 - Write the full plan to **`docs/SCREEN_IMPROVEMENT_PLAN.md`** (Phase 0 reference, screen cards,
   consistency sweep, IA pass, sequenced roadmap).
-- **Append the roadmap** to `TODO.md`.
+- **Add each roadmap item as a queue line** in `docs/OPEN.md` (the only open-work list).
 
 This is a planning/proposal pass — it writes docs, it does not refactor code. When the user later picks
 items to implement: commit directly to `main` (per CLAUDE.md — this file used to say "branch + PR,

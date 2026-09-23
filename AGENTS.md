@@ -265,7 +265,5 @@ that persists across sessions. Brand restraint, OAuth client IDs,
 pending action items live there. Don't restate that memory in this
 file — read it at session start.
 
-Project-scoped state lives in `TODO.md`. Keep the "Where We Left
-Off — YYYY-MM-DD" block at the top current. Older blocks below
-the line are historical session notes — don't re-read top to bottom
-unless looking up history.
+Project-scoped open work lives ONLY in `docs/OPEN.md` (TODO.md was
+retired 2026-09-23; its history is docs/archive/TODO-2026-08-31.md).

@@ -106,7 +106,7 @@ END
 $function$;
 `);
 
-// Real definitions: the 17 allow functions plus the helpers they call.
+// Real definitions: every allow function (17 on 2026-09-23) plus the helpers they call.
 const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job", "can_send_message_to_in_job",
   "check_dispute_velocity", "credential_document_path_ok", "dispute_evidence_url_ok", "has_role",
   "helper_credential_document_ok", "helper_has_advanced_analytics", "identity_is_verified", "is_party_to_job",

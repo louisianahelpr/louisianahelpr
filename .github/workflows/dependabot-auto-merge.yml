@@ -1,0 +1,64 @@
+name: Dependabot auto-merge
+
+# Q312 (docs/OPEN.md): dependency-bump PRs (dependabot, weekly;
+# .github/dependabot.yml) must pass lint AND typecheck before they
+# auto-merge.
+#
+# Measured 2026-09-23: main's branch protection only requires three checks
+# (Playwright happy-path smoke, Playwright mobile viewports, Vitest unit
+# tests) — "Lint, type-check, build, test" (test.yml, which runs `npm run
+# lint` + `npx tsc -b --noEmit`) is NOT in that list. No auto-merge existed
+# for dependabot PRs at all: #1653 and #1652 (open) both had
+# autoMergeRequest: null, and both had "Lint, type-check, build, test"
+# failing red. Nothing was gating a merge on it because nothing was merging
+# them automatically in the first place.
+#
+# This workflow is the missing gate. It runs only after the Test workflow
+# (the one running lint + typecheck) finishes, so `gh pr merge --auto` is
+# never even attempted while that job is red — and once it IS success,
+# --auto still leaves GitHub to withhold the actual merge until the
+# required-checks list also goes green. A red lint or typecheck run can
+# never lead to a merge.
+#
+# Deliberately keyed off `workflow_run` (not `pull_request`): a job on the
+# incoming commit's `pull_request` event race can start before Test's
+# conclusion is known. `workflow_run` only fires once Test has a real
+# conclusion.
+
+on:
+  workflow_run:
+    workflows: ["Test"]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  enable-auto-merge:
+    name: Enable auto-merge for the dependabot PR (only once lint+typecheck passed)
+    runs-on: ubuntu-latest
+    # Only proceed when the Test workflow (lint + typecheck + build + vitest)
+    # itself succeeded. A failure, cancellation or skip must never enable
+    # auto-merge.
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    steps:
+      - name: Find the PR this run belongs to, and merge only if it is dependabot's
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          PR_NUMBER=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '.pull_requests[0].number // empty')
+          if [ -z "$PR_NUMBER" ]; then
+            echo "::notice::no PR associated with run $RUN_ID (e.g. a push-triggered run) — nothing to do"
+            exit 0
+          fi
+          AUTHOR=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json author --jq '.author.login')
+          if [ "$AUTHOR" != "dependabot[bot]" ]; then
+            echo "::notice::PR #$PR_NUMBER author is $AUTHOR, not dependabot[bot] — this workflow only auto-merges dependency-bump PRs"
+            exit 0
+          fi
+          echo "Enabling auto-merge for dependabot PR #$PR_NUMBER (Test workflow succeeded on run $RUN_ID)"
+          gh pr merge "$PR_NUMBER" --repo "$REPO" --auto --squash

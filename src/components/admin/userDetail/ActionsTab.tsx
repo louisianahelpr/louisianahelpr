@@ -1,5 +1,5 @@
 import {
-  CheckCircle2, XCircle, Clock, ShieldAlert, ShieldCheck, KeyRound,
+  CheckCircle2, Clock, ShieldAlert, ShieldCheck, KeyRound,
   MessageSquareWarning, History, Trash2, Eye, UserMinus,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -17,17 +17,13 @@ import { logAdminAction } from "@/lib/adminAudit";
 import { toneTextClasses } from "@/components/admin/tones";
 import { RestrictApplicationsDialog } from "../RestrictApplicationsDialog";
 
-type EmailEvent = { event_type: string; email_type: string; created_at: string };
 
 interface ActionsTabProps {
   viewProfile: Profile;
   viewBanStatus: string;
-  emailTracking: EmailEvent[];
   lastLoginSummary: Record<string, string>;
-  approveUser: (profile: Profile) => void;
   unbanUser: (profile: Profile) => void;
   viewHistoryFor: (profile: Profile) => void;
-  setDenyProfile: (profile: Profile | null) => void;
   setBanProfile: (profile: Profile | null) => void;
   setDeleteProfile: (profile: Profile | null) => void;
   setManualVerifyProfile: (profile: Profile | null) => void;
@@ -38,12 +34,9 @@ interface ActionsTabProps {
 export function ActionsTab({
   viewProfile,
   viewBanStatus,
-  emailTracking,
   lastLoginSummary,
-  approveUser,
   unbanUser,
   viewHistoryFor,
-  setDenyProfile,
   setBanProfile,
   setDeleteProfile,
   setManualVerifyProfile,
@@ -66,8 +59,7 @@ export function ActionsTab({
   }, []);
   const isSelf = !!currentAdminId && currentAdminId === viewProfile.user_id;
   const [restrictProfile, setRestrictProfile] = useState<Profile | null>(null);
-  const showApprovedActivityChip = viewProfile.approval_status === "approved"
-    && !["permanently_banned", "temp_banned"].includes(viewBanStatus);
+  const showActivityChip = !["permanently_banned", "temp_banned"].includes(viewBanStatus);
 
   const beginImpersonation = async () => {
     const displayName = formatName(viewProfile.full_name, "User");
@@ -86,20 +78,9 @@ export function ActionsTab({
       <div className="space-y-2">
         <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Account Actions</h4>
         <div className="flex gap-2 flex-wrap">
-          {viewProfile.approval_status === "pending" && (
-            <>
-              <Button variant="outline" className="flex-1 min-w-[140px] text-destructive border-destructive/30 hover:bg-destructive/10"
-                onClick={() => setDenyProfile(viewProfile)}>
-                <XCircle className="w-4 h-4 mr-1" /> Deny
-              </Button>
-              <Button className="flex-1 min-w-[140px]" onClick={() => approveUser(viewProfile)}>
-                <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
-              </Button>
-            </>
-          )}
-          {showApprovedActivityChip && (() => {
-            const opens = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'open');
-            const clicks = emailTracking.filter(t => t.email_type === 'account_approved' && t.event_type === 'click');
+          {/* No Approve / Deny (Q193): every signup is auto-approved and
+              bans are automated. */}
+          {showActivityChip && (() => {
             const hasLoggedIn = !!lastLoginSummary[viewProfile.user_id];
             // The OR that `identity_is_verified(idv_status,
             // stripe_identity_verified)` computes in the database — reading only
@@ -108,15 +89,12 @@ export function ActionsTab({
             const idvVerified = viewProfile.idv_status === 'verified'
               || viewProfile.stripe_identity_verified === true;
             const hasStripe = !!viewProfile.stripe_account_id;
-            const hasOpenedEmail = opens.length > 0 || clicks.length > 0;
-            const isActive = hasLoggedIn || idvVerified || hasStripe || hasOpenedEmail;
+            const isActive = hasLoggedIn || idvVerified || hasStripe;
             const activeLabel = idvVerified
               ? "ID verified"
               : hasLoggedIn
               ? "Active — has logged in"
-              : hasStripe
-              ? "Stripe payout connected"
-              : "Has opened approval email";
+              : "Stripe payout connected";
             return isActive ? (
               <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-primary/5 border border-primary/20 text-ds-11 text-primary font-medium">
                 <CheckCircle2 className="w-3.5 h-3.5" />

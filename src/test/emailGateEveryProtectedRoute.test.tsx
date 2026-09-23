@@ -18,9 +18,23 @@
 // PROVEN RED 2026-09-23: against the pre-fix ProtectedRoute (git HEAD
 // ff4ace98c) 14 of 20 cases failed — every allowPending route (/dashboard,
 // /my-jobs, /my-posts, /messages) and both allowUnapproved routes (/profile,
-// /complete-profile) rendered PROTECTED for an unconfirmed account. The
-// @mutate below (restoring only the allowPending bypass) fails 12.
-// @mutate src/components/ProtectedRoute.tsx | if (!user.email_confirmed_at) { | if (!allowPending && !user.email_confirmed_at) {
+// /complete-profile) rendered PROTECTED for an unconfirmed account. The first
+// registered mutation below (skipping the email gate outright — the
+// allowPending bypass it used to restore no longer exists, Q193) re-opens it.
+// @mutate src/components/ProtectedRoute.tsx | if (!user.email_confirmed_at) { | if (false) {
+//
+// Q193 (owner 2026-09-23): the verify-email destination is /signup-pending,
+// the 3-step "Check Your Email" page — the old /account-pending card was
+// deleted ("no duplicate pages with the same info"). And there is no approval
+// gate: a confirmed, complete account whose approval_status still says
+// `pending` or `denied` is let into EVERY protected route.
+// PROVEN RED 2026-09-23 against HEAD 40fd919ff's ProtectedRoute: 41 of 42
+// failed — all 11 protected routes (and the 4 allowPending ones, twice) sent
+// the unverified account to /account-pending instead of /signup-pending, and
+// all 11 bounced a complete, confirmed account whose approval_status was
+// `pending` or `denied` (22 cases).
+// @mutate src/components/ProtectedRoute.tsx | return <Navigate to="/signup-pending" replace />; | return <Navigate to="/account-pending" replace />;
+// @mutate src/components/ProtectedRoute.tsx | if (isLockedOut(profile.ban_status, profile.auto_suspended_until)) { | if ((profile as { approval_status?: string }).approval_status === "denied") return <Navigate to="/account-denied" replace />; if (isLockedOut(profile.ban_status, profile.auto_suspended_until)) {
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -93,7 +107,7 @@ const renderRoute = (row: RouteRow, profile: Record<string, unknown> | null) => 
             </ProtectedRoute>
           }
         />
-        <Route path="/account-pending" element={<div>VERIFY_EMAIL</div>} />
+        <Route path="/signup-pending" element={<div>VERIFY_EMAIL</div>} />
         <Route path="/complete-profile" element={<div>COMPLETE_PROFILE</div>} />
         <Route path="/login" element={<div>LOGIN</div>} />
       </Routes>
@@ -133,6 +147,30 @@ describe("Q180: the email gate covers EVERY protected route", () => {
       expect(screen.getByText("VERIFY_EMAIL")).toBeTruthy();
     },
   );
+
+  it.each(
+    protectedRoutes.flatMap((r) => [
+      [r.path, "pending", r] as const,
+      [r.path, "denied", r] as const,
+    ]),
+  )("protected route %s admits a confirmed, complete %s account (no approval gate, Q193)", (_path, status, row) => {
+    useCurrentUserMock.mockReturnValue({
+      user: { id: "u1", email: "ok@example.test", email_confirmed_at: "2026-09-01T00:00:00Z" },
+      profile: { ...completeApproved, approval_status: status },
+      isLoading: false,
+      isError: false,
+      refresh: vi.fn(),
+    });
+    render(
+      <MemoryRouter initialEntries={[concrete(row.path)]}>
+        <Routes>
+          <Route path={row.path} element={<ProtectedRoute><div>PROTECTED</div></ProtectedRoute>} />
+          <Route path="*" element={<div>BOUNCED</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("PROTECTED")).toBeTruthy();
+  });
 
   it.each(allowPendingRoutes.map((r) => [r.path, r] as const))(
     "allowPending route %s does not render optimistically while the profile loads",

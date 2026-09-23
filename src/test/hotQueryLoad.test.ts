@@ -176,7 +176,6 @@ function pollers(): Poller[] {
 // @two-way src/test/hotQueryLoad.test.ts:expect(seen).toEqual(
 const KNOWN_NETWORK_POLLERS: Record<string, { ms: number; why: string }> = {
   "components/admin/AdminBroadcasts.tsx refetchInterval": { ms: 15_000, why: "admin console only; React Query pauses it while the tab is hidden" },
-  "pages/AccountPending.tsx setInterval": { ms: 15_000, why: "pending-approval gate screen; one user, only while on that screen" },
   "pages/SignupPending.tsx setInterval": { ms: 5_000, why: "email-verification gate screen; stops on navigate, below the floor on purpose (the user is waiting on it)" },
   "pages/CompleteProfile.tsx setInterval": { ms: 2_500, why: "profile-row retry while a brand-new profile is being created; stops as soon as it exists" },
 };

@@ -1004,8 +1004,10 @@ export const SEED_PROFILES = [
     parish: "Vermilion",
     bio: "Yard work and pressure washing.",
     subscription_tier: "free",
-    approval_status: "denied",
-    denial_reason: "ID photo was unreadable and the name did not match the account.",
+    // Was the "denied" fixture; the denied state was retired in Q193 and
+    // profiles_approval_status_no_denied now refuses it. The failed IDV below
+    // is what still distinguishes this account.
+    approval_status: "approved",
     ban_status: "active",
     idv_status: "failed",
     id_verification_status: "failed",

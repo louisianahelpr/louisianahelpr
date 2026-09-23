@@ -41,8 +41,6 @@ Disallow: /complete-profile
 Disallow: /warnings
 Disallow: /activity
 Disallow: /data-rights
-Disallow: /account-pending
-Disallow: /account-denied
 Disallow: /account-banned
 Disallow: /signup-pending
 Disallow: /forgot-password

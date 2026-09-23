@@ -1436,12 +1436,14 @@ on the way to their first success.
   reaching a public listing, or an AI post that bypasses the edit/consent step, is a
   finding (High if it publishes unmoderated, Medium otherwise).
 - **Account-state gate screens & the route-guard matrix are driven.** Every entry
-  state has its own screen and must render correctly + route onward: `/account-
-  pending` / `/signup-pending` (awaiting approval), `/account-denied`, `/account-
-  banned` (`AccountBanned.tsx`), and `/complete-profile` (must-finish-profile gate).
-  Verify `ProtectedRoute.tsx` + `DashboardStatusBanners.tsx`: an unauthenticated
-  user hitting a protected route is redirected to login (and returned after),
-  a pending/denied/banned account is routed to its gate screen (not the dashboard),
+  state has its own screen and must render correctly + route onward:
+  `/signup-pending` (Check Your Email — every unverified account lands here),
+  `/account-banned` (`AccountBanned.tsx`), and `/complete-profile`
+  (must-finish-profile gate). There is no approval-pending or denied screen
+  (deleted 2026-09-23, Q193: every signup is auto-approved, bans are automated).
+  Verify `ProtectedRoute.tsx`: an unauthenticated user hitting a protected route
+  is redirected to login (and returned after), an unverified account goes to
+  /signup-pending and a banned one to /account-banned (not the dashboard),
   a verified/approved account is NOT trapped on a gate, and the `path="*"` catch-all
   renders a real 404 with full chrome (not a blank). Also drive the Stripe return
   landings — `/payment-success` (and the cancel path) reconcile the order and route

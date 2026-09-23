@@ -998,7 +998,7 @@ async function main() {
        */
       const isBounce = (u) => {
         const x = new URL(u);
-        return /^\/(login|signup|signup-pending|account-pending|account-denied|account-banned|complete-profile)(\/|$)/.test(x.pathname)
+        return /^\/(login|signup|signup-pending|account-banned|complete-profile)(\/|$)/.test(x.pathname)
           || (!x.search && allRoutes.some((r) => r.url === x.pathname && r.personas.includes(persona)));
       };
       const atRest = () => page.url() === restingUrl;

@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { dedupeById, formatName } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { fetchRatingStats } from "@/lib/reviewStats";
@@ -174,17 +173,8 @@ async function fetchDashboardContext(
 }
 
 export function useDashboardData() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, profile, isAdmin, isLoading: userLoading, refresh: refreshCurrentUser } = useCurrentUser();
-
-  // Redirect denied users (non-admin). Pending users stay on the dashboard so
-  // they see the in-page "Profile under review" state with a Check Status
-  // button and realtime updates from useCurrentUser.
-  useEffect(() => {
-    if (userLoading || isAdmin || !profile) return;
-    if (profile.approval_status === "denied") navigate("/account-denied");
-  }, [profile, isAdmin, userLoading, navigate]);
 
   // Lightweight per-user context (settings + availability + applied jobs + blocks).
   // Cached separately so it doesn't re-fetch when the next page of jobs loads.

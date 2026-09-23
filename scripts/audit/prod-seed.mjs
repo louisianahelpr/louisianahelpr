@@ -159,8 +159,10 @@ const HELPER = { email: "helpr-e2e-helper-0902@mailinator.com", key: "helper-e2e
 
 /** Accounts this script owns end to end. Created on --apply, deleted on --teardown. */
 const OWNED = {
-  pending: { email: "helpr-seed-pending-0912@mailinator.com", full_name: "Seed Pending Tester", approval_status: "pending", ban_status: "active" },
-  denied: { email: "helpr-seed-denied-0912@mailinator.com", full_name: "Seed Denied Tester", approval_status: "denied", ban_status: "active", denial_reason: "SEED: ID photo unreadable (audit fixture)." },
+  // `pending` / `denied` are historical KEYS only (their ids are fixture anchors
+  // below): both approval states were retired in Q193, so both are approved.
+  pending: { email: "helpr-seed-pending-0912@mailinator.com", full_name: "Seed Pending Tester", approval_status: "approved", ban_status: "active" },
+  denied: { email: "helpr-seed-denied-0912@mailinator.com", full_name: "Seed Denied Tester", approval_status: "approved", ban_status: "active" },
   banned: { email: "helpr-seed-banned-0912@mailinator.com", full_name: "Seed Banned Tester", approval_status: "approved", ban_status: "permanently_banned" },
   restricted: { email: "helpr-seed-restricted-0912@mailinator.com", full_name: "Seed Restricted Tester", approval_status: "approved", ban_status: "temp_banned" },
   // Profile deliberately INCOMPLETE (no avatar, not legacy) so /complete-profile

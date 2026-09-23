@@ -86,10 +86,11 @@ describe("normal seed", () => {
     expect(months.size).toBeGreaterThanOrEqual(3);
   });
 
-  it("has accounts pending, denied and banned, with and without Stripe, and IDV unverified", () => {
+  it("has accounts pending and banned, with and without Stripe, and IDV unverified — and none denied (Q193)", () => {
     const p = seed.SEED_TABLES.profiles as R[];
     expect(p.some((x) => x.approval_status === "pending")).toBe(true);
-    expect(p.some((x) => x.approval_status === "denied")).toBe(true);
+    // The denied state was retired (Q193); the DB CHECK now refuses it.
+    expect(p.some((x) => x.approval_status === "denied")).toBe(false);
     expect(p.some((x) => String(x.ban_status).includes("banned"))).toBe(true);
     expect(p.some((x) => x.stripe_account_id)).toBe(true);
     expect(p.some((x) => x.stripe_account_id === null)).toBe(true);

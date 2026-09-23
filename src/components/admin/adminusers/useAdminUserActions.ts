@@ -8,8 +8,6 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
-import { createNotification } from "@/lib/notifications";
-import { logAdminAction } from "@/lib/adminAudit";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import type { Profile } from "../adminUserHelpers";
@@ -27,107 +25,10 @@ export const makeAdminUserActions = ({
   setViewProfile,
   setResending,
 }: ActionDeps) => {
-  const approveUser = async (profile: Profile) => {
-    // .select("id"): approval is the gate between "can't use the platform" and
-    // "can". A zero-row update returns error === null, and this used to go on
-    // to email the user that they were approved when nothing had changed.
-    let approved = true;
-    try {
-      unwrapMutation(
-        await supabase.from("profiles").update({
-          approval_status: "approved",
-          approval_email_count: 1,
-          last_approval_email_at: new Date().toISOString(),
-          // Clear denial info so re-approved users are fully removed from the Denied tab
-          denial_reason: null,
-          denial_email_count: 0,
-          last_denial_email_at: null,
-        }).eq("id", profile.id).select("id"),
-        {
-          action: "approve this account",
-          rejectedMessage: "This account wasn't approved — nothing was changed. Check your admin permissions and try again.",
-          context: { profileId: profile.id, targetUserId: profile.user_id },
-        },
-      );
-    } catch (err) {
-      approved = false;
-      toast.error(mutationErrorMessage(err, "Couldn't approve that account — try again."));
-    }
-    if (approved) {
-      await logAdminAction("approve_user", "user", profile.user_id, { name: profile.full_name });
-      await createNotification({
-        user_id: profile.user_id, title: "Account approved!",
-        message: "Your account has been approved. You can now use the platform.",
-        type: "success", link: "/dashboard",
-      });
-      // Send approval email
-      supabase.functions.invoke("send-account-status-email", {
-        body: { userId: profile.user_id, status: "approved" },
-      }).catch((err) => report(err, { tags: { source: "AdminUsers.sendApprovalEmail" } }));
-      loadProfiles();
-      setViewProfile(null);
-    }
-  };
-
-  const resendApprovalEmail = async (profile: Profile) => {
-    setResending(profile.id);
-    try {
-      const { error } = await supabase.functions.invoke("send-account-status-email", {
-        body: { userId: profile.user_id, status: "approved" },
-      });
-      if (error) throw error;
-
-      try {
-        unwrapMutation(
-          await supabase.from("profiles").update({
-            approval_email_count: (profile.approval_email_count || 0) + 1,
-            last_approval_email_at: new Date().toISOString(),
-          }).eq("id", profile.id).select("id"),
-          { action: "record the approval-email resend" },
-        );
-      } catch (countErr) {
-        report(countErr, { tags: { source: "AdminUsers.resendApprovalEmail.count" } });
-      }
-
-      loadProfiles();
-    } catch (err: any) {
-      toast.error("Couldn't resend that email — try again.");
-      report(err, { tags: { source: "AdminUsers.resendApprovalEmail" } });
-    } finally {
-      setResending(null);
-    }
-  };
-
-  const resendDenialEmail = async (profile: Profile) => {
-    setResending(profile.id);
-    try {
-      const { error } = await supabase.functions.invoke("send-account-status-email", {
-        body: { userId: profile.user_id, status: "denied", reason: profile.denial_reason || "" },
-      });
-      if (error) throw error;
-
-      // Update count
-      try {
-        unwrapMutation(
-          await supabase.from("profiles").update({
-            denial_email_count: (profile.denial_email_count || 0) + 1,
-            last_denial_email_at: new Date().toISOString(),
-          }).eq("id", profile.id).select("id"),
-          { action: "record the denial-email resend" },
-        );
-      } catch (countErr) {
-        report(countErr, { tags: { source: "AdminUsers.resendDenialEmail.count" } });
-      }
-
-      loadProfiles();
-    } catch (err: any) {
-      toast.error("Couldn't resend that email — try again.");
-      report(err, { tags: { source: "AdminUsers.resendDenialEmail" } });
-    } finally {
-      setResending(null);
-    }
-  };
-
+  // approveUser / resendApprovalEmail / resendDenialEmail were removed with
+  // the approval states (Q193, owner 2026-09-23): every signup is
+  // auto-approved and bans are automated, so there is nothing to approve or
+  // deny and no approval/denial email to send.
   const resendVerificationEmail = async (profile: Profile) => {
     setResending(profile.id);
     try {
@@ -234,5 +135,5 @@ export const makeAdminUserActions = ({
     setViewProfile(null);
   };
 
-  return { approveUser, resendApprovalEmail, resendDenialEmail, resendVerificationEmail, unbanUser };
+  return { resendVerificationEmail, unbanUser };
 };

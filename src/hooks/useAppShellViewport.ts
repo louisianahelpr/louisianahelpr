@@ -31,14 +31,10 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/signup",
   "/signup-pending",
   "/complete-profile",
-  // /account-pending renders via AuthShell (`min-h-screen` document scroll),
-  // unified with the other three account-state screens. Its verification
-  // center (hero + progress + 4-step checklist + banner + actions) can
-  // exceed the viewport on small devices, so it must be ON this list — off
-  // it, `html.app-shell { overflow: hidden }` would clip the actions below
-  // the fold and strand the user.
-  "/account-pending",
-  "/account-denied",
+  // /account-banned renders via AuthShell (`min-h-screen` document scroll),
+  // like /signup-pending above; off this list `html.app-shell { overflow:
+  // hidden }` would clip its actions below the fold. (/account-pending and
+  // /account-denied were here until Q193 deleted them.)
   "/account-banned",
   "/forgot-password",
   "/reset-password",

@@ -52,11 +52,13 @@ bottom-nav clearance. Never re-implement those — build on `AppShell`.
   (`src/components/ui/PageScaffold.tsx`) when you want its two-card layout
   (Dashboard, Activity, Messages list, guest dashboard). `PageScaffold` is a
   *thin wrapper over `AppShell`* — it adds only the title-card + bleeding
-  panel, never its own viewport lock. The four account-state screens
-  (SignupPending, AccountPending, AccountDenied, AccountBanned) are the
-  exception: they use `AuthShell`'s centered-card treatment, not `AppShell`
-  (`AccountPending.tsx:9`, `:212`, and the comment at `:208` explaining the
-  unification). This line used to name AccountPending as an `AppShell` page.
+  panel, never its own viewport lock. The account-state screens
+  (SignupPending, AccountBanned) are the exception: they use `AuthShell`'s
+  centered-card treatment, not `AppShell`. There were four until 2026-09-23,
+  when the owner deleted AccountPending and AccountDenied with their states
+  (Q193: every signup is auto-approved, bans are automated, and unverified
+  users land on SignupPending's "Check Your Email" page). This line once named
+  AccountPending as an `AppShell` page.
 - **Document-scroll pages** — long-form / tall content that scrolls the
   document (legal, marketing, multi-step forms, Profile/Activity tab pages).
   Use a plain `min-h-screen bg-premium-page pb-safe-nav` wrapper (with

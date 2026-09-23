@@ -47,7 +47,7 @@ export const rightItems = [
   { path: "/profile", icon: UserRound, label: "Profile" },
 ];
 
-export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs/", "/browse", "/account-pending", "/saved-helprs", "/saved-helpers",
+export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs/", "/browse", "/saved-helprs", "/saved-helpers",
   // Standalone settings sub-pages keep the bottom tab bar so they share the
   // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
   // "/benefits" left this list 2026-08-31 with the page itself — the route is
@@ -83,7 +83,7 @@ export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/
 // /admin is a distinct console shell (its own full-height layout, header,
 // back button, and logout) — the consumer Posts/Jobs/Messages/Profile bar
 // doesn't belong there, so it's a no-nav page, not an auth tab route.
-export const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/account-denied", "/admin"];
+export const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/admin"];
 
 // Map each tab root to sub-routes that belong to its stack.
 // Tapping the tab while inside one of these returns the user to the tab root.

@@ -21,8 +21,9 @@ import { safeInternalRedirect } from "@/lib/authRedirects";
  *
  * Consumed at THREE points. Two are "the moment a session first exists" —
  * Login's post-sign-in redirect and Signup's already-authenticated bounce.
- * The third is not: AccountPending spends the stored `?redirect=` target when
- * an ALREADY signed-in pending account is approved. That consumer was added
+ * The third is not: SignupPending spends the stored `?redirect=` target when
+ * an ALREADY signed-in account's email confirmation lands (it was
+ * AccountPending until Q193 deleted that screen). That consumer was added
  * later, and this said "exactly two points" until 2026-09-10. Reading is destructive (`takeJobIntent`) so a
  * stale intent can never hijack a later, unrelated sign-in.
  */

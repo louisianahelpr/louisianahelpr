@@ -21,25 +21,16 @@ const DEBUG_AUTH =
 interface ProtectedRouteProps {
   children: React.ReactNode;
   /**
-   * Bypasses the approval gate — pending *and* denied users are let through.
-   * Used for routes that an account in any approval state must be able to
-   * reach (e.g. /complete-profile, /profile). It does NOT bypass the email
-   * gate: nobody enters the app until their email is verified (Q180).
+   * RETIRED (Q193, owner 2026-09-23): there is no approval gate any more —
+   * every signup is auto-approved and bans are automated, so the pending and
+   * denied screens were deleted. This prop and `allowPending` are accepted and
+   * IGNORED so the route table in App.tsx (edited by a parallel lane at the
+   * time) did not have to change in the same commit; stripping them from
+   * App.tsx is queued in docs/OPEN.md. Neither ever bypasses the email gate
+   * (Q180) or the ban gate.
    */
   allowUnapproved?: boolean;
-  /**
-   * Progressive activation: lets `pending` users reach the route so they can
-   * browse, save and apply during the review window — without dropping the
-   * `denied` redirect. `denied` and banned users are still bounced exactly as
-   * strictly as before. Verification gates that genuinely require it
-   * (IDV-before-accept in Activity.tsx, payout setup) live in the page
-   * components, not here, so they remain fully enforced for pending users.
-   *
-   * It does NOT let an email-unconfirmed user in. It used to (the email gate
-   * was skipped for `allowPending`), which contradicted the owner's rule
-   * (2026-09-23, Q180): "they can't enter until they verify email". Pinned by
-   * src/test/emailGateEveryProtectedRoute.test.tsx.
-   */
+  /** RETIRED (Q193) — see `allowUnapproved`. Accepted and ignored. */
   allowPending?: boolean;
   /**
    * Fallback rendered during the "session not known yet" window below.
@@ -152,8 +143,6 @@ export const isProfileComplete = (profile: GateProfile | null): boolean => {
 
 const ProtectedRoute = ({
   children,
-  allowUnapproved = false,
-  allowPending = false,
   fallback = <RouteSuspenseFallback />,
 }: ProtectedRouteProps) => {
   const { user, profile, isLoading, isError, refresh } = useCurrentUser();
@@ -175,9 +164,8 @@ const ProtectedRoute = ({
       hasUser: !!user,
       userId: user?.id ?? null,
       hasProfile: !!profile,
-      allowUnapproved,
     });
-  }, [allowUnapproved, isLoading, location.pathname, profile, user?.id]);
+  }, [isLoading, location.pathname, profile, user?.id]);
 
   // Block ONLY on the session being unknown. Once we have a `user` (the
   // session resolved), render children optimistically and let the profile
@@ -377,17 +365,11 @@ const ProtectedRoute = ({
       if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-banned", reason: profile.ban_status });
       return <Navigate to="/account-banned" replace />;
     }
-
-    if (!allowUnapproved) {
-      // `denied` is a hard stop on every non-`allowUnapproved` route. It is
-      // NOT relaxed by `allowPending` — progressive activation only opens
-      // the app for users still inside the verification window, never for
-      // those who have already been rejected.
-      if (profile.approval_status === "denied") {
-        if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-denied", reason: "approval-denied" });
-        return <Navigate to="/account-denied" replace />;
-      }
-    }
+    // No approval gate (Q193, owner 2026-09-23): every signup is
+    // auto-approved and bans are automated, so `approval_status` routes
+    // nobody anywhere. The pending and denied screens were deleted; a ban is
+    // the only account state with a screen of its own. Pinned by
+    // src/test/retiredAccountStateScreens.test.ts.
   }
 
   // Stage 1: Email verification (auth user is the source of truth), on EVERY
@@ -402,42 +384,28 @@ const ProtectedRoute = ({
   // still in flight: the optimistic render below must never show an
   // unconfirmed account the app for a beat. It stays AHEAD of the
   // completeness gate, because until the address is confirmed there is
-  // nothing productive to send the user to, and /account-pending's
-  // unconfirmed variant is the screen that helps them (it holds Resend).
+  // nothing productive to send the user to, and /signup-pending is the
+  // screen that helps them: the 3-step "Check Your Email" page, which names
+  // their address, holds Resend, and refreshes the session so a link clicked
+  // on another device lets this tab in (Q193 — it replaced the old
+  // /account-pending card; owner: "no duplicate pages with the same info").
   //
   // Server-side, Supabase Auth "confirm email" is on (`mailer_autoconfirm:
   // false` from /auth/v1/settings, measured 2026-09-23), so a password
   // sign-in for an unconfirmed address gets no session at all; this gate is
   // the client half of the same rule, for any session that arrives otherwise.
   if (!user.email_confirmed_at) {
-    if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "email-unconfirmed" });
-    return <Navigate to="/account-pending" replace />;
+    if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/signup-pending", reason: "email-unconfirmed" });
+    return <Navigate to="/signup-pending" replace />;
   }
 
   if (profile) {
 
     // Stage 2: Universal "Big 7" verification gate.
     // Legacy users (created before the cutoff) bypass the gate entirely.
-    //
-    // ORDER MATTERS, AND IT USED TO BE WRONG. This gate ran AFTER the
-    // `approval_status === "pending"` bounce below, so a user whose profile
-    // was incomplete AND still pending — the exact state left behind when
-    // `complete-signup` fails partway through `Signup.tsx`, or when an
-    // account is created outside the signup form — was sent to
-    // /account-pending from every route instead of to the one screen that
-    // could fix them. /account-pending then told them "Our team is reviewing
-    // your credentials" and showed "Final admin review — Waiting", about a
-    // review that does not exist: `complete-signup` sets `approved`
-    // unconditionally, and prod holds 30/30 approved and 0 ever pending
-    // (verified 2026-09-01). It offers no link to /complete-profile, and
-    // `cleanup-abandoned-accounts` deletes a still-`pending` account at day
-    // 30 with no warning email. The only way out was the "Explore Jobs While
-    // You Wait" button, whose destination (/dashboard) happens to be
-    // `allowPending` and therefore falls through to this gate by accident.
-    //
-    // An incomplete profile is a thing the USER can fix, so it is now
-    // answered before any queue-shaped screen. `pending` is checked after,
-    // and only for a profile that is already complete.
+    // (History: this gate once ran AFTER an `approval_status === "pending"`
+    // bounce, trapping half-onboarded users on a review screen for a review
+    // that did not exist. That bounce and its screen are gone — Q193.)
     const isLegacy = profile.is_legacy_user === true;
     if (
       !isLegacy &&
@@ -458,14 +426,6 @@ const ProtectedRoute = ({
           ? `/complete-profile?next=${encodeURIComponent(intended)}`
           : "/complete-profile";
       return <Navigate to={to} replace />;
-    }
-
-    // Stage 3: approval still pending. Reached only by an account whose
-    // profile IS complete (Stage 2 above catches the rest), so the screen it
-    // lands on is genuinely "waiting on us", not "waiting on you".
-    if (!allowUnapproved && !allowPending && profile.approval_status === "pending") {
-      if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "approval-pending" });
-      return <Navigate to="/account-pending" replace />;
     }
   }
 

@@ -66,8 +66,7 @@ const NEVER_RESTORE = [
   "/forgot-password",
   "/reset-password",
   "/complete-profile",
-  "/account-pending",
-  "/account-denied",
+  "/signup-pending",
   "/account-banned",
   "/payment-success",
 ];

@@ -167,8 +167,6 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "forgot-password", url: "/forgot-password" },
   { name: "reset-password", url: "/reset-password" },
   { name: "signup-pending", url: "/signup-pending" },
-  { name: "account-pending", url: "/account-pending" },
-  { name: "account-denied", url: "/account-denied" },
   { name: "account-banned", url: "/account-banned" },
   { name: "legal-terms", url: "/legal?tab=terms" },
   { name: "legal-privacy", url: "/legal?tab=privacy" },

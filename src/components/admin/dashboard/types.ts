@@ -1,5 +1,5 @@
 export interface Stats {
-  totalUsers: number; pendingApprovals: number; openReports: number;
+  totalUsers: number; openReports: number;
   supportTickets: number; activeJobs: number; completedJobs: number;
   totalRevenue: number; totalFees: number;
   disputedJobs: number; activeSubscriptions: number;

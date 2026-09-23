@@ -32,7 +32,7 @@
  *   unmatched -> OPENS SAFARI. Every row here is a deep link that misses.
  *
  * An `unmatched` row is not automatically a bug — /reset-password and
- * /account-pending are unmatched ON PURPOSE (their session arrives in the URL
+ * /signup-pending are unmatched ON PURPOSE (their session arrives in the URL
  * fragment, which src/lib/deepLinkRoute.ts drops, so claiming them would
  * strand the user). But every unmatched shape must be a decision someone
  * made, not a shape nobody noticed.

@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { safeStorage } from "@/lib/safeStorage";
 import { VirtualList } from "@/components/VirtualList";
 import { AutoRestrictedRail } from "./AutoRestrictedRail";
-import { DenyUserDialog } from "./DenyUserDialog";
 import { BanDialog } from "./BanDialog";
 import { DeleteUserDialog } from "./DeleteUserDialog";
 import { EditEmailDialog } from "./EditEmailDialog";
@@ -42,14 +41,16 @@ const AdminUsers = () => {
   // stepped out of Users entirely instead of back a tab, and a filtered list
   // could not be linked to anyone. `tab` is re-derived from searchParams every
   // render, so back/forward and deep links all resolve through one path.
-  const TABS: Tab[] = ["pending", "awaiting_email", "approved", "denied", "banned", "all"];
+  // No Pending / Denied tabs (Q193): approval review was retired, so "All"
+  // is the landing tab. An old `?tab=pending` link resolves to it too.
+  const TABS: Tab[] = ["all", "approved", "awaiting_email", "banned"];
   const rawTab = searchParams.get("tab");
-  const tab: Tab = (TABS as string[]).includes(rawTab ?? "") ? (rawTab as Tab) : "pending";
+  const tab: Tab = (TABS as string[]).includes(rawTab ?? "") ? (rawTab as Tab) : "all";
   const setTab = (next: Tab) => {
     const params = new URLSearchParams(searchParams);
-    // "pending" is the default, so it stays out of the URL rather than
+    // "all" is the default, so it stays out of the URL rather than
     // decorating every link with the value it would have had anyway.
-    if (next === "pending") params.delete("tab");
+    if (next === "all") params.delete("tab");
     else params.set("tab", next);
     setSearchParams(params, { replace: true });
   };
@@ -69,11 +70,6 @@ const AdminUsers = () => {
   // Jobs history (worked as helper + posted as customer) — the Jobs-tab
   // filter/sort state lives inside AdminUserDetailDialog now.
   const [profileJobs, setProfileJobs] = useState<any[]>([]);
-
-  // Deny dialog — moved into DenyUserDialog component. Parent only
-  // tracks "which profile is being denied right now"; the dialog
-  // owns reason + saving state internally.
-  const [denyProfile, setDenyProfile] = useState<Profile | null>(null);
 
   // Ban dialog — moved into BanDialog component. Parent only tracks
   // which profile is targeted; dialog owns type/reason/duration/saving.
@@ -208,7 +204,7 @@ const AdminUsers = () => {
   const [resending, setResending] = useState<string | null>(null);
 
   // Action callbacks — extracted into makeAdminUserActions
-  const { approveUser, resendApprovalEmail, resendDenialEmail, resendVerificationEmail, unbanUser } =
+  const { resendVerificationEmail, unbanUser } =
     makeAdminUserActions({ loadProfiles, setViewProfile, resending, setResending });
 
   const viewHistoryFor = (profile: Profile) => {
@@ -243,26 +239,22 @@ const AdminUsers = () => {
   }, [tab, profiles.length, loading]);
 
   // Tab counts — extracted into getTabCounts
-  const { pendingCount, awaitingEmailCount, bannedCount, approvedCount, deniedCount, allCount } =
+  const { awaitingEmailCount, bannedCount, approvedCount, allCount } =
     getTabCounts(profiles, isUnseen);
 
   if (loading) return <p className="text-muted-foreground">Loading users…</p>;
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "pending", label: "Pending", count: pendingCount },
-    { key: "awaiting_email", label: "Email", count: awaitingEmailCount },
-    { key: "approved", label: "Active", count: approvedCount },
-    { key: "banned", label: "Banned", count: bannedCount },
-    { key: "denied", label: "Denied", count: deniedCount },
     { key: "all", label: "All", count: allCount },
+    { key: "approved", label: "Active", count: approvedCount },
+    { key: "awaiting_email", label: "Email", count: awaitingEmailCount },
+    { key: "banned", label: "Banned", count: bannedCount },
   ];
 
   const tabCountLabel: Record<Tab, string> = {
-    pending: "pending",
     awaiting_email: "pending email verification",
     approved: "active",
     banned: "banned",
-    denied: "denied",
     all: "total",
   };
 
@@ -444,30 +436,15 @@ const AdminUsers = () => {
         emailSendStats={emailSendStats}
         lastLoginSummary={lastLoginSummary}
         resending={resending}
-        loadProfiles={loadProfiles}
-        approveUser={approveUser}
-        resendApprovalEmail={resendApprovalEmail}
-        resendDenialEmail={resendDenialEmail}
         resendVerificationEmail={resendVerificationEmail}
         unbanUser={unbanUser}
         viewHistoryFor={viewHistoryFor}
         setEditEmailProfile={setEditEmailProfile}
-        setDenyProfile={setDenyProfile}
         setBanProfile={setBanProfile}
         setDeleteProfile={setDeleteProfile}
         setManualVerifyProfile={setManualVerifyProfile}
         setWarningProfile={setWarningProfile}
         setResetPwProfile={setResetPwProfile}
-      />
-
-      {/* Deny Reason Dialog */}
-      <DenyUserDialog
-        profile={denyProfile}
-        onClose={() => setDenyProfile(null)}
-        onSuccess={() => {
-          loadProfiles();
-          setViewProfile(null);
-        }}
       />
 
       {/* Ban / Warning Dialog */}

@@ -6,9 +6,14 @@
  * refactor.
  */
 import type { Profile } from "../adminUserHelpers";
-import { isPendingReview, isAwaitingEmail } from "../adminUserHelpers";
+import { isAwaitingEmail } from "../adminUserHelpers";
 
-export type Tab = "pending" | "awaiting_email" | "approved" | "denied" | "banned" | "all";
+// No "pending" / "denied" tabs: approval review was retired in Q193 (owner,
+// 2026-09-23). "approved" (labelled Active) = email confirmed and not banned.
+export type Tab = "awaiting_email" | "approved" | "banned" | "all";
+
+const isBanned = (p: Profile) => ["temp_banned", "permanently_banned"].includes(p.ban_status || "");
+const isActive = (p: Profile) => !isAwaitingEmail(p) && !isBanned(p);
 export type SortDir =
   | "desc"
   | "asc"
@@ -42,11 +47,9 @@ export const filterAndSortProfiles = ({
 }: FilterDeps): Profile[] => {
   return profiles.filter((p) => {
     // Tab filter
-    if (tab === "pending" && !isPendingReview(p)) return false;
-    else if (tab === "awaiting_email" && !isAwaitingEmail(p)) return false;
-    else if (tab === "approved" && !(p.approval_status === "approved" && !["temp_banned", "permanently_banned"].includes(p.ban_status || ""))) return false;
-    else if (tab === "denied" && (p.approval_status !== "denied" || (p as { role?: string }).role === "customer")) return false;
-    else if (tab === "banned" && !["temp_banned", "permanently_banned"].includes(p.ban_status || "")) return false;
+    if (tab === "awaiting_email" && !isAwaitingEmail(p)) return false;
+    else if (tab === "approved" && !isActive(p)) return false;
+    else if (tab === "banned" && !isBanned(p)) return false;
 
     // Multi-field search — name, email (with fuzzy match), and phone.
     // The job-UUID lookup is handled one layer up (in AdminUsers) so it
@@ -143,21 +146,10 @@ export const getTabCounts = (
   profiles: Profile[],
   isUnseen: (p: Profile) => boolean,
 ) => {
-  const pendingCount = profiles.filter((p) => isPendingReview(p)).length;
   const awaitingEmailCount = profiles.filter((p) => isAwaitingEmail(p)).length;
-  const bannedCount = profiles.filter(
-    (p) => ["temp_banned", "permanently_banned"].includes(p.ban_status || "") && isUnseen(p),
-  ).length;
-  const approvedCount = profiles.filter(
-    (p) =>
-      p.approval_status === "approved" &&
-      !["temp_banned", "permanently_banned"].includes(p.ban_status || "") &&
-      isUnseen(p),
-  ).length;
-  const deniedCount = profiles.filter(
-    (p) => p.approval_status === "denied" && isUnseen(p),
-  ).length;
+  const bannedCount = profiles.filter((p) => isBanned(p) && isUnseen(p)).length;
+  const approvedCount = profiles.filter((p) => isActive(p) && isUnseen(p)).length;
   const allCount = profiles.filter(isUnseen).length;
 
-  return { pendingCount, awaitingEmailCount, bannedCount, approvedCount, deniedCount, allCount };
+  return { awaitingEmailCount, bannedCount, approvedCount, allCount };
 };

@@ -287,15 +287,13 @@ const openPendingApplicationEdit = async (page: Page) => {
 };
 
 /**
- * Seeded, `is_seed=true` admin-console test subjects distinct from the
+ * Seeded, `is_seed=true` admin-console test subject distinct from the
  * shared poster/helper/admin accounts (scripts/audit/prod-seed.mjs `OWNED`):
- * one held `approval_status: "pending"` (for Deny, which only renders on a
- * pending profile) and one held two real `user_violations` rows (for
- * "Reverse this strike", which only renders on a profile with one). Neither
- * is ever the account these sweeps sign in as — only the admin console's
- * SEARCH target.
+ * it holds two real `user_violations` rows (for "Reverse this strike", which
+ * only renders on a profile with one). It is never the account these sweeps
+ * sign in as — only the admin console's SEARCH target. (A pending tester for
+ * the Deny dialog lived here until Q193 removed approval/deny.)
  */
-const SEED_PENDING_EMAIL = "helpr-seed-pending-0912@mailinator.com";
 const SEED_BANNED_EMAIL = "helpr-seed-banned-0912@mailinator.com";
 
 /**
@@ -541,13 +539,6 @@ export const FORMS: FormSpec[] = [
     name: "admin-ban-dialog", url: "/admin?view=people&tab=all", as: "admin",
     prepare: async (page) => { await openAdminUserAction(emailFor("poster"), /suspend\s*\/\s*ban/i)(page); },
     covers: ["src/components/admin/BanDialog.tsx"],
-  },
-  {
-    // Deny only renders on a profile with approval_status "pending" — the
-    // seed-owned pending tester, never the shared (already-approved) accounts.
-    name: "admin-deny-dialog", url: "/admin?view=people&tab=all", as: "admin",
-    prepare: openAdminUserAction(SEED_PENDING_EMAIL, /^deny$/i),
-    covers: ["src/components/admin/DenyUserDialog.tsx"],
   },
   {
     name: "admin-formal-warning", url: "/admin?view=people&tab=all", as: "admin",

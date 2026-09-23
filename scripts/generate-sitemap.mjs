@@ -69,8 +69,6 @@ const NOINDEX = {
   "/signup": "auth entry point, not indexable content",
   "/signup-pending": "post-signup interstitial; meaningless without the signup that preceded it",
   "/complete-profile": "onboarding step; requires a half-finished session",
-  "/account-pending": "account-state screen; only meaningful for one specific signed-in user",
-  "/account-denied": "account-state screen",
   "/account-banned": "account-state screen",
   "/forgot-password": "transactional auth step, reached from /login",
   "/reset-password": "consumes a one-time token from an email; no canonical URL",

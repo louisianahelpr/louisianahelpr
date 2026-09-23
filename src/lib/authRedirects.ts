@@ -41,6 +41,16 @@ export const getPublicOrigin = (): string => {
     : getPublicSiteUrl();
 };
 
+/**
+ * Where the signup-confirmation link lands: `/signup-pending`, the 3-step
+ * "Check Your Email" page. It is public (no ProtectedRoute to bounce a
+ * still-arriving session to /login), supabase-js consumes the session in the
+ * URL fragment on load, and the page's poll then sends the confirmed user
+ * into the app. ONE definition for Signup's first email and every resend
+ * (Q193: it was `/account-pending`, a screen that no longer exists).
+ */
+export const getSignupConfirmRedirect = (): string => `${getPublicOrigin()}/signup-pending`;
+
 export const getPublicReturnUrl = (): string => {
   if (typeof window === "undefined") return getPublicSiteUrl();
 

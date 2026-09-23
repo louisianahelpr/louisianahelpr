@@ -35,7 +35,6 @@ const PAGES: [string, string][] = [
   ["@/pages/Support", "Support"],
   ["@/pages/Login", "Login"],
   ["@/pages/Signup", "Signup"],
-  ["@/pages/AccountPending", "AccountPending"],
   ["@/pages/UserProfile", "UserProfile"],
   ["@/pages/DashboardGuest", "DashboardGuest"],
   ["@/pages/Legal", "Legal"],

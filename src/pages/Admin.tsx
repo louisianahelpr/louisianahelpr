@@ -121,7 +121,7 @@ const Admin = () => {
   const [notifLogsInitialSearch, setNotifLogsInitialSearch] = useState<string>("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [stats, setStats] = useState<Stats>({
-    totalUsers: 0, pendingApprovals: 0, openReports: 0, supportTickets: 0,
+    totalUsers: 0, openReports: 0, supportTickets: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
     disputedJobs: 0, activeSubscriptions: 0, lateCancellationRevenue: 0,
     newUsersInRange: 0, newUsersPrev: 0, revenueInRange: 0, revenuePrev: 0,
@@ -159,10 +159,8 @@ const Admin = () => {
     // gone on counting them, so admin would be the last place still showing
     // numbers the rest of the app had stopped believing.
     const sections: { key: View; table: string; dateCol: string; filter?: Record<string, any>; notFilter?: Record<string, any>; excludeSeed?: boolean }[] = [
-      // Only flag pending users who have verified their email — matches the
-      // "Pending Review" rule in AdminUsers (Stripe-flagged or unprocessed,
-      // but always email-verified first).
-      { key: "people", table: "profiles", dateCol: "created_at", filter: { approval_status: "pending", email_verified: true }, excludeSeed: true },
+      // No "people" entry: it counted approval_status='pending' accounts, a
+      // review queue retired in Q193 (owner 2026-09-23).
       { key: "jobs", table: "jobs", dateCol: "created_at", excludeSeed: true },
       { key: "disputes", table: "jobs", dateCol: "disputed_at", filter: { status: "disputed" }, excludeSeed: true },
       { key: "reports", table: "reports", dateCol: "created_at", filter: { status: "pending" }, notFilter: { reported_type: "support" } },
@@ -224,7 +222,7 @@ const Admin = () => {
     const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1).toISOString();
 
     const [
-      profilesRes, pendingRes, reportsRes, supportRes, activeRes, completedRes, disputesRes,
+      profilesRes, reportsRes, supportRes, activeRes, completedRes, disputesRes,
       paymentsRes, subsRes, lateCancelRes,
       newUsersInRangeRows, newUsersPrevRows,
       revInRangeRows, revPrevRows,
@@ -233,7 +231,6 @@ const Admin = () => {
       quarterRes,
     ] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_seed", false),
-      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending").eq("email_verified", true).eq("is_seed", false),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").neq("reported_type", "support"),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").eq("reported_type", "support"),
       supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]).eq("is_seed", false),
@@ -270,11 +267,11 @@ const Admin = () => {
     ]);
 
     // Surface any failed query instead of silently rendering a misleading
-    // "0" / healthy-looking fallback — a single bad query among the 18
+    // "0" / healthy-looking fallback — a single bad query among the 17
     // above must not be indistinguishable from a genuinely healthy
     // platform. The other, successful queries still render normally.
     const namedResults: [string, { error: any }][] = [
-      ["profiles", profilesRes], ["pending", pendingRes], ["reports", reportsRes], ["support", supportRes],
+      ["profiles", profilesRes], ["reports", reportsRes], ["support", supportRes],
       ["active", activeRes], ["completed", completedRes], ["disputes", disputesRes],
       ["payments", paymentsRes], ["subs", subsRes], ["lateCancel", lateCancelRes],
       ["newUsersInRange", newUsersInRangeRows], ["newUsersPrev", newUsersPrevRows],
@@ -339,7 +336,6 @@ const Admin = () => {
 
     setStats({
       totalUsers: profilesRes.count || 0,
-      pendingApprovals: pendingRes.count || 0,
       openReports: reportsRes.count || 0,
       supportTickets: supportRes.count || 0,
       activeJobs: activeRes.count || 0,
@@ -464,7 +460,6 @@ const Admin = () => {
   const getBadge = (id: string): number | undefined => {
     const uc = unreadCounts[id];
     if (uc && uc > 0) return uc;
-    if (id === "people" && stats.pendingApprovals > 0) return stats.pendingApprovals;
     if (id === "disputes" && stats.disputedJobs > 0) return stats.disputedJobs;
     if (id === "reports" && stats.openReports > 0) return stats.openReports;
     if (id === "support" && stats.supportTickets > 0) return stats.supportTickets;

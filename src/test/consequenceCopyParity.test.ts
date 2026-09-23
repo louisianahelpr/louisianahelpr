@@ -531,10 +531,12 @@ describe("review-turnaround promises come from reviewSla", () => {
   });
 
   it("REVIEW_SLA is still the shared statement it claims to be", () => {
+    // AccountPending (the screen the module was created for) was deleted in
+    // Q193; the verification prompt is its remaining reader.
     expect(
-      repoFile("src/pages/AccountPending.tsx"),
-      "AccountPending stopped importing REVIEW_SLA — that screen is the reason the " +
-        "module exists (it once stated the SLA twice with two different numbers)",
+      repoFile("src/components/profile/profileLanding/verificationPrompt.ts"),
+      "verificationPrompt stopped importing REVIEW_SLA — the manual-review promise " +
+        "must interpolate the shared statement, not retype it",
     ).toContain("REVIEW_SLA");
     expect(REVIEW_SLA, "REVIEW_SLA is empty").toBeTruthy();
   });

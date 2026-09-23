@@ -82,8 +82,6 @@ const OWNERS = {
   // or replayed token, which is where the defect would be.
   "/forgot-password": ["lh-onboarding-auth"],
   "/reset-password": ["lh-onboarding-auth"],
-  "/account-pending": ["lh-verification-credentials"],
-  "/account-denied": ["lh-verification-credentials"],
   "/account-banned": ["lh-trust-safety"],
 
   // ── core loop ────────────────────────────────────────────────────────────

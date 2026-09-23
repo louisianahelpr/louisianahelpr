@@ -1,29 +1,19 @@
-import { toast } from "sonner";
-import { Pencil, RefreshCw, MailIcon } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import { Pencil } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { formatName } from "@/lib/utils";
 import { safeDocumentUrl } from "@/lib/storagePath";
 import { type Profile, statusBadge, stripeBadge } from "../adminUserHelpers";
 
+// The "Move to Pending" / "Resend denial email" row for denied accounts was
+// removed with the denied state itself (Q193, owner 2026-09-23).
 interface DetailHeaderProps {
   viewProfile: Profile;
-  setViewProfile: (profile: Profile | null) => void;
-  resending: string | null;
-  loadProfiles: () => void;
-  resendDenialEmail: (profile: Profile) => void;
   setEditEmailProfile: (profile: Profile | null) => void;
 }
 
 export function DetailHeader({
   viewProfile,
-  setViewProfile,
-  resending,
-  loadProfiles,
-  resendDenialEmail,
   setEditEmailProfile,
 }: DetailHeaderProps) {
   return (
@@ -98,69 +88,6 @@ export function DetailHeader({
             <Pencil className="w-3 h-3" />
           </button>
         </div>
-        {viewProfile.approval_status === "denied" && (
-          <div className="flex flex-wrap gap-2 items-center pt-1">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8"
-              onClick={async () => {
-                const currentCount = viewProfile.application_count || 1;
-                // .select("id"): this write was entirely unchecked — neither an
-                // error nor a zero-row result stopped the panel from closing as
-                // if the account had been moved back to Pending.
-                try {
-                  unwrapMutation(
-                    await supabase.from("profiles").update({
-                      approval_status: "pending",
-                      denial_reason: null,
-                      application_count: currentCount + 1,
-                    }).eq("id", viewProfile.id).select("id"),
-                    {
-                      action: "move this account back to Pending",
-                      rejectedMessage: "This account wasn't moved to Pending — nothing was changed. Check your admin permissions and try again.",
-                      context: { profileId: viewProfile.id },
-                    },
-                  );
-                } catch (err) {
-                  toast.error(mutationErrorMessage(err, "Couldn't move that account to Pending — try again."));
-                  return;
-                }
-                loadProfiles();
-                setViewProfile(null);
-              }}
-            >
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Move to Pending
-            </Button>
-            {(() => {
-              const sent = viewProfile.denial_email_count || 0;
-              const maxReached = sent >= 3;
-              return (
-                <>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8"
-                    disabled={resending === viewProfile.id || maxReached}
-                    onClick={async () => {
-                      await resendDenialEmail(viewProfile);
-                      // refresh local view state count
-                      setViewProfile({ ...viewProfile, denial_email_count: sent + 1, last_denial_email_at: new Date().toISOString() });
-                    }}
-                    title={maxReached ? "Max 3 reminder emails reached" : "Send denial reminder email"}
-                  >
-                    {resending === viewProfile.id
-                      ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      : <><MailIcon className="w-3.5 h-3.5 mr-1.5" /> Resend Email</>}
-                  </Button>
-                  <Badge variant="outline" className={`text-ds-10 ${maxReached ? "bg-destructive/10 text-destructive border-destructive/30" : "bg-muted text-muted-foreground"}`}>
-                    Sent {sent}/3
-                  </Badge>
-                </>
-              );
-            })()}
-          </div>
-        )}
       </div>
     </div>
   );

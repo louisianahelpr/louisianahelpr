@@ -425,7 +425,7 @@ const DashboardGuest = () => {
   //
   // Every action worth gating happens ON a job, so the job rides along as
   // `?redirect=/jobs/<id>`. Signup persists it (see lib/jobIntent) and the
-  // account-pending screen spends it the moment the account is admitted, so
+  // signup-pending screen spends it the moment the email is confirmed, so
   // the visitor lands back on the job that motivated them to sign up instead
   // of on a bare dashboard with no trace of it. `signupUrlFor` sanitizes the
   // path; the handful of call sites with no job in scope pass nothing and get

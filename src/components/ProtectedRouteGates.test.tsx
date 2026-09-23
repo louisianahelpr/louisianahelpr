@@ -1,19 +1,11 @@
 // The ORDER of ProtectedRoute's gates, pinned.
 //
 // `ProtectedRoute.test.ts` covers `isProfileGateAllowed` — a pure predicate.
-// Nothing covered the sequence the gates run in, and the sequence is where the
-// bug was: the `approval_status === "pending"` bounce ran BEFORE the "Big 7"
-// completeness gate, so an account that was both incomplete AND pending — the
-// state left behind when `complete-signup` fails partway through signup, or
-// when an account is created outside the signup form — was sent to
-// /account-pending from every route.
-//
-// That screen tells the user "Our team is reviewing your credentials" and shows
-// "Final admin review — Waiting", about a review that does not exist:
-// `complete-signup` sets `approved` unconditionally and prod holds 30/30
-// approved, 0 ever pending (verified 2026-09-01). It links to /complete-profile
-// from nowhere, and `cleanup-abandoned-accounts` deletes a still-`pending`
-// account at day 30 with no warning email.
+// Nothing covered the sequence the gates run in: ban → email → completeness.
+// (An approval-status gate once sat in this chain and trapped half-onboarded
+// accounts on a review screen for a review that did not exist; the gate and
+// both of its screens were deleted in Q193, and the cases below pin that a
+// leftover `pending`/`denied` value routes nobody.)
 //
 // A reorder is exactly the kind of change that gets undone by the next person
 // tidying the block, so each rung is asserted here rather than left to the
@@ -77,8 +69,7 @@ const renderAt = (
           element={<ProtectedRoute {...props}><div>PROTECTED</div></ProtectedRoute>}
         />
         <Route path="/complete-profile" element={<div>COMPLETE_PROFILE</div>} />
-        <Route path="/account-pending" element={<div>ACCOUNT_PENDING</div>} />
-        <Route path="/account-denied" element={<div>ACCOUNT_DENIED</div>} />
+        <Route path="/signup-pending" element={<div>VERIFY_EMAIL</div>} />
         <Route path="/account-banned" element={<div>ACCOUNT_BANNED</div>} />
         <Route path="/login" element={<div>LOGIN</div>} />
       </Routes>
@@ -91,22 +82,24 @@ beforeEach(() => {
 });
 
 describe("ProtectedRoute gate order", () => {
-  it("THE FIX: an incomplete + pending profile goes to the form, not the queue", () => {
+  it("an incomplete profile goes to the form, whatever its approval_status says", () => {
     renderAt("/post-job", {
       profile: { ...emptyProfile, approval_status: "pending", is_legacy_user: false },
     });
     expect(screen.getByText("COMPLETE_PROFILE")).toBeTruthy();
-    expect(screen.queryByText("ACCOUNT_PENDING")).toBeNull();
   });
 
-  it("a COMPLETE profile that is still pending keeps its /account-pending bounce", () => {
-    // The reorder must not open the app to a pending account. This is the one
-    // case where "we are working on it" is an honest thing to say.
-    renderAt("/post-job", {
-      profile: { ...completeProfile, approval_status: "pending", is_legacy_user: false },
-    });
-    expect(screen.getByText("ACCOUNT_PENDING")).toBeTruthy();
-  });
+  // Q193 (owner 2026-09-23): no approval gate. A leftover `pending` or
+  // `denied` value routes nobody anywhere — both screens were deleted.
+  it.each(["pending", "denied"])(
+    "a complete, confirmed %s account is let in (no approval gate, Q193)",
+    (status) => {
+      renderAt("/post-job", {
+        profile: { ...completeProfile, approval_status: status, is_legacy_user: false },
+      });
+      expect(screen.getByText("PROTECTED")).toBeTruthy();
+    },
+  );
 
   it("a banned account is still bounced first, incomplete profile or not", () => {
     renderAt("/post-job", {
@@ -115,32 +108,14 @@ describe("ProtectedRoute gate order", () => {
     expect(screen.getByText("ACCOUNT_BANNED")).toBeTruthy();
   });
 
-  it("a denied account is still bounced to /account-denied, not to the form", () => {
-    // A denied user must never be routed to /complete-profile: that screen no
-    // longer collects the ID a resubmission requires, so it would be a loop.
-    renderAt("/post-job", {
-      profile: { ...emptyProfile, approval_status: "denied", is_legacy_user: false },
-    });
-    expect(screen.getByText("ACCOUNT_DENIED")).toBeTruthy();
-  });
-
   it("an unconfirmed email still wins over the completeness gate", () => {
     // Nothing productive happens before the address is confirmed, and
-    // /account-pending's unconfirmed variant is the screen holding Resend.
+    // /signup-pending (Check Your Email) is the screen holding Resend.
     renderAt("/post-job", {
       emailConfirmedAt: null,
       profile: { ...emptyProfile, approval_status: "pending", is_legacy_user: false },
     });
-    expect(screen.getByText("ACCOUNT_PENDING")).toBeTruthy();
-  });
-
-  it("allowPending routes still let a pending account through when complete", () => {
-    renderAt(
-      "/dashboard",
-      { profile: { ...completeProfile, approval_status: "pending", is_legacy_user: false } },
-      { allowPending: true },
-    );
-    expect(screen.getByText("PROTECTED")).toBeTruthy();
+    expect(screen.getByText("VERIFY_EMAIL")).toBeTruthy();
   });
 
   it("allowPending does NOT exempt an incomplete profile from the form", () => {

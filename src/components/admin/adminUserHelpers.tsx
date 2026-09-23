@@ -11,22 +11,12 @@ import { ShieldCheck, ShieldAlert } from "lucide-react";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-// A user only counts as "Pending Review" once their email is verified.
-// Unverified-email users sit in a separate "Awaiting Email" bucket so admins
-// aren't bothered until the user has actually confirmed their email.
+// There is no approval review (Q193, owner 2026-09-23: every signup is
+// auto-approved, bans are automated). The one pre-activation state an admin
+// can still see is an unconfirmed email — the "Email" tab, which offers
+// Resend Verification.
 export const isVerifiedEmail = (p: Profile) => !!p.email_verified;
-export const isPendingReview = (p: Profile) =>
-  p.approval_status === "pending" && isVerifiedEmail(p);
-export const isAwaitingEmail = (p: Profile) =>
-  p.approval_status === "pending" && !isVerifiedEmail(p);
-
-// A pending user was "flagged by Stripe" if Stripe Identity returned a
-// non-verified outcome (manual_review / failed) — these are the ones that
-// need an explicit Override & Approve.
-export const wasFlaggedByStripe = (p: Profile) => {
-  const s = p.idv_status;
-  return s === "manual_review" || s === "failed";
-};
+export const isAwaitingEmail = (p: Profile) => !isVerifiedEmail(p);
 
 export const statusBadge = (profile: Profile) => {
   const banStatus = profile.ban_status || "active";
@@ -35,9 +25,7 @@ export const statusBadge = (profile: Profile) => {
   // "warned" status is intentionally not surfaced as a status badge — the strike chip
   // ("1st Strike", "Final Warning", etc.) already conveys this without duplication.
   if (!isVerifiedEmail(profile)) return <Badge className="bg-accent/20 text-[hsl(var(--accent-ink))] text-ds-11">Pending Email Verification</Badge>;
-  if (profile.approval_status === "approved") return <Badge className="bg-primary/10 text-primary text-ds-11">Active</Badge>;
-  if (profile.approval_status === "denied") return <Badge className="bg-destructive/10 text-destructive text-ds-11">Denied</Badge>;
-  return <Badge className="bg-accent/20 text-[hsl(var(--accent-ink))] text-ds-11">Pending Review</Badge>;
+  return <Badge className="bg-primary/10 text-primary text-ds-11">Active</Badge>;
 };
 
 // Stripe Identity verification badge — green / yellow / gray.

@@ -60,7 +60,7 @@ stories go in the lessons file, never here.
 - **Never hand-roll a page skeleton:** build on the shared primitive (`AppShell`, `PageScaffold`, `AppPage`); add a prop rather than fork one.
 - **`AppShell` (`src/components/AppShell.tsx`) is the ONLY fixed-viewport primitive** (100dvh lock, internal scroll, safe-area top inset, bottom-nav clearance). Never re-implement those. [L](docs/lessons/CLAUDE-lessons.md#shells)
 - Fixed-shell pages: `AppShell` directly (Profile) or `PageScaffold` (`src/components/ui/PageScaffold.tsx`: title-card + bleeding panel, no viewport lock of its own) for Dashboard, Activity, Messages list, guest dashboard.
-- The four account-state screens (SignupPending, AccountPending, AccountDenied, AccountBanned) use `AuthShell`'s centered card, not `AppShell`.
+- The two account-state screens (SignupPending — "Check Your Email", where every unverified account lands — and AccountBanned) use `AuthShell`'s centered card, not `AppShell`. There is no approval-pending or denied screen (owner, 2026-09-23, Q193).
 - Document-scroll pages (legal, marketing, multi-step forms, Profile/Activity tab pages): plain `min-h-screen bg-premium-page pb-safe-nav` wrapper, plus `<PageHeader>` for a back button. Never `AppShell`.
 - A page's shell choice must agree with its entry in `DOCUMENT_SCROLL_ROUTES` (`src/hooks/useAppShellViewport.ts`, which toggles `app-shell` on `<html>`).
 - **Every page fits the screen** at every breakpoint: centered in the available area, zero horizontal overflow, no rail-width dead gutter. [L](docs/lessons/CLAUDE-lessons.md#fit-the-screen)

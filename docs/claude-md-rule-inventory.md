@@ -25,7 +25,7 @@ Rules inventoried: 135. Mapped: 135. Dropped: 0.
 | 13 | AppShell is the only fixed-viewport primitive; never re-implement 100dvh lock, internal scroll, safe-area top, nav clearance | Page layout :54-57 | 41 |
 | 14 | Fixed-shell pages use AppShell directly (Profile) or PageScaffold (Dashboard, Activity, Messages list, guest dashboard) | Page layout :59-63 | 42 |
 | 15 | PageScaffold is a thin wrapper over AppShell and never adds its own viewport lock | Page layout :63-65 | 42 |
-| 16 | The four account-state screens use AuthShell's centered card, not AppShell | Page layout :65-69 | 43 |
+| 16 | The account-state screens (SignupPending, AccountBanned; pending/denied deleted in Q193) use AuthShell's centered card, not AppShell | Page layout :65-69 | 43 |
 | 17 | Document-scroll pages use min-h-screen bg-premium-page pb-safe-nav wrapper (+PageHeader); never AppShell | Page layout :70-73 | 44 |
 | 18 | A page's shell choice must agree with DOCUMENT_SCROLL_ROUTES in useAppShellViewport.ts | Page layout :74-77 | 45 |
 | 19 | Every page fits the screen at every breakpoint: centered, no horizontal overflow, no rail-width gutter | Fit the screen :81-84 | 46 |

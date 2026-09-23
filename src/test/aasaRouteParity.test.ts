@@ -146,6 +146,8 @@ describe("AASA ↔ router parity", () => {
     // explicit setSession() from the fragment on the native deep-link path.
     // Delete this test in the same commit that adds it — not before.
     expect(paths).toContain("NOT /reset-password");
-    expect(paths).toContain("NOT /account-pending");
+    // The signup-confirmation landing (Signup.tsx emailRedirectTo) — it was
+    // /account-pending until Q193 deleted that screen.
+    expect(paths).toContain("NOT /signup-pending");
   });
 });

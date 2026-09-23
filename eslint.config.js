@@ -168,7 +168,6 @@ const SILENT_CATCH_LEGACY = [
   "src/lib/sentry.ts",
   "src/lib/simpleMode.ts",
   "src/lib/threadMutes.ts",
-  "src/pages/AccountPending.tsx",
   "src/pages/activity/ActivitySectionedView.tsx",
   "src/pages/activity/useBulkDismiss.ts",
   "src/pages/CompleteProfile.tsx",

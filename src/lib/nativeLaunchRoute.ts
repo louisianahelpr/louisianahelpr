@@ -26,8 +26,7 @@ const PRESERVE_PATHS = [
   "/signup",
   "/forgot-password",
   "/reset-password",
-  "/account-pending",
-  "/account-denied",
+  "/signup-pending",
   "/account-banned",
   "/complete-profile",
   "/admin",
@@ -88,7 +87,7 @@ export async function resolveNativeLaunchRoute(
     if (restored) return restored;
 
     // Otherwise /dashboard. ProtectedRoute will re-route to
-    // /account-pending, /account-denied, /account-banned, or
+    // /signup-pending (unverified email), /account-banned, or
     // /complete-profile if the profile state requires it. Admins can
     // still reach /admin via the in-app nav.
     return "/dashboard";

@@ -34,18 +34,12 @@ interface AdminUserDetailDialogProps {
   lastLoginSummary: Record<string, string>;
   /** Profile id currently mid-resend, or null — drives the email spinners. */
   resending: string | null;
-  /** Reloads the parent's profile list after an inline status change. */
-  loadProfiles: () => void;
   /** Account lifecycle + support actions, all owned by the parent. */
-  approveUser: (profile: Profile) => void;
-  resendApprovalEmail: (profile: Profile) => void;
-  resendDenialEmail: (profile: Profile) => void;
   resendVerificationEmail: (profile: Profile) => void;
   unbanUser: (profile: Profile) => void;
   viewHistoryFor: (profile: Profile) => void;
   /** Sub-dialog openers — set the target profile for each per-action dialog. */
   setEditEmailProfile: (profile: Profile | null) => void;
-  setDenyProfile: (profile: Profile | null) => void;
   setBanProfile: (profile: Profile | null) => void;
   setDeleteProfile: (profile: Profile | null) => void;
   setManualVerifyProfile: (profile: Profile | null) => void;
@@ -64,15 +58,10 @@ export function AdminUserDetailDialog({
   emailSendStats,
   lastLoginSummary,
   resending,
-  loadProfiles,
-  approveUser,
-  resendApprovalEmail,
-  resendDenialEmail,
   resendVerificationEmail,
   unbanUser,
   viewHistoryFor,
   setEditEmailProfile,
-  setDenyProfile,
   setBanProfile,
   setDeleteProfile,
   setManualVerifyProfile,
@@ -103,10 +92,6 @@ export function AdminUserDetailDialog({
           <div className="flex flex-col flex-1 min-h-0 min-w-0 break-words gap-3">
             <DetailHeader
               viewProfile={viewProfile}
-              setViewProfile={setViewProfile}
-              resending={resending}
-              loadProfiles={loadProfiles}
-              resendDenialEmail={resendDenialEmail}
               setEditEmailProfile={setEditEmailProfile}
             />
 
@@ -131,24 +116,17 @@ export function AdminUserDetailDialog({
               <DocumentsTab viewProfile={viewProfile} />
               <EmailsTab
                 viewProfile={viewProfile}
-                viewBanStatus={viewBanStatus}
                 emailTracking={emailTracking}
                 emailSendStats={emailSendStats}
-                lastLoginSummary={lastLoginSummary}
                 resending={resending}
-                resendApprovalEmail={resendApprovalEmail}
-                resendDenialEmail={resendDenialEmail}
                 resendVerificationEmail={resendVerificationEmail}
               />
               <ActionsTab
                 viewProfile={viewProfile}
                 viewBanStatus={viewBanStatus}
-                emailTracking={emailTracking}
                 lastLoginSummary={lastLoginSummary}
-                approveUser={approveUser}
                 unbanUser={unbanUser}
                 viewHistoryFor={viewHistoryFor}
-                setDenyProfile={setDenyProfile}
                 setBanProfile={setBanProfile}
                 setDeleteProfile={setDeleteProfile}
                 setManualVerifyProfile={setManualVerifyProfile}

@@ -133,12 +133,14 @@ export const FAQ_SECTIONS: FaqSection[] = [
       {
         q: "Do I need an account to browse jobs?",
         // "You'll need an account" understated the gate by two steps and sent
-        // people into a flow they could not finish. A new account is also
-        // pending approval (ProtectedRoute.tsx routes it to /account-pending)
-        // AND must clear Stripe identity verification before posting or
+        // people into a flow they could not finish. A new account must also
+        // confirm its email (ProtectedRoute.tsx holds it on /signup-pending)
+        // AND clear Stripe identity verification before posting or
         // accepting (useJobSubmit.ts gates on it). Discovering that after
-        // writing a job post is the worst moment to learn it.
-        a: "No, you can browse without signing up. To post a job or apply for one you'll need an account, approval from our team, and a quick identity check through Stripe — so it's worth starting that early.",
+        // writing a job post is the worst moment to learn it. There is no
+        // approval from our team any more (Q193: every signup is
+        // auto-approved), so the answer no longer promises one.
+        a: "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email and a quick identity check through Stripe — so it's worth starting that early.",
       },
       {
         q: "Is Helpr available everywhere in Louisiana?",

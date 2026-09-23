@@ -10,16 +10,14 @@ import { formatName } from "@/lib/utils";
 import UserAvatar from "@/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import {
-  Star, ShieldAlert, Clock, MailIcon, ShieldCheck,
+  Star, Clock, MailIcon, ShieldCheck,
   Briefcase, MapPin, CreditCard, Flag,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   type Profile,
   isVerifiedEmail,
-  isPendingReview,
   isAwaitingEmail,
-  wasFlaggedByStripe,
   statusBadge,
 } from "../adminUserHelpers";
 import { NotesIndicator } from "./NotesIndicator";
@@ -122,8 +120,9 @@ const AdminUserRowBase = ({
             {statusBadge(p)}
             <NotesIndicator userId={p.user_id} notesSummary={notesSummary} />
           </div>
-          {/* Wait-time countdown — shown for both pending review and awaiting-email-verification */}
-          {(tab === "pending" || tab === "awaiting_email") && (isPendingReview(p) || isAwaitingEmail(p)) && (() => {
+          {/* Wait-time countdown — shown for awaiting-email-verification (the
+              pending-review queue was retired in Q193) */}
+          {tab === "awaiting_email" && isAwaitingEmail(p) && (() => {
             const waitMs = Date.now() - new Date(p.created_at).getTime();
             const waitHours = waitMs / (1000 * 60 * 60);
             const waitDays = Math.floor(waitHours / 24);
@@ -144,22 +143,14 @@ const AdminUserRowBase = ({
             );
           })()}
 
-          {/* Denial reason — surfaced prominently for denied users */}
-          {p.approval_status === "denied" && (
-            <p className="text-ds-11 font-medium text-destructive truncate mt-1" title={p.denial_reason || "No reason on file"}>
-              Denied: {p.denial_reason || "No reason on file"}
-            </p>
-          )}
-
           {/* Meta chips — only for verified users */}
-          {isVerifiedEmail(p) && p.approval_status !== "denied" && (() => {
+          {isVerifiedEmail(p) && (() => {
             const strikes = strikesSummary[p.user_id] || 0;
             const rating = ratingSummary[p.user_id];
             const jobsDone = jobsCompletedSummary[p.user_id] || 0;
             const ltv = paySummary[p.user_id] || 0;
             const openReports = openReportsSummary[p.user_id] || 0;
-            const isApproved = p.approval_status === "approved";
-            const neverLoggedIn = isApproved && !lastLogin;
+            const neverLoggedIn = !lastLogin;
             const hasIdv = p.idv_status === "verified";
             const hasStripe = !!p.stripe_account_id;
             // Same legacy-role pattern as deniedCount above.
@@ -295,30 +286,15 @@ const AdminUserRowBase = ({
 
                 {/* Follow-up reminder counter — shows how many nudge emails the system has sent */}
                 {(() => {
-                  const status = p.approval_status;
-                  // eslint-disable-next-line no-useless-assignment
-                  let count = 0;
-                  // eslint-disable-next-line no-useless-assignment
-                  let lastAt: string | null = null;
-                  // eslint-disable-next-line no-useless-assignment
-                  let label = "";
-                  if (status === "pending" && !isVerifiedEmail(p)) {
-                    count = p.verification_email_count || 0;
-                    lastAt = p.last_verification_email_at;
-                    label = "Verify";
-                  } else if (status === "approved") {
-                    // Hide if user is already actively logged in — no need to track welcome nudges
-                    if (lastLogin) return null;
-                    count = p.approval_email_count || 0;
-                    lastAt = p.last_approval_email_at;
-                    label = "Welcome";
-                  } else if (status === "denied") {
-                    count = p.denial_email_count || 0;
-                    lastAt = p.last_denial_email_at;
-                    label = "Denial";
-                  } else {
-                    return null;
-                  }
+                  // This block only renders for a verified email, so the one
+                  // nudge series left to count is the welcome follow-up
+                  // (engagement-automations). The Verify / Denial branches
+                  // went with the approval states (Q193). Hidden once the user
+                  // has logged in — no need to track welcome nudges then.
+                  if (lastLogin) return null;
+                  const count = p.approval_email_count || 0;
+                  const lastAt = p.last_approval_email_at;
+                  const label = "Welcome";
                   if (count === 0) return null;
                   const tone = count >= 3
                     ? "bg-destructive/15 text-red-800 dark:text-red-400 font-semibold"
@@ -340,14 +316,6 @@ const AdminUserRowBase = ({
           })()}
         </div>
       </div>
-      {p.approval_status === "pending" && isVerifiedEmail(p) && wasFlaggedByStripe(p) && (
-        <div className="flex gap-1.5 mt-2.5 flex-wrap items-center">
-          <Badge variant="outline" className="h-7 px-2 flex items-center gap-1 text-ds-10 bg-accent/10 text-[hsl(var(--accent-ink))] border-accent/30">
-            <ShieldAlert className="w-3 h-3" />
-            Flagged by Stripe
-          </Badge>
-        </div>
-      )}
     </div>
   );
 };

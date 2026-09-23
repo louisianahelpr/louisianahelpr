@@ -221,7 +221,7 @@ async function mintSession(supabaseUrl, serviceKey) {
   const user = await userRes.json();
   if (!user?.email_confirmed_at) {
     throw new Error(
-      'minted session has no email_confirmed_at — ProtectedRoute will bounce every protected route to /account-pending and this sweep would capture the dashboard under every screen name',
+      'minted session has no email_confirmed_at — ProtectedRoute will bounce every protected route to /signup-pending and this sweep would capture the dashboard under every screen name',
     );
   }
 

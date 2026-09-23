@@ -18,8 +18,6 @@ const AUTH_ROUTES = [
   "/forgot-password",
   "/reset-password",
   "/complete-profile",
-  "/account-pending",
-  "/account-denied",
   "/account-banned",
 ];
 

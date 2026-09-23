@@ -4,7 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { getPublicOrigin } from "@/lib/authRedirects";
+import { getSignupConfirmRedirect } from "@/lib/authRedirects";
+import { postAuthDestination } from "@/lib/jobIntent";
+import { report } from "@/lib/errorLogger";
 
 // How long to disable the resend button after each send. Supabase's own
 // rate limit is at least this strict on the server; this just sets user
@@ -14,6 +16,9 @@ const RESEND_COOLDOWN_S = 60;
 // matches the brief and is gentle enough that an inbox tab open in the
 // background doesn't burn battery.
 const VERIFY_POLL_INTERVAL_MS = 5000;
+// How often, at most, a signed-in but unconfirmed session is re-issued so a
+// confirmation made on another device reaches this tab (Q193).
+const REFRESH_INTERVAL_MS = 15000;
 // Survives a reload of this screen; cleared once verification lands.
 const PENDING_EMAIL_KEY = "helpr.pendingSignupEmail";
 
@@ -37,7 +42,12 @@ const SignupPending = () => {
   // who we're waiting on. sessionStorage (not local) so it dies with the tab
   // rather than lingering on a shared machine.
   const routerEmail: string = (location.state as { email?: string } | null)?.email ?? "";
-  const [prefillEmail] = useState<string>(() => {
+  // Third source (Q193): ProtectedRoute sends EVERY signed-in, unconfirmed
+  // account here from any protected route, with no router state and often a
+  // fresh tab (no sessionStorage). The signed-in session knows the address, so
+  // the poll below fills it in — this page must never say "your email" to
+  // someone whose address we are holding.
+  const [prefillEmail, setPrefillEmail] = useState<string>(() => {
     if (routerEmail) {
       try {
         sessionStorage.setItem(PENDING_EMAIL_KEY, routerEmail);
@@ -69,10 +79,19 @@ const SignupPending = () => {
   // that flips, so the user doesn't have to come back and tap a button.
   useEffect(() => {
     let cancelled = false;
+    let lastRefreshAt = 0;
+    let refreshFailureReported = false;
     const advanceIfVerified = async () => {
       const { data, error } = await supabase.auth.getSession();
       if (cancelled || error) return;
       const sessionUser = data.session?.user;
+      if (sessionUser?.email && !sessionUser.email_confirmed_at) {
+        // The signed-in session is authoritative: a stale sessionStorage
+        // address from an earlier signup in this tab must not win, or Resend
+        // would mail the wrong address (lh-authz-rls review, Q193).
+        const sessionEmail = sessionUser.email;
+        setPrefillEmail((cur) => (cur === sessionEmail ? cur : sessionEmail));
+      }
       if (sessionUser?.email_confirmed_at) {
         try {
           sessionStorage.removeItem(PENDING_EMAIL_KEY);
@@ -81,7 +100,35 @@ const SignupPending = () => {
           // sessionStorage, which dies with the tab anyway. The navigation
           // below is what actually matters and happens regardless.
         }
-        navigate("/complete-profile", { replace: true });
+        // Into the app. `postAuthDestination` spends a stored job intent /
+        // `?redirect=` target (the job a logged-out visitor tapped before
+        // signing up) and otherwise returns /dashboard; ProtectedRoute there
+        // sends an incomplete profile on to /complete-profile. This hop used
+        // to live on /account-pending, which the email link opened (Q193).
+        navigate(postAuthDestination(), { replace: true });
+        return;
+      }
+      // Signed in but unconfirmed: `email_confirmed_at` is baked into the
+      // session JWT, so a link clicked on ANOTHER device (or in another
+      // browser) would leave this tab waiting forever. Re-issue the token from
+      // the auth row at most every REFRESH_INTERVAL_MS; the next poll then
+      // reads the confirmed session. A failed refresh is not shown (the next
+      // one retries) but is reported once per visit.
+      if (sessionUser && Date.now() - lastRefreshAt >= REFRESH_INTERVAL_MS) {
+        lastRefreshAt = Date.now();
+        const noteFailure = (err: unknown) => {
+          if (refreshFailureReported) return;
+          refreshFailureReported = true;
+          report(err, { severity: "warning", tags: { source: "SignupPending.refreshSession" } });
+        };
+        try {
+          const { error: refreshErr } = await supabase.auth.refreshSession();
+          if (refreshErr) noteFailure(refreshErr);
+        } catch (err) {
+          // Not silent: noteFailure calls report() (once per visit); the next
+          // poll retries the refresh.
+          noteFailure(err);
+        }
       }
     };
     void advanceIfVerified();
@@ -105,12 +152,12 @@ const SignupPending = () => {
     if (resendCooldown > 0 || resending || !prefillEmail) return;
     setResending(true);
     // Same landing as Signup's first email (`emailRedirectTo` there): the link
-    // opens /account-pending, which admits a confirmed account into the app.
+    // opens THIS page, whose poll admits the confirmed account into the app.
     // Without it the resent link fell back to the project's Site URL.
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: prefillEmail,
-      options: { emailRedirectTo: `${getPublicOrigin()}/account-pending` },
+      options: { emailRedirectTo: getSignupConfirmRedirect() },
     });
     setResending(false);
     if (error) {

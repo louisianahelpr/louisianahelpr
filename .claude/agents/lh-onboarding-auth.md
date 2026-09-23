@@ -105,7 +105,7 @@ through it.
   confirm it is present and prominent; hand to `lh-compliance-store`.
 - **Password rules are stated before submission**, not discovered by rejection. Reset and
   forgot-password flows work end to end, and the reset link cannot be replayed.
-- `/complete-profile`, `/signup-pending`, `/account-pending` — is the user ever left on a
+- `/complete-profile`, `/signup-pending` (every unverified account lands here; `/account-pending` was deleted in Q193) — is the user ever left on a
   screen with no way forward and no explanation of what happens next or when?
 
 ## Session and token security

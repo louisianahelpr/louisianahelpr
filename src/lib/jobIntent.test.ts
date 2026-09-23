@@ -1,5 +1,5 @@
 // The signup-redirect leg of jobIntent: the job a logged-out visitor tapped
-// has to survive /signup → /signup-pending → an email client → /account-pending.
+// has to survive /signup → /signup-pending → an email client → /signup-pending.
 // These tests pin the two properties that make that safe: it is stored ONLY
 // when it is a same-origin path, and reading it is destructive.
 

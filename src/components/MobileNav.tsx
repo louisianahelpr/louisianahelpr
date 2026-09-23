@@ -59,11 +59,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // every render would be a synchronous storage hit per keystroke elsewhere.
   const maybeSignedIn = useRef(hasPersistedAuthToken()).current;
   const isGuest = isLoading ? !maybeSignedIn : !user;
-  // A pending user can browse/apply, but /post-job stays gated until
-  // review clears. Hide the Post FAB for them so they don't tap into a
-  // redirect — see ProtectedRoute (the route has no `allowPending`).
-  const isPendingApproval =
-    !isGuest && profile?.approval_status === "pending";
   // Messages badge unread count (durable-cache seeded), its live query +
   // realtime channel + archive listener, the native app-icon badge mirror,
   // and the best-effort mark-all-read action — all owned by this hook.
@@ -86,9 +81,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // adjacent on purpose.
   //
   // An unconfirmed email gets no dock either (Q180): ProtectedRoute sends it
-  // to /account-pending from every tab, so each tab was a control that
+  // to the verify-email page from every tab, so each tab was a control that
   // bounced straight back (measured 2026-09-23 at 375: all five, /post-job
-  // included, landed on /account-pending).
+  // included, landed on the verify-email page; /signup-pending since Q193).
   const emailUnverified = !!user && !user.email_confirmed_at;
   const dockHidden =
     isGuest ||
@@ -117,9 +112,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     if (dockHidden) return;
     return prefetchRoutesWhenIdle([
       ...[...leftItems, ...rightItems].map((i) => i.path),
-      ...(isPendingApproval ? [] : ["/post-job"]),
+      "/post-job",
     ]);
-  }, [dockHidden, isPendingApproval]);
+  }, [dockHidden]);
 
   // Warm the post-job entry screen's DATA too, not just its chunk. "Repost a
   // recent job" is the only data-backed tile there and its request could not
@@ -129,7 +124,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // of on their tap. Deliberately a separate idle pass from the chunk warm
   // above so a slow data fetch can never hold up the chunk prefetch.
   useEffect(() => {
-    if (dockHidden || isPendingApproval || !user?.id) return;
+    if (dockHidden || !user?.id) return;
     const userId = user.id;
     const w = window as unknown as {
       requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
@@ -144,7 +139,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     // prefetchRoutesWhenIdle uses, held back until the current route settles.
     const t = window.setTimeout(run, 1500);
     return () => window.clearTimeout(t);
-  }, [dockHidden, isPendingApproval, user?.id, queryClient]);
+  }, [dockHidden, user?.id, queryClient]);
 
   // Warm the profile photo the INSTANT `useCurrentUser` produces a URL, rather
   // than when the dock's <UserAvatar> happens to mount and issue the request
@@ -343,13 +338,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   if (noNavPages.some((p) => location.pathname.startsWith(p))) return null;
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
 
-  // Progressive activation: a pending user is NOT locked out of the bottom
-  // nav tabs. Posts / Jobs / Messages / Profile are all `allowPending` /
-  // `allowUnapproved` routes, so they navigate freely while review runs —
-  // there is no `pendingLocked` branch any more. The Post FAB is the one
-  // exception (`isPendingApproval` above hides it) since /post-job is still
-  // gated. Verification still fires at the moments that genuinely need it
-  // (accepting a job, payout) inside the page components.
+  // No approval states (Q193): every tab and the Post FAB show to every
+  // signed-in, email-confirmed account. Verification still fires at the
+  // moments that genuinely need it (accepting a job, payout) inside the page
+  // components.
   // The phone-sized website and the iOS/Android app are ALWAYS the same
   // surface: the guest "tease & convert" bottom nav renders on both. (Wide
   // desktop web hides the whole bar via CSS — `html.web-desktop
@@ -369,7 +361,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // this guard, and GateSheet is still used elsewhere.
   if (isGuest) return null;
   // Same condition as `dockHidden` above: nowhere to go until the email is
-  // confirmed, and /account-pending carries Resend + Sign Out itself.
+  // confirmed, and /signup-pending carries Resend + Start over itself.
   if (emailUnverified) return null;
 
   // Hide nav when in an active message conversation — an open thread replaces
@@ -779,59 +771,57 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               green halo plus a slow pulsing ring behind it to draw the
               eye to the primary action. Guest gating is handled by the
               gate sheet on tap, so no lock badge needed on the surface. */}
-          {!isPendingApproval && (
-            <div className="relative shrink-0 w-14 h-14">
-              {/* Slow pulsing halo — sits behind the button so it draws the
-                  eye without competing with the icon. motion-safe gates it
-                  for users with reduced-motion preferences. */}
-              <span
-                aria-hidden
-                className="absolute inset-0 rounded-full motion-safe:animate-pulse pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(circle, hsl(var(--bark) / 0.38) 0%, hsl(var(--bark) / 0) 72%)",
-                  filter: "blur(8px)",
-                  transform: "scale(1.28)",
-                }}
+          <div className="relative shrink-0 w-14 h-14">
+            {/* Slow pulsing halo — sits behind the button so it draws the
+                eye without competing with the icon. motion-safe gates it
+                for users with reduced-motion preferences. */}
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full motion-safe:animate-pulse pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(circle, hsl(var(--bark) / 0.38) 0%, hsl(var(--bark) / 0) 72%)",
+                filter: "blur(8px)",
+                transform: "scale(1.28)",
+              }}
+            />
+            <button
+              onClick={handlePostClick}
+              onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
+              onFocus={() => !isGuest && prefetchRoute("/post-job")}
+              aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
+              /* The five tabs say where you are with `aria-current`; the FAB
+                 never did, so on /post-job it announced as an ordinary
+                 action that leads somewhere — and pressing it navigates to
+                 the page it is already on, which is no navigation at all.
+                 Same signal the tabs give, for the same reason. */
+              aria-current={!isGuest && location.pathname === "/post-job" ? "page" : undefined}
+              className="group relative w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.96] transition-transform duration-200"
+              style={{
+                // Lit-from-top orb — a radial highlight in the upper-left
+                // fading to a deeper olive at the base gives the puck real
+                // sphere-like dimension instead of a flat disc.
+                background:
+                  "radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-deep)) 100%)",
+                color: "hsl(var(--parchment))",
+                border: "1px solid hsl(var(--bark-border))",
+                boxShadow:
+                  "inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.28), " +
+                  "inset 0 -2px 3px 0 hsl(66 28% 14% / 0.45), " +
+                  "0 1px 2px hsl(70 20% 18% / 0.22), " +
+                  "0 8px 18px -6px hsl(var(--bark) / 0.55), " +
+                  "0 18px 36px -12px hsl(var(--bark) / 0.4), " +
+                  "0 0 0 6px hsl(var(--bark) / 0.06), " +
+                  "0 0 24px 4px hsl(var(--bark) / 0.22)",
+              }}
+            >
+              <Plus
+                className="w-7 h-7 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:rotate-90 motion-safe:group-active:rotate-180"
+                strokeWidth={2.75}
+                style={{ color: "hsl(var(--parchment))" }}
               />
-              <button
-                onClick={handlePostClick}
-                onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
-                onFocus={() => !isGuest && prefetchRoute("/post-job")}
-                aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
-                /* The five tabs say where you are with `aria-current`; the FAB
-                   never did, so on /post-job it announced as an ordinary
-                   action that leads somewhere — and pressing it navigates to
-                   the page it is already on, which is no navigation at all.
-                   Same signal the tabs give, for the same reason. */
-                aria-current={!isGuest && location.pathname === "/post-job" ? "page" : undefined}
-                className="group relative w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.96] transition-transform duration-200"
-                style={{
-                  // Lit-from-top orb — a radial highlight in the upper-left
-                  // fading to a deeper olive at the base gives the puck real
-                  // sphere-like dimension instead of a flat disc.
-                  background:
-                    "radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-deep)) 100%)",
-                  color: "hsl(var(--parchment))",
-                  border: "1px solid hsl(var(--bark-border))",
-                  boxShadow:
-                    "inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.28), " +
-                    "inset 0 -2px 3px 0 hsl(66 28% 14% / 0.45), " +
-                    "0 1px 2px hsl(70 20% 18% / 0.22), " +
-                    "0 8px 18px -6px hsl(var(--bark) / 0.55), " +
-                    "0 18px 36px -12px hsl(var(--bark) / 0.4), " +
-                    "0 0 0 6px hsl(var(--bark) / 0.06), " +
-                    "0 0 24px 4px hsl(var(--bark) / 0.22)",
-                }}
-              >
-                <Plus
-                  className="w-7 h-7 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:rotate-90 motion-safe:group-active:rotate-180"
-                  strokeWidth={2.75}
-                  style={{ color: "hsl(var(--parchment))" }}
-                />
-              </button>
-            </div>
-          )}
+            </button>
+          </div>
         </div>
       </nav>
 

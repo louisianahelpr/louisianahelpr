@@ -11,8 +11,8 @@ const render = (ui: React.ReactElement) =>
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-// The dialog only touches supabase from one inline "Move to Pending"
-// handler; a render-focused test never exercises it, so a thin stub is
+// The dialog touches supabase only for the acting admin id (the old inline
+// "Move to Pending" handler went with Q193); a thin stub is
 // enough to satisfy the import.
 // Hoisted so individual tests can change who the acting admin is — the
 // self-ban guard in ActionsTab turns on when this id matches the profile
@@ -71,15 +71,10 @@ function makeProps(viewProfile: Profile | null) {
     emailSendStats: [],
     lastLoginSummary: {},
     resending: null,
-    loadProfiles: vi.fn(),
-    approveUser: vi.fn(),
-    resendApprovalEmail: vi.fn(),
-    resendDenialEmail: vi.fn(),
     resendVerificationEmail: vi.fn(),
     unbanUser: vi.fn(),
     viewHistoryFor: vi.fn(),
     setEditEmailProfile: vi.fn(),
-    setDenyProfile: vi.fn(),
     setBanProfile: vi.fn(),
     setDeleteProfile: vi.fn(),
     setManualVerifyProfile: vi.fn(),
@@ -134,13 +129,10 @@ describe("AdminUserDetailDialog", () => {
     }
   });
 
-  it("wires the Approve / Deny actions to their props", () => {
-    const props = makeProps(pendingProfile);
-    render(<AdminUserDetailDialog {...props} />);
-    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
-    expect(props.approveUser).toHaveBeenCalledWith(pendingProfile);
-    fireEvent.click(screen.getByRole("button", { name: "Deny" }));
-    expect(props.setDenyProfile).toHaveBeenCalledWith(pendingProfile);
+  it("offers no Approve / Deny, even on a leftover pending profile (Q193)", () => {
+    render(<AdminUserDetailDialog {...makeProps(pendingProfile)} />);
+    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Deny" })).toBeNull();
   });
 
   it("wires every Admin Tools button to its opener prop", () => {
@@ -192,10 +184,11 @@ describe("AdminUserDetailDialog", () => {
     expect(screen.getByText("Contact & Account")).toBeInTheDocument();
   });
 
-  it("shows the Move to Pending action for a denied profile", () => {
+  it("offers no Move to Pending / denial resend on a leftover denied profile (Q193)", () => {
     const denied = { ...pendingProfile, approval_status: "denied" } as unknown as Profile;
     render(<AdminUserDetailDialog {...makeProps(denied)} />);
-    expect(screen.getByRole("button", { name: /Move to Pending/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Move to Pending/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Resend Denial Email/ })).toBeNull();
   });
 });
 

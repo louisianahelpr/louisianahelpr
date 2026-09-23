@@ -347,7 +347,10 @@ serve(async (req) => {
                 idv_status: "failed",
                 idv_confidence: 0,
                 idv_failure_reason: "Identity matched a previously removed account.",
-                approval_status: "denied",
+                // No `approval_status: "denied"` (Q193): the denied state was
+                // retired. The lockout is the ban `enforce_retained_ban` just
+                // re-applied (ProtectedRoute -> /account-banned) plus the
+                // failed IDV status the jobs INSERT policy reads.
                 legacy_manual_review: false,
               })
               .eq("user_id", userId);
@@ -359,7 +362,7 @@ serve(async (req) => {
               title: "Banned identity attempted to re-verify",
               message:
                 "A Stripe Identity session verified against a document fingerprint retained from a prior ban. " +
-                "The account was left unverified, denied, and flagged in `fraud_flags`.",
+                "The account was left unverified, re-banned, and flagged in `fraud_flags`.",
               fields: { "Session ID": session.id, "Matched on": String(banCheck.matched_on ?? "identity") },
             });
 
@@ -495,7 +498,7 @@ serve(async (req) => {
           title: "Verification under review",
           message: "We couldn't auto-verify your ID. Our team will review it within 24 hours.",
           type: "info",
-          link: "/account-pending",
+          link: "/profile",
         });
         if (userNotifErr) {
           console.error("[stripe-idv-webhook] Failed to insert under-review notification:", userNotifErr);

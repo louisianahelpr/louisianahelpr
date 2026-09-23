@@ -88,7 +88,7 @@ const DesktopSidebarNav = () => {
   const isWebDesktop = useIsWebDesktop();
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, isAdmin } = useCurrentUser();
+  const { user, isAdmin } = useCurrentUser();
   // Admin's own sections, collapsed by default so an admin's panel is the same
   // shape as everyone else's until they open it. Auto-opens while you are
   // actually in the console, so the section you are looking at is never hidden.
@@ -103,7 +103,6 @@ const DesktopSidebarNav = () => {
   // realtime channel per user, however many navs are mounted.
   const { unreadCount } = useNavUnreadCount(user);
 
-  const isPendingApproval = profile?.approval_status === "pending";
 
   // Render nothing unless we're on the wide desktop website. This is the same
   // gate as the `web-desktop` <html> class, so the rail and the CSS that
@@ -215,26 +214,24 @@ const DesktopSidebarNav = () => {
       {/* Post a Job leads the panel, above Home (owner). It is the one thing
           this rail exists to make one click away — the destinations below are
           places you can also reach from the bottom of the app. */}
-      {!isPendingApproval && (
-        <div className="px-4 pt-1 pb-2">
-          <button
-            onClick={() => navigate("/post-job")}
-            onMouseEnter={() => prefetchRoute("/post-job")}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-sans font-semibold text-ds-15 transition-transform active:scale-[0.98]"
-            style={{
-              background:
-                "radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-deep)) 100%)",
-              color: "hsl(var(--parchment))",
-              border: "1px solid hsl(var(--bark-border))",
-              boxShadow:
-                "inset 0 1.5px 1px 0 rgba(255,255,255,0.28), 0 8px 18px -6px hsl(var(--bark) / 0.5)",
-            }}
-          >
-            <Plus className="h-5 w-5" strokeWidth={2.5} />
-            Post a Job
-          </button>
-        </div>
-      )}
+      <div className="px-4 pt-1 pb-2">
+        <button
+          onClick={() => navigate("/post-job")}
+          onMouseEnter={() => prefetchRoute("/post-job")}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-sans font-semibold text-ds-15 transition-transform active:scale-[0.98]"
+          style={{
+            background:
+              "radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-deep)) 100%)",
+            color: "hsl(var(--parchment))",
+            border: "1px solid hsl(var(--bark-border))",
+            boxShadow:
+              "inset 0 1.5px 1px 0 rgba(255,255,255,0.28), 0 8px 18px -6px hsl(var(--bark) / 0.5)",
+          }}
+        >
+          <Plus className="h-5 w-5" strokeWidth={2.5} />
+          Post a Job
+        </button>
+      </div>
 
       {/* Destinations */}
       {/* SCROLLS. The panel had no overflow handling at all, which was fine

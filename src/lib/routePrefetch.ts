@@ -29,7 +29,6 @@ const prefetchers: Record<string, () => Promise<unknown>> = {
   
   "/login": () => import("@/pages/Login"),
   "/signup": () => import("@/pages/Signup"),
-  "/account-pending": () => import("@/pages/AccountPending"),
   "/user": () => import("@/pages/UserProfile"),
   "/activity": () => import("@/pages/Activity"),
   "/earnings": () => import("@/pages/Profile"),

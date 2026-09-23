@@ -32,7 +32,6 @@
  * @mutate supabase/migrations/20260923145614_drop_retired_id_document_upload.sql |        SET full_name                = NULL, |        SET full_name                = NULL, id_document_url = NULL,
  * @mutate supabase/migrations/20260923145614_drop_retired_id_document_upload.sql |   ADD CONSTRAINT profiles_id_document_url_retired CHECK (id_document_url IS NULL); |   ALTER COLUMN id_document_url SET DEFAULT NULL;
  * @mutate supabase/migrations/20260923145614_drop_retired_id_document_upload.sql | DROP POLICY IF EXISTS "Admins can view all ID documents"        ON storage.objects; | SELECT 1;
- * @mutate src/pages/AccountPending.tsx | const idDone = profile?.idv_status === "verified"; | const idDone = !!profile?.id_document_url \|\| profile?.idv_status === "verified";
  * @mutate supabase/functions/complete-signup/index.ts | if (phone) updateData.phone = phone; | if (phone) updateData.phone = phone; if (body.idBase64) updateData.id_document_url = "x";
  * @mutate src/components/admin/adminusers/useOpenProfile.ts | setViewProfile(profile); | setViewProfile(profile); void supabase.storage.from("id-documents").createSignedUrl("x", 1);
  * @mutate supabase/functions/_shared/accountPurge.ts | "id-documents", | "user-documents-2",

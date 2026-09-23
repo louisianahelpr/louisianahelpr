@@ -89,10 +89,11 @@ async function trackedLink(userId: string, emailType: string, destination: strin
  * uses. These strings are what `email-tracking` records, so they are part of
  * the analytics contract — do not rename them.
  */
+// `approved` / `denied` were removed with the approval states (Q193, owner
+// 2026-09-23): only the admin Approve / Deny actions sent them, and those are
+// gone. `verified` is sent by stripe-idv-webhook.
 const EMAIL_TYPE = {
-  approved: 'account_approved',
   verified: 'identity_verified',
-  denied: 'account_denied',
 } as const
 
 /**
@@ -113,11 +114,10 @@ async function renderAccountStatusEmail(
   status: keyof typeof EMAIL_TYPE,
   fullName: string,
   userId: string,
-  reason?: string,
 ): Promise<{ html: string; text: string }> {
   const siteUrl = getAppUrl()
   const emailType = EMAIL_TYPE[status]
-  const destination = status === 'verified' ? `${siteUrl}/dashboard` : `${siteUrl}/login`
+  const destination = `${siteUrl}/dashboard`
   const ctaUrl = await trackedLink(userId, emailType, destination)
   const pixelUrl = await trackingPixelUrl(userId, emailType)
 
@@ -127,7 +127,6 @@ async function renderAccountStatusEmail(
       greetingName: getGreetingName(fullName),
       ctaUrl,
       pixelUrl,
-      reason,
     }),
   )
 }
@@ -206,9 +205,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { userId, status, reason } = await req.json()
+    const { userId, status } = await req.json()
 
-    if (!userId || !status || !['approved', 'denied', 'verified'].includes(status)) {
+    if (!userId || status !== 'verified') {
       return new Response(JSON.stringify({ error: 'Invalid request' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -228,17 +227,11 @@ Deno.serve(async (req) => {
       })
     }
 
-    const SUBJECTS: Record<string, string> = {
-      verified: 'Your identity is verified — welcome to Louisiana Helpr',
-      approved: 'Your account is approved',
-      denied: 'An update on your account',
-    }
-    const subject = SUBJECTS[status as string]
+    const subject = 'Your identity is verified — welcome to Louisiana Helpr'
     const { html, text } = await renderAccountStatusEmail(
-      status as 'approved' | 'verified' | 'denied',
+      'verified',
       profile.full_name || '',
       userId,
-      status === 'denied' ? reason : undefined,
     )
 
     const messageId = crypto.randomUUID()
@@ -249,14 +242,6 @@ Deno.serve(async (req) => {
       recipient_email: profile.email,
       status: 'pending',
     })
-
-    if (status === 'approved' || status === 'verified') {
-      await supabaseAdmin.from('profiles').update({
-        denial_email_count: 0,
-        last_denial_email_at: null,
-        denial_reason: null,
-      }).eq('user_id', userId)
-    }
 
     try {
       await sendWithResend(resendApiKey, {

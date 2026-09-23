@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { openJobFromPin } from "@/components/browseMap/openJobFromPin";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { LoadingHeading } from "@/components/ui/LoadingHeading";
@@ -25,9 +24,8 @@ import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 import { Map, MapPinned } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import BroadcastBanner from "@/components/BroadcastBanner";
-import DashboardStatusBanners from "@/components/dashboard/DashboardStatusBanners";
 import GiftCardTeaser from "@/components/dashboard/GiftCardTeaser";
-import { DashboardBannedScreen, DashboardDeniedScreen } from "@/components/dashboard/DashboardBlockedScreen";
+import { DashboardBannedScreen } from "@/components/dashboard/DashboardBlockedScreen";
 
 // Dialogs and overlays — none are visible on first paint. Each is code-split
 // and only the dialogs the user actually opens get fetched, keeping the
@@ -466,7 +464,6 @@ const Dashboard = () => {
     "";
   const emailLocal = user?.email ? user.email.split("@")[0] : "";
   const firstName = (rawName || emailLocal || "there").split(" ")[0];
-  const approvalStatus = profile?.approval_status;
   const banStatus = profile?.ban_status || "active";
 
   // Block banned users
@@ -474,26 +471,11 @@ const Dashboard = () => {
     return <DashboardBannedScreen banStatus={banStatus} />;
   }
 
-  // Progressive activation: a `pending` user is NOT walled out of the
-  // dashboard. They can browse, save and apply while review runs — the
-  // verification gate fires only at the moments that genuinely need it
-  // (IDV-before-accept in Activity.tsx, payout setup). A non-blocking
-  // "under review" banner is rendered in `beforePanel` below instead.
-  //
-  // `denied` is still a hard stop here as defense-in-depth — ProtectedRoute
-  // already redirects denied users to /account-denied before this renders,
-  // but if that ever fails to fire we must not leak the feed to them.
-  if (!isAdmin && profile && approvalStatus === "denied") {
-    const handleSignOut = async () => {
-      await signOutWithPushCleanup();
-      navigate("/login", { replace: true });
-    };
-    return <DashboardDeniedScreen onSignOut={handleSignOut} />;
-  }
-
-  const isPendingReview = !isAdmin && !!profile && approvalStatus === "pending";
-
-
+  // No approval states (Q193, owner 2026-09-23): every signup is
+  // auto-approved and bans are automated, so the "profile not approved" stop
+  // screen and the "verification in progress" banner that sent pending users
+  // to /account-pending are gone. Verification still gates the moments that
+  // need it (IDV-before-accept in Activity.tsx, payout setup).
 
   return (
     <>
@@ -541,11 +523,6 @@ const Dashboard = () => {
       aboveTitle={<BroadcastBanner />}
       beforePanel={
         <>
-          <DashboardStatusBanners
-            isPendingReview={isPendingReview}
-            onPendingClick={() => navigate("/account-pending")}
-          />
-
           {/* The "Your Helprs" quick-rebook strip used to render here,
               wrapped in a SectionBoundary. Removed 2026-08-19 at the owner's
               request — it pushed the job feed down on the home tab for a

@@ -30,8 +30,8 @@ export function TermsReconsentDialog() {
 
   const userId = user?.id ?? null;
   // Only prompt users who have finished the front door — an unconfirmed
-  // email sits on /account-pending and shouldn't be double-gated. Denied /
-  // banned users bounce to their status pages via ProtectedRoute long
+  // email sits on /signup-pending and should not be double-gated. Banned
+  // users bounce to /account-banned via ProtectedRoute long
   // before this component matters, so `approved` is the only state that
   // benefits from a re-consent nag.
   const isEligible =

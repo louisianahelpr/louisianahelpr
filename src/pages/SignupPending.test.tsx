@@ -5,16 +5,20 @@ import SignupPending from "./SignupPending";
 
 const resendMock = vi.fn();
 const getSessionMock = vi.fn();
+const refreshSessionMock = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
       resend: (...args: unknown[]) => resendMock(...args),
       getSession: (...args: unknown[]) => getSessionMock(...args),
+      refreshSession: (...args: unknown[]) => refreshSessionMock(...args),
       // AuthShell renders the shared Navbar on web, which reads useAuthReady.
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     },
   },
 }));
+
+vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
 const toastSuccess = vi.fn();
 const toastError = vi.fn();
@@ -48,6 +52,7 @@ describe("SignupPending", () => {
   beforeEach(() => {
     resendMock.mockReset().mockResolvedValue({ error: null });
     getSessionMock.mockReset().mockResolvedValue(noSession);
+    refreshSessionMock.mockReset().mockResolvedValue({ data: {}, error: null });
     toastSuccess.mockReset();
     toastError.mockReset();
     navigateMock.mockReset();
@@ -98,12 +103,12 @@ describe("SignupPending", () => {
       fireEvent.click(await screen.findByRole("button", { name: /resend/i }));
 
       await waitFor(() => {
-        // The resent link lands on /account-pending, like Signup's first
-        // email (Q180): that screen admits a confirmed account into the app.
+        // The resent link lands back HERE, like Signup's first email (Q193:
+        // it was /account-pending, a screen that no longer exists).
         expect(resendMock).toHaveBeenCalledWith({
           type: "signup",
           email: EMAIL,
-          options: { emailRedirectTo: expect.stringMatching(/\/account-pending$/) },
+          options: { emailRedirectTo: expect.stringMatching(/\/signup-pending$/) },
         });
       });
       const button = await screen.findByRole("button", { name: /resent/i });
@@ -148,7 +153,7 @@ describe("SignupPending", () => {
       renderWithRouterState(EMAIL);
 
       await waitFor(() => {
-        expect(navigateMock).toHaveBeenCalledWith("/complete-profile", { replace: true });
+        expect(navigateMock).toHaveBeenCalledWith("/dashboard", { replace: true });
       });
       // The pending address is spent — it must not outlive the wait.
       expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull();
@@ -167,7 +172,7 @@ describe("SignupPending", () => {
       await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
 
       expect(getSessionMock.mock.calls.length).toBeGreaterThan(callsAfterMount);
-      expect(navigateMock).toHaveBeenCalledWith("/complete-profile", { replace: true });
+      expect(navigateMock).toHaveBeenCalledWith("/dashboard", { replace: true });
     });
 
     it("does NOT advance on a session whose email is still unconfirmed", async () => {
@@ -184,6 +189,58 @@ describe("SignupPending", () => {
       expect(navigateMock).not.toHaveBeenCalled();
       // …and the pending address survives, because the wait is not over.
       expect(sessionStorage.getItem(STORAGE_KEY)).toBe(EMAIL);
+    });
+
+    it("names the SIGNED-IN user's address when router state is empty (Q193)", async () => {
+      // ProtectedRoute sends every unconfirmed account here from any route,
+      // with no router state and no sessionStorage record.
+      getSessionMock.mockResolvedValue({
+        data: { session: { user: { email: "gated@example.test", email_confirmed_at: null } } },
+        error: null,
+      });
+      renderWithRouterState(undefined);
+      expect(await screen.findByText("gated@example.test")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /resend/i })).toBeInTheDocument();
+    });
+
+    it("the signed-in address beats a stale sessionStorage one (Q193 review)", async () => {
+      sessionStorage.setItem(STORAGE_KEY, "old.signup@example.test");
+      getSessionMock.mockResolvedValue({
+        data: { session: { user: { email: "signed.in@example.test", email_confirmed_at: null } } },
+        error: null,
+      });
+      renderWithRouterState(undefined);
+      expect(await screen.findByText("signed.in@example.test")).toBeInTheDocument();
+      expect(screen.queryByText("old.signup@example.test")).toBeNull();
+    });
+
+    it("refreshes an unconfirmed session at most every 15s, so another device's click lets this tab in (Q193)", async () => {
+      vi.useFakeTimers();
+      getSessionMock.mockResolvedValue({
+        data: { session: { user: { email: EMAIL, email_confirmed_at: null } } },
+        error: null,
+      });
+      renderWithRouterState(EMAIL);
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(refreshSessionMock).toHaveBeenCalledTimes(1);
+      // Two more 5s polls, still inside the 15s window: no second refresh.
+      await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+      expect(refreshSessionMock).toHaveBeenCalledTimes(1);
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      expect(refreshSessionMock).toHaveBeenCalledTimes(2);
+      // The refresh re-issued a confirmed token: the next poll lets them in.
+      getSessionMock.mockResolvedValue({
+        data: { session: { user: { email: EMAIL, email_confirmed_at: "2026-09-23T12:00:00Z" } } },
+        error: null,
+      });
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      expect(navigateMock).toHaveBeenCalledWith("/dashboard", { replace: true });
+    });
+
+    it("never refreshes when nobody is signed in", async () => {
+      renderWithRouterState(EMAIL);
+      await waitFor(() => expect(getSessionMock).toHaveBeenCalled());
+      expect(refreshSessionMock).not.toHaveBeenCalled();
     });
 
     it("ignores a session error rather than routing on bad data", async () => {

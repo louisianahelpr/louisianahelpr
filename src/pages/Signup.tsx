@@ -24,7 +24,7 @@ import {
 } from "./signup/signupHelpers";
 import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
-import { getPublicOrigin } from "@/lib/authRedirects";
+import { getSignupConfirmRedirect } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
 import { recognizedAuthError } from "@/lib/authErrors";
 import { completeSignupErrorCopy } from "./signup/completeSignupError";
@@ -399,7 +399,7 @@ const Signup = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${getPublicOrigin()}/account-pending`,
+          emailRedirectTo: getSignupConfirmRedirect(),
           data: { full_name: fullName },
         },
       });

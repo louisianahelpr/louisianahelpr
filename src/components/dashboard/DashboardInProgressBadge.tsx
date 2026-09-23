@@ -1,4 +1,11 @@
-import type { UpcomingJob } from "@/components/dashboard/DashboardStatusBanners";
+/** Nearest accepted / in-progress job where the user is the helper. */
+export type UpcomingJob = {
+  id: string;
+  title: string;
+  date_needed: string | null;
+  start_time: string | null;
+  status: string;
+};
 
 interface DashboardInProgressBadgeProps {
   /** Nearest accepted / in-progress job where the user is the helper. */

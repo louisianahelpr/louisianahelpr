@@ -1,6 +1,6 @@
 ---
 name: "lh-verification-credentials"
-description: "Audits identity and credential trust: Stripe Identity, background checks, licensed-and-insured credentials, the approval gate and account status machine. Launch-audit fleet, sweep phase."
+description: "Audits identity and credential trust: Stripe Identity, background checks, licensed-and-insured credentials and the account status machine. Launch-audit fleet, sweep phase."
 model: opus
 memory: project
 permissionMode: plan
@@ -121,9 +121,10 @@ plus `stripe-idv-start`, `stripe-idv-webhook`, `verification-webhook`,
 5. **Background check money.** `create-bgc-payment` charges for a check. If the check
    fails or never completes, is the user refunded? Is a paid-but-never-run check
    possible? Message `lh-money-escrow`.
-6. **The account status machine.** logged out, pending, approved, denied, banned,
-   deleted — plus credential tier. Prove unauthorized transitions are impossible
-   server-side. `/account-pending`, `/account-denied`, `/account-banned` are UX; the gate
+6. **The account status machine.** logged out, email-unverified, active, banned,
+   deleted — plus credential tier (no approval-pending or denied state since Q193,
+   2026-09-23; approval_status CHECK admits only pending/approved). Prove unauthorized transitions are impossible
+   server-side. `/signup-pending` and `/account-banned` are UX; the gate
    is `enforce_ban_gate` and friends.
 7. **Document handling.** Uploaded licenses, insurance certificates and W9s contain PII.
    Where are they stored, who can read them (storage bucket policies, not just table

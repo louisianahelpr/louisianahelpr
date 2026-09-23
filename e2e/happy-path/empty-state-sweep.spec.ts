@@ -213,8 +213,6 @@ const MIN_MAIN_TEXT = 20;
 const EXPECTED_LANDING: Record<string, string> = {
   // ── Visited in the ANON pass, so ProtectedRoute sends them to the gate ──
   "/account-banned": "/login",
-  "/account-denied": "/login",
-  "/account-pending": "/login",
 
   // The fixture profile is COMPLETE, so the Big 7 gate is satisfied and this
   // forwards on. That is what makes the ProtectedRoute mutation registered at

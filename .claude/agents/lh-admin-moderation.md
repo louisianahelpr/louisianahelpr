@@ -1,6 +1,6 @@
 ---
 name: "lh-admin-moderation"
-description: "Audits the admin surface: approval and denial queues, bans and strikes, dispute resolution, partial refunds, chargeback evidence, payout freezes, and admin audit logging. Launch-audit fleet, sweep phase."
+description: "Audits the admin surface: job and credential review queues, bans and strikes, dispute resolution, partial refunds, chargeback evidence, payout freezes, and admin audit logging. Launch-audit fleet, sweep phase."
 model: opus
 memory: project
 permissionMode: plan
@@ -110,8 +110,9 @@ consequence ladder).
    does `enforce_audit_log_self_attribution`. Verify each action writes a record, that
    the record cannot be forged or self-attributed to someone else, and that
    `redact_audit_snapshot` does not redact so much the log is useless.
-3. **The approval queues actually drain.** Pending accounts, pending jobs, pending
-   credentials, verification exceptions. For each: what happens to an item nobody
+3. **The approval queues actually drain.** Pending jobs, pending
+   credentials, verification exceptions (there is no account-approval queue since
+   Q193, 2026-09-23: every signup is auto-approved). For each: what happens to an item nobody
    touches? An item that sits forever with no SLA or escalation is a product finding.
 4. **Dispute resolution end to end.** `rpc_open_dispute`, `rpc_decide_dispute`,
    `rpc_withdraw_dispute`, `execute-dispute-split`, `auto-resolve-disputes`,

@@ -164,9 +164,9 @@ describe("URL fragment survives normalization", () => {
     ).toBe("/reset-password#access_token=abc.def.ghi&refresh_token=rt-1&type=recovery");
   });
 
-  it("keeps a signup-confirmation fragment on /account-pending", () => {
-    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/account-pending#access_token=t&type=signup"))
-      .toBe("/account-pending#access_token=t&type=signup");
+  it("keeps a signup-confirmation fragment on /signup-pending", () => {
+    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/signup-pending#access_token=t&type=signup"))
+      .toBe("/signup-pending#access_token=t&type=signup");
   });
 
   it("keeps the fragment alongside a query string on short links", () => {

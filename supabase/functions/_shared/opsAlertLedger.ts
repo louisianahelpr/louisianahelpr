@@ -10,12 +10,17 @@
 // payout or a dispute fails. A failed write is logged loudly instead.
 
 export interface LedgerOccurrence {
-  sourceKind: 'edge_slack' | 'sql_slack'
+  // 'user-report': a problem a person reported that has no public.reports row
+  // to carry it (a guest on /support — docs/OPEN.md Q64). Every reports row
+  // reaches the ledger through trg_reports_zz_ledger instead.
+  sourceKind: 'edge_slack' | 'sql_slack' | 'user-report'
   source: string
   title: string
   severity: string
   sample?: string
   sampleRef?: Record<string, unknown>
+  /** Omitted = ops_alert_record picks (a registered condition, else by kind). */
+  verifyKind?: 'manual'
 }
 
 export async function recordOpsAlertLedger(o: LedgerOccurrence): Promise<void> {
@@ -36,6 +41,7 @@ export async function recordOpsAlertLedger(o: LedgerOccurrence): Promise<void> {
         p_severity: o.severity,
         p_sample: (o.sample ?? o.title).slice(0, 2000),
         p_sample_ref: o.sampleRef ?? {},
+        ...(o.verifyKind ? { p_verify_kind: o.verifyKind } : {}),
       }),
       signal: AbortSignal.timeout(5000),
     })

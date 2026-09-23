@@ -43,6 +43,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
+import { recordOpsAlertLedger } from '../_shared/opsAlertLedger.ts'
 import { supportRequestKey } from '../_shared/alertPolicy.ts'
 // Sending, the From header, and the destination inbox all come from the one
 // Resend module now — this function used to carry its own copy of each.
@@ -326,6 +327,30 @@ Deno.serve(async (req) => {
       } else {
         reportLogged = true
       }
+    }
+
+    // A GUEST has no reports row, so nothing else would make this a tracked
+    // item (docs/OPEN.md Q64: nothing a user reports can sit unseen). A
+    // signed-in sender's row reaches the ledger through trg_reports_zz_ledger;
+    // if that insert failed above, record it here too rather than lose it.
+    // Same title shape and severity as public.user_report_title /
+    // user_report_severity. Link back = the support-inbox subject line.
+    // verify 'manual': the only evidence it was handled is the reply email.
+    // ONE item per topic (the subject rides in sampleRef, never the title):
+    // this endpoint is unauthenticated, so a subject in the fingerprint would
+    // let anyone mint unbounded items (authz review of Q64, M2); the count
+    // still says how many arrived, and each is in the support inbox.
+    if (!reportLogged) {
+      const emailSubject = `[${topicLabel}] ${subject || 'No subject'} — ${name}`
+      await recordOpsAlertLedger({
+        sourceKind: 'user-report',
+        source: userId ? 'contact-support-unlogged' : 'contact-support-guest',
+        title: `Support (${userId ? 'queue insert failed' : 'guest'}) [${topicLabel}]`,
+        severity: topic === 'report' ? 'error' : topic === 'suggestion' ? 'info' : 'warning',
+        sample: message.slice(0, 1500),
+        sampleRef: { channel: 'support-inbox', inbox: SUPPORT_EMAIL, inbox_subject: emailSubject, link: '/admin?view=health' },
+        verifyKind: 'manual',
+      })
     }
 
     // Slack ping so an inbox nobody is watching isn't the only signal.

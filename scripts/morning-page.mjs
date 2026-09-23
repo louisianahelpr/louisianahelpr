@@ -193,7 +193,12 @@ async function gather({ now, scoreboardPath }) {
     return { open: sum("open"), verifying: sum("verifying"), bySeverity };
   });
   const newAlerts = await attempt(() => sql(
-    "SELECT title, severity, source, first_seen FROM public.ops_alert_ledger WHERE first_seen > now() - interval '24 hours' ORDER BY first_seen DESC LIMIT 50"));
+    // A user-report title is text a person (or an unauthenticated guest) typed
+    // (docs/OPEN.md Q64); this page is published to the job summary and docs/,
+    // outside the ledger's admin-only read. Its title is replaced here, in SQL,
+    // so the words never leave the database.
+    "SELECT CASE WHEN source_kind = 'user-report' THEN 'a user report (read it on /admin?view=health)' ELSE title END AS title, " +
+    "severity, source, first_seen FROM public.ops_alert_ledger WHERE first_seen > now() - interval '24 hours' ORDER BY first_seen DESC LIMIT 50"));
   return { commits, scoreboard, nightlyRed, ledger, newAlerts };
 }
 

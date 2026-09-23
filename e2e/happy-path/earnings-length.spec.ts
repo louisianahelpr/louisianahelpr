@@ -219,4 +219,4 @@ test("lifetime take-home is stated in exactly one place", async ({ helperPage: p
 // column underneath Payouts as well, which both blows the Payouts budget and
 // puts lifetime take-home ($1,636.80) on the Payouts view, where this spec
 // asserts it has no business being.
-// @mutate src/components/profile/EarningsTab.tsx | view === "earnings" && !loading | !loading
+// @mutate src/components/profile/EarningsTab.tsx | {view === "earnings" && earningsReady && ( | {view === "earnings" && false && (

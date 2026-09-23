@@ -173,4 +173,4 @@ test.describe("desktop content fills the viewport", () => {
 // 1440). Registered against the MEASURED container deliberately — before the
 // contentSelector above, this spec was reading a heading inside a card and
 // reporting 39% whatever the layout did.
-// @mutate src/pages/DashboardGuest.tsx | md:grid-cols-2 md:gap-4"; | md:grid-cols-2 md:gap-4 max-w-sm";
+// @mutate src/components/GuestBrowseSkeleton.tsx | md:grid-cols-2 md:gap-4"; | md:grid-cols-2 md:gap-4 max-w-sm";

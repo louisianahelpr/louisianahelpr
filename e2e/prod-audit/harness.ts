@@ -630,13 +630,16 @@ const SEED_PIXEL =
  *   document (`license_status === "pending" && license_url`). Measured on
  *   prod 2026-09-23: the queue's only row was the helper's seeded
  *   `trade_license`, `submitted` with `document_url` NULL — a queue row with
- *   no Approve and no Reject on it. The helper attaches a document to its OWN
- *   pending credential (an UPDATE its RLS and column grants allow; the status
- *   stays server-owned, trg_credential_status_server_owned), exactly the
- *   step a real Helpr takes, and the original value is put back afterwards.
- *   When the helper holds no pending credential at all, it submits one
- *   (INSERT → the trigger forces status 'submitted') and the service role
- *   deletes it afterwards.
+ *   no Approve and no Reject on it. Migration 20260923101130 (Q102) then added
+ *   `helper_credentials_pending_review_needs_document`: a trade_license /
+ *   insurance row in unverified/submitted can no longer exist without a
+ *   document, so ANY row this query returns already has one — "attach a
+ *   document to a document-less pending row" is a state prod refuses to
+ *   create, and its old undo (setting `document_url` back to NULL) would be
+ *   refused too. When the helper holds no pending credential at all, it
+ *   submits one WITH a document (INSERT → the trigger forces status
+ *   'submitted', the CHECK requires the document up front) and the service
+ *   role deletes it afterwards.
  *
  * Returns what it did (for the report annotation) and an undo that never
  * throws, so a teardown failure cannot mask the sweep's own result.
@@ -674,17 +677,11 @@ export async function ensureMessyInputState(
     api, s.helper,
     `helper_credentials?user_id=eq.${s.helper.user.id}&credential_type=in.(trade_license,insurance)&status=in.(unverified,submitted)&select=id,status,document_url`,
   );
-  if (creds.some((c) => c.document_url)) {
-    // A reviewable row already exists — nothing to do.
-  } else if (creds.length) {
-    const c = creds[0];
-    const r = await restAs(api, s.helper, "patch", `helper_credentials?id=eq.${c.id}`, { document_url: SEED_PIXEL });
-    expect(r.ok() && ((await r.json()) as unknown[]).length === 1, `attach a document to credential ${c.id}: ${r.status()}`).toBe(true);
-    did.push(`attached a fixture document to credential ${c.id}`);
-    undo.push(async (a) => {
-      const u = await restAs(a, await sessionFor(a, "helper"), "patch", `helper_credentials?id=eq.${c.id}`, { document_url: c.document_url });
-      return `helper_credentials/${c.id}: document_url ${u.ok() ? "restored" : `NOT restored (${u.status()})`}`;
-    });
+  if (creds.length) {
+    // helper_credentials_pending_review_needs_document (Q102) guarantees every
+    // row this query can return already carries a document — there is no
+    // document-less pending row left to patch, so a reviewable row already
+    // exists and there is nothing to do.
   } else if (svc) {
     const r = await restAs(api, s.helper, "post", "helper_credentials", {
       user_id: s.helper.user.id, credential_type: "trade_license", trade_category: "handyman",

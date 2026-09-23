@@ -1533,6 +1533,11 @@ export const SEED_HELPER_CREDENTIALS = [
     license_state: "LA",
     issuing_authority: "Louisiana State Licensing Board for Contractors",
     expiration_date: "2027-06-30",
+    // Q102 (helper_credentials_pending_review_needs_document): a trade_license
+    // / insurance row awaiting review must carry a document, or prod's CHECK
+    // constraint refuses it. Without this the admin queue's mocked spec
+    // rendered an actionless row prod can no longer produce (Q115).
+    document_url: "https://seed.helpr.test/credentials/marcus-trade-license.pdf",
     status: "submitted",
     created_at: AGO(4),
     updated_at: AGO(4),
@@ -2101,11 +2106,22 @@ export const SEED_RPCS: Record<string, RpcAnswer> = {
     rows(ctx, "jobs")
       .filter((j) => (a.p_helper_id == null || j.helper_id === a.p_helper_id) && (j.payment_status === "payout_pending" || j.payment_status === "failed"))
       .map((j) => ({ job_id: j.id })),
+  // Mirrors get_pending_credentials() (migration 20260923101130, Q102): only a
+  // trade_license/insurance row awaiting review AND carrying a document is
+  // listed as pending — a document-less row is the actionless row the admin
+  // queue can never show. `license_url`/`insurance_url` come from the row's
+  // own document, never a hardcoded null (Q115).
   get_pending_credentials: (_a, ctx) =>
     rows(ctx, "helper_credentials")
-      .filter((c) => c.status === "submitted")
+      .filter(
+        (c) =>
+          (c.status === "submitted" || c.status === "unverified") &&
+          (c.credential_type === "trade_license" || c.credential_type === "insurance") &&
+          String(c.document_url ?? "").trim() !== "",
+      )
       .map((c) => {
         const p = profileOf(ctx, c.user_id) ?? {};
+        const documentUrl = String(c.document_url ?? "").trim() || null;
         return {
           user_id: c.user_id,
           full_name: p.full_name ?? "Smoke Helper",
@@ -2114,10 +2130,10 @@ export const SEED_RPCS: Record<string, RpcAnswer> = {
           business_name: p.business_name ?? null,
           is_licensed: c.credential_type === "trade_license",
           license_status: c.credential_type === "trade_license" ? "pending" : "none",
-          license_url: null,
+          license_url: c.credential_type === "trade_license" ? documentUrl : null,
           is_insured: c.credential_type === "insurance",
           insurance_status: c.credential_type === "insurance" ? "pending" : "none",
-          insurance_url: null,
+          insurance_url: c.credential_type === "insurance" ? documentUrl : null,
           submitted_at: c.created_at,
         };
       }),

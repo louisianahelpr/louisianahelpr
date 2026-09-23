@@ -137,16 +137,21 @@ const PENDING_POLL_INTERVAL_MS = 1_500;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const PaymentSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // The job id flows through either the success URL (Stripe-driven) or
   // the stashed `helpr_last_posted_job_id` (set right after job insert).
   // We resolve it once and use it for share / repost / view-applicants.
-  const resolvedJobId =
+  // Q305: only a well-formed uuid is ever sent to Postgres; anything else
+  // (a hand-edited or truncated link) is treated as having no reference.
+  const rawJobId =
     searchParams.get("job_id") ||
     (typeof window !== "undefined" ? safeStorage.getItem("helpr_last_posted_job_id") : null) ||
     null;
+  const resolvedJobId = rawJobId && UUID_RE.test(rawJobId) ? rawJobId : null;
   const [sharing, setSharing] = useState(false);
   // The held-in-escrow amount, read in the confirmation lookup for display.
   // Only ever rendered in the `held` branch — quoting an amount next to an

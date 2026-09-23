@@ -183,6 +183,16 @@ describe("PaymentSuccess", () => {
     });
   });
 
+  describe("a malformed job_id (Q305)", () => {
+    it("never reaches Postgres and lands on the no-reference state", async () => {
+      renderAt("?job_id=e2e-stub");
+      await screen.findByText(/we couldn't confirm your payment/i);
+      expectNoSuccessClaim();
+      expect(screen.getByText(/don't have a reference for this payment/i)).toBeInTheDocument();
+      expect(maybeSingle).not.toHaveBeenCalled();
+    });
+  });
+
   describe("the payment IS confirmed held", () => {
     beforeEach(() => {
       jobsLookup = {

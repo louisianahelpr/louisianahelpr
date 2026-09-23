@@ -1,7 +1,7 @@
 /**
  * Q291 (docs/OPEN.md): ops_alert_verify must not be starved by volume.
  *
- * THE BUG. It re-asked at most 200 open items per loop, newest last_seen first
+ * THE BUG (2026-09-23). It re-asked at most 200 open items per loop, newest last_seen first
  * (20260923050059), and stamped nothing on a "could not tell" answer. A burst
  * of fresh items (250 in PGlite) meant an older item such as a stuck payment
  * (detect_stuck_payments) was never re-asked: verify_started_at stayed NULL,
@@ -14,7 +14,7 @@
  *   - every ask stamps verify_started_at, "could not tell" included, so the
  *     rotation always advances; the companions loop rotates the same way;
  *   - nothing is ordered newest-first any more; grants stay service_role only.
- * Behaviour (250 fresh items + one old cleared money item closes on the first
+ * Behaviour, measured 2026-09-23 (250 fresh items + one old cleared money item closes on the first
  * run; two runs ask all 250; red on the state before):
  * src/test/pglite/opsAlertCloseRulesAndFairVerify.pglite.mjs.
  *

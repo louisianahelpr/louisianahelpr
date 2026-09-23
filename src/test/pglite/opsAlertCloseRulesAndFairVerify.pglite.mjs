@@ -20,7 +20,7 @@
  *          with a fresh press pass on '/'; a screen item still closes on its own
  *          route's pass (Q94 kept); record_route_probe_passes refuses 1001
  *          routes and keys at most 512 chars.
- *   Q291 - 250 fresh still-failing items plus one OLD cleared money item
+ *   Q291 (2026-09-23) - 250 fresh still-failing items plus one OLD cleared money item
  *          (detect_stuck_payments): the first ops_alert_verify closes the old
  *          one; two runs ask all 251; a "could not tell" answer is stamped.
  *   grants - anon/authenticated can execute none of the three functions.
@@ -236,7 +236,7 @@ const verify = () => q(`SELECT public.ops_alert_verify()`);
 // ── Q291 ────────────────────────────────────────────────────────────────────
 {
   await q(`UPDATE public.ops_alert_ledger SET status = 'closed', closed_at = now(), closed_evidence = 'fixture reset' WHERE status <> 'closed'`);
-  // No real push token -> 'push-tokens-empty' is still failing: 250 fresh items.
+  // No real push token -> 'push-tokens-empty' is still failing: 250 fresh items (fixture, 2026-09-23).
   await q(`INSERT INTO public.ops_alert_ledger (fingerprint, source_kind, source, title, severity, last_seen, first_seen, verify_kind, verify_ref)
            SELECT 'burst-' || g, 'error_logs', 'push-tokens-empty', 'burst ' || g, 'error', now() - make_interval(secs => g), now(),
                   'sql_condition', 'push-tokens-empty'

@@ -14,14 +14,14 @@
  *     were all clean (scripts/audit/pressRouteProbe.mjs).
  * Behaviour (3x apply, red without the migration): src/test/pglite/routeProbeCloseRule.pglite.mjs.
  *
- * Q298 (20260923185332, lh-authz-rls review of Q94), on the NEWEST definitions:
+ * Q298 (20260923185332, 2026-09-23, lh-authz-rls review of Q94), on the NEWEST definitions:
  *   - a non-overflow item with no screen returns "still failing" BEFORE the
  *     probe check (ops_route_key(null) = '/', so a press pass on / closed it);
  *   - record_route_probe_passes refuses more than 1000 routes and keys at most
  *     512 chars of each;
  *   - 20260923185332's ops_alert_condition is Q94's verbatim apart from that
  *     line and Q287's 'cron-http-untagged' branch (nothing else lost).
- * Behaviour (red on the state before: 15 checks):
+ * Behaviour (red on the state before: 15 checks, 2026-09-23):
  * src/test/pglite/opsAlertCloseRulesAndFairVerify.pglite.mjs.
  *
  * @mutate supabase/migrations/20260923182022_ops_route_probe_close_rule.sql | AND p.passed_at > p_since); | AND p.passed_at > p_since - interval '100 years');

@@ -36,6 +36,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import { arrivalNudgeStage, NEAR_MISS_ESCALATE_AFTER_HOURS, type NudgeLedger } from "../_shared/arrivalNudge.ts";
 
 const corsHeaders = {
@@ -79,18 +80,24 @@ Deno.serve(async (req) => {
 
   // Push is fanned out by the notifications insert trigger; email is sent
   // explicitly and its answer is read, the way review-nag-cron does.
-  const notifyUser = async (userId: string, title: string, message: string, link: string, type: string) => {
+  // `jobId` is the SUBJECT (Q139): the Q137 seed boundary reads it, so a seed
+  // job never notifies a real account. A zero-row insert the boundary dropped
+  // BY DESIGN is not a defect, and that recipient gets no email either.
+  const notifyUser = async (userId: string, title: string, message: string, link: string, type: string, jobId: string) => {
     const { data, error } = await supabase
       .from("notifications")
-      .insert({ user_id: userId, title, message, type, link })
+      .insert({ user_id: userId, job_id: jobId, title, message, type, link })
       .select("id");
     if (error) throw error;
-    if ((data?.length ?? 0) === 0) throw new Error(`notification insert matched 0 rows for ${userId}`);
+    if ((data?.length ?? 0) === 0) {
+      if ((await seedBoundaryDropsRow(supabase, { user_id: userId, job_id: jobId, link })) === true) return;
+      throw new Error(`notification insert matched 0 rows for ${userId}`);
+    }
     try {
       const res = await fetch(`${supabaseUrl}/functions/v1/send-notification-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
-        body: JSON.stringify({ user_id: userId, title, message, type, link }),
+        body: JSON.stringify({ user_id: userId, title, message, type, link, job_id: jobId }),
       });
       if (!res.ok) defects.record(`email ${userId}: HTTP ${res.status} ${(await res.text().catch(() => "")).slice(0, 160)}`);
     } catch (e) {
@@ -178,6 +185,7 @@ Deno.serve(async (req) => {
             `"${job.title}" — they checked in ${job.helper_arrival_near_miss_ft ?? "some"} ft from the map pin. If they're there, tap Confirm They Arrived, or report a problem.`,
             posterLink,
             "job_updates",
+            job.id,
           );
         } else if (stage === "first" || stage === "second") {
           await notifyUser(
@@ -188,6 +196,7 @@ Deno.serve(async (req) => {
               : `"${job.title}" — your Helpr has been waiting 2 hours. Confirm they arrived, or report a problem.`,
             posterLink,
             "job_updates",
+            job.id,
           );
         } else {
           const { data: admins, error: adminsErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
@@ -210,6 +219,7 @@ Deno.serve(async (req) => {
               // every one of these alerts landed on the dashboard home.
               `/admin?view=jobs&job=${job.id}`,
               "admin_alert",
+              job.id,
             );
           }
           await notifyUser(
@@ -218,6 +228,7 @@ Deno.serve(async (req) => {
             `"${job.title}" — the person who posted this job hasn't confirmed your arrival, so our team is reviewing it.`,
             `/my-jobs?job=${job.id}`,
             "job_updates",
+            job.id,
           );
           await postSlackOpsAlert({
             kind: "custom",

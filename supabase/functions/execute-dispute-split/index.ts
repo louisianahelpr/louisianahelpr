@@ -1649,6 +1649,7 @@ serve(async (req) => {
   if (job.helper_id && movedHelperCents > 0) {
     const { error: helperNoteErr } = await supabaseAdmin.from("notifications").insert({
       user_id: job.helper_id,
+      job_id: job.id,
       title: "Dispute settled — your share was sent",
       message: `The dispute on "${job.title}" was settled with a ${Math.round(helperShare * 100)}% share to you. $${formatPayoutDollars(helperDollars)} is on its way to your bank.`,
       type: "payment",

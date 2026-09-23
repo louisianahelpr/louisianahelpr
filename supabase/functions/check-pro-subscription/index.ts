@@ -6,6 +6,7 @@ import { tierDisplayName } from "../_shared/tierNames.ts";
 import { subscriptionCurrentPeriodEndISO } from "../_shared/stripeSubscriptionPeriod.ts";
 import { CLEARED_SUBSCRIPTION_LINKAGE, subscriptionLinkage } from "../_shared/subscriptionLinkage.ts";
 import { hasPerk } from "../_shared/tierPerks.ts";
+import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -221,11 +222,24 @@ serve(async (req) => {
                       title: "Bonus credit earned",
                       message: `Someone you referred upgraded to ${tierDisplayName(tier)} — you earned $10.`,
                       type: "payment",
-                      link: "/profile?tab=referral",
+                      // `&user=` names the SUBJECT, the referred account (Q139):
+                      // the Q137 seed boundary reads it, so a seed account's
+                      // upgrade never notifies a real referrer. Nothing on
+                      // /profile reads `user`, so the landing is unchanged.
+                      link: `/profile?tab=referral&user=${user.id}`,
                       read: false,
                     })
                     .select("id");
-                  if (notifErr || (notifRows?.length ?? 0) === 0) {
+                  const droppedBySeedBoundary = !notifErr && (notifRows?.length ?? 0) === 0 &&
+                    (await seedBoundaryDropsRow(supabaseAdmin, {
+                      user_id: referral.referrer_id,
+                      link: `/profile?tab=referral&user=${user.id}`,
+                    })) === true;
+                  if (droppedBySeedBoundary) {
+                    console.log(
+                      `[check-pro-subscription] referral bonus credited; referrer ${referral.referrer_id} not notified (seed referred account, real referrer; Q137)`,
+                    );
+                  } else if (notifErr || (notifRows?.length ?? 0) === 0) {
                     console.error(
                       `[check-pro-subscription] referral bonus credited but the referrer ${referral.referrer_id} was not notified:`,
                       notifErr?.message ?? "insert returned zero rows",

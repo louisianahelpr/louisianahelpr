@@ -362,6 +362,7 @@ async function applyCardDispute(
       for (const adminId of chargebackAdminIds) {
         await supabase.from("notifications").insert({
           user_id: adminId,
+          job_id: chargebackJob.id,
           title: "Stripe chargeback filed",
           message: `A $${(dispute.amount / 100).toFixed(2)} chargeback was filed for "${chargebackJob.title}". Respond in Stripe Dashboard before the evidence deadline or the dispute is auto-lost.`,
           type: "warning",

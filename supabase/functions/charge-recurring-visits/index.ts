@@ -60,6 +60,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import {
   DEFAULT_TIER_FEE_PERCENT,
   getHelperFeePercent,
@@ -1158,14 +1159,26 @@ async function notifyPosterCardProblem(
   // `.select("id")` on both inserts: a null `error` is not evidence the row
   // landed, and `notifications.id` is a real column (verified against prod
   // 2026-09-01: `notifications?select=id` → 200).
+  // `job_id: parent.id` is the SUBJECT (Q139): the Q137 seed boundary reads it,
+  // so a seed series never notifies a real party. A zero-row insert it dropped
+  // BY DESIGN is not a failure (same rule as the booking rows above, Q158).
   const { data: posterRows, error } = await supabase.from("notifications").insert({
     user_id: parent.customer_id,
+    job_id: parent.id,
     title: "We couldn't charge for your next visit",
     message: `"${parent.title}" on ${visitDate} wasn't booked because the payment didn't go through. Update your card and we'll pick the series back up.`,
     type: "job_updates",
     link: "/profile?tab=payment",
   }).select("id");
-  if (error || !posterRows || posterRows.length === 0) {
+  if (
+    error || !posterRows ||
+    (posterRows.length === 0 &&
+      (await seedBoundaryDropsRow(supabase, {
+        user_id: parent.customer_id as string,
+        job_id: parent.id as string,
+        link: "/profile?tab=payment",
+      })) !== true)
+  ) {
     console.error("[charge-recurring-visits] poster notification failed", error ?? "zero rows");
     failures.push(
       `series ${parent.id} ${visitDate}: poster was not told the charge failed (${error?.message ?? "insert returned zero rows"})`,
@@ -1179,6 +1192,7 @@ async function notifyPosterCardProblem(
   if (!helperId) return failures;
   const { data: helperRows, error: helperErr } = await supabase.from("notifications").insert({
     user_id: helperId,
+    job_id: parent.id,
     title: "Your next visit isn't booked",
     message: `"${parent.title}" on ${visitDate} couldn't be set up, so it's not on your schedule — please don't head out for it. We'll let you know if it gets booked.`,
     type: "job_updates",
@@ -1187,7 +1201,11 @@ async function notifyPosterCardProblem(
     // its default rather than pinning an empty bucket.
     link: `/my-jobs?job=${parent.id}`,
   }).select("id");
-  if (helperErr || !helperRows || helperRows.length === 0) {
+  if (
+    helperErr || !helperRows ||
+    (helperRows.length === 0 &&
+      (await seedBoundaryDropsRow(supabase, { user_id: helperId, job_id: parent.id as string, link: `/my-jobs?job=${parent.id}` })) !== true)
+  ) {
     console.error("[charge-recurring-visits] helper notification failed", helperErr ?? "zero rows");
     failures.push(
       `series ${parent.id} ${visitDate}: standing Helpr was not told the visit is unbooked (${helperErr?.message ?? "insert returned zero rows"})`,

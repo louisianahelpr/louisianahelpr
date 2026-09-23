@@ -173,6 +173,7 @@ Deno.serve(async (req) => {
       if (job.helper_id) {
         const { error: helperNotifyErr } = await supabase.from("notifications").insert({
           user_id: job.helper_id,
+          job_id: job.id,
           title: "Job expired",
           // NOT "you didn't start". Starting is not something this helper was
           // ever permitted to do — the job may still be days away. What they
@@ -254,6 +255,7 @@ Deno.serve(async (req) => {
 
       await supabase.from("notifications").insert({
         user_id: job.customer_id,
+        job_id: job.id,
         title: "Job auto-cancelled",
         message: `"${job.title}" was automatically cancelled because the scheduled time passed without a helpr being assigned. You can repost anytime.`,
         // 61 of the 71 prod rows under this title went to ordinary posters,

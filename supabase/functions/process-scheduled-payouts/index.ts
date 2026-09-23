@@ -385,6 +385,7 @@ serve(async (req) => {
         console.error(`Helper ${helperId} has no Stripe Connect for job ${job.id}`);
         await supabaseAdmin.from("notifications").insert({
           user_id: helperId,
+          job_id: job.id,
           title: "Payout account required",
           message: `$${formatPayoutDollars(helperPayout)} from "${job.title}" is ready, but your payout account isn't set up yet. Add it in Profile → Payments.`,
           // User-facing and about money the helpr is owed — `financial_alerts`,
@@ -503,6 +504,7 @@ serve(async (req) => {
               for (const adminId of adminIds) {
                 await supabaseAdmin.from("notifications").insert({
                   user_id: adminId,
+                  job_id: job.id,
                   title: "Payout blocked — charge not captured",
                   message: `Job ${job.id} ("${job.title}") payout cannot proceed. PI status: ${pi.status}.`,
                   type: "admin_alert", link: "/admin",
@@ -1126,6 +1128,7 @@ serve(async (req) => {
           : "";
         await supabaseAdmin.from("notifications").insert({
           user_id: helperId,
+          job_id: job.id,
           title: "Payout sent!",
           message: `$${formatPayoutDollars(helperPayout)} for "${job.title}" has been transferred to your account${feeNote}.`,
           type: "payment", link: "/profile?tab=earnings",
@@ -1178,6 +1181,7 @@ serve(async (req) => {
           for (const adminId of adminIds) {
             await supabaseAdmin.from("notifications").insert({
               user_id: adminId,
+              job_id: job.id,
               title: "Scheduled payout failed",
               message: `Failed to pay $${helperPayout.toFixed(2)} to helpr for job ${job.id}. Error: ${(e as Error).message}`,
               type: "admin_alert", link: "/admin",

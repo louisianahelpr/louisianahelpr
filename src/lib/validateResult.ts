@@ -25,6 +25,7 @@
  *     "useProfile.fetchProfile",
  *   );
  */
+import "./zodConfig";
 import type { ZodSchema } from "zod";
 
 // Build a PII-safe summary of the drifted payload. The Zod issues list

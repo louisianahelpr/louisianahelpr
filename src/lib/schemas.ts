@@ -11,6 +11,7 @@
  * Keep these schemas alongside the TS types they shadow — when the TS
  * shape changes, update the Zod shape in the same diff.
  */
+import "./zodConfig";
 import { z } from "zod";
 
 // ── Profile (src/hooks/useProfile.ts → SharedProfile) ────────────────

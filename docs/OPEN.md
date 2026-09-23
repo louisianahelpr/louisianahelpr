@@ -4,7 +4,11 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
+<<<<<<< HEAD
 - **Queue (this file):** 62 done, 11 partly done (fixed, protection pending), 79 open. Source of truth for work.
+=======
+- **Queue (this file):** 61 done, 9 partly done (fixed, protection pending), 81 open. Source of truth for work.
+>>>>>>> 98a9e5d53 (fix(Q83): zod runs jitless; per-page CSP eval report 1 -> 0 (measured))
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +44,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 152 items — 62 done, 11 partly done (fixed, protection pending), 79 open.**
+**Queue: 152 items — 63 done, 11 partly done (fixed, protection pending), 78 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1295,7 +1299,7 @@ sure someone hears it and closes it.
    half. The JS boot code dropped registration on every cold launch that
    redirected. Fixed in code (Q82). Getting a phone onto the fix is
    MORNING QUESTIONS 5.
-- [ ] **Q83 Silence Zod's per-page `script-src eval` CSP report (2026-09-23).**
+- [x] **Q83 DONE 2026-09-23: zod runs jitless (src/lib/zodConfig.ts, imported first by every module that imports zod). MEASURED with a securitypolicyviolation listener on /, /login, /browse: prod 1 eval violation per page -> local production build 0 per page. Guard: src/test/zodIsJitless.test.ts (config().jitless true after the schemas load; every zod importer loads zodConfig first). Was:** Silence Zod's per-page `script-src eval` CSP report (2026-09-23).
   Zod v4 probes `new Function("")` once per page (its `allowsEval` check,
   used for the JIT object parser); the CSP blocks it, so every page logs one
   CSP violation (harmless, but noise in every console/CSP report — the Q13

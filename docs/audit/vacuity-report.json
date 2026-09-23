@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "generated": "2026-09-23T12:58:48.379Z",
+=======
+  "generated": "2026-09-23T12:59:18.979Z",
+>>>>>>> 98a9e5d53 (fix(Q83): zod runs jitless; per-page CSP eval report 1 -> 0 (measured))
   "guards": 759,
   "registered": 759,
   "unregistered": [],

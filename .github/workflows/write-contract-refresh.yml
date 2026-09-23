@@ -92,3 +92,34 @@ jobs:
         with:
           name: write-contract-snapshot
           path: scripts/audit/write-contract.snapshot.json
+
+  # A RED RUN HAS TO LAND SOMEWHERE. Added 2026-09-23 after write-contract-refresh — along
+  # with 13 other scheduled workflows — was found failing with nobody told.
+  # The drift detector had been red for THREE CONSECUTIVE DAYS (09-20, 09-21,
+  # 09-22) and the nightly DB backup had not succeeded since 09-21; both are
+  # invisible unless somebody opens the Actions tab, which is exactly the
+  # thing the owner said nobody does.
+  #
+  # `nightly-issue-sync` opens/updates ONE `nightly-red` issue for this
+  # workflow and closes it on the next green run, which is what makes the
+  # "Nightly reds nobody read" gate able to see it at all.
+  #
+  # SCHEDULE AND MANUAL RUNS ONLY. A push/PR failure is already visible on the
+  # commit and the PR; filing an issue for it would make the label noisy and
+  # teach people to ignore it.
+  notify:
+    name: Report nightly result
+    needs: [refresh]
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: write-contract-refresh
+          status: ${{ needs.refresh.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

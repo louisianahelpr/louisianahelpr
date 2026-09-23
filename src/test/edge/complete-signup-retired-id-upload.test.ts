@@ -117,6 +117,7 @@ describe("complete-signup — the retired ID / portfolio uploads (Q40)", () => {
     seed("denied");
     scenario.authUser = { id: USER_ID, email: "retired-id@test.com" };
     const { userId: _drop, ...jwtBody } = retiredBody;
+    void _drop; // only the rest (no body userId) is sent
     const fn = await load();
     const res = await fn.fetch(
       fn.request({ body: jwtBody, headers: { Authorization: "Bearer user-jwt" } }),

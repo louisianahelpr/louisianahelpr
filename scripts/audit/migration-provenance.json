@@ -47,6 +47,14 @@
       "why": "Q188. Applied by the Supabase GitHub integration (Q121), not db-deploy: present in supabase_migrations.schema_migrations and cron_catchup_policy.weekly-helper-report catch_up=true at ~14:58Z 2026-09-23 after the push of 433b8a183; 0 rows in migration_deploy_ledger."
     },
     {
+      "version": "20260923145516",
+      "why": "Q189b. Applied by the Supabase GitHub integration (Q121), not db-deploy: present in supabase_migrations.schema_migrations (checked 2026-09-23 ~15:25Z) after the push of a0df10d15; 0 rows in migration_deploy_ledger."
+    },
+    {
+      "version": "20260923145614",
+      "why": "Q40. Applied by the Supabase GitHub integration (Q121), not db-deploy: present in supabase_migrations.schema_migrations (checked 2026-09-23 ~15:25Z); 0 rows in migration_deploy_ledger. Acked by the lead because db-deploy flagged it red."
+    },
+    {
       "version": "20260923150534",
       "why": "Q153. Applied by the Supabase GitHub integration (Q121), not db-deploy: present in supabase_migrations.schema_migrations at 15:15:24Z 2026-09-23 (push of bef41564c at ~15:15:00Z) with its effect live (dispute 9756a585 execution_transfer_id=tr_3UCwOtKp2H4b7tEC1UMtZPxp, execution_helper_cents=3520); 0 rows in migration_deploy_ledger; db-deploy 35880140392 red only at 'Verify every prod migration was applied by db-deploy'."
     }

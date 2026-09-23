@@ -14,11 +14,25 @@
  *     were all clean (scripts/audit/pressRouteProbe.mjs).
  * Behaviour (3x apply, red without the migration): src/test/pglite/routeProbeCloseRule.pglite.mjs.
  *
+ * Q298 (20260923185332, lh-authz-rls review of Q94), on the NEWEST definitions:
+ *   - a non-overflow item with no screen returns "still failing" BEFORE the
+ *     probe check (ops_route_key(null) = '/', so a press pass on / closed it);
+ *   - record_route_probe_passes refuses more than 1000 routes and keys at most
+ *     512 chars of each;
+ *   - 20260923185332's ops_alert_condition is Q94's verbatim apart from that
+ *     line and Q287's 'cron-http-untagged' branch (nothing else lost).
+ * Behaviour (red on the state before: 15 checks):
+ * src/test/pglite/opsAlertCloseRulesAndFairVerify.pglite.mjs.
+ *
  * @mutate supabase/migrations/20260923182022_ops_route_probe_close_rule.sql | AND p.passed_at > p_since); | AND p.passed_at > p_since - interval '100 years');
  * @mutate supabase/migrations/20260923182022_ops_route_probe_close_rule.sql | REVOKE ALL ON FUNCTION public.record_route_probe_passes(text[], text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.record_route_probe_passes(text[], text) FROM PUBLIC;
  * @mutate supabase/migrations/20260923182022_ops_route_probe_close_rule.sql | ELSIF p_source = 'seed-boundary-check-failed' THEN | ELSIF p_source = 'seed-boundary-check-failed-x' THEN
  * @mutate scripts/audit/pressRouteProbe.mjs | if (r.status === "ok" && !(r.failed > 0)) v.clean++; | v.clean++;
  * @mutate scripts/audit/press-every-control.mjs | const probePasses = routeProbePasses(results); | const probePasses = [];
+ * @mutate supabase/migrations/20260923185332_ops_alert_close_rules_and_fair_verify.sql |     IF nullif(p_sample_ref ->> 'screen', '') IS NULL THEN RETURN true; END IF; |     NULL;
+ * @mutate supabase/migrations/20260923185332_ops_alert_close_rules_and_fair_verify.sql | IF coalesce(cardinality(p_routes), 0) > 1000 THEN | IF coalesce(cardinality(p_routes), 0) > 100000 THEN
+ * @mutate supabase/migrations/20260923185332_ops_alert_close_rules_and_fair_verify.sql | public.ops_route_key(left(r, 512)) | public.ops_route_key(r)
+ * @mutate supabase/migrations/20260923185332_ops_alert_close_rules_and_fair_verify.sql | ELSIF p_source = 'error-log-throttled' THEN | ELSIF p_source = 'error-log-throttled-x' THEN
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -29,6 +43,8 @@ import { routeProbePasses, recordRouteProbePasses, screenOf } from "../../script
 const ROOT = resolve(__dirname, "../..");
 const MIG = join(ROOT, "supabase", "migrations");
 const files = readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort();
+const Q94 = "20260923182022_ops_route_probe_close_rule.sql";
+const Q298 = "20260923185332_ops_alert_close_rules_and_fair_verify.sql";
 
 /** Every definition of public.<name>, in apply order, any dollar-quote tag, comments blanked. */
 function definitions(name: string): Array<{ file: string; body: string }> {
@@ -57,8 +73,11 @@ const tailOf = (b: string) => {
 describe("Q94: the user-error-screen close rule requires a synthetic pass", () => {
   const defs = definitions("ops_alert_condition");
   const newest = defs[defs.length - 1];
-  const prior = defs[defs.length - 2];
   const b = ws(newest?.body ?? "");
+  // The Q94 restatement itself and the definition it restated.
+  const q94At = defs.findIndex((d) => d.file === Q94);
+  const q94 = defs[q94At];
+  const prior = q94At > 0 ? defs[q94At - 1] : undefined;
 
   it("reads a real history (floor)", () => {
     expect(files.length).toBeGreaterThan(500);
@@ -75,14 +94,16 @@ describe("Q94: the user-error-screen close rule requires a synthetic pass", () =
   });
 
   it("restated from the NEWEST prior body: everything outside that tail is unchanged", () => {
+    expect(q94, `${Q94} defines ops_alert_condition`).toBeTruthy();
     expect(prior, "a prior definition exists").toBeTruthy();
     const pb = ws(prior!.body);
+    const qb = ws(q94!.body);
     const strip = (s: string) => s.replace(tailOf(s) ? ws(tailOf(s)) : "\u0000", "<TAIL>");
-    expect(strip(b), `${newest?.file} vs ${prior?.file}`).toBe(strip(pb));
+    expect(strip(qb), `${q94?.file} vs ${prior?.file}`).toBe(strip(pb));
   });
 
   it("new objects are revoked FROM PUBLIC, anon, authenticated; service_role only", () => {
-    const sql = blankSqlComments(readFileSync(join(MIG, newest!.file), "utf8"));
+    const sql = blankSqlComments(readFileSync(join(MIG, Q94), "utf8"));
     for (const obj of [
       "TABLE public.ops_route_probe",
       "FUNCTION public.ops_route_key(text)",
@@ -93,6 +114,44 @@ describe("Q94: the user-error-screen close rule requires a synthetic pass", () =
     }
     expect(sql).toContain("ALTER TABLE public.ops_route_probe ENABLE ROW LEVEL SECURITY;");
     expect(sql).toMatch(/CREATE TABLE IF NOT EXISTS public\.ops_route_probe/);
+  });
+});
+
+describe("Q298: harden the Q94 close rule", () => {
+  const defs = definitions("ops_alert_condition");
+  const newest = defs[defs.length - 1];
+  const at = defs.findIndex((d) => d.file === Q298);
+  const probes = definitions("record_route_probe_passes");
+  const rec = ws(probes[probes.length - 1]?.body ?? "");
+
+  it("reads the Q298 restatement (floor)", () => {
+    expect(at, `${Q298} defines ops_alert_condition`).toBeGreaterThan(0);
+    expect(probes.length).toBeGreaterThan(1);
+  });
+
+  it("an item with no screen is still failing before the probe check (never keyed to '/')", () => {
+    const t = ws(tailOf(ws(newest?.body ?? "")));
+    expect(t, newest?.file).toContain(
+      "IF nullif(p_sample_ref ->> 'screen', '') IS NULL THEN RETURN true; END IF; RETURN NOT EXISTS ( SELECT 1 FROM public.ops_route_probe p",
+    );
+  });
+
+  it("record_route_probe_passes bounds its input: at most 1000 routes, 512 chars keyed", () => {
+    expect(rec).toMatch(/IF coalesce\(cardinality\(p_routes\), 0\) > 1000 THEN RAISE EXCEPTION/);
+    expect(rec).toContain("public.ops_route_key(left(r, 512))");
+    expect(rec).not.toMatch(/ops_route_key\(r\)/);
+  });
+
+  it("20260923185332 restates Q94's body verbatim apart from Q287's branch and that line", () => {
+    const mine = ws(defs[at]?.body ?? "");
+    const from = mine.indexOf("ELSIF p_source = 'cron-http-untagged'");
+    const to = mine.indexOf("ELSIF p_source = 'seed-boundary-check-failed'");
+    expect(from, "Q287 branch present").toBeGreaterThan(-1);
+    expect(to).toBeGreaterThan(from);
+    const stripped = (mine.slice(0, from) + mine.slice(to)).replace(
+      "IF nullif(p_sample_ref ->> 'screen', '') IS NULL THEN RETURN true; END IF; ", "");
+    expect(stripped, `${Q298} vs ${defs[at - 1]?.file}`).toBe(ws(defs[at - 1]?.body ?? ""));
+    expect(defs[at - 1]?.file).toBe(Q94);
   });
 });
 

@@ -40,6 +40,13 @@
  *     cron_http_tag( as 'cron-http-untagged', and both reach its Slack post;
  *   - sweep_silent_cron_failures only ingests responses a cron tagged.
  *
+ * Q287 (20260923185332): a 'cron-http-untagged' ledger item closes itself.
+ * The NEWEST ops_alert_condition has a 'cron-http-untagged' branch asking the
+ * detector's own predicate for that job (ACTIVE, net.http_post, no
+ * cron_http_tag(, named as the detector names it), items filed before it are
+ * moved to sql_condition, and 'cron-missed-slot' has no branch (manual by
+ * design). Behaviour: src/test/pglite/opsAlertCloseRulesAndFairVerify.pglite.mjs.
+ *
  * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | AND j.command NOT LIKE '%cron_http_tag(%' | AND false
  * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | JOIN public.cron_http_requests t ON t.request_id = resp.id | LEFT JOIN public.cron_http_requests t ON t.request_id = resp.id
  * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | WHERE h.jobname = r.jobname AND h.created_at = now(); | WHERE false;
@@ -50,6 +57,10 @@
  * @mutate supabase/migrations/20260923170422_cron_http_request_ids.sql |     'auto-tip-charge', |     'auto-tip-charge-gone',
  * @mutate supabase/migrations/20260923170422_cron_http_request_ids.sql |        AND command NOT LIKE '%cron_http_tag(%' |        AND true
  * @mutate supabase/migrations/20260923170422_cron_http_request_ids.sql |      WHERE command LIKE '%net.http_post(%' |      WHERE command LIKE '%net.http_post(%' AND jobname LIKE 'auto-%'
+ * @mutate supabase/migrations/20260923185332_ops_alert_close_rules_and_fair_verify.sql |        WHERE j.active |        WHERE true OR j.active
+ * @mutate supabase/migrations/20260923185332_ops_alert_close_rules_and_fair_verify.sql |          AND j.command NOT LIKE '%cron_http_tag(%'); |          AND true);
+ * @mutate supabase/migrations/20260923185332_ops_alert_close_rules_and_fair_verify.sql |   ELSIF p_source = 'cron-http-untagged' AND v_job IS NOT NULL THEN |   ELSIF p_source = 'cron-http-untagged-x' AND v_job IS NOT NULL THEN
+ * @mutate supabase/migrations/20260923185332_ops_alert_close_rules_and_fair_verify.sql |    AND verify_kind = 'manual' |    AND verify_kind = 'manual-x'
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -178,5 +189,45 @@ describe("the outcome of a caught-up HTTP cron and untagged HTTP crons are seen 
     const ingest = /INSERT\s+INTO\s+public\.cron_run_log[\s\S]*?ON\s+CONFLICT/i.exec(silent.body)?.[0] ?? "";
     expect(ingest).toMatch(/FROM\s+net\._http_response\s+resp\s+JOIN\s+public\.cron_http_requests\s+(\w+)\s+ON\s+\1\.request_id\s*=\s*resp\.id/i);
     expect(ingest).not.toMatch(/LEFT\s+JOIN\s+public\.cron_http_requests/i);
+  });
+});
+
+describe("an untagged-HTTP-cron ledger item closes itself (Q287)", () => {
+  /** Newest definition of public.<name>(...any args), any dollar tag, comments blanked. */
+  const newestAnyArgs = (name: string) => {
+    const re = new RegExp(String.raw`CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?${name}\s*\([^)]*\)[\s\S]*?\bAS\s+(\$\w*\$)([\s\S]*?)\1`, "gi");
+    let found = { file: "", body: "" };
+    for (const { file, sql } of files) {
+      for (const m of blankSqlComments(sql).matchAll(re)) found = { file, body: m[2] };
+    }
+    return found;
+  };
+  const cond = newestAnyArgs("ops_alert_condition");
+  const branch = (() => {
+    const b = cond.body;
+    const at = b.indexOf("ELSIF p_source = 'cron-http-untagged'");
+    return at < 0 ? "" : b.slice(at, b.indexOf("ELSIF", at + 10));
+  })();
+
+  it("reads the newest ops_alert_condition (floor)", () => {
+    expect(cond.body.length).toBeGreaterThan(5000);
+    expect(cond.file >= "20260923185332", cond.file).toBe(true);
+  });
+
+  it("has a 'cron-http-untagged' branch asking the detector's own predicate for that job", () => {
+    expect(branch, `${cond.file}: no 'cron-http-untagged' branch`).not.toBe("");
+    expect(branch).toMatch(/p_source\s*=\s*'cron-http-untagged'\s+AND\s+v_job\s+IS\s+NOT\s+NULL\s+THEN\s+IF\s+p_probe_only\s+THEN\s+RETURN\s+true;/i);
+    expect(branch).toMatch(/RETURN\s+EXISTS\s*\(\s*SELECT\s+1\s+FROM\s+cron\.job\s+j\s+WHERE\s+j\.active\s+AND\s+coalesce\(j\.jobname,\s*'jobid '\s*\|\|\s*j\.jobid\)\s*=\s*v_job\s+AND\s+j\.command\s+LIKE\s+'%net\.http_post\(%'\s+AND\s+j\.command\s+NOT\s+LIKE\s+'%cron_http_tag\(%'\s*\)\s*;/i);
+    // The detector names an unnamed job the same way the branch looks it up.
+    expect(sweep).toMatch(/coalesce\(j\.jobname,\s*'jobid '\s*\|\|\s*j\.jobid\)\s+AS\s+jobname/i);
+  });
+
+  it("'cron-missed-slot' stays manual: no branch names it", () => {
+    expect(cond.body).not.toMatch(/'cron-missed-slot'/);
+  });
+
+  it("items filed before the branch are moved to sql_condition", () => {
+    const sql = blankSqlComments(files.find((f) => f.file === cond.file)?.sql ?? "");
+    expect(sql).toMatch(/UPDATE\s+public\.ops_alert_ledger\s+SET\s+verify_kind\s*=\s*'sql_condition',\s*verify_ref\s*=\s*'cron-http-untagged'[\s\S]*?source\s*=\s*'cron-http-untagged'\s+AND\s+verify_kind\s*=\s*'manual'\s+AND\s+status\s*<>\s*'closed'/i);
   });
 });

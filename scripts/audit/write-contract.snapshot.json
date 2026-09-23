@@ -2001,6 +2001,15 @@
     "nargs": 1
    }
   ],
+  "mark_ban_started_in_txn": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "mark_helper_arrival": [
    {
     "anon": false,

@@ -83,6 +83,8 @@ on:
       - "scripts/check-migration-relation-grants.mjs"
       - "scripts/ci/sensitive-anon-grants.sql"
       - "scripts/check-anon-table-grants.mjs"
+      - "scripts/ci/ban-gate-coverage.sql"
+      - "scripts/check-ban-gate-coverage.mjs"
       - "scripts/check-unvalidated-constraints.mjs"
       # Every gate script this workflow runs, and what it reads, must re-run the
       # workflow when edited: an acknowledgement added to migration-provenance.json
@@ -415,6 +417,17 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-live-privileges.mjs
+
+      # Q281: right after the push, a banned account must be refused on every
+      # client write path (or be exempt with a reason), storage must refuse its
+      # uploads, and every profile ban must be mirrored into
+      # auth.users.banned_until. Same query as the nightly drift detector.
+      - name: Verify a banned account is refused on every client write path (live prod)
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-ban-gate-coverage.mjs
 
       # types.ts must describe what was just deployed. Until 2026-09-23 this was
       # checked only by the nightly drift detector, and types.ts went 59

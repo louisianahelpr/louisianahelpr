@@ -465,7 +465,12 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         requiresW9: false,
       });
 
-    const sig = JSON.stringify(buildPayload({ withExtras: true }));
+    // `expires_at` is left out: it is floored to now + 1 hour, so for a job
+    // starting within the hour it differs on every press, and a retry would
+    // read as an edit and post a second job.
+    const { expires_at: _expiresAt, ...sigFields } = buildPayload({ withExtras: true });
+    void _expiresAt;
+    const sig = JSON.stringify(sigFields);
     const prior = attemptRef.current;
     if (prior && prior.sig !== sig) {
       // Edited since an attempt whose outcome we never heard. If that attempt's

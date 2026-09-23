@@ -17,14 +17,16 @@
 // UNIQUE (customer_id, client_request_id) WHERE client_request_id IS NOT NULL
 // (20260923173315_idempotent_job_post_and_message_send.sql).
 //
-// Red first (2026-09-23), against the pre-fix useJobSubmit.ts: (a) 2 jobs,
-// (b) 2 jobs and a create-payment call for a job the first press never paid
-// for, Q270 the toast was "TypeError: Failed to fetch".
+// Red first (2026-09-23), against the pre-fix useJobSubmit.ts: 6 of 7 tests
+// fail — (a) 2 jobs, (b) 2 jobs and "Couldn't start payment: …" for a lost
+// response, (c) 2 jobs, Q270 the toast was "TypeError: Failed to fetch". The
+// 7th pins the unchanged path (a REFUSED payment still deletes the job).
 //
 // @mutate src/pages/postjob/useJobSubmit.ts | ...(withExtras ? { client_request_id: attempt.key } : {}), | ...({}),
 // @mutate src/pages/postjob/useJobSubmit.ts | if (error && (error as { code?: string }).code === "23505") { | if (false) {
 // @mutate src/pages/postjob/useJobSubmit.ts | const outcomeUnknown = !paymentData?.error && isNetworkFailure(paymentError); | const outcomeUnknown = false;
 // @mutate src/pages/postjob/useJobSubmit.ts | if (attempt.jobId) { | if (false) {
+// @mutate src/pages/postjob/useJobSubmit.ts | const sig = JSON.stringify(sigFields); | const sig = JSON.stringify(buildPayload({ withExtras: true }));
 // @mutate src/pages/postjob/useJobSubmit.ts | ? CONNECTION_TROUBLE_COPY\n              : userFacingError( | ? String(error?.message)\n              : userFacingError(
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -33,6 +35,7 @@ type Row = Record<string, unknown>;
 const POSTER = "poster-1";
 const server = vi.hoisted(() => ({
   jobs: [] as Row[],
+  nextId: 1,
   jobInserts: 0,
   loseNextJobInsertResponse: false,
   failNextJobInsertOnWire: false,
@@ -65,7 +68,7 @@ vi.mock("@/integrations/supabase/client", () => {
         ) {
           return { data: null, error: { code: "23505", message: 'duplicate key value violates unique constraint "jobs_customer_client_request_id_key"' } };
         }
-        const stored = { id: `job-${server.jobs.length + 1}`, payment_status: "unpaid", ...row };
+        const stored = { id: `job-${server.nextId++}`, payment_status: "unpaid", stripe_session_id: null, ...row };
         server.jobs.push(stored);
         if (server.loseNextJobInsertResponse) {
           server.loseNextJobInsertResponse = false;
@@ -74,7 +77,9 @@ vi.mock("@/integrations/supabase/client", () => {
         return { data: { id: stored.id }, error: null };
       }
       if (op === "delete") {
-        const hit = match();
+        // The prod DELETE policy (20260903055308): an unpaid job is deletable
+        // only while no Checkout Session has been stamped on it.
+        const hit = match().filter((r) => r.stripe_session_id == null);
         server.jobs = server.jobs.filter((r) => !hit.includes(r));
         return { data: hit.map((r) => ({ id: r.id })), error: null };
       }
@@ -102,10 +107,14 @@ vi.mock("@/integrations/supabase/client", () => {
       functions: {
         invoke: async (_fn: string, { body }: { body: { jobId: string } }) => {
           server.paymentCalls.push(body.jobId);
+          const job = server.jobs.find((r) => r.id === body.jobId);
           if (server.refuseNextPayment) {
             server.refuseNextPayment = false;
             return { data: { error: "Job budgets run from $25 to $5,000." }, error: null };
           }
+          // create-payment mints a session and stamps it on the job before it
+          // answers, so a LOST response still leaves the session behind.
+          if (job) job.stripe_session_id = `cs_test_${server.paymentCalls.length}`;
           if (server.loseNextPaymentResponse) {
             server.loseNextPaymentResponse = false;
             return {
@@ -194,6 +203,7 @@ const errorToasts = () => vi.mocked(toast.error).mock.calls.map((c) => String(c[
 
 beforeEach(() => {
   server.jobs = [];
+  server.nextId = 1;
   server.jobInserts = 0;
   server.loseNextJobInsertResponse = false;
   server.failNextJobInsertOnWire = false;
@@ -265,6 +275,25 @@ describe("Q267 (b): the job landed, create-payment's response was lost, the post
     expect(server.jobs).toHaveLength(1);
     expect(server.jobs[0].budget).toBe(95);
     expect(server.paymentCalls).toEqual([server.jobs[0].id]);
+  });
+});
+
+describe("Q267 (c): a job starting within the hour (expires_at floored to now + 1h)", () => {
+  it("a retry a minute later is still the SAME attempt, so it still pays for the same job", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-01T13:30:00Z")); // 08:30 in Louisiana
+      const { result } = renderHook(() => useJobSubmit(params({ dateNeeded: "2026-10-01", startTime: "09:00" })));
+      server.loseNextPaymentResponse = true;
+      await press(result.current.handleSubmit);
+      expect(server.jobs).toHaveLength(1);
+      vi.setSystemTime(new Date("2026-10-01T13:31:00Z"));
+      await press(result.current.handleSubmit);
+      expect(server.jobs, "a retry within the hour read as an edit and posted again").toHaveLength(1);
+      expect(server.paymentCalls).toEqual(["job-1", "job-1"]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

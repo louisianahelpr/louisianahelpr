@@ -379,6 +379,11 @@ serve(async (req) => {
         });
       } catch (transferErr: any) {
         console.error(`Failed to transfer cancellation fee to helper ${job.helper_id}:`, transferErr);
+        // A defect, not just a bell item: the job still settles below and
+        // nothing retries this transfer, so the Helpr is unpaid until a person
+        // acts. `admin_alert` is what the admin push->Slack mirror pages on
+        // (docs/OPEN.md Q2 review, 2026-09-23); it used to be 'warning'.
+        defects.record(`cancellation fee transfer ${job.id}: ${transferErr?.message ?? transferErr}`);
         // Notify admins about the failed transfer
         const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "void-cancelled-payments.feeTransferFailed");
         {
@@ -387,8 +392,8 @@ serve(async (req) => {
               user_id: adminId,
               title: "Cancellation fee transfer failed",
               message: `Failed to transfer $${cancellationFee.toFixed(2)} cancellation fee to Helpr for job ${job.id}. Error: ${transferErr.message}`,
-              type: "warning",
-              link: "/admin",
+              type: "admin_alert",
+              link: `/admin?view=jobs&job=${job.id}`,
             });
           }
         }
@@ -533,7 +538,7 @@ serve(async (req) => {
     // seed-policy: seed and real alike — this is cleanup, not an alert.
     const { data: cancelledUnpaid, error: cuErr } = await supabaseAdmin
       .from("jobs")
-      .select("id, stripe_session_id")
+      .select("id, title, stripe_session_id, is_seed")
       .eq("status", "cancelled")
       .eq("payment_status", "unpaid")
       .not("stripe_session_id", "is", null)
@@ -553,7 +558,23 @@ serve(async (req) => {
         if (session.payment_status === "unpaid" && session.status !== "complete") {
           if (await markAbandoned(job, "cancelled, checkout never paid")) abandonedCount++;
         } else {
-          console.warn(`[void-cancelled-payments] cancelled job ${job.id}: session ${session.status}/${session.payment_status} — not abandoning; a paid checkout on a cancelled job is detect_stuck_payments' to report.`);
+          // Stripe says this checkout TOOK MONEY on a job the DB has as
+          // cancelled + unpaid: the webhook never settled it. Page it here,
+          // with the evidence in hand — detect_stuck_payments only reads jobs
+          // under 24h old and gives cancelled ones 2h, so a late payment
+          // could age out of its window unreported (money-escrow review).
+          console.error(`[void-cancelled-payments] cancelled job ${job.id}: session ${session.status}/${session.payment_status} — paid checkout never settled`);
+          defects.record(`cancelled job ${job.id} has a PAID checkout the webhook never settled (${job.stripe_session_id})`);
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            severity: "critical",
+            title: "Paid checkout on a cancelled job — never settled",
+            message: `Job ${job.id} ("${job.title}") is cancelled and unpaid in the DB, but Stripe session ${job.stripe_session_id} is ${session.status}/${session.payment_status}. The money is held by Stripe with nothing in escrow; refund it or settle the job by hand.`,
+            fields: { job_id: job.id, session_id: job.stripe_session_id },
+            link: `/admin?view=jobs&job=${job.id}`,
+            oncePerDayKey: `cancelled-paid-checkout:${job.id}`,
+            seed: job.is_seed === true,
+          });
         }
       } catch (e) {
         const missing = (e as any)?.statusCode === 404 || (e as any)?.code === "resource_missing";

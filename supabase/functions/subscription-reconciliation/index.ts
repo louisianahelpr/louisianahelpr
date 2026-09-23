@@ -442,16 +442,17 @@ serve(async (req) => {
     if (!includeSeed) {
       const { data: seedRows, error: seedErr } = await admin
         .from("profiles")
-        .select("stripe_subscription_id, stripe_customer_id")
+        .select("stripe_subscription_id")
         .eq("is_seed", true)
-        .or("stripe_subscription_id.not.is.null,stripe_customer_id.not.is.null")
+        .not("stripe_subscription_id", "is", null)
         .limit(SCAN_LIMIT);
       // A failed read must not turn every seed subscription into a finding —
       // nor hide a real one. Fail the run loudly instead.
       if (seedErr) throw new Error(`seed profiles read failed: ${seedErr.message}`);
-      for (const r of (seedRows ?? []) as { stripe_subscription_id: string | null; stripe_customer_id: string | null }[]) {
+      // Subscription id only: a customer id shared with a real profile must
+      // stay a finding (money-escrow review, 2026-09-23).
+      for (const r of (seedRows ?? []) as { stripe_subscription_id: string | null }[]) {
         if (r.stripe_subscription_id) seedOwned.add(r.stripe_subscription_id);
-        if (r.stripe_customer_id) seedOwned.add(r.stripe_customer_id);
       }
     }
 
@@ -479,7 +480,7 @@ serve(async (req) => {
         }
       }
 
-      if (!profile && (seedOwned.has(sub.id) || (customerId !== null && seedOwned.has(customerId)))) {
+      if (!profile && seedOwned.has(sub.id)) {
         // Out of scope, not missing: a seed profile owns it (see seedOwned).
         notes.push(`subscription ${sub.id}: owned by a seed profile — out of scope (use ?include_seed=1)`);
         continue;

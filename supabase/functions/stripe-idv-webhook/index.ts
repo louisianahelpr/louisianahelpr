@@ -481,7 +481,9 @@ serve(async (req) => {
               user_id: a.user_id,
               title: "Identity verification needs review",
               message: `A user ${reason}. Tap to review.`,
-              type: "warning",
+              // admin_alert: the operator type the admin push->Slack mirror
+              // pages on (docs/OPEN.md Q2 review, 2026-09-23).
+              type: "admin_alert",
               link: "/admin",
             }))
           );

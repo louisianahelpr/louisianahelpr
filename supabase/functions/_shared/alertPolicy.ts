@@ -192,10 +192,13 @@ export function adminPushEventKey(p: { title: string; link?: string | null; thre
  * auto-cancelled", a chat message from "Perry P." — posted to #ops-alerts as
  * critical pages. `admin_alert` is the operator type (20260903025724);
  * `system_alert` is operator-only in practice (every non-admin recipient on
- * prod is a seed fixture). Operator alerts filed under a user type
- * ('warning' "Job disputed" / "Transfer failed") each have their own Slack
- * path (the dispute_filed trigger, transferFailed.ts), so leaving them out
- * drops nothing. src/test/adminPushMirror.test.ts pins this.
+ * prod is a seed fixture). The operator alerts that used to be filed as
+ * 'warning' were retyped to admin_alert in the same change (create-payment
+ * "Transfer failed", void-cancelled-payments "Cancellation fee transfer
+ * failed", stripe-idv-webhook "Identity verification needs review");
+ * "Job disputed" pages through notify_ops_dispute_filed. The guard
+ * src/test/adminPushMirror.test.ts fails if an edge fan-out to admins uses a
+ * non-operator type.
  */
 export const OPERATOR_NOTIFICATION_TYPES = ['admin_alert', 'system_alert'] as const
 

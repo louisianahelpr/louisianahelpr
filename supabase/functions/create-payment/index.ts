@@ -3233,8 +3233,12 @@ async function transferToHelper(
           user_id: adminId,
           title: "Transfer failed",
           message: `Failed to transfer $${amount.toFixed(2)} to Helpr for job ${jobId}. Error: ${(e as Error).message}`,
-          type: "warning",
-          link: "/admin",
+          // admin_alert: the operator type the admin push->Slack mirror pages
+          // on (docs/OPEN.md Q2 review, 2026-09-23). Was 'warning', which the
+          // mirror no longer relays; the link names the job so a seed job's
+          // failure goes to the digest.
+          type: "admin_alert",
+          link: `/admin?view=jobs&job=${jobId}`,
         });
       }
     }

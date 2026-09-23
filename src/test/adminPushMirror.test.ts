@@ -14,10 +14,11 @@
  *
  * @mutate supabase/functions/send-push-notification/index.ts | if (isOperatorNotification(payload.thread_id)) { | if (true) {
  * @mutate supabase/functions/_shared/slack-alerts.ts | if (input.seed) { | if (false) {
+ * @mutate supabase/functions/stripe-idv-webhook/index.ts | type: "admin_alert", | type: "warning",
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
 import {
   OPERATOR_NOTIFICATION_TYPES,
   alertSubjectFromLink,
@@ -25,6 +26,12 @@ import {
 } from "../../supabase/functions/_shared/alertPolicy";
 
 const ROOT = process.cwd();
+function walk(dir: string): string[] {
+  return readdirSync(dir).flatMap((n) => {
+    const p = join(dir, n);
+    return statSync(p).isDirectory() ? walk(p) : [p];
+  });
+}
 const pushSrc = readFileSync(join(ROOT, "supabase/functions/send-push-notification/index.ts"), "utf8");
 
 describe("which admin notifications are operator alerts", () => {
@@ -46,6 +53,41 @@ describe("which admin notifications are operator alerts", () => {
     expect(post).toBeGreaterThan(role);
     // …and it passes the subject's seed-ness through.
     expect(pushSrc.slice(post, post + 600)).toMatch(/\bseed,/);
+  });
+});
+
+describe("edge fan-outs to admins use an operator type", () => {
+  // Every notification object literal in supabase/functions addressed to an
+  // admin variable (adminId / admin.user_id / a.user_id). The mirror relays
+  // only operator types, so a fan-out typed 'warning' reached no Slack path at
+  // all (money-escrow review 2026-09-23: create-payment "Transfer failed",
+  // void-cancelled-payments "Cancellation fee transfer failed",
+  // stripe-idv-webhook "Identity verification needs review" — all retyped).
+  // EXEMPT: a site whose own code posts the same event to Slack; each entry is
+  // exact (a stale one fails).
+  const EXEMPT: Record<string, string> = {
+    "supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts:warning":
+      "posts 'Stripe chargeback filed' (critical) itself, unconditionally, right after the fan-out",
+    "supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts:payment":
+      "the won/lost outcome posts dispute_won/dispute_lost itself",
+    "supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts:info":
+      "the retrieval-request close posts its own custom alert",
+  };
+  const sites: { key: string; type: string }[] = [];
+  for (const f of walk(join(ROOT, "supabase/functions")).filter((x) => x.endsWith(".ts"))) {
+    const src = readFileSync(f, "utf8");
+    for (const m of src.matchAll(/user_id:\s*(?:adminId|admin\.user_id|a\.user_id)\b[\s\S]{0,900}?\btype:\s*["'](\w+)["']/g)) {
+      sites.push({ key: `${relative(ROOT, f)}:${m[1]}`, type: m[1] });
+    }
+  }
+  it("found the fan-outs (inventory floor, 2026-09-23: 14)", () => {
+    expect(sites.length).toBeGreaterThanOrEqual(14);
+  });
+  it("each is admin_alert/system_alert, or an exact exemption", () => {
+    const bad = sites.filter((s) => !isOperatorNotification(s.type) && !(s.key in EXEMPT)).map((s) => s.key);
+    expect(bad).toEqual([]);
+    const used = new Set(sites.map((s) => s.key));
+    expect(Object.keys(EXEMPT).filter((k) => !used.has(k)), "stale exemption").toEqual([]);
   });
 });
 

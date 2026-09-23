@@ -82,6 +82,43 @@ sure someone hears it and closes it.
   notification copy posting into #ops-alerts. Fix it where it starts: tests
   clean up their checkouts, detectors handle is_seed deliberately, and alerts
   from E2E jobs go to their own channel or tag. Nothing silently dropped.
+  FIXED 2026-09-23 (commit "fix(alerts): test data stops paging", migration
+  20260923052520). ROOT CAUSES, measured on prod:
+  (a) the relay: send-push-notification mirrors an admin's push to Slack when
+  the admin has no push token, and tested only the ROLE. The owner's account
+  (76b07824, admin AND a party to seed job 5eed0a20…08) received its own user
+  mail — "Did you finish this job?" x5, "Has this job been finished?" x5,
+  "We've asked support to step in" x10, "Job auto-cancelled" x4, chat
+  messages — and every one posted as a critical page. Now only operator types
+  (admin_alert, system_alert) mirror; a seed subject (job=/user= in the link)
+  goes to the digest. The stalled-job admin link now names the job: all of a
+  day's stalled jobs shared one once-a-day key, so a real one could be
+  swallowed by a seed one.
+  (b) detectors: error_log_is_seed() (tags.seed or a '-seed' source) keeps
+  seed rows out of Slack and the ledger; they stay in error_logs, so the daily
+  digest lists them. detect_stuck_payments -> 'detect_stuck_payments-seed'
+  for seed jobs/posters; postSlackOpsAlert({seed}) for edge callers
+  (stalled-completion passes it). Guard
+  src/test/alertingDetectorsDeclareSeedPolicy.test.ts (red on origin/main
+  741e9d3a6: detect_stuck_payments + 13 edge files).
+  (c) checkouts: every stuck-payment job was an E2E job the spec had already
+  CANCELLED; nothing ever expired its Checkout Session or moved it out of
+  'unpaid' (void-cancelled-payments' abandon sweep only read status='open').
+  Its new Part B2 expires the session and marks cancelled+unpaid jobs
+  'abandoned' (real posters who cancel mid-checkout too — the session could
+  still be paid for 24h); detect_stuck_payments gives cancelled jobs 2h for it.
+  (d) DLQ: all 51 dead letters (09-12/13) were to is_seed mailinator accounts
+  and died of `Resend 429 daily_quota_exceeded` — the 09-13 seed-heavy run
+  enqueued 319 emails in a day (email_send_log). The DLQ verify now needs a
+  later 'sent' row per NON-seed recipient (archiving no longer clears it);
+  seed-only DLQs report to the digest. OPEN: whether seed accounts should get
+  mail at all (see MORNING QUESTIONS 4).
+  The ec3428da "refund refused" item: that job is now completed/released
+  (updated 2026-09-22 22:23Z) and no error_logs row mentions it; nothing to
+  re-run. STILL OPEN (follow-up): two operator alerts link to no subject, so
+  the mirror cannot tell a seed one — "Ban review needed" (/admin?view=banreview,
+  apply_consequence_ladder) and "Scheduled payout failed" (/admin,
+  process-scheduled-payouts). They still page for seed (fail loud).
 - [ ] **Q3 Stripe test balance empty.** Scheduled payouts and transfers fail
   with "insufficient available funds" (09-22). Top it up with the 0077 test
   card, then add a balance monitor so this alerts BEFORE the payouts fail.
@@ -349,6 +386,20 @@ sure someone hears it and closes it.
    yes: reply "top up" and I'll do $500 and re-run the failed payouts. The
    balance MONITOR (alerts before payouts fail) doesn't need you. It's being
    built overnight.
+3. **Facebook posting credentials (Q42).** `marketing-publish` fails every 15
+   minutes (7 times since 22:29Z on 2026-09-22, last 2026-09-23 04:00Z) with
+   `aborted: meta_secrets_missing — facebook: META_PAGE_ACCESS_TOKEN,
+   META_PAGE_ID`. A Facebook post is queued and the function has no page
+   token. Either add the two secrets (`supabase secrets set ...`, a credential
+   step only you can do) or tell me to turn the Facebook channel off until
+   you do; the alert then stops at the source.
+4. **Should seed/test accounts receive real email? (Q2/Q29)** Every dead
+   letter so far went to a test account, and the cause was Resend's DAILY
+   QUOTA: the 2026-09-13 seed-heavy run enqueued 319 emails in one day. Test
+   mail spends the same quota real users' sign-in and receipt mail needs. The
+   option: skip sending to is_seed recipients (log it as `skipped_seed` in
+   email_send_log), with an allowlist for the journeys that assert delivery.
+   Your call, because it changes what the E2E journeys can check.
 - [ ] **Q41 Morning report: everything the design no longer uses (owner,
   2026-09-23: "we can likely delete it").** REPORT ONLY, no deletion; the owner
   decides. Inventory with evidence for each item (call-site counts,

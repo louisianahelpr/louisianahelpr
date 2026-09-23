@@ -1,0 +1,162 @@
+# Weekly RESTORE DRILL of the daily database backup (docs/OPEN.md Q45).
+#
+# WHY. Prod is on the Supabase free tier: no platform backups, no PITR
+# (`supabase backups list` -> empty, pitr_enabled false). db-backup.yml's
+# encrypted daily dump is the ONLY restore source that exists, and until this
+# workflow nobody had ever restored one. An untested backup is a hypothesis.
+#
+# WHAT IT DOES. Downloads the newest successful db-backup artifact, decrypts it
+# on the runner, starts a throwaway local Supabase stack (db + auth + storage,
+# so auth/storage/cron schemas exist exactly as in a new project), restores
+# roles.sql -> schema.sql -> data.sql the way the runbook says, and then
+# scripts/db-restore-drill.sh:
+#   - fails on any restore error not listed (with a reason) in
+#     scripts/db-restore-drill-known-errors.txt;
+#   - counts the key marketplace AND money-ledger tables on the restored copy
+#     and on prod (one read-only SELECT through the Management API) and fails
+#     if a table is missing, empty where prod is not, or off by more than
+#     max(50, half of prod);
+#   - measures the runbook's known gaps (anon EXECUTE, realtime publication,
+#     event triggers, migration ledger) into the job summary.
+# RED = the backup cannot be restored. It reports through nightly-issue-sync.
+#
+# PII. The decrypted dump exists only on the ephemeral runner. Nothing but
+# counts and error lines is logged; no artifact is uploaded.
+#
+# WEEKLY, NOT MONTHLY. prodWorkflowSpacing.test.ts only accepts day-of-week
+# crons, and a monthly-via-date-guard run would report a skipped week as green
+# and close an open red. Its prod cost is one COUNT(*) SELECT.
+#
+# Runbook: docs/runbooks/restore-from-backup.md
+
+name: DB restore drill (weekly)
+
+on:
+  schedule:
+    # Tue 14:17 UTC: >= 90 min from every daily prod-hitting cron (12:40
+    # nightly-red-age, 16:17 loading-states) and 30 min clear of prod-errors
+    # (:47). See src/test/prodWorkflowSpacing.test.ts before moving it.
+    - cron: "17 14 * * 2"
+  workflow_dispatch:
+
+concurrency:
+  # Scheduled runs join prod-load; a dispatch gets its own group (rule 4 of
+  # prodWorkflowSpacing: a dispatch in the shared group can be cancelled by
+  # the next workflow to enter it).
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('db-restore-drill-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Fail fast on missing secrets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          MISSING=""
+          [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] && MISSING="$MISSING SUPABASE_ACCESS_TOKEN"
+          [ -z "${SUPABASE_PROJECT_REF:-}" ]  && MISSING="$MISSING SUPABASE_PROJECT_REF"
+          [ -z "${BACKUP_PASSPHRASE:-}" ]     && MISSING="$MISSING BACKUP_PASSPHRASE"
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing required secret(s):$MISSING — a drill that cannot decrypt or compare is not a pass"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+
+      - name: Download the newest successful backup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN=$(gh run list -R "$GITHUB_REPOSITORY" -w db-backup.yml --status success -L 1 \
+                  --json databaseId,createdAt --jq '.[0]')
+          { [ -n "$RUN" ] && [ "$RUN" != "null" ]; } || { echo "::error::no successful db-backup run exists"; exit 1; }
+          ID=$(echo "$RUN" | jq -r .databaseId)
+          AT=$(echo "$RUN" | jq -r .createdAt)
+          AGE_H=$(( ( $(date +%s) - $(date -d "$AT" +%s) ) / 3600 ))
+          echo "backup run $ID taken $AT (${AGE_H}h ago)"
+          echo "BACKUP_AGE_H=$AGE_H" >> "$GITHUB_ENV"
+          echo "BACKUP_RUN=$ID" >> "$GITHUB_ENV"
+          # A week-old newest backup means the daily backup has been failing for a
+          # week — the restore would lose that week. That is a recovery failure.
+          if [ "$AGE_H" -gt 168 ]; then
+            echo "::error::newest successful backup is ${AGE_H}h old — a restore today would lose over a week"
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/bk"
+          gh run download "$ID" -R "$GITHUB_REPOSITORY" -D "$RUNNER_TEMP/bk"
+          find "$RUNNER_TEMP/bk" -name '*.gpg' -exec ls -l {} +
+
+      - name: Decrypt and unpack
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          GPG=$(find "$RUNNER_TEMP/bk" -name 'backup-*.tar.gz.gpg' | head -n 1)
+          [ -n "$GPG" ] || { echo "::error::no backup-*.tar.gz.gpg in the artifact"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/sql"
+          gpg --batch --yes --decrypt --passphrase "$BACKUP_PASSPHRASE" -o "$RUNNER_TEMP/b.tar.gz" "$GPG"
+          tar xzf "$RUNNER_TEMP/b.tar.gz" -C "$RUNNER_TEMP/sql"
+          rm -f "$RUNNER_TEMP/b.tar.gz"
+          ls -l "$RUNNER_TEMP/sql"
+
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+
+      - name: Start a throwaway Supabase stack (never prod)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/drill"
+          cd "$RUNNER_TEMP/drill"
+          # A fresh `supabase init` has NO migrations, so the db starts as an
+          # empty new project — the thing a disaster restore would target.
+          supabase init --yes
+          T0=$(date +%s)
+          supabase start -x analytics,edge-runtime,functions,imgproxy,inbucket,kong,meta,realtime,rest,studio,vector
+          echo "stack up in $(( $(date +%s) - T0 ))s"
+
+      - name: Restore and compare with prod
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          TARGET_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          DRILL_OUT: ${{ runner.temp }}/drill-out
+        run: |
+          set -euo pipefail
+          echo "backup run $BACKUP_RUN, ${BACKUP_AGE_H}h old" >> "$GITHUB_STEP_SUMMARY"
+          bash scripts/db-restore-drill.sh "$RUNNER_TEMP/sql"
+
+      - name: Shred the plaintext dump
+        if: always()
+        run: |
+          set -euo pipefail
+          rm -rf "$RUNNER_TEMP/sql" "$RUNNER_TEMP/bk"
+
+  notify:
+    name: Report drill result
+    needs: [drill]
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: db-restore-drill
+          status: ${{ needs.drill.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

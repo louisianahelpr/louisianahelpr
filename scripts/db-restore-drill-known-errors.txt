@@ -1,0 +1,5 @@
+# Restore errors that are EXPECTED and harmless, one per line:
+#   <file: roles|schema|data>|<extended regex matched against the ERROR line>|<why it is harmless>
+# Anything a restore prints that is not listed here fails .github/workflows/db-restore-drill.yml.
+# Add an entry only with a measured reason; an entry is a claim that the error loses nothing.
+roles|role "[a-z_]+" already exists|A fresh Supabase project already has every role the dump names; CREATE ROLE on an existing role changes nothing.

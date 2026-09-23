@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 49 done, 5 partly done (fixed, protection pending), 72 open. Source of truth for work.
+- **Queue (this file):** 49 done, 5 partly done (fixed, protection pending), 73 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 126 items — 49 done, 5 partly done (fixed, protection pending), 72 open.**
+**Queue: 127 items — 49 done, 5 partly done (fixed, protection pending), 73 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -460,6 +460,7 @@ sure someone hears it and closes it.
 - [x] **Q125 DONE: db-deploy's push filter now covers every gate it runs (2026-09-23).** An acknowledgement added to scripts/audit/migration-provenance.json did not re-run db-deploy, because the provenance script, its lib, its config and check-types-fresh.mjs were not in on.push.paths. Added all four. Guard: src/test/dbDeployPathsCoverGates.test.ts (inventory = every `node scripts/...` the workflow runs + each script's ./lib imports and scripts/audit/*.json; red on the old workflow naming exactly those 4 files).
 - [x] **Q126 DONE: queue numbers can no longer collide silently (2026-09-23).** Parallel lanes picked the same next number three times tonight (Q103, Q113, Q122), and queueCounts (keyed by number) merged each pair, so the count under-reported too. `node scripts/queue-count.mjs` now prints the next free number and exits 1 on a duplicate; .claude/AGENT-BRIEF.md tells lanes to take the number from it. Guard: src/test/queueItemsNameTheirGuard.test.ts "every queue number is used once" (vacuity killed).
 - [ ] **Q127 A credential URL is any text a member types, not their own document (Q120 review, 2026-09-23; MEDIUM).** auto_pending_credentials treats license_url/insurance_url as a document if it has one non-[:space:] character, so a zero-width space (U+200B; likely U+FEFF, U+2060 too) still reaches license_status='pending' and is_licensed=true with nothing to review (confirmed on prod by evaluating the trigger's own expression on chr(8203)). Unverified, same root: nothing checks the path is a storage object the member owns, and same-path overwrite would keep a verified badge on swapped content. Fix at the root: accept only a path of the credentials bucket shape under the member's own folder (allowlist, not blank-stripping), and check the storage bucket's overwrite policy.
+- [ ] **Q128 Triage press-every-control run 35837735324 (e96adc16d, red, 2026-09-23).** Classes seen: (1) 429 on Sentry `envelope/` counted as a control failure (earnings, signup, schedule, home_history) — our own telemetry rate limit, not a product defect; the harness must not blame the control, and 429s from our own reporter need their own look; (2) "Copy Mon to all" on /profile?tab=availability: no observable change for customer AND helper — real defect or harness blind spot, measure; (3) /jobs/:id "Done — <date>" timeline buttons NOT CLICKABLE (16s timeout, 3 rows) — something covers them or they are disabled-looking-enabled; (4) /admin?view=credentials "Open" no observable change; (5) apay-us.amazon.com 500 (third party); (6) admin Refund Poster not found on reload (transient DOM); (7) GoTrue refused test sessions mid-run and parts were cancelled on time budget (a cancelled run is a hidden red). Fix real defects with guards, reclassify harness noise with a guard that each class stays classified, and re-dispatch press.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes

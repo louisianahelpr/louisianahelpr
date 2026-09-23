@@ -4,7 +4,7 @@ import { categories } from "@/components/postjob/DetailsSection";
 import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
 import { TITLE_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { posterServiceFeeCents } from "@/lib/posterFees";
-import { MIN_JOB_BUDGET_DOLLARS } from "@/lib/moneyLimits";
+import { MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS } from "@/lib/moneyLimits";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
 import { computeBudgetPresets } from "./postJobFormHelpers";
@@ -228,7 +228,9 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // The budget is always required now. It used to be optional in "Accept bids"
   // mode, where helpers named the price — that mode is gone
   // (PRICING_MODE_REMOVED in BudgetSection).
-  const budgetComplete = !!(budget && parseFloat(budget) >= MIN_JOB_BUDGET_DOLLARS);
+  // Within BOTH limits (Q202): a budget over the cap is not a finished step,
+  // since submit (and the server, and the DB CHECK) will refuse it.
+  const budgetComplete = !!(budget && parseFloat(budget) >= MIN_JOB_BUDGET_DOLLARS && parseFloat(budget) <= MAX_JOB_BUDGET_DOLLARS);
 
   // Smart Pricing Guidance — live budget range from real completed jobs
   // in this category (+ parish), with a graceful fallback to the static

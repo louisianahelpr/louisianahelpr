@@ -31,8 +31,7 @@ const AccountBanned = () => {
   // user this was the one screen in the product where that was impossible:
   // `ProtectedRoute` runs its ban gate BEFORE the `allowUnapproved` branch, so
   // every protected route — /profile included, which is where the delete
-  // control lives — redirects straight back here, and /data-rights redirects
-  // into the same gate. The only exits this screen offered were Support,
+  // control lives — redirects straight back here. The only exits this screen offered were Support,
   // Rules and Sign Out. So a suspended user's only route to deletion was to
   // email a human, which is exactly what the guideline forbids.
   //

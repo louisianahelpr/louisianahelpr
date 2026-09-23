@@ -17,7 +17,7 @@
  *       lives in one), plus the NEWEST definition of every SQL function in
  *       supabase/migrations (SQL comments blanked), plus the AASA file and the
  *       sitemap. A string that starts with a RETIRED address is a producer of
- *       a 404 (or of the one surviving redirect).
+ *       a 404.
  *   (b) ROUTES. src/App.tsx declares no `<Route>` whose element is only a
  *       `<Navigate>` or a `*Redirect` component, except ALLOWED_REDIRECT_ROUTES.
  *
@@ -63,8 +63,10 @@ const RETIRED = [
  */
 // @two-way src/test/noLegacyRedirectRoutes.test.ts:stale allowlist entry
 const ALLOWED_REDIRECT_ROUTES: Record<string, string> = {
-  "/data-rights":
-    "recorded (App.tsx, since 2026-08) as the URL the iOS App Store privacy listing points at; App Store Connect is not readable from the repo, so the owner confirms it (docs/OPEN.md) before this entry can go",
+  // Empty on purpose (2026-09-23). /data-rights was kept for a claimed App
+  // Store citation that nothing proves (fastlane/metadata/en-US/privacy_url.txt
+  // is /privacy), and the app has not launched (owner), so it went too. An
+  // entry here needs PROOF the address was printed outside our control.
 };
 
 /**
@@ -72,10 +74,7 @@ const ALLOWED_REDIRECT_ROUTES: Record<string, string> = {
  */
 // @two-way src/test/noLegacyRedirectRoutes.test.ts:stale known emitter
 const KNOWN_EMITTERS: Record<string, string> = {
-  "src/components/mobileNav/mobileNavHelpers.ts :: /data-rights":
-    "chrome list: the allowlisted /data-rights route renders one frame at its own path, and it keeps the bottom dock for that frame",
-  "src/lib/desktopNavRoutes.ts :: /data-rights":
-    "chrome list: same frame, keeps the desktop rail and #root inset from flickering",
+  // Empty on purpose: nothing may name a retired address.
 };
 
 const isRetired = (path: string): string | null => {

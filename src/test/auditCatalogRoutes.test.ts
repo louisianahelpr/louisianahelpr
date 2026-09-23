@@ -133,8 +133,8 @@ function elementFor(path: string): string | null {
  * Is this route element an UNCONDITIONAL forward?
  *
  * Two shapes count: a literal `<Navigate …>` at the route, and a wrapper
- * component whose whole body is one (DataRightsRedirect; ActivityLegacyRedirect
- * and ShortLinkRedirect were deleted with their routes, Q194).
+ * component whose whole body is one (DataRightsRedirect, ActivityLegacyRedirect
+ * and ShortLinkRedirect were all of that shape, deleted with their routes, Q194).
  *
  * `<MarketingRedirect>` is the shape that must NOT count, and the reason the
  * test below is derived rather than name-matched: it takes `children` and
@@ -172,7 +172,7 @@ function isUnconditionalRedirect(element: string): boolean {
 // Proves the alias classification is load-bearing: drop the declaration off a
 // row whose route is a <Navigate> and it goes back to being counted as an
 // independently audited screen.
-// @mutate e2e/happy-path/auditRoutes.ts | { name: "data-rights", url: "/data-rights", redirectsTo: "/privacy" }, | { name: "data-rights", url: "/data-rights" },
+// @mutate e2e/happy-path/auditRoutes.ts | { name: "profile-gift-card", url: "/profile?tab=gift_card" }, | { name: "profile-gift-card", url: "/gift-card" },
 // Proves reclassification cannot open a hole: remove the row that actually
 // audits the gift_card tab and /gift-card's alias target is orphaned.
 // @mutate e2e/happy-path/auditRoutes.ts | { name: "profile-gift-card", url: "/profile?tab=gift_card" }, | 

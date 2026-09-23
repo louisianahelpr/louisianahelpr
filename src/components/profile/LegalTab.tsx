@@ -236,7 +236,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           "Questions? Contact support" footer, and added a second "contact
           support" link. The export now lives inside the Privacy Policy
           (`DataExportCard`, rendered by PrivacyContent), so on this tab it is
-          in the Privacy panel, and `/data-rights` redirects to its anchor. */}
+          in the Privacy panel. */}
     </ProfileTabBody>
   );
 }

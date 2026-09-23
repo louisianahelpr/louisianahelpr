@@ -44,9 +44,8 @@ describe("press-every-control route derivation", () => {
   it("marks pure redirect routes so their targets are not pressed twice", () => {
     const parsed = parseAppRoutes();
     const byPath = Object.fromEntries(parsed.map((r) => [r.path, r]));
-    // App.tsx has no bare <Navigate> route left since Q194 (the one survivor,
-    // /data-rights, waits on auth and is walked like a page), so the positive
-    // case is a synthetic route table.
+    // App.tsx has no redirect route left since Q194, so the positive case is a
+    // synthetic route table.
     const synthetic = parseAppRoutes(`<Route path="/old" element={<Navigate to="/profile" replace />} />`);
     expect(synthetic).toEqual([expect.objectContaining({ path: "/old", redirect: true })]);
     expect(byPath["/dashboard"].redirect).toBe(false);

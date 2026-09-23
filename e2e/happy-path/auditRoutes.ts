@@ -80,9 +80,8 @@ export interface ScreenSpec {
    * number that counts the same screen twice is the same defect as a row that
    * renders NotFound and reports clean — the number flatters, silently.
    *
-   * Since Q194 (2026-09-23) all of those redirect routes are DELETED except
-   * `/data-rights`, an address printed in the App Store listing, outside our
-   * control; its row stays so it keeps proving it does not 404.
+   * Since Q194 (2026-09-23) every one of those redirect routes is DELETED, so
+   * no row declares `redirectsTo` today; the field stays for the next alias.
    *
    * `auditCatalogRoutes.test.ts` derives the truth from App.tsx rather than from
    * this field, so a row that redirects and does NOT declare it fails, and a
@@ -197,10 +196,6 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // an ANON sweep it lands on /login (the destination is behind
   // ProtectedRoute), exactly as it did before the merge. The real screen is
   // covered by `profile-legal` in AUTHED_SCREENS below.
-  // ALIAS. DataRightsRedirect forwards to /privacy (anon) — see redirectsTo.
-  // Kept because the Privacy Policy and the App Store listing both publish this
-  // URL, so it must keep proving it does not 404.
-  { name: "data-rights", url: "/data-rights", redirectsTo: "/privacy" },
   { name: "browse-guest", url: "/browse" },
   // The GUEST job preview — the page a shared `/jobs/{id}?ref=share` link opens.
   //

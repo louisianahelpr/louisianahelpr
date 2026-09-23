@@ -228,8 +228,8 @@ const EXPECTED_LANDING: Record<string, string> = {
  * mean these rows audit /dashboard, not a job page.
  *
  * Catalog aliases are compared at PATH granularity here, matching every other
- * comparison in this sweep: `/data-rights` declares `/privacy`, and
- * what this file measures is `/privacy`.
+ * comparison in this sweep: an alias declaring `/profile?tab=x` is measured
+ * as `/profile`. (No alias rows exist since Q194.)
  */
 const expectedLandingFor = (path: string): string | undefined =>
   EXPECTED_LANDING[path] ?? catalogLandingFor(path)?.split("?")[0];

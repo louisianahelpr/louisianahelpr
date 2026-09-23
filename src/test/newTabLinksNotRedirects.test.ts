@@ -24,8 +24,8 @@ import { join } from "node:path";
 
 function redirectRoutes(app: string): string[] {
   const out: string[] = [];
-  // `routeEl(<XRedirect …>)` too: since Q194 the only redirect route left is
-  // /data-rights, which is wrapped that way, and a bare-`<` parser found none.
+  // `routeEl(<XRedirect …>)` too, the shape the last redirect route
+  // (/data-rights, deleted with Q194) was wrapped in.
   for (const m of app.matchAll(/<Route\s+path="([^"]+)"\s+element=\{\s*(?:routeEl\(\s*)?<(\w+)[^}]*\}\s*\/>/g)) {
     if (m[2] === "Navigate" || /Redirect$/.test(m[2])) out.push(m[1]);
   }
@@ -57,7 +57,10 @@ describe("new-tab links never target a redirect route", () => {
 
   it("no file in src/ opens a redirect route in a new tab", () => {
     const redirects = redirectRoutes(readFileSync("src/App.tsx", "utf8"));
-    expect(redirects.length, "parsed no redirect routes — the parser is broken, not the app clean").toBeGreaterThan(0);
+    // App.tsx has NO redirect routes since Q194 (noLegacyRedirectRoutes.test.ts
+    // forbids them), so an empty list is the true state, not a broken parser;
+    // the parser is proven on the synthetic /terms case above and by the
+    // @mutate, which puts a <Navigate> back on /rules.
     const res = redirects.map(toRe);
     const hits: string[] = [];
     const seen: string[] = [];

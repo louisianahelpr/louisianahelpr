@@ -93,7 +93,6 @@ const ResetPassword = lazyWithPreload(() => import("./pages/ResetPassword"));
 const Dashboard = lazyWithPreload(() => import("./pages/Dashboard"));
 const Profile = lazyWithPreload(() => import("./pages/Profile"));
 // Lazy: it reads useAuthReady, which pulls the Supabase client.
-const DataRightsRedirect = lazy(() => import("./pages/legal/DataRightsRedirect"));
 const PostJob = lazyWithPreload(() => import("./pages/PostJob"));
 const PaymentSuccess = lazyWithPreload(() => import("./pages/PaymentSuccess"));
 const UserProfile = lazyWithPreload(() => import("./pages/UserProfile"));
@@ -265,19 +264,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           a different path. */}
       <Route path="/terms" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/privacy" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* /data-rights was a standalone page until 2026-08-18, then a card on
-          the Profile Legal tab; since 2026-09-14 (owner, VN-47) the GDPR/CCPA
-          data export lives inside the Privacy Policy. The route is KEPT as a
-          redirect rather than deleted — the ONE entry on Q194's allowlist
-          (src/test/noLegacyRedirectRoutes.test.ts): the iOS App Store privacy
-          listing is recorded as pointing at this URL, an address printed
-          outside our control, so it must keep resolving somewhere that offers
-          the download. Nothing we mint links here any more. Signed in, that is the export card inside the Legal
-          tab's Privacy panel (/profile?tab=legal&doc=privacy — in-app nav,
-          and open to a half-onboarded account via isProfileGateAllowed);
-          signed out, the same card on the public /privacy page. It waits for
-          auth to settle before choosing — see DataRightsRedirect. */}
-      <Route path="/data-rights" element={routeEl(<DataRightsRedirect />, <div className="min-h-screen bg-premium-page" />)} />
 
 
       {/* Public, deep-linkable job preview. Shared links (ShareJobButton →
@@ -331,17 +317,16 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* NO LEGACY REDIRECT ROUTES (owner, 2026-09-23, Q194: "The old address
           shouldn't be redirects, it should be direct"). /activity, /earnings,
           /warnings, /schedule, /availability, /saved-helprs, /saved-helpers,
-          /gift-card, /help-center, /settings and the short-link shapes /j/:id,
-          /u/:id, /m/:id, /messages/:id, /post-job/*, /legal/:tab were all
-          <Navigate>-only hops. Every emitter (client code, SQL functions, edge
-          functions, gift email, stored notifications.link rows) now writes the
-          current address instead, and the routes are gone: an old address is
-          a 404. Measured before deleting, 2026-09-23: nothing on prod linked a
-          short-link shape (notifications, messages, error_logs outside our own
-          probes), gift_cards held 0 rows, push_tokens held 0 rows (no delivered
-          push carries an old link). src/test/noLegacyRedirectRoutes.test.ts
-          keeps both halves shut; its allowlist names the one survivor
-          (/data-rights, above) and why. */}
+          /gift-card, /help-center, /settings, /data-rights and the short-link
+          shapes /j/:id, /u/:id, /m/:id, /messages/:id, /post-job/*, /legal/:tab
+          were all redirect-only hops. Every emitter (client code, SQL
+          functions, edge functions, gift email, stored notifications.link
+          rows) now writes the current address instead, and the routes are
+          gone: an old address is a 404. The app has not launched (owner), so no
+          installed build or sent email carries one; the App Store metadata
+          (fastlane/metadata/en-US/*_url.txt) names /privacy, /support and the
+          root, never a redirect. src/test/noLegacyRedirectRoutes.test.ts keeps
+          both halves shut. */}
       {/* /analytics — Advanced Analytics, the perk printed on the $10 Pro card.
           It was a <Navigate> to the Earnings tab from 2026-08-23, and that was
           the right call at the time: the old page rendered the SAME body as the

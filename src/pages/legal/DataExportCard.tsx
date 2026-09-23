@@ -11,8 +11,8 @@ import { saveOrShareFile } from "@/lib/fileExport";
 import { toast } from "sonner";
 import { DATA_EXPORT_ANCHOR, dataRightsTarget } from "./dataExportAnchor";
 
-/** The card's anchor. `/data-rights` lands on it (DataRightsRedirect): the
- *  Legal tab's Privacy panel when signed in, `/privacy` when signed out. */
+/** The card's anchor: on the Legal tab's Privacy panel when signed in,
+ *  `/privacy` when signed out (see dataRightsTarget). */
 export { DATA_EXPORT_ANCHOR } from "./dataExportAnchor";
 
 /**
@@ -25,8 +25,8 @@ export { DATA_EXPORT_ANCHOR } from "./dataExportAnchor";
  * each policy's own "Questions? Contact support" footer and brought a second
  * "contact support" link with it. Rendered by `PrivacyContent`, so it shows
  * on the public /privacy page AND in the Legal tab's Privacy panel — the one
- * document that grants the right. `/data-rights` still resolves (the App
- * Store privacy listing points at it) and now lands here via the anchor.
+ * document that grants the right. The `/data-rights` redirect that pointed
+ * here was deleted with Q194 (2026-09-23): links name this anchor directly.
  *
  * Signed out (the public /privacy page), the button is a sign-in link rather
  * than a disabled control — there is no one to export for yet.
@@ -51,9 +51,9 @@ export function DataExportCard() {
   const userId = user?.id ?? null;
   const [exporting, setExporting] = useState(false);
 
-  // Scroll to the card when the URL names it — `/data-rights` redirects to
-  // this anchor (on /profile?tab=legal&doc=privacy signed in, /privacy signed
-  // out; see dataRightsTarget), and the policy's own "Data portability" row
+  // Scroll to the card when the URL names it — the sign-in link returns to
+  // this anchor (on /profile?tab=legal&doc=privacy; see dataRightsTarget),
+  // and the policy's own "Data portability" row
   // links here in-page. Mirrors PolicySection's hash handling.
   useEffect(() => {
     const check = () => {

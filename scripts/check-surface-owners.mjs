@@ -58,7 +58,6 @@ const OWNERS = {
   "/rules": ["lh-trust-safety", "lh-copy-content"],
   "/support": ["lh-copy-content"],
   "/help": ["lh-copy-content"],
-  "/data-rights": ["lh-compliance-store", "lh-account-lifecycle"],
   // /gift-card (a redirect onto this tab) was deleted with Q194, 2026-09-23.
   "?tab=gift_card": ["lh-compliance-store", "lh-subscriptions-credits"],
 

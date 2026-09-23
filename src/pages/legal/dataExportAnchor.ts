@@ -1,13 +1,12 @@
 /**
  * The id of the "Download your data" card (DataExportCard) and the two places
- * `/data-rights` lands on it. Its own module, with no imports, so the route
- * redirect can read it without pulling the card, Supabase or the policy text
- * into its chunk.
+ * it lives. Its own module, with no imports. (The /data-rights redirect that
+ * used to read it was deleted with Q194.)
  */
 export const DATA_EXPORT_ANCHOR = "download-your-data";
 
 /**
- * Where `/data-rights` sends someone.
+ * Where the export card lives for this reader.
  *
  * Signed in: the in-app Legal tab's Privacy panel (`?doc=privacy`, LegalTab),
  * which renders the same PrivacyContent — and therefore the same card — inside

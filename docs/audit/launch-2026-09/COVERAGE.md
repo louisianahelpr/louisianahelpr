@@ -8,7 +8,7 @@ Generated from findings.jsonl as of its newest entry: 2026-09-23T05:28:18.414Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
 - **Findings:** 165 open (8 open launch blockers), 205 fixed, 0 wontfix, 17 obsolete, 14 retracted, 28 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
-- **Surface:** 1030 auditable surfaces (451 navigable, 579 copy) per SURFACE.md
+- **Surface:** 1029 auditable surfaces (450 navigable, 579 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
 very different.** `RAN — no report` means findings exist in the bus with no
@@ -63,7 +63,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | — | `lh-mkt-instagram` | NOT STARTED | – | – | – |
 | — | `lh-mkt-orchestrator` | NOT STARTED | – | – | – |
 
-## Surface coverage — 1030 auditable surfaces, not 46 lanes
+## Surface coverage — 1029 auditable surfaces, not 46 lanes
 
 Routes are 3% of the surface. Coverage is measured against SURFACE.md classes,
 each naming the lane accountable for it.
@@ -71,7 +71,7 @@ each naming the lane accountable for it.
 | Surface class | Count | Owning lane(s) | Status |
 |---|---:|---|---|
 | Routes (non-redirect) | 26 | `lh-route-walker` | COVERED |
-| Redirect-only routes | 1 | `lh-route-walker` | COVERED |
+| Redirect-only routes | 0 | `lh-route-walker` | COVERED |
 | `?tab=` variants | 29 | `lh-route-walker` · `lh-state-matrix` | COVERED |
 | `?view=` variants | 26 | `lh-route-walker` · `lh-state-matrix` | COVERED |
 | Overlay surfaces | 150 | `lh-state-matrix` · `lh-visual-critic` | COVERED |

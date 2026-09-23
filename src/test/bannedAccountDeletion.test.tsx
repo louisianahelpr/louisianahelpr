@@ -5,8 +5,7 @@
  * 5.1.1(v)) and App Review may exercise the path. A banned user could not:
  * `ProtectedRoute` runs its ban gate BEFORE the `allowUnapproved` branch, so
  * /profile — the only screen carrying the delete control — redirected them
- * straight back to /account-banned, and /data-rights redirects into the same
- * gate. That screen offered Support, Rules and Sign Out and nothing else, so
+ * straight back to /account-banned. That screen offered Support, Rules and Sign Out and nothing else, so
  * their only route to deletion was emailing a human.
  *
  * The API half pointed the other way: `delete-own-account` never read

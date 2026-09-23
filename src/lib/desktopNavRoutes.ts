@@ -40,13 +40,6 @@ const AUTH_PREFIXES = [
   // document-scroll page linked from the app, but absent here meant it
   // rendered with no rail and no top bar (caught by the 2026-08-24 B-lane
   // overnight audit at 1440).
-  // /data-rights is NOT a page any more — since 2026-08-18 it is a
-  // <Navigate> into /profile?tab=legal, and the one redirect route Q194 kept
-  // (see noLegacyRedirectRoutes.test.ts). <Navigate> still costs one render at
-  // the OLD pathname, and if that pathname doesn't match here the rail — and
-  // the #root inset keyed off it — flicker off for a frame before /profile
-  // turns them back on.
-  "/data-rights",
   // ── The dual-surface pages ────────────────────────────────────────────
   // /help, /legal and /support are reachable BOTH logged out (marketing
   // Footer destinations) and from inside the app (Profile → Legal & Policies /

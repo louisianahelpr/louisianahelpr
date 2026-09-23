@@ -35,9 +35,8 @@ import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
  * and there is a third account state that can reach neither.
  *
  * `ProtectedRoute`'s "Big 7" completeness gate (full_name, avatar_url,
- * date_of_birth, phone, location) sits OUTSIDE its `!allowUnapproved` block, so
- * `allowUnapproved` does not exempt a route from it. `/profile` is
- * `allowUnapproved` and is still bounced to `/complete-profile` when any of
+ * date_of_birth, phone, location) runs on every protected route. `/profile` is
+ * no exception: it is bounced to `/complete-profile` when any of
  * those five is blank. The only escape is `isProfileGateAllowed()`, which
  * permits exactly one profile address — `/profile` with `?tab=legal`, i.e. this
  * screen. So an account with an incomplete profile had to supply MORE personal

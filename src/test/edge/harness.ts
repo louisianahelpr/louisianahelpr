@@ -193,6 +193,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/unsettledDispute.ts";`,
   );
 
+  // Lockout definition (Q197): `_shared/banStatus.ts` has ZERO imports, so the
+  // generated file points at the REAL module. complete-signup's refusal of a
+  // locked-out account before any upload is the behaviour under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/banStatus\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/banStatus.ts";`,
+  );
+
   // Dispute payout stamp (Q153): `_shared/disputePayoutStamp.ts` has ZERO
   // imports (it takes the client as a parameter), so the generated file points
   // at the REAL module. Its never-overwrite predicate is the behaviour under

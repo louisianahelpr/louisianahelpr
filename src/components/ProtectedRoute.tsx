@@ -21,18 +21,6 @@ const DEBUG_AUTH =
 interface ProtectedRouteProps {
   children: React.ReactNode;
   /**
-   * RETIRED (Q193, owner 2026-09-23): there is no approval gate any more —
-   * every signup is auto-approved and bans are automated, so the pending and
-   * denied screens were deleted. This prop and `allowPending` are accepted and
-   * IGNORED so the route table in App.tsx (edited by a parallel lane at the
-   * time) did not have to change in the same commit; stripping them from
-   * App.tsx is queued in docs/OPEN.md. Neither ever bypasses the email gate
-   * (Q180) or the ban gate.
-   */
-  allowUnapproved?: boolean;
-  /** RETIRED (Q193) — see `allowUnapproved`. Accepted and ignored. */
-  allowPending?: boolean;
-  /**
    * Fallback rendered during the "session not known yet" window below.
    * Defaults to the generic `RouteSuspenseFallback`. Pass a page-shaped
    * skeleton (e.g. `DashboardRouteSkeleton`) for a route whose own lazy
@@ -68,16 +56,10 @@ const PROFILE_GATE_ALLOWED = new Set<string>([
  * bare `/profile` stays gated, so payout, settings, membership and the rest
  * of the Profile surface are exactly as locked as they were before.
  *
- * ONE DELIBERATE WIDENING comes with the move, and it is not this function's
- * doing: `/data-rights` was `<ProtectedRoute>` with default props, so
- * `denied` / `pending` / email-unconfirmed accounts bounced to
- * /account-denied or /account-pending before they ever saw the export.
- * `/profile` is `<ProtectedRoute allowUnapproved>`, which skips that whole
- * block, so the export is now reachable by every non-banned account. That is
- * the intended outcome: GDPR Art. 20 portability does not depend on account
- * approval, and a rejected applicant has the STRONGEST claim to a copy of
- * what was collected about them. Banned users are unaffected — the ban check
- * runs before `allowUnapproved` and still bounces them.
+ * There is no approval gate (Q193), so the export is reachable by every
+ * email-confirmed, non-banned account: GDPR Art. 20 portability does not
+ * depend on account approval. Banned users are unaffected — the ban check
+ * runs on every protected route and still bounces them.
  *
  * Exported for unit test: this predicate widens an auth gate off a query
  * param, so its exact contract is pinned in ProtectedRoute.test.ts rather
@@ -373,12 +355,11 @@ const ProtectedRoute = ({
   }
 
   // Stage 1: Email verification (auth user is the source of truth), on EVERY
-  // protected route — `allowPending` and `allowUnapproved` included. Owner
-  // rule, 2026-09-23 (Q180): "in order to actually finish sign up they must
-  // verify their email ... They can't enter until they verify email." The
-  // `allowPending` routes (dashboard, my-jobs, my-posts, messages) used to
-  // skip this so an unconfirmed account could browse while it waited; that is
-  // exactly what the rule forbids.
+  // protected route. Owner rule, 2026-09-23 (Q180): "in order to actually
+  // finish sign up they must verify their email ... They can't enter until
+  // they verify email." Dashboard, my-jobs, my-posts and messages used to
+  // skip this (a since-deleted per-route prop) so an unconfirmed account could
+  // browse while it waited; that is exactly what the rule forbids.
   //
   // It reads `user`, not `profile`, so it fires even while the profile is
   // still in flight: the optimistic render below must never show an

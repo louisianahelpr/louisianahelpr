@@ -187,8 +187,10 @@ export function rawErrorResponseSites(files = edgeFunctionFiles()): LeakSite[] {
  * because this lane owns it — which is also the proof the ratchet shrinks.
  *
  *   (create-payment was here; fixed 2026-09-22 once clients began showing the body.)
+ *   (admin-update-email was here; its leak was the "free a denied holder's
+ *    address" path, deleted with the denied state 2026-09-23, Q205c.)
  *   admin-delete-user     — admin-authenticated, so the blast radius is small,
- *   admin-update-email      but it is still GoTrue/PostgREST detail on the wire.
+ *                           but it is still GoTrue/PostgREST detail on the wire.
  *   auth-email-hook       — called by GoTrue, not a browser; same class.
  *   delete-own-account    — `String(err)` straight into the body, to the account
  *                           owner, on the one path where a thrown Supabase error
@@ -203,7 +205,6 @@ export function rawErrorResponseSites(files = edgeFunctionFiles()): LeakSite[] {
 // @two-way src/test/edge/error-leak-EF5.test.ts:no longer leaks — remove it from KNOWN_LEAK_FILES
 const KNOWN_LEAK_FILES: string[] = [
   "supabase/functions/admin-delete-user/index.ts",
-  "supabase/functions/admin-update-email/index.ts",
   "supabase/functions/auth-email-hook/index.ts",
   "supabase/functions/delete-own-account/index.ts",
   "supabase/functions/helpr-pass-wallet/index.ts",
@@ -311,7 +312,7 @@ describe("EF-5 · handlers do not echo raw internal error text", () => {
       }
     });
 
-    it("no edge function echoes a caught error into its Response body, beyond the known eight", () => {
+    it("no edge function echoes a caught error into its Response body, beyond KNOWN_LEAK_FILES", () => {
       const sites = rawErrorResponseSites();
       const drift = leakRatchetDrift(sites, KNOWN_LEAK_FILES);
       expect(

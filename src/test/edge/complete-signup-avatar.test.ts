@@ -30,7 +30,7 @@
 //   instead of `user_id` matches zero rows on prod and silently leaves the
 //   account unapproved.
 // @mutate supabase/functions/complete-signup/index.ts | rowName && rowName !== avatarObjectName ? [avatarObjectName, rowName] : avatarObjectName, | avatarObjectName,
-// @mutate supabase/functions/complete-signup/index.ts | .update(updateData)\n      .eq("user_id", userId)\n      .or( | .update(updateData)\n      .eq("id", userId)\n      .or(
+// @mutate supabase/functions/complete-signup/index.ts | .update(updateData)\n      .eq("user_id", userId)\n      .select("user_id"); | .update(updateData)\n      .eq("id", userId)\n      .select("user_id");
 import { describe, it, expect, beforeEach, afterEach, type MockInstance } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

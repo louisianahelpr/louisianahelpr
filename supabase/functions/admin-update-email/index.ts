@@ -87,82 +87,10 @@ Deno.serve(async (req) => {
     const { data: targetUserData } = await supabaseAdmin.auth.admin.getUserById(userId)
     const oldEmail: string | null = targetUserData?.user?.email ?? null
 
-    const buildFreedEmail = (sourceEmail: string, deniedUserId: string) => {
-      const [localPart, domainPart] = sourceEmail.split('@')
-      const safeLocal = (localPart || 'user').replace(/[^a-zA-Z0-9._%+-]/g, '').slice(0, 32) || 'user'
-      const safeDomain = domainPart || 'example.com'
-      return `${safeLocal}+denied-${deniedUserId.slice(0, 8)}-${Date.now().toString(36)}@${safeDomain}`
-    }
-
-    const freeDeniedAccountEmail = async (deniedUserId: string, sourceEmail: string) => {
-      const freedEmail = buildFreedEmail(sourceEmail, deniedUserId)
-
-      const { error: deniedAuthErr } = await supabaseAdmin.auth.admin.updateUserById(deniedUserId, {
-        email: freedEmail,
-        email_confirm: true,
-      })
-
-      if (deniedAuthErr) {
-        console.error('Failed to free email in auth for denied account:', deniedAuthErr)
-        throw new Error('Failed to free email from denied account in auth')
-      }
-
-      const { error: deniedProfileErr } = await supabaseAdmin
-        .from('profiles')
-        .update({ email: freedEmail })
-        .eq('user_id', deniedUserId)
-
-      if (deniedProfileErr) {
-        console.error('Failed syncing denied profile email after auth update:', deniedProfileErr)
-        throw new Error('Freed auth email, but failed to sync denied profile email')
-      }
-
-      // A third party's LOGIN IDENTITY just changed. Until 2026-09-01 the only
-      // trace of that was the console.log below: the audit insert and the
-      // notification further down are both scoped to `userId`, never to
-      // `deniedUserId`, so the person who could no longer sign in was never
-      // told and no admin_audit_log row named the admin who did it. Both are
-      // written HERE, against the denied account, for exactly that reason.
-      const { error: deniedAuditErr } = await supabaseAdmin.from('admin_audit_log').insert({
-        admin_id: adminId,
-        action: 'free_denied_account_email',
-        target_id: deniedUserId,
-        target_type: 'user',
-        details: {
-          old_email: sourceEmail,
-          new_email: freedEmail,
-          freed_for_user_id: userId,
-          reason: 'email reassigned to another account by an admin',
-        },
-      })
-      if (deniedAuditErr) {
-        console.error('[admin-update-email] denied-account audit log failed:', deniedAuditErr.message)
-      }
-
-      // In-app only, deliberately: the mailbox at `sourceEmail` is about to
-      // belong to a DIFFERENT account, so a security email sent there would be
-      // read by the new owner and would name the denied account. The in-app
-      // notification reaches the right session and nobody else.
-      const { error: deniedNotifyErr } = await supabaseAdmin.from('notifications').insert({
-        user_id: deniedUserId,
-        title: 'Your sign-in email was changed',
-        message:
-          `An administrator reassigned ${sourceEmail} to another account. Your login email is now ${freedEmail}. ` +
-          `Contact ${SUPPORT_EMAIL} if you did not expect this.`,
-        type: 'warning',
-        link: '/support',
-      })
-      if (deniedNotifyErr) {
-        console.error('[admin-update-email] denied-account notification failed:', deniedNotifyErr.message)
-      }
-
-      console.log(`Auto-freed email ${sourceEmail} from denied account ${deniedUserId} -> ${freedEmail}`)
-    }
-
     // 1) Fast profile-level conflict check
     const { data: conflictingProfiles, error: conflictErr } = await supabaseAdmin
       .from('profiles')
-      .select('user_id, approval_status, email')
+      .select('user_id, email')
       .neq('user_id', userId)
       .ilike('email', normalizedEmail)
       .limit(1)
@@ -175,27 +103,15 @@ Deno.serve(async (req) => {
       })
     }
 
-    const profileConflict = conflictingProfiles?.[0]
-    if (profileConflict) {
-      if (profileConflict.approval_status === 'denied') {
-        try {
-          await freeDeniedAccountEmail(profileConflict.user_id, normalizedEmail)
-        } catch (freeErr) {
-          return new Response(JSON.stringify({
-            error: freeErr instanceof Error ? freeErr.message : 'Failed to free email from denied account.',
-          }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
-      } else {
-        return new Response(JSON.stringify({
-          error: 'This email address is already in use by another active account.',
-        }), {
-          status: 409,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
+    // Any other holder refuses the change. (A `denied` holder used to have its
+    // address auto-freed here; that state no longer exists, Q193/Q205c.)
+    if (conflictingProfiles?.[0]) {
+      return new Response(JSON.stringify({
+        error: 'This email address is already in use by another active account.',
+      }), {
+        status: 409,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // 2) Auth-level conflict check (covers cases where profile email was already moved)
@@ -221,31 +137,12 @@ Deno.serve(async (req) => {
     }
 
     if (authHolderId && authHolderId !== userId) {
-      const { data: holderProfile } = await supabaseAdmin
-        .from('profiles')
-        .select('approval_status')
-        .eq('user_id', authHolderId)
-        .maybeSingle()
-
-      if (holderProfile?.approval_status === 'denied') {
-        try {
-          await freeDeniedAccountEmail(authHolderId, normalizedEmail)
-        } catch (freeErr) {
-          return new Response(JSON.stringify({
-            error: freeErr instanceof Error ? freeErr.message : 'Failed to free email from denied account.',
-          }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
-      } else {
-        return new Response(JSON.stringify({
-          error: 'This email address is already in use by another active account.',
-        }), {
-          status: 409,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
+      return new Response(JSON.stringify({
+        error: 'This email address is already in use by another active account.',
+      }), {
+        status: 409,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Update email in auth.users via admin API

@@ -60,34 +60,18 @@ const ChartFallback = () => (
 
 // ─── Drill-down: Users ───
 export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleByUser: Map<string, string> }) => {
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "denied">("all");
-  const filtered = users.filter(u => statusFilter === "all" || u.approval_status === statusFilter);
-
-  const statusColor = (status: string) => {
-    if (status === "approved") return "bg-primary/10 text-primary";
-    if (status === "denied") return "bg-destructive/10 text-destructive";
-    return "bg-accent/20 text-[hsl(var(--accent-ink))]";
-  };
+  // No approval-status filter (Q205c): there is no approval review (Q193), so
+  // "pending" / "denied" tabs named states that no longer route anyone.
+  const statusColor = (status: string) =>
+    status === "approved" ? "bg-primary/10 text-primary" : "bg-accent/20 text-[hsl(var(--accent-ink))]";
 
   return (
     <div className="space-y-3">
-      <SegmentedControl
-        ariaLabel="Filter by status"
-        layout="wrap"
-        options={(["all", "pending", "approved", "denied"] as const).map(s => ({
-          value: s,
-          label: `${s} (${users.filter(u => s === "all" || u.approval_status === s).length})`,
-        }))}
-        value={statusFilter}
-        onChange={setStatusFilter}
-        optionClassName="capitalize"
-        haptic={false}
-      />
-      {filtered.length === 0 ? (
-        <DrillDownEmpty title="No users in this status" body="Nothing matches this filter — switch back to All." />
+      {users.length === 0 ? (
+        <DrillDownEmpty title="No users yet" body="Accounts appear here once someone signs up." />
       ) : (
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-        {filtered.map(u => (
+        {users.map(u => (
           <div key={u.id} className="rounded-ds-md liquid-glass p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">

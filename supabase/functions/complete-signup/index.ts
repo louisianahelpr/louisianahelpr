@@ -7,6 +7,7 @@ import { LEGAL_TERMS_VERSION, LEGAL_PRIVACY_VERSION } from "../_shared/legalVers
 // ForceUpdateGate print. A hand-typed support@… in a refusal message is an
 // address nobody reads.
 import { SUPPORT_EMAIL } from "../_shared/resend.ts";
+import { isLockedOut } from "../_shared/banStatus.ts";
 import {
   avatarObjectKey,
   avatarObjectNameFromUrl,
@@ -238,7 +239,7 @@ serve(async (req) => {
       // log in" guard above and let the completion proceed.
       const { data: existingProfile, error: existingProfileError } = await supabase
         .from("profiles")
-        .select("bio, approval_status")
+        .select("bio")
         .eq("user_id", bodyUserId)
         .single();
 
@@ -263,14 +264,6 @@ serve(async (req) => {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
-      }
-
-      // Block resubmissions through the unauthenticated path — denied users must log in.
-      if (existingProfile.approval_status === "denied") {
-        return new Response(
-          JSON.stringify({ error: "Please log in to resubmit your application." }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
       }
 
       userId = bodyUserId;
@@ -345,6 +338,44 @@ serve(async (req) => {
       } catch (e) {
         console.error("[complete-signup] retained-ban phone check threw:", e);
       }
+    }
+
+    // Current profile, read BEFORE any upload (Q197). Fail closed: this row
+    // feeds BOTH the 18+ gate below (via currentProfile.date_of_birth) and the
+    // lockout refusal right here. Dropping the error degraded the legal age
+    // gate to attestation-only: a caller who omits dateOfBirth and sends
+    // ageAttested:true would skip the stored DOB entirely, so a profile with a
+    // known under-18 DOB could pass a check that exists to stop exactly that.
+    // PGRST116 (no row yet) stays a legitimate initial-completion path.
+    const { data: currentProfile, error: currentProfileError } = await supabase
+      .from("profiles")
+      .select("date_of_birth, ban_status, auto_suspended_until")
+      .eq("user_id", userId)
+      .single();
+
+    if (currentProfileError && currentProfileError.code !== "PGRST116") {
+      console.error("[complete-signup] profile lookup failed:", currentProfileError.message);
+      return new Response(
+        JSON.stringify({ error: "We couldn't load your account. Please try again." }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // A LOCKED-OUT account is refused here, before the avatar / license /
+    // insurance uploads below (Q197). The refusal used to sit after them (for
+    // the since-retired `denied` state), so a refused caller could still put
+    // objects into storage on every attempt, bounded only by the signup rate
+    // limit. A ban is the only lockout left (Q193), so that is what is read;
+    // `isLockedOut` is the same definition ProtectedRoute uses.
+    if (isLockedOut(currentProfile?.ban_status, currentProfile?.auto_suspended_until)) {
+      console.warn(`[complete-signup] refused: account ${userId} is locked out (${currentProfile?.ban_status})`);
+      return new Response(
+        JSON.stringify({
+          error: `This account is suspended. Contact support at ${SUPPORT_EMAIL}.`,
+          code: "account_locked",
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Enforce file size limits (5 MB max per file)
@@ -501,30 +532,6 @@ serve(async (req) => {
       );
     }
 
-    // 4. Check current profile to determine if this is a resubmission
-    // Fail closed, matching the lookup at :125. This row feeds BOTH the 18+
-    // gate below (via currentProfile.date_of_birth) and the denied-account
-    // refusal. Dropping the error degraded the legal age gate to
-    // attestation-only: a caller who omits dateOfBirth and sends
-    // ageAttested:true would skip the stored DOB entirely, so a profile with a
-    // known under-18 DOB could pass a check that exists to stop exactly that.
-    // PGRST116 (no row yet) stays a legitimate initial-completion path.
-    const { data: currentProfile, error: currentProfileError } = await supabase
-      .from("profiles")
-      .select("approval_status, date_of_birth")
-      .eq("user_id", userId)
-      .single();
-
-    if (currentProfileError && currentProfileError.code !== "PGRST116") {
-      console.error("[complete-signup] profile lookup failed:", currentProfileError.message);
-      return new Response(
-        JSON.stringify({ error: "We couldn't load your account. Please try again." }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const isResubmission = currentProfile?.approval_status === "denied";
-
     // 4b. Server-side 18+ gate — a legal requirement on a real-money platform,
     // so it must be enforced here, not just client-side.
     //
@@ -560,25 +567,9 @@ serve(async (req) => {
       );
     }
 
-    // A DENIED account cannot re-approve itself here. This used to be
-    // "resubmission requires an ID document" (`idBase64`), but no client has
-    // sent one since Stripe Identity took over ID collection, so in practice
-    // every resubmission was refused — and any raw caller that DID send bytes
-    // was auto-approved over an admin's denial. Q40 (2026-09-23) removed the
-    // ID upload; the refusal stays, stated honestly, so removing it did not
-    // turn a denial into something a user can undo with one request.
     // avatar/bio/phone/location are DEFERRED at signup (soft-prompted later on
     // first post/apply), so they are intentionally NOT required on the initial
     // path: hard-requiring them rejected every real signup.
-    if (isResubmission) {
-      return new Response(
-        JSON.stringify({
-          error: `This account wasn't approved. Contact support at ${SUPPORT_EMAIL} to have it reviewed again.`,
-          code: "denied_resubmission",
-        }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     // 5. Update profile. Auto-approve — there's no manual admin review
     // step anymore. As long as the user submitted all required fields
@@ -704,16 +695,13 @@ serve(async (req) => {
     // the account as finished, leaving the user stranded unapproved with no
     // error surfaced anywhere.
     //
-    // Not-denied is part of the WHERE, not only the read above (Q40 authz
-    // review): the uploads between that read and this write take seconds, and
-    // an admin denial landing in that window must not be overwritten with
-    // `approved` by this service-role write. A denied row matches zero rows and
-    // takes the fail-closed branch below.
+    // No approval_status condition in the WHERE any more: 'denied' no longer
+    // exists (Q193, CHECK profiles_approval_status_no_denied), and a ban landing
+    // mid-request lives in ban_status, which this write does not touch.
     const { data: updatedRows, error: profileErr } = await supabase
       .from("profiles")
       .update(updateData)
       .eq("user_id", userId)
-      .or("approval_status.is.null,approval_status.neq.denied")
       .select("user_id");
 
     if (profileErr || (updatedRows?.length ?? 0) === 0) {

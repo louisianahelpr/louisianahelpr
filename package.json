@@ -35,6 +35,7 @@
     "check:launch": "HELPR_LAUNCH=1 bash scripts/check-launch-flags.sh",
     "launch:go": "node scripts/launch-go.mjs",
     "deadcode": "knip",
+    "hygiene": "node scripts/prune-git-hygiene.mjs",
     "deadcode:functions": "node scripts/check-dead-edge-functions.mjs",
     "strip:ios-sourcemaps": "node scripts/strip-ios-sourcemaps.mjs",
     "check:stripe-webhook": "node scripts/check-stripe-webhook-events.mjs",

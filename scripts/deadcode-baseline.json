@@ -1,0 +1,5 @@
+{
+  "_": "Unused-export ratchet, enforced by src/test/deadcodeRatchet.test.ts. Counts are from `npx knip --include exports,types`. They may only go DOWN: when you remove dead exports, lower these numbers in the same commit.",
+  "exports": 160,
+  "types": 22
+}

@@ -8,6 +8,16 @@ Written 2026-09-11. The point of this file is that the backlog stops living in
 chat scrollback. Anything not in here is either done or forgotten, and both of
 those are answerable by reading this instead of guessing.
 
+## OPEN (report for the owner, not a task) — 160 unused exports + 22 unused types (2026-09-22)
+
+Measured `npx knip --include exports,types`: 160 exports, 22 types that nothing imports.
+Per CLAUDE.md, dead code is a REPORT: each needs per-symbol checking (dynamic import,
+runtime global, test-only use) before anyone deletes it, so nothing was removed. The count
+can no longer grow: `src/test/deadcodeRatchet.test.ts` fails if it rises above
+`scripts/deadcode-baseline.json`, and fails with "lower the baseline" when it falls.
+Owner decision wanted: whether to spend a pass verifying and removing them.
+Stale worktrees / merged branches: now pruned automatically at session start (`npm run hygiene`).
+
 ## OPEN (RETRACTED as an upload bug; 33 dangling seed rows remain) — the press sweep's proof-photo 400s are failed SIGNING (2026-09-22)
 
 Press run 35768341847 (375px, PROD) showed repeated `400 POST

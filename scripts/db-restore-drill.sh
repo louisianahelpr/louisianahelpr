@@ -47,9 +47,46 @@ fi
 # failure, not stop at the first. data.sql is one multi-row INSERT per table,
 # so a failed statement loses a whole table — which the counts below catch.
 PSQL=(psql "$TARGET" -X -q -v ON_ERROR_STOP=0)
+
+# What the dump contains, by NAME only (no row data): which tables carry rows.
+echo "--- data.sql INSERT targets by schema ---"
+{ grep -oE '^INSERT INTO "[a-z_0-9]+"\."[a-zA-Z_0-9]+"' "$DIR/data.sql" || [ $? -eq 1 ]; } \
+  | sed -E 's/^INSERT INTO //; s/"//g' | sort -u > "$OUT/data-targets.txt"
+cut -d. -f1 "$OUT/data-targets.txt" | sort | uniq -c
+echo "non-public targets: $(grep -v '^public\.' "$OUT/data-targets.txt" | tr '\n' ' ')"
+
 T0=$(date +%s)
 "${PSQL[@]}" -f "$DIR/roles.sql"  > "$OUT/roles.out"  2> "$OUT/roles.err"
+# STEP 1b — close the default-privileges trap BEFORE loading the schema.
+# Every Supabase project's pg_default_acl grants anon/authenticated/
+# service_role on each new public function, table and sequence. pg_dump
+# writes the SOURCE's ACLs as GRANT/REVOKE statements relative to the Postgres
+# default, never `REVOKE ... FROM anon`, so a plain load leaves every function
+# anon-executable (measured on the first drill, 2026-09-23: 306 of 306, prod
+# had 17 of 321). With the defaults revoked for the restoring role, the dump's
+# own GRANTs are the only grants, i.e. exactly prod's; the dump's trailing
+# ALTER DEFAULT PRIVILEGES statements then put prod's defaults back.
+"${PSQL[@]}" > "$OUT/acl.out" 2> "$OUT/acl.err" <<'SQL'
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES    FROM anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated, service_role;
+SQL
 "${PSQL[@]}" -f "$DIR/schema.sql" > "$OUT/schema.out" 2> "$OUT/schema.err"
+# STEP 2b — pgmq queues. schema.sql is `public` only, so the email queues'
+# tables (pgmq.q_<name>, pgmq.a_<name>) do not exist in a new project and their
+# rows and sequence positions fail to load. Create each queue the dump names
+# first. pgmq.create() also writes pgmq.meta, which data.sql restores itself,
+# so those rows are cleared to avoid duplicate-key failures.
+QUEUES=$( { grep -oE 'pgmq"?\."?[qa]_[a-z0-9_]+' "$DIR/data.sql" || [ $? -eq 1 ]; } \
+  | sed -E 's/^pgmq"?\."?[qa]_//; s/_msg_id_seq$//' | sort -u | tr '\n' ' ')
+echo "pgmq queues named by the dump: ${QUEUES:-none}"
+{
+  echo "CREATE EXTENSION IF NOT EXISTS pgmq;"
+  for q in $QUEUES; do
+    echo "SELECT pgmq.create('$q') WHERE NOT EXISTS (SELECT 1 FROM pgmq.meta WHERE queue_name = '$q');"
+  done
+  if grep -q '^INSERT INTO "pgmq"\."meta"' "$DIR/data.sql"; then echo "DELETE FROM pgmq.meta;"; fi
+} | "${PSQL[@]}" > "$OUT/pgmq.out" 2> "$OUT/pgmq.err"
 "${PSQL[@]}" -c 'SET session_replication_role = replica' -f "$DIR/data.sql" > "$OUT/data.out" 2> "$OUT/data.err"
 T1=$(date +%s)
 RESTORE_SECS=$((T1 - T0))
@@ -62,7 +99,7 @@ echo "restore wall time: ${RESTORE_SECS}s"
 # this exists to notice.
 : > "$OUT/errors-unexpected.txt"
 : > "$OUT/errors-known.txt"
-for f in roles schema data; do
+for f in roles acl schema pgmq data; do
   # grep exits 1 on no match, which is a legitimate "no errors".
   { grep -E '(ERROR|FATAL):' "$OUT/$f.err" || [ $? -eq 1 ]; } | while IFS= read -r line; do
     matched=""
@@ -147,6 +184,31 @@ POLICIES=$(gap "select count(*) from pg_policies where schemaname='public'")
   echo "| restore errors known-benign / unexpected | $N_KNOWN / $N_UNEXP |"
 } >> "$OUT/counts.md"
 tail -n 11 "$OUT/counts.md"
+
+# ── 5. The ACL trap is a FAILURE, not a note ────────────────────────────────
+# A restore that makes admin_* functions callable by anyone is not a restore.
+# The dump itself says which functions anon may execute: one GRANT per
+# function to "anon". The restored copy must not exceed it.
+EXPECT_ANON=$( { grep -cE '^GRANT ALL ON FUNCTION .* TO "anon";' "$DIR/schema.sql" || [ $? -eq 1 ]; } )
+echo "functions the dump grants to anon: ${EXPECT_ANON:-0}; anon-executable after restore: $ANON_EXEC"
+if [ "$ANON_EXEC" = "n/a" ] || [ "$ANON_EXEC" -gt "${EXPECT_ANON:-0}" ]; then
+  echo "::error::restored copy lets anon EXECUTE $ANON_EXEC public functions; the backup grants anon only ${EXPECT_ANON:-0} (default-privileges trap, runbook step 1b)"
+  FAIL=1
+fi
+
+# ── 6. Diagnostics by NAME (no row data) ─────────────────────────────────────
+echo "--- event triggers on the restored copy ---"
+gap "select string_agg(evtname, ', ' order by evtname) from pg_event_trigger"
+echo "--- public tables in prod but not restored (includes tables added after the backup) ---"
+PROD_TABLES=$(curl -sS --fail-with-body -X POST \
+  "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" \
+  -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" -H 'Content-Type: application/json' \
+  --data '{"query":"select tablename from pg_tables where schemaname = '"'"'public'"'"' order by 1"}' \
+  | jq -r '.[].tablename')
+REST_TABLES=$(gap "select tablename from pg_tables where schemaname='public' order by 1")
+comm -23 <(printf '%s\n' "$PROD_TABLES" | sort) <(printf '%s\n' "$REST_TABLES" | sort)
+echo "--- default privileges on the restored copy ---"
+gap "select pg_get_userbyid(defaclrole)||' '||defaclobjtype::text||' '||array_to_string(defaclacl, ',') from pg_default_acl"
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   { echo "## Restore drill"; cat "$OUT/counts.md"; } >> "$GITHUB_STEP_SUMMARY"
 fi

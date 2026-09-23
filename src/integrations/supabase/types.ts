@@ -5667,6 +5667,7 @@ export type Database = {
         Args: { _job_id: string; _other_user_id: string; _user: string }
         Returns: boolean
       }
+      is_user_error_screen_row: { Args: { p_tags: Json }; Returns: boolean }
       job_expires_at_for_schedule: {
         Args: { p_date_needed: string; p_start_time: string }
         Returns: string
@@ -5822,6 +5823,16 @@ export type Database = {
           p_title: string
           p_verify_kind?: string
           p_verify_ref?: string
+        }
+        Returns: string
+      }
+      ops_alert_record_user_error_screen: {
+        Args: {
+          p_error_log_id: string
+          p_message: string
+          p_seen_at?: string
+          p_tags: Json
+          p_user_id: string
         }
         Returns: string
       }
@@ -6046,6 +6057,14 @@ export type Database = {
       toggle_thread_mute: {
         Args: { _job_id: string; _other_user_id: string }
         Returns: boolean
+      }
+      user_error_screen_is_real: {
+        Args: { p_tags: Json; p_user_id: string }
+        Returns: boolean
+      }
+      user_error_screen_title: {
+        Args: { p_message: string; p_screen: string }
+        Returns: string
       }
       user_has_pending_application: {
         Args: { _job_id: string; _user_id: string }

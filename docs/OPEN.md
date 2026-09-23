@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 23 done, 5 partly done (fixed, protection pending), 65 open. Source of truth for work.
+- **Queue (this file):** 25 done, 4 partly done (fixed, protection pending), 66 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 93 items — 23 done, 5 partly done (fixed, protection pending), 65 open.**
+**Queue: 95 items — 25 done, 4 partly done (fixed, protection pending), 66 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -184,7 +184,7 @@ sure someone hears it and closes it.
   screen are also resolved with no fix recorded. Find out what resolves them
   (auto-resolve setting? a script?). Feed Sentry into the Q1 ledger; a regression
   must reopen it.
-- [~] **Q12 DONE (measured 2026-09-23): not recurring.** 14 days of error_logs: 1 non-seed occurrence, the OWNER's account at 2026-09-22 15:10Z, right after the pg_cron/DB outage window (14:00-15:00Z). The rest were E2E test accounts (09-13, 09-15). Follow-up is Q39. Was: A real user saw "We couldn't load your account" (Sentry 2F/2E/2G, PROTECTION NOT YET BUILT: a real user seeing an error screen is untracked until Q39 lands. Stays [~] until then.
+- [x] **Q12 DONE (measured 2026-09-23): not recurring; PROTECTED since Q39 landed (b3891a7d2): a real person seeing this screen is now an open ops-alert-ledger item (source_kind user-error-screen), and the owner's 2026-09-22 occurrence is that item (backfilled, count 4). GUARD: src/test/errorSurfacesReport.test.tsx + src/test/pglite/userErrorScreenLedger.pglite.mjs.** 14 days of error_logs: 1 non-seed occurrence, the OWNER's account at 2026-09-22 15:10Z, right after the pg_cron/DB outage window (14:00-15:00Z). The rest were E2E test accounts (09-13, 09-15). Follow-up is Q39. Was: A real user saw "We couldn't load your account" (Sentry 2F/2E/2G, protection built by Q39 (was: PROTECTION NOT YET BUILT).
   09-22, profile request timed out). Was it the pg_cron outage window, or does it
   still happen? Measure the profile-fetch timeout rate.
 - [x] **Q13 DONE (2026-09-23): script-src has no `'unsafe-inline'`** in vercel.json,
@@ -378,13 +378,37 @@ sure someone hears it and closes it.
    Auth Tokens (or Custom Integrations) -> new token with `project:read` +
    `event:read` -> `gh secret set SENTRY_READ_TOKEN`. I'll wire the sync to
    that name, so it closes the "Sentry not synced" ledger item on the next hourly run.
-- [ ] **Q39 A real user seeing a full ERROR SCREEN is not tracked anywhere.**
-  The alert ledger skips client-origin error_logs rows (by design, to keep
-  noise out). But "Error screen shown: ..." for a NON-SEED user is exactly the
-  alert the owner means. Record it in the ledger (source kind `user-error-screen`,
-  non-seed only, fingerprint = screen + message), and close it when that
-  screen stops being shown to real users for 24h AND a synthetic check of the
-  route passes. Found while measuring Q12.
+- [x] **Q39 DONE (2026-09-23, b3891a7d2 + migration 20260923085642, live): a real person's error screen is an ops alert ledger item.**
+  Every error surface sends `tags.kind = "user-error-screen"` (ErrorState, the
+  three boundaries, the boot watchdog, and via `<ReportErrorScreen>` the four
+  hand-drawn pane cards that reported nothing before: ChatTimeline,
+  ApplicantsErrorState, SavedSearches, NotificationPanel).
+  `trg_error_logs_zz_user_error_screen` records non-seed rows (guest / no
+  profile = real) under source_kind `user-error-screen`, fingerprint = screen +
+  normalised message, severity fixed `error`; a new item is refused past 5
+  screens/person/hour or 20 new items/hour and counted on ONE overflow item.
+  Close rule `ops_alert_condition('user-error-screen')`: still failing while
+  error_logs holds a real person's row for it < 24h old. Measured live
+  2026-09-23 09:13Z: backfill opened 1 item (the owner's 09-22 /profile
+  screen, count 4, condition TRUE until 15:10Z); a rolled-back probe showed a
+  guest row opens an item and a seed user's row does not; all 5 new functions
+  proacl = postgres + service_role only. GUARDS: src/test/errorSurfacesReport.test.tsx
+  (kind on every render; source inventory of error-copy files, floor > 40;
+  4 @mutate, all KILLED) and src/test/pglite/userErrorScreenLedger.pglite.mjs
+  (3x apply; real/seed/flood/cap/24h; red on 4 planted defects). The synthetic
+  route-check half of the close rule is Q94. Found while measuring Q12.
+- [ ] **Q94 The user-error-screen close rule has no synthetic half (Q39 follow-up).**
+  Owner spec: close only when the screen went 24h without a real person seeing
+  it AND a synthetic check of that route passes. Only the 24h half exists:
+  nothing that probes routes (press-every-control, prod-audit, the journeys)
+  writes a per-route pass/fail where SQL can read it. Needs a small
+  `ops_route_probe(route, passed_at)` written by the press run, and the
+  condition requiring a pass after last_seen for the item's screen.
+- [ ] **Q95 vacuity is red on main from four OTHER guards' @mutate lines (seen 2026-09-23 by the Q39 lane).**
+  dbRestoreDrill.test.ts ("FAIL=1" occurs 9x in db-restore-drill.sh),
+  edge/error-leak-EF5.test.ts (find-string occurs 2x), edge/includeSeedAlertRouting.test.ts
+  ("seed: seedJobIds.has(job.id)," occurs 8x), edge/money-reconciliation.test.ts
+  (unescaped `|`). Each needs a unique find-string or `\|`.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes

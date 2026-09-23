@@ -179,7 +179,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       }
       if (data?.bothDone) {
         // Analytics (Q222): this release completed the job. Once per job.
-        void 0;
+        trackJobCompleted(jobId, data, "activity", user?.id);
         hapticSuccess();
         // Premium checkmark beat on every completion (self-respects reduced
         // motion). The brand confetti below is the *extra* novelty for the

@@ -36,7 +36,7 @@ says more.
 - Before pushing ANY new or changed test, also run the repo-wide guards that
   scan every test file; each turned main red at least once on 2026-09-23
   because a lane ran only its own test:
-  `npx vitest run src/test/baselinesAreTwoWay.test.ts src/test/guardsDoNotDeleteSource.test.ts src/test/guardsReadTheNewestMigration.test.ts src/test/liveCheckScriptsFailClosed.test.ts src/test/fixtureSchemaContract.test.ts src/test/helprNotHelperInCopy.test.ts src/test/queueItemsNameTheirGuard.test.ts src/test/e2eImportsInAppTsconfig.test.ts`
+  `npx vitest run src/test/baselinesAreTwoWay.test.ts src/test/guardsDoNotDeleteSource.test.ts src/test/guardsReadTheNewestMigration.test.ts src/test/liveCheckScriptsFailClosed.test.ts src/test/fixtureSchemaContract.test.ts src/test/helprNotHelperInCopy.test.ts src/test/queueItemsNameTheirGuard.test.ts src/test/e2eImportsInAppTsconfig.test.ts src/test/noConflictMarkers.test.ts`
 
 ## Data and prod
 - Prod (`fncmgoasalhdgfwzhsqa`) is the only database. Read-only SQL is fine;
@@ -52,6 +52,9 @@ says more.
 - Commit in your worktree, then
   `git fetch origin && git rebase origin/main && git push --no-verify origin HEAD:main`.
 - End commits with the Co-Authored-By line from CLAUDE.md.
+- If a rebase stops on a conflict, resolve it (for generated files: take
+  origin's version, then regenerate) and `git rebase --continue`. Never
+  `git commit` while `git status` says a rebase is in progress.
 - Update `docs/OPEN.md`: tick an item `[x]` ONLY with the guard that stops it
   recurring named in its text (else `[~]`), then run
   `node scripts/queue-count.mjs --write`. Anything you notice but don't fix

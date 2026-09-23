@@ -184,11 +184,7 @@ export function TermsReconsentDialog() {
           <p>
             We&rsquo;ve made a material update to our{" "}
             <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
-              Terms
-            </a>{" "}
-            and{" "}
-            <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
-              Privacy Policy
+              Terms of Service
             </a>
             . Tap I Agree to continue using Helpr.
           </p>

@@ -27,6 +27,7 @@
  * @mutate supabase/functions/_shared/legalVersions.ts | export const LEGAL_TERMS_VERSION = "Sep 2026"; | export const LEGAL_TERMS_VERSION = "Jun 2026";
  * @mutate scripts/audit/prod-seed.mjs | terms_version_accepted: "Sep 2026", | terms_version_accepted: "Jun 2026",
  * @mutate src/components/TermsReconsentDialog.tsx | privacy_version: LATEST_PRIVACY_VERSION, | privacy_version: LATEST_TERMS_VERSION,
+ * @mutate src/components/TermsReconsentDialog.tsx | Terms of Service\n            </a>\n            . | Terms of Service\n            </a> and Privacy Policy.
  * @mutate src/components/TermsReconsentDialog.tsx | const isStale = loaded && acceptedVersion !== LATEST_TERMS_VERSION; | const isStale = false;
  */
 import { MemoryRouter } from "react-router-dom";
@@ -155,5 +156,17 @@ describe("Terms re-acceptance after the 2026-09-23 Terms change (Q210(d))", () =
     const app = readFileSync(join(resolve(__dirname, "../.."), "src/App.tsx"), "utf8");
     const stale = RECONSENT_EXEMPT_PATHS.filter((p) => !app.includes(`path="${p}"`));
     expect(stale, `exempt path is no longer a route: ${stale.join(", ")} — remove it`).toEqual([]);
+  });
+
+  it("the dialog names only the documents its trigger compares (Q306)", () => {
+    // isStale compares the Terms version alone, so the copy must not claim a
+    // Privacy Policy update; if a Privacy comparison is ever added, the copy
+    // may name it again.
+    const src = read("src/components/TermsReconsentDialog.tsx");
+    const stale = /const isStale = [^;]+;/.exec(src)?.[0] ?? "";
+    expect(stale).toContain("LATEST_TERMS_VERSION");
+    const body = /<DialogBody>([\s\S]*?)<\/DialogBody>/.exec(src)?.[1] ?? "";
+    expect(body).toContain("Terms of Service");
+    if (!stale.includes("PRIVACY")) expect(body).not.toMatch(/Privacy/);
   });
 });

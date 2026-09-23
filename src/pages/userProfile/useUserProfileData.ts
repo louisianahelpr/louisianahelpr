@@ -911,49 +911,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
      `helper_repeat_hire_percent` already uses). Until that exists we claim
      nothing rather than claim it wrongly. */
 
-  // Check for submitted credentials awaiting vendor verification — shows
-  // an amber "Verification in progress" indicator on the profile.
-  // Separate query so a PGRST202 (table not yet deployed) silently hides
-  // the indicator rather than blocking the whole profile load.
-  const { data: submittedCredentialsData } = useQuery({
-    queryKey: ["user_submitted_credentials", userId],
-    enabled: !!userId && !!data?.profile,
-    staleTime: 2 * 60_000,
-    queryFn: async () => {
-      try {
-        const { count, error } = await supabase
-          .from("helper_credentials")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", userId!)
-          .eq("status", "submitted");
-        // Same split as above: undeployed table = quiet, anything else is a
-        // real failure and must be reported.
-        if (error) {
-          if (!isNotDeployed(error)) {
-            report(error, {
-              severity: "warning",
-              tags: { area: "user_profile.submitted_credentials" },
-              context: { viewed_user_id: userId },
-            });
-          }
-          return null;
-        }
-        return { count: count ?? 0 };
-      } catch (e) {
-        report(e, {
-          severity: "warning",
-          tags: { area: "user_profile.submitted_credentials" },
-          context: { viewed_user_id: userId },
-        });
-        return null;
-      }
-    },
-  });
-  // Server answer first (works for a visitor), own-row count second (the
-  // PGRST202 fallback, and the only thing that ever worked before).
-  const hasSubmittedCredentials =
-    data?.hasPendingCredentials ?? (submittedCredentialsData?.count ?? 0) > 0;
-
   const reviewsFromQuery = (data?.reviews ?? []) as ProfileReview[];
   // Local reviews state for optimistic updates after saving a response.
   const [localReviews, setLocalReviews] = useState<any[] | null>(null);
@@ -1095,7 +1052,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     data,
     isError,
     refetch,
-    hasSubmittedCredentials,
     reviewsFromQuery,
     setLocalReviews,
     reviews,

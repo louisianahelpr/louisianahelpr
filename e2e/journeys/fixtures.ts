@@ -11,7 +11,7 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { readLiveCache, sessionAlive, writeCache } from "../liveSession";
-import { detectStuckOrBlank, findErrorScreen } from "../errorScreens";
+import { detectStuckOrBlank, findErrorScreen, readScreenText } from "../errorScreens";
 import { deviceProfile, type Rotation } from "./scenarios";
 
 /**
@@ -465,8 +465,9 @@ export async function assertHealthy(page: Page, where: string, opts: { allow?: s
   const deadline = Date.now() + (opts.settleMs ?? 15_000);
   let stuck: string | null;
   for (;;) {
-    const text = await page.locator("body").innerText().catch(() => "");
-    const err = findErrorScreen(text, opts.allow ?? []);
+    // readScreenText: quoted log text ([data-quoted-log]) is not this screen (Q101).
+    const screen = await page.evaluate(readScreenText).catch(() => ({ text: "", quoted: [] as string[] }));
+    const err = findErrorScreen(screen, opts.allow ?? []);
     expect(err, `${where}: error screen "${err?.name}" at ${page.url()} — ${err?.excerpt}`).toBeNull();
     stuck = await page.evaluate(detectStuckOrBlank).catch(() => "evaluate failed");
     if (!stuck || Date.now() > deadline) break;

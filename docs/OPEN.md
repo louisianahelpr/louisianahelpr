@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 36 done, 5 partly done (fixed, protection pending), 73 open. Source of truth for work.
+- **Queue (this file):** 37 done, 5 partly done (fixed, protection pending), 72 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 114 items — 36 done, 5 partly done (fixed, protection pending), 73 open.**
+**Queue: 114 items — 37 done, 5 partly done (fixed, protection pending), 72 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -725,7 +725,7 @@ sure someone hears it and closes it.
   (`FUNDED_OPEN_JOB_GAP`) until a fixture posts one through a Stripe test
   checkout, has the helper apply, and tears down with cancel_escrow; the
   coverage test's stale-gap check fails the day they are credited.
-- [ ] **Q101 The error-screen detector reads QUOTED error copy as an error
+- [x] **Q101 The error-screen detector reads QUOTED error copy as an error
   screen.** `explore: admin-health` failed "broken before any input" on the
   second local run because /admin?view=health lists recent error_logs rows,
   one of which reads "Error screen shown: We couldn't load your account."
@@ -733,7 +733,20 @@ sure someone hears it and closes it.
   passed on the first run (timing of that list). admin-views.spec.ts reads the
   same way. Exclude quoted log text from the check (e.g. a data attribute on
   the health rows, stripped before matching) with a guard that stays red on a
-  real ProtectedRoute failure.
+  real ProtectedRoute failure. DONE 2026-09-23: AdminHealth's Open Alerts
+  (ops_alert_ledger) and Scheduled Jobs (error_logs) rows carry
+  `data-quoted-log`; e2e/errorScreens.ts `readScreenText` returns those spans
+  and `findErrorScreen` drops them before matching (the same copy outside the
+  marker still fires). Every caller (sweepCore, admin-views.spec, prod-audit
+  harness, journeys fixtures) reads via `page.evaluate(readScreenText)`;
+  press-every-control strips them in `screenErrorText`. Guards:
+  src/test/quotedLogRenderersMarked.test.ts (inventory of every src/ SELECT
+  on error_logs/ops_alert_ledger/ops_alert_pending -> hooks -> consumers ->
+  renders, floor >1; plus every findErrorScreen caller; 3 @mutate, all
+  killed) and the detector cases in
+  src/test/errorScreenPatternsVsAppProse.test.ts (quoted -> null, unquoted
+  and quoted+real -> "account load failure"; @mutate killed). Not yet
+  re-run: the admin-health explore itself (needs the browser).
 - [ ] **Q102 The admin credential queue can show a row with no Approve or
   Reject.** `get_pending_credentials` lists any helper_credentials row in
   unverified/submitted, but AdminCredentialQueue renders the actions only

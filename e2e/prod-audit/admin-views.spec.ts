@@ -19,7 +19,7 @@
 import { expect, test } from "@playwright/test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { findErrorScreen } from "../errorScreens";
+import { findErrorScreen, readScreenText } from "../errorScreens";
 import { isConsentAcceptance, newUserContext, sessionFor, settle, SUPABASE_URL } from "./harness";
 
 function adminViews(src = readFileSync(join(process.cwd(), "src/pages/Admin.tsx"), "utf8")): string[] {
@@ -185,8 +185,11 @@ for (const view of VIEWS) {
       landed,
       `admin-e2e was bounced off /admin (view=${view}) to ${landed}${why}\nsigned in as: ${admin.user.email ?? admin.user.id}`,
     ).toBe("/admin");
-    const text = await page.locator("body").innerText().catch(() => "");
-    const found = findErrorScreen(text, []);
+    // Not body innerText: /admin?view=health lists stored alert titles such as
+    // "Error screen shown: We couldn't load your account." inside
+    // [data-quoted-log]; readScreenText lets findErrorScreen skip them (Q101).
+    const screen = await page.evaluate(readScreenText).catch(() => ({ text: "", quoted: [] as string[] }));
+    const found = findErrorScreen(screen, []);
     expect(
       found,
       `/admin?view=${view}: ${found?.name} — ${found?.excerpt}\nrefused at the wire: ${blocked.join(", ") || "nothing"}`,

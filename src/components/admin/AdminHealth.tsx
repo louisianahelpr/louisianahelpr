@@ -27,7 +27,15 @@ import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
  * identically — two lists of the same kind of assertion should not be two
  * hand-copied blocks that drift apart.
  */
-const CheckRow = ({ check }: { check: ConfigCheck }) => {
+/**
+ * `quoted`: the row's text is STORED data (an ops_alert_ledger title, an
+ * error_logs verdict), not copy this screen authored. It carries
+ * `data-quoted-log`, which the e2e error-screen detector (e2e/errorScreens.ts)
+ * skips: an alert titled "Error screen shown: We couldn't load your account."
+ * is a report about another screen, not this one failing (Q101). Guard:
+ * src/test/quotedLogRenderersMarked.test.ts.
+ */
+const CheckRow = ({ check, quoted = false }: { check: ConfigCheck; quoted?: boolean }) => {
   const dot: Record<CheckTone, string> = {
     ok: "bg-[hsl(var(--bark))]",
     warn: "bg-[hsl(var(--burnt-sienna))]",
@@ -35,7 +43,10 @@ const CheckRow = ({ check }: { check: ConfigCheck }) => {
     unknown: "bg-muted-foreground",
   };
   return (
-    <li className="flex items-start gap-3 rounded-ds-sm border border-border bg-card p-3">
+    <li
+      className="flex items-start gap-3 rounded-ds-sm border border-border bg-card p-3"
+      data-quoted-log={quoted ? "" : undefined}
+    >
       <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dot[check.tone])} aria-hidden="true" />
       <div className="min-w-0">
         <p className="text-ds-13 font-semibold text-foreground">
@@ -184,7 +195,7 @@ const AdminHealth = () => {
         ) : (
           <ul className="space-y-2">
             {openAlerts.map((c) => (
-              <CheckRow key={c.id} check={c} />
+              <CheckRow key={c.id} check={c} quoted />
             ))}
           </ul>
         )}
@@ -229,7 +240,7 @@ const AdminHealth = () => {
         ) : (
           <ul className="space-y-2">
             {cronChecks.map((c) => (
-              <CheckRow key={c.id} check={c} />
+              <CheckRow key={c.id} check={c} quoted />
             ))}
           </ul>
         )}

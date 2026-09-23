@@ -12,7 +12,7 @@ import type { APIRequestContext, BrowserContext, Locator, Page, Request, TestInf
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { findErrorScreen } from "../errorScreens";
+import { findErrorScreen, readScreenText } from "../errorScreens";
 import { isReadRpcPath } from "../readRpc";
 import { measureLayout } from "../happy-path/auditRoutes";
 import { ANON, SUPABASE_URL, getSession as journeySession, newUserContext, rest, type Role, type Session } from "../journeys/fixtures";
@@ -297,8 +297,10 @@ export async function health(page: Page, ctx: string, opts: { layout?: boolean; 
   // map preview has its own 15s watchdog) is not something this step broke.
   // Typing must not INTRODUCE a stuck state; that is what is asserted.
   if (stuck && stuck !== opts.baseline?.stuck) problems.push(`${ctx}: ${stuck}`);
-  const text = await page.evaluate(() => document.body.innerText).catch(() => "");
-  const err = findErrorScreen(text, opts.allow ?? []);
+  // Quoted log text ([data-quoted-log], e.g. the admin health alert list) is
+  // excluded by findErrorScreen when handed readScreenText's result (Q101).
+  const screen = await page.evaluate(readScreenText).catch(() => ({ text: "", quoted: [] as string[] }));
+  const err = findErrorScreen(screen, opts.allow ?? []);
   if (err) problems.push(`${ctx}: error screen "${err.name}" — ${err.excerpt}`);
   // A screen measured through a non-dismissible scrim was not measured. See
   // `clearConsentGate`: without this, the whole admin half of the suite counted

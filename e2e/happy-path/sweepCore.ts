@@ -20,7 +20,7 @@ import { expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { measureLayout, settleAnimations, type LayoutReport } from "./auditRoutes";
 import { detectButtonGeometry, type ButtonGeometryReport } from "./buttonGeometry";
-import { detectStuckOrBlank, findErrorScreen } from "../errorScreens";
+import { detectStuckOrBlank, findErrorScreen, readScreenText } from "../errorScreens";
 import {
   resolveIncompleteContrast,
   contrastFailures,
@@ -280,9 +280,11 @@ export async function captureScreen(
     // Every error-screen signature, from the ONE shared list (e2e/errorScreens.ts),
     // plus blank and still-loading states. The /this-route-does-not-exist
     // screen is the only one allowed to say "Page Not Found".
-    const bodyText = await page.evaluate(() => document.body?.innerText ?? "");
+    // readScreenText also returns the [data-quoted-log] spans (stored log text
+    // rendered as data), which findErrorScreen excludes (Q101).
+    const screenText = await page.evaluate(readScreenText);
     const allow = /not-found/.test(name) ? ["404 on a real route"] : [];
-    const errorScreen = findErrorScreen(bodyText, allow);
+    const errorScreen = findErrorScreen(screenText, allow);
     const stuck = await page.evaluate(detectStuckOrBlank);
     const boundary = errorScreen ? `${errorScreen.name}: "${errorScreen.excerpt}"` : stuck;
     if (boundary) result.wrongScreen = boundary;

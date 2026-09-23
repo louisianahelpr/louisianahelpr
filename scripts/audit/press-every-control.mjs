@@ -192,8 +192,18 @@ export function deriveRouteSet({ seedJobId, helperId, customerId, adminViews, jo
 // ---------------------------------------------------------------------------
 // The ONE shared list of error-screen signatures (e2e/errorScreens.ts), so a
 // new error surface is caught by every harness at once.
-import { ERROR_SCREEN_PATTERNS } from "../../e2e/errorScreens.ts";
+import { ERROR_SCREEN_PATTERNS, textOutsideQuotedLogs } from "../../e2e/errorScreens.ts";
 export const ERROR_BOUNDARY_RX = new RegExp(ERROR_SCREEN_PATTERNS.filter((p) => p.name !== "404 on a real route").map((p) => p.re.source).join("|"), "i");
+/**
+ * A SNAPSHOT result with `text` replaced by the screen's own copy: the
+ * [data-quoted-log] spans (stored error text rendered as data, e.g. the admin
+ * health alert list) removed, then collapsed and cut to 3000 chars — the text
+ * ERROR_BOUNDARY_RX is tested against (Q101).
+ */
+export function screenErrorText(snap) {
+  const { quoted = [], ...rest } = snap;
+  return { ...rest, text: textOutsideQuotedLogs(snap.text ?? "", quoted).trim().replace(/\s+/g, " ").slice(0, 3000) };
+}
 /** Labels that MUTATE something. Pressed only on a test-owned target (see pressProdSafety.mjs). */
 export const SENTRY_PROBE_RX = /uncaught:\s*Sentry uncaught test\b/i;
 export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout)\b/i;
@@ -656,7 +666,13 @@ export const SNAPSHOT = ({ overlaySel }) => {
       .map((e) => [e.getAttribute("aria-checked"), e.getAttribute("aria-expanded"), e.getAttribute("aria-selected"), e.getAttribute("aria-pressed"),
         e.tagName === "DETAILS" ? String(e.open) : e.type === "checkbox" || e.type === "radio" ? String(e.checked) : (e.value ?? "")].join("/")).join(","),
     focused: document.activeElement ? document.activeElement.tagName + ":" + (document.activeElement.getAttribute("aria-label") || document.activeElement.textContent || "").trim().slice(0, 30) : "",
-    text: (document.body.innerText || "").trim().replace(/\s+/g, " ").slice(0, 3000),
+    // Raw here; `screenErrorText` (Node side) drops the [data-quoted-log]
+    // spans — stored log text rendered as data, Q101 — then trims to 3000.
+    text: document.body.innerText || "",
+    quoted: [...document.querySelectorAll("[data-quoted-log]")]
+      .filter((e) => !e.parentElement?.closest("[data-quoted-log]"))
+      .map((e) => e.innerText || "")
+      .filter((t) => t.trim()),
   };
 };
 
@@ -1049,7 +1065,7 @@ async function main() {
        */
       const snapshot = async () => {
         for (let attempt = 0; ; attempt++) {
-          try { return await page.evaluate(SNAPSHOT, { overlaySel: OPEN_OVERLAY }); }
+          try { return screenErrorText(await page.evaluate(SNAPSHOT, { overlaySel: OPEN_OVERLAY })); }
           catch (e) {
             if (attempt >= 3 || !/Execution context was destroyed|navigat/i.test(String(e?.message))) throw e;
             await page.waitForLoadState("domcontentloaded", { timeout: 15_000 }).catch(() => {});

@@ -23,9 +23,10 @@
  * unescape — so it swaps the field and parks the real one beside it).
  *
  * @mutate e2e/errorScreens.ts | "generic failure copy", re: | "generic failure copy", re: /went wrong/i, wasAnchored:
+ * @mutate e2e/errorScreens.ts | typeof screen === "string" ? screen : textOutsideQuotedLogs(screen.text, screen.quoted); | typeof screen === "string" ? screen : screen.text;
  */
 import { describe, it, expect } from "vitest";
-import { ERROR_SCREEN_PATTERNS, findErrorScreen } from "../../e2e/errorScreens";
+import { ERROR_SCREEN_PATTERNS, findErrorScreen, readScreenText, textOutsideQuotedLogs } from "../../e2e/errorScreens";
 
 /**
  * Real text from surfaces that are WORKING. Nothing here may be reported as an
@@ -71,5 +72,45 @@ describe("error-screen patterns vs the app's own prose", () => {
     for (const c of REAL_ERROR_COPY) {
       expect(findErrorScreen(c.text)?.name, c.text).toBe(c.expect);
     }
+  });
+});
+
+/**
+ * Q101: text inside `data-quoted-log` is stored log text rendered as data (the
+ * /admin?view=health alert list), not the screen's own copy. Driven through
+ * the same `readScreenText` the harnesses run in the page (textContent
+ * fallback under jsdom). The alert title is the prod one from 2026-09-22.
+ */
+describe("quoted log text (data-quoted-log) is not an error screen", () => {
+  const ALERT = "Error screen shown: We couldn't load your account.";
+  const render = (html: string) => {
+    document.body.innerHTML = html;
+    return readScreenText();
+  };
+
+  it("ignores error copy that only appears inside the marker", () => {
+    const screen = render(
+      `<main><h1>Health</h1><ul><li data-quoted-log=""><p>${ALERT} (4×)</p><p>client · ErrorState · error</p></li></ul></main>`,
+    );
+    expect(screen.quoted.length).toBe(1);
+    expect(findErrorScreen(screen)).toBeNull();
+  });
+
+  it("still fires on the same copy outside the marker", () => {
+    const screen = render(`<main><h1>Health</h1><p>${ALERT}</p></main>`);
+    expect(findErrorScreen(screen)?.name).toBe("account load failure (ProtectedRoute)");
+  });
+
+  it("still fires on a real error screen when a quoted copy of it is also on the page", () => {
+    const screen = render(
+      `<main><p>We couldn't load your account.</p><ul><li data-quoted-log="">${ALERT}</li></ul></main>`,
+    );
+    expect(findErrorScreen(screen)?.name).toBe("account load failure (ProtectedRoute)");
+  });
+
+  it("removes a quoted span once, whole or line by line", () => {
+    expect(textOutsideQuotedLogs("a\nWe couldn't load this.\nb", ["We couldn't load this."])).not.toMatch(/couldn't/);
+    expect(textOutsideQuotedLogs("x\tWe couldn't load this.\ty\nlast", ["We couldn't load this.\nlast"])).not.toMatch(/couldn't|last/);
+    expect(textOutsideQuotedLogs("Couldn't load A\nCouldn't load A", ["Couldn't load A"])).toMatch(/Couldn't load A/);
   });
 });

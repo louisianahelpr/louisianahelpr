@@ -28,6 +28,8 @@ import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { removeJobPhotos } from "@/lib/storageCleanup";
 import { functionErrorMessage } from "@/lib/supabaseResult";
+import { userFacingError } from "@/lib/userFacingError";
+import { CONNECTION_TROUBLE_COPY, isNetworkFailure } from "@/lib/networkFailure";
 
 /**
  * Remove a job whose payment setup failed, and PROVE it went.
@@ -65,6 +67,27 @@ async function cleanupOrphanJob(jobId: string): Promise<void> {
   } catch (err) {
     report(err, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobId } });
   }
+}
+
+/**
+ * The job a post attempt created, found by its idempotency key (Q267), or null.
+ * Used when the key's unique index refuses a retry (the first INSERT landed and
+ * its response was lost) and when an edited form abandons an earlier attempt.
+ * A failed read is reported and answers null: the caller then treats the
+ * attempt as not landed, which at worst is the pre-Q267 behaviour.
+ */
+async function findJobByKey(userId: string, key: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("id")
+    .eq("customer_id", userId)
+    .eq("client_request_id", key)
+    .maybeSingle();
+  if (error) {
+    report(error, { tags: { source: "PostJob.findJobByKey" } });
+    return null;
+  }
+  return data?.id ?? null;
 }
 
 /**
@@ -272,6 +295,20 @@ export function useJobSubmit(params: UseJobSubmitParams) {
   };
 
   const submittingRef = useRef(false);
+  /**
+   * Q267 — ONE post attempt, however many times the poster presses.
+   *
+   * `key` is sent as jobs.client_request_id and is UNIQUE per poster
+   * (20260923173315), so a retry whose first INSERT landed but whose response
+   * was lost is refused with 23505 and resolved to the row that exists.
+   * `jobId` is set once this attempt's job is known to exist; a retry then
+   * skips the INSERT and only re-runs the payment hand-off for THAT job
+   * (create-payment retires the previous Checkout Session before minting
+   * another). `sig` is the payload the key was minted for: if the poster edits
+   * the job between presses it is a new attempt, and the old one's job, if it
+   * landed, is cleaned up rather than left behind.
+   */
+  const attemptRef = useRef<{ key: string; sig: string; jobId: string | null } | null>(null);
   const COOLDOWN_KEY = "helpr_last_job_submit";
   const COOLDOWN_MS = 30_000; // 30 second cooldown
 
@@ -428,11 +465,52 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         requiresW9: false,
       });
 
-    let { data: jobData, error } = await supabase
-      .from("jobs")
-      .insert(buildPayload({ withExtras: true }))
-      .select("id")
-      .single();
+    const sig = JSON.stringify(buildPayload({ withExtras: true }));
+    const prior = attemptRef.current;
+    if (prior && prior.sig !== sig) {
+      // Edited since an attempt whose outcome we never heard. If that attempt's
+      // job exists, it holds the OLD details: remove it (best-effort; a job
+      // that cannot be deleted stays an unpaid draft in Post a Job) and start
+      // a new attempt, rather than paying for the stale one.
+      const staleId = prior.jobId ?? (await findJobByKey(user.id, prior.key));
+      if (staleId) await cleanupOrphanJob(staleId);
+      attemptRef.current = null;
+    }
+    if (!attemptRef.current) attemptRef.current = { key: crypto.randomUUID(), sig, jobId: null };
+    const attempt = attemptRef.current;
+
+    if (attempt.jobId) {
+      // This attempt's job already exists; only its payment hand-off failed,
+      // and on the wire, so we never heard whether it worked. Pay for THAT
+      // job; posting again would create a second one.
+      safeStorage.setItem(COOLDOWN_KEY, Date.now().toString());
+      await startPayment(attempt.jobId, Promise.resolve());
+      return;
+    }
+
+    // `withExtras: false` is the deploy-lag retry below; it drops the key too,
+    // so a prod that predates jobs.client_request_id still takes the post.
+    const insertJob = (withExtras: boolean) =>
+      supabase
+        .from("jobs")
+        .insert({
+          ...buildPayload({ withExtras }),
+          ...(withExtras ? { client_request_id: attempt.key } : {}),
+        })
+        .select("id")
+        .single();
+
+    let { data: jobData, error } = await insertJob(true);
+
+    // The retry of an INSERT that already landed (its response was lost): the
+    // key's unique index refuses the copy. The existing row IS this post.
+    if (error && (error as { code?: string }).code === "23505") {
+      const existingId = await findJobByKey(user.id, attempt.key);
+      if (existingId) {
+        jobData = { id: existingId };
+        error = null;
+      }
+    }
 
     if (error) {
       // A column this payload opts into may not exist on prod yet (migration
@@ -449,11 +527,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       const code = (error as { code?: string }).code;
       const missingNew = code === "PGRST204" || code === "42703" || code === "22P02";
       if (missingNew) {
-        const retry = await supabase
-          .from("jobs")
-          .insert(buildPayload({ withExtras: false }))
-          .select("id")
-          .single();
+        const retry = await insertJob(false);
         jobData = retry.data;
         error = retry.error;
       }
@@ -474,7 +548,12 @@ export function useJobSubmit(params: UseJobSubmitParams) {
           ? leakRejection
           : isPolicyRefusal
             ? "We couldn't post this because your account isn't cleared to post yet. Check your identity verification in Profile, then try again."
-            : error?.message || "Couldn't post your job just yet — give it another try?",
+            // Q270: never the raw text. A dropped connection gets connection
+            // copy (and the attempt's key is kept, so the retry is safe);
+            // anything else goes through the shared internal-text filter.
+            : isNetworkFailure(error)
+              ? CONNECTION_TROUBLE_COPY
+              : userFacingError(error, "Couldn't post your job just yet — give it another try?"),
       );
       setSaving(false);
       submittingRef.current = false;
@@ -483,6 +562,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
     // Set cooldown timestamp immediately after successful insert
     safeStorage.setItem(COOLDOWN_KEY, Date.now().toString());
+    attempt.jobId = jobData.id;
 
     /* PETS — attach the profiles the poster picked (migration 20260823160000).
        Best-effort and non-blocking: the job exists and is paid for either way,
@@ -588,11 +668,20 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       }
     })();
 
+    await startPayment(jobData.id, geocodePromise);
+  };
+
+  /**
+   * Hand the poster to Stripe Checkout for `jobId`. Also the whole of a retry
+   * whose job already exists (Q267): create-payment re-mints safely for a job
+   * that already has an open session, so re-running this never needs a new job.
+   */
+  const startPayment = async (jobId: string, geocodePromise: Promise<unknown>) => {
     try {
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-payment", {
         body: {
           action: "escrow",
-          jobId: jobData.id,
+          jobId: jobId,
           native: isNativePlatform,
           // Optional opt-in: ask Stripe to save the card for off-session
           // future-use. The edge function decides whether to honor it.
@@ -619,18 +708,30 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       const hasError = paymentError || paymentData?.error || !paymentUrl;
 
       if (hasError) {
-        // Delete the job since payment setup failed — don't leave orphan jobs.
-        await cleanupOrphanJob(jobData.id);
+        // Q267: failed ON THE WIRE, so we never heard the answer. create-payment
+        // may well have minted a Checkout Session and stamped it on this job
+        // (then the delete below is refused anyway, and the job would linger
+        // while a retry posted a SECOND one). Keep the job: attemptRef still
+        // names it, so the retry pays for this same job.
+        const outcomeUnknown = !paymentData?.error && isNetworkFailure(paymentError);
+        if (!outcomeUnknown) {
+          // The server answered with a refusal. Delete the job since payment
+          // setup failed — don't leave orphan jobs.
+          await cleanupOrphanJob(jobId);
+          attemptRef.current = null;
+        }
         safeStorage.removeItem(COOLDOWN_KEY);
         // Not `paymentError.message`: on a non-2xx that is supabase-js's
         // "Edge Function returned a non-2xx status code". The function's own
         // sentence is in the response body (see functionErrorMessage).
-        const errorMsg = (
-          paymentData?.error ||
-          (paymentError ? await functionErrorMessage(paymentError, "Payment setup failed") : "Payment setup failed")
-        ).replace(/[.\s]+$/, "");
+        const errorMsg = outcomeUnknown
+          ? ""
+          : (
+            paymentData?.error ||
+            (paymentError ? await functionErrorMessage(paymentError, "Payment setup failed") : "Payment setup failed")
+          ).replace(/[.\s]+$/, "");
         hapticError();
-        toast.error(`Couldn't start payment: ${errorMsg}. Please try again.`);
+        toast.error(outcomeUnknown ? CONNECTION_TROUBLE_COPY : `Couldn't start payment: ${errorMsg}. Please try again.`);
         setRedirecting(false);
         setStep("checkout");
         // Reset consent — payment failed, so the user must re-confirm
@@ -669,11 +770,15 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       // Show the blocking overlay before the redirect so the user can't
       // re-tap submit during the navigation delay on slow networks.
       setRedirecting(true);
+      // Handed off: the next press is a new post, not a retry of this one.
+      attemptRef.current = null;
       await openExternalUrl(paymentUrl);
     } catch (err) {
-      report(err, { tags: { source: "PostJob.paymentInvoke" }, context: { job_id: jobData.id } });
-      // Delete the job since payment setup failed
-      await cleanupOrphanJob(jobData.id);
+      report(err, { tags: { source: "PostJob.paymentInvoke" }, context: { job_id: jobId } });
+      // A throw is not a server refusal, so whether a Checkout Session now
+      // exists is unknown — same as the on-the-wire case above (Q267). The job
+      // is kept for the retry rather than deleted and posted again; if the
+      // poster walks away it is an unpaid draft in Post a Job.
       safeStorage.removeItem(COOLDOWN_KEY);
       hapticError();
       toast.error("We couldn't set up payment just yet — please try again.");

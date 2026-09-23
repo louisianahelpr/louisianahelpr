@@ -16,7 +16,7 @@ import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateL
 // daily-application-limit entry can no longer be an exact string (the cap is
 // an admin setting now and the trigger interpolates it), and a lookup with a
 // prefix rule in it needs a unit test. See applyErrorCopy.ts.
-import { resolveApplyErrorCopy } from "./applyErrorCopy";
+import { resolveApplyErrorCopy, isAlreadyAppliedRefusal } from "./applyErrorCopy";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { ApplyVars, ApplySnapshot, DashboardContextSlice } from "./dashboardTypes";
 import { userFacingError } from "@/lib/userFacingError";
@@ -38,6 +38,13 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   const [applyFiles, setApplyFiles] = useState<File[]>([]);
   // Synchronous in-flight guard for handleApplyConfirm (see there).
   const applyInFlight = useRef(false);
+  // Q269. Jobs whose last apply failed WITHOUT a server refusal: the generic
+  // "Couldn't send your application through" branch, which is where a lost
+  // response lands (the RPC ran and committed, the answer never arrived). The
+  // retry of such an attempt is refused "Already applied to this job" — which
+  // is the proof that the first attempt worked, not a new failure. A ref, not
+  // state: it is read inside mutationFn and must survive re-renders.
+  const outcomeUnknownJobIds = useRef(new Set<string>());
   // A deep-linked apply (?quickApply=<id>) can target a job that isn't in the
   // dashboard feed — filtered out, in another area, or the feed simply hasn't
   // loaded it. The confirm dialog needs the job object (title, budget,
@@ -161,6 +168,10 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         p_job_id: jobId,
         p_message: (message.trim() || null) as string,
       });
+      void rpcData; // UUID returned but not currently used.
+      // Whether attachment_urls still has to be written onto the row. The RPC
+      // does not take attachments; the direct INSERT below carries them itself.
+      let patchAttachments = true;
       if (rpcError) {
         const errCode = (rpcError as { code?: string }).code;
         if (errCode !== "PGRST202") {
@@ -171,41 +182,50 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
           if (rateLimited) {
             throw Object.assign(new Error(rateLimited), { code: "RATE_LIMITED" });
           }
-          // Real error (duplicate, job closed, price-required, etc.) — surface it.
-          throw rpcError as Error & { code?: string };
-        }
-        // PGRST202: apply_to_job not deployed yet — fall back to direct INSERT
-        // (no proposed_price column yet; no harm, it's not on prod either).
-        const { error } = await supabase.from("applications").insert({
-          job_id: jobId,
-          helper_id: helperId,
-          message: message.trim() || null,
-          attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
-        });
-        if (error) throw error as Error & { code?: string };
-      } else {
-        void rpcData; // UUID returned but not currently used.
-        // Patch attachment_urls onto the new row if needed (RPC doesn't handle attachments).
-        if (attachmentUrls.length > 0) {
-          // Both the error AND the row count matter here, and neither was
-          // being read. `.update().eq(...)` with no `.select()` resolves
-          // `{data: null, error: null}` whether it matched one row or none, so
-          // an RLS-blocked or mis-targeted patch was indistinguishable from
-          // success — the helper's application landed with their files
-          // silently dropped and the success toast fired anyway.
-          //
-          // This does NOT throw: the application itself already landed via the
-          // RPC, and throwing here would roll the UI back to "apply failed"
-          // over a row that exists. Warn instead, so the helper knows to
-          // re-attach from Activity rather than assuming the files went.
-          const { data: patched, error: attachErr } = await supabase.from("applications")
-            .update({ attachment_urls: attachmentUrls })
-            .eq("job_id", jobId)
-            .eq("helper_id", helperId)
-            .select("id");
-          if (attachErr || !patched || patched.length === 0) {
-            toast.warning("Your application was sent, but the attachments didn't save — add them from Activity.");
+          // Q269: the retry of an apply that already landed. The first
+          // attempt's response was lost, so this refusal is the proof that it
+          // WORKED; fall through to success rather than telling the helper they
+          // were refused, straight after telling them it had failed.
+          if (!(isAlreadyAppliedRefusal(rpcError) && outcomeUnknownJobIds.current.has(jobId))) {
+            // Real error (duplicate, job closed, price-required, etc.) — surface it.
+            throw rpcError as Error & { code?: string };
           }
+        } else {
+          // PGRST202: apply_to_job not deployed yet — fall back to direct INSERT
+          // (no proposed_price column yet; no harm, it's not on prod either).
+          const { error } = await supabase.from("applications").insert({
+            job_id: jobId,
+            helper_id: helperId,
+            message: message.trim() || null,
+            attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
+          });
+          if (error && !(isAlreadyAppliedRefusal(error) && outcomeUnknownJobIds.current.has(jobId))) {
+            throw error as Error & { code?: string };
+          }
+          // A fresh INSERT carried the attachments; a recovered one did not.
+          if (!error) patchAttachments = false;
+        }
+      }
+      // Patch attachment_urls onto the new row if needed (RPC doesn't handle attachments).
+      if (patchAttachments && attachmentUrls.length > 0) {
+        // Both the error AND the row count matter here, and neither was
+        // being read. `.update().eq(...)` with no `.select()` resolves
+        // `{data: null, error: null}` whether it matched one row or none, so
+        // an RLS-blocked or mis-targeted patch was indistinguishable from
+        // success — the helper's application landed with their files
+        // silently dropped and the success toast fired anyway.
+        //
+        // This does NOT throw: the application itself already landed via the
+        // RPC, and throwing here would roll the UI back to "apply failed"
+        // over a row that exists. Warn instead, so the helper knows to
+        // re-attach from Activity rather than assuming the files went.
+        const { data: patched, error: attachErr } = await supabase.from("applications")
+          .update({ attachment_urls: attachmentUrls })
+          .eq("job_id", jobId)
+          .eq("helper_id", helperId)
+          .select("id");
+        if (attachErr || !patched || patched.length === 0) {
+          toast.warning("Your application was sent, but the attachments didn't save — add them from Activity.");
         }
       }
       // Insert succeeded — bump the rate-limit counter. Best-effort: a
@@ -254,6 +274,9 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         // so no Retry button (re-running the same invalid submit just re-fails).
         toast.error(resolveApplyErrorCopy((err as { message?: string }).message)!);
       } else {
+        // Not a server refusal, so the apply may have landed (a lost response
+        // looks exactly like this). Remember it so the retry can tell.
+        outcomeUnknownJobIds.current.add(vars.jobId);
         errorToast("Couldn't send your application through", {
           description: "Tap retry to try again.",
           onRetry: () => applyMutation.mutate(vars),
@@ -261,6 +284,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       }
     },
     onSuccess: async (_data, vars) => {
+      outcomeUnknownJobIds.current.delete(vars.jobId);
       hapticSuccess();
       // First job action recorded — gates the deferred notification
       // permission prompt (`useNotificationPermissionPrompt`). The

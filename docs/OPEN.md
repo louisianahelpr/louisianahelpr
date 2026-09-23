@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 60 done, 9 partly done (fixed, protection pending), 82 open. Source of truth for work.
+- **Queue (this file):** 61 done, 11 partly done (fixed, protection pending), 80 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 151 items — 60 done, 9 partly done (fixed, protection pending), 82 open.**
+**Queue: 152 items — 61 done, 11 partly done (fixed, protection pending), 80 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -133,7 +133,7 @@ sure someone hears it and closes it.
   the mirror cannot tell a seed one — "Ban review needed" (/admin?view=banreview,
   apply_consequence_ladder) and "Scheduled payout failed" (/admin,
   process-scheduled-payouts). They still page for seed (fail loud).
-- [ ] **Q3 Stripe test balance empty.** Scheduled payouts and transfers fail
+- [~] **Q3 Stripe test balance empty. Top-up DONE 2026-09-23 (Q145: $500 TEST charge, available $0 -> $485.20); the balance monitor is still open.** Scheduled payouts and transfers fail
   with "insufficient available funds" (09-22). Top it up with the 0077 test
   card, then add a balance monitor so this alerts BEFORE the payouts fail.
 - [~] **Q4 CAUSE FOUND 2026-09-23 (measured, cron.job_run_details): all three daily digests (daily-match-digest 13:12, sweep-daily-job-digest 14:00, ops-daily-digest 14:40 UTC) failed 2026-09-22 with "job startup timeout" during the DB outage (Q53); last success 2026-09-21. Nothing re-runs a missed slot — that is Q30. Verifying today's 2026-09-23 runs succeed (check at 14:50 UTC).** "Daily ops digest not delivered in 30h" fired twice on 09-22.
@@ -479,13 +479,14 @@ sure someone hears it and closes it.
 - [ ] **Q142 Credentials: replace the Licensed/Insured switches with "Add license" / "Add insurance" buttons (owner decision 2026-09-23, MORNING QUESTIONS 6 option b).** Each button goes straight to upload-for-review; no control looks like it sets the badge. Also resolves Q111 (removing a sent document must leave the add button). Before/after screenshots at 375 + 1440, light + dark; guard that no member-facing control writes is_licensed/is_insured.
 - [ ] **Q143 Messages search below 360px opens on its own line (owner decision 2026-09-23, Q48 option D).** Where the tab strip sits, full width; 375+ unchanged. Proof: expanding-search-geometry.spec.ts @320 goes green (it is the failing prod-audit test).
 - [ ] **Q144 LAUNCH CHECKLIST: stop real email to is_seed accounts at launch (owner decision 2026-09-23: keep sending until launch).** At launch, skip sending to is_seed recipients (log skipped_seed in email_send_log) with an allowlist for delivery-asserting journeys, so test mail stops spending the Resend daily quota real users need.
-- [ ] **Q145 Top up the Stripe TEST balance by $500 and re-run the failed test payouts (owner approved 2026-09-23).** TEST mode only (card 4000 0000 0000 0077 funds available balance immediately). Verify the key is sk_test before any charge; re-run the failed payouts through the app's own path; report balance before/after and each payout's result.
+- [~] **Q145 DONE 2026-09-23 12:51Z; protection pending = the Q3 balance monitor (not built yet). Was: Top up the Stripe TEST balance by $500 and re-run the failed test payouts (owner approved 2026-09-23).** Key mode proved first by a temporary admin-JWT-only edge function (tmp-q145-test-topup) that refused unless STRIPE_SECRET_KEY starts sk_test_/rk_test_ and balance.livemode is false: key_mode test, livemode false; the key was never returned or logged. Balance before: available $0.00, pending $616.48. One $500.00 charge with pm_card_bypassPending (the 0077 card): pi_3UIpdrKp2H4b7tEC1666cTsf / ch_3UIpdrKp2H4b7tEC1hb5f1Ec, succeeded, livemode false; available then $485.20 (net of the $14.80 Stripe fee). Failed payouts (error_logs + payout_transfers): (1) seed job dd9e4db7, payout_transfers d3f4276b failed 09-22 16:35Z: re-run via the admin release-payout path (what AdminPayoutBatches invokes), 200, tr_3UGKk7Kp2H4b7tEC08kZA5SQ, 2200c, job released; (2) seed job e7e09075 "transfer failed" 09-22 17:46Z: since cancelled + refunded, nothing owed, not re-run. Balance after both Q145/Q148 transfers: available $428.00 (48520 - 2200 - 3520 = 42800c, exact). Temporary function deleted 12:52Z: absent from `supabase functions list`, POST returns 404. Ledger: "scheduled payout failed" (b7bd5c7f) did not close on `ops-alert-ledger sync` (a companions item with no companion rows), so closed with ops_alert_close after re-query 12:54Z: 0 failed payout_transfers on payout_pending jobs. NOT done here: 26 other seed jobs sit in payout_pending that no failure was recorded for; process-scheduled-payouts skips seeds unless ?include_seed=1.
 - [x] **Q146 DONE (measured 2026-09-23 ~12:10Z): marketing_settings.channels_enabled.facebook = false live; 0 marketing errors in the prior 12h. NO-GUARD: a setting the owner flips in Admin → Social; marketing-publish already treats a disabled channel as an outcome, not a defect. NOTE: auto_publish_enabled is TRUE again (changed 10:50Z, no audit row; 0 posts scheduled) — left as is, presumably the owner. Was: Turn the Facebook marketing channel off until the Page token exists (owner decision 2026-09-23).** Stops marketing-publish failing every 15 min (meta_secrets_missing) at the source. OWNER TO-DO kept: add META_PAGE_ACCESS_TOKEN + META_PAGE_ID, then turn it back on.
 - [ ] **Q147 Back up uploaded files except id-documents (owner decision 2026-09-23).** Buckets proof-photos, job-photos, message-attachments, user-documents, avatars (~150 objects, ~10 MB) into the existing encrypted db-backup artifact; id-documents excluded for privacy. Extend the weekly restore drill to prove the files restore.
-- [ ] **Q148 Settle seed dispute 9756a585 in Stripe TEST mode (owner approved 2026-09-23).** Through the admin dispute path; verify the dispute-unsettled-seed ledger item closes.
+- [x] **Q148 DONE 2026-09-23 12:52Z (TEST mode). Guard: src/test/disputeClosedWithoutPaymentIsWatched.test.ts (the sweep_disputes_closed_without_payment detector for this class). Was: Settle seed dispute 9756a585 in Stripe TEST mode (owner approved 2026-09-23).** Dispute 9756a585 (job e6979a12, split helper 1 / poster 0, execution_status executed but moved nothing). The admin split path execute-dispute-split refuses it (409 "already executed", no write), and admin_release_dispute needs job.status disputed (it is completed), so it was settled the way the detector says: admin release-payout on job e6979a12 as the admin-e2e seed account: 200, tr_3UCwOtKp2H4b7tEC1UMtZPxp, 3520c ($40 less 12%), payout_transfers 95a1648f paid, job payout_pending -> released. No rows written by hand. Detector re-run 12:52:50Z: sweep_disputes_closed_without_payment() reported 0 and its WHERE clause matches 0 disputes; ledger item f5ea2f13 (dispute-unsettled-seed) closed with that evidence. Follow-up: Q153.
 - [ ] **Q149 (needs the owner to sign in to the Supabase dashboard in Chrome; then Claude flips it) Turn on leaked-password (HIBP) protection (owner decision 2026-09-23, Pro plan).** Supabase Auth password security setting; verify the advisor clears and a breached password is refused at signup with a clear message.
 - [~] **Q150 Triage stale remote branches (owner decision 2026-09-23).** PROGRESS 2026-09-23: deleted 27 of 63 (26 fully merged + visual/vn-33a-nudge, zero unique patches); shas in ~/.lh-backups/merged-remote-branches-20260923T0547.txt. 36 remain; table (unique commits, date, files, subject) in ~/.lh-backups/unmerged-branch-triage-20260923.txt. chore/lockfile-normalize + chore/lockfile-resync-2026-09-20 have OPEN PRs (zero unique patches: close the PRs, then delete). feat/apple-iap: do NOT merge (memory: booby-trapped). Hole-hunt report branches (7): fold findings into this queue, then delete. Remaining: prove whether fix-refund-double-pay / fix-jobs-completion-columns / sec-hardening / db-block-offer-rearm / audit-function-body-drift landed by other commits. Delete the 26 fully merged; for each of the 34 with patches not on main (git cherry), say what it holds and whether it is worth landing; list for the owner; delete the rest only after that list.
 - [ ] **Q151 Audit the right-side panel overlap on every signed-in page (owner 2026-09-23: "you audit it and check"; carried from Q10).** With the desktop rail open, measure every signed-in route at 1024, 1280, 1440 and 1920: nothing under the rail, .app-shell-frame inset exactly --desktop-sidebar-w, zero horizontal overflow, column centred in the post-rail area. Screenshot each failure plus a sample, record reviews, fix at the shared layer only.
+- [ ] **Q153 A dispute settled by a manual release-payout still says it moved no money (found by Q148, 2026-09-23).** After Q148, dispute 9756a585 still has execution_transfer_id / execution_helper_cents NULL although tr_3UCwOtKp2H4b7tEC1UMtZPxp paid 3520c, because release-payout never writes the disputes row. Measure what DisputeTimelineDialog (reads the execution_* figures) and the admin dispute views show for 9756a585, then make release-payout stamp execution_transfer_id + execution_helper_cents when it pays a job whose dispute is executed with nothing recorded (or read them from payout_transfers). Guard: an edge test that pays such a job and expects the dispute row stamped.
 - [ ] **Q152 LAST STEP: cut the TestFlight build (`bundle exec fastlane ios beta`) only after every other queue item is done (owner, 2026-09-23: "wait on test flight until everything in Que is done").** Claude runs it from main; then the owner installs it, signs in, and taps Enable -> Allow on the notifications pill (MORNING QUESTIONS 5 / Q82), and push_tokens gets its first real device row.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
@@ -496,7 +497,7 @@ sure someone hears it and closes it.
   its admin section, or report what depends on it. It is a leftover of a retired
   flow and a stored-XSS surface we just had to harden (3c81624d0).
 2. **Stripe TEST balance top-up (Q3).** Payouts and transfers fail with
-   **ANSWERED 2026-09-23 (owner pop-up): yes, top up $500 in TEST mode and re-run the failed test payouts. Work item Q145.**
+   **ANSWERED 2026-09-23 (owner pop-up): yes, top up $500 in TEST mode and re-run the failed test payouts. Work item Q145. DONE 12:51Z (see Q145).**
    "insufficient available funds" (sandbox). The fix is test-mode charges with
    the 4000 0000 0000 0077 card, which funds available balance immediately.
    That's fake money, but it is still creating charges, so I held it for your
@@ -590,14 +591,14 @@ sure someone hears it and closes it.
     seed jobs with a session are now 'abandoned' (0 left).
   STILL OPEN, with owner:
   - marketing-publish 500: Meta secrets missing (MORNING QUESTIONS 3).
-  - scheduled payout failed: test Stripe balance empty (MORNING QUESTIONS 2 /
+  - (closed 12:54Z by Q145) scheduled payout failed: test Stripe balance empty (MORNING QUESTIONS 2 /
     Q3); links to /admin, no subject, so it cannot be seed-routed yet.
   - Sentry not synced (MORNING QUESTIONS 1).
   STILL OPEN, not mine to close yet:
   - ban review needed (Strike Probe Poster, a probe): link
     /admin?view=banreview names no subject; needs the subject in the link
     (apply_consequence_ladder) — see Q2 follow-up.
-  - dispute-unsettled-seed (dispute 9756a585, seed, payout_pending — the
+  - (closed 12:54Z by Q148) dispute-unsettled-seed (dispute 9756a585, seed, payout_pending — the
     release is owner item Q10). New seed rows no longer reach the ledger.
   - (closed 06:17Z) charge-recurring-visits DNS failure: the 06:06Z run was
     clean per the 06:15Z watcher.

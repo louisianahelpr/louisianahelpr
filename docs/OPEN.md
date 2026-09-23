@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 110 done, 11 partly done (fixed, protection pending), 86 open. Source of truth for work.
+- **Queue (this file):** 110 done, 11 partly done (fixed, protection pending), 88 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 207 items — 110 done, 11 partly done (fixed, protection pending), 86 open.**
+**Queue: 209 items — 110 done, 11 partly done (fixed, protection pending), 88 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1233,6 +1233,25 @@ sure someone hears it and closes it.
   tokens (Supabase access token, GitHub PAT, Resend, Sentry), the domain
   registration, SSL. Inventory each with its expiry, alert 30 days ahead,
   and add each to the scoreboard.
+  Status 2026-09-23 (branch cloud/q62-expiry-monitor, not yet run in CI): built.
+  Inventory scripts/audit/expiry-inventory.json (25 items; every secret/env name
+  the repo references classified), reader scripts/expiry-check.mjs, daily
+  .github/workflows/expiry-monitor.yml (21:17 UTC; red + nightly-red issue +
+  ops-alert ledger + Slack at 30 days; --ci fails if a CI-readable item goes
+  unreadable), scoreboard rows (local inventory row + one live row per item).
+  Guard src/test/expiryMonitor.test.ts (8 @mutate, all killed). Local run
+  here: 2 OK, 5 no-expiry, 18 UNREADABLE (sandbox proxy intercepts TLS and
+  blocks RDAP; no secrets). OWNER: 6 items have no API and need a date
+  recorded (Supabase PAT, Sentry token, Stripe keys, Stripe webhook secrets,
+  Resend key, FCM key). Lead ticks after the first real expiry-monitor.yml run.
+- [ ] **Q211 `src/test/noOrphanedStorageBuckets.test.ts` registers no @mutate** (found
+  2026-09-23 by the Q62 lane: `node scripts/vacuity/index.mjs --report --no-mutate`
+  fails its ratchet on it on origin/main 159b5c0b3). Add a mutation that kills it,
+  or baseline it with a reason.
+- [ ] **Q212 main is red: workflowFalseGreenShapes SWALLOW** (measured 2026-09-23
+  in a clean worktree of origin/main 159b5c0b3): `.github/workflows/a11y-webkit-prod.yml`
+  step "Surface a missing axe baseline (Q181)" has `2>/dev/null || echo "?"`.
+  Fix the shape or list it in SWALLOW_OK with why it is truthful.
 - [ ] **Q63 Quota and limit monitor, before any free-tier limit bites.**
   Supabase (DB size, egress, connections, edge invocations, realtime
   messages; supabase-usage.yml covers part of it), Vercel (deploys,

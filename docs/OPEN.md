@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 83 done, 11 partly done (fixed, protection pending), 78 open. Source of truth for work.
+- **Queue (this file):** 83 done, 11 partly done (fixed, protection pending), 80 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 172 items — 83 done, 11 partly done (fixed, protection pending), 78 open.**
+**Queue: 174 items — 83 done, 11 partly done (fixed, protection pending), 80 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -504,6 +504,8 @@ sure someone hears it and closes it.
 - [ ] **Q167 Two DB pruners were never scheduled, and three code comments say they run (found by Q41, 2026-09-23).** `cleanup_stripe_webhook_events()` and `cleanup_observability_tables()` have 0 callers (no cron.job among 59, no trigger, function, client or edge call), yet stripe-webhook/index.ts:267, stripe-idv-webhook/index.ts:205 and verification-webhook/index.ts:269 say "prunes at 30 days". Live: 9 stripe_webhook_events rows older than 30 days (oldest 2026-07-08), 221 analytics_events older than 90 days (oldest 2026-05-03); error_logs is already pruned by sweep_old_error_logs. Fix: schedule them (with a cron_work_expectations liveness row) or drop them and correct the comments; guard: every public prune/cleanup/sweep function is either in cron.job or listed as deliberately manual, red on today's state.
 - [x] **Q168 DONE 2026-09-23 (owner ask): footer Company / Legal / Follow share one row at phone width.** Measured in a production build: headings at the same y from 360px up (360, 375, 390, 430, 500), 0px overflow; 320 keeps two rows (needs ~321px, has 288). Screenshot ~/.lh-shots/footer/after-375.png reviewed. Guard: src/test/footerLinkGroupsOneRow.test.ts.
 - [ ] **Q169 OWNER PRIORITY 2026-09-23: pages JUMP while they load (public AND signed-in).** Owner: browse jobs loads, jumps, more cards appear, loads again; "happens a lot on new pages". Want one settled paint: correctly sized skeleton, then all items at once, nothing shifting. In progress: measure CLS + list-arrival waves per App.tsx route (375/1440, throttled + not) on a production build with prod data, fix at the shared layer, guard = a Playwright CLS/waves check over routes derived from App.tsx (floor) + unit guards on the shared primitives.
+- [ ] **Q174 sweep_cron_http_failures files agents' manual pg_net probes as cron failures (found working Q42, 2026-09-23).** It reads every net._http_response row (pg_net does not record which cron sent a request) and names a body-less timeout by proximity to the nearest HTTP cron. Measured: the 23 Sep 08:00Z "arrival-confirm-reminder … Timeout of 400 ms" row cannot be the cron (its command uses timeout_milliseconds 30000); the "money-reconciliation returned 500" rows at 08:00Z/08:15Z were manual `?include_seed=1` POSTs at 07:52, 07:54 and 08:12Z (function_edge_logs). Both ledger items closed with that evidence. Fix: have cron commands tag their requests (e.g. an `x-cron-job` header or `?cron=<jobname>`) and have the sweeper skip untagged responses, or have probes use a marker; guard red on a planted untagged 500.
+- [ ] **Q175 functions-deploy red on fabef1905 for functions that commit did not touch (run 35870499227, 2026-09-23 14:00Z).** Its "Verify every deploy actually landed" step reported "stored bundle hash did not change" for auto-expire-jobs, auto-resolve-disputes, mapkit-token, verify-apple-iap and weekly-helper-report; after 2 retries weekly-helper-report was still not landed (functions list: updated 13:46:59, before the run). The function the commit changed, marketing-publish, did land (version 808, 14:00:44). Not yet measured: whether those five had source changes in the diff base, i.e. whether this is a real lost deploy or the verifier expecting a new hash for an unchanged bundle.
 - [x] **Q170 HIGH (silent-failure review of Q157-Q161, 2026-09-23): Q161's 15s gate timeout could reopen Q131.** backgroundImport() released the recovery gate after BACKGROUND_IMPORT_GATE_TIMEOUT_MS while load() was still pending, and main.tsx's vite:preloadError handler reads the gate live, so a sentry/posthog import still in flight past 15s that THEN rejected triggered the destructive stale-chunk reload (the Q131 class: wipes what the user just did). DONE 2026-09-23: the handler moved to src/lib/chunkReload.ts handleVitePreloadError (main.tsx only registers it). A background load pending past its timeout is counted LATE; while one is, the handler does not preventDefault and decides after a macrotask: an error backgroundImport's catch marked background-owned (Vite rethrows the very payload object) is ignored, anything else still calls recoverFromChunkError, so the timeout still stops a stalled load from suppressing recovery for unrelated chunks. GUARDS: src/lib/backgroundImport.test.ts "a background import that fails AFTER its gate timeout (Q170)" (fake timers; late background rejection -> no recovery; unrelated route chunk after the timeout -> recovery; red on the pre-fix handler logic and on dropping the ownership check), src/test/prefetchCannotEatNavigation.test.ts (reads the handler from chunkReload.ts and checks main.tsx registers it).
 - [x] **Q171 MEDIUM-HIGH (silent-failure review of Q157-Q161, 2026-09-23): send-notification-email's seed-boundary check did not retry PGRST002.** It asked notification_crosses_seed_boundary once and failed closed (503) on ANY error, so PostgREST's schema-cache reload right after a migration deploy (PGRST002) permanently dropped a REAL email; the same file already retried PGRST002 3x for its preference reads (2026-09-08 incident). DONE 2026-09-23: the check retries PGRST002 up to 3 attempts (400/800 ms backoff), any other error still fails closed at once, and 3 PGRST002s still fail closed. GUARD: src/test/edge/send-notification-email-seed-retry.test.ts (real function source through the edge harness: PGRST002 x2 then OK -> sent, queued; PGRST002 x3 -> 503 + 'seed boundary check failed, not sent: PGRST002' log; PGRST202 -> one call, 503; red on the pre-fix function). The harness now serves the real _shared/safe-strings.ts.
 - [x] **Q172 LOW (silent-failure review of Q157-Q161, 2026-09-23): the once-per-session 'background import failed' row was marked reported BEFORE it persisted.** src/lib/errorLogger.ts claimBackgroundFailureReport wrote the sessionStorage flag at claim time, so a failed POST lost the report for the session. DONE 2026-09-23: the in-memory claim stops duplicates while queued or in flight; the session flag is written only after a 2xx; a failed POST keeps the row for the next flush (it rides along with the next report(), never schedules its own), at most 3 sends per module per document. GUARD: src/lib/errorLoggerSurvivesFailedChunks.test.ts "a failed background-import report is retried, bounded (Q172)" (first POST 503, a later report() re-sends, exactly one row lands; a never-accepting server gets it at most 3 times; red on the pre-fix errorLogger).
@@ -642,6 +644,21 @@ sure someone hears it and closes it.
   - "subscription reconciliation ran degraded": raised by the fix's first
     dry run, because ANY note made a clean run post "degraded"; seed skips no
     longer go into notes (ea4f758bf). Closed 06:14Z: real run clean, notes [].
+  WORKED again 2026-09-23 13:40-14:10Z (28 open at start). Shipped: marketing-publish
+  treats "channel enabled, Meta secret missing" as one warning owner-action item,
+  Slack once a day, HTTP 200 (guard src/test/marketingSecretGapIsOwnerAction.test.ts;
+  deployed v808 14:00:44Z); the presser that turned auto-publish on (Q166,
+  MORNING QUESTIONS 8); ledger sync closes nightly_red items that lost their issue
+  ref (guard src/test/opsLedgerNightlyItemsCanClose.test.ts). Closed with re-runs:
+  money-reconciliation 500 and arrival-confirm-reminder timeout (both manual
+  probes, Q174), nightly-red main: staleness watch. Left open, with reason:
+  the 4 "missed cron slot not re-run" items are the 22 Sep outage slots (Q53)
+  found by Q30's first pass at 13:39Z; each job dedupes itself, so the right
+  close is its next regular run succeeding (today 14:00 / 14:14 / 14:40Z), then
+  `close` with that run; /profile error screen was the owner during the 22 Sep
+  outage (Profile request timed out + Failed to fetch at 15:10Z), and its own
+  condition clears at 15:10Z today; db-deploy red is 20260923133021 (Q30's
+  migration, live on prod) awaiting its provenance ack.
 - [ ] **Q43 LOOK at the alert ledger's surfaces.** The new "Open Alerts" card
   on /admin?view=health has never been screenshotted, and the session-start
   hook's open-alert summary hasn't been re-run since deploy. Screenshot at

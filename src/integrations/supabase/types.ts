@@ -4863,6 +4863,7 @@ export type Database = {
       }
       check_dispute_velocity: { Args: { p_user_id: string }; Returns: boolean }
       check_ops_digest_delivery: { Args: never; Returns: Json }
+      check_push_token_health: { Args: never; Returns: Json }
       check_stale_dispute_settlement_claims: { Args: never; Returns: Json }
       claim_dispute_settlement: {
         Args: { _action: string; _admin_id?: string; _job_id: string }

@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 29 done, 4 partly done (fixed, protection pending), 69 open. Source of truth for work.
+- **Queue (this file):** 30 done, 4 partly done (fixed, protection pending), 71 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 102 items — 29 done, 4 partly done (fixed, protection pending), 69 open.**
+**Queue: 105 items — 30 done, 4 partly done (fixed, protection pending), 71 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -368,6 +368,34 @@ sure someone hears it and closes it.
   UPDATE of that row fails with an opaque check_violation. Add a live check
   (pg_constraint.convalidated = false on public tables) to db-deploy post-apply
   and to the drift detector.
+- [ ] **Q103 Re-measure the nav-badge cut ON PROD, then dedupe the unread-messages pair the same way (Q53 follow-up).**
+  Q53 halved useActivityBadgeCounts per page load (fake-transport count
+  2 rpc / 2 counts / 2 channels -> 1/1/1), but no prod session built from
+  82c0f6992 or later had run by 09:30Z 2026-09-23: every 127.0.0.1:4173 /
+  :4298 session still showed ~2.0 get_my_pending_direct_offers per
+  user_blocks request (press run 35837735324 is on e96adc16d, pre-change).
+  Re-run the edge_logs ratio (offers / user_blocks per referer) after the next
+  press or journeys run on new code; expect ~1.0. Then: on desktop MobileNav's
+  useNavUnreadCount AND DesktopSidebarNav's mirrored unread query both run
+  (messages: 24,549 CI requests in 24 h) — same shared-store treatment, and add
+  it to src/test/hotQueryLoad.test.ts.
+- [ ] **Q104 CI browser suites are ~94% of prod REST traffic; give each a measured load budget (Q53 follow-up, ties to Q60).**
+  24 h to 09:00Z 2026-09-23: 105,824 of >=112,356 badge requests came from
+  127.0.0.1:4173 (CI preview builds); REST from that referer peaked at
+  104,445 requests in the 03:00Z hour (~29/s) with no real users. One press
+  admin session made 18,035 REST calls in 29 min. Record requests/min per
+  workflow run (edge_logs by run window), set a ceiling below the level the
+  db-saturation-check thresholds trip at, and fail the run that exceeds it.
+- [ ] **Q105 Realtime is the largest DB cost; measure and cut it (Q53 follow-up).**
+  pg_stat_statements 15:23Z 09-22 -> 08:54Z 09-23: realtime.list_changes
+  121,403 calls / 1,124 s (35% of all 3,200 s of SQL time) plus the
+  publication scan 271,282 calls / 211 s; 136 live realtime.subscription rows
+  at ~09:10Z, nearly all CI sessions (notifications 41, jobs 37,
+  applications 32, messages 21). Q53 halved the nav-badge channels; re-count
+  subscriptions after Q103's re-measure, check which of the 10 published tables
+  any client still subscribes to, and drop the rest from supabase_realtime.
+  Also noticed: sweep_dead_crons() costs 1.0 s per hourly run (17 calls,
+  17.1 s) — EXPLAIN it the way Q53 did sweep_silent_cron_failures.
 
 ## MORNING QUESTIONS (held overnight 2026-09-23 while the owner sleeps)
 
@@ -739,7 +767,62 @@ sure someone hears it and closes it.
   green after the Q52 rebase), generatedInventoriesCurrent (burndown refresh).
   TODO: read 35822511272's full log when it ends, finish the remaining ~270
   unit registrations + the 56 Playwright ones, fix every SURVIVED, prove killed.
-- [ ] **Q53 ROOT-CAUSE the 2026-09-22 database outage. EVIDENCE GATHERED 2026-09-23 ~05:40Z (Supabase logs + pg_stat_statements):**
+- [x] **Q53 DONE 2026-09-23 (82c0f6992, 21bf0bb0a, af66b2f51): saturation is now DETECTED before it tips over, and the measured hot spots are cut. The exact root cause stays a hypothesis (below); proving a capacity ceiling is Q60.**
+  GUARDS: src/test/dbSaturationMonitor.test.ts (newest-definition wiring:
+  both ledger sources, 5-min schedule + liveness row, prod-errors feeds the
+  log count before the ledger sync, no correlated re-scan in
+  sweep_silent_cron_failures; 6 @mutate killed, red with the migration
+  removed), src/test/hotQueryLoad.test.ts (exact inventory of every client
+  network poller with a 15 s floor, no refetchIntervalInBackground, and the
+  nav badge hook shares one store / coalesces / holds while hidden; 7 @mutate
+  killed, red on the old hook), src/test/pglite/dbSaturation.pglite.mjs (3x
+  apply; thresholds pinned from outside; hourly dedupe; close rule NULL /
+  true / false; same streaks as the old sweep; 5 planted defects red).
+  DETECT: public.check_db_saturation() every 5 min (cron db-saturation-check,
+  expectation 20 min) samples client conns / max_connections, non-idle
+  backends, longest active statement, idle-in-transaction > 5 min, and a
+  window from pg_stat_statements (calls/s, SQL ms/s, app-role calls-weighted
+  p95) into public.db_saturation_samples; thresholds in
+  db_saturation_thresholds() (90% conns, 15 active, 120 s, 1 idle-in-xact,
+  1000 ms/s, p95 100 ms; timeouts 5/h vs 19-42/h on 09-22). Breach -> one
+  error_logs row per hour, source db-saturation -> ledger. Statement timeouts
+  (postgres_logs only) come in hourly from prod-errors.yml via
+  scripts/db-saturation-check.mjs, source db-statement-timeouts; the step
+  fails the run if the DB or logs cannot be read. ops_alert_condition closes
+  either only on a NEWER clean sample. Two scoreboard rows (STALE if the
+  sample is late); the connection row now counts client backends.
+  BEFORE/AFTER (measured): sweep_silent_cron_failures cron run 2,676 ms
+  (08:47Z) -> 412 ms (09:47Z); its detect query 2,552 ms -> 20 ms (EXPLAIN
+  ANALYZE, identical per-job output on prod's cron_run_log). Nav badges per
+  page load (two consumers, fake transport counting calls): 2 RPC + 2 counts
+  + 2 realtime channels -> 1 + 1 + 1; the PROD re-measure is Q103 (no browser
+  run on new code had hit prod by 09:30Z). New cost: check_db_saturation()
+  90-452 ms per 5-min run (~0.5 ms/s). A whole-DB calls/s comparison is not
+  meaningful: load is set by which CI suites are running (baseline 32 calls/s
+  and 51 ms/s over 17.5 h; 5-min windows 09:25-09:45Z 53-123 calls/s, 71-196
+  ms/s, app p95 7.1-12.9 ms, during a press run + push suites). Live monitor
+  verified: samples every 5 min since 09:20Z, all clean; prod-errors run
+  35845088930 fed "0 statement timeouts in 60 min" (workflow sample stored).
+  Near-miss worth knowing: 09:40Z had 14 active backends (threshold 15) and
+  85-87% connections during CI bursts. Owner compute-tier decision: NOT raised
+  now — no breach since the restart; the monitor will say if one comes.
+  Hypothesis for 09-22 (unproven): sustained CI browser load on a small
+  instance; Q60/Q104 measure the ceiling.
+  CORRECTIONS to the evidence below (measured 2026-09-23 ~09:00Z):
+  "client polling" was not polling — src/ has one refetchInterval (admin
+  broadcasts, 15 s) and three gate-screen timers. The applications count and
+  get_my_pending_direct_offers are the nav badges, fired on every page load
+  TWICE (MobileNav and DesktopSidebarNav both mount useActivityBadgeCounts;
+  edge logs 1.89-2.0 offer RPCs per user_blocks request) and on every
+  realtime wake-up. Of at least 112,356 such requests in the 24 h to 09:00Z,
+  105,824 (94%) came from CI preview builds (referer 127.0.0.1:4173, mostly
+  HeadlessChrome from Azure), most of the rest from other localhost ports, 690
+  with no referer, and 687 (0.6%) from louisianahelpr.com. The "29 s CI live check" is not CI: 2 calls total, as
+  postgres, no source in the repo (scripts/check-live-privileges.mjs runs a
+  different query) — an ad-hoc information_schema.column_privileges read. The
+  "256 statement timeouts after the restart" were the outage hours: postgres_logs
+  shows 0 from 16:00Z 09-22 to 09:10Z 09-23.
+  EVIDENCE GATHERED 2026-09-23 ~05:40Z (Supabase logs + pg_stat_statements):
   - Timeline: 08:00-15:00Z, 22-42 "canceling statement due to statement timeout"
     per hour plus connection/SSL resets; then at 15:00 "the database system is
     shutting down" / "terminating connection due to administrator command".

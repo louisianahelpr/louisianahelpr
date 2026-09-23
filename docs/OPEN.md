@@ -7951,3 +7951,10 @@ sure someone hears it and closes it.
   read-only one: every cancelled job's PI must be canceled/refunded at Stripe,
   not requires_capture. Then add that comparison to money-reconciliation, so
   a DB/Stripe disagreement alerts.
+- [ ] **Q51 A regression check for the notification-panel jump.** It was fixed
+  (f40193ae7: largest one-frame move 100px -> 13px) but only measured once, by
+  hand; nothing fails if it comes back. Add a Playwright geometry spec (the
+  per-frame rAF sampling from ~/.lh-shots/notif-panel-jump/measure.mjs) to the
+  prod-audit/visual suite: open the panel with a short list, dismiss a row,
+  and assert that no single frame moves the panel edge more than ~40px, in
+  Chromium and WebKit.

@@ -8,7 +8,7 @@ stories go in the lessons file, never here.
 ## Stack
 - **Capacitor app, not SwiftUI/UIKit.** All UI, navigation, state and logic is React 18 + TypeScript + Vite in `src/`, built to `dist/` and bundled into the `.ipa`/`.apk` by `capacitor.config.ts`. It is a real App Store app (v1.0.x) with a web UI layer.
 - Do not audit for SwiftUI patterns (`@State`, `@StateObject`, `@Observable`, Swift concurrency); audit `src/` and map native concepts to React/Capacitor. One codebase serves web + iOS + Android; a SwiftUI rewrite is not the direction.
-- **`AppDelegate.swift` IS in scope; "stock boilerplate" is no reason to skip it.** If a native capability is dead in a way no TypeScript explains, read the AppDelegate. The push-token bug is FIXED (`AppDelegate.swift:139-151`); do not hunt it again. [L](docs/lessons/CLAUDE-lessons.md#appdelegate)
+- **`AppDelegate.swift` IS in scope; "stock boilerplate" is no reason to skip it.** If a native capability is dead in a way no TypeScript explains, read the AppDelegate. Its APNs token forwarding (`AppDelegate.swift:139-151`) is correct, but that alone never made push work: on 2026-09-23 `push_tokens` held 0 rows because the JS boot path (`useNativePushSetup`) also died silently (Q82). Push counts as working only when a real device's row exists; the `push-tokens-empty` ledger item (`check_push_token_health()`) says whether one does. [L](docs/lessons/CLAUDE-lessons.md#appdelegate)
 - Backend: Supabase (Postgres, RPCs, edge functions in `supabase/functions/`). Payments: Stripe Connect escrow. Native bridges: Capacitor plugins (Haptics, Camera, Geolocation, Push, StatusBar, Keyboard, Social Login, Biometric auth, App Badge).
 - Checks: `npm run typecheck` · `npm run lint` · `npm run build`.
 

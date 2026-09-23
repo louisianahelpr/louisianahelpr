@@ -22,13 +22,16 @@
  * @mutate e2e/prodTest.ts | meter.attachBrowser(browser); | void browser;
  * @mutate scripts/e2e/request-budget.mjs | if (agg.tests > 0 && agg.total === 0) { | if (false) {
  * @mutate scripts/e2e/request-budget.mjs | (allowEmpty ? notes : failures).push( | notes.push(
+ * @mutate scripts/e2e/request-budget.mjs | .replace(UUID, ":id"); | ;
+ * @mutate scripts/e2e/request-budget.mjs | kv && !/^t= | kv && !/^NOPE=
+ * @mutate e2e/request-budgets.json | "perTest": 135.3, | "perTest": null,
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { join, relative, resolve } from "node:path";
-import { aggregate, judge, STALE_FRACTION } from "../../scripts/e2e/request-budget.mjs";
+import { aggregate, judge, shapeKey, topShapes, STALE_FRACTION } from "../../scripts/e2e/request-budget.mjs";
 import { RequestMeter, classify, isSignIn } from "../../e2e/requestMeter.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -193,6 +196,44 @@ describe("backend request budgets (Q104)", () => {
     m.record("https://abc.supabase.co/rest/v1/jobs?a=1", "GET", 2000, new Map());
     m.record("http://127.0.0.1/x", "GET", 2000, seen);
     expect([m.total, m.duplicates]).toEqual([3, 1]);
+  });
+});
+
+describe("Q104 calibration: budgets written from the first metered runs", () => {
+  it("every calibrated label has numeric perTest and an integer signIns, and the calibrated set is exact", () => {
+    const { budgets } = JSON.parse(read("e2e/request-budgets.json")) as {
+      budgets: Record<string, { perTest?: number | null; signIns?: number | null }>;
+    };
+    const calibrated = Object.entries(budgets)
+      .filter(([k, b]) => k !== "*" && (b.perTest != null || b.signIns != null))
+      .map(([k]) => k)
+      .sort();
+    // EXACT, two-way: a label calibrated from a measured run (2026-09-23, run
+    // ids in the file's _calibrated note) cannot silently go back to null, and
+    // a new one is written here in the same commit.
+    expect(calibrated).toEqual(["journeys", "journeys-webkit", "loading-states", "press-every-control", "privacy", "slow-network"]);
+    for (const k of calibrated) {
+      const b = budgets[k];
+      expect(typeof b.perTest, `${k}.perTest`).toBe("number");
+      expect(b.perTest!).toBeGreaterThan(0);
+      expect(Number.isInteger(b.signIns), `${k}.signIns`).toBe(true);
+    }
+  });
+});
+
+describe("Q104: the summary's repeated-GET list names endpoints, not accounts", () => {
+  it("folds account ids and the avatar cache-buster into one shape", () => {
+    const a = "GET /rest/v1/user_blocks?select=blocker_id%2Cblocked_id&or=%28blocker_id.eq.71c56dfb-b326-4010-b960-b18dd3966e7f%2Cblocked_id.eq.71c56dfb-b326-4010-b960-b18dd3966e7f%29";
+    const b = a.replace(/71c56dfb-b326-4010-b960-b18dd3966e7f/g, "437de07d-1bd7-46c8-a451-6b46aa3bcad5");
+    expect(shapeKey(a)).toBe(shapeKey(b));
+    expect(shapeKey(a)).not.toMatch(/71c56dfb/);
+    expect(shapeKey("GET /storage/v1/object/public/avatars/71c56dfb-b326-4010-b960-b18dd3966e7f/avatar.jpg?t=1789245690811"))
+      .toBe("GET /storage/v1/object/public/avatars/:id/avatar.jpg");
+    // Only the numeric cache-buster goes: a real filter is kept.
+    expect(shapeKey("GET /rest/v1/jobs?t=abc&status=eq.open")).toBe("GET /rest/v1/jobs?t=abc&status=eq.open");
+    const top = topShapes({ [a]: 61, [b]: 80, "GET /auth/v1/user": 100 });
+    expect(top[0]).toEqual([shapeKey(a), 141]);
+    expect(top[1]).toEqual(["GET /auth/v1/user", 100]);
   });
 });
 

@@ -86,6 +86,34 @@ export function judge(agg, budget) {
   return { failures, notes };
 }
 
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+
+/**
+ * The SHAPE of a repeated GET, for the summary's "Top repeated GETs" line.
+ * The first summaries (2026-09-23) listed the same endpoint once per account
+ * and once per avatar version, and cut each key at 120 characters: the
+ * `user_blocks` key was truncated before its filter ended, and one avatar took
+ * three of the five slots. Account ids become `:id`, the avatar cache-buster
+ * `t=<ms>` is dropped, and keys of one shape are summed, so the list names
+ * endpoints rather than accounts. Duplicate DETECTION is unchanged: the meter
+ * still counts only an exact URL repeated within its window.
+ */
+export function shapeKey(key) {
+  const [head, query = ""] = key.split("?");
+  const kept = query
+    .split("&")
+    .filter((kv) => kv && !/^t=\d+$/.test(kv))
+    .join("&");
+  return `${head}${kept ? `?${kept}` : ""}`.replace(UUID, ":id");
+}
+
+/** Top repeated-GET shapes, summed across ids and cache-busters. */
+export function topShapes(topDuplicates, n = 5) {
+  const by = {};
+  for (const [k, v] of Object.entries(topDuplicates)) by[shapeKey(k)] = (by[shapeKey(k)] ?? 0) + v;
+  return Object.entries(by).sort((x, y) => y[1] - x[1]).slice(0, n);
+}
+
 export function table(aggs) {
   const rows = [
     "| run | tests | requests | per test | busiest min | rest | rpc | auth | fn | storage | realtime | sign-ins | dup GETs |",
@@ -145,8 +173,8 @@ function main(argv) {
     table(aggs),
     "",
     ...aggs.flatMap((a) => {
-      const top = Object.entries(a.topDuplicates).sort((x, y) => y[1] - x[1]).slice(0, 5);
-      return top.length ? [`Top repeated GETs (${a.label}): ${top.map(([k, v]) => `\`${k.slice(0, 120)}\` ×${v}`).join(", ")}`, ""] : [];
+      const top = topShapes(a.topDuplicates);
+      return top.length ? [`Top repeated GETs (${a.label}): ${top.map(([k, v]) => `\`${k.slice(0, 200)}\` ×${v}`).join(", ")}`, ""] : [];
     }),
     ...notes.map((n) => `- note: ${n}`),
     ...failures.map((f) => `- **FAIL**: ${f}`),

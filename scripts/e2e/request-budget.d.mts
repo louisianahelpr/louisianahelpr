@@ -24,3 +24,5 @@ export declare function aggregate(samples: RequestSample[]): Record<string, RunA
 export declare function budgetFor(budgets: Record<string, Budget>, label: string): Budget;
 export declare function judge(agg: RunAggregate, budget: Budget): { failures: string[]; notes: string[] };
 export declare function table(aggs: RunAggregate[]): string;
+export declare function shapeKey(key: string): string;
+export declare function topShapes(topDuplicates: Record<string, number>, n?: number): [string, number][];

@@ -49,7 +49,8 @@ export function classify(url) {
 export const isSignIn = (url, method) =>
   method === "POST" && /\/auth\/v1\/token\?(?:.*&)?grant_type=password\b/.test(url);
 
-/** The shape a GET is deduplicated on: path + sorted query, without the volatile bits. */
+/** The key a GET is deduplicated on: the exact path + query, as sent. (The
+ *  summary groups these by shape: scripts/e2e/request-budget.mjs shapeKey.) */
 export function requestKey(method, url) {
   try {
     const u = new URL(url);

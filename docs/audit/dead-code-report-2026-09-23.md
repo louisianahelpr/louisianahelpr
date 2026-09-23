@@ -108,3 +108,12 @@ Not dead after all (flagged by a tool, kept): `src/config/showSeedJobs.ts`
 - The 12 unlinked docs in b12 overlap **Q165** (archive stale reports).
 - `function_edge_logs` misses real invocations (see caveat above); any future
   "dead edge function" check must not rely on it.
+
+## Addendum 2026-09-23 (Q243, carried from the 09-14 audits) — REPORT ONLY, nothing deleted
+
+| Code | Why it looks dead | Measured |
+|---|---|---|
+| `supabase/functions/_shared/slack-alerts.ts` transport 2 (`LOVABLE_API_KEY` + `SLACK_API_KEY` via connector-gateway.lovable.dev) | Kept "so an existing deployment configured that way keeps working"; transport 1 is the recommended path | The comment at lines 9-17 says so; whether prod still has `LOVABLE_API_KEY` set was not checked here |
+| `stripe-webhook/handlers/checkoutSessionCompleted.ts` `repay` branch (`isRepay`, lines 781/901/911/927) | Reads `session.metadata.repay === "true"`, but no code mints a checkout with that metadata | `grep -rn repay supabase/functions src` finds only this reader and the unrelated chargeback `repayClawback` path |
+
+Decision is the owner's (MORNING QUESTIONS 9 covers dead-code deletions).

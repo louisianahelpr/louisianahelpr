@@ -51,6 +51,32 @@ const MIG = read("../../supabase/migrations/20260923185224_ban_enforcement_every
 const CHECK = read("../ci/ban-gate-coverage.sql").replace(/--[^\n]*\n/g, "\n").trim().replace(/;\s*$/, "");
 const SNAP = JSON.parse(read("./fixtures/ban-gate-inventory.live.json"));
 
+// RPCs a migration NEWER than the snapshot grants to authenticated (VOLATILE,
+// body never calls is_caller_banned()). Same rule as postSnapshotUngatedRpcs()
+// in src/test/banGateCoverage.test.ts: without it the snapshot cannot see
+// rpc_settle_dispute_without_payment (20260923205812), its exemption reads as
+// stale, and this probe went red on a correct tree (2026-09-23).
+const SNAP_VERSION = SNAP.captured.replace(/\D/g, "").slice(0, 14);
+function postSnapshotUngatedRpcs() {
+  const dir = new URL("../../supabase/migrations/", import.meta.url);
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+  const lastBody = new Map();
+  const granted = new Set();
+  for (const f of files) {
+    const sql = fs.readFileSync(new URL(f, dir), "utf8").replace(/--[^\n]*\n/g, "\n");
+    for (const m of sql.matchAll(/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.([a-z0-9_]+)\s*\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$[^;]*/gi)) {
+      lastBody.set(m[1], m[0]);
+    }
+    if (f.slice(0, 14) <= SNAP_VERSION) continue;
+    for (const m of sql.matchAll(/GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.([a-z0-9_]+)\s*\([^)]*\)\s+TO\s+([^;]+);/gi)) {
+      if (/\bauthenticated\b/i.test(m[2])) granted.add(m[1]);
+    }
+  }
+  const volatile = (fn) => !/\b(STABLE|IMMUTABLE)\b/i.test((lastBody.get(fn) ?? "").replace(/\$(\w*)\$[\s\S]*?\$\1\$/, ""));
+  return [...granted].filter((fn) => volatile(fn) && !/is_caller_banned\s*\(/.test(lastBody.get(fn) ?? "")).sort();
+}
+const RPCS = [...new Set([...SNAP.rpcs, ...postSnapshotUngatedRpcs()])];
+
 const A = "0a0a0a0a-0000-4000-8000-00000000000a"; // banned (temp)
 const B = "0b0b0b0b-0000-4000-8000-00000000000b"; // active
 const C = "0c0c0c0c-0000-4000-8000-00000000000c"; // for sync tests
@@ -136,7 +162,7 @@ CREATE POLICY sel ON public.${tbl} FOR SELECT TO authenticated USING (true);`);
     out.push(`CREATE TRIGGER ${g.tgname} BEFORE ${g.op} ON public.${g.tbl} FOR EACH ROW EXECUTE FUNCTION public.${g.proname}();`);
   }
   // every authenticated-EXECUTE VOLATILE RPC, by its live name
-  for (const fn of SNAP.rpcs) {
+  for (const fn of RPCS) {
     out.push(`CREATE FUNCTION public.${fn}() RETURNS void LANGUAGE plpgsql VOLATILE AS $f$ BEGIN END $f$;
 REVOKE ALL ON FUNCTION public.${fn}() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.${fn}() TO authenticated;`);
   }

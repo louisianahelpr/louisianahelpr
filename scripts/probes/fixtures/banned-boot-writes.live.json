@@ -1,0 +1,25 @@
+{
+  "captured": "2026-09-23T18:40:00Z",
+  "source": "Q300 owner-path run on prod (Q281 branch build, throwaway temp_banned account): every POST/PATCH/PUT/DELETE the browser sent to Supabase from UI sign-in to Delete Forever, verbatim from ~/.lh-shots/q281/owner-path/results.json 'client writes during the banned session' (auth token grant excluded). Inventory for src/test/bannedBootWritesHandled.test.ts (Q302).",
+  "writes": [
+    "POST /rest/v1/login_history",
+    "POST /rest/v1/rpc/get_my_pending_direct_offers",
+    "POST /functions/v1/check-pro-subscription",
+    "POST /functions/v1/stripe-connect",
+    "POST /functions/v1/stripe-connect",
+    "POST /rest/v1/rpc/get_job_offer_targets",
+    "POST /rest/v1/rpc/get_jobs_for_my_applications",
+    "POST /rest/v1/rpc/get_my_pending_direct_offers",
+    "POST /rest/v1/rpc/get_user_credential_tier",
+    "POST /functions/v1/check-pro-subscription",
+    "POST /rest/v1/rpc/get_my_pending_direct_offers",
+    "POST /functions/v1/stripe-connect",
+    "POST /functions/v1/stripe-connect",
+    "POST /rest/v1/rpc/get_job_offer_targets",
+    "POST /rest/v1/rpc/get_jobs_for_my_applications",
+    "POST /rest/v1/rpc/get_my_pending_direct_offers",
+    "POST /rest/v1/rpc/get_user_credential_tier",
+    "POST /rest/v1/referral_codes",
+    "POST /functions/v1/delete-own-account"
+  ]
+}

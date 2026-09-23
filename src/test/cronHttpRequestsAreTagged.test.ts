@@ -28,7 +28,25 @@
  *   - the NEWEST sweep_cron_http_failures INNER-joins cron_http_requests and
  *     has no proximity fallback left.
  *
- * @mutate supabase/migrations/20260923170422_cron_http_request_ids.sql |       JOIN public.cron_http_requests tag ON | LEFT JOIN public.cron_http_requests tag ON
+ * Q207(2) + Q218 (20260923172145), same class: an HTTP cron outcome nobody
+ * reads. Behaviour: src/test/pglite/cronCatchUpHttpOutcome.pglite.mjs (red on
+ * the state before: 15 checks). Structurally, on the NEWEST definitions:
+ *   - run_missed_cron_catch_up keeps on its claim the request id the job's own
+ *     command tagged in that transaction ('caught_up' alone = only queued);
+ *   - sweep_cron_http_failures reads unchecked caught-up runs against
+ *     net._http_response and turns a failed one into 'catch_up_failed' with a
+ *     'cron-missed-slot' error;
+ *   - it lists ACTIVE cron.job rows calling net.http_post without
+ *     cron_http_tag( as 'cron-http-untagged', and both reach its Slack post;
+ *   - sweep_silent_cron_failures only ingests responses a cron tagged.
+ *
+ * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | AND j.command NOT LIKE '%cron_http_tag(%' | AND false
+ * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | JOIN public.cron_http_requests t ON t.request_id = resp.id | LEFT JOIN public.cron_http_requests t ON t.request_id = resp.id
+ * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | WHERE h.jobname = r.jobname AND h.created_at = now(); | WHERE false;
+ * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | action          = CASE WHEN v_ok THEN action ELSE 'catch_up_failed' END, | action = action,
+ * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | IF cardinality(v_parts) > 0 THEN | IF v_errors > 0 THEN
+ *
+ * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql |       JOIN public.cron_http_requests tag ON | LEFT JOIN public.cron_http_requests tag ON
  * @mutate supabase/migrations/20260923170422_cron_http_request_ids.sql |     'auto-tip-charge', |     'auto-tip-charge-gone',
  * @mutate supabase/migrations/20260923170422_cron_http_request_ids.sql |        AND command NOT LIKE '%cron_http_tag(%' |        AND true
  * @mutate supabase/migrations/20260923170422_cron_http_request_ids.sql |      WHERE command LIKE '%net.http_post(%' |      WHERE command LIKE '%net.http_post(%' AND jobname LIKE 'auto-%'
@@ -56,16 +74,16 @@ const listed = new Set(
 const wrapperFor = (name: string) =>
   new RegExp(String.raw`public\.cron_http_tag\s*\(\s*q\.request_id\s*,\s*'${name}'\s*\)\s*FROM\s*\(`);
 
-// Newest definition of the sweep, any dollar tag.
-const FN_RE = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?sweep_cron_http_failures\s*\(\s*\)[\s\S]*?\bAS\s+(\$\w*\$)([\s\S]*?)\1/gi;
-let sweepFile = "";
-let sweep = "";
-for (const { file, sql } of files) {
-  for (const m of blankSqlComments(sql).matchAll(FN_RE)) {
-    sweepFile = file;
-    sweep = m[2];
+/** Newest definition of public.<name>(), any dollar tag, comments blanked. */
+function newest(name: string): { file: string; body: string } {
+  const re = new RegExp(String.raw`CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?${name}\s*\(\s*\)[\s\S]*?\bAS\s+(\$\w*\$)([\s\S]*?)\1`, "gi");
+  let found = { file: "", body: "" };
+  for (const { file, sql } of files) {
+    for (const m of blankSqlComments(sql).matchAll(re)) found = { file, body: m[2] };
   }
+  return found;
 }
+const { file: sweepFile, body: sweep } = newest("sweep_cron_http_failures");
 
 describe("HTTP crons tag their request id (Q174)", () => {
   const all = httpCronJobs(files);
@@ -106,10 +124,59 @@ describe("HTTP crons tag their request id (Q174)", () => {
   });
 
   it("the newest sweep attributes by request id only and ignores untagged responses", () => {
-    expect(sweepFile).toBe(Q174);
+    expect(sweepFile >= Q174, sweepFile).toBe(true);
     expect(sweep).toMatch(/FROM net\._http_response resp\s+(?:--[^\n]*\n\s*)*JOIN public\.cron_http_requests tag ON tag\.request_id = resp\.id/);
     expect(sweep).not.toMatch(/LEFT\s+JOIN\s+public\.cron_http_requests/i);
     expect(sweep).not.toMatch(/job_run_details|nearest|proximity/i);
     expect(sweep).toMatch(/v_job := r\.tagged_job;/);
+  });
+});
+
+describe("the outcome of a caught-up HTTP cron and untagged HTTP crons are seen (Q207 part 2, Q218)", () => {
+  const catchUp = newest("run_missed_cron_catch_up");
+  const silent = newest("sweep_silent_cron_failures");
+
+  it("reads the newest definitions (floor)", () => {
+    for (const f of [catchUp, silent]) expect(f.body.length).toBeGreaterThan(1000);
+    expect(sweep.length).toBeGreaterThan(1000);
+  });
+
+  it("run_missed_cron_catch_up keeps the request id its job's command tagged in that transaction", () => {
+    const b = catchUp.body;
+    expect(b).toMatch(/SELECT\s+max\(h\.request_id\)\s+INTO\s+v_request_id\s+FROM\s+public\.cron_http_requests\s+h\s+WHERE\s+h\.jobname\s*=\s*r\.jobname\s+AND\s+h\.created_at\s*=\s*now\(\)\s*;/i);
+    expect(b).toMatch(/UPDATE\s+public\.cron_catchup_runs\s+SET\s+request_id\s*=\s*v_request_id\s+WHERE\s+jobname\s*=\s*r\.jobname\s+AND\s+slot\s*=\s*r\.slot/i);
+    // Captured after the EXECUTE, never inside its exception block.
+    expect(b.search(/max\(h\.request_id\)/i)).toBeGreaterThan(b.search(/\bEXECUTE\s+regexp_replace\(\s*r\.command/i));
+    // Reset per job, so one job's id never lands on the next claim.
+    expect(b).toMatch(/LOOP\s+v_detail\s*:=\s*NULL;\s*v_request_id\s*:=\s*NULL;/i);
+  });
+
+  it("sweep_cron_http_failures turns a failed caught-up HTTP run into catch_up_failed and alerts", () => {
+    expect(sweep).toMatch(/FROM\s+public\.cron_catchup_runs\s+c\s+LEFT\s+JOIN\s+net\._http_response\s+resp\s+ON\s+resp\.id\s*=\s*c\.request_id/i);
+    expect(sweep).toMatch(/c\.action\s*=\s*'caught_up'\s+AND\s+c\.request_id\s+IS\s+NOT\s+NULL\s+AND\s+c\.http_checked_at\s+IS\s+NULL/i);
+    // No response at all counts too, once pg_net has had its chance.
+    expect(sweep).toMatch(/resp\.id\s+IS\s+NOT\s+NULL\s+OR\s+c\.decided_at\s*<\s*now\(\)\s*-\s*interval\s*'\d+ hours?'/i);
+    expect(sweep).toMatch(/r\.status_code\s+BETWEEN\s+200\s+AND\s+299\s+AND\s+r\.timed_out\s+IS\s+NOT\s+TRUE/i);
+    expect(sweep).toMatch(/action\s*=\s*CASE\s+WHEN\s+v_ok\s+THEN\s+action\s+ELSE\s+'catch_up_failed'\s+END/i);
+    expect(sweep).toMatch(/'source',\s*'cron-missed-slot'/);
+  });
+
+  it("sweep_cron_http_failures files every ACTIVE untagged HTTP cron once a day", () => {
+    expect(sweep).toMatch(/FROM\s+cron\.job\s+j\s+WHERE\s+j\.active\s+AND\s+j\.command\s+LIKE\s+'%net\.http_post\(%'\s+AND\s+j\.command\s+NOT\s+LIKE\s+'%cron_http_tag\(%'/i);
+    expect(sweep).toMatch(/e\.tags->>'source'\s*=\s*'cron-http-untagged'[\s\S]*?e\.created_at\s*>=\s*date_trunc\('day',\s*now\(\)\)/i);
+    expect(sweep).toMatch(/jsonb_build_object\('source',\s*'cron-http-untagged'/);
+  });
+
+  it("both reach the one Slack post", () => {
+    for (const names of ["v_catchup_names", "v_untagged_names"]) {
+      expect(sweep).toMatch(new RegExp(String.raw`v_parts\s*:=\s*v_parts\s*\|\|\s*format\([^;]*array_to_string\(${names}`, "i"));
+    }
+    expect(sweep).toMatch(/IF\s+cardinality\(v_parts\)\s*>\s*0\s+THEN\s+BEGIN\s+PERFORM\s+net\.http_post\(/i);
+  });
+
+  it("sweep_silent_cron_failures only counts responses to a request a cron tagged", () => {
+    const ingest = /INSERT\s+INTO\s+public\.cron_run_log[\s\S]*?ON\s+CONFLICT/i.exec(silent.body)?.[0] ?? "";
+    expect(ingest).toMatch(/FROM\s+net\._http_response\s+resp\s+JOIN\s+public\.cron_http_requests\s+(\w+)\s+ON\s+\1\.request_id\s*=\s*resp\.id/i);
+    expect(ingest).not.toMatch(/LEFT\s+JOIN\s+public\.cron_http_requests/i);
   });
 });

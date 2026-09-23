@@ -32,14 +32,14 @@
  *
  * @mutate supabase/migrations/20260923145117_weekly_report_catch_up_safe.sql | ('charge-recurring-visits',         false, | ('charge-recurring-visits',         true,
  * @mutate supabase/migrations/20260923145117_weekly_report_catch_up_safe.sql | ('ops-daily-digest',                true, | ('ops-daily-digest-gone',           true,
- * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | IF NOT pg_try_advisory_xact_lock(hashtext( | IF NOT pg_advisory_xact_lock(hashtext(
- * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | AND NOT EXISTS (SELECT 1 FROM public.cron_catchup_runs c | AND EXISTS (SELECT 1 FROM public.cron_catchup_runs c
- * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | ELSIF r.catch_up IS NOT TRUE THEN | ELSIF false THEN
- * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | EXCEPTION WHEN query_canceled OR OTHERS THEN | EXCEPTION WHEN OTHERS THEN
- * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | PERFORM set_config('lock_timeout', v_job_lock_timeout, true); | NULL;
- * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | AND cs.since <= s.slot) | AND true)
- * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | v_ran >= v_max_runs OR v_cancelled THEN | v_ran >= v_max_runs THEN
- * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | OR public.cron_catchup_schedules.active IS DISTINCT FROM EXCLUDED.active; | ;
+ * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | IF NOT pg_try_advisory_xact_lock(hashtext( | IF NOT pg_advisory_xact_lock(hashtext(
+ * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | AND NOT EXISTS (SELECT 1 FROM public.cron_catchup_runs c | AND EXISTS (SELECT 1 FROM public.cron_catchup_runs c
+ * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | ELSIF r.catch_up IS NOT TRUE THEN | ELSIF false THEN
+ * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | EXCEPTION WHEN query_canceled OR OTHERS THEN | EXCEPTION WHEN OTHERS THEN
+ * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | PERFORM set_config('lock_timeout', v_job_lock_timeout, true); | NULL;
+ * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | AND cs.since <= s.slot) | AND true)
+ * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | v_ran >= v_max_runs OR v_cancelled THEN | v_ran >= v_max_runs THEN
+ * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | OR public.cron_catchup_schedules.active IS DISTINCT FROM EXCLUDED.active; | ;
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

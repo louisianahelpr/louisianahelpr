@@ -29,8 +29,12 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 // wording; both apply in order, exactly as on prod.
 // 20260923163407 (Q207) restates it again: schedule proof, the job's own
 // lock_timeout, query_canceled caught per command.
+// 20260923172145 (Q207 part 2) restates it once more, keeping the request id
+// of a caught-up HTTP job (needs Q174's cron_http_requests, 20260923170422);
+// its own proof is cronCatchUpHttpOutcome.pglite.mjs.
 const MIGRATION = ["20260923133021_cron_missed_slot_catch_up.sql", "20260923145516_catch_up_too_late_wording.sql",
-  "20260923163407_catch_up_schedule_proof_and_timeouts.sql"]
+  "20260923163407_catch_up_schedule_proof_and_timeouts.sql", "20260923170422_cron_http_request_ids.sql",
+  "20260923172145_cron_catch_up_http_outcome_and_untagged.sql"]
   .map((f) => readFileSync(new URL(`../../../supabase/migrations/${f}`, import.meta.url).pathname, "utf8"))
   .join("\n");
 

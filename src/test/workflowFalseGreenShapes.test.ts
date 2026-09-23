@@ -184,7 +184,6 @@ const EARLY_EXIT_OK: Allow[] = [
   { file: ".github/workflows/functions-deploy.yml", match: "Notify on failure :: exit 0", reason: "Slack secret missing inside a notify-on-FAILURE step: the job is already red and says so with a ::warning:: naming the secret" },
   { file: ".github/workflows/ios-beta.yml", match: "Decide :: exit 0", reason: "manual dispatch always builds; this sets should_build=true and stops the schedule-only change detection below" },
   { file: ".github/workflows/ios-beta.yml", match: "Upload iOS sourcemaps to Sentry :: exit 0", reason: "sourcemap upload is a convenience for symbolication, not a check; the missing secrets are named in a ::warning:: on every run" },
-  { file: ".github/workflows/ios-icon-sync.yml", match: "Commit regenerated icons :: exit 0", reason: "regeneration produced no diff, so there is nothing to commit — the icons already match" },
   { file: ".github/workflows/main-red-watch.yml", match: "Slack, once per new red :: exit 0", reason: "the nightly-red ISSUE was already filed by the step before; only the Slack copy is skipped, with a ::warning:: naming the secret" },
   { file: ".github/workflows/migration-lint.yml", match: "Find changed migrations :: exit 0", reason: "a real, computed diff range (the diff now fails loudly, Q52) containing no migration change; the no-base case lints ALL migrations instead" },
   { file: ".github/workflows/prod-freshness.yml", match: "Wait for prod to serve this commit :: exit 0", reason: "the SUCCESS paths: prod serves exactly this commit, or a descendant of it" },

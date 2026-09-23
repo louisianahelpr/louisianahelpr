@@ -7587,7 +7587,7 @@ rows are non-tappable; panel identical in WebKit and Chromium.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 79 items — 12 done, 4 partly done (fixed, protection pending), 63 open.**
+**Queue: 81 items — 12 done, 4 partly done (fixed, protection pending), 65 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -8219,3 +8219,20 @@ sure someone hears it and closes it.
   every remote branch with ahead/behind counts vs main. A branch fully merged
   can be deleted; one with unlanded commits is REPORTED to the owner (it may
   be lost work: memory orphan-branch-leak). Never delete unmerged.
+- [ ] **Q80 Memory index hygiene.** MEMORY.md (loaded into EVERY session) has
+  100+ entries, including many superseded HANDOFFs (July to mid-September) and
+  overlapping feedback rules. Archive the superseded handoffs (keep the file,
+  drop the index line, or fold them into one "history" pointer), merge duplicate
+  rules, verify each remaining entry still matches the code, and keep the index
+  short. Add a check that flags index entries whose file is missing or whose
+  handoff is older than the newest handoff.
+- [ ] **Q81 One shared agent brief.** Every agent spawned on 2026-09-23 needed the
+  same rules pasted in: commit in the worktree and rebase/push to main
+  --no-verify, never stash, parsecheck + targeted vitest (the lead serializes
+  the gate), `npm run inventories:refresh` + check:generated + check:counts
+  before pushing, `// @mutate` + an inventory floor on new guards, evidence
+  under ~/.lh-shots (not the worktree), prove each check RED on the broken
+  state, tick OPEN.md items with their guard and re-run queue-count. Lapses
+  caused two broken @mutate lines and lost screenshots. Put it in one file
+  (e.g. .claude/AGENT-BRIEF.md) that CLAUDE.md tells every spawn to read, and
+  keep it current.

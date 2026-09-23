@@ -308,7 +308,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Immediate fan-out — full push notification.
+    // Immediate fan-out — full push notification. A row for a member still
+    // inside their Early Access window is held by the BEFORE INSERT trigger
+    // trg_notifications_zz_early_access_hold and sent when the job enters
+    // their browse feed (Q225, 20260923185634), so `notified` counts rows
+    // handed over, not rows already delivered.
     if (immediate.length > 0) {
       const { error: notifyErr } = await supabase.from("notifications").insert(
         immediate.map((h) => ({

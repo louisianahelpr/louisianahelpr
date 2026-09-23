@@ -117,9 +117,21 @@ const SQL_PRODUCERS = [
   "sweep_daily_job_digest",
 ];
 
+/**
+ * Q225 (20260923185634): the two trigger fan-outs no longer INSERT the row
+ * themselves. They pick the recipients (and gate on job_matches, below) and
+ * hand each one to deliver_job_match, which sends now or holds it until the
+ * job enters that member's browse feed; release_job_match_holds sends the held
+ * ones and re-reads job_matches at release. So the WRITERS are these two plus
+ * the digest, and every caller of deliver_job_match must be a gated producer.
+ */
+const DELIVERY_PATHS = ["deliver_job_match", "release_job_match_holds"];
+const DIRECT_WRITERS = ["sweep_daily_job_digest"];
+const callsDeliver = (body: string) => /\bdeliver_job_match\s*\(/.test(body);
+
 describe("job_match respects the user's Job Matches preference", () => {
-  it("finds no SQL producer of 'job_match' outside the three we gate", () => {
-    // The guard on the guard. If a later migration teaches a fourth function
+  it("finds no SQL producer of 'job_match' outside the ones we gate", () => {
+    // The guard on the guard. If a later migration teaches another function
     // to write this type, it shows up here before it ships unmuteable.
     const writers = new Set<string>();
     for (const { sql } of migrationSql) {
@@ -127,13 +139,27 @@ describe("job_match respects the user's Job Matches preference", () => {
     }
     // Only functions whose LIVE body still writes the type count.
     const live = [...writers].filter((n) => writesJobMatch(liveFunctionBody(n))).sort();
-    expect(live).toEqual([...SQL_PRODUCERS].sort());
+    expect(live).toEqual([...DIRECT_WRITERS, ...DELIVERY_PATHS].sort());
+  });
+
+  it("every caller of deliver_job_match is a producer gated below (two-way)", () => {
+    const callers = new Set<string>();
+    for (const { sql } of migrationSql) {
+      for (const d of definitions(sql)) if (d.name !== "deliver_job_match" && callsDeliver(d.body)) callers.add(d.name);
+    }
+    const live = [...callers].filter((n) => callsDeliver(liveFunctionBody(n))).sort();
+    expect(live).toEqual(SQL_PRODUCERS.filter((n) => !DIRECT_WRITERS.includes(n)).sort());
+  });
+
+  it("the release re-reads job_matches, so a member who mutes inside the window is never sent the held row", () => {
+    expect(liveFunctionBody("release_job_match_holds")).toMatch(/np\.job_matches\s+IS\s+FALSE/);
   });
 
   for (const fn of SQL_PRODUCERS) {
     it(`${fn} reads job_matches before inserting`, () => {
       const body = liveFunctionBody(fn);
-      expect(body).toContain("'job_match'");
+      if (DIRECT_WRITERS.includes(fn)) expect(body).toContain("'job_match'");
+      else expect(callsDeliver(body), `${fn} must deliver through deliver_job_match`).toBe(true);
       // COALESCE(..., true): an account with no preferences row keeps matches.
       expect(body).toMatch(/COALESCE\(\s*np\.job_matches,\s*true\s*\)/);
       // And it must no longer be gated on a column that belongs to something

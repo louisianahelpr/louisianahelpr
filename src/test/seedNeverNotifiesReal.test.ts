@@ -299,7 +299,10 @@ describe("Q137: a seed subject never notifies a real person", () => {
 
   it("every SQL email producer also writes the notifications row (the email sender re-checks)", () => {
     const emailers = sqlCalling("send-notification-email");
-    expect(emailers).toEqual(["notify_helpers_on_job_post", "notify_on_application", "notify_saved_searches_on_new_job"]);
+    // Q225 (20260923185634): the two job-match fan-outs email through
+    // deliver_job_match (now) or release_job_match_holds (at the recipient's
+    // Early Access window); both write the notifications row first.
+    expect(emailers).toEqual(["deliver_job_match", "notify_on_application", "release_job_match_holds"]);
     for (const fn of emailers) expect(/INSERT\s+INTO\s+(?:public\.)?notifications\b/i.test(liveDef(fn)!.body), fn).toBe(true);
   });
 

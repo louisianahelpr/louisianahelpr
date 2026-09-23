@@ -131,7 +131,7 @@ const AccountDenied = () => {
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Re-apply with updated info</p>
               <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Sign up again with the same email to resubmit your profile with a new photo, ID, and details.
+                Sign up again with the same email to resubmit your profile with updated details.
               </p>
             </div>
           </div>

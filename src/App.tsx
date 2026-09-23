@@ -211,10 +211,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/account-banned" element={<RouteErrorBoundary>{routeEl(<PageTransition><AccountBanned /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/forgot-password" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForgotPassword /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/reset-password" element={<RouteErrorBoundary>{routeEl(<PageTransition><ResetPassword /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* Progressive activation: pending/unverified users can browse, save
-          and apply while they wait on review. Verification still gates the
-          moments that require it (accept, payout) inside the components.
-          `denied`/banned users are still redirected — see ProtectedRoute. */}
+      {/* Progressive activation: pending users can browse, save and apply
+          while they wait on review. Verification still gates the moments that
+          require it (accept, payout) inside the components. `denied`/banned
+          users are still redirected, and an unverified EMAIL is redirected to
+          /account-pending on every protected route (Q180) — see ProtectedRoute. */}
       <Route path="/dashboard" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending fallback={<DashboardRouteSkeleton />}><Dashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowUnapproved fallback={<ProfileRouteSkeleton />}><Profile /></ProtectedRoute>, <ProfileRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />

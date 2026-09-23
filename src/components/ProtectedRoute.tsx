@@ -21,19 +21,24 @@ const DEBUG_AUTH =
 interface ProtectedRouteProps {
   children: React.ReactNode;
   /**
-   * Fully bypasses the approval gate — pending, email-unconfirmed *and*
-   * denied users are all let through. Used for routes that an account in
-   * any state must be able to reach (e.g. /complete-profile, /profile).
+   * Bypasses the approval gate — pending *and* denied users are let through.
+   * Used for routes that an account in any approval state must be able to
+   * reach (e.g. /complete-profile, /profile). It does NOT bypass the email
+   * gate: nobody enters the app until their email is verified (Q180).
    */
   allowUnapproved?: boolean;
   /**
-   * Progressive activation: lets `pending` / email-unconfirmed users reach
-   * the route so they can browse, save and apply during the verification
-   * window — without dropping the `denied` redirect. `denied` and banned
-   * users are still bounced exactly as strictly as before. Verification
-   * gates that genuinely require it (IDV-before-accept in Activity.tsx,
-   * payout setup) live in the page components, not here, so they remain
-   * fully enforced for pending users.
+   * Progressive activation: lets `pending` users reach the route so they can
+   * browse, save and apply during the review window — without dropping the
+   * `denied` redirect. `denied` and banned users are still bounced exactly as
+   * strictly as before. Verification gates that genuinely require it
+   * (IDV-before-accept in Activity.tsx, payout setup) live in the page
+   * components, not here, so they remain fully enforced for pending users.
+   *
+   * It does NOT let an email-unconfirmed user in. It used to (the email gate
+   * was skipped for `allowPending`), which contradicted the owner's rule
+   * (2026-09-23, Q180): "they can't enter until they verify email". Pinned by
+   * src/test/emailGateEveryProtectedRoute.test.tsx.
    */
   allowPending?: boolean;
   /**
@@ -382,18 +387,34 @@ const ProtectedRoute = ({
         if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-denied", reason: "approval-denied" });
         return <Navigate to="/account-denied" replace />;
       }
-
-      // Stage 1: Email verification (auth user is the source of truth).
-      // Stays AHEAD of the completeness gate below, because until the address
-      // is confirmed there is nothing productive to send the user to — and
-      // /account-pending's unconfirmed variant is the screen that actually
-      // helps them (it holds the Resend button). Progressive-activation
-      // routes (`allowPending`) let them through to browse while they wait.
-      if (!allowPending && !user.email_confirmed_at) {
-        if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "email-unconfirmed" });
-        return <Navigate to="/account-pending" replace />;
-      }
     }
+  }
+
+  // Stage 1: Email verification (auth user is the source of truth), on EVERY
+  // protected route — `allowPending` and `allowUnapproved` included. Owner
+  // rule, 2026-09-23 (Q180): "in order to actually finish sign up they must
+  // verify their email ... They can't enter until they verify email." The
+  // `allowPending` routes (dashboard, my-jobs, my-posts, messages) used to
+  // skip this so an unconfirmed account could browse while it waited; that is
+  // exactly what the rule forbids.
+  //
+  // It reads `user`, not `profile`, so it fires even while the profile is
+  // still in flight: the optimistic render below must never show an
+  // unconfirmed account the app for a beat. It stays AHEAD of the
+  // completeness gate, because until the address is confirmed there is
+  // nothing productive to send the user to, and /account-pending's
+  // unconfirmed variant is the screen that helps them (it holds Resend).
+  //
+  // Server-side, Supabase Auth "confirm email" is on (`mailer_autoconfirm:
+  // false` from /auth/v1/settings, measured 2026-09-23), so a password
+  // sign-in for an unconfirmed address gets no session at all; this gate is
+  // the client half of the same rule, for any session that arrives otherwise.
+  if (!user.email_confirmed_at) {
+    if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "email-unconfirmed" });
+    return <Navigate to="/account-pending" replace />;
+  }
+
+  if (profile) {
 
     // Stage 2: Universal "Big 7" verification gate.
     // Legacy users (created before the cutoff) bypass the gate entirely.

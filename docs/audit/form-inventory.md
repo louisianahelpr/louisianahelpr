@@ -218,7 +218,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/pages/signup/SignupStep1.tsx` | input×2, checkbox/switch/radio×3 | email, text |  | email · signup-email-error · password · signup-password-error · policies · policies-label · age-confirm · age-confirm-label |
 | `src/pages/signup/SignupStep2.tsx` | input×7, textarea×1, date/calendar×1 | file, text, date, tel | 14, 5 | avatar · avatar-error · firstName · firstName-error · lastName · lastName-error · dob · dob-error |
 
-## /signup, /complete-profile, /forgot-password, /payment-success, /admin, /messages, /support, /legal, /terms, /privacy, /data-rights, /browse, /rules, *
+## /signup, /complete-profile, /account-pending, /forgot-password, /payment-success, /admin, /messages, /support, /legal, /terms, /privacy, /data-rights, /browse, /rules, *
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|

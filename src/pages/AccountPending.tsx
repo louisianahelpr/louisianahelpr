@@ -12,6 +12,8 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { queryKeys } from "@/lib/queryKeys";
 import { postAuthDestination } from "@/lib/jobIntent";
 import { REVIEW_SLA, REVIEW_SLA_HOURS } from "@/lib/reviewSla";
+import { getPublicOrigin } from "@/lib/authRedirects";
+import { report } from "@/lib/errorLogger";
 
 const StepRow = ({
   label,
@@ -85,7 +87,6 @@ const SkeletonCard = () => (
 );
 
 const AccountPending = () => {
-  usePageTitle("Account Under Review — Helpr");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   // Single source of truth for auth + profile, shared with the rest of
@@ -94,6 +95,9 @@ const AccountPending = () => {
   // screen without a bespoke fetch/subscribe/poll stack here.
   const { user, profile, isLoading: loading } = useCurrentUser();
   const emailVerified = !!user?.email_confirmed_at;
+  // Every unconfirmed account in the app lands here (Q180), so the tab names
+  // the thing they have to do, not a review they are not in.
+  usePageTitle(user && !emailVerified ? "Check Your Email — Helpr" : "Account Under Review — Helpr");
   const userEmail = user?.email ?? "";
   const [resending, setResending] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -107,6 +111,11 @@ const AccountPending = () => {
     // `replace` — otherwise the browser Back button returns here and
     // re-bounces forever (a history trap on all three account-gate screens).
     if (!user) { navigate("/login", { replace: true }); return; }
+    // An unconfirmed email stays HERE, on the Resend card, whatever the
+    // approval status says. `complete-signup` sets `approved` at signup, so
+    // without this check an unconfirmed account was sent to /dashboard, which
+    // ProtectedRoute now bounces straight back (Q180) — a redirect loop.
+    if (!user.email_confirmed_at) return;
     if (profile?.approval_status === "approved") {
       // THE hop where a new account is finally admitted to the app — and the
       // end of the journey that began with a logged-out tap on a job card.
@@ -123,17 +132,43 @@ const AccountPending = () => {
   }, [user, profile, loading, navigate]);
 
   useEffect(() => {
+    let refreshFailureReported = false;
     const interval = setInterval(() => {
       queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
+      // The session's `email_confirmed_at` is baked into its JWT, so a user
+      // who clicked the link on ANOTHER device would sit on this card
+      // forever. Refreshing re-issues the token from the auth row; the
+      // TOKEN_REFRESHED event updates `user`, and the effect above lets them in.
+      // A failed refresh is not shown to the user (the next tick, 15s later,
+      // tries again, and a dead session emits SIGNED_OUT, which the effect
+      // above turns into /login) but it IS reported, once per visit, so a
+      // stuck verify-email screen is visible to us.
+      if (!emailVerified) {
+        const noteFailure = (err: unknown) => {
+          if (refreshFailureReported) return;
+          refreshFailureReported = true;
+          report(err, { severity: "warning", tags: { source: "AccountPending.refreshSession" } });
+        };
+        supabase.auth
+          .refreshSession()
+          .then(({ error }) => { if (error) noteFailure(error); })
+          .catch(noteFailure);
+      }
     }, 15000);
     return () => clearInterval(interval);
-  }, [queryClient]);
+  }, [queryClient, emailVerified]);
 
   const handleResendVerification = async () => {
     if (resending) return;
     setResending(true);
     try {
-      const { error } = await supabase.auth.resend({ type: "signup", email: userEmail });
+      // Same landing as Signup's first email: the link opens /account-pending,
+      // which admits a confirmed account straight into the app.
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: userEmail,
+        options: { emailRedirectTo: `${getPublicOrigin()}/account-pending` },
+      });
       if (error) toast.error("Couldn't send. Try again in a moment.");
     } catch {
       toast.error("Hit a snag on our end — try that again in a moment?");

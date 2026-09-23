@@ -15,13 +15,16 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 
 const currentUser: {
-  user: { id: string } | null;
+  user: { id: string; email_confirmed_at: string } | null;
   profile: Record<string, unknown> | null;
   isLoading: boolean;
   isError: boolean;
   refresh: () => Promise<void>;
 } = {
-  user: { id: "u1" },
+  // Confirmed on the USER, where ProtectedRoute reads it. The copy on the
+  // profile below never counted; this test passed only because the email gate
+  // used to be skipped for `allowUnapproved` (Q180 closed that).
+  user: { id: "u1", email_confirmed_at: "2026-01-01T00:00:00Z" },
   profile: null,
   isLoading: false,
   isError: false,
@@ -69,7 +72,7 @@ const hourAgo = () => new Date(Date.now() - 3600_000).toISOString();
 const tomorrow = () => new Date(Date.now() + 86_400_000).toISOString();
 
 beforeEach(() => {
-  currentUser.user = { id: "u1" };
+  currentUser.user = { id: "u1", email_confirmed_at: "2026-01-01T00:00:00Z" };
   currentUser.isLoading = false;
   currentUser.isError = false;
 });

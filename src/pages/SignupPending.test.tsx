@@ -98,7 +98,13 @@ describe("SignupPending", () => {
       fireEvent.click(await screen.findByRole("button", { name: /resend/i }));
 
       await waitFor(() => {
-        expect(resendMock).toHaveBeenCalledWith({ type: "signup", email: EMAIL });
+        // The resent link lands on /account-pending, like Signup's first
+        // email (Q180): that screen admits a confirmed account into the app.
+        expect(resendMock).toHaveBeenCalledWith({
+          type: "signup",
+          email: EMAIL,
+          options: { emailRedirectTo: expect.stringMatching(/\/account-pending$/) },
+        });
       });
       const button = await screen.findByRole("button", { name: /resent/i });
       expect(button).toBeDisabled();

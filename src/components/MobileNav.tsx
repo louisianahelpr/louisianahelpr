@@ -84,8 +84,15 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // still paid its clearance: measured 112px of dead space under the landing
   // footer. Keep this expression in sync with the guards below; they are
   // adjacent on purpose.
+  //
+  // An unconfirmed email gets no dock either (Q180): ProtectedRoute sends it
+  // to /account-pending from every tab, so each tab was a control that
+  // bounced straight back (measured 2026-09-23 at 375: all five, /post-job
+  // included, landed on /account-pending).
+  const emailUnverified = !!user && !user.email_confirmed_at;
   const dockHidden =
     isGuest ||
+    emailUnverified ||
     noNavPages.some((p) => location.pathname.startsWith(p)) ||
     !authPages.some((p) => location.pathname.startsWith(p));
 
@@ -361,6 +368,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // rather than removed — reinstating the guest dock is a matter of deleting
   // this guard, and GateSheet is still used elsewhere.
   if (isGuest) return null;
+  // Same condition as `dockHidden` above: nowhere to go until the email is
+  // confirmed, and /account-pending carries Resend + Sign Out itself.
+  if (emailUnverified) return null;
 
   // Hide nav when in an active message conversation — an open thread replaces
   // the app chrome with its own header, iOS-style, and the way out is that

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { getPublicOrigin } from "@/lib/authRedirects";
 
 // How long to disable the resend button after each send. Supabase's own
 // rate limit is at least this strict on the server; this just sets user
@@ -103,7 +104,14 @@ const SignupPending = () => {
   const handleResend = async () => {
     if (resendCooldown > 0 || resending || !prefillEmail) return;
     setResending(true);
-    const { error } = await supabase.auth.resend({ type: "signup", email: prefillEmail });
+    // Same landing as Signup's first email (`emailRedirectTo` there): the link
+    // opens /account-pending, which admits a confirmed account into the app.
+    // Without it the resent link fell back to the project's Site URL.
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: prefillEmail,
+      options: { emailRedirectTo: `${getPublicOrigin()}/account-pending` },
+    });
     setResending(false);
     if (error) {
       const msg = (error.message ?? "").toLowerCase();

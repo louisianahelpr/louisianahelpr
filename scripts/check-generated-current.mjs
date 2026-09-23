@@ -112,6 +112,20 @@ export const GENERATED = [
     outputs: ["docs/OPEN.md"],
     what: "the OPEN.md queue score line (done / partly done / open), owner 2026-09-23",
   },
+  {
+    // AFTER queue-count: the Everything-open block restates the queue score.
+    // Offline, this recomputes the LOCAL rows (queue, audit bus, burn-down,
+    // baselines) and carries the LIVE section (CI runs, prod SQL, issues,
+    // branches) forward verbatim — so the diff here is deterministic, and the
+    // live section's shape is checked by the script itself. Its AGE is
+    // check-staleness.mjs's job; `node scripts/scoreboard.mjs --write` and
+    // .github/workflows/scoreboard.yml re-measure it (Q58/Q59).
+    id: "scoreboard",
+    script: "scripts/scoreboard.mjs",
+    cmd: ["node", "scripts/scoreboard.mjs"],
+    outputs: ["docs/SCOREBOARD.md", "docs/OPEN.md"],
+    what: "the scoreboard (pass / fail / total per signal) and OPEN.md's Everything-open block, owner 2026-09-23",
+  },
 ];
 
 /**
@@ -189,6 +203,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/build-og-shell.mjs": "dist/ (build output)",
   "scripts/check-changed.mjs": "docs/audit/prepush-skips.log (untracked local log)",
   "scripts/check-vercel-usage.mjs": "CI report + GITHUB_OUTPUT",
+  "scripts/gate.mjs": "~/.lh-gate/last.json — per-machine record of the last local gate, read by the scoreboard's gate row",
   "scripts/gateLock.mjs": "lock file",
   "scripts/generate-ios-icons.mjs": "binary app icons from the source artwork; ios-icon-sync.yml",
   "scripts/measure-back-control-hover.mjs": "--out measurement dir",

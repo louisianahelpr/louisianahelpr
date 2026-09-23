@@ -36,7 +36,9 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 const FAST = process.argv.includes("--fast");
 
@@ -89,6 +91,20 @@ for (const [state, label, note] of results) {
 
 const skipped = results.filter((r) => r[0] === "SKIPPED");
 console.log("=".repeat(64));
+
+// The scoreboard's `npm run gate` row (docs/SCOREBOARD.md, Q59) reads this. It
+// lives OUTSIDE the repo (a per-machine record of the last local gate, never
+// committed); a machine with no record shows that row as UNKNOWN, never green.
+try {
+  let head = "";
+  try { head = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim(); } catch { /* not a checkout */ }
+  const dir = join(homedir(), ".lh-gate");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, "last.json"),
+    JSON.stringify({ measuredAt: new Date().toISOString(), head, fast: FAST, steps: results.map(([state, label, note]) => ({ state, label, note })) }, null, 2),
+  );
+} catch { /* a record we cannot write must not change the gate's verdict */ }
 
 if (failed) {
   console.error(`\n${failed} step(s) FAILED. Do not push.`);

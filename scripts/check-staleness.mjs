@@ -21,9 +21,13 @@
  *     it was measured, however young it is. Without `covers` only the age
  *     limit applies — "any src/ change" would make every file red on every
  *     commit, which is noise, not freshness.
- *  3. LEDGERS. docs/audit/OPEN_ITEMS.md must be re-stamped within
- *     MAX_LEDGER_COMMITS commits touching src/ or supabase/ (the launch-audit
- *     pre-flight rule, now enforced nightly instead of remembered).
+ *  3. LEDGERS. docs/OPEN.md (the one open-work list; OPEN_ITEMS.md was
+ *     retired by Q16) must be touched within MAX_LEDGER_COMMITS commits
+ *     touching src/ or supabase/ (the launch-audit pre-flight rule, now
+ *     enforced nightly instead of remembered).
+ *  4. SCOREBOARD. docs/SCOREBOARD.md's live section (CI runs, prod SQL,
+ *     issues — carried forward verbatim between refreshes) is younger than
+ *     MAX_EVIDENCE_HOURS (Q59).
  *
  * Exit 1 on anything stale, listing each with the command that refreshes it.
  * Run nightly by .github/workflows/staleness-watch.yml, which files a
@@ -112,6 +116,18 @@ export function checkLedger(path, commitsSinceStamp) {
 }
 
 /**
+ * docs/SCOREBOARD.md's live rows (Q59): stale once older than
+ * MAX_EVIDENCE_HOURS, and "never measured" is stale too.
+ */
+export function checkScoreboardLive(text, now, liveAgeHours) {
+  const h = liveAgeHours(text, now);
+  const refresh = "node scripts/scoreboard.mjs --write (gh + linked Supabase CLI), or land the artifact of the latest .github/workflows/scoreboard.yml run";
+  if (h === null) return [`docs/SCOREBOARD.md: live rows were never measured. Refresh: ${refresh}`];
+  if (h > MAX_EVIDENCE_HOURS) return [`docs/SCOREBOARD.md: live rows measured ${Math.round(h)}h ago (limit ${MAX_EVIDENCE_HOURS}h). Refresh: ${refresh}`];
+  return [];
+}
+
+/**
  * Currency bound to a WORKFLOW rather than a file: a baseline asserted both
  * ways by a scheduled browser run is current while that run keeps passing.
  */
@@ -161,17 +177,24 @@ async function main() {
   const exempt = new Set([...GENERATED.flatMap((g) => g.outputs), ...Object.keys(TWO_WAY), ...Object.keys(HISTORICAL), ...WORKFLOW_BOUND.map((b) => b.file)]);
   const stale = [...checkEvidence(evidence, now, lastCodeChangeFromGit, exempt), ...checkWorkflowBound(WORKFLOW_BOUND, lastSuccessFromGh, now)];
 
-  const LEDGER = "docs/audit/OPEN_ITEMS.md";
+  // The one open-work list (docs/audit/OPEN_ITEMS.md was retired to a pointer
+  // by Q16 on 2026-09-23; checking it would demand pointless re-stamps).
+  const LEDGER = "docs/OPEN.md";
   const last = git("log", "-1", "--format=%H", "--", LEDGER);
   if (last) {
     const n = Number(git("rev-list", "--count", `${last}..HEAD`, "--", "src/", "supabase/"));
     stale.push(...checkLedger(LEDGER, n));
   }
 
+  // The scoreboard's LIVE section (CI, prod, issues) is carried forward
+  // verbatim between refreshes; its age is the only thing that can rot.
+  const { liveAgeHours, SCOREBOARD } = await import("./scoreboard.mjs");
+  stale.push(...checkScoreboardLive(readFileSync(SCOREBOARD, "utf8"), now, liveAgeHours));
+
   if (process.argv.includes("--json")) {
     console.log(JSON.stringify({ evidence: evidence.map((e) => e.file), stale }, null, 2));
   }
-  console.log(`staleness: ${evidence.length} evidence file(s) found (${evidence.filter((e) => exempt.has(e.file)).length} proven per push or by workflow instead of by age), 1 ledger checked.`);
+  console.log(`staleness: ${evidence.length} evidence file(s) found (${evidence.filter((e) => exempt.has(e.file)).length} proven per push or by workflow instead of by age), 1 ledger and the scoreboard live section checked.`);
   if (evidence.length === 0) {
     console.error("::error::found NO timestamped evidence — the scan is broken, refusing to report fresh.");
     process.exit(2);

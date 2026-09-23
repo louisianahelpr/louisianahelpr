@@ -1,7 +1,26 @@
 #!/bin/bash
 set -euo pipefail
 
-# Open alerts FIRST (CLAUDE.md: every alert is fixed AND verified fixed; read
+# EVERYTHING OPEN, first of all (docs/OPEN.md Q58c): the same block that heads
+# docs/OPEN.md — queue, audit bus, alert ledger, nightly-red issues, red
+# workflows, unlanded branches — with the ledger and issue counts re-measured
+# live (6s cap each; anything unreachable falls back to the committed line
+# with its stamp). Never fails session start.
+LH_DIR0="${CLAUDE_PROJECT_DIR:-.}"
+if command -v node >/dev/null 2>&1 && [ -f "$LH_DIR0/scripts/scoreboard.mjs" ]; then
+  LH_LINKED0="$LH_DIR0"
+  if [ ! -f "$LH_DIR0/supabase/.temp/project-ref" ]; then
+    LH_COMMON0="$(git -C "$LH_DIR0" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+    if [ -n "$LH_COMMON0" ] && [ -f "$(dirname "$LH_COMMON0")/supabase/.temp/project-ref" ]; then
+      LH_LINKED0="$(dirname "$LH_COMMON0")"
+    fi
+  fi
+  LH_SUPABASE_WORKDIR="${LH_SUPABASE_WORKDIR:-$LH_LINKED0}" \
+    node "$LH_DIR0/scripts/scoreboard.mjs" --open-block 2>/dev/null || true
+  echo
+fi
+
+# Open alerts next (CLAUDE.md: every alert is fixed AND verified fixed; read
 # them first each session). Prints the open count + top 5 from
 # public.ops_alert_ledger (docs/OPEN.md Q1). Read-only, capped at ~8s inside
 # the script, and it can never fail session start.

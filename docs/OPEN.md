@@ -1,5 +1,19 @@
 # Open list
 
+<!-- generated: everything-open (node scripts/scoreboard.mjs --write) -->
+**Everything open — start here** (Q58). Every tracker, its live count, and where to look.
+Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
+
+- **Queue (this file):** 15 done, 5 partly done (fixed, protection pending), 65 open. Source of truth for work.
+- **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+<!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
+- **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
+- **nightly-red issues:** 8 open — `gh issue list -l nightly-red`. _(2026-09-23T06:08Z)_
+- **Workflows on main:** 10 red, 8 stale, 1 unknown, 27 green of 46 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-23T06:08Z)_
+- **Remote branches:** 34 carry patches not on main, 26 fully merged, of 63 (Q79). _(2026-09-23T06:08Z)_
+<!-- /live -->
+<!-- /generated: everything-open -->
+
 **This is the ONLY open-work list** (owner, 2026-09-12). Handoff memories, the
 audit-bus ledger and agent reports are evidence, not backlogs: anything still
 open from them gets a line here, with the check that guards it once one exists.
@@ -26,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 82 items — 13 done, 5 partly done (fixed, protection pending), 64 open.**
+**Queue: 85 items — 15 done, 5 partly done (fixed, protection pending), 65 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -555,6 +569,10 @@ sure someone hears it and closes it.
   connection counts, and the platform status history for that window. Name
   the cause, fix it or add a guard (connection-count / CPU / slow-query alert
   BEFORE it tips over), and record the evidence.
+  SCOREBOARD SAMPLE 2026-09-23 05:53Z (read-only, scripts/scoreboard.mjs):
+  52 of 60 connections in pg_stat_activity (87%; 43 client backends), vs
+  30 of 60 in the note above — one instantaneous sample, not a trend; the
+  scoreboard's DB-health rows now re-sample it on every refresh.
 - [ ] **Q54 Front/back PARITY sweep: every rule enforced in two places must
   agree.** Tonight's mismatches were one class: device-zone vs Central day
   (2 bugs), types.ts 59 differences behind prod, RPC error codes with no client
@@ -602,8 +620,23 @@ sure someone hears it and closes it.
    setting: Settings -> Actions -> General -> Workflow permissions -> "Read
    and write permissions" + tick "Allow GitHub Actions to create and approve
    pull requests". Without it, stale numbers can only be fixed by hand.
-- [ ] **Q58 ONE place for everything open (owner, 2026-09-23: "all tracked in 1
-  place so new sessions can easily pick up and leave").** Tonight open work
+- [x] **Q58 DONE 2026-09-23 (a, b, c, e; d split out as Q85): ONE place for everything open.**
+  GUARDS: (b) the GENERATED "Everything open" block at the top of this file is
+  written by scripts/scoreboard.mjs and regenerated-and-diffed on every push by
+  scripts/check-generated-current.mjs (entry `scoreboard`, after `queue-count`;
+  shown RED by ticking Q60 without regenerating: `--only scoreboard` exits 1);
+  its live lines (ledger, nightly-red, workflows, branches) are carried forward
+  and aged out by scripts/check-staleness.mjs (72h) and refreshed daily by
+  .github/workflows/scoreboard.yml. (c) .claude/hooks/session-start.sh prints
+  that block first (`scoreboard.mjs --open-block`: ledger + nightly-red counts
+  re-measured live with 6s caps, 2.4s measured; never fails). (e)
+  src/test/onlyOneOpenList.test.ts fails when any other tracked doc (except
+  docs/archive/) declares itself a todo/open-items/backlog list or carries a
+  `- [ ]` line; two-way allowlist with reasons (9 entries 2026-09-23, incl.
+  TODO.md pending Q84 and the retired OPEN_ITEMS.md pointer); RED when a
+  `- [ ]` is planted in docs/GUARD-BURNDOWN.md (its @mutate). (a) was Q16.
+  Was: ONE place for everything open (owner, 2026-09-23: "all tracked in 1
+  place so new sessions can easily pick up and leave"). Tonight open work
   lived in five places: this file; docs/audit/OPEN_ITEMS.md (stale 935
   commits); the audit bus findings.jsonl (334 open); the ops_alert_ledger
   table (35 open alerts); GitHub nightly-red issues; plus handoff notes in
@@ -620,9 +653,23 @@ sure someone hears it and closes it.
   (e) a guard that fails if a new doc declares itself an open/todo list or
   grows unchecked checkbox lists outside docs/OPEN.md (allowlist with reasons,
   two-way).
-- [ ] **Q59 A live SCOREBOARD of everything we test or track (owner,
+- [x] **Q59 DONE 2026-09-23: docs/SCOREBOARD.md, generated by scripts/scoreboard.mjs.**
+  GUARDS: src/test/scoreboardNeverGreenWithoutMeasurement.test.ts (every row
+  has a known status + measured-at stamp, every UNKNOWN a reason; an old
+  success is STALE, a missing run UNKNOWN; the log parsers read real `gh`
+  log shapes and return null, never zeros; RED when the STALE rule is
+  removed, its @mutate); scripts/check-generated-current.mjs diffs the LOCAL
+  rows every push; scripts/check-staleness.mjs fails when the LIVE section is
+  older than 72h (RED at --now +90h); .github/workflows/scoreboard.yml
+  re-measures daily 19:17 UTC and publishes job summary + artifact (it cannot
+  commit until Q57); schedule-heartbeat.yml watches that it runs. Rows it
+  cannot measure yet are UNKNOWN with the reason: `npm run gate` (per-machine
+  record ~/.lh-gate/last.json, written by scripts/gate.mjs from now on) and
+  the Postgres-log statement-timeout count (needs the Management API token,
+  so only the workflow measures it). Every workflow file gets its own row.
+  Was: A live SCOREBOARD of everything we test or track (owner,
   2026-09-23: "it should show numbers of we test this this is what's passing
-  / failing").** A generated docs/SCOREBOARD.md, linked from the top of this
+  / failing"). A generated docs/SCOREBOARD.md, linked from the top of this
   file (built together with Q58). One row per signal, each with pass / fail /
   total, when it was last measured, and the link to the run:
   - Vitest (files and tests, last main run); lint and typecheck; `npm run gate` steps
@@ -784,6 +831,30 @@ sure someone hears it and closes it.
    half. The JS boot code dropped registration on every cold launch that
    redirected. Fixed in code (Q82). Getting a phone onto the fix is
    MORNING QUESTIONS 5.
+- [ ] **Q83 Silence Zod's per-page `script-src eval` CSP report (2026-09-23).**
+  Zod v4 probes `new Function("")` once per page (its `allowsEval` check,
+  used for the JIT object parser); the CSP blocks it, so every page logs one
+  CSP violation (harmless, but noise in every console/CSP report — the Q13
+  note). In zod 4.5.4 (node_modules/zod/v4/core/schemas.js) the probe is
+  `jit && allowsEval.value`, so `z.config({ jitless: true })` at app start
+  short-circuits it. Do: set it once in the entry file before any schema
+  parses; prove it by counting CSP reports on one page before/after; add a
+  guard that the config call stays (and that nothing re-enables JIT).
+- [ ] **Q84 Retire TODO.md into docs/OPEN.md (2026-09-23).** TODO.md (last
+  touched 2026-08-31) still carries 44 unchecked boxes — a second backlog the
+  one-list rule forbids; src/test/onlyOneOpenList.test.ts allowlists it only
+  until this is done. Re-check each row against main/prod, close what is
+  done with evidence, carry the rest here as queue lines, leave a one-line
+  pointer, and delete its allowlist entry (the test fails two-way if the
+  entry outlives the list).
+- [ ] **Q85 Handoffs POINT to docs/OPEN.md (Q58d, split out 2026-09-23).**
+  Handoff memories under ~/.claude/projects/.../memory still carry their own
+  open lists. Each should say "open work: docs/OPEN.md (Everything-open block
+  at the top)" and nothing else open; the pause/handoff routine updates this
+  file instead of writing a list into memory. Guard idea: a check over the
+  memory dir (outside the repo, so a session-start hook warning rather than
+  CI) that flags `- [ ]` or "open:" lists in handoff-*.md.
+
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

@@ -1,0 +1,85 @@
+name: Scoreboard
+
+# docs/SCOREBOARD.md + the "Everything open" block of docs/OPEN.md, re-measured
+# (docs/OPEN.md Q58/Q59; owner 2026-09-23: "always keep a current ledger to
+# show numbers ... what's passing / failing").
+#
+# scripts/scoreboard.mjs --write reads every workflow's last result on main,
+# the test/spec counts from the suites' logs, the ops alert ledger and DB
+# health (read-only SQL through the Management API), the open nightly-red
+# issues and the remote branches. A row it cannot measure says UNKNOWN.
+#
+# UNTIL Q57 (owner setting: Settings -> Actions -> General -> Workflow
+# permissions -> "Read and write" + "Allow GitHub Actions to create and approve
+# pull requests") this workflow cannot commit. So it publishes the fresh files
+# as the JOB SUMMARY and an ARTIFACT; a session lands them with
+# `node scripts/scoreboard.mjs --write` (or by downloading the artifact).
+# Once Q57 is on, add a step that opens an auto-merging PR with the two files.
+#
+# Daily at 19:17 UTC: the prod-load spacing rule (src/test/
+# prodWorkflowSpacing.test.ts) wants >= 90 min from every other daily
+# prod-hitting cron and 30 min from prod-errors' :47. The committed copy's age
+# is enforced by scripts/check-staleness.mjs (72h), nightly.
+
+on:
+  schedule:
+    - cron: "17 19 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+concurrency:
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('scoreboard-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+jobs:
+  measure:
+    name: Re-measure the scoreboard
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the remote-branch row runs git cherry against every branch
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Measure every signal (read-only)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/scoreboard.mjs --write
+      - name: Publish as the job summary
+        if: always()
+        run: |
+          if [ -f docs/SCOREBOARD.md ]; then cat docs/SCOREBOARD.md >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Upload the regenerated files
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: scoreboard
+          path: |
+            docs/SCOREBOARD.md
+            docs/OPEN.md
+          retention-days: 14
+
+  notify:
+    name: Report result
+    needs: [measure]
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: scoreboard
+          status: ${{ needs.measure.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

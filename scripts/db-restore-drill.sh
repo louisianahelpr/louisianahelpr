@@ -115,20 +115,31 @@ DO $$ BEGIN
   END IF;
 END $$;
 SQL
-# DRILL-VENUE ONLY: the local `supabase start` storage image lags hosted
-# storage, and prod's storage.buckets has two columns it lacks — so the dump's
-# single buckets INSERT fails and every bucket is lost. A hosted project being
-# restored into is at least as new as prod and has them; adding them here keeps
-# the drill measuring the BACKUP, not the CLI's image version. Types measured
-# on prod 2026-09-23 (information_schema.columns).
-# storage.buckets is owned by the storage admin, so this one runs as the local
-# stack's supabase_admin (default local password; never a hosted role).
+# DRILL-VENUE ONLY: the local `supabase start` auth and storage images lag
+# hosted Supabase, so prod's auth/storage tables have columns the local ones
+# lack, and a whole-table INSERT that names one fails. Measured 2026-09-23:
+# storage.buckets (lifecycle_configuration, lifecycle_configuration_generation)
+# lost all 8 buckets, and auth.one_time_tokens (expires_at) lost its rows. A
+# hosted project restored into is at least as new as prod and has them, so
+# the drill adds every prod column of each auth/storage table the dump fills
+# (types read from prod's catalog), which keeps it measuring the BACKUP rather
+# than the CLI's image versions. Those tables are owned by platform roles, so
+# this runs as the local stack's supabase_admin (local default password; never
+# a hosted role).
+VENUE_TABLES=$( { grep -E '^(auth|storage)\.' "$OUT/data-targets.txt" || [ $? -eq 1 ]; } | sed -E "s/^(.*)$/'\1'/" | paste -sd, -)
 PSQL_TARGET_SAVED=("${PSQL[@]}")
-PSQL=(psql "${TARGET/postgres:postgres@/supabase_admin:postgres@}" -X -q -v ON_ERROR_STOP=0)
-step venue <<'SQL'
-ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS lifecycle_configuration jsonb;
-ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS lifecycle_configuration_generation uuid;
-SQL
+if [ -n "$VENUE_TABLES" ]; then
+  VQ="select coalesce(string_agg(format('ALTER TABLE %I.%I ADD COLUMN IF NOT EXISTS %I %s;', n.nspname, c.relname, a.attname, format_type(a.atttypid, a.atttypmod)), E'\n'), '') as sql from pg_attribute a join pg_class c on c.oid = a.attrelid join pg_namespace n on n.oid = c.relnamespace where a.attnum > 0 and not a.attisdropped and (n.nspname || '.' || c.relname) in ($VENUE_TABLES)"
+  curl -sS --fail-with-body -X POST \
+    "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" \
+    -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" -H 'Content-Type: application/json' \
+    --data "$(jq -n --arg q "$VQ" '{query: $q}')" | jq -r '.[0].sql' > "$OUT/venue.sql"
+  echo "venue: prod columns for the dump's auth/storage tables: $(grep -c . "$OUT/venue.sql")"
+  PSQL=(psql "${TARGET/postgres:postgres@/supabase_admin:postgres@}" -X -q -v ON_ERROR_STOP=0)
+  step venue -f "$OUT/venue.sql"
+else
+  : > "$OUT/venue.err"
+fi
 PSQL=("${PSQL_TARGET_SAVED[@]}")
 step data -c 'SET session_replication_role = replica' -f "$DIR/data.sql"
 # STEP 4 — cron schedules (db-backup.yml exports them as cron.sql; the data

@@ -456,7 +456,7 @@ sure someone hears it and closes it.
   support" x10 are mostly E2E and seed jobs (ties to Q2); nightly-red x5;
   detect_stuck_payments + ops-digest still failing; 24 manual error_logs items
   (cron-http timeouts from before the 30s change, email-dlq, dispute-unsettled).
-  WORKED 2026-09-23 05:40-06:15Z. Open items 36 -> 16 (live ledger, 06:10Z).
+  WORKED 2026-09-23 05:40-06:15Z. Open items 36 -> 14 (live ledger, 06:17Z; 23 closed with re-runs, 1 new from another lane).
   CLOSED with their own re-run (evidence in closed_evidence):
   - 8 alert items from test data (Q2): did-you-finish, has-this-job-been-
     finished, asked-support, job-auto-cancelled (probe notification to a
@@ -486,8 +486,8 @@ sure someone hears it and closes it.
     (apply_consequence_ladder) — see Q2 follow-up.
   - dispute-unsettled-seed (dispute 9756a585, seed, payout_pending — the
     release is owner item Q10). New seed rows no longer reach the ledger.
-  - charge-recurring-visits DNS failure (09-22 06:15Z): re-ran 06:06Z; the
-    watcher (06:15Z) decides; close it then.
+  - (closed 06:17Z) charge-recurring-visits DNS failure: the 06:06Z run was
+    clean per the 06:15Z watcher.
   - nightly-red x7 and db-deploy: other lanes' red CI (main Vitest/Test red
     from UI tests + create-payment.test.ts, 32 failures in run 35822129589;
     db-deploy lint on 75d24ab1d; prod-audit messy-input/expanding-search
@@ -495,7 +495,7 @@ sure someone hears it and closes it.
   - push-tokens-empty: new today, Q82's own monitor.
   - "subscription reconciliation ran degraded": raised by the fix's first
     dry run, because ANY note made a clean run post "degraded"; seed skips no
-    longer go into notes (commit after 12b2b141d). Close on the next run.
+    longer go into notes (ea4f758bf). Closed 06:14Z: real run clean, notes [].
 - [ ] **Q43 LOOK at the alert ledger's surfaces.** The new "Open Alerts" card
   on /admin?view=health has never been screenshotted, and the session-start
   hook's open-alert summary hasn't been re-run since deploy. Screenshot at

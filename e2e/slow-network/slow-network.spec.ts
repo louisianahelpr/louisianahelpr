@@ -38,7 +38,7 @@ import { HANG_MS, NETWORK_3G, PROGRESS_GRACE_MS, stepTitle } from "./steps";
  * scripts/e2e/prod-lifecycle-sweeper.mjs before and after the run.
  * Guard: src/test/slowNetworkCoversEverySteps.test.ts.
  *
- * @mutate-exempt Runs only against prod with PLAYWRIGHT_POSTER/HELPER_EMAIL+_PASSWORD (GitHub secrets) and drives shared accounts, funds via Stripe test mode and posts rows; a mutation run is many such runs. Its STRUCTURE is guarded by src/test/slowNetworkCoversEverySteps.test.ts (5 @mutate lines, all red 2026-09-23: a step or mode dropped, the exactly-once check removed, a throttle removed, a fake route, the 1-worker wiring). GAP, stated plainly: written 2026-09-23 in a session with no prod access, so it has not yet been SEEN failing live; by code read post/pay-start/message drop are expected red (docs/OPEN.md Q218, Q219), which the first nightly run will confirm or refute.
+ * @mutate-exempt Runs only against prod with PLAYWRIGHT_POSTER/HELPER_EMAIL+_PASSWORD (GitHub secrets) and drives shared accounts, funds via Stripe test mode and posts rows; a mutation run is many such runs. Its STRUCTURE is guarded by src/test/slowNetworkCoversEverySteps.test.ts (5 @mutate lines, all red 2026-09-23: a step or mode dropped, the exactly-once check removed, a throttle removed, a fake route, the 1-worker wiring). GAP, stated plainly: written 2026-09-23 in a session with no prod access, so it has not yet been SEEN failing live; by code read post/pay-start/message drop are expected red (docs/OPEN.md Q222, Q223), which the first nightly run will confirm or refute.
  */
 
 const RUN = Date.now().toString(36).slice(-6);

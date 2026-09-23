@@ -128,6 +128,7 @@ export type Database = {
       applications: {
         Row: {
           attachment_urls: string[] | null
+          closed_reason: string | null
           created_at: string
           decline_reason: string | null
           flag_reason: string | null
@@ -147,6 +148,7 @@ export type Database = {
         }
         Insert: {
           attachment_urls?: string[] | null
+          closed_reason?: string | null
           created_at?: string
           decline_reason?: string | null
           flag_reason?: string | null
@@ -166,6 +168,7 @@ export type Database = {
         }
         Update: {
           attachment_urls?: string[] | null
+          closed_reason?: string | null
           created_at?: string
           decline_reason?: string | null
           flag_reason?: string | null
@@ -6378,6 +6381,10 @@ export type Database = {
       }
       rpc_record_application_attempt: {
         Args: { _applicant_id: string }
+        Returns: undefined
+      }
+      rpc_settle_dispute_without_payment: {
+        Args: { _dispute_id: string; _note: string }
         Returns: undefined
       }
       rpc_supersede_dispute_decision: {

@@ -459,6 +459,9 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
       // decline goes through `useOfferHandlers`, which writes the reason onto
       // a real row.
       decline_reason: null,
+      // No applications row stands behind a direct offer, so nothing has
+      // closed one: null, the column's default.
+      closed_reason: null,
       // Same reasoning as `decline_reason`: these belong to the contact-info
       // scanner (20260907005738), which runs on the text of a REAL application
       // as it is written. A direct offer has no such row and no applicant-authored

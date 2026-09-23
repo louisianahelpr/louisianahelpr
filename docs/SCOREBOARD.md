@@ -16,11 +16,11 @@ Recomputed from committed files and diffed on every push by
 
 | group | signal | status | pass | fail | skipped | total | measured at | source | note |
 |---|---|---|---|---|---|---|---|---|---|
-| open work | OPEN.md queue (done / partly / open) | **WARN** | 109 | 85 | 11 partly | 205 | HEAD (diffed every push) | [docs/OPEN.md](OPEN.md) · scripts/queue-count.mjs | 109 done, 11 partly done (fixed, protection pending), 85 open |
+| open work | OPEN.md queue (done / partly / open) | **WARN** | 110 | 86 | 11 partly | 207 | HEAD (diffed every push) | [docs/OPEN.md](OPEN.md) · scripts/queue-count.mjs | 110 done, 11 partly done (fixed, protection pending), 86 open |
 | open work | audit bus findings (open / launch blockers) | **FAIL** | 205 | 165 | — | 429 | HEAD (diffed every push) | [ROLLUP.md](audit/launch-2026-09/ROLLUP.md) · `node scripts/audit-bus.mjs list --blockers` | 165 open, 8 open launch blockers; 205 fixed, 14 retracted, 28 duplicate, 0 wontfix, 17 obsolete |
-| guards | vacuity: guards proven able to fail / exempt / owed | **FAIL** | 779 | 1 | 8 exempt | 788 | HEAD (diffed every push) | [GUARD-BURNDOWN.md](GUARD-BURNDOWN.md) · `npm run vacuity` | registered @mutate per guard; whether each mutation is KILLED is the full-sweep row below |
+| guards | vacuity: guards proven able to fail / exempt / owed | **FAIL** | 783 | 1 | 8 exempt | 792 | HEAD (diffed every push) | [GUARD-BURNDOWN.md](GUARD-BURNDOWN.md) · `npm run vacuity` | registered @mutate per guard; whether each mutation is KILLED is the full-sweep row below |
 | number currency | dead-code baseline (unused exports / types ceiling) | **INFO** | — | — | — | 96 exports, 11 types | HEAD (diffed every push) | scripts/deadcode-baseline.json · src/test/deadcodeRatchet.test.ts | a ratchet ceiling; whether knip stays under it is the test.yml Dead code step (live section) |
-| number currency | undated stated counts (baselined, may only shrink) | **WARN** | — | 382 | — | 382 | HEAD (diffed every push) | scripts/stated-counts-baseline.json · `npm run check:counts` | each is a number in prose with no date; new ones already fail check:counts |
+| number currency | undated stated counts (baselined, may only shrink) | **WARN** | — | 378 | — | 378 | HEAD (diffed every push) | scripts/stated-counts-baseline.json · `npm run check:counts` | each is a number in prose with no date; new ones already fail check:counts |
 | notes | Zod v4 `script-src eval` CSP report per page | **INFO** | — | — | — | — | 2026-09-23 (Q13 note) | node_modules/zod/v4/core/schemas.js (`jit && allowsEval.value`) | harmless: Zod's allowsEval probe tries `new Function` once per page and the CSP blocks it, so each page logs one violation. `z.config({ jitless: true })` short-circuits the probe (measured in zod 4.5.4 source) — queued as Q83 |
 
 ## Measured live

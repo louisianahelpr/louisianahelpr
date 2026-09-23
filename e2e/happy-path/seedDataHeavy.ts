@@ -27,7 +27,7 @@
  *   - A 220-message thread between the two test accounts, including 4000-char
  *     messages (the `char_length(content) <= 4000` ceiling), emoji-only lines
  *     and unbroken strings.
- *   - 60 completed, released jobs for the helper at 500–1000 each, with
+ *   - 60 completed, released jobs for the helper at 500–1000 each (2026-09-23), with
  *     payouts of up to $880 and a single $250,000 admin payout row, tips at
  *     the 1000 ceiling: earnings totals in six figures.
  *   - 60 notifications per test account; 50 long reviews for the helper.

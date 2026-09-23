@@ -108,6 +108,12 @@ async function check(plant) {
             (SELECT coalesce(json_agg(version ORDER BY version), '[]'::json) FROM supabase_migrations.schema_migrations) AS versions`,
     { readOnly: true },
   );
+  // An empty result is a failed read, never "no versions": fail closed by name
+  // (src/test/liveCheckScriptsFailClosed.test.ts runs this against a stub).
+  if (!state) {
+    console.error("::error::the schema_migrations read returned no rows — refusing to report clean.");
+    return 2;
+  }
   const prodVersions = typeof state.versions === "string" ? JSON.parse(state.versions) : state.versions;
   if (!state.has_ledger) {
     console.error("::error::public.migration_deploy_ledger does not exist on prod — cannot judge provenance.");

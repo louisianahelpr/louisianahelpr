@@ -9,6 +9,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { blankSqlComments } from "./helpers/blankNonCode";
 
 /**
  * Q120 (docs/OPEN.md): a blank or whitespace-only license_url / insurance_url
@@ -39,8 +40,9 @@ import { join } from "node:path";
 const ROOT = join(__dirname, "..", "..");
 const MIG = join(ROOT, "supabase", "migrations");
 const files = readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort();
-const stripComments = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, "");
-const sqlOf = new Map(files.map((f) => [f, stripComments(readFileSync(join(MIG, f), "utf8"))]));
+// SQL comments BLANKED (string-, nesting- and dollar-quote-aware), never deleted:
+// src/test/guardsDoNotDeleteSource.test.ts forbids the regex stripper.
+const sqlOf = new Map(files.map((f) => [f, blankSqlComments(readFileSync(join(MIG, f), "utf8"))]));
 const ws = (s: string) => s.replace(/\s+/g, " ").trim();
 
 type Def = { file: string; header: string; body: string };

@@ -15,6 +15,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { blankSqlComments } from "./helpers/blankNonCode";
 import { walkSource, readSource } from "./helpers/walkSource";
 import { objectLiterals } from "./helpers/schemaConstraints";
 
@@ -53,7 +54,9 @@ import { objectLiterals } from "./helpers/schemaConstraints";
 const ROOT = join(__dirname, "..", "..");
 const MIG = join(ROOT, "supabase", "migrations");
 const files = readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort();
-const stripComments = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, "");
+// SQL/TS comments BLANKED (string-aware), never deleted: src/test/guardsDoNotDeleteSource.test.ts
+// forbids the regex stripper (Q129).
+const stripComments = blankSqlComments;
 const sqlOf = new Map(files.map((f) => [f, stripComments(readFileSync(join(MIG, f), "utf8"))]));
 const ws = (s: string) => s.replace(/\s+/g, " ").trim();
 const FIX = "20260923113829";

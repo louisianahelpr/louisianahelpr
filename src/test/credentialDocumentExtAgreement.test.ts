@@ -9,6 +9,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import {
   CREDENTIAL_DOCUMENT_EXT_MIME,
   credentialDocument,
@@ -40,8 +41,10 @@ import {
 const ROOT = join(__dirname, "..", "..");
 const MIG = join(ROOT, "supabase", "migrations");
 const files = readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort();
-const stripSql = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, "");
-const stripTs = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/[^\n]*$/gm, "");
+// SQL/TS comments BLANKED (string-aware), never deleted: src/test/guardsDoNotDeleteSource.test.ts
+// forbids the regex stripper (Q129).
+const stripSql = blankSqlComments;
+const stripTs = blankComments;
 const ws = (s: string) => s.replace(/\s+/g, " ").trim();
 const read = (...p: string[]) => readFileSync(join(ROOT, ...p), "utf8");
 

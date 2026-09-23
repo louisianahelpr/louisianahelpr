@@ -74,6 +74,32 @@ function pinnedMigrations(src: string): string[] {
   return [...new Set([...code.matchAll(/migrations\/(\d{14}_[\w.]+?\.sql)/g)].map((m) => m[1]))];
 }
 
+/**
+ * Migration filenames a test CREATES: named inside a `writeFileSync(` /
+ * `writeFile(` / `appendFileSync(` call on the same line — a synthetic history
+ * built in a temp dir (src/test/migrationLintRls.test.ts, Q118/Q129).
+ *
+ * A created name is excused ONLY when no migration of that name exists in the
+ * real tree (`isFixture` below). A test that writes a name the repo really has
+ * is still graded as a pin, so this can never hide a read of real SQL; and a
+ * missing name that is only READ, never written, is still reported as a pin to
+ * a migration that no longer exists.
+ */
+function writtenMigrations(src: string): Set<string> {
+  const code = blankComments(src);
+  return new Set(
+    [...code.matchAll(/\b(?:writeFileSync|writeFile|appendFileSync)\([^;\n]*?migrations\/(\d{14}_[\w.]+?\.sql)/g)].map(
+      (m) => m[1],
+    ),
+  );
+}
+
+/** Pins that are real reads: every pin except a created name absent from the real tree. */
+function realPins(src: string, existsInRepo: (pin: string) => boolean): string[] {
+  const written = writtenMigrations(src);
+  return pinnedMigrations(src).filter((pin) => existsInRepo(pin) || !written.has(pin));
+}
+
 function staleGuards(): Stale[] {
   const newest = newestDefiner();
   const files = execFileSync("git", ["ls-files", "--", "src/*.ts", "src/*.tsx"], {
@@ -89,7 +115,7 @@ function staleGuards(): Stale[] {
   const out: Stale[] = [];
   for (const f of files) {
     if (f === "src/test/guardsReadTheNewestMigration.test.ts") continue;
-    for (const pin of pinnedMigrations(readFileSync(resolve(REPO, f), "utf8"))) {
+    for (const pin of realPins(readFileSync(resolve(REPO, f), "utf8"), (p) => existsSync(join(MIGRATIONS, p)))) {
       const full = join(MIGRATIONS, pin);
       if (!existsSync(full)) {
         out.push({ guard: f, pin, superseded: ["<the pinned migration no longer exists>"], now: "-" });
@@ -128,6 +154,29 @@ describe("a guard reads the NEWEST definition of the SQL it grades", () => {
     expect(
       pinnedMigrations('const p = "supabase/migrations/20260829030000_consolidate_consequence_ladders.sql";'),
     ).toHaveLength(1);
+  });
+
+  it("a fixture a test CREATES is not a pin, and that exemption cannot hide a real one", () => {
+    const REAL = "20260829030000_consolidate_consequence_ladders.sql";
+    const FAKE = "20990101000000_new.sql";
+    expect(existsSync(join(MIGRATIONS, REAL)), "the real sample must exist").toBe(true);
+    expect(existsSync(join(MIGRATIONS, FAKE)), "the fixture sample must not exist").toBe(false);
+    const inRepo = (p: string) => existsSync(join(MIGRATIONS, p));
+    // Written into a temp dir and absent from the real tree: a fixture.
+    expect(realPins(`writeFileSync(join(dir, "supabase/migrations/${FAKE}"), "select 2;\\n");`, inRepo)).toEqual([]);
+    // The same absent name only READ: still a pin (to a migration that is gone).
+    expect(realPins(`const p = "supabase/migrations/${FAKE}";`, inRepo)).toEqual([FAKE]);
+    // A REAL migration name is a pin even when the test also writes it.
+    expect(
+      realPins(
+        `writeFileSync(join(dir, "supabase/migrations/${REAL}"), "x");\nconst sql = readFileSync("supabase/migrations/${REAL}");`,
+        inRepo,
+      ),
+    ).toEqual([REAL]);
+    // A write of ONE name on a line does not excuse a read of a different missing one.
+    expect(
+      realPins(`writeFileSync(join(dir, "supabase/migrations/${FAKE}"), "x");\nread("supabase/migrations/20990101000001_gone.sql");`, inRepo),
+    ).toEqual(["20990101000001_gone.sql"]);
   });
 
   it("no NEW guard pins a migration whose functions were redefined later", () => {
@@ -169,3 +218,6 @@ describe("a guard reads the NEWEST definition of the SQL it grades", () => {
 // pin. Registering the wrong mutation is how a guard ends up counted as proven
 // while nothing about it was tested.
 // @mutate src/lib/reliabilityLadder.parity.test.ts | const DENIAL = newestBlock("apply_job_denial_consequence").block; | const DENIAL = newestBlock("apply_job_denial_consequence").block;\nconst STALE_PIN = "supabase/migrations/20260829030000_consolidate_consequence_ladders.sql";
+// Q129: the fixture exemption must not swallow a real pin. Making every created
+// name exempt (dropping the exists-in-repo test) fails "cannot hide a real one".
+// @mutate src/test/guardsReadTheNewestMigration.test.ts | .filter((pin) => existsInRepo(pin) \|\| !written.has(pin)); | .filter((pin) => !written.has(pin));

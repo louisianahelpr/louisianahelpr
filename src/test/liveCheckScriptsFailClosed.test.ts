@@ -40,6 +40,8 @@
 // @mutate scripts/check-staleness.mjs | if (process.env.CI) throw new Error( | if (false) throw new Error(
 // @mutate scripts/audit/function-body-drift.mjs | if (!Array.isArray(rows) \|\| rows.length < 50 \|\| typeof rows[0].prosrc !== "string") throw | if (false) throw
 // @mutate scripts/audit/cross-account-authz.mjs | if (leaks) process.exit(1); |
+// @mutate scripts/check-migration-provenance.mjs |   if (!state) { |   if (false) {
+// @mutate scripts/check-migration-provenance.mjs | could not check migration provenance: ${e.message}`);\n  process.exit(2); | could not check migration provenance: ${e.message}`);\n  process.exit(0);
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
@@ -191,6 +193,13 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "live read fails", env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub", LH_STRIPE_API_BASE: "@HTTP@/fail" }, says: /Could not list Stripe test-mode webhook endpoints/ },
     { label: "live read is empty", env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub", LH_STRIPE_API_BASE: "@HTTP@/empty" }, says: /No enabled test-mode endpoint/ },
     { label: "fixture with no endpoints", args: ["--fixture", "@EMPTYSTRIPE@"], says: /No enabled test-mode endpoint/ },
+  ],
+  // Q117/Q129: `check` reads schema_migrations + the receipt ledger through the
+  // Management API (LH_SUPABASE_API_BASE); `record` is a write, not a verdict.
+  "scripts/check-migration-provenance.mjs": [
+    { label: "no credentials", args: ["check"], says: /could not check migration provenance: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
+    { label: "Management API 500", args: ["check"], env: MGMT("fail"), says: /could not check migration provenance: Management API query failed: 500/ },
+    { label: "Management API []", args: ["check"], env: MGMT("empty"), says: /schema_migrations read returned no rows — refusing to report clean/ },
   ],
   "scripts/check-test-account-strikes.mjs": [
     { label: "REST read fails", env: { SUPABASE_URL: "@HTTP@/fail", SUPABASE_SERVICE_ROLE_KEY: "stub" }, says: /could not check: GET profiles → 500/ },

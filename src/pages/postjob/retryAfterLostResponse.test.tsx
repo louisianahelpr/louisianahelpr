@@ -249,7 +249,7 @@ describe("Q267 (b): the job landed, create-payment's response was lost, the post
     server.loseNextPaymentResponse = true;
     await press(result.current.handleSubmit);
     expect(server.jobs).toHaveLength(1);
-    expect(errorToasts().at(-1)).toMatch(/Connection trouble/);
+    expect(errorToasts().slice(-1)[0]).toMatch(/Connection trouble/);
 
     await press(result.current.handleSubmit);
     expect(server.jobs, "the retry posted a NEW job behind a new Checkout Session").toHaveLength(1);
@@ -266,7 +266,7 @@ describe("Q267 (b): the job landed, create-payment's response was lost, the post
     server.refuseNextPayment = true;
     await press(result.current.handleSubmit);
     expect(server.jobs).toHaveLength(0);
-    expect(errorToasts().at(-1)).toMatch(/^Couldn't start payment: Job budgets run/);
+    expect(errorToasts().slice(-1)[0]).toMatch(/^Couldn't start payment: Job budgets run/);
   });
 
   it("an edit between presses is a new post: the stale job is removed, the new one paid for", async () => {

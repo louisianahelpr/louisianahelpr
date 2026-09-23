@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-23T16:31:47.479Z",
-  "guards": 788,
-  "registered": 787,
+  "generated": "2026-09-23T16:32:44.114Z",
+  "guards": 789,
+  "registered": 788,
   "unregistered": [
     "src/test/noOrphanedStorageBuckets.test.ts"
   ],

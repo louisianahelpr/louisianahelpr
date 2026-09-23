@@ -7,7 +7,7 @@
  */
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
-import { TEXTLIKE, type Account } from "./harness";
+import { TEXTLIKE, runtime, settle, type Account } from "./harness";
 
 export interface FormSpec {
   name: string;
@@ -96,6 +96,179 @@ const openSearch = async (page: Page) => {
   // a wait that only knew one of those shapes would silently time out on the
   // other and hand the sweep a half-open field.
   await page.locator(TEXTLIKE).filter({ visible: true }).first().waitFor({ timeout: 5_000 }).catch(() => {});
+};
+
+/**
+ * DYNAMIC `prepare` STEPS for the 21 forms nothing reached (docs/OPEN.md,
+ * 2026-09-22). None of these can go in `FORMS[].url`: this module loads (and
+ * the array literal evaluates) before `messy-input.spec.ts`'s `beforeAll` has
+ * resolved a single session or fixture, so a job id or a user id has to be
+ * read out of `runtime` (harness.ts) INSIDE the callback, at test time, never
+ * baked into a string here. See the comment on `runtime` for the full reason.
+ *
+ * Every one of these opens a dialog or reveals a field the write firewall
+ * would refuse a submit from — that is the SAFE half of the design (harness.ts
+ * `writeFirewall`), not a reason to skip them. See docs/OPEN.md, "messy-input
+ * has 21 unswept forms": the 21 were never refused, they were simply never
+ * reached, and a GAP entry for them would be the false statement this file's
+ * own coverage test exists to catch.
+ */
+const fixtureOrThrow = <K extends keyof NonNullable<typeof runtime.fixtures>>(key: K, what: string) => {
+  const job = runtime.fixtures?.[key];
+  if (!job) throw new Error(`no ${what} between the shared poster/helper accounts on prod right now`);
+  return job as { id: string; title: string };
+};
+
+const emailFor = (a: Account): string => {
+  const e = runtime.email[a];
+  if (!e) throw new Error(`no resolved email for the "${a}" account`);
+  return e;
+};
+
+const idFor = (a: Account): string => {
+  const id = runtime.userId[a];
+  if (!id) throw new Error(`no resolved user id for the "${a}" account`);
+  return id;
+};
+
+/** Expand an Activity/My Jobs card by tapping its own title bar (JobCardShell's whole header is the toggle — see JobCardShell.tsx). */
+const expandJobCard = async (page: Page, title: string) => {
+  await page.getByText(title, { exact: false }).first().click();
+};
+
+/**
+ * OPEN A REAL MESSAGE THREAD — RichMessageInput/ChatView render only inside
+ * an open conversation, and the standing in-progress job between the shared
+ * accounts is the one already used by the "chat composer" targeted rule
+ * above; this is the same door, opened for the field sweep instead of one
+ * hand-picked value battery.
+ */
+const openMessageThread = (other: Account) => async (page: Page) => {
+  const job = fixtureOrThrow("inProgressJob", "in-progress job");
+  await page.goto(`/messages?jobId=${job.id}&userId=${idFor(other)}`);
+  await settle(page);
+  await page.getByRole("textbox", { name: /type a message/i }).waitFor({ timeout: 20_000 });
+};
+
+/** /dashboard's Filters sheet folds "Saved Searches" into its last section (BrowseTasksToolbar.tsx) — open the sheet, then the row. */
+const openSavedSearches = async (page: Page) => {
+  await page.getByRole("button", { name: /^filters/i }).first().click();
+  const row = page.getByRole("button", { name: /saved searches/i }).first();
+  await row.waitFor({ timeout: 10_000 });
+  await row.click();
+};
+
+/** /user/:id's "More options" menu holds Report User (UserProfile.tsx). */
+const openReportDialog = (target: Account) => async (page: Page) => {
+  await page.goto(`/user/${idFor(target)}`);
+  await settle(page);
+  await page.getByRole("button", { name: /more options/i }).first().click();
+  await page.getByRole("menuitem", { name: /report user/i }).first().click();
+};
+
+/** The "Dispute" chip on an in-progress posted job opens ActivityDialogs' DisputeDialog (InProgressStep.tsx). */
+const openDisputeDialog = async (page: Page) => {
+  const job = fixtureOrThrow("inProgressJob", "in-progress job");
+  await expandJobCard(page, job.title);
+  const chip = page.getByRole("button", { name: /^dispute$/i }).first();
+  await chip.waitFor({ timeout: 10_000 });
+  await chip.click();
+};
+
+/**
+ * The helper's expanded Active-Job card offers exactly one of "Cancel Job"
+ * (reveals ActiveJobSection's own abort-reason textarea) or "Report a
+ * Problem" (opens the same DisputeDialog as above) — never both, they are the
+ * complement of each other over the job's tracker sub-status
+ * (ActiveJobSection.tsx: `showExit`/`showReport`). Press whichever the
+ * standing job is actually showing rather than assuming one.
+ */
+const openActiveJobSection = async (page: Page) => {
+  const job = fixtureOrThrow("inProgressJob", "in-progress job");
+  await expandJobCard(page, job.title);
+  const cancel = page.getByRole("button", { name: /^cancel job$/i }).first();
+  const report = page.getByRole("button", { name: /^report a problem$/i }).first();
+  if (await cancel.isVisible().catch(() => false)) await cancel.click();
+  else if (await report.isVisible().catch(() => false)) await report.click();
+  await page.locator(TEXTLIKE).filter({ visible: true }).first().waitFor({ timeout: 10_000 }).catch(() => {});
+};
+
+/**
+ * The helper's expanded Disputed card offers "Respond to Dispute"/"Add Your
+ * Side" (a textarea) to whichever side did NOT file, and "Withdraw Dispute"
+ * (a confirm, no typed field) to whichever side DID (DisputedSection.tsx:
+ * `canRespond`/`canWithdraw`). The standing disputed job's opener is not
+ * pinned by the fixture picker, so press Respond when it is offered and fall
+ * back to Withdraw only so the section itself is still exercised.
+ */
+const openDisputedSectionResponse = async (page: Page) => {
+  const job = fixtureOrThrow("disputedJob", "disputed job");
+  await expandJobCard(page, job.title);
+  const respond = page.getByRole("button", { name: /respond to dispute|add your side/i }).first();
+  if (await respond.isVisible().catch(() => false)) await respond.click();
+  else await page.getByRole("button", { name: /^withdraw dispute$/i }).first().click().catch(() => {});
+};
+
+/** The helper's expanded pending-application card's "Edit" chip opens the message editor (AppliedJobCard.tsx). */
+const openPendingApplicationEdit = async (page: Page) => {
+  const job = fixtureOrThrow("jobWithPendingApplicant", "job with a pending application");
+  await expandJobCard(page, job.title);
+  const edit = page.getByRole("button", { name: /^edit$/i }).first();
+  await edit.waitFor({ timeout: 10_000 });
+  await edit.click();
+};
+
+/**
+ * Seeded, `is_seed=true` admin-console test subjects distinct from the
+ * shared poster/helper/admin accounts (scripts/audit/prod-seed.mjs `OWNED`):
+ * one held `approval_status: "pending"` (for Deny, which only renders on a
+ * pending profile) and one held two real `user_violations` rows (for
+ * "Reverse this strike", which only renders on a profile with one). Neither
+ * is ever the account these sweeps sign in as — only the admin console's
+ * SEARCH target.
+ */
+const SEED_PENDING_EMAIL = "helpr-seed-pending-0912@mailinator.com";
+const SEED_BANNED_EMAIL = "helpr-seed-banned-0912@mailinator.com";
+
+/**
+ * Search /admin?view=people (tab=all, so approval/ban status can never hide
+ * the target) for one account by email and open its detail dialog, which
+ * lands on the Actions tab by default (AdminUserDetailDialog.tsx
+ * `defaultValue="actions"`) — where AdminUserNotes and UserAuditLog render
+ * unconditionally, and Ban/Deny/Formal-Warning/Restrict-Applications are one
+ * more click away.
+ */
+const openAdminUserByEmail = (email: string) => async (page: Page) => {
+  await recoverAdminGate(page);
+  const search = page.getByPlaceholder(/search name, email, phone or job id/i);
+  await search.waitFor({ timeout: 20_000 });
+  await search.fill(email);
+  await page.waitForTimeout(600);
+  const row = page.locator('[role="button"][tabindex="0"]').first();
+  await row.waitFor({ state: "visible", timeout: 15_000 });
+  await row.click();
+};
+
+const openAdminUserAction = (email: string, buttonName: RegExp) => async (page: Page) => {
+  await openAdminUserByEmail(email)(page);
+  const btn = page.getByRole("button", { name: buttonName }).first();
+  await btn.waitFor({ timeout: 10_000 });
+  await btn.click();
+};
+
+/**
+ * /admin?view=jobs auto-opens a job's JobDetailDialog from `?job=<uuid>`
+ * (AdminJobs.tsx: the same deep-link the admin people search's UUID drill
+ * uses) — Remove/Manual-Override/Refund are one click inside it.
+ */
+const openAdminJobAction = (buttonName: RegExp) => async (page: Page) => {
+  const job = fixtureOrThrow("inProgressJob", "in-progress (escrowed) job");
+  await recoverAdminGate(page);
+  await page.goto(`/admin?view=jobs&job=${job.id}`);
+  await recoverAdminGate(page);
+  const btn = page.getByRole("button", { name: buttonName }).first();
+  await btn.waitFor({ timeout: 15_000 });
+  await btn.click();
 };
 
 export const FORMS: FormSpec[] = [
@@ -217,6 +390,90 @@ export const FORMS: FormSpec[] = [
   },
   { name: "admin-subscriptions", url: "/admin?view=subscriptions", as: "admin", prepare: recoverAdminGate, covers: ["src/components/admin/AdminSubscriptions.tsx"] },
   { name: "admin-notiflogs", url: "/admin?view=notiflogs", as: "admin", prepare: recoverAdminGate, covers: ["src/components/admin/AdminNotificationLogs.tsx"] },
+
+  // ── The 21 forms docs/OPEN.md (2026-09-22) flagged as never reached ──────
+  // (20 here; ReuploadIdDialog.tsx is a stated GAP below — its trigger is
+  // dead code, not a firewalled control. See the GAPS comment.)
+  {
+    name: "messages-thread", url: "/messages", as: "helper", prepare: openMessageThread("poster"),
+    covers: ["src/components/RichMessageInput.tsx", "src/components/messages/ChatView.tsx"],
+  },
+  { name: "saved-searches-dialog", url: "/dashboard", as: "poster", prepare: openSavedSearches, covers: ["src/components/SavedSearches.tsx"] },
+  { name: "report-user-dialog", url: "/dashboard", as: "poster", prepare: openReportDialog("helper"), covers: ["src/components/ReportDialog.tsx"] },
+  { name: "activity-dispute-dialog", url: "/my-posts", as: "poster", prepare: openDisputeDialog, covers: ["src/components/activity/ActivityDialogs.tsx"] },
+  { name: "active-job-section", url: "/my-jobs", as: "helper", prepare: openActiveJobSection, covers: ["src/components/activity/appliedJobCard/ActiveJobSection.tsx"] },
+  { name: "disputed-section", url: "/my-jobs", as: "helper", prepare: openDisputedSectionResponse, covers: ["src/components/activity/appliedJobCard/DisputedSection.tsx"] },
+  { name: "pending-application-section", url: "/my-jobs", as: "helper", prepare: openPendingApplicationEdit, covers: ["src/components/activity/appliedJobCard/PendingApplicationSection.tsx"] },
+  {
+    name: "admin-reports-message", url: "/admin?view=reports", as: "admin",
+    prepare: async (page) => {
+      await recoverAdminGate(page);
+      const msg = page.getByRole("button", { name: /^message /i }).first();
+      await msg.waitFor({ timeout: 15_000 });
+      await msg.click();
+    },
+    covers: ["src/components/admin/AdminReports.tsx"],
+  },
+  {
+    // Notes render unconditionally on the Actions tab for ANY user — no
+    // special seed state needed, so the shared poster account is enough.
+    name: "admin-user-notes", url: "/admin?view=people&tab=all", as: "admin",
+    prepare: async (page) => { await openAdminUserByEmail(emailFor("poster"))(page); },
+    covers: ["src/components/admin/AdminUserNotes.tsx"],
+  },
+  {
+    name: "admin-credential-reject", url: "/admin?view=credentials", as: "admin",
+    prepare: async (page) => {
+      await recoverAdminGate(page);
+      const reject = page.getByRole("button", { name: /^reject$/i }).first();
+      await reject.waitFor({ timeout: 15_000 });
+      await reject.click();
+    },
+    covers: ["src/components/admin/AdminCredentialQueue.tsx"],
+  },
+  {
+    name: "admin-dispute-decide", url: "/admin?view=disputes", as: "admin",
+    prepare: async (page) => {
+      await recoverAdminGate(page);
+      const decide = page.getByRole("button", { name: /decide outcome/i }).first();
+      await decide.waitFor({ timeout: 15_000 });
+      await decide.click();
+    },
+    covers: ["src/components/admin/adminDisputes/DisputeCard.tsx"],
+  },
+  {
+    // Only a profile carrying a real user_violations row shows "Reverse this
+    // strike" — the seed-owned banned tester carries two (prod-seed.mjs
+    // viol:banned-1/-2), never the shared accounts.
+    name: "admin-reverse-strike", url: "/admin?view=people&tab=all", as: "admin",
+    prepare: openAdminUserAction(SEED_BANNED_EMAIL, /reverse this strike/i),
+    covers: ["src/components/admin/userDetail/UserAuditLog.tsx"],
+  },
+  {
+    name: "admin-ban-dialog", url: "/admin?view=people&tab=all", as: "admin",
+    prepare: async (page) => { await openAdminUserAction(emailFor("poster"), /suspend\s*\/\s*ban/i)(page); },
+    covers: ["src/components/admin/BanDialog.tsx"],
+  },
+  {
+    // Deny only renders on a profile with approval_status "pending" — the
+    // seed-owned pending tester, never the shared (already-approved) accounts.
+    name: "admin-deny-dialog", url: "/admin?view=people&tab=all", as: "admin",
+    prepare: openAdminUserAction(SEED_PENDING_EMAIL, /^deny$/i),
+    covers: ["src/components/admin/DenyUserDialog.tsx"],
+  },
+  {
+    name: "admin-formal-warning", url: "/admin?view=people&tab=all", as: "admin",
+    prepare: async (page) => { await openAdminUserAction(emailFor("poster"), /^formal warning$/i)(page); },
+    covers: ["src/components/admin/FormalWarningDialog.tsx"],
+  },
+  {
+    name: "admin-restrict-applications", url: "/admin?view=people&tab=all", as: "admin",
+    prepare: async (page) => { await openAdminUserAction(emailFor("poster"), /restrict applications/i)(page); },
+    covers: ["src/components/admin/RestrictApplicationsDialog.tsx"],
+  },
+  { name: "admin-job-refund", url: "/admin?view=jobs", as: "admin", prepare: openAdminJobAction(/^refund poster$/i), covers: ["src/components/admin/adminJobs/RefundJobDialog.tsx"] },
+  { name: "admin-job-remove", url: "/admin?view=jobs", as: "admin", prepare: openAdminJobAction(/^remove job$/i), covers: ["src/components/admin/adminJobs/RemoveJobDialog.tsx"] },
+  { name: "admin-job-override", url: "/admin?view=jobs", as: "admin", prepare: openAdminJobAction(/manual override/i), covers: ["src/components/admin/adminJobs/StatusOverrideDialog.tsx"] },
 ];
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
@@ -236,15 +493,29 @@ export const GAPS: Record<string, string> = {
   // dependency for this whole suite, and the write firewall does not help here
   // because the refusal is at the press, not the request.
   //
-  // NOTE FOR THE 21 OTHER UNACCOUNTED FILES (prod-audit run 35798352756): they
-  // are NOT this case and must not be given gaps. The explore's write firewall
-  // refuses every POST/PATCH/DELETE at the wire, so opening BanDialog,
-  // RefundJobDialog, RemoveJobDialog, StatusOverrideDialog and the rest is
-  // SAFE — they are simply never reached. They need sweeps or explore credit,
-  // and a gap entry for them would be a false statement that this very test
-  // exists to prevent. See docs/OPEN.md.
+  // RESOLVED 2026-09-22: the 21 files docs/OPEN.md flagged as unaccounted
+  // (prod-audit run 35798352756) were NOT this case — BanDialog,
+  // RefundJobDialog, RemoveJobDialog, StatusOverrideDialog and the rest were
+  // always SAFE to open behind the write firewall, simply never reached. 20
+  // of the 21 now have a FormSpec above. The 21st — ReuploadIdDialog.tsx —
+  // turned out to be neither firewalled nor unreached-but-reachable: it is
+  // genuinely dead. See its own entry below.
   "src/components/profile/DeleteAccountDialog.tsx":
     "opened only by a control NEVER_PRESS refuses (/delete (my )?account/) — the shared accounts are a sign-in dependency for the suite",
+  // GENUINELY UNREACHABLE, not firewalled: `AdminUsers.tsx` declares
+  // `reuploadProfile`/`setReuploadProfile` state and renders
+  // `<ReuploadIdDialog profile={reuploadProfile} .../>`, but `setReuploadProfile`
+  // is never passed to `ActionsTab`, `DocumentsTab` or anywhere else a button
+  // lives — grepped the whole tree, one call site, and it is the `useState`
+  // initializer. No control anywhere opens this dialog, so `reuploadProfile`
+  // is permanently null and the component never renders past its own
+  // `if (!profile) return null`. This is dead code / a missing affordance,
+  // not a coverage gap this sweep can paper over with a false "firewalled"
+  // reason — flagged to the owner separately (not fixed here; out of scope
+  // for a coverage-only pass and someone should decide whether admins are
+  // supposed to be able to request an ID re-upload from the UI at all).
+  "src/components/admin/ReuploadIdDialog.tsx":
+    "dead trigger — setReuploadProfile (AdminUsers.tsx) is never called by any button; the dialog can never open. Reported, not fixed — see docs/OPEN.md",
   // Non-text controls: no typed value to be messy. Checked by press-every-control (npm run audit:press).
   "src/components/dashboard/FilterSheet.tsx": "switch only — no typed input",
   "src/components/admin/AdminNotifications.tsx": "switches only",

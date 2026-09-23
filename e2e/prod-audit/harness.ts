@@ -536,3 +536,23 @@ export async function resolveFixtures(api: APIRequestContext, poster: Session, h
     goneJobId: "00000000-0000-4000-8000-00000000dead",
   };
 }
+
+/**
+ * LIVE STATE FOR `messyInputForms.ts`'s `prepare` STEPS, not a config object.
+ *
+ * `FORMS` is a plain array literal evaluated at module import — before
+ * `messy-input.spec.ts`'s `beforeAll` has resolved a single session or
+ * fixture — so a `FormSpec`'s `url` can never hold a real job id or a real
+ * account's user id. Its `prepare(page)` callback runs at TEST time, safely
+ * after `beforeAll`, so `prepare` bodies read this box instead: populate it
+ * once fixtures and sessions exist, then let every `prepare` that needs a
+ * dynamic id (a message thread, a profile to report, an admin's search
+ * target) call `page.goto` itself with the real value, rather than the sweep
+ * ever hard-coding a job id that a reseed or a completed lifecycle run can
+ * change out from under it.
+ */
+export const runtime: { fixtures: Fixtures | null; userId: Partial<Record<Account, string>>; email: Partial<Record<Account, string>> } = {
+  fixtures: null,
+  userId: {},
+  email: {},
+};

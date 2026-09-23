@@ -65,6 +65,7 @@ import {
   newUserContext,
   resolveFixtures,
   restAs,
+  runtime,
   sessionFor,
   settle,
   shoot,
@@ -111,6 +112,13 @@ test.beforeAll(async ({ request }) => {
   for (const a of ["poster", "helper", "incomplete", "admin"] as Account[]) sessions.set(a, await sessionFor(request, a));
   fx = await resolveFixtures(request, sessions.get("poster")!, sessions.get("helper")!);
   mkdirSync(CREDITS, { recursive: true });
+  // Publish for messyInputForms.ts's `prepare` steps — see the comment on
+  // `runtime` in harness.ts for why FORMS itself cannot hold these.
+  runtime.fixtures = fx;
+  for (const [a, s] of sessions) {
+    runtime.userId[a] = s.user.id;
+    if (s.user.email) runtime.email[a] = s.user.email;
+  }
 });
 
 async function open(browser: Browser, f: { url: string; as: Account | null; prepare?: (p: Page) => Promise<void> }): Promise<{ ctx: BrowserContext; page: Page }> {

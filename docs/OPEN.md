@@ -318,6 +318,35 @@ pushing them would most likely leave the nightly red on broken specs instead
 of on honest coverage — worse than the state it is in now, and harder to read.
 The message composer is the one to do first.
 
+**DONE 2026-09-22 (later session).** All 20 reachable forms got a `FormSpec`
+in `e2e/prod-audit/messyInputForms.ts` (message thread, saved searches, report
+dialog, the four activity/applied-job sections, and eleven admin dialogs —
+reports, notes, credential reject, dispute decide, reverse-strike, ban, deny,
+formal warning, restrict applications, refund/remove/override job). A job id
+or user id a `FormSpec` needs is never static, so `harness.ts` grew a `runtime`
+box (`fixtures`, `userId`, `email`) that `messy-input.spec.ts`'s `beforeAll`
+populates once sessions/fixtures resolve — `prepare` callbacks read it at test
+time instead of `FORMS` baking in an id that a reseed can invalidate.
+
+The 21st, `admin/ReuploadIdDialog.tsx`, is NOT wired up: it is genuinely dead
+code, not a firewalled or hard-to-reach control — `AdminUsers.tsx` declares
+`reuploadProfile`/`setReuploadProfile` and renders the dialog off it, but
+`setReuploadProfile` is never passed to any button anywhere, so the dialog can
+never open. Given a stated GAP (not a fake FormSpec) with that reason, and
+flagged here as a separate product question: should an admin be able to
+request an ID re-upload from the UI at all? Right now they cannot, silently.
+
+Two things this session could NOT verify locally, both by design: the actual
+Playwright run (browser lock — one agent at a time — and the auto-mode
+classifier itself refused a prod-driving `npx playwright test` here) and the
+coverage number end to end (same reason). Verified instead: `npx tsc -p
+tsconfig.e2e.json --noEmit` clean, `node scripts/parsecheck.mjs --all` clean,
+`npx eslint` clean on the three changed files, and a standalone script
+replicating the coverage test's own regex extraction (inventory ∩ FORMS.covers
+∪ GAPS) confirms all 21 files are now accounted for, plus a red-proof:
+deleting one `covers` entry from that computed set reintroduces it as
+unaccounted. The lead dispatches `prod-audit.yml` in CI for the real signal.
+
 ## OPEN — the three red nightlies, diagnosed 2026-09-22 (re-runs pending)
 
 Worked top-down at the owner's direction. All three now have a cause; none is

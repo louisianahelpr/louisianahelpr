@@ -29,6 +29,7 @@ import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { computeCancellationFee } from "../../../supabase/functions/_shared/cancellationFee";
+import { jobLocalDateISO } from "../helpers/jobLocalDate";
 
 const CRON_SECRET = "cron-secret";
 const DAY = 86_400_000;
@@ -81,11 +82,11 @@ function cancelledJob(over: Record<string, unknown> = {}) {
 }
 
 /** The shape Stripe returned for all 79 prod jobs on 2026-09-23: $28 captured, $25 refunded, $1.11 fee. */
-function refundedPi(over: { status?: string; refunded?: number; captured?: number; fee?: number } = {}) {
+function refundedPi(over: { piStatus?: string; refunded?: number; captured?: number; fee?: number } = {}) {
   const captured = over.captured ?? 2800;
   return {
     id: "pi_c",
-    status: over.status ?? "succeeded",
+    status: over.piStatus ?? "succeeded",
     amount: captured,
     amount_received: captured,
     amount_capturable: 0,
@@ -145,7 +146,7 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
     const fn = await load();
     seed(cancelledJob(), null);
     stripeMock.paymentIntents.retrieve.mockResolvedValue({
-      ...refundedPi({ status: "requires_capture" }),
+      ...refundedPi({ piStatus: "requires_capture" }),
       amount_capturable: 2800,
       latest_charge: null,
     });
@@ -180,9 +181,10 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
       helper_id: "helper-1",
       helper_confirmed_at: new Date(Date.now() - 3 * DAY).toISOString(),
       // Noon (Louisiana) two days ago, cancelled at 07:00 local that morning.
-      date_needed: new Date(Date.now() - 2 * DAY).toISOString().slice(0, 10),
+      date_needed: jobLocalDateISO(-2),
       start_time: "12:00",
-      cancelled_at: `${new Date(Date.now() - 2 * DAY).toISOString().slice(0, 10)}T12:00:00Z`,
+      // 12:00Z is 06:00-07:00 Central: 5-6h before the job, inside the <24h tier.
+      cancelled_at: `${jobLocalDateISO(-2)}T12:00:00Z`,
       payment_status: "refunded",
     });
     const feeCents = Math.round(computeCancellationFee(job as never) * 100);
@@ -264,7 +266,7 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
   it("is READ-ONLY at Stripe: retrieve only, never a refund, capture, cancel or transfer", async () => {
     const fn = await load();
     seed(cancelledJob(), null);
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi({ status: "requires_capture" }));
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi({ piStatus: "requires_capture" }));
     await run(fn);
     expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalled();
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();

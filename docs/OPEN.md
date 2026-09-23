@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 124 done, 14 partly done (fixed, protection pending), 129 open. Source of truth for work.
+- **Queue (this file):** 124 done, 15 partly done (fixed, protection pending), 129 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 267 items — 124 done, 14 partly done (fixed, protection pending), 129 open.**
+**Queue: 268 items — 124 done, 15 partly done (fixed, protection pending), 129 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1147,7 +1147,7 @@ sure someone hears it and closes it.
   queries a page waits on). Deliver a ranked list: what it costs now, what
   the change is, the expected gain. Each speed fix ships with a budget check
   (e.g. bundle-size budgets, a Lighthouse/LCP budget in CI) so it can't regress.
-- [ ] **Q57 Nightly refresh jobs can PROVE a file is stale but can't UPDATE it.** STATUS 2026-09-23: OWNER SETTING DONE (verified via API: default_workflow_permissions=write, can_approve_pull_request_reviews=true). Wiring the refresh workflows to open auto-merging PRs is running in cloud session cloud/q57-refresh-prs.
+- [~] **Q57 Nightly refresh jobs can PROVE a file is stale but can't UPDATE it.** STATUS 2026-09-23: OWNER SETTING DONE (verified via API: default_workflow_permissions=write, can_approve_pull_request_reviews=true). WIRED (branch cloud/q57-refresh-prs): shared composite .github/actions/refresh-pr rebuilds ONE bot branch per refresh (bot/refresh/<id>) from latest main, commits only its declared paths, skips when nothing changed (and closes a leftover PR), else opens or updates ONE PR and runs `gh pr merge --auto --squash`; never pushes main. Used by a `land` job (the workflow's only contents/pull-requests write) in scoreboard.yml (SCOREBOARD.md + the OPEN.md Everything-open block, rebuilt on latest main via `scoreboard.mjs --live-from`), loading-states-refresh.yml (measurements.json), write-contract-refresh.yml (snapshot; drift now lands instead of failing, a reject still fails), staleness-watch.yml (schedule/dispatch: `npm run inventories:refresh` on latest main) and morning-page.yml (docs/morning/, Q67). Not landed, with reasons in the guard: ui-sweep.yml (overlay baseline is a findings ratchet), vacuity.yml (same report staleness-watch lands), db-drift-detect.yml (types drift needs code fixes). GUARD: src/test/refreshWorkflowsOpenPrs.test.ts (set derived from scheduled workflows running a generator registered in scripts/check-generated-current.mjs, two-way; red on main before wiring: 3 of 6 failed, 4 workflows unwired; 5 @mutate, each killed). OWNER/LEAD WATCH: (1) with github.token a PR triggers no pull_request workflows, so the step dispatches `vars.REFRESH_PR_CHECK_WORKFLOWS` (default test.yml vitest.yml) on the bot branch; those must cover main's required checks, or add a `REFRESH_PR_TOKEN` secret (PAT/app token) so PRs trigger normally; (2) auto-merge needs Settings -> General -> Allow auto-merge (the land job fails loudly if not); (3) a merge made with github.token triggers no push workflows on main. TICK [x] when the first bot PR auto-merges.
   GitHub Actions here cannot push to main or open PRs
   (can_approve_pull_request_reviews=false; found by Q36). So re-measured
   evidence (loading states, press ledger, overlay baseline) must be committed
@@ -1155,6 +1155,7 @@ sure someone hears it and closes it.
   Settings -> Actions -> General -> Workflow permissions -> "Read and write" +
   "Allow GitHub Actions to create and approve pull requests". Then wire the
   refresh workflows to open an auto-merging PR with the regenerated files.
+- [ ] **Q271 ios-icon-sync.yml pushes straight to the dispatched branch (found by Q57, 2026-09-23).** Its "Commit regenerated icons" step runs `git push` with github.token; on main that is rejected by branch protection, so a dispatch on main now fails after regenerating. Move it onto .github/actions/refresh-pr (id ios-icons, paths ios/App/App/Assets.xcassets/AppIcon.appiconset/) and extend src/test/refreshWorkflowsOpenPrs.test.ts's `git push` check to every workflow.
 3. **Let GitHub Actions commit the nightly re-measurements (Q57).** One
    setting: Settings -> Actions -> General -> Workflow permissions -> "Read
    and write permissions" + tick "Allow GitHub Actions to create and approve

@@ -8,8 +8,10 @@ name: Write contract snapshot refresh
 # underneath — this job is what stops that.
 #
 # Exit codes from the script: 0 clean, 1 a write prod would reject, 2 drift.
-# Fix drift by running `node scripts/audit/write-contract.mjs --refresh`
-# locally and committing the snapshot (the job uploads the new one too).
+# A reject fails the job. DRIFT alone is landed (Q57): the `land` job puts the
+# refreshed snapshot on latest main through .github/actions/refresh-pr (one bot
+# branch, one PR, auto-merge once the required checks — which run
+# src/test/writeContract.test.ts on the new snapshot — pass).
 
 on:
   schedule:
@@ -84,7 +86,14 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-        run: node scripts/audit/write-contract.mjs --refresh --check-drift
+        run: |
+          rc=0
+          node scripts/audit/write-contract.mjs --refresh --check-drift || rc=$?
+          if [ "$rc" -eq 2 ]; then
+            echo "::notice::Prod schema facts drifted from the committed snapshot; the land job opens the refresh PR."
+          elif [ "$rc" -ne 0 ]; then
+            exit "$rc"
+          fi
 
       - name: Upload refreshed snapshot
         if: always()
@@ -107,9 +116,36 @@ jobs:
   # SCHEDULE AND MANUAL RUNS ONLY. A push/PR failure is already visible on the
   # commit and the PR; filing an issue for it would make the label noisy and
   # teach people to ignore it.
+  land:
+    name: Land the refreshed snapshot (Q57 refresh PR)
+    needs: [refresh]
+    if: needs.refresh.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The ONLY write grant in this workflow (Q57): push the bot branch, open or
+    # update its PR, and dispatch its checks (a github.token PR triggers none).
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          name: write-contract-snapshot
+          path: ${{ runner.temp }}/measured/scripts/audit
+      - uses: ./.github/actions/refresh-pr
+        with:
+          id: write-contract
+          title: "chore(refresh): write-contract snapshot re-pulled from prod"
+          paths: scripts/audit/write-contract.snapshot.json
+          measured-dir: ${{ runner.temp }}/measured
+          github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
+          check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}
+
   notify:
     name: Report nightly result
-    needs: [refresh]
+    needs: [refresh, land]
     if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -120,6 +156,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: write-contract-refresh
-          status: ${{ needs.refresh.result == 'success' && 'success' || 'failure' }}
+          status: ${{ (needs.refresh.result == 'success' && needs.land.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

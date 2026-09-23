@@ -15,6 +15,10 @@ name: Staleness watch
 #    passing run, and checks the audit ledger's lag.
 # A red scheduled run opens a `nightly-red: staleness-watch` issue (session
 # start reads it; "Nightly reds nobody read" escalates it) and closes on green.
+#  - land (schedule + dispatch only, Q57): re-runs every CI generator on LATEST
+#    main (`npm run inventories:refresh`) and lands whatever moved through
+#    .github/actions/refresh-pr — one bot branch, one PR, auto-merge on green.
+#    Never on push: the pusher owns their own regeneration.
 
 on:
   push:
@@ -74,9 +78,44 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run check:staleness
 
+  land:
+    name: Land regenerated inventories (Q57 refresh PR)
+    needs: [generated-current]
+    if: github.event_name != 'push' && needs.generated-current.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The ONLY write grant in this workflow (Q57): push the bot branch, open or
+    # update its PR, and dispatch its checks (a github.token PR triggers none).
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - name: The files this refresh may change (every CI generator's outputs)
+        id: outs
+        run: |
+          set -euo pipefail
+          OUTS=$(node scripts/check-generated-current.mjs --outputs)
+          test -n "$OUTS"
+          { echo 'paths<<EOF_PATHS'; echo "$OUTS"; echo 'EOF_PATHS'; } >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/refresh-pr
+        with:
+          id: inventories
+          title: "chore(refresh): generated inventories regenerated"
+          paths: ${{ steps.outs.outputs.paths }}
+          regenerate: npm run inventories:refresh
+          github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
+          check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}
+
   notify:
     name: Report nightly result
-    needs: [generated-current, staleness]
+    needs: [generated-current, staleness, land]
     if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -87,6 +126,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: staleness-watch
-          status: ${{ (needs.generated-current.result == 'success' && needs.staleness.result == 'success') && 'success' || 'failure' }}
+          status: ${{ (needs.generated-current.result == 'success' && needs.staleness.result == 'success' && needs.land.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

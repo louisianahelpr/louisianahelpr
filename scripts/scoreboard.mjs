@@ -28,15 +28,16 @@
  *          offline run — the push check proves its SHAPE (every row has a
  *          status, a stamp, a reason when UNKNOWN), and check-staleness.mjs
  *          fails nightly when the live section is older than 72h.
- *   Until GitHub Actions may commit (Q57, an owner setting), the scheduled
- *   workflow publishes the fresh file as its job summary + an artifact; a
- *   session lands it with `node scripts/scoreboard.mjs --write`.
+ *   The scheduled workflow lands the fresh live rows itself through a
+ *   refresh PR that merges on green (Q57, .github/actions/refresh-pr), built
+ *   on latest main with `--live-from`; a session can still run `--write`.
  *
  * Usage:
  *   node scripts/scoreboard.mjs              # offline: LOCAL rows recomputed, LIVE carried forward (what CI diffs)
  *   node scripts/scoreboard.mjs --write      # measure everything, write docs/SCOREBOARD.md + the OPEN.md block
  *   node scripts/scoreboard.mjs --open-block # print the Everything-open block, live where fast (session start; never fails)
  *   node scripts/scoreboard.mjs --check      # shape check of the committed files only
+ *   node scripts/scoreboard.mjs --live-from <dir>  # offline, LIVE sections taken from <dir>'s copies (Q57 refresh PR)
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -694,7 +695,7 @@ ${table(local)}
 
 GitHub Actions, prod (read-only SQL), git remotes and the local gate record. Refreshed by
 \`node scripts/scoreboard.mjs --write\` and daily (19:17 UTC) by
-\`.github/workflows/scoreboard.yml\` (job summary + artifact until Actions may commit, Q57).
+\`.github/workflows/scoreboard.yml\`, which lands them through an auto-merging refresh PR (Q57).
 \`scripts/check-staleness.mjs\` fails nightly when this section is older than ${MAX_LIVE_HOURS}h.
 
 ${LIVE_START}
@@ -827,6 +828,19 @@ async function main() {
     writeFileSync(join(dir, `slo-${live.slo.measuredAt.slice(0, 10)}.json`), JSON.stringify(live.slo, null, 2) + "\n");
     sbLive = renderLiveScoreboard(live);
     openLive = renderLiveOpen(live);
+  } else if (argv.includes("--live-from")) {
+    // Q57 refresh PR: .github/workflows/scoreboard.yml measured the live rows
+    // on an older checkout; rebuild on THIS (latest main) tree, taking only
+    // the LIVE sections from that measurement — never the whole OPEN.md, which
+    // lanes edit all day.
+    const from = argv[argv.indexOf("--live-from") + 1];
+    const read = (p) => (from && existsSync(join(from, p)) ? readFileSync(join(from, p), "utf8") : null);
+    sbLive = committedLive(read(SCOREBOARD));
+    openLive = committedLive(between(read(OPEN) ?? "", EO_START, EO_END) ?? "");
+    if (sbLive === null || openLive === null) {
+      console.error(`::error::--live-from ${from}: no live section in its ${SCOREBOARD} / ${OPEN}`);
+      process.exit(1);
+    }
   } else {
     sbLive = committedLive(sbText);
     openLive = committedLive(between(openText ?? "", EO_START, EO_END) ?? "");

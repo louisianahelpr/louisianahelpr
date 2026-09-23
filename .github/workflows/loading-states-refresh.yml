@@ -18,10 +18,11 @@ name: Loading states refresh
 # a nightly-red issue. scripts/check-staleness.mjs binds measurements.json's
 # currency to this workflow's last scheduled success (WORKFLOW_BOUND).
 #
-# To land the refreshed evidence in git: download the artifact, copy it over
-# docs/audit/loading-states/, commit. (GitHub Actions in this repo may not
-# push to main or open PRs — can_approve_pull_request_reviews=false,
-# measured 2026-09-23 — so the refresh cannot commit itself.)
+# LANDING (Q57): when the fresh measurement re-proves the baseline, the `land`
+# job copies measurements.json onto latest main and lands it through
+# .github/actions/refresh-pr (one bot branch, one PR, auto-merge on green).
+# Only measurements.json: the screenshots are re-taken every run and stay in
+# the artifact, and baseline.json is a two-way ratchet a person lowers.
 
 on:
   schedule:
@@ -128,9 +129,36 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  land:
+    name: Land the fresh measurement (Q57 refresh PR)
+    needs: [measure]
+    if: needs.measure.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The ONLY write grant in this workflow (Q57): push the bot branch, open or
+    # update its PR, and dispatch its checks (a github.token PR triggers none).
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          name: loading-states-${{ github.run_id }}
+          path: ${{ runner.temp }}/measured/docs/audit/loading-states
+      - uses: ./.github/actions/refresh-pr
+        with:
+          id: loading-states
+          title: "chore(refresh): loading-state measurements re-measured on prod"
+          paths: docs/audit/loading-states/measurements.json
+          measured-dir: ${{ runner.temp }}/measured
+          github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
+          check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}
+
   notify:
     name: Report nightly result
-    needs: [measure]
+    needs: [measure, land]
     if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -141,6 +169,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: loading-states-refresh
-          status: ${{ needs.measure.result == 'success' && 'success' || 'failure' }}
+          status: ${{ (needs.measure.result == 'success' && needs.land.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

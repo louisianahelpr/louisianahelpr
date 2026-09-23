@@ -11,8 +11,9 @@ name: Morning page
 # falling back to the committed docs/SCOREBOARD.md. Anything it cannot read is
 # printed as "Could not check: <why>", never as nothing.
 #
-# UNTIL Q57 (Actions may commit) the page is published as the JOB SUMMARY and
-# an ARTIFACT; a session commits it if wanted.
+# The page is published as the JOB SUMMARY and an ARTIFACT, and the `land`
+# job commits it through .github/actions/refresh-pr (Q57: one bot branch, one
+# PR, auto-merge on green).
 #
 # PROD LOAD: two read-only aggregate queries on public.ops_alert_ledger (tens
 # of rows) through the Management API, once a day. Exempt by name from the
@@ -76,9 +77,36 @@ jobs:
           path: docs/morning/
           retention-days: 90
 
+  land:
+    name: Land the page (Q57 refresh PR)
+    needs: [page]
+    if: needs.page.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The ONLY write grant in this workflow (Q57): push the bot branch, open or
+    # update its PR, and dispatch its checks (a github.token PR triggers none).
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          name: morning-page
+          path: ${{ runner.temp }}/measured/docs/morning
+      - uses: ./.github/actions/refresh-pr
+        with:
+          id: morning-page
+          title: "docs(morning): the morning page"
+          paths: docs/morning/
+          measured-dir: ${{ runner.temp }}/measured
+          github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
+          check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}
+
   notify:
     name: Report result
-    needs: [page]
+    needs: [page, land]
     if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -89,6 +117,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: morning-page
-          status: ${{ needs.page.result == 'success' && 'success' || 'failure' }}
+          status: ${{ (needs.page.result == 'success' && needs.land.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

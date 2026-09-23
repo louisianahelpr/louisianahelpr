@@ -7578,3 +7578,47 @@ rows are non-tappable; panel identical in WebKit and Chromium.
 3. **Admin People header badge says "ID Not Submitted"** on seed profiles that
    HAVE an id_document_url. The badge reads a different column (unchecked which):
    the same "one fact, several columns" class.
+
+## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
+
+Owner order: every alert, from anywhere, is fixed AND verified fixed (CLAUDE.md).
+Nothing here gets muted: every failure still fails loudly; the work is making
+sure someone hears it and closes it.
+
+- [ ] **Q1 Alert ledger.** One tracked item per distinct alert fingerprint,
+  from error_logs (server rows, every severity), Slack posts that bypass
+  error_logs, Sentry, nightly-red issues and CI. Auto-opened, and closed only
+  after that alert's own detector has been re-run and shows it cleared. A
+  guard ensures no code path posts to Slack without a ledger entry. The
+  session-start check reads it first.
+- [ ] **Q2 Test runs raise real alerts.** E2E/seed jobs trigger stuck-payment
+  alerts, the ec3428da "refund refused" alert (a test job paid 09-12, no
+  dispute, where something keeps retrying a refund), and user-facing
+  notification copy posting into #ops-alerts. Fix it where it starts: tests
+  clean up their checkouts, detectors handle is_seed deliberately, and alerts
+  from E2E jobs go to their own channel or tag. Nothing silently dropped.
+- [ ] **Q3 Stripe test balance empty.** Scheduled payouts and transfers fail
+  with "insufficient available funds" (09-22). Top it up with the 0077 test
+  card, then add a balance monitor so this alerts BEFORE the payouts fail.
+- [ ] **Q4 "Daily ops digest not delivered in 30h"** fired twice on 09-22.
+  Check whether it has run since, find the cause, and verify tomorrow's
+  digest arrives.
+- [ ] **Q5 Nothing opens ReuploadIdDialog.** No button leads to it. OWNER
+  DECISION: should admins be able to request an ID re-upload? Then wire it up
+  or delete it.
+- [ ] **Q6 Admin People badge says "ID Not Submitted"** on profiles that have
+  an id_document_url. It reads a different column. Fix it to use one source
+  of truth, and add a check for this class.
+- [ ] **Q7 WebKit only: the bottom nav isn't frosted.** Verify on the iOS 26.1
+  simulator or a device; fix it if it's real.
+- [ ] **Q8 Unused exports.** 160 at baseline, 63 dropped by e16ebdcc3.
+  Lower scripts/deadcode-baseline.json to match. The ratchet test fails if the
+  count rises. Review the rest with the owner (a report, not auto-delete).
+- [ ] **Q9 The required review of money/authz/data-model diffs is skipped.**
+  Agents skipped it (that is how the javascript: href reached main). Add
+  something that CATCHES a data-model/authz commit landing without a recorded
+  review, e.g. a review-log entry that CI checks for commits touching
+  supabase/migrations or RLS-sensitive files. It reports; it does not block.
+- [ ] **Q10 Owner-side, carried over:** release dispute 9756a585's payout;
+  set Stripe payouts to manual; decide Louisiana sales tax; send a screenshot
+  or window width for the right-panel overlap.

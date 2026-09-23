@@ -19,6 +19,7 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
+import { PublicError, publicErrorMessage } from "../_shared/publicError.ts";
 
 /**
  * Tax is ADDED to `unit_amount`, never carved out of it — pinned rather than
@@ -98,7 +99,7 @@ serve(async (req) => {
     const { data, error: userErr } = await supabaseClient.auth.getUser(token);
     if (userErr) console.error("[create-payment] auth.getUser error:", userErr.message);
     const user = data.user;
-    if (!user?.email) throw new Error("Not authenticated");
+    if (!user?.email) throw new PublicError("Not authenticated");
 
     const body = await req.json();
     const isNative = isNativeRequest(body);
@@ -131,12 +132,12 @@ serve(async (req) => {
     // ─── ESCROW: Create checkout with manual capture ───
     if (action === "escrow") {
       const { jobId, saveCardForFuture, giftCardId } = body;
-      if (!jobId) throw new Error("Missing jobId");
+      if (!jobId) throw new PublicError("Missing jobId");
 
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
-      if (jobError || !job) throw new Error("Job not found");
-      if (job.customer_id !== user.id) throw new Error("Not authorized");
+      if (jobError || !job) throw new PublicError("Job not found");
+      if (job.customer_id !== user.id) throw new PublicError("Not authorized");
 
       // ─── Re-mint gate: which payment_status may open a NEW checkout ───
       //
@@ -164,7 +165,7 @@ serve(async (req) => {
       const RE_MINTABLE_PAYMENT_STATUSES = new Set(["unpaid", "abandoned", "failed"]);
       const currentPaymentStatus = job.payment_status ?? "unpaid";
       if (!RE_MINTABLE_PAYMENT_STATUSES.has(currentPaymentStatus)) {
-        throw new Error("This job's payment has already been processed. Open the job to see its payment status.");
+        throw new PublicError("This job's payment has already been processed. Open the job to see its payment status.");
       }
 
       // ─── Retire the previous Checkout Session before minting another ───
@@ -190,7 +191,7 @@ serve(async (req) => {
           console.error(
             `[create-payment] refusing re-mint for job ${jobId}: prior session ${previousSessionId} is live (status=${prior.status}, payment_status=${prior.payment_status}, pi=${priorPi?.id ?? "none"}/${priorPi?.status ?? "none"}) while jobs.payment_status='${currentPaymentStatus}'`,
           );
-          throw new Error("A payment for this job is still being processed. Give it a moment and refresh before trying again.");
+          throw new PublicError("A payment for this job is still being processed. Give it a moment and refresh before trying again.");
         }
         if (prior.status === "open") {
           // Expire rather than leave it: an abandoned-but-open session stays
@@ -215,7 +216,7 @@ serve(async (req) => {
               // It was paid out from under us between the two reads. Never mint
               // a second checkout on top of a real charge.
               console.error(`[create-payment] prior session ${previousSessionId} completed mid-re-mint for job ${jobId}`);
-              throw new Error("A payment for this job is still being processed. Give it a moment and refresh before trying again.");
+              throw new PublicError("A payment for this job is still being processed. Give it a moment and refresh before trying again.");
             }
             console.log(`[create-payment] prior session ${previousSessionId} was already retired by a concurrent re-mint (status=${recheck.status})`);
           }
@@ -302,7 +303,13 @@ serve(async (req) => {
         });
         if (redeemErr) {
           console.error(`[create-payment] redeem_gift_card failed for credit ${giftCardId}, job ${jobId}:`, redeemErr);
-          throw new Error(redeemErr.message || "Could not redeem this gift — please try again");
+          throw new PublicError(
+            // A RAISE from our own redeem RPC (P0001) is a sentence we wrote; any
+            // other code is raw PostgREST/Postgres detail and must not reach the caller.
+            (redeemErr as { code?: string }).code === "P0001" && redeemErr.message
+              ? redeemErr.message
+              : "Could not redeem this gift — please try again",
+          );
         }
 
         if (redeem?.outcome === "settled") {
@@ -319,7 +326,7 @@ serve(async (req) => {
         // difference and Stripe dedupes on the per-job idempotency key.
         const differenceCents = Number(redeem?.difference_cents ?? 0);
         if (!Number.isFinite(differenceCents) || differenceCents <= 0) {
-          throw new Error("Could not determine the remaining balance for this gift — please try again");
+          throw new PublicError("Could not determine the remaining balance for this gift — please try again");
         }
         const diffSession = await stripe.checkout.sessions.create({
           customer: customerId,
@@ -372,7 +379,7 @@ serve(async (req) => {
           // Safe to fail loudly: the credit is still 'reserved' against THIS
           // job, and redeem_gift_card treats re-entry for the same job as a
           // retry, so the user can simply try again.
-          throw new Error("Could not record the payment session — please try again");
+          throw new PublicError("Could not record the payment session — please try again");
         }
 
         return new Response(JSON.stringify({ url: diffSession.url }), {
@@ -392,7 +399,7 @@ serve(async (req) => {
         .limit(1).single();
       if (settingsErr || settings?.customer_fee_percent == null || settings?.helper_fee_percent == null) {
         console.error(`[create-payment] platform_settings read failed — refusing to price escrow with default fees:`, settingsErr);
-        throw new Error("Pricing configuration is temporarily unavailable — please try again in a moment");
+        throw new PublicError("Pricing configuration is temporarily unavailable — please try again in a moment");
       }
       // customer_fee_percent is READ but deliberately NOT BOUND. It is still
       // selected and null-checked above because an unreadable/incomplete
@@ -626,7 +633,7 @@ serve(async (req) => {
       });
       if (!escrowStamp.ok) {
         console.error(`[create-payment] escrow session ${session.id} created for job ${jobId} but jobs.update failed:`, escrowStamp.reason);
-        throw new Error("Could not record the payment session — please try again");
+        throw new PublicError("Could not record the payment session — please try again");
       }
 
       return new Response(JSON.stringify({ url: session.url }), {
@@ -639,17 +646,17 @@ serve(async (req) => {
     // ─── RELEASE: Both parties confirm → capture + transfer ───
     if (action === "release") {
       const { jobId } = body;
-      if (!jobId) throw new Error("Missing jobId");
+      if (!jobId) throw new PublicError("Missing jobId");
 
       const { data: firstRead, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
-      if (jobError || !firstRead) throw new Error("Job not found");
+      if (jobError || !firstRead) throw new PublicError("Job not found");
       // `let`: the conditional write below re-reads on a lost race.
       let job = firstRead;
 
       const isPoster = job.customer_id === user.id;
       const isHelper = job.helper_id === user.id;
-      if (!isPoster && !isHelper) throw new Error("Not authorized");
+      if (!isPoster && !isHelper) throw new PublicError("Not authorized");
       // A duplicate release (double tap, two devices, a retry after a lost
       // response) answers cleanly BEFORE the status gate, which would otherwise
       // call an already-completed job "not in progress".
@@ -682,7 +689,7 @@ serve(async (req) => {
       // can only be resolved through the admin dispute actions below, never the
       // normal two-party release path.
       if (!["in_progress", "revision_requested", "accepted"].includes(job.status)) {
-        throw new Error(
+        throw new PublicError(
           job.status === "disputed"
             ? "This job is currently under dispute. Payment cannot be released until the dispute is resolved."
             : "Job is not in progress",
@@ -717,7 +724,7 @@ serve(async (req) => {
         //    shared ones the app uses (_shared/arrivalRule.ts), so the two
         //    doors cannot drift.
         if (!arrivalEstablished(job)) {
-          throw new Error(arrivalGateMessage(job, "wrap-up"));
+          throw new PublicError(arrivalGateMessage(job, "wrap-up"));
         }
 
         // 2. PROOF PHOTOS — before AND after, on every job regardless of size.
@@ -726,7 +733,7 @@ serve(async (req) => {
         const hasBeforeProof = Array.isArray(job.proof_before_urls) && job.proof_before_urls.length > 0;
         const hasAfterProof = Array.isArray(job.proof_after_urls) && job.proof_after_urls.length > 0;
         if (!hasBeforeProof || !hasAfterProof) {
-          throw new Error("Before & after photos are required — they're the proof that releases your payment.");
+          throw new PublicError("Before & after photos are required — they're the proof that releases your payment.");
         }
       }
 
@@ -764,7 +771,7 @@ serve(async (req) => {
         const MIN_JOB_TIME_MS = 30 * 60 * 1000; // 30 minutes
         if (elapsed < MIN_JOB_TIME_MS) {
           const minutesLeft = Math.ceil((MIN_JOB_TIME_MS - elapsed) / 60000);
-          throw new Error(`Job must be active for at least 30 minutes before completion. ${minutesLeft} minute${minutesLeft !== 1 ? "s" : ""} remaining.`);
+          throw new PublicError(`Job must be active for at least 30 minutes before completion. ${minutesLeft} minute${minutesLeft !== 1 ? "s" : ""} remaining.`);
         }
       }
 
@@ -796,12 +803,12 @@ serve(async (req) => {
         if (attempt > 0) {
           const { data: reread, error: rereadErr } = await supabaseAdmin
             .from("jobs").select("*").eq("id", jobId).single();
-          if (rereadErr || !reread) throw new Error("Job not found");
+          if (rereadErr || !reread) throw new PublicError("Job not found");
           job = reread;
           const done = alreadyDone(job);
           if (done) return done;
           if (!LIVE_RELEASE_STATUSES.includes(job.status)) {
-            throw new Error(
+            throw new PublicError(
               job.status === "disputed"
                 ? "This job is currently under dispute. Payment cannot be released until the dispute is resolved."
                 : "Job is not in progress",
@@ -833,7 +840,7 @@ serve(async (req) => {
           if (paymentIntentId) {
             const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
             if (pi.status !== "succeeded") {
-              throw new Error(`Payment not captured (status: ${pi.status}). Cannot release payout.`);
+              throw new PublicError(`Payment not captured (status: ${pi.status}). Cannot release payout.`);
             }
           }
 
@@ -862,7 +869,7 @@ serve(async (req) => {
         const { data, error: updateError } = await conditional.select("id");
         if (updateError) {
           console.error("Failed to update job:", updateError);
-          throw new Error("Failed to update job status: " + updateError.message);
+          throw new PublicError("Failed to update the job status — please try again");
         }
         if (data && data.length > 0) {
           jobUpdated = data;
@@ -871,7 +878,7 @@ serve(async (req) => {
         console.log(`[create-payment] release for job ${jobId} lost a concurrent write (attempt ${attempt + 1}); re-reading`);
       }
       if (!jobUpdated) {
-        throw new Error("This job changed while we were saving. Refresh and try again.");
+        throw new PublicError("This job changed while we were saving. Refresh and try again.");
       }
       console.log("Job updated successfully:", jobId, updateFields);
 
@@ -938,13 +945,13 @@ serve(async (req) => {
     // ─── REQUEST REVISION ───
     if (action === "request_revision") {
       const { jobId, note } = body;
-      if (!jobId) throw new Error("Missing jobId");
+      if (!jobId) throw new PublicError("Missing jobId");
 
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
-      if (jobError || !job) throw new Error("Job not found");
-      if (job.customer_id !== user.id) throw new Error("Not authorized");
-      if (job.status !== "in_progress") throw new Error("Job must be in progress to request revision");
+      if (jobError || !job) throw new PublicError("Job not found");
+      if (job.customer_id !== user.id) throw new PublicError("Not authorized");
+      if (job.status !== "in_progress") throw new PublicError("Job must be in progress to request revision");
 
       // Conditional on the status just read (race-class audit 2026-09-14).
       // enforce_job_status_transition already refuses completed/disputed/
@@ -960,7 +967,7 @@ serve(async (req) => {
       }).eq("id", jobId).eq("status", "in_progress").select("id");
       if (revisionUpdateErr) {
         console.error("[create-payment] request_revision update failed:", revisionUpdateErr);
-        throw new Error("Failed to record revision request — please try again");
+        throw new PublicError("Failed to record revision request — please try again");
       }
       if (!revisionUpdated || revisionUpdated.length === 0) {
         // Zero rows: the job left in_progress between the read and the write.
@@ -974,8 +981,8 @@ serve(async (req) => {
           });
         }
         console.error("[create-payment] request_revision matched 0 rows; job now:", nowErr ?? nowJob?.status);
-        if (nowErr) throw new Error("Failed to record revision request — please try again");
-        throw new Error("This job is no longer in progress, so a revision can't be requested. Refresh to see its current state.");
+        if (nowErr) throw new PublicError("Failed to record revision request — please try again");
+        throw new PublicError("This job is no longer in progress, so a revision can't be requested. Refresh to see its current state.");
       }
 
       if (job.helper_id) {
@@ -995,13 +1002,13 @@ serve(async (req) => {
     // ─── RESOLVE REVISION ───
     if (action === "resolve_revision") {
       const { jobId } = body;
-      if (!jobId) throw new Error("Missing jobId");
+      if (!jobId) throw new PublicError("Missing jobId");
 
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
-      if (jobError || !job) throw new Error("Job not found");
-      if (job.helper_id !== user.id) throw new Error("Not authorized");
-      if (job.status !== "revision_requested") throw new Error("No revision pending");
+      if (jobError || !job) throw new PublicError("Job not found");
+      if (job.helper_id !== user.id) throw new PublicError("Not authorized");
+      if (job.status !== "revision_requested") throw new PublicError("No revision pending");
 
       const now = new Date();
       const acceptanceDeadline = new Date(now.getTime() + 72 * 60 * 60 * 1000);
@@ -1021,7 +1028,7 @@ serve(async (req) => {
       }).eq("id", jobId).eq("status", "revision_requested").is("revision_completed_at", null).select("id");
       if (resolveUpdateErr) {
         console.error("[create-payment] resolve_revision update failed:", resolveUpdateErr);
-        throw new Error("Failed to record revision completion — please try again");
+        throw new PublicError("Failed to record revision completion — please try again");
       }
       if (!resolveUpdated || resolveUpdated.length === 0) {
         const { data: nowJob, error: nowErr } = await supabaseAdmin
@@ -1033,8 +1040,8 @@ serve(async (req) => {
           });
         }
         console.error("[create-payment] resolve_revision matched 0 rows; job now:", nowErr ?? nowJob?.status);
-        if (nowErr) throw new Error("Failed to record revision completion — please try again");
-        throw new Error("No revision pending — this job has moved on. Refresh to see its current state.");
+        if (nowErr) throw new PublicError("Failed to record revision completion — please try again");
+        throw new PublicError("No revision pending — this job has moved on. Refresh to see its current state.");
       }
 
       await supabaseAdmin.from("notifications").insert({
@@ -1052,7 +1059,7 @@ serve(async (req) => {
     // ─── TIP ───
     if (action === "tip") {
       const { jobId, amount } = body;
-      if (!jobId) throw new Error("Missing jobId");
+      if (!jobId) throw new PublicError("Missing jobId");
       // Client-supplied idempotency salt — treat as untrusted input. Accept
       // ONLY a canonical UUID: the value is concatenated into a Stripe
       // idempotency key, so an attacker-chosen string could otherwise be used
@@ -1070,19 +1077,19 @@ serve(async (req) => {
       // have an application_fee_amount ≥ the charge, which Stripe rejects); the
       // $1,000 ceiling bounds a fat-finger / abusive charge.
       if (typeof amount !== "number" || !Number.isFinite(amount)) {
-        throw new Error("Invalid tip amount");
+        throw new PublicError("Invalid tip amount");
       }
       const tipCents = Math.round(amount * 100);
       if (tipCents < 100 || tipCents > 100_000) {
-        throw new Error("Tips must be between $1 and $1,000");
+        throw new PublicError("Tips must be between $1 and $1,000");
       }
 
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
-      if (jobError || !job) throw new Error("Job not found");
-      if (job.status !== "completed") throw new Error("Job must be completed to tip");
-      if (user.id !== job.customer_id) throw new Error("Only the person who posted this job can tip the Helpr");
-      if (!job.helper_id) throw new Error("No Helpr assigned to this job");
+      if (jobError || !job) throw new PublicError("Job not found");
+      if (job.status !== "completed") throw new PublicError("Job must be completed to tip");
+      if (user.id !== job.customer_id) throw new PublicError("Only the person who posted this job can tip the Helpr");
+      if (!job.helper_id) throw new PublicError("No Helpr assigned to this job");
 
       const helperId = job.helper_id;
 
@@ -1097,7 +1104,7 @@ serve(async (req) => {
         .maybeSingle();
       if (helperProfileErr) {
         console.error(`[create-payment] tip — helper profile read failed for ${helperId}:`, helperProfileErr);
-        throw new Error("Could not verify the Helpr's payout account — please try again");
+        throw new PublicError("Could not verify the Helpr's payout account — please try again");
       }
       if (!helperProfile?.stripe_account_id) {
         return new Response(
@@ -1163,7 +1170,7 @@ serve(async (req) => {
         .maybeSingle();
       if (tipLookupErr) {
         console.error(`[create-payment] tip — ledger lookup failed for session ${session.id}:`, tipLookupErr);
-        throw new Error("Could not record the tip — please try again");
+        throw new PublicError("Could not record the tip — please try again");
       }
       if (!existingTip) {
         const { error: tipInsertErr } = await supabaseAdmin.from("tips").insert({
@@ -1174,7 +1181,7 @@ serve(async (req) => {
         });
         if (tipInsertErr) {
           console.error(`[create-payment] tip — ledger insert failed for session ${session.id} (job ${jobId}):`, tipInsertErr);
-          throw new Error("Could not record the tip — please try again");
+          throw new PublicError("Could not record the tip — please try again");
         }
       }
 
@@ -1186,12 +1193,12 @@ serve(async (req) => {
     // ─── CANCEL ESCROW ───
     if (action === "cancel_escrow") {
       const { jobId } = body;
-      if (!jobId) throw new Error("Missing jobId");
+      if (!jobId) throw new PublicError("Missing jobId");
 
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
-      if (jobError || !job) throw new Error("Job not found");
-      if (job.customer_id !== user.id) throw new Error("Not authorized");
+      if (jobError || !job) throw new PublicError("Job not found");
+      if (job.customer_id !== user.id) throw new PublicError("Not authorized");
 
       // ── Only an unhired, undisputed job is the poster's to refund here ──
       // This door checked `payment_status` alone, and it is reachable by any
@@ -1257,7 +1264,7 @@ serve(async (req) => {
         .select("id");
       if (claimErr) {
         console.error(`[create-payment] cancel_escrow state claim failed for job ${jobId}:`, claimErr);
-        throw new Error("Could not cancel — please try again");
+        throw new PublicError("Could not cancel — please try again");
       }
       if (!claimed || claimed.length === 0) {
         return new Response(JSON.stringify({
@@ -1451,22 +1458,22 @@ serve(async (req) => {
     // ─── ADMIN: Release disputed payment to helpr ───
     if (action === "admin_release_dispute") {
       const { jobId } = body;
-      if (!jobId) throw new Error("Missing jobId");
+      if (!jobId) throw new PublicError("Missing jobId");
 
       // Verify admin
       const { data: isAdmin, error: adminRoleErr } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
       if (adminRoleErr) console.error("[create-payment] admin_release_dispute has_role check failed:", adminRoleErr.message);
-      if (!isAdmin) throw new Error("Not authorized — admin only");
+      if (!isAdmin) throw new PublicError("Not authorized — admin only");
 
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
-      if (jobError || !job) throw new Error("Job not found");
+      if (jobError || !job) throw new PublicError("Job not found");
 
       // Only a job that is actually under dispute may be resolved here. Without
       // this guard an admin call could release escrow on an already-completed,
       // cancelled, or never-disputed job (double-pay / out-of-band release).
       if (job.status !== "disputed") {
-        throw new Error(`Job is not under dispute (status: ${job.status}). Cannot resolve a dispute that doesn't exist.`);
+        throw new PublicError(`Job is not under dispute (status: ${job.status}). Cannot resolve a dispute that doesn't exist.`);
       }
 
       // ─── Group jobs: refuse. This path can only pay ONE helper. ───────────
@@ -1557,9 +1564,9 @@ serve(async (req) => {
         const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
         paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
       }
-      if (!paymentIntentId) throw new Error("No payment intent found for this job");
+      if (!paymentIntentId) throw new PublicError("No payment intent found for this job");
       const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-      if (pi.status !== "succeeded") throw new Error(`Payment not captured (status: ${pi.status})`);
+      if (pi.status !== "succeeded") throw new PublicError(`Payment not captured (status: ${pi.status})`);
       const captureResult = { paymentIntentId };
 
       // Transfer to helpr. Resolve the platform fee from the helper's live
@@ -1813,21 +1820,21 @@ serve(async (req) => {
     // ─── ADMIN: Refund disputed payment to customer ───
     if (action === "admin_refund_dispute") {
       const { jobId } = body;
-      if (!jobId) throw new Error("Missing jobId");
+      if (!jobId) throw new PublicError("Missing jobId");
 
       const { data: isAdmin, error: adminRoleErr } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
       if (adminRoleErr) console.error("[create-payment] admin_refund_dispute has_role check failed:", adminRoleErr.message);
-      if (!isAdmin) throw new Error("Not authorized — admin only");
+      if (!isAdmin) throw new PublicError("Not authorized — admin only");
 
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
-      if (jobError || !job) throw new Error("Job not found");
+      if (jobError || !job) throw new PublicError("Job not found");
 
       // Same guard as admin_release_dispute: only a genuinely disputed job may
       // be resolved via this path. Non-dispute refunds go through
       // admin_refund_general (which intentionally accepts any state).
       if (job.status !== "disputed") {
-        throw new Error(`Job is not under dispute (status: ${job.status}). Use a general refund for non-dispute cases.`);
+        throw new PublicError(`Job is not under dispute (status: ${job.status}). Use a general refund for non-dispute cases.`);
       }
 
       // Refund the captured payment
@@ -1841,7 +1848,7 @@ serve(async (req) => {
       // but the job is still flipped to payment_status="refunded" and the customer
       // receives a "Refund issued" notification — data corruption with $0 returned.
       // admin_release_dispute has this same guard (line ~816); keep them in sync.
-      if (!paymentIntentId) throw new Error("No payment intent found for this job — cannot issue refund");
+      if (!paymentIntentId) throw new PublicError("No payment intent found for this job — cannot issue refund");
       // Hoisted so the dispute-record close below can record what actually went
       // back to the poster. 0 with a null id is the legitimate "the Stripe fee
       // consumed the whole capture" outcome, which the branch below alerts on.
@@ -1884,7 +1891,7 @@ serve(async (req) => {
                   captured_cents: String(capturedCents),
                 },
               });
-              throw new Error(
+              throw new PublicError(
                 `admin_refund_dispute: invalid captured amount (${capturedCents}) for job ${jobId} — aborting, no refund issued.`,
               );
             }
@@ -2041,7 +2048,7 @@ serve(async (req) => {
                 pi_status: pi.status,
               },
             });
-            throw new Error(
+            throw new PublicError(
               `admin_refund_dispute: PaymentIntent ${paymentIntentId} status is "${pi.status}", not "succeeded" — aborting, no refund for job ${jobId}.`,
             );
           }
@@ -2138,15 +2145,15 @@ serve(async (req) => {
       // refund and leaves the job state untouched — useful for goodwill
       // adjustments, partial-completion settlements, etc.
       const { jobId, reason, amountCents } = body;
-      if (!jobId) throw new Error("Missing jobId");
+      if (!jobId) throw new PublicError("Missing jobId");
 
       const { data: isAdmin, error: adminRoleErr } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
       if (adminRoleErr) console.error("[create-payment] admin_refund_general has_role check failed:", adminRoleErr.message);
-      if (!isAdmin) throw new Error("Not authorized — admin only");
+      if (!isAdmin) throw new PublicError("Not authorized — admin only");
 
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
-      if (jobError || !job) throw new Error("Job not found");
+      if (jobError || !job) throw new PublicError("Job not found");
 
       // ── A disputed job is NOT a general refund ──────────────────────────
       // This action deliberately accepts any job state (goodwill refunds on
@@ -2226,7 +2233,7 @@ serve(async (req) => {
       // retrieved), never `job.budget`.
       const requestedCents = typeof amountCents === "number" ? Math.round(amountCents) : null;
       if (requestedCents !== null && requestedCents <= 0) {
-        throw new Error(`Invalid partial amount: ${requestedCents} cents (must be > 0)`);
+        throw new PublicError(`Invalid partial amount: ${requestedCents} cents (must be > 0)`);
       }
       const isPartial = requestedCents !== null;
 
@@ -2239,7 +2246,7 @@ serve(async (req) => {
       // refunded and notifies the customer even if no Stripe refund was issued.
       // `admin_refund_dispute` already guards this way — align both paths.
       if (!paymentIntentId) {
-        throw new Error("No payment intent found for this job — cannot issue refund. If the job was never paid, no Stripe refund is needed.");
+        throw new PublicError("No payment intent found for this job — cannot issue refund. If the job was never paid, no Stripe refund is needed.");
       }
       try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
@@ -2270,10 +2277,10 @@ serve(async (req) => {
                 message: `admin_refund_general could not read a valid captured amount for job ${jobId} (captured=${String(capturedCents)}). No partial refund issued.`,
                 fields: { job_id: jobId, payment_intent: paymentIntentId, captured_cents: String(capturedCents) },
               });
-              throw new Error(`admin_refund_general: invalid captured amount (${capturedCents}) for job ${jobId} — aborting, no refund issued.`);
+              throw new PublicError(`admin_refund_general: invalid captured amount (${capturedCents}) for job ${jobId} — aborting, no refund issued.`);
             }
             if (requestedCents! > capturedCents) {
-              throw new Error(`Invalid partial amount: ${requestedCents} cents (captured ${capturedCents} cents)`);
+              throw new PublicError(`Invalid partial amount: ${requestedCents} cents (captured ${capturedCents} cents)`);
             }
             // A partial equal to the FULL capture is a full refund in disguise:
             // it returns the entire charge to the poster. The full-refund branch
@@ -2345,7 +2352,7 @@ serve(async (req) => {
             message: `admin_refund_general found the PaymentIntent in status "${pi.status}" (expected "succeeded"). No refund issued; job left unchanged for manual review.`,
             fields: { job_id: jobId, payment_intent: paymentIntentId, pi_status: pi.status },
           });
-          throw new Error(
+          throw new PublicError(
             `admin_refund_general: PaymentIntent ${paymentIntentId} status is "${pi.status}", not "succeeded" — aborting, no refund for job ${jobId}.`,
           );
         }
@@ -2476,7 +2483,7 @@ serve(async (req) => {
       });
     }
 
-    throw new Error("Invalid action");
+    throw new PublicError("Invalid action");
   } catch (error) {
     // Defensive logging: Supabase log API only surfaces status codes, not
     // response bodies. Without console.error, every 500 here would be
@@ -2495,7 +2502,7 @@ serve(async (req) => {
     // detail to the caller (EF-5; stripe-connect fixed the same on 2026-09-15).
     // It reaches people now: the clients read this body via
     // functionErrorMessage instead of supabase-js's "non-2xx" wrapper.
-    return new Response(JSON.stringify({ error: "We couldn't complete that payment step. Please try again in a moment." }), {
+    return new Response(JSON.stringify({ error: publicErrorMessage(err, "We couldn't complete that payment step. Please try again in a moment.") }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500,
     });
   }
@@ -3088,11 +3095,11 @@ async function transferToHelper(
     .maybeSingle();
   if (helperProfileErr) {
     console.error(`[create-payment] transferToHelper — profile read failed for ${helperId}:`, helperProfileErr);
-    throw new Error("Could not verify the helpr's payout account — please try again");
+    throw new PublicError("Could not verify the helpr's payout account — please try again");
   }
 
   if (!helperProfile?.stripe_account_id) {
-    throw new Error("Helpr must set up their payout account before payment can be released. Please ask the helpr to connect their payout account in their profile settings.");
+    throw new PublicError("Helpr must set up their payout account before payment can be released. Please ask the helpr to connect their payout account in their profile settings.");
   }
 
   // DB-level idempotency: if a payout ledger row already exists for this job
@@ -3107,7 +3114,7 @@ async function transferToHelper(
     .maybeSingle();
   if (existingTransferErr) {
     console.error(`[create-payment] transferToHelper — duplicate-transfer check failed for job ${jobId}:`, existingTransferErr);
-    throw new Error("Could not verify payout status — please try again");
+    throw new PublicError("Could not verify payout status — please try again");
   }
   if (existingTransfer) {
     console.log(`Payout already exists for job ${jobId} (${existingTransfer.stripe_transfer_id}); skipping duplicate transfer.`);
@@ -3143,7 +3150,7 @@ async function transferToHelper(
     if (beforeTransfer && !(await beforeTransfer())) {
       // The settlement claim is no longer this caller's. No money moved, so
       // this is NOT moneyMoved: the caller hands back whatever it still holds.
-      throw new Error("The settlement lock on this dispute was lost before the transfer — no money was moved. Refresh and try again.");
+      throw new PublicError("The settlement lock on this dispute was lost before the transfer — no money was moved. Refresh and try again.");
     }
 
     // Stripe-level idempotency: same dispute release = same transfer, so a

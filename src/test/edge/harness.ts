@@ -126,6 +126,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/helperFees.ts";`,
   );
 
+  // Client-safe errors: `_shared/publicError.ts` has ZERO imports (a class and
+  // a pure function). Point at the real module so the tests exercise the real
+  // PublicError / publicErrorMessage split (create-payment, 2026-09-23).
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/publicError\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/publicError.ts";`,
+  );
+
   // Cron result envelope: `_shared/cron-result.ts` is a pure shape helper (no
   // Deno, no network) that decides a cron's HTTP status from its defect count.
   // Point at the REAL module — whether a failed run answers non-2xx is exactly

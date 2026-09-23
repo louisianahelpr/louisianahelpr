@@ -97,6 +97,11 @@ function usesTainted(node: ts.Node, names: ReadonlySet<string>): boolean {
     if (hit) return;
     // A property KEY is not a read of the variable that shares its name.
     if (ts.isPropertyAssignment(x)) return scan(x.initializer);
+    // The ONE sanctioned way a caught error reaches a body:
+    // publicErrorMessage(err, fallback) (supabase/functions/_shared/publicError.ts)
+    // returns err.message only for a PublicError — a sentence written for the
+    // caller — and the fixed fallback for anything raw.
+    if (ts.isCallExpression(x) && x.expression.getText() === "publicErrorMessage") return;
     // `x.message` reads `x`, not `message`.
     if (ts.isPropertyAccessExpression(x)) return scan(x.expression);
     if (ts.isIdentifier(x) && names.has(x.text)) {

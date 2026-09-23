@@ -37,8 +37,6 @@ import { jobActionChipStyle, JobStepPrimaryButton } from "@/components/activity/
  *
  * Returns the effective STAMP (so callers can print it), or null.
  */
-// jobDayStart moved to @/lib/jobDate (re-exported for existing importers).
-export { jobDayStart };
 
 export function helperDayOfConfirmation({
   helperConfirmedAt,

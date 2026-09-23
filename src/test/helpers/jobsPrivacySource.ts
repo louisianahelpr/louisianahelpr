@@ -243,7 +243,11 @@ export function enclosingLiteral(src: string, idx: number): string | null {
 /** Every offset in `src` where a PostgREST path for `public.jobs` begins. */
 export function jobsRestPathOffsets(src: string): number[] {
   const out: number[] = [];
-  for (const m of src.matchAll(/(?:rest\/v1\/|[`"'])jobs\?/g)) out.push(m.index!);
+  // A PostgREST path always carries a query after the `?` (`jobs?select=…`,
+  // `jobs?id=eq.…`, `jobs?${q}`). A bare `"jobs?"` string — e.g. the regex
+  // word list in scripts/check-stated-counts.mjs — is not a request
+  // (false positive on main, 2026-09-23).
+  for (const m of src.matchAll(/(?:rest\/v1\/|[`"'])jobs\?(?![`"'\s,)\]])/g)) out.push(m.index!);
   return out;
 }
 

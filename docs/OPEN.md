@@ -240,6 +240,16 @@ COULD not measure, and I read it as what it DID not measure. Same shape as
 matching '%DNS time%' and counting `DNS time: 0` as a DNS failure, the same
 day. Read the rows, not the summary line.
 
+## OPEN — db-drift-detect has been red since 2026-09-20, cause not yet diagnosed (2026-09-23)
+
+Red on 09-20, 09-21 and 09-22 at the "Compute drift" step, which exits 1 after
+the supabase CLI prints "Try rerunning the command with --debug". This was
+invisible until tonight because the workflow never reported failures.
+ba78b79dc adds a nightly-red notify job, so the next red run will open an
+issue. Next step: `gh run view 35713840302 --log`, read above the CLI error,
+or rerun it with --debug. Also note that db-backup failed once on 09-22 during
+the pg_cron outage; re-run 35810165938 passed.
+
 ## OPEN — messy-input has 21 unswept forms, and they must NOT be given gaps (2026-09-22)
 
 prod-audit went 36 failures -> 2 once the outage passed. One was mine and is

@@ -199,11 +199,9 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     platform_fee_amount: lockedFeeAmount,
     sales_tax_rate: lockedSalesTaxRate,
     sales_tax_amount: lockedSalesTaxAmount,
-    // requires_w9 column is added by migration 20260609180000. The
-    // generated types haven't been regen'd against prod yet, so it's
-    // cast through `as any` to keep typecheck green between merge and
-    // the manual `supabase db push`.
-    ...(requiresW9 ? ({ requires_w9: true } as any) : {}),
+    // requires_w9 column is added by migration 20260609180000 (now in the
+    // generated types). Spread only when true, as before.
+    ...(requiresW9 ? { requires_w9: true } : {}),
     // credential_tier column ships in migration 20260612150000. Only include
     // when > 0 so a pre-push prod INSERT still succeeds (DB default of 0
     // is applied automatically on the column). Retry path strips withExtras.

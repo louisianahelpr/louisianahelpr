@@ -96,7 +96,7 @@ const AdminFraudDashboard = () => {
       const data = unwrap(await query);
       if (!data || data.length === 0) return [];
 
-      const userIds = [...new Set(data.map((f: any) => f.user_id))];
+      const userIds = [...new Set(data.map((f) => f.user_id))];
       // Secondary name-hydration read. Don't drop the error: on failure every
       // row silently renders the "Unknown"/fallback name, which looks like real
       // data rather than a failed lookup. Report it, then still render the list
@@ -115,7 +115,7 @@ const AdminFraudDashboard = () => {
       // The email is what an operator actually acts on, it is already inside
       // `details`, and this is an admin-only surface.
       const emailMap = new Map(profiles?.map(p => [p.user_id, p.email]) || []);
-      return data.map((f: any) => {
+      return data.map((f) => {
         const named = formatName(nameMap.get(f.user_id), "");
         return {
           ...f,

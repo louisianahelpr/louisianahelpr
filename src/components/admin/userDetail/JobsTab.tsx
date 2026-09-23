@@ -8,10 +8,11 @@ import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
 import { formatTimestamp } from "@/lib/format";
 import { helperFeePercentOrLegacy } from "@/lib/legacyFeeFallback";
 import type { Profile } from "../adminUserHelpers";
+import type { AdminProfileJob } from "../adminusers/useOpenProfile";
 
 interface JobsTabProps {
   viewProfile: Profile;
-  profileJobs: any[];
+  profileJobs: AdminProfileJob[];
 }
 
 export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
@@ -20,7 +21,7 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
   const [jobsRole, setJobsRole] = useState<"all" | "worked" | "posted">("all");
   const [jobsSort] = useState<"recent" | "earnings_desc" | "earnings_asc">("recent");
 
-  const calcEarning = (j: any) => {
+  const calcEarning = (j: AdminProfileJob) => {
     const isHelper = j.helper_id === viewProfile.user_id;
     const isCustomer = j.customer_id === viewProfile.user_id;
     const budget = Number(j.budget) || 0;
@@ -40,20 +41,20 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
     return 0;
   };
 
-  const filtered = profileJobs.filter((j: any) => {
+  const filtered = profileJobs.filter((j) => {
     if (jobsRole === "worked") return j.helper_id === viewProfile.user_id;
     if (jobsRole === "posted") return j.customer_id === viewProfile.user_id;
     return true;
   });
 
-  const sorted = [...filtered].sort((a: any, b: any) => {
+  const sorted = [...filtered].sort((a, b) => {
     if (jobsSort === "earnings_desc") return calcEarning(b) - calcEarning(a);
     if (jobsSort === "earnings_asc") return calcEarning(a) - calcEarning(b);
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
-  const workedCompleted = profileJobs.filter((j: any) => j.helper_id === viewProfile.user_id && j.status === "completed");
-  const postedCompleted = profileJobs.filter((j: any) => j.customer_id === viewProfile.user_id && j.status === "completed");
+  const workedCompleted = profileJobs.filter((j) => j.helper_id === viewProfile.user_id && j.status === "completed");
+  const postedCompleted = profileJobs.filter((j) => j.customer_id === viewProfile.user_id && j.status === "completed");
   const totalEarned = workedCompleted.reduce((s, j) => s + calcEarning(j), 0);
   const totalSpent = postedCompleted.reduce((s, j) => s + calcEarning(j), 0);
 
@@ -91,7 +92,7 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
 
       {/* Filters */}
       <div className="w-full">
-        <Select value={jobsRole} onValueChange={(v: any) => setJobsRole(v)}>
+        <Select value={jobsRole} onValueChange={(v) => setJobsRole(v as typeof jobsRole)}>
           <SelectTrigger aria-label="Job role filter" className="h-9 text-ds-11 w-full"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Jobs</SelectItem>
@@ -106,7 +107,7 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
         <p className="text-ds-11 text-muted-foreground">No jobs found.</p>
       ) : (
         <div className="space-y-2">
-          {sorted.map((j: any) => {
+          {sorted.map((j) => {
             const isHelper = j.helper_id === viewProfile.user_id;
             const earning = calcEarning(j);
             const dateRef = j.poster_completed_at || j.helper_completed_at || j.created_at;

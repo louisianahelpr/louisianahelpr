@@ -288,7 +288,7 @@ const CompleteProfile = () => {
       );
       if (error || !data || !(data.is_legacy_user === true || isProfileComplete(data))) return false;
 
-      queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: any) => ({
+      queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: { isAdmin?: boolean } | undefined) => ({
         ...(current ?? {}),
         profile: data,
         isAdmin: current?.isAdmin ?? false,
@@ -500,7 +500,7 @@ const CompleteProfile = () => {
         approvalRow = refreshed as Record<string, unknown> | null;
       }
 
-      queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: any) => ({
+      queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: { isAdmin?: boolean } | undefined) => ({
         ...(current ?? {}),
         // The row Postgres actually persisted — guaranteed non-null by the
         // guard above.
@@ -514,7 +514,7 @@ const CompleteProfile = () => {
       // single source of truth; staleTime keeps it from refetching on arrival.
       hapticSuccess();
       navigate(nextDestination, { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
       const recovered = await recoverCompletedProfile();
       if (!recovered) {
         hapticError();
@@ -527,7 +527,7 @@ const CompleteProfile = () => {
           contactLeakRejectionMessage(err)
             ?? (isWriteRejected(err)
               ? mutationErrorMessage(err)
-              : err?.message || "We couldn't save your profile just yet — give it another try."),
+              : (err as { message?: string } | null | undefined)?.message || "We couldn't save your profile just yet — give it another try."),
         );
       }
     } finally {

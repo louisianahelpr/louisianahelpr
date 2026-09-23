@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
+import type { PostgrestError } from "@supabase/supabase-js";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { lazy, Suspense } from "react";
@@ -158,7 +160,7 @@ const Admin = () => {
     // hides demo jobs from every user-facing surface, these badges would have
     // gone on counting them, so admin would be the last place still showing
     // numbers the rest of the app had stopped believing.
-    const sections: { key: View; table: string; dateCol: string; filter?: Record<string, any>; notFilter?: Record<string, any>; excludeSeed?: boolean }[] = [
+    const sections: { key: View; table: "profiles" | "jobs" | "reports" | "referrals"; dateCol: string; filter?: Record<string, string | boolean>; notFilter?: Record<string, string>; excludeSeed?: boolean }[] = [
       // No "people" entry: it counted approval_status='pending' accounts, a
       // review queue retired in Q193 (owner 2026-09-23).
       { key: "jobs", table: "jobs", dateCol: "created_at", excludeSeed: true },
@@ -172,8 +174,11 @@ const Admin = () => {
     let hadError = false;
     await Promise.all(sections.map(async (s) => {
       const lastSeen = getSeenTimestamp(s.key);
-      let query = supabase.from(s.table as any).select("id", { count: "exact", head: true });
-      if (s.excludeSeed) query = query.eq("is_seed", false);
+      let query = supabase.from(s.table).select("id", { count: "exact", head: true });
+      // `is_seed` exists only on profiles/jobs (the rows flagged excludeSeed),
+      // not on every table in the union, so it is addressed as a dynamic
+      // column name like the filter keys below.
+      if (s.excludeSeed) query = query.eq("is_seed" as string, false);
       if (lastSeen) query = query.gt(s.dateCol, lastSeen);
       if (s.filter) {
         for (const [col, val] of Object.entries(s.filter)) {
@@ -270,7 +275,7 @@ const Admin = () => {
     // "0" / healthy-looking fallback — a single bad query among the 17
     // above must not be indistinguishable from a genuinely healthy
     // platform. The other, successful queries still render normally.
-    const namedResults: [string, { error: any }][] = [
+    const namedResults: [string, { error: PostgrestError | null }][] = [
       ["profiles", profilesRes], ["reports", reportsRes], ["support", supportRes],
       ["active", activeRes], ["completed", completedRes], ["disputes", disputesRes],
       ["payments", paymentsRes], ["subs", subsRes], ["lateCancel", lateCancelRes],
@@ -289,17 +294,19 @@ const Admin = () => {
 
     const paymentRows = paymentsRes.data || [];
     const cancelledPaidRows = lateCancelRes.data || [];
-    const lateCancellationRevenue = cancelledPaidRows.filter((j: any) => j.cancellation_fee > 0).reduce((s, j) => {
+    // `null > 0` is false in JS, the same result as `0 > 0`, so reading the
+    // nullable column as a number here states the runtime comparison exactly.
+    const lateCancellationRevenue = cancelledPaidRows.filter((j) => (j.cancellation_fee as number) > 0).reduce((s, j) => {
       return s + (j.cancellation_fee || 0);
     }, 0);
-    const sumFees = (rows: any[] | null) =>
+    const sumFees = (rows: Pick<Tables<"jobs">, "platform_fee_amount" | "customer_fee_amount">[] | null) =>
       (rows || []).reduce((s, j) => s + (j.platform_fee_amount || 0) + (j.customer_fee_amount || 0), 0);
 
     // Build a 10-point sparkline series across the current window. Rows
     // outside the window or with no usable timestamp are silently
     // dropped — the bucket math is forgiving so a few bad rows don't
     // skew the chart.
-    const bucket10 = (rows: { ts?: string | null }[] | undefined | null, valueFn?: (row: any) => number): number[] => {
+    const bucket10 = <R extends { ts?: string | null }>(rows: R[] | undefined | null, valueFn?: (row: R) => number): number[] => {
       const buckets = Array(10).fill(0);
       if (!rows) return buckets;
       const nowMs = now.getTime();
@@ -317,10 +324,10 @@ const Admin = () => {
     };
 
     const newUsersSeries = bucket10(
-      (newUsersInRangeRows.data || []).map((r: any) => ({ ts: r.created_at })),
+      (newUsersInRangeRows.data || []).map((r) => ({ ts: r.created_at })),
     );
     const revenueSeries = bucket10(
-      (revInRangeRows.data || []).map((r: any) => ({
+      (revInRangeRows.data || []).map((r) => ({
         ts: r.updated_at,
         platform_fee_amount: r.platform_fee_amount,
         customer_fee_amount: r.customer_fee_amount,
@@ -328,10 +335,10 @@ const Admin = () => {
       (row) => (row.platform_fee_amount || 0) + (row.customer_fee_amount || 0),
     );
     const completedJobsSeries = bucket10(
-      (completedInRangeRows.data || []).map((r: any) => ({ ts: r.updated_at })),
+      (completedInRangeRows.data || []).map((r) => ({ ts: r.updated_at })),
     );
     const activeJobsSeries = bucket10(
-      (activeJobsInRangeRows.data || []).map((r: any) => ({ ts: r.created_at })),
+      (activeJobsInRangeRows.data || []).map((r) => ({ ts: r.created_at })),
     );
 
     setStats({

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/UserAvatar";
-import { Award, Crown, ExternalLink, Sparkles, Star, TrendingUp } from "lucide-react";
+import { Award, Crown, ExternalLink, Sparkles, Star, TrendingUp, type LucideIcon } from "lucide-react";
 import { formatName } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
@@ -43,7 +43,7 @@ const TIER_COLOR: Record<string, string> = {
   New: "bg-muted text-muted-foreground border-border",
 };
 
-const TIER_ICON: Record<string, any> = {
+const TIER_ICON: Record<string, LucideIcon> = {
   Elite: Crown,
   Verified: Sparkles,
   "Rising Star": TrendingUp,

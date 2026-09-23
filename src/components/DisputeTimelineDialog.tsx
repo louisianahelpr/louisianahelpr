@@ -97,7 +97,7 @@ export const DisputeTimelineDialog = ({
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data, error } = await (supabase.from as any)("disputes")
+      const { data, error } = await supabase.from("disputes")
         .select("id, job_id, opener_id, reason, evidence_urls, status, created_at, decided_at, decided_by, decision_text, payout_split, execution_status, execution_helper_cents, execution_refund_cents")
         .eq("job_id", jobId)
         .order("created_at", { ascending: false })
@@ -217,7 +217,7 @@ export const DisputeTimelineDialog = ({
         // WHOLE array, so it is last-write-wins: merging onto the copy loaded
         // when the dialog opened would silently DELETE anything added since —
         // including, once both sides can file, the other party's evidence.
-        const { data: fresh, error: freshErr } = await (supabase.from as any)("disputes")
+        const { data: fresh, error: freshErr } = await supabase.from("disputes")
           .select("evidence_urls")
           .eq("id", dispute.id)
           .maybeSingle();
@@ -231,7 +231,7 @@ export const DisputeTimelineDialog = ({
         // the admin deciding this dispute never sees, while the uploader was
         // told it landed.
         unwrapMutation(
-          await (supabase.from as any)("disputes")
+          await supabase.from("disputes")
             .update({ evidence_urls: merged })
             .eq("id", dispute.id)
             .select("id"),

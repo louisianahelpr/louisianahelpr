@@ -96,7 +96,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
       // on the job once payment captures, so we don't update the DB here.
       hapticSuccess();
       await openExternalUrl(data.url, () => { setBoosting(false); onBoosted?.(); onClose(); });
-    } catch (err: any) {
+    } catch (err: unknown) {
       hapticError();
       toast.error(userFacingError(err, "Couldn't start your boost — try again?"));
       setBoosting(false);

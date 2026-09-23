@@ -68,7 +68,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
       if (data?.error) throw new Error(data.error);
       if (data?.url) { hapticSuccess(); await openExternalUrl(data.url, () => onClose()); }
       else throw new Error("Couldn't start checkout. Please try again.");
-    } catch (err: any) {
+    } catch (err: unknown) {
       hapticError();
       report(err, { tags: { source: "money.tip", action: "tip", screen: currentScreen() }, context: { jobId } });
       toast.error(userFacingError(err, "Couldn't send your tip — try again?"));

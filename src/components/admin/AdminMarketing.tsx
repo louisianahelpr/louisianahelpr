@@ -76,7 +76,7 @@ const AdminMarketing = () => {
       });
       if (error) throw error;
       setLastResult({ sent: data?.sent ?? 0, failed: data?.failed ?? 0, total: data?.total ?? 0 });
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(userFacingError(e, "Send failed"));
     } finally {
       setSending(false);

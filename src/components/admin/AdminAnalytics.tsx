@@ -102,10 +102,7 @@ const AdminAnalytics = () => {
         // with a fee fallback, which overstated it — see computeMetrics.
         // `job_id` so the Payout Pipeline's Released rung can be attributed to
         // the jobs it settled rather than quoting a budget as a settlement.
-        // `as any`: payout_transfers landed in a recent migration that is not
-        // in the generated types yet, same cast AdminPayoutBatches uses.
-
-        (supabase as any).from("payout_transfers").select("amount_cents, status, job_id"),
+        supabase.from("payout_transfers").select("amount_cents, status, job_id"),
       ]);
       if (profilesRes.error) report(profilesRes.error, { tags: { source: "AdminAnalytics.loadProfiles" } });
       if (tipsRes.error) report(tipsRes.error, { tags: { source: "AdminAnalytics.loadTips" } });

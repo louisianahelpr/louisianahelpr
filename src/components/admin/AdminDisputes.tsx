@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
+import type { PostgrestError } from "@supabase/supabase-js";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { tierRank } from "@/lib/subscriptionTiers";
@@ -89,7 +90,7 @@ const AdminDisputes = () => {
         .limit(50),
       // Decided disputes whose settlement has NOT executed. `.or` admits NULL
       // as well as 'pending' — see the comment on `unsettledJobIds` below.
-      (supabase.from as any)("disputes")
+      supabase.from("disputes")
         .select("job_id")
         .eq("status", "decided")
         .or("execution_status.is.null,execution_status.neq.executed"),
@@ -126,7 +127,7 @@ const AdminDisputes = () => {
     {
       const { data: unsettledRows, error: unsettledErr } = unsettledRes as {
         data: { job_id: string }[] | null;
-        error: any;
+        error: PostgrestError | null;
       };
       if (unsettledErr) {
         // 42703/PGRST205/42P01 = the execution columns or the table itself
@@ -195,7 +196,7 @@ const AdminDisputes = () => {
       const EXECUTION_COLUMNS =
         "execution_status, executed_at, execution_transfer_id, execution_refund_id, execution_helper_cents, execution_refund_cents, execution_error";
       const readRecords = (columns: string) =>
-        (supabase.from as any)("disputes").select(columns).in("job_id", allJobIds);
+        supabase.from("disputes").select(columns).in("job_id", allJobIds);
 
       let { data: records, error: recordsErr } = await readRecords(
         `${BASE_COLUMNS}, ${EXECUTION_COLUMNS}`,
@@ -312,7 +313,7 @@ const AdminDisputes = () => {
         if (data?.error) throw new Error(data.error);
       }
       loadDisputes();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(userFacingError(err, "Couldn't resolve that dispute — try again"));
     } finally {
       resolveInFlight.current = false;
@@ -515,7 +516,7 @@ const AdminDisputes = () => {
       setDecisionText("");
       setHelperShare(50);
       loadDisputes();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(userFacingError(err, "Couldn't record that decision — try again"));
     } finally {
       setSubmittingDecision(false);

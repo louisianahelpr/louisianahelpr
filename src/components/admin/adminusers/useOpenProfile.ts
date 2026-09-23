@@ -9,16 +9,32 @@
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import type { Profile } from "../adminUserHelpers";
+import type { Tables } from "@/integrations/supabase/types";
+
+/**
+ * One row of the admin Jobs tab: exactly the columns `openProfile` selects.
+ * `helpers_needed` is read by JobsTab's earnings maths but is NOT in the
+ * select, so at runtime it is always absent — typed optional to say so.
+ */
+export type AdminProfileJob = Pick<
+  Tables<"jobs">,
+  | "id" | "title" | "status" | "payment_status" | "budget" | "helper_fee_percent"
+  | "customer_fee_amount" | "platform_fee_amount" | "sales_tax_amount" | "customer_id"
+  | "helper_id" | "created_at" | "updated_at" | "poster_completed_at"
+  | "helper_completed_at" | "parish"
+> & Partial<Pick<Tables<"jobs">, "helpers_needed">>;
+export type AdminProfileViolation = Tables<"user_violations">;
+export type AdminProfileBan = Tables<"user_bans">;
 
 interface OpenProfileDeps {
   setViewProfile: (p: Profile | null) => void;
   setEmailTracking: (rows: { event_type: string; email_type: string; created_at: string }[]) => void;
   setEmailSendStats: (rows: { template_name: string; count: number; last_sent: string }[]) => void;
-  setProfileJobs: (jobs: any[]) => void;
+  setProfileJobs: (jobs: AdminProfileJob[]) => void;
   setProfileReviews: (reviews: { rating: number; feedback: string | null; reviewer_name: string; created_at?: string; job_title?: string }[]) => void;
   setProfileReviewsLeft: (reviews: { rating: number; feedback: string | null; reviewee_name: string; created_at?: string; job_title?: string }[]) => void;
-  setProfileViolations: (violations: any[]) => void;
-  setProfileBans: (bans: any[]) => void;
+  setProfileViolations: (violations: AdminProfileViolation[]) => void;
+  setProfileBans: (bans: AdminProfileBan[]) => void;
 }
 
 export const makeOpenProfile = (deps: OpenProfileDeps) => {
@@ -51,7 +67,7 @@ export const makeOpenProfile = (deps: OpenProfileDeps) => {
             .eq("recipient_email", profile.email)
             .order("created_at", { ascending: false })
             .limit(500)
-        : Promise.resolve({ data: [] as any[], error: null }),
+        : Promise.resolve({ data: [] as Pick<Tables<"email_send_log">, "template_name" | "message_id" | "status" | "created_at">[], error: null }),
       supabase
         .from("jobs")
         .select("id, title, status, payment_status, budget, helper_fee_percent, customer_fee_amount, platform_fee_amount, sales_tax_amount, customer_id, helper_id, created_at, updated_at, poster_completed_at, helper_completed_at, parish")
@@ -87,30 +103,30 @@ export const makeOpenProfile = (deps: OpenProfileDeps) => {
     const relatedUserIds = new Set<string>();
     const relatedJobIds = new Set<string>();
     const addUser = (id: string | null | undefined) => { if (id) relatedUserIds.add(id); };
-    (reviewsRes.data || []).forEach((r: any) => { addUser(r.reviewer_id); if (r.job_id) relatedJobIds.add(r.job_id); });
-    (reviewsLeftRes.data || []).forEach((r: any) => { addUser(r.reviewee_id); if (r.job_id) relatedJobIds.add(r.job_id); });
+    (reviewsRes.data || []).forEach((r) => { addUser(r.reviewer_id); if (r.job_id) relatedJobIds.add(r.job_id); });
+    (reviewsLeftRes.data || []).forEach((r) => { addUser(r.reviewee_id); if (r.job_id) relatedJobIds.add(r.job_id); });
 
     const [relatedUsersRes, relatedJobsRes] = await Promise.all([
       relatedUserIds.size > 0
         ? supabase.from("profiles").select("user_id, full_name").in("user_id", Array.from(relatedUserIds))
-        : Promise.resolve({ data: [] as any[], error: null }),
+        : Promise.resolve({ data: [] as Pick<Tables<"profiles">, "user_id" | "full_name">[], error: null }),
       relatedJobIds.size > 0
         ? supabase.from("jobs").select("id, title").in("id", Array.from(relatedJobIds))
-        : Promise.resolve({ data: [] as any[], error: null }),
+        : Promise.resolve({ data: [] as Pick<Tables<"jobs">, "id" | "title">[], error: null }),
     ]);
     if (relatedUsersRes.error) console.error("[AdminUsers] openProfile relatedUsers:", relatedUsersRes.error);
     if (relatedJobsRes.error) console.error("[AdminUsers] openProfile relatedJobs:", relatedJobsRes.error);
-    const nameMap = new Map((relatedUsersRes.data || []).map((p: any) => [p.user_id, formatName(p.full_name)]));
-    const jobMap = new Map((relatedJobsRes.data || []).map((j: any) => [j.id, j.title]));
+    const nameMap = new Map<string | null, string>((relatedUsersRes.data || []).map((p) => [p.user_id, formatName(p.full_name)]));
+    const jobMap = new Map((relatedJobsRes.data || []).map((j) => [j.id, j.title]));
 
-    setProfileReviews((reviewsRes.data || []).map((r: any) => ({
+    setProfileReviews((reviewsRes.data || []).map((r) => ({
       rating: r.rating,
       feedback: r.feedback,
       reviewer_name: nameMap.get(r.reviewer_id) || "User",
       created_at: r.created_at,
       job_title: r.job_id ? jobMap.get(r.job_id) : undefined,
     })));
-    setProfileReviewsLeft((reviewsLeftRes.data || []).map((r: any) => ({
+    setProfileReviewsLeft((reviewsLeftRes.data || []).map((r) => ({
       rating: r.rating,
       feedback: r.feedback,
       reviewee_name: nameMap.get(r.reviewee_id) || "User",

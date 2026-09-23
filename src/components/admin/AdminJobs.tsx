@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
@@ -312,8 +313,8 @@ const AdminJobs = () => {
       setDeleteOpen(false);
       setDeleteReason("");
       setDetailJob(null);
-    } catch (err: any) {
-      toast.error(mutationErrorMessage(err, "Couldn't remove that job: " + err.message));
+    } catch (err: unknown) {
+      toast.error(mutationErrorMessage(err, "Couldn't remove that job: " + (err as Error).message));
     } finally {
       setDeleting(false);
     }
@@ -383,7 +384,7 @@ const AdminJobs = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const previousStatus = detailJob.status;
-      const updates: Record<string, any> = { status: overrideStatus };
+      const updates: TablesUpdate<"jobs"> = { status: overrideStatus };
       // Re-opening clears cancellation columns so the job is genuinely
       // re-bookable. Mark-complete sets completed_at if the column is
       // present; the existing column nullable defaults handle older rows.
@@ -402,6 +403,9 @@ const AdminJobs = () => {
       // with a deep link to a job still sitting in its old state. Same guard
       // the removal path above already carries.
       unwrapMutation(
+        // `as any` kept on purpose (Q184): without it scripts/check-race-class.mjs
+        // sees this unguarded jobs status write for the first time. The fix is a
+        // status predicate (a runtime change), queued as Q204 in OPEN.md.
         await (supabase.from("jobs").update as any)(updates).eq("id", detailJob.id).select("id"),
         {
           action: "override this job's status",

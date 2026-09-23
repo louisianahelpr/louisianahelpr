@@ -10,6 +10,7 @@
 import { toneTextClasses } from "@/components/admin/tones";
 import { AdminCard } from "@/components/admin/AdminViewShell";
 import { formatPrice } from "@/lib/format";
+import type { LucideIcon } from "lucide-react";
 
 /**
  * A labelled number on a card — the SAME treatment KpiCard gives one.
@@ -31,7 +32,7 @@ import { formatPrice } from "@/lib/format";
  * user sees moves.
  */
 export const MetricCard = ({ label, value, sub, icon: Icon, accent, warning, onClick, hint, subTone }: {
-  label: string; value: string | number; sub: string; icon: any; accent?: boolean; warning?: boolean; onClick?: () => void;
+  label: string; value: string | number; sub: string; icon: LucideIcon; accent?: boolean; warning?: boolean; onClick?: () => void;
   /** Native tooltip on the whole tile. Carries the WHY behind an em-dash value —
    *  a figure the screen refuses to invent still has to explain itself. */
   hint?: string;
@@ -80,7 +81,7 @@ export const MetricCard = ({ label, value, sub, icon: Icon, accent, warning, onC
   </button>
 );
 
-export const StatusRow = ({ icon: Icon, label, count, color }: { icon: any; label: string; count: number; color: string }) => (
+export const StatusRow = ({ icon: Icon, label, count, color }: { icon: LucideIcon; label: string; count: number; color: string }) => (
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-2">
       <Icon className={`w-3.5 h-3.5 ${color}`} />

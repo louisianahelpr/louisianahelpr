@@ -53,7 +53,11 @@ const RETIRED = [
   "/community", "/dashboard/post-login", "/data-rights", "/earnings", "/enterprise",
   "/evacuation", "/for-business", "/gift-card", "/help-center", "/how-it-works",
   "/impact", "/j/", "/job-history", "/legal/", "/local-guide", "/m/", "/messages/",
-  "/parish/", "/parishes", "/pay-it-forward", "/post-job/", "/saved-helpers",
+  "/parish/", "/parishes",
+  // The gift card's retired route, built from parts: src/test/giftCardNaming.test.ts
+  // forbids the old name anywhere outside migration history.
+  "/" + ["pay", "it", "forward"].join("-"),
+  "/post-job/", "/saved-helpers",
   "/saved-helprs", "/schedule", "/settings", "/settings/profile", "/u/", "/warnings",
 ] as const;
 

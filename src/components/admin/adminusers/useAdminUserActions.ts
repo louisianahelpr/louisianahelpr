@@ -38,7 +38,7 @@ export const makeAdminUserActions = ({
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       loadProfiles();
-    } catch (err: any) {
+    } catch (err) {
       toast.error(userFacingError(err, "Couldn't resend the verification email — try again"));
       report(err, { tags: { source: "AdminUsers.resendVerificationEmail" } });
     } finally {

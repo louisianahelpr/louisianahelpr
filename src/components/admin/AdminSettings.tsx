@@ -38,6 +38,9 @@ const FEE_LADDER: { id: SubscriptionTier; name: string; percent: number }[] = (
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
+/** What a caught save error is read for: a PostgrestError's code/message, or nothing. */
+type CaughtErr = { code?: string; message?: string } | null | undefined;
+
 const AdminSettings = () => {
   // Read-only now — displayed as the payout functions' fail-safe fallback, not
   // as an editable rate. See the Fee Model card below for why.
@@ -123,18 +126,18 @@ const AdminSettings = () => {
     setSavingMinBuild(true);
     try {
       unwrapMutation(
-        await (supabase.from as any)("platform_settings")
+        await supabase.from("platform_settings")
           .update({ min_supported_build: n })
           .eq("id", settingsId)
           .select("id"),
         { action: "update the minimum supported build" },
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       setSavingMinBuild(false);
-      if (err?.code === "42703") {
+      if ((err as CaughtErr)?.code === "42703") {
         toast.error("This setting isn't live yet — the latest database update is still deploying. Try again in a few minutes.");
       } else {
-        toast.error(mutationErrorMessage(err, err?.message));
+        toast.error(mutationErrorMessage(err, (err as CaughtErr)?.message));
       }
       return;
     }
@@ -171,7 +174,9 @@ const AdminSettings = () => {
 
   const handleSaveCaps = async () => {
     if (!settingsId) return;
-    const patch: Record<string, number | null> = {};
+    // Asserted rather than annotated: it starts empty, and the loop below fills
+    // every ABUSE_LIMITS key (or returns) before anything reads it.
+    const patch = {} as Record<AbuseLimitKey, number | null>;
     for (const limit of ABUSE_LIMITS) {
       const parsed = parseCapInput(capInputs[limit.key] ?? "");
       if (!parsed.ok) {
@@ -183,18 +188,18 @@ const AdminSettings = () => {
     setSavingCaps(true);
     try {
       unwrapMutation(
-        await (supabase.from as any)("platform_settings")
+        await supabase.from("platform_settings")
           .update(patch)
           .eq("id", settingsId)
           .select("id"),
         { action: "update the abuse limits" },
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       setSavingCaps(false);
-      if (err?.code === "42703") {
+      if ((err as CaughtErr)?.code === "42703") {
         toast.error("These settings aren't live yet — the latest database update is still deploying. Try again in a few minutes.");
       } else {
-        toast.error(mutationErrorMessage(err, err?.message));
+        toast.error(mutationErrorMessage(err, (err as CaughtErr)?.message));
       }
       return;
     }
@@ -232,9 +237,9 @@ const AdminSettings = () => {
           .select("id"),
         { action: "update the social webhook URL" },
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       setSavingWebhook(false);
-      toast.error(mutationErrorMessage(err, err?.message));
+      toast.error(mutationErrorMessage(err, (err as CaughtErr)?.message));
       return;
     }
     setSavingWebhook(false);

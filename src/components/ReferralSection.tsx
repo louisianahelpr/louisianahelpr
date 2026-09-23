@@ -145,7 +145,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         cashOutAttemptId.current = null;
         await queryClient.invalidateQueries({ queryKey: queryKeys.referral.byUser(userId) });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(userFacingError(err, "Couldn't cash out — try again?"));
     } finally {
       setCashingOut(false);

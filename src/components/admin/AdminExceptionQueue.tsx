@@ -86,7 +86,7 @@ const ExceptionQueueInner = () => {
 
       if (error) {
         // PGRST202 = function/table not found — migration not yet deployed
-        if ((error as any).code === "PGRST202" || error.message?.includes("does not exist")) {
+        if (error.code === "PGRST202" || error.message?.includes("does not exist")) {
           return [];
         }
         // THROW, don't `return []`. A toast is transient; the list it leaves
@@ -98,7 +98,7 @@ const ExceptionQueueInner = () => {
         throw error;
       }
 
-      const baseRows = (data ?? []) as any[];
+      const baseRows = data ?? [];
 
       // Hydrate poster names/emails via an explicit profiles lookup keyed on
       // user_id, since there's no FK to piggyback an embed on.
@@ -114,7 +114,7 @@ const ExceptionQueueInner = () => {
           .select("user_id, full_name, email")
           .in("user_id", userIds);
       if (profsError) report(profsError, { severity: "warning", tags: { source: "AdminExceptionQueue.hydrateNames" } });
-        (profs ?? []).forEach((p: any) =>
+        (profs ?? []).forEach((p) =>
           nameById.set(p.user_id, { full_name: p.full_name ?? null, email: p.email ?? null }),
         );
       }

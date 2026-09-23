@@ -12,7 +12,8 @@
  * keeps every re-export reachable.
  *
  * Session Replay is enabled ONLY in production builds (gated on
- * `import.meta.env.PROD`) with conservative sampling (10% sessions,
+ * `import.meta.env.PROD`), never in an automated browser (Q275,
+ * `isAutomatedBrowser`), with conservative sampling (10% sessions,
  * 100% on-error). All text inputs are masked by default for Stripe PCI
  * safety; media is unmasked so the UI surface is still legible in the
  * replay. Dev builds skip Replay entirely to keep the local bundle and
@@ -94,6 +95,30 @@ const RELEASE = resolveSentryRelease({
 });
 
 let initialized = false;
+
+/**
+ * Q275: an automated browser never records a Session Replay.
+ *
+ * MEASURED 2026-09-23 (Sentry helpr-4m, last 30 days): 63 replays, the newest
+ * 2026-09-14 (none since: "Replay Quota Exceeded"). 39 of the 63 carry a
+ * Playwright build signature (Chrome/HeadlessChrome 151.0.7922 = Playwright
+ * 1.62's bundled Chromium 151.0.7922.34; Mobile Safari 16.0 / 26.5 = its
+ * iPhone descriptors); 45 were signed in as a shared test account and 3 more
+ * were anonymous HeadlessChrome. Automation spent the replay quota. Errors are
+ * different: 93 of 265 (35%) carry the same signature, so errors still report,
+ * tagged `automated` so the share is exact from now on.
+ *
+ * `navigator.webdriver` is true under Playwright, Selenium and every other
+ * WebDriver/CDP-automation launch, headed or headless, whatever user agent a
+ * device descriptor fakes; a person's browser reports false.
+ */
+export function isAutomatedBrowser(): boolean {
+  try {
+    return typeof navigator !== "undefined" && navigator.webdriver === true;
+  } catch {
+    return false; // an unreadable navigator is treated as a person's browser
+  }
+}
 
 /**
  * Patterns matched against `event.message` and the first exception's
@@ -189,6 +214,8 @@ function isBenignEvent(event: MinimalEvent | null | undefined): boolean {
 export function initSentry() {
   if (initialized || typeof window === "undefined" || !DSN) return;
   try {
+    const automated = isAutomatedBrowser();
+    const recordReplays = import.meta.env.PROD && !automated;
     // Initial integration set is the minimal "always-on" tracking surface.
     // Session Replay is registered *after* init() returns, on the next
     // idle tick — see the deferred block below. Keeping it out of this
@@ -225,8 +252,9 @@ export function initSentry() {
       //   - 100% of sessions that hit an error (these are the ones we
       //     always want to see — debugging is the whole point).
       // Both default to 0 in dev because Replay isn't registered there.
-      replaysSessionSampleRate: import.meta.env.PROD ? 0.1 : 0,
-      replaysOnErrorSampleRate: import.meta.env.PROD ? 1.0 : 0,
+      // Both are 0 in an automated browser (Q275, isAutomatedBrowser).
+      replaysSessionSampleRate: recordReplays ? 0.1 : 0,
+      replaysOnErrorSampleRate: recordReplays ? 1.0 : 0,
 
       // Don't ship benign noise.
       ignoreErrors: [
@@ -243,6 +271,7 @@ export function initSentry() {
       },
     });
     initialized = true;
+    try { setTag("automated", automated ? "true" : "false"); } catch { /* ignore */ }
     markColdLaunchStart();
     // Phases recorded before Sentry loaded (Q178: nothing imports this SDK
     // early just to drop a breadcrumb any more) land now, at their real time.
@@ -257,7 +286,7 @@ export function initSentry() {
     // - networkDetailAllowUrls left at its default (empty) — replay
     //   captures request URLs but NOT bodies/headers, so auth tokens
     //   in Supabase responses or Stripe payloads can't leak.
-    if (import.meta.env.PROD) {
+    if (recordReplays) {
       const registerReplay = () => {
         // Dynamic import from `@sentry/react` so the replay integration is
         // registered lazily (on idle/fallback timer) rather than on the

@@ -61,6 +61,7 @@ export const PLAN_LIMITS = {
   vercel_build_minutes_month: { value: null, unit: "CPU minutes/month", source: "Vercel Hobby: no build-minute allowance number sourced in this repo; measured and logged, never graded." },
   resend_emails_month: { value: 3_000, unit: "emails/month", source: "Resend free plan: 3,000 emails/month (ASSUMED: the owner said only 'Resend has plan limits')." },
   resend_emails_day: { value: 100, unit: "emails/day", source: "Resend free plan: 100 emails/day (ASSUMED as above)." },
+  sentry_replays_month: { value: 50, unit: "replays/month", source: "Sentry Developer plan: 50 session replays/month (ASSUMED, not re-read 2026-09-23). Measured 2026-09-23: 63 replays accepted in the trailing 30 days, none after 2026-09-14, and the helpr-4m banner read \"Replay Quota Exceeded\" (docs/OPEN.md Q275)." },
   sentry_errors_month: { value: 5_000, unit: "errors/month", source: "Sentry Developer plan: 5,000 errors/month (ASSUMED: the owner said only 'Sentry has plan limits')." },
   vercel_deployment_storage_gb_month: { value: null, unit: "GB-months", source: "Vercel: no published deployment-storage allowance (\"your plan may include an allowance\", no number); measured and logged, never graded." },
 };
@@ -180,6 +181,17 @@ export const QUOTAS = [
     read: "sentry",
     env: "LH_QUOTA_SENTRY_ERRORS",
     limitSource: "Sentry Developer plan: 5,000 errors/month (ASSUMED: the owner said only 'Sentry has plan limits'; override with LH_QUOTA_SENTRY_ERRORS). Measured: Sentry stats for this project, outcome accepted.",
+  },
+  {
+    id: "sentry.replays_30d",
+    service: "Sentry",
+    name: "Session replays sent: accepted + dropped by quota (last 30 days)",
+    limit: PLAN_LIMITS.sentry_replays_month.value,
+    unit: "replays/month",
+    window: "trailing 30 days",
+    read: "sentry",
+    env: "LH_QUOTA_SENTRY_REPLAYS",
+    limitSource: "Sentry Developer plan: 50 replays/month (ASSUMED; override with LH_QUOTA_SENTRY_REPLAYS). Measured: org stats_v2 category=replay, outcomes accepted + rate_limited, so a quota that is already refusing replays reads OVER instead of looking flat at the cap (Q275).",
   },
 ];
 

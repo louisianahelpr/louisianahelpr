@@ -396,6 +396,30 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_catchup_schedules: {
+        Row: {
+          active: boolean
+          jobid: number
+          jobname: string | null
+          schedule: string
+          since: string
+        }
+        Insert: {
+          active?: boolean
+          jobid: number
+          jobname?: string | null
+          schedule: string
+          since?: string
+        }
+        Update: {
+          active?: boolean
+          jobid?: number
+          jobname?: string | null
+          schedule?: string
+          since?: string
+        }
+        Relationships: []
+      }
       cron_run_log: {
         Row: {
           body: Json

@@ -10,7 +10,7 @@ import { backgroundImport } from "@/lib/chunkReload";
 // is invisible to the user.
 async function identifyInPostHog(userId: string, props: Record<string, unknown>) {
   try {
-    const { identifyUser } = await backgroundImport(() => import("@/lib/posthog"));
+    const { identifyUser } = await backgroundImport(() => import("@/lib/posthog"), "posthog");
     identifyUser(userId, props);
   } catch {
     /* analytics must never break auth */

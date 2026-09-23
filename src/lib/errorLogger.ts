@@ -1,7 +1,8 @@
 /**
  * Lightweight error reporter — no third-party SDK, no DSN required.
  *
- * Writes structured error events to the `error_logs` table in Supabase.
+ * Writes structured error events to the `error_logs` table in Supabase, with
+ * a plain fetch: no lazily loaded chunk it depends on can fail (Q161).
  * Use this everywhere you would have used Sentry.captureException().
  *
  * When you're ready to add Sentry later, swap the body of `report()` to
@@ -10,7 +11,7 @@
 
 import { Capacitor } from "@capacitor/core";
 import type { Json } from "@/integrations/supabase/types";
-import { backgroundImport } from "@/lib/chunkReload";
+import { backgroundImport, getBackgroundImportFailures, onBackgroundImportFailure } from "@/lib/chunkReload";
 
 // ── Tunables ─────────────────────────────────────────────────────────
 const MESSAGE_MAX_CHARS = 1000;
@@ -87,30 +88,109 @@ function isDevEnvironment(stack: string | null | undefined): boolean {
   return false;
 }
 
-// ── Lazy supabase client ─────────────────────────────────────────────
-// Supabase client is dynamically imported (NOT statically) to keep the
-// ~50KB supabase-js chunk out of the initial bundle. installGlobalErrorHandlers()
-// is called eagerly from main.tsx so it can catch first-render throws, but the
-// actual flush is debounced — plenty of time for a dynamic import to resolve.
-// Anonymous landing-page visitors who never error will never download
-// supabase-js at all (Lighthouse "Reduce unused JavaScript").
-async function getSupabase() {
-  const mod = await backgroundImport(() => import("@/integrations/supabase/client"));
-  return mod.supabase;
+// ── Persistence: a plain fetch, never a lazily loaded chunk (Q161) ────
+// This used to import the supabase client through backgroundImport(). The
+// browser caches a failed dynamic import() for the life of the document, so
+// one transient failure of that chunk dropped every later report() in the
+// session, and the reports that would have explained the failure were the
+// first ones lost. `fetch` is always there, and it keeps supabase-js out of
+// the entry chunk just as the lazy import did. The request mirrors what
+// `supabase.from("error_logs").insert(batch)` sent (postgrest-js insert()):
+// POST /rest/v1/error_logs?columns=..., apikey, Authorization (the session's
+// access token, else the key), Content-Type json, Content-Profile public.
+const ERROR_LOG_COLUMNS = ["user_id", "severity", "message", "stack", "url", "user_agent", "tags", "context"] as const;
+/** fetch keepalive refuses bodies over 64 KiB; stay under it with margin. */
+const KEEPALIVE_MAX_BYTES = 60_000;
+
+/** What the persistence path has done this document (rows, not requests). */
+const persistStats = { attempted: 0, persisted: 0, failed: 0, lastStatus: 0 };
+/** Test seam: a snapshot of persistStats. */
+export function _persistStats(): Readonly<typeof persistStats> {
+  return { ...persistStats };
 }
 
-// Sentry + PostHog are dynamically imported for the same reason.
-// Static imports here would pull ~100KB of vendor code into the entry chunk
-// via main.tsx → errorLogger → sentry/posthog, defeating the deferred init.
-async function fanOutToObservability(err: unknown, extra: Record<string, unknown>) {
+/**
+ * The signed-in user's access token, if storage holds an unexpired one.
+ * supabase-js keeps the session under `sb-<project-ref>-auth-token` (the
+ * native keychain adapter mirrors it into localStorage). With no token the row
+ * still lands under the anon role, which the insert policy allows; the server
+ * stamps user_id from the token either way (stamp_error_log_origin, Q106).
+ */
+function storedAccessToken(supabaseUrl: string): string | null {
   try {
-    const [{ captureException: sentryCapture }, { captureException: posthogCapture }] =
-      await backgroundImport(() => Promise.all([import("@/lib/sentry"), import("@/lib/posthog")]));
-    sentryCapture(err, extra);
-    posthogCapture(err, extra);
+    const ref = new URL(supabaseUrl).hostname.split(".")[0];
+    const raw = localStorage.getItem(`sb-${ref}-auth-token`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { access_token?: unknown; expires_at?: unknown } | null;
+    const token = parsed?.access_token;
+    if (typeof token !== "string" || !token) return null;
+    // An expired token is refused with 401, and the whole batch with it.
+    const expiresAt = typeof parsed?.expires_at === "number" ? parsed.expires_at : 0;
+    if (expiresAt && expiresAt * 1000 <= Date.now() + 5_000) return null;
+    return token;
   } catch {
-    /* observability must never break the app */
+    // Storage blocked or unparseable: send as anon, which the policy allows.
+    return null;
   }
+}
+
+async function postErrorLogs(batch: ErrorLogRow[]): Promise<void> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+  persistStats.attempted += batch.length;
+  if (!supabaseUrl || !key || typeof fetch !== "function") {
+    persistStats.failed += batch.length;
+    return;
+  }
+  const columns = ERROR_LOG_COLUMNS.map((c) => `"${c}"`).join(",");
+  const url = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/error_logs?columns=${encodeURIComponent(columns)}`;
+  const body = JSON.stringify(batch);
+  const send = (bearer: string) =>
+    fetch(url, {
+      method: "POST",
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${bearer}`,
+        "Content-Type": "application/json",
+        "Content-Profile": "public",
+      },
+      body,
+      // Lets a flush that starts as the page goes away still complete.
+      keepalive: body.length < KEEPALIVE_MAX_BYTES,
+    });
+  try {
+    const token = storedAccessToken(supabaseUrl);
+    let res = await send(token ?? key);
+    // A token the server no longer accepts (revoked, clock skew): the row is
+    // still worth having, so send it once more as anon.
+    if (res.status === 401 && token) res = await send(key);
+    persistStats.lastStatus = res.status;
+    if (res.ok) persistStats.persisted += batch.length;
+    else persistStats.failed += batch.length;
+  } catch {
+    // Network failed. Counted, never reported: reporting a logging failure
+    // through the logger would recurse on itself.
+    persistStats.failed += batch.length;
+  }
+}
+
+// Sentry + PostHog are dynamically imported to keep ~100KB of vendor code out
+// of the entry chunk (main.tsx → errorLogger → sentry/posthog would defeat the
+// deferred init). Loaded SEPARATELY, so one failed chunk does not silence the
+// other too; each failure is counted and surfaced by backgroundImport (Q161).
+async function fanOutToObservability(err: unknown, extra: Record<string, unknown>) {
+  await Promise.all([
+    backgroundImport(() => import("@/lib/sentry"), "sentry")
+      .then(({ captureException }) => captureException(err, extra))
+      .catch(() => {
+        /* counted and reported once by backgroundImport; observability must never break the app */
+      }),
+    backgroundImport(() => import("@/lib/posthog"), "posthog")
+      .then(({ captureException }) => captureException(err, extra))
+      .catch(() => {
+        /* counted and reported once by backgroundImport; observability must never break the app */
+      }),
+  ]);
 }
 
 // ── Public types ─────────────────────────────────────────────────────
@@ -146,12 +226,78 @@ async function flush() {
   flushing = true;
   const batch = queue.splice(0, queue.length);
   try {
-    const supabase = await getSupabase();
-    await supabase.from("error_logs").insert(batch);
-  } catch {
-    // Network failed — drop. We don't want logging to recurse on itself.
+    await postErrorLogs(batch);
   } finally {
     flushing = false;
+    // Rows queued while this batch was in flight saw no timer to join and
+    // scheduled none of their own (the timer is cleared on entry); pick them up.
+    if (queue.length > 0) scheduleFlush();
+  }
+}
+
+/** Coalesce multiple reports in a tight burst into a single flush. */
+function scheduleFlush() {
+  if (pendingTimer === null) {
+    pendingTimer = setTimeout(flush, FLUSH_DEBOUNCE_MS);
+  }
+}
+
+// ── Failed background imports (Q161) ─────────────────────────────────
+// analytics, posthog and sentry still load lazily, and each caller's catch
+// drops what it was sending. A failed chunk stays failed for the whole
+// document, so that loss is total and was silent. Say so ONCE per module per
+// session, through the fetch path above, which depends on no chunk.
+const BG_FAILURE_FLAG_PREFIX = "helpr_bg_import_failed_reported:";
+const bgFailureReportedInMemory = new Set<string>();
+
+function claimBackgroundFailureReport(name: string): boolean {
+  if (bgFailureReportedInMemory.has(name)) return false;
+  bgFailureReportedInMemory.add(name);
+  try {
+    if (sessionStorage.getItem(BG_FAILURE_FLAG_PREFIX + name)) return false;
+    sessionStorage.setItem(BG_FAILURE_FLAG_PREFIX + name, String(Date.now()));
+  } catch {
+    // No sessionStorage: the in-memory set still caps it at one per document.
+  }
+  return true;
+}
+
+function noteBackgroundImportFailure(name: string, err: unknown) {
+  const rawStack = err instanceof Error ? (err.stack ?? null) : null;
+  if (isDevEnvironment(rawStack)) return;
+  if (!claimBackgroundFailureReport(name)) return;
+  const context: Record<string, Json> = {
+    error: (redact(describeUnknownError(err)) ?? "").slice(0, MESSAGE_MAX_CHARS),
+    failures: getBackgroundImportFailures(),
+  };
+  if (typeof __APP_COMMIT_FULL__ !== "undefined" && __APP_COMMIT_FULL__ !== "dev") {
+    context.release = __APP_COMMIT_FULL__;
+  }
+  queue.push({
+    user_id: null,
+    severity: "warning",
+    message: `background import failed: ${name}`.slice(0, MESSAGE_MAX_CHARS),
+    stack: redact(rawStack)?.slice(0, STACK_MAX_CHARS) ?? null,
+    url: sanitizeUrl(typeof window !== "undefined" ? window.location.href : null),
+    user_agent: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, USER_AGENT_MAX_CHARS) : null,
+    tags: { source: "backgroundImport", module: name },
+    context,
+  });
+  // No fan-out: the module that failed may be sentry or posthog itself.
+  scheduleFlush();
+}
+
+onBackgroundImportFailure(noteBackgroundImportFailure);
+
+/** Test-only: forget which failures were already reported this session. */
+export function _resetBackgroundFailureReportsForTests() {
+  bgFailureReportedInMemory.clear();
+  try {
+    for (const k of Object.keys(sessionStorage)) {
+      if (k.startsWith(BG_FAILURE_FLAG_PREFIX)) sessionStorage.removeItem(k);
+    }
+  } catch {
+    /* no storage, nothing to clear */
   }
 }
 
@@ -257,10 +403,7 @@ export function report(err: unknown, opts: ReportOptions = {}) {
   // they don't bloat the initial bundle).
   void fanOutToObservability(err, { ...context, ...opts.tags });
 
-  // Coalesce multiple reports in a tight burst into a single flush.
-  if (pendingTimer === null) {
-    pendingTimer = setTimeout(flush, FLUSH_DEBOUNCE_MS);
-  }
+  scheduleFlush();
 }
 
 /** Wire up global handlers once on app boot. Called from main.tsx. */

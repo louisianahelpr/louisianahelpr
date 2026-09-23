@@ -5,10 +5,17 @@ import { _redact, _sanitizeUrl, _isDevEnvironment, _describeUnknownError, report
 // in isolation; this captures the payload so the scrubbers can be shown to be
 // WIRED IN — see the last describe block.
 type LoggedRow = { message: string; url: string | null; context: Record<string, unknown> };
-const insertSpy = vi.hoisted(() => vi.fn(async (_rows: unknown[]) => ({ error: null })));
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { from: () => ({ insert: insertSpy }) },
-}));
+// Rows now leave by a plain fetch POST to /rest/v1/error_logs (Q161); the spy
+// hands back the parsed batch in the shape the old insert spy did.
+const fetchSpy = vi.hoisted(() => vi.fn(async (_url: string, _init: RequestInit) => new Response(null, { status: 201 })));
+vi.stubGlobal("fetch", fetchSpy);
+const insertSpy = {
+  get mock() {
+    return { calls: fetchSpy.mock.calls.map((c) => [JSON.parse(String(c[1].body))]) };
+  },
+  mockClear: () => fetchSpy.mockClear(),
+};
+const insertCalled = () => expect(fetchSpy).toHaveBeenCalled();
 vi.mock("@/lib/sentry", () => ({ captureException: vi.fn() }));
 vi.mock("@/lib/posthog", () => ({ captureException: vi.fn() }));
 
@@ -194,7 +201,7 @@ describe("report() applies the scrubbing to the row it persists", () => {
       context: { callbackUrl: "https://app.example.com/auth?token=abc123def456" },
     });
 
-    await vi.waitFor(() => expect(insertSpy).toHaveBeenCalled(), { timeout: 3000 });
+    await vi.waitFor(() => insertCalled(), { timeout: 3000 });
     const row = insertSpy.mock.calls[0][0][0] as LoggedRow;
 
     expect(row.message).toContain("Bearer <redacted>");
@@ -215,7 +222,7 @@ describe("report() applies the scrubbing to the row it persists", () => {
     localStorage.setItem("sb-test-auth-token", JSON.stringify({ user: { id: "00000000-0000-0000-0000-00000000dead" } }));
     try {
       report(new Error("stale session report"), { severity: "warning" });
-      await vi.waitFor(() => expect(insertSpy).toHaveBeenCalled(), { timeout: 3000 });
+      await vi.waitFor(() => insertCalled(), { timeout: 3000 });
       const rows = insertSpy.mock.calls[0][0] as Array<{ user_id: unknown }>;
       expect(rows.length).toBeGreaterThan(0);
       for (const r of rows) expect(r.user_id).toBeNull();
@@ -232,14 +239,14 @@ describe("report() applies the scrubbing to the row it persists", () => {
     insertSpy.mockClear();
     report(new Error("dev noise"));
     await new Promise((r) => setTimeout(r, 400));
-    expect(insertSpy).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
 
 // The scrubbers were provably correct and provably UNWIRED: every assertion
 // above calls them directly, so `report()` persisted raw bearer tokens with
 // all 21 green. These mutations break the CALL SITES, not the regexes.
-// @mutate src/lib/errorLogger.ts | user_id: null,\n | user_id: "00000000-0000-0000-0000-00000000dead",\n
+// @mutate src/lib/errorLogger.ts | (Q110).\n    user_id: null,\n | (Q110).\n    user_id: "00000000-0000-0000-0000-00000000dead",\n
 // @mutate src/lib/errorLogger.ts | const message = (redact(rawMessage) ?? "").slice(0, MESSAGE_MAX_CHARS); | const message = (rawMessage ?? "").slice(0, MESSAGE_MAX_CHARS);
 // @mutate src/lib/errorLogger.ts | context[k] = typeof v === "string" ? redact(v) : (v as Json); | context[k] = v as Json;
 // @mutate src/lib/errorLogger.ts | const url = sanitizeUrl(typeof window !== "undefined" ? window.location.href : null); | const url = typeof window !== "undefined" ? window.location.href : null;

@@ -176,14 +176,52 @@ export const beginSpeculativePrefetch = (): (() => void) => {
  * sent!" as it appeared. The user was left with no confirmation for an
  * application that had gone through.
  */
-export async function backgroundImport<T>(load: () => Promise<T>): Promise<T> {
+export async function backgroundImport<T>(load: () => Promise<T>, name: string = "unnamed"): Promise<T> {
   const settle = beginSpeculativePrefetch();
+  // A load that never settles (a stalled request with no network error) must
+  // not hold the gate forever: while it is held, main.tsx declines EVERY
+  // stale-chunk recovery, including one for a route the user is waiting on.
+  const gateTimer = setTimeout(settle, BACKGROUND_IMPORT_GATE_TIMEOUT_MS);
   try {
     return await load();
+  } catch (err) {
+    // The browser caches a failed module fetch for the life of the document,
+    // so every later call for this module fails too, and each caller's catch
+    // drops what it was sending. Count it and tell the listener (errorLogger),
+    // so the loss itself is visible (Q161).
+    backgroundImportFailures[name] = (backgroundImportFailures[name] ?? 0) + 1;
+    try {
+      backgroundImportFailureListener?.(name, err);
+    } catch {
+      /* the listener is best-effort; the caller still gets the original error */
+    }
+    throw err;
   } finally {
+    clearTimeout(gateTimer);
     settle();
   }
 }
+
+/**
+ * How long a background import may hold the recovery gate. Measured on prod
+ * 2026-09-23 (Q161): the lazy chunks backgroundImport loads (supabase-client,
+ * posthog, sentry) arrive in well under a second on a normal connection; 15s
+ * covers a slow cellular fetch many times over, and anything still pending
+ * after that is stalled, not loading.
+ */
+export const BACKGROUND_IMPORT_GATE_TIMEOUT_MS = 15_000;
+
+/** Failed background imports this document, by module name (Q161). */
+const backgroundImportFailures: Record<string, number> = {};
+let backgroundImportFailureListener: ((name: string, err: unknown) => void) | null = null;
+
+/** Register the one listener told about each failed background import (errorLogger). */
+export const onBackgroundImportFailure = (fn: ((name: string, err: unknown) => void) | null): void => {
+  backgroundImportFailureListener = fn;
+};
+
+/** Snapshot of the failed-background-import counter. */
+export const getBackgroundImportFailures = (): Record<string, number> => ({ ...backgroundImportFailures });
 
 /** True while at least one speculative route prefetch is still in flight. */
 export const isSpeculativePrefetchInFlight = (): boolean => speculativePrefetchesInFlight > 0;
@@ -228,6 +266,7 @@ export const __resetChunkReloadForTests = (): void => {
   pendingRetry = null;
   recoveryReloadInFlight = false;
   speculativePrefetchesInFlight = 0;
+  for (const k of Object.keys(backgroundImportFailures)) delete backgroundImportFailures[k];
 };
 
 /**

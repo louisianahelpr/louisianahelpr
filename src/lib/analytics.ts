@@ -24,7 +24,7 @@ type AnalyticsEventRow = {
 // flush() is debounced 1.5s, well past any dynamic-import resolution time.
 async function getSupabase() {
   // Background: a failed fetch must not reload the page (backgroundImport, Q131).
-  const mod = await backgroundImport(() => import("@/integrations/supabase/client"));
+  const mod = await backgroundImport(() => import("@/integrations/supabase/client"), "supabase-client");
   return mod.supabase;
 }
 
@@ -34,7 +34,7 @@ async function getSupabase() {
 // until initPostHog() runs in main.tsx.
 async function fanOutToPostHog(event: string, props: Record<string, unknown>) {
   try {
-    const { captureEvent } = await backgroundImport(() => import("@/lib/posthog"));
+    const { captureEvent } = await backgroundImport(() => import("@/lib/posthog"), "posthog");
     captureEvent(event, props);
   } catch {
     /* analytics must never break the app */

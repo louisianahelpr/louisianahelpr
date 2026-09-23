@@ -15,11 +15,17 @@
  * flag is up. The mocked module factories below run exactly while their
  * import is being resolved, so each records the flag at that moment.
  */
-// @mutate src/lib/analytics.ts | const { captureEvent } = await backgroundImport(() => import("@/lib/posthog")); | const { captureEvent } = await import("@/lib/posthog");
-// @mutate src/lib/analytics.ts | const mod = await backgroundImport(() => import("@/integrations/supabase/client")); | const mod = await import("@/integrations/supabase/client");
-// @mutate src/lib/chunkReload.ts | const settle = beginSpeculativePrefetch();\n  try {\n    return await load(); | const settle = () => {};\n  try {\n    return await load();
+// @mutate src/lib/analytics.ts | const { captureEvent } = await backgroundImport(() => import("@/lib/posthog"), "posthog"); | const { captureEvent } = await import("@/lib/posthog");
+// @mutate src/lib/analytics.ts | const mod = await backgroundImport(() => import("@/integrations/supabase/client"), "supabase-client"); | const mod = await import("@/integrations/supabase/client");
+// @mutate src/lib/chunkReload.ts | const settle = beginSpeculativePrefetch();\n  // A load that never settles | const settle = () => {};\n  // A load that never settles
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { backgroundImport, isSpeculativePrefetchInFlight, __resetChunkReloadForTests } from "./chunkReload";
+// @mutate src/lib/chunkReload.ts | const gateTimer = setTimeout(settle, BACKGROUND_IMPORT_GATE_TIMEOUT_MS); | const gateTimer = setTimeout(() => {}, BACKGROUND_IMPORT_GATE_TIMEOUT_MS);
+import {
+  BACKGROUND_IMPORT_GATE_TIMEOUT_MS,
+  backgroundImport,
+  isSpeculativePrefetchInFlight,
+  __resetChunkReloadForTests,
+} from "./chunkReload";
 
 const flagDuringImport: Record<string, boolean> = {};
 
@@ -55,6 +61,16 @@ describe("backgroundImport (Q131)", () => {
     const err = new Error("Failed to fetch dynamically imported module: /assets/posthog-x.js");
     await expect(backgroundImport(() => Promise.reject(err))).rejects.toBe(err);
     expect(isSpeculativePrefetchInFlight()).toBe(false);
+  });
+
+  it("releases the gate after the timeout when the load never settles (Q161)", async () => {
+    vi.useFakeTimers();
+    void backgroundImport(() => new Promise<never>(() => {}), "never-settles");
+    expect(isSpeculativePrefetchInFlight()).toBe(true);
+    await vi.advanceTimersByTimeAsync(BACKGROUND_IMPORT_GATE_TIMEOUT_MS - 1);
+    expect(isSpeculativePrefetchInFlight(), "gate still held just before the timeout").toBe(true);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(isSpeculativePrefetchInFlight(), "a stalled background load must not suppress recovery forever").toBe(false);
   });
 
   it("track() fetches posthog and the supabase client only under the gate — the path that reloaded the page on prod", async () => {

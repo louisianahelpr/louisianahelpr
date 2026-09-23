@@ -87,7 +87,43 @@ echo "pgmq queues named by the dump: ${QUEUES:-none}"
   done
   if grep -q '^INSERT INTO "pgmq"\."meta"' "$DIR/data.sql"; then echo "DELETE FROM pgmq.meta;"; fi
 } | "${PSQL[@]}" > "$OUT/pgmq.out" 2> "$OUT/pgmq.err"
+# STEP 2c — the ensure_rls event trigger. The CLI's schema dump comments event
+# triggers out, and this one is ours (created from the dashboard, in no
+# migration): it turns RLS on for every new public table. Measured on the
+# first drill: 6 event triggers restored, prod has 7, ensure_rls the missing one.
+"${PSQL[@]}" > "$OUT/evt.out" 2> "$OUT/evt.err" <<'SQL'
+DO $$ BEGIN
+  IF to_regprocedure('public.rls_auto_enable()') IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM pg_event_trigger WHERE evtname = 'ensure_rls') THEN
+    CREATE EVENT TRIGGER ensure_rls ON ddl_command_end
+      WHEN TAG IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+      EXECUTE FUNCTION public.rls_auto_enable();
+  END IF;
+END $$;
+SQL
+# DRILL-VENUE ONLY: the local `supabase start` storage image lags hosted
+# storage, and prod's storage.buckets has two columns it lacks — so the dump's
+# single buckets INSERT fails and every bucket is lost. A hosted project being
+# restored into is at least as new as prod and has them; adding them here keeps
+# the drill measuring the BACKUP, not the CLI's image version. Types measured
+# on prod 2026-09-23 (information_schema.columns).
+"${PSQL[@]}" > "$OUT/venue.out" 2> "$OUT/venue.err" <<'SQL'
+ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS lifecycle_configuration jsonb;
+ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS lifecycle_configuration_generation uuid;
+SQL
 "${PSQL[@]}" -c 'SET session_replication_role = replica' -f "$DIR/data.sql" > "$OUT/data.out" 2> "$OUT/data.err"
+# STEP 4 — cron schedules (db-backup.yml exports them as cron.sql; the data
+# dump carries none). Loaded, then ALL deactivated in the same transaction: on
+# a real restore they are switched back on only after the vault secrets they
+# call through exist (runbook §4). Required: a backup without them is a
+# restore that silently stops releasing payments.
+if [ -s "$DIR/cron.sql" ]; then
+  "${PSQL[@]}" -1 -f "$DIR/cron.sql" -c 'UPDATE cron.job SET active = false' > "$OUT/cron.out" 2> "$OUT/cron.err"
+else
+  echo "::error::backup has no cron.sql — the $(date -u +%F) restore would bring back zero cron schedules"
+  : > "$OUT/cron.err"
+  FAIL=1
+fi
 T1=$(date +%s)
 RESTORE_SECS=$((T1 - T0))
 echo "restore wall time: ${RESTORE_SECS}s"
@@ -99,7 +135,7 @@ echo "restore wall time: ${RESTORE_SECS}s"
 # this exists to notice.
 : > "$OUT/errors-unexpected.txt"
 : > "$OUT/errors-known.txt"
-for f in roles acl schema pgmq data; do
+for f in roles acl schema pgmq evt venue data cron; do
   # grep exits 1 on no match, which is a legitimate "no errors".
   { grep -E '(ERROR|FATAL):' "$OUT/$f.err" || [ $? -eq 1 ]; } | while IFS= read -r line; do
     matched=""
@@ -128,7 +164,7 @@ TABLES=(
   auth.users public.profiles public.jobs public.applications public.messages
   public.notifications public.reviews public.disputes public.payout_transfers
   public.payment_refunds public.instant_payouts public.gift_cards
-  public.dispute_settlement_claims public.referral_credits cron.job storage.objects
+  public.dispute_settlement_claims public.referral_credits cron.job storage.buckets storage.objects
 )
 SQL=""
 for t in "${TABLES[@]}"; do
@@ -206,6 +242,7 @@ PROD_TABLES=$(curl -sS --fail-with-body -X POST \
   --data '{"query":"select tablename from pg_tables where schemaname = '"'"'public'"'"' order by 1"}' \
   | jq -r '.[].tablename')
 REST_TABLES=$(gap "select tablename from pg_tables where schemaname='public' order by 1")
+echo "prod public tables: $(printf '%s\n' "$PROD_TABLES" | grep -c .); restored: $(printf '%s\n' "$REST_TABLES" | grep -c .)"
 comm -23 <(printf '%s\n' "$PROD_TABLES" | sort) <(printf '%s\n' "$REST_TABLES" | sort)
 echo "--- default privileges on the restored copy ---"
 gap "select pg_get_userbyid(defaclrole)||' '||defaclobjtype::text||' '||array_to_string(defaclacl, ',') from pg_default_acl"

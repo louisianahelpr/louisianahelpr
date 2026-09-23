@@ -136,6 +136,36 @@ jobs:
           supabase db dump --linked --data-only -f out/data.sql
           ls -l out/
 
+      - name: Export the pg_cron schedules
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          set -euo pipefail
+          # The restore drill (db-restore-drill.yml, 2026-09-23) measured that
+          # `supabase db dump --data-only` carries NO cron.job rows: a restore
+          # came back with 0 of prod's 55 schedules (auto-release-payment,
+          # process-scheduled-payouts, money-reconciliation, the email queue
+          # among them), all silently never running again. So the schedules are
+          # exported here as replayable cron.schedule() calls plus the active
+          # flag. Commands reference vault secrets BY NAME; no secret value is
+          # in this file.
+          Q="select coalesce(string_agg(format('SELECT cron.schedule(%L, %L, %L);', jobname, schedule, command) || case when active then '' else format(E'\nUPDATE cron.job SET active = false WHERE jobname = %L;', jobname) end, E'\n' order by jobname), '') as sql, count(*) as n from cron.job"
+          RES=$(curl -sS --fail-with-body -X POST \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" -H 'Content-Type: application/json' \
+            --data "$(jq -n --arg q "$Q" '{query: $q}')")
+          N=$(printf '%s' "$RES" | jq -r '.[0].n')
+          printf '%s' "$RES" | jq -r '.[0].sql' > out/cron.sql
+          GOT=$( { grep -c '^SELECT cron.schedule(' out/cron.sql || [ $? -eq 1 ]; } )
+          echo "cron.job rows: $N; schedule statements written: $GOT"
+          # 55 at the time of writing (2026-09-23). The floor catches an empty
+          # or failed read; the equality catches a partial one.
+          if [ "$N" -lt 20 ] || [ "$GOT" -ne "$N" ]; then
+            echo "::error::cron export incomplete ($GOT of $N statements; expected at least 20)"
+            exit 1
+          fi
+
       - name: Verify the dump is real
         run: |
           set -euo pipefail
@@ -213,7 +243,7 @@ jobs:
         run: |
           set -euo pipefail
           STAMP=$(date -u +%Y-%m-%d)
-          tar czf "backup-$STAMP.tar.gz" -C out roles.sql schema.sql data.sql
+          tar czf "backup-$STAMP.tar.gz" -C out roles.sql schema.sql data.sql cron.sql
           gpg --batch --yes --symmetric --cipher-algo AES256 \
               --passphrase "$BACKUP_PASSPHRASE" \
               -o "backup-$STAMP.tar.gz.gpg" "backup-$STAMP.tar.gz"
@@ -237,6 +267,7 @@ jobs:
           grep -qx "data.sql"   listing.txt
           grep -qx "roles.sql"  listing.txt
           grep -qx "schema.sql" listing.txt
+          grep -qx "cron.sql"   listing.txt
           rm -f roundtrip.tar.gz listing.txt
 
       - uses: actions/upload-artifact@v5

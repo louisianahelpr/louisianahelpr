@@ -2,7 +2,7 @@
  * GUARD (docs/OPEN.md Q45): the database backup is PROVEN restorable, on a
  * schedule, and a failed restore is reported.
  *
- * Prod is on the Supabase free tier — no platform backup, no PITR. The
+ * Prod has no PITR, and the platform's daily backups restore only IN PLACE. The
  * nightly db-backup artifact is the only restore source, and until
  * 2026-09-23 no one had ever restored one. This test pins the drill that does:
  * the workflow exists, is scheduled, downloads the latest backup artifact,
@@ -79,12 +79,24 @@ describe("the backup restore drill exists and has teeth", () => {
     expect(script).toMatch(/SUPABASE_ACCESS_TOKEN[^\n]*SUPABASE_PROJECT_REF[\s\S]{0,300}exit 1/);
   });
 
+  it("the script carries the three repairs the first drill proved necessary", () => {
+    // 306 of 306 functions came back anon-executable without this (prod: 17).
+    expect(script).toMatch(/ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon/);
+    expect(script).toMatch(/restored copy lets anon EXECUTE[^\n]*\n\s+FAIL=1/);
+    // 0 of 55 cron schedules came back: the backup must carry cron.sql and the drill must load it.
+    expect(script).toMatch(/-f "\$DIR\/cron\.sql"/);
+    expect(script).toMatch(/backup has no cron\.sql[\s\S]{0,160}FAIL=1/);
+    expect(read(".github/workflows/db-backup.yml")).toMatch(/-C out roles\.sql schema\.sql data\.sql cron\.sql/);
+    // ensure_rls is commented out of every CLI schema dump.
+    expect(script).toMatch(/CREATE EVENT TRIGGER ensure_rls/);
+  });
+
   it("every known-benign restore error carries a reason", () => {
     const entries = known.split("\n").filter((l) => l.trim() && !l.startsWith("#"));
     expect(entries.length).toBeGreaterThan(0);
     for (const e of entries) {
       const [file, re, reason] = e.split("|");
-      expect(["roles", "schema", "data"], e).toContain(file);
+      expect(["roles", "acl", "schema", "pgmq", "evt", "venue", "data", "cron"], e).toContain(file);
       expect(() => new RegExp(re), e).not.toThrow();
       expect((reason ?? "").length, e).toBeGreaterThan(40);
     }

@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 55 done, 7 partly done (fixed, protection pending), 83 open. Source of truth for work.
+- **Queue (this file):** 55 done, 7 partly done (fixed, protection pending), 87 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 145 items — 55 done, 7 partly done (fixed, protection pending), 83 open.**
+**Queue: 149 items — 55 done, 7 partly done (fixed, protection pending), 87 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -156,6 +156,7 @@ sure someone hears it and closes it.
   review, e.g. a review-log entry that CI checks for commits touching
   supabase/migrations or RLS-sensitive files. It reports; it does not block.
 - [ ] **Q10 Owner-side, carried over:** release dispute 9756a585's payout;
+  **ANSWERED 2026-09-23:** dispute 9756a585 (seed): Claude settles it in TEST mode (work item Q148); Stripe payouts: MANUAL (owner sets it: Stripe Dashboard > Settings > Payouts); sales tax: Stripe collects it (create-payment already sends automatic_tax enabled; owner must register Louisiana in Stripe Tax, or Stripe collects nothing); right-panel overlap screenshot still owed.
   set Stripe payouts to manual; decide Louisiana sales tax; send a screenshot
   or window width for the right-panel overlap.
 - [x] **Stored-XSS class: user-writable URL column -> raw href** (follow-up to
@@ -213,6 +214,7 @@ sure someone hears it and closes it.
   (d) Not device-tested in a native WKWebView. The Capacitor build's meta CSP was
   checked in desktop WebKit over http only.
 - [ ] **Q14 Supabase security advisors (live 2026-09-23):** NOTE 2026-09-23: the org is on PRO (measured with get_organization), not free. Leaked-password protection IS available; the old "accepted risk" decision assumed free tier. Re-ask the owner (morning).
+  **ANSWERED 2026-09-23: turn leaked-password (HIBP) protection ON** (work item Q149).
   - ERROR `security_definer_view` on open_jobs_browse. Confirm it's intentional
     (CLAUDE.md puts browse visibility there) or switch to security_invoker.
   - 10 SECURITY DEFINER functions executable by anon (early_access_cutoff,
@@ -479,6 +481,10 @@ sure someone hears it and closes it.
 - [ ] **Q144 LAUNCH CHECKLIST: stop real email to is_seed accounts at launch (owner decision 2026-09-23: keep sending until launch).** At launch, skip sending to is_seed recipients (log skipped_seed in email_send_log) with an allowlist for delivery-asserting journeys, so test mail stops spending the Resend daily quota real users need.
 - [ ] **Q145 Top up the Stripe TEST balance by $500 and re-run the failed test payouts (owner approved 2026-09-23).** TEST mode only (card 4000 0000 0000 0077 funds available balance immediately). Verify the key is sk_test before any charge; re-run the failed payouts through the app's own path; report balance before/after and each payout's result.
 - [ ] **Q146 Turn the Facebook marketing channel off until the Page token exists (owner decision 2026-09-23).** Stops marketing-publish failing every 15 min (meta_secrets_missing) at the source. OWNER TO-DO kept: add META_PAGE_ACCESS_TOKEN + META_PAGE_ID, then turn it back on.
+- [ ] **Q147 Back up uploaded files except id-documents (owner decision 2026-09-23).** Buckets proof-photos, job-photos, message-attachments, user-documents, avatars (~150 objects, ~10 MB) into the existing encrypted db-backup artifact; id-documents excluded for privacy. Extend the weekly restore drill to prove the files restore.
+- [ ] **Q148 Settle seed dispute 9756a585 in Stripe TEST mode (owner approved 2026-09-23).** Through the admin dispute path; verify the dispute-unsettled-seed ledger item closes.
+- [ ] **Q149 Turn on leaked-password (HIBP) protection (owner decision 2026-09-23, Pro plan).** Supabase Auth password security setting; verify the advisor clears and a breached password is refused at signup with a clear message.
+- [ ] **Q150 Triage stale remote branches (owner decision 2026-09-23).** Delete the 26 fully merged; for each of the 34 with patches not on main (git cherry), say what it holds and whether it is worth landing; list for the owner; delete the rest only after that list.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes
@@ -1228,6 +1234,7 @@ sure someone hears it and closes it.
   days. Decide keep (commit as dated records) or scratch (delete), and add
   a staleness rule so untracked files older than N days in docs/ are flagged.
 - [ ] **Q79 Stale REMOTE branches. MEASURED 2026-09-23 06:10Z: 63 remote branches; 26 fully merged (safe to delete); 34 carry patches NOT on main by patch-id (git cherry)**, incl. sec-hardening (17 files, +4259), role-neutral-copy (60 files), feat/apple-iap (booby-trapped per memory: rebuild, never merge), wip/race2-terminal (+3439), fix-refund-double-pay (9 files), fix-jobs-completion-columns, 7 holes-* audit branches (single docs files), 9 wip/* agent branches, 5 dependabot. Full list: ~/.remote-unlanded.txt (regenerate: git cherry per branch). Each needs a verdict: landed differently (close), still needed (land), or abandoned (report to the owner before deleting). origin holds old branches (e.g.
+  **ANSWERED 2026-09-23: triage** — delete the 26 fully merged now; an agent reviews the 34 unmerged, lists anything worth landing for the owner, deletes the rest (work item Q150).
   fix-iap-cashout-errorleak, rpc-error-map); hygiene cleans local only. List
   every remote branch with ahead/behind counts vs main. A branch fully merged
   can be deleted; one with unlanded commits is REPORTED to the owner (it may
@@ -1369,6 +1376,7 @@ sure someone hears it and closes it.
    provenance check), so the side channel stays visible.
 
 7. **Backups (Q45): the restore is proven weekly now; five things are yours.**
+   **ANSWERED 2026-09-23 (owner pop-ups): (a) yes, Pro is paid and intended; (b) keep 14-day retention; (c) back up uploaded files EXCEPT id-documents, encrypted (work item Q147); (d) no PITR (no paid upgrade); (e) BACKUP_PASSPHRASE and ban_fingerprint_salt go in the owner's password manager (owner to-do).**
    Measured 2026-09-23. Nothing below is needed for the drill to stay green.
    (a) **Is the Supabase org really on Pro?** The API says `plan: "pro"`, and
    `supabase backups list` shows 7 daily platform backups. Every doc said

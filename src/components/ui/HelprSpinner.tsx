@@ -92,11 +92,13 @@ export const HelprSpinner = ({
         alt=""
         aria-hidden="true"
         draggable={false}
-        width={size}
+        // The artwork is 96x82, not square: size is the HEIGHT and the width
+        // follows (a square box stretched the mark ~17%, 2026-09-23).
+        width={Math.round((size * 96) / 82)}
         height={size}
         className="select-none motion-safe:animate-mark-breathe"
         style={{
-          width: size,
+          width: "auto",
           height: size,
           // Same warm Olivewood lift we use on the static mark so the
           // wrought iron reads as wrought iron, not a flat icon.

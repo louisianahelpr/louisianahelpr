@@ -139,6 +139,15 @@ const AdminRoute = lazy(() => import("./components/AdminRoute"));
  * </RouteErrorBoundary>`) so a lazy-chunk fetch failure still surfaces
  * the branded route-error UI instead of suspending forever.
  */
+/**
+ * The landing page's load fallback: the plain page background and nothing
+ * else (owner, 2026-09-23: no H loader and no dashboard-shaped skeleton
+ * before the landing page; a guest saw the generic route skeleton, then the
+ * landing page, which read as a jump). Same ground as the #boot-loader shell
+ * in index.html, so boot -> chunk load -> landing paints as one surface.
+ */
+const LandingPlainFallback = () => <div className="min-h-screen bg-premium-page" aria-busy="true" />;
+
 const routeEl = (node: ReactElement, fallback: ReactElement = <RouteSuspenseFallback />) => (
   <Suspense fallback={fallback}>{node}</Suspense>
 );
@@ -192,7 +201,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           spelled out on /browse above, which fixed the identical hop. Guests
           are untouched: `hasPersistedAuthToken()` returns false for them and
           `children` renders on exactly the same tick as before. */}
-      <Route path="/" element={<RouteErrorBoundary><MarketingRedirect fallback={<DashboardRouteSkeleton />}>{routeEl(<PageTransition><Index /></PageTransition>)}</MarketingRedirect></RouteErrorBoundary>} />
+      <Route path="/" element={<RouteErrorBoundary><MarketingRedirect fallback={<DashboardRouteSkeleton />}>{routeEl(<PageTransition><Index /></PageTransition>, <LandingPlainFallback />)}</MarketingRedirect></RouteErrorBoundary>} />
       <Route path="/login" element={<RouteErrorBoundary>{routeEl(<PageTransition><Login /></PageTransition>, <LoginRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/signup" element={<RouteErrorBoundary>{routeEl(<PageTransition><Signup /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/signup-pending" element={<RouteErrorBoundary>{routeEl(<PageTransition><SignupPending /></PageTransition>)}</RouteErrorBoundary>} />

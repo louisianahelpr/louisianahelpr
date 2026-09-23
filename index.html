@@ -495,22 +495,6 @@
         background: linear-gradient(160deg, hsl(220 15% 8%) 0%, hsl(220 12% 11%) 40%, hsl(200 15% 10%) 100%) !important;
         background-color: hsl(220 15% 8%) !important;
       }
-      /* Mirrors `[data-theme="dark"] .helpr-emblem` in src/index.css. It cannot
-         reuse that class: index.css ships with the JS bundle, which has not
-         parsed yet when this shell paints. The iron sits at roughly the same
-         value as the dark canvas, so dark LIFTS the mark rather than inverting
-         it — `brightness(0) invert(1)` would throw away the brass finials and
-         verdigris centre that make it a brand mark rather than a glyph. If the
-         rule in index.css changes, change this one with it. */
-      [data-theme="dark"] #boot-loader .boot-holder::after {
-        background: radial-gradient(ellipse at center,
-                    rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0) 70%) !important;
-      }
-      [data-theme="dark"] #boot-loader .boot-mark {
-        filter: brightness(1.9) saturate(1.2)
-                drop-shadow(0 2px 4px rgba(0, 0, 0, 0.65))
-                drop-shadow(0 10px 24px rgba(0, 0, 0, 0.7)) !important;
-      }
     </style>
   </head>
   <body>
@@ -561,82 +545,10 @@
         aria-label="Loading Helpr"
         style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);background-color:#F0F2F4;"
       >
-        <span class="boot-holder"><img
-          class="boot-mark"
-          src="./src/assets/helpr-logo-256.webp"
-          alt=""
-          aria-hidden="true"
-          draggable="false"
-          width="84"
-          height="72"
-          decoding="async"
-        /></span>
-        <style>
-          /* Same warm Olivewood lift the static mark carries everywhere else
-             (.helpr-emblem, src/index.css). Dark override lives in
-             #boot-theme in <head>. */
-          /* The holder carries the animation so the mark and its ground
-             shadow grow as one object. Animating the <img> alone would leave
-             the contact shadow static while the mark scaled over it. */
-          .boot-holder {
-            position: relative;
-            display: inline-block;
-            line-height: 0;
-            animation: mark-in 420ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
-          }
-          /* Ground contact shadow — the pool the mark casts onto the surface
-             below it. The two drop-shadows on the mark say "this object is
-             lit"; this ellipse says "this object is standing on something".
-             Together they read as elevation rather than a floating cutout. */
-          .boot-holder::after {
-            content: "";
-            position: absolute;
-            z-index: 1;
-            left: 50%;
-            bottom: -14px;
-            transform: translateX(-50%);
-            width: 86px;
-            height: 14px;
-            border-radius: 50%;
-            background: radial-gradient(ellipse at center,
-                        rgba(46, 47, 34, 0.30) 0%, rgba(46, 47, 34, 0) 70%);
-            filter: blur(4px);
-          }
-          .boot-mark {
-            position: relative;
-            z-index: 2;
-            /* The artwork is 256x220, NOT square. Constrain HEIGHT and let
-               width follow, exactly as HelprMark does with `h-* w-auto` —
-               setting both to 72 stretched the mark ~14% and is the kind of
-               thing that reads as "slightly off" without being nameable.
-               The width/height ATTRIBUTES carry the true 84x72 ratio so the
-               box reserved before decode matches what paints (no CLS). */
-            height: 72px;
-            width: auto;
-            user-select: none;
-            /* Elevation, not the inline-nav lift. .helpr-emblem's shadow is
-               tuned for a 20px mark sitting IN a toolbar; at 72px on an empty
-               ground it reads as flat. This is a two-layer cast: a tight
-               contact shadow plus a wide soft one, so the ironwork looks like
-               it is floating above the parchment rather than printed on it.
-               drop-shadow follows the PNG's alpha, so the shadow is
-               scroll-shaped — a box-shadow would cast a rectangle. */
-            filter: drop-shadow(0 2px 3px rgba(46, 47, 34, 0.18))
-                    drop-shadow(0 9px 20px rgba(46, 47, 34, 0.28));
-          }
-          /* The GROUND paints on frame 1 — never fade the background, or the
-             handoff from the native splash flashes. Only the MARK animates: a
-             420ms grow from 0.94, which reads as the icon opening into the app
-             (the gesture iOS already trains). No spinner: a launch screen is
-             static per Apple HIG. It never loops. */
-          @keyframes mark-in {
-            from { opacity: 0; transform: scale(0.94); }
-            to   { opacity: 1; transform: scale(1); }
-          }
-          @media (prefers-reduced-motion: reduce) {
-            .boot-holder { animation: none; opacity: 1; }
-          }
-        </style>
+        <!-- Owner, 2026-09-23: nothing but the page background while the
+             bundle loads (no H mark: on iPhone its filter shadow rendered as a
+             clipped square). The element stays for its role/label and the
+             boot-failure fallback, which keys off #boot-loader. -->
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>

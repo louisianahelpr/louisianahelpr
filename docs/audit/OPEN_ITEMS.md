@@ -24,7 +24,7 @@ settled stay open and say why.
   the "already fixed, do not re-derive" list) is preserved verbatim at
   [`docs/archive/OPEN_ITEMS-2026-09-02.md`](../archive/OPEN_ITEMS-2026-09-02.md).
 
-**Counts (the 89 numbered rows of the 09-02 compile, §1-§5 + Amendment):**
+**Counts, measured 2026-09-23 (the 89 numbered rows of the 2026-09-02 compile, §1-§5 + Amendment):**
 46 fixed · 1 obsolete · 42 still open (about 15 of them owner-only or needing a
 device/browser session that a read-only reconcile cannot settle).
 

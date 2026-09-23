@@ -3,6 +3,11 @@
  * PGlite proof for 20260923085642_user_error_screens_reach_the_ledger
  * (docs/OPEN.md Q39).
  *
+ * BASELINE ONLY: this proves the Q39 behaviour as it stood BEFORE Q96/Q97
+ * (20260923092838: repeat cap, client seed tag) and Q106/Q98 (20260923094457:
+ * signed-in identity stamp, client insert throttle). It does not apply those
+ * migrations. Current behaviour is covered by userErrorScreenRepeatCap.pglite.mjs.
+ *
  *   node src/test/pglite/userErrorScreenLedger.pglite.mjs
  *
  * pglite is not a dependency (CLAUDE.md): it is loaded from ~/.lh-pglite

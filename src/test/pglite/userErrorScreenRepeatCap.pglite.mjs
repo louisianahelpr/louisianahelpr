@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /**
  * PGlite proof for 20260923092838_user_error_screen_repeat_cap_and_client_seed_tag
- * (docs/OPEN.md Q96, Q97).
+ * (docs/OPEN.md Q96, Q97) and 20260923094457_error_logs_client_identity_and_throttle
+ * (Q106, Q98).
  *
  *   node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs
- *   NEW_MIGRATION=skip node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs   # RED on the unfixed chain
+ *   NEW_MIGRATION=skip node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs       # RED: neither fix
+ *   NEW_MIGRATION=skip-q106 node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs  # RED: Q96/Q97 only
  *
  * pglite is not a dependency (CLAUDE.md): it is loaded from ~/.lh-pglite
  * (override with PGLITE_DIR). The fixture schema is the Q39 proof's
@@ -20,6 +22,12 @@
  *   Q97 - a real (non-seed) account's client row tagged seed:"true" or with a
  *         '-seed' source is NOT hidden; a seed profile still is; server rows
  *         keep the tag (error_log_is_seed true).
+ *   Q106 - an AUTHENTICATED insert with user_id NULL (or someone else's id) is
+ *         stamped with the caller's auth.uid(), so its repeats are capped at 5
+ *         (the account cap), not 20 (the guest cap), and spend no guest budget.
+ *   Q98  - (fixture sizes, 2026-09-23) a client account's 70 inserts in a minute store 60 (one by one AND
+ *         in one batch INSERT); guests together store 120; a back-dated
+ *         created_at is re-stamped; server rows are never throttled.
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -34,7 +42,8 @@ const CHAIN = [
   "20260923055631_push_token_health_monitor.sql",
   "20260923085642_user_error_screens_reach_the_ledger.sql",
 ];
-const NEW = "20260923092838_user_error_screen_repeat_cap_and_client_seed_tag.sql";
+const Q96 = "20260923092838_user_error_screen_repeat_cap_and_client_seed_tag.sql";
+const Q106 = "20260923094457_error_logs_client_identity_and_throttle.sql";
 
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -45,6 +54,9 @@ const check = (name, ok, detail = "") => {
 const REAL = "aaaaaaaa-0000-0000-0000-000000000001";
 const REAL2 = "aaaaaaaa-0000-0000-0000-000000000002";
 const SEED = "bbbbbbbb-0000-0000-0000-000000000003";
+const THR1 = "dddddddd-0000-0000-0000-000000000004";
+const THR2 = "dddddddd-0000-0000-0000-000000000005";
+const THR3 = "dddddddd-0000-0000-0000-000000000006";
 
 const db = new PGlite();
 await db.exec(`
@@ -100,7 +112,8 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
-INSERT INTO public.profiles VALUES ('${REAL}', false), ('${REAL2}', false), ('${SEED}', true);
+INSERT INTO public.profiles VALUES ('${REAL}', false), ('${REAL2}', false), ('${SEED}', true),
+  ('${THR1}', false), ('${THR2}', false), ('${THR3}', false);
 `);
 const q = async (sql, p) => (await db.query(sql, p)).rows;
 
@@ -111,29 +124,37 @@ for (const f of CHAIN) {
     check(`chain ${f}`, false, e.message);
   }
 }
-if (process.env.NEW_MIGRATION === "skip") {
-  console.log("NEW_MIGRATION=skip: running against the UNFIXED chain (expect FAILs)");
-} else {
+const MODE = process.env.NEW_MIGRATION ?? "";
+const NEWS = MODE === "skip" ? [] : MODE === "skip-q106" ? [Q96] : [Q96, Q106];
+if (MODE) console.log(`NEW_MIGRATION=${MODE}: running against a partly UNFIXED chain (expect FAILs)`);
+for (const f of NEWS) {
   for (let i = 1; i <= 3; i++) {
     try {
-      await db.exec(mig(NEW));
-      check(`apply pass #${i}`, true);
+      await db.exec(mig(f));
+      check(`apply ${f.slice(0, 14)} pass #${i}`, true);
     } catch (e) {
-      check(`apply pass #${i}`, false, e.message);
+      check(`apply ${f.slice(0, 14)} pass #${i}`, false, e.message);
     }
   }
 }
 
-// Inserted as `authenticated` so the origin stamp marks every row 'client', as prod does.
-const ins = async (uid, tags, msg) => {
-  await db.exec(`SET ROLE authenticated`);
+// A client insert, as PostgREST makes it: a signed-in session is role
+// `authenticated` with its JWT sub; a guest is role `anon` with none. `claim`
+// is the user_id the request body carries (default: the caller's own id).
+const asClient = async (sub, fn) => {
+  await db.exec(`SET ROLE ${sub ? "authenticated" : "anon"}`);
+  await db.query(`SELECT set_config('request.jwt.claim.sub', $1, false)`, [sub ?? ""]);
   try {
-    await db.query(`INSERT INTO public.error_logs (user_id, severity, message, tags) VALUES ($1, 'warning', $2, $3::jsonb)`,
-      [uid, msg, JSON.stringify(tags)]);
+    return await fn();
   } finally {
     await db.exec(`RESET ROLE`);
+    await db.query(`SELECT set_config('request.jwt.claim.sub', '', false)`);
   }
 };
+const ins = async (uid, tags, msg, claim = uid) =>
+  asClient(uid, () =>
+    db.query(`INSERT INTO public.error_logs (user_id, severity, message, tags) VALUES ($1, 'warning', $2, $3::jsonb)`,
+      [claim, msg, JSON.stringify(tags)]));
 const item = async (like) =>
   (await q(`SELECT id, count::int n, status, sample_ref FROM public.ops_alert_ledger
              WHERE source_kind = 'user-error-screen' AND title LIKE $1 AND NOT coalesce((sample_ref->>'overflow')::boolean, false)`, [like]))[0];
@@ -191,12 +212,57 @@ const [{ s1, s2, c1 }] = await q(`SELECT public.error_log_is_seed('{"seed":"true
 check("Q97: server rows keep the tag (seed:true / '-seed' source -> seed)", s1 === true && s2 === true, JSON.stringify({ s1, s2 }));
 check("Q97: a client row's seed tag is ignored by error_log_is_seed", c1 === false, JSON.stringify({ c1 }));
 
+// ── Q106: a signed-in client cannot log as a guest ──────────────────────────
+for (let i = 0; i < 30; i++) await ins(THR3, tag("/q106"), "Error screen shown: q106", null);
+check("Q106: an authenticated insert with user_id NULL is stored with the caller's id",
+  (await rows("/q106", THR3)) === 30 && (await rows("/q106", null)) === 0,
+  `mine=${await rows("/q106", THR3)} guest=${await rows("/q106", null)}`);
+it = await item("/q106%");
+check("Q106: ... so its repeats are capped at 5 (account cap), not 20 (guest cap)", it?.n === 5, `count=${it?.n}`);
+check("Q106: ... and the ledger item is not marked as a guest's", it?.sample_ref?.signed_in === true, JSON.stringify(it?.sample_ref));
+await ins(THR3, tag("/q106b"), "Error screen shown: q106b", REAL);
+check("Q106: an authenticated insert claiming ANOTHER account's id is stamped with the caller's",
+  (await rows("/q106b", THR3)) === 1 && (await rows("/q106b", REAL)) === 0);
+await ins(null, tag("/q106c"), "Error screen shown: q106c");
+check("Q106: a guest (anon) insert is still stored as a guest row", (await rows("/q106c", null)) === 1);
+
+// ── Q98: client rows are throttled per minute; server rows are not ──────────
+const clientRows = async (uid) =>
+  (await q(`SELECT count(*)::int n FROM public.error_logs WHERE user_id IS NOT DISTINCT FROM $1::uuid
+             AND tags->>'origin' = 'client' AND created_at > now() - interval '1 minute'`, [uid]))[0].n;
+for (let i = 0; i < 70; i++) await ins(THR1, { source: "loop" }, `loop ${i}`);
+check("Q98: one account's 70 client rows in a minute store only 60", (await clientRows(THR1)) === 60, `stored=${await clientRows(THR1)}`);
+
+await asClient(THR2, () => db.query(`INSERT INTO public.error_logs (user_id, severity, message, tags)
+  SELECT $1::uuid, 'warning', 'batch ' || g, '{"source":"batch"}'::jsonb FROM generate_series(1, 70) g`, [THR2]));
+check("Q98: ... and a single 70-row batch INSERT stores only 60", (await clientRows(THR2)) === 60, `stored=${await clientRows(THR2)}`);
+
+const guestBefore = await clientRows(null);
+for (let i = 0; i < 130; i++) await ins(null, { source: "guest-loop" }, `guest ${i}`);
+check("Q98: guests together store at most 120 client rows a minute", (await clientRows(null)) === 120,
+  `before=${guestBefore} after=${await clientRows(null)}`);
+
+await asClient(THR3, () => db.query(`INSERT INTO public.error_logs (user_id, message, tags, created_at)
+  VALUES ($1, 'backdated', '{"source":"bd"}'::jsonb, '2000-01-01')`, [THR3]));
+const [{ bd }] = await q(`SELECT (created_at > now() - interval '1 minute') bd FROM public.error_logs WHERE message = 'backdated'`);
+check("Q98: a client cannot back-date created_at out of the window", bd === true);
+
+for (let i = 0; i < 200; i++) {
+  await db.query(`INSERT INTO public.error_logs (user_id, message, tags) VALUES ($1, 'server ' || $2, '{"source":"cron-http"}')`,
+    [THR1, String(i)]);
+  await db.query(`INSERT INTO public.error_logs (user_id, message, tags) VALUES (NULL, 'server ' || $1, '{"source":"cron-http"}')`,
+    [String(i)]);
+}
+const [{ srv }] = await q(`SELECT count(*)::int srv FROM public.error_logs WHERE message LIKE 'server %' AND tags->>'origin' = 'server'`);
+check("Q98: server rows are never throttled (400 of 400 stored, for a capped account and for NULL)", srv === 400, `stored=${srv}`);
+
 // ── privileges ──────────────────────────────────────────────────────────────
 for (const role of ["anon", "authenticated"]) {
   for (const fn of [
     "public.error_log_is_seed(jsonb)",
     "public.user_error_screen_is_real(uuid, jsonb)",
     "public.ops_alert_record_user_error_screen(uuid, uuid, text, jsonb, timestamptz)",
+    ...(NEWS.includes(Q106) ? ["public.throttle_client_error_log()", "public.stamp_error_log_origin()"] : []),
   ]) {
     const [{ ok }] = await q(`SELECT has_function_privilege('${role}', '${fn}', 'EXECUTE') ok`);
     check(`${role} cannot execute ${fn}`, ok === false);

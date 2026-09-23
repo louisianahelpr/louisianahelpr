@@ -247,7 +247,11 @@ describe("alertPolicy", () => {
     expect(stampSources).toEqual([...CRITICAL_ERROR_LOG_SOURCES].sort());
     // And it must stay SECURITY INVOKER: a definer function reads its own
     // owner from current_user and would stamp every row 'server'.
-    const header = fn.slice(0, fn.indexOf("AS $fn$"));
+    // Any dollar-quote tag: a `$fn$`-only search returned -1 on a `$function$`
+    // body and sliced in the NEXT function's header (20260923094457).
+    const bodyAt = fn.search(/\bAS\s+\$[A-Za-z_0-9]*\$/);
+    expect(bodyAt, `${latest}: stamp_error_log_origin body not found`).toBeGreaterThan(-1);
+    const header = fn.slice(0, bodyAt);
     expect(header).not.toMatch(/SECURITY DEFINER/);
   });
 

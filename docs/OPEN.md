@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 30 done, 4 partly done (fixed, protection pending), 71 open. Source of truth for work.
+- **Queue (this file):** 32 done, 4 partly done (fixed, protection pending), 70 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 105 items — 30 done, 4 partly done (fixed, protection pending), 71 open.**
+**Queue: 106 items — 32 done, 4 partly done (fixed, protection pending), 70 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -444,7 +444,7 @@ sure someone hears it and closes it.
   outside the tsconfig include (TS6307). Neither is from the Q39 change.
 - [x] **Q96 A user can keep an error-screen alert open for ever (MEDIUM, Q39 review 2026-09-23).** ops_alert_record_user_error_screen (20260923085642:148-176) rate-limits only NEW items (5/hr per person, 20/hr global). Repeats of an existing fingerprint are unlimited, so one account looping POST /rest/v1/error_logs grows error_logs + ledger count without bound and holds the item open (close rule = a real row in the last 24h). Fix: cap repeats per account per fingerprint per window; guard with a PGlite test that is red on the uncapped function. DONE 2026-09-23 (20260923092838): a repeat of a known screen bumps the ledger only while that account hit that normalised fingerprint <= 5 times in the hour (guests share 20); over the cap the row is still stored and the close rule (error_logs, 24h) is unchanged, so genuine recurrence keeps it open. Guard: src/test/userErrorScreenAbuseCaps.test.ts (4 @mutate, all killed; 4 of 9 red on the unfixed definitions); behaviour: src/test/pglite/userErrorScreenRepeatCap.pglite.mjs (30 hits -> count 5, was 30).
 - [x] **Q97 error_log_is_seed trusts the client's tags.seed (LOW, Q39 review 2026-09-23).** A real account tagging {"seed":"true"} hides its own genuine error screens from the ledger and Slack routing (20260923052520:49-59). Fix: for client-origin rows derive seed from profiles.is_seed, not the tag; guard red on the current function. DONE 2026-09-23 (20260923092838): error_log_is_seed ignores tags.seed / a '-seed' source when tags.origin = 'client'; user_error_screen_is_real decides from profiles.is_seed. Server rows keep the tag (its two server callers return for client rows first). Guard: src/test/userErrorScreenAbuseCaps.test.ts; behaviour: src/test/pglite/userErrorScreenRepeatCap.pglite.mjs.
-- [ ] **Q98 Client error_logs inserts have no rate limit (LOW, found fixing Q96 2026-09-23).** Q96 stops a looping account bumping the ledger, but every row is still stored: one authenticated or anon client looping POST /rest/v1/error_logs grows the table without bound (live 2026-09-23: error_logs has 4 triggers, none throttles; stamp_error_log_origin, notify_slack_on_error_log, ops_alert_ledger_from_error_log, ops_alert_ledger_from_user_error_screen). Needs a per-user/per-IP insert cap or a retention prune, with a guard red on the uncapped path.
+- [x] **Q98 Client error_logs inserts have no rate limit (LOW, found fixing Q96 2026-09-23).** Q96 stops a looping account bumping the ledger, but every row is still stored: one authenticated or anon client looping POST /rest/v1/error_logs grows the table without bound (live 2026-09-23: error_logs has 4 triggers, none throttles; stamp_error_log_origin, notify_slack_on_error_log, ops_alert_ledger_from_error_log, ops_alert_ledger_from_user_error_screen). Needs a per-user/per-IP insert cap or a retention prune, with a guard red on the uncapped path. DONE 2026-09-23 (20260923094457): new BEFORE INSERT trg_error_logs_01_throttle -> throttle_client_error_log (SECURITY DEFINER, runs after the origin stamp) silently drops (RETURN NULL, never raises; own failures keep the row) a client-origin row once that account has 60 client rows in the last minute, or all guests together 120; server rows are never throttled. Caps from prod, 30 days to 2026-09-23: peak 20 rows/account/minute (15 among origin-stamped client rows), peak 7 guest browser rows/minute. The origin stamp now also re-stamps created_at := now() on client rows (a client could send created_at and back-date out of any window). Bounded counts (LIMIT cap, 1-minute window; EXPLAIN: index scan on idx_error_logs_created, 0.09 ms). Guard: src/test/errorLogClientIdentityAndThrottle.test.ts (@mutate); behaviour: src/test/pglite/userErrorScreenRepeatCap.pglite.mjs (70 -> 60 stored, one-by-one and batch; guests 120; 400/400 server rows stored).
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes
@@ -689,6 +689,22 @@ sure someone hears it and closes it.
   (prod's seeded one still does outside a messy-input run, until prod-seed.mjs
   is re-applied). Either require a document server-side or
   render the row as "no document yet".
+- [x] **Q106 A signed-in client can log error rows as a guest (MEDIUM, review
+  of 469cf4e3f, 2026-09-23).** Live policy anyone_can_insert_errors checks
+  `user_id IS NULL OR user_id = auth.uid()`, so an authenticated session may
+  insert user_id NULL. trg_error_logs_zz_user_error_screen then passes NULL to
+  ops_alert_record_user_error_screen, which applies the guest repeat cap (20)
+  instead of the per-account cap (5) and spends the shared guest budget. Fix:
+  stamp_error_log_origin (BEFORE INSERT) sets NEW.user_id := auth.uid() for
+  role authenticated, so a signed-in client cannot erase its identity; guard
+  red on the unstamped definition. DONE 2026-09-23 (20260923094457, from the
+  live pg_get_functiondef): stamp_error_log_origin sets NEW.user_id :=
+  auth.uid() for role authenticated (still SECURITY INVOKER). The only client
+  writer, src/lib/errorLogger.ts, sends the id from the localStorage session
+  blob or null when it cannot read one; either way the row is now the JWT's.
+  Guard: src/test/errorLogClientIdentityAndThrottle.test.ts (@mutate);
+  behaviour: src/test/pglite/userErrorScreenRepeatCap.pglite.mjs (auth insert
+  with user_id NULL -> stored as the caller, ledger count 5, was 20).
 - [x] **Q50 Verify card holds on cancelled jobs on STRIPE's side, not just ours.**
   DONE 2026-09-23 07:20Z. A temporary read-only edge function (deployed, run,
   deleted; key mode test) read all 79 cancelled jobs' PaymentIntents: every

@@ -267,6 +267,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           const active = billingInterval === opt.key;
           return (
             <button
+              aria-pressed={active}
               key={opt.key}
               onClick={() => setBillingInterval(opt.key)}
               className="relative h-11 rounded-ds-md text-ds-13 font-semibold transition-colors duration-200 inline-flex items-center justify-center gap-1.5"

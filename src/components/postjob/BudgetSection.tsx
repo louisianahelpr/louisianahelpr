@@ -370,6 +370,7 @@ export function BudgetSection({
             <div className="flex flex-wrap gap-2">
               {["5", "10", "15", "20"].map((amt) => (
                 <button
+                  aria-pressed={urgentFee === amt && !customUrgentFee}
                   key={amt}
                   type="button"
                   onClick={() => { setUrgentFee(amt); setCustomUrgentFee(false); }}

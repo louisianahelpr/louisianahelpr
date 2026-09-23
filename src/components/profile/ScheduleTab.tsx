@@ -612,6 +612,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                 const isBlocked = blockedReason !== null;
                 return (
                   <button
+                    aria-pressed={isSelected}
                     key={day}
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
                     title={blockedReason ?? undefined}
@@ -790,6 +791,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                       const active = opt.value === upcomingFilter;
                       return (
                         <button
+                          aria-pressed={active}
                           key={opt.value}
                           type="button"
                           onClick={() => setUpcomingFilter(opt.value)}

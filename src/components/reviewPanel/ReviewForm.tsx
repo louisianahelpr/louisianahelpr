@@ -291,6 +291,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
               const selected = feedback.includes(opt);
               return (
                 <button
+                  aria-pressed={selected}
                   key={opt}
                   type="button"
                   onClick={() => toggleQuickOption(opt)}

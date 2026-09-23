@@ -63,6 +63,7 @@ export const StatusOverrideDialog = ({
                 const active = overrideStatus === opt.id;
                 return (
                   <button
+                    aria-pressed={active}
                     key={opt.id}
                     type="button"
                     onClick={() => onStatusChange(opt.id)}

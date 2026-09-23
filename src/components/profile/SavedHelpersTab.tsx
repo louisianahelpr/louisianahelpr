@@ -277,6 +277,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                       two menus on one row, selecting in two different
                       visual languages. */}
                   <button
+                    aria-pressed={categoryFilter === null}
                     type="button"
                     onClick={() => setCategoryFilter(null)}
                     className={`w-full text-left px-2.5 h-9 rounded-md text-ds-13 font-sans font-medium transition-colors ${
@@ -287,6 +288,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                   </button>
                   {CATEGORY_FILTER_OPTIONS.map(([value, label]) => (
                     <button
+                      aria-pressed={categoryFilter === value}
                       key={value}
                       type="button"
                       onClick={() => setCategoryFilter(value)}
@@ -333,6 +335,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                     const active = opt.value === sortBy;
                     return (
                       <button
+                        aria-pressed={active}
                         key={opt.value}
                         type="button"
                         onClick={() => setSortBy(opt.value)}

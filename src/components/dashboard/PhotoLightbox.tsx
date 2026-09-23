@@ -472,6 +472,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
             >
               {photos.map((url, i) => (
                 <button
+                  aria-current={i === lightboxIndex ? "true" : undefined}
                   key={url}
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
@@ -494,6 +495,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
           <div className="mx-auto max-w-3xl grid grid-cols-2 sm:grid-cols-3 gap-2">
             {photos.map((url, i) => (
               <button
+                aria-current={i === lightboxIndex ? "true" : undefined}
                 key={url}
                 type="button"
                 onClick={(e) => {

@@ -321,6 +321,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                 const active = reason === label;
                 return (
                   <button
+                    aria-pressed={active}
                     key={label}
                     type="button"
                     onClick={() => {

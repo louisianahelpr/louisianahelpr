@@ -150,6 +150,7 @@ export const CategoryContent = ({
       const titleColor = (categoryColors[key] || categoryColors.other).title;
       return (
         <button
+          aria-pressed={isActive}
           key={key}
           onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : key); onSelect?.(); }}
           className={`${chipBase} ${isActive ? chipActive : chipIdle}`}

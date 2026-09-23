@@ -257,6 +257,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                   const OptIcon = opt.icon;
                   return (
                     <button
+                      aria-pressed={active}
                       key={opt.value}
                       type="button"
                       onClick={() => setSortBy(opt.value)}

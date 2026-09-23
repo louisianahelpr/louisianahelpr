@@ -577,6 +577,7 @@ const AdminDisputes = () => {
       {/* Filter tabs — Open queue vs. Decided audit log. */}
       <div className="flex gap-1.5 border-b border-border">
         <button
+          aria-pressed={filter === "open"}
           type="button"
           onClick={() => setFilter("open")}
           className={`pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
@@ -589,6 +590,7 @@ const AdminDisputes = () => {
           </span>
         </button>
         <button
+          aria-pressed={filter === "decided"}
           type="button"
           onClick={() => setFilter("decided")}
           className={`pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${

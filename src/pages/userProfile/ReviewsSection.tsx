@@ -166,6 +166,7 @@ export const ReviewsSection = ({
                 const active = reviewCategoryFilter === cat;
                 return (
                   <button
+                    aria-pressed={active}
                     key={cat}
                     onClick={() => {
                       onSetReviewCategoryFilter(active ? null : cat);
@@ -199,6 +200,7 @@ export const ReviewsSection = ({
               const active = reviewRatingFilter === bucket.key;
               return (
                 <button
+                  aria-pressed={active}
                   key={bucket.key}
                   onClick={() => {
                     onSetReviewRatingFilter(bucket.key);

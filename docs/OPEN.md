@@ -7616,7 +7616,7 @@ sure someone hears it and closes it.
   of truth, and add a check for this class.
 - [ ] **Q7 WebKit only: the bottom nav isn't frosted.** Verify on the iOS 26.1
   simulator or a device; fix it if it's real.
-- [ ] **Q8 Unused exports.** 160 at baseline, 63 dropped by e16ebdcc3.
+- [~] **Q8 Unused exports — ratchet DONE (baseline now 97 exports / 11 types, enforced by deadcodeRatchet.test.ts; red if it rises). Remaining: review the 97 with the owner.** Was: 160 at baseline, 63 dropped by e16ebdcc3.
   Lower scripts/deadcode-baseline.json to match. The ratchet test fails if the
   count rises. Review the rest with the owner (a report, not auto-delete).
 - [ ] **Q9 The required review of money/authz/data-model diffs is skipped.**
@@ -7687,3 +7687,39 @@ sure someone hears it and closes it.
 - [ ] **Q19 Wider product/UX gap pass.** Run lh-suggester (core-loop friction,
   missing product, growth) and an lh-audit pass on the screens touched tonight,
   then queue what they find.
+
+## QUEUE (cont.) — added 2026-09-23 late
+
+- [x] **Q20 DONE (9a0f7e61f): outside Central time, helpers saw TWO primary
+  buttons ("I'm On My Way" + "I'm Still On") or NONE for hours around midnight.**
+  HelperTrackerPanel measured the job day from device-local midnight, while
+  JobConfirmation measured it from Central midnight. Affected: UTC devices
+  19:00-24:00 Central, New York 23:00-24:00, Los Angeles none 00:00-02:00 the
+  next day. Class check helperTrackerPrimarySweep.tz.test.tsx runs 72h x 4
+  zones. vitest.config.ts now has a `tz-sweep` project on the forks pool; its
+  first full CI run is the proof.
+- [ ] **Q21 Other `parseLocalDate(date_needed)` "time until job" math** may
+  have the same device-timezone bug (not searched). Sweep src/, then extend the
+  tz-sweep test to each site.
+- [ ] **Q22 Independent review of the href-class commits** (3c81624d0,
+  dd4713c00, 724cb5a67, 5e7cc4832, migration 20260923042014). In progress
+  (lh-authz-rls, review only).
+- [ ] **Q23 Admin DocumentsTab can't open portfolio STORAGE PATHS.** They need
+  signing at display time. 0 such rows exist on prod today.
+- [ ] **Q24 Shared test helper bug:** blankComments() (src/test/helpers/blankNonCode.ts)
+  loses track after a regex literal containing `'` (src/lib/chunkReload.ts:27),
+  so guards built on it read later comments as code. Fix it, and add a fixture.
+- [ ] **Q25 db-deploy on MANUAL dispatch lints all 756 migrations** instead
+  of the new ones (its diff base is wrong for workflow_dispatch), so a manual
+  re-run is always red (35818674216). Fix the diff base for dispatch.
+- [ ] **Q26 Server-side ID re-upload action + email template are unused** now
+  that ReuploadIdDialog is gone (Q5). This is a report: count the callers, then
+  let the owner decide.
+- [ ] **Q27 Press sweep: 37 left** (from 126). Triage in progress: about 25 are the
+  sweep re-pressing the already-selected option; real candidates are the
+  /complete-profile checkbox, admin Manual Override > Re-open, silent auto-tip
+  Save, and the create-payment 429.
+- [ ] **Q28 Vacuity found a hollow MONEY guard.** disputeClosedWithoutPayment
+  matched a comment (FIXED d8f71e47d). Look for the same "toContain matches a
+  comment" shape in other source-scanning guards. A shared code-only reader
+  would close the class (ties to Q24).

@@ -11,8 +11,7 @@ import {
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { CheckCircle2, Clock, ShieldCheck, CalendarClock } from "lucide-react";
-import { parseLocalDate } from "@/lib/dateUtils";
-import { CONFIRM_WINDOW_HOURS, confirmDeadlineMs, confirmOpensMs, jobDateMs } from "@/lib/jobDate";
+import { CONFIRM_WINDOW_HOURS, confirmDeadlineMs, confirmOpensMs, jobDayStart } from "@/lib/jobDate";
 import { JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
@@ -38,18 +37,8 @@ import { jobActionChipStyle, JobStepPrimaryButton } from "@/components/activity/
  *
  * Returns the effective STAMP (so callers can print it), or null.
  */
-/**
- * Midnight of the job's day in the JOB's zone (America/Chicago). This card
- * used the viewer's browser zone (`parseLocalDate`) while the auto-expire sweep
- * that re-opens the job uses Central, so a helper viewing from Pacific saw
- * "I'm Still On" about two hours late inside a 12-hour window, and everyone was
- * an hour off on DST days (time-travel audit, 2026-09-12). Falls back to the
- * old parse only for an unreadable date, which jobDateMs rejects.
- */
-export function jobDayStart(dateNeeded: string): Date {
-  const ms = jobDateMs(dateNeeded);
-  return ms === null ? parseLocalDate(dateNeeded) : new Date(ms);
-}
+// jobDayStart moved to @/lib/jobDate (re-exported for existing importers).
+export { jobDayStart };
 
 export function helperDayOfConfirmation({
   helperConfirmedAt,

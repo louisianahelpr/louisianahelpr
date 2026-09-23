@@ -1,4 +1,5 @@
-import { JobConfirmation, helperDayOfConfirmation, jobDayStart } from "@/components/JobConfirmation";
+import { JobConfirmation, helperDayOfConfirmation } from "@/components/JobConfirmation";
+import { jobDayStart } from "@/lib/jobDate";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
 import type { AppliedApp, Job } from "../activityConstants";
 

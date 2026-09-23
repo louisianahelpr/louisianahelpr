@@ -915,7 +915,13 @@ sure someone hears it and closes it.
   file instead of writing a list into memory. Guard idea: a check over the
   memory dir (outside the repo, so a session-start hook warning rather than
   CI) that flags `- [ ]` or "open:" lists in handoff-*.md.
-
+6. **Messages search at 320px (Q48): pick one.** It's fixed at 375 and up. At
+   320 a close-✕ that clears the magnifier leaves the field only 90px (below
+   the 120px minimum that e794385ab restored). (A) accept 90px at 320;
+   (B) keep the 28px overlap at 320 (shipped now); (C) put the magnifier
+   rightmost below 360 (changes the VN-35 button order); (D) open search on
+   its own line below 360, where the tab strip sits. Screenshots in
+   ~/.lh-shots/q48/.
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

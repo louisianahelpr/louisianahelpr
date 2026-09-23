@@ -1,3 +1,4 @@
+import { parseLocalDate } from "@/lib/dateUtils";
 import { jobLocalMidnightMs, JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
 
 export { JOB_TIMEZONE };
@@ -224,4 +225,17 @@ export function jobDayHasEnded(dateNeeded: string | null | undefined, nowMs: num
   const next = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
   const end = jobDateMs(next);
   return end !== null && nowMs >= end;
+}
+
+/**
+ * Midnight of the job's day in the JOB's zone (America/Chicago) — for everyone.
+ * A card that used the viewer's browser zone (`parseLocalDate`) saw "I'm Still
+ * On" hours late from Pacific and was an hour off on DST days (time-travel
+ * audit, 2026-09-12). Falls back to the old parse only for an unreadable date,
+ * which jobDateMs rejects. Lives here, not in a component, so a component
+ * mock can never strip it from the date math (vitest, 2026-09-23: 18 tests).
+ */
+export function jobDayStart(dateNeeded: string): Date {
+  const ms = jobDateMs(dateNeeded);
+  return ms === null ? parseLocalDate(dateNeeded) : new Date(ms);
 }

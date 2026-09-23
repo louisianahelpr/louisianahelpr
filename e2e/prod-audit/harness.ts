@@ -19,7 +19,7 @@ import { ANON, SUPABASE_URL, getSession as journeySession, newUserContext, rest,
 
 export { newUserContext, rest, SUPABASE_URL, ANON };
 /** Q100: the funded open job fixture (a real Stripe TEST checkout as poster-e2e) — see fundedOpenJob.ts. */
-export { ensureFundedOpenJob, retireFundedJob } from "./fundedOpenJob";
+export { ensureDisputedJob, ensureFundedOpenJob, retireFundedJob } from "./fundedOpenJob";
 export { ensureFundedApplicantJob, retireApplicantFixtures } from "./fundedApplicantJob";
 export type { Role, Session };
 

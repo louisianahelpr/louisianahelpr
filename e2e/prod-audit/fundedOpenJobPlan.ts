@@ -85,3 +85,59 @@ export function planFundedOpenJob(
   );
   return { reuse: null, pay: repayable ?? "new", retire };
 }
+
+/**
+ * THE DISPUTED JOB FIXTURE — the pure decision half (Q132).
+ *
+ * `explore: disputedJob-poster` / `-helper` (messy-input) open /jobs/<id> of
+ * "a disputed job between poster-e2e and helper-e2e". prod-audit run
+ * 35844514386 skipped both: none existed. The seed (scripts/audit/prod-seed.mjs)
+ * opens one only when a funded pair job happens to be lying around, and the
+ * lifecycle journeys complete and release theirs. So the prod-audit owns one:
+ * a funded job of its own, helper-e2e applies, poster-e2e hires
+ * (accept_application), poster-e2e opens a dispute (rpc_open_dispute) — the
+ * app's own path at every step. It never borrows the in-progress / completed
+ * pair jobs other explores read.
+ *
+ * A disputed fixture is REUSED indefinitely: a dispute on an is_seed job stays
+ * open (auto-resolve-disputes skips is_seed jobs, 20260914183932) and holds
+ * Stripe TEST money only. A fixture row left half-way (funded, applied or
+ * hired, not yet disputed) by an interrupted run is RESUMED, never re-paid.
+ */
+export const DISPUTE_FIXTURE_TITLE = "Prod audit dispute fixture";
+
+export interface DisputeRow {
+  id: string;
+  title: string;
+  status: string;
+  payment_status: string | null;
+  helper_id: string | null;
+  created_at: string;
+}
+
+export type DisputePlan =
+  | { kind: "reuse"; row: DisputeRow }
+  | { kind: "resume"; row: DisputeRow; next: "fund" | "apply" | "hire" | "dispute" }
+  | { kind: "create" };
+
+const HIRED = new Set(["accepted", "in_progress", "completed", "revision_requested"]);
+
+/** `rows`: poster-e2e's own jobs titled DISPUTE_FIXTURE_TITLE*, newest first or not. */
+export function planDisputedJob(
+  rows: DisputeRow[],
+  opts: { helperId: string; appliedJobIds: ReadonlySet<string> },
+): DisputePlan {
+  const mine = rows
+    .filter((r) => r.title.startsWith(DISPUTE_FIXTURE_TITLE))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const disputed = mine.find((r) => r.status === "disputed" && r.helper_id === opts.helperId);
+  if (disputed) return { kind: "reuse", row: disputed };
+  const hired = mine.find((r) => HIRED.has(r.status) && r.helper_id === opts.helperId && r.payment_status === "escrow");
+  if (hired) return { kind: "resume", row: hired, next: "dispute" };
+  const open = mine.find((r) => r.status === "open" && !r.helper_id);
+  if (open && open.payment_status === "escrow") {
+    return { kind: "resume", row: open, next: opts.appliedJobIds.has(open.id) ? "hire" : "apply" };
+  }
+  if (open && REPAYABLE.has(open.payment_status ?? "unpaid")) return { kind: "resume", row: open, next: "fund" };
+  return { kind: "create" };
+}

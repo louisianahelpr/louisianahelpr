@@ -24,9 +24,12 @@
 import type { APIRequestContext, Browser } from "@playwright/test";
 import { ANON, SUPABASE_URL, type Session } from "../journeys/fixtures";
 import {
+  DISPUTE_FIXTURE_TITLE,
   FUNDED_FIXTURE_TITLE,
   NEW_FIXTURE_DAYS,
+  planDisputedJob,
   planFundedOpenJob,
+  type DisputeRow,
   type FixtureRow,
 } from "./fundedOpenJobPlan";
 
@@ -232,4 +235,100 @@ export async function ensureFundedOpenJob(
   const funded = await fund(api, browser, poster, target, log);
   await waitVisibleToHelper(api, helper, funded.id, funded.created_at, log);
   return { job: { id: funded.id, title: funded.title }, log };
+}
+
+async function rpc<T>(api: APIRequestContext, s: Session, fn: string, args: Record<string, unknown>): Promise<T> {
+  return readJson<T>(
+    await api.post(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, { headers: headers(s), data: args, timeout: 60_000 }),
+    `rpc ${fn}`,
+  );
+}
+
+/**
+ * Q132: make sure one DISPUTED job between poster-e2e and helper-e2e exists
+ * (the decision is `planDisputedJob`, read its header). Every step is the
+ * app's own: fund (create-payment escrow + Stripe TEST checkout + webhook),
+ * helper-e2e applies (apply_to_job), poster-e2e hires (accept_application),
+ * poster-e2e opens the dispute (rpc_open_dispute, as DisputeDialog does).
+ * Throws on any refusal or a state that did not land; never skips.
+ */
+export async function ensureDisputedJob(
+  api: APIRequestContext,
+  browser: Browser,
+  poster: Session,
+  helper: Session,
+): Promise<{ job: { id: string; title: string }; log: string[] }> {
+  const log: string[] = [];
+  const list = async () =>
+    readJson<DisputeRow[]>(
+      await api.get(
+        `${SUPABASE_URL}/rest/v1/jobs?select=id,title,status,payment_status,helper_id,created_at&customer_id=eq.${poster.user.id}` +
+          `&is_seed=is.true&title=like.${encodeURIComponent(`${DISPUTE_FIXTURE_TITLE}*`)}&order=created_at.desc&limit=20`,
+        { headers: headers(poster) },
+      ),
+      "list dispute fixture jobs",
+    );
+  const applied = async () =>
+    new Set(
+      (await readJson<{ job_id: string }[]>(
+        await api.get(`${SUPABASE_URL}/rest/v1/applications?helper_id=eq.${helper.user.id}&status=eq.pending&select=job_id`, { headers: headers(helper) }),
+        "list helper-e2e applications",
+      )).map((a) => a.job_id),
+    );
+  const plan = planDisputedJob(await list(), { helperId: helper.user.id, appliedJobIds: await applied() });
+  if (plan.kind === "reuse") {
+    log.push(`reused disputed ${plan.row.id}`);
+    return { job: { id: plan.row.id, title: plan.row.title }, log };
+  }
+  let id: string;
+  let next: "fund" | "apply" | "hire" | "dispute";
+  if (plan.kind === "create") {
+    const row = await createFixtureRow(api, poster, `${DISPUTE_FIXTURE_TITLE}: patch a drywall hole`);
+    log.push(`created ${row.id}`);
+    id = row.id;
+    next = "fund";
+  } else {
+    id = plan.row.id;
+    next = plan.next;
+    log.push(`resuming ${id} at ${next}`);
+  }
+  if (next === "fund") {
+    await fund(api, browser, poster, await readRow(api, poster, id), log);
+    next = "apply";
+  }
+  if (next === "apply") {
+    // helper-e2e is free tier: the job is not theirs to see for 20 minutes.
+    await waitVisibleToHelper(api, helper, id, (await readRow(api, poster, id)).created_at, log);
+    await rpc<string>(api, helper, "apply_to_job", { p_job_id: id, p_message: "Prod-audit dispute fixture application." });
+    log.push(`helper-e2e applied to ${id}`);
+    next = "hire";
+  }
+  if (next === "hire") {
+    const apps = await readJson<{ id: string }[]>(
+      await api.get(`${SUPABASE_URL}/rest/v1/applications?job_id=eq.${id}&helper_id=eq.${helper.user.id}&status=eq.pending&select=id`, { headers: headers(poster) }),
+      "read the fixture application",
+    );
+    if (apps.length !== 1) throw new Error(`dispute fixture: expected one pending application on ${id}, found ${apps.length}`);
+    await rpc(api, poster, "accept_application", {
+      p_application_id: apps[0].id,
+      p_deadline: new Date(Date.now() + 24 * 3_600_000).toISOString(),
+      p_offer_message: null,
+    });
+    log.push(`poster-e2e hired helper-e2e on ${id}`);
+  }
+  await rpc(api, poster, "rpc_open_dispute", {
+    _job_id: id,
+    _reason: "Prod-audit dispute fixture: the patch was left unsanded.",
+    _evidence_urls: [],
+  });
+  // The row is the fact, not the RPC's 200.
+  const after = await readJson<DisputeRow[]>(
+    await api.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}&select=id,title,status,payment_status,helper_id,created_at`, { headers: headers(poster) }),
+    `read dispute fixture ${id}`,
+  );
+  if (after[0]?.status !== "disputed" || after[0]?.helper_id !== helper.user.id) {
+    throw new Error(`dispute fixture: rpc_open_dispute on ${id} answered but the job is ${after[0]?.status} (helper ${after[0]?.helper_id})`);
+  }
+  log.push(`opened dispute on ${id}`);
+  return { job: { id, title: after[0].title }, log };
 }

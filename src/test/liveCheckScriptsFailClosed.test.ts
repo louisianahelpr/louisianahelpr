@@ -102,6 +102,10 @@ const NOT_HERMETIC: Record<string, { why: string; mustContain?: string[] }> = {
   "scripts/audit/pressProdSafety.mjs": {
     why: "a library imported by press-every-control.mjs — no CLI entrypoint and no verdict of its own; its caller's exit code is the check",
   },
+  "scripts/audit/pressRouteProbe.mjs": {
+    why: "a library imported by press-every-control.mjs (Q94) — no CLI entrypoint; a failed write returns ok:false, which leaves the close rule failing (fail-safe) and is printed by its caller",
+    mustContain: ["if (!res.ok) return { ok: false, recorded: 0,"],
+  },
   "scripts/audit/cross-account-authz.mjs": {
     why: "mints two real prod sessions through scripts/test-signin-link.mjs (service role) with a hard-coded repo cwd; no stub can stand in for GoTrue",
     mustContain: ["if (leaks) process.exit(1);", "process.exit(2);", "brokenProbes++"],

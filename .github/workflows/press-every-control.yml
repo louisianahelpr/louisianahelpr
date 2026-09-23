@@ -161,6 +161,10 @@ jobs:
           ROUTES: ${{ github.event.inputs.routes }}
           PERSONAS: ${{ github.event.inputs.personas || 'anon,customer,helper,admin,incomplete' }}
           OUT: test-results/press-every-control
+          # Q128: the sweep stops itself inside timeout-minutes (150) and
+          # reports the rows it did not reach, instead of being cancelled
+          # with no report (run 35837735324: three shards cancelled silently).
+          TIME_BUDGET_MIN: "135"
           PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
           PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
           PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}

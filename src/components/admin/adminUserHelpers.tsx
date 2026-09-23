@@ -8,6 +8,7 @@
 import type { Database } from "@/integrations/supabase/types";
 import { Badge } from "@/components/ui/badge";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
+import { isIdentityVerified } from "@/lib/awardGate";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -17,6 +18,17 @@ export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 // Resend Verification.
 export const isVerifiedEmail = (p: Profile) => !!p.email_verified;
 export const isAwaitingEmail = (p: Profile) => !isVerifiedEmail(p);
+
+/**
+ * "Manually Verify" sets idv_status = 'verified' (admin-user-actions
+ * manual_verify). It applies only to someone whose identity is NOT already
+ * verified by either route — Stripe Identity (idv_status) or Connect
+ * (stripe_identity_verified), the same OR the award gate reads. Offering it
+ * on a verified account (Q234) invited an admin to overwrite Stripe's verdict
+ * with a manual one for nothing.
+ */
+export const canManuallyVerify = (p: Pick<Profile, "idv_status" | "stripe_identity_verified">) =>
+  !isIdentityVerified({ connectIdentityVerified: p.stripe_identity_verified, idvStatus: p.idv_status });
 
 export const statusBadge = (profile: Profile) => {
   const banStatus = profile.ban_status || "active";

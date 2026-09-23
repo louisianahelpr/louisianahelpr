@@ -9,7 +9,7 @@ import { TabsContent } from "@/components/ui/tabs";
 import AdminUserNotes from "../AdminUserNotes";
 import UserVerificationHistory from "../UserVerificationHistory";
 import { UserAuditLog } from "./UserAuditLog";
-import type { Profile } from "../adminUserHelpers";
+import { canManuallyVerify, type Profile } from "../adminUserHelpers";
 import { useImpersonation } from "@/hooks/useImpersonation";
 import { supabase } from "@/integrations/supabase/client";
 import { cn, formatName } from "@/lib/utils";
@@ -127,9 +127,11 @@ export function ActionsTab({
             Two columns fit the longest label ("Restrict Applications") with
             room to spare. */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
-            <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
-          </Button>
+          {canManuallyVerify(viewProfile) && (
+            <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
+              <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
+            </Button>
+          )}
           <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setWarningProfile(viewProfile)}>
             <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent" /> Formal Warning
           </Button>

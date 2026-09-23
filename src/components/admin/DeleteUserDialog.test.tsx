@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { DeleteUserDialog } from "./DeleteUserDialog";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -34,6 +34,10 @@ const requireBiometricMock = vi.fn();
 vi.mock("@/lib/biometricGate", () => ({
   requireBiometric: (...args: unknown[]) => requireBiometricMock(...args),
 }));
+
+// Q234: Delete Permanently arms only once the admin types DELETE.
+const arm = (word = "DELETE") =>
+  fireEvent.change(screen.getByLabelText(/to confirm/i), { target: { value: word } });
 
 const sampleProfile = {
   id: "profile-id-1",
@@ -85,6 +89,7 @@ describe("DeleteUserDialog", () => {
         onSuccess={onSuccess}
       />,
     );
+    arm();
     const deleteBtn = screen.getByRole("button", { name: /Delete Permanently/ });
     deleteBtn.click();
     await waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(1));
@@ -110,6 +115,7 @@ describe("DeleteUserDialog", () => {
         onSuccess={onSuccess}
       />,
     );
+    arm();
     screen.getByRole("button", { name: /Delete Permanently/ }).click();
     await waitFor(() => expect(requireBiometricMock).toHaveBeenCalled());
     expect(invokeMock).not.toHaveBeenCalled();
@@ -123,12 +129,46 @@ describe("DeleteUserDialog", () => {
     render(
       <DeleteUserDialog profile={sampleProfile} onClose={onClose} />,
     );
+    arm();
     screen.getByRole("button", { name: /Delete Permanently/ }).click();
     await waitFor(() => expect(toastError).toHaveBeenCalled());
     expect(toastError).toHaveBeenCalledWith(expect.stringContaining("nope"));
     expect(onClose).not.toHaveBeenCalled();
   });
 });
+
+describe("DeleteUserDialog typed confirmation (Q234)", () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    requireBiometricMock.mockReset();
+    requireBiometricMock.mockResolvedValue(true);
+  });
+
+  it("keeps Delete Permanently disabled until DELETE is typed, and deletes nothing before", async () => {
+    render(<DeleteUserDialog profile={sampleProfile} onClose={vi.fn()} />);
+    const btn = screen.getByRole("button", { name: /Delete Permanently/ });
+    expect(btn).toBeDisabled();
+    fireEvent.click(btn);
+    arm("delete it");
+    expect(btn).toBeDisabled();
+    fireEvent.click(btn);
+    expect(requireBiometricMock).not.toHaveBeenCalled();
+    expect(invokeMock).not.toHaveBeenCalled();
+    arm();
+    expect(btn).toBeEnabled();
+  });
+
+  it("clears the typed word when the dialog targets another account", () => {
+    const { rerender } = render(<DeleteUserDialog profile={sampleProfile} onClose={vi.fn()} />);
+    arm();
+    rerender(<DeleteUserDialog profile={{ ...sampleProfile, user_id: "user-id-2" } as Profile} onClose={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /Delete Permanently/ })).toBeDisabled();
+  });
+});
+
+// Q234: the button must stay disarmed until the typed word matches.
+// @mutate src/components/admin/DeleteUserDialog.tsx | disabled={deleting \|\| !armed} | disabled={deleting}
+// @mutate src/components/admin/DeleteUserDialog.tsx | useEffect(() => setTyped(""), [profile?.user_id]); |
 
 // The irreversible-action confirmation. Deleting the early return lets a
 // refused Face ID / passcode fall straight through into admin-delete-user.

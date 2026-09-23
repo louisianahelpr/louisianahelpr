@@ -152,6 +152,24 @@ describe("AdminUserDetailDialog", () => {
     expect(props.setDeleteProfile).toHaveBeenCalledWith(pendingProfile);
   });
 
+  // Q234: Manually Verify sets idv_status = 'verified', so it is offered only
+  // where identity is not already verified (Stripe Identity OR Connect).
+  // @mutate src/components/admin/userDetail/ActionsTab.tsx | {canManuallyVerify(viewProfile) && ( | {true && (
+  it("offers Manually Verify only to an unverified identity (Q234)", () => {
+    const cases: [Partial<Profile>, boolean][] = [
+      [{ idv_status: null, stripe_identity_verified: false }, true],
+      [{ idv_status: "failed", stripe_identity_verified: false }, true],
+      [{ idv_status: "manual_review", stripe_identity_verified: false }, true],
+      [{ idv_status: "verified", stripe_identity_verified: false }, false],
+      [{ idv_status: null, stripe_identity_verified: true }, false],
+    ];
+    for (const [patch, offered] of cases) {
+      const { unmount } = render(<AdminUserDetailDialog {...makeProps({ ...pendingProfile, ...patch } as Profile)} />);
+      expect(!!screen.queryByRole("button", { name: /Manually Verify/ }), JSON.stringify(patch)).toBe(offered);
+      unmount();
+    }
+  });
+
   it("disables Suspend / Ban on the acting admin's OWN row", async () => {
     // A self-issued ban locks the admin out of this console with no
     // self-serve undo, and the database refuses the row outright

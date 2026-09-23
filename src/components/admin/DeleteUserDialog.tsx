@@ -2,7 +2,7 @@
 // Permanent account deletion confirmation. Calls the admin-delete-user
 // edge function. Owns its own deleting state.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -14,6 +14,7 @@ import {
   DialogDestructiveAction,
 } from "@/components/ui/dialog";
 import { AlertTriangle } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
@@ -27,8 +28,17 @@ interface DeleteUserDialogProps {
   onSuccess?: () => void;
 }
 
+/** What the admin must type before Delete Permanently arms (Q234). */
+export const DELETE_CONFIRM_WORD = "DELETE";
+
 export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDialogProps) {
   const [deleting, setDeleting] = useState(false);
+  // Typed confirmation (Q234): one misclick on "Delete Account" used to be one
+  // click away from destroying an account. The button stays disabled until
+  // the admin types DELETE, and the field clears for every new target.
+  const [typed, setTyped] = useState("");
+  const armed = typed.trim() === DELETE_CONFIRM_WORD;
+  useEffect(() => setTyped(""), [profile?.user_id]);
 
   const handleClose = () => {
     if (deleting) return;
@@ -36,7 +46,7 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
   };
 
   const submit = async () => {
-    if (!profile) return;
+    if (!profile || !armed) return;
     // Face ID / Touch ID gate: this permanently destroys an account and all its
     // data — the single most irreversible action in the admin console. No-op on
     // web. On device it prompts whenever the device can authenticate its owner at
@@ -79,12 +89,26 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
               This action is permanent and cannot be undone. All user data will be removed.
             </p>
           </div>
+          <div className="space-y-1.5">
+            <label htmlFor="delete-user-confirm" className="text-ds-11 font-medium text-foreground">
+              Type <span className="font-mono font-semibold">{DELETE_CONFIRM_WORD}</span> to confirm
+            </label>
+            <Input
+              id="delete-user-confirm"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              disabled={deleting}
+            />
+          </div>
         </div>
         <DialogFooter>
           <DialogSecondaryAction onClick={handleClose} disabled={deleting}>
             Cancel
           </DialogSecondaryAction>
-          <DialogDestructiveAction onClick={submit} disabled={deleting}>
+          <DialogDestructiveAction onClick={submit} disabled={deleting || !armed}>
             {deleting ? "Deleting…" : "Delete Permanently"}
           </DialogDestructiveAction>
         </DialogFooter>

@@ -178,6 +178,37 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Q137: a seed subject (a seed job, or a seed account named as the actor in
+    // the link) never emails a NON-seed recipient, whatever the launch switch
+    // says. The same rule the notifications BEFORE INSERT trigger applies, from
+    // the same function, so the two channels cannot disagree. Checked against
+    // the RAW link (the job/actor ids survive sanitizing either way). Fails
+    // CLOSED: if the check cannot answer, nothing is sent (503 + a failed log
+    // row), because a mail about a fake job cannot be recalled.
+    const { data: crossesSeed, error: seedCheckError } = await supabase.rpc(
+      'notification_crosses_seed_boundary',
+      { p_recipient: user_id, p_job_id: job_id ?? null, p_link: typeof link === 'string' ? link : null },
+    )
+    // PGRST202 = the RPC is not deployed yet (this function can go live a
+    // minute before migration 20260923121354 does). Only that code falls
+    // through, loudly; the in-app row is still dropped by the DB trigger.
+    if (seedCheckError?.code === 'PGRST202') {
+      console.warn('[send-notification-email] notification_crosses_seed_boundary not deployed yet (PGRST202); sending without the Q137 check')
+    } else if (seedCheckError || typeof crossesSeed !== 'boolean') {
+      await logSkip('failed', `seed_boundary_check_failed: ${seedCheckError?.message ?? 'no boolean answer'}`)
+      return new Response(
+        JSON.stringify({ skipped: true, reason: 'seed_boundary_check_failed' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+    if (crossesSeed === true) {
+      await logSkip('suppressed_seed', 'seed subject to a non-seed recipient')
+      return new Response(
+        JSON.stringify({ skipped: true, reason: 'seed_subject' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
     // `notification_preferences` rows were created LAZILY — only when a user
     // opened Profile → Notifications and flipped something — so 85% of prod
     // accounts had none, and the check below read a missing row as "opted out

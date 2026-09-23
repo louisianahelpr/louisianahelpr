@@ -221,6 +221,36 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Q137: a seed subject never notifies a non-seed recipient. The
+    // notifications BEFORE INSERT trigger enforces that by dropping the row,
+    // which would make the `.single()` below read as "insert failed" (500).
+    // Ask the same DB function first, so a deliberate drop answers as a skip.
+    // PGRST202 (function not deployed yet) falls through to the trigger.
+    const { data: crossesSeed, error: seedCheckError } = await adminClient.rpc(
+      "notification_crosses_seed_boundary",
+      {
+        p_recipient: user_id,
+        p_job_id: sanitizedJobId ?? null,
+        p_link: sanitizedLink ?? null,
+        // The signed-in caller is the actor: a seed account notifying a real
+        // counterparty is a seed subject even when no job is named.
+        p_actor: user.id,
+      },
+    );
+    if (seedCheckError && seedCheckError.code !== "PGRST202") {
+      console.error("seed boundary check failed:", seedCheckError);
+      return new Response(
+        JSON.stringify({ error: "Failed to create notification" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (crossesSeed === true) {
+      return new Response(
+        JSON.stringify({ success: true, skipped: true, reason: "seed_subject" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // `.select("id").single()` is not decoration: a null `error` alone does not
     // prove a row landed, and the id is what lets the caller (and the "Send a
     // Test" button) say "the bell row is really there" instead of assuming it.
@@ -283,7 +313,7 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${serviceRoleKey}`,
         },
-        body: JSON.stringify({ user_id, title, message, type, link: sanitizedLink }),
+        body: JSON.stringify({ user_id, title, message, type, link: sanitizedLink, job_id: sanitizedJobId, notification_id: inserted.id }),
       });
       const emailBody = await emailRes.json().catch(() => null) as
         | {

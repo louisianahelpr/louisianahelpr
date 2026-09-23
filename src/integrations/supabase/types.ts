@@ -5913,6 +5913,15 @@ export type Database = {
       }
       my_credential_tier: { Args: never; Returns: number }
       normalize_phone_for_ban: { Args: { p_phone: string }; Returns: string }
+      notification_crosses_seed_boundary: {
+        Args: {
+          p_actor?: string
+          p_job_id: string
+          p_link: string
+          p_recipient: string
+        }
+        Returns: boolean
+      }
       notification_job_id_from_link: {
         Args: { p_link: string }
         Returns: string

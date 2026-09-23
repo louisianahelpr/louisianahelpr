@@ -156,7 +156,7 @@ sure someone hears it and closes it.
   review, e.g. a review-log entry that CI checks for commits touching
   supabase/migrations or RLS-sensitive files. It reports; it does not block.
 - [ ] **Q10 Owner-side, carried over:** release dispute 9756a585's payout;
-  **ANSWERED 2026-09-23:** dispute 9756a585 (seed): Claude settles it in TEST mode (work item Q148); Stripe payouts: MANUAL — DONE 2026-09-23 by Claude in the owner's Chrome (Settings > Payouts > Manual payouts, saved, re-read after reload; no test-mode banner, so the live account); sales tax: Stripe collects it (create-payment already sends automatic_tax enabled; owner must register Louisiana in Stripe Tax, or Stripe collects nothing); right-panel overlap: owner asked Claude to audit it (Q151).
+  **ANSWERED 2026-09-23:** dispute 9756a585 (seed): Claude settles it in TEST mode (work item Q148); Stripe payouts: MANUAL — DONE 2026-09-23 by Claude in the owner's Chrome (Settings > Payouts > Manual payouts, saved, re-read after reload; no test-mode banner, so the live account); sales tax: Stripe collects it (create-payment already sends automatic_tax enabled; Louisiana IS registered and collecting (checked in the Stripe dashboard 2026-09-23: Tax > Locations, 1 registration, collecting); filing is NOT set up there ('Set up filing') — OWNER: decide whether Stripe files the returns); right-panel overlap: owner asked Claude to audit it (Q151).
   set Stripe payouts to manual; decide Louisiana sales tax; send a screenshot
   or window width for the right-panel overlap.
 - [x] **Stored-XSS class: user-writable URL column -> raw href** (follow-up to

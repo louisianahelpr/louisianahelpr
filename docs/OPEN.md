@@ -7586,6 +7586,8 @@ rows are non-tappable; panel identical in WebKit and Chromium.
 
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
+RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
+
 Owner order: every alert, from anywhere, is fixed AND verified fixed (CLAUDE.md).
 Nothing here gets muted: every failure still fails loudly; the work is making
 sure someone hears it and closes it.
@@ -7643,7 +7645,7 @@ sure someone hears it and closes it.
 - [ ] **Q4 "Daily ops digest not delivered in 30h"** fired twice on 09-22.
   Check whether it has run since, find the cause, and verify tomorrow's
   digest arrives.
-- [x] **Q5 DONE 2026-09-23 — owner chose DELETE; ReuploadIdDialog removed.** (Server-side `admin-user-actions` re-upload action + its email template are now unused by the UI — reported, not removed.) Was: Nothing opens ReuploadIdDialog. No button leads to it. OWNER
+- [x] **Q5 DONE 2026-09-23 — owner chose DELETE; ReuploadIdDialog removed.** (Server-side `admin-user-actions` re-upload action + its email template are now unused by the UI — reported, not removed.) Was: Nothing opens ReuploadIdDialog. No button leads to it. OWNER GUARD: src/test/deadcodeRatchet.test.ts (a new unreachable export fails) + e2e/prod-audit/messyInputForms.ts coverage (a form no control opens fails the coverage test).
   DECISION: should admins be able to request an ID re-upload? Then wire it up
   or delete it.
 - [x] **Q6 DONE: the admin Stripe-Identity badge now has an honest label for every idv_status.** Owner clarified 2026-09-23 that users never send an ID to us; Stripe Identity collects it. "ID Not Submitted" was wrong twice: Stripe mid-check (pending/processing) now shows "Stripe Checking", and not started/skipped/none shows "Not Verified". Stripe Verified / ID Verified / Admin Verified / Stripe Flagged are unchanged. Guard adminIdBadgeStates.test.tsx walks every status in profiles_idv_status_check (red on old code: 2 of 3). The seed profiles' id_document_url is legacy data (see Q40). Was: Admin People badge says "ID Not Submitted" on profiles that have
@@ -7688,7 +7690,7 @@ sure someone hears it and closes it.
   screen are also resolved with no fix recorded. Find out what resolves them
   (auto-resolve setting? a script?). Feed Sentry into the Q1 ledger; a regression
   must reopen it.
-- [x] **Q12 DONE (measured 2026-09-23): not recurring.** 14 days of error_logs: 1 non-seed occurrence, the OWNER's account at 2026-09-22 15:10Z, right after the pg_cron/DB outage window (14:00-15:00Z). The rest were E2E test accounts (09-13, 09-15). Follow-up is Q39. Was: A real user saw "We couldn't load your account" (Sentry 2F/2E/2G,
+- [~] **Q12 DONE (measured 2026-09-23): not recurring.** 14 days of error_logs: 1 non-seed occurrence, the OWNER's account at 2026-09-22 15:10Z, right after the pg_cron/DB outage window (14:00-15:00Z). The rest were E2E test accounts (09-13, 09-15). Follow-up is Q39. Was: A real user saw "We couldn't load your account" (Sentry 2F/2E/2G, PROTECTION NOT YET BUILT: a real user seeing an error screen is untracked until Q39 lands. Stays [~] until then.
   09-22, profile request timed out). Was it the pg_cron outage window, or does it
   still happen? Measure the profile-fetch timeout rate.
 - [ ] **Q13 CSP allows `'unsafe-inline'` in script-src.** It is what turned tonight's
@@ -7712,7 +7714,7 @@ sure someone hears it and closes it.
 - [ ] **Q16 This file is 7,600+ lines with ~205 open checkboxes.** The one
   open-work list has become unreadable. Triage it: close what's done (verified),
   archive history to docs/archive/, keep OPEN.md to live items.
-- [x] **Q17 DONE: npm audit --omit=dev = 0 vulnerabilities.** The 3 were one chain, @capacitor/cli -> xcode -> uuid <11.1.1 (buffer bounds check when a buf is passed). @capacitor/cli is a build-time CLI, never bundled, and is now a devDependency, as Capacitor's own setup has it. The dev-tree uuid is unreachable: xcode only calls uuid.v4() with no buf (pbxProject.js:90). Was: npm audit (prod deps): 3 moderate: @capacitor/cli, uuid, xcode.
+- [x] **Q17 DONE: npm audit --omit=dev = 0 vulnerabilities.** The 3 were one chain, @capacitor/cli -> xcode -> uuid <11.1.1 (buffer bounds check when a buf is passed). @capacitor/cli is a build-time CLI, never bundled, and is now a devDependency, as Capacitor's own setup has it. The dev-tree uuid is unreachable: xcode only calls uuid.v4() with no buf (pbxProject.js:90). Was: npm audit (prod deps): 3 moderate: @capacitor/cli, uuid, xcode. GUARD: .github/workflows/security-audit.yml fails on MODERATE prod advisories (was critical-only).
   Upgrade or document why each is unreachable.
 - [ ] **Q18 Agent isolation leak.** A worktree-isolated agent reported its cwd was
   swapped to the SHARED main checkout mid-task (FormSpec lane, 2026-09-23). It
@@ -7736,7 +7738,7 @@ sure someone hears it and closes it.
 - [x] **Q21 DONE: the two remaining job-date sites that used the device zone now use Central.** (1) The browse feed hid a job once the READER's calendar passed its date, so a UTC-set phone dropped every Louisiana job dated today from 19:00 Central. It now uses jobDayHasEnded (src/lib/jobDate.ts: next Central midnight). (2) The "add to calendar" tile anchored the event at the reader's midnight; it now uses jobDateMs. Class check: src/lib/jobDayHasEnded.tz.test.ts sweeps 5 device zones x 6 instants (tz-sweep project; red 5/6 when mutated). The other parseLocalDate callers are not job-time math (date picker, birthday, display formatting). Was: Other `parseLocalDate(date_needed)` "time until job" math may
   have the same device-timezone bug (not searched). Sweep src/, then extend the
   tz-sweep test to each site.
-- [x] **Q22 DONE: independent review (lh-authz-rls, verified live) found NO remaining or new XSS sink**; grants, constraints and every writer check out. Was: Independent review of the href-class commits (3c81624d0,
+- [x] **Q22 DONE: independent review (lh-authz-rls, verified live) found NO remaining or new XSS sink**; grants, constraints and every writer check out. Was: Independent review of the href-class commits (3c81624d0, GUARD: src/test/navigationSinksAreClassified.test.ts + src/test/storagePathRenderIsAllowlisted.test.ts + migration 20260923042014 CHECKs.
   dd4713c00, 724cb5a67, 5e7cc4832, migration 20260923042014). In progress
   (lh-authz-rls, review only).
 - [ ] **Q23 Admin DocumentsTab can't open portfolio STORAGE PATHS.** They need
@@ -7750,7 +7752,7 @@ sure someone hears it and closes it.
 - [ ] **Q26 Server-side ID re-upload action + email template are unused** now
   that ReuploadIdDialog is gone (Q5). This is a report: count the callers, then
   let the owner decide.
-- [x] **Q27 DONE (de19e4b14, e31b23c4d, 726dba74a, 801555189, 5152014f3): all 37 triaged.** Real fixes: aria-pressed on 18 selected-option buttons (selectedStateIsExposed guard); "Edge Function returned a non-2xx" replaced by the server message at 8 sites (edgeFunctionErrorReachesTheUser guard); "Finish Paying" now behind the sweep payment gate; auto-tip Save confirms; Add-Admin search disabled when empty; create-payment 500 no longer echoes raw Stripe text. Everything else fixed in the harness. NEXT: re-dispatch press after prod-audit finishes. Was: Press sweep: 37 left (from 126). Triage in progress: about 25 are the
+- [x] **Q27 DONE (de19e4b14, e31b23c4d, 726dba74a, 801555189, 5152014f3): all 37 triaged.** Real fixes: aria-pressed on 18 selected-option buttons (selectedStateIsExposed guard); "Edge Function returned a non-2xx" replaced by the server message at 8 sites (edgeFunctionErrorReachesTheUser guard); "Finish Paying" now behind the sweep payment gate; auto-tip Save confirms; Add-Admin search disabled when empty; create-payment 500 no longer echoes raw Stripe text. Everything else fixed in the harness. NEXT: re-dispatch press after prod-audit finishes. Was: Press sweep: 37 left (from 126). Triage in progress: about 25 are the GUARD: src/test/selectedStateIsExposed.test.ts, src/test/edgeFunctionErrorReachesTheUser.test.ts, src/test/pressRun35813177418.test.ts, and the nightly press-every-control.yml.
   sweep re-pressing the already-selected option; real candidates are the
   /complete-profile checkbox, admin Manual Override > Re-open, silent auto-tip
   Save, and the create-payment 429.
@@ -7758,7 +7760,7 @@ sure someone hears it and closes it.
   matched a comment (FIXED d8f71e47d). Look for the same "toContain matches a
   comment" shape in other source-scanning guards. A shared code-only reader
   would close the class (ties to Q24).
-- [x] **Q29 DONE (measured 2026-09-23): all 51 archived DLQ messages were addressed to TEST accounts.** 50 tx to helpr-e2e-helper-0902 / helpr-seed-heavy-0912 @mailinator (is_seed), 1 auth to helpr-e2e-poster-0902 (is_seed). No real user lost an email. Follow-up moved to Q2: (a) why seed/mailinator mail dead-letters at all; (b) archiving a DLQ satisfies the ledger's depth check, so archiving a REAL user's email would close the alert silently. Make the DLQ verify rule require an audit row per non-seed recipient. Was: 51 dead-lettered emails were ARCHIVED, not resent (pgmq archive,
+- [~] **Q29 DONE (measured 2026-09-23): all 51 archived DLQ messages were addressed to TEST accounts.** 50 tx to helpr-e2e-helper-0902 / helpr-seed-heavy-0912 @mailinator (is_seed), 1 auth to helpr-e2e-poster-0902 (is_seed). No real user lost an email. Follow-up moved to Q2: (a) why seed/mailinator mail dead-letters at all; (b) archiving a DLQ satisfies the ledger's depth check, so archiving a REAL user's email would close the alert silently. Make the DLQ verify rule require an audit row per non-seed recipient. Was: 51 dead-lettered emails were ARCHIVED, not resent (pgmq archive, PROTECTION NOT YET BUILT: an archived DLQ can still close its alert silently until Q2 (per-recipient DLQ verify) lands. Stays [~] until then.
   2026-09-22 16:25 UTC): 1 auth email (sign-in, signup confirmation or password
   reset) and 50 app emails. Find the recipients. Resend to any real (non-seed)
   user whose email still matters, and record what happened. Then make archiving
@@ -7767,7 +7769,7 @@ sure someone hears it and closes it.
   ops-daily-digest (14:40 UTC) fell inside the 09-22 pg_cron outage
   (14:00-15:00), so no digest ran from 09-21 14:40 until the next slot, 38h+.
   Detect missed daily/weekly slots and run them once when the database is back.
-- [x] **Q31 DONE (measured 2026-09-23 05:00Z): healthy since the 30s timeout change.** 0 cron-http/cron-dead failures after 22:35Z (last 20:15Z, during the timeout era); pg_cron failures only 08:00-14:00Z (the outage). All 79 cancelled jobs with a PaymentIntent are payment_status refunded (4) or cancelled (75): 0 live holds IN THE DB. NOT verified: Stripe-side PI state (the Stripe MCP needs auth). Ongoing coverage: the ledger cron-dead condition + money-reconciliation. Was: void-cancelled-payments (MONEY: releases card holds on cancelled
+- [~] **Q31 DONE (measured 2026-09-23 05:00Z): healthy since the 30s timeout change.** 0 cron-http/cron-dead failures after 22:35Z (last 20:15Z, during the timeout era); pg_cron failures only 08:00-14:00Z (the outage). All 79 cancelled jobs with a PaymentIntent are payment_status refunded (4) or cancelled (75): 0 live holds IN THE DB. NOT verified: Stripe-side PI state (the Stripe MCP needs auth). Ongoing coverage: the ledger cron-dead condition + money-reconciliation. Was: void-cancelled-payments (MONEY: releases card holds on cancelled PROTECTION NOT YET BUILT: the Stripe-side comparison and reconciliation alert are Q50. Stays [~] until then.
   jobs):** 14 "cron-dead: last 3 runs failed" and 46 HTTP 5s timeouts in 24h.
   Check whether it's healthy since the 30s timeout change. If not, customers'
   card holds on cancelled jobs aren't being released. Verify with the count of
@@ -7777,7 +7779,7 @@ sure someone hears it and closes it.
   normalisation), #1607 (role-neutral copy) and several dependency bumps.
   Land, rebase or close each. Nothing auto-merges green dependency PRs (see
   memory dep-bumps-enable-auto-merge).
-- [x] **Q33 DONE (20260923050055): confirmed NOTHING alerted on the 19:00Z burst** (error_logs 19:00-21:00 had no cron row). sweep_cron_startup_failures matched only "startup timeout", and cron-dead needs 3 consecutive failures of one job. It now counts ANY failed run (floor 3 in 20 min, same window dedupe, same source, so the ledger close rule still holds) and names the failure kinds. PGlite: applied 3x; a simulated 18x "connection failed" burst pages fatal; the repeat is deduped; 1 failure stays quiet. The mutation moved to the new migration. Was: A "connection failed" burst: 18 crons at 2026-09-22 19:00 UTC.
+- [x] **Q33 DONE (20260923050055): confirmed NOTHING alerted on the 19:00Z burst** (error_logs 19:00-21:00 had no cron row). sweep_cron_startup_failures matched only "startup timeout", and cron-dead needs 3 consecutive failures of one job. It now counts ANY failed run (floor 3 in 20 min, same window dedupe, same source, so the ledger close rule still holds) and names the failure kinds. PGlite: applied 3x; a simulated 18x "connection failed" burst pages fatal; the repeat is deduped; 1 failure stays quiet. The mutation moved to the new migration. Was: A "connection failed" burst: 18 crons at 2026-09-22 19:00 UTC. GUARD: src/test/cronFailureAlertDoesNotDependOnCron.test.ts (red when the fix is reverted, after its parser fix e307ffa9e).
   Not a startup timeout. Confirm whether cron-dead / sweep_cron_startup_failures
   alerted on it; if nothing did, it's a hole in the cron monitoring.
 - [ ] **Q34 Press leftovers:** "Copy Mon to all" stays red (the test accounts
@@ -7839,7 +7841,7 @@ sure someone hears it and closes it.
   (d) overlay-sweep's stale check is only the deterministic half (spec header, 2026-09-21).
   (e) vacuity is red on main from two other-lane registrations (adminIdBadgeStates
   unescaped `|`, helperWorkPhotos find-string gone).
-- [x] **Q37 DONE: not reachable today, and it can no longer render broken.** No client sends portfolioFiles to complete-signup, and prod has 0 portfolio elements. HelperWorkPhotos now renders only safeDocumentUrl-displayable entries: a bare private path or an unsafe scheme is dropped, never shown as a broken tile. Test added (red on the old code: 2 of 5). The dead portfolioFiles path in complete-signup (private user-documents, "1-year signed URL" comment that no longer matches the code) folds into Q40. Was: Portfolio photos from signup render BROKEN on the public profile.
+- [x] **Q37 DONE: not reachable today, and it can no longer render broken.** No client sends portfolioFiles to complete-signup, and prod has 0 portfolio elements. HelperWorkPhotos now renders only safeDocumentUrl-displayable entries: a bare private path or an unsafe scheme is dropped, never shown as a broken tile. Test added (red on the old code: 2 of 5). The dead portfolioFiles path in complete-signup (private user-documents, "1-year signed URL" comment that no longer matches the code) folds into Q40. Was: Portfolio photos from signup render BROKEN on the public profile. GUARD: src/test/helperWorkPhotos.test.tsx (red on the old component).
   complete-signup stores portfolio_urls as bare storage paths
   (index.ts:516,700); HelperWorkPhotos.tsx:45 uses them directly as <img src>,
   which resolves against the app origin. Sign them at display time (ties to
@@ -8039,3 +8041,14 @@ sure someone hears it and closes it.
   revokes?). Find each source, fix it, and add a check for the class
   (realtime filters validated against the publication/columns; no
   placeholder ids reach prod).
+- [ ] **Q56 Morning report: what should improve, and how to make it LOAD
+  QUICKER (owner, 2026-09-23).** Measure first, recommend second: cold-load
+  timings on prod at 375 (phone) and 1440 (TTFB, FCP, LCP, time to
+  interactive, on web and WebKit); the critical-path JS/CSS (353 kB gz after
+  d498580fb) and the largest route chunks; the number and duration of API
+  calls a signed-in dashboard makes on load (the 09-22 load data shows
+  heavy polling: applications+jobs 30k calls/14h, get_my_pending_direct_offers
+  32k); images (formats, sizes, lazy loading); fonts; the DB side (slowest
+  queries a page waits on). Deliver a ranked list: what it costs now, what
+  the change is, the expected gain. Each speed fix ships with a budget check
+  (e.g. bundle-size budgets, a Lighthouse/LCP budget in CI) so it can't regress.

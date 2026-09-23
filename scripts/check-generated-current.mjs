@@ -132,7 +132,7 @@ export const EVIDENCE = [
     script: "scripts/check-types-fresh.mjs",
     outputs: ["src/integrations/supabase/types.ts"],
     refresh: "npm run db:types (SUPABASE_ACCESS_TOKEN)",
-    refreshedBy: ".github/workflows/prod-freshness.yml",
+    refreshedBy: "by the committer after a migration; db-deploy.yml and db-drift-detect.yml (nightly) fail when it drifts from prod",
     checkedBy: "scripts/check-types-fresh.mjs",
   },
   {
@@ -154,6 +154,17 @@ export const TWO_WAY = {
   "src/test/vacuity.baseline.json": "scripts/vacuity/index.mjs ratchet (stale entry fails)",
   "src/test/controlInteractionLedger.json": "src/test/controlInteractionSameness.test.ts (no-longer-a-violation fails)",
   "docs/audit/loading-states/baseline.json": "scripts/check-loading-state-shape.mjs (entry that no longer breaches fails)",
+};
+
+/**
+ * Dated RECORDS, not living numbers: a one-off before/after probe kept as
+ * evidence for a specific fix. They are allowed to be old because they claim
+ * nothing about today — each carries its own timestamp. A living inventory may
+ * never be parked here to escape a check.
+ */
+export const HISTORICAL = {
+  "docs/audit/loading-states/skel-probe/measurements.json": "before-state of the 2026-09-22 skeleton fix (Q-loading-states), kept as its red-before evidence",
+  "docs/audit/loading-states/skel-probe-after/measurements.json": "after-state of the same fix, kept as its green-after evidence",
 };
 
 /**
@@ -252,9 +263,9 @@ export function coverageProblems({ writers = discoverWriters(), declared = disco
     if (!outs.has(f)) problems.push(`${f} declares itself generated but no registry entry produces it — register its generator`);
   }
   for (const f of evidence) {
-    if (!outs.has(f) && !(f in TWO_WAY)) problems.push(`${f} carries a measurement timestamp but is in no registry (GENERATED, EVIDENCE or TWO_WAY)`);
+    if (!outs.has(f) && !(f in TWO_WAY) && !(f in HISTORICAL)) problems.push(`${f} carries a measurement timestamp but is in no registry (GENERATED, EVIDENCE, TWO_WAY or HISTORICAL)`);
   }
-  for (const f of Object.keys(TWO_WAY)) if (!existsSync(join(REPO, f))) problems.push(`TWO_WAY entry ${f} does not exist — remove it`);
+  for (const f of [...Object.keys(TWO_WAY), ...Object.keys(HISTORICAL)]) if (!existsSync(join(REPO, f))) problems.push(`registry entry ${f} does not exist — remove it`);
   return problems;
 }
 

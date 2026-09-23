@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from "vitest";
 // @ts-expect-error — plain .mjs script, no declaration file
-import { checkEvidence, checkLedger, evidenceTimestamp, listEvidence, MAX_EVIDENCE_HOURS, MAX_LEDGER_COMMITS } from "../../scripts/check-staleness.mjs";
+import { checkEvidence, checkLedger, checkWorkflowBound, evidenceTimestamp, listEvidence, MAX_EVIDENCE_HOURS, MAX_LEDGER_COMMITS, WORKFLOW_BOUND } from "../../scripts/check-staleness.mjs";
 
 const NOW = new Date("2026-09-23T12:00:00Z");
 const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 36e5);
@@ -42,5 +42,29 @@ describe("staleness watch", () => {
   it("is RED on a ledger too many commits behind", () => {
     expect(checkLedger("L.md", MAX_LEDGER_COMMITS + 1)).toHaveLength(1);
     expect(checkLedger("L.md", MAX_LEDGER_COMMITS)).toHaveLength(0);
+  });
+});
+
+describe("staleness watch — currency proven by something better than age", () => {
+  it("skips files proven per push (regenerated, two-way, historical), but not others", () => {
+    const old = [
+      { file: "proven.json", at: hoursAgo(MAX_EVIDENCE_HOURS + 100), covers: null },
+      { file: "aging.json", at: hoursAgo(MAX_EVIDENCE_HOURS + 100), covers: null },
+    ];
+    const stale = checkEvidence(old, NOW, never, new Set(["proven.json"]));
+    expect(stale).toHaveLength(1);
+    expect(stale[0]).toContain("aging.json");
+  });
+
+  it("is RED when a workflow-bound baseline's checking run has not passed within its window", () => {
+    const b = [{ file: "o.json", workflow: "ui-sweep.yml", maxDays: 8 }];
+    expect(checkWorkflowBound(b, () => hoursAgo(24 * 9), NOW)).toHaveLength(1);
+    expect(checkWorkflowBound(b, () => null, NOW)).toHaveLength(1);
+    expect(checkWorkflowBound(b, () => hoursAgo(24 * 2), NOW)).toHaveLength(0);
+  });
+
+  it("binds the overlay baseline to the Friday overlay cron, not any green ui-sweep run", () => {
+    const overlay = (WORKFLOW_BOUND as { file: string; event?: string; weekdayUtc?: number }[]).find((b) => b.file.includes("overlay-sweep"));
+    expect(overlay).toMatchObject({ event: "schedule", weekdayUtc: 5 });
   });
 });

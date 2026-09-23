@@ -151,6 +151,15 @@ jobs:
             fi
           fi
 
+      - name: Committed inventories are current (regenerate and diff)
+        # Every CI-runnable generator (SURFACE, ROLLUP, COVERAGE, form
+        # inventory, sitemap, vacuity report, burn-down score) is re-run and
+        # diffed against the committed copy, so a commit that adds a route, a
+        # button, a guard or a finding without regenerating its inventory goes
+        # red HERE. Docs-only pushes (paths-ignored above) are covered by
+        # staleness-watch.yml's push trigger. (OPEN.md Q36, 2026-09-23.)
+        run: npm run check:generated
+
       - name: CLAUDE.md claims are still true
         # CLAUDE.md is a mirror of reality with no freshness guard — the same
         # shape as types.ts, and it drifted the same way. Two of its statements

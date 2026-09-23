@@ -36,6 +36,7 @@ on:
       - Race Runner
       - Sentry Release
       - Sitemap drift
+      - Staleness watch
       - Stripe Webhook Endpoint Guard
       - Test
       - UI sweep

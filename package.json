@@ -56,7 +56,10 @@
     "check:deferred-vendors": "node scripts/check-deferred-vendors.mjs",
     "vacuity": "node scripts/vacuity/index.mjs",
     "vacuity:all": "node scripts/vacuity/index.mjs --all",
-    "vacuity:report": "node scripts/vacuity/index.mjs --report --no-mutate"
+    "vacuity:report": "node scripts/vacuity/index.mjs --report --no-mutate",
+    "check:generated": "node scripts/check-generated-current.mjs",
+    "check:staleness": "node scripts/check-staleness.mjs",
+    "burndown:score": "node scripts/burndown-score.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix",

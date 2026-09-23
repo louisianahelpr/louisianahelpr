@@ -50,6 +50,7 @@ const STEPS = [
   ["migration relation grants", "node scripts/check-migration-relation-grants.mjs"],
   ["migration timestamps", "node scripts/check-migration-versions.mjs"],
   ["loading-state shape", "npm run check:loading-states"],
+  ["generated inventories current", "npm run check:generated"],
   [
     "deferred vendors (built graph)",
     "npm run check:deferred-vendors",

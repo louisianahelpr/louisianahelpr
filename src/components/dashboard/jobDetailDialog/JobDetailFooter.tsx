@@ -29,7 +29,7 @@ export const JobDetailFooter = ({
     // Instant Book was dropped (20260904034410, dead-feature cut) — the CTA
     // always names the real action now, applying. (A third "Sign up to bid"
     // branch went away earlier with bidding — zero production usage.)
-    const guestCtaLabel = "Sign up to apply";
+    const guestCtaLabel = "Sign Up to Apply";
     return (
       <div className="flex gap-1.5 pt-0.5 items-stretch">
       {/* Guest save — the strongest interest signal a guest can give

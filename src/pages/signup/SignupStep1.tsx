@@ -496,7 +496,7 @@ export function SignupStep1({
         Already have an account?{" "}
         <Link
           to="/login"
-          className="font-semibold hover:underline whitespace-nowrap"
+          className="font-semibold link-standard whitespace-nowrap"
           style={{ color: "hsl(var(--bark))" }}
         >
           Log In

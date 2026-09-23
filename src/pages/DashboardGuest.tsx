@@ -640,14 +640,14 @@ const DashboardGuest = () => {
                     <button
                       type="button"
                       onClick={() => filters.setLocationFilter(`nearby:${nextMiles}`)}
-                      className="text-ds-11 font-semibold text-primary hover:underline btn-press"
+                      className="text-ds-11 font-semibold text-primary link-standard btn-press"
                     >
                       Widen to {nextMiles} mi
                     </button>
                     <button
                       type="button"
                       onClick={() => filters.setLocationFilter("")}
-                      className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
+                      className="text-ds-11 font-semibold text-muted-foreground link-standard btn-press"
                     >
                       Show All Locations
                     </button>
@@ -656,7 +656,7 @@ const DashboardGuest = () => {
                   <button
                     type="button"
                     onClick={filters.clearFilters}
-                    className="text-ds-11 font-semibold text-primary hover:underline btn-press"
+                    className="text-ds-11 font-semibold text-primary link-standard btn-press"
                   >
                     Clear Filters
                   </button>
@@ -692,7 +692,7 @@ const DashboardGuest = () => {
                   <button
                     type="button"
                     onClick={() => navigate("/signup")}
-                    className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
+                    className="text-ds-11 font-semibold text-muted-foreground link-standard btn-press"
                   >
                     Or Hire Someone for a Job
                   </button>

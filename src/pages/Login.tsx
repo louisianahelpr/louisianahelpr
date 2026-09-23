@@ -580,7 +580,7 @@ const Login = () => {
                 // control competing with the primary one. The screen gets ONE
                 // strong green. Dropped to medium weight for the same reason —
                 // this is the escape hatch, not the action.
-                className="min-h-[44px] -my-2 inline-flex items-center text-ds-12 font-sans font-semibold hover:underline active:opacity-60 transition-opacity"
+                className="min-h-[44px] -my-2 inline-flex items-center text-ds-12 font-sans font-semibold link-standard active:opacity-60 transition-opacity"
                 style={{ color: "hsl(var(--bark))" }}
               >
                 Forgot Password?
@@ -675,7 +675,7 @@ const Login = () => {
               exact failure this whole path exists to prevent. */}
           <Link
             to={signupHref}
-            className="font-semibold hover:underline whitespace-nowrap"
+            className="font-semibold link-standard whitespace-nowrap"
             style={{ color: "hsl(var(--bark))" }}
           >
             Create an Account

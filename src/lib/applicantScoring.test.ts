@@ -4,6 +4,7 @@ import {
   PRIORITY_PLACEMENT_MAX_POINTS,
   priorityPlacementPoints,
   scoreApplicant,
+  signalsAriaLabel,
   type ApplicantData,
 } from "./applicantScoring";
 import { TIER_ORDER, TIER_PERK_MATRIX } from "../../supabase/functions/_shared/tierPerks";
@@ -153,6 +154,23 @@ describe("scoreApplicant — the boost is bounded, never an override", () => {
     // as null. The client has no expiry date for another member and could not
     // resolve this itself, which is why the fix had to be in SQL.
     expect(scoreApplicant(at({ priorityTier: null })).priorityBoost).toBe(0);
+  });
+});
+
+// Q248 — "4.9★" reads to a screen reader as "4.9 black star" (Unicode's name
+// for ★), not "4.9 stars". signalsAriaLabel is the sr-only text ApplicantsPanel
+// renders alongside the aria-hidden glyph.
+describe("signalsAriaLabel", () => {
+  it("replaces the star glyph with a readable word (can fail on the raw glyph)", () => {
+    expect(signalsAriaLabel(["4.9★"])).toBe("4.9 stars");
+  });
+
+  it("leaves signals with no star glyph untouched", () => {
+    expect(signalsAriaLabel(["12 jobs", "On time", "Licensed"])).toBe("12 jobs, On time, Licensed");
+  });
+
+  it("joins a mix the same way the visible row does, minus the glyph", () => {
+    expect(signalsAriaLabel(["4.9★", "12 jobs"])).toBe("4.9 stars, 12 jobs");
   });
 });
 // Proof this guard can fail (scripts/vacuity).

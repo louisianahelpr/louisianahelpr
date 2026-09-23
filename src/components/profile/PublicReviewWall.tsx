@@ -162,7 +162,7 @@ function ReviewQuote({
               <button
                 type="button"
                 onClick={() => setExpanded(true)}
-                className="font-sans not-italic font-semibold text-[hsl(var(--burnt-sienna))] hover:underline focus:underline focus:outline-none"
+                className="font-sans not-italic font-semibold text-[hsl(var(--burnt-sienna))] link-standard focus:outline-none"
                 aria-label="Show full review"
               >
                 more

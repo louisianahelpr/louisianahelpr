@@ -355,7 +355,7 @@ export function IdentityHeader({
             {!profile?.full_name?.trim() && (
               <button
                 onClick={() => onSelectTab("profile")}
-                className="mt-1.5 text-ds-11 font-semibold text-primary hover:underline"
+                className="mt-1.5 text-ds-11 font-semibold text-primary link-standard"
               >
                 + Add Your Name
               </button>

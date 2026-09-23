@@ -385,7 +385,7 @@ const AdminUsers = () => {
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            className="text-ds-11 text-primary hover:underline"
+            className="text-ds-11 text-primary link-standard"
           >
             Clear Search
           </button>

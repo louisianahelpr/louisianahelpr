@@ -319,7 +319,7 @@ export function MessageBubble({
           <button
             type="button"
             onClick={() => m.clientId && retryMessage(m.clientId)}
-            className="flex items-center gap-1 text-destructive font-medium hover:underline"
+            className="flex items-center gap-1 text-destructive font-medium link-standard"
             title="Retry sending"
           >
             <RotateCw className="w-2.5 h-2.5" />

@@ -435,7 +435,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
               <button
                 type="button"
                 onClick={() => setStep("reason")}
-                className="shrink-0 font-sans font-medium underline-offset-2 hover:underline text-ds-11"
+                className="shrink-0 font-sans font-medium link-standard text-ds-11"
                 style={{ color: "hsl(var(--primary))" }}
               >
                 Change

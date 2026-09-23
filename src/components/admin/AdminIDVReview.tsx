@@ -339,7 +339,7 @@ const AdminIDVReview = () => {
                         href={stripeSessionUrl(r.idv_session_id)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-ds-11 font-semibold text-primary hover:underline"
+                        className="inline-flex items-center gap-1 text-ds-11 font-semibold text-primary link-standard"
                       >
                         <ExternalLink className="w-3 h-3" />
                         Open the Stripe session

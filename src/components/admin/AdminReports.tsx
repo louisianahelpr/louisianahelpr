@@ -431,7 +431,7 @@ const AdminReports = () => {
                     <p className="text-ds-13 font-semibold text-foreground">
                       <button
                         onClick={() => navigate(`/user/${report.reported_id}`)}
-                        className="hover:text-primary underline-offset-2 hover:underline transition-colors"
+                        className="hover:text-primary link-standard"
                       >
                         {report.reported_name}
                       </button>
@@ -449,7 +449,7 @@ const AdminReports = () => {
                       {report.reporter_id ? (
                         <button
                           onClick={() => navigate(`/user/${report.reporter_id}`)}
-                          className="hover:text-primary underline-offset-2 hover:underline transition-colors"
+                          className="hover:text-primary link-standard"
                         >
                           {report.reporter_name}
                         </button>

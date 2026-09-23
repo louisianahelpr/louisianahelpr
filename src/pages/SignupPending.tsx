@@ -314,7 +314,7 @@ const SignupPending = () => {
                    and would leave this paragraph 44px tall — floating its text
                    above the 19px links beside it. WCAG 2.5.8 exempts controls
                    inline in a sentence, which is what this is. */
-                className="font-semibold hover:underline align-baseline !min-h-0 !h-auto disabled:no-underline"
+                className="font-semibold link-standard align-baseline !min-h-0 !h-auto disabled:no-underline"
                 style={{ color: resendCooldown > 0 ? "hsl(var(--olivewood) / 0.8)" : "hsl(var(--bark))" }}
               >
                 {resending ? "Sending…" : resent ? `Resent${resendCooldown > 0 ? ` (${resendCooldown}s)` : ""}` : "Resend"}
@@ -325,13 +325,13 @@ const SignupPending = () => {
               practical fix once the auth row exists against a typo. */}
           <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Wrong address?{" "}
-            <Link to="/signup" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+            <Link to="/signup" className="font-semibold link-standard" style={{ color: "hsl(var(--bark))" }}>
               Start over
             </Link>
           </p>
           <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Verified?{" "}
-            <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+            <Link to="/login" className="font-semibold link-standard" style={{ color: "hsl(var(--bark))" }}>
               Log In
             </Link>
           </p>

@@ -192,13 +192,13 @@ export const PrivacyContent = () => (
         title={PORTABILITY_ROW_TITLE}
         body={
           <>
-            <p><strong className="text-foreground">Deletion:</strong> Permanently delete your account and personal data yourself from <Link to="/profile" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Profile settings</Link> — it takes effect immediately. Financial and tax records we're legally required to keep are retained; everything else is removed.</p>
+            <p><strong className="text-foreground">Deletion:</strong> Permanently delete your account and personal data yourself from <Link to="/profile" className="font-semibold link-standard" style={{ color: "hsl(var(--bark))" }}>Profile settings</Link> — it takes effect immediately. Financial and tax records we're legally required to keep are retained; everything else is removed.</p>
             {/* Points at the export's real home: the "Download your data"
                 card further down THIS policy (owner, 2026-09-14, VN-47). An
                 in-page hash link, not a route, so it works on the public
                 /privacy page and in the Profile Legal tab's Privacy panel
                 alike without bouncing a signed-in reader out of the app. */}
-            <p><strong className="text-foreground">Data portability:</strong> Download a complete copy of your data (profile, jobs, applications, reviews) as a machine-readable JSON file with <a href={`#${DATA_EXPORT_ANCHOR}`} className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Download your data</a> below.</p>
+            <p><strong className="text-foreground">Data portability:</strong> Download a complete copy of your data (profile, jobs, applications, reviews) as a machine-readable JSON file with <a href={`#${DATA_EXPORT_ANCHOR}`} className="font-semibold link-standard" style={{ color: "hsl(var(--bark))" }}>Download your data</a> below.</p>
           </>
         }
       />

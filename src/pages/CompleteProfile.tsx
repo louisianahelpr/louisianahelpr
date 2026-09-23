@@ -826,9 +826,9 @@ const CompleteProfile = () => {
                     (Terms, Rules & Privacy) so the same box reads the same
                     way everywhere a user ticks it. */}
                 I agree to the{" "}
-                <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Terms</a>,{" "}
-                <a href="/rules" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Rules</a>{" & "}
-                <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Privacy</a>. <span style={{ color: "hsl(var(--sienna-ink))" }}>*</span>
+                <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold link-standard" style={{ color: "hsl(var(--bark))" }}>Terms</a>,{" "}
+                <a href="/rules" target="_blank" rel="noreferrer" className="font-semibold link-standard" style={{ color: "hsl(var(--bark))" }}>Rules</a>{" & "}
+                <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold link-standard" style={{ color: "hsl(var(--bark))" }}>Privacy</a>. <span style={{ color: "hsl(var(--sienna-ink))" }}>*</span>
               </span>
             </label>
 
@@ -933,7 +933,7 @@ const CompleteProfile = () => {
                 /support, which is. */}
             <p className="text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Stuck on something?{" "}
-              <a href="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+              <a href="/support" className="font-semibold link-standard" style={{ color: "hsl(var(--bark))" }}>
                 Contact support
               </a>
             </p>

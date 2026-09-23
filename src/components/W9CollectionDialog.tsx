@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
@@ -116,17 +117,24 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
               className="font-display italic"
             />
           </div>
-          <label className="flex items-start gap-2 text-ds-12 text-muted-foreground cursor-pointer">
-            <input
-              type="checkbox"
+          {/* aria-labelledby, not a wrapping <label htmlFor> — Radix renders
+              Checkbox as <button role="checkbox"> with empty content, so
+              Chrome's accessible-name computation returns nothing for a
+              wrapping label (see SignupStep1.tsx's policies checkbox for the
+              same fix). Pointing at the description span names it from the
+              same copy a sighted signer reads. */}
+          <div className="flex items-start gap-2 text-ds-12 text-muted-foreground">
+            <Checkbox
+              id="w9-agree"
+              aria-labelledby="w9-agree-label"
               checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              className="mt-1"
+              onCheckedChange={(checked) => setAgreed(checked === true)}
+              className="mt-1 h-4 w-4 shrink-0"
             />
-            <span>
+            <span id="w9-agree-label">
               By typing my name and clicking <strong className="font-semibold">Sign</strong>, I agree that this typed signature is my legal signature for the W-9 (Request for Taxpayer Identification Number and Certification).
             </span>
-          </label>
+          </div>
           {ip && (
             <p className="text-ds-10 text-muted-foreground font-mono">Recorded with IP {ip}</p>
           )}

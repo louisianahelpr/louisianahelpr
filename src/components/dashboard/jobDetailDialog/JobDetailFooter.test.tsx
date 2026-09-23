@@ -70,3 +70,37 @@ describe("JobDetailFooter Message button (VN-2)", () => {
 // The original VN-2 gate, restored: `|| viewerAppPosition != null` let any
 // applicant message the poster from the job detail footer.
 // @mutate src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx | viewerUserId === (job as { helper_id?: string \| null }).helper_id) && ( | viewerUserId === (job as { helper_id?: string \| null }).helper_id \|\| viewerAppPosition != null) && (
+
+// Q248 — the guest CTA read "Sign up to apply" (sentence case) while every
+// other button label in the app is Title Case ("Try Again", "Mark as Urgent").
+const MINOR_WORDS = new Set(["a", "an", "the", "and", "or", "for", "to", "of", "in", "on", "at", "by", "as"]);
+function titleCaseViolations(text: string): string[] {
+  const words = text.split(" ").filter(Boolean);
+  return words.filter((w, i) => /^[a-z]/.test(w) && (i === 0 || !MINOR_WORDS.has(w)));
+}
+
+describe("JobDetailFooter guest CTA is Title Case (Q248)", () => {
+  afterEach(cleanup);
+
+  it("the checker itself fails on the original sentence-case label", () => {
+    expect(titleCaseViolations("Sign up to apply")).toEqual(["up", "apply"]);
+    expect(titleCaseViolations("Sign Up to Apply")).toEqual([]);
+  });
+
+  it("renders the guest CTA in Title Case", () => {
+    render(
+      <JobDetailFooter
+        job={makeJob()}
+        guest
+        onApply={vi.fn()}
+        navigate={vi.fn()}
+        viewerUserId={null}
+        viewerAppPosition={null}
+        viewerTier={0}
+        onAskQuestion={vi.fn()}
+      />,
+    );
+    const cta = screen.getByText(/sign up to apply/i);
+    expect(titleCaseViolations(cta.textContent ?? "")).toEqual([]);
+  });
+});

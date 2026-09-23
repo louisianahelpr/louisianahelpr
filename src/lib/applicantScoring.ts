@@ -161,3 +161,15 @@ export function scoreApplicant(a: ApplicantData): ApplicantScore {
 
   return { userId: a.userId, score, signals, priorityBoost, rankScore: score + priorityBoost };
 }
+
+/**
+ * Screen-reader text for a joined trust-signals row. `${rating}★` (e.g.
+ * "4.9★") is built above for sighted display; VoiceOver and NVDA read "★" by
+ * its Unicode name, "black star", so "4.9★" was announced as "four point
+ * nine black star" (Q248). This swaps the glyph for a word before the row is
+ * ever rendered as text a screen reader speaks — the visible glyph is
+ * unchanged, only the parallel `aria-label` text differs.
+ */
+export function signalsAriaLabel(signals: string[]): string {
+  return signals.map((s) => s.replace(/★/g, " stars")).join(", ");
+}

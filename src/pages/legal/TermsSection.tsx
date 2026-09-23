@@ -85,7 +85,7 @@ export const TermsContent = () => {
         body={
           <>
             <p><strong className="text-foreground">Accepting a job or hiring a Helpr creates a binding commitment</strong> to complete the work as described and release payment on satisfactory completion.</p>
-            <p>Cancellation, revision, and dispute resolution are governed by the <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules</Link>, which form part of this agreement.</p>
+            <p>Cancellation, revision, and dispute resolution are governed by the <Link to="/legal?tab=community" className="font-semibold link-standard" style={{ color: "hsl(var(--bark))" }}>Community Rules</Link>, which form part of this agreement.</p>
           </>
         }
       />
@@ -95,7 +95,7 @@ export const TermsContent = () => {
         body={
           <>
             <p><strong className="text-foreground">Prohibited:</strong> Illegal activities, harassment, fraud, discrimination, off-platform payment solicitation, or any conduct that violates the rights of others.</p>
-            <p><strong className="text-foreground">Termination:</strong> Helpr reserves the right to suspend or terminate accounts at its sole discretion. Specific behavior, strike, and ban rules are detailed in the <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules</Link>.</p>
+            <p><strong className="text-foreground">Termination:</strong> Helpr reserves the right to suspend or terminate accounts at its sole discretion. Specific behavior, strike, and ban rules are detailed in the <Link to="/legal?tab=community" className="font-semibold link-standard" style={{ color: "hsl(var(--bark))" }}>Community Rules</Link>.</p>
             <p><strong className="text-foreground">Intellectual property:</strong> All content, branding, and technology are owned by Helpr. No copying, modifying, or redistributing without permission.</p>
             <p><strong className="text-foreground">Liability:</strong> Helpr is a marketplace and is not responsible for the quality, safety, or legality of jobs performed.</p>
           </>
@@ -116,7 +116,7 @@ export const TermsContent = () => {
           <>
             <p><strong className="text-foreground">Charged upfront:</strong> Payments are processed via Stripe at booking and held securely (in escrow) until both parties confirm completion.</p>
             <p><strong className="text-foreground">Auto-release:</strong> If only one party confirms, the job auto-completes {COPY_AUTO_RELEASE_HOURS} hours later and payment releases to the Helpr (funds land about {TOTAL_TO_PAYOUT_HOURS} hours after completion).</p>
-            <p><strong className="text-foreground">Refunds:</strong> Refunds are evaluated case-by-case through the dispute process — see <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules → When something goes wrong</Link>.</p>
+            <p><strong className="text-foreground">Refunds:</strong> Refunds are evaluated case-by-case through the dispute process — see <Link to="/legal?tab=community" className="font-semibold link-standard" style={{ color: "hsl(var(--bark))" }}>Community Rules → When something goes wrong</Link>.</p>
           </>
         }
       />
@@ -266,7 +266,7 @@ export const TermsContent = () => {
         body={
           <>
             <p><strong className="text-foreground">Helpr does not provide insurance</strong> for posters or Helprs. Any protection or guarantee program we may offer is governed by its own separate terms.</p>
-            <p>Disputes between users are handled through the dispute process in the <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules</Link>. Helpr's role is limited to facilitating that process and is not a guarantor of any outcome.</p>
+            <p>Disputes between users are handled through the dispute process in the <Link to="/legal?tab=community" className="font-semibold link-standard" style={{ color: "hsl(var(--bark))" }}>Community Rules</Link>. Helpr's role is limited to facilitating that process and is not a guarantor of any outcome.</p>
           </>
         }
       />

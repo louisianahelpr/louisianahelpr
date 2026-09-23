@@ -188,7 +188,7 @@ export function PendingApplicationSection({
           // global 44px minimum applies to `button`, not `label`. `sr-only`
           // keeps the input focusable; `min-h-11` gives the row a real target.
           <label
-            className="flex items-center gap-2 min-h-11 text-ds-12 text-primary cursor-pointer hover:underline focus-within:underline"
+            className="flex items-center gap-2 min-h-11 text-ds-12 text-primary cursor-pointer link-standard focus-within:underline"
             onClick={(e) => e.stopPropagation()}
           >
             <Paperclip className="w-3.5 h-3.5" />

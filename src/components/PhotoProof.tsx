@@ -523,7 +523,7 @@ export const PhotoProofGroup = ({
       title="Photo Proof"
       action={
         (hasBefore || hasAfter) ? (
-          <button onClick={() => setViewOpen(true)} className="text-ds-10 text-primary hover:underline font-medium shrink-0">
+          <button onClick={() => setViewOpen(true)} className="text-ds-10 text-primary link-standard font-medium shrink-0">
             View All
           </button>
         ) : undefined

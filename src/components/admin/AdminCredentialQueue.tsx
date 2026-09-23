@@ -506,7 +506,7 @@ function SignedOpenLink({ path }: { path: string }) {
       type="button"
       onClick={open}
       disabled={busy}
-      className="inline-flex items-center gap-1 text-ds-11 text-primary hover:underline disabled:opacity-50"
+      className="inline-flex items-center gap-1 text-ds-11 text-primary link-standard disabled:opacity-50"
     >
       {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <>Open <ExternalLink className="w-3 h-3" /></>}
     </button>

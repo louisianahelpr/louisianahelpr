@@ -616,7 +616,7 @@ const AdminDisputes = () => {
               <button
                 type="button"
                 onClick={clearFilters}
-                className="text-ds-11 text-primary hover:underline"
+                className="text-ds-11 text-primary link-standard"
               >
                 Reset Filters
               </button>

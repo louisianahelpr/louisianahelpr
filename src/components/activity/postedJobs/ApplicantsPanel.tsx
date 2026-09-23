@@ -10,6 +10,7 @@ import CredentialBadge from "@/components/CredentialBadge";
 import { hapticLight } from "@/lib/haptics";
 import { tierDisplayName } from "@/lib/subscriptionTiers";
 import { tierBadgeStyle } from "@/lib/tierBadgeStyle";
+import { signalsAriaLabel } from "@/lib/applicantScoring";
 import { type Job, type EnrichedApplication } from "../activityConstants";
 import { type JobAnalytics } from "./useJobAnalytics";
 import { useApplicantComparison } from "./useApplicantComparison";
@@ -400,7 +401,7 @@ export function ApplicantsPanel({
                               <a
                                 href={`/user/${app.helper_id}`}
                                 title={helperName}
-                                className="font-display italic font-bold truncate hover:underline text-ds-15"
+                                className="font-display italic font-bold truncate link-standard text-ds-15"
                                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
                               >
                                 {helperName}
@@ -446,13 +447,17 @@ export function ApplicantsPanel({
                                 </span>
                               )}
                             </div>
-                            {/* Trust signals row */}
+                            {/* Trust signals row. `★` reads as "black star" to a
+                                screen reader ("4.9 black star"), so the visible
+                                glyph stays aria-hidden and a parallel sr-only
+                                span carries the word "stars" instead (Q248). */}
                             {visibleSignals.length > 0 && (
                               <p
                                 className="font-sans mt-0.5 leading-snug text-ds-12"
                                 style={{ color: "hsl(var(--olivewood) / 0.80)" }}
                               >
-                                {visibleSignals.join(" · ")}
+                                <span aria-hidden="true">{visibleSignals.join(" · ")}</span>
+                                <span className="sr-only">{signalsAriaLabel(visibleSignals)}</span>
                               </p>
                             )}
                             {/* The bid pill and inline counter-offer form used

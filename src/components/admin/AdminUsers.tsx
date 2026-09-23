@@ -13,7 +13,6 @@ import { DeleteUserDialog } from "./DeleteUserDialog";
 import { EditEmailDialog } from "./EditEmailDialog";
 import { ManualVerifyDialog } from "./ManualVerifyDialog";
 import { ResetPasswordDialog } from "./ResetPasswordDialog";
-import { ReuploadIdDialog } from "./ReuploadIdDialog";
 import { FormalWarningDialog } from "./FormalWarningDialog";
 import { AdminUserDetailDialog } from "./AdminUserDetailDialog";
 import { type Profile } from "./adminUserHelpers";
@@ -90,10 +89,8 @@ const AdminUsers = () => {
   const [deleteProfile, setDeleteProfile] = useState<Profile | null>(null);
 
   // Per-action dialog targets — each dialog owns its own form state +
-  // edge-fn invocation + saving flag internally now (ReuploadIdDialog,
-  // FormalWarningDialog, ManualVerifyDialog, ResetPasswordDialog). The
+  // edge-fn invocation + saving flag internally now (FormalWarningDialog, ManualVerifyDialog, ResetPasswordDialog). The
   // parent only tracks "which profile is the dialog targeting."
-  const [reuploadProfile, setReuploadProfile] = useState<Profile | null>(null);
   const [warningProfile, setWarningProfile] = useState<Profile | null>(null);
   const [manualVerifyProfile, setManualVerifyProfile] = useState<Profile | null>(null);
   const [resetPwProfile, setResetPwProfile] = useState<Profile | null>(null);
@@ -502,13 +499,6 @@ const AdminUsers = () => {
       <ManualVerifyDialog
         profile={manualVerifyProfile}
         onClose={() => setManualVerifyProfile(null)}
-        onSuccess={() => { loadProfiles(); setViewProfile(null); }}
-      />
-
-      {/* ID Re-upload — extracted into ReuploadIdDialog. */}
-      <ReuploadIdDialog
-        profile={reuploadProfile}
-        onClose={() => setReuploadProfile(null)}
         onSuccess={() => { loadProfiles(); setViewProfile(null); }}
       />
 

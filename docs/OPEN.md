@@ -7608,7 +7608,7 @@ sure someone hears it and closes it.
 - [ ] **Q4 "Daily ops digest not delivered in 30h"** fired twice on 09-22.
   Check whether it has run since, find the cause, and verify tomorrow's
   digest arrives.
-- [ ] **Q5 Nothing opens ReuploadIdDialog.** No button leads to it. OWNER
+- [x] **Q5 DONE 2026-09-23 — owner chose DELETE; ReuploadIdDialog removed.** (Server-side `admin-user-actions` re-upload action + its email template are now unused by the UI — reported, not removed.) Was: Nothing opens ReuploadIdDialog. No button leads to it. OWNER
   DECISION: should admins be able to request an ID re-upload? Then wire it up
   or delete it.
 - [ ] **Q6 Admin People badge says "ID Not Submitted"** on profiles that have

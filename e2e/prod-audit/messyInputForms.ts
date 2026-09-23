@@ -392,8 +392,7 @@ export const FORMS: FormSpec[] = [
   { name: "admin-notiflogs", url: "/admin?view=notiflogs", as: "admin", prepare: recoverAdminGate, covers: ["src/components/admin/AdminNotificationLogs.tsx"] },
 
   // ── The 21 forms docs/OPEN.md (2026-09-22) flagged as never reached ──────
-  // (20 here; ReuploadIdDialog.tsx is a stated GAP below — its trigger is
-  // dead code, not a firewalled control. See the GAPS comment.)
+  // (20 here; the 21st, ReuploadIdDialog.tsx, was dead code and was deleted.)
   {
     name: "messages-thread", url: "/messages", as: "helper", prepare: openMessageThread("poster"),
     covers: ["src/components/RichMessageInput.tsx", "src/components/messages/ChatView.tsx"],
@@ -497,25 +496,10 @@ export const GAPS: Record<string, string> = {
   // (prod-audit run 35798352756) were NOT this case — BanDialog,
   // RefundJobDialog, RemoveJobDialog, StatusOverrideDialog and the rest were
   // always SAFE to open behind the write firewall, simply never reached. 20
-  // of the 21 now have a FormSpec above. The 21st — ReuploadIdDialog.tsx —
-  // turned out to be neither firewalled nor unreached-but-reachable: it is
-  // genuinely dead. See its own entry below.
+  // of the 21 now have a FormSpec above. The 21st, ReuploadIdDialog.tsx, was
+  // genuinely dead (no control opened it) and was deleted (owner, 2026-09-23).
   "src/components/profile/DeleteAccountDialog.tsx":
     "opened only by a control NEVER_PRESS refuses (/delete (my )?account/) — the shared accounts are a sign-in dependency for the suite",
-  // GENUINELY UNREACHABLE, not firewalled: `AdminUsers.tsx` declares
-  // `reuploadProfile`/`setReuploadProfile` state and renders
-  // `<ReuploadIdDialog profile={reuploadProfile} .../>`, but `setReuploadProfile`
-  // is never passed to `ActionsTab`, `DocumentsTab` or anywhere else a button
-  // lives — grepped the whole tree, one call site, and it is the `useState`
-  // initializer. No control anywhere opens this dialog, so `reuploadProfile`
-  // is permanently null and the component never renders past its own
-  // `if (!profile) return null`. This is dead code / a missing affordance,
-  // not a coverage gap this sweep can paper over with a false "firewalled"
-  // reason — flagged to the owner separately (not fixed here; out of scope
-  // for a coverage-only pass and someone should decide whether admins are
-  // supposed to be able to request an ID re-upload from the UI at all).
-  "src/components/admin/ReuploadIdDialog.tsx":
-    "dead trigger — setReuploadProfile (AdminUsers.tsx) is never called by any button; the dialog can never open. Reported, not fixed — see docs/OPEN.md",
   // Non-text controls: no typed value to be messy. Checked by press-every-control (npm run audit:press).
   "src/components/dashboard/FilterSheet.tsx": "switch only — no typed input",
   "src/components/admin/AdminNotifications.tsx": "switches only",

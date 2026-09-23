@@ -4970,6 +4970,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      error_log_is_seed: { Args: { p_tags: Json }; Returns: boolean }
       expire_pending_direct_offers: { Args: never; Returns: number }
       expire_unanswered_offers: { Args: never; Returns: number }
       extend_boosts_with_no_applications: {
@@ -5659,6 +5660,7 @@ export type Database = {
         Returns: boolean
       }
       is_safe_media_url: { Args: { v: string }; Returns: boolean }
+      is_seed_email: { Args: { p_email: string }; Returns: boolean }
       is_server_context: { Args: never; Returns: boolean }
       is_thread_muted: {
         Args: { _job_id: string; _other_user_id: string; _user: string }

@@ -190,18 +190,20 @@ function params(overrides: Partial<UseJobSubmitParams> = {}): UseJobSubmitParams
     materialsNote: "",
     saveCardForFuture: false,
     giftCardId: null,
-    uploadAndAttachPhotos: async () => {},
+    uploadAndAttachPhotos: async (jobId: string) => { uploads.push(jobId); },
     uploadAndAttachScopeVideo: async () => {},
     ...overrides,
   };
 }
 
+let uploads: string[] = [];
 const press = async (submit: () => Promise<void>) => {
   await act(async () => { await submit(); });
 };
 const errorToasts = () => vi.mocked(toast.error).mock.calls.map((c) => String(c[0]));
 
 beforeEach(() => {
+  uploads = [];
   server.jobs = [];
   server.nextId = 1;
   server.jobInserts = 0;
@@ -253,6 +255,10 @@ describe("Q267 (b): the job landed, create-payment's response was lost, the post
     expect(server.jobs, "the retry posted a NEW job behind a new Checkout Session").toHaveLength(1);
     expect(server.paymentCalls, "the retry paid for a job the first press never created").toEqual(["job-1", "job-1"]);
     expect(openExternalUrl).toHaveBeenCalledWith("https://checkout.stripe.com/c/job-1");
+    // Only the payment hand-off is retried: re-running the INSERT would also
+    // re-run everything after it (pet links, photo uploads, funnel events).
+    expect(server.jobInserts, "the retry re-ran the job INSERT and its follow-ups").toBe(1);
+    expect(uploads).toEqual(["job-1"]);
   });
 
   it("a payment the server REFUSED still removes the job, as before", async () => {

@@ -29,6 +29,10 @@
     {
       "version": "20260923130457",
       "why": "Q141. Applied by the Supabase GitHub integration (Q121), not db-deploy: prod workflow_run_logs 2026-09-23T13:13:07Z 'Applying migration... file=20260923130457_remove_bond_credential_type.sql' after 'Cloning git repo... git_ref=main' at 13:13:00Z (push of a303cbf1d at ~13:12:27Z); 0 rows for it in migration_deploy_ledger; db-deploy 35865476342 red only at 'Verify every prod migration was applied by db-deploy' (all gates green): no receipt."
+    },
+    {
+      "version": "20260923130621",
+      "why": "Q157/Q160. Applied by the Supabase GitHub integration (Q121), not db-deploy: prod workflow_run_logs 2026-09-23T13:22:40Z 'Applying migration... file=20260923130621_seed_boundary_honest_skips_and_monitor.sql' after 'Cloning git repo... git_ref=main' at 13:22:33Z (push of 934573d26 at ~13:22:00Z); 0 rows for it in migration_deploy_ledger; db-deploy 35866559404 red only at 'Verify every prod migration was applied by db-deploy' (all gates green): no receipt."
     }
   ]
 }

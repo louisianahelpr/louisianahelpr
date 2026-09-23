@@ -58,7 +58,9 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          # A personal read token (org:read, project:read): the org token in
+          # SENTRY_AUTH_TOKEN is release-upload only and gets 403 on usage stats.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_READ_TOKEN || secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         run: node scripts/check-quota-usage.mjs

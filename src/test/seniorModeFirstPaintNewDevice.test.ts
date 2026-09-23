@@ -4,6 +4,7 @@
 // @mutate src/App.tsx | sessionSenior: sessionSeniorFlag(user) | sessionSenior: null
 // @mutate src/App.tsx |     const patch = seniorModeMetadataPatch(user, profileSenior); |     const patch = null as { senior_mode: boolean } \| null;
 // @mutate src/pages/Profile.tsx | updateUser({ data: { senior_mode: enabled } }) | getUser()
+// @mutate src/pages/Profile.tsx | await refreshCurrentUser(); // Q200: before the hint | // Q200: before the hint
 /*
  * Senior Mode from the ACCOUNT is right at first paint on a NEW DEVICE (Q200).
  *
@@ -93,5 +94,19 @@ describe("Senior Mode from the account on a device's FIRST signed-in visit (Q200
       .filter(([, s]) => /\.update\(\{[^}]*\bsenior_mode\b/.test(s));
     expect(writers.length).toBeGreaterThan(0);
     for (const [f, s] of writers) expect(s, f).toMatch(/updateUser\(\{ data: \{ senior_mode: [\w.]+ \} \}\)/);
+  });
+});
+
+describe("Q200 review: the toggle's session write cannot be reverted by a stale profile", () => {
+  it("refreshes the cached profile before writing the session hint", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "..", "pages", "Profile.tsx"), "utf8"));
+    const start = src.indexOf("const handleToggleSeniorMode");
+    expect(start).toBeGreaterThan(0);
+    const body = src.slice(start, src.indexOf("const handleSave", start));
+    const refresh = body.indexOf("await refreshCurrentUser()");
+    const write = body.indexOf("updateUser({ data: { senior_mode: enabled } })");
+    expect(write).toBeGreaterThan(0);
+    expect(refresh, "refreshCurrentUser must run before updateUser, or App.tsx writes the old value back").toBeGreaterThan(0);
+    expect(refresh).toBeLessThan(write);
   });
 });

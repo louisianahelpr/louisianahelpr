@@ -387,7 +387,11 @@ const ProfilePage = () => {
     } else {
       // The session carries the flag too, so the account's NEXT new device
       // paints at the right size before its profile loads (Q200). Best-effort:
-      // App.tsx re-mirrors it whenever the loaded profile disagrees.
+      // App.tsx re-mirrors it whenever the loaded profile disagrees, so the
+      // cached profile must hold the new value FIRST: otherwise the
+      // USER_UPDATED re-render sees the stale profile and writes the old
+      // value straight back (Q200 review).
+      await refreshCurrentUser(); // Q200: before the hint
       const { error: metaError } = await supabase.auth.updateUser({ data: { senior_mode: enabled } });
       if (metaError) console.warn("[senior-mode] session hint not saved", metaError.message);
     }

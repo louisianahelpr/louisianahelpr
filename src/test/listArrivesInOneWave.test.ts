@@ -75,6 +75,7 @@ const INDEX_DELAY = [
  *     scroll. Static copy, never loaded data.
  *   - PayoutCelebration: confetti particles after a payout.
  */
+// @two-way src/test/listArrivesInOneWave.test.ts:ALLOWED must equal the files that still stagger
 const ALLOWED = ["components/landing/HowItWorksSection.tsx", "components/wallet/PayoutCelebration.tsx"];
 
 describe("lists arrive in one wave (Q169)", () => {
@@ -85,7 +86,7 @@ describe("lists arrive in one wave (Q169)", () => {
       .filter((f) => INDEX_DELAY.some((re) => re.test(blankComments(readFileSync(f, "utf8")))))
       .map((f) => relative(SRC, f))
       .sort();
-    expect(hits).toEqual([...ALLOWED].sort());
+    expect(hits, "a new stagger, or a stale entry: ALLOWED must equal the files that still stagger").toEqual([...ALLOWED].sort());
   });
 
   it("JobCard has no entry animation of its own", () => {

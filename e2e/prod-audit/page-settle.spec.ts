@@ -34,6 +34,7 @@ export const CLS_BUDGET = 0.02;
 const WIDTHS = [375, 1440] as const;
 
 /** `${width} ${url}` → what it measured when this landed. Exact, two-way. */
+// @two-way e2e/prod-audit/page-settle.spec.ts:KNOWN entries now within budget: delete them
 const KNOWN: Record<string, string> = {
 };
 
@@ -66,7 +67,7 @@ for (const width of WIDTHS) {
       // any visit (src/lib/simpleMode.ts), so the first paint is already the
       // right text size. Seeded from the live profile, not assumed. A device's
       // very FIRST visit still grows once when the profile lands; that case
-      // is Q170 (docs/OPEN.md), not measured here.
+      // is Q200 (docs/OPEN.md), not measured here.
       if (signedIn) {
         await ctx.addInitScript((on: boolean) => {
           try { localStorage.setItem("helpr_profile_senior_mode", on ? "1" : "0"); } catch { /* storage blocked */ }

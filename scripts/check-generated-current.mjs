@@ -198,6 +198,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/audit-capture.mjs": "screenshots to ~/lh-audit-shots",
   "scripts/audit/a11y-engine-diff.mjs": "report to --out path",
   "scripts/audit/press-every-control.mjs": "results to test-results/ (CI artifact)",
+  "scripts/audit/measure-page-settle.mjs": "Q169 audit table to ~/.lh-shots/cls (evidence outside the repo); the CI budget is e2e/prod-audit/page-settle.spec.ts",
   "scripts/audit/rail-overlap-probe.mjs": "test-results/rail-probe",
   "scripts/audit/walk-every-control.mjs": "/tmp/lh-audit",
   "scripts/build-og-shell.mjs": "dist/ (build output)",

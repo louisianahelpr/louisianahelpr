@@ -109,6 +109,7 @@ function pollers(): Poller[] {
  * Every client poller that reaches the network, with its period and why it
  * is acceptable. EXACT: a new one, a changed period or a removed one fails.
  */
+// @two-way src/test/hotQueryLoad.test.ts:expect(seen).toEqual(
 const KNOWN_NETWORK_POLLERS: Record<string, { ms: number; why: string }> = {
   "components/admin/AdminBroadcasts.tsx refetchInterval": { ms: 15_000, why: "admin console only; React Query pauses it while the tab is hidden" },
   "pages/AccountPending.tsx setInterval": { ms: 15_000, why: "pending-approval gate screen; one user, only while on that screen" },

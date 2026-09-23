@@ -39,6 +39,7 @@ const FNS = join(process.cwd(), "supabase", "functions");
  * three (auto-release-payment, process-scheduled-payouts,
  * subscription-reconciliation). Exact and shrink-only: never add to it.
  */
+// @two-way src/test/includeSeedRunsNeverPage.test.ts:KNOWN_UNROUTED only shrinks
 const KNOWN_UNROUTED = new Set<string>([]);
 
 const READS_INCLUDE_SEED = /searchParams\.get\(\s*["']include_seed["']\s*\)/;

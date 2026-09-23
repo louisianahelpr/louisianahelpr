@@ -364,7 +364,7 @@ serve(async (req) => {
         // notification and permanently stall the payout until manual intervention).
         console.error(`[process-scheduled-payouts] helper profile read failed for ${helperId} (job ${job.id}):`, helperProfileErr);
         results.push({ job_id: job.id, status: "helper_profile_read_error", error: helperProfileErr.message });
-        jobDefect(job.id, `helper profile read ${job.id}: ${helperProfileErr.message}`);
+        jobDefect(job.id, `payee profile read ${job.id}: ${helperProfileErr.message}`);
         continue;
       }
 

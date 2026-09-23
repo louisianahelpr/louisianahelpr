@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 57 done, 8 partly done (fixed, protection pending), 86 open. Source of truth for work.
+- **Queue (this file):** 58 done, 9 partly done (fixed, protection pending), 84 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 151 items — 57 done, 8 partly done (fixed, protection pending), 86 open.**
+**Queue: 151 items — 58 done, 9 partly done (fixed, protection pending), 84 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -136,10 +136,10 @@ sure someone hears it and closes it.
 - [ ] **Q3 Stripe test balance empty.** Scheduled payouts and transfers fail
   with "insufficient available funds" (09-22). Top it up with the 0077 test
   card, then add a balance monitor so this alerts BEFORE the payouts fail.
-- [ ] **Q4 "Daily ops digest not delivered in 30h"** fired twice on 09-22.
+- [~] **Q4 CAUSE FOUND 2026-09-23 (measured, cron.job_run_details): all three daily digests (daily-match-digest 13:12, sweep-daily-job-digest 14:00, ops-daily-digest 14:40 UTC) failed 2026-09-22 with "job startup timeout" during the DB outage (Q53); last success 2026-09-21. Nothing re-runs a missed slot — that is Q30. Verifying today's 2026-09-23 runs succeed (check at 14:50 UTC).** "Daily ops digest not delivered in 30h" fired twice on 09-22.
   Check whether it has run since, find the cause, and verify tomorrow's
   digest arrives.
-- [x] **Q5 DONE 2026-09-23 — owner chose DELETE; ReuploadIdDialog removed.** (Server-side `admin-user-actions` re-upload action + its email template are now unused by the UI — reported, not removed.) Was: Nothing opens ReuploadIdDialog. No button leads to it. OWNER GUARD: src/test/deadcodeRatchet.test.ts (a new unreachable export fails) + e2e/prod-audit/messyInputForms.ts coverage (a form no control opens fails the coverage test).
+- [x] **Q5 DONE 2026-09-23 — owner chose DELETE; ReuploadIdDialog removed.** (Correction 2026-09-23, Q26: the server-side `request_id_reupload` action is still used, by AdminIDVReview's "Another try".) Was: Nothing opens ReuploadIdDialog. No button leads to it. OWNER GUARD: src/test/deadcodeRatchet.test.ts (a new unreachable export fails) + e2e/prod-audit/messyInputForms.ts coverage (a form no control opens fails the coverage test).
   DECISION: should admins be able to request an ID re-upload? Then wire it up
   or delete it.
 - [x] **Q6 DONE: the admin Stripe-Identity badge now has an honest label for every idv_status.** Owner clarified 2026-09-23 that users never send an ID to us; Stripe Identity collects it. "ID Not Submitted" was wrong twice: Stripe mid-check (pending/processing) now shows "Stripe Checking", and not started/skipped/none shows "Not Verified". Stripe Verified / ID Verified / Admin Verified / Stripe Flagged are unchanged. Guard adminIdBadgeStates.test.tsx walks every status in profiles_idv_status_check (red on old code: 2 of 3). The seed profiles' id_document_url is legacy data (see Q40). Was: Admin People badge says "ID Not Submitted" on profiles that have
@@ -267,7 +267,7 @@ sure someone hears it and closes it.
 - [x] **Q25 DONE (2026-09-23): a dispatch now diffs from the head SHA of the last SUCCESSFUL db-deploy run on main** (read through the Actions API; `actions: read` added to migration-lint.yml and to db-deploy's call of it), so it lints exactly what landed since the last good deploy, each file in full. No base found, or a base that is not an ancestor of HEAD, still falls back to linting ALL migrations, never none. The whole-history fallback is still red on settled history (check-migration-grants and check-trigger-timing, which judge files in isolation; documented in the step). GUARD: src/test/migrationLintRls.test.ts runs the workflow's own "Find changed migrations" shell in a scratch repo with a fake `gh` (last-good base -> only the new file; failed/empty/unknown/non-ancestor base -> lint all), 4 @mutate lines killed. Was: db-deploy on MANUAL dispatch lints all 756 migrations instead
   of the new ones (its diff base is wrong for workflow_dispatch), so a manual
   re-run is always red (35818674216). Fix the diff base for dispatch.
-- [ ] **Q26 Server-side ID re-upload action + email template are unused** now
+- [x] **Q26 CLOSED 2026-09-23: NOT dead code (measured).** `request_id_reupload` is called by src/components/admin/AdminIDVReview.tsx ("Another try": resets IDV to not_started for a fresh Stripe Identity attempt, lines 93/158/377), and _shared/email-templates/admin-action.tsx renders its email. It never belonged to the deleted ReuploadIdDialog. NO-GUARD: nothing to prevent; the report's premise was wrong. Was: Server-side ID re-upload action + email template are unused** now
   that ReuploadIdDialog is gone (Q5). This is a report: count the callers, then
   let the owner decide.
 - [x] **Q27 DONE (de19e4b14, e31b23c4d, 726dba74a, 801555189, 5152014f3): all 37 triaged.** Real fixes: aria-pressed on 18 selected-option buttons (selectedStateIsExposed guard); "Edge Function returned a non-2xx" replaced by the server message at 8 sites (edgeFunctionErrorReachesTheUser guard); "Finish Paying" now behind the sweep payment gate; auto-tip Save confirms; Add-Admin search disabled when empty; create-payment 500 no longer echoes raw Stripe text. Everything else fixed in the harness. NEXT: re-dispatch press after prod-audit finishes. Was: Press sweep: 37 left (from 126). Triage in progress: about 25 are the GUARD: src/test/selectedStateIsExposed.test.ts, src/test/edgeFunctionErrorReachesTheUser.test.ts, src/test/pressRun35813177418.test.ts, and the nightly press-every-control.yml.

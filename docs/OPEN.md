@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 314 items — 174 done, 37 partly done (fixed, protection pending), 103 open.**
+**Queue: 315 items — 174 done, 38 partly done (fixed, protection pending), 103 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -2598,7 +2598,7 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [x] **Q315 ops_alert_condition restatements can silently drop a branch (Q287 review nit, 2026-09-23).** routeProbeCloseRule.test.ts now pins its comparison to the Q94 file, so nothing fails if a future `CREATE OR REPLACE ops_alert_condition` loses a `p_source = '...'` branch. Only 4 of the 11 are spot-checked in cronHttpRequestsAreTagged.test.ts. Fix: add a guard that each definition's set of p_source values is a superset of the previous definition's.
   DONE 2026-09-23: guard src/test/dispatcherRestatementKeepsBranches.test.ts. Every restated p_source dispatcher keeps its predecessor's sources. Vacuity: killed. The fingerprint nit is split out as Q316.
 - [ ] **Q316 Ledger fingerprint collapses digit-bearing cron job names (Q287 review nit, 2026-09-23).** ops_alert_normalise(title) turns digits into `#`, so the jobs `cleanup-7d` and `cleanup-30d` (or `jobid 12` and `jobid 13`) would share one cron-http-untagged item. sample_ref keeps only the last job, so the item could close while the other job is still untagged; the next daily sweep reopens it. Live cron.job has no job names containing digits today (the reviewer's measurement). Fix: put the job name into the fingerprint for that source.
-- [ ] **Q317 Prod test suites exhaust Postgres connection slots and pg_cron's jobs are refused (root cause of fatal ledger item 15833c82 cron-startup-timeout, 2026-09-23).** MEASURED:
+- [~] **Q317 Prod test suites exhaust Postgres connection slots and pg_cron's jobs are refused (root cause of fatal ledger item 15833c82 cron-startup-timeout, 2026-09-23).** MEASURED:
   - postgres_logs 18:59–19:11Z has 14× `FATAL: remaining connection slots are reserved for roles with the SUPERUSER attribute`, from user postgres on ::1. They match the 14 "connection failed" rows in cron.job_run_details (12 jobs) one for one.
   - db_saturation_samples went 7 → 56/60 connections at 19:00, with only 1 active.
   - pgbouncer logged 694 max_client_conn refusals at 18:55.
@@ -2609,3 +2609,5 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   - (b) press matrix max-parallel 2;
   - (c) bigger compute (paid).
   Guard idea, once a fix lands: fail when db_saturation_samples.conn_pct ≥ 90% during a prod suite.
+  PARTLY DONE 2026-09-23: repo half landed (2d7d38693, f1c965242): press matrix max-parallel 2 (guard src/test/pressMaxParallel.test.ts); pool budget check scripts/check-db-pool-budget.mjs (guard src/test/dbPoolBudget.test.ts), nightly in quota-monitor.yml, RED today on 'PostgREST db_pool is null' as designed. OPEN: set PostgREST db_pool=14 and pooler default_pool_size=14 (budget 57 usable - 10 cron - 9 other - 10 Auth = 28). The agent was blocked from reading the CLI token (the owner must do it), then re-run a heavy suite and see 0 cron 'connection failed'.
+- [ ] **Q318 press max-parallel 2 makes the 03:17 press run last until about 08:00, overlapping db-drift-detect (05:17) and db-backup (07:17) in the prod-load concurrency group (Q317 agent, 2026-09-23).** GitHub keeps only one pending run per group, so on press days the 07:17 backup cancels the pending 05:17 drift-detect, a hidden red "cancelled". src/test/prodWorkflowSpacing.test.ts spaces cron start times only; it does not model run duration. Fix: move the press cron or the two DB jobs, and teach the spacing guard the run length.

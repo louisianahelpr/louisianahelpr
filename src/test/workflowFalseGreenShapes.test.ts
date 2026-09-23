@@ -127,6 +127,8 @@ const DIAG = "diagnostic output only (version strings / listings printed for a h
 
 /** `|| true` and friends that are truthful. `match` is a substring of `job / step :: line`. */
 const SWALLOW_OK: Allow[] = [
+  { file: ".github/workflows/privacy-journey.yml", match: "gh label create \"$LABEL\"", reason: "creating the marker label fails when it already exists (every run after the first); the issue create/edit right after has no swallow, so a real gh failure still reds the step" },
+  { file: ".github/workflows/schedule-heartbeat.yml", match: "MARKER=$(gh issue list --repo \"$REPO\" --label \"privacy-journey-marker\"", reason: "a failed read yields an empty MARKER, which fails the grep for the current month and counts privacy-journey STALE (::error::) — the swallow feeds the failure path, not a pass" },
   { file: ".github/workflows/broken-links.yml", match: `|| echo "000")`, reason: "curl failing to connect becomes status 000, which the case statement below treats as BROKEN (FAIL=1) — the swallow converts a transport error into a failure, not a pass" },
   { file: ".github/workflows/db-backup.yml", match: "N=$(grep -cF", reason: "grep -c prints 0 and exits 1 on no match; the next line fails the dump (FAIL=1) when N < 1, so zero rows is a failure" },
   { file: ".github/workflows/db-backup.yml", match: "TABLES=$(grep -cE", reason: "grep -c prints 0 and exits 1 on no match; the floor check right after fails when fewer than 30 tables carry data" },
@@ -173,6 +175,7 @@ const SWALLOW_OK: Allow[] = [
 ];
 /** `exit 0` before the end of a block. `match` is a substring of `job / step :: line`. */
 const EARLY_EXIT_OK: Allow[] = [
+  { file: ".github/workflows/dependabot-auto-merge.yml", match: "merge only if it is dependabot's :: exit 0", reason: "both exits are the no-op verdicts this workflow exists to make (no PR on the run, or a PR not authored by dependabot[bot]): nothing is merged, and the ::notice:: says why" },
   { file: ".github/workflows/privacy-journey.yml", match: "Decide whether this run is due :: exit 0", reason: "MONTHLY via a weekly cron (prodWorkflowSpacing refuses day-of-month): a scheduled run after the 7th sets run=false and nothing is due; missing secrets on a due run exit 1, and a dispatch always runs" },
   { file: ".github/workflows/db-deploy.yml", match: "Scan the pushed range for destructive DDL :: exit 0", reason: "the pushed range was verified to exist (`git cat-file -e`) and the diff now fails loudly (Q52), so an empty file list really means no migration changed" },
   { file: ".github/workflows/db-deploy.yml", match: "PRE-FLIGHT — destructive DDL in the exact pending set :: exit 0", reason: "reached only when the CLI itself says nothing is pending ('up to date' / 'no migrations'); any other empty parse fails" },

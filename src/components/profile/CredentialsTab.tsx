@@ -82,6 +82,12 @@ const KIND_NOUN_TITLE: Record<Kind, string> = {
 };
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const DOC_EXT_BY_TYPE: Readonly<Record<string, string>> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "application/pdf": "pdf",
+};
 const MAX_SIZE = 5 * 1024 * 1024;
 const SELECT_COLS =
   "is_licensed,is_insured,license_url,insurance_url,license_status,insurance_status,license_rejection_reason,insurance_rejection_reason,business_name";
@@ -249,7 +255,11 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
     try {
       for (const kind of draftKinds) {
         const draft = drafts[kind]!;
-        const ext = draft.file.name.split(".").pop() || "pdf";
+        // The extension comes from the (already validated) MIME type, never the
+        // file name: auto_pending_credentials() refuses any path that is not
+        // `<uid>/credentials/<kind>-<13 digits>.<pdf|png|jpg|jpeg|webp|heic>`
+        // (Q127), and a file named "scan" or "id.pdf.exe" would not match.
+        const ext = DOC_EXT_BY_TYPE[draft.file.type] ?? "pdf";
         const path = `${userId}/credentials/${kind}-${Date.now()}.${ext}`;
         // Store the storage PATH (not a signed URL) — user-documents is a
         // private bucket as of 2026-05-05; signed URLs are minted on demand

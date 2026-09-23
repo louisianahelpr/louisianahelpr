@@ -1,11 +1,11 @@
-// @mutate supabase/migrations/20260923104534_blank_credential_url_is_absent.sql | IF coalesce(NEW.license_url, '') !~ '[^[:space:]]' THEN | IF NEW.license_url = '' THEN
-// @mutate supabase/migrations/20260923104534_blank_credential_url_is_absent.sql | IF coalesce(NEW.insurance_url, '') !~ '[^[:space:]]' THEN | IF nullif(btrim(NEW.insurance_url), '') IS NULL THEN
-// @mutate supabase/migrations/20260923104534_blank_credential_url_is_absent.sql |       NEW.license_url := NULL; |       NULL;
-// @mutate supabase/migrations/20260923104534_blank_credential_url_is_absent.sql |       NEW.insurance_url := NULL; |       NULL;
-// @mutate supabase/migrations/20260923104534_blank_credential_url_is_absent.sql |     IF NEW.license_url IS NOT DISTINCT FROM OLD.license_url THEN |     IF false THEN
-// @mutate supabase/migrations/20260923104534_blank_credential_url_is_absent.sql |     ELSIF NEW.insurance_url IS NOT NULL THEN |     ELSIF NEW.insurance_url IS NOT NULL AND NEW.insurance_url <> '' THEN
-// @mutate supabase/migrations/20260923104534_blank_credential_url_is_absent.sql |  SET search_path TO 'public' |  SET search_path TO 'public', 'pg_temp'
-// @mutate supabase/migrations/20260923104534_blank_credential_url_is_absent.sql | FROM PUBLIC, anon, authenticated; | FROM PUBLIC;
+// @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql | IF coalesce(NEW.license_url, '') !~ '[^[:space:]]' THEN | IF NEW.license_url = '' THEN
+// @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql | IF coalesce(NEW.insurance_url, '') !~ '[^[:space:]]' THEN | IF nullif(btrim(NEW.insurance_url), '') IS NULL THEN
+// @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql |       NEW.license_url := NULL; |       NULL;
+// @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql |       NEW.insurance_url := NULL; |       NULL;
+// @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql |     IF NEW.license_url IS NOT DISTINCT FROM OLD.license_url THEN |     IF false THEN
+// @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql |     ELSIF NEW.insurance_url IS NOT NULL THEN |     ELSIF NEW.insurance_url IS NOT NULL AND NEW.insurance_url <> '' THEN
+// @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql | SET search_path TO 'public'\nAS $function$ | SET search_path TO 'public', 'pg_temp'\nAS $function$
+// @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql | auto_pending_credentials() FROM PUBLIC, anon, authenticated; | auto_pending_credentials() FROM PUBLIC;
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -31,6 +31,9 @@ import { join } from "node:path";
  *     from PUBLIC, anon, authenticated at or after that definition.
  * Behaviour: src/test/pglite/blankCredentialUrlIsAbsent.pglite.mjs
  * (ALL PASS; NEW_MIGRATION=skip -> 5 FAILED on the live trigger).
+ * The newest definition is now Q127's (20260923110759), so the mutations
+ * target that file; src/test/credentialUrlIsOwnDocument.test.ts guards the
+ * allowlist on top.
  */
 
 const ROOT = join(__dirname, "..", "..");

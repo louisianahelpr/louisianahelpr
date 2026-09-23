@@ -289,7 +289,10 @@ if (REPORT_ONLY) {
     classD_selfReferential: classD.map((g) => ({ file: g.file, why: g.selfReferential })),
     classB_mountWiring: scan.mount,
     edge_classA: scan.edge.filter((g) => g.classA).map((g) => g.file),
-    harness: pf,
+    // NOT the harness preflight: it describes the MACHINE (browsers, .env,
+    // secrets), so a committed copy made on one host never matched a CI
+    // regeneration and check:generated went red on every push (2026-09-23).
+    // It is printed above on every run; the file holds facts about the code.
   };
   const dest = path.join(REPO, "docs", "audit", "vacuity-report.json");
   fs.mkdirSync(path.dirname(dest), { recursive: true });

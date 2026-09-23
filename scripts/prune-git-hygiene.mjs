@@ -36,6 +36,7 @@ import {
 } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import { homedir } from "node:os";
+import { staleUntracked } from "./lib/staleUntracked.mjs";
 
 const args = process.argv.slice(2);
 const AUTO = args.includes("--auto");
@@ -233,6 +234,21 @@ function main() {
   }
 
   /* ── summary ───────────────────────────────────────────────────────────── */
+  /* ── untracked docs (Q78): report only, never delete ─────────────────── */
+  try {
+    const top = git(["rev-parse", "--show-toplevel"]).trim();
+    const untracked = git(["-C", top, "ls-files", "--others", "--exclude-standard", "docs/"])
+      .split("\n").filter(Boolean)
+      .map((p) => ({ path: p, mtimeMs: statSync(join(top, p)).mtimeMs }));
+    const stale = staleUntracked(untracked, Date.now(), 2);
+    if (stale.length) {
+      say(`UNTRACKED in docs/ for over 2 days (${stale.length}) — commit as a dated record or delete (Q78):`);
+      for (const p of stale) say(`  - ${p}`);
+    }
+  } catch (e) {
+    say(`untracked-docs check could not run: ${e.message}`);
+  }
+
   const verb = APPLY ? "" : "would ";
   say("");
   say(`${verb}remove ${removed.length} worktree(s):`);

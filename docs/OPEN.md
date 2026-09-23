@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 56 done, 8 partly done (fixed, protection pending), 87 open. Source of truth for work.
+- **Queue (this file):** 57 done, 8 partly done (fixed, protection pending), 86 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 151 items — 56 done, 8 partly done (fixed, protection pending), 87 open.**
+**Queue: 151 items — 57 done, 8 partly done (fixed, protection pending), 86 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1231,7 +1231,7 @@ sure someone hears it and closes it.
   safe rule: a worktree whose agent has finished (its branch is merged into
   origin/main or has no commits, no process has cwd there, and it's older
   than 2h) is unlocked and removed; anything unmerged is reported, never deleted.
-- [ ] **Q78 Untracked leftovers in the repo:** docs/audit/gift-live/,
+- [x] **Q78 DONE 2026-09-23: morning reports 2026-09-21/22 committed as dated records; the gift-live Stripe checkout screenshot moved to ~/.lh-shots/gift-live/ (evidence, not repo content). Session-start hygiene (scripts/prune-git-hygiene.mjs via scripts/lib/staleUntracked.mjs) now reports untracked docs/ files older than 2 days (shown firing on a planted file). Guard: src/test/staleUntrackedDocs.test.ts. Was:** Untracked leftovers in the repo: docs/audit/gift-live/,
   docs/audit/morning/2026-09-21.md and 2026-09-22.md have sat untracked for
   days. Decide keep (commit as dated records) or scratch (delete), and add
   a staleness rule so untracked files older than N days in docs/ are flagged.

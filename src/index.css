@@ -443,6 +443,19 @@
   --safe-area-left: env(safe-area-inset-left, 0px);
   --safe-area-right: env(safe-area-inset-right, 0px);
 
+  /* ── THE DOCK CLEARANCE: ONE TOKEN (Q265, Q214) ─────────────────────────
+     How far above the viewport floor the floating MobileNav dock + Post FAB
+     reach: the home-indicator inset plus the dock's own 96px. Every surface
+     that clears the dock reads THIS — AppShell's scroll padding, Tailwind's
+     `pb-safe-nav` / `pb-dock`, the floating bulk-select bars, the toast, the
+     empty-state bleed — instead of re-typing `safe-area + 96px` per screen
+     (it had been typed eleven ways, one of them `env()` directly, one at
+     80px). `html.no-bottom-nav` zeroes `--bottom-nav-h` below, so every
+     consumer collapses together when no dock renders.
+     Guard: src/test/dockClearanceIsOneToken.test.ts. */
+  --bottom-nav-h: 96px;
+  --dock-clearance: calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px));
+
   /* ── WHY EVERY CONSUMER READS THESE VARS, NOT env() DIRECTLY ────────────
      This is not stylistic. `env(safe-area-inset-*)` resolves to 0 for any
      element inside a transformed / will-change:transform ancestor in WebKit,

@@ -125,15 +125,13 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
       };
 
   return (
-    // Safe-area-aware bottom padding (~6rem) so the last row scrolls clear of
-    // the MobileNav dock + FAB on iPhone without leaving a large empty
-    // dead-zone below it.
-    //
-    // The shell itself is ProfileTabBody, shared with every other tab; the
-    // clearance is its one named prop, because a vertical inset cannot reopen
-    // the horizontal gutter the owner reported on 2026-09-19. Asserted by
-    // profileTabShell.test.ts.
-    <ProfileTabBody bottomClearance="calc(env(safe-area-inset-bottom, 0px) + 6rem)">
+    // No bottom clearance of its own (Q265): Profile's tab scroll column
+    // (`pb-safe-nav`, Profile.tsx) already clears the MobileNav dock + FAB for
+    // every tab. The `env() + 6rem` this carried was a second copy of that
+    // same clearance stacked under the first — 96px of dead scroll under the
+    // last policy row — and read env() directly, which WebKit zeroes inside
+    // PageTransition's transform. Guard: dockClearanceIsOneToken.test.ts.
+    <ProfileTabBody>
       <ProfileTabHeader
         title="Legal &amp; Policies"
         onBack={onBack}

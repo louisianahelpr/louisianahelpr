@@ -1406,7 +1406,7 @@ export function ConversationList({
                  is load-bearing. */
               paddingBottom: isWebDesktop
                 ? "calc(var(--safe-area-bottom, 0px) + 1rem)"
-                : "calc(var(--safe-area-bottom, 0px) + 96px)",
+                : "var(--dock-clearance)",
             }}
           >
           <div className="space-y-2">
@@ -1766,7 +1766,7 @@ export function ConversationList({
               // the fixed viewport-bottom float above the nav dock.
               data-rail-inset={embedded ? undefined : ""}
               className={`${embedded ? "absolute" : "fixed"} inset-x-0 z-40 px-4`}
-              style={{ bottom: embedded ? "1rem" : "calc(var(--safe-area-bottom, 0px) + 80px)" }}
+              style={{ bottom: embedded ? "1rem" : "var(--dock-clearance)" }}
             >
               <div
                 className="mx-auto max-w-xl flex items-center justify-between gap-3 px-4 py-3 rounded-ds-md"

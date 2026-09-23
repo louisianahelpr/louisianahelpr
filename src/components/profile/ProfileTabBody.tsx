@@ -26,9 +26,10 @@ import type { CSSProperties, ReactNode } from "react";
  * one" (CLAUDE.md, UI) — so the variation is declared in this file where
  * every other tab can see it, rather than hidden in one page's JSX.
  *
- * `bottomClearance` is the first and so far only such prop: Profile Edit and
- * Legal both float a save bar / dock over the end of a long scroll and need
- * the last card to clear it. That is a vertical concern and cannot reopen the
+ * `bottomClearance` is the first and so far only such prop: Profile Edit
+ * floats its SaveBar over the end of a long scroll and needs the last card to
+ * clear it. (Legal used it for the dock until Q265; the dock is cleared once,
+ * by Profile's tab scroll column, never per tab.) That is a vertical concern and cannot reopen the
  * horizontal gutter the owner reported.
  *
  * WHAT THIS DELIBERATELY DOES NOT OWN: the horizontal inset itself. That

@@ -106,10 +106,10 @@ const PublicLayout = ({
        `--bottom-nav-h` collapsed to 0 (which it does here, since the dock
        never renders on marketing routes).
 
-       Still expressed in terms of `--bottom-nav-h` rather than hardcoded to
-       zero: if a PublicLayout route ever does show the dock, the footer must
+       Still expressed as the shared dock token (`pb-dock` = `--dock-clearance`,
+       Q265) rather than hardcoded to zero: if a PublicLayout route ever does show the dock, the footer must
        not slide underneath it. */
-    <div className="min-h-screen page-warmth pb-[calc(var(--safe-area-bottom,0px)_+_var(--bottom-nav-h,96px))] relative flex flex-col overflow-x-clip">
+    <div className="min-h-screen page-warmth pb-dock relative flex flex-col overflow-x-clip">
       {/* Global mesh behind every section — matches the landing surface. */}
       <div aria-hidden className="mesh-gradient-global" />
 

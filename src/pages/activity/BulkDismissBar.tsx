@@ -28,7 +28,7 @@ export function BulkDismissBar({
       // Sit above the bottom-nav dock — same safe-area math the rest of
       // the app uses for dock-adjacent floating UI.
       style={{
-        bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
+        bottom: "var(--dock-clearance)",
       }}
     >
       <div

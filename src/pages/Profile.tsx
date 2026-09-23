@@ -684,7 +684,7 @@ const ProfilePage = () => {
             refreshing={refreshing}
             isPulling={isPulling}
             canTrigger={canTrigger}
-            className="w-full page-measure mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]"
+            className="w-full page-measure mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 pb-safe-nav"
           >
             <ProfileLanding
               profile={profile}
@@ -782,7 +782,7 @@ const ProfilePage = () => {
               AppPage, PageScaffold and the top bars. Owner, 2026-09-15 (VN-37,
               pop-up): shrink it from 48px to 24px at desktop — done app-wide as
               `px-5 lg:px-6 xl:px-6`, never one screen at a time. */
-          <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
+          <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-safe-nav">
           <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
           {/* `key={tab}` on the boundary re-mounts this wrapper on every
               tab switch, so `animate-ds-page-in` replays its entrance each

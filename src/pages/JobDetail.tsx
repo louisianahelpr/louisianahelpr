@@ -121,7 +121,7 @@ const JobDetail = () => {
 
   return (
     <PublicLayout noNavSpacer>
-      <div className="pt-20 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)] md:pb-safe-nav px-5">
+      <div className="pt-20 pb-safe-nav px-5">
         <div className="container mx-auto max-w-md">
           <h1 className="sr-only">{headingText}</h1>
           {authLoading || isLoading ? (

@@ -878,7 +878,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
     return (
       <div
         className={`flex items-center justify-center h-full w-full bg-card/40${shellClass}`}
-        style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 1rem)" }}
+        style={{ paddingBottom: MAP_DOCK_CLEARANCE }}
       >
         {/* Plain neutral spinner, not the branded H — the wrought-iron
             emblem's asymmetric shape reads oddly mid-rotation on this
@@ -896,7 +896,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
     return (
       <div
         className={`flex h-full w-full bg-card/40 px-3 pt-4${shellClass}`}
-        style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 1rem)" }}
+        style={{ paddingBottom: MAP_DOCK_CLEARANCE }}
       >
         <ErrorState
           title="We couldn't load the map."

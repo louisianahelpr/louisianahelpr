@@ -192,7 +192,11 @@ export default {
         // files use `pb-safe-nav`; without this they would each reserve ~112px
         // of empty space below the last element on every guest page. See
         // `html.no-bottom-nav` in index.css.
-        "safe-nav": "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 1rem)",
+        "safe-nav": "calc(var(--dock-clearance) + 1rem)",
+        // The dock's own top edge, with no breathing room: for surfaces that
+        // sit flush on it (PublicLayout). `--dock-clearance` lives in
+        // index.css :root (Q265) — one token for every dock clearance.
+        dock: "var(--dock-clearance)",
         // The gap between a page's sections under its title (Q191): 12px on a
         // phone, 16px from `sm` — the value lives in --section-gap (index.css).
         // `space-y-section` / `gap-section`; never a per-page space-y-5/6.

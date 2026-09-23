@@ -113,7 +113,7 @@ export function EmptyState({
         // state at 375 — state-matrix crop-081, 2026-09-07. It was the same
         // inner box the owner rejected three times, drawn a fourth way. The
         // dock paints NOTHING: the panel is the surface.
-        paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 2rem)",
+        paddingBottom: "calc(var(--dock-clearance) + 2rem)",
       }
     : {};
 

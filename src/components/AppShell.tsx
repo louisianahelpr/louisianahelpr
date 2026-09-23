@@ -42,7 +42,7 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
     ref,
   ) => {
     const bottomPad = reserveBottomNav
-      ? "calc(var(--safe-area-bottom, 0px) + 96px)"
+      ? "var(--dock-clearance)"
       : "var(--safe-area-bottom, 0px)";
 
     // The global OfflineBanner is `position: fixed; top: 0`. Because this

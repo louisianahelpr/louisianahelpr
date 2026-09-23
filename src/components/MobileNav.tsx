@@ -707,7 +707,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             // the full dock clearance the pages reserve (safe-area + 96px)
             // plus a 24px overhang so the fade begins in clear content.
             bottom: "calc(-1 * var(--safe-area-bottom, 0px))",
-            height: "calc(var(--safe-area-bottom, 0px) + 96px + 24px)",
+            height: "calc(var(--dock-clearance) + 24px)",
             backdropFilter: "blur(32px) saturate(170%)",
             WebkitBackdropFilter: "blur(32px) saturate(170%)",
             // Longer fade (35% solid → transparent) so the blur ramps in

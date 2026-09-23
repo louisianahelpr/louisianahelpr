@@ -119,4 +119,4 @@ export const categoryLabels = JOB_CATEGORY_LABELS;
  * same floor as every other screen's content, dock or no dock.
  */
 export const MAP_DOCK_CLEARANCE =
-  "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 1rem)";
+  "calc(var(--dock-clearance) + 1rem)";

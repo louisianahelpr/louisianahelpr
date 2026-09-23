@@ -176,7 +176,7 @@ function MainFeedSection({
   return (
     <div
       className="px-4 pt-3"
-      style={{ paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))" }}
+      style={{ paddingBottom: "var(--dock-clearance)" }}
     >
       <VirtualizedJobList
         items={jobs}
@@ -734,7 +734,7 @@ export function BrowseTasksFeed({
                  at this row height for typical feed sizes. */
               <ul
                 style={{
-                  paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))",
+                  paddingBottom: "var(--dock-clearance)",
                 }}
               >
                 {combinedVisible.map((job) => (

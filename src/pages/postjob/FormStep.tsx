@@ -184,7 +184,7 @@ export function FormStep({ form }: FormStepProps) {
             required field is in, then becomes "Review & Pay". */}
         <div
           className="pt-1"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+          style={{ paddingBottom: "calc(var(--dock-clearance) + 1rem)" }}
         >
           <Button
             variant="primary"

@@ -109,7 +109,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       // (measured at 375: toast bottom 796 against a dock starting at 748).
       mobileOffset={{
         top: "calc(var(--safe-area-top, 0px) + 8px)",
-        bottom: "calc(var(--safe-area-bottom, 0px) + 96px)",
+        bottom: "var(--dock-clearance)",
       }}
       offset={{ top: "24px", bottom: "24px" }}
       toastOptions={{

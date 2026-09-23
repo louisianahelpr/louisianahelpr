@@ -22,8 +22,20 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-const LOCK = join(homedir(), ".lh-gate.lock");
-const OWNER = join(LOCK, "owner.json");
+// LH_GATE_LOCK_PATH: tests use a temp dir so they never touch the real lock.
+const lockPath = () => process.env.LH_GATE_LOCK_PATH || join(homedir(), ".lh-gate.lock");
+const ownerPath = () => join(lockPath(), "owner.json");
+
+// Re-entrancy (Q135): vitest runs the root globalSetup once PER project
+// (`unit` and `tz-sweep` both `extends: true`) in ONE process, so the second
+// acquire used to find the lock owned by its own live pid and wait on itself
+// forever. Holds are counted per process on globalThis (each project may load
+// its own copy of this module) and the lock is removed on the LAST release.
+const HOLDS = Symbol.for("lh.gateLock.holds");
+const holds = () => globalThis[HOLDS] ?? 0;
+const setHolds = (n) => {
+  globalThis[HOLDS] = n;
+};
 
 function alive(pid) {
   try {
@@ -42,12 +54,15 @@ export function lockDisabled() {
 
 export async function acquireGateLock() {
   if (lockDisabled()) return;
+  const LOCK = lockPath();
+  const OWNER = ownerPath();
   const deadline = Date.now() + Number(process.env.LH_GATE_LOCK_WAIT_MIN ?? 30) * 60_000;
   let announced = false;
   for (;;) {
     try {
       mkdirSync(LOCK);
       writeFileSync(OWNER, JSON.stringify({ pid: process.pid, cwd: process.cwd(), at: new Date().toISOString() }));
+      setHolds(1);
       return;
     } catch {
       let owner = {};
@@ -55,6 +70,11 @@ export async function acquireGateLock() {
         owner = JSON.parse(readFileSync(OWNER, "utf8"));
       } catch {
         // owner file not written yet — another process is mid-acquire
+      }
+      if (owner.pid === process.pid) {
+        // this process already holds it: re-entrant acquire, never wait on ourselves
+        setHolds(holds() + 1);
+        return;
       }
       if (owner.pid && !alive(owner.pid)) {
         rmSync(LOCK, { recursive: true, force: true });
@@ -74,9 +94,15 @@ export async function acquireGateLock() {
 
 export function releaseGateLock() {
   if (lockDisabled()) return;
+  if (holds() > 1) {
+    // an outer hold in this process is still running; the last release removes it
+    setHolds(holds() - 1);
+    return;
+  }
+  setHolds(0);
   try {
-    const owner = JSON.parse(readFileSync(OWNER, "utf8"));
-    if (owner.pid === process.pid) rmSync(LOCK, { recursive: true, force: true });
+    const owner = JSON.parse(readFileSync(ownerPath(), "utf8"));
+    if (owner.pid === process.pid) rmSync(lockPath(), { recursive: true, force: true });
   } catch {
     // nothing held — already released or never taken
   }
@@ -92,7 +118,7 @@ async function main() {
   if (lockDisabled()) {
     console.log("[gate-lock] disabled (CI or LH_GATE_LOCK=0) — running without the lock.");
   } else {
-    console.log(`[gate-lock] acquiring ${LOCK}…`);
+    console.log(`[gate-lock] acquiring ${lockPath()}…`);
     await acquireGateLock();
     console.log("[gate-lock] acquired.");
   }

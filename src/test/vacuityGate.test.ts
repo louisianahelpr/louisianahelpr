@@ -73,6 +73,10 @@ it("covers the registry", () => {
 });
 `;
 
+// The one place the planted-fixture directory is named: the SURVIVED case and
+// the Tailwind-exclusion case below must agree on it.
+const fixtureDir = (runId: string) => join(process.cwd(), "src", "test", "fixtures", `vacuitySelfTest-${runId}`);
+
 describe("the vacuity gate can itself fail", () => {
   it("flags an inventory with no floor (class a) and clears one with a floor", () => {
     expect(scanGuard("planted.test.ts", VACUOUS_EMPTY_INVENTORY).classA).toBe(true);
@@ -134,7 +138,7 @@ describe("the vacuity gate can itself fail", () => {
     // the other half of the fix (a scanner walking a live tree must tolerate
     // that regardless of any one fixture's naming).
     const runId = `${process.pid}-${Math.random().toString(36).slice(2)}`;
-    const dir = join(process.cwd(), "src", "test", "fixtures", `vacuitySelfTest-${runId}`);
+    const dir = fixtureDir(runId);
     mkdirSync(dir, { recursive: true });
     const target = `src/test/fixtures/vacuitySelfTest-${runId}/target.ts`;
     const guardRel = `src/test/fixtures/vacuitySelfTest-${runId}/planted.spec.ts`;
@@ -157,6 +161,39 @@ describe("the vacuity gate can itself fail", () => {
       expect(r.verdict).toBe("SURVIVED");
     } finally {
       rmSync(dir, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  // Shown able to fail 2026-09-23 (Q136): drop the exclusion and the planted class compiles.
+  // @mutate tailwind.config.ts | "!./src/test/fixtures/vacuitySelfTest-*/**", | "!./src/test/fixtures/nothing-*/**",
+  it("Tailwind's content globs never read the planted fixture (Q136)", async () => {
+    // Tailwind compiling the app's config in the same run (arbitraryWidthVariantsCompile)
+    // globbed this test's fixture and then hit ENOENT when the SURVIVED case
+    // deleted it. Proof the exclusion holds for the real directory name: plant a
+    // class that exists nowhere else, compile with the app's own config, and it
+    // must be absent — while the same class in a normal src/ file IS emitted, so
+    // the check cannot pass by Tailwind emitting nothing.
+    const runId = `${process.pid}-${Math.random().toString(36).slice(2)}`;
+    const dir = fixtureDir(runId);
+    const control = join(process.cwd(), "src", "test", "fixtures", `q136Control-${runId}.ts`);
+    mkdirSync(dir, { recursive: true });
+    // Built at runtime: a literal class in THIS file would itself be scanned and compiled.
+    const px = (n: number) => `${n}px`;
+    const cls = (n: number) => ["w-[", px(n), "]"].join("");
+    writeFileSync(join(dir, "planted.spec.ts"), `export const c = "${cls(4321)}";\n`);
+    writeFileSync(control, `export const c = "${cls(4322)}";\n`);
+    try {
+      const [{ default: postcss }, { default: tailwindcss }, { default: config }] = await Promise.all([
+        import("postcss"),
+        import("tailwindcss"),
+        import(/* @vite-ignore */ resolve(process.cwd(), "tailwind.config.ts")) as Promise<{ default: unknown }>,
+      ]);
+      const css = (await postcss([tailwindcss(config as never)]).process("@tailwind utilities;", { from: undefined })).css;
+      expect(css).toContain(px(4322)); // the control: an ordinary src/ file is scanned
+      expect(css).not.toContain(px(4321)); // the fixture is not
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+      rmSync(control, { force: true });
     }
   }, 60_000);
 

@@ -13,12 +13,19 @@ export default {
   // ERR_CONNECTION_REFUSED. That reads as "the app is broken" and is why the E2E
   // suite has been red for a long run of commits while the app itself was fine.
   // These are rewritten edge-function modules; they contain no Tailwind classes.
+  // `!./src/test/fixtures/vacuitySelfTest-*/**` is the same race (Q136):
+  // src/test/vacuityGate.test.ts writes then deletes a planted spec there, and
+  // arbitraryWidthVariantsCompile.test.ts compiling this config in the same run
+  // threw ENOENT stat on it. The fixture must stay under src/ (vitest only
+  // discovers src/**), so it is excluded here instead; vacuityGate.test.ts
+  // proves the exclusion by compiling a planted class.
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
     "!./src/test/edge/**",
+    "!./src/test/fixtures/vacuitySelfTest-*/**",
   ],
   prefix: "",
   // Key `dark:` utilities off the `[data-theme="dark"]` attribute that

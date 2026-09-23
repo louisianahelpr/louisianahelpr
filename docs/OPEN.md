@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 89 items — 20 done, 5 partly done (fixed, protection pending), 64 open.**
+**Queue: 90 items — 20 done, 5 partly done (fixed, protection pending), 65 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1685,3 +1685,12 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   redeemErr.message only for P0001; some messages interpolate pi.status and
   job.status), that nothing that should stay hidden became public, and that the
   exemption can't be abused. lh-money-escrow or lh-appsec, REVIEW ONLY.
+- [ ] **Q90 Ledger item c974c7b3 (critical, opened 2026-09-23 ~07:54Z by
+  `?include_seed=1` verification runs of money-reconciliation):** 12
+  cancellation_fee_mismatch, 2 released_without_payout_transfer and 3
+  payout_pending_stranded, all on SEED jobs, all pre-existing. Per the
+  every-alert rule: root-cause each (a real code bug the seed data exposed, or
+  seed fixture drift), fix the code or the fixture, and close with
+  ops_alert_close evidence. Also: include_seed runs must never page the
+  owner's channel. Route them like the seed-policy rule (Q2), then verify
+  with a re-run.

@@ -21,7 +21,8 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import { mutationErrorMessage } from "@/lib/mutationResult";
+import { setProfileBanStatus } from "@/lib/adminBanStatus";
 import { Button } from "@/components/ui/button";
 import { ShieldAlert, Eye } from "lucide-react";
 import { toast } from "sonner";
@@ -98,22 +99,17 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
 
   const reverse = async (userId: string) => {
     setReversing(userId);
-    // .select("user_id"): reversing an auto-restriction that matches zero rows
-    // returns error === null, and the row used to disappear from this rail while
-    // the user stayed restricted.
+    // Through the admin-user-actions edge function (Q304: authenticated holds
+    // no UPDATE on these columns). It reports a zero-row write as a rejection:
+    // a reversal that matched nothing used to return error === null, and the
+    // row disappeared from this rail while the user stayed restricted.
     try {
-      unwrapMutation(
-        await supabase
-          .from("profiles")
-          .update({ ban_status: "active", auto_suspended_until: null })
-          .eq("user_id", userId)
-          .select("user_id"),
-        {
-          action: "reverse this restriction",
-          rejectedMessage: "The restriction wasn't reversed — this account is unchanged. Check your admin permissions and try again.",
-          context: { targetUserId: userId },
-        },
-      );
+      await setProfileBanStatus({
+        userId,
+        banStatus: "active",
+        suspendedUntil: null,
+        rejectedMessage: "The restriction wasn't reversed — this account is unchanged. Check your admin permissions and try again.",
+      });
     } catch (err) {
       toast.error(mutationErrorMessage(err, "Couldn't reverse that restriction — try again."));
       setReversing(null);

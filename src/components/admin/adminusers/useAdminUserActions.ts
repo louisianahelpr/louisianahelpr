@@ -7,7 +7,8 @@
  * calls the loadProfiles / close-dialog callbacks provided by the parent.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
+import { isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
+import { setProfileBanStatus } from "@/lib/adminBanStatus";
 import { logAdminAction } from "@/lib/adminAudit";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
@@ -97,20 +98,16 @@ export const makeAdminUserActions = ({
       }
     }
 
-    // .select("user_id"): `profiles.ban_status` is the flag the app actually
-    // reads. A zero-row update here returns error === null and would report the
-    // ban as lifted while the user stayed locked out.
+    // `profiles.ban_status` is the flag the app actually reads. It is written
+    // by the admin-user-actions edge function (Q304: authenticated holds no
+    // UPDATE on it), which reports a zero-row write as a rejection rather than
+    // letting the ban read as lifted while the user stayed locked out.
     try {
-      unwrapMutation(
-        await supabase
-          .from("profiles").update({ ban_status: "active" }).eq("user_id", profile.user_id)
-          .select("user_id"),
-        {
-          action: "lift this ban",
-          rejectedMessage: "Ban row cleared, but the account status didn't update — re-check this user.",
-          context: { targetUserId: profile.user_id },
-        },
-      );
+      await setProfileBanStatus({
+        userId: profile.user_id,
+        banStatus: "active",
+        rejectedMessage: "Ban row cleared, but the account status didn't update — re-check this user.",
+      });
     } catch (profileErr) {
       if (!isWriteRejected(profileErr)) {
         report(profileErr, { tags: { source: "AdminUsers.unbanUser.profile" } });

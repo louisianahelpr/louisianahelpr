@@ -7,7 +7,8 @@
 import { useState } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
-import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import { mutationErrorMessage } from "@/lib/mutationResult";
+import { setProfileBanStatus } from "@/lib/adminBanStatus";
 import {
   Dialog,
   DialogContent,
@@ -153,22 +154,16 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           reported_by: user.id,
         });
         if (vErr) throw vErr;
-        // .select("user_id"): the ban row above is only bookkeeping — this is
-        // the write the app actually reads to lock the account. A zero-row
-        // update (RLS on profiles, stale user_id) returns error === null, and
-        // the dialog used to close on a ban that never took effect.
-        unwrapMutation(
-          await supabase
-            .from("profiles")
-            .update({ ban_status: "final_warning" })
-            .eq("user_id", profile.user_id)
-            .select("user_id"),
-          {
-            action: "record this warning",
-            rejectedMessage: "The warning wasn't applied to this account — nothing was changed. Check your admin permissions and try again.",
-            context: { targetUserId: profile.user_id, banType },
-          },
-        );
+        // The ban row above is only bookkeeping — this is the write the app
+        // actually reads to lock the account. It goes through the
+        // admin-user-actions edge function (Q304: authenticated holds no
+        // UPDATE on these columns), which reports a zero-row write as a
+        // rejection, so the dialog never closes on a ban that didn't land.
+        await setProfileBanStatus({
+          userId: profile.user_id,
+          banStatus: "final_warning",
+          rejectedMessage: "The warning wasn't applied to this account — nothing was changed. Check your admin permissions and try again.",
+        });
         await createNotification({
           user_id: profile.user_id,
           title: "⚠️ Warning from Admin",
@@ -205,10 +200,11 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           reported_by: user.id,
         });
         if (vErr) throw vErr;
-        // .select("user_id"): the ban row above is only bookkeeping — this is
-        // the write the app actually reads to lock the account. A zero-row
-        // update (RLS on profiles, stale user_id) returns error === null, and
-        // the dialog used to close on a ban that never took effect.
+        // The ban row above is only bookkeeping — this is the write the app
+        // actually reads to lock the account. It goes through the
+        // admin-user-actions edge function (Q304: authenticated holds no
+        // UPDATE on these columns), which reports a zero-row write as a
+        // rejection, so the dialog never closes on a ban that didn't land.
         // `auto_suspended_until` is NOT optional bookkeeping — it is the only
         // column anything reads to END this suspension, and the only one that
         // tells the user when it ends:
@@ -222,18 +218,12 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
         // both promising a duration — never auto-lifted and never displayed an
         // end date. The account stayed locked until a human happened to click
         // Lift Ban. Writing the same instant here makes the promise true.
-        unwrapMutation(
-          await supabase
-            .from("profiles")
-            .update({ ban_status: "temp_banned", auto_suspended_until: expiresAt.toISOString() })
-            .eq("user_id", profile.user_id)
-            .select("user_id"),
-          {
-            action: "apply this temporary ban",
-            rejectedMessage: "The temporary ban wasn't applied — this account is unchanged. Check your admin permissions and try again.",
-            context: { targetUserId: profile.user_id, banType },
-          },
-        );
+        await setProfileBanStatus({
+          userId: profile.user_id,
+          banStatus: "temp_banned",
+          suspendedUntil: expiresAt.toISOString(),
+          rejectedMessage: "The temporary ban wasn't applied — this account is unchanged. Check your admin permissions and try again.",
+        });
         await createNotification({
           user_id: profile.user_id,
           title: "🚫 Temporary Ban",
@@ -266,22 +256,16 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           reported_by: user.id,
         });
         if (vErr) throw vErr;
-        // .select("user_id"): the ban row above is only bookkeeping — this is
-        // the write the app actually reads to lock the account. A zero-row
-        // update (RLS on profiles, stale user_id) returns error === null, and
-        // the dialog used to close on a ban that never took effect.
-        unwrapMutation(
-          await supabase
-            .from("profiles")
-            .update({ ban_status: "permanently_banned" })
-            .eq("user_id", profile.user_id)
-            .select("user_id"),
-          {
-            action: "apply this permanent ban",
-            rejectedMessage: "The permanent ban wasn't applied — this account is unchanged. Check your admin permissions and try again.",
-            context: { targetUserId: profile.user_id, banType },
-          },
-        );
+        // The ban row above is only bookkeeping — this is the write the app
+        // actually reads to lock the account. It goes through the
+        // admin-user-actions edge function (Q304: authenticated holds no
+        // UPDATE on these columns), which reports a zero-row write as a
+        // rejection, so the dialog never closes on a ban that didn't land.
+        await setProfileBanStatus({
+          userId: profile.user_id,
+          banStatus: "permanently_banned",
+          rejectedMessage: "The permanent ban wasn't applied — this account is unchanged. Check your admin permissions and try again.",
+        });
         await createNotification({
           user_id: profile.user_id,
           title: "⛔ Account Permanently Banned",

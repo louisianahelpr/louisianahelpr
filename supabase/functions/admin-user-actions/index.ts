@@ -29,6 +29,8 @@ type ActionType =
   // `pending_ban_review` and exactly one of these two admin decisions closes it.
   | 'confirm_message_ban'
   | 'dismiss_message_ban_review'
+  // Q304: the admin UI's ban / unban / reverse-auto-restriction column write.
+  | 'set_ban_status'
 
 // Every admin email used to go out through a local hand-rolled Resend fetch,
 // fired as `sendEmail(...).catch(console.error)`. That swallowed EVERY failure:
@@ -152,6 +154,71 @@ Deno.serve(async (req) => {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+    // ---- set_ban_status (Q304) ----
+    // The ONLY path for an admin tool to write profiles.ban_status /
+    // auto_suspended_until. `authenticated` no longer holds column UPDATE on
+    // either (migration revoke_profile_ban_column_updates), so BanDialog,
+    // AutoRestrictedRail and the admin Users unban all come through here and
+    // write with the service role after the has_role check above. It sits
+    // BEFORE the email check on purpose: a ban/unban never needed the target's
+    // email when the browser wrote it, so it must not start 404ing on a
+    // profile without one. Each caller keeps its own ban-row, violation,
+    // notification and logAdminAction writes; this branch additionally records
+    // the column change itself, so a direct call is never unaudited.
+    if (action === 'set_ban_status') {
+      const json = (status: number, payload: Record<string, unknown>) =>
+        new Response(JSON.stringify(payload), {
+          status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      if (!profile) return json(404, { error: 'User not found', rejected: true })
+      // Same refusal BanDialog makes client-side; the WARNING tier writes no
+      // user_bans row, so trg_reject_self_issued_ban cannot catch it.
+      if (targetUserId === userData.user.id) {
+        return json(400, { error: "You can't take an account action against your own account. Ask another admin." })
+      }
+      const banStatus: unknown = body.banStatus
+      const BAN_STATUSES = ['active', 'final_warning', 'temp_banned', 'permanently_banned'] as const
+      if (typeof banStatus !== 'string' || !(BAN_STATUSES as readonly string[]).includes(banStatus)) {
+        return json(400, { error: 'Invalid ban status' })
+      }
+      // suspendedUntil: absent = leave the column untouched (what each caller
+      // did before), null = clear it, ISO string = set it (temp_banned only).
+      const hasUntil = Object.prototype.hasOwnProperty.call(body, 'suspendedUntil')
+      const rawUntil: unknown = hasUntil ? body.suspendedUntil : undefined
+      const update: Record<string, string | null> = { ban_status: banStatus }
+      if (banStatus === 'temp_banned') {
+        const t = typeof rawUntil === 'string' ? Date.parse(rawUntil) : NaN
+        // sweep_expired_auto_bans lifts a temp ban only via this column, so a
+        // temp ban without a future end date would never lift. Cap at a year
+        // (the dialog's longest option is 90 days).
+        if (!Number.isFinite(t) || t <= Date.now() || t > Date.now() + 366 * 86_400_000) {
+          return json(400, { error: 'A temporary ban needs an end date in the next year' })
+        }
+        update.auto_suspended_until = new Date(t).toISOString()
+      } else if (hasUntil) {
+        if (rawUntil !== null) return json(400, { error: 'Only a temporary ban takes an end date' })
+        update.auto_suspended_until = null
+      }
+
+      const { data: rows, error: updErr } = await admin.from('profiles')
+        .update(update)
+        .eq('user_id', targetUserId)
+        .select('user_id')
+      if (updErr) throw new Error(`set_ban_status update failed: ${updErr.message}`)
+      if (!rows || rows.length === 0) return json(404, { error: 'User not found', rejected: true })
+
+      const { error: auditErr } = await admin.from('admin_audit_log').insert({
+        admin_id: userData.user.id,
+        action: 'set_ban_status',
+        target_id: targetUserId,
+        target_type: 'user',
+        details: update,
+      })
+      if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
+
+      return json(200, { success: true })
+    }
+
     if (!profile?.email) {
       return new Response(JSON.stringify({ error: 'User email not found' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

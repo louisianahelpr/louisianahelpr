@@ -169,10 +169,30 @@ export default defineConfig({
       },
     },
     {
+      name: "canary",
+      // docs/OPEN.md Q61: the HOURLY core-loop canary on prod, one serial test
+      // on the shared accounts. CI: .github/workflows/core-loop-canary.yml.
+      testDir: "./e2e/canary",
+      fullyParallel: false,
+      workers: 1,
+      timeout: 30 * 60_000,
+      retries: 0,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 375, height: 812 },
+        isMobile: false,
+        hasTouch: true,
+        serviceWorkers: "block",
+        screenshot: "only-on-failure",
+        trace: "retain-on-failure",
+        actionTimeout: 20_000,
+      },
+    },
+    {
       name: "chromium",
       // The real-backend specs outside a project dir — excludes happy-path/*
       // (mocked) and the dirs that have their own project.
-      testIgnore: /(happy-path|journeys|a11y-prod|prod-audit)\//,
+      testIgnore: /(happy-path|journeys|a11y-prod|prod-audit|canary)\//,
       use: { ...devices["Desktop Chrome"] },
     },
     {

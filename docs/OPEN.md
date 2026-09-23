@@ -1230,7 +1230,7 @@ sure someone hears it and closes it.
   pay) with a test-account pool against prod at a quiet hour, stepping up
   until p95 or errors break. Record the ceiling and what gives first, and set
   alert thresholds below it. Owner decision after: tier, or optimisation.
-- [ ] **Q61 Hourly canary on the core loop.** Full journeys run nightly, so a
+- [ ] **Q61 Hourly canary on the core loop.** STATUS 2026-09-23 (landed from cloud/q61-hourly-canary): e2e/canary/core-loop.spec.ts on the real backend (sign in, browse, open a job, apply on an is_seed fixture, message, start a TEST-mode checkout, clean up), hourly .github/workflows/core-loop-canary.yml at :47 with a request budget and a skip when shared test accounts are busy; guard src/test/coreLoopCanary.test.ts. Tick after the first scheduled run is green. Full journeys run nightly, so a
   broken core loop can go 20+ hours unseen. An hourly lightweight synthetic
   run on prod (sign in -> browse -> open a job -> apply -> message ->
   test-mode checkout start, then clean up) that pages through the ledger on

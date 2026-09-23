@@ -203,6 +203,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/perf/measure-load.mjs": "Q178 load timings to ~/.lh-shots/q178 (evidence outside the repo); the CI budget is scripts/perf/critical-path.mjs --check",
   "scripts/audit/walk-every-control.mjs": "/tmp/lh-audit",
   "scripts/build-og-shell.mjs": "dist/ (build output)",
+  "scripts/canary/shared-accounts-busy.mjs": "GITHUB_OUTPUT only (the Q61 canary's stand-down verdict)",
   "scripts/check-changed.mjs": "docs/audit/prepush-skips.log (untracked local log)",
   "scripts/check-gitleaksignore.mjs": "redacted gitleaks report to an os.tmpdir() dir, deleted before exit",
   "scripts/check-vercel-usage.mjs": "CI report + GITHUB_OUTPUT",

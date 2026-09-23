@@ -2,9 +2,9 @@
 
 _Generated from findings.jsonl as of its newest entry (2026-09-23T05:28:18.414Z). Do not hand-edit — run `node scripts/audit-bus.mjs rollup`._
 
-**163 open findings** · 8 open launch blockers · 205 fixed · 0 wontfix · 17 obsolete · 14 retracted · 28 duplicate · 427 filed all time
+**165 open findings** · 8 open launch blockers · 205 fixed · 0 wontfix · 17 obsolete · 14 retracted · 28 duplicate · 429 filed all time
 
-## HIGH (112)
+## HIGH (114)
 
 | ID | Blocker | Status | Surface | Claim | Agent | Evidence |
 |---|---|---|---|---|---|---|
@@ -146,6 +146,8 @@ Net effect: a user in this state waits indefinitely, is given a false ETA, has n
 | ME-044 | **YES** | fixed | `/admin?tab=payouts (get_payout_batches / release-payout)` | A dispute decided but not yet settled was offered for FULL payout: get_payout_batches()/get_payout_batch_job_ids() included it and release-payout's dispute guard allow-lists dispute_status='resolved', so Bulk Approve would have transferred 88% of a job whose decision awards the helper 50% — and a later Retry settlement would refund+transfer on top (double-settle). | lh-money-escrow | 2 |
 | BR-022 | **YES** | fixed | `.github/workflows/functions-deploy.yml → Supabase edge functions (prod fncmgoasalhdgfwzhsqa)` | functions-deploy reports SUCCESS over edge-function deploys the platform silently discards. Run 35756822730 (2026-09-22, deploy-all) printed 'Deploying Function: X (script size: N)' + 'Deployed Functions on project ***: X' + '✓ X deployed' for all 73 functions and concluded success; 8 of those uploads never landed. The workflow's only success test is the CLI exit code (line ~239 'if supabase functions deploy ...; then'), which is a statement about the client, not about prod. | lh-build-release | 2 |
 | BR-023 | **YES** | fixed | `prod edge function claim-gift-card (gift card claim)` | PROD IS RUNNING STALE CODE for claim-gift-card. The deployed source still selects 'id, recipient_id, recipient_email, status, expires_at' with NO payment_status, and has no funding gate — so a gift card whose charge was refunded or charged back can still be CLAIMED and bound to an account. The gate landed on main at 2026-09-22T16:50:37Z in 61fe256d2 and the 16:51Z deploy-all reported deploying it. | lh-build-release | 1 |
+| SC-016 |  | filed | `supabase/functions/create-pro-checkout + .github/workflows/functions-deploy.yml` | Production is running the 2026-09-07 bundle of create-pro-checkout (version 87). The GitHub Actions edge-function deploy reports 'deployed' and exits 0 for this slug while the deployed artifact never changes, so every merged change to this money-path function for the last 15 days is absent from prod — including today's duplicate-purchase guard fix. | lh-subscriptions-credits | 12 |
+| SC-017 |  | filed | `supabase/functions/create-pro-checkout` | create-pro-checkout wrapped its active-subscription guard in 'if (billing_cycle !== "one_time")', so a member holding a live Stripe subscription was refused a second monthly/annual but was allowed to buy a one-time pass. The pass grants the same tier perks for ONE_TIME_PASS_DAYS=30 the subscription is already granting — tiers do not stack — and is written through oneTimePassLinkage() with a now+30d expiry while check-pro-subscription rewrites subscription_expires_at from the subscription's current_period_end on every dashboard load, so the paid-for window can be silently overwritten. | lh-subscriptions-credits | 4 |
 
 ## MEDIUM (177)
 

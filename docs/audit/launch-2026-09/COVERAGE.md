@@ -7,7 +7,7 @@
 Generated from findings.jsonl as of its newest entry: 2026-09-23T05:28:18.414Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 163 open (8 open launch blockers), 205 fixed, 0 wontfix, 17 obsolete, 14 retracted, 28 duplicate, 427 filed all time — same fold and definitions as ROLLUP.md
+- **Findings:** 165 open (8 open launch blockers), 205 fixed, 0 wontfix, 17 obsolete, 14 retracted, 28 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
 - **Surface:** 1064 auditable surfaces (474 navigable, 590 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
@@ -40,7 +40,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 6 | `lh-notifications` | REPORTED | 3 | – | 7 |
 | 7 | `lh-input-boundary` | REPORTED | 1 | – | 2 |
 | 7 | `lh-scheduling-time` | REPORTED | 4 | – | 4 |
-| 7 | `lh-subscriptions-credits` | REPORTED | 2 | – | 7 |
+| 7 | `lh-subscriptions-credits` | REPORTED | 4 | – | 7 |
 | 8 | `lh-a11y-sensory` | REPORTED | 0 | – | 6 |
 | 8 | `lh-browse-discovery` | REPORTED | 1 | **1** | 4 |
 | 8 | `lh-visual-critic` | REPORTED | 2 | – | 7 |

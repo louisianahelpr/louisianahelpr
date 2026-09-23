@@ -69,6 +69,9 @@ describe("write contract against the prod schema snapshot", () => {
 
     it("missing NOT NULL without default", () => {
       const s = clone();
+      // prod gave saved_jobs a BEFORE INSERT trigger (snapshot 2026-09-23), which
+      // downgrades this to a warning; clear it so the reject path is what is proven.
+      s.tables.saved_jobs.triggers = [];
       s.tables.saved_jobs.columns.ghost_required = { type: "text", notNull: true, hasDefault: false, generated: false, enum: null };
       expect(codesFor(s).has("missing_not_null")).toBe(true);
     });

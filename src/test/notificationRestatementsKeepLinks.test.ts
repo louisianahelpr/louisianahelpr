@@ -59,6 +59,9 @@ const INTENDED_LINK_CHANGES = new Set([
   // Q194: '/earnings' (a retired redirect) -> '/profile?tab=earnings'.
   `${Q194}::notify_helper_on_tip`,
   `${Q194}::notify_on_payment_escrowed`,
+  // Q310: the four referral-bonus links '/profile' -> '/profile?tab=referral'
+  // (20260831232514 had made that change; 20260902014651 restated older text).
+  "20260923211309_referral_bonus_links_and_apostrophe.sql::check_referral_bonus",
 ]);
 
 /**

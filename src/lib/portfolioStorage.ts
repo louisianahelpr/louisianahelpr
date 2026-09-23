@@ -92,20 +92,20 @@ import { AVATAR_MIME_EXT } from "@/lib/avatarStorage";
  * (`(storage.foldername(name))[1] = auth.uid()`), which is what lets the owner
  * delete their own objects from the client.
  */
-export const PORTFOLIO_BUCKET = "avatars";
+const PORTFOLIO_BUCKET = "avatars";
 
 /** Sub-prefix inside the user's folder. Keeps avatars and portfolio disjoint. */
-export const PORTFOLIO_PREFIX = "portfolio";
+const PORTFOLIO_PREFIX = "portfolio";
 
 /** The bucket's `file_size_limit`. Restated so the client can reject first. */
-export const PORTFOLIO_MAX_BYTES = 5 * 1024 * 1024;
+const PORTFOLIO_MAX_BYTES = 5 * 1024 * 1024;
 
 /**
  * The bucket's `allowed_mime_types` → canonical extension. Imported rather than
  * re-declared: it is the SAME bucket, so a second copy could drift and start
  * minting keys the bucket rejects.
  */
-export const PORTFOLIO_MIME_EXT = AVATAR_MIME_EXT;
+const PORTFOLIO_MIME_EXT = AVATAR_MIME_EXT;
 
 /** `<id>.<ext>` — the whole reachable name space under the portfolio prefix. */
 const PORTFOLIO_OBJECT_NAME = /^[A-Za-z0-9._-]{1,80}$/;
@@ -141,7 +141,7 @@ export function assertUploadablePortfolioImage(file: { type: string; size: numbe
 }
 
 /** The folder every one of this user's work photos lives in. */
-export function portfolioFolder(userId: string): string {
+function portfolioFolder(userId: string): string {
   return `${userId}/${PORTFOLIO_PREFIX}`;
 }
 

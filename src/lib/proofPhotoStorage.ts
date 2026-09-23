@@ -27,7 +27,7 @@ import { report } from "@/lib/errorLogger";
  * — old rows render correctly the moment this ships, before the backfill runs
  * and regardless of whether it ever does.
  */
-export const PROOF_PHOTOS_BUCKET = "proof-photos";
+const PROOF_PHOTOS_BUCKET = "proof-photos";
 
 /** Display-time TTL. Minutes, not months: long enough for the dialog that is
  *  open right now, short enough that nothing is worth storing. */
@@ -52,7 +52,7 @@ export function extractProofPhotoPath(urlOrPath: string | null | undefined): str
 }
 
 /** A short-lived URL for one stored value, or null if it cannot be signed. */
-export async function getProofPhotoSignedUrl(
+async function getProofPhotoSignedUrl(
   urlOrPath: string | null | undefined,
   expiresInSeconds: number = PROOF_PHOTO_SIGN_TTL_SECONDS,
 ): Promise<string | null> {

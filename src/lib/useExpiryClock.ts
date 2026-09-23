@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
  * The label floors to whole minutes, so it changes on each minute boundary
  * of the remainder; in the final minute it changes exactly once, at expiry.
  */
-export function msUntilExpiryLabelChanges(expiresAt: string | null | undefined, now: number): number | null {
+function msUntilExpiryLabelChanges(expiresAt: string | null | undefined, now: number): number | null {
   if (!expiresAt) return null;
   const t = Date.parse(expiresAt);
   if (Number.isNaN(t)) return null;

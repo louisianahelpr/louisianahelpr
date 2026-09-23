@@ -49,7 +49,7 @@ interface ProUpgradeSheetProps {
  * "what you unlock" card, brand bark Upgrade CTA. Routes to Subscription
  * tab where the user can choose a billing cycle.
  */
-export function ProUpgradeSheet({
+function ProUpgradeSheet({
   open,
   onClose,
   // `icon` is still accepted so no caller breaks, and deliberately NOT

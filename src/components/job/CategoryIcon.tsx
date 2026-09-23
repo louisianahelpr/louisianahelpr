@@ -37,7 +37,7 @@ import { getCategoryIcon } from "@/lib/categoryIcons";
  * is now exactly one definition, and it cannot drift from the database
  * because it is generated from it.
  */
-export type { JobCategory } from "@/lib/jobCategories";
+;
 import type { JobCategory } from "@/lib/jobCategories";
 
 export interface CategoryIconProps extends Omit<LucideProps, "ref"> {

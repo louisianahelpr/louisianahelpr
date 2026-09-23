@@ -90,7 +90,7 @@ const COLS: Record<number, string> = {
  * to shrink below its content, which is what let a too-wide chip push past its
  * column instead of wrapping inside it.
  */
-export const JOB_ROW_CONTROL_SHAPE =
+const JOB_ROW_CONTROL_SHAPE =
   "w-full h-auto min-h-[44px] min-w-0 flex-col gap-0.5 px-1 py-1.5 " +
   "[&_span]:whitespace-normal [&_span]:break-words [&_span]:leading-tight [&_span]:text-center";
 

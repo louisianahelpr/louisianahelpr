@@ -73,7 +73,7 @@ export const JOB_STEP_ROW_GAP_PX = 6;
 /** The floor for a labelled chip when its words cannot be measured. */
 export const LABELLED_CHIP_MIN_PX = 68;
 /** The primary takes this many chip-widths while the row is roomy. */
-export const PRIMARY_FLEX = 2;
+const PRIMARY_FLEX = 2;
 /**
  * THE TAP TARGET IS A WIDTH FLOOR TOO — 44px, for every control in the row.
  *

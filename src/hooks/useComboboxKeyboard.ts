@@ -38,7 +38,7 @@ export interface UseComboboxKeyboardOptions {
   onOpen?: () => void;
 }
 
-export interface ComboboxOptionProps {
+interface ComboboxOptionProps {
   id: string;
   role: "option";
   tabIndex: -1;

@@ -163,7 +163,7 @@ export const earnedRangeLabel = (range: "lifetime" | "week" | "month" | "year"):
 // so the old `status === "completed"` test counted them.
 
 /** Transfer fired: the money is in the helper's Stripe balance. */
-export const PAID_OUT_PAYMENT_STATUSES = ["released"] as const;
+const PAID_OUT_PAYMENT_STATUSES = ["released"] as const;
 
 /** Approved and scheduled, but still on the platform's balance. */
 export const AWAITING_TRANSFER_PAYMENT_STATUSES = ["payout_pending"] as const;

@@ -42,12 +42,12 @@ function resolveToken(varName: string, fallback: string): string {
 
 /** Helper pin geometry. The point is the CENTRE of the disc, so the
  *  annotation needs no anchor offset (Leaflet's `iconAnchor: [16, 16]`). */
-export const HELPER_MARKER_SIZE = 32;
+const HELPER_MARKER_SIZE = 32;
 
 /** Destination pin geometry. The point is the TIP, at the bottom edge, so the
  *  annotation lifts the element by half its height (Leaflet's
  *  `iconAnchor: [12, 32]`). */
-export const DESTINATION_MARKER_W = 24;
+const DESTINATION_MARKER_W = 24;
 export const DESTINATION_MARKER_H = 32;
 
 /** The accessible name for the helper pin.

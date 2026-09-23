@@ -11,7 +11,7 @@
  * Output is capped at AVATAR_OUTPUT_PX square — an avatar never renders larger,
  * and a phone photo's 12MP original would otherwise hit the 5MB bucket limit.
  */
-export const AVATAR_OUTPUT_PX = 800;
+const AVATAR_OUTPUT_PX = 800;
 
 export type PixelCrop = { x: number; y: number; width: number; height: number };
 

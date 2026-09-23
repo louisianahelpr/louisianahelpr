@@ -57,7 +57,7 @@ const CONTENT_COLUMNS =
 const SETTINGS_COLUMNS = "auto_publish_enabled, channels_enabled, daily_post_cap, updated_at";
 
 /** How many rows the queue loads. Beyond this the owner should be filtering. */
-export const QUEUE_LIMIT = 200;
+const QUEUE_LIMIT = 200;
 
 async function currentUserId(): Promise<string | null> {
   const { data } = await supabase.auth.getUser();

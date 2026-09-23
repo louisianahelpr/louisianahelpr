@@ -457,7 +457,7 @@ export const CASES: Case[] = [
 /** The text a reader sees on the control — the label span if it has one (the
  *  row's controls all do), else the button's own text. Never the aria-label:
  *  that is the spoken name and is deliberately longer. */
-export function visibleLabel(el: Element): string {
+function visibleLabel(el: Element): string {
   const span = [...el.querySelectorAll("span")].find(
     (s) => (s.textContent || "").trim() && !s.classList.contains("sr-only"),
   );

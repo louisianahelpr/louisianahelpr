@@ -250,4 +250,3 @@ export function JobLocationPreview({ address }: { address: string }) {
   );
 }
 
-export default JobLocationPreview;

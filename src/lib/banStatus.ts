@@ -22,7 +22,7 @@
  * The server-side triggers and RLS are untouched by this; this only stops the
  * CLIENT from over-enforcing a penalty the server has already let lapse.
  */
-export const LOCKOUT_BAN_STATUSES = ["banned", "temp_banned", "permanently_banned"] as const;
+const LOCKOUT_BAN_STATUSES = ["banned", "temp_banned", "permanently_banned"] as const;
 
 export function isLockedOut(
   banStatus: string | null | undefined,

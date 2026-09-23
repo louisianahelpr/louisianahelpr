@@ -45,7 +45,7 @@ const ALL_FILTER_COLOR = "bg-[hsl(var(--olivewood)/0.08)] text-[hsl(var(--olivew
  * to change and there is still exactly one definition.
  */
 export type { ActivityBucket } from "@/lib/activityBuckets";
-export { BUCKET_ORDER, BUCKET_LABEL, BUCKET_SHORT_LABEL } from "@/lib/activityBuckets";
+export {  BUCKET_LABEL,  } from "@/lib/activityBuckets";
 
 /**
  * ORDER: Needs you · Waiting · Scheduled · Done · Cancelled (owner, 2026-09-19).

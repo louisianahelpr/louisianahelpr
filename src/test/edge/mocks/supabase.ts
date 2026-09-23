@@ -35,7 +35,7 @@ type Row = Record<string, unknown>;
  * name, so no existing test changes behaviour; the clauses simply become
  * visible.
  */
-export type FilterOp =
+type FilterOp =
   | "eq"
   | "neq"
   | "in"
@@ -48,7 +48,7 @@ export type FilterOp =
   | "gt"
   | "gte";
 
-export interface RecordedFilter {
+interface RecordedFilter {
   op: FilterOp;
   column: string;
   value: unknown;
@@ -57,7 +57,7 @@ export interface RecordedFilter {
 }
 
 /** `.order(column, { ascending })`, in the order the chain applied them. */
-export interface RecordedOrder {
+interface RecordedOrder {
   column: string;
   ascending: boolean;
 }
@@ -246,7 +246,7 @@ export interface SupabaseScenario {
   };
 }
 
-export function freshScenario(): SupabaseScenario {
+function freshScenario(): SupabaseScenario {
   return {
     authUser: undefined,
     authError: null,
@@ -644,7 +644,7 @@ function storageBucket(_bucket: string) {
   };
 }
 
-export interface SupabaseClientMock {
+interface SupabaseClientMock {
   from: (table: string) => QueryBuilder;
   storage: { from: (bucket: string) => ReturnType<typeof storageBucket> };
   auth: {

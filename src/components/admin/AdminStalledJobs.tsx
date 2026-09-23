@@ -278,7 +278,7 @@ const StalledJobsInner = () => {
  *
  * Exported for the unit test, which renders it directly.
  */
-export const StalledJobRow = ({
+const StalledJobRow = ({
   row,
   names,
   busy,

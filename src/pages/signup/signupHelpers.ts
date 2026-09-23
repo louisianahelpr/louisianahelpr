@@ -147,7 +147,7 @@ export function suggestEmailCorrection(email: string): string | null {
  * satisfy the old regex and are both refused by the server; verified against
  * prod on 2026-09-06 (see PASSWORD_RULES below for the probe).
  */
-export const PASSWORD_SYMBOLS = "!@#$%^&*()_+-=[]{};'\\:\"|<>?,./`~";
+const PASSWORD_SYMBOLS = "!@#$%^&*()_+-=[]{};'\\:\"|<>?,./`~";
 
 /** Minimum length the Supabase project enforces. Not 8 — see PASSWORD_RULES. */
 export const PASSWORD_MIN_LENGTH = 12;

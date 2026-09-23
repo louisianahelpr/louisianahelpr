@@ -76,7 +76,7 @@ const SCREEN_HEADER_ROW_MIN_HEIGHT = "44px";
  * e2e/prod-audit/expanding-search-geometry.spec.ts — which also deletes this
  * element from the live DOM and fails unless the overlap comes straight back.
  */
-export const SEARCH_TRIGGER_SLOT_WIDTH = "44px";
+const SEARCH_TRIGGER_SLOT_WIDTH = "44px";
 
 /**
  * The width below which `narrowTitleStepsAside` takes the visible title out of
@@ -92,7 +92,7 @@ export const NARROW_TITLE_ASIDE_PX = 500;
 /* The floor lives in its own leaf module so the browser check can import the
    same number — see src/lib/searchFieldFloor.ts. Re-exported here because this
    is where a reader of the row will look for it. */
-export { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
+;
 
 export function SearchTriggerSlot({
   width = SEARCH_TRIGGER_SLOT_WIDTH,

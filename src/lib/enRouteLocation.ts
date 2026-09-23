@@ -36,7 +36,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 
 export type EnRouteMode = "background" | "foreground" | "denied" | "unavailable";
 
-export type EnRoutePosition = {
+type EnRoutePosition = {
   lat: number;
   lng: number;
   /** Metres of horizontal uncertainty, when the platform reports it. */
@@ -88,7 +88,7 @@ const BackgroundLocation = registerPlugin<BackgroundLocationPluginShape>("Backgr
 
 /** Metres between writes. Matches the native default; passed explicitly so the
  *  web watch and the native watch agree on what "moved" means. */
-export const EN_ROUTE_DISTANCE_FILTER_M = 50;
+const EN_ROUTE_DISTANCE_FILTER_M = 50;
 
 /** Floor on write frequency, so a helper on a bumpy GPS fix in stop-and-go
  *  traffic cannot hammer the table. Distance is the primary filter; this is the
@@ -98,7 +98,7 @@ const MIN_WRITE_INTERVAL_MS = 20_000;
 
 /** A stationary helper still writes this often, so the poster's freshness stamp
  *  distinguishes "parked outside" from "the app stopped reporting". */
-export const EN_ROUTE_HEARTBEAT_MS = 120_000;
+const EN_ROUTE_HEARTBEAT_MS = 120_000;
 
 function haversineMetres(a: EnRoutePosition, b: EnRoutePosition): number {
   const R = 6_371_000;

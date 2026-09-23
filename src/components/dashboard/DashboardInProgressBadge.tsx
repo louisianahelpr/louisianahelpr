@@ -63,7 +63,7 @@ export function inProgressBadgeTarget(job: UpcomingJob): {
  * read as "live"; an accepted-but-not-started job shows a steady dot.
  * Self-hides entirely when there's no active job.
  */
-const DashboardInProgressBadge = ({ job, onView }: DashboardInProgressBadgeProps) => {
+export const DashboardInProgressBadge = ({ job, onView }: DashboardInProgressBadgeProps) => {
   if (!job) return null;
 
   const { live, label, to, destination } = inProgressBadgeTarget(job);
@@ -115,4 +115,3 @@ const DashboardInProgressBadge = ({ job, onView }: DashboardInProgressBadgeProps
   );
 };
 
-export default DashboardInProgressBadge;

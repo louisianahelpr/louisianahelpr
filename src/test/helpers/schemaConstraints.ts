@@ -46,14 +46,14 @@ const REPO = resolve(__dirname, "../../..");
 const MIGRATIONS = join(REPO, "supabase/migrations");
 const TYPES = join(REPO, "src/integrations/supabase/types.ts");
 
-export type EnumConstraint = {
+type EnumConstraint = {
   kind: "enum";
   column: string;
   values: string[];
   nullable: boolean;
   file: string;
 };
-export type RangeConstraint = {
+type RangeConstraint = {
   kind: "range";
   column: string;
   min: number | null;
@@ -72,7 +72,7 @@ export type Constraint = EnumConstraint | RangeConstraint;
  * distributes the Omit across the members instead, which is what was meant.
  */
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
-export type ConstraintSpec = DistributiveOmit<Constraint, "file">;
+type ConstraintSpec = DistributiveOmit<Constraint, "file">;
 
 /** Split a parenthesised body at commas that are not inside brackets or quotes. */
 function splitTopLevel(s: string): string[] {

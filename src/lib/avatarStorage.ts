@@ -91,7 +91,7 @@
 import { report } from "@/lib/errorLogger";
 
 /** The public bucket. Public by design — avatars are marketplace-visible. */
-export const AVATAR_BUCKET = "avatars";
+const AVATAR_BUCKET = "avatars";
 
 /**
  * The bucket's `allowed_mime_types` (see
@@ -107,7 +107,7 @@ export const AVATAR_MIME_EXT: Readonly<Record<string, string>> = {
 };
 
 /** The bucket's `file_size_limit`. Restated so the client can reject first. */
-export const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
 /** Matches `avatar.<anything>` — the whole legacy key space, plus the current. */
 const AVATAR_OBJECT_NAME = /^avatar\.[A-Za-z0-9]{1,16}$/;
@@ -327,7 +327,7 @@ export async function replaceAvatarObject(
  * already have an orphan. NEVER call it before `profiles.avatar_url` names the
  * object being kept — the class check fails any call site that does.
  */
-export async function sweepSupersededAvatars(
+async function sweepSupersededAvatars(
   client: AvatarStorageClient,
   userId: string,
   keep: string | null | readonly string[],

@@ -39,7 +39,7 @@ export interface DisplayPayJob {
  * only a job flagged `is_group_job` WITH a truthy `helpers_needed` divides.
  * Anything else pays one helper.
  */
-export function displayHelpersCount(job: DisplayPayJob): number {
+function displayHelpersCount(job: DisplayPayJob): number {
   return job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
 }
 

@@ -12,7 +12,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export const MARKETING_MEDIA_BUCKET = "marketing-media";
+const MARKETING_MEDIA_BUCKET = "marketing-media";
 
 /**
  * Client-side size guard. The bucket declares no `file_size_limit` of its own,
@@ -20,7 +20,7 @@ export const MARKETING_MEDIA_BUCKET = "marketing-media";
  * sentence instead of letting a 40MB Canva export turn into a slow upload and
  * a raw 413 the recovery path would read as a network error.
  */
-export const MARKETING_MEDIA_MAX_BYTES = 8 * 1024 * 1024;
+const MARKETING_MEDIA_MAX_BYTES = 8 * 1024 * 1024;
 
 /**
  * Accepted types, mapped to the one canonical extension each — derived from
@@ -28,7 +28,7 @@ export const MARKETING_MEDIA_MAX_BYTES = 8 * 1024 * 1024;
  * documents at length (a name is user-controlled text that happens to end in a
  * dot and some letters).
  */
-export const MARKETING_MEDIA_MIME_EXT: Readonly<Record<string, string>> = {
+const MARKETING_MEDIA_MIME_EXT: Readonly<Record<string, string>> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
@@ -45,7 +45,7 @@ export const MARKETING_MEDIA_ACCEPT = "image/jpeg,image/png,image/webp";
  */
 export const INSTAGRAM_PREFERRED_MIME = "image/jpeg";
 
-export class MarketingMediaError extends Error {
+class MarketingMediaError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "MarketingMediaError";
@@ -53,7 +53,7 @@ export class MarketingMediaError extends Error {
 }
 
 /** Reject a file the upload would fail on, with copy the owner can act on. */
-export function assertUploadableMarketingMedia(file: { type: string; size: number }): void {
+function assertUploadableMarketingMedia(file: { type: string; size: number }): void {
   if (!MARKETING_MEDIA_MIME_EXT[(file.type || "").toLowerCase()]) {
     throw new MarketingMediaError(
       `That file type isn't supported${file.type ? ` (${file.type})` : ""} — use JPG, PNG or WebP.`,

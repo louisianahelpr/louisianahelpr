@@ -25,7 +25,7 @@ export const MESSAGING_LOCKOUT_HOURS = 24;
 /** Copy for the read-only notice and for a send refused at the boundary. */
 export const THREAD_CLOSED_NOTICE =
   "This conversation is closed. Messaging ends 24 hours after a job is completed. You can still read everything here.";
-export const THREAD_CLOSED_TOAST =
+const THREAD_CLOSED_TOAST =
   "This conversation closed 24 hours after the job was completed, so the message wasn't sent.";
 
 /**
@@ -46,7 +46,7 @@ export const THREAD_CLOSED_TOAST =
  */
 export const THREAD_CANCELLED_NOTICE =
   "This conversation is closed — the job was cancelled. You can still read everything here.";
-export const THREAD_CANCELLED_TOAST =
+const THREAD_CANCELLED_TOAST =
   "This job was cancelled, so the conversation is closed and the message wasn't sent.";
 
 /**

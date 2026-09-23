@@ -83,4 +83,3 @@ export const ProfileTabBody = ({
   );
 };
 
-export default ProfileTabBody;

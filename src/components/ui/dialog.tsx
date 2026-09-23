@@ -912,7 +912,7 @@ export {
   DialogClose,
   DialogTrigger,
   DialogContent,
-  DialogHeader,
+  
   DialogHero,
   DialogDescription,
   DialogFooter,

@@ -119,18 +119,18 @@ import {
 export { tierDisplayName };
 export {
   MONTHLY_FREE_BOOSTS,
-  TIER_PERK_MATRIX,
+  
   TIER_ORDER,
   hasPerk,
   monthlyFreeBoostAllowance,
   monthlyFreeBoostsRemaining,
   profileHasPerk,
   tierRank,
-  tiersGrantingPerk,
-  tiersGrantingPerkSentence,
+  
+  
   normalizeTier,
   type TierId,
-  type TierPerkKey,
+  
 } from "../../supabase/functions/_shared/tierPerks";
 
 /**

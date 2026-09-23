@@ -192,4 +192,3 @@ export function useDeleteAccount(): UseDeleteAccount {
   };
 }
 
-export default useDeleteAccount;

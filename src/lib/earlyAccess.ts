@@ -78,7 +78,7 @@ export function earlyAccessDelayMs(tier: string | null | undefined): number {
  * How many minutes a member on `tier` waits before a new job becomes visible
  * to them. `MAX_EARLY_ACCESS_DELAY_MINUTES` for free/unknown, 0 for Elite.
  */
-export function earlyAccessWaitMinutes(tier: string | null | undefined): number {
+function earlyAccessWaitMinutes(tier: string | null | undefined): number {
   return MAX_EARLY_ACCESS_DELAY_MINUTES - earlyAccessHeadStartMinutes(tier);
 }
 

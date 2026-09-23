@@ -39,12 +39,12 @@ export type RGB = readonly [number, number, number];
  */
 export const INK: RGB = [35, 35, 26]; // --ink-deep   hsl(64 16% 12%)
 export const MUTED: RGB = [100, 102, 84]; // --olivewood, lightened to ~5.9:1 on white
-export const RULE: RGB = [214, 211, 200]; // warm hairline, not a neutral grey
-export const BARK: RGB = [94, 101, 68]; // --bark       #5E6544
-export const SIENNA: RGB = [152, 66, 22]; // --burnt-sienna #984216
-export const BAND: RGB = [240, 241, 235]; // --bark at ~8% over white
+const RULE: RGB = [214, 211, 200]; // warm hairline, not a neutral grey
+const BARK: RGB = [94, 101, 68]; // --bark       #5E6544
+const SIENNA: RGB = [152, 66, 22]; // --burnt-sienna #984216
+const BAND: RGB = [240, 241, 235]; // --bark at ~8% over white
 
-export const PAGE_W = 612;
+const PAGE_W = 612;
 export const PAGE_H = 792;
 export const MARGIN = 54;
 export const CONTENT_W = PAGE_W - MARGIN * 2;
@@ -60,7 +60,7 @@ export interface PdfFile {
   blob: Blob;
 }
 
-export function toBase64(bytes: Uint8Array): string {
+function toBase64(bytes: Uint8Array): string {
   let binary = "";
   const CHUNK = 0x8000;
   for (let i = 0; i < bytes.length; i += CHUNK) {

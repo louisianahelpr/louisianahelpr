@@ -15,7 +15,7 @@
  */
 const SUBJECT_MAX = 120; // mirrors Support.tsx — the input's own maxLength
 
-export function shortJobId(id: string): string {
+function shortJobId(id: string): string {
   return id.slice(0, 8);
 }
 

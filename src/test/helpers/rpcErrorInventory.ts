@@ -54,7 +54,7 @@ function stringArg(node: ts.Expression | undefined): string | null {
  * is a string literal, returned as that literal. `dynamic` counts calls whose
  * first argument is not a literal (an RPC name the inventory cannot see).
  */
-export function literalCalls(file: string, text: string, callee: string): { names: string[]; dynamic: number; lines: number[] } {
+function literalCalls(file: string, text: string, callee: string): { names: string[]; dynamic: number; lines: number[] } {
   const sf = parse(file, text);
   const names: string[] = [];
   const lines: number[] = [];
@@ -108,7 +108,7 @@ export function clientRpcCalls(root: string): { calls: Map<string, RpcCall[]>; d
 
 /** SQL with line and block comments removed, so a header that quotes a
  *  definition or a RAISE is not mistaken for one. */
-export function stripSqlComments(sql: string): string {
+function stripSqlComments(sql: string): string {
   // SQL: `--` to EOL, NESTING block comments, '' quote escaping, and $tag$ bodies
   // that must be recursed into rather than skipped. A naive pair of regexes gets all
   // four wrong and also collapses to a space, shifting every later offset. (2026-09-21)

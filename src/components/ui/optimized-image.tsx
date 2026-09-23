@@ -146,4 +146,3 @@ const OptimizedImage = React.forwardRef<HTMLImageElement, OptimizedImageProps>(
 );
 
 export { OptimizedImage };
-export default OptimizedImage;

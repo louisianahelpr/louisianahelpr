@@ -33,7 +33,7 @@ export const FROM_BEING_REFERRED_REASONS: readonly string[] = ["first_job_bonus"
 
 export type ReferralEarningsSource = "fromReferring" | "fromBeingReferred" | "other";
 
-export const REFERRAL_EARNINGS_LABELS: Record<ReferralEarningsSource, string> = {
+const REFERRAL_EARNINGS_LABELS: Record<ReferralEarningsSource, string> = {
   fromReferring: "From your referrals",
   fromBeingReferred: "From being referred",
   other: "Other credits",

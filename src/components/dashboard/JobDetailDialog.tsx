@@ -68,11 +68,11 @@ interface JobDetailDialogProps {
    src/test/dialogCornerLaneIsReserved.test.ts — it re-derives every input
    below by reading dialog.tsx and the icon button, and fails when this falls
    short, which is how the 2026-09-19 overlap was caught. */
-export const DIALOG_CLOSE_X_RIGHT = 4;   // dialog.tsx: the X's `right-1`
-export const DIALOG_CLOSE_X_BOX = 44;    // dialog.tsx: its stated 44x44 box
-export const DIALOG_SLOT_ROW_RIGHT = 56; // dialog.tsx: `right-[56px]`
-export const DIALOG_SLOT_ICON = 44;      // IconActionButton/ShareJobButton `bare`
-export const DIALOG_SLOT_GAP = 8;        // dialog.tsx: `gap-2`
+const DIALOG_CLOSE_X_RIGHT = 4;   // dialog.tsx: the X's `right-1`
+const DIALOG_CLOSE_X_BOX = 44;    // dialog.tsx: its stated 44x44 box
+const DIALOG_SLOT_ROW_RIGHT = 56; // dialog.tsx: `right-[56px]`
+const DIALOG_SLOT_ICON = 44;      // IconActionButton/ShareJobButton `bare`
+const DIALOG_SLOT_GAP = 8;        // dialog.tsx: `gap-2`
 
 /**
  * How much of the sheet's right edge the close X — plus `iconCount` chrome

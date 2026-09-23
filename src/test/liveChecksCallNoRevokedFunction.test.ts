@@ -9,7 +9,7 @@
  * or a mention in a message/comment); read the catalog (pg_proc.prosrc,
  * has_*_privilege) instead of executing app functions.
  *
- * @mutate scripts/check-live-privileges.mjs | (COALESCE((SELECT array_agg(m[1]) FROM pg_proc p, | (public.profiles_locked_update_columns() || COALESCE((SELECT array_agg(m[1]) FROM pg_proc p,
+ * @mutate scripts/check-live-privileges.mjs | (COALESCE((SELECT array_agg(m[1]) FROM pg_proc p, | (public.profiles_locked_update_columns() \|\| COALESCE((SELECT array_agg(m[1]) FROM pg_proc p,
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";

@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 79 done, 10 partly done (fixed, protection pending), 76 open. Source of truth for work.
+- **Queue (this file):** 79 done, 11 partly done (fixed, protection pending), 76 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 165 items — 79 done, 10 partly done (fixed, protection pending), 76 open.**
+**Queue: 166 items — 79 done, 11 partly done (fixed, protection pending), 76 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -501,6 +501,7 @@ sure someone hears it and closes it.
 - [ ] **Q164 A temporary edge function vanished within a minute of a successful deploy (2026-09-23 13:19Z).** `supabase functions deploy tmp-q156-stripe-events` printed Deployed; about a minute later POST returned 404 twice and `supabase functions list` had no such function; a redeploy came back as version 1 of a new function (13:19:59) and stayed. Unexplained: check whether the Supabase GitHub integration (Q121) or a hygiene job deletes functions that are not in the repo, before any lane relies on a temporary function.
 - [ ] **Q165 Stale reports: archive what no longer describes the app (owner asked 2026-09-23).** Measured: 30 of 41 docs/audit/*.md not updated since before 2026-09-16 (oldest 2026-06-19: 01-screens, 03-journeys, 04-security-money, 05-trust-discovery); TODO.md 807 lines last touched 2026-09-01 (a second backlog, see Q84); AGENTS.md 2026-09-05; launch-2026-09/ROLLUP.md 2026-09-22. For each: carry any still-open finding into this file (verified live, not copied), then move it to docs/archive/ with a one-line 'historical, superseded by docs/OPEN.md' banner; keep dated records (morning/, evidence) where they are. Guard: extend scripts/check-staleness.mjs so a non-dated, non-archived report older than 14 days fails staleness-watch.
 - [x] **Q166 DONE 2026-09-23: the prod presser flipped admin settings (it turned marketing auto-publish ON).** Measured from edge_logs: 17 PATCHes to `marketing_settings` as admin@louisianahelpr.com from press-every-control runs 35761400822, 35768341847, 35805671843, 35813177418, 35822080143 and 35837735324; the 10:50:07Z one set auto_publish_enabled = true. Cause: a control counted as mutating only by label vocabulary (DESTRUCTIVE_RX / PAYMENT_RX / type=submit); switches are labelled with the setting's name ("Auto-publish", "Instagram") and the confirm says "Turn on". Fix: `isAdminStateToggle` (scripts/audit/pressProdSafety.mjs) makes any switch/checkbox/radio, or a turn on/off / enable / disable label, pressed as admin a mutating control, so mutationGate skips it unless it acts on a test-owned row; ENUMERATE now records the role. Guard: src/test/pressNeverFlipsAdminSettings.test.ts (3 @mutate, all red when applied by hand: 6/9, 1/9 and 1/9 failing). The setting itself was left as found: MORNING QUESTIONS 8.
+- [ ] **Q167 Two DB pruners were never scheduled, and three code comments say they run (found by Q41, 2026-09-23).** `cleanup_stripe_webhook_events()` and `cleanup_observability_tables()` have 0 callers (no cron.job among 59, no trigger, function, client or edge call), yet stripe-webhook/index.ts:267, stripe-idv-webhook/index.ts:205 and verification-webhook/index.ts:269 say "prunes at 30 days". Live: 9 stripe_webhook_events rows older than 30 days (oldest 2026-07-08), 221 analytics_events older than 90 days (oldest 2026-05-03); error_logs is already pruned by sweep_old_error_logs. Fix: schedule them (with a cron_work_expectations liveness row) or drop them and correct the comments; guard: every public prune/cleanup/sweep function is either in cron.job or listed as deliberately manual, red on today's state.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes
@@ -575,7 +576,7 @@ sure someone hears it and closes it.
    of a critical page every 15 minutes. Pick one: (a) **off** until you add the
    Meta secrets (I switch it off in Admin -> Social); (b) leave it on, so
    scheduled Instagram rows post as soon as the secrets exist.
-- [ ] **Q41 Morning report: everything the design no longer uses (owner,
+- [~] **Q41 REPORTED 2026-09-23: docs/audit/dead-code-report-2026-09-23.md (NO-GUARD: a report; deletions wait on MORNING QUESTIONS 9).** Measured: knip 0 unused files, 97 exports + 11 types; 5 files only tests reach (production-entry knip); 4 unrendered components; 2 routes with no link; 1 edge function nothing calls (helpr-pass-wallet); 5 DB functions with 0 callers anywhere (+4 test-only group-job RPCs); 2 tables with no writer; 9 unreferenced scripts, 12 docs-only scripts, 12 unlinked top-level docs (overlaps Q165). Grouped (a) safe / (b) owner call / (c) keep. Was: **Q41 Morning report: everything the design no longer uses (owner,
   2026-09-23: "we can likely delete it").** REPORT ONLY, no deletion; the owner
   decides. Inventory with evidence for each item (call-site counts,
   reachability from a route or control, live DB reads and writes):
@@ -1429,6 +1430,22 @@ sure someone hears it and closes it.
    backup. `ban_fingerprint_salt` (vault): it cannot be re-created, and
    without it every stored ban fingerprint stops matching after a restore.
    Want it (encrypted) in the backup, or kept in your password manager?
+
+9. **Things the app no longer uses (Q41): approve group (a), decide group (b).**
+   Full list with the evidence for each: docs/audit/dead-code-report-2026-09-23.md.
+   (a) **Safe to delete, nothing anyone sees changes** (about 1,200 lines): the
+   second "recent reviews" wall you removed from public profiles (VN-15), three
+   badges/pickers no screen shows any more, a 14-line duplicate file, 1 unused
+   database function, and dropping the "shared" mark from 97 names nothing
+   imports. Approve all of (a)? (b) **Your call, item by item:** the weekly
+   schedule strip taken off Earnings (show it elsewhere or delete?); the W-9 tax
+   form flow (nothing can switch it on; keep for launch or remove?); Apple
+   Wallet pass and Apple in-app purchase code; the retired group-job buttons
+   (1 group job still exists); an unused strikes table; two old redirect links
+   (/help-center, /settings); 21 old one-off scripts and 12 unlinked docs
+   (delete or archive? the docs overlap Q165). Background checks, idle sign-out
+   and the Q40 ID-upload leftovers are listed as KEEP. Found on the way: two
+   database clean-up jobs were never switched on (Q167).
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

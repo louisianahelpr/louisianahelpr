@@ -123,6 +123,10 @@ const NOT_RUN_IN_CI: Record<string, string> = {
  * secret whose absence causes it.
  */
 const GATED_IN_CI: Record<string, { runner: string; needs: string }> = {
+  "slow-network/slow-network.spec.ts": {
+    runner: "slow-network.yml",
+    needs: "PLAYWRIGHT_POSTER_EMAIL/_PASSWORD + PLAYWRIGHT_HELPER_EMAIL/_PASSWORD (the preflight job announces a ::warning when they are missing)",
+  },
   "journeys/03-account.spec.ts": {
     runner: "e2e-journeys.yml",
     needs: "PLAYWRIGHT_HELPER_EMAIL + PLAYWRIGHT_HELPER_PASSWORD (the sign-out/sign-in leg; the rest runs on minted sessions)",
@@ -386,7 +390,7 @@ describe("Playwright project resolution", () => {
     // happy-path-webkit opens with a comment before `name:` and is not parsed,
     // which is fine — it collects the same files as happy-path.
     expect(projects.map((p) => p.name).sort()).toEqual([
-      "a11y-prod", "a11y-prod-webkit", "canary", "chromium", "happy-path", "journeys", "journeys-webkit", "prod-audit",
+      "a11y-prod", "a11y-prod-webkit", "canary", "chromium", "happy-path", "journeys", "journeys-webkit", "prod-audit", "slow-network",
     ]);
     const chromium = specsInProject(projects.find((p) => p.name === "chromium")!, specs);
     const happy = specsInProject(projects.find((p) => p.name === "happy-path")!, specs);

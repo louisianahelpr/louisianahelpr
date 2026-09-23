@@ -1,0 +1,147 @@
+name: Slow network (rural Louisiana)
+
+# docs/OPEN.md Q68. The core journey steps (e2e/slow-network/steps.ts: sign in,
+# browse, post, apply, message, pay start) on Chrome's "3G" throttle and with
+# the connection dropping mid-action, against THIS COMMIT served locally and the
+# REAL backend (prod Supabase, the two shared E2E accounts, Stripe test mode;
+# pay-start stops at Stripe's door and charges nothing). Asserts every wait
+# shows progress, an offline action says so, and a retry after a lost response
+# writes exactly once. One worker: the steps share the two accounts.
+#
+# Same shape as e2e-journeys.yml: sweeper before and after, the
+# prod-lifecycle-shared-accounts job lock, a nightly-red issue on red/green.
+# Guard: src/test/slowNetworkCoversEverySteps.test.ts.
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    # Nightly 23:17 UTC: 240 min from the nearest prod suite, 30 from the
+    # hourly prod-errors monitor (src/test/prodWorkflowSpacing.test.ts).
+    - cron: "17 23 * * *"
+  workflow_dispatch:
+
+concurrency:
+  # Schedule joins prod-load; a dispatch gets its own group so it is never the
+  # pending run another workflow cancels (issue #1595, e2e-journeys.yml).
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('slow-network-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: What can run
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      have_accounts: ${{ steps.check.outputs.have_accounts }}
+    steps:
+      - id: check
+        env:
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+        run: |
+          if [ -n "$POSTER_EMAIL" ] && [ -n "$POSTER_PASSWORD" ] && [ -n "$HELPER_EMAIL" ] && [ -n "$HELPER_PASSWORD" ]; then
+            echo "have_accounts=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_accounts=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Slow network NOT run::PLAYWRIGHT_POSTER_EMAIL/_PASSWORD and PLAYWRIGHT_HELPER_EMAIL/_PASSWORD are not set."
+            echo "- **Slow network: NOT COVERED** — the shared E2E account secrets are missing." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  slow-network:
+    name: Slow network (slow-network)
+    needs: preflight
+    if: needs.preflight.outputs.have_accounts == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    env:
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+
+      - name: Sweep anything a previous run stranded
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
+          KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
+          TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a poster token"; exit 1; }
+          SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
+            node scripts/e2e/prod-lifecycle-sweeper.mjs
+
+      - name: Run the slow-network steps
+        run: npx playwright test --project=slow-network --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
+
+      - name: Keep wait timings, failure screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slow-network-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Unwind this run's rows even on failure
+        if: always()
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+        run: |
+          set -euo pipefail
+          URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
+          KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
+          TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a token for teardown (Q52: an unwind that did not run is not green)"; exit 1; }
+          SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
+            node scripts/e2e/prod-lifecycle-sweeper.mjs
+
+  notify:
+    name: Report nightly result
+    needs: [preflight, slow-network]
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: slow-network
+          status: ${{ (needs.preflight.result == 'success' && needs.slow-network.result == 'success') && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

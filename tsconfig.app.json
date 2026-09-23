@@ -49,6 +49,8 @@
     "e2e/reporters/skipReporter.ts",
     // src/test/fundedOpenJobPlan.test.ts (Q100). Pinned by src/test/e2eImportsInAppTsconfig.test.ts.
     "e2e/prod-audit/fundedOpenJobPlan.ts",
+    // src/test/slowNetworkCoversEverySteps.test.ts (Q68) imports the step list.
+    "e2e/slow-network/steps.ts",
     "supabase/functions/_shared/businessSeatTiers.ts",
     "supabase/functions/_shared/disputePayoutStamp.ts",
     "supabase/functions/_shared/marketing/secretGap.ts",

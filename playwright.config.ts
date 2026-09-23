@@ -189,10 +189,32 @@ export default defineConfig({
       },
     },
     {
+      name: "slow-network",
+      // Q68: the core journey steps on Chrome's "3G" throttle (CDP, so Chromium
+      // only) and with the connection dropping mid-action, against this
+      // commit's local build + the REAL backend. One worker: the steps share
+      // the two E2E accounts. Nightly: .github/workflows/slow-network.yml.
+      testDir: "./e2e/slow-network",
+      fullyParallel: false,
+      workers: 1,
+      timeout: 15 * 60_000,
+      retries: 0,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 375, height: 812 },
+        isMobile: false,
+        hasTouch: true,
+        serviceWorkers: "block",
+        screenshot: "only-on-failure",
+        trace: "retain-on-failure",
+        actionTimeout: 60_000,
+      },
+    },
+    {
       name: "chromium",
       // The real-backend specs outside a project dir — excludes happy-path/*
       // (mocked) and the dirs that have their own project.
-      testIgnore: /(happy-path|journeys|a11y-prod|prod-audit|canary)\//,
+      testIgnore: /(happy-path|journeys|a11y-prod|prod-audit|canary|slow-network)\//,
       use: { ...devices["Desktop Chrome"] },
     },
     {

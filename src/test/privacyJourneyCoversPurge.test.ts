@@ -5,7 +5,7 @@
  *
  * Two-way against source, so the journey cannot silently fall behind:
  *   - every `step: "<name>"` accountPurge.ts reports  ==  EXPECTED_PURGE_STEPS;
- *   - accountPurge.ts IDENTITY_BUCKETS                  ==  the journey's list;
+ *   - purgeBuckets.ts IDENTITY_BUCKETS (accountPurge's)  ==  the journey's list;
  *   - the keys of DataExportCard's export payload       ==  EXPORT_SECTIONS;
  *   - every EXPECTED_DB_COUNTS key is a counter the NEWEST purge_user_data()
  *     returns.
@@ -17,7 +17,7 @@
  * real or shared account (fail closed).
  *
  * @mutate supabase/functions/_shared/accountPurge.ts | steps.push({ step: "avatar_pointer", ok: false, | steps.push({ step: "avatar_ptr", ok: false,
- * @mutate supabase/functions/_shared/accountPurge.ts |   "user-documents",\n |
+ * @mutate supabase/functions/_shared/purgeBuckets.ts |   "user-documents",\n |
  * @mutate src/pages/legal/DataExportCard.tsx |         reviews: reviewsRes.data,\n |
  * @mutate scripts/lib/privacyJourney.mjs |   if (subject.isSeed !== true) throw | if (false) throw
  * @mutate scripts/lib/privacyJourney.mjs |   if (m[1] !== subject.runTag) throw | if (false) throw
@@ -44,6 +44,8 @@ import {
 const ROOT = process.cwd();
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
 const PURGE = blankComments(read("supabase/functions/_shared/accountPurge.ts"));
+// Q219 moved the list (with its existence check) out of accountPurge.ts.
+const PURGE_BUCKETS = blankComments(read("supabase/functions/_shared/purgeBuckets.ts"));
 const SPEC = blankComments(read("e2e/privacy/privacy-requests.spec.ts"));
 const WORKFLOW = read(".github/workflows/privacy-journey.yml");
 
@@ -54,8 +56,9 @@ describe("privacy journey covers every purge step (Q70)", () => {
     expect(inSource).toEqual([...EXPECTED_PURGE_STEPS].sort());
   });
 
-  it("identity buckets: accountPurge.ts and the journey list the same buckets", () => {
-    const block = /const IDENTITY_BUCKETS = \[([\s\S]*?)\] as const/.exec(PURGE)?.[1] ?? "";
+  it("identity buckets: the purge and the journey list the same buckets", () => {
+    expect(PURGE).toMatch(/import \{[^}]*\bIDENTITY_BUCKETS\b[^}]*\} from "\.\/purgeBuckets\.ts"/);
+    const block = /const IDENTITY_BUCKETS = \[([\s\S]*?)\] as const/.exec(PURGE_BUCKETS)?.[1] ?? "";
     const inSource = [...block.matchAll(/"([\w-]+)"/g)].map((m) => m[1]).sort();
     expect(inSource.length).toBeGreaterThan(2);
     expect(inSource).toEqual([...IDENTITY_BUCKETS].sort());

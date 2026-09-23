@@ -73,7 +73,7 @@
          (scripts/check-csp-inline-scripts.mjs). Never add inline on*= handlers
          or javascript: URLs; use addEventListener. -->
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-qO2kOy/eF+W8D9m2qrNSEKwtzV7MTpLNJGhAKPoEHCA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-zTk4iqglI+32PtdbMgt33TG0vwS0AA1+w9f/RvYuClY=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -369,17 +369,56 @@
       recovery ("This page hit a problem."), exactly as when the page chunk was
       fetched only after the app had rendered.
 
-      Same contract as recoverFromChunkError(): one cache-busting hard reload,
-      guarded by the same 10s sessionStorage key so the two layers never loop
-      between them; offline never reloads. If the reload does not recover, it
-      says so plainly and leaves a record that main.tsx reports on the next
-      boot that succeeds (report() is inside the bundle, which is exactly what
-      is missing right now).
+      Same contract as recoverFromChunkError(), on the same sessionStorage
+      counter so the two layers share one budget and never loop between them:
+      cache-busting hard reloads on CHUNK_RELOAD_SCHEDULE_MS (now, +5s, +15s,
+      +40s; decide() below is decideChunkReload() in ES5, and
+      src/lib/chunkReload.test.ts holds the two equal), the boot spinner
+      staying up while a retry waits; offline never reloads. Q199: this used
+      to show the error screen for any failure within 10s of a reload, so a
+      reload that landed mid-deploy on the old HTML ended there. Only when
+      the attempts are spent does it say so plainly, and leave a record that
+      main.tsx reports on the next boot that succeeds (report() is inside the
+      bundle, which is exactly what is missing right now).
     -->
     <script>
       (function () {
         var FLAG = "helpr_chunk_reload_at";
+        var COUNT = "helpr_chunk_reload_count";
         var fired = false;
+        // BEGIN decideChunkReload (mirror of src/lib/chunkReload.ts)
+        function decide(count, last, now, offline) {
+          var SCHEDULE = [0, 5000, 15000, 40000];
+          if (offline) return -1;
+          if (last > 0 && now - last > 300000) { count = 0; last = 0; }
+          if (count >= SCHEDULE.length) return -1;
+          var wait = count === 0 ? 0 : SCHEDULE[count] - (now - last);
+          return wait > 0 ? wait : 0;
+        }
+        // END decideChunkReload
+        function readState() {
+          var count = 0, last = 0;
+          try {
+            last = Number(sessionStorage.getItem(FLAG) || "0") || 0;
+            var raw = sessionStorage.getItem(COUNT);
+            count = Number(raw || "0") || 0;
+            if (last > 0 && raw === null && count < 1) count = 1;
+          } catch (e) { /* no storage: fresh, and writeAttempt fails closed */ }
+          return { count: count, last: last };
+        }
+        function writeAttempt(n) {
+          try {
+            sessionStorage.setItem(FLAG, String(Date.now()));
+            sessionStorage.setItem(COUNT, String(n));
+            return sessionStorage.getItem(COUNT) === String(n);
+          } catch (e) { return false; }
+        }
+        function recentRecoveryReload() {
+          try {
+            var v = Number(new URL(location.href).searchParams.get("_v") || "0") || 0;
+            return v > 0 && Date.now() - v <= 300000;
+          } catch (e) { return true; }
+        }
         function booted() {
           return !document.getElementById("boot-loader");
         }
@@ -441,14 +480,24 @@
           if (document.readyState !== "loading" && booted()) return;
           fired = true;
           var offline = navigator.onLine === false;
-          var last = 0;
-          try { last = Number(sessionStorage.getItem(FLAG) || "0"); } catch (e) { /* ignore */ }
-          if (!offline && Date.now() - last > 10000) {
-            try { sessionStorage.setItem(FLAG, String(Date.now())); } catch (e) { /* ignore */ }
-            reloadFresh();
+          var st = readState();
+          var wait = decide(st.count, st.last, Date.now(), offline);
+          if (wait < 0) {
+            // Spent: keep the episode alive, as recoverFromChunkError does.
+            if (!offline) { try { sessionStorage.setItem(FLAG, String(Date.now())); } catch (e) { /* ignore */ } }
+            showFailure(u.pathname, offline);
             return;
           }
-          showFailure(u.pathname, offline);
+          setTimeout(function () {
+            // Without storage the counter cannot cap anything, so only a
+            // first attempt, from a page that is not itself a recovery
+            // reload, may go ahead: fail closed, never loop.
+            if (!writeAttempt(st.count + 1) && (st.count > 0 || recentRecoveryReload())) {
+              showFailure(u.pathname, false);
+              return;
+            }
+            reloadFresh();
+          }, wait);
         }, true);
       })();
     </script>

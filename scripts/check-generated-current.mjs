@@ -203,6 +203,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/build-og-shell.mjs": "dist/ (build output)",
   "scripts/check-changed.mjs": "docs/audit/prepush-skips.log (untracked local log)",
   "scripts/check-vercel-usage.mjs": "CI report + GITHUB_OUTPUT",
+  "scripts/db-saturation-check.mjs": "GITHUB_STEP_SUMMARY only (Q53 hourly check in prod-errors.yml)",
   "scripts/gate.mjs": "~/.lh-gate/last.json — per-machine record of the last local gate, read by the scoreboard's gate row",
   "scripts/gateLock.mjs": "lock file",
   "scripts/generate-ios-icons.mjs": "binary app icons from the source artwork; ios-icon-sync.yml",

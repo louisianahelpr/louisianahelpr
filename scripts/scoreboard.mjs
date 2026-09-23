@@ -449,10 +449,13 @@ async function dbHealthRows(sqlFn, now) {
       (SELECT count(*) FROM public.error_logs WHERE created_at > now() - interval '24 hours')::int AS el_all,
       (SELECT round(max(mean_exec_time)::numeric, 1) FROM extensions.pg_stat_statements WHERE calls > 50) AS slowest_mean_ms`);
     const at = iso(now);
-    const pct = Math.round((100 * r.all_conns) / r.max_conns);
-    rows.push({ group: "DB health", signal: "connection use (all backends / max_connections)", status: pct >= 80 ? "FAIL" : pct >= 60 ? "WARN" : "PASS",
-      fail: null, total: `${r.all_conns} / ${r.max_conns} (${pct}%)`, at, source: "pg_stat_activity (read-only)",
-      note: `${r.client_conns} client backends; one instantaneous sample — Q53 wants a trend` });
+    // Client backends, not all rows of pg_stat_activity: background workers
+    // (checkpointer, walwriter, pg_cron launcher, pg_net) do not count against
+    // max_connections. Same threshold as db_saturation_thresholds() (Q53).
+    const pct = Math.round((100 * r.client_conns) / r.max_conns);
+    rows.push({ group: "DB health", signal: "connection use (client backends / max_connections)", status: pct >= 90 ? "FAIL" : pct >= 75 ? "WARN" : "PASS",
+      fail: null, total: `${r.client_conns} / ${r.max_conns} (${pct}%)`, at, source: "pg_stat_activity (read-only)",
+      note: `${r.all_conns} rows in pg_stat_activity incl. background workers; one instantaneous sample — the trend is the db-saturation-check samples below` });
     rows.push({ group: "DB health", signal: "statement timeouts reported to error_logs (24h)", status: Number(r.el_timeouts) ? "FAIL" : "PASS",
       fail: Number(r.el_timeouts), total: Number(r.el_all), at, source: "public.error_logs (read-only)",
       note: "client-reported only; a timeout nobody reported is invisible here — the Postgres-log row below is the server's count" });
@@ -481,6 +484,53 @@ async function dbHealthRows(sqlFn, now) {
     } catch (e) {
       rows.push(unknown("DB health", "statement timeouts in Postgres logs (24h)", `logs query failed: ${errMsg(e)}`));
     }
+  }
+  return rows;
+}
+
+/**
+ * Q53's saturation monitor: the newest 5-minute sample (pg_cron) and the newest
+ * hourly statement-timeout sample (prod-errors workflow), judged by the
+ * database's own db_saturation_thresholds(). A sample older than its cadence
+ * allows is STALE, never PASS — a dead monitor must not read as a quiet one.
+ */
+async function dbSaturationRows(sqlFn, now) {
+  const rows = [];
+  try {
+    const got = await sqlFn(`SELECT origin, sampled_at, client_conns, max_conns, conn_pct, active_conns, longest_active_s,
+        idle_in_xact, calls_per_s, exec_ms_per_s, p95_ms, window_app_calls, log_timeouts, log_window_minutes,
+        db_problems, log_problem,
+        (SELECT count(*) FROM public.db_saturation_samples s2
+          WHERE s2.origin = s.origin AND s2.sampled_at > now() - interval '24 hours'
+            AND (cardinality(s2.db_problems) > 0 OR s2.log_problem IS NOT NULL))::int AS bad_24h,
+        (SELECT count(*) FROM public.db_saturation_samples s2
+          WHERE s2.origin = s.origin AND s2.sampled_at > now() - interval '24 hours')::int AS n_24h
+      FROM (SELECT DISTINCT ON (origin) * FROM public.db_saturation_samples
+             WHERE origin IN ('cron', 'workflow') ORDER BY origin, sampled_at DESC) s`);
+    const by = Object.fromEntries(got.map((r) => [r.origin, r]));
+    const ageMin = (r) => (now - new Date(r.sampled_at)) / 60000;
+    const c = by.cron;
+    const cronSignal = "saturation: conns / active / long stmt / idle-in-xact / SQL ms/s / app p95 (5-min check)";
+    if (!c) rows.push(unknown("DB health", cronSignal, "no db_saturation_samples from the cron yet (migration 20260923090536)"));
+    else {
+      const probs = Array.isArray(c.db_problems) ? c.db_problems : [];
+      rows.push({ group: "DB health", signal: cronSignal,
+        status: ageMin(c) > 20 ? "STALE" : probs.length ? "FAIL" : "PASS",
+        pass: c.n_24h - c.bad_24h, fail: c.bad_24h, total: `${c.n_24h} samples/24h`, at: iso(new Date(c.sampled_at)),
+        source: "public.db_saturation_samples (read-only) · check_db_saturation() · OPEN.md Q53",
+        note: `latest: ${c.client_conns}/${c.max_conns} conns (${c.conn_pct}%), ${c.active_conns} active, longest ${c.longest_active_s}s, `
+          + `idle-in-xact ${c.idle_in_xact}, ${c.calls_per_s ?? "—"} calls/s, ${c.exec_ms_per_s ?? "—"} SQL ms/s, app p95 ${c.p95_ms ?? "—"} ms`
+          + (probs.length ? `; PROBLEM: ${probs.join("; ")}` : "") });
+    }
+    const w = by.workflow;
+    const wfSignal = "saturation: statement timeouts in postgres_logs (hourly, prod-errors)";
+    if (!w) rows.push(unknown("DB health", wfSignal, "no workflow sample yet (scripts/db-saturation-check.mjs in prod-errors.yml)"));
+    else rows.push({ group: "DB health", signal: wfSignal,
+      status: ageMin(w) > 150 ? "STALE" : w.log_problem ? "FAIL" : "PASS",
+      fail: w.log_timeouts, total: `${w.log_timeouts} in ${w.log_window_minutes} min`, at: iso(new Date(w.sampled_at)),
+      source: "public.db_saturation_samples origin=workflow (read-only)", note: w.log_problem ?? `${w.bad_24h} breaching hour(s) in 24h` });
+  } catch (e) {
+    rows.push(unknown("DB health", "saturation monitor samples", `read-only SQL failed: ${errMsg(e)}`));
   }
   return rows;
 }
@@ -562,6 +612,7 @@ export async function liveRows({ now = new Date(), sqlFn } = {}) {
   const branches = remoteBranchRows(now);
   rows.push(...branches.rows);
   rows.push(...(await dbHealthRows(readOnly, now)));
+  rows.push(...(await dbSaturationRows(readOnly, now)));
   if (wf.summary) {
     const s = wf.summary;
     rows.push({ group: "CI", signal: "all workflows on main (last conclusive run)", status: s.FAIL || s.UNKNOWN || s.STALE ? "FAIL" : "PASS",

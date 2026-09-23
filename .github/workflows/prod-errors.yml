@@ -135,7 +135,20 @@ jobs:
         with:
           node-version: 22
 
+      # Q53: statement timeouts live only in postgres_logs (Management API),
+      # so this job feeds that count into public.check_db_saturation(); a
+      # breach becomes a 'db-statement-timeouts' error_logs row -> ledger item.
+      # BEFORE the sync so ops_alert_verify judges against this fresh sample.
+      # Fails (red run) when the database or the logs cannot be read.
+      - name: DB saturation (statement timeouts from postgres_logs)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          WINDOW_MINUTES: "60"
+        run: node scripts/db-saturation-check.mjs
+
       - name: Sync, verify, list
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

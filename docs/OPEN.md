@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 102 done, 10 partly done (fixed, protection pending), 89 open. Source of truth for work.
+- **Queue (this file):** 102 done, 10 partly done (fixed, protection pending), 90 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 201 items — 102 done, 10 partly done (fixed, protection pending), 89 open.**
+**Queue: 202 items — 102 done, 10 partly done (fixed, protection pending), 90 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -520,6 +520,7 @@ sure someone hears it and closes it.
 - [ ] **Q189 Review + wording follow-up for Q30 (2026-09-23).** (b) DONE 2026-09-23: migration 20260923145516 restates the function with the too-late message stating the rule (slot older than its window); PGlite proof src/test/pglite/cronCatchUp.pglite.mjs now applies both migrations and checks the wording (red on the old one). (a) STILL OPEN: run lh-silent-failure REVIEW ONLY on run_missed_cron_catch_up() (migration 20260923133021): it EXECUTEs each job's own cron command. (b) Its too-late alert says 'the database was not healthy again within its window', which was wrong for the four 09-22 slots (the catch-up did not exist yet); say the actual reason (slot older than max_late). Those 4 ledger items were closed 2026-09-23 with the next day's successful run as evidence.
 - [ ] **Q190 Page-owned gaps under the title that the shared shells cannot set (found by Q176, 2026-09-23).** With every shell on `--shell-gap` (12px) at phone width, three pages still sit further from their first content, each because of the page's own first element: /legal (and /terms, /privacy, /rules) 20px — its sticky tab band carries `py-2` so pinned policy text has somewhere to disappear; /profile?tab=legal 16px; /profile?tab=wrapped 20px (its own padded hero). Owner decision: fold them into the 12px rhythm (a per-page change) or keep them. They are listed with their EXACT values in e2e/prod-audit/shell-spacing.spec.ts TITLE_TO_CONTENT_EXCEPTIONS, so any change fails there until the list is updated.
 - [ ] **Q191 OWNER (2026-09-23): tighten spacing at EVERY phone width, inside pages too, and nothing hand-rolled.** Owner: 'update the spacing on every other phone width. Like all the profile tabs everything that you think needs to be tighter. Also make sure nothing is hand rolled. Most things should use the same component or shell.' Q176 fixed the SHELL gaps (header->title->content 12/12 via --shell-gap). Remaining: in-page spacing at 320/375/390/430: profile tabs (every tab), tab bands, section gaps, card padding, list gaps, and Q190's three page-owned gaps (/legal 20, Profile Legal 16, Wrapped 20). Static scan 2026-09-23: at page level only src/pages/Admin.tsx (and activity/BulkDismissBar) build a layout without a shared shell; the rest is inside pages (per-page padding/gap classes that should be shared tokens/primitives). Fix: one spacing scale for in-page sections (tokens or a shared Section/Stack primitive), applied everywhere; guard: a measured spec across the audit catalog at the four phone widths plus a static check that pages do not set their own section spacing outside the shared primitive, both red first; before/after screenshots looked at.
+- [ ] **Q203 16 long-lived signed proof-photo URLs are committed (found by Q75, 2026-09-23).** docs/backups/test-debris-backup-2026-09-11.json (b7bc81eb7, on main) holds 16 Supabase storage signed-URL tokens for proof-photos objects, valid to 2027-09-09: anyone with the repo can fetch those objects. They are test-debris rows, but verify on prod (`storage.objects` for the 16 paths, read-only) whether the objects still exist; if they do, delete the test-owned objects (is_seed rows only) so the tokens point at nothing. Rotating the project JWT secret would also kill them but logs every user out: not recommended. Guard for new ones: src/test/secretScanGate.test.ts (rule lh-supabase-signed-storage-url).
 - [ ] **Q193 OWNER DECISION (2026-09-23): delete the approval-pending AND account-denied screens and states; unverified users land on the 3-step "Check Your Email" page.** Owner: every signup is auto-approved and bans are automated, so "could both be deleted"; the old "Account status / Check your email" card on /account-pending "looks very old", and the current page is /signup-pending (3 steps: Verify / We'll sign you in / Start right away; Resend, Start over, Log In) (owner confirmed by pop-up). Live 2026-09-23: profiles.approval_status approved 58, pending 1, denied 1 (the owner says both are test data). KEEP AccountBanned (automated bans still land there). Do: ProtectedRoute email gate -> /signup-pending (SignupPending shows the signed-in user's address and refreshes the session so a link clicked on another device lets them in); remove AccountPending + AccountDenied pages, routes, redirects to them, the approval/deny admin UI and its RPCs/emails, and the approval_status gate (layers: client, RPCs, triggers, edge functions, emails, admin, DB column/constraint via replay-safe migration); settle the 2 test rows; update CLAUDE.md "four account-state screens" line and any routine/doc that names them. Guards red first.
 - [ ] **Q194 OWNER (2026-09-23): old addresses must not be redirects; every link goes DIRECT to the current page.** Owner: "The old address shouldn't be redirects it should be direct." Redirect routes in src/App.tsx: /availability /earnings /gift-card /help-center /saved-helpers /saved-helprs /schedule /settings /warnings /activity /data-rights (plus ShortLinkRedirect /j /u /m /messages/:id /legal/:tab /post-job/*, which are share links: decide per route and say why). Still EMITTED 2026-09-23 by: app code (FilterSheet, GiftCardTeaser, SaveHelperButton, mobileNavHelpers, desktopNavRoutes, LegalTab, ProtectedRoute, DesktopSidebarNav), live DB functions that write /warnings links into notifications (migrations 20260824243000, 20260824257000, 20260825183000, 20260826040000), 75 stored notifications linking /earnings on prod, emails (check supabase/functions templates), sitemap, audit route lists. Do: point every emitter at the current URL, rewrite stored notification links (replay-safe migration), then delete the redirect routes; guard: no source/DB function emits an old address and App.tsx has no Navigate-only legacy route (red first).
 - [x] **Q195 DONE 2026-09-23: main was red on 3 checks (found by the Q135/Q136 cloud lane on e992a4901 and 49747af6b).** (1) `npm run typecheck`: src/test/stripeWebhooksRefuseUnverified.test.ts:86 used `Array.prototype.at` (not in the app lib); now index arithmetic. (2) offeredHelperPrivacy: e2e/prod-audit/fundedOpenJob.ts:212 named its columns only in the 2nd half of a split URL, which the guard reads as `SELECT *`; `select=` moved to the first segment. (3) workflowFalseGreenShapes SET_PLUS_E: the new Q156 negative self-test step in stripe-webhook-guard.yml re-reads its code like its two siblings; the allowlist match now covers all three. GUARD: those three checks themselves (npm run typecheck, src/test/offeredHelperPrivacy.test.ts, src/test/workflowFalseGreenShapes.test.ts), all green again locally.
@@ -1280,6 +1281,31 @@ sure someone hears it and closes it.
   every commit (gitleaks/trufflehog, or GitHub secret scanning via the MCP
   run_secret_scanning), rotate anything live that's found (owner, for
   credentials), and add a pre-commit + CI secret scan so a secret can never land.
+  **STATUS 2026-09-23 (cloud/q75-secret-scan; gate built, rotation is the owner's step, so not ticked):**
+  SCANNED every commit on all 68 origin branches + 1,270 GitHub PR refs (12,100 non-merge
+  commits, incl. this branch) with gitleaks 8.28.0 (default rules, `--redact`) and a second pass decoding every
+  JWT for its role. NO service_role JWT, sb_secret_, sbp_, Stripe sk_/rk_/whsec_, Resend re_,
+  Sentry token, GitHub token, Google/AWS key or real .p8/.pem ever committed; no key file
+  (.p8/.pem/.key/.p12) ever added. Findings (sha, type):
+  (1) b7bc81eb7 docs/backups/test-debris-backup-2026-09-11.json, 16 lines: Supabase storage
+  SIGNED-URL tokens (proof-photos, exp 2027-09-09), still on main, LIVE-LOOKING (bearer read of
+  16 test proof-photo objects if they still exist; prod not checked from this session) -> Q203.
+  (2) 57c3aed68 src/test/edge/verify-apple-iap.test.ts:69 PEM P-256 key: test-only fixture.
+  (3) 71a53f43c .env.example:41 MapKit JS token (VITE_, public by design; no `origin` claim).
+  (4) anon JWTs (71a53f43c, 3c55f3029, 63e58de50, 1cd2d9367, 35a1e6e63; old ref steigdwrpkosbiycshwz
+  + prod) and sb_publishable_ (22 lines) incl. the committed `.env` (63e58de50, 0f01f9e3e,
+  a626414be, 0a8b381ec: only VITE_SUPABASE_URL/PROJECT_ID/PUBLISHABLE_KEY): public by design.
+  (5) false positives: curl `-u "$SK:"` env refs (f2b31d310, 35baa978c), PEM header-only
+  (b794db997, a44a65f3d), test values (774b15c2e, acae4c06f, b7ed6e10e, 45ef80957, d7c4e078b, 65676a7ad).
+  GATE: .gitleaks.toml (default rules + 11 repo shapes + public allowlist) and .gitleaksignore
+  (triaged fingerprints only); .husky/pre-commit runs scripts/secret-scan.mjs --staged (node shapes
+  from scripts/lib/secretShapes.mjs, + gitleaks when installed); .github/workflows/secret-scan.yml
+  scans every push/PR's new commits with both engines, red on a finding. Guard:
+  src/test/secretScanGate.test.ts. Shown red on a planted fake of all 14 shapes (hook and CI range)
+  and green on the repo + full history.
+  OWNER ROTATION LIST: nothing found requires a rotation. Optional: re-mint the MapKit JS token
+  with an `origin` claim (Apple Developer, owner only). Also install gitleaks locally
+  (`brew install gitleaks`) so the hook runs the full rule set, not only the repo shapes.
 - [ ] **Q76 Admin audit trail is complete.** Every admin action (ban/suspend,
   strike reverse, refund, release payout, manual status override, remove
   job, delete user, credential approve/reject, dispute decision) writes an

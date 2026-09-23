@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-23T15:35:26.545Z",
-  "guards": 784,
-  "registered": 783,
+  "generated": "2026-09-23T15:38:13.478Z",
+  "guards": 785,
+  "registered": 784,
   "unregistered": [
     "src/components/RouteSuspenseFallback.test.tsx"
   ],

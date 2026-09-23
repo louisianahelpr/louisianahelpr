@@ -1,0 +1,98 @@
+# gitleaks config (Q75). The default gitleaks rule set, plus this repo's own key
+# shapes, plus what is public by design. The [[rules]] below mirror
+# scripts/lib/secretShapes.mjs id-for-id and regex-for-regex (the node scanner
+# the pre-commit hook runs); src/test/secretScanGate.test.ts fails if they drift.
+# Edit both together.
+#
+# Triaged historical findings (test fixtures, the public MapKit token, the
+# 2026-09-11 debris backup) are listed by fingerprint in .gitleaksignore, so a
+# full-history scan is green without allowlisting their whole files.
+# Run: gitleaks git --redact --config .gitleaks.toml   (never without --redact)
+
+title = "louisianahelpr"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "lh-supabase-secret-key"
+description = "Supabase secret API key (sb_secret_), bypasses RLS"
+regex = '''\bsb_secret_[A-Za-z0-9_-]{20,}'''
+
+[[rules]]
+id = "lh-supabase-service-role-jwt"
+description = "Supabase legacy service_role JWT, bypasses RLS"
+regex = '''eyJ[A-Za-z0-9_-]*\.ey[A-Za-z0-9_-]*(?:InJvbGUiOiJzZXJ2aWNlX3JvbGUi|Jyb2xlIjoic2VydmljZV9yb2xl|icm9sZSI6InNlcnZpY2Vfcm9s)[A-Za-z0-9_-]*\.[A-Za-z0-9_-]{16,}'''
+
+[[rules]]
+id = "lh-supabase-access-token"
+description = "Supabase personal access token (sbp_), full management API"
+regex = '''\bsbp_[a-f0-9]{40}'''
+
+[[rules]]
+id = "lh-supabase-signed-storage-url"
+description = "Supabase storage signed URL token (bearer read of a private object)"
+regex = '''/storage/v1/object/sign/[^?\s"'`]+\?token=eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{16,}'''
+
+[[rules]]
+id = "lh-stripe-secret-key"
+description = "Stripe secret or restricted key (sk_/rk_, live or test)"
+regex = '''\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}'''
+
+[[rules]]
+id = "lh-stripe-webhook-secret"
+description = "Stripe webhook signing secret (whsec_)"
+regex = '''\bwhsec_[A-Za-z0-9+/]{24,}'''
+
+[[rules]]
+id = "lh-resend-api-key"
+description = "Resend API key (re_)"
+regex = '''\bre_[A-Za-z0-9]{8}_[A-Za-z0-9]{16,}'''
+
+[[rules]]
+id = "lh-sentry-token"
+description = "Sentry org or user auth token (sntrys_/sntryu_)"
+regex = '''\bsntry[su]_[A-Za-z0-9+/=_-]{30,}'''
+
+[[rules]]
+id = "lh-private-key-body"
+description = "PEM private key WITH its body (Apple .p8 / APNs / ASC / any), not the bare header"
+regex = '''-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----(?:\\n|\s)*[A-Za-z0-9+/]{40,}'''
+
+[[rules]]
+id = "lh-github-token"
+description = "GitHub token (ghp_/gho_/ghu_/ghs_/ghr_/github_pat_)"
+regex = '''\b(?:(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{50,})'''
+
+[[rules]]
+id = "lh-google-api-key"
+description = "Google API key (AIza)"
+regex = '''\bAIza[0-9A-Za-z_-]{35}'''
+
+# Public by design: the Supabase publishable key and the legacy anon JWT ship
+# in the web bundle; runs of x are docs placeholders.
+[[allowlists]]
+description = "public-by-design values and placeholders"
+regexTarget = "match"
+regexes = [
+  '''sb_publishable_[A-Za-z0-9_-]+''',
+  '''eyJ[A-Za-z0-9_-]*\.ey[A-Za-z0-9_-]*(?:InJvbGUiOiJhbm9u|Jyb2xlIjoiYW5v|icm9sZSI6ImFub24i)''',
+  '''(?:x{8,}|X{8,})''',
+]
+
+# A curl -u / header whose "secret" is only a shell variable reference
+# ("$STRIPE_SECRET_KEY:") names a secret, it is not one.
+[[allowlists]]
+description = "env var references"
+regexTarget = "secret"
+regexes = [
+  '''^["']?\$\{?[A-Za-z_][A-Za-z0-9_]*\}?:?["']?$''',
+]
+
+# The MapKit JS token is a VITE_ variable: every browser receives it.
+[[allowlists]]
+description = "public-by-design lines"
+regexTarget = "line"
+regexes = [
+  '''VITE_APPLE_MAPKIT_TOKEN''',
+]

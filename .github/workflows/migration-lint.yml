@@ -2,6 +2,8 @@ name: Supabase Migration Lint
 
 permissions:
   contents: read
+  # Q25: a dispatch reads the last successful db-deploy run to find its base.
+  actions: read
 
 # Static-analyzes Supabase migration SQL for common mistakes:
 # - Missing RLS on new tables (= public data leak)
@@ -14,7 +16,8 @@ permissions:
 # Runs:
 # - On every push to main that touches supabase/migrations/
 # - On every PR that touches supabase/migrations/
-# - Manually via workflow_dispatch (lints the whole tree)
+# - Manually via workflow_dispatch (lints what landed since the last
+#   successful db-deploy on main; the whole tree only if that is unknown)
 #
 # WHAT THIS NOW CATCHES THAT IT DID NOT BEFORE
 # --------------------------------------------
@@ -95,6 +98,8 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           EVENT_NAME: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
           set -eo pipefail
 
@@ -122,7 +127,16 @@ jobs:
           #                 A push carries many commits; the tip is often the
           #                 one that touches no migration.
           #   pull_request  the PR's own base SHA (exact, no merge-base guess).
-          #   dispatch      no base exists at all -> lint everything.
+          #   dispatch      (Q25) the head SHA of the last SUCCESSFUL db-deploy
+          #                 run on main: every migration up to it was linted
+          #                 and deployed, so what a dispatch has to judge is
+          #                 exactly what landed after it, the same range a
+          #                 push would have linted. Files in that range are
+          #                 still linted in full. It used to lint the whole
+          #                 tree (768 migrations on 2026-09-23) and was ALWAYS red on settled history
+          #                 (run 35818674216). If the base cannot be found or
+          #                 is not an ancestor of HEAD, we fall back to LINT
+          #                 EVERYTHING, never to nothing.
           #
           # Two cases make before-SHA unusable: an all-zeros SHA (branch
           # created, or the ref was force-pushed/reset) and a SHA no longer
@@ -142,8 +156,15 @@ jobs:
              && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
             DIFF_BASE="$BEFORE_SHA"
             echo "Diffing the full pushed range: ${DIFF_BASE}..HEAD"
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ] \
+             && LAST_OK=$(gh api "repos/${REPO}/actions/workflows/db-deploy.yml/runs?branch=main&status=success&per_page=1" --jq '.workflow_runs[0].head_sha // ""') \
+             && [ -n "$LAST_OK" ] \
+             && git cat-file -e "${LAST_OK}^{commit}" 2>/dev/null \
+             && git merge-base --is-ancestor "$LAST_OK" HEAD; then
+            DIFF_BASE="$LAST_OK"
+            echo "Dispatch: diffing from the last successful db-deploy on main: ${DIFF_BASE}..HEAD"
           else
-            echo "::warning::No usable diff base (workflow_dispatch, new branch, force-push, or unreachable commit) — linting ALL migrations rather than risk linting none."
+            echo "::warning::No usable diff base (dispatch with no reachable last-successful deploy, new branch, force-push, or unreachable commit) — linting ALL migrations rather than risk linting none."
             LINT_ALL=1
           fi
           echo "lint_all=$LINT_ALL" >> $GITHUB_OUTPUT
@@ -201,17 +222,14 @@ jobs:
             echo ""
             echo "::group::Linting $FILE"
 
-            # Rule 1: New CREATE TABLE must enable RLS
-            if grep -iE "create table" "$FILE" > /dev/null; then
-              # Extract table names from CREATE TABLE statements
-              TABLES=$(grep -ioE "create table (if not exists )?(public\.)?[a-z_]+" "$FILE" | sed -E 's/create table (if not exists )?(public\.)?//I' | tr -d ' ')
-              for T in $TABLES; do
-                if ! grep -iE "alter table (public\.)?${T} enable row level security" "$FILE" > /dev/null; then
-                  echo "  ❌ Table '$T' created but RLS not enabled in same migration"
-                  echo "     Add: ALTER TABLE public.$T ENABLE ROW LEVEL SECURITY;"
-                  FAIL=1
-                fi
-              done
+            # Rule 1: New CREATE TABLE must enable RLS (Q118). A script, not a
+            # grep: the grep read `--` comments as DDL (a header "CREATE TABLE
+            # IF NOT EXISTS, ..." became a table named "IF") and its name class
+            # had no digits (helper_w9_records became "helper_w"). The script
+            # blanks comments only; strings and dollar-quoted bodies are still
+            # read. Guard: src/test/migrationLintRls.test.ts.
+            if ! node scripts/check-migration-rls.mjs "$FILE"; then
+              FAIL=1
             fi
 
             # Rule 2: CHECK constraints must not use now() / current_timestamp (non-immutable)

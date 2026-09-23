@@ -102,6 +102,9 @@ jobs:
     uses: ./.github/workflows/migration-lint.yml
     permissions:
       contents: read
+      # Q25: on dispatch the lint diffs from the last successful run of this
+      # workflow, which it reads through the Actions API.
+      actions: read
 
   guard-db-smoke:
     name: Gate — replay every migration + smoke

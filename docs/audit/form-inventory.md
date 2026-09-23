@@ -141,7 +141,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/PhotoProof.tsx` | input×1 | file |  |  |
 | `src/components/ResponseDeadlineDialog.tsx` | textarea×1, select×1 |  |  | Response deadline · Message to Helpr (optional) |
 | `src/components/reviewPanel/ReviewForm.tsx` | input×1, textarea×1 | file |  | Quick review tags · Review comment (optional) · Add review photo |
-| `src/components/W9CollectionDialog.tsx` | input×2 | text, checkbox |  | w9-name |
+| `src/components/W9CollectionDialog.tsx` | input×1, checkbox/switch/radio×1 | text |  | w9-name · w9-consent |
 | `src/pages/activity/ActivityHeader.tsx` | input×1 | search |  | activity-status-tabs · Search jobs · Close search |
 
 ## /my-jobs, /my-posts, /messages

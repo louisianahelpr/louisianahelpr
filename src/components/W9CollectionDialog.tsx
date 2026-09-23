@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
@@ -116,11 +117,11 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
               className="font-display italic"
             />
           </div>
-          <label className="flex items-start gap-2 text-ds-12 text-muted-foreground cursor-pointer">
-            <input
-              type="checkbox"
+          <label htmlFor="w9-consent" className="flex items-start gap-2 text-ds-12 text-muted-foreground cursor-pointer">
+            <Checkbox
+              id="w9-consent"
               checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
+              onCheckedChange={(checked) => setAgreed(checked === true)}
               className="mt-1"
             />
             <span>

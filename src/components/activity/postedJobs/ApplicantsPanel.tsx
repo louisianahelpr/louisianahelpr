@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { Fragment, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
 import UserAvatar from "@/components/UserAvatar";
@@ -50,6 +50,25 @@ interface ApplicantsPanelProps {
       state omits a lever it cannot open rather than rendering a dead one. */
   onBoost?: (jobId: string) => void;
   onEdit?: (job: Job) => void;
+}
+
+/** Trust signals include a raw rating string like "4.9★" (applicantScoring.ts),
+    which a screen reader reads literally as "black star" — meaningless next to
+    the number. The glyph is decorative (the number already carries the
+    information), so it's hidden from assistive tech and an sr-only "stars"
+    gives the row an accessible name; sighted users still see "4.9★" exactly
+    as before. Non-rating signals (job counts, repeat-hire %, etc.) render
+    unchanged. */
+function renderTrustSignal(signal: string) {
+  const ratingMatch = /^(\d+(?:\.\d+)?)★$/.exec(signal);
+  if (!ratingMatch) return signal;
+  return (
+    <>
+      {ratingMatch[1]}
+      <span aria-hidden="true">★</span>
+      <span className="sr-only"> stars</span>
+    </>
+  );
 }
 
 export function ApplicantsPanel({
@@ -452,7 +471,12 @@ export function ApplicantsPanel({
                                 className="font-sans mt-0.5 leading-snug text-ds-12"
                                 style={{ color: "hsl(var(--olivewood) / 0.80)" }}
                               >
-                                {visibleSignals.join(" · ")}
+                                {visibleSignals.map((s, i) => (
+                                  <Fragment key={i}>
+                                    {i > 0 && " · "}
+                                    {renderTrustSignal(s)}
+                                  </Fragment>
+                                ))}
                               </p>
                             )}
                             {/* The bid pill and inline counter-offer form used

@@ -19,7 +19,10 @@ export function DocumentsTab({ viewProfile, idDocSignedUrl }: DocumentsTabProps)
         {viewProfile.id_document_url ? (
           <div className="rounded-ds-md border border-border overflow-hidden bg-secondary/20">
             {idDocSignedUrl ? (
-              /\.(jpg|jpeg|png|gif|webp)$/i.test(viewProfile.id_document_url) ? (
+              // An inline `data:image/…` value (52 seed profiles on prod) is an
+              // image too — without this it fell to the file branch and printed
+              // its base64 as the "filename".
+              /\.(jpg|jpeg|png|gif|webp)$/i.test(viewProfile.id_document_url) || /^data:image\//i.test(viewProfile.id_document_url) ? (
                 <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer">
                   <img loading="lazy" decoding="async" src={idDocSignedUrl} alt="ID Document" className="max-h-64 w-auto mx-auto object-contain hover:opacity-90 transition-opacity" />
                 </a>

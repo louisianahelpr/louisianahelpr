@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { isStorageObjectPath } from "@/lib/storagePath";
 import { report } from "@/lib/errorLogger";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
@@ -481,6 +482,11 @@ function ExpiryField({
 function SignedOpenLink({ path }: { path: string }) {
   const [busy, setBusy] = useState(false);
   const open = async () => {
+    // A value that is already a URL opens as-is; only a storage path is signed.
+    if (!isStorageObjectPath(path)) {
+      window.open(path, "_blank", "noopener");
+      return;
+    }
     setBusy(true);
     const { data, error } = await supabase.storage
       .from("user-documents")
@@ -515,6 +521,11 @@ function DocPreview({ path }: { path: string }) {
     let cancelled = false;
     setError(false);
     setSignedUrl(null);
+    // A value that is already a URL needs no ticket — show it as-is.
+    if (!isStorageObjectPath(path)) {
+      setSignedUrl(path);
+      return;
+    }
     supabase.storage
       .from("user-documents")
       .createSignedUrl(path, 300)

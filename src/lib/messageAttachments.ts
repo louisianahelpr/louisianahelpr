@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isStorageObjectPath } from "@/lib/storagePath";
 
 const BUCKET = "message-attachments";
 
@@ -103,7 +104,8 @@ export async function getMessageAttachmentSignedUrl(
   path: string,
   expiresInSeconds = 60 * 5,
 ): Promise<string | null> {
-  if (!path) return null;
+  // Only a storage path is signable; anything with a scheme 400s at Storage.
+  if (!isStorageObjectPath(path)) return null;
   const { data, error } = await supabase.storage
     .from(BUCKET)
     .createSignedUrl(path, expiresInSeconds);
@@ -128,7 +130,8 @@ export async function getMessageAttachmentSignedUrls(
   paths: string[],
   expiresInSeconds = 60 * 5,
 ): Promise<Record<string, string>> {
-  const unique = Array.from(new Set(paths.filter(Boolean)));
+  // Only storage paths are signable; a URL in the batch would 400 at Storage.
+  const unique = Array.from(new Set(paths.filter((p) => isStorageObjectPath(p))));
   if (unique.length === 0) return {};
   const { data, error } = await supabase.storage
     .from(BUCKET)

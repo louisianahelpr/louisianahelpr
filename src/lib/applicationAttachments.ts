@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isStorageObjectPath } from "@/lib/storagePath";
 
 const BUCKET = "application-attachments";
 
@@ -23,7 +24,8 @@ export async function getAttachmentSignedUrl(
   expiresInSeconds = 60 * 10
 ): Promise<string | null> {
   const path = extractAttachmentPath(urlOrPath);
-  if (!path) return null;
+  // A URL that does not name this bucket is not ours to sign (Storage 400s).
+  if (!isStorageObjectPath(path)) return null;
   const { data, error } = await supabase.storage
     .from(BUCKET)
     .createSignedUrl(path, expiresInSeconds);

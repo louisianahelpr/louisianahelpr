@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isStorageObjectPath } from "@/lib/storagePath";
 import { report } from "@/lib/errorLogger";
 
 /**
@@ -56,7 +57,9 @@ export async function getProofPhotoSignedUrl(
   expiresInSeconds: number = PROOF_PHOTO_SIGN_TTL_SECONDS,
 ): Promise<string | null> {
   const path = extractProofPhotoPath(urlOrPath);
-  if (!path) return null;
+  // `data:`/`blob:` values pass extractProofPhotoPath unchanged (it only
+  // strips http(s) URLs); they are not objects in this bucket.
+  if (!isStorageObjectPath(path)) return null;
   try {
     const { data, error } = await supabase.storage
       .from(PROOF_PHOTOS_BUCKET)

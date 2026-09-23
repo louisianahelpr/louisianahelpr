@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { isStorageObjectPath } from "@/lib/storagePath";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -169,6 +170,9 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
       // URL with 30-day TTL into the support ticket so the admin can view
       // it without needing UI changes. Most tickets resolve in <30 days;
       // older ones can be re-fetched by path if needed.
+      // `path` was built two lines up, so this always holds; the gate is here
+      // so every sign call in src/ reads the same (signedUrlOnlyForStoragePaths).
+      if (!isStorageObjectPath(path)) throw new Error("Not a storage path");
       const { data, error: signErr } = await supabase.storage
         .from("user-documents")
         .createSignedUrl(path, 30 * 24 * 60 * 60);

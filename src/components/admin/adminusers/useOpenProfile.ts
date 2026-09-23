@@ -8,6 +8,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
+import { isStorageObjectPath } from "@/lib/storagePath";
 import type { Profile } from "../adminUserHelpers";
 
 interface OpenProfileDeps {
@@ -72,8 +73,16 @@ export const makeOpenProfile = (deps: OpenProfileDeps) => {
     if (sendLogRes.error) console.error("[AdminUsers] openProfile sendLog:", sendLogRes.error);
     setProfileJobs(jobsRes.data || []);
 
-    // Generate signed URL for private ID document
-    if (profile.id_document_url) {
+    // Generate signed URL for private ID document.
+    //
+    // Only a storage PATH is signable. 52 prod seed profiles hold a
+    // `data:image/png;base64,…` fixture here; signing it POSTed the data URL
+    // to /object/sign and got a 400 (issue #1582), leaving the Documents tab
+    // on "Loading document…" forever. A value that is already a URL is shown
+    // as-is — it needs no ticket.
+    if (profile.id_document_url && !isStorageObjectPath(profile.id_document_url)) {
+      setIdDocSignedUrl(profile.id_document_url);
+    } else if (isStorageObjectPath(profile.id_document_url)) {
       const { data: signedData, error: signedError } = await supabase.storage
         .from("id-documents")
         .createSignedUrl(profile.id_document_url, 3600); // 1 hour

@@ -1,4 +1,4 @@
-// @mutate src/test/edge/error-leak-EF5.test.ts | x.arguments.length === 2) return;\n | true) return;\n
+// @mutate src/test/edge/error-leak-EF5.test.ts | if (literal && imported && x.arguments.length === 2) return;\n | if (true) return;\n
 /**
  * EF-5 (hole hunt 2026-09-15): the top-level catch of several handlers returned
  * the raw `err.message` / `String(err)` / raw upstream body to the caller,

@@ -7820,3 +7820,16 @@ sure someone hears it and closes it.
    yes: reply "top up" and I'll do $500 and re-run the failed payouts. The
    balance MONITOR (alerts before payouts fail) doesn't need you. It's being
    built overnight.
+- [ ] **Q41 Morning report: everything the design no longer uses (owner,
+  2026-09-23: "we can likely delete it").** REPORT ONLY, no deletion; the owner
+  decides. Inventory with evidence for each item (call-site counts,
+  reachability from a route or control, live DB reads and writes):
+  - UI: components and dialogs no route or control can open (ReuploadIdDialog
+    was one); tabs and views not linked from anywhere.
+  - Code: the 97 unused exports and 11 unused types (knip); unused files.
+  - Server: edge functions nothing invokes (scripts/check-dead-edge-functions.mjs);
+    edge-function request fields no client sends (complete-signup portfolioFiles).
+  - DB: RPCs no client/edge/cron calls; tables and columns nothing reads;
+    triggers on dead columns; storage buckets with no writer (id-documents?).
+  - Flows the product retired: ID upload to us (Q40), anything tier/role-gated
+    that CLAUDE.md now forbids.

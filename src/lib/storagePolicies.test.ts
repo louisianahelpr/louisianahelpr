@@ -35,6 +35,8 @@ const MIGRATIONS_DIR = resolve(ROOT, "supabase/migrations");
  *
  * Verified on 2026-09-21 to reproduce the hand list exactly — avatars,
  * id-documents, job-photos, user-documents — with nothing unresolved.
+ * id-documents left the list on 2026-09-23 (Q40): its only upsert upload was
+ * the deleted Profile.tsx handleIdUpload.
  */
 const SRC_FILES = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })
   .split("\n")
@@ -103,7 +105,7 @@ describe("storage bucket policies", () => {
     // Without this floor, a scanner that silently matched nothing would turn
     // every it.each below into zero cases and report success.
     expect(UNRESOLVED, "a .upload() whose bucket could not be resolved").toEqual([]);
-    expect(UPSERT_BUCKETS.length).toBeGreaterThanOrEqual(4);
+    expect(UPSERT_BUCKETS.length).toBeGreaterThanOrEqual(3);
     expect(UPSERT_BUCKETS).toContain("avatars");
   });
 
@@ -129,4 +131,4 @@ describe("storage bucket policies", () => {
 // arbitrate the conflict, so EVERY upload fails with "new row violates
 // row-level security policy". The hand-written list could not see this,
 // because a bucket only entered it if someone remembered to type it.
-// @mutate src/pages/Profile.tsx | .from("id-documents").upload(path, file, { upsert: true }) | .from("no-such-bucket").upload(path, file, { upsert: true })
+// @mutate src/components/profile/CredentialsTab.tsx | .from("user-documents")\n          .upload(path, draft.file, { upsert: true | .from("no-such-bucket")\n          .upload(path, draft.file, { upsert: true

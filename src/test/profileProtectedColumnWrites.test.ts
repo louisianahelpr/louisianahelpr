@@ -32,7 +32,7 @@
  *
  * @mutate src/components/profile/CredentialsTab.tsx | if (kind === "license") update.license_url = path; | if (kind === "license") { update.license_url = path; update.is_licensed = true; }
  * @mutate src/components/profile/CredentialsTab.tsx | setIntent((prev) => ({ ...prev, [kind]: v })); | void supabase.from("profiles").update({ is_insured: v }).eq("user_id", userId);
- * @mutate src/pages/Profile.tsx | .update({ id_document_url: path, idv_status: "pending" }) | .update({ id_document_url: path })
+ * @mutate src/pages/Profile.tsx | .update({ avatar_url: publicUrl }) | .update({ avatar_url: publicUrl, idv_status: "pending" })
  * @mutate src/components/profile/CredentialsTab.tsx | kind === "license" ? { license_url: null } : { insurance_url: null }; | kind === "license" ? { license_url: null } : { ...EMPTY, insurance_url: null };
  *
  * The last one is the Q112 hole: `EMPTY` (protected keys) is a module const
@@ -55,10 +55,9 @@ const MIGRATIONS = join(REPO, "supabase", "migrations");
  */
 // @two-way src/test/profileProtectedColumnWrites.test.ts:const staleOffenders =
 const KNOWN_OFFENDERS: string[] = [
-  // handleIdUpload — unreachable since the manual ID card was removed
-  // (ProfileEditForm reads `onIdUpload` as `_onIdUpload`). Reported, not
-  // touched: dead code is a report (CLAUDE.md, UI).
-  "src/pages/Profile.tsx :: idv_status",
+  // Empty since Q40 (2026-09-23): the last offender, Profile.tsx's
+  // unreachable handleIdUpload (idv_status), was deleted with the retired
+  // "upload your ID to us" path.
 ];
 
 /**

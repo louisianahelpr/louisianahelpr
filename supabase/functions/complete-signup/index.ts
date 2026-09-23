@@ -12,7 +12,6 @@ import {
   avatarObjectNameFromUrl,
   credentialDocument,
   resolveAvatarContentType,
-  safeDocumentExt,
   sweepSupersededAvatars,
 } from "../_shared/storageKeys.ts";
 
@@ -100,7 +99,7 @@ serve(async (req) => {
   // round trip — so an operator turning it on starts from a clean window
   // rather than from whatever the previous hour happened to accumulate.
   //
-  // Each call uploads avatar/ID/license/insurance/portfolio files to storage
+  // Each call uploads avatar/license/insurance files to storage
   // and writes a profile row, so a script abusing this can fill storage quota
   // fast — which is why the mechanism stays wired rather than being deleted.
   const signupCap = await signupRateLimitPerHour();
@@ -125,9 +124,6 @@ serve(async (req) => {
       avatarBase64,
       avatarExt,
       avatarContentType,
-      idBase64,
-      idExt,
-      idContentType,
       licenseBase64,
       licenseExt,
       licenseContentType,
@@ -136,7 +132,6 @@ serve(async (req) => {
       insuranceExt,
       insuranceContentType,
       isInsured,
-      portfolioFiles,
       phone,
       bio,
       location,
@@ -362,14 +357,8 @@ serve(async (req) => {
       }
     };
     checkBase64Size(avatarBase64, "Profile picture");
-    checkBase64Size(idBase64, "ID document");
     checkBase64Size(licenseBase64, "License document");
     checkBase64Size(insuranceBase64, "Insurance document");
-    if (portfolioFiles && Array.isArray(portfolioFiles)) {
-      for (const f of portfolioFiles) {
-        checkBase64Size(f.base64, "Portfolio file");
-      }
-    }
 
     // Q133: a credential document's type is decided BEFORE anything is
     // uploaded. The path lands in the same profiles UPDATE that approves the
@@ -400,10 +389,8 @@ serve(async (req) => {
     // to the caller rather than only logged, so a still-public previous photo
     // is something the app can surface to the person whose photo it is.
     let staleAvatarObjects: string[] = [];
-    let idDocumentUrl: string | null = null;
     let licenseUrl: string | null = null;
     let insuranceUrl: string | null = null;
-    const portfolioUrls: string[] = [];
 
     // 1. Upload avatar to the dedicated public `avatars` bucket
     // (was incorrectly using job-photos before — bucket got created
@@ -453,32 +440,6 @@ serve(async (req) => {
       }
     }
 
-    // 2. Upload ID document
-    //
-    // `idExt` is no longer interpolated into the key — see
-    // `../_shared/storageKeys.ts`. Being a PRIVATE bucket was never the
-    // mitigation it looks like: `idExt: "png/../../<victim>/id-document.png"`
-    // planted a file under another member's folder, and that is precisely the
-    // object an admin reviewer opens as that member's government ID. The bucket
-    // also declares no allowed_mime_types and no size limit, so nothing below
-    // this line was checking either.
-    if (idBase64) {
-      const idPath = `${userId}/id-document.${safeDocumentExt(idContentType, idExt)}`;
-      const idBytes = Uint8Array.from(atob(idBase64), (c) => c.charCodeAt(0));
-      const { error: idErr } = await supabase.storage
-        .from("id-documents")
-        .upload(idPath, idBytes, {
-          contentType: idContentType || "application/octet-stream",
-          upsert: true,
-        });
-
-      if (idErr) {
-        console.error("ID upload error:", idErr);
-      } else {
-        idDocumentUrl = idPath;
-      }
-    }
-
     // 2b. Upload license document (if provided)
     // user-documents bucket is private — store the PATH (not full URL) so
     // we can generate signed URLs at display time. Admin/owner read access
@@ -516,36 +477,14 @@ serve(async (req) => {
       }
     }
 
-    // 3. Upload portfolio files
-    // Portfolio files are public-display content (helper portfolios shown
-    // on profiles), but they live in user-documents under each user's
-    // folder. Since user-documents is now private, we generate signed URLs
-    // with a long TTL (1 year) at upload time. Helpers viewing their own
-    // portfolio + admins still get fresh signed URLs at display time too.
-    if (portfolioFiles && Array.isArray(portfolioFiles)) {
-      for (const file of portfolioFiles) {
-        // A FIFTH site of the same defect, not in the original report: `file.ext`
-        // is an element of a client-supplied array, interpolated straight into
-        // the key. Same treatment as the three above.
-        const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${safeDocumentExt(file.contentType, file.ext)}`;
-        const bytes = Uint8Array.from(atob(file.base64), (c) => c.charCodeAt(0));
-        const { error: pErr } = await supabase.storage
-          .from("user-documents")
-          .upload(path, bytes, {
-            contentType: file.contentType || "application/octet-stream",
-          });
-
-        if (!pErr) {
-          // Store the path. portfolio_urls[] consumers must regenerate
-          // signed URLs at display time (same pattern as license/insurance).
-          portfolioUrls.push(path);
-        }
-      }
-    }
+    // Q40 (2026-09-23): the ID-document (`idBase64` → id-documents) and
+    // `portfolioFiles` uploads were removed. No client sent either: Stripe
+    // Identity collects the ID, and portfolio photos are added from Edit
+    // Profile. A stale caller that still sends them has them ignored.
 
     // 3b. A PROVIDED document that failed to upload must NOT slip through to
     // auto-approval. Each upload block above only console.error'd on failure
-    // and continued, so a user could submit an ID / license / insurance, have
+    // and continued, so a user could submit a license / insurance doc, have
     // the storage write fail, and still land "approved" with the doc missing.
     // Detect provided-but-unstored files and make the caller retry instead.
     const uploadFailures: string[] = [];
@@ -553,7 +492,6 @@ serve(async (req) => {
     // store the file any more, so keeping it here would have let a client that
     // omits it upload nothing and still be told the signup succeeded.
     if (avatarBase64 && !avatarUrl) uploadFailures.push("profile picture");
-    if (idBase64 && !idDocumentUrl) uploadFailures.push("ID document");
     if (licenseBase64 && !licenseUrl) uploadFailures.push("license");
     if (insuranceBase64 && !insuranceUrl) uploadFailures.push("insurance document");
     if (uploadFailures.length > 0) {
@@ -565,15 +503,15 @@ serve(async (req) => {
 
     // 4. Check current profile to determine if this is a resubmission
     // Fail closed, matching the lookup at :125. This row feeds BOTH the 18+
-    // gate below (via currentProfile.date_of_birth) and the resubmission ID
-    // requirement. Dropping the error degraded the legal age gate to
+    // gate below (via currentProfile.date_of_birth) and the denied-account
+    // refusal. Dropping the error degraded the legal age gate to
     // attestation-only: a caller who omits dateOfBirth and sends
     // ageAttested:true would skip the stored DOB entirely, so a profile with a
     // known under-18 DOB could pass a check that exists to stop exactly that.
     // PGRST116 (no row yet) stays a legitimate initial-completion path.
     const { data: currentProfile, error: currentProfileError } = await supabase
       .from("profiles")
-      .select("approval_status, application_count, date_of_birth")
+      .select("approval_status, date_of_birth")
       .eq("user_id", userId)
       .single();
 
@@ -622,20 +560,23 @@ serve(async (req) => {
       );
     }
 
-    // The ID document is resubmission-only — initial signup collects no ID
-    // (Stripe IDV handles identity later), so it must NOT be required on the
-    // initial path or it would reject real signups. avatar/bio/phone/location
-    // are DEFERRED at signup (soft-prompted later on first post/apply), so they
-    // are intentionally NOT required here either: the client never sends them
-    // on the initial completion, and hard-requiring them rejected every real
-    // signup — leaving an orphaned auth row with no completable profile.
-    const missing: string[] = [];
-    if (isResubmission && !idDocumentUrl) missing.push("ID document");
-
-    if (missing.length > 0) {
+    // A DENIED account cannot re-approve itself here. This used to be
+    // "resubmission requires an ID document" (`idBase64`), but no client has
+    // sent one since Stripe Identity took over ID collection, so in practice
+    // every resubmission was refused — and any raw caller that DID send bytes
+    // was auto-approved over an admin's denial. Q40 (2026-09-23) removed the
+    // ID upload; the refusal stays, stated honestly, so removing it did not
+    // turn a denial into something a user can undo with one request.
+    // avatar/bio/phone/location are DEFERRED at signup (soft-prompted later on
+    // first post/apply), so they are intentionally NOT required on the initial
+    // path: hard-requiring them rejected every real signup.
+    if (isResubmission) {
       return new Response(
-        JSON.stringify({ error: `Please complete all required fields: ${missing.join(", ")}.` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: `This account wasn't approved. Contact support at ${SUPPORT_EMAIL} to have it reviewed again.`,
+          code: "denied_resubmission",
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -648,10 +589,6 @@ serve(async (req) => {
       approval_status: "approved",
     };
 
-    if (isResubmission) {
-      updateData.application_count = (currentProfile?.application_count || 1) + 1;
-      updateData.denial_reason = null;
-    }
     if (phone) updateData.phone = phone;
     if (bio) updateData.bio = bio;
     if (location) updateData.location = location;
@@ -701,7 +638,6 @@ serve(async (req) => {
     if (skills) updateData.skills = skills;
     if (dateOfBirth) updateData.date_of_birth = dateOfBirth;
     if (avatarUrl) updateData.avatar_url = avatarUrl;
-    if (idDocumentUrl) updateData.id_document_url = idDocumentUrl;
     if (typeof isLicensed === "boolean") {
       updateData.is_licensed = isLicensed;
       if (isLicensed && licenseUrl) {
@@ -720,7 +656,6 @@ serve(async (req) => {
         updateData.insurance_status = "none";
       }
     }
-    if (portfolioUrls.length > 0) updateData.portfolio_urls = portfolioUrls;
     // Explicit marketing-email consent captured at signup. Only apply when
     // the client sent the field (undefined → leave server default false in
     // place, don't accidentally reset an already-consented row to false).
@@ -768,10 +703,17 @@ serve(async (req) => {
     // the guard the function answered `success: true` and Signup.tsx treated
     // the account as finished, leaving the user stranded unapproved with no
     // error surfaced anywhere.
+    //
+    // Not-denied is part of the WHERE, not only the read above (Q40 authz
+    // review): the uploads between that read and this write take seconds, and
+    // an admin denial landing in that window must not be overwritten with
+    // `approved` by this service-role write. A denied row matches zero rows and
+    // takes the fail-closed branch below.
     const { data: updatedRows, error: profileErr } = await supabase
       .from("profiles")
       .update(updateData)
       .eq("user_id", userId)
+      .or("approval_status.is.null,approval_status.neq.denied")
       .select("user_id");
 
     if (profileErr || (updatedRows?.length ?? 0) === 0) {
@@ -989,8 +931,6 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         avatarUrl,
-        idDocumentUrl,
-        portfolioUrls,
         referralRecorded,
         // Empty on the normal path. Non-empty means a previous profile photo is
         // STILL publicly fetchable — see `../_shared/avatarKey.ts`.

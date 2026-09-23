@@ -2,59 +2,15 @@ import { FileText } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import { TabsContent } from "@/components/ui/tabs";
 import type { Profile } from "../adminUserHelpers";
-import { isStorageObjectPath, safeDocumentUrl } from "@/lib/storagePath";
+import { safeDocumentUrl } from "@/lib/storagePath";
 
 interface DocumentsTabProps {
   viewProfile: Profile;
-  idDocSignedUrl: string | null;
 }
 
-export function DocumentsTab({ viewProfile, idDocSignedUrl }: DocumentsTabProps) {
+export function DocumentsTab({ viewProfile }: DocumentsTabProps) {
   return (
     <TabsContent value="documents" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
-      {/* ID Document */}
-      <div className="space-y-2">
-        <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
-          <FileText className="w-4 h-4" /> ID Document
-        </h4>
-        {viewProfile.id_document_url ? (
-          <div className="rounded-ds-md border border-border overflow-hidden bg-secondary/20">
-            {idDocSignedUrl ? (
-              // An inline `data:image/…` value (52 seed profiles on prod) is an
-              // image too — without this it fell to the file branch and printed
-              // its base64 as the "filename".
-              /\.(jpg|jpeg|png|gif|webp)$/i.test(viewProfile.id_document_url) || /^data:image\//i.test(viewProfile.id_document_url) ? (
-                <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer">
-                  <img loading="lazy" decoding="async" src={idDocSignedUrl} alt="ID Document" className="max-h-64 w-auto mx-auto object-contain hover:opacity-90 transition-opacity" />
-                </a>
-              ) : (
-                <div className="p-4 flex items-center gap-3">
-                  <FileText className="w-8 h-8 text-primary" />
-                  <div>
-                    <p className="text-ds-13 font-medium text-foreground break-all">{viewProfile.id_document_url.split("/").pop()}</p>
-                    <a href={idDocSignedUrl} target="_blank" rel="noopener noreferrer" className="text-ds-11 text-primary underline">
-                      Open document ↗
-                    </a>
-                  </div>
-                </div>
-              )
-            ) : !isStorageObjectPath(viewProfile.id_document_url) && !safeDocumentUrl(viewProfile.id_document_url) ? (
-              // Not a storage path and not an https:/raster data: URL — refused
-              // by safeDocumentUrl, so it will never load. Say so, not "Loading…".
-              <div className="p-4 text-center">
-                <p className="text-ds-11 text-muted-foreground">This document's link isn't one that can be opened safely.</p>
-              </div>
-            ) : (
-              <div className="p-4 text-center">
-                <p className="text-ds-11 text-muted-foreground">Loading document…</p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-ds-11 text-muted-foreground">Not provided</p>
-        )}
-      </div>
-
       {/* Profile Picture */}
       <div className="space-y-2">
         <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Profile Picture</h4>
@@ -69,7 +25,7 @@ export function DocumentsTab({ viewProfile, idDocSignedUrl }: DocumentsTabProps)
              would have hidden the artifact under review. So both ship: the
              guarded avatar identifies the account at a glance, and the
              "Open original ↗" link below it — the same affordance the
-             non-image ID-document branch above already uses — always reaches
+             credential documents below use — always reaches
              the unaltered object. The monogram appearing here is itself
              informative: it means the upload carries no image content, which
              is a fact worth an admin's attention. */

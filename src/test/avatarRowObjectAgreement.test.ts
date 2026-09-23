@@ -550,7 +550,7 @@ describe("profiles.avatar_url ⇄ avatars bucket agreement (class check)", () =>
       if (ts.isVariableDeclaration(n) && n.name.getText() === "uploadProfileFiles" && n.initializer && isFn(n.initializer)) fn = n.initializer;
     });
     expect(fn, "uploadProfileFiles not found").toBeTruthy();
-    const cb = fn!.parameters[3]?.name.getText();
+    const cb = fn!.parameters[2]?.name.getText();
     expect(cb, "uploadProfileFiles lost its save-callback parameter").toBeTruthy();
     const refs = collect(fn!.body!, (n) => ts.isIdentifier(n) && n.text === cb);
     const bad: string[] = [];

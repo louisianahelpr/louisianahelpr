@@ -67,10 +67,11 @@ describe("createSignedUrl is only ever handed a storage path", () => {
   const sites = signSites(files);
 
   it("finds the sign calls (the walk is not vacuous)", () => {
-    // 9 call sites on 2026-09-22. A sharp drop means the walk broke, not
-    // that the app stopped signing.
+    // 9 call sites on 2026-09-22; 8 on 2026-09-23 after Q40 deleted the
+    // admin id-document signer in useOpenProfile. A sharp drop means the walk
+    // broke, not that the app stopped signing.
     expect(sites.length).toBeGreaterThanOrEqual(8);
-    expect(sites.map((s) => s.file)).toContain("src/components/admin/adminusers/useOpenProfile.ts");
+    expect(sites.map((s) => s.file)).toContain("src/components/admin/AdminCredentialQueue.tsx");
   });
 
   it("every call site gates its argument with isStorageObjectPath", () => {

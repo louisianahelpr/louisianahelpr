@@ -50,15 +50,10 @@ export function ProfileEditForm({
   setSkills,
   initials,
   avatarUploading,
-  // Unused since the manual ID-upload card was removed (Stripe Identity owns
-  // verification). Kept in the signature so the shared props type and the ~3
-  // call sites don't churn; underscore marks them intentionally unread.
-  idUploading: _idUploading,
   saving,
   justSaved,
   onSave,
   onAvatarUpload,
-  onIdUpload: _onIdUpload,
   onBack,
   onPortfolioChange,
 }: ProfileEditFormProps) {

@@ -28,7 +28,6 @@ interface AdminUserDetailDialogProps {
   profileReviewsLeft: { rating: number; feedback: string | null; reviewee_name: string; created_at?: string; job_title?: string }[];
   profileViolations: any[];
   profileJobs: any[];
-  idDocSignedUrl: string | null;
   emailTracking: { event_type: string; email_type: string; created_at: string }[];
   emailSendStats: { template_name: string; count: number; last_sent: string }[];
   /** Per-user last-login map — tells whether an approved user is active yet. */
@@ -61,7 +60,6 @@ export function AdminUserDetailDialog({
   profileReviewsLeft,
   profileViolations,
   profileJobs,
-  idDocSignedUrl,
   emailTracking,
   emailSendStats,
   lastLoginSummary,
@@ -130,7 +128,7 @@ export function AdminUserDetailDialog({
               <OverviewTab viewProfile={viewProfile} profileViolations={profileViolations} />
               <JobsTab viewProfile={viewProfile} profileJobs={profileJobs} />
               <ReviewsTab profileReviews={profileReviews} profileReviewsLeft={profileReviewsLeft} />
-              <DocumentsTab viewProfile={viewProfile} idDocSignedUrl={idDocSignedUrl} />
+              <DocumentsTab viewProfile={viewProfile} />
               <EmailsTab
                 viewProfile={viewProfile}
                 viewBanStatus={viewBanStatus}

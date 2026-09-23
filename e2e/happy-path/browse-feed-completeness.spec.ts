@@ -40,7 +40,6 @@ const PROFILE = {
   avatar_url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
   bio: "Smoke-test profile bio with at least twenty characters.", date_of_birth: "1990-01-01",
   phone: "5045550100", location: "New Orleans, LA",
-  id_document_url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
   approval_status: "approved", ban_status: "active", is_legacy_user: true, subscription_tier: "free",
   subscription_expires_at: null, referral_code: "SMOKE", terms_version_accepted: LATEST_TERMS_VERSION, role: "customer",
   skills: "moving", created_at: AGO(9999), updated_at: AGO(1),

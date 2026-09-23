@@ -93,12 +93,10 @@ export interface ProfileTabPanelsProps {
   setSkills: (v: string) => void;
   initials: string;
   avatarUploading: boolean;
-  idUploading: boolean;
   saving: boolean;
   justSaved: boolean;
   onSave: (e: React.FormEvent) => void;
   onAvatarUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onIdUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 
   // Derived data + query handles
   earningsQuery: UseQueryResult<{ jobs: Job[]; tips: ProfileTip[] }>;
@@ -146,12 +144,10 @@ export const ProfileTabPanels = ({
   setSkills,
   initials,
   avatarUploading,
-  idUploading,
   saving,
   justSaved,
   onSave,
   onAvatarUpload,
-  onIdUpload,
   earningsQuery,
   scheduleQuery,
   reviewsQuery,
@@ -192,12 +188,10 @@ export const ProfileTabPanels = ({
             setSkills={setSkills}
             initials={initials}
             avatarUploading={avatarUploading}
-            idUploading={idUploading}
             saving={saving}
             justSaved={justSaved}
             onSave={onSave}
             onAvatarUpload={onAvatarUpload}
-            onIdUpload={onIdUpload}
             onBack={onBackFromTab}
             onPortfolioChange={(urls) => setProfile((prev) => prev ? ({ ...prev, portfolio_urls: urls }) : prev)}
           />

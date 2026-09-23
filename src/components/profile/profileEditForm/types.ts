@@ -18,12 +18,10 @@ export interface ProfileEditFormProps {
   setSkills: (v: string) => void;
   initials: string;
   avatarUploading: boolean;
-  idUploading: boolean;
   saving: boolean;
   justSaved: boolean;
   onSave: (e: React.FormEvent) => void;
   onAvatarUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onIdUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onBack: () => void;
   /** Called after portfolio upload/remove with the full new URL list so
    *  the parent can sync its profile state without a refetch. */

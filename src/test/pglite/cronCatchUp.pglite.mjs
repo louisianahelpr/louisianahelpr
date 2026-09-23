@@ -27,7 +27,10 @@ const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 // 20260923145516 (Q189) redefines the function with the corrected too-late
 // wording; both apply in order, exactly as on prod.
-const MIGRATION = ["20260923133021_cron_missed_slot_catch_up.sql", "20260923145516_catch_up_too_late_wording.sql"]
+// 20260923163407 (Q207) restates it again: schedule proof, the job's own
+// lock_timeout, query_canceled caught per command.
+const MIGRATION = ["20260923133021_cron_missed_slot_catch_up.sql", "20260923145516_catch_up_too_late_wording.sql",
+  "20260923163407_catch_up_schedule_proof_and_timeouts.sql"]
   .map((f) => readFileSync(new URL(`../../../supabase/migrations/${f}`, import.meta.url).pathname, "utf8"))
   .join("\n");
 
@@ -56,7 +59,21 @@ CREATE TABLE public.cron_work_expectations (jobname text PRIMARY KEY, candidate_
   disposition_keys text[] DEFAULT ARRAY[]::text[], min_streak int NOT NULL DEFAULT 2,
   note text NOT NULL DEFAULT '', expected_max_gap interval, registered_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.side_effects (kind text PRIMARY KEY, n int NOT NULL DEFAULT 0);
-INSERT INTO public.side_effects VALUES ('digest', 0), ('charge', 0), ('other', 0);
+INSERT INTO public.side_effects VALUES ('digest', 0), ('charge', 0), ('other', 0), ('resched', 0), ('cancel', 0);
+-- Q207(3): the lock_timeout each executed job saw, and the one in force for
+-- each error_logs write (the tick's own writes, after the job).
+CREATE TABLE public.lock_seen (who text, lock_timeout text);
+CREATE FUNCTION public.fake_lockjob() RETURNS void LANGUAGE sql AS
+  $$ INSERT INTO public.lock_seen VALUES ('job', current_setting('lock_timeout')) $$;
+CREATE FUNCTION public.log_lock_seen() RETURNS trigger LANGUAGE plpgsql AS
+  $$ BEGIN INSERT INTO public.lock_seen VALUES ('alert:' || coalesce(NEW.tags->>'job', '?'), current_setting('lock_timeout')); RETURN NEW; END $$;
+CREATE TRIGGER error_logs_lock_seen BEFORE INSERT ON public.error_logs FOR EACH ROW EXECUTE FUNCTION public.log_lock_seen();
+CREATE FUNCTION public.fake_resched() RETURNS void LANGUAGE sql AS
+  $$ UPDATE public.side_effects SET n = n + 1 WHERE kind = 'resched' $$;
+-- Q207(4): what a statement_timeout looks like inside the EXECUTE.
+CREATE FUNCTION public.fake_cancel() RETURNS void LANGUAGE plpgsql AS
+  $$ BEGIN UPDATE public.side_effects SET n = n + 1 WHERE kind = 'cancel';
+            RAISE EXCEPTION 'canceling statement due to statement timeout' USING ERRCODE = 'query_canceled'; END $$;
 CREATE FUNCTION public.fake_digest() RETURNS void LANGUAGE sql AS
   $$ UPDATE public.side_effects SET n = n + 1 WHERE kind = 'digest' $$;
 CREATE FUNCTION public.fake_charge() RETURNS void LANGUAGE sql AS
@@ -207,6 +224,103 @@ e = await effects();
 runs = await runsTable();
 check("healthy again: runs once, then never again", e.digest === 3 && runs["digest-i"] === "caught_up", JSON.stringify({ r, e }));
 
+// ── Q207(1): a rescheduled job is not a missed slot ─────────────────────────
+// Old schedule: 3 hours ago daily; it ran at that time yesterday and today.
+// Then moved to the slot 1 hour ago (later than today's run), after a tick saw
+// the old schedule. Nothing ran at the new slot, and nothing should: today's
+// run already happened. Before Q207 the money job filed a 'cron-missed-slot'
+// ERROR and the safe one was run a second time today.
+const { m3, h3 } = await one(`SELECT extract(minute FROM t)::int m3, extract(hour FROM t)::int h3
+                               FROM (SELECT (now() - interval '3 hours') AT TIME ZONE 'UTC' t) x`);
+const oldDaily = `${m3} ${h3} * * *`;
+const logsFor = async (job) => (await one(`SELECT count(*)::int n FROM public.error_logs WHERE tags->>'job' = '${job}'`)).n;
+const addJob = async (name, sched, cmd, runAts) => {
+  const { jobid } = await one(`INSERT INTO cron.job (jobname, schedule, command) VALUES ('${name}', '${sched}', $$${cmd}$$) RETURNING jobid`);
+  for (const at of runAts) {
+    await db.exec(`INSERT INTO cron.job_run_details (jobid, status, return_message, start_time, end_time)
+                   VALUES (${jobid}, 'succeeded', '1 row', ${at}, ${at} + interval '10 seconds')`);
+  }
+  return jobid;
+};
+await addJob("resched-charge-k", oldDaily, "SELECT public.fake_resched();", ["now() - interval '27 hours'", "now() - interval '3 hours'"]);
+await addJob("resched-safe-q", oldDaily, "SELECT public.fake_resched();", ["now() - interval '27 hours'", "now() - interval '3 hours'"]);
+// Controls, both with NO run recorded at their slot (pg_cron never started them):
+// proof by a run exactly one period earlier ...
+await addJob("silent-l", daily, "SELECT public.fake_resched();", ["now() - interval '25 hours'"]);
+// ... and proof by a tick having seen the job on this schedule before the slot.
+const mid = await addJob("seen-m", daily, "SELECT public.fake_resched();", ["now() - interval '30 hours'"]);
+await safeq("policy resched", () => db.exec(`INSERT INTO public.cron_catchup_policy VALUES
+  ('resched-charge-k', false, interval '1 hour',  'fixture: CHARGES MONEY, rescheduled today'),
+  ('resched-safe-q',   true,  interval '6 hours', 'fixture: safe, rescheduled today'),
+  ('silent-l',         true,  interval '6 hours', 'fixture: no run at slot, ran one period earlier'),
+  ('seen-m',           true,  interval '6 hours', 'fixture: no run at slot, schedule seen before it')`));
+await sweep(); // a tick sees the old schedules
+await safeq("seen-m observed before its slot", () => db.exec(
+  `UPDATE public.cron_catchup_schedules SET since = now() - interval '2 hours' WHERE jobid = ${mid}`));
+await db.exec(`SELECT cron.schedule('resched-charge-k', '${daily}', 'SELECT public.fake_resched();'),
+                      cron.schedule('resched-safe-q',   '${daily}', 'SELECT public.fake_resched();')`);
+r = await sweep();
+await sweep();
+e = await effects();
+runs = await runsTable();
+check("Q207(1) rescheduled MONEY job: no 'missed slot' alert for a day it already ran",
+  !("resched-charge-k" in runs) && (await logsFor("resched-charge-k")) === 0, JSON.stringify({ runs, r }));
+check("Q207(1) rescheduled safe job: not run a second time today",
+  !("resched-safe-q" in runs) && (await logsFor("resched-safe-q")) === 0, JSON.stringify(runs));
+check("Q207(1) no run at the slot but ran one period earlier: still caught up",
+  runs["silent-l"] === "caught_up", JSON.stringify(runs));
+check("Q207(1) no run at the slot but seen on this schedule before it: still caught up",
+  runs["seen-m"] === "caught_up", JSON.stringify(runs));
+check("Q207(1) side effects: exactly the two proven slots ran", e.resched === 2, JSON.stringify(e));
+
+// ── Q207(3)(4): the job's own lock_timeout; a cancel fails one command ──────
+await db.exec(`DELETE FROM public.lock_seen`);
+const session = (await one(`SELECT current_setting('lock_timeout') t`)).t;
+await addJob("lockjob-n", daily, "SELECT public.fake_lockjob();", ["now() - interval '25 hours'"]);
+// cancel-p's slot is an hour earlier, so the tick reaches it first.
+const { m2, h2 } = await one(`SELECT extract(minute FROM t)::int m2, extract(hour FROM t)::int h2
+                               FROM (SELECT (now() - interval '2 hours') AT TIME ZONE 'UTC' t) x`);
+await addJob("cancel-p", `${m2} ${h2} * * *`, "SELECT public.fake_cancel();", ["now() - interval '26 hours'"]);
+await safeq("policy lock/cancel", () => db.exec(`INSERT INTO public.cron_catchup_policy VALUES
+  ('lockjob-n', true, interval '6 hours', 'fixture: records the lock_timeout it runs with'),
+  ('cancel-p',  true, interval '6 hours', 'fixture: hits statement_timeout (query_canceled)')`));
+r = await sweep();
+e = await effects();
+runs = await runsTable();
+check("Q207(4) a query_canceled job does not abort the tick: recorded catch_up_failed",
+  r?.checked === true && runs["cancel-p"] === "catch_up_failed", JSON.stringify({ r, runs }));
+check("Q207(4) after a cancel nothing else runs this tick (no timer left): the next slot waits, unclaimed",
+  !("lockjob-n" in runs) && r?.waiting >= 1 && (await q(`SELECT 1 FROM public.lock_seen WHERE who = 'job'`)).length === 0, JSON.stringify({ r, runs }));
+const cancelMsg = (await one(`SELECT message FROM public.error_logs WHERE tags->>'job' = 'cancel-p'`))?.message ?? "";
+check("Q207(4) ... its effects rolled back and it is alerted as a failed catch-up",
+  e.cancel === 0 && cancelMsg.includes("FAILED") && cancelMsg.includes("statement timeout"), JSON.stringify({ e, cancelMsg: cancelMsg.slice(0, 160) }));
+r = await sweep();
+e = await effects();
+runs = await runsTable();
+check("Q207(4) ... the cancelled slot is never retried; the waiting one runs on the next tick",
+  e.cancel === 0 && runs["lockjob-n"] === "caught_up" && r?.decided?.length === 1, JSON.stringify({ e, r }));
+const seen = await q(`SELECT who, lock_timeout FROM public.lock_seen`);
+const jobSeen = seen.filter((x) => x.who === "job");
+check("Q207(3) the executed job runs with the session's lock_timeout, not the tick's 200ms",
+  jobSeen.length === 1 && jobSeen[0].lock_timeout === session && session !== "200ms", JSON.stringify({ session, seen }));
+const alertSeen = seen.filter((x) => x.who.startsWith("alert:"));
+check("Q207(3) the tick's own writes after the job are back under 200ms",
+  alertSeen.length >= 2 && alertSeen.every((x) => x.lock_timeout === "200ms"), JSON.stringify(seen));
+
+// ── Q207 review: a paused-then-resumed job's first slot is not a miss ───────
+const pid = await addJob("paused-r", daily, "SELECT public.fake_resched();", ["now() - interval '30 hours'"]);
+await safeq("policy paused", () => db.exec(`INSERT INTO public.cron_catchup_policy VALUES
+  ('paused-r', false, interval '1 hour', 'fixture: paused over its slot, then resumed')`));
+await sweep(); // seen active
+await safeq("paused-r seen before its slot", () => db.exec(
+  `UPDATE public.cron_catchup_schedules SET since = now() - interval '2 hours' WHERE jobid = ${pid}`));
+await db.exec(`UPDATE cron.job SET active = false WHERE jobid = ${pid}`);
+await sweep(); // seen paused
+await db.exec(`UPDATE cron.job SET active = true WHERE jobid = ${pid}`);
+await sweep();
+runs = await runsTable();
+check("Q207 paused over its slot then resumed: no 'missed slot' alert", !("paused-r" in runs) && (await logsFor("paused-r")) === 0, JSON.stringify(runs));
+
 // ── a second concurrent sweep never waits ───────────────────────────────────
 // (PGlite is single-connection; the advisory lock is taken per transaction.
 // Holding it in an open transaction and calling again in the SAME session
@@ -236,7 +350,7 @@ for (const role of ["anon", "authenticated"]) {
     const ok = await safeq(`privilege ${role} ${fn}`, () => one(`SELECT has_function_privilege('${role}', '${fn}', 'EXECUTE') ok`));
     check(`${role} cannot execute ${fn}`, ok?.ok === false);
   }
-  for (const t of ["public.cron_catchup_policy", "public.cron_catchup_runs"]) {
+  for (const t of ["public.cron_catchup_policy", "public.cron_catchup_runs", "public.cron_catchup_schedules"]) {
     const ok = await safeq(`privilege ${role} ${t}`, () => one(`SELECT has_table_privilege('${role}', '${t}', 'SELECT') OR has_table_privilege('${role}', '${t}', 'INSERT') ok`));
     check(`${role} can neither read nor write ${t}`, ok?.ok === false);
   }

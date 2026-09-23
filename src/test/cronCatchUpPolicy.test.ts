@@ -25,13 +25,21 @@
  *   - no job named for money or deletion is catch-up-safe;
  *   - the newest run_missed_cron_catch_up() claims a slot before running it,
  *     skips claimed slots, never queues behind a lock, and treats a missing
- *     policy row as unsafe.
+ *     policy row as unsafe;
+ *   - (Q207) it needs proof the job was on its current schedule at the slot,
+ *     runs the job under the session's lock_timeout (not the tick's 200ms),
+ *     and catches query_canceled per command.
  *
  * @mutate supabase/migrations/20260923145117_weekly_report_catch_up_safe.sql | ('charge-recurring-visits',         false, | ('charge-recurring-visits',         true,
  * @mutate supabase/migrations/20260923145117_weekly_report_catch_up_safe.sql | ('ops-daily-digest',                true, | ('ops-daily-digest-gone',           true,
- * @mutate supabase/migrations/20260923145516_catch_up_too_late_wording.sql | IF NOT pg_try_advisory_xact_lock(hashtext( | IF NOT pg_advisory_xact_lock(hashtext(
- * @mutate supabase/migrations/20260923145516_catch_up_too_late_wording.sql | AND NOT EXISTS (SELECT 1 FROM public.cron_catchup_runs c | AND EXISTS (SELECT 1 FROM public.cron_catchup_runs c
- * @mutate supabase/migrations/20260923145516_catch_up_too_late_wording.sql | ELSIF r.catch_up IS NOT TRUE THEN | ELSIF false THEN
+ * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | IF NOT pg_try_advisory_xact_lock(hashtext( | IF NOT pg_advisory_xact_lock(hashtext(
+ * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | AND NOT EXISTS (SELECT 1 FROM public.cron_catchup_runs c | AND EXISTS (SELECT 1 FROM public.cron_catchup_runs c
+ * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | ELSIF r.catch_up IS NOT TRUE THEN | ELSIF false THEN
+ * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | EXCEPTION WHEN query_canceled OR OTHERS THEN | EXCEPTION WHEN OTHERS THEN
+ * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | PERFORM set_config('lock_timeout', v_job_lock_timeout, true); | NULL;
+ * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | AND cs.since <= s.slot) | AND true)
+ * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | v_ran >= v_max_runs OR v_cancelled THEN | v_ran >= v_max_runs THEN
+ * @mutate supabase/migrations/20260923163407_catch_up_schedule_proof_and_timeouts.sql | OR public.cron_catchup_schedules.active IS DISTINCT FROM EXCLUDED.active; | ;
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -168,7 +176,24 @@ describe("missed daily/weekly cron slots: catch-up policy (Q30)", () => {
     // No policy row -> alert; catch_up false -> alert; neither runs the command.
     expect(fnBody).toMatch(/IF\s+r\.catch_up\s+IS\s+NULL\s+THEN\s+v_action\s*:=\s*'alerted_unclassified'/i);
     expect(fnBody).toMatch(/ELSIF\s+r\.catch_up\s+IS\s+NOT\s+TRUE\s+THEN\s+v_action\s*:=\s*'alerted_unsafe'/i);
-    expect(fnBody).toMatch(/IF\s+v_action\s*=\s*'caught_up'\s+THEN\s+v_ran\s*:=\s*v_ran\s*\+\s*1;\s*BEGIN\s+EXECUTE/i);
+  });
+
+  it("Q207: a rescheduled job is not a missed slot; the job gets its own lock_timeout; a cancel fails one command", () => {
+    // (1) Proof the job was on THIS schedule at the slot: seen on it by a tick at or before the slot.
+    expect(fnBody).toMatch(/INSERT\s+INTO\s+public\.cron_catchup_schedules\b/i);
+    expect(fnBody).toMatch(/cs\.schedule\s*=\s*j\.schedule\s+AND\s+cs\.since\s*<=\s*s\.slot\s*\)/i);
+    // (3) The EXECUTE runs under the session's lock_timeout, and 200ms comes back after the block.
+    const block = /IF\s+v_action\s*=\s*'caught_up'\s+THEN\s+v_ran\s*:=\s*v_ran\s*\+\s*1;\s*BEGIN\s+PERFORM\s+set_config\(\s*'lock_timeout'\s*,\s*v_job_lock_timeout\s*,\s*true\s*\);\s*EXECUTE\s+regexp_replace\([\s\S]*?\bEND;\s*PERFORM\s+set_config\(\s*'lock_timeout'\s*,\s*'200ms'\s*,\s*true\s*\);/i;
+    expect(fnBody).toMatch(block);
+    expect(fnBody).toMatch(/v_job_lock_timeout\s+text\s*:=\s*current_setting\(\s*'lock_timeout'\s*\)/i);
+    // (4) OTHERS does not include query_canceled: a statement timeout must not abort the tick.
+    const afterExec = fnBody.slice(fnBody.search(/\bEXECUTE\s+regexp_replace\(\s*r\.command/i));
+    // ... and after a cancel nothing else runs this tick (statement_timeout is not re-armed).
+    expect(fnBody).toMatch(/v_cancelled\s*:=\s*v_cancelled\s+OR\s+SQLSTATE\s*=\s*'57014'/i);
+    expect(fnBody).toMatch(/ELSIF\s+NOT\s+v_healthy\s+OR\s+v_ran\s*>=\s*v_max_runs\s+OR\s+v_cancelled\s+THEN/i);
+    // (1) A pause restarts 'since' too.
+    expect(fnBody).toMatch(/OR\s+public\.cron_catchup_schedules\.active\s+IS\s+DISTINCT\s+FROM\s+EXCLUDED\.active\s*;/i);
+    expect(afterExec).toMatch(/^EXECUTE\s+regexp_replace\(\s*r\.command\s*,\s*'[^']*'\s*,\s*''\s*\);\s*EXCEPTION\s+WHEN\s+query_canceled\s+OR\s+OTHERS\s+THEN/i);
   });
 
   it("the catch-up cron itself runs every few minutes, so it is not in its own inventory", () => {

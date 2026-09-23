@@ -34,6 +34,7 @@ on:
       - Mobile viewport spot-check
       - Prod freshness
       - Race Runner
+      - Secret Scan
       - Sentry Release
       - Sitemap drift
       - Staleness watch

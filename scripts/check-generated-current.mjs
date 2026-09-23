@@ -203,6 +203,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/audit/walk-every-control.mjs": "/tmp/lh-audit",
   "scripts/build-og-shell.mjs": "dist/ (build output)",
   "scripts/check-changed.mjs": "docs/audit/prepush-skips.log (untracked local log)",
+  "scripts/check-gitleaksignore.mjs": "redacted gitleaks report to an os.tmpdir() dir, deleted before exit",
   "scripts/check-vercel-usage.mjs": "CI report + GITHUB_OUTPUT",
   "scripts/db-saturation-check.mjs": "GITHUB_STEP_SUMMARY only (Q53 hourly check in prod-errors.yml)",
   "scripts/gate.mjs": "~/.lh-gate/last.json — per-machine record of the last local gate, read by the scoreboard's gate row",

@@ -1,3 +1,5 @@
 #!/usr/bin/env sh
+# Q75: no secret lands. Staged ADDED lines only, value never printed.
+node scripts/secret-scan.mjs --staged || exit 1
 npx lint-staged
 sh scripts/check-migration-versions.sh

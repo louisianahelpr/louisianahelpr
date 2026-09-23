@@ -1,0 +1,67 @@
+# Triaged gitleaks findings (Q75, 2026-09-23). One line per finding, by
+# history fingerprint (commit:file:rule:line). scripts/check-gitleaksignore.mjs
+# fails on an entry that no longer reproduces (CI runs it on every push).
+# NO secret values here. Every group says why it is not a live secret, or
+# where its rotation is tracked. A NEW finding never goes here without that.
+
+# docs/backups/test-debris-backup-2026-09-11.json: Supabase storage signed URLs (proof-photos bucket, test debris rows), exp 2027-09-09. Q75 finding F1: live-looking bearer reads of test objects; delete the objects (owner/prod lane). Ignored here so the full scan stays green; still listed in docs/OPEN.md Q75.
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:1523
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:1530
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:1638
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:1645
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:171
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:178
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:286
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:293
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:401
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:408
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:627
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:634
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:7240
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:7247
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:7355
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:jwt:7362
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:1523
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:1530
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:1638
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:1645
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:171
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:178
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:286
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:293
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:401
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:408
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:627
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:634
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:7240
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:7247
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:7355
+b7bc81eb75a0f0fcc7059c7c8c2ebb448a47779f:docs/backups/test-debris-backup-2026-09-11.json:lh-supabase-signed-storage-url:7362
+
+# public/tools/apple-jwt.html: Placeholder text in a textarea (PEM header + dummy body), not a key.
+b794db9973958b4794ea79cd7e9cd0cc5905953a:public/tools/apple-jwt.html:private-key:168
+
+# src/lib/errorLogger.test.ts: Fake tokens that the redaction test proves are scrubbed.
+774b15c2e08fa3fcaa02a7dcf9352dc6e8bc5af6:src/lib/errorLogger.test.ts:generic-api-key:184
+774b15c2e08fa3fcaa02a7dcf9352dc6e8bc5af6:src/lib/errorLogger.test.ts:generic-api-key:194
+acae4c06f9e7f37ba4df533467290b45f452679c:src/lib/errorLogger.test.ts:generic-api-key:12
+acae4c06f9e7f37ba4df533467290b45f452679c:src/lib/errorLogger.test.ts:generic-api-key:19
+
+# src/lib/hibpCheck.test.ts: SHA-1 of the word "password" (HIBP test vector).
+b7ed6e10ef1f4d4e3d950e8b1955b446ef8245ec:src/lib/hibpCheck.test.ts:generic-api-key:23
+
+# src/lib/proTiers.parity.test.ts: Stripe price-id test override values, no key.
+45ef8095700ddaaf3f9c3ebf63a0018fceb62a98:src/lib/proTiers.parity.test.ts:generic-api-key:136
+
+# src/lib/safeProfiles.test.ts: Test account auth UUID, an identifier.
+d7c4e078b83edc86e5f02d7dcef03b3d7af4dfdf:src/lib/safeProfiles.test.ts:generic-api-key:10
+
+# src/test/edge/verify-apple-iap.test.ts: Test-only P-256 key generated for this test, used nowhere else (see the comment beside it).
+57c3aed682f11ad0b924e98c45507c8b7ab8ad8f:src/test/edge/verify-apple-iap.test.ts:lh-private-key-body:69
+57c3aed682f11ad0b924e98c45507c8b7ab8ad8f:src/test/edge/verify-apple-iap.test.ts:private-key:69
+
+# src/test/proofPhotoPath.test.ts: Signed-URL SHAPE with the token elided (header.e30.x), not a token.
+65676a7ad43c22884b166e99e15a4bd7c93dcf37:src/test/proofPhotoPath.test.ts:generic-api-key:20
+
+# supabase/functions/mapkit-token/index.ts: Doc comment naming the secret the function needs; no key body.
+a44a65f3d744888ccfa9709f22975476e9c397a3:supabase/functions/mapkit-token/index.ts:private-key:29

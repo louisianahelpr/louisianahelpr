@@ -192,6 +192,7 @@ const OUT_OF_SCOPE: Record<string, string> = {
   "scripts/typecheck-edge.mjs::SKIP_DIRS": "directory-walk skip set",
   "src/components/ProtectedRoute.tsx::PROFILE_GATE_ALLOWED": "app routing config",
   "src/components/admin/AdminAuditLog.tsx::SKIP": "app display config (diff fields hidden in the audit log)",
+  "src/test/secretScanGate.test.ts::ALLOWED_SAMPLES": "test inputs the secret scanner must NOT flag, each asserted per sample; exempts nothing in the repo",
   "src/components/glassCardScale.test.ts::ALLOWED": "design vocabulary (permitted padding classes), not offenders",
   "src/components/policy/CollapsedPolicy.tsx::SKIP_TAGS": "app rendering config",
   "src/components/profile/CredentialsTab.tsx::ALLOWED_TYPES": "app upload MIME types",

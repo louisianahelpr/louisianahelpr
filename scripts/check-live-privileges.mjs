@@ -105,7 +105,7 @@ const nullUid = parse(row?.null_uid_offenders);
 const serverOnly = parse(row?.server_only_column_offenders);
 const serverOnlyPresent = Number(row?.server_only_columns_present ?? 0);
 if (!fns || !acl || !Array.isArray(defaults) || !Array.isArray(nullUid) || !Array.isArray(serverOnly) || serverOnlyPresent !== 2) {
-  console.error(`::error::live catalog returned ${fns} plpgsql functions / ${acl} postgres default-ACL entries in public — refusing to report clean.`);
+  console.error(`::error::live catalog returned ${fns} plpgsql functions / ${acl} postgres default-ACL entries in public / ${serverOnlyPresent} of 2 server-only profiles columns (Q304: ban_status, auto_suspended_until) — refusing to report clean.`);
   process.exit(2);
 }
 

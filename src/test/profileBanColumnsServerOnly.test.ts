@@ -131,6 +131,10 @@ export function reGrants(sql: string): string[] {
     const cols = upd[2];
     if (!cols || COLUMNS.some((c) => new RegExp(`\\b${c}\\b`, "i").test(cols))) out.push(m[0].trim());
   }
+  // Schema-wide grants reach profiles too (review nit, 2026-09-23).
+  for (const m of code.matchAll(/\bGRANT\s+([^;]*?)\s+ON\s+ALL\s+TABLES\s+IN\s+SCHEMA\s+"?public"?\s+TO\s+([^;]*)/gi)) {
+    if (/\b(authenticated|anon|public)\b/i.test(m[2]) && /\b(UPDATE|ALL)\b/i.test(m[1])) out.push(m[0].trim());
+  }
   return out;
 }
 
@@ -160,6 +164,8 @@ describe("profiles.ban_status / auto_suspended_until are server-written only (Q3
     expect(reGrants("GRANT UPDATE (bio, ban_status) ON public.profiles TO authenticated;")).toHaveLength(1);
     expect(reGrants("GRANT UPDATE ON public.profiles TO authenticated;")).toHaveLength(1);
     expect(reGrants("GRANT ALL ON TABLE public.profiles TO anon;")).toHaveLength(1);
+    expect(reGrants("grant update on all tables in schema public to authenticated;")).toHaveLength(1);
+    expect(reGrants("GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;")).toEqual([]);
     expect(reGrants("GRANT UPDATE (bio) ON public.profiles TO authenticated;")).toEqual([]);
     expect(reGrants("GRANT UPDATE (ban_status) ON public.profiles TO service_role;")).toEqual([]);
     expect(reGrants("-- GRANT UPDATE (ban_status) ON public.profiles TO authenticated;")).toEqual([]);

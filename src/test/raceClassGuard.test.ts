@@ -245,7 +245,7 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
       // 20260923075415 (Q88: fee tier follows commitment) restates the whole
       // function WITH the done-stamp guard, so the pre-guard baseline must
       // exclude it too — same as RESTATES_FIX above.
-      block: latestDefinition("block_user_and_settle", [COMPLETION_FIX, "20260923075415"]),
+      block: latestDefinition("block_user_and_settle", [COMPLETION_FIX, "20260923075415", "20260923232809"]),
       // Also exclude the arrival migration (20260915044137): it legitimately
       // made report_helper_no_show read helper_completed_at for a STRONGER
       // no-show guard (refuses if arrived OR completed). The pre-guard baseline

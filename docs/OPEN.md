@@ -1114,6 +1114,7 @@ sure someone hears it and closes it.
   revokes?). Find each source, fix it, and add a check for the class
   (realtime filters validated against the publication/columns; no
   placeholder ids reach prod).
+  RE-MEASURED 2026-09-23 ~14:45Z (logs, last 24h): (a) STILL LIVE, 4,190 in 24h. Source found: user-agent `node`, requests `GET /rest/v1/thread_archives?...&user_id=eq.user-1` (232 in 12h) and `thread_pins?...user_id=eq.user-1` (227), i.e. UNIT TESTS: vitest.config.ts `test.env` points VITE_SUPABASE_URL at PROD, so any test that renders Messages without mocking src/lib/pinnedConversations.ts / archivedConversations.ts sends real requests. Fix: a setup.ts fetch guard that refuses *.supabase.co in unit tests (opt-in for the few live tests) plus mocks for the leaking specs; guard red on a spec that calls supabase unmocked. (b) 0 in 24h (gone). (c) STILL LIVE, 768 in 24h: user-agent `node`, `GET /rest/v1/jobs?select=*&limit=1` and `jobs_helper_safe?select=*&limit=1` returning 401 (~60 each in 12h). Source not yet pinned: likely a deliberate anon-denied probe (scripts/probes/*, db-smoke), unconfirmed; if deliberate, make it not log as a Postgres ERROR, or exclude it from the error counts.
 - [ ] **Q56 Morning report: what should improve, and how to make it LOAD
   QUICKER (owner, 2026-09-23).** Measure first, recommend second: cold-load
   timings on prod at 375 (phone) and 1440 (TTFB, FCP, LCP, time to

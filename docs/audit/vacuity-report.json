@@ -1,8 +1,10 @@
 {
-  "generated": "2026-09-23T15:27:29.220Z",
+  "generated": "2026-09-23T15:35:26.545Z",
   "guards": 784,
-  "registered": 784,
-  "unregistered": [],
+  "registered": 783,
+  "unregistered": [
+    "src/components/RouteSuspenseFallback.test.tsx"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/activity/appliedJobCard/helperDisputeCopy.test.tsx",

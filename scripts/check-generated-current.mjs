@@ -33,6 +33,7 @@
  *   node scripts/check-generated-current.mjs            # regenerate + diff + coverage scans
  *   node scripts/check-generated-current.mjs --only <id>[,<id>]
  *   node scripts/check-generated-current.mjs --list     # print the inventory table
+ *   node scripts/check-generated-current.mjs --outputs  # every CI generator's output path, one per line
  *   node scripts/check-generated-current.mjs --fix      # regenerate all in place (npm run inventories:refresh)
  *
  * Run per push by test.yml and staleness-watch.yml (push trigger, so a
@@ -138,7 +139,7 @@ export const EVIDENCE = [
     script: "scripts/audit/measure-loading-states.mjs",
     outputs: ["docs/audit/loading-states/measurements.json"],
     refresh: "npm run loading-states:measure (browser + test accounts)",
-    refreshedBy: ".github/workflows/loading-states-refresh.yml (daily 16:17 UTC; uploads the fresh set)",
+    refreshedBy: ".github/workflows/loading-states-refresh.yml (daily 16:17 UTC; uploads the fresh set and lands measurements.json through an auto-merging refresh PR, Q57)",
     checkedBy: "check-loading-state-shape.mjs on the FRESH measurement in that run; check-staleness.mjs binds currency to its last successful run (2 days)",
   },
   {
@@ -146,7 +147,7 @@ export const EVIDENCE = [
     script: "scripts/audit/write-contract.mjs",
     outputs: ["scripts/audit/write-contract.snapshot.json"],
     refresh: "node scripts/audit/write-contract.mjs --refresh (prod schema, read-only)",
-    refreshedBy: ".github/workflows/write-contract-refresh.yml (weekly; exits 2 on drift)",
+    refreshedBy: ".github/workflows/write-contract-refresh.yml (weekly; a drift is landed through an auto-merging refresh PR, Q57)",
     checkedBy: "write-contract-refresh.yml --check-drift",
   },
   {
@@ -217,7 +218,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/gateLock.mjs": "lock file",
   "scripts/generate-ios-icons.mjs": "binary app icons from the source artwork; ios-icon-sync.yml",
   "scripts/measure-back-control-hover.mjs": "--out measurement dir",
-  "scripts/morning-page.mjs": "docs/morning/<date>.md, a DATED daily record that claims only its own date (Q67); morning-page.yml publishes it as the job summary + artifact until Actions may commit (Q57)",
+  "scripts/morning-page.mjs": "docs/morning/<date>.md, a DATED daily record that claims only its own date (Q67); morning-page.yml publishes it as the job summary + artifact and lands it through an auto-merging refresh PR (Q57, .github/actions/refresh-pr)",
   "scripts/new-migration.mjs": "scaffolds a new migration (authored, not generated)",
   "scripts/new-repro.mjs": "scaffolds a new repro spec (authored, not generated)",
   "scripts/prerender.mjs": "dist/ (build output)",
@@ -374,6 +375,11 @@ function printList() {
 function main() {
   const argv = process.argv.slice(2);
   if (argv.includes("--list")) return printList();
+  if (argv.includes("--outputs")) {
+    // One path per line: what staleness-watch.yml's Q57 refresh PR may commit.
+    for (const o of [...new Set(GENERATED.flatMap((g) => g.outputs))]) console.log(o);
+    return;
+  }
   if (argv.includes("--fix")) {
     // Regenerate everything IN PLACE (no restore), in dependency order, and say
     // what moved. Never stages anything: the committer reviews and commits.
@@ -386,6 +392,9 @@ function main() {
       g.outputs.forEach((o, k) => {
         const after = readFileSync(join(REPO, o), "utf8");
         const moved = normalise(before[k], g.volatile) !== normalise(after, g.volatile);
+        // Only a volatile line (a timestamp) moved: keep the committed bytes,
+        // so a refresh with nothing to say leaves no diff (Q57 refresh PRs).
+        if (!moved && before[k] && before[k] !== after) writeFileSync(join(REPO, o), before[k]);
         console.log(`${moved ? "↻ regenerated" : "  unchanged  "} ${o}`);
       });
     }

@@ -1,0 +1,190 @@
+name: "Refresh PR"
+description: >
+  docs/OPEN.md Q57. A scheduled workflow that re-measures a committed file can
+  PROVE it stale; this lands the fresh copy without a human. It rebuilds ONE
+  bot branch (bot/refresh/<id>) from the LATEST origin/main, puts the
+  regenerated files on it, and, when anything changed, opens (or updates) ONE
+  pull request for it and enables auto-merge (squash), so the numbers land on
+  main through branch protection's required checks. It never pushes to main.
+  Nothing changed -> no commit, no PR, and a refresh PR left open from an
+  earlier run is closed (main already carries those numbers).
+
+  Caller contract (src/test/refreshWorkflowsOpenPrs.test.ts):
+    - a job of its own, after the measuring job, holding the ONLY write
+      permissions in the workflow (contents + pull-requests: write; actions:
+      write to dispatch the checks below);
+    - a checkout (any ref) — this rebuilds from origin/main itself;
+    - the measured files at their repo paths under `measured-dir` (an artifact
+      download), or a `regenerate` command that rebuilds them on latest main.
+
+inputs:
+  id:
+    description: "Stable refresh id; the bot branch is bot/refresh/<id>. One open PR per id."
+    required: true
+  title:
+    description: "PR title and commit subject."
+    required: true
+  paths:
+    description: >
+      Newline-separated repo paths this refresh may change (files, or a
+      directory whose files are all generated). ONLY these are committed; any
+      other change in the tree fails the step (the list is wrong).
+    required: true
+  measured-dir:
+    description: >
+      Directory holding the freshly measured files at their repo paths. Used
+      when `regenerate` is empty: each `paths` entry is copied from here onto
+      latest main (a missing one fails the step).
+    required: false
+    default: ""
+  regenerate:
+    description: >
+      Command run at the repo root on latest main INSTEAD of copying, for files
+      that must be rebuilt against main's current content (e.g. a generated
+      block inside docs/OPEN.md, which lanes edit all day: copying the
+      measured file whole would revert their edits). MEASURED is exported as
+      `measured-dir`.
+    required: false
+    default: ""
+  body:
+    description: "Extra PR body text (the run link and the file list are added)."
+    required: false
+    default: ""
+  github-token:
+    description: >
+      Token for the push and the PR. secrets.REFRESH_PR_TOKEN (a PAT or app
+      token) when set, else github.token. With github.token GitHub runs no
+      pull_request workflows for the PR, so the action dispatches
+      `check-workflows` on the bot branch itself to produce the required checks.
+    required: true
+  check-workflows:
+    description: >
+      Space-separated workflow files to dispatch on the bot branch when running
+      on github.token (their checks must cover main's required status checks).
+      Empty = "test.yml vitest.yml".
+    required: false
+    default: ""
+
+outputs:
+  changed:
+    description: "'true' when the refresh differed from main and a PR is open for it"
+    value: ${{ steps.land.outputs.changed }}
+  pr:
+    description: "The refresh PR number ('' when nothing changed)"
+    value: ${{ steps.land.outputs.pr }}
+
+runs:
+  using: composite
+  steps:
+    - name: Land the refreshed files through ONE auto-merging PR
+      id: land
+      shell: bash
+      env:
+        REFRESH_ID: ${{ inputs.id }}
+        REFRESH_TITLE: ${{ inputs.title }}
+        REFRESH_PATHS: ${{ inputs.paths }}
+        MEASURED: ${{ inputs.measured-dir }}
+        REGENERATE: ${{ inputs.regenerate }}
+        EXTRA_BODY: ${{ inputs.body }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        DEFAULT_TOKEN: ${{ github.token }}
+        CHECK_WORKFLOWS: ${{ inputs.check-workflows }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        WORKFLOW: ${{ github.workflow }}
+      run: |
+        set -euo pipefail
+        case "$REFRESH_ID" in
+          ""|*[!a-z0-9-]*) echo "::error::refresh-pr: id '$REFRESH_ID' must be lowercase letters, digits and dashes"; exit 1 ;;
+        esac
+        BRANCH="bot/refresh/$REFRESH_ID"
+        mapfile -t FILES < <(printf '%s\n' "$REFRESH_PATHS" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d')
+        if [ "${#FILES[@]}" -eq 0 ]; then
+          echo "::error::refresh-pr: no paths given"
+          exit 1
+        fi
+
+        # Push with the chosen token, not the checkout's persisted header (an
+        # empty extraheader value resets git's list of extra headers).
+        REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git -c http.https://github.com/.extraheader= fetch --no-tags "$REMOTE" "+refs/heads/main:refs/remotes/origin/main"
+        git checkout -q --force -B "$BRANCH" origin/main
+        BASE=$(git rev-parse HEAD)
+
+        if [ -n "$REGENERATE" ]; then
+          export MEASURED
+          bash -euo pipefail -c "$REGENERATE"
+        else
+          if [ -z "$MEASURED" ] || [ ! -d "$MEASURED" ]; then
+            echo "::error::refresh-pr: measured-dir '$MEASURED' is not a directory and no regenerate command was given"
+            exit 1
+          fi
+          for f in "${FILES[@]}"; do
+            src="$MEASURED/${f%/}"
+            if [ -d "$src" ]; then
+              mkdir -p "$f"
+              cp -R "$src/." "$f"
+            elif [ -f "$src" ]; then
+              mkdir -p "$(dirname "$f")"
+              cp "$src" "$f"
+            else
+              echo "::error::refresh-pr: the measurement did not produce $f (looked for $src)"
+              exit 1
+            fi
+          done
+        fi
+
+        git add -A -- "${FILES[@]}"
+        # Porcelain "XY path": Y is the unstaged state, "??" untracked. After
+        # the add above, anything with a non-blank Y is outside `paths`.
+        STRAY=$(git status --porcelain --untracked-files=all | awk 'substr($0, 2, 1) != " "')
+        if [ -n "$STRAY" ]; then
+          echo "::error::refresh-pr: the refresh changed files outside its declared paths — fix the caller's paths list:"
+          printf '%s\n' "$STRAY"
+          exit 1
+        fi
+
+        PR=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number --jq '.[0].number // ""')
+        if git diff --cached --quiet; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+          echo "pr=" >> "$GITHUB_OUTPUT"
+          echo "Nothing to land: main ($BASE) already matches this refresh."
+          if [ -n "$PR" ]; then
+            gh pr close "$PR" --repo "$GITHUB_REPOSITORY" --delete-branch \
+              --comment "Superseded: main already matches this refresh as of ${BASE:0:9} ($RUN_URL)."
+            echo "Closed refresh PR #$PR (main caught up)."
+          fi
+        else
+          CHANGED=$(git diff --cached --name-only)
+          git commit -q -m "$REFRESH_TITLE" -m "Regenerated by $WORKFLOW ($RUN_URL) on main ${BASE:0:9} (Q57 refresh bot)."
+          # The bot branch is rebuilt from latest main every run, so a force
+          # push REPLACES the previous refresh instead of stacking on it.
+          git -c http.https://github.com/.extraheader= push --force "$REMOTE" "HEAD:refs/heads/$BRANCH"
+          BODY=$(printf '%s\n\n%s\n\nFiles:\n%s\n\nRebuilt from main %s by [%s](%s). The bot branch is rebuilt on every run, so this PR always carries the newest numbers; it merges itself (squash) once the required checks pass. docs/OPEN.md Q57.\n' \
+            "$REFRESH_TITLE" "$EXTRA_BODY" "$(printf '%s\n' "$CHANGED" | sed 's/^/- /')" "${BASE:0:9}" "$WORKFLOW" "$RUN_URL")
+          if [ -z "$PR" ]; then
+            URL=$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" --title "$REFRESH_TITLE" --body "$BODY")
+            PR="${URL##*/}"
+            echo "Opened refresh PR #$PR"
+          else
+            gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --title "$REFRESH_TITLE" --body "$BODY"
+            echo "Updated refresh PR #$PR"
+          fi
+          if ! gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --auto --squash; then
+            echo "::error::refresh-pr: could not enable auto-merge on #$PR. Needs Settings -> General -> 'Allow auto-merge' and the Actions setting 'Allow GitHub Actions to create and approve pull requests' (Q57). The PR is open; merge it by hand meanwhile."
+            exit 1
+          fi
+          if [ "$GH_TOKEN" = "$DEFAULT_TOKEN" ]; then
+            for wf in ${CHECK_WORKFLOWS:-test.yml vitest.yml}; do
+              gh workflow run "$wf" --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+              echo "Dispatched $wf on $BRANCH (a github.token PR triggers no pull_request runs)."
+            done
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "pr=$PR" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Refresh PR #$PR ($BRANCH)"
+            printf '%s\n' "$CHANGED" | sed 's/^/- /'
+          } >> "$GITHUB_STEP_SUMMARY"
+        fi

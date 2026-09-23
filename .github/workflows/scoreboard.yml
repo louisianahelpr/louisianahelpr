@@ -12,12 +12,11 @@ name: Scoreboard
 # notification delivery and time to payout from prod tables). A row it cannot
 # measure says UNKNOWN.
 #
-# UNTIL Q57 (owner setting: Settings -> Actions -> General -> Workflow
-# permissions -> "Read and write" + "Allow GitHub Actions to create and approve
-# pull requests") this workflow cannot commit. So it publishes the fresh files
-# as the JOB SUMMARY and an ARTIFACT; a session lands them with
-# `node scripts/scoreboard.mjs --write` (or by downloading the artifact).
-# Once Q57 is on, add a step that opens an auto-merging PR with the two files.
+# LANDING (Q57): the `land` job rebuilds the two files on LATEST main with
+# `scoreboard.mjs --live-from` (only the measured LIVE sections are carried;
+# OPEN.md itself is main's, since lanes edit it all day) and lands them through
+# .github/actions/refresh-pr: one bot branch, one PR, auto-merge on green.
+# The job summary and artifact stay (the morning page reads the artifact).
 #
 # Daily at 19:17 UTC: the prod-load spacing rule (src/test/
 # prodWorkflowSpacing.test.ts) wants >= 90 min from every other daily
@@ -72,9 +71,42 @@ jobs:
             test-results/slo/
           retention-days: 90
 
+  land:
+    name: Land the re-measured scoreboard (Q57 refresh PR)
+    needs: [measure]
+    if: needs.measure.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The ONLY write grant in this workflow (Q57): push the bot branch, open or
+    # update its PR, and dispatch its checks (a github.token PR triggers none).
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v7
+        with:
+          name: scoreboard
+          path: ${{ runner.temp }}/measured
+      - uses: ./.github/actions/refresh-pr
+        with:
+          id: scoreboard
+          title: "chore(refresh): scoreboard + Everything-open block re-measured"
+          paths: |
+            docs/SCOREBOARD.md
+            docs/OPEN.md
+          measured-dir: ${{ runner.temp }}/measured
+          regenerate: node scripts/scoreboard.mjs --live-from "$MEASURED"
+          github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
+          check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}
+
   notify:
     name: Report result
-    needs: [measure]
+    needs: [measure, land]
     if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -85,6 +117,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: scoreboard
-          status: ${{ needs.measure.result == 'success' && 'success' || 'failure' }}
+          status: ${{ (needs.measure.result == 'success' && needs.land.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

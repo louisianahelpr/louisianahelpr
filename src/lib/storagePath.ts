@@ -69,3 +69,46 @@ export function safeDocumentUrl(value: string | null | undefined): string | null
   if (/^data:image\/(png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(v)) return v;
   return null;
 }
+
+/** One blob: URL per distinct data: document, kept for the session (a link re-rendered keeps working). */
+const openableBlobUrls = new Map<string, string>();
+
+/**
+ * The URL to OPEN a stored document at: an `href` with `target="_blank"`, or
+ * `window.open`. safeDocumentUrl's output, except that a `data:image/…` value
+ * becomes a same-origin `blob:` URL of the same bytes.
+ *
+ * WHY (docs/OPEN.md Q295): browsers refuse to navigate a top-level window to a
+ * `data:` URL. Measured in Chromium 2026-09-23: `window.open(<data:image/png>,
+ * "_blank", "noopener")` and a `target="_blank"` link to one open NOTHING and
+ * log nothing, so the admin credential queue's "Open" on a data: document was a
+ * dead button (press run 35837735324: "no observable change"). The same bytes
+ * as a `blob:` URL open and render (image width 1 of a 1x1 PNG). The CSP allows
+ * `blob:` (img-src). `<img src>` keeps safeDocumentUrl: a data: image renders.
+ *
+ * Returns only an `https:` URL (from safeDocumentUrl) or a `blob:` URL this
+ * function built from a raster image safeDocumentUrl already allowed — never
+ * the raw value. Null when there is nothing safe to open.
+ */
+export function openableDocumentUrl(value: string | null | undefined): string | null {
+  const safe = safeDocumentUrl(value);
+  if (!safe || !safe.startsWith("data:")) return safe;
+  const cached = openableBlobUrls.get(safe);
+  if (cached) return cached;
+  if (typeof URL.createObjectURL !== "function" || typeof atob !== "function") return null;
+  const comma = safe.indexOf(",");
+  const type = /^data:(image\/[a-z]+);base64$/i.exec(safe.slice(0, comma))?.[1];
+  if (!type) return null;
+  let bin: string;
+  try {
+    bin = atob(safe.slice(comma + 1).replace(/\s+/g, ""));
+  } catch {
+    // Not valid base64: nothing openable, and saying so (null) IS the answer.
+    return null;
+  }
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([bytes], { type }));
+  openableBlobUrls.set(safe, url);
+  return url;
+}

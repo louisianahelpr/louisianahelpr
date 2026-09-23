@@ -1,5 +1,5 @@
 import { ImageIcon } from "lucide-react";
-import { safeDocumentUrl } from "@/lib/storagePath";
+import { openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
 
 /**
  * Recent work — the photos a helper uploads once in Edit Profile
@@ -42,7 +42,7 @@ export function HelperWorkPhotos({ urls }: { urls: string[] }) {
             key={url}
             // profiles.portfolio_urls is the helper's own column (no shape
             // CHECK) and this renders to every viewer: never a raw href.
-            href={safeDocumentUrl(url) ?? undefined}
+            href={openableDocumentUrl(url) ?? undefined}
             target="_blank"
             rel="noopener noreferrer"
             className="relative aspect-square rounded-ds-md overflow-hidden border border-border/60 active:scale-[0.98] transition-transform"

@@ -1,4 +1,4 @@
-// @mutate src/components/profile/HelperWorkPhotos.tsx | href={safeDocumentUrl(url) ?? undefined} | href={url}
+// @mutate src/components/profile/HelperWorkPhotos.tsx | href={openableDocumentUrl(url) ?? undefined} | href={url}
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -25,7 +25,8 @@ import ts from "typescript";
  *
  * Safe by construction (auto-passes): a string literal; a template literal whose
  * text starts with a fixed scheme or a `/`; an UPPER_CASE constant;
- * `safeDocumentUrl(…)`; `undefined`. Anything else must appear in CLASSIFIED
+ * `safeDocumentUrl(…)` or `openableDocumentUrl(…)` (safeDocumentUrl's output, a
+ * data: image re-served as a blob: of the same bytes, Q295); `undefined`. Anything else must appear in CLASSIFIED
  * below with its reason, and every CLASSIFIED entry must still exist (a stale
  * entry fails too, so the list cannot rot into a blanket pass).
  */
@@ -88,7 +89,7 @@ function safeByConstruction(expr: string): boolean {
   if (/^[A-Z][A-Z0-9_]*$/.test(expr)) return true;
   // Exactly `safeDocumentUrl(x)` or `safeDocumentUrl(x) ?? undefined` — not
   // `safeDocumentUrl(x) ?? raw`, which would hand the raw value back.
-  if (/^safeDocumentUrl\([^()]*\)( \?\? undefined)?$/.test(expr)) return true;
+  if (/^(safe|openable)DocumentUrl\([^()]*\)( \?\? undefined)?$/.test(expr)) return true;
   if (expr === "undefined") return true;
   return false;
 }
@@ -113,9 +114,9 @@ const CLASSIFIED: Record<string, string> = {
   "components/PhotoProof.tsx::afterSrcs[i] ?? undefined": PROOF_SIGNED,
   "components/activity/HelperRevisionCard.tsx::url": PROOF_SIGNED,
   "components/admin/AdminCredentialQueue.tsx::signedUrl": "SignedOpenLink state: safeDocumentUrl(path) or createSignedUrl output, nothing else is ever set",
-  "components/admin/AdminCredentialQueue.tsx::safe": "const safe = safeDocumentUrl(path) on the line above",
+  "components/admin/AdminCredentialQueue.tsx::safe": "const safe = openableDocumentUrl(path) on the line above (safeDocumentUrl output, or a blob: of its data: image)",
   "components/admin/AdminCredentialQueue.tsx::data.signedUrl": STORAGE_SIGNED,
-  "components/profile/CredentialsTab.tsx::safe": "const safe = safeDocumentUrl(path) on the line above",
+  "components/profile/CredentialsTab.tsx::safe": "const safe = openableDocumentUrl(path) on the line above (safeDocumentUrl output, or a blob: of its data: image)",
   "components/profile/CredentialsTab.tsx::signed.signedUrl": STORAGE_SIGNED,
   "components/messages/MessageBubble.tsx::url": "isSafeHttpsUrl(url) (new URL(url).protocol === 'https:') returns inert text first",
   // --- app-built URLs, no stored value in the scheme position ---
@@ -204,6 +205,7 @@ describe("every navigation sink in src/ is safe by construction or classified", 
     expect(safeByConstruction("`${row.url}`")).toBe(false);
     expect(safeByConstruction('"javascript:alert(1)"')).toBe(false);
     expect(safeByConstruction("safeDocumentUrl(url) ?? url")).toBe(false);
+    expect(safeByConstruction("openableDocumentUrl(url) ?? url")).toBe(false);
   });
 
   it("every CLASSIFIED entry still exists (no stale blanket passes)", () => {

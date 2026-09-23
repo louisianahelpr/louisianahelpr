@@ -2,7 +2,7 @@ import { Pencil } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import { formatName } from "@/lib/utils";
-import { safeDocumentUrl } from "@/lib/storagePath";
+import { openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
 import { type Profile, statusBadge, stripeBadge } from "../adminUserHelpers";
 
 // The "Move to Pending" / "Resend denial email" row for denied accounts was
@@ -34,7 +34,7 @@ export function DetailHeader({
           `avatar_url` was null. See `src/lib/avatarImage.ts`. */}
       {safeDocumentUrl(viewProfile.avatar_url) ? (
         <a
-          href={safeDocumentUrl(viewProfile.avatar_url) ?? undefined}
+          href={openableDocumentUrl(viewProfile.avatar_url) ?? undefined}
           target="_blank"
           rel="noopener noreferrer"
           className="flex-shrink-0"

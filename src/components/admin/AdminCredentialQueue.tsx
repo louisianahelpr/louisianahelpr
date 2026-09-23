@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { isStorageObjectPath, safeDocumentUrl } from "@/lib/storagePath";
+import { isStorageObjectPath, openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
 import { report } from "@/lib/errorLogger";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
@@ -485,7 +485,9 @@ function SignedOpenLink({ path }: { path: string }) {
     // A value that is already a URL opens as-is ONLY if it is an https: or
     // raster data: URL (safeDocumentUrl); only a storage path is signed.
     if (!isStorageObjectPath(path)) {
-      const safe = safeDocumentUrl(path);
+      // openableDocumentUrl, not safeDocumentUrl: a data: document opens as
+      // blob: (a data: URL opens nothing in a new tab, Q295).
+      const safe = openableDocumentUrl(path);
       if (safe) window.open(safe, "_blank", "noopener");
       else toast.error("This document link isn't one we can open.");
       return;

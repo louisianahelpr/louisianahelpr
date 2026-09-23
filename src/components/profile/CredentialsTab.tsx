@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { isStorageObjectPath, safeDocumentUrl } from "@/lib/storagePath";
+import { isStorageObjectPath, openableDocumentUrl } from "@/lib/storagePath";
 import { unwrapMutationRow, mutationErrorMessage } from "@/lib/mutationResult";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -324,7 +324,8 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
     // A value that is already a URL opens as-is ONLY if safeDocumentUrl
     // passes it; only a storage path is signed.
     if (!isStorageObjectPath(path)) {
-      const safe = safeDocumentUrl(path);
+      // A data: document opens as blob: (a data: URL opens nothing, Q295).
+      const safe = openableDocumentUrl(path);
       if (safe) window.open(safe, "_blank", "noopener");
       else toast.error("This document link isn't one we can open.");
       return;

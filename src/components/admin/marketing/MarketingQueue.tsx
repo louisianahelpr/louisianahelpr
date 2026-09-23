@@ -31,7 +31,7 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { cn } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
 import { mutationErrorMessage } from "@/lib/mutationResult";
-import { safeDocumentUrl } from "@/lib/storagePath";
+import { openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
 import {
   CHANNEL_LABEL,
   STATUS_LABEL,
@@ -419,7 +419,7 @@ export function MarketingQueue({
 
                         {row.status === "published" && safeDocumentUrl(row.external_url) && (
                           <Button size="sm" variant="outline" asChild>
-                            <a href={safeDocumentUrl(row.external_url) ?? undefined} target="_blank" rel="noopener noreferrer">
+                            <a href={openableDocumentUrl(row.external_url) ?? undefined} target="_blank" rel="noopener noreferrer">
                               <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                               View post
                             </a>

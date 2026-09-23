@@ -59,6 +59,7 @@ export function PetRailRow({
         </div>
         <div className="flex-1 min-w-0">
           <p
+            title={pet.name}
             className="text-ds-13 font-semibold leading-tight truncate"
             style={{
               color: active ? "hsl(var(--bark))" : "hsl(var(--foreground))",

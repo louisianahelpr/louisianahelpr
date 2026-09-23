@@ -54,7 +54,7 @@ export const JobListItem = ({ job, flags, isResolved, onOpen }: JobListItemProps
       <div className="flex items-start gap-2">
         {showFlagStyle && <AlertTriangle className="w-4 h-4 mt-0.5 text-destructive shrink-0" />}
         {modFlags.length > 0 && isResolved && <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary shrink-0" />}
-        <p className="min-w-0 flex-1 font-semibold text-foreground leading-snug line-clamp-2">{job.title}</p>
+        <p title={job.title} className="min-w-0 flex-1 font-semibold text-foreground leading-snug line-clamp-2">{job.title}</p>
       </div>
 
       {/* Meta row — every chip that used to crowd the title or stack at the
@@ -72,7 +72,7 @@ export const JobListItem = ({ job, flags, isResolved, onOpen }: JobListItemProps
       </div>
 
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-ds-11 text-muted-foreground">
-        <span className="flex items-center gap-1 min-w-0"><MapPin className="w-3 h-3 shrink-0" /> <span className="truncate">{job.location}</span></span>
+        <span className="flex items-center gap-1 min-w-0"><MapPin className="w-3 h-3 shrink-0" /> <span title={job.location ?? undefined} className="truncate">{job.location}</span></span>
         <span className="flex items-center gap-1"><CalendarClock className="w-3 h-3 shrink-0" /> {formatJobDate(job.date_needed)}</span>
         <span className="font-medium text-foreground">${formatPrice(job.budget ?? 0)}</span>
       </div>

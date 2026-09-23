@@ -446,6 +446,7 @@ const ConversationRowBase = ({
                   another; the value is set in exactly one place. */}
               <p
                 data-testid="row-name"
+                title={c.otherUserName}
                 className="font-sans truncate min-w-0 basis-[5.5rem] grow text-ds-15"
                 style={{
                   color: "hsl(var(--ink-deep))",
@@ -510,6 +511,7 @@ const ConversationRowBase = ({
                   index.css for why that declaration is the difference between
                   an ellipsis and a word sliced in half. */}
               <p
+                title={c.jobTitle}
                 className="flex-1 min-w-0 basis-[9rem] text-ds-11 truncate senior-clamp-2 font-sans"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
@@ -584,6 +586,7 @@ const ConversationRowBase = ({
                   Messages shows two lines here as well. */}
               <p
                 data-testid="row-preview"
+                title={sentByMe ? `You: ${previewBody}` : previewBody}
                 className="text-ds-12 truncate senior-clamp-2 min-w-0 flex-1"
                 style={{
                   color: hasUnreadFromOther ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",

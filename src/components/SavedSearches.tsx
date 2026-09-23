@@ -491,6 +491,7 @@ export function SavedSearches({
                   className="flex-1 text-left min-w-0 active:opacity-70 transition-opacity"
                 >
                   <p
+                    title={s.name}
                     className="font-sans font-semibold text-ds-15 truncate"
                     style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
                   >

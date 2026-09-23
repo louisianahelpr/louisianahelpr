@@ -174,7 +174,7 @@ export function OfferToSavedHelpr({
                     className="w-8 h-8 shrink-0"
                     fallbackClassName="text-ds-11 ring-0"
                   />
-                  <span className="text-ds-13 font-semibold text-foreground truncate">
+                  <span title={name} className="text-ds-13 font-semibold text-foreground truncate">
                     {name}
                   </span>
                 </button>

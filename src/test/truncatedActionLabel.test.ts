@@ -1,6 +1,6 @@
 /**
- * NO ACTION LABEL IN src/components/profile IS CUT OFF WITHOUT ITS FULL TEXT
- * BEING AVAILABLE SOMEWHERE ELSE (Q108).
+ * NO ACTION LABEL IN src/ IS CUT OFF WITHOUT ITS FULL TEXT BEING AVAILABLE
+ * SOMEWHERE ELSE (Q108; widened from src/components/profile to src/ by Q116).
  *
  * ── WHAT SHIPPED ────────────────────────────────────────────────────────────
  * /profile?tab=credentials, after a license was sent, measured at 375 on
@@ -21,35 +21,74 @@
  * reachable: a `title` or `aria-label` on the interactive element or on the
  * clipped descendant.
  *
- * Inventory: every .tsx under src/components/profile, parsed with the
- * TypeScript compiler (so comments and prose never count). KNOWN lists the
- * offenders that existed when this guard landed. It is EXACT: a new offender
- * fails, and fixing a known one fails until it is removed from the list.
+ * Inventory: every .tsx under src/ (components, pages, everything), parsed
+ * with the TypeScript compiler (so comments and prose never count). KNOWN lists
+ * the offenders still standing, each with its reason. It is EXACT: a new
+ * offender fails, and fixing a known one fails until it is removed from the list.
+ *
+ * ── Q116 (2026-09-23) ───────────────────────────────────────────────────────
+ * Widening to src/ took the inventory from 112 controls (profile only) to 828
+ * controls in 501 files and found 37 new offenders (39 with the two profile
+ * ones). 15 were user data truncated on purpose (names, job titles, message
+ * previews, file names, locations) and now carry a `title` with the full text.
+ * Measured on prod as poster-e2e, /messages at 375: job title "Bring in patio
+ * furniture and secure the shed" sw241 > cw231 and preview "Should be wrapped
+ * up in a couple of hours." sw261 > cw231, both with no title; after, every
+ * row carries it (~/.lh-shots/q116/{before,after}/measure.txt).
  */
 // @mutate src/components/profile/CredentialsTab.tsx | text-ds-13 text-primary underline break-words | text-ds-13 text-primary underline truncate
+// @mutate src/components/messages/ConversationRow.tsx | title={c.jobTitle} | data-q116-mutant={c.jobTitle}
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 const ROOT = join(__dirname, "..", "..");
-const SCAN_DIR = join(ROOT, "src", "components", "profile");
+const SCAN_DIR = join(ROOT, "src");
 
 const INTERACTIVE_TAGS = new Set(["a", "button", "Button", "Link", "NavLink"]);
 const INTERACTIVE_ROLES = new Set(["button", "link", "tab", "menuitem"]);
 const CLIP_RE = /(^|\s)(?:[a-z0-9-]+:)*(truncate|text-ellipsis|line-clamp-(?:\d+|\[[^\]]+\]))(?=\s|$)/;
 
 /**
- * Offenders present when the guard landed (2026-09-23). Each is a clipped
- * label inside a control with no title/aria-label. Both are tracked as Q116 in
- * docs/OPEN.md (not yet measured to clip on screen); remove an entry when its
- * offender is fixed or given its full text.
+ * Offenders still standing, each with the reason it may stay. Remove an entry
+ * when its offender is fixed or given its full text.
  * Key: `<file>:<interactive tag>:<clipped text>`.
+ *
+ * MEASURED NOT CLIPPED: scrollWidth/clientWidth (line-clamp: scrollHeight/
+ * clientHeight) at 320, 375 and 1440 as poster-e2e on 2026-09-23.
+ * UNMEASURED: surfaced when Q116 widened the scan; clipping on screen is not
+ * yet measured. Tracked as Q119 in docs/OPEN.md.
  */
-const KNOWN: string[] = [
-  "src/components/profile/LegalTab.tsx:TabsTrigger:{TAB_LABELS[key]}",
-  "src/components/profile/profileLanding/SettingsSection.tsx:button:{item.desc}",
-];
+const UNMEASURED = "Q119: not yet measured on screen (found by the Q116 widening, 2026-09-23)";
+const KNOWN: Record<string, string> = {
+  "src/components/profile/LegalTab.tsx:TabsTrigger:{TAB_LABELS[key]}":
+    "MEASURED NOT CLIPPED 2026-09-23: Terms/Rules/Privacy sw==cw (35/31/41px) at 320 and 375, 41/37/49 at 1440",
+  "src/components/profile/profileLanding/SettingsSection.tsx:button:{item.desc}":
+    "MEASURED NOT CLIPPED 2026-09-23: all 19 descriptions sh==ch (<=2 lines) at 320, 375 and 1440",
+  "src/components/DatePickerField.tsx:button:{formatted}": UNMEASURED,
+  "src/components/DesktopSidebarNav.tsx:button:{label}": UNMEASURED,
+  "src/components/SavedSearches.tsx:button:{[ s.query && `“${s.query}”`, s.category && `Category: ${cat": UNMEASURED,
+  "src/components/TimeRangeField.tsx:button:{display}": UNMEASURED,
+  "src/components/activity/JobCardMetaRow.tsx:a:{city}": UNMEASURED,
+  "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx:button:{q}": UNMEASURED,
+  "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:Button:Apply Now": UNMEASURED,
+  "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:Button:{guestCtaLabel}": UNMEASURED,
+  'src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:button:{(job.credential_tier ?? 0) === 1 ? "Get Verified to Apply" ': UNMEASURED,
+  "src/components/mobileNav/NavQuickMenu.tsx:button:{label}": UNMEASURED,
+  "src/components/mobileNav/NavQuickMenu.tsx:button:{sub}": UNMEASURED,
+  "src/components/policy/CollapsedPolicy.tsx:CollapsibleTrigger:{isSearching ? highlight(subtitle, query) : subtitle}": UNMEASURED,
+  "src/components/policy/CollapsedPolicy.tsx:CollapsibleTrigger:{isSearching ? highlight(title, query) : title}": UNMEASURED,
+  'src/components/postjob/AddressAutocomplete.tsx:button:{s.displayLines[0] ?? ""}': UNMEASURED,
+  "src/components/postjob/AddressAutocomplete.tsx:button:{s.displayLines[1]}": UNMEASURED,
+  'src/components/postjob/PetPicker.tsx:button:{[p.breed, p.species].filter(Boolean).join(" · ")}': UNMEASURED,
+  "src/pages/activity/ActivitySectionedView.tsx:button:{sectionLabels[key]}": UNMEASURED,
+  "src/pages/petProfiles/PetCard.tsx:button:{SPECIES_OPTIONS.find((s) => s.value === pet.species)?.label": UNMEASURED,
+  'src/pages/petProfiles/PetRailRow.tsx:button:{speciesLabel}{pet.breed ? ` · ${pet.breed}` : ""}{pet.age_y': UNMEASURED,
+  'src/pages/postjob/EntryChoice.tsx:button:{fundingJobId === draft.id ? "Opening checkout…" : "Finish P': UNMEASURED,
+  "src/pages/postjob/EntryChoice.tsx:button:“{draft.title}” isn’t posted yet — nobody can see it until i": UNMEASURED,
+  "src/pages/postjob/FormStep.tsx:Button:{submitLabel}": UNMEASURED,
+};
 
 function walk(dir: string): string[] {
   const out: string[] = [];
@@ -151,9 +190,9 @@ function scanAll() {
 describe("truncated action labels (Q108)", () => {
   const { files, interactive, offenders } = scanAll();
 
-  it("inventories the real profile surface, not an empty glob", () => {
-    expect(files).toBeGreaterThan(40);
-    expect(interactive).toBeGreaterThan(100); // 112 on 2026-09-23
+  it("inventories the whole src/ surface, not an empty glob", () => {
+    expect(files).toBeGreaterThan(490); // 501 on 2026-09-23
+    expect(interactive).toBeGreaterThan(800); // 828 on 2026-09-23
   });
 
   it("the detector fires on the original Q108 markup and respects title/aria-label", () => {
@@ -170,6 +209,6 @@ describe("truncated action labels (Q108)", () => {
   });
 
   it("no clipped action label without its full text, exactly the KNOWN list", () => {
-    expect([...offenders].sort()).toEqual([...KNOWN].sort());
+    expect([...offenders].sort()).toEqual(Object.keys(KNOWN).sort());
   });
 });

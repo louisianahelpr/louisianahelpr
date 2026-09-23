@@ -130,7 +130,7 @@ export function DocumentsTab({ viewProfile, idDocSignedUrl }: DocumentsTabProps)
               ) : (
                 <a key={i} href={safeDocumentUrl(url) ?? undefined} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">
                   <FileText className="w-6 h-6 text-muted-foreground mb-1" />
-                  <p className="text-muted-foreground text-ds-11 text-center truncate w-full">{fileName}</p>
+                  <p title={fileName} className="text-muted-foreground text-ds-11 text-center truncate w-full">{fileName}</p>
                 </a>
               );
             })}

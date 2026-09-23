@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 41 done, 5 partly done (fixed, protection pending), 72 open. Source of truth for work.
+- **Queue (this file):** 42 done, 5 partly done (fixed, protection pending), 72 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 118 items — 41 done, 5 partly done (fixed, protection pending), 72 open.**
+**Queue: 119 items — 42 done, 5 partly done (fixed, protection pending), 72 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -727,13 +727,24 @@ sure someone hears it and closes it.
   Radix Trigger in src/components/profile, TS AST: no truncate/text-ellipsis/
   line-clamp on the control or a descendant without title/aria-label; exact
   two-way KNOWN list), red on the old `truncate`.
-- [ ] **Q116 Two clipped labels inside controls in src/components/profile (found by the Q108 guard, 2026-09-23).**
-  LegalTab.tsx TabsTrigger `<span className="relative truncate">{TAB_LABELS[key]}</span>`
-  and profileLanding/SettingsSection.tsx button `line-clamp-2` on `{item.desc}`
-  have no title/aria-label. Not yet measured to clip on screen: measure at 320/375;
-  if they clip, let them wrap or give the full text, then drop them from KNOWN
-  in src/test/truncatedActionLabel.test.ts. Also: the guard covers only
-  src/components/profile; widening it to src/ is open.
+- [x] **Q116 Two clipped labels inside controls in src/components/profile (found by the Q108 guard, 2026-09-23).**
+  Guard: src/test/truncatedActionLabel.test.ts, widened from src/components/profile
+  to all of src/ (112 -> 828 controls, 501 files; 37 new offenders, 39 total).
+  Measured on prod as poster-e2e 2026-09-23 (~/.lh-shots/q116): LegalTab tab labels
+  sw==cw at 320/375/1440 and SettingsSection descriptions sh==ch at all three, so
+  both stay on the exact allowlist with that measurement as the reason. /messages
+  at 375: job title sw241>cw231 and preview sw261>cw231 with no full text; 15 user-data
+  truncations (names, job titles, previews, file names, locations) now carry a
+  `title` with the full text, layout unchanged. The other 22 are Q119.
+- [ ] **Q119 22 clipped control labels the Q116 widening found, not yet measured on screen.**
+  Listed as UNMEASURED in KNOWN in src/test/truncatedActionLabel.test.ts
+  (DatePickerField, DesktopSidebarNav, SavedSearches summary, TimeRangeField,
+  JobCardMetaRow city, BrowseSearchBar, JobDetailFooter x3, NavQuickMenu x2,
+  CollapsedPolicy x2, AddressAutocomplete x2, PetPicker breed line,
+  ActivitySectionedView, PetCard, PetRailRow meta, EntryChoice x2, FormStep).
+  For each: measure scrollWidth/clientWidth (line-clamp: scrollHeight) at 320/375/1440
+  on prod; clipped UI copy wraps or gets its full text, clipped user data gets a
+  `title`, unclipped stays with a dated measurement as its reason.
 - [ ] **Q100 A funded open job fixture for the four poster-side forms (Q49
   follow-up).** EditJobDialog, CancellationDialog, ApplicantsPanel and
   DeclineApplicantSheet open only from a FUNDED open job of poster-e2e with a

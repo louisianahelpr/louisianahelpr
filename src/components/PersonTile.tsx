@@ -114,7 +114,7 @@ export function PersonTile({
             {eyebrow}
           </p>
           <div className="flex items-baseline gap-2">
-            <p className="font-sans font-semibold leading-tight truncate text-ds-16 min-w-0" style={{ color: "hsl(var(--ink-deep))" }}>
+            <p title={name ?? undefined} className="font-sans font-semibold leading-tight truncate text-ds-16 min-w-0" style={{ color: "hsl(var(--ink-deep))" }}>
               {name}
             </p>
             {/* "New" (no reviews yet) and the relative post date were removed

@@ -129,7 +129,7 @@ export function PetPicker({
                     </span>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block text-ds-13 font-semibold text-foreground truncate">
+                    <span title={p.name} className="block text-ds-13 font-semibold text-foreground truncate">
                       {p.name}
                     </span>
                     <span

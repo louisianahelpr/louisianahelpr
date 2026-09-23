@@ -399,6 +399,7 @@ export function ApplicantsPanel({
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <a
                                 href={`/user/${app.helper_id}`}
+                                title={helperName}
                                 className="font-display italic font-bold truncate hover:underline text-ds-15"
                                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
                               >

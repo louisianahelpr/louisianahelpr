@@ -1,0 +1,56 @@
+# Agent brief — read this before you start (every spawned agent)
+
+The lead pastes your task; these rules apply to every task. They exist because
+each one was broken at least once on 2026-09-23. CLAUDE.md still wins where it
+says more.
+
+## Where you work
+- You are in your own git worktree. Work only there. If you ever find your cwd
+  is the shared checkout (`/Users/lexilombas/louisianahelpr` itself), stop and
+  move into your worktree — never edit or commit from the shared checkout.
+- Never `git stash` (refs/stash is shared by every worktree).
+- Evidence (screenshots, logs, measurements) goes under `~/.lh-shots/<task>/`,
+  NOT inside your worktree — worktrees are deleted when you finish.
+
+## Checks you run (and don't)
+- Do NOT run repo-wide `npm run typecheck`, `npx vitest run` or `npm run gate` —
+  the lead serializes those (8 GB Mac). Use `node scripts/parsecheck.mjs <file>`
+  and targeted `npx vitest run <files>`.
+- Before pushing: `npm run inventories:refresh`, then `npm run check:generated`
+  and `npm run check:counts` (a new test moves the generated burn-down score;
+  skipping this turned main red on 2026-09-23).
+- Browser work: one agent at a time; record every screenshot you judge with
+  `cd /Users/lexilombas/louisianahelpr && npm run review:record -- <png> <screen> <checked> <ok|defect> [note]`.
+
+## Guards you write
+- Every new guard carries `// @mutate <file> | <find> | <replace>` (escape `|`
+  inside it as `\|`) and an inventory floor (`expect(n).toBeGreaterThan(k)`).
+- PROVE IT RED on the broken state — revert the fix or plant the defect and run
+  it — not only on a synthetic fixture. A parser can silently read the wrong
+  file (a `$fn$`-only parser read the old function body and stayed green).
+- Migration-reading guards must accept any dollar-quote tag and read the NEWEST
+  definition. Source-scanning guards must ignore comments.
+
+## Data and prod
+- Prod (`fncmgoasalhdgfwzhsqa`) is the only database. Read-only SQL is fine;
+  writes only to test-owned records, marked `is_seed`, cleaned up after.
+- Migrations: `npm run migration:new -- <slug>`, replay-safe, applied 3× in
+  PGlite (installed at `~/.lh-pglite`, outside the repo), `REVOKE ... FROM
+  PUBLIC, anon`. They auto-deploy on push — watch the db-deploy run to green and
+  verify live with `pg_get_functiondef` / `pg_proc.proacl`.
+- Money / authz / data-model changes get a REVIEW-ONLY pass (lh-authz-rls,
+  lh-silent-failure or lh-money-escrow) — say in your report what needs one.
+
+## Landing
+- Commit in your worktree, then
+  `git fetch origin && git rebase origin/main && git push --no-verify origin HEAD:main`.
+- End commits with the Co-Authored-By line from CLAUDE.md.
+- Update `docs/OPEN.md`: tick an item `[x]` ONLY with the guard that stops it
+  recurring named in its text (else `[~]`), then run
+  `node scripts/queue-count.mjs --write`. Anything you notice but don't fix
+  becomes a new queue item — nothing lives outside `docs/OPEN.md`.
+
+## Your report
+State what you MEASURED (numbers, run ids, before/after), what you could not
+verify and why, and the red→green proof for each guard. "I don't know" beats a
+confident guess.

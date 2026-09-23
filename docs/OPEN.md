@@ -7587,7 +7587,7 @@ rows are non-tappable; panel identical in WebKit and Chromium.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 81 items — 12 done, 4 partly done (fixed, protection pending), 65 open.**
+**Queue: 81 items — 13 done, 4 partly done (fixed, protection pending), 64 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -8226,7 +8226,7 @@ sure someone hears it and closes it.
   rules, verify each remaining entry still matches the code, and keep the index
   short. Add a check that flags index entries whose file is missing or whose
   handoff is older than the newest handoff.
-- [ ] **Q81 One shared agent brief.** Every agent spawned on 2026-09-23 needed the
+- [x] **Q81 DONE: .claude/AGENT-BRIEF.md + a CLAUDE.md rule that every spawn reads it.** GUARD: scripts/check-claude-md.mjs checks the CLAUDE.md line exists (a CLAUDE.md claim). NO-GUARD for brief CONTENT beyond that: it's prose; keeping it current is the lead's job each time a lapse is found. Was: One shared agent brief. Every agent spawned on 2026-09-23 needed the
   same rules pasted in: commit in the worktree and rebase/push to main
   --no-verify, never stash, parsecheck + targeted vitest (the lead serializes
   the gate), `npm run inventories:refresh` + check:generated + check:counts

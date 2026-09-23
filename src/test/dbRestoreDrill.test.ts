@@ -14,7 +14,7 @@
  * compares nothing is the false green this guard exists against.
  */
 // @mutate .github/workflows/db-restore-drill.yml | bash scripts/db-restore-drill.sh | echo skipped
-// @mutate scripts/db-restore-drill.sh | FAIL=1 | FAIL=0
+// @mutate scripts/db-restore-drill.sh | table did not restore"; FAIL=1 | table did not restore"; FAIL=0
 
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

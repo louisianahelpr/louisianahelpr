@@ -42,6 +42,11 @@
     // matched a real notification body and took out three journey legs). This
     // project is `composite`, so a file it compiles has to be listed.
     "e2e/errorScreens.ts",
+    // src/test/e2eSkipsAreJustified.test.ts imports the skip inventory, allowlist
+    // and reporter (TS6307 otherwise).
+    "e2e/skipSites.ts",
+    "e2e/skipAllowlist.ts",
+    "e2e/reporters/skipReporter.ts",
     "supabase/functions/_shared/businessSeatTiers.ts",
     "supabase/functions/_shared/proTiers.ts",
     "supabase/functions/_shared/tierNames.ts",

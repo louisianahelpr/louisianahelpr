@@ -1,4 +1,4 @@
-// @mutate supabase/functions/money-reconciliation/index.ts | if ((hit as { gift_card_id?: unknown } | null)?.gift_card_id != null) return false; | if (false) return false;
+// @mutate supabase/functions/money-reconciliation/index.ts | if ((hit as { gift_card_id?: unknown } \| null)?.gift_card_id != null) return false; | if (false) return false;
 /**
  * Unit tests for the `money-reconciliation` Supabase edge function — the
  * read-only alarm for money rows that disagree with what settlement derives.

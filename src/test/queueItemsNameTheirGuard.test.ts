@@ -1,4 +1,4 @@
-// @mutate docs/OPEN.md | - [x] **Q21 DONE | - [x] **Q21 DONE (no guard)
+// @mutate docs/OPEN.md | Class check: src/lib/jobDayHasEnded.tz.test.ts sweeps | Class check: a tz sweep
 /*
  * A queue item is not DONE until something stops it from recurring.
  *

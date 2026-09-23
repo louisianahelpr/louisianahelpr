@@ -14,7 +14,7 @@ interface PublicHeaderPageProps {
   /** Bottom padding for the body wrapper below the header — each page still
    *  owns its own closing rhythm (Jobs: `pb-safe-nav`, Legal/Help: `pb-8`+).
    *  Top padding is NOT a param: the header owns the full gap above AND
-   *  below the title itself (16px on phone, 24px from `sm` up), so the body
+   *  below the title itself (`--shell-gap` = 12px on phone, 24px from `sm` up), so the body
    *  must never add its own — see the note on PageHeader's own padding. */
   bottomPaddingClassName: string;
   /** Optional wrapper class around just the <PageHeader> — e.g. Jobs' own

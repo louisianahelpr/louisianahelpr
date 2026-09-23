@@ -165,11 +165,12 @@ const AuthShell = ({
         {/* Spacer clears the FIXED navbar. Without it the nav sat directly on
             top of the [back] [title] row — the title was in the DOM at y=31
             with a 56px fixed bar over it, so the page simply looked like it had
-            lost its heading. Same height calc PublicLayout uses, so auth pages
-            start at exactly the same offset as every other public page. */}
+            lost its heading. Same height calc PublicLayout uses (exactly the
+            nav's height, `--public-nav-h`), so auth pages start at exactly the
+            same offset as every other public page. */}
         <div
           aria-hidden
-          style={{ height: "calc(max(var(--safe-area-top, 0px), 1.5rem) + 3rem)" }}
+          style={{ height: "calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))" }}
         />
         {content}
         <Footer />
@@ -232,7 +233,7 @@ const AuthShell = ({
           {backLink}
         </div>
       )}
-      <div className={`relative z-10 flex flex-col ${centered ? "items-center" : alignClass} ${anchor === "top" ? "justify-start" : `${centered ? "lg:justify-center" : ""} justify-center`} min-h-screen px-5 sm:px-8 lg:px-12 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(var(--safe-area-top,0px)_+_10px)] sm:pt-10" : "pt-[calc(var(--safe-area-top,0px)_+_24px)] sm:pt-8 lg:pt-6"}`}>
+      <div className={`relative z-10 flex flex-col ${centered ? "items-center" : alignClass} ${anchor === "top" ? "justify-start" : `${centered ? "lg:justify-center" : ""} justify-center`} min-h-screen px-5 sm:px-8 lg:px-12 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(var(--safe-area-top,0px)_+_10px)] sm:pt-10" : "pt-[calc(var(--safe-area-top,0px)_+_var(--shell-gap))] sm:pt-8 lg:pt-6"}`}>
         {/* Brand mark hero — desktop-only. Sits as a sibling INSIDE the
             same vertically-centered flex column as the form so hero +
             form read as one composed unit centered on the viewport
@@ -281,7 +282,7 @@ const AuthShell = ({
               / AccountPending / PaymentSuccess / CompleteProfile deliberately
               offer no way back, and a chevron there would be a dead end. */}
           {title && (
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-[var(--shell-gap)] sm:mb-4">
               {!hideBack && <div className="shrink-0">{backLink}</div>}
               <h1
                 className="flex-1 min-w-0 font-display italic font-bold text-ds-24 leading-tight truncate"

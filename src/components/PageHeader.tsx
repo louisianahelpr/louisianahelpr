@@ -241,8 +241,11 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hide
       )}
 
       {/* EQUAL AIR ABOVE AND BELOW THE TITLE — one rule, every page.
-          THIS COMPONENT OWNS BOTH GAPS: 16px each side on phone, 24px each
-          side from `sm` up (owner, 2026-08-30: "24 spacing is too much on a
+          THIS COMPONENT OWNS BOTH GAPS: `--shell-gap` (12px) each side on
+          phone — the one phone rhythm every shell shares (Q176, owner
+          2026-09-23: "too much space above and below for phone width"; it was
+          16px, and PageScaffold's 12 was the screens that looked right) —
+          24px each side from `sm` up (owner, 2026-08-30: "24 spacing is too much on a
           phone so the phone and webpage should not be the same" — supersedes
           the earlier "all of these should be 24" pass, which had made it a
           single fixed value). This is the ONE place the value lives; changing
@@ -276,8 +279,8 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hide
           // calc() on the same property, so the safe-area addition is baked
           // into the arbitrary-value class itself at each breakpoint instead
           // of an inline `style` override.
-          ? "pt-[calc(var(--safe-area-top,0px)+1rem)] sm:pt-[calc(var(--safe-area-top,0px)+1.5rem)] pb-4 sm:pb-6"
-          : "pt-4 pb-4 sm:pt-6 sm:pb-6",
+          ? "pt-[calc(var(--safe-area-top,0px)+var(--shell-gap))] sm:pt-[calc(var(--safe-area-top,0px)+1.5rem)] pb-[var(--shell-gap)] sm:pb-6"
+          : "pt-[var(--shell-gap)] pb-[var(--shell-gap)] sm:pt-6 sm:pb-6",
         undefined,
         <>
           {/* Back button sits to the LEFT of the title block (not stacked above

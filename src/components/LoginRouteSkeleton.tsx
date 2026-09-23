@@ -58,7 +58,7 @@ const LoginRouteSkeleton = () => (
         ].join(", "),
       }}
     />
-    <div className="relative z-10 flex flex-col items-center justify-start min-h-screen px-5 sm:px-8 lg:px-12 pb-10 sm:pb-8 lg:pb-6 pt-[calc(var(--safe-area-top,0px)_+_24px)] sm:pt-8 lg:pt-6">
+    <div className="relative z-10 flex flex-col items-center justify-start min-h-screen px-5 sm:px-8 lg:px-12 pb-10 sm:pb-8 lg:pb-6 pt-[calc(var(--safe-area-top,0px)_+_var(--shell-gap))] sm:pt-8 lg:pt-6">
       <div className="w-full page-measure">
         {/* THE canonical [back] [title] row, at AuthShell's measurements. The
             chevron is a bone rather than a real <BackButton>: the control is

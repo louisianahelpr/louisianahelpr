@@ -151,12 +151,12 @@ const MenuGroupCardSkeleton = () => (
  * The horizontal half cannot drift: the reserved chevron slot is the SAME
  * `BACK_BUTTON_BOX_CLASS` PageHeader reserves, and `gap-3` is PageHeader's own
  * title-row gap, so the bar starts on the app's title line like the real one.
- * The vertical literals (`pt-4 pb-4 sm:pt-6 sm:pb-6`) are copied from
+ * The vertical values (`--shell-gap` on phone, `sm:pt-6 sm:pb-6`) are copied from
  * PageHeader's "equal air above and below" block; `h-7` is the measured height
  * of a rendered `.text-page-title` (27px at 1440, 25px at 375).
  */
 const LandingTitleSkeleton = () => (
-  <div className="pt-4 pb-4 sm:pt-6 sm:pb-6 flex items-center gap-3">
+  <div className="pt-[var(--shell-gap)] pb-[var(--shell-gap)] sm:pt-6 sm:pb-6 flex items-center gap-3">
     <span className={`${BACK_BUTTON_BOX_CLASS} block shrink-0`} aria-hidden="true" />
     <Skeleton className="h-7 w-44 rounded-md" />
   </div>

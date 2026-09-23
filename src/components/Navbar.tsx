@@ -75,7 +75,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
       }}
     >
       <div
-        className="w-full flex items-center justify-between h-14 lg:h-16
+        className="w-full flex items-center justify-between h-[var(--public-nav-h)]
           pl-[max(1.25rem,var(--safe-area-left,0px))] pr-[max(1.25rem,var(--safe-area-right,0px))]
           sm:pl-[max(2rem,var(--safe-area-left,0px))] sm:pr-[max(2rem,var(--safe-area-right,0px))]
           lg:pl-[max(3rem,var(--safe-area-left,0px))] lg:pr-[max(3rem,var(--safe-area-right,0px))]"

@@ -1879,6 +1879,34 @@ html.no-bottom-nav {
   --bottom-nav-h: 0px;
 }
 
+/* ── PAGE-SHELL RHYTHM (Q176, owner 2026-09-23) ─────────────────────────────
+   "Too much space above and below for phone width … make the page shells for
+   public and authed all consistent." ONE phone gap, read by every shell:
+
+   --shell-gap        12px: top chrome → title block, and title block → first
+                      content. Taken from the screens that already looked
+                      right: PageScaffold (Dashboard, My Jobs, Messages) was
+                      `pt-3` + `gap-3` = 12/12 while PageHeader pages sat at
+                      16/16 and the public pages at 28/16 (measured,
+                      ~/.lh-shots/shell-spacing/before.json).
+   --public-nav-h     the marketing <Navbar>'s bar height (h-14, lg h-16). The
+                      nav spacer in PublicLayout/AuthShell is EXACTLY this plus
+                      the inset — it used to add a 12px "breathing" band of its
+                      own on top of PageHeader's gap.
+
+   Phone only: from `sm` (PageHeader) / `lg` (PageScaffold) up the shells keep
+   their own desktop values. Guard: e2e/prod-audit/shell-spacing.spec.ts
+   (rendered gaps, every catalog route) + src/test/shellSpacingTokens.test.ts. */
+:root {
+  --shell-gap: 0.75rem;
+  --public-nav-h: 3.5rem;
+}
+@media (min-width: 1024px) {
+  :root {
+    --public-nav-h: 4rem;
+  }
+}
+
 /* ── .helpr-emblem — the wrought-iron H mark ───────────────────────────────
    The artwork is dark iron on a transparent ground, with brass fleur-de-lis
    finials and a verdigris centre. On the light parchment canvas it reads

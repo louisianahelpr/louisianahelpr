@@ -123,16 +123,19 @@ const PublicLayout = ({
           a bordered olive surface — that made every non-landing page's
           top nav look different from the landing. Uniform now. */}
       <Navbar solid={false} />
-      {/* Spacer clears the fixed Navbar (h-12 = 3rem + safe-area top inset)
-          AND adds a comfortable breathing gap below it so a page's title/header
-          doesn't crowd the nav. The min breathing room is 1.5rem (was 0.25rem,
-          which read as touching); a notched device's larger safe-area inset
-          wins via max(). The landing hero opts out (noNavSpacer) so it flows
-          under the nav. */}
+      {/* Spacer clears the fixed Navbar EXACTLY: its bar (`--public-nav-h`,
+          h-14 / lg h-16) plus the same `max(inset, 0.25rem)` top padding the
+          Navbar itself wears. It adds NO breathing band of its own any more
+          (Q176, owner 2026-09-23: too much space above the title at phone
+          width): it used to be `max(inset, 1.5rem) + 3rem` = 72px under a 60px
+          bar, 12px of dead air stacked on PageHeader's own gap. The gap under
+          the nav belongs to PageHeader (`--shell-gap`), as on every signed-in
+          page. The landing hero opts out (noNavSpacer) so it flows under the
+          nav. */}
       {!noNavSpacer && (
         <div
           aria-hidden
-          style={{ height: "calc(max(var(--safe-area-top, 0px), 1.5rem) + 3rem)" }}
+          style={{ height: "calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))" }}
         />
       )}
 

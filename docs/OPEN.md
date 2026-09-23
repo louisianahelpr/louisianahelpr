@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 16 done, 5 partly done (fixed, protection pending), 64 open. Source of truth for work.
+- **Queue (this file):** 18 done, 4 partly done (fixed, protection pending), 64 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 85 items — 16 done, 5 partly done (fixed, protection pending), 64 open.**
+**Queue: 86 items — 18 done, 4 partly done (fixed, protection pending), 64 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -285,7 +285,7 @@ sure someone hears it and closes it.
   ops-daily-digest (14:40 UTC) fell inside the 09-22 pg_cron outage
   (14:00-15:00), so no digest ran from 09-21 14:40 until the next slot, 38h+.
   Detect missed daily/weekly slots and run them once when the database is back.
-- [~] **Q31 DONE (measured 2026-09-23 05:00Z): healthy since the 30s timeout change.** 0 cron-http/cron-dead failures after 22:35Z (last 20:15Z, during the timeout era); pg_cron failures only 08:00-14:00Z (the outage). All 79 cancelled jobs with a PaymentIntent are payment_status refunded (4) or cancelled (75): 0 live holds IN THE DB. NOT verified: Stripe-side PI state (the Stripe MCP needs auth). Ongoing coverage: the ledger cron-dead condition + money-reconciliation. Was: void-cancelled-payments (MONEY: releases card holds on cancelled PROTECTION NOT YET BUILT: the Stripe-side comparison and reconciliation alert are Q50. Stays [~] until then.
+- [x] **Q31 DONE (measured 2026-09-23 05:00Z): healthy since the 30s timeout change.** 0 cron-http/cron-dead failures after 22:35Z (last 20:15Z, during the timeout era); pg_cron failures only 08:00-14:00Z (the outage). All 79 cancelled jobs with a PaymentIntent are payment_status refunded (4) or cancelled (75): 0 live holds IN THE DB. Stripe side verified 07:20Z (Q50): all 79 PIs captured then refunded, 0 requires_capture. Ongoing coverage: the ledger cron-dead condition + money-reconciliation, which since 78a88a861 compares every settled job's PaymentIntent with Stripe (guard: src/test/edge/money-reconciliation-stripe.test.ts, 4 @mutate killed). Was: void-cancelled-payments (MONEY: releases card holds on cancelled
   jobs):** 14 "cron-dead: last 3 runs failed" and 46 HTTP 5s timeouts in 24h.
   Check whether it's healthy since the 30s timeout change. If not, customers'
   card holds on cancelled jobs aren't being released. Verify with the count of
@@ -559,13 +559,23 @@ sure someone hears it and closes it.
   (15-20s locator timeouts). Fix each against the real screens. Where state is
   missing, the spec's fixture setup creates it (is_seed, cleaned up), so the
   coverage test goes green. Re-dispatch prod-audit to prove it.
-- [ ] **Q50 Verify card holds on cancelled jobs on STRIPE's side, not just ours.**
-  Q31 showed 0 open holds in the DB (79 cancelled jobs, all payment_status
-  refunded/cancelled), but not the PaymentIntent state at Stripe. The Stripe
-  MCP needs auth, so read it via an existing edge function or a temporary
-  read-only one: every cancelled job's PI must be canceled/refunded at Stripe,
-  not requires_capture. Then add that comparison to money-reconciliation, so
-  a DB/Stripe disagreement alerts.
+- [x] **Q50 Verify card holds on cancelled jobs on STRIPE's side, not just ours.**
+  DONE 2026-09-23 07:20Z. A temporary read-only edge function (deployed, run,
+  deleted; key mode test) read all 79 cancelled jobs' PaymentIntents: every
+  one succeeded (capture_method automatic_async: charges are captured at
+  checkout, there are no holds), amount_capturable 0, 0 requires_capture,
+  0 livemode. Each was captured then partly refunded (77 x $28->$25, 1 x
+  $44->$40, 1 dispute refund $28->$26.89), and Stripe's amount_refunded
+  equals each job's payment_refunds sum. No held or un-refunded money. Kept
+  from recurring by money-reconciliation (78a88a861), which now reads every
+  settled job's PI from Stripe (30-day window, read only) and pages on a live
+  hold / processing payment, a cancelled job refunded less than the fee
+  ceiling, a ledger/Stripe refund mismatch, or a missing PI. Guard:
+  src/test/edge/money-reconciliation-stripe.test.ts (11 tests, 4 @mutate
+  killed). Live run 07:31Z (request 581): 200, all four checks in
+  checks_run, 0 Stripe reads, because the real scope (is_seed = false)
+  holds 0 settled jobs with a PaymentIntent today; every Stripe-touching job
+  is seed.
 - [ ] **Q51 A regression check for the notification-panel jump.** It was fixed
   (f40193ae7: largest one-frame move 100px -> 13px) but only measured once, by
   hand; nothing fails if it comes back. Add a Playwright geometry spec (the
@@ -915,6 +925,20 @@ sure someone hears it and closes it.
   file instead of writing a list into memory. Guard idea: a check over the
   memory dir (outside the repo, so a session-start hook warning rather than
   CI) that flags `- [ ]` or "open:" lists in handoff-*.md.
+- [ ] **Q86 Cancellation money: two labels for one outcome, and a timeout
+  that will bite at volume (found by Q50, 2026-09-23).** (a) A captured
+  charge refunded minus the service fee is payment_status 'cancelled' when
+  create-payment cancel_escrow settles it (75 prod jobs) but 'refunded' when
+  void-cancelled-payments does (3 jobs); 'cancelled' also means "hold voided,
+  nothing charged". Q31 read "0 live holds" off that label. Pick one meaning
+  per value (or add 'refunded_partial'), migrate, and add a check that every
+  writer uses it. (b) The one admin dispute refund (job e7e09075) withheld only
+  Stripe's $1.11, not the $3 service fee the cancellation paths keep: decide
+  whether that is policy, and pin it. (c) The money-reconciliation cron posts
+  with pg_net timeout 30000ms; its Stripe comparison reads up to 300 PIs at
+  10 in parallel, so a busy month could time the cron's HTTP call out (a
+  cron-http failure, not a silent pass). Measure run time once real
+  cancellations exist; raise the timeout or split the Stripe check out.
 6. **Messages search at 320px (Q48): pick one.** It's fixed at 375 and up. At
    320 a close-✕ that clears the magnifier leaves the field only 90px (below
    the 120px minimum that e794385ab restored). (A) accept 90px at 320;

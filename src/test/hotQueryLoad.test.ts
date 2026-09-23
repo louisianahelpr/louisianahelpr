@@ -1,6 +1,6 @@
 // @mutate src/hooks/useActivityBadgeCounts.ts | filter: `customer_id=eq.${userId}` },\n      () => scheduleLoad(), | filter: `customer_id=eq.${userId}` },\n      () => loadCounts(),
 // @mutate src/hooks/useActivityBadgeCounts.ts | onRecovered: scheduleLoad } | onRecovered: loadCounts }
-// @mutate src/hooks/useActivityBadgeCounts.ts | if (isHidden()) { | if (false) {
+// @mutate src/hooks/useActivityBadgeCounts.ts | same way the schedule-time path above does.\n      if (isHidden()) { | same way the schedule-time path above does.\n      if (false) {
 // @mutate src/hooks/useActivityBadgeCounts.ts | let store = stores.get(userId); | let store = undefined as BadgeStore \| undefined;
 // @mutate src/hooks/useActivityBadgeCounts.ts | const BADGE_REFRESH_DEBOUNCE_MS = 400; | const BADGE_REFRESH_DEBOUNCE_MS = 0;
 // @mutate src/components/admin/AdminBroadcasts.tsx | refetchInterval: 15_000, | refetchInterval: 2_000,

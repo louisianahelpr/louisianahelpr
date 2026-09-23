@@ -7870,3 +7870,26 @@ sure someone hears it and closes it.
   hook's open-alert summary hasn't been re-run since deploy. Screenshot at
   375 and 1440, record the review, and confirm the hook prints the real
   count within its time cap.
+- [ ] **Q44 Stop main going red from partial gates.** On 2026-09-23 main went red
+  4 times (Vitest, Vacuity, DB Deploy lint/types) because agents pushed after
+  running only targeted tests. main-red-watch catches it; nothing prevents it.
+  Add a serialized landing step: a commit touching src/test/**, vitest config,
+  supabase/migrations/** or scripts/vacuity/** runs `npm run gate` (or the
+  relevant CI job) before it lands. Measure it: count main-red runs per day
+  before and after.
+- [ ] **Q45 Prove the database backup can be RESTORED.** The DB is on the free
+  tier with no restorable backup (db-deploy.yml says so). db-backup runs
+  nightly, but no restore has ever been tested. Add a monthly automated drill:
+  restore the latest dump into a throwaway Postgres (CI service or PGlite
+  where possible), compare row counts of key tables with prod, and report
+  through nightly-issue-sync.
+- [ ] **Q46 Test data is seed data from birth.** E2E/press/prod-audit write to
+  prod (by design: no mock mode). Every fixture writer must set is_seed at
+  insert time, and every alerting detector must state how it treats is_seed.
+  Add a guard that scans the test writers and the detectors. This is Q2's
+  structural half.
+- [ ] **Q47 Sessions work in their own worktree, not the shared checkout.** On
+  2026-09-23 two sessions' commits made each other's trees lag, and an agent
+  found itself in the shared checkout mid-task. Make the session-start hook
+  create or enter a per-session worktree (or warn loudly), and treat the main
+  checkout as read-only for sessions.

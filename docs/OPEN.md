@@ -409,6 +409,11 @@ sure someone hears it and closes it.
   edge/error-leak-EF5.test.ts (find-string occurs 2x), edge/includeSeedAlertRouting.test.ts
   ("seed: seedJobIds.has(job.id)," occurs 8x), edge/money-reconciliation.test.ts
   (unescaped `|`). Each needs a unique find-string or `\|`.
+  Also on main at efdfea573 (Vacuity run 35841787397): queueItemsNameTheirGuard.test.ts
+  SURVIVED its own @mutate (appending "(no guard)" to Q21's title removes no
+  guard name, so it cannot fail); and Test run 35841787312 is red on
+  typecheck: src/test/e2eSkipsAreJustified.test.ts imports e2e/*.ts files
+  outside the tsconfig include (TS6307). Neither is from the Q39 change.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes

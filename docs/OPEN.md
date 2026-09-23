@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 55 done, 7 partly done (fixed, protection pending), 78 open. Source of truth for work.
+- **Queue (this file):** 55 done, 7 partly done (fixed, protection pending), 83 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 140 items — 55 done, 7 partly done (fixed, protection pending), 78 open.**
+**Queue: 145 items — 55 done, 7 partly done (fixed, protection pending), 83 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -474,6 +474,11 @@ sure someone hears it and closes it.
 - [x] **Q138 DONE: a test importing an unlisted e2e file can no longer turn typecheck red unseen (2026-09-23).** tsconfig.app.json is composite, so every e2e file a src/test file imports must be listed; lanes run only targeted vitest, so TS6307 surfaced only in the Test workflow (twice tonight: e2eSkipsAreJustified, then fundedOpenJobPlan since 8f6256c2a). Listed e2e/prod-audit/fundedOpenJobPlan.ts. Guard: src/test/e2eImportsInAppTsconfig.test.ts (follows each import's e2e closure; red on the old tsconfig naming exactly that file; typecheck clean after).
 - [ ] **Q140 A boolean validator can return TRUE for a NULL argument (authz review of 20260923113829, 2026-09-23).** public.helper_credential_document_ok(p_user_id, p_type, p_path) is a chain of `IF <cond> THEN RETURN false` guards ending in `RETURN EXISTS(...)`; with p_type NULL every guard condition is NULL, plpgsql skips it, and the function returned TRUE live for another user's real document path (false with 'insurance'). Unreachable today (credential_type NOT NULL, member UPDATE revoked): a latent trap. Fix as a class: inventory every access/validity boolean function in public, call each live with NULL per argument, fix every offender (explicit NULL guard or STRICT, per caller), guard that calls the whole inventory with NULLs.
 - [ ] **Q141 Remove the unused 'bond' credential type (OWNER DECISION 2026-09-23: remove).** No screen or edge function mentions bond (grep of src/ and supabase/functions: 0 hits); it lives only in helper_credentials.credential_type (20260612140000), the credential-tier function (counts a verified bond like insurance), the Q130 trigger/CHECK (20260923113829), and one seed row (helper-e2e, rejected, no document) from scripts/audit/prod-seed.mjs + e2e/happy-path/seedData.ts. Remove it from the type CHECK, every function that names it, the seed scripts and fixtures; delete the seed row; closes Q134 (bond has no reviewer). Starts after the NULL-arg validator lane lands (same functions).
+- [ ] **Q142 Credentials: replace the Licensed/Insured switches with "Add license" / "Add insurance" buttons (owner decision 2026-09-23, MORNING QUESTIONS 6 option b).** Each button goes straight to upload-for-review; no control looks like it sets the badge. Also resolves Q111 (removing a sent document must leave the add button). Before/after screenshots at 375 + 1440, light + dark; guard that no member-facing control writes is_licensed/is_insured.
+- [ ] **Q143 Messages search below 360px opens on its own line (owner decision 2026-09-23, Q48 option D).** Where the tab strip sits, full width; 375+ unchanged. Proof: expanding-search-geometry.spec.ts @320 goes green (it is the failing prod-audit test).
+- [ ] **Q144 LAUNCH CHECKLIST: stop real email to is_seed accounts at launch (owner decision 2026-09-23: keep sending until launch).** At launch, skip sending to is_seed recipients (log skipped_seed in email_send_log) with an allowlist for delivery-asserting journeys, so test mail stops spending the Resend daily quota real users need.
+- [ ] **Q145 Top up the Stripe TEST balance by $500 and re-run the failed test payouts (owner approved 2026-09-23).** TEST mode only (card 4000 0000 0000 0077 funds available balance immediately). Verify the key is sk_test before any charge; re-run the failed payouts through the app's own path; report balance before/after and each payout's result.
+- [ ] **Q146 Turn the Facebook marketing channel off until the Page token exists (owner decision 2026-09-23).** Stops marketing-publish failing every 15 min (meta_secrets_missing) at the source. OWNER TO-DO kept: add META_PAGE_ACCESS_TOKEN + META_PAGE_ID, then turn it back on.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes
@@ -483,6 +488,7 @@ sure someone hears it and closes it.
   its admin section, or report what depends on it. It is a leftover of a retired
   flow and a stored-XSS surface we just had to harden (3c81624d0).
 2. **Stripe TEST balance top-up (Q3).** Payouts and transfers fail with
+   **ANSWERED 2026-09-23 (owner pop-up): yes, top up $500 in TEST mode and re-run the failed test payouts. Work item Q145.**
    "insufficient available funds" (sandbox). The fix is test-mode charges with
    the 4000 0000 0000 0077 card, which funds available balance immediately.
    That's fake money, but it is still creating charges, so I held it for your
@@ -490,6 +496,7 @@ sure someone hears it and closes it.
    balance MONITOR (alerts before payouts fail) doesn't need you. It's being
    built overnight.
 3. **Facebook posting credentials (Q42).** `marketing-publish` fails every 15
+   **ANSWERED 2026-09-23 (owner pop-up): turn the Facebook channel off now; adding META_PAGE_ACCESS_TOKEN + META_PAGE_ID stays on the owner to-do list. Work item Q146.**
    minutes (7 times since 22:29Z on 2026-09-22, last 2026-09-23 04:00Z) with
    `aborted: meta_secrets_missing — facebook: META_PAGE_ACCESS_TOKEN,
    META_PAGE_ID`. A Facebook post is queued and the function has no page
@@ -497,6 +504,7 @@ sure someone hears it and closes it.
    step only you can do) or tell me to turn the Facebook channel off until
    you do; the alert then stops at the source.
 4. **Should seed/test accounts receive real email? (Q2/Q29)** Every dead
+   **ANSWERED 2026-09-23 (owner pop-up): keep sending to test accounts until launch; stop at launch (on the launch checklist as Q144).**
    letter so far went to a test account, and the cause was Resend's DAILY
    QUOTA: the 2026-09-13 seed-heavy run enqueued 319 emails in one day. Test
    mail spends the same quota real users' sign-in and receipt mail needs. The
@@ -526,6 +534,7 @@ sure someone hears it and closes it.
    and APNS_AUTH_KEY are all set in Supabase secrets. Whether the .p8 key
    itself is valid can't be checked without a real token to send to.
 6. **The "I Am Licensed" / "I Am Insured" switches (Q99).** Only our team can
+   **ANSWERED 2026-09-23 (owner pop-up): (b) replace each switch with an "Add license" / "Add insurance" button that goes straight to upload-for-review. Work item Q142.**
    set those two flags; a member's own write is undone by the database. Since
    Q99 the switch only opens the attach area and turns on for real once a
    document is sent. Pick one: (a) keep the switches as they are now;
@@ -1340,6 +1349,7 @@ sure someone hears it and closes it.
   every SQL caller of cancellation_fee_percent/is_late_cancellation; red on
   96ae77309 naming block_user_and_settle).
 6. **Messages search at 320px (Q48): pick one.** It's fixed at 375 and up. At
+   **ANSWERED 2026-09-23 (owner pop-up): (D) below 360px, search opens on its own line where the tab strip sits. Work item Q143.**
    320 a close-✕ that clears the magnifier leaves the field only 90px (below
    the 120px minimum that e794385ab restored). (A) accept 90px at 320;
    (B) keep the 28px overlap at 320 (shipped now); (C) put the magnifier

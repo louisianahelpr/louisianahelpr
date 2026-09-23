@@ -250,15 +250,17 @@ COULD not measure, and I read it as what it DID not measure. Same shape as
 matching '%DNS time%' and counting `DNS time: 0` as a DNS failure, the same
 day. Read the rows, not the summary line.
 
-## OPEN — db-drift-detect has been red since 2026-09-20, cause not yet diagnosed (2026-09-23)
+## DONE — db-drift-detect red 2026-09-20..22: two real causes, fixed (2026-09-23)
 
-Red on 09-20, 09-21 and 09-22 at the "Compute drift" step, which exits 1 after
-the supabase CLI prints "Try rerunning the command with --debug". This was
-invisible until tonight because the workflow never reported failures.
-ba78b79dc adds a nightly-red notify job, so the next red run will open an
-issue. Next step: `gh run view 35713840302 --log`, read above the CLI error,
-or rerun it with --debug. Also note that db-backup failed once on 09-22 during
-the pg_cron outage; re-run 35810165938 passed.
+The "Compute drift" step only summarises. The steps that actually failed were:
+1. `types.ts matches the live schema`: it was 59 differences behind prod
+   (28 RPCs, 31 columns). Regenerated; 4 stale `as any` casts removed (39ceee539).
+2. `No client-callable definer function writes jobs from caller input`: the live
+   check flagged `rpc_add_dispute_evidence`, which the static test had already
+   exempted after review. There is now one shared list, REVIEWED_JOBS_WRITERS,
+   and an entry is exempt only while the function still calls its validator.
+09-22 also had Management API 544 timeouts during the pg_cron outage (transient).
+Proof: dispatch run 35814772848 = success.
 
 ## OPEN — messy-input has 21 unswept forms, and they must NOT be given gaps (2026-09-22)
 

@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 25 done, 4 partly done (fixed, protection pending), 66 open. Source of truth for work.
+- **Queue (this file):** 26 done, 4 partly done (fixed, protection pending), 67 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 95 items — 25 done, 4 partly done (fixed, protection pending), 66 open.**
+**Queue: 97 items — 26 done, 4 partly done (fixed, protection pending), 67 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -404,7 +404,7 @@ sure someone hears it and closes it.
   writes a per-route pass/fail where SQL can read it. Needs a small
   `ops_route_probe(route, passed_at)` written by the press run, and the
   condition requiring a pass after last_seen for the item's screen.
-- [ ] **Q95 vacuity is red on main from four OTHER guards' @mutate lines (seen 2026-09-23 by the Q39 lane).**
+- [x] **Q95 DONE: vacuity + typecheck reds fixed (2026-09-23).** Each find-string is now unique (multi-line `\n` context), `|` escaped, the queue guard's mutation strips Q21's only guard path, and the EF-5 mutation drops the whole exemption. Measured: `node scripts/vacuity/index.mjs` 15/15 killed on the five guards. The e2e skip files were added to tsconfig.app.json include (TS6307 gone). Guard: scripts/vacuity/index.mjs refuses an ambiguous or malformed @mutate (vacuity.yml on every push). Was:
   dbRestoreDrill.test.ts ("FAIL=1" occurs 9x in db-restore-drill.sh),
   edge/error-leak-EF5.test.ts (find-string occurs 2x), edge/includeSeedAlertRouting.test.ts
   ("seed: seedJobIds.has(job.id)," occurs 8x), edge/money-reconciliation.test.ts
@@ -414,6 +414,8 @@ sure someone hears it and closes it.
   guard name, so it cannot fail); and Test run 35841787312 is red on
   typecheck: src/test/e2eSkipsAreJustified.test.ts imports e2e/*.ts files
   outside the tsconfig include (TS6307). Neither is from the Q39 change.
+- [ ] **Q96 A user can keep an error-screen alert open for ever (MEDIUM, Q39 review 2026-09-23).** ops_alert_record_user_error_screen (20260923085642:148-176) rate-limits only NEW items (5/hr per person, 20/hr global). Repeats of an existing fingerprint are unlimited, so one account looping POST /rest/v1/error_logs grows error_logs + ledger count without bound and holds the item open (close rule = a real row in the last 24h). Fix: cap repeats per account per fingerprint per window; guard with a PGlite test that is red on the uncapped function.
+- [ ] **Q97 error_log_is_seed trusts the client's tags.seed (LOW, Q39 review 2026-09-23).** A real account tagging {"seed":"true"} hides its own genuine error screens from the ledger and Slack routing (20260923052520:49-59). Fix: for client-origin rows derive seed from profiles.is_seed, not the tag; guard red on the current function.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes

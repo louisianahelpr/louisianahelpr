@@ -6,7 +6,7 @@
  *   - over 50 orphans, or a bucket's orphans over 5 files AND over 5% of it,
  *     deletes nothing.
  * Plus the identity-document rule and the path schemes from
- * docs/audit/storage-audit-2026-09-14.md, including the real prod shapes.
+ * docs/archive/storage-audit-2026-09-14.md, including the real prod shapes.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

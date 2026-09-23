@@ -21,7 +21,7 @@
 import { test, expect, getSession, rest, newUserContext, sessionsAvailable, assertHealthy, SUPABASE_URL, ANON, announceUncovered, skipUncovered } from "../fixtures";
 
 /**
- * NOTIFICATIONS & EMAIL (terminal 7). Inventory: docs/audit/notification-inventory.md.
+ * NOTIFICATIONS & EMAIL (terminal 7). Inventory: docs/archive/notification-inventory.md.
  *
  * Real prod, two shared accounts, no mocks. Covers what the test accounts can
  * cause without a third geo-matched account or a live-mode Stripe charge:

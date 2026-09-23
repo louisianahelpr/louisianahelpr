@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: its still-true findings not already queued are Q265; findings checked against the source at 9a0582ecf.
+
 # Deep Pass 01 — Screens, UX & Code Quality (Phases 1–3, 5–13)
 
 Companion to `docs/PRE_LAUNCH_AUDIT.md`. Every finding cites `file:line`.

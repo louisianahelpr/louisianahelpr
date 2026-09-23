@@ -2,7 +2,7 @@
  * The storage a JOB owns, and removing it when the job row is deleted.
  *
  * ── Why this exists ─────────────────────────────────────────────────────────
- * The 2026-09-14 storage audit (docs/audit/storage-audit-2026-09-14.md) found
+ * The 2026-09-14 storage audit (docs/archive/storage-audit-2026-09-14.md) found
  * 7 proof photos, 5 chat attachments and 2 application attachments still in
  * storage for jobs that no longer existed. Nothing that deleted a job removed
  * its files, and once the row is gone nothing can reach them. `accountPurge`

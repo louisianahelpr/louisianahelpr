@@ -71,6 +71,9 @@ export const RECORD_DIRS = [
   "docs/audit/gift-live/",
   "docs/audit/loading-states/",
   "docs/handoffs/",
+  // Archived reports (Q165): each carries a "historical, superseded by
+  // docs/OPEN.md" banner, so a count in one claims nothing about today.
+  "docs/archive/",
 ];
 
 const git = (...a) => execFileSync("git", a, { cwd: REPO, encoding: "utf8", maxBuffer: 1 << 26 });

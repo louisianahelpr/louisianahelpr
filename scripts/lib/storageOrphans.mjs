@@ -5,7 +5,7 @@
  * src/test/storageOrphanSweep.test.ts.
  *
  * Path schemes come from the upload code, recorded in
- * docs/audit/storage-audit-2026-09-14.md. An object whose path matches no
+ * docs/archive/storage-audit-2026-09-14.md. An object whose path matches no
  * scheme is NEVER an orphan: an unknown path means we do not know its owner,
  * and "we don't know" must never turn into a delete.
  *

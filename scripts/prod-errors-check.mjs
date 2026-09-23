@@ -140,7 +140,7 @@ const report = [
   "",
   drill ? "_This detection includes a fire-drill row (`tags.drill = true`)._" : "",
   "",
-  "Rows: `error_logs` · Slack: `trg_error_logs_slack` posts each distinct message · Doc: `docs/audit/prod-monitoring.md`",
+  "Rows: `error_logs` · Slack: `trg_error_logs_slack` posts each distinct message · Doc: `docs/archive/prod-monitoring.md`",
 ].join("\n");
 
 console.log(report);

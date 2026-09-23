@@ -48,7 +48,7 @@ describe("stated counts are dated", () => {
     const gen = new Set(["docs/audit/launch-2026-09/SURFACE.md", "docs/GUARD-BURNDOWN.md"]);
     expect(docClass("docs/audit/launch-2026-09/SURFACE.md", gen, "# t")).toBe("generated");
     expect(docClass("docs/GUARD-BURNDOWN.md", gen, "x\n<!-- generated:burndown-score -->\n")).toBe("living");
-    expect(docClass("docs/audit/COVERAGE_2026-08-31.md", gen, "")).toBe("record");
+    expect(docClass("docs/archive/COVERAGE_2026-08-31.md", gen, "")).toBe("record");
     expect(docClass("docs/REPORT.md", gen, "# R\n**Date:** 2026-09-03\n")).toBe("record");
     const inBlock = scanText("docs/G.md", "<!-- generated:x -->\n| 715 files |\n<!-- /generated:x -->", "living") as Hit[];
     expect(inBlock).toEqual([]);

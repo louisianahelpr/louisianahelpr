@@ -303,7 +303,7 @@ export function loadBaseline() {
  * NOT been re-audited under this class. `safe` holds hits that WERE audited
  * and proved safe with a concrete reason (a compare-and-set on payment_status
  * the scanner cannot read, Stripe ground truth, a terminal status); see
- * docs/audit/lifecycle-writes-audit-2026-09-14.md. Both are exact keys, both
+ * docs/archive/lifecycle-writes-audit-2026-09-14.md. Both are exact keys, both
  * may only shrink, and a hit in neither fails — so a NEW unguarded write
  * beside an audited one is still red.
  */

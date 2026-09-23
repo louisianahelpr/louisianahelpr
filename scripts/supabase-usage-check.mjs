@@ -216,7 +216,7 @@ const dbHit = hunt([/^db_size(_bytes)?$/i, /^database_size(_bytes)?$/i]) ?? prom
  * Every list call IS a query against the nano instance (storage.search), so it
  * is paced (250ms apart), capped (MAX_LIST_CALLS) and time-boxed per call. The
  * listing of the ten app buckets on 2026-09-14 took 106 calls for 95 objects / 20.3 MB
- * (docs/audit/storage-audit-2026-09-14.md). A run that hits the cap, times
+ * (docs/archive/storage-audit-2026-09-14.md). A run that hits the cap, times
  * out or errors reports storage as UNMEASURED with the reason — a partial sum
  * is never shown as the total.
  */
@@ -354,7 +354,7 @@ const report = [
   "2026-09-14) covers the database instance only, with no `storage_*` family. It is",
   "therefore sized by listing every object through the Storage API (paced 250ms,",
   `capped at ${MAX_LIST_CALLS} calls); a capped or failed listing reports UNMEASURED, never a partial sum.`,
-  "Baseline 2026-09-14, the ten app buckets only: 95 objects, 20.3 MB (docs/audit/storage-audit-2026-09-14.md).",
+  "Baseline 2026-09-14, the ten app buckets only: 95 objects, 20.3 MB (docs/archive/storage-audit-2026-09-14.md).",
 ].join("\n");
 
 writeFileSync("supabase-usage-report.md", report + "\n");

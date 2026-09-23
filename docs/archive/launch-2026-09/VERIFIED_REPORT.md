@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../../OPEN.md)). Archived 2026-09-23 by Q165: its still-true findings not already queued are Q223, Q224, Q225, Q226, Q227, Q228, Q246; findings checked against the source at 9a0582ecf.
+
 # VERIFIED REPORT — launch audit 2026-09
 **Verifier:** `lh-verifier` · **Date:** 2026-09-03 · **Against:** prod `fncmgoasalhdgfwzhsqa`, `origin/main` @ `1bc1d8ae0`
 
@@ -351,7 +353,7 @@ non-admin; nothing was persisted and every probe table was re-read clean afterwa
 was created. No migration was applied. CSS was measured on `dist/`, never the dev server, and A/B'd
 in Chromium and WebKit.*
 
-**Evidence check:** `npm run check:audit-evidence -- docs/audit/launch-2026-09/VERIFIED_REPORT.md`
+**Evidence check:** `npm run check:audit-evidence -- docs/archive/launch-2026-09/VERIFIED_REPORT.md`
 → 31 claims found, 5 with a machine-recognised artifact. The checker matches `file:line`, URLs and
 command output; most claims here are evidenced by an inline SQL result, a row count, an HTTP status
 or a `gh` run id, which it does not recognise, and several flagged lines are wrapped continuations of

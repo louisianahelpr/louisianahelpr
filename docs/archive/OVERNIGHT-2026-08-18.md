@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: its still-true findings not already queued are Q257, Q262, Q263, Q264, Q265; findings checked against the source at 9a0582ecf.
+
 # Overnight audit — 2026-08-18
 
 > ## ⚠️ STATUS RECONCILIATION — 2026-08-19, read before acting on anything below

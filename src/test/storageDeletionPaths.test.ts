@@ -3,7 +3,7 @@
  * that storage too.
  *
  * WHAT IT CATCHES: the 2026-09-14 storage audit
- * (docs/audit/storage-audit-2026-09-14.md) found 32 orphaned files, 10.3 MB:
+ * (docs/archive/storage-audit-2026-09-14.md) found 32 orphaned files, 10.3 MB:
  * avatars and credential scans of deleted users, proof photos / chat
  * attachments / application attachments of deleted jobs, and a chat attachment
  * of a deleted message. Every one came from a path that removed the ROW and

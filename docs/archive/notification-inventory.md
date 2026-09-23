@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: its still-true findings not already queued are Q230; findings checked against the source at 9a0582ecf.
+
 # Notification inventory (terminal 7, 2026-09-12)
 
 Every notification the app can produce, its trigger, recipient, channel(s),

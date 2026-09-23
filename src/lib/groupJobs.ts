@@ -8,7 +8,7 @@
  * `accept_group_application` (20260804122000) fills `group_job_helpers` and
  * sets `jobs.helper_id` to the FIRST accepted helper, "so existing
  * payout/notification paths keep resolving". Only eleven places in the
- * repository know the roster table exists (`docs/audit/COVERAGE_2026-08-31.md`
+ * repository know the roster table exists (`docs/archive/COVERAGE_2026-08-31.md`
  * §4.1); the entire rest of the job lifecycle reads `jobs.helper_id` as "the
  * helper". So the second and subsequent members of a crew hit all five of
  * these, none of them cosmetic:

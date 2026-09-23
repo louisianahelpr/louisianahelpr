@@ -270,7 +270,7 @@ Stated here so a clean review is never mistaken for a clean app:
 - **Anything that only happens in WKWebView.** Chromium has no content-process
   jetsam, no software keyboard, and reports zero safe-area insets. The app-lock
   bug, the keyboard-covers-the-sheet bug and every safe-area bug are invisible
-  to this harness by construction. See `docs/audit/IOS_COVERAGE.md`.
+  to this harness by construction. See `docs/archive/IOS_COVERAGE.md`.
 - **Motion.** Frames are still. A transition that flashes the wrong colour, a
   layout that jumps on mount, a skeleton that never resolves — none of these
   survive into a PNG.

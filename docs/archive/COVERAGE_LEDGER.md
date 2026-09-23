@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: nothing in it was still true and unqueued; findings checked against the source at 9a0582ecf.
+
 # Audit coverage ledger
 
 **What this is:** the honest record of which parts of Louisiana Helpr have
@@ -191,7 +193,7 @@ sweep). **Stop writing audit artifacts to `/tmp` or a gitignored dir** — a
 screenshot that lives ~12 hours is not a durable artifact, and under rule 4 the
 next reader is entitled to downgrade the row.
 
-**Trend:** `docs/audit/COVERAGE_LEDGER_HISTORY.md` — one line per run. It is
+**Trend:** `docs/archive/COVERAGE_LEDGER_HISTORY.md` — one line per run. It is
 `.md`, not `.log`, because `.gitignore:3` is `*.log` and a trend file that
 cannot be committed is not a trend file.
 
@@ -721,7 +723,7 @@ class is the whole reason this bar exists.
 Source of truth: `e2e/happy-path/state-matrix/stateMatrix.ts`, derived from the
 `job_status` enum in the generated `types.ts`, the `application_status` enum,
 `deriveAppliedJobCardState` in `appliedJobCardHelpers.ts`, and the nullable
-columns each card branches on. Explained in `docs/audit/STATE_MATRIX.md`;
+columns each card branches on. Explained in `docs/archive/STATE_MATRIX.md`;
 regenerate the manifest with
 
 ```
@@ -929,12 +931,12 @@ rule or prior audit could have reported it. See `IOS_COVERAGE.md`.
 - `npm run check:audit-evidence -- <report.md>` — scans a written audit report
   for claims that carry no artifact and prints the ratio.
 - `e2e/happy-path/state-matrix/` — the state enumerator, the state sweep and
-  the observation extractor behind section 8. `docs/audit/STATE_MATRIX.md`
+  the observation extractor behind section 8. `docs/archive/STATE_MATRIX.md`
   explains the axes and the nine collapsing rules.
 - `scripts/state-review.mjs` + `docs/audit/STATE_REVIEW_PROMPT.md` — the review
   pass. It never returns a green tick on its own: with no reviewer configured
   it reports N frames AWAITING REVIEW.
-- `scripts/ios-state-probe.sh` + `docs/audit/IOS_COVERAGE.md` — the WKWebView
+- `scripts/ios-state-probe.sh` + `docs/archive/IOS_COVERAGE.md` — the WKWebView
   harness and an honest statement of what still needs hardware.
 
 ---

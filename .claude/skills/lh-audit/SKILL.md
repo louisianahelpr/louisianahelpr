@@ -208,9 +208,11 @@ Two rules that make the buckets hold:
   artifact belongs in bucket 3, not bucket 1. Run
   `npm run check:audit-evidence -- <your-report.md>` before filing; it prints
   claims found / with evidence / without.
-- **Reconcile with the ledger.** `docs/audit/COVERAGE_LEDGER.md` records what
-  has genuinely been walked. Anything you actually operated gets its row
-  updated *with the artifact*; anything you didn't should be recognisable in
+- **Reconcile with the ledger.** `docs/audit/launch-2026-09/COVERAGE.md`
+  (generated from the findings bus) records what has genuinely been audited;
+  the hand ledger it replaced is archived at `docs/archive/COVERAGE_LEDGER.md`
+  (Q165). Anything you actually operated gets its bus entry filed
+  *with the artifact*; anything you didn't should be recognisable in
   bucket 3. A "clean" report filed against a ledger showing most of the app
   never walked is self-evidently incomplete — say so in the report rather than
   letting the reader discover it.

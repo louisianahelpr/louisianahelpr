@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: nothing in it was still true and unqueued; findings checked against the source at 9a0582ecf.
+
 # Supabase Storage audit — 2026-09-14
 
 Report only. **Nothing was deleted.** Prod project `fncmgoasalhdgfwzhsqa`.

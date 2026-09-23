@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: nothing in it was still true and unqueued; findings checked against the source at 9a0582ecf.
+
 # Deep Pass 04 — Payments, Money Flow & Backend Security (Phases 4 + 14)
 
 Companion to `docs/PRE_LAUNCH_AUDIT.md`. Verified against prod

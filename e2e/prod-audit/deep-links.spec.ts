@@ -15,6 +15,7 @@
 import { test as base, expect } from "@playwright/test";
 import {
   assertHealthy,
+  ensureFundedOpenJob,
   getSession,
   newUserContext,
   resolveFixtures,
@@ -29,9 +30,14 @@ let poster: Session;
 let helper: Session;
 let fx: Fixtures;
 
-test.beforeAll(async ({ request }) => {
+test.beforeAll(async ({ request, browser }, info) => {
+  // Q100: a real Stripe TEST checkout when no valid funded fixture exists.
+  // Its failure THROWS here, failing the file rather than skipping it.
+  test.setTimeout(30 * 60_000); // a fresh fixture waits out the 20-minute early-access window
   poster = await getSession(request, "poster");
   helper = await getSession(request, "helper");
+  const funded = await ensureFundedOpenJob(request, browser, poster, helper);
+  info.annotations.push({ type: "funded-fixture", description: funded.log.join("; ") });
   fx = await resolveFixtures(request, poster, helper);
 });
 

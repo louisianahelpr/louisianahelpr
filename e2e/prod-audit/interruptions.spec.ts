@@ -46,9 +46,13 @@
  * its own application in afterEach, so they can share it), and the only thing
  * that can create it is a real Stripe TEST checkout as poster-e2e — the flow
  * `e2e/prod-lifecycle.spec.ts` already drives. prod-audit.yml additionally runs
- * no seeder at all, so even a working remedy would not run. Not wired here:
- * adding a card-entry checkout to this suite's beforeAll needs a browser and
- * the money-loop concurrency group, which is a separate change.
+ * no seeder at all, so even a working remedy would not run.
+ *
+ * WIRED 2026-09-23 (Q100): beforeAll calls `ensureFundedOpenJob`
+ * (e2e/prod-audit/fundedOpenJob.ts), which reuses a funded fixture or pays a
+ * real Stripe TEST checkout as poster-e2e, and THROWS when it cannot — so the
+ * skip below now fires only if a test's own withdrawal failed, and the skip
+ * reporter counts that as a failure.
  */
 // @mutate src/pages/postjob/useJobSubmit.ts | if (submittingRef.current \|\| saving) return null; | if (saving) return null;
 import type { APIRequestContext, BrowserContext, Page } from "@playwright/test";
@@ -59,6 +63,7 @@ import {
   SUPABASE_URL,
   assertHealthy,
   cleanupMarked,
+  ensureFundedOpenJob,
   getSession,
   health,
   newUserContext,
@@ -79,9 +84,14 @@ let poster: Session;
 let helper: Session;
 let fx: Fixtures;
 
-test.beforeAll(async ({ request }) => {
+test.beforeAll(async ({ request, browser }, info) => {
+  // Q100: a real Stripe TEST checkout when no valid funded fixture exists.
+  // Its failure THROWS here, failing the file rather than skipping it.
+  test.setTimeout(30 * 60_000); // a fresh fixture waits out the 20-minute early-access window
   poster = await getSession(request, "poster");
   helper = await getSession(request, "helper");
+  const funded = await ensureFundedOpenJob(request, browser, poster, helper);
+  info.annotations.push({ type: "funded-fixture", description: funded.log.join("; ") });
   fx = await resolveFixtures(request, poster, helper);
   // A previous run that died mid-spec may have left marked rows behind.
   await cleanupMarked(request, helper);

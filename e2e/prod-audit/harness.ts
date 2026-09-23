@@ -18,6 +18,8 @@ import { measureLayout } from "../happy-path/auditRoutes";
 import { ANON, SUPABASE_URL, getSession as journeySession, newUserContext, rest, type Role, type Session } from "../journeys/fixtures";
 
 export { newUserContext, rest, SUPABASE_URL, ANON };
+/** Q100: the funded open job fixture (a real Stripe TEST checkout as poster-e2e) — see fundedOpenJob.ts. */
+export { ensureFundedOpenJob, retireFundedJob } from "./fundedOpenJob";
 export type { Role, Session };
 
 /** Every row a spec writes carries this in its text, so cleanup finds it. */

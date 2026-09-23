@@ -57,6 +57,7 @@ import {
   WS,
   assertHealthy,
   baselineOf,
+  ensureFundedOpenJob,
   ensureMessyInputState,
   fieldLabel,
   fieldSignature,
@@ -110,8 +111,15 @@ const sessions = new Map<Account, Session>();
 let fx: Fixtures;
 let adminState: Awaited<ReturnType<typeof ensureMessyInputState>> | undefined;
 
-test.beforeAll(async ({ request }) => {
+test.beforeAll(async ({ request, browser }) => {
+  test.setTimeout(30 * 60_000); // a fresh fixture waits out the 20-minute early-access window
   for (const a of ["poster", "helper", "incomplete", "admin"] as Account[]) sessions.set(a, await sessionFor(request, a));
+  // Q100: the openJob explores need a FUNDED open job; only a real Stripe TEST
+  // checkout makes one. Skipped only when MESSY_INPUT_SCOPE excludes both.
+  if (!SCOPE_RE || ["explore: openJob-helper", "explore: openJob-poster"].some((t) => SCOPE_RE.test(t))) {
+    const funded = await ensureFundedOpenJob(request, browser, sessions.get("poster")!, sessions.get("helper")!);
+    console.log(`[messy-input] funded fixture: ${funded.log.join("; ")}`);
+  }
   fx = await resolveFixtures(request, sessions.get("poster")!, sessions.get("helper")!);
   mkdirSync(CREDITS, { recursive: true });
   // Publish for messyInputForms.ts's `prepare` steps — see the comment on

@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 51 done, 5 partly done (fixed, protection pending), 73 open. Source of truth for work.
+- **Queue (this file):** 51 done, 6 partly done (fixed, protection pending), 74 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 129 items — 51 done, 5 partly done (fixed, protection pending), 73 open.**
+**Queue: 131 items — 51 done, 6 partly done (fixed, protection pending), 74 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -462,6 +462,8 @@ sure someone hears it and closes it.
 - [x] **Q126 DONE: queue numbers can no longer collide silently (2026-09-23).** Parallel lanes picked the same next number three times tonight (Q103, Q113, Q122), and queueCounts (keyed by number) merged each pair, so the count under-reported too. `node scripts/queue-count.mjs` now prints the next free number and exits 1 on a duplicate; .claude/AGENT-BRIEF.md tells lanes to take the number from it. Guard: src/test/queueItemsNameTheirGuard.test.ts "every queue number is used once" (vacuity killed).
 - [x] **Q127 DONE (2026-09-23, migration 20260923110759, a161f37aa): a credential URL must be the member's own uploaded document, and a submitted one cannot be swapped in storage.** Was: auto_pending_credentials accepted any license_url/insurance_url with one non-[:space:] character, so U+200B/U+FEFF/U+2060, a URL, a bare file name or another member's path reached 'pending' + is_licensed; and four member UPDATE/DELETE policies on user-documents let a member upsert over, or delete-and-reupload, a verified object. Now a changed non-NULL URL must match ^<user_id>/credentials/<kind>-<13 digits>.<pdf|png|jpe?g|webp|heic>$ (the shape CredentialsTab and complete-signup write; kind = column; ext = the bucket's allowed types, case-insensitive for older clients) AND name an existing user-documents object (public.credential_document_path_ok), else the write is REFUSED (22023) rather than NULLed, so the member's PATCH never returns 200 over a row that silently says "no document"; blank stays Q120's absent; applies to service role too. Storage: one UPDATE + one DELETE policy (own folder AND NOT public.is_submitted_credential_object(name)) replace the four; the object named by the caller's own profile URL is frozen until withdrawn. CredentialsTab now takes the extension from the MIME type. Measured before: 0 profiles rows with a non-NULL license_url/insurance_url (none can fail the shape; the trigger's WHEN fires only on a URL/business_name change), 3 credential objects, all on shape. Live after: helper true on a real object, false on U+200B/U+FEFF/U+2060, another uid, URL, bare name, trailing ZWSP, missing object; pg_policies shows only the two guarded UPDATE/DELETE policies; null-uid-trust query returns 0. **Guards:** src/test/credentialUrlIsOwnDocument.test.ts (13 @mutate, all killed) and src/test/pglite/credentialUrlIsOwnDocument.pglite.mjs (live trigger chain + live storage policies, applied 3x: ALL PASS 31; NEW_MIGRATION=skip: 17 FAILED); Q120's guard mutations retargeted to the new newest definition (8/8 killed). Needs an lh-authz-rls REVIEW-ONLY pass (storage policies + two new SECURITY DEFINER helpers). Same class on the sister table is Q130.
 - [ ] **Q130 helper_credentials.document_url is any text a member types (Q127 lane, 2026-09-23; MEDIUM).** Measured on prod: members may INSERT/UPDATE their own helper_credentials rows (RLS policies "Users can insert/update own credentials" key only on user_id; column grants and triggers not checked), and the only document test is CHECK helper_credentials_pending_review_needs_document = NULLIF(btrim(document_url),'') IS NOT NULL, which chr(8203) passes (evaluated on prod). get_pending_credentials lists such rows for admins. 1 of 1 rows with a document_url is not under its owner's folder. Not written to prove it (no test row created). Fix like Q127: allowlist the storage-path shape under the owner's folder + object existence, and check who may set status.
+- [ ] **Q131 Offline mid-apply: no success message after the back-online retry (found by Q100, 2026-09-23).** e2e/prod-audit/interruptions.spec.ts "offline mid-apply: honest message, pitch kept, retry once back online sends it once" ran for the first time once the Q100 fixture existed and failed 2 of 2 locally on prod ("no success message after the back-online retry"; the sheet closed back to the feed). Not yet known whether the retried write landed (the test throws before its write/row assertions) or whether this is the app or the spec. Evidence: ~/.lh-shots/q100/offline-mid-apply-fail.png, run2.log, run3-offline.log.
+- [ ] **Q132 The other 5 UNJUSTIFIED skips of prod-audit run 35844514386 need their own fixtures or a re-run (found by Q100, 2026-09-23).** messy-input.spec.ts:406 post-job price rule ("no price field reached with the generic stepper"), explore disputedJob-poster and disputedJob-helper (no disputed job between poster-e2e and helper-e2e), and explore openJob-helper / openJob-poster, which Q100's fixture now feeds but which were not re-run locally (messy-input is a ~55-minute run).
 - [ ] **Q128 Triage press-every-control run 35837735324 (e96adc16d, red, 2026-09-23).** Classes seen: (1) 429 on Sentry `envelope/` counted as a control failure (earnings, signup, schedule, home_history) — our own telemetry rate limit, not a product defect; the harness must not blame the control, and 429s from our own reporter need their own look; (2) "Copy Mon to all" on /profile?tab=availability: no observable change for customer AND helper — real defect or harness blind spot, measure; (3) /jobs/:id "Done — <date>" timeline buttons NOT CLICKABLE (16s timeout, 3 rows) — something covers them or they are disabled-looking-enabled; (4) /admin?view=credentials "Open" no observable change; (5) apay-us.amazon.com 500 (third party); (6) admin Refund Poster not found on reload (transient DOM); (7) GoTrue refused test sessions mid-run and parts were cancelled on time budget (a cancelled run is a hidden red). Fix real defects with guards, reclassify harness noise with a guard that each class stays classified, and re-dispatch press.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
@@ -755,8 +757,23 @@ sure someone hears it and closes it.
   For each: measure scrollWidth/clientWidth (line-clamp: scrollHeight) at 320/375/1440
   on prod; clipped UI copy wraps or gets its full text, clipped user data gets a
   `title`, unclipped stays with a dated measurement as its reason.
-- [ ] **Q100 A funded open job fixture for the four poster-side forms (Q49
-  follow-up).** EditJobDialog, CancellationDialog, ApplicantsPanel and
+- [~] **Q100 A funded open job fixture for the four poster-side forms (Q49
+  follow-up).** PARTLY DONE 2026-09-23: e2e/prod-audit/fundedOpenJob.ts
+  (`ensureFundedOpenJob`, exported from harness.ts) makes "an open, escrowed
+  job of poster-e2e helper-e2e has not applied to" through the app's own path
+  (poster JWT jobs INSERT, is_seed -> create-payment escrow -> hosted Stripe
+  TEST Checkout, 4242, cs_test_ only -> stripe-webhook checkout.session.completed
+  sets escrow), reuses it across runs, refreshes it through create-payment
+  cancel_escrow at <7 days runway, and THROWS (never skips) on a refused
+  checkout, a webhook that does not land in 90s, or a fixture the helper still
+  cannot see after the 20-minute early-access window. deep-links,
+  interruptions and messy-input call it in beforeAll. Measured locally on
+  prod: those 10 UNJUSTIFIED skips from run 35844514386 -> 0 skipped, 33 passed,
+  1 failed (Q131); one payment across three runs (idempotent), teardown proven
+  (refund re_3UInyYKp2H4b7tEC14Eya1Kl, 2500c, job cancelled/cancelled). Guard:
+  src/test/fundedOpenJobPlan.test.ts (plan cases + every spec reading openJob
+  calls ensureFundedOpenJob before resolveFixtures; 3 @mutate, all killed).
+  STILL OPEN, the original ask: EditJobDialog, CancellationDialog, ApplicantsPanel and
   DeclineApplicantSheet open only from a FUNDED open job of poster-e2e with a
   pending applicant; My Posts hides unfunded open jobs
   (activityFilters.ts `jobIsUnfundedDraft`) and on 2026-09-23 every open job

@@ -270,7 +270,7 @@ owner, and dead tables still carry RLS policies that must be reasoned about.
 |---|---|
 | **Entire B2B / business tier** | `businesses`, `business_members`, `business_api_keys`, `business_webhooks`, `business_job_templates`, and every `business_*` RPC — **especially `create_business_api_key`** (customer-facing API keys for a deleted product). **No public API, no outbound webhooks.** |
 | **Time banking** | `time_credits`, and its handling inside `money-reconciliation` |
-| **Pet evacuation** | `evacuation_pets` only. **Pet profiles stay** — `pet_profiles`, `job_pets`, `pet_report_cards`, `care_relationships` are live |
+| **Pet evacuation** | `evacuation_pets` only. **Pet profiles stay** — `pet_profiles`, `job_pets` are live (`pet_report_cards`, `care_relationships` were since dropped: `to_regclass` null on prod, 2026-09-23) |
 | **Community posts** | `community_posts`, `community_post_likes` |
 | ~~**Broadcast messages**~~ | **THIS ROW WAS WRONG — the feature is LIVE. See the correction below.** |
 | **Retainer agreements** | `retainer_agreements` |

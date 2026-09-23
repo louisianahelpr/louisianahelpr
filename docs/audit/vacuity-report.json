@@ -1,9 +1,9 @@
 {
-  "generated": "2026-09-23T15:54:23.571Z",
-  "guards": 785,
-  "registered": 784,
+  "generated": "2026-09-23T16:03:02.440Z",
+  "guards": 786,
+  "registered": 785,
   "unregistered": [
-    "src/components/RouteSuspenseFallback.test.tsx"
+    "src/test/noOrphanedStorageBuckets.test.ts"
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",

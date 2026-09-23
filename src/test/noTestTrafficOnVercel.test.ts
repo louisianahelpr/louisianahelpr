@@ -48,7 +48,7 @@ export const WORKFLOW_EXEMPT: Record<string, string> = {
     "index.html every 10 minutes (plus one PostgREST row). It cannot be pointed at a local build.",
   "prod-freshness.yml":
     "Reads the build-commit meta tag out of the LIVE index.html to prove prod serves main — one " +
-    "HTML GET per poll, on push and daily. A local build would prove nothing about the deploy.",
+    "HTML GET per poll, hourly (Q271: not on push, deploys are batched). A local build would prove nothing about the deploy.",
   // sitemap-drift.yml is NOT here: it regenerates public/sitemap.xml from source
   // (scripts/generate-sitemap.mjs --check) and never fetches the site.
 };

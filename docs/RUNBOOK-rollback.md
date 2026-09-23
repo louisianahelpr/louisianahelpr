@@ -53,7 +53,8 @@ seconds), then revert the migration or function.
    TARGET deployment's commit (the `<meta name="build-commit">` stamp that
    `prod-freshness.yml` reads). Expect prod-freshness to go RED while rolled back:
    prod is deliberately serving a commit older than main. It clears when the fix is promoted.
-4. Ship the fix: land it on `main` as usual, then `vercel promote <fixed-deployment-url>`.
+4. Ship the fix: land it on `main` as usual (pushes do not deploy; `.github/workflows/prod-deploy.yml`
+   ships main within ~20 min, or run `gh workflow run prod-deploy.yml`), then `vercel promote <fixed-deployment-url>`.
    Promoting explicitly is right however Vercel treats new deploys after a rollback.
    The first drill should record whether the next push went live on its own.
 

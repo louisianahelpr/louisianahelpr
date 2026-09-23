@@ -83,6 +83,7 @@ jobs:
           edge-function-smoke.yml:14
           lighthouse.yml:14
           morning-page.yml:2
+          prod-deploy.yml:1
           prod-errors.yml:1
           quota-monitor.yml:2
           scoreboard.yml:2

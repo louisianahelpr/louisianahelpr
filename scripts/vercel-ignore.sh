@@ -10,6 +10,13 @@
 #   - main builds only when a deploy path changed since the last deployed
 #     commit (docs/, e2e/, .github/, audit scripts, tests: skipped).
 # When in doubt it BUILDS: a wasted build is cheap, a missing deploy is not.
+#
+# Since Q271 (2026-09-23) pushes deploy nothing (vercel.json
+# git.deploymentEnabled: false). The only deployments are the ones
+# .github/workflows/prod-deploy.yml creates through the API, and this script
+# still runs as their build step: it agrees with that workflow's deploy-path
+# rule (same scripts/deploy-paths.sh), so it only ever cancels a build the
+# workflow would not have asked for.
 set -uo pipefail
 
 if [ "${VERCEL_GIT_COMMIT_REF:-}" != "main" ]; then

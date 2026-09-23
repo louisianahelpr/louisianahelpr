@@ -1,0 +1,92 @@
+name: Prod deploy
+
+# Q271 (2026-09-23): production web deploys are BATCHED. Vercel Hobby allows 100
+# deployments a day and pushes to main used 100 of them by 17:20Z; at the cap
+# prod stops updating behind green CI. vercel.json now has
+# git.deploymentEnabled: false, so a push deploys nothing by itself. This
+# workflow is the only thing that ships main to production:
+#
+#   - on every push to main, every 20 minutes, and on demand
+#     (`gh workflow run prod-deploy.yml`);
+#   - it skips when prod is already at main HEAD, when no deploy path
+#     (scripts/deploy-paths.sh) changed since prod's commit, or when the newest
+#     production deployment is under 20 minutes old (a later scheduled run
+#     catches up, so the latest main always ships);
+#   - otherwise it creates ONE production deployment of main at HEAD through
+#     the Vercel API and waits for READY.
+# Rules: scripts/lib/prodDeployDebounce.mjs, pinned by
+# src/test/prodDeployDebounce.test.ts. Owner decision 2026-09-23: batch, free,
+# a fix may go live up to ~20 minutes later. No paid upgrade.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "*/20 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # One deploy decision at a time. Never cancel a running one: killing it
+  # mid-wait would hide whether the deployment it created went READY. A newer
+  # queued run replaces an older queued one, which is exactly right: it reads
+  # a newer main.
+  group: prod-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Ship main to production (batched)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      action: ${{ steps.run.outputs.action }}
+      deployment: ${{ steps.run.outputs.deployment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          # Full history: the deploy-path diff runs from prod's commit to HEAD.
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Decide and deploy
+        id: run
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: node scripts/prod-deploy.mjs
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Prod deploy"
+            echo "- decision: \`${{ steps.run.outputs.action || 'none (failed before deciding)' }}\`"
+            echo "- main HEAD: \`${{ steps.run.outputs.sha }}\`"
+            echo "- deployment: \`${{ steps.run.outputs.deployment || '-' }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  notify:
+    name: Report prod deploy
+    needs: [deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: prod-deploy
+          status: ${{ needs.deploy.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

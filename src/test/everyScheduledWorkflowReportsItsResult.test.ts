@@ -116,7 +116,9 @@ describe("every scheduled workflow reports a red run", () => {
      */
     const BROAD_ON_PURPOSE: Record<string, string> = {
       "prod-freshness.yml":
-        "a failed push here MEANS prod is serving something other than what was just pushed — an issue is the correct outcome, not noise, and waiting for the daily run would hide a bad deploy for up to 24h",
+        "a failed push here MEANS vercel.json no longer validates, so no deploy can start — an issue is the correct outcome, not noise, and waiting for the hourly run would hide it",
+      "prod-deploy.yml":
+        "a failed push here MEANS the production deploy of main failed or the Vercel API could not be read — prod is not shipping, so an issue is the correct outcome, not noise",
       "nightly-red-age.yml":
         "this IS the gate; filing is its job. If it breaks on a push, every other workflow's report goes unread, so it is the last thing that should stay quiet",
     };

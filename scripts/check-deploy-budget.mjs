@@ -7,7 +7,8 @@
  * The owner's rule since then is to batch pushes; this makes the budget
  * visible at the moment it matters. Counts GitHub "Production" deployments
  * (Vercel creates one per production build) in the last 24h. Warns, never
- * blocks: a docs-only push costs no deploy (scripts/vercel-ignore.sh).
+ * blocks: since Q271 (2026-09-23) a push costs no deploy at all; production
+ * deploys are batched by .github/workflows/prod-deploy.yml (at most ~3/hour).
  *
  *   node scripts/check-deploy-budget.mjs   # prints the count; exit 0 always
  */

@@ -32,6 +32,7 @@ on:
       - Supabase Edge Functions Deploy
       - Migration Timestamp Guard
       - Mobile viewport spot-check
+      - Prod deploy
       - Prod freshness
       - Race Runner
       - Secret Scan

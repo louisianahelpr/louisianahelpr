@@ -50,13 +50,18 @@ permissions:
 # the state that produced all three incidents.
 
 on:
+  # On push only the vercel-config job runs (served-commit is skipped): since
+  # Q271 (2026-09-23) a push deploys nothing by itself; prod-deploy.yml ships
+  # main in batches up to ~20 minutes later, so asking the live site about the
+  # commit just pushed would report a correct prod as stale.
   push:
     branches: [main]
-  # Daily, so a prod that goes stale WITHOUT a push (a rollback, a paused
-  # project, an expired integration) is still caught within a day rather than
-  # waiting for whoever happens to push next.
+  # Hourly: prod must serve every shipping commit pushed at least 45 minutes
+  # ago (20 min debounce + a 20 min schedule slot + the build), and a prod that
+  # goes stale WITHOUT a push (a rollback, a paused project, a dead
+  # prod-deploy.yml) is caught within about an hour.
   schedule:
-    - cron: "45 7 * * *" # 07:45 UTC — off every other cron hour in this repo
+    - cron: "45 * * * *"
   workflow_dispatch:
 
 concurrency:
@@ -149,8 +154,12 @@ jobs:
   # ───────────────────────────────────────────────────────────────────────────
   served-commit:
     name: Live site is serving this commit or newer
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -160,18 +169,36 @@ jobs:
           fetch-depth: 0
 
       # The commit prod MUST serve is the newest one that changed something
-      # that ships (scripts/deploy-paths.sh, the same list vercel.json's
-      # ignoreCommand uses). A docs- or CI-only push is skipped by Vercel on
-      # purpose, so expecting ITS sha would report a correct prod as stale.
+      # that ships (scripts/deploy-paths.sh, the same list prod-deploy.yml and
+      # vercel.json's ignoreCommand use) AND was pushed to main at least
+      # PUSH_GRACE ago. A docs- or CI-only push never deploys on purpose, and a
+      # push younger than the batching window (Q271) may not have shipped yet;
+      # expecting either would report a correct prod as stale. "Pushed at" is
+      # read from prod-deploy.yml's push-triggered runs (the push time, not the
+      # committer date, which a rebase resets). A failed read fails the step.
       - name: Work out the newest commit that ships
         id: expected
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PUSH_GRACE_MINUTES: "45"
         run: |
           set -euo pipefail
+          CUTOFF=$(date -u -d "$PUSH_GRACE_MINUTES minutes ago" +%Y-%m-%dT%H:%M:%SZ)
+          PUSHED=$(gh api "repos/$REPO/actions/workflows/prod-deploy.yml/runs?event=push&branch=main&per_page=1&created=%3C$CUTOFF" \
+                     --jq '.workflow_runs[0].head_sha // ""')
+          if [ -z "$PUSHED" ]; then
+            # No push run older than the cutoff yet (prod-deploy.yml is new):
+            # fall back to the committer date.
+            PUSHED=$(git log -1 --format=%H --before="$CUTOFF" "${{ github.sha }}")
+          fi
+          git cat-file -e "${PUSHED}^{commit}"
           PATHS=()
           while IFS= read -r line; do PATHS+=("$line"); done < <(bash scripts/deploy-paths.sh)
-          SHA=$(git log -1 --format=%H "${{ github.sha }}" -- "${PATHS[@]}")
-          echo "sha=${SHA:-${{ github.sha }}}" >> "$GITHUB_OUTPUT"
-          echo "Newest shipping commit: ${SHA:-${{ github.sha }}}"
+          SHA=$(git log -1 --format=%H "$PUSHED" -- "${PATHS[@]}")
+          if [ -z "$SHA" ]; then echo "::error::no shipping commit at or before $PUSHED"; exit 1; fi
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Pushed before $CUTOFF: $PUSHED; newest shipping commit at or before it: $SHA"
 
       - name: Wait for prod to serve this commit
         env:
@@ -298,6 +325,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: prod-freshness
-          status: ${{ (needs.vercel-config.result == 'success' && needs.served-commit.result == 'success') && 'success' || 'failure' }}
+          status: ${{ (needs.vercel-config.result == 'success' && (needs.served-commit.result == 'success' || (github.event_name == 'push' && needs.served-commit.result == 'skipped'))) && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

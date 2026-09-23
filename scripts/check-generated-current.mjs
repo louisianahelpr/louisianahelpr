@@ -197,6 +197,7 @@ export const HISTORICAL = {
 export const WRITES_NOT_COMMITTED = {
   "scripts/rollback/rollback.mjs": "timing log to ~/.lh-rollback/timing.jsonl (outside the repo); in a LIVE migration rollback only, the new revert migration it stamps, which the operator commits (docs/RUNBOOK-rollback.md)",
   "scripts/audit-capture.mjs": "screenshots to ~/lh-audit-shots",
+  "scripts/prod-deploy.mjs": "action/sha/deployment to $GITHUB_OUTPUT in prod-deploy.yml (a CI step output, never a repo file)",
   "scripts/audit/a11y-engine-diff.mjs": "report to --out path",
   "scripts/audit/press-every-control.mjs": "results to test-results/ (CI artifact)",
   "scripts/audit/measure-page-settle.mjs": "Q169 audit table to ~/.lh-shots/cls (evidence outside the repo); the CI budget is e2e/prod-audit/page-settle.spec.ts",

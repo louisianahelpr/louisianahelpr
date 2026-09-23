@@ -379,6 +379,13 @@ const CONSOLE_NOISE = [
 /** Documented skip reasons. Anything else unpressed FAILS the coverage gate. */
 export const DOCUMENTED_SKIPS = new Set([
   "disabled (inert by design)",
+  // The same disposition, re-read at press time. `disabled (inert by design)`
+  // is decided from the ENUMERATION snapshot; a control that was enabled then
+  // and disabled by the time we reach it never hits it, and its click waits
+  // out the full 16s and reports as a failed press. 76 of 126 failures in run
+  // 35805671843 were exactly that — including 22 on /admin?view=notifications
+  // where `disabled={!allPushOn}` is correct behaviour.
+  "disabled by the time it was reached (enabled when enumerated)",
   "screen-reader only (pointer not expected)",
   "already the active tab/route (no-op expected)",
   "self-link (no-op expected)",
@@ -1041,6 +1048,35 @@ async function main() {
             continue;
           }
           target = target.first();
+
+          /**
+           * IS IT STILL ENABLED? `meta.disabled` was read at ENUMERATION time,
+           * and the skip at the top of this loop acts on that. A control that
+           * was enabled when the page was inventoried and is disabled by the
+           * time we reach it never hits that skip — the click just waits out
+           * its whole 16s budget and is reported as a failed press.
+           *
+           * MEASURED, run 35805671843: 76 of 126 failures were exactly this.
+           * `/profile?tab=notifications` 27+27 and `/admin?view=notifications`
+           * 22, every one a `<button disabled role="switch">`. On the admin
+           * screen it is CORRECT behaviour — those children carry
+           * `disabled={!allPushOn}` and the master was off — so the sweep was
+           * manufacturing 22 defects out of a design.
+           *
+           * A disabled control cannot be pressed. That is a documented SKIP,
+           * which is the disposition this file already chose for the
+           * enumeration-time case; re-reading it here just applies the same
+           * decision at the moment it matters rather than minutes earlier.
+           *
+           * The reason is worded to keep the signal: a control that flips
+           * state between inventory and press is worth seeing in the skip
+           * list, and a page where EVERY control lands here still shows up as
+           * a page with nothing pressed.
+           */
+          if (await target.isDisabled().catch(() => false)) {
+            skip("disabled by the time it was reached (enabled when enumerated)");
+            continue;
+          }
 
           const before = await snapshot();
           // Was this control ALREADY in the state pressing it asks for? A tab

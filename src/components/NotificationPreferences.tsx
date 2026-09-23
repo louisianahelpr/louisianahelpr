@@ -406,12 +406,9 @@ const NotificationPreferences = () => {
       const { data, error } = await supabase.functions.invoke<TestSendResult>(
         "create-notification",
         {
-          body: {
-            user_id: userId,
-            title: "Test from Helpr",
-            message: "If you got this, notifications are working. " + new Date().toLocaleTimeString(),
-            type: "info",
-          },
+          // The copy is built server-side (Q223): only an admin may send
+          // free text, so the test names the fixed "test" template.
+          body: { user_id: userId, template: "test" },
         },
       );
       if (error) throw error;

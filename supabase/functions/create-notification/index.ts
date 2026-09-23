@@ -1,5 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import {
+  type BuiltNotification,
+  buildSelfTestNotification,
+  NOTIFICATION_TEMPLATES,
+  SELF_TEST_TEMPLATE,
+  type TemplateFacts,
+} from "../_shared/notification-templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,6 +60,54 @@ function sanitizeLink(link: unknown): string | null {
   return link;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// App Store / deploy-lag compatibility (Q223). The shipped native bundle and
+// any open web tab predate `template` and still send the old
+// `{title, message, type, link}` body. The TITLE is used here only as a
+// lookup key into the template list — none of the caller's words reach the
+// notification; the server builds the copy exactly as for a `template` call.
+// A title that is not one of these gets no notification. Safe to delete once
+// no client older than the template change is in use.
+const LEGACY_TITLE_TEMPLATE: Record<string, string> = {
+  "Work has started": "work_started",
+  "Dispute withdrawn": "dispute_withdrawn",
+  "Helpr responded to dispute": "dispute_response",
+  "Helpr acknowledged the revision": "revision_acknowledged",
+  "The person who posted this job confirmed it!": "job_confirmed",
+  "Helpr confirmed the job!": "job_confirmed",
+  "Dispute resolved ✓": "dispute_resolved",
+  "Revision requested": "revision_requested",
+  "✅ Arrival confirmed": "arrival_confirmed",
+  "✅ Work confirmed": "work_confirmed",
+  "📋 New job offer!": "job_offer",
+  "Application declined": "application_declined",
+  "⛔ Account banned for no-show": "no_show_reported",
+  "⛔ Account restricted for 7 days": "no_show_reported",
+  "⚠️ No-show warning": "no_show_reported",
+  "Test from Helpr": SELF_TEST_TEMPLATE,
+};
+
+/** The template a body names, or the legacy title's template, or null. */
+function resolveTemplateName(body: Record<string, unknown> | null): string | null {
+  if (!body) return null;
+  if (typeof body.template === "string") return body.template;
+  if (typeof body.title === "string" && Object.prototype.hasOwnProperty.call(LEGACY_TITLE_TEMPLATE, body.title)) {
+    return LEGACY_TITLE_TEMPLATE[body.title];
+  }
+  return null;
+}
+
+/** job_id, or (legacy bodies) the `?job=` id in the old client-built link. */
+function resolveTemplateJobId(body: Record<string, unknown>): string | null {
+  if (typeof body.job_id === "string") return UUID_RE.test(body.job_id) ? body.job_id : null;
+  if (typeof body.link === "string") {
+    const m = /[?&]job=([0-9a-f-]{36})(?:&|$)/i.exec(body.link);
+    if (m && UUID_RE.test(m[1])) return m[1];
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -102,73 +157,166 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { user_id, title, message, type = "info", link = null, job_id = null } = await req.json();
+    const body = await req.json();
+    const { user_id } = body ?? {};
 
-    // Validate required fields
-    if (!user_id || !title || !message) {
-      return new Response(JSON.stringify({ error: "Missing required fields: user_id, title, message" }), {
+    if (!user_id) {
+      return new Response(JSON.stringify({ error: "Missing required field: user_id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // user.id comes from the verified JWT; user_id is caller-supplied, so pin
+    // it to a UUID before it goes anywhere near a query filter string.
+    if (!UUID_RE.test(String(user_id))) {
+      return new Response(JSON.stringify({ error: "Invalid user_id" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Validate input lengths
-    if (title.length > 200 || message.length > 1000) {
-      return new Response(JSON.stringify({ error: "Title or message too long" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Authorization: a regular user may notify themselves, an admin may target
-    // anyone (system-wide announcements) — and, since 2026-08-25, a user may
-    // notify the OTHER PARTY of a job they share. The original self-or-admin
-    // rule (anti-spoofing: any signed-up user could POST {user_id: <anyone>}
-    // and brand a fake Helpr notification) silently 403'd EVERY client-driven
-    // lifecycle notification — offer, revision, dispute, cancellation, on-my-way
-    // (~17 call sites route through createNotification with the counterparty's
-    // id), and the callers report-but-swallow the failure. The job-party rule
-    // below restores those while still refusing strangers: the caller and the
-    // target must share a job (either side of customer/helper), or one must
-    // have an application on the other's job (covers offer/decline notices to
-    // applicants who aren't assigned yet).
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    if (user_id !== user.id) {
-      // user.id comes from the verified JWT; user_id is caller-supplied, so
-      // pin it to a UUID before it goes anywhere near a query filter string.
-      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!UUID_RE.test(String(user_id))) {
-        return new Response(JSON.stringify({ error: "Invalid user_id" }), {
+    const { data: isAdminData, error: roleErr } = await adminClient.rpc("has_role", {
+      _user_id: user.id,
+      _role: "admin",
+    });
+    // Fail closed: a role lookup that errored is "not an admin".
+    const isAdmin = !roleErr && !!isAdminData;
+
+    // WHO WRITES THE WORDS (Q223 / bus EF-003).
+    //
+    // Only an ADMIN may send free text (announcements, ban and warning
+    // notices). Every other caller names a template from
+    // _shared/notification-templates.ts, and the title, message, type and link
+    // are built HERE from database facts. This function used to insert the
+    // caller's own title/message/type for any job counterparty — or a mere
+    // applicant on the job — which let an applicant put a `payment` /
+    // `verified` / `system_alert` notification, worded however they liked,
+    // into the poster's bell and a Helpr-branded email.
+    let built: BuiltNotification;
+    let sanitizedJobId: string | null = null;
+
+    const requestedTemplate = resolveTemplateName(body);
+    if (isAdmin && requestedTemplate === null) {
+      const { title, message, type = "info", link = null, job_id = null } = body;
+      if (!title || !message || typeof title !== "string" || typeof message !== "string") {
+        return new Response(JSON.stringify({ error: "Missing required fields: user_id, title, message" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { data: isAdmin, error: roleErr } = await adminClient.rpc("has_role", {
-        _user_id: user.id,
-        _role: "admin",
-      });
-      let allowed = !roleErr && !!isAdmin;
-      if (!allowed) {
-        const { count: sharedJobs } = await adminClient
-          .from("jobs")
-          .select("id", { count: "exact", head: true })
-          .or(
-            `and(customer_id.eq.${user.id},helper_id.eq.${user_id}),and(customer_id.eq.${user_id},helper_id.eq.${user.id})`,
-          );
-        allowed = (sharedJobs ?? 0) > 0;
+      if (title.length > 200 || message.length > 1000) {
+        return new Response(JSON.stringify({ error: "Title or message too long" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
-      if (!allowed) {
-        const { count: theirAppOnMyJob } = await adminClient
-          .from("applications")
-          .select("id, jobs!inner(customer_id)", { count: "exact", head: true })
-          .eq("helper_id", user_id)
-          .eq("jobs.customer_id", user.id);
-        const { count: myAppOnTheirJob } = await adminClient
-          .from("applications")
-          .select("id, jobs!inner(customer_id)", { count: "exact", head: true })
-          .eq("helper_id", user.id)
-          .eq("jobs.customer_id", user_id);
-        allowed = (theirAppOnMyJob ?? 0) > 0 || (myAppOnTheirJob ?? 0) > 0;
+      // Validate notification type — DB has a CHECK constraint, but rejecting
+      // here gives a clean 400 instead of a generic 500 and stops typos from
+      // reaching the DB at all.
+      if (typeof type !== "string" || !ALLOWED_TYPES.has(type)) {
+        return new Response(JSON.stringify({ error: "Invalid notification type" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // job_id is caller-supplied, so pin it to a UUID before it goes anywhere
+      // near the insert. A bad shape is rejected rather than dropped: silently
+      // nulling it would produce exactly the failure this column exists to end —
+      // a notification that looks fine and has lost the job it is about.
+      // Referential truth is the FK's job, not this function's: a well-formed id
+      // naming a job that does not exist is refused by
+      // notifications_job_id_fkey, and the insert-error branch below reports it.
+      if (job_id != null) {
+        if (typeof job_id !== "string" || !UUID_RE.test(job_id)) {
+          return new Response(JSON.stringify({ error: "Invalid job_id: must be a uuid" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        sanitizedJobId = job_id;
+      }
+      // Sanitize link to a same-origin path. If a non-null link was provided
+      // and failed the check, reject the request rather than silently dropping
+      // it — silent drops produce a confusing notification with no destination.
+      let sanitizedLink: string | null = null;
+      if (link != null) {
+        sanitizedLink = sanitizeLink(link);
+        if (sanitizedLink === null) {
+          return new Response(JSON.stringify({ error: "Invalid link: must be a same-origin path starting with /" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+      built = { title, message, type, link: sanitizedLink };
+    } else if (requestedTemplate === SELF_TEST_TEMPLATE) {
+      // Settings → "Send a Test": yourself only, fixed copy.
+      if (user_id !== user.id) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      built = buildSelfTestNotification(new Date());
+    } else {
+      const tpl = requestedTemplate !== null && Object.prototype.hasOwnProperty.call(NOTIFICATION_TEMPLATES, requestedTemplate)
+        ? NOTIFICATION_TEMPLATES[requestedTemplate]
+        : null;
+      if (!tpl) {
+        return new Response(JSON.stringify({ error: "Unknown or missing notification template" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const jobId = resolveTemplateJobId(body);
+      if (!jobId) {
+        return new Response(JSON.stringify({ error: "Invalid job_id: must be a uuid" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: job, error: jobErr } = await adminClient
+        .from("jobs")
+        .select("id, title, customer_id, helper_id, response_deadline, dispute_status")
+        .eq("id", jobId)
+        .maybeSingle();
+      if (jobErr) {
+        console.error("template job read failed:", jobErr);
+        return new Response(JSON.stringify({ error: "Failed to create notification" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!job) {
+        return new Response(JSON.stringify({ error: "Job not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // The caller's side of THIS job. A caller who is neither its poster nor
+      // its assigned Helpr — an applicant, a stranger — sends nothing.
+      const senderRole: "poster" | "helper" | null =
+        job.customer_id && job.customer_id === user.id
+          ? "poster"
+          : job.helper_id && job.helper_id === user.id
+            ? "helper"
+            : null;
+      let allowed = senderRole !== null && (tpl.sender === "either" || tpl.sender === senderRole);
+      if (allowed && senderRole === "helper") {
+        allowed = job.customer_id === user_id;
+      } else if (allowed && senderRole === "poster") {
+        allowed = job.helper_id === user_id;
+        if (!allowed) {
+          // An applicant who is not (or no longer) assigned: offer, decline,
+          // and the no-show report after the RPC has unassigned them.
+          const { count: applied } = await adminClient
+            .from("applications")
+            .select("id", { count: "exact", head: true })
+            .eq("job_id", job.id)
+            .eq("helper_id", user_id);
+          allowed = (applied ?? 0) > 0;
+        }
       }
       if (!allowed) {
         return new Response(JSON.stringify({ error: "Forbidden" }), {
@@ -176,50 +324,62 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-    }
 
-    // Validate notification type — DB has a CHECK constraint, but rejecting
-    // here gives a clean 400 instead of a generic 500 and stops typos from
-    // reaching the DB at all.
-    if (typeof type !== "string" || !ALLOWED_TYPES.has(type)) {
-      return new Response(JSON.stringify({ error: "Invalid notification type" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // job_id is caller-supplied, so pin it to a UUID before it goes anywhere
-    // near the insert. A bad shape is rejected rather than dropped: silently
-    // nulling it would produce exactly the failure this column exists to end —
-    // a notification that looks fine and has lost the job it is about.
-    // Referential truth is the FK's job, not this function's: a well-formed id
-    // naming a job that does not exist is refused by
-    // notifications_job_id_fkey, and the insert-error branch below reports it.
-    let sanitizedJobId: string | null = null;
-    if (job_id != null) {
-      const JOB_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (typeof job_id !== "string" || !JOB_UUID_RE.test(job_id)) {
-        return new Response(JSON.stringify({ error: "Invalid job_id: must be a uuid" }), {
-          status: 400,
+      const facts: TemplateFacts = { job, senderRole: senderRole!, now: new Date() };
+      const needs = tpl.needs ?? [];
+      if (needs.includes("revision")) {
+        const { data: rev } = await adminClient
+          .from("job_revisions")
+          .select("description")
+          .eq("job_id", job.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        facts.revisionDescription = rev?.description ?? null;
+      }
+      if (needs.includes("application")) {
+        const { data: app } = await adminClient
+          .from("applications")
+          .select("status, decline_reason")
+          .eq("job_id", job.id)
+          .eq("helper_id", user_id)
+          .maybeSingle();
+        facts.application = app ?? null;
+      }
+      if (needs.includes("posterName")) {
+        const { data: prof } = await adminClient
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        facts.posterFirstName = (prof?.full_name ?? "").split(" ")[0] || null;
+      }
+      if (needs.includes("noShow")) {
+        const { data: v } = await adminClient
+          .from("user_violations")
+          .select("action_taken")
+          .eq("user_id", user_id)
+          .eq("job_id", job.id)
+          .eq("violation_type", "no_show")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        facts.noShowAction = v?.action_taken ?? null;
+      }
+      const out = tpl.build(facts);
+      if (!out) {
+        // The database does not show the event this template announces.
+        return new Response(JSON.stringify({ error: "Nothing to notify: the event is not recorded" }), {
+          status: 409,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      sanitizedJobId = job_id;
+      built = out;
+      sanitizedJobId = job.id;
     }
 
-    // Sanitize link to a same-origin path. If a non-null link was provided
-    // and failed the check, reject the request rather than silently dropping
-    // it — silent drops produce a confusing notification with no destination.
-    let sanitizedLink: string | null = null;
-    if (link != null) {
-      sanitizedLink = sanitizeLink(link);
-      if (sanitizedLink === null) {
-        return new Response(JSON.stringify({ error: "Invalid link: must be a same-origin path starting with /" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
+    const { title, message, type } = built;
+    const sanitizedLink = built.link;
 
     // Q137: a seed subject never notifies a non-seed recipient. The
     // notifications BEFORE INSERT trigger enforces that by dropping the row,

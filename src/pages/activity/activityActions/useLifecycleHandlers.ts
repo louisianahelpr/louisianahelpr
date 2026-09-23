@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { unwrapMutation } from "@/lib/mutationResult";
-import { createNotification } from "@/lib/notifications";
+import { createNotification, notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { arrivalEstablished, arrivalGateMessage } from "@/lib/arrivalGate";
 import { toast } from "sonner";
@@ -296,12 +296,8 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       }
       const job = postedJobs.find(j => j.id === jobId);
       if (job?.helper_id) {
-        await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The person who posted this job confirmed you've arrived for "${job.title}".`,
-        // `?job=`, not `?filter=in_progress`: `in_progress` is a legacy filter
-        // key with no chip in the five-bucket strip (activityFilters.ts), so
-        // the helper landed on a filtered list with nothing selected — 17 rows
-        // in prod are on it. Activity resolves the live bucket from the job id.
-        type: "success", link: `/my-jobs?job=${job.id}` });
+        // Server-built copy (Q223).
+        await notifyJobParty({ user_id: job.helper_id, job_id: job.id, template: "arrival_confirmed" });
       }
       hapticSuccess();
       toast.success("Arrival confirmed!");
@@ -334,12 +330,8 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       }
       const job = postedJobs.find(j => j.id === jobId);
       if (job?.helper_id) {
-        await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The person who posted this job confirmed you're working on "${job.title}".`,
-        // `?job=`, not `?filter=in_progress`: `in_progress` is a legacy filter
-        // key with no chip in the five-bucket strip (activityFilters.ts), so
-        // the helper landed on a filtered list with nothing selected — 17 rows
-        // in prod are on it. Activity resolves the live bucket from the job id.
-        type: "success", link: `/my-jobs?job=${job.id}` });
+        // Server-built copy (Q223).
+        await notifyJobParty({ user_id: job.helper_id, job_id: job.id, template: "work_confirmed" });
       }
       hapticSuccess();
       toast.success("Work confirmed!");
@@ -406,23 +398,9 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       const restricted = actionTaken === "pending_ban_review";
       const legacyBanned = actionTaken === "permanent_ban";
       // Notifications (best-effort) — shared by every path.
-      await createNotification({
-        user_id: helperId,
-        title: legacyBanned ? "⛔ Account banned for no-show" : restricted ? "⛔ Account restricted for 7 days" : "⚠️ No-show warning",
-        message: legacyBanned
-          ? "Your account has been permanently banned for repeated no-shows."
-          : restricted
-            ? "A second no-show was reported against you. Your account is restricted for 7 days while an admin reviews it. If you think this is wrong, email admin@louisianahelpr.com."
-            : `You received a no-show warning for "${job.title}".`,
-        type: "warning",
-        // Warnings & Strikes, not the Profile landing tab — this notification
-        // IS a strike, and `?tab=warnings` is the screen that lists it.
-        link: "/profile?tab=warnings",
-        // The destination is correct and carries no job id, so the job can
-        // only travel as the reference. Without it "which job was I struck
-        // over?" is answerable from the message text alone.
-        job_id: job.id,
-      });
+      // Server-built copy (Q223): the rung is read from the user_violations
+      // row report_helper_no_show just wrote, never from this client.
+      await notifyJobParty({ user_id: helperId, job_id: job.id, template: "no_show_reported" });
       // Admin fan-out — a silent drop here means no admin gets the
       // no-show alert. Warn-report but continue (the poster's toast still
       // fires and the DB state is already correct).

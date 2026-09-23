@@ -23,6 +23,9 @@ interface NotificationPayload {
 }
 
 /**
+ * ADMIN ONLY (Q223): free-text notifications. The server refuses caller-written
+ * copy from anyone else — a counterparty uses `notifyJobParty` below.
+ *
  * Creates an in-app notification via the create-notification edge function
  * (server-side insert). The EMAIL is chained inside that function with the
  * service key — never from here. send-notification-email is service-role-only
@@ -43,6 +46,47 @@ export async function createNotification(payload: NotificationPayload) {
     return { error: fnError };
   }
 
+  return { error: null };
+}
+
+/**
+ * The notifications a NON-ADMIN may cause another user to receive (Q223).
+ * Mirrors NOTIFICATION_TEMPLATES in
+ * supabase/functions/_shared/notification-templates.ts — the server builds
+ * every word, the type and the link from the job; the client only says which
+ * event happened and on which job.
+ */
+export type NotificationTemplate =
+  | "work_started"
+  | "dispute_withdrawn"
+  | "dispute_response"
+  | "revision_acknowledged"
+  | "job_confirmed"
+  | "dispute_resolved"
+  | "revision_requested"
+  | "arrival_confirmed"
+  | "work_confirmed"
+  | "job_offer"
+  | "application_declined"
+  | "no_show_reported";
+
+/**
+ * Notify the other party of a job about a lifecycle event. Free-text
+ * `createNotification` is admin-only on the server; this is the path for
+ * everyone else.
+ */
+export async function notifyJobParty(payload: {
+  user_id: string;
+  job_id: string;
+  template: NotificationTemplate;
+}) {
+  const { error: fnError } = await supabase.functions.invoke("create-notification", {
+    body: { user_id: payload.user_id, job_id: payload.job_id, template: payload.template },
+  });
+  if (fnError) {
+    report(fnError, { tags: { source: "notifyJobParty.insert" }, context: { template: payload.template } });
+    return { error: fnError };
+  }
   return { error: null };
 }
 

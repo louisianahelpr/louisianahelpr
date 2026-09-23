@@ -67,7 +67,7 @@ vi.mock("@/lib/haptics", () => ({ hapticSuccess: vi.fn(), hapticError: vi.fn() }
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 vi.mock("@tanstack/react-query", () => ({ useQueryClient: () => ({ invalidateQueries: vi.fn() }) }));
 
-import { TermsReconsentDialog } from "@/components/TermsReconsentDialog";
+import { RECONSENT_EXEMPT_PATHS, TermsReconsentDialog } from "@/components/TermsReconsentDialog";
 import { LATEST_PRIVACY_VERSION, LATEST_TERMS_VERSION } from "@/lib/consent";
 
 const ROOT = resolve(__dirname, "../..");
@@ -149,5 +149,11 @@ describe("Terms re-acceptance after the 2026-09-23 Terms change (Q210(d))", () =
     render(<MemoryRouter initialEntries={[path]}><TermsReconsentDialog /></MemoryRouter>);
     await new Promise((r) => setTimeout(r, 30));
     expect(screen.queryByText(TITLE)).toBeNull();
+  });
+
+  it("every exempt path is still a route in App.tsx (a stale entry fails)", () => {
+    const app = readFileSync(join(resolve(__dirname, "../.."), "src/App.tsx"), "utf8");
+    const stale = RECONSENT_EXEMPT_PATHS.filter((p) => !app.includes(`path="${p}"`));
+    expect(stale, `exempt path is no longer a route: ${stale.join(", ")} — remove it`).toEqual([]);
   });
 });

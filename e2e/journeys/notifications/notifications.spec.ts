@@ -16,7 +16,7 @@
  * which is a coin-toss dressed as a proof. Registerable only once the link set
  * is pinned to a fixture this spec owns.
  *
- * @mutate-exempt 5 of 6 tests are create-notification edge-function behaviour over REST and the gate never deploys a function (measured 2026-09-21). SHOWN ABLE TO FAIL in the right medium by src/test/edge/create-notification.test.ts, which carries a registered @mutate against supabase/functions/create-notification/index.ts and covers the 403 stranger-relationship gate and the 400 length cap directly. GAP, stated plainly: that edge test does NOT cover the stored-link sanitisation to "/dashboard", the notification-preference round-trip, or the email_send_log row. The 6th test drives a browser but over rows read live from prod, so a mutation against it is data-dependent; it becomes registerable once its links come from a fixture this spec owns.
+ * @mutate-exempt 5 of 6 tests are create-notification edge-function behaviour over REST and the gate never deploys a function (measured 2026-09-21). SHOWN ABLE TO FAIL in the right medium by src/test/edge/create-notification.test.ts, which carries a registered @mutate against supabase/functions/create-notification/index.ts and covers the stranger refusal, the Q223 no-caller-copy rule and the per-template job-party gate directly. GAP, stated plainly: that edge test does NOT cover the notification-preference round-trip or the email_send_log row. The 6th test drives a browser but over rows read live from prod, so a mutation against it is data-dependent; it becomes registerable once its links come from a fixture this spec owns.
  */
 import { test, expect, getSession, rest, newUserContext, sessionsAvailable, assertHealthy, SUPABASE_URL, ANON, announceUncovered, skipUncovered } from "../fixtures";
 
@@ -26,8 +26,9 @@ import { test, expect, getSession, rest, newUserContext, sessionsAvailable, asse
  * Real prod, two shared accounts, no mocks. Covers what the test accounts can
  * cause without a third geo-matched account or a live-mode Stripe charge:
  *
- *   1. create-notification authz + sanitisation (spoofing, link, type) — the
- *      shared insert path; API-level, self-targeted rows are cleaned.
+ *   1. create-notification authz (spoofing, no caller-written copy for a
+ *      non-admin, Q223) — the shared insert path; API-level, self-targeted
+ *      rows are cleaned.
  *   2. notification-preference round-trip (OFF is stored, then restored) — the
  *      first half of "OFF means nothing is sent".
  *   3. a real in-app row's LINK opens the right screen with no error page
@@ -63,31 +64,40 @@ test.describe("notifications & email", () => {
 
   const fnHeaders = () => ({ apikey: ANON, Authorization: `Bearer ${posterToken}`, "Content-Type": "application/json" });
 
-  test("create-notification refuses spoofing a stranger (no shared job) → 403", async ({ request }) => {
-    // A well-formed but unrelated UUID: shares no job and no application with the
-    // caller, so the job-party rule must refuse it. A 2xx here is a SECURITY
-    // finding — any user could brand a fake Helpr notification to anyone.
+  test("create-notification refuses spoofing a stranger (no shared job) → 4xx", async ({ request }) => {
+    // A well-formed but unrelated UUID. Caller-written copy is refused outright
+    // for a non-admin (400, Q223); a template naming a job the stranger is not a
+    // party to is refused by the job-party rule (403/404). A 2xx either way is
+    // a SECURITY finding — any user could brand a fake Helpr notification.
     const stranger = "00000000-0000-4000-8000-000000000001";
-    const r = await request.post(FN, { headers: fnHeaders(), data: { user_id: stranger, title: "spoof", message: `${runId}`, type: "info" } });
-    expect(r.status(), `SECURITY: create-notification let a user notify an unrelated stranger (got ${r.status()})`).toBe(403);
+    const freeText = await request.post(FN, { headers: fnHeaders(), data: { user_id: stranger, title: "spoof", message: `${runId}`, type: "info" } });
+    expect(freeText.status(), `SECURITY: create-notification let a user notify an unrelated stranger (got ${freeText.status()})`).toBe(400);
+    const templated = await request.post(FN, { headers: fnHeaders(), data: { user_id: stranger, template: "work_started", job_id: "00000000-0000-4000-8000-000000000002" } });
+    expect([403, 404], `SECURITY: a template reached an unrelated stranger (got ${templated.status()})`).toContain(templated.status());
   });
 
-  test("create-notification rejects unsafe links and bad types (400)", async ({ request }) => {
+  test("create-notification refuses caller-written copy from a non-admin (Q223, 400)", async ({ request }) => {
+    // Even to yourself, even with a safe link: a non-admin names a template;
+    // the words, type and link are the server's. The platform-branded types
+    // an applicant used to push (payment / verified / system_alert) included.
+    for (const type of ["info", "payment", "verified", "system_alert", "totally_made_up"]) {
+      const r = await request.post(FN, { headers: fnHeaders(), data: { user_id: posterId, title: "t", message: runId, type, link: "/dashboard" } });
+      expect(r.status(), `SECURITY: create-notification took caller-written copy of type "${type}" from a non-admin`).toBe(400);
+    }
     for (const link of ["javascript:alert(1)", "//evil.com/x", "https://evil.com", "/x\\y", "not-a-path"]) {
       const r = await request.post(FN, { headers: fnHeaders(), data: { user_id: posterId, title: "t", message: runId, type: "info", link } });
       expect(r.status(), `SECURITY: create-notification accepted an unsafe link "${link}"`).toBe(400);
     }
-    const badType = await request.post(FN, { headers: fnHeaders(), data: { user_id: posterId, title: "t", message: runId, type: "totally_made_up" } });
-    expect(badType.status(), "create-notification accepted a type outside the allowlist").toBe(400);
   });
 
-  test("create-notification accepts a safe self-notification, then it is cleaned", async ({ request }) => {
-    const r = await request.post(FN, { headers: fnHeaders(), data: { user_id: posterId, title: `[t7] self`, message: runId, type: "info", link: "/dashboard" } });
-    expect(r.ok(), `safe self-notification rejected: ${r.status()} ${await r.text()}`).toBe(true);
+  test("create-notification's self test lands with server copy, then it is cleaned", async ({ request }) => {
+    const since = new Date().toISOString();
+    const r = await request.post(FN, { headers: fnHeaders(), data: { user_id: posterId, template: "test", title: "IGNORED", message: runId } });
+    expect(r.ok(), `self test notification rejected: ${r.status()} ${await r.text()}`).toBe(true);
     // Find, mark read (own-notification UPDATE), then delete (own read-notification DELETE).
-    const rows = (await request.get(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${posterId}&message=eq.${runId}&select=id,link,type`, { headers: posterHeaders }).then((x) => x.json())) as Array<{ id: string; link: string }>;
-    expect(rows.length, "the safe self-notification did not land as an in-app row").toBeGreaterThan(0);
-    expect(rows[0].link, "the stored link was not the sanitised same-origin path").toBe("/dashboard");
+    const rows = (await request.get(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${posterId}&title=eq.${encodeURIComponent("Test from Helpr")}&created_at=gte.${encodeURIComponent(since)}&select=id,link,type,message`, { headers: posterHeaders }).then((x) => x.json())) as Array<{ id: string; link: string | null; message: string }>;
+    expect(rows.length, "the self test notification did not land as an in-app row").toBeGreaterThan(0);
+    expect(rows.some((row) => row.message.includes(runId)), "caller-written text reached the notification").toBe(false);
     for (const row of rows) {
       await request.patch(`${SUPABASE_URL}/rest/v1/notifications?id=eq.${row.id}`, { headers: posterHeaders, data: { read: true } });
       await request.delete(`${SUPABASE_URL}/rest/v1/notifications?id=eq.${row.id}`, { headers: posterHeaders });

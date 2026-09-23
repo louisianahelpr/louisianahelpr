@@ -291,23 +291,10 @@ export function JobConfirmation({
       if (job) {
         const recipientId = isOwner ? job.helper_id : job.customer_id;
         if (recipientId) {
-          const { createNotification } = await import("@/lib/notifications");
-          await createNotification({
-            user_id: recipientId,
-            title: isOwner ? "The person who posted this job confirmed it!" : "Helpr confirmed the job!",
-            message: `${isOwner ? "The person who posted this job" : "The Helpr"} confirmed they're committed to "${job.title}". Tap to confirm your side too.`,
-            type: "info",
-            // `?job=`, not `?filter=offered`. `offered` is a LEGACY filter key —
-            // the strip is five buckets now (activityFilters.ts) and `offered` has
-            // no chip, so the recipient landed on a filtered list with nothing
-            // showing as selected. 33 rows in prod `notifications` are on
-            // `?filter=offered` (measured 2026-08-31). The bucket is not fixed
-            // either: an unconfirmed booking reads "Waiting" to the poster and
-            // "Needs you" to the helper, and both flip once the other side
-            // confirms or the day passes. Activity resolves it from the job id at
-            // open time; an explicit `?filter=` would override that resolution.
-            link: isOwner ? `/my-jobs?job=${jobId}` : `/my-posts?job=${jobId}`,
-          });
+          const { notifyJobParty } = await import("@/lib/notifications");
+          // Server-built copy (Q223); the server picks the poster/Helpr
+          // wording and the `?job=` link from which side the caller is on.
+          await notifyJobParty({ user_id: recipientId, job_id: jobId, template: "job_confirmed" });
         }
       }
     }

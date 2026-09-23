@@ -219,6 +219,28 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/disputePayoutStamp.ts";`,
   );
 
+  // Q223: `_shared/notification-templates.ts` has ZERO imports, so the
+  // generated file points at the REAL module. The server-built copy IS the
+  // behaviour under test in create-notification.test.ts; a mock would put the
+  // words a non-admin can cause outside the guard that pins them.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/notification-templates\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/notification-templates.ts";`,
+  );
+
+  // Q255: the auth-401 class guard loads EVERY function that verifies a JWT,
+  // and three of them could not load at all. `_shared/instantPayoutFee.ts` has
+  // ZERO imports; `_shared/accountPurge.ts` imports only `./jobMedia.ts`, which
+  // has none, so both point at the REAL modules.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/instantPayoutFee\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/instantPayoutFee.ts";`,
+  );
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/accountPurge\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/accountPurge.ts";`,
+  );
+
   // Q202: the job price cap and the 3D Secure rule have ZERO imports, so the
   // generated file points at the REAL modules. They are the behaviour under
   // test (jobBudgetCapIsOneConstant / threeDSecureOnLargeCharges).

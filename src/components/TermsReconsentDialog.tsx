@@ -25,6 +25,7 @@ import { queryKeys } from "@/lib/queryKeys";
 // The dialog's own Terms/Privacy links open these in a new tab, and the dialog
 // is mounted app-wide, so without this it covers the very page it asks the
 // user to read.
+// @two-way src/test/termsReconsentOnBump.test.tsx:exempt path is no longer a route
 export const RECONSENT_EXEMPT_PATHS = ["/legal", "/terms", "/privacy"];
 
 export function TermsReconsentDialog() {

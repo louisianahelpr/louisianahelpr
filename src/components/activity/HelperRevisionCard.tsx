@@ -26,7 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
-import { createNotification } from "@/lib/notifications";
+import { notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { JobStepPrimaryButton } from "./JobActionRow";
 import { JobStepRowSlot, useInJobStepRow } from "./jobStepRow";
@@ -174,14 +174,8 @@ export function HelperRevisionCard({
 
       // Notify the poster
       if (posterId) {
-        await createNotification({
-          user_id: posterId,
-          title: "Helpr acknowledged the revision",
-          message: "Your Helpr has seen your revision request and will fix it. Payment stays held until you confirm.",
-          type: "info",
-          // `?job=` — `revision_requested` has no chip in the five-bucket strip.
-          link: `/my-posts?job=${jobId}`,
-        });
+        // Server-built copy (Q223).
+        await notifyJobParty({ user_id: posterId, job_id: jobId, template: "revision_acknowledged" });
       }
 
       hapticSuccess();

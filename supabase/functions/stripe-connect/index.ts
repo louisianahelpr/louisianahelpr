@@ -33,7 +33,15 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data, error: authError } = await supabaseClient.auth.getUser(token);
     const user = data.user;
-    if (authError || !user?.email) throw new Error("Not authenticated");
+    // An invalid or expired session is the CALLER's problem: 401 tells the
+    // client to sign in again. Throwing here fell to the generic catch below
+    // and answered 500 "couldn't set up your payout account" (Q255).
+    if (authError || !user?.email) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",

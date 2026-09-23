@@ -218,6 +218,7 @@ const OUT_OF_SCOPE: Record<string, string> = {
   "supabase/functions/admin-user-actions/banReviewCopy.ts::UNKNOWN_BAN_REVIEW_COPY": "app copy fallback (name contains KNOWN)",
   "supabase/functions/ai-job-builder/index.ts::ALLOWED_ROLES": "app input validation (chat roles)",
   "supabase/functions/create-notification/index.ts::ALLOWED_TYPES": "app input validation (notification types)",
+  "supabase/functions/create-notification/index.ts::LEGACY_TITLE_TEMPLATE": "not an exemption: maps an old client's title to the server template that builds its copy (Q223 compat); excuses no offender",
   "supabase/functions/create-pro-checkout/index.ts::ALLOWED_CYCLES": "app input validation (billing cycles)",
   "supabase/functions/create-pro-checkout/index.ts::ALLOWED_TIERS": "app input validation (tiers)",
   "supabase/functions/str-ical-sync/safeFetch.ts::ALLOWED_PROTOCOLS": "app SSRF allowlist",

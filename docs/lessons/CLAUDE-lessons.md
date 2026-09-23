@@ -243,8 +243,9 @@ this list tight; project-specific trivia belongs in code comments, not here.
   WebKit bug; here, the dev server cannot see a Chromium one. Fix is an
   `@supports` block the minifier cannot collapse. **Verify any CSS claim
   against `dist/assets/*.css` after `npm run build`, not against the dev
-  server** — `grep -c "backdrop-filter:none" dist/assets/*.css` is the whole
-  check, and it distinguishes the two states in one command.
+  server** — `grep -o "backdrop-filter:none" dist/assets/*.css | wc -l` is the
+  whole check (count OCCURRENCES: the bundle is one line, so `grep -c`, which
+  counts matching LINES, prints 1 in both states and cannot tell them apart).
 
   Related, same lane: setting every glass class to `hsl(var(--background))`
   does not remove transparency, it removes the MATERIAL. `.liquid-glass` is

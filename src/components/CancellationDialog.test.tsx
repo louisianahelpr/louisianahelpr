@@ -17,7 +17,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     })),
   },
 }));
-vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn() }));
+vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn(), notifyJobParty: vi.fn() }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
 function isoDateHoursFromNow(hours: number) {

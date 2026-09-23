@@ -26,7 +26,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 81 items — 13 done, 4 partly done (fixed, protection pending), 64 open.**
+**Queue: 82 items — 13 done, 5 partly done (fixed, protection pending), 64 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -400,6 +400,28 @@ sure someone hears it and closes it.
    option: skip sending to is_seed recipients (log it as `skipped_seed` in
    email_send_log), with an allowlist for the journeys that assert delivery.
    Your call, because it changes what the E2E journeys can check.
+5. **Push notifications (Q82): three things only you can do.** The code
+   cause is fixed and pushed (see Q82), but no phone has the fix yet.
+   (a) **Cut a TestFlight build from main** (at or after the Q82 fix commit)
+   and install it on your iPhone. The only builds with the AppDelegate
+   forwarding are ce4d38d59 (2026-09-02) and later, and every build so far
+   also has the boot race (it depends on timing, so it may not hit every
+   launch). (b) **On that build: sign in, go to Home, tap "Enable" on the
+   notifications pill, then Allow.** The pill only shows after you've posted
+   or applied, or on a later launch more than an hour after install. If you tapped "Don't
+   Allow" on any earlier build, iOS will not ask again: turn it on in
+   Settings > Helpr > Notifications first, then cold-launch the app. Within
+   seconds `select count(*) from push_tokens` should be 1 and
+   analytics_events should show `push_token_saved`. If it doesn't, the
+   analytics events say which step failed. (c) **Only if you run the app
+   straight from Xcode on your phone:** those builds get SANDBOX APNs tokens,
+   and prod sends to the production APNs host (`APNS_USE_SANDBOX` is unset),
+   so APNs rejects them with BadDeviceToken and the sender deletes the row.
+   TestFlight/App Store builds are unaffected. Leave this alone unless you
+   test from Xcode. APNs credentials are fine: APNS_KEY_ID, APNS_TEAM_ID
+   (digest matches P85MCK558V), APNS_BUNDLE_ID (digest matches com.Helpr)
+   and APNS_AUTH_KEY are all set in Supabase secrets. Whether the .p8 key
+   itself is valid can't be checked without a real token to send to.
 - [ ] **Q41 Morning report: everything the design no longer uses (owner,
   2026-09-23: "we can likely delete it").** REPORT ONLY, no deletion; the owner
   decides. Inventory with evidence for each item (call-site counts,
@@ -726,11 +748,42 @@ sure someone hears it and closes it.
   caused two broken @mutate lines and lost screenshots. Put it in one file
   (e.g. .claude/AGENT-BRIEF.md) that CLAUDE.md tells every spawn to read, and
   keep it current.
-4. **FYI, found overnight, a launch blocker: push notifications have NEVER
-   worked.** push_tokens has 0 rows ever; 348 pushes were skipped in 7 days
-   for having no device. CLAUDE.md's "push-token bug is FIXED" was never
-   verified against the data. An agent is on it (Q82); anything that needs
-   Apple credentials or your device will be listed here.
+- [~] **Q82 No device has a push token: push notifications reach nobody
+  (launch blocker).** MEASURED 2026-09-23: push_tokens 0 rows
+  (n_tup_ins 0 since the 2026-09-22 restart); notification_logs push
+  'skipped: no_registered_devices' x3,532 across 87 users since 2026-09-01.
+  The owner's iPhone (iOS 18.7, native) signed in 10x between 09-03 and 09-09
+  on TestFlight build ce4d38d59, which already has the AppDelegate
+  forwarding. No push error was ever logged. NOT "never held a row":
+  notification_logs shows 2 token rows deleted on 09-01/02 after APNs
+  BadDeviceToken. Their users have no profile, so they look like synthetic
+  probes; real-device rows: unknown.
+  LAYERS: native AppDelegate forwarding + entitlements + SPM plugin: correct
+  (code read). Server: upsert/select/delete own row as helper-e2e via PostgREST
+  201/200/200, another user's row 403 (RLS correct); no trigger or cron prunes
+  rows (only purge_user_data, sign-out, and the sender on BadDeviceToken). APNs
+  secrets present, bundle/team digests match. **CLIENT (the break):**
+  useNativePushSetup's effect depended on `navigate`, whose identity changes
+  on every pathname change in react-router 7. A native cold launch at "/" is
+  redirected at once by NativeLaunchRouter, so the setup aborted before
+  register() and before the appUrlOpen listener. That kills token registration,
+  Universal Links and the helpr:/// Stripe return for the whole session. Also,
+  sign-out followed by sign-in in the same session never re-saved the token.
+  FIXED in src/lib/nativePush.ts. GUARDS: src/lib/nativePush.bootRegister.test.tsx
+  (red 6/7 on the old code, green 7/7; 3 @mutate lines, all killed) +
+  LIVE MONITOR migration 20260923055631 (check_push_token_health, daily cron
+  push-token-health: ledger item 'push-tokens-empty' while no real user has a
+  token, closed only by ops_alert_verify re-asking; PGlite proof
+  src/test/pglite/pushTokenHealth.pglite.mjs). Stays [~] until a real device's
+  row lands, which needs the owner (MORNING QUESTIONS 5). Scoreboard: Q59
+  doesn't exist yet. When it does, it reads check_push_token_health()
+  (tokens, registered_14d, native_users_14d, skipped_no_device_7d).
+4. **FYI, found overnight, a launch blocker: push notifications reach nobody.**
+   push_tokens has 0 rows and thousands of pushes were skipped for having no
+   device. CLAUDE.md's "push-token bug is FIXED" was only true for the native
+   half. The JS boot code dropped registration on every cold launch that
+   redirected. Fixed in code (Q82). Getting a phone onto the fix is
+   MORNING QUESTIONS 5.
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

@@ -7587,7 +7587,7 @@ rows are non-tappable; panel identical in WebKit and Chromium.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 74 items — 12 done, 4 partly done (fixed, protection pending), 58 open.**
+**Queue: 76 items — 12 done, 4 partly done (fixed, protection pending), 60 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -8193,3 +8193,14 @@ sure someone hears it and closes it.
 - [ ] **Q74 App crash rate.** iOS/Android crash-free sessions from Sentry native
   + App Store Connect, on the scoreboard with a target (e.g. >= 99.5%), and
   a crash spike creates a ledger alert.
+- [ ] **Q75 Secret scanning, repo + full git HISTORY.** Many agent sessions have
+  committed here; a key committed once stays in history after deletion. Scan
+  every commit (gitleaks/trufflehog, or GitHub secret scanning via the MCP
+  run_secret_scanning), rotate anything live that's found (owner, for
+  credentials), and add a pre-commit + CI secret scan so a secret can never land.
+- [ ] **Q76 Admin audit trail is complete.** Every admin action (ban/suspend,
+  strike reverse, refund, release payout, manual status override, remove
+  job, delete user, credential approve/reject, dispute decision) writes an
+  audit row (who, what, target, when, reason). Inventory the admin
+  RPCs/edge functions from code, prove each logs one (live test on a seed
+  target), and add a guard that fails when a new admin action has no audit write.

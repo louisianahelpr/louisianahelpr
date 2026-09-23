@@ -41,9 +41,15 @@
 -- functions and bundle are live (queued in docs/OPEN.md).
 --
 -- Every function below is restated from its NEWEST definition with only the
--- approval_status lines changed, and its ACL restated as that definition's
--- migration left it (CREATE OR REPLACE keeps the ACL; restating it is a no-op
--- on a replay and a correction if anything drifted).
+-- approval_status lines changed. Where that definition's migration (or a later
+-- ACL sweep) left an explicit GRANT/REVOKE, it is restated beside it; the rest
+-- keep their ACL because CREATE OR REPLACE does not touch it.
+--
+-- OLD BUNDLES. Builds from before Q193 (a stale web tab; any installed native
+-- build) still route approval_status = 'pending' to /account-pending. Nothing
+-- writes 'approved' any more, so the column's default becomes 'approved' and
+-- the last 'pending' rows are settled (at the end, after log_verification_change
+-- stops logging the column): an inert column must not strand an old client.
 
 -- ── 0. Make the mirror exact before anything gates on it ──
 -- email_verified has been trigger-maintained since 20260418222915, which also
@@ -1125,3 +1131,14 @@ COMMENT ON POLICY "Users can insert their own profile" ON public.profiles IS
 -- dropped here too in case any environment still has it.
 DROP INDEX IF EXISTS public.idx_profiles_pending_verified;
 DROP INDEX IF EXISTS public.idx_profiles_role_approval;
+
+-- ── Keep the inert column harmless for pre-Q193 bundles (see header) ──
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name = 'profiles'
+                AND column_name = 'approval_status') THEN
+    EXECUTE $q$ALTER TABLE public.profiles ALTER COLUMN approval_status SET DEFAULT 'approved'$q$;
+    EXECUTE $q$UPDATE public.profiles SET approval_status = 'approved' WHERE approval_status = 'pending'$q$;
+  END IF;
+END $$;

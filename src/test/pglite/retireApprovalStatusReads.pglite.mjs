@@ -121,6 +121,12 @@ CREATE TABLE public.helper_credentials (user_id uuid, status text);
 CREATE TABLE public.favorite_helpers (customer_id uuid, helper_id uuid, created_at timestamptz DEFAULT now(), private_note text);
 CREATE TABLE public.profile_search_rate_log (searcher_id uuid, created_at timestamptz DEFAULT now());
 CREATE TABLE public.helper_verifications (user_id uuid, changed_by uuid, field text, old_value text, new_value text);
+-- The rest of the columns prevent_self_escalation pins (its NEW.x := OLD.x list).
+ALTER TABLE public.profiles ADD COLUMN application_count text, ADD COLUMN approval_email_count text, ADD COLUMN auto_suspended_until text, ADD COLUMN denial_email_count text, ADD COLUMN denial_reason text, ADD COLUMN drip_step text, ADD COLUMN has_applied_before text, ADD COLUMN id_verification_status text, ADD COLUMN idv_attempt_count text, ADD COLUMN idv_attempted_at text, ADD COLUMN insurance_rejection_reason text, ADD COLUMN insurance_reviewed_at text, ADD COLUMN insurance_reviewed_by text, ADD COLUMN is_legacy_user text, ADD COLUMN last_approval_email_at text, ADD COLUMN last_denial_email_at text, ADD COLUMN last_drip_at text, ADD COLUMN last_verification_email_at text, ADD COLUMN license_rejection_reason text, ADD COLUMN license_reviewed_at text, ADD COLUMN license_reviewed_by text, ADD COLUMN onboarding_fee_charged_at text, ADD COLUMN stripe_charges_enabled text, ADD COLUMN stripe_customer_id text, ADD COLUMN stripe_identity_verified_at text, ADD COLUMN stripe_subscription_id text, ADD COLUMN subscription_billing_cycle text, ADD COLUMN subscription_cancel_at_period_end text, ADD COLUMN verification_email_count text;
+CREATE TABLE public.error_logs (severity text, message text, tags jsonb, context jsonb, created_at timestamptz DEFAULT now());
+CREATE POLICY "Users can update their own safe fields" ON public.profiles FOR UPDATE TO authenticated
+  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+GRANT UPDATE ON public.profiles TO authenticated;
 CREATE INDEX idx_profiles_pending_verified ON public.profiles (approval_status, email_verified)
   WHERE approval_status = 'pending';
 `);
@@ -138,6 +144,8 @@ REVOKE ALL ON FUNCTION public.prevent_self_escalation() FROM PUBLIC, anon;`);
 await db.exec(`
 CREATE TRIGGER profiles_verification_history AFTER UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.log_verification_change();
+CREATE TRIGGER tr_prevent_self_escalation BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.prevent_self_escalation();
 `);
 
 // Prod-shaped rows, created the way prod creates them (auth row, then profile + customer role).
@@ -227,16 +235,38 @@ await db.exec(`
   CREATE OR REPLACE TRIGGER sync_email_verified_trigger AFTER UPDATE OF email_confirmed_at ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.sync_email_verified();`);
 await db.query(`INSERT INTO public.profiles (user_id, full_name) VALUES ($1, 'Nia Newsignup')`, [NEW_SIGNUP]);
+const nsBefore = (await db.query(`SELECT approval_status FROM public.profiles WHERE user_id = $1`, [NEW_SIGNUP])).rows[0].approval_status;
 await db.query(`INSERT INTO public.user_roles (user_id, role) VALUES ($1, 'customer')`, [NEW_SIGNUP]);
 await db.query(`INSERT INTO auth.users (id, email_confirmed_at) VALUES ($1, NULL)`, [NEW_SIGNUP]);
 await db.query(`UPDATE auth.users SET email_confirmed_at = now() WHERE id = $1`, [NEW_SIGNUP]);
 const ns = (await db.query(`SELECT email_verified, approval_status FROM public.profiles WHERE user_id = $1`, [NEW_SIGNUP])).rows[0];
 check("confirming an email sets email_verified", ns.email_verified === true);
-check("confirming an email no longer writes approval_status", ns.approval_status === "pending", ns.approval_status);
+check("confirming an email no longer writes approval_status", ns.approval_status === nsBefore, `${nsBefore} -> ${ns.approval_status}`);
+const pendingLeft = (await db.query(`SELECT count(*)::int AS n FROM public.profiles WHERE approval_status = 'pending'`)).rows[0].n;
+check("no row is 'pending' and a new row defaults to 'approved' (pre-Q193 bundles cannot be stranded)",
+  pendingLeft === 0 && nsBefore === "approved", `pending=${pendingLeft}, new row=${nsBefore}`);
 const nsVisible = ids(await asUser(VIEWER, `SELECT user_id FROM public.get_safe_profiles($1::uuid[])`, [[NEW_SIGNUP]]));
 check("a new signup is public the moment it confirms, with no approval step", nsVisible.has(NEW_SIGNUP));
 const history = (await db.query(`SELECT count(*)::int AS n FROM public.helper_verifications WHERE field = 'approval_status'`)).rows[0].n;
 check("no approval_status history rows are written", history === 0, `${history}`);
+
+// 4b. email_verified is now the public gate: a member cannot set it.
+const selfUpd = async (uid, target) => {
+  await db.exec(`SET ROLE authenticated; SELECT set_config('request.jwt.claim.sub', '${uid}', false)`);
+  try { await db.query(`UPDATE public.profiles SET email_verified = true WHERE user_id = $1`, [target]); }
+  catch { /* refused outright also counts as held */ }
+  finally { await db.exec(`RESET ROLE; SELECT set_config('request.jwt.claim.sub', '', false)`); }
+  return (await db.query(`SELECT email_verified FROM public.profiles WHERE user_id = $1`, [target])).rows[0].email_verified;
+};
+check("another member cannot set someone's email_verified", (await selfUpd(VIEWER, FORM_ONLY)) === false);
+await db.exec(`SET ROLE anon`);
+let anonHeld = true;
+try { await db.query(`UPDATE public.profiles SET email_verified = true WHERE user_id = $1`, [FORM_ONLY]); } catch { /* no grant */ }
+await db.exec(`RESET ROLE`);
+anonHeld = (await db.query(`SELECT email_verified FROM public.profiles WHERE user_id = $1`, [FORM_ONLY])).rows[0].email_verified === false;
+check("anon cannot set email_verified", anonHeld);
+// Last: if the pin is missing this write lands, and the checks above must not depend on it.
+check("an unconfirmed member cannot set their own email_verified", (await selfUpd(FORM_ONLY, FORM_ONLY)) === false);
 
 // 5. The INSERT policy still pins every gate input, including email_verified.
 const ins = async (cols) => {

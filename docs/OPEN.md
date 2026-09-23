@@ -7944,3 +7944,10 @@ sure someone hears it and closes it.
   (15-20s locator timeouts). Fix each against the real screens. Where state is
   missing, the spec's fixture setup creates it (is_seed, cleaned up), so the
   coverage test goes green. Re-dispatch prod-audit to prove it.
+- [ ] **Q50 Verify card holds on cancelled jobs on STRIPE's side, not just ours.**
+  Q31 showed 0 open holds in the DB (79 cancelled jobs, all payment_status
+  refunded/cancelled), but not the PaymentIntent state at Stripe. The Stripe
+  MCP needs auth, so read it via an existing edge function or a temporary
+  read-only one: every cancelled job's PI must be canceled/refunded at Stripe,
+  not requires_capture. Then add that comparison to money-reconciliation, so
+  a DB/Stripe disagreement alerts.

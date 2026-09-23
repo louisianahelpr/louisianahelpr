@@ -65,6 +65,7 @@ describe("edge fan-outs to admins use an operator type", () => {
   // stripe-idv-webhook "Identity verification needs review" — all retyped).
   // EXEMPT: a site whose own code posts the same event to Slack; each entry is
   // exact (a stale one fails).
+  // @two-way src/test/adminPushMirror.test.ts:"stale exemption"
   const EXEMPT: Record<string, string> = {
     "supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts:warning":
       "posts 'Stripe chargeback filed' (critical) itself, unconditionally, right after the fan-out",

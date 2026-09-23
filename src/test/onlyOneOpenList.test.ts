@@ -23,6 +23,7 @@ const ROOT = join(__dirname, "..", "..");
 const THE_LIST = "docs/OPEN.md";
 
 /** Docs allowed to carry unchecked boxes or an open-list title, each with why. */
+// @two-way src/test/onlyOneOpenList.test.ts:allowlisted but no longer an open list
 export const ALLOWED: Record<string, string> = {
   "TODO.md":
     "legacy backlog last touched 2026-08-31, predates the one-list rule; its live rows are not yet folded into docs/OPEN.md — queue item Q84 reconciles it and retires the file to a pointer",

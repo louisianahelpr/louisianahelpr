@@ -21,6 +21,10 @@ says more.
   include, an untyped .mjs import or a lib method: three lanes turned main's
   typecheck red that way on 2026-09-23. New shared module imported by a test?
   List it in tsconfig.app.json. New .mjs imported by TS? Give it a .d.mts.
+- DO run `npx eslint --quiet <the .ts/.tsx/.mjs files you changed>` before you
+  push. The CI lint job (Test workflow) is required on main; on 2026-09-23 a
+  catch with no comment (local/no-silent-catch) turned it red because the push
+  gate ran typecheck and vitest but not ESLint.
 - Before pushing: `npm run inventories:refresh`, then `npm run check:generated`
   and `npm run check:counts` (a new test moves the generated burn-down score;
   skipping this turned main red on 2026-09-23).

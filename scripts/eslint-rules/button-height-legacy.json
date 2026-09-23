@@ -15,7 +15,6 @@
   "src/components/admin/AutoRestrictedRail.tsx",
   "src/components/admin/adminJobs/JobDetailDialog.tsx",
   "src/components/admin/userDetail/ActionsTab.tsx",
-  "src/components/admin/userDetail/DetailHeader.tsx",
   "src/components/analytics/AnalyticsUpgradePanel.tsx",
   "src/components/auth/SocialAuthButtons.tsx",
   "src/components/dashboard/IconActionButton.tsx",

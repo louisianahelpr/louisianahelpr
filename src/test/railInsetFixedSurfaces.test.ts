@@ -40,6 +40,8 @@ const DELIBERATELY_FULL_WIDTH = new Set([
   "src/components/admin/AdminTopBar.tsx",
   "src/components/MobileNav.tsx",
   "src/components/Navbar.tsx",
+  // /browse's loading frame restates Navbar's fixed glass bar (Q169) for guests; the rail is signed-in only.
+  "src/components/GuestBrowseSkeleton.tsx",
   // AppShell IS the frame the rail insets — index.css moves it by `right`.
   "src/components/AppShell.tsx",
 ]);

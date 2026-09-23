@@ -47,6 +47,7 @@ describe("backgroundImport (Q131)", () => {
   beforeEach(() => __resetChunkReloadForTests());
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
     __resetChunkReloadForTests();
   });
 
@@ -77,6 +78,10 @@ describe("backgroundImport (Q131)", () => {
 
   it("track() fetches posthog only under the gate, and never the supabase client (Q162: flush is a plain fetch)", async () => {
     vi.useFakeTimers();
+    // The debounced flush is a plain fetch to /rest/v1/analytics_events. Answer
+    // it here: unit tests never reach Supabase (Q55a, src/test/prodNetworkGuard.ts).
+    const flush = vi.fn(async () => new Response(null, { status: 201 }));
+    vi.stubGlobal("fetch", flush);
     const { track, AhaEvent } = await import("./analytics");
     track(AhaEvent.JobApplied, { job_id: "q131" });
     // The posthog fan-out is immediate; the supabase flush is debounced 1.5s.

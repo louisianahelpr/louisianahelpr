@@ -35,11 +35,12 @@
 //   Disabling the server-side ZIP lookup is the original bug exactly: the row is
 //   written with a zip_code and a NULL parish, and the member matches no job.
 // @mutate supabase/functions/complete-signup/index.ts | if (!resolvedParish && typeof zipCode === "string") { | if (false) {
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, type MockInstance } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
+import { stubSignupCapRead } from "./mocks/signupCapFetch";
 
 const USER_ID = "11111111-1111-1111-1111-111111111111";
 
@@ -111,11 +112,14 @@ function signupBody(overrides: Record<string, unknown> = {}) {
 }
 
 describe("complete-signup parish derivation", () => {
+  let capRead: MockInstance<typeof fetch>;
   beforeEach(() => {
     resetEnv();
     resetSupabaseMock();
     resetSharedMocks();
+    capRead = stubSignupCapRead();
   });
+  afterEach(() => capRead.mockRestore());
 
   it("resolves parish from the ZIP when the client could not", async () => {
     seedFreshSignup();

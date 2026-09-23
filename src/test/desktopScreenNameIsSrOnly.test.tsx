@@ -38,6 +38,12 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+// No network (Q55a): ConversationList's mount-time pin/archive loads read
+// thread_pins / thread_archives from Supabase. See the helper.
+vi.mock("@/lib/pinnedConversations", async (io) =>
+  (await import("@/test/helpers/threadStoresOffline")).pinnedConversationsOffline(io));
+vi.mock("@/lib/archivedConversations", async (io) =>
+  (await import("@/test/helpers/threadStoresOffline")).archivedConversationsOffline(io));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
 vi.mock("@/lib/haptics", () => ({
   hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),

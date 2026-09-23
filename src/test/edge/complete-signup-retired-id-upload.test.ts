@@ -26,11 +26,12 @@
 // @mutate supabase/functions/complete-signup/index.ts | if (phone) updateData.phone = phone; | if (phone) updateData.phone = phone; if (Array.isArray(body.portfolioFiles)) updateData.portfolio_urls = ["u/p.png"];
 // @mutate supabase/functions/complete-signup/index.ts | if (isResubmission) { | if (isResubmission && !body.idBase64) {
 // @mutate supabase/functions/complete-signup/index.ts | .or("approval_status.is.null,approval_status.neq.denied") | .select("user_id")
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, type MockInstance } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
+import { stubSignupCapRead } from "./mocks/signupCapFetch";
 
 const USER_ID = "22222222-2222-2222-2222-222222222222";
 const BYTES = "AAAAAAAA";
@@ -76,11 +77,15 @@ const retiredBody = {
 };
 
 describe("complete-signup — the retired ID / portfolio uploads (Q40)", () => {
+  // complete-signup's raw platform_settings read must not leave the test (Q55a).
+  let capRead: MockInstance<typeof fetch>;
   beforeEach(() => {
     resetEnv();
     resetSupabaseMock();
     resetSharedMocks();
+    capRead = stubSignupCapRead();
   });
+  afterEach(() => capRead.mockRestore());
 
   it("stores nothing, writes neither column and returns no path", async () => {
     seed("pending");

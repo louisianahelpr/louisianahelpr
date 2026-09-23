@@ -46,6 +46,7 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 import { resetStripeMock } from "./mocks/stripe";
+import { stubSignupCapRead } from "./mocks/signupCapFetch";
 
 const ROOT = process.cwd();
 const MIGRATIONS = join(ROOT, "supabase", "migrations");
@@ -183,6 +184,7 @@ async function runSignup(): Promise<Record<string, unknown>> {
 describe("a referral credit can never fail to mint silently", () => {
   let errorLog: unknown[][];
   let spy: ReturnType<typeof vi.spyOn>;
+  let capRead: ReturnType<typeof stubSignupCapRead>;
 
   beforeEach(() => {
     resetEnv();
@@ -193,9 +195,13 @@ describe("a referral credit can never fail to mint silently", () => {
     spy = vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
       errorLog.push(args);
     });
+    capRead = stubSignupCapRead();
   });
 
-  afterEach(() => spy.mockRestore());
+  afterEach(() => {
+    spy.mockRestore();
+    capRead.mockRestore();
+  });
 
   describe("no unprivileged caller", () => {
     it("finds the referral-minting functions in the migrations at all", () => {

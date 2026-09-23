@@ -44,6 +44,17 @@ const CLEANUP_ONLY = [
 /** Buckets with no in-repo caller BY DESIGN, each with a reason. */
 const EXTERNALLY_USED: Record<string, string> = {};
 
+/**
+ * Buckets whose feature is gone, emptied and closed, waiting for their drop
+ * migration. EXACT and two-way: an entry fails once the bucket is dropped
+ * (delete it here) or once feature code uses it again (then it is not retired).
+ */
+// @two-way src/test/noOrphanedStorageBuckets.test.ts:retired bucket dropped or used again
+const RETIRED_PENDING_DROP: Record<string, string> = {
+  "id-documents":
+    "Q40 (2026-09-23) removed the ID upload, deleted the one real object and every storage policy (0 objects, closed to clients); account purge still clears it, so the DROP lands with the purge change in Q196.",
+};
+
 /** Replay every INSERT/DELETE against storage.buckets in timestamp order. */
 function declaredBuckets(): string[] {
   const live = new Set<string>();
@@ -114,7 +125,7 @@ describe("no orphaned storage buckets", () => {
   });
 
   it.each(BUCKETS)("bucket '%s' is used by feature code, not just cleanup code", (bucket) => {
-    if (EXTERNALLY_USED[bucket]) return;
+    if (EXTERNALLY_USED[bucket] || RETIRED_PENDING_DROP[bucket]) return;
     expect(
       usersOf(bucket),
       `No file in src/ or supabase/functions/ uses the '${bucket}' bucket, ignoring ` +
@@ -126,8 +137,9 @@ describe("no orphaned storage buckets", () => {
         `it has no in-repo caller.`,
     ).not.toEqual([]);
   });
-});
 
-// Proof this is able to fail: re-create a bucket for a feature that no code
-// uses. The migration replay picks it up and no non-cleanup file names it.
-// @mutate supabase/migrations/20260921212141_drop_orphaned_profile_videos_bucket.sql | WHERE id IN ('profile-videos', 'social-posts', 'business-documents'); | WHERE id IN ('social-posts', 'business-documents');
+  it("RETIRED_PENDING_DROP lists only declared buckets that no feature code uses", () => {
+    const stale = Object.keys(RETIRED_PENDING_DROP).filter((b) => !BUCKETS.includes(b) || usersOf(b).length > 0);
+    expect(stale, "dropped or back in use: remove from RETIRED_PENDING_DROP").toEqual([]);
+  });
+});

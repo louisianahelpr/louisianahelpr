@@ -145,7 +145,6 @@
     "press  src/components/activity/HelperRevisionCard.tsx:234 <a>  active:opacity-70",
     "press  src/components/activity/postedJobs/ApplicantsPanel.tsx:531 <button>  active:opacity-60",
     "press  src/components/dashboard/CompactJobCard.tsx:67 <button>  active:opacity-75",
-    "press  src/components/dashboard/DashboardStatusBanners.tsx:55 <button>  active:opacity-70",
     "press  src/components/dashboard/applyConfirmDialog/ApplyBody.tsx:297 <button>  active:opacity-70",
     "press  src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx:86 <button>  active:opacity-70",
     "press  src/components/jobs/DisputeLink.tsx:139 <button>  active:opacity-70",

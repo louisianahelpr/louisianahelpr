@@ -240,13 +240,16 @@ async function main() {
 
   // Reports (Q165). A shallow clone dates every file at its boundary commit,
   // which would read as "touched today": refuse rather than report fresh.
+  // It is recorded as a failure and the run continues, so every OTHER finding
+  // above is still printed (an early exit hid them in CI: Q284).
+  let reports = [];
   if (git("rev-parse", "--is-shallow-repository") === "true") {
-    console.error("::error::shallow clone — report ages are unmeasurable (fetch-depth: 0 / git fetch --unshallow); refusing to report fresh.");
-    process.exit(2);
+    stale.push("docs/audit reports: shallow clone, report ages are unmeasurable (fetch-depth: 0 / git fetch --unshallow); refusing to report fresh.");
+  } else {
+    const { RECORD_DIRS } = await import("./check-stated-counts.mjs");
+    reports = listReports(git("ls-files", "docs/audit").split("\n").filter(Boolean), RECORD_DIRS, exempt);
+    stale.push(...checkReports(reports, now, lastTouchedFromGit));
   }
-  const { RECORD_DIRS } = await import("./check-stated-counts.mjs");
-  const reports = listReports(git("ls-files", "docs/audit").split("\n").filter(Boolean), RECORD_DIRS, exempt);
-  stale.push(...checkReports(reports, now, lastTouchedFromGit));
 
   if (process.argv.includes("--json")) {
     console.log(JSON.stringify({ evidence: evidence.map((e) => e.file), stale }, null, 2));

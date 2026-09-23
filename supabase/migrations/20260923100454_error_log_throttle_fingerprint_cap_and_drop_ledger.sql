@@ -50,7 +50,7 @@
 --       pg_get_functiondef (20260923090536's, md5 bf7aab70... on prod) plus
 --       this one branch and its variable.
 --
--- Replay-safe: CREATE TABLE IF NOT EXISTS, CREATE OR REPLACE, DROP TRIGGER IF
+-- Replay-safe: the table is created only if missing, CREATE OR REPLACE, DROP TRIGGER IF
 -- EXISTS, cron.schedule upserts by name, cron_work_expectations ON CONFLICT.
 
 -- ── 1. the drop counter (server-only) ─────────────────────────────────────

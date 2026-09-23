@@ -57,7 +57,12 @@ const tailOf = (b: string) => {
 describe("Q94: the user-error-screen close rule requires a synthetic pass", () => {
   const defs = definitions("ops_alert_condition");
   const newest = defs[defs.length - 1];
-  const prior = defs[defs.length - 2];
+  // The restatement check is about Q94's own migration, not whatever restates
+  // ops_alert_condition later (Q287 did); the tail check stays on the newest.
+  const Q94_FILE = "20260923182022_ops_route_probe_close_rule.sql";
+  const q94Idx = defs.findIndex((d) => d.file === Q94_FILE);
+  const q94 = defs[q94Idx];
+  const prior = q94Idx > 0 ? defs[q94Idx - 1] : undefined;
   const b = ws(newest?.body ?? "");
 
   it("reads a real history (floor)", () => {
@@ -78,11 +83,12 @@ describe("Q94: the user-error-screen close rule requires a synthetic pass", () =
     expect(prior, "a prior definition exists").toBeTruthy();
     const pb = ws(prior!.body);
     const strip = (s: string) => s.replace(tailOf(s) ? ws(tailOf(s)) : "\u0000", "<TAIL>");
-    expect(strip(b), `${newest?.file} vs ${prior?.file}`).toBe(strip(pb));
+    expect(q94, `${Q94_FILE} defines ops_alert_condition`).toBeTruthy();
+    expect(strip(ws(q94!.body)), `${q94?.file} vs ${prior?.file}`).toBe(strip(pb));
   });
 
   it("new objects are revoked FROM PUBLIC, anon, authenticated; service_role only", () => {
-    const sql = blankSqlComments(readFileSync(join(MIG, newest!.file), "utf8"));
+    const sql = blankSqlComments(readFileSync(join(MIG, Q94_FILE), "utf8"));
     for (const obj of [
       "TABLE public.ops_route_probe",
       "FUNCTION public.ops_route_key(text)",

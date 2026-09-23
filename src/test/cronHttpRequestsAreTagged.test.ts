@@ -50,6 +50,17 @@
  * @mutate supabase/migrations/20260923170422_cron_http_request_ids.sql |     'auto-tip-charge', |     'auto-tip-charge-gone',
  * @mutate supabase/migrations/20260923170422_cron_http_request_ids.sql |        AND command NOT LIKE '%cron_http_tag(%' |        AND true
  * @mutate supabase/migrations/20260923170422_cron_http_request_ids.sql |      WHERE command LIKE '%net.http_post(%' |      WHERE command LIKE '%net.http_post(%' AND jobname LIKE 'auto-%'
+ *
+ * Q287 (20260923215732): the 'cron-http-untagged' ledger item closes itself.
+ * The NEWEST ops_alert_condition keeps a 'cron-http-untagged' branch asking
+ * cron.job with the sweep's own predicate (active, net.http_post(, no
+ * cron_http_tag(, name = jobname else 'jobid <n>'); 'cron-missed-slot' has no
+ * branch (manual by design). Behaviour, red without the migration (8 checks):
+ * src/test/pglite/cronHttpUntaggedCloseRule.pglite.mjs.
+ *
+ * @mutate supabase/migrations/20260923215732_cron_http_untagged_close_rule.sql |   ELSIF p_source = 'cron-http-untagged' AND v_job IS NOT NULL THEN |   ELSIF p_source = 'cron-http-untagged-gone' AND v_job IS NOT NULL THEN
+ * @mutate supabase/migrations/20260923215732_cron_http_untagged_close_rule.sql |          AND j.active\n |          AND true\n
+ * @mutate supabase/migrations/20260923215732_cron_http_untagged_close_rule.sql |          AND j.command NOT LIKE '%cron_http_tag(%'); |          AND true);
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -178,5 +189,42 @@ describe("the outcome of a caught-up HTTP cron and untagged HTTP crons are seen 
     const ingest = /INSERT\s+INTO\s+public\.cron_run_log[\s\S]*?ON\s+CONFLICT/i.exec(silent.body)?.[0] ?? "";
     expect(ingest).toMatch(/FROM\s+net\._http_response\s+resp\s+JOIN\s+public\.cron_http_requests\s+(\w+)\s+ON\s+\1\.request_id\s*=\s*resp\.id/i);
     expect(ingest).not.toMatch(/LEFT\s+JOIN\s+public\.cron_http_requests/i);
+  });
+});
+
+describe("an untagged-cron ledger item closes itself (Q287)", () => {
+  /** Newest ops_alert_condition(...) (it takes arguments), any dollar tag, comments blanked. */
+  const cond = (() => {
+    const re = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?ops_alert_condition\s*\([^)]*\)[\s\S]*?\bAS\s+(\$\w*\$)([\s\S]*?)\1/gi;
+    let found = { file: "", body: "" };
+    for (const { file, sql } of files) {
+      for (const m of blankSqlComments(sql).matchAll(re)) found = { file, body: m[2] };
+    }
+    return found;
+  })();
+  /** The body of one ELSIF/IF branch, up to the next ELSIF or END IF at branch level. */
+  const branch = (label: string) =>
+    new RegExp(String.raw`p_source\s*=\s*'${label}'[\s\S]*?(?=\n\s{2}ELSIF\b|\n\s{2}END IF;)`).exec(cond.body)?.[0] ?? "";
+
+  it("reads the newest ops_alert_condition (floor)", () => {
+    expect(cond.file >= "20260923215732", cond.file).toBe(true);
+    expect(cond.body.length).toBeGreaterThan(5000);
+    // the branches before it survived the restatement
+    for (const s of ["detect_stuck_payments", "cron-dead", "user-report", "user-error-screen"]) {
+      expect(cond.body).toContain(`'${s}'`);
+    }
+  });
+
+  it("'cron-http-untagged' is still failing exactly while the sweep would file it again", () => {
+    const b = branch("cron-http-untagged");
+    expect(b).toMatch(/^p_source\s*=\s*'cron-http-untagged'\s+AND\s+v_job\s+IS\s+NOT\s+NULL\s+THEN/);
+    expect(b).toMatch(/IF\s+p_probe_only\s+THEN\s+RETURN\s+true;\s+END\s+IF;/i);
+    expect(b).toMatch(/RETURN\s+EXISTS\s*\(\s*SELECT\s+1\s+FROM\s+cron\.job\s+j\s+WHERE\s+coalesce\(j\.jobname,\s*'jobid '\s*\|\|\s*j\.jobid\)\s*=\s*v_job\s+AND\s+j\.active\s+AND\s+j\.command\s+LIKE\s+'%net\.http_post\(%'\s+AND\s+j\.command\s+NOT\s+LIKE\s+'%cron_http_tag\(%'\s*\)\s*;/i);
+    // the name it compares is the one the sweep files under
+    expect(sweep).toMatch(/coalesce\(j\.jobname,\s*'jobid '\s*\|\|\s*j\.jobid\)\s+AS\s+jobname/i);
+  });
+
+  it("'cron-missed-slot' has no branch: it stays manual by design", () => {
+    expect(cond.body).not.toMatch(/'cron-missed-slot'/);
   });
 });

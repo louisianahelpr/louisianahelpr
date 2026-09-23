@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 77 done, 11 partly done (fixed, protection pending), 75 open. Source of truth for work.
+- **Queue (this file):** 77 done, 11 partly done (fixed, protection pending), 76 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 163 items — 77 done, 11 partly done (fixed, protection pending), 75 open.**
+**Queue: 164 items — 77 done, 11 partly done (fixed, protection pending), 76 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -499,6 +499,7 @@ sure someone hears it and closes it.
 - [x] **Q162 DONE 2026-09-23: analytics_events persist by plain fetch (shared src/lib/restInsert.ts, also now used by errorLogger), so a failed supabase-client chunk no longer drops the session's events; a batch sent without a session carries user_id null so the insert policy (user_id null or auth.uid()) cannot refuse it. Guards: src/lib/errorLoggerSurvivesFailedChunks.test.ts ("an analytics batch persists by fetch while the supabase-client import is failing"), src/lib/backgroundImport.test.ts, src/lib/analyticsCampaign.test.ts. Was:** analytics_events are lost for the page session when the supabase-client chunk fails (found by Q161, 2026-09-23). Q161 moved error_logs to a plain fetch; src/lib/analytics.ts still flushes through backgroundImport(supabase-client), so a failed chunk drops every analytics batch for the session (now VISIBLE as one 'background import failed: supabase-client' error row, but still lost). Move the analytics insert to the same fetch path, with a test that a batch persists while the client import rejects.
 - [ ] **Q163 OWNER (Stripe LIVE dashboard): identify the 2026-09-23 12:43:26Z delivery to /functions/v1/stripe-webhook, and check the live endpoint stays enabled until launch.** Q156 showed it was a real Stripe delivery that no sandbox event matches; the live endpoint documented in scripts/e2e/stripe-sandbox-off.sh is the likely sender, and a test key cannot see live mode. Since Q156 a live event hitting this URL during sandbox is answered 400, so Stripe retries it and may email about, or eventually disable, the live endpoint. LAUNCH DAY: after stripe-sandbox-off.sh, confirm in the live dashboard that the endpoint is enabled and resend any live events it failed.
 - [ ] **Q164 A temporary edge function vanished within a minute of a successful deploy (2026-09-23 13:19Z).** `supabase functions deploy tmp-q156-stripe-events` printed Deployed; about a minute later POST returned 404 twice and `supabase functions list` had no such function; a redeploy came back as version 1 of a new function (13:19:59) and stayed. Unexplained: check whether the Supabase GitHub integration (Q121) or a hygiene job deletes functions that are not in the repo, before any lane relies on a temporary function.
+- [ ] **Q165 Stale reports: archive what no longer describes the app (owner asked 2026-09-23).** Measured: 30 of 41 docs/audit/*.md not updated since before 2026-09-16 (oldest 2026-06-19: 01-screens, 03-journeys, 04-security-money, 05-trust-discovery); TODO.md 807 lines last touched 2026-09-01 (a second backlog, see Q84); AGENTS.md 2026-09-05; launch-2026-09/ROLLUP.md 2026-09-22. For each: carry any still-open finding into this file (verified live, not copied), then move it to docs/archive/ with a one-line 'historical, superseded by docs/OPEN.md' banner; keep dated records (morning/, evidence) where they are. Guard: extend scripts/check-staleness.mjs so a non-dated, non-archived report older than 14 days fails staleness-watch.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes

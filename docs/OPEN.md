@@ -7627,3 +7627,20 @@ sure someone hears it and closes it.
 - [ ] **Q10 Owner-side, carried over:** release dispute 9756a585's payout;
   set Stripe payouts to manual; decide Louisiana sales tax; send a screenshot
   or window width for the right-panel overlap.
+- [x] **Stored-XSS class: user-writable URL column -> raw href** (follow-up to
+  3c81624d0). 8 sinks fixed via safeDocumentUrl (HelperWorkPhotos on public
+  profiles, JobCardPhotoStrip, admin JobDetailDialog, DocumentsTab x3,
+  DetailHeader, MarketingQueue); DB CHECKs on profiles.avatar_url /
+  portfolio_urls / jobs.photos (migration 20260923042014); class check
+  `src/test/navigationSinksAreClassified.test.ts` (red on 737821bfa) + eslint
+  rule. Still open below.
+- [ ] **Admin DocumentsTab can't open a portfolio STORAGE PATH.**
+  complete-signup stores portfolio uploads as `user-documents` paths; the tab
+  now shows them as "Link withheld (not https)" (before: a broken relative
+  link). Sign them at display time like id_document_url. 0 such rows on prod
+  2026-09-23.
+- [ ] **`blankComments()` desyncs on a regex literal containing `'`**
+  (src/test/helpers/blankNonCode.ts; e.g. src/lib/chunkReload.ts:27): every
+  comment after that point in the file is kept as code, so guards built on it
+  can see comment prose as calls. Found 2026-09-23; not fixed (shared helper,
+  report only). navigationSinksAreClassified uses the TS AST instead.

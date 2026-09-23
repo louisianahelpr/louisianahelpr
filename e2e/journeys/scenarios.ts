@@ -47,7 +47,9 @@ export const REAL_BACKEND_UNREACHABLE: Partial<Record<AccountState, string>> = {
   "idv-unverified": "needs a dedicated seed account without IDV; the shared helper must stay verified for the money loop",
   "no-stripe": "needs a dedicated seed account without a Connect account; the shared helper's is load-bearing",
   restricted: "needs a dedicated seed account restricted via admin tooling and restored; none exists",
-  banned: "needs a dedicated seed account banned via admin tooling and restored; banning a shared account breaks every lane",
+  // `banned` is driven on a per-run THROWAWAY account (04-admin-safety.spec.ts,
+  // e2e/journeys/throwaway.ts), never a shared one. src/test/journeyOutcomesDriven.test.ts
+  // checks every state here is either driven or listed with its reason.
 };
 
 export type Rotation = { device: Device; network: Network; data: DataVolume };

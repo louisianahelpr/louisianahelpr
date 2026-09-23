@@ -124,6 +124,24 @@ jobs:
           supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
           supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
 
+      - name: Provide the service-role key to the journeys (throwaway accounts, Q226/Q253)
+        # 04-admin-safety.spec.ts bans a THROWAWAY account and hires one for the
+        # no-show journey, so it creates and deletes per-run @mailinator users
+        # with the service role, as privacy-journey.yml does. Set AFTER the
+        # build above, so it can never reach the bundle.
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+        run: |
+          set -euo pipefail
+          KEY=$(npx --yes supabase@2 projects api-keys --project-ref "$PROJECT_REF" --reveal -o json \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+          echo "::add-mask::$KEY"
+          test -n "$KEY"
+          # An env var, NOT a .env file: a .env in the checkout switches other
+          # journeys (trailing-icon's incomplete-e2e mint) into local mode.
+          echo "SUPABASE_SERVICE_ROLE_KEY=$KEY" >> "$GITHUB_ENV"
+
       - name: Sweep anything a previous run stranded
         env:
           SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
@@ -215,6 +233,24 @@ jobs:
         with:
           supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
           supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+
+      - name: Provide the service-role key to the journeys (throwaway accounts, Q226/Q253)
+        # 04-admin-safety.spec.ts bans a THROWAWAY account and hires one for the
+        # no-show journey, so it creates and deletes per-run @mailinator users
+        # with the service role, as privacy-journey.yml does. Set AFTER the
+        # build above, so it can never reach the bundle.
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+        run: |
+          set -euo pipefail
+          KEY=$(npx --yes supabase@2 projects api-keys --project-ref "$PROJECT_REF" --reveal -o json \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+          echo "::add-mask::$KEY"
+          test -n "$KEY"
+          # An env var, NOT a .env file: a .env in the checkout switches other
+          # journeys (trailing-icon's incomplete-e2e mint) into local mode.
+          echo "SUPABASE_SERVICE_ROLE_KEY=$KEY" >> "$GITHUB_ENV"
 
       - name: Sweep anything a previous run stranded
         env:

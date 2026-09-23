@@ -34,6 +34,7 @@
  * @mutate supabase/migrations/20260923181420_user_reports_reach_the_ledger.sql | IF v_mine >= 5 OR v_all >= 20 THEN | IF false THEN
  * @mutate supabase/functions/contact-support/index.ts | title: `Support (${userId ? 'queue insert failed' : 'guest'}) [${topicLabel}]`, | title: `Support [${topicLabel}] ${subject}`,
  * @mutate src/main.tsx | "/support?topic=report&from=shake" | "/help?topic=report&from=shake"
+ * @mutate scripts/check-store-reviews.mjs |       if (await recordOpsAlert(ledgerItem(r, appId))) recorded += 1; |       recorded += 1;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -44,8 +45,8 @@ import { latestFunctionDefs } from "./helpers/rpcErrorInventory";
 const ROOT = process.cwd();
 const MIGRATIONS = join(ROOT, "supabase", "migrations");
 
-type Channel = "reports-table" | "contact-support" | "support-redirect" | "not-a-report";
-type Surface = { file: string; kind: "write" | "invoke" | "entry"; target: string; channel: Channel; note: string };
+type Channel = "reports-table" | "contact-support" | "support-redirect" | "store-review-ingest" | "not-a-report";
+type Surface = { file: string; kind: "write" | "invoke" | "entry" | "ingest"; target: string; channel: Channel; note: string };
 
 /** Every reporting surface in the app. Two-way with the source scan below. */
 export const SURFACES: Surface[] = [
@@ -65,6 +66,8 @@ export const SURFACES: Surface[] = [
     note: "a disputed job's contact-support link (poster side)" },
   { file: "src/pages/AccountBanned.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
     note: "suspension appeal opens /support?topic=message" },
+  { file: "scripts/lib/storeReviews.mjs", kind: "ingest", target: "user-report", channel: "store-review-ingest",
+    note: "Q289: App Store reviews rated 3 stars or lower, pulled daily by scripts/check-store-reviews.mjs (quota-monitor.yml)" },
   { file: "src/lib/nps.ts", kind: "write", target: "nps_responses", channel: "not-a-report",
     note: "NPS is a 1-5 survey with an optional comment, not a problem report; read on /admin analytics" },
 ];
@@ -101,6 +104,12 @@ function scan(): Set<string> {
     for (const m of src.matchAll(/functions\/v1\/([\w-]+)/g))
       if (REPORT_SHAPED.test(m[1])) found.add(`${file}|invoke|${m[1]}`);
     if (/["'`]\/support\?topic=/.test(src)) found.add(`${file}|entry|/support?topic=`);
+  }
+  // Q289: a repo script that records user reports it pulled from outside the
+  // app (store reviews). The edge function contact-support is covered above.
+  for (const abs of walk(join(ROOT, "scripts"))) {
+    const src = blankComments(readFileSync(abs, "utf8"));
+    if (/sourceKind:\s*["'`]user-report["'`]/.test(src)) found.add(`${relative(ROOT, abs)}|ingest|user-report`);
   }
   return found;
 }
@@ -184,6 +193,15 @@ describe("every user-reported problem reaches the ops alert ledger (Q64)", () =>
     expect(title, "guest ledger title carries caller-typed text").not.toMatch(/subject|message|name|email/);
     expect(src.indexOf("from('reports').insert"), "signed-in senders still get the admin-queue row").toBeGreaterThan(-1);
     expect(src.indexOf("from('reports').insert")).toBeLessThan(guard);
+  });
+
+  it("store-review-ingest: the daily monitor pulls App Store reviews into the ledger as 'user-report'", () => {
+    const cli = blankComments(readFileSync(join(ROOT, "scripts/check-store-reviews.mjs"), "utf8"));
+    expect(cli).toMatch(/import \{[^}]*\bledgerItem\b[^}]*\} from "\.\/lib\/storeReviews\.mjs"/);
+    expect(cli).toMatch(/await recordOpsAlert\(ledgerItem\(r, appId\)\)/);
+    const wf = readFileSync(join(ROOT, ".github/workflows/quota-monitor.yml"), "utf8").split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+    expect(wf).toMatch(/-\s*cron:/);
+    expect(wf).toMatch(/run: node scripts\/check-store-reviews\.mjs\s*$/m);
   });
 
   it("support-redirect: every /support?topic= entry lands on the page that invokes contact-support", () => {

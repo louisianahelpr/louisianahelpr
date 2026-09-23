@@ -1,6 +1,6 @@
 name: Quota and analytics monitors
 
-# docs/OPEN.md Q63 + Q72, daily.
+# docs/OPEN.md Q63 + Q72 + Q289, daily.
 #
 # quota     scripts/check-quota-usage.mjs: Supabase database size, connections
 #           (against the LIVE max_connections), file storage and edge-function
@@ -25,6 +25,14 @@ name: Quota and analytics monitors
 #           that says how to top up in TEST mode (the 0077 card), BEFORE the
 #           transfers fail as they did on 2026-09-22. An unreadable balance ->
 #           ledger error AND a red run. Test mode only: a non-test key is refused.
+#
+# store-reviews scripts/check-store-reviews.mjs (Q289): App Store Connect
+#           customer reviews (the ASC_* key the TestFlight pipeline uses).
+#           Every review rated 3 stars or lower, newer than the last one
+#           recorded, becomes a `user-report` ledger item (verify manual).
+#           Review text goes to the ledger only, never to this public log. An
+#           unreadable read (a 403 names the owner step: the key's role needs
+#           Customer Reviews access) -> ledger error AND a red run.
 #
 # Both read prod through the Management API with read_only SQL (one statement
 # each) plus one logs.all query; nothing is written except ledger items.
@@ -104,9 +112,28 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-stripe-balance.mjs
 
+  store_reviews:
+    name: App Store reviews to the ledger (Q289)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Record low-rated App Store reviews
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-store-reviews.mjs
+
   notify:
     name: Report nightly result
-    needs: [quota, analytics, stripe_balance]
+    needs: [quota, analytics, stripe_balance, store_reviews]
     if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -117,6 +144,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: quota-monitor
-          status: ${{ (needs.quota.result == 'success' && needs.analytics.result == 'success' && needs.stripe_balance.result == 'success') && 'success' || 'failure' }}
+          status: ${{ (needs.quota.result == 'success' && needs.analytics.result == 'success' && needs.stripe_balance.result == 'success' && needs.store_reviews.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

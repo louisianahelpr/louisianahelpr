@@ -46,6 +46,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
+import { generateKeyPairSync } from "node:crypto";
 import { chmodSync, mkdtempSync, readdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
@@ -79,6 +80,7 @@ const LIVE_MARKERS: RegExp[] = [
   /\/rest\/v1\//,
   /\/auth\/v1\//,
   /test-signin-link\.mjs/,
+  /api\.appstoreconnect\.apple\.com/,
 ];
 
 const candidates = [
@@ -227,6 +229,15 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "Management API 500", env: MGMT("fail"), says: /could not read analytics_events: Management API SQL 500/ },
     { label: "Management API []", env: MGMT("empty"), says: /expected \d+ rows, got 0 — refusing to report clean/ },
   ],
+  // Q289 (quota-monitor.yml store_reviews job): App Store Connect
+  // (LH_ASC_API_BASE) with a throwaway EC key minted in beforeAll (@ECKEY@).
+  // The cursor, 403 and ledger-refusal cases need a working app lookup and
+  // live in src/test/storeReviews.test.ts.
+  "scripts/check-store-reviews.mjs": [
+    { label: "no credentials", says: /could not read App Store reviews: App Store Connect credentials missing/ },
+    { label: "App Store Connect 500", env: { ASC_KEY_ID: "k", ASC_ISSUER_ID: "i", ASC_KEY_CONTENT: "@ECKEY@", LH_ASC_API_BASE: "@HTTP@/fail" }, says: /could not read App Store reviews: ASC GET .* 500/ },
+    { label: "App Store Connect []", env: { ASC_KEY_ID: "k", ASC_ISSUER_ID: "i", ASC_KEY_CONTENT: "@ECKEY@", LH_ASC_API_BASE: "@HTTP@/empty" }, says: /no App Store app for bundle id .* refusing to report clean/ },
+  ],
   "scripts/check-test-account-strikes.mjs": [
     { label: "REST read fails", env: { SUPABASE_URL: "@HTTP@/fail", SUPABASE_SERVICE_ROLE_KEY: "stub" }, says: /could not check: GET profiles → 500/ },
     { label: "REST read is empty", env: { SUPABASE_URL: "@HTTP@/empty", SUPABASE_SERVICE_ROLE_KEY: "stub" }, says: /no shared test account profiles found/ },
@@ -240,6 +251,7 @@ let httpBase = "";
 let stubDir = "";
 const WRITE_CONTRACT_SNAPSHOT = join(ROOT, "scripts/audit/write-contract.snapshot.json");
 let snapshotBefore = "";
+let ecKey = "";
 
 beforeAll(async () => {
   stubDir = mkdtempSync(join(tmpdir(), "lh-livecheck-"));
@@ -249,6 +261,7 @@ beforeAll(async () => {
     chmodSync(p, 0o755);
   }
   writeFileSync(join(stubDir, "empty.ts"), "");
+  ecKey = generateKeyPairSync("ec", { namedCurve: "prime256v1" }).privateKey.export({ type: "pkcs8", format: "pem" }).toString();
   writeFileSync(join(stubDir, "empty-stripe.json"), JSON.stringify({ object: "list", data: [] }));
   server = createServer((req, res) => {
     const [, mode] = (req.url ?? "").split("/");
@@ -278,7 +291,7 @@ afterAll(async () => {
 });
 
 const fill = (s: string) =>
-  s.replace("@HTTP@", httpBase).replace("@EMPTYFILE@", join(stubDir, "empty.ts")).replace("@EMPTYSTRIPE@", join(stubDir, "empty-stripe.json"));
+  s.replace("@HTTP@", httpBase).replace("@ECKEY@", ecKey).replace("@EMPTYFILE@", join(stubDir, "empty.ts")).replace("@EMPTYSTRIPE@", join(stubDir, "empty-stripe.json"));
 
 function run(script: string, c: Case): Promise<{ code: number; out: string }> {
   // A clean env: no real token or project ref may leak in and reach prod.

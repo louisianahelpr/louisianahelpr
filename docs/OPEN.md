@@ -7813,3 +7813,10 @@ sure someone hears it and closes it.
   Measure whether any UI can reach that upload today. Then remove the path and
   its admin section, or report what depends on it. It is a leftover of a retired
   flow and a stored-XSS surface we just had to harden (3c81624d0).
+2. **Stripe TEST balance top-up (Q3).** Payouts and transfers fail with
+   "insufficient available funds" (sandbox). The fix is test-mode charges with
+   the 4000 0000 0000 0077 card, which funds available balance immediately.
+   That's fake money, but it is still creating charges, so I held it for your
+   yes: reply "top up" and I'll do $500 and re-run the failed payouts. The
+   balance MONITOR (alerts before payouts fail) doesn't need you. It's being
+   built overnight.

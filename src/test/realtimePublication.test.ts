@@ -118,7 +118,7 @@ function boundTables(): Map<string, string[]> {
 // @two-way src/test/realtimePublication.test.ts:const staleKnown =
 const KNOWN_UNPUBLISHED_BINDINGS = new Set<string>([]);
 
-// @mutate src/hooks/useActivityData.ts | table: "applications", filter | table: "profiles", filter
+// @mutate src/hooks/useActivityData.ts | table: "jobs", filter | table: "profiles", filter
 describe("realtime publication coverage", () => {
   it("every postgres_changes binding targets a published table", () => {
     const published = publishedTables();

@@ -40,4 +40,4 @@ describe("isLockedOut", () => {
 
 // DH-017 itself: ignoring the timestamp and locking out on status membership
 // alone, which kept users at /account-banned after their suspension had ended.
-// @mutate src/lib/banStatus.ts | return until > now; | return true;
+// @mutate supabase/functions/_shared/banStatus.ts | return until > now; | return true;

@@ -98,4 +98,4 @@ describe("ProtectedRoute ban gate", () => {
 // penalty expired the user is still bounced to /account-banned and shown an
 // expiry date in the past. Behavioural — this is killed by the route rendering
 // BANNED SCREEN where DASHBOARD belongs, not by any source text.
-// @mutate src/lib/banStatus.ts | return until > now; | return true;
+// @mutate supabase/functions/_shared/banStatus.ts | return until > now; | return true;

@@ -1,4 +1,4 @@
-// @mutate scripts/audit/press-every-control.mjs | PAYMENT_RX.test(label) \|\| isAdminStateToggle({ persona, meta, label })) { | PAYMENT_RX.test(label)) {
+// @mutate scripts/audit/press-every-control.mjs | PAYMENT_RX.test(label) \|\| isAdminStateToggle({ persona, meta, label }) \|\| isAccountSettingToggle({ persona, meta, label })) { | PAYMENT_RX.test(label)) {
 // @mutate scripts/audit/pressProdSafety.mjs | if (persona !== "admin") return false; | return false;
 // @mutate scripts/audit/press-every-control.mjs |       role: el.getAttribute("role"), |       roleX: el.getAttribute("role"),
 /*

@@ -57,7 +57,7 @@ function specFiles(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-// @mutate e2e/journeys/02-marketplace.spec.ts | const native = page.locator('input[type="time"][aria-label="Start time"]'); | const native = page.locator('nothing-like-a-time-field');
+// @mutate e2e/journeys/postJobForm.ts | const native = page.locator('input[type="time"][aria-label="Start time"]'); | const native = page.locator('nothing-like-a-time-field');
 // @mutate src/components/TimePickerWheel.tsx | ariaLabel="Hour" | ariaLabel="Hour "
 
 describe("e2e specs drive both branches of a viewport-forked control", () => {

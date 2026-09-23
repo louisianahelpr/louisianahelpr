@@ -166,4 +166,4 @@ test(title, async ({ browser, request, journey }) => {
 // tab renders into makes gutterLeft and gutterRight disagree by 24px on every
 // tab at both widths, which is the "content is not centred in the post-rail
 // area" leg. That is the single line the whole guard rests on.
-// @mutate src/components/profile/ProfileTabBody.tsx | export const PROFILE_TAB_BODY_CLASS = "space-y-4"; | export const PROFILE_TAB_BODY_CLASS = "space-y-4 ml-6";
+// @mutate src/components/profile/ProfileTabBody.tsx | export const PROFILE_TAB_BODY_CLASS = "space-y-section"; | export const PROFILE_TAB_BODY_CLASS = "space-y-section ml-6";

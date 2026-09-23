@@ -1,5 +1,5 @@
 // @mutate src/hooks/useActivityBadgeCounts.ts | subscribeUserRealtime(userId, "jobs:customer", () => scheduleLoad(), | subscribeUserRealtime(userId, "jobs:customer", () => loadCounts(),
-// @mutate src/hooks/useActivityBadgeCounts.ts | onRecovered: scheduleLoad } | onRecovered: loadCounts }
+// @mutate src/hooks/useActivityBadgeCounts.ts | "applications:helper", () => scheduleLoad(), { onRecovered: scheduleLoad } | "applications:helper", () => scheduleLoad(), { onRecovered: loadCounts }
 // @mutate src/hooks/useActivityBadgeCounts.ts | same way the schedule-time path above does.\n      if (isHidden()) { | same way the schedule-time path above does.\n      if (false) {
 // @mutate src/hooks/useActivityBadgeCounts.ts | let store = stores.get(userId); | let store = undefined as BadgeStore \| undefined;
 // @mutate src/components/mobileNav/useNavUnreadCount.ts | let store = stores.get(userId); | let store = undefined as UnreadStore \| undefined;

@@ -58,7 +58,12 @@ describe("plan limits: one definition, every consumer reads it (Q221)", () => {
       expect(typed, `${rel}: limits must come from PLAN_LIMITS`).toEqual([]);
     }
     const usage = code("scripts/supabase-usage-check.mjs");
-    const consts = [...usage.matchAll(/const (\w+_LIMIT)\s*=\s*(.+);/g)];
+    // Array.from, not `[...spread]`: a spread's array-literal AST shape reads
+    // to the vacuity scanner as "a registry declared in this file", and the
+    // for-of loop below then looks self-referential (input and oracle the
+    // same list) even though `consts` is parsed out of the real target file
+    // and checked against the hardcoded name list and regex two lines down.
+    const consts = Array.from(usage.matchAll(/const (\w+_LIMIT)\s*=\s*(.+);/g));
     expect(consts.map((m) => m[1]).sort()).toEqual(["DB_LIMIT", "STORAGE_LIMIT"]);
     for (const m of consts) expect(m[2], m[1]).toMatch(/^PLAN_LIMITS\.\w+\.value$/);
     expect(usage).toContain("PLAN_LIMITS.supabase_db_bytes.value");

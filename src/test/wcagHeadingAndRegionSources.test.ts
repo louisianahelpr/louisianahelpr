@@ -1,6 +1,6 @@
 // @mutate src/lib/celebrate.ts |   canvas.setAttribute("aria-hidden", "true"); |   canvas.setAttribute("data-x", "true");
 // @mutate src/pages/postjob/firstPostConfetti.ts |     await fireConfetti({ |     const confetti = (await import("canvas-confetti")).default; confetti({
-// @mutate src/components/Footer.tsx | </h2> | </h3>
+// @mutate src/components/Footer.tsx | Company\n          </h2> | Company\n          </h3>
 // @mutate src/components/wallet/PayoutCelebration.tsx | className="font-display italic font-bold leading-tight text-ds-18" | role="heading" aria-level={3} className="font-display italic font-bold leading-tight text-ds-18"
 /*
  * SOURCE side of the Q212 WCAG fixes (docs/OPEN.md). The prod axe sweep

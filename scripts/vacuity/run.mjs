@@ -53,6 +53,29 @@ const VITEST_BIN = (() => {
   return local;
 })();
 
+/**
+ * Playwright's CLI entry, RESOLVED the same way VITEST_BIN is, for the same
+ * reason: `path.join(REPO, "node_modules", "@playwright", "test", "cli.js")`
+ * does not exist in an agent worktree's near-empty `node_modules`, where npm
+ * hoists dependencies up to the main checkout instead. Every Playwright-guard
+ * mutation then died with MODULE_NOT_FOUND, was reported "guard is RED before
+ * any mutation", and scored `inconclusive` — the identical failure mode
+ * VITEST_BIN above exists to fix, just on the e2e half of the gate. Measured
+ * 2026-09-23: docs/OPEN.md Q297's registration (the only Playwright mutation
+ * touched by that fix) came back `inconclusive` in a fresh agent worktree with
+ * this exact MODULE_NOT_FOUND, and `killed` once resolved this way.
+ */
+const PLAYWRIGHT_CLI = (() => {
+  const local = path.join(REPO, "node_modules", "@playwright", "test", "cli.js");
+  if (fs.existsSync(local)) return local;
+  try {
+    const pkg = createRequire(path.join(REPO, "package.json")).resolve("@playwright/test/package.json");
+    const hoisted = path.join(path.dirname(pkg), "cli.js");
+    if (fs.existsSync(hoisted)) return hoisted;
+  } catch { /* fall through to the local path, so the spawn names what it looked for */ }
+  return local;
+})();
+
 const live = new Map(); // abs path -> original bytes
 
 function restoreAll() {
@@ -298,7 +321,7 @@ function runPlaywright(guard, { rebuild = false } = {}) {
   }
   const r = spawnSync(
     process.execPath,
-    [path.join(REPO, "node_modules", "@playwright", "test", "cli.js"),
+    [PLAYWRIGHT_CLI,
      "test", guard, `--project=${PW_PROJECT(guard)}`, "--reporter=line", "--workers=1"],
     {
       cwd: REPO, encoding: "utf8", timeout: 900_000,

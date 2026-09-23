@@ -93,7 +93,7 @@ interface JobCardProps {
 // charcoal) across all categories so the brand reads consistently and
 // the colored badge stays the single accent in the row. The `accent`
 // gradient tints are kept for the boosted/recommended highlight strip.
-const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, recommended = false, bare = false }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index: _index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, recommended = false, bare = false }: JobCardProps) => {
   const isGuest = variant === "guest";
 
   // A tap always opens the job detail view. Saving lives behind the
@@ -262,9 +262,14 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // meaning the chip is not rendered. See src/lib/jobDate.ts.
   const timeLabel = jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
 
-  // Stagger entry via CSS animation-delay — avoids pulling framer-motion into
-  // the dashboard's hot list path (saves ~42KB on iOS cold start).
-  const entryDelay = `${Math.min(index * 70, 500)}ms`;
+  // NO ENTRY ANIMATION (Q169, owner 2026-09-23: "more cards appear ... they
+  // don't all load together"). Each card used to fade and rise in on its own
+  // `animation-delay` of index x 70ms (to 500ms), so a feed that arrived in ONE
+  // commit still reached the eye as cards popping in one after another — and a
+  // re-sort re-inserts moved nodes, which restarts a CSS animation, so the
+  // cards that moved faded out and in again. A list's cards arrive together,
+  // in place of the skeleton that reserved their space.
+  // Guard: src/test/listArrivesInOneWave.test.ts.
   // The poster's average rating used to render here as a star + number.
   // Removed (owner, 2026-08-27) under the same rule already applied to the
   // "Verified" cue below: poster attributes belong on the poster's profile
@@ -320,7 +325,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
 
   return (
     <div
-      style={{ animationDelay: entryDelay, animationFillMode: "both" }}
       // h-full: the card is a grid item in both feeds (guest /jobs and the
       // authed browse grid). CSS Grid stretches the ITEM to the tallest in its
       // row, but the card sized to its own content instead, so a two-line title
@@ -331,7 +335,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       className={
         bare
           ? "group relative h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          : "motion-safe:animate-fade-in group relative h-full rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          : "group relative h-full rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       }
       {...interactiveProps}
     >

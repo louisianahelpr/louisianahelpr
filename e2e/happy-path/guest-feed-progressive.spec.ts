@@ -10,7 +10,9 @@
  *
  * This pins the split: with the enrichment endpoints held open, the job cards
  * must still be on screen. If someone re-merges the two queries, the cards will
- * wait on the delayed request and this fails.
+ * wait on the delayed request and this fails. (Since Q169 the feed waits for
+ * the enrichment for at most ARRIVAL_CAP_MS so it paints once, in final order;
+ * this spec is what keeps that wait bounded.)
  */
 import { test, expect, installSupabaseMocks } from "./fixtures";
 import { SEED_JOBS } from "./seedData";
@@ -66,16 +68,12 @@ test("guest job cards render while poster enrichment is still in flight", async 
   ).toBe(false);
 });
 
-// PROOF THIS SPEC CAN FAIL — re-merge the two queries, the way they used to be.
+// PROOF THIS SPEC CAN FAIL — let the feed wait on the enrichment with no cap.
 //
-// The split is the whole point: `isLoading` belongs to the job-list query and
-// nothing else. Gating the feed on `posterInfo` as well puts the cards back
-// behind the enrichment round-trip — the measured 1.3s → 2.3s regression — and
-// with the enrichment routes held open for 5s the job title cannot appear
-// inside this spec's 3s budget.
-// NOTE the escaped pipes: the directive splitter is /(?<!\\)\|/, so a bare
-// `||` in a replacement is read as two empty delimiters and the replacement
-// silently truncates to `{isLoading` — which breaks the BUILD rather than the
-// spec, and the runner would score that as `killed` for entirely the wrong
-// reason. Escaped, it round-trips.
-// @mutate src/pages/DashboardGuest.tsx | {isLoading ? ( | {isLoading \|\| !posterInfo ? (
+// Since Q169 (2026-09-23) the feed DOES wait for the enrichment, on purpose,
+// so the cards land once in their final order instead of painting and then
+// re-sorting when poster tiers arrive. What must still hold is the CAP: the
+// wait is bounded by ARRIVAL_CAP_MS (src/hooks/useArrivalGate.ts), so a hung
+// enrichment call costs at most that long. Raise the cap past the spec's 5s
+// hold and the job title cannot appear inside its 3s budget.
+// @mutate src/pages/DashboardGuest.tsx | useArrivalGate(!isLoading, enrichmentSettled) | useArrivalGate(!isLoading, enrichmentSettled, 60_000)

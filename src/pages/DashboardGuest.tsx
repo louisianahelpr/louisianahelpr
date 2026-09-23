@@ -36,6 +36,7 @@ import { signupUrlFor } from "@/lib/jobIntent";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { useArrivalGate } from "@/hooks/useArrivalGate";
 
 /**
  * DashboardGuest — read-only "browse" view shown to logged-out visitors,
@@ -209,9 +210,10 @@ const DashboardGuest = () => {
   // surface at all. So the cards are complete without the second request, and
   // waiting on it was pure dead time.
   //
-  // Split, the list paints as soon as it arrives and the rating badge appears
-  // when it is ready. Every enrichment field is optional on EnrichedJob and the
-  // card already hides the signals when they are absent.
+  // Split, the enrichment starts the moment the list lands, and the list waits
+  // for it for at most ARRIVAL_CAP_MS (see `feedReady` below, Q169) rather than
+  // for the whole chain. Every enrichment field is optional on EnrichedJob and
+  // the card already hides the signals when they are absent.
   const {
     data: baseJobs = [],
     isLoading,
@@ -263,7 +265,7 @@ const DashboardGuest = () => {
 
   // Social-proof enrichment. Runs only once the job list exists (it needs the
   // poster ids), and the feed never blocks on it.
-  const { data: posterInfo } = useQuery({
+  const { data: posterInfo, status: posterInfoStatus } = useQuery({
     queryKey: queryKeys.dashboard.guestJobPosters(posterIds),
     enabled: posterIds.length > 0,
     staleTime: 60 * 1000,
@@ -322,6 +324,17 @@ const DashboardGuest = () => {
       };
     });
   }, [baseJobs, posterInfo]);
+
+  // ONE PAINT, not two (Q169). The split above stops the feed waiting on the
+  // enrichment CHAIN, but painting the list the moment it lands meant it
+  // painted twice: the ranking reads each poster's tier, so when posterInfo
+  // arrived ~400ms later the cards swapped places (measured at 375 on Fast 3G:
+  // "Deep clean" jumped from 4th to 3rd). The skeleton now holds until the
+  // enrichment has SETTLED too — at most ARRIVAL_CAP_MS after the list — and
+  // then every card lands once, in its final order. No poster ids (empty or
+  // all-ownerless list) means there is nothing to wait for.
+  const enrichmentSettled = posterIds.length === 0 || posterInfoStatus !== "pending";
+  const feedReady = useArrivalGate(!isLoading, enrichmentSettled);
 
   // Same filter engine the authenticated dashboard uses — search, category,
   // budget range, location radius, expiry, sort. Guests pass no user /
@@ -556,7 +569,7 @@ const DashboardGuest = () => {
 
   const feedList = (
     <>
-      {isLoading ? (
+      {!feedReady ? (
         /* Loading feed — shape-matched JobCardSkeletons (the same
            primitive the authenticated dashboard uses) so the cards
            swap in without shifting the layout (no CLS). Reserves the
@@ -685,9 +698,9 @@ const DashboardGuest = () => {
         </div>
         );
       })() : (
-        <div
-          className={`${FEED_GRID_CLASS} animate-in fade-in-0 duration-500 ${feedBottomClass}`}
-        >
+        // No fade-in (Q169): the skeleton above hands straight to the cards.
+        // A 500ms fade from opacity 0 left a blank frame between the two.
+        <div className={`${FEED_GRID_CLASS} ${feedBottomClass}`}>
           {/* No re-sort here: useDashboardFilters already sorts
               urgent-first (then boosted etc.), so a second
               urgent-only sort was a redundant pass that could only

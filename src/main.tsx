@@ -6,7 +6,7 @@ import { installGlobalErrorHandlers, report } from "./lib/errorLogger";
 import { USER_ERROR_SCREEN } from "./lib/currentScreen";
 import { initShakeToReport } from "./lib/shakeToReport";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
-import { isSpeculativePrefetchInFlight, recoverFromChunkError } from "./lib/chunkReload";
+import { handleVitePreloadError } from "./lib/chunkReload";
 import { initSimpleMode } from "./lib/simpleMode";
 import { applyToastPolicy } from "./lib/toastPolicy";
 import { applyPrePaintShellClasses } from "./lib/prePaintShellClasses";
@@ -106,8 +106,11 @@ window.addEventListener("vite:preloadError", (event) => {
   // to it still fails and still recovers, at the moment it matters. And with
   // no preventDefault() the event falls through to the boundaries' own chunk
   // detection, which is the existing backstop. See lib/chunkReload.ts.
-  if (isSpeculativePrefetchInFlight()) return;
-  if (recoverFromChunkError()) event.preventDefault();
+  // The decision itself lives in handleVitePreloadError (lib/chunkReload.ts),
+  // so it can be driven by tests: speculative prefetch / background import
+  // gate first, then the late-background-import attribution (Q170), then
+  // recovery.
+  handleVitePreloadError(event);
 });
 
 // Dev-mode service-worker exorcism — production registers a Workbox SW

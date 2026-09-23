@@ -61,3 +61,7 @@ export const ReEngagementEmail = inert("ReEngagementEmail");
 export const WelcomeDripStep1Email = inert("WelcomeDripStep1Email");
 export const WelcomeDripStep2Email = inert("WelcomeDripStep2Email");
 export const WelcomeDripStep3Email = inert("WelcomeDripStep3Email");
+export const NotificationEmail = inert("NotificationEmail");
+
+/** Every direct `sendWithResend(key, message)` call, in order (send-notification-email's fallback). */
+export const sendWithResend = vi.fn(async (_key: string, _message: unknown) => ({ id: "resend-mock-id" }));

@@ -18,7 +18,7 @@
  * And, across the codebase: every backgroundImport() call names its module, so
  * that row can say which chunk went dark.
  */
-// @mutate src/lib/errorLogger.ts | await postErrorLogs(batch); | await (await backgroundImport(() => import("@/integrations/supabase/client"), "supabase-client")).supabase.from("error_logs").insert(batch);
+// @mutate src/lib/errorLogger.ts | settleBackgroundFailureRows(batch, await postErrorLogs(batch)); | await (await backgroundImport(() => import("@/integrations/supabase/client"), "supabase-client")).supabase.from("error_logs").insert(batch);
 // @mutate src/lib/errorLogger.ts | if (!claimBackgroundFailureReport(name)) return; | claimBackgroundFailureReport(name);
 // @mutate src/lib/errorLogger.ts | onBackgroundImportFailure(noteBackgroundImportFailure); | void noteBackgroundImportFailure;
 // @mutate src/lib/chunkReload.ts | backgroundImportFailureListener?.(name, err); | void name;
@@ -173,6 +173,55 @@ describe("a failed background import is visible, once per session (Q161)", () =>
       // Sent without a session: user_id must be null or RLS refuses the batch.
       expect(rows.every((r) => r.user_id === null)).toBe(true);
     }, { timeout: 3000 });
+  });
+});
+
+/**
+ * Q172 — the once-per-session "background import failed" row is marked
+ * reported only after it PERSISTS. It used to be claimed (sessionStorage flag
+ * written) before the POST, so one failed POST lost it for the whole session.
+ */
+// @mutate src/lib/errorLogger.ts |     if (sends < BG_FAILURE_MAX_SENDS) bgFailureRetry.push(row); |     void sends;
+// @mutate src/lib/errorLogger.ts |     if (sends < BG_FAILURE_MAX_SENDS) bgFailureRetry.push(row); |     bgFailureRetry.push(row);
+describe("a failed background-import report is retried, bounded (Q172)", () => {
+  const BG = "background import failed: posthog";
+  /** Rows the server accepted (2xx). */
+  const landed = async (m: string) => {
+    let n = 0;
+    for (const [i, c] of fetchSpy.mock.calls.entries()) {
+      const res = (await fetchSpy.mock.results[i].value) as Response;
+      if (res.status >= 200 && res.status < 300)
+        n += (JSON.parse(String(c[1].body)) as SentRow[]).filter((r) => r.message === m).length;
+    }
+    return n;
+  };
+
+  it("the first post fails, a later report() re-sends it, and exactly one row lands", async () => {
+    fetchSpy.mockImplementationOnce(async () => new Response("{}", { status: 503 }));
+
+    report(new Error("q165 first"));
+    await vi.waitFor(() => expect(rowsWithMessage(BG)).toHaveLength(1), { timeout: 3000 });
+    await vi.waitFor(() => expect(_persistStats().lastStatus).toBe(503), { timeout: 3000 });
+    expect(await landed(BG), "the first attempt was refused").toBe(0);
+
+    report(new Error("q165 later"));
+    await vi.waitFor(async () => expect(await landed(BG)).toBe(1), { timeout: 3000 });
+    // More reports, more posthog failures: still exactly one landed row.
+    report(new Error("q165 even later"));
+    await vi.waitFor(async () => expect(await landed("q165 even later")).toBe(1), { timeout: 3000 });
+    expect(await landed(BG)).toBe(1);
+    expect(sessionStorage.getItem("helpr_bg_import_failed_reported:posthog")).not.toBeNull();
+  });
+
+  it("a server that never accepts gets the row at most 3 times per document", async () => {
+    fetchSpy.mockImplementation(async () => new Response("{}", { status: 500 }));
+    for (let i = 0; i < 6; i++) {
+      report(new Error(`q165 refused ${i}`));
+      await vi.waitFor(() => expect(rowsWithMessage(`q165 refused ${i}`)).toHaveLength(1), { timeout: 3000 });
+      await vi.waitFor(() => expect(_persistStats().lastStatus).toBe(500), { timeout: 3000 });
+    }
+    expect(rowsWithMessage(BG)).toHaveLength(3);
+    expect(sessionStorage.getItem("helpr_bg_import_failed_reported:posthog")).toBeNull();
   });
 });
 

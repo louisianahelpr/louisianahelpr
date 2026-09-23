@@ -107,7 +107,7 @@ export function _persistStats(): Readonly<typeof persistStats> {
   return { ...persistStats };
 }
 
-async function postErrorLogs(batch: ErrorLogRow[]): Promise<void> {
+async function postErrorLogs(batch: ErrorLogRow[]): Promise<boolean> {
   persistStats.attempted += batch.length;
   // user_id is always null here (the server stamps it from the token, Q106),
   // so the body is the same for either auth.
@@ -115,8 +115,10 @@ async function postErrorLogs(batch: ErrorLogRow[]): Promise<void> {
   persistStats.lastStatus = status;
   // Counted, never reported: reporting a logging failure through the logger
   // would recurse on itself.
-  if (status >= 200 && status < 300) persistStats.persisted += batch.length;
+  const ok = status >= 200 && status < 300;
+  if (ok) persistStats.persisted += batch.length;
   else persistStats.failed += batch.length;
+  return ok;
 }
 
 // Sentry + PostHog are dynamically imported to keep ~100KB of vendor code out
@@ -167,11 +169,13 @@ let pendingTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function flush() {
   pendingTimer = null;
-  if (flushing || queue.length === 0) return;
+  if (flushing || (queue.length === 0 && bgFailureRetry.length === 0)) return;
   flushing = true;
-  const batch = queue.splice(0, queue.length);
+  // A "background import failed" row whose earlier post failed rides along
+  // with the next flush (Q172); it never schedules one of its own.
+  const batch = [...bgFailureRetry.splice(0, bgFailureRetry.length), ...queue.splice(0, queue.length)];
   try {
-    await postErrorLogs(batch);
+    settleBackgroundFailureRows(batch, await postErrorLogs(batch));
   } finally {
     flushing = false;
     // Rows queued while this batch was in flight saw no timer to join and
@@ -192,19 +196,49 @@ function scheduleFlush() {
 // drops what it was sending. A failed chunk stays failed for the whole
 // document, so that loss is total and was silent. Say so ONCE per module per
 // session, through the fetch path above, which depends on no chunk.
+//
+// Q172: the session flag is written only once the row has PERSISTED (a 2xx).
+// It used to be written at claim time, before the POST, so one failed POST
+// lost the report for the rest of the session. Now the in-memory claim stops
+// duplicates while a row is queued or in flight, and a failed POST keeps the
+// row for the next flush, at most BG_FAILURE_MAX_SENDS sends per module per
+// document, so a dead endpoint cannot make it spam.
 const BG_FAILURE_FLAG_PREFIX = "helpr_bg_import_failed_reported:";
+const BG_FAILURE_MAX_SENDS = 3;
 const bgFailureReportedInMemory = new Set<string>();
+const bgFailureSends = new Map<string, number>();
+const bgFailureRetry: ErrorLogRow[] = [];
 
 function claimBackgroundFailureReport(name: string): boolean {
   if (bgFailureReportedInMemory.has(name)) return false;
-  bgFailureReportedInMemory.add(name);
   try {
+    // Persisted earlier this session (before a reload): already reported.
     if (sessionStorage.getItem(BG_FAILURE_FLAG_PREFIX + name)) return false;
-    sessionStorage.setItem(BG_FAILURE_FLAG_PREFIX + name, String(Date.now()));
   } catch {
     // No sessionStorage: the in-memory set still caps it at one per document.
   }
+  bgFailureReportedInMemory.add(name);
   return true;
+}
+
+/** After a POST: mark persisted failure rows reported, keep failed ones for the next flush. */
+function settleBackgroundFailureRows(batch: ErrorLogRow[], ok: boolean) {
+  for (const row of batch) {
+    if (row.tags.source !== "backgroundImport") continue;
+    const name = String(row.tags.module);
+    if (ok) {
+      try {
+        sessionStorage.setItem(BG_FAILURE_FLAG_PREFIX + name, String(Date.now()));
+      } catch {
+        // No sessionStorage: the in-memory claim (never released) caps it at one per document.
+      }
+      continue;
+    }
+    const sends = (bgFailureSends.get(name) ?? 0) + 1;
+    bgFailureSends.set(name, sends);
+    // Past the cap the claim stays held, so the module is not reported again this document.
+    if (sends < BG_FAILURE_MAX_SENDS) bgFailureRetry.push(row);
+  }
 }
 
 function noteBackgroundImportFailure(name: string, err: unknown) {
@@ -237,6 +271,8 @@ onBackgroundImportFailure(noteBackgroundImportFailure);
 /** Test-only: forget which failures were already reported this session. */
 export function _resetBackgroundFailureReportsForTests() {
   bgFailureReportedInMemory.clear();
+  bgFailureSends.clear();
+  bgFailureRetry.length = 0;
   try {
     for (const k of Object.keys(sessionStorage)) {
       if (k.startsWith(BG_FAILURE_FLAG_PREFIX)) sessionStorage.removeItem(k);

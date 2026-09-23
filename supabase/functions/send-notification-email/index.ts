@@ -184,10 +184,26 @@ Deno.serve(async (req) => {
     // says. The same rule the notifications BEFORE INSERT trigger applies, from
     // the same function, so the two channels cannot disagree. Checked against
     // the RAW link (the job/actor ids survive sanitizing either way).
-    const { data: crossesSeed, error: seedCheckError } = await supabase.rpc(
-      'notification_crosses_seed_boundary',
-      { p_recipient: user_id, p_job_id: job_id ?? null, p_link: typeof link === 'string' ? link : null },
-    )
+    //
+    // Q171: the check gets the same PGRST002 retry as the preference reads
+    // below (the 2026-09-08 incident). PGRST002 is PostgREST reloading its
+    // schema cache for the few seconds after a migration deploy, and every
+    // deploy this project ships is followed by exactly that window. Without
+    // the retry the fail-closed branch turned that blip into a REAL email
+    // lost for good. Only PGRST002 is retried; after 3 of them, and on any
+    // other error at once, it still fails closed.
+    let crossesSeed: unknown = null
+    let seedCheckError: { code?: string; message: string } | null = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const res = await supabase.rpc(
+        'notification_crosses_seed_boundary',
+        { p_recipient: user_id, p_job_id: job_id ?? null, p_link: typeof link === 'string' ? link : null },
+      )
+      crossesSeed = res.data
+      seedCheckError = res.error
+      if (!seedCheckError || seedCheckError.code !== 'PGRST002' || attempt === 2) break
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)))
+    }
     // Q159: FAILS CLOSED on EVERY check error, PGRST202 (function missing)
     // included. Until 2026-09-23 a missing function fell through and SENT with
     // only a console.warn. Refusing is the safer side: a mail about a fake job

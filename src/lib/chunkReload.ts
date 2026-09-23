@@ -181,10 +181,25 @@ export async function backgroundImport<T>(load: () => Promise<T>, name: string =
   // A load that never settles (a stalled request with no network error) must
   // not hold the gate forever: while it is held, main.tsx declines EVERY
   // stale-chunk recovery, including one for a route the user is waiting on.
-  const gateTimer = setTimeout(settle, BACKGROUND_IMPORT_GATE_TIMEOUT_MS);
+  //
+  // Releasing the gate does NOT hand this import back to recovery (Q170). A
+  // load still pending past the timeout is counted as LATE; while any late
+  // load is pending, handleVitePreloadError defers its decision until the
+  // failing import's own rejection has had the chance to reach the catch
+  // below, which marks the error background-owned. Its failure is ignored;
+  // any other failure (an unrelated route chunk) still recovers.
+  let late = false;
+  const gateTimer = setTimeout(() => {
+    late = true;
+    lateBackgroundImports += 1;
+    settle();
+  }, BACKGROUND_IMPORT_GATE_TIMEOUT_MS);
   try {
     return await load();
   } catch (err) {
+    // Vite rethrows the very object it put on the vite:preloadError event, so
+    // this marks exactly the event this import raised.
+    if (err !== null && (typeof err === "object" || typeof err === "function")) backgroundOwnedErrors.add(err);
     // The browser caches a failed module fetch for the life of the document,
     // so every later call for this module fails too, and each caller's catch
     // drops what it was sending. Count it and tell the listener (errorLogger),
@@ -199,8 +214,50 @@ export async function backgroundImport<T>(load: () => Promise<T>, name: string =
   } finally {
     clearTimeout(gateTimer);
     settle();
+    if (late) lateBackgroundImports = Math.max(0, lateBackgroundImports - 1);
   }
 }
+
+/** Background imports whose gate timed out while their load is still pending (Q170). */
+let lateBackgroundImports = 0;
+/** Errors a background import's load rejected with: never a reason to reload (Q170). */
+const backgroundOwnedErrors = new WeakSet<object>();
+
+/** True while a background import is pending past its gate timeout. */
+export const isLateBackgroundImportPending = (): boolean => lateBackgroundImports > 0;
+
+/**
+ * The `vite:preloadError` listener main.tsx registers.
+ *
+ * 1. A speculative prefetch or a background import is in flight: decline
+ *    (see beginSpeculativePrefetch and backgroundImport above).
+ * 2. A background import is pending PAST its gate timeout (Q170): this event
+ *    may be that import failing late. Vite dispatches the event and then, as
+ *    it was not prevented, rethrows the same error object, which reaches
+ *    backgroundImport's catch within a few microtasks. So decide after a
+ *    macrotask: a background-owned error is ignored (the Q131 hole: reloading
+ *    for it wipes what the user just did); anything else is an unrelated
+ *    chunk, and recovers. No preventDefault in this branch, so a route chunk
+ *    also still falls through to RouteErrorBoundary's own chunk detection.
+ *    A payload that is not an object cannot be attributed, so it is declined
+ *    here, and the boundary backstop still recovers a route chunk.
+ * 3. Otherwise recover now, and swallow the throw only when actually
+ *    recovering (see main.tsx for why).
+ */
+export const handleVitePreloadError = (event: Event): void => {
+  if (isSpeculativePrefetchInFlight()) return;
+  if (isLateBackgroundImportPending()) {
+    const payload = (event as Event & { payload?: unknown }).payload;
+    if (payload === null || (typeof payload !== "object" && typeof payload !== "function")) return;
+    setTimeout(() => {
+      if (backgroundOwnedErrors.has(payload)) return;
+      if (recoveryReloadInFlight) return;
+      recoverFromChunkError();
+    }, 0);
+    return;
+  }
+  if (recoverFromChunkError()) event.preventDefault();
+};
 
 /**
  * How long a background import may hold the recovery gate. Measured on prod
@@ -266,6 +323,7 @@ export const __resetChunkReloadForTests = (): void => {
   pendingRetry = null;
   recoveryReloadInFlight = false;
   speculativePrefetchesInFlight = 0;
+  lateBackgroundImports = 0;
   for (const k of Object.keys(backgroundImportFailures)) delete backgroundImportFailures[k];
 };
 

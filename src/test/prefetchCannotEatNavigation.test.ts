@@ -45,7 +45,8 @@ import {
 
 // The gate is one line and invisible: remove it and the money hand-off is
 // eaten again, exactly as in the 2026-09-22 WebKit repro.
-// @mutate src/main.tsx | if (isSpeculativePrefetchInFlight()) return; | if (false) return;
+// @mutate src/lib/chunkReload.ts | if (isSpeculativePrefetchInFlight()) return;\n  if (isLateBackgroundImportPending()) { | if (false) return;\n  if (isLateBackgroundImportPending()) {
+// @mutate src/main.tsx | handleVitePreloadError(event); | void event;
 // The prefetch must actually REGISTER as speculative. Drop the registration
 // and the gate is permanently closed — the flag never goes true.
 // @mutate src/lib/routePrefetch.ts | const settle = beginSpeculativePrefetch(); | const settle = () => {};
@@ -59,19 +60,35 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 describe("a speculative prefetch cannot eat the user's navigation", () => {
   beforeEach(() => __resetChunkReloadForTests());
 
-  it("main.tsx declines recovery while a speculative prefetch is in flight", () => {
+  // Since Q170 the listener's body lives in chunkReload.ts as
+  // handleVitePreloadError, so tests can drive it; main.tsx only registers it.
+  const handlerBody = () => {
+    const src = read("src/lib/chunkReload.ts");
+    const start = src.indexOf("export const handleVitePreloadError");
+    expect(start, "handleVitePreloadError is missing from chunkReload.ts").toBeGreaterThan(-1);
+    return src.slice(start, src.indexOf("\n};", start));
+  };
+
+  it("main.tsx routes vite:preloadError through handleVitePreloadError", () => {
     const main = read("src/main.tsx");
     expect(
-      /if\s*\(\s*isSpeculativePrefetchInFlight\(\)\s*\)\s*return;/.test(main),
-      "main.tsx no longer gates the vite:preloadError recovery on isSpeculativePrefetchInFlight(), so a prefetch cancelled by the user's own navigation can again replace their destination with the page they were leaving",
+      /addEventListener\("vite:preloadError",[\s\S]*?handleVitePreloadError\(event\);\s*\}\);/.test(main),
+      "main.tsx no longer hands vite:preloadError to handleVitePreloadError, so the speculative-prefetch gate is not on the recovery path",
+    ).toBe(true);
+  });
+
+  it("the handler declines recovery while a speculative prefetch is in flight", () => {
+    expect(
+      /if\s*\(\s*isSpeculativePrefetchInFlight\(\)\s*\)\s*return;/.test(handlerBody()),
+      "handleVitePreloadError no longer gates recovery on isSpeculativePrefetchInFlight(), so a prefetch cancelled by the user's own navigation can again replace their destination with the page they were leaving",
     ).toBe(true);
   });
 
   it("the gate is checked BEFORE recovery is attempted, not after", () => {
-    const main = read("src/main.tsx");
-    const gate = main.indexOf("isSpeculativePrefetchInFlight()");
-    const recover = main.indexOf("recoverFromChunkError()", gate);
-    expect(gate, "the speculative-prefetch gate is missing from main.tsx").toBeGreaterThan(-1);
+    const body = handlerBody();
+    const gate = body.indexOf("isSpeculativePrefetchInFlight()");
+    const recover = body.indexOf("recoverFromChunkError()", gate);
+    expect(gate, "the speculative-prefetch gate is missing from handleVitePreloadError").toBeGreaterThan(-1);
     expect(
       recover,
       "recoverFromChunkError() no longer runs after the gate — the gate cannot protect a call that already happened",
@@ -127,11 +144,11 @@ describe("a speculative prefetch cannot eat the user's navigation", () => {
   });
 
   it("recovery is NOT gated on anything but speculation — the user's own chunk load still recovers", () => {
-    const main = read("src/main.tsx");
     // The gate must be the speculative flag alone. Widening it to, say, any
     // in-flight import would suppress the genuine stale-deploy recovery this
-    // whole module exists for.
-    const gateLine = main
+    // whole module exists for. (The Q170 late-background branch below it does
+    // not decline an unrelated chunk: backgroundImport.test.ts proves that.)
+    const gateLine = handlerBody()
       .split("\n")
       .find((l) => l.includes("isSpeculativePrefetchInFlight()")) ?? "";
     expect(

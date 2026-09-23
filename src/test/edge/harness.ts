@@ -473,6 +473,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/recurringSchedule.ts";`,
   );
 
+  // `_shared/safe-strings.ts` has ZERO imports (link sanitizing, constant-time
+  // compare), so the REAL module serves: send-notification-email's service-role
+  // gate is its timingSafeEqual, and a stub would be a gate nobody tested.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/safe-strings\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/safe-strings.ts";`,
+  );
+
   // Cron authorization: `_shared/cron-auth.ts` is the ONLY thing standing
   // between a public HTTPS endpoint and a function that charges saved cards
   // off-session, so it points at the REAL module rather than a permissive

@@ -18,10 +18,13 @@
 // @mutate src/lib/analytics.ts | const { captureEvent } = await backgroundImport(() => import("@/lib/posthog"), "posthog"); | const { captureEvent } = await import("@/lib/posthog");
 // @mutate src/lib/chunkReload.ts | const settle = beginSpeculativePrefetch();\n  // A load that never settles | const settle = () => {};\n  // A load that never settles
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-// @mutate src/lib/chunkReload.ts | const gateTimer = setTimeout(settle, BACKGROUND_IMPORT_GATE_TIMEOUT_MS); | const gateTimer = setTimeout(() => {}, BACKGROUND_IMPORT_GATE_TIMEOUT_MS);
+// @mutate src/lib/chunkReload.ts | lateBackgroundImports += 1;\n    settle(); | lateBackgroundImports += 1;
 import {
   BACKGROUND_IMPORT_GATE_TIMEOUT_MS,
   backgroundImport,
+  handleVitePreloadError,
+  isLateBackgroundImportPending,
+  isRecoveryReloadInFlight,
   isSpeculativePrefetchInFlight,
   __resetChunkReloadForTests,
 } from "./chunkReload";
@@ -82,5 +85,95 @@ describe("backgroundImport (Q131)", () => {
     expect(flagDuringImport.posthog, "posthog was imported with recovery armed").toBe(true);
     expect(flagDuringImport.supabase, "the analytics flush no longer imports supabase at all").toBeUndefined();
     expect(isSpeculativePrefetchInFlight()).toBe(false);
+  });
+});
+
+/**
+ * Q170 — the Q161 gate timeout must not reopen Q131.
+ *
+ * After BACKGROUND_IMPORT_GATE_TIMEOUT_MS the gate drops so a stalled load
+ * cannot suppress recovery for unrelated chunks forever. But the load is still
+ * pending, and if it THEN rejects, Vite raises vite:preloadError with the gate
+ * down, and main.tsx used to reload the page for a module nothing on screen
+ * needs: the exact Q131 reload that wiped "Application sent!".
+ *
+ * `viteImport` reproduces Vite's own preload helper contract
+ * (node_modules/vite/dist/node/chunks/node.js, handlePreloadError): on a
+ * failed import it dispatches a cancelable "vite:preloadError" with
+ * `payload = err`, and rethrows the same `err` when not prevented. The
+ * listener is the real handleVitePreloadError, the one main.tsx registers.
+ * "Recovery started" is observed through its real side effects: the attempt
+ * counter in sessionStorage and isRecoveryReloadInFlight().
+ */
+// @mutate src/lib/chunkReload.ts | if (backgroundOwnedErrors.has(payload)) return; | void backgroundOwnedErrors;
+// @mutate src/lib/chunkReload.ts |   if (isLateBackgroundImportPending()) { |   if (false) {
+describe("a background import that fails AFTER its gate timeout (Q170)", () => {
+  const originalLocation = window.location;
+  const viteImport = (base: () => Promise<unknown>) => () =>
+    base().catch((err) => {
+      const e = new Event("vite:preloadError", { cancelable: true }) as Event & { payload?: unknown };
+      e.payload = err;
+      window.dispatchEvent(e);
+      if (!e.defaultPrevented) throw err;
+    });
+  const recoveryStarted = () =>
+    sessionStorage.getItem("helpr_chunk_reload_count") !== null || isRecoveryReloadInFlight();
+
+  beforeEach(() => {
+    __resetChunkReloadForTests();
+    sessionStorage.clear();
+    Object.defineProperty(window, "location", {
+      value: { href: "https://www.louisianahelpr.com/dashboard", replace: vi.fn() },
+      configurable: true,
+      writable: true,
+    });
+    window.addEventListener("vite:preloadError", handleVitePreloadError);
+  });
+  afterEach(() => {
+    window.removeEventListener("vite:preloadError", handleVitePreloadError);
+    Object.defineProperty(window, "location", { value: originalLocation, configurable: true, writable: true });
+    sessionStorage.clear();
+    vi.useRealTimers();
+    __resetChunkReloadForTests();
+  });
+
+  it("a background load pending past 15s that then rejects never starts the recovery reload", async () => {
+    vi.useFakeTimers();
+    let fail!: (e: Error) => void;
+    const p = backgroundImport(
+      viteImport(() => new Promise((_, rej) => { fail = rej; })),
+      "posthog",
+    ).catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(BACKGROUND_IMPORT_GATE_TIMEOUT_MS + 1_000);
+    expect(isSpeculativePrefetchInFlight(), "the gate itself still times out (Q161)").toBe(false);
+    expect(isLateBackgroundImportPending()).toBe(true);
+
+    fail(new Error("Failed to fetch dynamically imported module: /assets/posthog-x.js"));
+    await p;
+    await vi.advanceTimersByTimeAsync(100);
+    expect(recoveryStarted(), "a late background failure reloaded the page (Q131 reopened)").toBe(false);
+    expect(isLateBackgroundImportPending(), "the late count settles").toBe(false);
+  });
+
+  it("an unrelated route-chunk failure after the timeout still recovers", async () => {
+    vi.useFakeTimers();
+    void backgroundImport(viteImport(() => new Promise<never>(() => {})), "posthog").catch(() => {});
+    await vi.advanceTimersByTimeAsync(BACKGROUND_IMPORT_GATE_TIMEOUT_MS + 1_000);
+    expect(isLateBackgroundImportPending()).toBe(true);
+
+    const routeLoad = viteImport(() =>
+      Promise.reject(new Error("Failed to fetch dynamically imported module: /assets/Dashboard-x.js")),
+    )();
+    await expect(routeLoad).rejects.toThrow(/Dashboard-x/);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(recoveryStarted(), "a stalled background load suppressed recovery for a real route chunk").toBe(true);
+  });
+
+  it("with no background import pending, a route-chunk failure recovers at once and swallows the throw", async () => {
+    const routeLoad = viteImport(() =>
+      Promise.reject(new Error("Failed to fetch dynamically imported module: /assets/Dashboard-y.js")),
+    )();
+    await expect(routeLoad).resolves.toBeUndefined();
+    expect(recoveryStarted()).toBe(true);
   });
 });

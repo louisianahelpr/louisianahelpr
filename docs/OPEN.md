@@ -4,11 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-<<<<<<< HEAD
-- **Queue (this file):** 62 done, 11 partly done (fixed, protection pending), 79 open. Source of truth for work.
-=======
-- **Queue (this file):** 61 done, 9 partly done (fixed, protection pending), 81 open. Source of truth for work.
->>>>>>> 98a9e5d53 (fix(Q83): zod runs jitless; per-page CSP eval report 1 -> 0 (measured))
+- **Queue (this file):** 63 done, 11 partly done (fixed, protection pending), 78 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_

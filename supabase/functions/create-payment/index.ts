@@ -20,7 +20,7 @@ import { formatPayoutDollars } from "../_shared/money.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { PublicError, publicErrorMessage } from "../_shared/publicError.ts";
-import { jobBudgetOutOfRange, MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS } from "../_shared/jobBudgetLimits.ts";
+import { jobBudgetOutOfRange, urgentFeeOverCap, MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS } from "../_shared/jobBudgetLimits.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTiming.ts";
 
@@ -180,6 +180,13 @@ serve(async (req) => {
       if (jobBudgetOutOfRange(job.budget)) {
         throw new PublicError(
           `Job budgets run from $${MIN_JOB_BUDGET_DOLLARS.toLocaleString("en-US")} to $${MAX_JOB_BUDGET_DOLLARS.toLocaleString("en-US")}. Edit the budget, or split a bigger project into separate jobs.`,
+        );
+      }
+      // Same for the urgent bonus ($250 since Q210(c)): the clamp below would
+      // quietly charge less than the job says, so refuse instead.
+      if (urgentFeeOverCap(job.is_urgent, job.urgent_fee)) {
+        throw new PublicError(
+          `The urgent bonus can be at most $${MAX_URGENT_FEE_DOLLARS.toLocaleString("en-US")}. Post the job again with a smaller bonus.`,
         );
       }
 
@@ -516,7 +523,7 @@ serve(async (req) => {
       // stored: an urgent job is charged the stored fee but never below the
       // floor, a non-urgent job is never charged an urgent tip regardless of
       // what the column holds. Floor/ceiling mirror URGENT_FEE_FLOOR_DOLLARS
-      // ($5) and MAX_URGENT_FEE_DOLLARS (the budget ceiling, $1,000 since Q202)
+      // ($5) and MAX_URGENT_FEE_DOLLARS ($250 since Q210(c))
       // in _shared/jobBudgetLimits.ts, which src/lib/moneyLimits.ts re-exports.
       const URGENT_FEE_FLOOR_CENTS = 500;
       const URGENT_FEE_CEILING_CENTS = MAX_URGENT_FEE_DOLLARS * 100;

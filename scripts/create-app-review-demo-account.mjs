@@ -171,7 +171,7 @@ async function main() {
     idv_status: "verified",
     id_verification_status: "verified",
     stripe_identity_verified: true,
-    terms_version_accepted: "Jun 2026",
+    terms_version_accepted: "Sep 2026",
     is_seed: true,
   };
   if (profileRows.length === 0) {

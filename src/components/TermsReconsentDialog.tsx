@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogBody, DialogContent, DialogHero, DialogFooter, DialogPrimaryAction } from "@/components/ui/dialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { LATEST_TERMS_VERSION } from "@/lib/consent";
+import { LATEST_PRIVACY_VERSION, LATEST_TERMS_VERSION } from "@/lib/consent";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
@@ -127,7 +127,7 @@ export function TermsReconsentDialog() {
       const { error: legalErr } = await supabase.from("legal_acceptances").insert({
         user_id: userId,
         terms_version: LATEST_TERMS_VERSION,
-        privacy_version: LATEST_TERMS_VERSION,
+        privacy_version: LATEST_PRIVACY_VERSION,
       });
       if (legalErr) {
         report(legalErr, { tags: { source: "TermsReconsentDialog.legalAcceptances" } });

@@ -18,12 +18,21 @@ export const MIN_JOB_BUDGET_DOLLARS = 10;
 /** Maximum job budget a poster may set (whole dollars). */
 export const MAX_JOB_BUDGET_DOLLARS = 1000;
 
-/** Maximum urgent bonus (whole dollars). Capped at the budget ceiling: a rush
- *  premium larger than the largest job we allow is a typo or an attack. */
-export const MAX_URGENT_FEE_DOLLARS = MAX_JOB_BUDGET_DOLLARS;
+/** Maximum urgent bonus (whole dollars). $250 since 2026-09-23 (owner decision,
+ *  docs/OPEN.md Q210(c)): it used to equal the budget ceiling, so one charge
+ *  could reach ~$2,000 + fees. The jobs_urgent_fee_ceiling CHECK carries the
+ *  same literal (src/test/urgentBonusCap.test.ts). */
+export const MAX_URGENT_FEE_DOLLARS = 250;
 
 /** True when a stored or submitted budget is outside the allowed range. */
 export function jobBudgetOutOfRange(budget: unknown): boolean {
   const n = typeof budget === "number" ? budget : Number(budget);
   return !Number.isFinite(n) || n < MIN_JOB_BUDGET_DOLLARS || n > MAX_JOB_BUDGET_DOLLARS;
+}
+
+/** True when an urgent job's stored or submitted bonus is above the cap. */
+export function urgentFeeOverCap(isUrgent: unknown, urgentFee: unknown): boolean {
+  if (isUrgent !== true) return false;
+  const n = typeof urgentFee === "number" ? urgentFee : Number(urgentFee ?? 0);
+  return !Number.isFinite(n) || n > MAX_URGENT_FEE_DOLLARS;
 }

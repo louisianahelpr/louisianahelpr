@@ -25,7 +25,7 @@ import { unwrapMutationRow, isWriteRejected, mutationErrorMessage } from "@/lib/
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import AuthShell from "@/components/auth/AuthShell";
 import { safeInternalRedirect } from "@/lib/authRedirects";
-import { LATEST_TERMS_VERSION } from "@/lib/consent";
+import { LATEST_PRIVACY_VERSION, LATEST_TERMS_VERSION } from "@/lib/consent";
 import { report } from "@/lib/errorLogger";
 import { uploadProfileFiles } from "./completeProfile/uploadProfileFiles";
 import { useParishForZip, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
@@ -431,7 +431,7 @@ const CompleteProfile = () => {
       const { error: legalErr } = await supabase.from("legal_acceptances").insert({
         user_id: user.id,
         terms_version: LATEST_TERMS_VERSION,
-        privacy_version: LATEST_TERMS_VERSION,
+        privacy_version: LATEST_PRIVACY_VERSION,
       });
       if (legalErr) {
         report(legalErr, {

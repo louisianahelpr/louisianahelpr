@@ -98,4 +98,4 @@ describe("every legal document in LAST_UPDATED has an edge counterpart", () => {
 // Drift between the two copies is the entire point of the file: the front end
 // would render one date while the edge re-consent gate compared against
 // another, so a bumped policy would silently stop prompting anyone.
-// @mutate supabase/functions/_shared/legalVersions.ts | export const LEGAL_TERMS_VERSION = "Jun 2026"; | export const LEGAL_TERMS_VERSION = "Jul 2026";
+// @mutate supabase/functions/_shared/legalVersions.ts | export const LEGAL_TERMS_VERSION = "Sep 2026"; | export const LEGAL_TERMS_VERSION = "Jul 2026";

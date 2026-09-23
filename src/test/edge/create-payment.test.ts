@@ -554,6 +554,25 @@ describe("create-payment edge function", () => {
         await run();
         expect(urgentLineItem()).toBeUndefined();
       });
+
+      // Q210(c): the bonus cap is $250 (MAX_URGENT_FEE_DOLLARS). At the cap it
+      // is charged; one cent over, no checkout is opened at all.
+      it("charges an urgent bonus of exactly $250", async () => {
+        seedUrgentJob({ is_urgent: true, urgent_fee: 250 });
+        await run();
+        expect(urgentLineItem()?.price_data.unit_amount).toBe(25000);
+      });
+
+      it("refuses an urgent bonus of $250.01 before any checkout exists", async () => {
+        seedUrgentJob({ is_urgent: true, urgent_fee: 250.01 });
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-urgent" } }),
+        );
+        expect(res.status).toBe(500);
+        expect((await json(res)).error).toMatch(/urgent bonus can be at most \$250\b/i);
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+      });
     });
 
     // ── Poster fee fallback when the poster's PROFILE READ FAILS ──────────

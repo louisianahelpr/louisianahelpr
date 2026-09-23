@@ -177,6 +177,11 @@ function classify(routes) {
     if (/\bProtectedRoute\b/.test(r.element)) { reject("behind ProtectedRoute (auth)"); continue; }
     if (/\bAdminRoute\b/.test(r.element)) { reject("admin-only"); continue; }
     if (NOINDEX[r.path]) { reject(`noindex — ${NOINDEX[r.path]}`); continue; }
+    // Aliases of the legal page (/terms, /privacy, /rules) render <Legal> but
+    // declare a /legal URL as their canonical (PAGE_CANONICALS). A sitemap
+    // lists canonical URLs only, so the alias is left out and its canonical
+    // (added by parseExtraLegalTabPaths, or /legal itself) is listed instead.
+    if (/<Legal\b/.test(r.element) && r.path !== "/legal") { reject("alias of /legal — its canonical is a /legal URL"); continue; }
     included.push(r.path);
   }
   return { included: [...new Set(included)], excluded };

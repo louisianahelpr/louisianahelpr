@@ -76,6 +76,14 @@ describe("sitemap.xml", () => {
   // which would have deleted a live 200 page from the sitemap and left this
   // suite red instead. Run the generator's own check so the file and the
   // thing that produces it can never drift apart again.
+  it("lists canonical URLs only: no alias of the legal page (/terms, /privacy, /rules)", () => {
+    // Each alias renders <Legal> but sets its canonical to a /legal URL, so
+    // listing it advertised every legal page twice (found 2026-09-23).
+    const paths = locs.map((u) => new URL(u).pathname + new URL(u).search);
+    expect(paths.filter((p) => ["/terms", "/privacy", "/rules"].includes(p))).toEqual([]);
+    expect(paths).toEqual(expect.arrayContaining(["/legal", "/legal?tab=privacy", "/legal?tab=community"]));
+  });
+
   it("agrees with scripts/generate-sitemap.mjs", () => {
     const run = spawnSync(process.execPath, [resolve(ROOT, "scripts/generate-sitemap.mjs"), "--check"], {
       cwd: ROOT,

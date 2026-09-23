@@ -1,0 +1,146 @@
+name: Loading states refresh
+
+# Re-measure every loading state on prod and re-prove the loading-state
+# baseline against TODAY's UI (owner, 2026-09-23: "nothing at all should ever
+# be stale ... set up routines so this can never happen").
+#
+# Before this, docs/audit/loading-states/measurements.json was refreshed only
+# when someone remembered `npm run loading-states:measure` on a laptop: it was
+# 3 days old after the skeletons changed, and baseline.json's "may only shrink"
+# check ran on every push against that stale measurement — so an entry fixed
+# by the skeleton work could sit in the baseline indefinitely.
+#
+# This job measures the committed commit's build against prod with the shared
+# test accounts (READ-ONLY: the only intervention is a response DELAY), then
+# runs scripts/check-loading-state-shape.mjs on the FRESH measurement, which
+# fails in both directions: a new breach, or a baseline entry that no longer
+# breaches. The fresh measurement and screenshots are uploaded; a red run opens
+# a nightly-red issue. scripts/check-staleness.mjs binds measurements.json's
+# currency to this workflow's last scheduled success (WORKFLOW_BOUND).
+#
+# To land the refreshed evidence in git: download the artifact, copy it over
+# docs/audit/loading-states/, commit. (GitHub Actions in this repo may not
+# push to main or open PRs — can_approve_pull_request_reviews=false,
+# measured 2026-09-23 — so the refresh cannot commit itself.)
+
+on:
+  schedule:
+    # 16:17 UTC daily: >= 90 min from every other prod-hitting cron (the
+    # nearest are 14:17 Sun vacuity and 11:17 daily), :17 clears the hourly
+    # prod-errors monitor at :47. See src/test/prodWorkflowSpacing.test.ts.
+    - cron: "17 16 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # A SCHEDULED run joins prod-load; a dispatch gets its own group (rule 4 of
+  # src/test/prodWorkflowSpacing.test.ts). The job itself holds the shared
+  # test-account lock, so a dispatch never drives poster-e2e beside another
+  # suite.
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('loading-states-refresh-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+env:
+  VITE_SUPABASE_PROJECT_ID: fncmgoasalhdgfwzhsqa
+  VITE_SUPABASE_URL: https://fncmgoasalhdgfwzhsqa.supabase.co
+  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+
+jobs:
+  measure:
+    name: Measure every loading state (375, prod) and re-prove the baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Drop the Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+
+      - run: npx playwright install --with-deps chromium
+
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+
+      - name: Write .env (service-role key for session minting; never printed)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_PUBLISHABLE_KEY=%s\n' "$VITE_SUPABASE_URL" "$VITE_SUPABASE_PUBLISHABLE_KEY" > .env
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN missing — cannot mint the test sessions. Failing rather than skipping: a skipped measurement looks like a clean one."
+            exit 1
+          fi
+          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
+            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
+            echo "::error::the CLI listed no service_role key; cannot mint sessions"
+            exit 1
+          fi
+          echo "::add-mask::$KEY"
+          printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY" >> .env
+
+      - name: Build and serve this commit locally (prod VITE_* env)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-publishable-key: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Measure (writes docs/audit/loading-states/ in this checkout only)
+        env:
+          BASE: http://127.0.0.1:4173
+          PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+          PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+          PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }}
+          PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+        run: npm run loading-states:measure
+
+      - name: Re-prove the baseline on the fresh measurement (both directions)
+        run: npm run check:loading-states
+
+      - name: Shred the key
+        if: always()
+        run: rm -f .env
+
+      - name: Upload the fresh measurement + screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: loading-states-${{ github.run_id }}
+          path: docs/audit/loading-states/
+          if-no-files-found: error
+          retention-days: 14
+
+  notify:
+    name: Report nightly result
+    needs: [measure]
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: loading-states-refresh
+          status: ${{ needs.measure.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -12,8 +12,10 @@
  * baseline or ledger is covered the day it is added:
  *
  *  1. EVIDENCE AGE. Every committed JSON file carrying a top-level
- *     `generated` / `generatedAt` / `measuredAt` / `measured` timestamp is
- *     evidence someone measured. Older than MAX_EVIDENCE_HOURS = stale.
+ *     `generated` / `generatedAt` / `measuredAt` / `measured` / `at` timestamp is
+ *     evidence someone measured. Older than MAX_EVIDENCE_HOURS = stale —
+ *     UNLESS something better proves it current (check-generated-current.mjs
+ *     GENERATED / TWO_WAY / HISTORICAL, or WORKFLOW_BOUND below).
  *  2. EVIDENCE vs CODE. Evidence that declares what it measures (a top-level
  *     `covers` array of paths) is stale once any of those paths changes after
  *     it was measured, however young it is. Without `covers` only the age
@@ -43,7 +45,7 @@ const TS_KEYS = ["generatedAt", "generated", "measuredAt", "measured", "at"];
 export const REFRESH = {
   "docs/audit/loading-states/baseline.json": "npm run loading-states:measure (browser + test accounts), then npm run check:loading-states",
   "e2e/happy-path/overlay-sweep.baseline.json": "UPDATE_BASELINE=1 npx playwright test e2e/happy-path/overlay-sweep.spec.ts",
-  "docs/audit/loading-states/measurements.json": "npm run loading-states:measure (browser + test accounts); refreshed by press-every-control.yml job loading-states",
+  "docs/audit/loading-states/measurements.json": "npm run loading-states:measure (browser + test accounts); refreshed daily by loading-states-refresh.yml (download its artifact to land it)",
 };
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();
@@ -118,6 +120,9 @@ export const WORKFLOW_BOUND = [
   // any green run is a proxy, not the thing. Only the Friday 05:00 UTC cron
   // resolves to the overlay sweep, so only a scheduled Friday success counts.
   { file: "e2e/happy-path/overlay-sweep.baseline.json", workflow: "ui-sweep.yml", event: "schedule", weekdayUtc: 5, maxDays: 8 },
+  // Re-measured daily on prod and re-proved two ways against the baseline in
+  // the same run; the committed file is a snapshot of the last one landed.
+  { file: "docs/audit/loading-states/measurements.json", workflow: "loading-states-refresh.yml", maxDays: 2 },
 ];
 
 export function checkWorkflowBound(bound, lastSuccess, now) {
@@ -143,7 +148,7 @@ function lastSuccessFromGh({ workflow, event, weekdayUtc }) {
     return rows.length ? rows[0] : null;
   } catch (e) {
     if (process.env.CI) throw new Error(`gh run list failed in CI (${e.message}) — set GH_TOKEN; refusing to report fresh`);
-    console.warn(`note: gh unavailable locally, ${workflow} currency not checked`);
+    console.warn(`note: \`gh run list --workflow ${workflow}\` failed locally (${String(e.message).split("\n")[0]}); its currency is NOT checked in this run — CI refuses instead`);
     return undefined;
   }
 }

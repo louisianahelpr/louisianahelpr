@@ -116,8 +116,8 @@ export const EVIDENCE = [
     script: "scripts/audit/measure-loading-states.mjs",
     outputs: ["docs/audit/loading-states/measurements.json"],
     refresh: "npm run loading-states:measure (browser + test accounts)",
-    refreshedBy: ".github/workflows/press-every-control.yml (job loading-states)",
-    checkedBy: "check-staleness.mjs age limit on `at`; check-loading-state-shape.mjs re-run on the fresh measurement",
+    refreshedBy: ".github/workflows/loading-states-refresh.yml (daily 16:17 UTC; uploads the fresh set)",
+    checkedBy: "check-loading-state-shape.mjs on the FRESH measurement in that run; check-staleness.mjs binds currency to its last scheduled success",
   },
   {
     id: "write-contract",
@@ -141,7 +141,7 @@ export const EVIDENCE = [
     outputs: ["e2e/happy-path/overlay-sweep.baseline.json"],
     refresh: "UPDATE_BASELINE=1 npx playwright test e2e/happy-path/overlay-sweep.spec.ts",
     refreshedBy: ".github/workflows/ui-sweep.yml (overlay mode, weekly) — asserts both directions",
-    checkedBy: "check-staleness.mjs: last successful ui-sweep.yml run",
+    checkedBy: "check-staleness.mjs: last successful Friday scheduled ui-sweep.yml run",
   },
 ];
 

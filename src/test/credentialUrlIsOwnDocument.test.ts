@@ -8,7 +8,7 @@
 // @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql | credential_document_path_ok(uuid, text, text) FROM PUBLIC, anon, authenticated; | credential_document_path_ok(uuid, text, text) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql |     AND NOT public.is_submitted_credential_object(name)\n  );\nEND | \n  );\nEND
 // @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql |   DROP POLICY IF EXISTS "Users can update their own documents" ON storage.objects; |
-// @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql |      WHERE p.user_id = auth.uid() |      WHERE true
+// @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |      WHERE p.user_id = auth.uid() |      WHERE true
 // @mutate src/components/profile/CredentialsTab.tsx | const ext = DOC_EXT_BY_TYPE[draft.file.type] ?? "pdf"; | const ext = draft.file.name.split(".").pop() \|\| "pdf";
 // @mutate src/components/profile/CredentialsTab.tsx |   "image/webp": "webp",\n  "application/pdf": "pdf",\n}; |   "image/webp": "webp",\n  "application/pdf": "pdf",\n  "image/gif": "gif",\n};
 import { describe, expect, it } from "vitest";

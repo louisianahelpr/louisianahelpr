@@ -685,14 +685,34 @@ export async function ensureMessyInputState(
     // document-less pending row left to patch, so a reviewable row already
     // exists and there is nothing to do.
   } else if (svc) {
+    // Q130: document_url must be the helper's OWN uploaded user-documents
+    // object, `<uid>/credentials/trade_license-<13 digits>.<ext>`
+    // (trg_helper_credential_document_is_own) — a data: URL is refused. So the
+    // helper uploads the pixel first, exactly as a member would, then submits.
+    // Undo order: the row (service role), THEN the object — while a row names
+    // it the member cannot delete it (is_submitted_credential_object).
+    const svcKey: string = svc;
+    const docPath = `${s.helper.user.id}/credentials/trade_license-${Date.now()}.png`;
+    const up = await api.post(`${SUPABASE_URL}/storage/v1/object/user-documents/${docPath}`, {
+      headers: rest(s.helper, { "Content-Type": "image/png", "x-upsert": "false" }),
+      data: Buffer.from(SEED_PIXEL.split(",")[1], "base64"),
+    });
+    expect(up.ok(), `upload a fixture credential document: ${up.status()} ${await up.text()}`).toBe(true);
     const r = await restAs(api, s.helper, "post", "helper_credentials", {
       user_id: s.helper.user.id, credential_type: "trade_license", trade_category: "handyman",
-      license_number: `${MARKER} messy-input`, license_state: "LA", document_url: SEED_PIXEL,
+      license_number: `${MARKER} messy-input`, license_state: "LA", document_url: docPath,
     });
     expect(r.ok(), `submit a fixture credential: ${r.status()} ${await r.text()}`).toBe(true);
     const id = ((await r.json()) as { id: string }[])[0].id;
     did.push(`submitted credential ${id}`);
-    undo.push((a) => svcDelete(a, "helper_credentials", id));
+    undo.push(async (a) => {
+      const row = await svcDelete(a, "helper_credentials", id);
+      const del = await a.delete(`${SUPABASE_URL}/storage/v1/object/user-documents`, {
+        headers: { apikey: svcKey, Authorization: `Bearer ${svcKey}`, "Content-Type": "application/json" },
+        data: { prefixes: [docPath] },
+      });
+      return `${row}; user-documents/${docPath}: ${del.ok() ? "removed" : `NOT removed (${del.status()})`}`;
+    });
   }
 
   return {

@@ -33,7 +33,7 @@ import { walkSource, readSource } from "./helpers/walkSource";
 import { objectLiterals } from "./helpers/schemaConstraints";
 
 const REPO = resolve(__dirname, "../..");
-const NEEDS_DOCUMENT_TYPES = new Set(["trade_license", "insurance"]);
+const NEEDS_DOCUMENT_TYPES = new Set(["trade_license", "insurance", "bond"]); // bond: Q130 (helper_credentials_pending_bond_needs_document)
 const PENDING_STATUSES = new Set(["unverified", "submitted"]);
 
 /** `key: <raw value up to the next top-level comma or closing brace>`, or null if absent. */
@@ -155,7 +155,7 @@ describe("the credential-row reader really finds helper_credentials writes", () 
 // document stripped back off seedData.ts's seeded trade_license row, this
 // line turns red. Restoring the row (this file's current state) turns it
 // green again.
-// @mutate e2e/happy-path/seedData.ts | document_url: "https://seed.helpr.test/credentials/marcus-trade-license.pdf", | document_url: null,
+// @mutate e2e/happy-path/seedData.ts | document_url: `${HELPER_ID}/credentials/trade_license-1757721600000.pdf`, | document_url: null,
 describe("no e2e/ or scripts/ file writes a document-less pending trade_license/insurance row", () => {
   it("finds none of the walked rows in the impossible state", () => {
     const offenders = pending.map(violation).filter((v): v is string => v !== null);

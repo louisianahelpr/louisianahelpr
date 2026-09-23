@@ -168,6 +168,46 @@ export function safeDocumentExt(contentType: unknown, ext: unknown): string {
   return "bin";
 }
 
+/**
+ * Q133 (docs/OPEN.md): the extensions a CREDENTIAL document (profiles.license_url /
+ * insurance_url, helper_credentials.document_url) may carry, each with the one
+ * MIME type it is stored as. This is the SAME set three other places hold:
+ *   - the user-documents bucket's allowed_mime_types
+ *     (20260921092104_cap_private_storage_buckets.sql; jpeg/png/webp/heic/pdf),
+ *   - the extension group of credential_document_path_ok() /
+ *     helper_credential_document_ok() (the Q127/Q130 triggers REFUSE any other),
+ *   - CredentialsTab.tsx's DOC_EXT_BY_TYPE (a subset: no heic picker type).
+ * src/test/credentialDocumentExtAgreement.test.ts fails when they drift.
+ *
+ * Why it exists: complete-signup uploads first and then writes the path in the
+ * SAME profiles UPDATE that approves the account. safeDocumentExt() can emit
+ * gif/heif/tiff/tif/bin; a path with one of those would be refused (22023) by
+ * the trigger AFTER the upload, turning the whole signup into a 500 with an
+ * unapproved account and an orphaned object. credentialDocument() is asked
+ * BEFORE any upload, so such a file is a clear 400 and nothing is written.
+ */
+export const CREDENTIAL_DOCUMENT_EXT_MIME: Readonly<Record<string, string>> = {
+  pdf: "application/pdf",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  heic: "image/heic",
+};
+
+/**
+ * The extension and stored content type for a credential document, or null
+ * when the credential triggers would refuse the path it produces. The
+ * content type is re-derived from the extension, so an older client that sent
+ * no type (or application/octet-stream) with a `.pdf` still uploads as a type
+ * the bucket admits.
+ */
+export function credentialDocument(contentType: unknown, ext: unknown): { ext: string; contentType: string } | null {
+  const e = safeDocumentExt(contentType, ext);
+  const mime = CREDENTIAL_DOCUMENT_EXT_MIME[e];
+  return mime ? { ext: e, contentType: mime } : null;
+}
+
 /** Matches `avatar.<ext>` — the current key space plus every legacy one. */
 const AVATAR_OBJECT_NAME = /^avatar\.[A-Za-z0-9]{1,16}$/;
 

@@ -10,6 +10,7 @@ import { SUPPORT_EMAIL } from "../_shared/resend.ts";
 import {
   avatarObjectKey,
   avatarObjectNameFromUrl,
+  credentialDocument,
   resolveAvatarContentType,
   safeDocumentExt,
   sweepSupersededAvatars,
@@ -370,6 +371,28 @@ serve(async (req) => {
       }
     }
 
+    // Q133: a credential document's type is decided BEFORE anything is
+    // uploaded. The path lands in the same profiles UPDATE that approves the
+    // account, and auto_pending_credentials() refuses (22023) any extension
+    // outside the user-documents set, so an unsupported file checked only
+    // there would 500 the whole signup AFTER the uploads: account left
+    // unapproved, objects orphaned. Refusing it here is a permanent property
+    // of the file (a 400, not the "try again" 502), and nothing is written.
+    const licenseDoc = licenseBase64 ? credentialDocument(licenseContentType, licenseExt) : null;
+    const insuranceDoc = insuranceBase64 ? credentialDocument(insuranceContentType, insuranceExt) : null;
+    const unsupportedDocs = [
+      licenseBase64 && !licenseDoc ? "license" : null,
+      insuranceBase64 && !insuranceDoc ? "insurance document" : null,
+    ].filter(Boolean);
+    if (unsupportedDocs.length > 0) {
+      return new Response(
+        JSON.stringify({
+          error: `That file type isn't supported for your ${unsupportedDocs.join(" or ")} — use PDF, JPG, PNG, WebP or HEIC.`,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     let avatarUrl: string | null = null;
     // `avatar.<ext>` of the upload above — what the post-update sweep keeps.
     let avatarObjectName: string | null = null;
@@ -460,13 +483,13 @@ serve(async (req) => {
     // user-documents bucket is private — store the PATH (not full URL) so
     // we can generate signed URLs at display time. Admin/owner read access
     // is enforced by the bucket's owner-or-admin RLS policy.
-    if (licenseBase64) {
-      const licensePath = `${userId}/credentials/license-${Date.now()}.${safeDocumentExt(licenseContentType, licenseExt)}`;
+    if (licenseBase64 && licenseDoc) {
+      const licensePath = `${userId}/credentials/license-${Date.now()}.${licenseDoc.ext}`;
       const licenseBytes = Uint8Array.from(atob(licenseBase64), (c) => c.charCodeAt(0));
       const { error: licErr } = await supabase.storage
         .from("user-documents")
         .upload(licensePath, licenseBytes, {
-          contentType: licenseContentType || "application/octet-stream",
+          contentType: licenseDoc.contentType,
           upsert: true,
         });
       if (licErr) {
@@ -477,13 +500,13 @@ serve(async (req) => {
     }
 
     // 2c. Upload insurance document (if provided)
-    if (insuranceBase64) {
-      const insurancePath = `${userId}/credentials/insurance-${Date.now()}.${safeDocumentExt(insuranceContentType, insuranceExt)}`;
+    if (insuranceBase64 && insuranceDoc) {
+      const insurancePath = `${userId}/credentials/insurance-${Date.now()}.${insuranceDoc.ext}`;
       const insuranceBytes = Uint8Array.from(atob(insuranceBase64), (c) => c.charCodeAt(0));
       const { error: insErr } = await supabase.storage
         .from("user-documents")
         .upload(insurancePath, insuranceBytes, {
-          contentType: insuranceContentType || "application/octet-stream",
+          contentType: insuranceDoc.contentType,
           upsert: true,
         });
       if (insErr) {

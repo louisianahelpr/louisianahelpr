@@ -1536,8 +1536,9 @@ export const SEED_HELPER_CREDENTIALS = [
     // Q102 (helper_credentials_pending_review_needs_document): a trade_license
     // / insurance row awaiting review must carry a document, or prod's CHECK
     // constraint refuses it. Without this the admin queue's mocked spec
-    // rendered an actionless row prod can no longer produce (Q115).
-    document_url: "https://seed.helpr.test/credentials/marcus-trade-license.pdf",
+    // rendered an actionless row prod can no longer produce (Q115). Q130: and
+    // it is an object path in the helper folder of user-documents; prod refuses a URL.
+    document_url: `${HELPER_ID}/credentials/trade_license-1757721600000.pdf`,
     status: "submitted",
     created_at: AGO(4),
     updated_at: AGO(4),

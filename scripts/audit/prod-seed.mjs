@@ -122,6 +122,30 @@ async function upsert(table, rows, onConflict = "id", { verifyByIdInstead = fals
   return out;
 }
 
+/**
+ * THE SEEDED LICENCE'S DOCUMENT IS A REAL user-documents OBJECT (Q130).
+ *
+ * helper_credentials.document_url must name the member's own uploaded object,
+ * `<user_id>/credentials/<credential_type>-<13 digits>.<ext>`
+ * (trg_helper_credential_document_is_own, migration 20260923113829); a
+ * `data:` URL — what this seed wrote until 2026-09-23 — is refused for every
+ * writer, service role included. So the 1x1 PNG is uploaded (service role,
+ * upsert: this run owns the object) at a FIXED name and the row points at it.
+ * --teardown deletes the row and then this object.
+ */
+const SEED_LICENSE_DOC_NAME = (helperId) => `${helperId}/credentials/trade_license-1757721600000.png`;
+async function ensureSeedLicenseDocument(helperId) {
+  const name = SEED_LICENSE_DOC_NAME(helperId);
+  const up = await fetch(`${BASE}/storage/v1/object/user-documents/${name}`, {
+    method: "POST",
+    headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "image/png", "x-upsert": "true" },
+    body: Buffer.from(PIXEL.split(",")[1], "base64"),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!up.ok) throw new Error(`upload seed licence document ${name} → ${up.status} ${await up.text()}`);
+  return name;
+}
+
 /** Deterministic UUID (v5 layout) from a stable key. */
 function sid(key) {
   const h = crypto.createHash("sha1").update(`lh-prod-seed-0912:${key}`).digest("hex");
@@ -713,7 +737,7 @@ async function apply() {
     // pending credential that has one (AdminCredentialQueue.tsx), so a
     // document-less seed row sat in the queue with no action on it (prod,
     // 2026-09-23; docs/OPEN.md Q49).
-    { id: sid("cred:license"), user_id: helperId, credential_type: "trade_license", trade_category: "handyman", license_number: "SEED-LA-HIC-0000", license_state: "LA", status: "submitted", document_url: PIXEL },
+    { id: sid("cred:license"), user_id: helperId, credential_type: "trade_license", trade_category: "handyman", license_number: "SEED-LA-HIC-0000", license_state: "LA", status: "submitted", document_url: await ensureSeedLicenseDocument(helperId) },
     { id: sid("cred:insurance"), user_id: helperId, credential_type: "insurance", issuing_authority: "SEED Gulf South Mutual", expiration_date: "2026-07-31", status: "expired" },
     { id: sid("cred:bond"), user_id: helperId, credential_type: "bond", status: "rejected", rejection_reason: "SEED: bond certificate was for a different business name." },
   ]);
@@ -814,6 +838,15 @@ async function teardown() {
   await del("reports", `id=${inList(["user", "job", "message", "support"].map((k) => sid(`report:${k}`)))}`);
   await del("helper_availability", `id=${inList(SEED_AVAILABILITY_DAYS.map((d) => sid(`avail:${d}`)))}`);
   await del("helper_credentials", `id=${inList(["license", "insurance", "bond"].map((k) => sid(`cred:${k}`)))}`);
+  {
+    // The licence row's document (Q130), after the row that names it is gone.
+    const r = await fetch(`${BASE}/storage/v1/object/user-documents`, {
+      method: "DELETE",
+      headers: SRH,
+      body: JSON.stringify({ prefixes: [SEED_LICENSE_DOC_NAME(helperId)] }),
+    });
+    if (!r.ok) console.warn(`teardown: seed licence document not removed (${r.status} ${await r.text()})`);
+  }
   await del("pet_profiles", `id=${inList([sid("pet:dog"), sid("pet:cat")])}`);
   await del("favorite_helpers", `id=${inList([sid("fav:helper"), sid("fav:applicant01")])}`);
   await del("saved_searches", `id=${inList([sid("search:helper"), sid("search:poster")])}`);

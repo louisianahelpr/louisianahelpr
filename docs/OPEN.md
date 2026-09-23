@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 313 items — 174 done, 37 partly done (fixed, protection pending), 102 open.**
+**Queue: 314 items — 174 done, 37 partly done (fixed, protection pending), 103 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -2598,3 +2598,14 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [x] **Q315 ops_alert_condition restatements can silently drop a branch (Q287 review nit, 2026-09-23).** routeProbeCloseRule.test.ts now pins its comparison to the Q94 file, so nothing fails if a future `CREATE OR REPLACE ops_alert_condition` loses a `p_source = '...'` branch. Only 4 of the 11 are spot-checked in cronHttpRequestsAreTagged.test.ts. Fix: add a guard that each definition's set of p_source values is a superset of the previous definition's.
   DONE 2026-09-23: guard src/test/dispatcherRestatementKeepsBranches.test.ts. Every restated p_source dispatcher keeps its predecessor's sources. Vacuity: killed. The fingerprint nit is split out as Q316.
 - [ ] **Q316 Ledger fingerprint collapses digit-bearing cron job names (Q287 review nit, 2026-09-23).** ops_alert_normalise(title) turns digits into `#`, so the jobs `cleanup-7d` and `cleanup-30d` (or `jobid 12` and `jobid 13`) would share one cron-http-untagged item. sample_ref keeps only the last job, so the item could close while the other job is still untagged; the next daily sweep reopens it. Live cron.job has no job names containing digits today (the reviewer's measurement). Fix: put the job name into the fingerprint for that source.
+- [ ] **Q317 Prod test suites exhaust Postgres connection slots and pg_cron's jobs are refused (root cause of fatal ledger item 15833c82 cron-startup-timeout, 2026-09-23).** MEASURED:
+  - postgres_logs 18:59–19:11Z has 14× `FATAL: remaining connection slots are reserved for roles with the SUPERUSER attribute`, from user postgres on ::1. They match the 14 "connection failed" rows in cron.job_run_details (12 jobs) one for one.
+  - db_saturation_samples went 7 → 56/60 connections at 19:00, with only 1 active.
+  - pgbouncer logged 694 max_client_conn refusals at 18:55.
+  - Trigger: runs started by hand at 18:50 (press 35905268411, e2e 35905284660, privacy 35906025953), totalling 16k HeadlessChrome requests in 20 minutes. The scheduled 03:17 press run on its own also caused 4 refusals at 03:34. It is not a daily 19:00 job; 09-22's burst was also a press run started by hand.
+  - pg_cron runs with use_background_workers=off, so each job needs a fresh connection; max_connections=60, and 3 are reserved for superusers.
+  Fix options, awaiting the owner:
+  - (a) lower the PostgREST/pooler pool sizes so they add up to less than 57 (free);
+  - (b) press matrix max-parallel 2;
+  - (c) bigger compute (paid).
+  Guard idea, once a fix lands: fail when db_saturation_samples.conn_pct ≥ 90% during a prod suite.

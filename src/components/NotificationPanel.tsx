@@ -1,4 +1,6 @@
-import { useEffect, useId, useRef, useState, useMemo, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, useMemo, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+// Type-only: erased at build, so framer stays off the critical path.
+import type { MotionProps } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeWithRecovery, type RecoveringSubscription } from "@/lib/realtimeRecovery";
@@ -42,7 +44,31 @@ import {
 } from "@/components/notificationPanel/notificationStore";
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
 import { notificationDestination } from "@/components/notificationPanel/notificationDestination";
-import { useFramerMotion } from "@/components/notificationPanel/useFramerMotion";
+import { useFramerMotion, type FramerMotion } from "@/components/notificationPanel/useFramerMotion";
+
+/* One day group. When the LAST row of a day leaves (mark read on the Unread
+   tab), the whole section unmounts, not just the row — so the section needs
+   the same collapsing exit the rows have, or the panel's bottom edge jumps by
+   header + row in one frame. See `collapseExit` inside the component. A plain
+   <section> until framer has loaded, same as the rows. */
+const DaySection = ({
+  framer,
+  exit,
+  transition,
+  children,
+}: {
+  framer: FramerMotion | null;
+  exit: MotionProps["exit"];
+  transition: MotionProps["transition"];
+  children: ReactNode;
+}) =>
+  framer ? (
+    <framer.motion.section exit={exit} transition={transition}>
+      {children}
+    </framer.motion.section>
+  ) : (
+    <section>{children}</section>
+  );
 
 /* A load that never answers is a failed load. On a saturated database a
    request can sit open for minutes, and while it did the panel had no answer
@@ -99,6 +125,35 @@ const NotificationPanel = () => {
      see useFramerMotion for the measured chain this breaks. `null` until the
      chunk arrives; rows render as plain divs with the same box meanwhile. */
   const framer = useFramerMotion(open);
+  /* A LEAVING ROW (or day section) COLLAPSES ITS OWN HEIGHT while it fades.
+     The panel is content-sized up to its max-height, so its bottom edge is
+     wherever the list ends. The old exit only faded + slid the row (opacity,
+     y) while it kept its full box in flow; when the exit ended the box was
+     removed in ONE frame, the panel's bottom edge jumped up by a whole row
+     (measured 2026-09-22 at 375 on prod, Chromium: 582 -> 482 in one frame
+     for a two-line row; 71px was reported for a shorter one), and only THEN did the remaining rows' `layout` FLIP slide
+     them up from where they had been — ~200ms of an empty gap at the top and
+     the bottom row drawn under the "Turn on push notifications" footer.
+     Animating height/padding/min-height/border to 0 inside the same 200ms
+     means the box shrinks every frame, the rows below follow in normal flow,
+     and the panel's edge follows them; at removal there is nothing left to
+     jump. When the list is at max height the scroll area absorbs the change
+     exactly as before. `overflow: hidden` is set instantly at exit start
+     (framer applies non-animatable values immediately) so the row's content
+     clips to its shrinking box — it is never on a LIVE row or section, where
+     it would break the sticky day header. Reduced motion: fade only, 0ms. */
+  const collapseExit = reducedMotion
+    ? { opacity: 0 }
+    : {
+        opacity: 0,
+        height: 0,
+        minHeight: 0,
+        paddingTop: 0,
+        paddingBottom: 0,
+        borderBottomWidth: 0,
+        overflow: "hidden",
+      };
+  const exitTransition = reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" as const };
   /* The bell itself. `PopoverTrigger asChild` composes its own ref with the
      child's, so passing this to <NotificationTrigger> costs nothing and gives
      `useScreenPanelBand` the element whose header bar decides where the
@@ -779,8 +834,9 @@ const NotificationPanel = () => {
             </div>
           ) : (
             <div>
-              {groupedNotifications.map((group) => (
-                <section key={group.key}>
+              {(() => {
+              const sections = groupedNotifications.map((group) => (
+                <DaySection key={group.key} framer={framer} exit={collapseExit} transition={exitTransition}>
                   <div
                     className="sticky top-0 z-10 px-4 py-1.5 flex items-center justify-between font-sans uppercase tracking-[0.18em] text-ds-10"
                     style={{
@@ -963,8 +1019,8 @@ const NotificationPanel = () => {
                           layout={!reducedMotion}
                           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
                           animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
-                          transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
+                          exit={collapseExit}
+                          transition={exitTransition}
                         >
                           {body}
                         </framer.motion.div>
@@ -980,8 +1036,14 @@ const NotificationPanel = () => {
                       rows
                     );
                   })()}
-                </section>
-              ))}
+                </DaySection>
+              ));
+              return framer ? (
+                <framer.AnimatePresence initial={false}>{sections}</framer.AnimatePresence>
+              ) : (
+                sections
+              );
+              })()}
             </div>
           )}
         </PullToRefreshWrapper>

@@ -7563,7 +7563,12 @@ Verified OK on prod, same pass: admin Documents tab renders the seed data: image
 sign request, no data: POST); notification rows animate out and in; read dead-link
 rows are non-tappable; panel identical in WebKit and Chromium.
 
-1. **Notification panel bottom edge jumps 71px in one frame** when a row leaves
+1. **FIXED 2026-09-22** (leaving rows and day sections now collapse height in the
+   same 200ms exit; prod poster-e2e, 375 Chromium: max per-frame panel-edge move
+   100.4px -> 13.1px, rows-under-footer frames 12 -> 0; WebKit 100.4 -> 13.4,
+   13 -> 0; 1440 83.1 -> 35.5 over dropped frames, 8 -> 0; at max height
+   unchanged, 0 both. Shots + per-frame JSON in ~/.lh-shots/notif-panel-jump/.)
+   **Notification panel bottom edge jumps 71px in one frame** when a row leaves
    and the list is shorter than the panel max height (736->665 at 375, both
    engines), while the rows are still sliding: ~200ms of empty gap at the top, bottom
    row clipped by the push-notifications footer. It predates d498580fb (the

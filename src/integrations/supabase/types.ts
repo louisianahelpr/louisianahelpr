@@ -4708,6 +4708,7 @@ export type Database = {
         Args: { p_job_id: string; p_message: string }
         Returns: string
       }
+      are_safe_media_urls: { Args: { vs: string[] }; Returns: boolean }
       are_users_blocked: {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean
@@ -5546,6 +5547,7 @@ export type Database = {
         Args: { object_name: string }
         Returns: boolean
       }
+      is_safe_media_url: { Args: { v: string }; Returns: boolean }
       is_server_context: { Args: never; Returns: boolean }
       is_thread_muted: {
         Args: { _job_id: string; _other_user_id: string; _user: string }

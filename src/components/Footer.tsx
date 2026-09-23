@@ -122,12 +122,12 @@ const Footer = () => {
             restores the natural DOM order the 3-col/4-col layouts already rely
             on. */}
         <div className="col-span-2 order-1 min-[360px]:col-span-1 min-[360px]:order-none min-[620px]:col-span-3">
-          <h3
+          <h2
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--accent-ink))" }}
           >
             Company
-          </h3>
+          </h2>
           {/* The footer is the site's full index, so it carries the top nav's
               destinations PLUS the secondary ones the nav has no room for.
               Without Jobs here, a visitor who scrolled past the nav had no path
@@ -191,12 +191,12 @@ const Footer = () => {
             One split from 640px up, instead of a tier that only existed to
             wrap. */}
         <div className="order-3 min-[360px]:order-none min-[620px]:col-span-2">
-          <h3
+          <h2
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--accent-ink))" }}
           >
             Legal
-          </h3>
+          </h2>
           <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
             <li>
               <Link to="/terms" className="link-standard">
@@ -219,12 +219,12 @@ const Footer = () => {
         {/* Follow — App Store icon (download) + Facebook + Instagram (socials).
             Compact squircle chips, one row. */}
         <div className="order-2 min-[360px]:order-none min-[620px]:col-span-3">
-          <h3
+          <h2
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--accent-ink))" }}
           >
             Follow
-          </h3>
+          </h2>
           {/* Brand-color chips with a softer squircle radius — bigger,
               airier, less pinched than the previous rounded-2xl chips.
               Apple black, Facebook blue, Instagram gradient are kept for

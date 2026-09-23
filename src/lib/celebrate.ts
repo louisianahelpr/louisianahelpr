@@ -27,6 +27,33 @@ export function getBrandColors(): string[] {
   ];
 }
 
+/**
+ * Fire confetti on a canvas that assistive tech (and axe) never sees (Q212).
+ *
+ * canvas-confetti's default call appends a bare full-screen <canvas> to
+ * <body>, outside every landmark: axe's `region` rule flagged it on
+ * /profile?tab=earnings (Q181 sweep run 35888653918, helper account, when a
+ * milestone celebration fired). The particles are decoration, so the canvas
+ * is created here, marked aria-hidden, and removed when the burst ends. Every
+ * confetti call in the app goes through this.
+ */
+export async function fireConfetti(options: Record<string, unknown>): Promise<void> {
+  const confetti = (await import("canvas-confetti")).default;
+  const canvas = document.createElement("canvas");
+  canvas.setAttribute("aria-hidden", "true");
+  canvas.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:100";
+  document.body.appendChild(canvas);
+  let done: Promise<unknown> | null = null;
+  try {
+    done = confetti.create(canvas, { resize: true, useWorker: false })(options);
+  } finally {
+    // Removed when the burst ends; returns as soon as it STARTS, as the bare
+    // confetti() call did, so callers' timing is unchanged.
+    if (done) void done.catch(() => undefined).finally(() => canvas.remove());
+    else canvas.remove();
+  }
+}
+
 const STORAGE_KEYS: Record<CelebrateEvent, string> = {
   first_post: "helpr_post_count",
   first_review: "helpr_review_count",
@@ -53,8 +80,7 @@ export async function maybeCelebrate(
     const key = STORAGE_KEYS[event];
     const current = parseInt(safeStorage.getItem(key) ?? "0", 10) || 0;
     if (current >= limit) return;
-    const confetti = (await import("canvas-confetti")).default;
-    confetti({
+    await fireConfetti({
       particleCount,
       spread: 70,
       origin: { y: originY },

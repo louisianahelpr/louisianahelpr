@@ -1,5 +1,5 @@
 import { safeStorage } from "@/lib/safeStorage";
-import { getBrandColors } from "@/lib/celebrate";
+import { fireConfetti, getBrandColors } from "@/lib/celebrate";
 
 // Fires brand-tinted confetti for the user's first 3 successful posts.
 // After post #3 the novelty fades back to a quiet checkmark — counter
@@ -12,8 +12,7 @@ export async function maybeFireFirstPostConfetti() {
     const key = "helpr_post_count";
     const current = parseInt(safeStorage.getItem(key) ?? "0", 10) || 0;
     if (current >= FIRST_POST_CONFETTI_LIMIT) return;
-    const confetti = (await import("canvas-confetti")).default;
-    confetti({
+    await fireConfetti({
       particleCount: 80,
       spread: 70,
       origin: { y: 0.4 },

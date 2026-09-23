@@ -250,7 +250,11 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
             </div>
 
             <div className="flex-1 min-w-0">
-              <h3
+              {/* A <p>, not a heading (Q212): this is a transient status line
+                  above the tab's own H1/H2 outline, so as an <h3> it jumped the
+                  order (axe heading-order on /profile?tab=earnings). The
+                  role="status" wrapper already announces it. */}
+              <p
                 className="font-display italic font-bold leading-tight text-ds-18"
                 style={{
                   color: "hsl(var(--ink-deep))",
@@ -258,7 +262,7 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
                 }}
               >
                 You earned {formatUsdCents(totalCents)}
-              </h3>
+              </p>
               <p
                 className="font-sans truncate text-ds-12"
                 style={{

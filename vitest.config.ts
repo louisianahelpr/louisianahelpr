@@ -1,7 +1,18 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig, configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { cpus } from "node:os";
+
+/**
+ * `*.tz.test.{ts,tsx}` — specs that switch the DEVICE timezone mid-run
+ * (`process.env.TZ = ...`) to prove a render is the same in every zone.
+ * Node only re-reads TZ on assignment in a process's MAIN thread; inside a
+ * worker_thread the assignment is silently ignored and every "zone" is the
+ * runner's. So these run in the `forks` pool, where each test file is a child
+ * process's main thread. Each such spec also asserts the switch took effect,
+ * so moving one back under `threads` fails loudly instead of passing vacuously.
+ */
+const TZ_SWEEP_SPECS = "src/**/*.tz.test.{ts,tsx}";
 
 export default defineConfig({
   plugins: [react()],
@@ -45,7 +56,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     globalSetup: ["./src/test/gateLockGlobalSetup.ts"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    // `include` lives on each project below, NOT here: `extends: true` MERGES
+    // arrays, so a root include would put the whole suite in both projects.
     // Vitest's default is 5s, which this suite outgrew. Nothing here is
     // genuinely slow — the failures were all the same shape: a spec that does
     // `await import("./Component")` and renders it, on a machine that is also
@@ -74,6 +86,13 @@ export default defineConfig({
       VITE_SUPABASE_URL: "https://fncmgoasalhdgfwzhsqa.supabase.co",
       VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP",
     },
+    projects: [
+      {
+        extends: true,
+        test: { name: "unit", include: ["src/**/*.{test,spec}.{ts,tsx}"], exclude: [...configDefaults.exclude, TZ_SWEEP_SPECS] },
+      },
+      { extends: true, test: { name: "tz-sweep", include: [TZ_SWEEP_SPECS], pool: "forks" } },
+    ],
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },

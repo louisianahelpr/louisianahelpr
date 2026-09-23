@@ -46,7 +46,7 @@ import { jobActionChipStyle, JobStepPrimaryButton } from "@/components/activity/
  * an hour off on DST days (time-travel audit, 2026-09-12). Falls back to the
  * old parse only for an unreadable date, which jobDateMs rejects.
  */
-function jobDayStart(dateNeeded: string): Date {
+export function jobDayStart(dateNeeded: string): Date {
   const ms = jobDateMs(dateNeeded);
   return ms === null ? parseLocalDate(dateNeeded) : new Date(ms);
 }

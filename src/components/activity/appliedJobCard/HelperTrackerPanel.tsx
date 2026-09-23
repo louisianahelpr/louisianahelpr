@@ -1,6 +1,5 @@
-import { JobConfirmation, helperDayOfConfirmation } from "@/components/JobConfirmation";
+import { JobConfirmation, helperDayOfConfirmation, jobDayStart } from "@/components/JobConfirmation";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
-import { parseLocalDate } from "@/lib/dateUtils";
 import type { AppliedApp, Job } from "../activityConstants";
 
 /* `CardExpandedContext` WAS HERE and is GONE.
@@ -93,8 +92,19 @@ export function HelperTrackerPanel({
     dateNeeded: job.date_needed,
   });
 
+  /* Midnight of the job's day in the JOB's zone (America/Chicago), through the
+     SAME helper JobConfirmation measures its window with. This used
+     `parseLocalDate` — the VIEWER's zone — so on any device not set to Central
+     the gate below and the "I'm Still On" window it mirrors ended at different
+     instants. On a UTC device (CI) the gate dropped at 19:00 Central on the job
+     day while JobConfirmation kept offering "I'm Still On" until midnight, and
+     with the start inside the tracker's 2h unlock the card rendered TWO
+     primaries, "I'm On My Way" and "I'm Still On" (nightly-red, 2026-09-23
+     04:18Z). West of Central the opposite: the gate outlived the control that
+     releases it, leaving no primary at all. Guard:
+     src/components/activity/helperTrackerPrimarySweep.tz.test.tsx. */
   const hoursUntilJob =
-    (parseLocalDate(job.date_needed).getTime() - Date.now()) / 3_600_000;
+    (jobDayStart(job.date_needed).getTime() - Date.now()) / 3_600_000;
 
   /**
    * Is the Confirmed step still the helper's to complete?

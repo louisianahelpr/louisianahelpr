@@ -5,6 +5,7 @@ import {
   type Browser,
   type BrowserContext,
   type Page,
+  type Request,
   type TestInfo,
 } from "../prodTest";
 import { execFileSync } from "node:child_process";
@@ -223,9 +224,58 @@ let slowBackendCalls = 0;
 let slowestBackend = { ms: 0, url: "" };
 
 function resetBackendLatency() {
+  heldWrites = [];
   backendCalls = 0;
   slowBackendCalls = 0;
   slowestBackend = { ms: 0, url: "" };
+}
+
+/**
+ * WRITES THE HARNESS HELD AND NEVER SENT (Q280).
+ *
+ * The `slow` row holds every backend call 3-8s in its route handler, then
+ * continues it. If the test navigates (page.goto / reload) or closes the page
+ * inside that window, the request never leaves the browser. For a READ that is
+ * harmless. For a WRITE the test goes on as if the user's action had been
+ * saved when the server never saw it: e2e-journeys run 35905284660 (WebKit)
+ * clicked "Save Helpr", saw the optimistic "Unsave Helpr", navigated to Saved
+ * Helprs, and the favorite_helpers POST died in this handler (trace status -1,
+ * no POST in the gateway's edge_logs); the only symptom was a missing name 30s
+ * later.
+ *
+ * route.continue() does NOT throw when that happens (probed 2026-09-23 in
+ * WebKit and Chromium: it resolves, the server gets 0 hits; WebKit fires
+ * requestfailed "cancelled", Chromium fires nothing and response() never
+ * settles). So the only signal that holds in both engines is the one kept
+ * here: a held user write that never got a response.
+ *
+ * A spec must wait for a write's response before it navigates. The journey
+ * fixture fails the test on any such write, naming it. Telemetry the app fires
+ * and forgets (error reports, analytics, sign-in history) is not the user's
+ * action and is exempt; so are RPCs, which are mostly reads by POST.
+ */
+const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
+const FIRE_AND_FORGET_RX = /\/rest\/v1\/(error_logs|analytics_events|login_history)\b/;
+let heldWrites: { label: string; answered: Promise<boolean> }[] = [];
+
+export function isUserWrite(method: string, url: string): boolean {
+  if (!WRITE_METHODS.has(method.toUpperCase())) return false;
+  if (!url.includes("/rest/v1/") || url.includes("/rest/v1/rpc/")) return false;
+  return !FIRE_AND_FORGET_RX.test(url);
+}
+
+/** Called as a held request is released: remember user writes until their response. */
+function trackHeldWrite(req: Request) {
+  if (!isUserWrite(req.method(), req.url())) return;
+  const label = `${req.method()} ${req.url().slice(SUPABASE_URL.length, SUPABASE_URL.length + 120)}`;
+  heldWrites.push({ label, answered: req.response().then((r) => r !== null, () => false) });
+}
+
+/** The held user writes with no response, after giving the stragglers `graceMs`. */
+async function heldWritesNeverAnswered(graceMs: number): Promise<string[]> {
+  const timeout = new Promise<false>((r) => setTimeout(() => r(false), graceMs));
+  const results = await Promise.all(heldWrites.map((w) => Promise.race([w.answered, timeout])));
+  return heldWrites.filter((_, i) => !results[i]).map((w) => w.label);
 }
 
 /** One line for the annotations, or null when nothing was slow. */
@@ -303,6 +353,7 @@ export async function newUserContext(
       let h = 0;
       for (const ch of u) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
       await new Promise((r) => setTimeout(r, 3_000 + (h % 5_000)));
+      trackHeldWrite(route.request());
       await route.continue().catch(() => {});
     });
   } else if (opts.rotation?.network === "drops") {
@@ -658,6 +709,15 @@ export const test = base.extend<{ journey: Journey }>({
     if (latency) {
       testInfo.annotations.push({ type: "prod-latency", description: latency });
     }
+    // Read before the cleanups run: they use the API context, not a page.
+    const lostWrites = await heldWritesNeverAnswered(5_000);
+    if (lostWrites.length) {
+      testInfo.annotations.push({ type: "held-write-lost", description: lostWrites.join("; ") });
+      announceUncovered(
+        "A write never reached the server: the test navigated first",
+        `${testInfo.title}: ${lostWrites.join("; ")}. Wait for the write's response before page.goto/reload.`,
+      );
+    }
 
     if (testInfo.status !== testInfo.expectedStatus && testInfo.status !== "skipped") {
       if (latency) {
@@ -686,6 +746,7 @@ export const test = base.extend<{ journey: Journey }>({
 
     // A report() fired means the user hit a real error, even if the screen recovered.
     if (testInfo.status === "passed") {
+      expect(lostWrites, "the slow row held these writes and the test navigated away before they were sent (wait for each write's response first)").toEqual([]);
       const unexpected = clientReports.filter((r) => !allowed.some((re) => re.test(r)));
       expect(unexpected, `the app reported errors during the journey:\n${unexpected.join("\n")}`).toEqual([]);
       const reader = await errorLogReader(request);

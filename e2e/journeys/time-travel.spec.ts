@@ -118,17 +118,71 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     journey,
   }) => {
     test.setTimeout(8 * 60_000);
-    // The E2E poster's weekly grid is 09:00–17:00 every day (read below, not assumed).
+    /**
+     * THE PRECONDITIONS ARE WRITTEN HERE, NOT HOPED FOR (Q280, e2e-journeys
+     * run 35905284660, both engines). This test reads the screen's OFF-state
+     * copy, which depends on two pieces of the SHARED poster account's state
+     * that other runs change:
+     *
+     *  1. `profiles.available_until`. A press-every-control run turned the
+     *     poster's "Available now" switch on at 05:34:15Z (edge_logs), which
+     *     stored 22:00:15Z, i.e. 5:00 PM Central that day. At the moved clock
+     *     of 4:59 PM the app then CORRECTLY rendered "Available now · Until
+     *     5:00 PM" instead of "Ready until 5:00 PM", and the spec failed in
+     *     Chromium and WebKit. Cleared here through the app's own RPC.
+     *  2. The weekly grid. press-every-control's end-of-run cleanup deletes
+     *     every `helper_availability` row created since the run began, and a
+     *     save replaces the whole week, so it left the poster with NO hours
+     *     (this read found 0 rows on 2026-09-23 at 22:54Z; the DELETEs were at 21:07Z). The old check turned that
+     *     into an UNJUSTIFIED skip. The account is test-owned and this test is
+     *     what depends on the shape, so it writes the 9-5 week and puts a
+     *     non-empty previous week back afterwards.
+     */
     const probe = await getSession(request, "poster");
-    const grid = await request.get(
-      `${SUPABASE_URL}/rest/v1/helper_availability?helper_id=eq.${probe.user.id}&specific_date=is.null&select=day_of_week,is_available,end_time`,
-      { headers: rest(probe) },
-    );
-    expect(grid.ok()).toBe(true);
-    const rows = (await grid.json()) as Array<{ is_available: boolean; end_time: string }>;
-    if (rows.length !== 7 || rows.some((r) => !r.is_available || !r.end_time.startsWith("17:00"))) {
-      skipUncovered("Availability boundary", "E2E poster's grid is no longer 09:00–17:00 every day; re-seed it.");
+    const readWeek = async () => {
+      const res = await request.get(
+        `${SUPABASE_URL}/rest/v1/helper_availability?helper_id=eq.${probe.user.id}&specific_date=is.null&select=day_of_week,is_available,start_time,end_time&order=day_of_week`,
+        { headers: rest(probe) },
+      );
+      expect(res.ok(), `reading the poster's weekly hours: ${res.status()}`).toBe(true);
+      return (await res.json()) as Array<{ day_of_week: number; is_available: boolean; start_time: string; end_time: string }>;
+    };
+    const writeWeek = async (slots: Array<{ day_of_week: number; is_available: boolean; start_time: string; end_time: string }>) => {
+      const res = await request.post(`${SUPABASE_URL}/rest/v1/rpc/save_weekly_availability`, {
+        headers: rest(probe),
+        data: { p_slots: slots.map(({ day_of_week, is_available, start_time, end_time }) => ({ day_of_week, is_available, start_time, end_time })) },
+      });
+      expect(res.ok(), `writing the poster's weekly hours: ${res.status()} ${await res.text()}`).toBe(true);
+    };
+    const NINE_TO_FIVE = [0, 1, 2, 3, 4, 5, 6].map((day_of_week) => ({
+      day_of_week,
+      is_available: true,
+      start_time: "09:00:00",
+      end_time: "17:00:00",
+    }));
+    const before = await readWeek();
+    const isNineToFive = (rows: typeof before) =>
+      rows.length === 7 && rows.every((r) => r.is_available && r.start_time.startsWith("09:00") && r.end_time.startsWith("17:00"));
+    if (!isNineToFive(before)) {
+      test.info().annotations.push({ type: "seeded", description: `poster's week was ${before.length} rows, not 9-5 x7; wrote 9-5` });
+      await writeWeek(NINE_TO_FIVE);
+      journey.cleanup("restore the poster's weekly hours", async () => {
+        // An empty week is not restored: it is the damage, not a choice.
+        if (before.length) await writeWeek(before);
+      });
     }
+    expect(isNineToFive(await readWeek()), "the poster's weekly hours are not 09:00-17:00 every day").toBe(true);
+
+    const cleared = await request.post(`${SUPABASE_URL}/rest/v1/rpc/clear_available_now`, { headers: rest(probe), data: {} });
+    expect(cleared.ok(), `clear_available_now: ${cleared.status()} ${await cleared.text()}`).toBe(true);
+    const status = await request.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${probe.user.id}&select=available_until`, {
+      headers: rest(probe),
+    });
+    expect(status.ok()).toBe(true);
+    const [{ available_until }] = (await status.json()) as Array<{ available_until: string | null }>;
+    // Any stored value, past or future in REAL time, can be in the future of a
+    // moved clock (the DST cases run months ahead, the others minutes).
+    expect(available_until, "the poster's 'Available now' signal is still set").toBeNull();
 
     const today = centralDate(0);
     const cases: Array<[string, string, Date, RegExp]> = [

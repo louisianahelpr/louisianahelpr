@@ -329,23 +329,45 @@ test(j7, async ({ browser, request, journey }) => {
   });
 
   await test.step("poster saves the Helpr, finds them in Saved Helprs, removes them", async () => {
+    /**
+     * Wait for the WRITE, never the heart (Q280). SaveHelperButton flips its
+     * label OPTIMISTICALLY before it awaits the favorite_helpers insert, so
+     * "Unsave Helpr" being visible proves nothing about the server. On the
+     * `slow` row every backend call is held 3-8s in the route handler, and the
+     * page.goto inside openFromProfile tore the page down first: in e2e-journeys
+     * run 35905284660 (WebKit) the trace shows the POST with status -1, the
+     * API gateway logged no POST from that browser at all, and Saved Helprs
+     * rendered "1 saved" without Hallie. Same class as the digest toggle above.
+     * Listener registered BEFORE the click, or a fast response lands first.
+     */
+    const favoriteWrite = (method: "POST" | "DELETE") =>
+      pp.waitForResponse(
+        (r) => r.request().method() === method && r.url().includes("/rest/v1/favorite_helpers") && r.ok(),
+        { timeout: 60_000 },
+      );
     await pp.goto(`/user/${helper.user.id}`);
     const save = pp.getByRole("button", { name: /^Save Helpr$|^Unsave Helpr$/ }).first();
     await expect(save).toBeVisible({ timeout: 30_000 });
     await assertHealthy(pp, "helper public profile");
     if ((await save.getAttribute("aria-label")) === "Unsave Helpr") {
+      const removed = favoriteWrite("DELETE");
       await save.click(); // start from a clean state
+      await removed;
       await expect(pp.getByRole("button", { name: "Save Helpr" }).first()).toBeVisible();
     }
+    const saved = favoriteWrite("POST");
     await pp.getByRole("button", { name: "Save Helpr" }).first().click();
     await expect(pp.getByRole("button", { name: "Unsave Helpr" }).first()).toBeVisible({ timeout: 20_000 });
+    await saved;
     await journey.milestone(pp, "helper-saved");
     await openFromProfile(pp, /^Saved Helprs/, "Saved Helprs");
     await expect(pp.getByText(/Hallie/).first(), "the saved Helpr is not in Saved Helprs").toBeVisible({ timeout: 30_000 });
     await journey.milestone(pp, "saved-helprs-list");
     await pp.goto(`/user/${helper.user.id}`);
+    const unsaved = favoriteWrite("DELETE");
     await pp.getByRole("button", { name: "Unsave Helpr" }).first().click();
     await expect(pp.getByRole("button", { name: "Save Helpr" }).first()).toBeVisible({ timeout: 20_000 });
+    await unsaved;
   });
 
   await test.step("poster saves a search from Browse, sees it, deletes it", async () => {

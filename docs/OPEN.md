@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 20 done, 5 partly done (fixed, protection pending), 66 open. Source of truth for work.
+- **Queue (this file):** 21 done, 5 partly done (fixed, protection pending), 66 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 91 items — 20 done, 5 partly done (fixed, protection pending), 66 open.**
+**Queue: 92 items — 21 done, 5 partly done (fixed, protection pending), 66 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1686,15 +1686,52 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   redeemErr.message only for P0001; some messages interpolate pi.status and
   job.status), that nothing that should stay hidden became public, and that the
   exemption can't be abused. lh-money-escrow or lh-appsec, REVIEW ONLY.
-- [ ] **Q90 Ledger item c974c7b3 (critical, opened 2026-09-23 ~07:54Z by
-  `?include_seed=1` verification runs of money-reconciliation):** 12
-  cancellation_fee_mismatch, 2 released_without_payout_transfer and 3
-  payout_pending_stranded, all on SEED jobs, all pre-existing. Per the
-  every-alert rule: root-cause each (a real code bug the seed data exposed, or
-  seed fixture drift), fix the code or the fixture, and close with
-  ops_alert_close evidence. Also: include_seed runs must never page the
-  owner's channel. Route them like the seed-policy rule (Q2), then verify
-  with a re-run.
+- [x] **Q90 DONE 2026-09-23: ledger c974c7b3 closed (ops_alert_close, re-run net req 623 08:29:37Z: HTTP 200, defects 0, real findings [], seed findings to error_logs f86718c0 `ops-alert-seed`, ledger untouched; before: reqs 592/609 HTTP 500, defects 3, paged).** GUARDS: src/test/includeSeedRunsNeverPage.test.ts (every edge fn reading include_seed that alerts must pass `seed:`; red on 46413558e) + src/test/edge/money-reconciliation.test.ts "seed findings (?include_seed=1)" (seed-only hit: 200/no page/no defect; a real hit on the same run still pages naming only the real job; red on 46413558e). Fix a7522133e. Per job:
+  - 11 cancellation_fee_mismatch (+ the same 11 late flag / fee status),
+    `[E2E DO NOT ACCEPT]` jobs 14746e64 9bac62d3 f1951694 fde2605b 8594e809
+    4e39701c 0c8fcc0c 09d34912 a22c2df1 868f182b 9185bd75: REAL CODE BUG,
+    already fixed. Each was cancelled 2026-09-13/15 by the poster through
+    create-payment `cancel_escrow` (payment_refunds.source = cancel_escrow,
+    full $25 refunded) on a HIRED, helper-confirmed job, which skipped the
+    fee ladder. f0b29c522 (2026-09-15 04:11Z) made cancel_escrow an allowlist
+    (open, no Helpr); guard create-payment.test.ts "cancel_escrow" hired
+    cases; live 2026-09-23: hired job 5eed0a20-...04 answered 409
+    useCancelJob, row xmin unchanged. The rows are left as a true record
+    (fee 0 is what Stripe did); 0 non-seed jobs have this shape.
+  - 5eed0a10-...13 fee mismatch: FIXTURE DRIFT (hand-inserted tracker
+    fixture, docs/audit/launch-2026-09/inbox/seeded-tracker-fixtures.md, no
+    writer in the repo). Corrected: cancelled_at moved to 63h before start,
+    so fee 0 / late false are what the ladder gives. Gone from the re-run.
+  - released_without_payout_transfer 5eed0a10-...10, 5eed0a20-...10 and
+    payout_pending_stranded 5eed0a10-...11: FIXTURE DRIFT, same hand-inserted
+    set, no PaymentIntent at all, so no app path could have produced them
+    and nothing can settle them. Left in place: they sit on the owner's own
+    account and carry the owner's tip rows; see Q92.
+  - payout_pending_stranded 67e8ccfe ([SWEEP], PI pi_3UDE4C...) and e6979a12
+    (EJLOOP, PI pi_3UCwOt..., auto-resolved dispute 9756a585): not a code
+    bug. Both payout crons skip is_seed by design (process-scheduled-payouts
+    :84, auto-release-payment :521), so no seed payout is ever swept. For a
+    real job the same shapes pay: auto-release Phase 2 is on
+    (autoPayoutEnabled true, 08:05Z run) and release-payout allows
+    dispute_status resolved/auto_resolved. Settling them needs test balance
+    (Q3); e6979a12 is Q10. See Q92.
+  - The 6th check on the re-run, dispute_flag_without_row (warning)
+    5eed0a10-...12 / 5eed0a20-...12: FIXTURE DRIFT (the "Disputed" tracker
+    stage was inserted with has_active_dispute and no disputes row).
+- [ ] **Q92 Seed money rows no path will ever settle (found by Q90).** (a)
+  24 seed jobs sit in payout_pending with payout_scheduled_at still in the
+  future (2026-09-23 08:30Z); both payout crons skip is_seed, so each becomes
+  a seed payout_pending_stranded tomorrow, and the nightly money journeys
+  never prove the transfer leg. Decide: sweep seed payouts on a separate
+  cron once Q3 funds the test balance, or have the journeys pay out
+  explicitly. (b) The owner-account tracker fixtures 5eed0a10/0a20 (-10, -11,
+  -12) claim released / payout_pending / disputed with no Stripe object or
+  disputes row. Owner decision: delete them (tips, reviews and messages
+  cascade) or keep them as known digest-only seed findings. (c) Unverified
+  lead: a GROUP job whose dispute was withdrawn or auto-resolved keeps
+  disputed_at, so process-scheduled-payouts (`.is("disputed_at", null)`)
+  skips it, and auto-release Phase 2 excludes group jobs. If both hold, its
+  payout never runs. Reproduce before fixing.
 - [ ] **Q91 Three more include_seed functions still page for seed subjects.**
   auto-release-payment, process-scheduled-payouts and
   subscription-reconciliation read `?include_seed=1` and post per-job alerts

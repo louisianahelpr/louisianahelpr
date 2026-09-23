@@ -74,7 +74,7 @@ describe("migrations keep the guards of the functions they redefine", () => {
       "20260915000000_a.sql": "CREATE OR REPLACE FUNCTION public.h() RETURNS void LANGUAGE plpgsql AS $f$ BEGIN RAISE EXCEPTION 'old_guard'; END $f$;",
       "20260915040000_b.sql": "CREATE OR REPLACE FUNCTION public.h() RETURNS void LANGUAGE plpgsql AS $f$ BEGIN NULL; END $f$;",
     };
-    const keeping = { ...dropping, "20260915040000_b.sql": dropping["20260915000000_a.sql"] };
+    const keeping: Record<string, string> = { ...dropping, "20260915040000_b.sql": dropping["20260915000000_a.sql"] };
     const allowlist = [{ migration: "20260915040000_b.sql", function: "public.h", code: "old_guard", reason: "x" }];
     expect(check.staleAllowlistEntries({ files: Object.keys(dropping), readFile: (f: string) => dropping[f], allowlist })).toEqual([]);
     expect(check.staleAllowlistEntries({ files: Object.keys(keeping), readFile: (f: string) => keeping[f], allowlist })).toEqual([

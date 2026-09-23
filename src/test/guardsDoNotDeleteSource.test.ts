@@ -49,6 +49,7 @@ import { blankNonCode, blankComments } from "./helpers/blankNonCode";
 const REPO = resolve(__dirname, "..", "..");
 
 /** Guards still using the deleting idiom. MAY ONLY SHRINK. */
+// @two-way src/test/guardsDoNotDeleteSource.test.ts:const stale = GRANDFATHERED.filter
 const GRANDFATHERED: readonly string[] = [
   "src/components/profile/ProfileTabFallback.test.tsx",
   "src/components/profile/profileTabShell.test.ts",

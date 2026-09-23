@@ -225,6 +225,7 @@ describe("jobs money / state-machine columns: every client-writable one has a tr
    * pairs"). None moves money to the writer; each is a poster/offered-seat
    * write that can stall or mislabel the Helpr's side.
    */
+  // @two-way src/test/jobsStateColumnGuard.test.ts:).toEqual(KNOWN_OPEN)
   const KNOWN_OPEN = [
     // CLOSED 20260915073143 (enforce_job_completion_server_owned, H-001):
     //   "poster:helper_completed_at" and "offered:helper_completed_at" — a poster

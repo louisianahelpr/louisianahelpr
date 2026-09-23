@@ -73,6 +73,7 @@ const ADMIN_ENDPOINTS = [
  * Admin-named endpoints that intentionally do NOT check admin, with the reason.
  * Empty today — every one of them checks.
  */
+// @two-way src/test/adminEndpointAuthz.test.ts:const staleExempt =
 const EXEMPT: Record<string, string> = {};
 
 /**
@@ -122,6 +123,18 @@ describe("admin endpoints authorize server-side", () => {
       .filter((d) => d.startsWith("admin-"))
       .sort();
     expect(onDisk).toEqual([...ADMIN_ENDPOINTS].sort());
+  });
+
+  it("EXEMPT only excuses endpoints that exist and still lack a check", () => {
+    // TWO-WAY: an exemption for a removed endpoint, or one that now carries
+    // BOTH markers, excuses nothing and would silently excuse a future regression.
+    const staleExempt = Object.keys(EXEMPT).filter((name) => {
+      const file = join(FUNCTIONS_DIR, name, "index.ts");
+      if (!ADMIN_ENDPOINTS.includes(name) || !existsSync(file)) return true;
+      const src = codeOnly(readFileSync(file, "utf8"));
+      return ADMIN_CHECK.test(src) && AUDIT_WRITE.test(src);
+    });
+    expect(staleExempt.map((n) => `stale baseline entry ${n} — remove it (lower the baseline)`)).toEqual([]);
   });
 
   for (const name of ADMIN_ENDPOINTS) {

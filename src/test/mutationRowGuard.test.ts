@@ -182,50 +182,27 @@ const RISK_TABLES = [
  * expected outcome at that call site.
  *
  * UPDATES ONLY — see DELETE_ALLOWLIST for the delete side. The two are separate
- * on purpose: this list is full of files forgiven for a COSMETIC update
+ * on purpose: this list once held files forgiven for a COSMETIC update
  * (read receipts, unread badges, push-token registration), and a single
  * per-file allowlist would have handed each of those a free pass on any
- * delete they also make. `src/lib/nativePush.ts` is the live example — it is
- * forgiven here for a token upsert, and its `push_tokens` DELETE is a
- * different call needing its own, differently-reasoned decision.
+ * delete they also make. `src/lib/nativePush.ts` was the example — its token
+ * upsert was forgiven here, and its `push_tokens` DELETE is a different call
+ * needing its own, differently-reasoned decision (DELETE_ALLOWLIST).
  */
+// @two-way src/test/mutationRowGuard.test.ts:const staleAllow =
 const ALLOWLIST: Record<string, string> = {
   "src/pages/activity/activityActions/useOfferHandlers.ts":
     "declineApplication is deliberately conditional on .eq(\"status\", \"pending\") — a zero-row " +
     "result means the application was already resolved in another tab, which is the intended race outcome.",
-  "src/components/admin/adminusers/useAdminUserActions.ts":
-    "unbanUser's user_bans .eq(\"is_active\", true) legitimately matches zero rows when there is no " +
-    "active ban row; the authoritative profiles.ban_status write beside it IS guarded.",
-  "src/components/admin/AdminBroadcasts.tsx":
-    "Broadcast scheduling — admin-only content management, no money/trust consequence to a no-op.",
-  "src/components/admin/AdminNotifications.tsx":
-    "Notification-preference toggles; a no-op is self-evident on the next render.",
-  "src/components/NotificationPreferences.tsx":
-    "Notification-preference upserts; a no-op is self-evident on the next render.",
-  "src/pages/messages/useMessagesData.ts":
-    "Read-receipt / unread-count writes — cosmetic, and re-run on every poll.",
-  "src/pages/messages/useMessagesRealtime.ts":
-    "Read-receipt writes — cosmetic, and re-run on every realtime event.",
-  "src/components/mobileNav/useNavUnreadCount.ts":
-    "Unread-badge writes — cosmetic, and re-run on every poll.",
-  "src/components/NotificationPanel.tsx":
-    "Mark-as-read writes — cosmetic, and re-run on the next open.",
-  "src/lib/nativePush.ts":
-    "Push-token registration; retried on every app foreground.",
-  "src/components/HelperAvailability.tsx":
-    "Availability rows are delete-then-insert on every save; a stale delete is corrected by the insert.",
-  "src/components/SavedSearches.tsx":
-    "Saved-search bookkeeping — no money/trust consequence to a no-op.",
-  "src/pages/StrSettings.tsx":
-    "Calendar-connection bookkeeping — a no-op surfaces on the next sync.",
-  "src/pages/petProfiles/PetForm.tsx":
-    "Pet profile content — a no-op is visible immediately on the form.",
-  "src/pages/PetProfiles.tsx":
-    "Pet profile content — a no-op is visible immediately in the list.",
-  "src/pages/postjob/useJobMediaUpload.ts":
-    "Media-URL attachment during the post flow; the draft is retried and the images are re-uploadable.",
-  "src/components/profile/savedHelpersTab/useSavedHelpers.ts":
-    "Favourite-helper bookkeeping — no money/trust consequence to a no-op.",
+  // 16 more entries REMOVED 2026-09-22 by the two-way check below — each
+  // named a file where findHits(true) matched ZERO unguarded risk-column
+  // UPDATE, so the entry forgave nothing: useAdminUserActions, AdminBroadcasts,
+  // AdminNotifications, NotificationPreferences, useMessagesData,
+  // useMessagesRealtime, useNavUnreadCount, NotificationPanel, nativePush
+  // (its push_tokens DELETE stays in DELETE_ALLOWLIST), HelperAvailability,
+  // SavedSearches, StrSettings, PetForm, PetProfiles, useJobMediaUpload,
+  // useSavedHelpers. Their writes touch no RISK_COLUMNS column. If one ever
+  // does, the guard flags it and the decision is made again, on that write.
 };
 
 /**
@@ -233,6 +210,7 @@ const ALLOWLIST: Record<string, string> = {
  * reason. Same bar as ALLOWLIST: zero rows must be a legitimate, EXPECTED
  * outcome at that call site — not merely an inconvenient one to handle.
  */
+// @two-way src/test/mutationRowGuard.test.ts:const staleAllow =
 const DELETE_ALLOWLIST: Record<string, string> = {
   "src/lib/nativePush.ts":
     "unregisterPushOnSignOut deletes push_tokens for a device that very often has no row: the " +
@@ -589,5 +567,18 @@ describe("high-risk mutations can observe their own row count", () => {
     expect(stale, `Allowlist entries for files that no longer exist: ${stale.join(", ")}`).toEqual(
       [],
     );
+  });
+
+  it("keeps the allowlists two-way — every entry still forgives at least one unguarded write of its kind", () => {
+    // A file that exists but no longer makes the unguarded write it was
+    // forgiven for (it gained .select(), or the write moved) is excused for
+    // nothing — and would silently excuse the next one written there.
+    const forgiven = findHits(true).filter((h) => h.allowlisted);
+    const has = (kind: string, f: string) => forgiven.some((h) => h.kind === kind && h.file === f);
+    const staleAllow = [
+      ...Object.keys(ALLOWLIST).filter((f) => !has("update", f)).map((f) => `ALLOWLIST ${f}`),
+      ...Object.keys(DELETE_ALLOWLIST).filter((f) => !has("delete", f)).map((f) => `DELETE_ALLOWLIST ${f}`),
+    ];
+    expect(staleAllow.map((k) => `stale baseline entry ${k} — remove it (lower the baseline)`)).toEqual([]);
   });
 });

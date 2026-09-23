@@ -115,6 +115,7 @@ function boundTables(): Map<string, string[]> {
  * publication deliberately (20260423164103) to stop broadcasting PII; adding
  * it back to satisfy this test would reopen that hole.
  */
+// @two-way src/test/realtimePublication.test.ts:const staleKnown =
 const KNOWN_UNPUBLISHED_BINDINGS = new Set<string>([]);
 
 // @mutate src/hooks/useActivityData.ts | table: "applications", filter | table: "profiles", filter
@@ -149,6 +150,11 @@ describe("realtime publication coverage", () => {
         `Add the table via a guarded "ALTER PUBLICATION supabase_realtime ADD TABLE" migration ` +
         `or remove the binding:\n${offenders.join("\n")}`,
     ).toEqual([]);
+
+    // TWO-WAY: a known entry that is now published, or no longer bound, is
+    // excusing nothing — and would silently excuse the next bad binding on it.
+    const staleKnown = [...KNOWN_UNPUBLISHED_BINDINGS].filter((t) => published.has(t) || !bound.has(t));
+    expect(staleKnown.map((t) => `stale baseline entry ${t} — remove it (lower the baseline)`)).toEqual([]);
   });
 
   it("the activity feed's tables are published", () => {

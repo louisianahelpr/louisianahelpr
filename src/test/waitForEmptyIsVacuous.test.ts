@@ -134,6 +134,7 @@ function testFiles(): string[] {
  * from the scan's own output rather than from a test-failure diff — the diff
  * was truncated and the first correction was wrong too.
  */
+// @two-way src/test/waitForEmptyIsVacuous.test.ts:const stale = GRANDFATHERED.filter
 const GRANDFATHERED: readonly string[] = [
   "src/test/tripDistanceTrustAndBound.test.tsx",
 ];

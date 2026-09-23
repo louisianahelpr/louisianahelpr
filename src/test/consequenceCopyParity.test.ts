@@ -455,6 +455,7 @@ describe("review-turnaround promises come from reviewSla", () => {
      * FINDING, not an approval: four surfaces, four different numbers, for the
      * single question "how long until a human looks at this".
      */
+    // @two-way src/test/consequenceCopyParity.test.ts:const stale = Object.keys(KNOWN)
     const KNOWN: Record<string, string> = {
       "src/components/IDVPromptDialog.tsx":
         "manual ID review — 'usually within 24 hours'; REVIEW_SLA says 'under 2 hours'",

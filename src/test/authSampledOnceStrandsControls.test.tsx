@@ -65,6 +65,7 @@ const codeOf = (src: string) => blankComments(src);
  * row" — a safety assertion. Weakening that to satisfy this rule would trade a
  * proven guard for an unproven one.
  */
+// @two-way src/test/authSampledOnceStrandsControls.test.tsx:const stale = Object.keys(ALLOWED)
 const ALLOWED: Record<string, string> = {
   "src/components/admin/userDetail/ActionsTab.tsx":
     "Admin-only dialog, opened from inside the admin panel — reaching it already " +

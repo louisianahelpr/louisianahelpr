@@ -38,6 +38,7 @@ export const TRANSPORTS = [
   "supabase/functions/slack-ops-alert/index.ts",
 ];
 const LEDGER_HELPER = "supabase/functions/_shared/opsAlertLedger.ts";
+// @two-way src/test/opsAlertLedgerCoverage.test.ts:const staleExempt =
 const WORKFLOW_EXEMPT: Record<string, string> = {
   "slack-test.yml": "manual delivery test of the webhook; posts no alert",
 };
@@ -78,7 +79,7 @@ export interface Tree {
   scripts: Record<string, string>;
 }
 
-export function ledgerBypasses(t: Tree): string[] {
+export function ledgerBypasses(t: Tree, workflowExempt: Record<string, string> = WORKFLOW_EXEMPT): string[] {
   const v: string[] = [];
 
   // 1. edge functions
@@ -114,7 +115,7 @@ export function ledgerBypasses(t: Tree): string[] {
 
   // 3. workflows
   for (const [file, src] of Object.entries(t.workflows)) {
-    if (WORKFLOW_EXEMPT[file]) continue;
+    if (workflowExempt[file]) continue;
     for (const st of steps(src)) {
       // A step passes by recording itself, or by running a repo script that
       // records (rule 4 checks the script).
@@ -165,6 +166,14 @@ describe("every Slack post also writes the ops alert ledger", () => {
     const slackSteps = Object.values(t.workflows).flatMap((s) => steps(s).filter((st) => /secrets\.SLACK_WEBHOOK_URL/.test(st)));
     expect(slackSteps.length).toBeGreaterThanOrEqual(8);
     expect(ledgerBypasses(t)).toEqual([]);
+  });
+
+  it("WORKFLOW_EXEMPT is two-way — every exempt workflow still has a Slack step the rule would flag", () => {
+    const t = realTree();
+    const staleExempt = Object.keys(WORKFLOW_EXEMPT).filter(
+      (f) => !t.workflows[f] || !ledgerBypasses(t, {}).some((v) => v.startsWith(`${f}: `)),
+    );
+    expect(staleExempt.map((f) => `stale baseline entry ${f} — remove it (lower the baseline)`)).toEqual([]);
   });
 
   it("is able to fail on every rule", () => {

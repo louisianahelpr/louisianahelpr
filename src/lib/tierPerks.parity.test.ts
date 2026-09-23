@@ -46,6 +46,7 @@ const PERK_KEYS = Object.keys(TIER_PERK_MATRIX.free) as TierPerkKey[];
  * `boostDiscount`, which is strictly better. Any SECOND entry here is a
  * pricing decision that needs the owner, not a test edit.
  */
+// @two-way src/lib/tierPerks.parity.test.ts:const ladderStale =
 const LADDER_EXEMPT: TierPerkKey[] = ["boostDiscount"];
 
 describe("tier perk matrix — completeness", () => {
@@ -119,6 +120,15 @@ describe("tier perk matrix — the ladder rule", () => {
     expect(LADDER_EXEMPT).toEqual(["boostDiscount"]);
     const top = TIER_ORDER[TIER_ORDER.length - 1];
     expect(TIER_PERK_MATRIX[top].freeBoosts).toBe(true);
+    // TWO-WAY: an exempt perk that no rung actually drops any more is excusing
+    // nothing, and would silently excuse the next tier that loses it.
+    const ladderStale = LADDER_EXEMPT.filter(
+      (perk) =>
+        !TIER_ORDER.some(
+          (t, i) => i > 0 && TIER_PERK_MATRIX[TIER_ORDER[i - 1]][perk] && !TIER_PERK_MATRIX[t][perk],
+        ),
+    );
+    expect(ladderStale.map((p) => `stale baseline entry ${p} — remove it (lower the baseline)`)).toEqual([]);
   });
 });
 
@@ -252,26 +262,14 @@ const repoRoot = resolve(__dirname, "../..");
 const SCAN_ROOTS = [resolve(repoRoot, "src"), resolve(repoRoot, "supabase/functions")];
 
 /** Files that legitimately enumerate tiers: the tables themselves and their tests. */
-const ALLOWED = [
-  "supabase/functions/_shared/tierPerks.ts",
-  "supabase/functions/_shared/tierNames.ts",
-  "supabase/functions/_shared/helperFees.ts",
-  "supabase/functions/_shared/proTiers.ts",
-  "supabase/functions/_shared/productTiers.ts",
-  "supabase/functions/_shared/appleAppStore.ts",
-  "supabase/functions/create-pro-checkout/index.ts",
-  "src/lib/subscriptionTiers.ts",
-  "src/lib/proTiers.ts",
-  "src/lib/earlyAccess.ts",
-  "src/lib/iap.ts",
-  "src/lib/tierBadgeStyle.ts",
-  "src/components/ProUpgradeSheet.tsx",
-  "src/components/profile/subscriptionTab/tierConfig.tsx",
-  "src/components/admin/AdminSettings.tsx",
-  "src/components/admin/AdminSubscriptions.tsx",
-  "src/components/admin/adminAnalyticsConstants.ts",
-  "src/components/admin/adminAnalytics/types.ts",
-];
+// @two-way src/lib/tierPerks.parity.test.ts:const staleAllowed =
+// EMPTIED 2026-09-22 by the two-way check below: all 18 former entries (the
+// tier tables in supabase/functions/_shared and src/lib, ProUpgradeSheet,
+// tierConfig, the admin tier screens, earlyAccess, iap, tierBadgeStyle) held
+// ZERO lines matching CHAIN. NOTE, a reported blind spot, not fixed here:
+// CHAIN is per-LINE, so a multi-line ternary ladder (earlyAccess.ts:91-94,
+// ProUpgradeSheet.tsx:72-74) is not seen at all.
+const ALLOWED: string[] = [];
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -291,20 +289,26 @@ const CHAIN = new RegExp(
 describe("no gate re-lists the tiers", () => {
   it("finds no multi-tier equality chain outside the tier tables themselves", () => {
     const offenders: string[] = [];
+    const allowedHit = new Set<string>();
     for (const root of SCAN_ROOTS) {
       for (const file of walk(root)) {
         const rel = file.slice(repoRoot.length + 1);
-        if (ALLOWED.includes(rel)) continue;
         if (/\.test\.tsx?$|\.gen\.ts$|\/test\//.test(rel)) continue;
         const src = readFileSync(file, "utf8");
         for (const line of src.split("\n")) {
           // Skip comments — several files DESCRIBE the removed pattern.
           const trimmed = line.trim();
           if (trimmed.startsWith("//") || trimmed.startsWith("*")) continue;
-          if (CHAIN.test(line)) offenders.push(`${rel}: ${trimmed.slice(0, 120)}`);
+          if (!CHAIN.test(line)) continue;
+          if (ALLOWED.includes(rel)) allowedHit.add(rel);
+          else offenders.push(`${rel}: ${trimmed.slice(0, 120)}`);
         }
       }
     }
+    // TWO-WAY: an ALLOWED file that no longer holds a single tier chain is
+    // excused for nothing — and would silently excuse the next one written there.
+    const staleAllowed = ALLOWED.filter((f) => !allowedHit.has(f));
+    expect(staleAllowed.map((f) => `stale baseline entry ${f} — remove it (lower the baseline)`)).toEqual([]);
     expect(
       offenders,
       "These lines enumerate subscription tiers by hand. Ask hasPerk(tier, perk) " +

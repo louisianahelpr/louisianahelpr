@@ -68,24 +68,28 @@ describe("status colour comes from statusColors.ts", () => {
      * fallback), and the boot-loader / native chrome colours that have to exist
      * before any stylesheet does.
      */
-    const ALLOWED_FILES = new Set([
-      "src/components/TrackingMap.tsx",
-      "src/components/dashboard/jobDetailDialog/JobLocationPreview.tsx",
-      "src/components/postjob/AppleMapPreview.tsx",
-      "src/main.tsx",
-    ]);
+    // @two-way src/test/alarmColourInvariant.test.ts:const staleAllowed =
+    // EMPTIED 2026-09-22 by the two-way check below: all four former entries
+    // (TrackingMap, JobLocationPreview, AppleMapPreview, main.tsx) had zero
+    // lines the rule flags — their only hexes are resolveToken() fallbacks,
+    // which the rule already skips line-by-line, or sit in a comment.
+    const ALLOWED_FILES = new Set<string>([]);
     const STATUS_CONTEXT =
       /status|badge|chip|pill|step|tracker|dispute|complete|progress|cancel|revision|pending/i;
     const HEX = /#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b(?![0-9a-fA-F])/;
 
     const offenders: string[] = [];
+    const allowedHits = new Map<string, number>();
     for (const file of sourceFiles()) {
-      if (ALLOWED_FILES.has(file)) continue;
       stripComments(repoFile(file))
         .split("\n")
         .forEach((line, i) => {
           if (!HEX.test(line) || !STATUS_CONTEXT.test(line)) return;
           if (/resolveToken|issue #|PR #|task #|Closes #/.test(line)) return;
+          if (ALLOWED_FILES.has(file)) {
+            allowedHits.set(file, (allowedHits.get(file) ?? 0) + 1);
+            return;
+          }
           offenders.push(
             `${file}:${i + 1} — "${line.trim().slice(0, 100)}" paints a status/step colour ` +
               `from a hex literal. It cannot follow the theme, cannot be checked against ` +
@@ -95,6 +99,13 @@ describe("status colour comes from statusColors.ts", () => {
         });
     }
     expect(offenders, "hex-literal status colours:\n  " + offenders.join("\n  ")).toEqual([]);
+    // TWO-WAY: an allowlisted file that no longer has a single hex line the
+    // rule would flag is excused for nothing — and would silently excuse the
+    // next status hex written there.
+    const staleAllowed = [...ALLOWED_FILES].filter((f) => !allowedHits.get(f));
+    expect(
+      staleAllowed.map((f) => `stale baseline entry ${f} — remove it (lower the baseline)`),
+    ).toEqual([]);
   });
 
   it("the token map is complete and every value is a token reference", () => {

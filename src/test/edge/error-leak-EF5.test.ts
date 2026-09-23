@@ -186,6 +186,7 @@ export function rawErrorResponseSites(files = edgeFunctionFiles()): LeakSite[] {
  * This list may only SHRINK, and it goes red in both directions: a NEW leaking
  * handler fails, and a fixed one whose entry is still here fails too.
  */
+// @two-way src/test/edge/error-leak-EF5.test.ts:no longer leaks — remove it from KNOWN_LEAK_FILES
 const KNOWN_LEAK_FILES: string[] = [
   "supabase/functions/admin-delete-user/index.ts",
   "supabase/functions/admin-update-email/index.ts",

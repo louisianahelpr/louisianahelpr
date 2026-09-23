@@ -40,6 +40,7 @@ export const FILENAME = /^(\d{14})_([A-Za-z0-9_-]+)\.sql$/;
  * fixed. The list must never grow: anything new that lands in it was hand-typed,
  * which is the habit this whole file exists to end.
  */
+// @two-way src/test/migrationVersions.test.ts:const orphans = [...check.LEGACY_INVALID_STAMPS]
 export const LEGACY_INVALID_STAMPS = new Set([
   "20260612240000", "20260612250000", "20260612260000", "20260612270000",
   "20260612280000", "20260612290000", "20260612300000", "20260612310000",

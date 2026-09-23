@@ -368,20 +368,27 @@ describe("Popup grammar — body voice", () => {
    * the dialog. Named line by line rather than exempting the whole file, so
    * everything else in it stays covered.
    */
+  // @two-way src/components/ui/dialogShell.test.ts:const staleGreyLines =
   const ALLOWED_GREY_LINES = [
     "Logs the warning but does NOT escalate", // FormalWarningDialog — bypass checkbox
   ];
 
   it("popup prose uses DialogBody, never the grey upright-sans default", () => {
     const offenders: string[] = [];
+    const usedGreyLines = new Set<string>();
     for (const { file, nth, block } of contentBlocks()) {
       if (file in DATA_VIEWERS || file in OTHER_LANES) continue;
       for (const m of block.matchAll(new RegExp(GREY_PROSE.source, "g"))) {
         const after = block.slice(m.index!, m.index! + 320);
-        if (ALLOWED_GREY_LINES.some((l) => after.includes(l))) continue;
+        const excusedBy = ALLOWED_GREY_LINES.filter((l) => after.includes(l));
+        excusedBy.forEach((l) => usedGreyLines.add(l));
+        if (excusedBy.length) continue;
         offenders.push(`${file}#${nth}: ${m[0].slice(0, 90)}`);
       }
     }
+    // TWO-WAY: a line that no longer excuses any grey-prose match is stale.
+    const staleGreyLines = ALLOWED_GREY_LINES.filter((l) => !usedGreyLines.has(l));
+    expect(staleGreyLines.map((l) => `stale baseline entry "${l}" — remove it (lower the baseline)`)).toEqual([]);
     expect(
       offenders,
       "wrap the prose in <DialogBody> — or, if it is a data row rather than prose, add the file to DATA_VIEWERS with a reason",

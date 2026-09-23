@@ -28,6 +28,7 @@ const FUNCTIONS_DIR = join(root, "supabase/functions");
  * Reported, not deleted — each needs an owner decision, and this codebase has
  * feature-flagged work that looks unreferenced but is not.
  */
+// @two-way scripts/check-dead-edge-functions.mjs:KNOWN_UNREFERENCED is stale
 const KNOWN_UNREFERENCED = {
   // helpr-pass-wallet (Apple/Google Wallet scaffold, no client call site until
   // the Pass Type cert is provisioned) used to be listed here. It is still not

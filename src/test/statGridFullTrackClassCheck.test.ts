@@ -127,6 +127,7 @@ function conditionalPush(src: string, ident: string): boolean {
  * uninstructed is its own defect. Reported instead; fixing it deletes this
  * entry.
  */
+// @two-way src/test/statGridFullTrackClassCheck.test.ts:is no longer an offender — delete its KNOWN_UNFIXED entry
 const KNOWN_UNFIXED = [
   "src/pages/HelprWrapped.tsx: grid-cols-2 ← statCards (9 conditional pushes; odd count strands the last card)",
 ];

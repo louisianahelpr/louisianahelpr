@@ -31,6 +31,7 @@ const PAINTS_FOCUS =
   /\bring-(?:\d|\[)|focus(?:-visible|-within)?:(?:border|bg|shadow|underline|text|ring)-|focus(?:-visible)?:outline-(?!none\b)|data-\[state=open\]:/;
 
 /** shadcn stock; the palette is the focus context. Countdown list — never add. */
+// @two-way src/test/focusableHasVisibleFocus.test.ts:the legacy list only shrinks
 const LEGACY = new Set(["src/components/ui/command.tsx"]);
 
 export function offenders(file: string, src: string): string[] {

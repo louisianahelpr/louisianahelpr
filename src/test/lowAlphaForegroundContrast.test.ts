@@ -66,6 +66,7 @@ import { collectLowAlphaForegrounds } from "../../scripts/a11y/low-alpha-text-in
  * To remove an entry, fix the declaration — the guard fails if a stale entry
  * lingers. To add one, say which of (a)/(b)/(c) it is and why.
  */
+// @two-way src/test/lowAlphaForegroundContrast.test.ts:const stale = [...ACCEPTED.keys()]
 const ACCEPTED = new Map<string, number>([
   // (a) non-text icons — 1.4.11's 3:1 floor, or decorative and exempt outright
   ["src/components/BrowseMap.tsx --bark/0.6", 2], //                     2.47:1 — two Loader2 spinners

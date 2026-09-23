@@ -304,6 +304,7 @@ describe("offer privacy (c): JOB_READABLE_COLUMN_LIST is the jobs columns minus 
    * pinning it means a SECOND undocumented column fails this test instead of
    * hiding behind the first.
    */
+  // @two-way src/test/offeredHelperPrivacy.test.ts:).toEqual(KNOWN_UNMIGRATED_COLUMNS.slice().sort())
   const KNOWN_UNMIGRATED_COLUMNS = ["boost_auto_extended"];
 
   const readable = [...JOB_READABLE_COLUMN_LIST] as string[];

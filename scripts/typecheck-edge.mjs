@@ -65,6 +65,7 @@ const SKIP_DIRS = new Set(["node_modules", ".git"]);
  * An entry that no longer matches anything is itself a failure — see
  * `staleRules` below — so this list cannot rot into a permanent exemption.
  */
+// @two-way scripts/typecheck-edge.mjs:const staleRules =
 const KNOWN_ERRORS = [
   {
     code: "TS2345",

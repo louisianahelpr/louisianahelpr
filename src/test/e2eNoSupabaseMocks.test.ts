@@ -37,6 +37,7 @@ const E2E = join(REPO, "e2e");
  * Files that still intercept Supabase. Every line is debt.
  * Migration tracked in docs/OPEN.md ("Mocked Playwright specs -> prod").
  */
+// @two-way src/test/e2eNoSupabaseMocks.test.ts:const stale = BASELINE.filter
 const BASELINE: string[] = [
   "happy-path/activity-card-density.spec.ts",
   "happy-path/apply-dialog-fit.spec.ts",

@@ -79,6 +79,7 @@ export const KNOWN_FAILURE_TOLERANCE = 0.1;
  * deliberately, name an owner in the note, and expect to be asked when it
  * comes out again.
  */
+// @two-way e2e/happy-path/knownContrastFailures.ts:out.stale.push(
 export const KNOWN_CONTRAST_FAILURES: KnownContrastFailure[] = [];
 
 export interface ClassifiedFailure {

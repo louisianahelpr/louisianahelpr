@@ -32,7 +32,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 
 // NO_VERCEL_TRAFFIC_ROOT: point at another checkout for a red proof.
@@ -41,6 +41,7 @@ const REPO = process.env.NO_VERCEL_TRAFFIC_ROOT ?? resolve(__dirname, "../..");
 /** A URL on the production web host. Not an email (`@louisianahelpr.com`). */
 export const PROD_HOST = /(?<![@\w.-])(?:https?:\/\/)?(?:www\.)?louisianahelpr\.com(?![\w-])/;
 
+// @two-way src/test/noTestTrafficOnVercel.test.ts:const staleExempt =
 export const WORKFLOW_EXEMPT: Record<string, string> = {
   "uptime.yml":
     "The uptime monitor's whole purpose is to ask the real site whether it answers: one GET of " +
@@ -52,6 +53,7 @@ export const WORKFLOW_EXEMPT: Record<string, string> = {
   // (scripts/generate-sitemap.mjs --check) and never fetches the site.
 };
 
+// @two-way src/test/noTestTrafficOnVercel.test.ts:const staleExempt =
 export const SOURCE_EXEMPT: Record<string, string> = {
   "scripts/uptime-check.mjs": "The uptime probe itself (uptime.yml, exempt above).",
   "scripts/generate-sitemap.mjs": "Writes the domain into sitemap.xml <loc> entries as text; never fetches it.",
@@ -220,6 +222,19 @@ describe("test traffic never lands on the deployed site", () => {
       expect(() => statSync(join(REPO, file)), `${file} is exempt but does not exist`).not.toThrow();
       expect(reason.length).toBeGreaterThan(40);
     }
+    // TWO-WAY: an exempt file whose CODE no longer names the production host
+    // is excused for nothing — and would silently excuse the next prod URL
+    // written there.
+    const staleExempt = [
+      ...Object.keys(WORKFLOW_EXEMPT).filter(
+        (f) => !workflows[f] || !yamlCode(workflows[f]).some((l) => PROD_HOST.test(l)),
+      ),
+      ...Object.keys(SOURCE_EXEMPT).filter((f) => {
+        const abs = join(REPO, f);
+        return !existsSync(abs) || !sourceCode(readFileSync(abs, "utf8")).some((l) => PROD_HOST.test(l));
+      }),
+    ];
+    expect(staleExempt.map((f) => `stale baseline entry ${f} — remove it (lower the baseline)`)).toEqual([]);
   });
 
   it("can fail: the shapes that paused the project on 2026-09-14 are red", () => {

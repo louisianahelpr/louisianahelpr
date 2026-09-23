@@ -75,6 +75,7 @@ const MONITOR_CLEARANCE = 30;
  * by file name, each with the reason it costs prod essentially nothing.
  * Rule 1 still applies in its stricter form (see `violations`).
  */
+// @two-way src/test/prodWorkflowSpacing.test.ts:const staleExempt =
 export const EXEMPT: Record<string, string> = {
   "uptime.yml":
     "Uptime is a monitor, not a test suite: one anonymous GET of index.html plus " +
@@ -394,6 +395,19 @@ describe("prod-hitting workflow schedules", () => {
       expect(names, `${file} is exempt but is not classified prod-hitting`).toContain(file);
       expect(reason.length, `${file} exemption needs a stated reason`).toBeGreaterThan(40);
     }
+    // TWO-WAY: with its exemption lifted, an exempt workflow must still break
+    // the frequency/spacing rules it is excused from. If it would pass them,
+    // the exemption excuses nothing and must go.
+    const saved = { ...EXEMPT };
+    let unexempted: string[] = [];
+    try {
+      for (const k of Object.keys(EXEMPT)) delete EXEMPT[k];
+      unexempted = violations(wfs);
+    } finally {
+      Object.assign(EXEMPT, saved);
+    }
+    const staleExempt = Object.keys(saved).filter((f) => !unexempted.some((v) => v.startsWith(`${f}: `)));
+    expect(staleExempt.map((f) => `stale baseline entry ${f} — remove it (lower the baseline)`)).toEqual([]);
   });
 
   it("every rule-4 exemption names a real file that really is in the shared group", () => {

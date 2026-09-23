@@ -100,6 +100,7 @@ function screensIn(listName: string): { name: string; url: string; redirectsTo?:
  * because "it's fine, it redirects" is exactly the assumption that let 13 dead
  * rows sit in the catalog.
  */
+// @two-way src/test/auditCatalogRoutes.test.ts:const staleUnresolved =
 const ALLOWED_UNRESOLVED: Record<string, string> = {
   "not-found": "The row's entire purpose is to render the 404 screen.",
 };
@@ -202,6 +203,17 @@ describe("audit catalog matches the real route table", () => {
       .filter(Boolean);
 
     expect(broken, `ANON_SCREENS rows that do not render what they claim:\n  - ${broken.join("\n  - ")}`).toEqual([]);
+
+    // TWO-WAY: an ALLOWED_UNRESOLVED name that is no longer an ANON row, or
+    // whose row now resolves to a public route, is excusing nothing.
+    const anon = new Map(screensIn("ANON_SCREENS").map((s) => [s.name, s.url]));
+    const staleUnresolved = Object.keys(ALLOWED_UNRESOLVED).filter((name) => {
+      const url = anon.get(name);
+      if (url === undefined) return true;
+      const r = resolveRoute(url);
+      return r !== null && !protectedPaths.has(r);
+    });
+    expect(staleUnresolved.map((n) => `stale baseline entry ${n} — remove it (lower the baseline)`)).toEqual([]);
   });
 
   it("every AUTHED and ADMIN screen resolves to a registered route", () => {

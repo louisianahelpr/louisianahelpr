@@ -217,12 +217,35 @@ const SURFACE_CHAINS: Record<string, string[]> = {
  *
  * `null` = exempt, and every exemption carries its reason in EXEMPTIONS.
  */
+// @two-way src/test/dashboardSurfaceExclusionParity.test.ts:const staleExemptions =
 const EXEMPTIONS: Record<string, string> = {
   "map:blockedUserIds":
     "get_open_jobs_for_map deliberately omits customer_id (the PII-safe row), " +
     "so the map has no field to match a blocked poster on. Widening the RPC to " +
     "close this gap is forbidden — the privacy guarantee outranks a pin count " +
     "that is off by one blocked poster's open jobs.",
+};
+
+/**
+ * The fact behind each exemption, as a probe that is TRUE while it still holds.
+ * An EXEMPTIONS key with no probe, or whose probe is false, is stale.
+ */
+const EXEMPTION_STILL_HOLDS: Record<string, () => boolean> = {
+  // The newest get_open_jobs_for_map still returns no customer_id column.
+  "map:blockedUserIds": () => {
+    const dir = path.join(REPO, "supabase/migrations");
+    const newest = fs
+      .readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort()
+      .map((f) => fs.readFileSync(path.join(dir, f), "utf8"))
+      .filter((src) => /FUNCTION\s+public\.get_open_jobs_for_map\s*\(/i.test(src))
+      .pop();
+    if (!newest) return false;
+    const def = newest.slice(newest.search(/FUNCTION\s+public\.get_open_jobs_for_map\s*\(/i));
+    const returns = /RETURNS\s+TABLE\s*\(([\s\S]*?)\)\s*\n/i.exec(def)?.[1] ?? "";
+    return returns.length > 0 && !/\bcustomer_id\b/.test(returns);
+  },
 };
 
 /**
@@ -370,5 +393,16 @@ describe("every /dashboard open-job surface applies every exclusion rule", () =>
       Object.keys(SURFACE_CHAINS).flatMap((s) => FIELDS.map((f) => `${s}:${f}`)),
     );
     expect(Object.keys(EXEMPTIONS).filter((k) => !valid.has(k))).toEqual([]);
+    // TWO-WAY: every exemption carries a probe of the fact that justifies it,
+    // and an exemption whose fact no longer holds is stale. (honours() is a
+    // TEXT proxy and cannot be used for this: BrowseMap routes the whole
+    // exclusions object through the shared predicate and says blockedUserIds
+    // in a comment, so honours("map", "blockedUserIds") is true while the
+    // rows it filters carry no customer_id to match on.)
+    const staleExemptions = Object.keys(EXEMPTIONS).filter((k) => {
+      const probe = EXEMPTION_STILL_HOLDS[k];
+      return !probe || !probe();
+    });
+    expect(staleExemptions.map((k) => `stale baseline entry ${k} — remove it (lower the baseline)`)).toEqual([]);
   });
 });

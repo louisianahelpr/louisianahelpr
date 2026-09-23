@@ -19,6 +19,7 @@ export type RoleCopyException = {
   reason: string;
 };
 
+// @two-way src/test/roleNeutralCopy.test.ts:no longer excuses any copy
 export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
   // REMOVED 2026-09-20: { file: "src/", text: "Louisiana Helpr" }. It excused
   // nothing — "Helpr" on its own is never a finding, only identity

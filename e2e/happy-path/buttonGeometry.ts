@@ -105,6 +105,7 @@ export function detectButtonGeometry(scopeSelector?: string): ButtonGeometryRepo
   const seen = new Set<string>();
   // Parents whose children differ in height BY DESIGN, each with its reason.
   // Match on a stable accessible name, never a class, so a restyle keeps it.
+  // @two-way src/test/buttonGeometryExemptParents.test.ts:const staleSels =
   const EXEMPT_PARENTS: { sel: string; why: string }[] = [
     {
       // HelperScheduleStrip on the earnings/payment tabs: seven day cards in a

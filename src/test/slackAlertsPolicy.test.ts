@@ -84,9 +84,15 @@ describe("postSlackOpsAlert severity policy", () => {
     expect(slackPosts()).toHaveLength(2);
   });
 
-  it("a warning does not post; it is recorded (non-critical) for the digest", async () => {
+  it("a warning POSTS and is still recorded — the row is the durable half", async () => {
+    // Reversed 2026-09-22: warning used to wait for send_ops_daily_digest,
+    // which is a cron, and which died in that morning's startup-timeout outage
+    // along with the report of the outage. Volume is now held down by
+    // SLACK_THROTTLE_MINUTES per source, not by dropping a tier.
+    // The error_logs row is unchanged and still written: Slack is the
+    // notification, the row is the record.
     await post({ severity: "warning" });
-    expect(slackPosts()).toHaveLength(0);
+    expect(slackPosts()).toHaveLength(1);
     expect(rowInserts()).toHaveLength(1);
     const row = JSON.parse(String(rowInserts()[0].init!.body));
     expect(row.severity).toBe("warning");

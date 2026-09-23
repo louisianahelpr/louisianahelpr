@@ -231,12 +231,7 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
   let heldKey: { rowId: string; key: string } | null = null
   try {
     const policySeverity = effectiveSeverity(input.kind, input.severity)
-    // Severity policy (_shared/alertPolicy.ts): only CRITICAL posts now.
-    // Everything else is recorded for the daily digest and stops here.
-    if (!postsImmediately(policySeverity, input.kind)) {
-      await recordAlertRow(input, policySeverity, {})
-      return
-    }
+
     // A non-critical kind that posts anyway (today: support_request) gets an
     // hourly ceiling. Critical is never capped: a page must never be
     // rate-limited by this project's own code. ('digest' is not a
@@ -252,6 +247,36 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
         return
       }
     }
+
+    /**
+     * RECORD THE NON-CRITICAL ONES, THEN POST THEM.
+     *
+     * This used to read `if (!postsImmediately(...)) { record; return }` —
+     * warning and info were written to error_logs and stopped there, waiting
+     * for `send_ops_daily_digest`. On 2026-09-22 that policy was reversed
+     * (owner: "medium and low alerts should show in slack also"), because the
+     * digest is itself a cron and died in that morning's startup-timeout
+     * outage together with the report of the outage.
+     *
+     * `postsImmediately` now always returns true, so that branch became
+     * unreachable — and it was the ONLY thing writing the durable row for a
+     * non-critical alert. Deleting it silently traded a record for a post.
+     * Both matter, and they matter for different reasons: Slack is the
+     * notification, error_logs is what survives a Slack outage, a rate limit,
+     * or nobody being awake.
+     *
+     * Critical alerts are not recorded here, as before — their callers own
+     * that, and `trg_error_logs_slack` would otherwise post the row a second
+     * time (the note above `recordAlertRow` explains the 'error' downgrade
+     * that exists for exactly that reason).
+     */
+    if (policySeverity !== 'critical' && !input.oncePerDayKey) {
+      await recordAlertRow(input, policySeverity, {})
+    }
+    // Placed AFTER the hourly cap on purpose: the capped path writes its own
+    // row tagged `capped: 'hourly'`, and recording here as well produced TWO
+    // rows for one suppressed alert. A row now means "this was posted", which
+    // is also what makes it the right thing for `postsThisHour` to count.
 
     // The once-per-day token is CLAIMED here and RELEASED below if the post
     // does not actually reach Slack.

@@ -92,11 +92,27 @@ describe("support requests reach #ops-alerts the same day", () => {
     expect(supportCall().oncePerDayKey, "the alert does not dedupe on the request").toMatch(/^supportRequestKey\(/);
   });
 
-  it("only these kinds bypass the critical-only rule", () => {
+  it("ALWAYS_POST_KINDS still names the two that must never wait", () => {
+    /**
+     * This used to assert that these kinds "bypass the critical-only rule",
+     * and that `info`/`warning` on any other kind did NOT post.
+     *
+     * There is no critical-only rule any more (2026-09-22). Every severity
+     * posts, throttled per source, because the non-critical path used to go to
+     * `send_ops_daily_digest` — which is itself a cron, and died in the
+     * startup-timeout outage that morning, leaving it unreported for nine
+     * hours. Owner: "medium and low alerts should show in slack also".
+     *
+     * ALWAYS_POST_KINDS is NOT dead with that rule, which is why this test
+     * keeps it: it is the promise that these two post regardless of any future
+     * gate added to `postsImmediately`. A person waiting on `support_request`
+     * must not be answerable by a policy change nobody connected to them.
+     */
     expect([...ALWAYS_POST_KINDS].sort()).toEqual(["digest", "support_request"]);
     expect(postsImmediately("info", "support_request")).toBe(true);
-    expect(postsImmediately("info", "custom")).toBe(false);
-    expect(postsImmediately("warning", "custom")).toBe(false);
+    // And now so does everything else — that is the point of the reversal.
+    expect(postsImmediately("info", "custom")).toBe(true);
+    expect(postsImmediately("warning", "custom")).toBe(true);
   });
 
   it("the dedupe key is the request, not the sender and not the day", () => {

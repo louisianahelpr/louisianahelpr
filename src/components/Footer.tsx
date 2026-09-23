@@ -97,11 +97,11 @@ const Footer = () => {
           than stacking one-per-row. At ~400-640px that was four full-width
           blocks of vertical scroll for content that fits in two columns.
           The brand block spans both so its tagline keeps one measure. */}
-      <div className="grid grid-cols-2 min-[500px]:grid-cols-3 gap-x-4 gap-y-6 md:gap-8 min-[620px]:grid-cols-12">
+      <div className="grid grid-cols-2 min-[360px]:grid-cols-[auto_auto_auto] min-[360px]:justify-between min-[500px]:grid-cols-3 min-[500px]:justify-normal gap-x-4 gap-y-6 md:gap-8 min-[620px]:grid-cols-12">
         {/* Brand — uses the shared HelprMark component so the wordmark
             here matches the top nav exactly (H emblem + non-italic
             "Helpr" + italic burnt-sienna "· LA" tail). */}
-        <div className="col-span-2 min-[500px]:col-span-3 min-[620px]:col-span-4 space-y-3">
+        <div className="col-span-2 min-[360px]:col-span-3 min-[620px]:col-span-4 space-y-3">
           <HelprMark to="/" size="md" hideEmblem />
           {/* Break after the first sentence so the tagline wraps predictably
               into two short lines instead of one long one that pushes the
@@ -121,7 +121,7 @@ const Footer = () => {
             "follow can fit on the left of legal"). order-none from 500 up
             restores the natural DOM order the 3-col/4-col layouts already rely
             on. */}
-        <div className="col-span-2 order-1 min-[500px]:col-span-1 min-[500px]:order-none min-[620px]:col-span-3">
+        <div className="col-span-2 order-1 min-[360px]:col-span-1 min-[360px]:order-none min-[620px]:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--accent-ink))" }}
@@ -190,7 +190,7 @@ const Footer = () => {
             two-row footer even though all four columns fit side by side there.
             One split from 640px up, instead of a tier that only existed to
             wrap. */}
-        <div className="order-3 min-[500px]:order-none min-[620px]:col-span-2">
+        <div className="order-3 min-[360px]:order-none min-[620px]:col-span-2">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--accent-ink))" }}
@@ -218,7 +218,7 @@ const Footer = () => {
 
         {/* Follow — App Store icon (download) + Facebook + Instagram (socials).
             Compact squircle chips, one row. */}
-        <div className="order-2 min-[500px]:order-none min-[620px]:col-span-3">
+        <div className="order-2 min-[360px]:order-none min-[620px]:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--accent-ink))" }}

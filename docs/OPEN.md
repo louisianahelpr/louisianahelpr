@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 79 done, 11 partly done (fixed, protection pending), 76 open. Source of truth for work.
+- **Queue (this file):** 80 done, 11 partly done (fixed, protection pending), 76 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 166 items — 79 done, 11 partly done (fixed, protection pending), 76 open.**
+**Queue: 167 items — 80 done, 11 partly done (fixed, protection pending), 76 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -502,6 +502,7 @@ sure someone hears it and closes it.
 - [ ] **Q165 Stale reports: archive what no longer describes the app (owner asked 2026-09-23).** Measured: 30 of 41 docs/audit/*.md not updated since before 2026-09-16 (oldest 2026-06-19: 01-screens, 03-journeys, 04-security-money, 05-trust-discovery); TODO.md 807 lines last touched 2026-09-01 (a second backlog, see Q84); AGENTS.md 2026-09-05; launch-2026-09/ROLLUP.md 2026-09-22. For each: carry any still-open finding into this file (verified live, not copied), then move it to docs/archive/ with a one-line 'historical, superseded by docs/OPEN.md' banner; keep dated records (morning/, evidence) where they are. Guard: extend scripts/check-staleness.mjs so a non-dated, non-archived report older than 14 days fails staleness-watch.
 - [x] **Q166 DONE 2026-09-23: the prod presser flipped admin settings (it turned marketing auto-publish ON).** Measured from edge_logs: 17 PATCHes to `marketing_settings` as admin@louisianahelpr.com from press-every-control runs 35761400822, 35768341847, 35805671843, 35813177418, 35822080143 and 35837735324; the 10:50:07Z one set auto_publish_enabled = true. Cause: a control counted as mutating only by label vocabulary (DESTRUCTIVE_RX / PAYMENT_RX / type=submit); switches are labelled with the setting's name ("Auto-publish", "Instagram") and the confirm says "Turn on". Fix: `isAdminStateToggle` (scripts/audit/pressProdSafety.mjs) makes any switch/checkbox/radio, or a turn on/off / enable / disable label, pressed as admin a mutating control, so mutationGate skips it unless it acts on a test-owned row; ENUMERATE now records the role. Guard: src/test/pressNeverFlipsAdminSettings.test.ts (3 @mutate, all red when applied by hand: 6/9, 1/9 and 1/9 failing). The setting itself was left as found: MORNING QUESTIONS 8.
 - [ ] **Q167 Two DB pruners were never scheduled, and three code comments say they run (found by Q41, 2026-09-23).** `cleanup_stripe_webhook_events()` and `cleanup_observability_tables()` have 0 callers (no cron.job among 59, no trigger, function, client or edge call), yet stripe-webhook/index.ts:267, stripe-idv-webhook/index.ts:205 and verification-webhook/index.ts:269 say "prunes at 30 days". Live: 9 stripe_webhook_events rows older than 30 days (oldest 2026-07-08), 221 analytics_events older than 90 days (oldest 2026-05-03); error_logs is already pruned by sweep_old_error_logs. Fix: schedule them (with a cron_work_expectations liveness row) or drop them and correct the comments; guard: every public prune/cleanup/sweep function is either in cron.job or listed as deliberately manual, red on today's state.
+- [x] **Q168 DONE 2026-09-23 (owner ask): footer Company / Legal / Follow share one row at phone width.** Measured in a production build: headings at the same y from 360px up (360, 375, 390, 430, 500), 0px overflow; 320 keeps two rows (needs ~321px, has 288). Screenshot ~/.lh-shots/footer/after-375.png reviewed. Guard: src/test/footerLinkGroupsOneRow.test.ts.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes

@@ -14,7 +14,7 @@ import {
 } from "../journeys/fixtures";
 import { fillBudget, fillJobDetails, fillLogistics, slotAhead, ZONE } from "../journeys/postJobForm";
 import { ensureFundedOpenJob } from "../prod-audit/fundedOpenJob";
-import { HANG_MS, NETWORK_3G, PROGRESS_GRACE_MS, stepTitle } from "./steps";
+import { COLD_LOAD_BUDGET_MS, HANG_MS, NETWORK_3G, PROGRESS_GRACE_MS, stepTitle } from "./steps";
 
 /**
  * Q68 — SLOW AND PATCHY NETWORKS (rural Louisiana).
@@ -105,7 +105,7 @@ function progressOnScreen(): string | null {
  * A wait longer than PROGRESS_GRACE_MS must have shown progress by then; no
  * wait may exceed HANG_MS. Every wait is annotated with its numbers.
  */
-async function waitShowsProgress(page: Page, label: string, start: () => Promise<unknown>, done: () => Promise<boolean>) {
+async function waitShowsProgress(page: Page, label: string, start: () => Promise<unknown>, done: () => Promise<boolean>, opts: { coldLoad?: boolean } = {}) {
   const t0 = Date.now();
   const kicked = start().catch((e: unknown) => e);
   let firstProgress: { ms: number; what: string } | null = null;
@@ -125,7 +125,9 @@ async function waitShowsProgress(page: Page, label: string, start: () => Promise
   const line = `${label}: done=${doneMs < 0 ? `NO (>${HANG_MS}ms)` : `${doneMs}ms`} progress=${firstProgress ? `${firstProgress.ms}ms ${firstProgress.what}` : "never"}`;
   test.info().annotations.push({ type: "wait", description: line });
   expect(doneMs, `${label}: hung silently — no outcome within ${HANG_MS}ms on 3G (${line})`).toBeGreaterThanOrEqual(0);
-  if (doneMs > PROGRESS_GRACE_MS) {
+  if (opts.coldLoad) {
+    expect(doneMs, `${label}: cold load took over ${COLD_LOAD_BUDGET_MS}ms on 3G (${line})`).toBeLessThanOrEqual(COLD_LOAD_BUDGET_MS);
+  } else if (doneMs > PROGRESS_GRACE_MS) {
     expect(
       firstProgress && firstProgress.ms <= PROGRESS_GRACE_MS + 300,
       `${label}: waited ${doneMs}ms on 3G with no progress shown in the first ${PROGRESS_GRACE_MS}ms (${line})`,
@@ -216,7 +218,7 @@ test(stepTitle("sign-in", "3g"), async ({ browser, journey }) => {
   const ctx = await newUserContext(browser, null);
   const page = journey.track("guest", await ctx.newPage());
   await throttle3g(ctx, page);
-  await waitShowsProgress(page, "cold load /login", () => page.goto("/login", { waitUntil: "commit" }), visible(page.locator("#email")));
+  await waitShowsProgress(page, "cold load /login", () => page.goto("/login", { waitUntil: "commit" }), visible(page.locator("#email")), { coldLoad: true });
   await page.locator("#email").fill(creds.email);
   await page.locator("#password").fill(creds.password);
   await waitShowsProgress(page, "Log In", () => page.locator('button[type="submit"]').click(), async () => /\/(dashboard|complete-profile)/.test(page.url()));
@@ -259,7 +261,7 @@ test(stepTitle("browse", "3g"), async ({ browser, journey }) => {
   const page = journey.track("guest", await ctx.newPage());
   await throttle3g(ctx, page);
   const heading = page.getByRole("heading", { name: "Browse Jobs", level: 1 });
-  await waitShowsProgress(page, "cold load /browse", () => page.goto("/browse", { waitUntil: "commit" }), visible(heading));
+  await waitShowsProgress(page, "cold load /browse", () => page.goto("/browse", { waitUntil: "commit" }), visible(heading), { coldLoad: true });
   await waitShowsProgress(page, "job cards", async () => {}, visible(page.getByRole("heading", { level: 2 })));
   await assertHealthy(page, "browse on 3G", { settleMs: 60_000 });
   await journey.milestone(page, "browse-3g");

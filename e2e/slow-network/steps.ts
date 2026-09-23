@@ -22,6 +22,13 @@ export const NETWORK_3G = {
 export const PROGRESS_GRACE_MS = 1_000;
 /** A wait that shows nothing for this long counts as hanging silently. */
 export const HANG_MS = 90_000;
+/**
+ * A COLD PAGE LOAD is judged on total time, not on showing progress within
+ * PROGRESS_GRACE_MS: the owner chose a plain background for the chunk wait
+ * (Q201) and kept it over a loading sign (Q324 pop-up, 2026-09-23). First live
+ * run 35931277278 measured /login 5159ms and /browse 8621ms on NETWORK_3G.
+ */
+export const COLD_LOAD_BUDGET_MS = 15_000;
 
 /**
  * `write` is the server write the drop test cuts, and whether a retry could

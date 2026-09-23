@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 126 done, 14 partly done (fixed, protection pending), 129 open. Source of truth for work.
+- **Queue (this file):** 127 done, 13 partly done (fixed, protection pending), 131 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 269 items — 126 done, 14 partly done (fixed, protection pending), 129 open.**
+**Queue: 271 items — 127 done, 13 partly done (fixed, protection pending), 131 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -859,8 +859,8 @@ sure someone hears it and closes it.
   For each: measure scrollWidth/clientWidth (line-clamp: scrollHeight) at 320/375/1440
   on prod; clipped UI copy wraps or gets its full text, clipped user data gets a
   `title`, unclipped stays with a dated measurement as its reason.
-- [~] **Q100 A funded open job fixture for the four poster-side forms (Q49
-  follow-up).** PARTLY DONE 2026-09-23: e2e/prod-audit/fundedOpenJob.ts
+- [x] **Q100 A funded open job fixture for the four poster-side forms (Q49
+  follow-up).** DONE 2026-09-23 (second half below). FIRST HALF 2026-09-23: e2e/prod-audit/fundedOpenJob.ts
   (`ensureFundedOpenJob`, exported from harness.ts) makes "an open, escrowed
   job of poster-e2e helper-e2e has not applied to" through the app's own path
   (poster JWT jobs INSERT, is_seed -> create-payment escrow -> hosted Stripe
@@ -883,6 +883,29 @@ sure someone hears it and closes it.
   (`FUNDED_OPEN_JOB_GAP`) until a fixture posts one through a Stripe test
   checkout, has the helper apply, and tears down with cancel_escrow; the
   coverage test's stale-gap check fails the day they are credited.
+  DONE 2026-09-23, the original ask: e2e/prod-audit/fundedApplicantJob.ts
+  (`ensureFundedApplicantJob`) mints per run, on prod, a job of poster-e2e
+  titled "Prod audit applicant fixture: ..." (is_seed), pays it through the
+  hosted Stripe TEST Checkout (4242, reusing fundedOpenJob.ts `createFixtureRow`
+  + `fund`), ages created_at past early access as the poster, and has helper-e2e
+  apply through `apply_to_job`, asserting one PENDING row; messy-input.spec.ts's
+  afterAll (`retireApplicantFixtures`) withdraws the helper's application and
+  releases the job through cancel_escrow, asserting cancelled/cancelled. Four
+  FormSpecs (edit-job, cancel-job, applicants-note, decline-applicant) open each
+  form from /my-posts?job=<fixture> and sweep it behind the write firewall; the
+  four `FUNDED_OPEN_JOB_GAP` entries are gone. Measured locally on prod: run 1
+  (gaps still listed) 4 sweeps passed, coverage's stale-gap check RED naming
+  exactly EditJobDialog, CancellationDialog, ApplicantsPanel,
+  DeclineApplicantSheet; run 2 (gaps removed) 4 passed, stale-gap check green
+  (the 12 "unaccounted" in both scoped runs are explore-credited files; the
+  scoped run skips the explores; CI run 35851427980's full coverage passed).
+  Prod rows: job c6c73586-4e6c-4908-93d7-4064ead8b2a4 (pi_3UItxjKp2H4b7tEC0wmKcUGb,
+  application fbbbb772, removed after the run) and job
+  d11994db-443d-473c-b96a-2f9ba2a7c519 (application d50978c5, withdrawn), both
+  cancelled/cancelled. Screenshots ~/.lh-shots/q100/ (recorded; edit-job is a
+  defect, Q273). GUARD: messy-input.spec.ts "coverage: every inventory file was
+  swept, explored, or has a stated gap" (its stale-gap assertion, shown red
+  above; nightly in prod-audit.yml), plus src/test/fundedOpenJobPlan.test.ts.
 - [x] **Q101 The error-screen detector reads QUOTED error copy as an error
   screen.** `explore: admin-health` failed "broken before any input" on the
   second local run because /admin?view=health lists recent error_logs rows,
@@ -2366,3 +2389,5 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q269 A retried apply that already landed is told it failed, then "already applied" (found by Q68, code read 2026-09-23).** A lost apply_to_job response shows "Couldn't send your application through" (src/pages/dashboard/useApplyFlow.ts:257); the retry is refused by the RPC and shows "You've already applied to this job." (applyErrorCopy.ts:29). No duplicate row (UNIQUE(job_id, helper_id)), but the user is told twice that something went wrong when it didn't. Fix: map "Already applied" after a failed attempt to the success state. Proof: slow-network apply·drop records a `finding` annotation when the copy shows; turn it into an assertion with the fix.
 - [ ] **Q270 A network failure on Post shows the raw error text (found by Q68, code read 2026-09-23).** useJobSubmit.ts:477 toasts `error?.message` for any insert failure, so a dropped connection shows whatever postgrest-js puts in `message` for a failed fetch (expected to read like "TypeError: Failed to fetch"; not yet seen live), not offline copy. requireOnline() (:370) only catches the case where navigator.onLine is already false. Proof: the slow-network post·drop run's failure screenshot shows the text; fix with the same connection copy as authErrors.ts.
 - [ ] **Q271 Vercel production deploys hit the Hobby cap of 100/day (found by the Q63 quota monitor's first prod run, 2026-09-23).** Measured: Vercel list_deployments for prj_pDcXQcTz4zPMNwewE9wmz09PvNag returned 100 non-cancelled deployments between 03:42Z and 17:20Z (87 READY production), and quota-monitor run 35894409825 counted 118 GitHub deployments in 24h. scripts/vercel-ignore.sh only skips pushes that change no deploy path, and every landing touches src/. At the cap Vercel stops deploying, so prod goes stale behind green CI. Fix (owner decision pending, pop-up 2026-09-23): either debounce production deploys (skip in vercel-ignore.sh when the previous deploy is under N minutes old, plus a scheduled trailing deploy through a Vercel deploy hook so the last push always ships) or move to Vercel Pro. Guard: the quota monitor already alerts at 80%; add a vitest pinning the debounce once built.
+- [ ] **Q273 EditJobDialog's field column looks clipped at its right edge at 375 after a long value (found by Q100, 2026-09-23).** ~/.lh-shots/q100/edit-job.png (prod, poster-e2e, the Q100 applicant fixture, after the messy-input sweep typed a 200-char word into Job title): the Description, Location, Category and Start time boxes have no right border; they run past the dialog's right edge. Not measured yet (the sweep's overflow check reads documentElement, not the dialog). Measure scrollWidth vs clientWidth of the dialog's scroller at 375 with a long title, then fix or record why it is fine; guard: a dialog-internal overflow assertion in the sweep.
+- [ ] **Q274 cancel_escrow leaves applications PENDING on the cancelled job (found by Q100, 2026-09-23).** Measured on prod: the Q100 fixture c6c73586 was cancelled/cancelled by create-payment cancel_escrow and helper-e2e's application fbbbb772 stayed `pending`; 20 pending applications sit on cancelled jobs (all is_seed, 0 real). Decide whether a poster cancel should close its pending applications (and what the applicant sees on My Jobs), read poster_cancel_job / cancel_escrow live, and guard the rule.

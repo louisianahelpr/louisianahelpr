@@ -337,6 +337,29 @@ const openAdminJobAction = (buttonName: RegExp) => async (page: Page) => {
   await btn.click();
 };
 
+/**
+ * Q100: open the applicant fixture's card on My Posts, expanded. `?job=`
+ * resolves the card's bucket (Activity.tsx); the card opens collapsed, so tap
+ * its title when the "Edit job" chip is not already showing.
+ */
+async function openApplicantFixtureCard(page: Page): Promise<void> {
+  const job = runtime.applicantJob;
+  if (!job) throw new Error("Q100: no applicant fixture — messy-input.spec.ts's beforeAll did not mint one");
+  await page.goto(`/my-posts?job=${job.id}`);
+  await settle(page);
+  const edit = page.getByRole("button", { name: /^edit job$/i }).first();
+  const title = page.getByText(job.title, { exact: false }).first();
+  await edit.or(title).first().waitFor({ timeout: 30_000 });
+  if (!(await edit.isVisible().catch(() => false))) await title.click();
+  await edit.waitFor({ timeout: 15_000 });
+}
+
+async function openApplicantsPanel(page: Page): Promise<void> {
+  await openApplicantFixtureCard(page);
+  await page.getByRole("button", { name: /^applicants/i }).first().click();
+  await page.getByRole("button", { name: /^decline /i }).first().waitFor({ timeout: 20_000 });
+}
+
 export const FORMS: FormSpec[] = [
   { name: "login", url: "/login", as: null, covers: ["src/pages/Login.tsx"] },
   { name: "forgot-password", url: "/forgot-password", as: null, covers: ["src/pages/ForgotPassword.tsx"] },
@@ -661,10 +684,50 @@ export const FORMS: FormSpec[] = [
     },
     covers: ["src/components/postjob/AiJobBuilder.tsx"],
   },
+  // Q100: the four forms that open only from a FUNDED open job of poster-e2e
+  // with a PENDING applicant. messy-input.spec.ts's beforeAll mints that job
+  // (fundedApplicantJob.ts: Stripe TEST checkout + helper-e2e's apply_to_job)
+  // and its afterAll releases it through cancel_escrow. The sweep runs behind
+  // the write firewall, so no Save / Confirm / Decline can reach prod.
+  {
+    name: "edit-job", url: "/my-posts", as: "poster",
+    prepare: async (page) => {
+      await openApplicantFixtureCard(page);
+      await page.getByRole("button", { name: /^edit job$/i }).first().click();
+      await page.getByRole("textbox", { name: /^job title$/i }).waitFor({ timeout: 15_000 });
+    },
+    covers: ["src/components/activity/EditJobDialog.tsx"],
+  },
+  {
+    name: "cancel-job", url: "/my-posts", as: "poster",
+    prepare: async (page) => {
+      await openApplicantFixtureCard(page);
+      await page.getByRole("button", { name: /^cancel job$/i }).first().click();
+      await page.locator("#cancel-reason").waitFor({ timeout: 15_000 });
+    },
+    covers: ["src/components/CancellationDialog.tsx"],
+  },
+  {
+    // The panel's one text field is the private applicant note (localStorage
+    // only), behind "Add Private Note" on the pending applicant's row.
+    name: "applicants-note", url: "/my-posts", as: "poster",
+    prepare: async (page) => {
+      await openApplicantsPanel(page);
+      await page.getByRole("button", { name: /add private note/i }).first().click();
+      await page.getByRole("textbox", { name: /^private note$/i }).waitFor({ timeout: 15_000 });
+    },
+    covers: ["src/components/activity/postedJobs/ApplicantsPanel.tsx"],
+  },
+  {
+    name: "decline-applicant", url: "/my-posts", as: "poster",
+    prepare: async (page) => {
+      await openApplicantsPanel(page);
+      await page.getByRole("button", { name: /^decline /i }).first().click();
+      await page.locator("#decline-note").waitFor({ timeout: 15_000 });
+    },
+    covers: ["src/components/activity/postedJobs/DeclineApplicantSheet.tsx"],
+  },
 ];
-
-const FUNDED_OPEN_JOB_GAP =
-  "needs a FUNDED open job of poster-e2e with a pending applicant — none on prod (every open one is unpaid/abandoned, which My Posts hides); creating one is a Stripe test checkout, tracked in docs/OPEN.md";
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
@@ -736,20 +799,6 @@ export const GAPS: Record<string, string> = {
   // Stripe Identity attempt. Re-check when prod has a row.
   "src/components/admin/AdminBanReview.tsx": "empty queue on prod — /admin?view=banreview renders \"No accounts awaiting review\"; the ban-reason and dismissal-note boxes live on a pending-review row and there is none. Seeding one means putting a real consequence-ladder restriction on a shared test account",
   "src/components/admin/AdminIDVReview.tsx": "empty queue on prod — /admin?view=idvreview renders \"Nobody is waiting on a human\"; a row lands here only after Stripe CHARGED for an identity attempt and failed it, which cannot be seeded without paying Stripe for a real verification",
-  // Opened only from a FUNDED open job of the poster's (OpenStep.tsx: Edit
-  // job / Cancel job; PostedJobsTab: the applicants panel and its Decline
-  // sheet). My Posts hides an unfunded open job entirely
-  // (activityFilters.ts `jobIsUnfundedDraft`), and on prod 2026-09-23
-  // poster-e2e's every open job was unpaid/abandoned — the seeded
-  // pending-applicant job is `abandoned`. Making one means a real Stripe
-  // test-mode checkout plus a helper application, torn down with
-  // cancel_escrow: a money fixture, tracked in docs/OPEN.md (Q49 follow-up,
-  // "funded open job fixture"). The FormSpec stops being a gap the day it
-  // lands — the stale-gap check fails if these are ever credited.
-  "src/components/activity/EditJobDialog.tsx": FUNDED_OPEN_JOB_GAP,
-  "src/components/CancellationDialog.tsx": FUNDED_OPEN_JOB_GAP,
-  "src/components/activity/postedJobs/ApplicantsPanel.tsx": FUNDED_OPEN_JOB_GAP,
-  "src/components/activity/postedJobs/DeclineApplicantSheet.tsx": FUNDED_OPEN_JOB_GAP,
   // Read-only by decision, not by reachability.
   "src/components/admin/EditEmailDialog.tsx": "reachable (user detail → Edit email) but deliberately NOT swept: it rewrites an account's login address, and every shared test account is a sign-in dependency for this whole suite. One stray submit slipping the write firewall would lock every lane out of that account",
 };

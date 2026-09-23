@@ -57,6 +57,7 @@ import {
   WS,
   assertHealthy,
   baselineOf,
+  ensureFundedApplicantJob,
   ensureFundedOpenJob,
   ensureMessyInputState,
   fieldLabel,
@@ -67,6 +68,7 @@ import {
   newUserContext,
   resolveFixtures,
   restAs,
+  retireApplicantFixtures,
   runtime,
   sessionFor,
   settle,
@@ -110,6 +112,8 @@ const scoped: typeof test = ((...args: Parameters<typeof test>) =>
 const sessions = new Map<Account, Session>();
 let fx: Fixtures;
 let adminState: Awaited<ReturnType<typeof ensureMessyInputState>> | undefined;
+/** FormSpec names (messyInputForms.ts) that need the Q100 applicant fixture. */
+const APPLICANT_SWEEPS = ["edit-job", "cancel-job", "applicants-note", "decline-applicant"];
 
 test.beforeAll(async ({ request, browser }) => {
   test.setTimeout(30 * 60_000); // a fresh fixture waits out the 20-minute early-access window
@@ -119,6 +123,14 @@ test.beforeAll(async ({ request, browser }) => {
   if (!SCOPE_RE || ["explore: openJob-helper", "explore: openJob-poster"].some((t) => SCOPE_RE.test(t))) {
     const funded = await ensureFundedOpenJob(request, browser, sessions.get("poster")!, sessions.get("helper")!);
     console.log(`[messy-input] funded fixture: ${funded.log.join("; ")}`);
+  }
+  // Q100: edit-job / cancel-job / applicants-note / decline-applicant open
+  // only from a FUNDED open job with a PENDING applicant; minted per run,
+  // released in afterAll through cancel_escrow.
+  if (!SCOPE_RE || APPLICANT_SWEEPS.some((t) => SCOPE_RE.test(`sweep: ${t}`))) {
+    const a = await ensureFundedApplicantJob(request, browser, sessions.get("poster")!, sessions.get("helper")!);
+    runtime.applicantJob = a.job;
+    console.log(`[messy-input] applicant fixture: ${a.log.join("; ")}`);
   }
   fx = await resolveFixtures(request, sessions.get("poster")!, sessions.get("helper")!);
   mkdirSync(CREDITS, { recursive: true });
@@ -138,10 +150,20 @@ test.beforeAll(async ({ request, browser }) => {
 });
 
 test.afterAll(async ({ playwright }) => {
-  if (!adminState) return;
   const api = await playwright.request.newContext();
-  const out = await adminState.undo(api).finally(() => api.dispose());
-  if (out?.length) console.log(`[messy-input] fixture cleanup: ${out.join("; ")}`);
+  try {
+    if (runtime.applicantJob) {
+      // Fresh session: the beforeAll one may be near expiry after a long run.
+      const retired = await retireApplicantFixtures(api, await sessionFor(api, "poster"), await sessionFor(api, "helper"));
+      console.log(`[messy-input] applicant fixture cleanup: ${retired.join("; ") || "nothing open"}`);
+      runtime.applicantJob = null;
+    }
+    if (!adminState) return;
+    const out = await adminState.undo(api);
+    if (out?.length) console.log(`[messy-input] fixture cleanup: ${out.join("; ")}`);
+  } finally {
+    await api.dispose();
+  }
 });
 
 async function open(browser: Browser, f: { url: string; as: Account | null; prepare?: (p: Page) => Promise<void> }): Promise<{ ctx: BrowserContext; page: Page }> {
@@ -770,6 +792,7 @@ scoped("coverage: every inventory file was swept, explored, or has a stated gap"
   const unaccounted = inventory.filter((f) => !covered.has(f) && !GAPS[f]);
   const staleGaps = Object.keys(GAPS).filter((f) => covered.has(f) && !GAPS[f].startsWith("false positive"));
   console.log(`[messy-input prod coverage] ${covered.size} exercised, ${Object.keys(GAPS).length} gaps, ${inventory.length} inventory, ${files.length} explore credit files`);
-  expect(unaccounted, `no sweep, no explore credit and no stated gap:\n${unaccounted.join("\n")}`).toEqual([]);
-  expect(staleGaps, "listed as a gap but actually exercised — remove the gap").toEqual([]);
+  // Soft, so a run missing explore credits still reports its stale gaps too.
+  expect.soft(unaccounted, `no sweep, no explore credit and no stated gap:\n${unaccounted.join("\n")}`).toEqual([]);
+  expect.soft(staleGaps, "listed as a gap but actually exercised — remove the gap").toEqual([]);
 });

@@ -20,6 +20,7 @@ import { ANON, SUPABASE_URL, getSession as journeySession, newUserContext, rest,
 export { newUserContext, rest, SUPABASE_URL, ANON };
 /** Q100: the funded open job fixture (a real Stripe TEST checkout as poster-e2e) — see fundedOpenJob.ts. */
 export { ensureFundedOpenJob, retireFundedJob } from "./fundedOpenJob";
+export { ensureFundedApplicantJob, retireApplicantFixtures } from "./fundedApplicantJob";
 export type { Role, Session };
 
 /** Every row a spec writes carries this in its text, so cleanup finds it. */
@@ -589,10 +590,17 @@ export async function resolveFixtures(api: APIRequestContext, poster: Session, h
  * ever hard-coding a job id that a reseed or a completed lifecycle run can
  * change out from under it.
  */
-export const runtime: { fixtures: Fixtures | null; userId: Partial<Record<Account, string>>; email: Partial<Record<Account, string>> } = {
+export const runtime: {
+  fixtures: Fixtures | null;
+  userId: Partial<Record<Account, string>>;
+  email: Partial<Record<Account, string>>;
+  /** Q100: the funded open job of poster-e2e with helper-e2e's PENDING application (fundedApplicantJob.ts). */
+  applicantJob: { id: string; title: string } | null;
+} = {
   fixtures: null,
   userId: {},
   email: {},
+  applicantJob: null,
 };
 
 /**

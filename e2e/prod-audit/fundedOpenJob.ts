@@ -30,7 +30,7 @@ import {
   type FixtureRow,
 } from "./fundedOpenJobPlan";
 
-const headers = (s: Session, extra: Record<string, string> = {}) => ({
+export const headers = (s: Session, extra: Record<string, string> = {}) => ({
   apikey: ANON,
   Authorization: `Bearer ${s.access_token}`,
   "Content-Type": "application/json",
@@ -50,7 +50,7 @@ async function readJson<T>(r: { ok(): boolean; status(): number; text(): Promise
   return (body ? JSON.parse(body) : null) as T;
 }
 
-async function invoke(api: APIRequestContext, s: Session, fn: string, body: unknown) {
+export async function invoke(api: APIRequestContext, s: Session, fn: string, body: unknown) {
   const r = await api.post(`${SUPABASE_URL}/functions/v1/${fn}`, { headers: headers(s), data: body, timeout: 60_000 });
   const text = await r.text();
   let json: Record<string, unknown> = {};
@@ -59,9 +59,9 @@ async function invoke(api: APIRequestContext, s: Session, fn: string, body: unkn
 }
 
 const COLS = "id,title,status,payment_status,helper_id,date_needed,created_at,stripe_payment_intent_id";
-type Row = FixtureRow & { stripe_payment_intent_id: string | null };
+export type Row = FixtureRow & { stripe_payment_intent_id: string | null };
 
-async function readRow(api: APIRequestContext, poster: Session, id: string): Promise<Row> {
+export async function readRow(api: APIRequestContext, poster: Session, id: string): Promise<Row> {
   const rows = await readJson<Row[]>(
     await api.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}&select=${COLS}`, { headers: headers(poster) }),
     `read job ${id}`,
@@ -84,14 +84,15 @@ export async function retireFundedJob(api: APIRequestContext, poster: Session, j
   return `retired ${jobId} (cancel_escrow → refunded, cancelled/cancelled)`;
 }
 
-async function createFixtureRow(api: APIRequestContext, poster: Session): Promise<Row> {
+/** `title` defaults to the un-applied fixture; the applicant fixture (fundedApplicantJob.ts) passes its own prefix. */
+export async function createFixtureRow(api: APIRequestContext, poster: Session, title = `${FUNDED_FIXTURE_TITLE}: hang two shelves`): Promise<Row> {
   const rows = await readJson<Row[]>(
     await api.post(`${SUPABASE_URL}/rest/v1/jobs?select=${COLS}`, {
       headers: headers(poster, { Prefer: "return=representation" }),
       data: {
         customer_id: poster.user.id,
         is_seed: true,
-        title: `${FUNDED_FIXTURE_TITLE}: hang two shelves`,
+        title,
         description: "Two floating shelves in a living room, studs already marked, anchors and level on site. Prod-audit fixture, never hired.",
         category: "handyman",
         location: "4412 Highland Rd, Baton Rouge, LA 70808",
@@ -150,7 +151,7 @@ async function payCheckout(browser: Browser, url: string): Promise<void> {
   }
 }
 
-async function fund(api: APIRequestContext, browser: Browser, poster: Session, row: Row, log: string[]): Promise<Row> {
+export async function fund(api: APIRequestContext, browser: Browser, poster: Session, row: Row, log: string[]): Promise<Row> {
   const esc = await invoke(api, poster, "create-payment", { action: "escrow", jobId: row.id });
   const url = typeof esc.json.url === "string" ? esc.json.url : "";
   if (esc.status !== 200 || !url) {

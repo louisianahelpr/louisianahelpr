@@ -212,7 +212,7 @@ sure someone hears it and closes it.
   is Netlify-format and Vercel ignores it. It was kept in sync, but it is dead config.
   (d) Not device-tested in a native WKWebView. The Capacitor build's meta CSP was
   checked in desktop WebKit over http only.
-- [ ] **Q14 Supabase security advisors (live 2026-09-23):**
+- [ ] **Q14 Supabase security advisors (live 2026-09-23):** NOTE 2026-09-23: the org is on PRO (measured with get_organization), not free. Leaked-password protection IS available; the old "accepted risk" decision assumed free tier. Re-ask the owner (morning).
   - ERROR `security_definer_view` on open_jobs_browse. Confirm it's intentional
     (CLAUDE.md puts browse visibility there) or switch to security_invoker.
   - 10 SECURITY DEFINER functions executable by anon (early_access_cutoff,

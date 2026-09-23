@@ -7788,20 +7788,57 @@ sure someone hears it and closes it.
   systems are checked exhaustively for gaps").** Run the launch-audit fleet
   (39 lanes) in waves. Every finding lands in this queue with a check or a
   tracker entry.
-- [ ] **Q36 Keep every monitoring number current (owner, 2026-09-23; CLAUDE.md
-  rule).** Inventory (2026-09-23): 10 baseline/budget/allowlist files and 16
-  files with KNOWN_/LEGACY_/ALLOWLIST constants.
-  - EXACT today: race-class (53, 0 stale), deadcode (97/11; fails both ways).
-  - STALE EVIDENCE: loading-states measured 2026-09-20. Skeletons and the
-    notification panel changed since, so re-measure in the browser.
-  - NO stale-entry detection yet, so a fixed item sits in the baseline forever:
-    migration-raise-codes allowlist, write-contract baseline, vacuity baseline,
-    and each KNOWN_ list (typecheck-edge KNOWN_ERRORS, knownContrastFailures,
-    roleNeutralCopy allowlist, a11y-webkit-known, EF-5 known leaks, ...).
-  - Fix as a CLASS: every baseline fails when an entry no longer reproduces
-    ("lower the baseline"), and a meta-guard (derived by scanning for baseline
-    and KNOWN_ files) requires each to have that two-way check, shown red with
-    a planted stale entry.
+- [x] **Q36 DONE (2026-09-23): every monitoring number is generated, bound to its
+  measuring run, two-way baselined, or dated — enforced per push.** Owner: "nothing
+  at all should ever be stale" and "every number we track ... must always be current".
+  Checks (all red-proven on a planted gap, all registered with vacuity @mutate, KILLED):
+  `npm run check:generated` (scripts/check-generated-current.mjs — re-runs every
+  CI-runnable generator and diffs; registries checked both ways against three scans:
+  38 file-writing scripts, 6 self-declared generated files, every timestamped JSON);
+  `npm run check:counts` (scripts/check-stated-counts.mjs — 2,260 count claims in 368
+  files on 2026-09-23: 172 generated, 891 in dated records, 611 dated, 586 undated,
+  the undated ones in an exact two-way baseline that may only shrink);
+  `npm run check:staleness` (age only where nothing better proves currency; workflow-bound
+  for browser baselines); src/test/baselinesAreTwoWay.test.ts (68 KNOWN_/ALLOWLIST
+  constants + 11 baseline JSONs, each must name its stale-entry check; 36 out of scope with
+  reasons; 38 stale entries removed). Wired into test.yml, staleness-watch.yml (now also
+  on every push, so docs-only commits are covered; added to main-red-watch) and
+  `npm run gate`. One-command refresh: `npm run inventories:refresh`.
+  Was STALE and is now current (2026-09-23): COVERAGE.md (generated 2026-09-02: "5 of 39
+  lanes reported" → 38 of 46; surface "unknown" and 12 of 13 class counts "?" — parser
+  bugs); ROLLUP.md vs COVERAGE.md disagreed on open findings (397 vs 284: two folds, one
+  counted fixed as live) → one fold, 334 open / 29 open blockers; SURFACE.md prose 139/109
+  overlays vs its own table 151/117, notification types 21 vs prod's 18 (parser read
+  unrelated statements); form-inventory 119/22 → 118/24; GUARD-BURNDOWN score was hand-typed
+  → generated block; lh-audit SKILL "/profile has 18 tabs" (25; list wrong); lh-verifier and
+  lh-copy-content surface counts (802 → 1,064 etc.); edge functions 66 → 73; workflows 24 →
+  45; happy-path specs 26 → 28; "~20 sweep functions" → 54 active pg_cron jobs; "~108 tables"
+  → 81; redirect-only routes 14 → 17; check-staleness REFRESH named audit:press for a ledger
+  it never writes; measurements.json invisible to the age scan (`at` key).
+  Inventory (2026-09-23; `node scripts/check-generated-current.mjs --list` prints it live):
+  | file | generator | how refreshed | how checked |
+  |---|---|---|---|
+  | launch-2026-09/SURFACE.md | audit-surface.mjs | committer (`inventories:refresh`) | regenerate-and-diff, every push + nightly |
+  | launch-2026-09/ROLLUP.md | audit-bus.mjs rollup | committer | regenerate-and-diff |
+  | launch-2026-09/COVERAGE.md | audit-coverage.mjs | committer | regenerate-and-diff |
+  | audit/form-inventory.md | form-inventory.mjs | committer | regenerate-and-diff |
+  | public/sitemap.xml | generate-sitemap.mjs | committer | regenerate-and-diff (+ sitemap-drift.yml) |
+  | audit/vacuity-report.json | vacuity --report --no-mutate | committer | regenerate-and-diff (timestamp normalised) |
+  | GUARD-BURNDOWN.md score block | burndown-score.mjs | committer | regenerate-and-diff |
+  | loading-states/measurements.json | measure-loading-states.mjs (browser, prod) | loading-states-refresh.yml daily 16:17 UTC (artifact) | check-loading-state-shape on the fresh set in that run; staleness: last success ≤ 2 days |
+  | write-contract.snapshot.json | write-contract.mjs (prod) | write-contract-refresh.yml weekly | --check-drift |
+  | supabase/types.ts | db:types (prod) | committer after a migration | check-types-fresh (db-deploy, db-drift-detect) |
+  | overlay-sweep.baseline.json | overlay-sweep.spec.ts (browser, prod) | ui-sweep.yml Friday cron | staleness: last Friday scheduled success ≤ 8 days |
+  | vacuity.baseline.json, controlInteractionLedger.json, loading-states/baseline.json, stated-counts-baseline.json, and every list in baselinesAreTwoWay | hand-lowered | same commit as the fix | own two-way guard, every push |
+  STILL OPEN from this item: (a) **owner setting** — GitHub Actions may not push to main or
+  open PRs here (`can_approve_pull_request_reviews=false`), so a nightly refresh cannot land
+  its snapshot in git by itself; currency is proven by the run instead, and landing the
+  artifact is a manual commit. (b) 583 undated counts are baselined, 153 of them in this
+  file — burn down by dating or deleting. (c) docs/audit/OPEN_ITEMS.md is 935 commits
+  behind (staleness red): superseded by this file, needs a reconcile-or-retire decision.
+  (d) overlay-sweep's stale check is only the deterministic half (spec header, 2026-09-21).
+  (e) vacuity is red on main from two other-lane registrations (adminIdBadgeStates
+  unescaped `|`, helperWorkPhotos find-string gone).
 - [x] **Q37 DONE: not reachable today, and it can no longer render broken.** No client sends portfolioFiles to complete-signup, and prod has 0 portfolio elements. HelperWorkPhotos now renders only safeDocumentUrl-displayable entries: a bare private path or an unsafe scheme is dropped, never shown as a broken tile. Test added (red on the old code: 2 of 5). The dead portfolioFiles path in complete-signup (private user-documents, "1-year signed URL" comment that no longer matches the code) folds into Q40. Was: Portfolio photos from signup render BROKEN on the public profile.
   complete-signup stores portfolio_urls as bare storage paths
   (index.ts:516,700); HelperWorkPhotos.tsx:45 uses them directly as <img src>,

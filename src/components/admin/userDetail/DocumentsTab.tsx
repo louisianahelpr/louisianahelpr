@@ -83,14 +83,20 @@ export function DocumentsTab({ viewProfile, idDocSignedUrl }: DocumentsTabProps)
               className="w-32 h-32 rounded-ds-md border-2 border-border"
               fallbackClassName="rounded-ds-md text-ds-24 ring-0"
             />
-            <a
-              href={viewProfile.avatar_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block text-ds-11 text-primary underline"
-            >
-              Open original ↗
-            </a>
+            {/* avatar_url is the member's own column (no shape CHECK): the raw
+                value is never an href. A refused one says so. */}
+            {safeDocumentUrl(viewProfile.avatar_url) ? (
+              <a
+                href={safeDocumentUrl(viewProfile.avatar_url) ?? undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-ds-11 text-primary underline"
+              >
+                Open original ↗
+              </a>
+            ) : (
+              <p className="text-ds-11 text-muted-foreground">Original not openable (not an https link)</p>
+            )}
           </div>
         ) : (
           <p className="text-ds-11 text-muted-foreground">Not provided</p>
@@ -107,12 +113,22 @@ export function DocumentsTab({ viewProfile, idDocSignedUrl }: DocumentsTabProps)
             {(viewProfile.portfolio_urls || []).map((url: string, i: number) => {
               const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
               const fileName = url.split("/").pop() || "Document";
+              // portfolio_urls is the member's own column (no shape CHECK):
+              // anything but https / a raster data: image is shown, not linked.
+              if (!safeDocumentUrl(url)) {
+                return (
+                  <div key={i} className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2">
+                    <FileText className="w-6 h-6 text-muted-foreground mb-1" />
+                    <p className="text-muted-foreground text-ds-11 text-center">Link withheld (not https)</p>
+                  </div>
+                );
+              }
               return isImage ? (
-                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md overflow-hidden border border-border hover:border-primary transition-colors block group">
+                <a key={i} href={safeDocumentUrl(url) ?? undefined} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md overflow-hidden border border-border hover:border-primary transition-colors block group">
                   <img loading="lazy" decoding="async" src={url} alt={`Portfolio item ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 </a>
               ) : (
-                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">
+                <a key={i} href={safeDocumentUrl(url) ?? undefined} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">
                   <FileText className="w-6 h-6 text-muted-foreground mb-1" />
                   <p className="text-muted-foreground text-ds-11 text-center truncate w-full">{fileName}</p>
                 </a>

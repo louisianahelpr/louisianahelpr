@@ -8,6 +8,7 @@ import { categoryLabels, paymentColors, type Job } from "./types";
 import { formatJobDate } from "@/lib/dateUtils";
 import { formatTimestamp, formatCategory, formatPrice } from "@/lib/format";
 import { jobStartTimeLabel } from "@/lib/jobDate";
+import { safeDocumentUrl } from "@/lib/storagePath";
 
 interface JobDetailDialogProps {
   detailJob: Job | null;
@@ -93,7 +94,7 @@ export const JobDetailDialog = ({
             {(detailJob.photos || []).length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {(detailJob.photos || []).map((url, i) => (
-                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                  <a key={i} href={safeDocumentUrl(url) ?? undefined} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
                     <img loading="lazy" decoding="async" src={url} alt={`Photo ${i + 1}`} className="w-32 h-24 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
                   </a>
                 ))}

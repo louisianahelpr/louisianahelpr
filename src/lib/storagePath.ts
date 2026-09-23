@@ -47,6 +47,13 @@ export function isStorageObjectPath(value: string | null | undefined): value is 
  * `src/test/storagePathRenderIsAllowlisted.test.ts` requires every
  * `!isStorageObjectPath(…)` branch that renders or opens the value to go
  * through this.
+ *
+ * It is also THE sanitizer for any user-writable URL column that reaches an
+ * href / window.open (profiles.avatar_url and portfolio_urls, jobs.photos,
+ * marketing_content.external_url): `href={safeDocumentUrl(x) ?? undefined}`.
+ * `src/test/navigationSinksAreClassified.test.ts` classifies every navigation
+ * sink in src/; the DB twin is public.is_safe_media_url (migration
+ * 20260923042014).
  */
 export function safeDocumentUrl(value: string | null | undefined): string | null {
   if (typeof value !== "string") return null;

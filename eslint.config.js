@@ -57,6 +57,37 @@ const NATIVE_ORIGIN_RULES = [
   { selector: `Property > ${LOCATION_MEMBER}`, message: LOCATION_LEAK_MESSAGE },
 ];
 
+/* A user-writable URL column bound straight to an href / window.open. These
+   columns have no scheme CHECK on the client's side of the wire and React 18
+   renders a `javascript:` href, so the raw value is stored XSS on click
+   (3c81624d0 and its follow-up). Wrap it: `href={safeDocumentUrl(x.col) ??
+   undefined}`. The exhaustive version (every sink, any expression) is
+   src/test/navigationSinksAreClassified.test.ts; this is the editor-time hint. */
+const USER_URL_COLUMN = "/^(avatar_url|portfolio_urls|photos|photo_url|photo_urls|external_url|media_urls|scope_video_url|document_url|license_url|insurance_url|id_document_url|attachment_url|attachment_urls|evidence_urls|dispute_evidence_urls|proof_before_urls|proof_after_urls|ical_url|link|url)$/";
+const USER_URL_HREF_MESSAGE =
+  "A stored URL column must not reach href/window.open raw — wrap it in safeDocumentUrl() (src/lib/storagePath.ts).";
+const USER_URL_HREF_RULES = [
+  {
+    // Direct, optional-chained, `a ?? b` / `a || b` and `c ? a : b` shapes —
+    // but not an argument to a call (that is where safeDocumentUrl(x) sits).
+    selector: [
+      "",
+      " > ChainExpression",
+      " > LogicalExpression",
+      " > LogicalExpression > ChainExpression",
+      " > ConditionalExpression",
+      " > ConditionalExpression > ChainExpression",
+    ]
+      .map((mid) => `JSXAttribute[name.name='href'] > JSXExpressionContainer${mid} > MemberExpression[property.name=${USER_URL_COLUMN}]`)
+      .join(", "),
+    message: USER_URL_HREF_MESSAGE,
+  },
+  {
+    selector: `CallExpression[callee.object.name='window'][callee.property.name='open'] > MemberExpression.arguments:first-child[property.name=${USER_URL_COLUMN}]`,
+    message: USER_URL_HREF_MESSAGE,
+  },
+];
+
 /* ── Silent-catch ledger ────────────────────────────────────────────────
    `local/no-silent-catch` requires every catch to leave a trace — report()
    from @/lib/errorLogger, a rethrow, or a toast — or to carry a comment
@@ -368,7 +399,7 @@ export default tseslint.config(
       // way to set brand colours here and must stay legal. Sizes above the
       // scale's 40px ceiling are also allowed — the marketing hero ramp
       // (3.5rem…7.25rem) genuinely has no rung.
-      "no-restricted-syntax": ["error", DS_TYPE_CLASS_RULE, DS_TYPE_INLINE_RULE, OPACITY_STATE_RULE, ...NATIVE_ORIGIN_RULES],
+      "no-restricted-syntax": ["error", DS_TYPE_CLASS_RULE, DS_TYPE_INLINE_RULE, OPACITY_STATE_RULE, ...NATIVE_ORIGIN_RULES, ...USER_URL_HREF_RULES],
 
       // A catch that swallows a failure and leaves no trace is how a broken
       // feature becomes one that never fires and never says why. See the
@@ -404,7 +435,7 @@ export default tseslint.config(
       // Class rule still enforced here; only the inline one is grandfathered.
       // The opacity and native-origin rules stay on — being on the type-debt
       // ledger is not a reason to stop enforcing unrelated guards.
-      "no-restricted-syntax": ["error", DS_TYPE_CLASS_RULE, OPACITY_STATE_RULE, ...NATIVE_ORIGIN_RULES],
+      "no-restricted-syntax": ["error", DS_TYPE_CLASS_RULE, OPACITY_STATE_RULE, ...NATIVE_ORIGIN_RULES, ...USER_URL_HREF_RULES],
     },
   },
   {
@@ -413,7 +444,7 @@ export default tseslint.config(
     // the two blocks cannot shadow each other.
     files: OPACITY_STATE_LEGACY,
     rules: {
-      "no-restricted-syntax": ["error", DS_TYPE_CLASS_RULE, DS_TYPE_INLINE_RULE, ...NATIVE_ORIGIN_RULES],
+      "no-restricted-syntax": ["error", DS_TYPE_CLASS_RULE, DS_TYPE_INLINE_RULE, ...NATIVE_ORIGIN_RULES, ...USER_URL_HREF_RULES],
     },
   },
 );

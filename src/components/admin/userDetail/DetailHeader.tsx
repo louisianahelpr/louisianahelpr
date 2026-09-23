@@ -6,6 +6,7 @@ import UserAvatar from "@/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatName } from "@/lib/utils";
+import { safeDocumentUrl } from "@/lib/storagePath";
 import { type Profile, statusBadge, stripeBadge } from "../adminUserHelpers";
 
 interface DetailHeaderProps {
@@ -41,9 +42,9 @@ export function DetailHeader({
           The bare `<img>` this replaces had no error path, and its fallback (a
           flat `bg-secondary` square with ONE letter) only rendered when
           `avatar_url` was null. See `src/lib/avatarImage.ts`. */}
-      {viewProfile.avatar_url ? (
+      {safeDocumentUrl(viewProfile.avatar_url) ? (
         <a
-          href={viewProfile.avatar_url}
+          href={safeDocumentUrl(viewProfile.avatar_url) ?? undefined}
           target="_blank"
           rel="noopener noreferrer"
           className="flex-shrink-0"

@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 26 done, 4 partly done (fixed, protection pending), 67 open. Source of truth for work.
+- **Queue (this file):** 28 done, 4 partly done (fixed, protection pending), 66 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 97 items — 26 done, 4 partly done (fixed, protection pending), 67 open.**
+**Queue: 98 items — 28 done, 4 partly done (fixed, protection pending), 66 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -414,8 +414,9 @@ sure someone hears it and closes it.
   guard name, so it cannot fail); and Test run 35841787312 is red on
   typecheck: src/test/e2eSkipsAreJustified.test.ts imports e2e/*.ts files
   outside the tsconfig include (TS6307). Neither is from the Q39 change.
-- [ ] **Q96 A user can keep an error-screen alert open for ever (MEDIUM, Q39 review 2026-09-23).** ops_alert_record_user_error_screen (20260923085642:148-176) rate-limits only NEW items (5/hr per person, 20/hr global). Repeats of an existing fingerprint are unlimited, so one account looping POST /rest/v1/error_logs grows error_logs + ledger count without bound and holds the item open (close rule = a real row in the last 24h). Fix: cap repeats per account per fingerprint per window; guard with a PGlite test that is red on the uncapped function.
-- [ ] **Q97 error_log_is_seed trusts the client's tags.seed (LOW, Q39 review 2026-09-23).** A real account tagging {"seed":"true"} hides its own genuine error screens from the ledger and Slack routing (20260923052520:49-59). Fix: for client-origin rows derive seed from profiles.is_seed, not the tag; guard red on the current function.
+- [x] **Q96 A user can keep an error-screen alert open for ever (MEDIUM, Q39 review 2026-09-23).** ops_alert_record_user_error_screen (20260923085642:148-176) rate-limits only NEW items (5/hr per person, 20/hr global). Repeats of an existing fingerprint are unlimited, so one account looping POST /rest/v1/error_logs grows error_logs + ledger count without bound and holds the item open (close rule = a real row in the last 24h). Fix: cap repeats per account per fingerprint per window; guard with a PGlite test that is red on the uncapped function. DONE 2026-09-23 (20260923092838): a repeat of a known screen bumps the ledger only while that account hit that normalised fingerprint <= 5 times in the hour (guests share 20); over the cap the row is still stored and the close rule (error_logs, 24h) is unchanged, so genuine recurrence keeps it open. Guard: src/test/userErrorScreenAbuseCaps.test.ts (4 @mutate, all killed; 4 of 9 red on the unfixed definitions); behaviour: src/test/pglite/userErrorScreenRepeatCap.pglite.mjs (30 hits -> count 5, was 30).
+- [x] **Q97 error_log_is_seed trusts the client's tags.seed (LOW, Q39 review 2026-09-23).** A real account tagging {"seed":"true"} hides its own genuine error screens from the ledger and Slack routing (20260923052520:49-59). Fix: for client-origin rows derive seed from profiles.is_seed, not the tag; guard red on the current function. DONE 2026-09-23 (20260923092838): error_log_is_seed ignores tags.seed / a '-seed' source when tags.origin = 'client'; user_error_screen_is_real decides from profiles.is_seed. Server rows keep the tag (its two server callers return for client rows first). Guard: src/test/userErrorScreenAbuseCaps.test.ts; behaviour: src/test/pglite/userErrorScreenRepeatCap.pglite.mjs.
+- [ ] **Q98 Client error_logs inserts have no rate limit (LOW, found fixing Q96 2026-09-23).** Q96 stops a looping account bumping the ledger, but every row is still stored: one authenticated or anon client looping POST /rest/v1/error_logs grows the table without bound (live 2026-09-23: error_logs has 4 triggers, none throttles; stamp_error_log_origin, notify_slack_on_error_log, ops_alert_ledger_from_error_log, ops_alert_ledger_from_user_error_screen). Needs a per-user/per-IP insert cap or a retention prune, with a guard red on the uncapped path.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes

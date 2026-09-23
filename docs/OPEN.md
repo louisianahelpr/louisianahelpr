@@ -7981,3 +7981,27 @@ sure someone hears it and closes it.
   Also: GUARD-BURNDOWN and vacuity.yml comments call the full sweep NIGHTLY,
   but its cron is `17 14 * * 0` (WEEKLY). Make it nightly, or correct every
   claim, and make check:counts / check:claude-md catch schedule claims.
+- [ ] **Q53 ROOT-CAUSE the 2026-09-22 database outage.** 457 pg_cron jobs never
+  started (08:00-15:00Z "job startup timeout"); uptime reported "database: no
+  answer in 10000ms"; profile loads timed out (the owner saw the error screen at
+  15:10Z); "connection failed" bursts followed at 19:00Z. It was detected and
+  alerted, but WHY is unknown: free-tier resource limits, connection
+  exhaustion, a long lock, a runaway query, or a Supabase incident. Read
+  Supabase logs (MCP get_logs postgres/pooler), pg_stat_statements, the
+  connection counts, and the platform status history for that window. Name
+  the cause, fix it or add a guard (connection-count / CPU / slow-query alert
+  BEFORE it tips over), and record the evidence.
+- [ ] **Q54 Front/back PARITY sweep: every rule enforced in two places must
+  agree.** Tonight's mismatches were one class: device-zone vs Central day
+  (2 bugs), types.ts 59 differences behind prod, RPC error codes with no client
+  copy, an admin badge reading a different column than verification uses, a
+  static guard's exemption list missing from the live check. Inventory, from
+  code, every rule the CLIENT enforces that the SERVER also enforces (budget
+  min/max and pricing modes, text lengths and required fields, allowed
+  status/enum values, fee/tip/refund math, time windows such as the cancel
+  fee / day-of / auto-release, who-can-do-what gating, file size and type
+  limits, rate limits), and every server value the client DISPLAYS (labels
+  per status, error codes). For each pair: a parity test that fails when the
+  two sides drift. Some exist (moneyFigures.parity, tierPerks.parity,
+  earlyAccess.parity, cancellationFee.parity). Find the pairs that have no
+  test and add one. Report the matrix.

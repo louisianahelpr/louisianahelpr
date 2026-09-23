@@ -54,7 +54,7 @@ const AdminExport = () => {
     setExporting("users");
     // profiles.role was dropped — fetch profile + user_roles separately and merge.
     const [{ data, error }, { data: roles, error: rolesError }] = await Promise.all([
-      supabase.from("profiles").select("user_id, full_name, email, approval_status, ban_status, location, created_at, subscription_tier").order("created_at", { ascending: false }),
+      supabase.from("profiles").select("user_id, full_name, email, email_verified, ban_status, location, created_at, subscription_tier").order("created_at", { ascending: false }),
       supabase.from("user_roles").select("user_id, role"),
     ]);
     if (error) {
@@ -80,8 +80,10 @@ const AdminExport = () => {
         roleByUser.set(r.user_id, r.role);
       }
     }
-    const header = "User ID,Name,Email,Role,Status,Ban Status,Location,Created,Subscription";
-    const rows = data.map(p => [p.user_id, p.full_name, p.email, roleByUser.get(p.user_id) ?? "", p.approval_status, p.ban_status, p.location, p.created_at, p.subscription_tier].map(esc).join(","));
+    // "Email Verified" replaced the approval "Status" column (Q205b): email
+    // verification is the only entry gate.
+    const header = "User ID,Name,Email,Role,Email Verified,Ban Status,Location,Created,Subscription";
+    const rows = data.map(p => [p.user_id, p.full_name, p.email, roleByUser.get(p.user_id) ?? "", p.email_verified ? "yes" : "no", p.ban_status, p.location, p.created_at, p.subscription_tier].map(esc).join(","));
     // Awaited: the native path stages a file and opens the share sheet, so the
     // button must stay in its spinner until the handoff resolves rather than
     // snapping back while the sheet is still coming up.

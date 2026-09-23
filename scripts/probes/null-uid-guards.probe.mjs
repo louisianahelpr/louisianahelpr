@@ -87,8 +87,8 @@ INSERT INTO public.user_roles (id, user_id, role) VALUES (gen_random_uuid(), '${
 INSERT INTO public.jobs (id, customer_id, helper_id, status, payment_status, budget, platform_fee_amount, title)
   VALUES ('${JOB}', '${POSTER}', '${HELPER}', 'in_progress', 'escrow', 100, 10, 'Deep clean'),
          ('${DONE}', '${POSTER}', '${HELPER}', 'completed', 'released', 100, 10, 'Yard');
-INSERT INTO public.profiles (id, user_id, full_name, bio, ban_status, approval_status, subscription_tier)
-  VALUES (gen_random_uuid(), '${STRANGER}', 'Pat', 'hi', 'none', 'pending', 'free');
+INSERT INTO public.profiles (id, user_id, full_name, bio, ban_status, subscription_tier)
+  VALUES (gen_random_uuid(), '${STRANGER}', 'Pat', 'hi', 'none', 'free');
 INSERT INTO public.messages (id, job_id, sender_id, receiver_id, content, read, read_at)
   VALUES ('${MSG}', '${JOB}', '${POSTER}', '${HELPER}', 'see you at 9', false, NULL);
 INSERT INTO public.disputes (id, job_id, opener_id, status, reason, decided_at, payout_split)
@@ -159,8 +159,8 @@ const CASES = [
   ["helper: jobs.budget := 900", "helper", J("budget = 900", "budget = 900"), "refused", "refused"],
   ["helper: jobs.helper_on_the_way_at := now()", "helper", J("helper_on_the_way_at = now()", "helper_on_the_way_at IS NOT NULL"), "landed", "landed"],
   // profiles — prevent_self_escalation (resets, does not raise)
-  ["anon: profiles.subscription_tier := elite, approval_status := approved", "anon",
-    upd("profiles", "subscription_tier = 'elite', approval_status = 'approved'", `user_id='${STRANGER}'`, "subscription_tier = 'elite' OR approval_status = 'approved'"), "landed", "held"],
+  ["anon: profiles.subscription_tier := elite", "anon",
+    upd("profiles", "subscription_tier = 'elite'", `user_id='${STRANGER}'`, "subscription_tier = 'elite'"), "landed", "held"],
   ["service_role: profiles.subscription_tier := elite", "service",
     upd("profiles", "subscription_tier = 'elite'", `user_id='${STRANGER}'`, "subscription_tier = 'elite'"), "landed", "landed"],
   ["owner: profiles.subscription_tier := elite", "stranger",

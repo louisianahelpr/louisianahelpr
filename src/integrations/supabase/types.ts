@@ -5803,7 +5803,6 @@ export type Database = {
       get_public_profile_stats: {
         Args: { p_user_ids: string[] }
         Returns: {
-          approval_status: string
           avg_rating: number
           cancellation_rate: number
           cancelled_jobs: number

@@ -117,7 +117,7 @@ serve(async (req) => {
       // resolve it to a real email with the service-role client — otherwise
       // this path is a stronger oracle than the search RPC it's meant to
       // front for: search_profiles_by_name is rate-limited (20/min, 200/day)
-      // and filters to approved/non-banned rows only, but a raw recipient_id
+      // and filters to email-verified/non-banned rows only, but a raw recipient_id
       // sent straight to this endpoint had neither check, so any client that
       // already had (or guessed) a UUID could get back "found, here's
       // proof this id exists" / "not found" plus a real email, at this
@@ -129,7 +129,9 @@ serve(async (req) => {
         .from("profiles")
         .select("user_id")
         .eq("user_id", recipientIdRaw)
-        .eq("approval_status", "approved")
+        // The same entry gate search_profiles_by_name applies (Q205b: was
+        // approval_status = 'approved').
+        .eq("email_verified", true)
         .or("ban_status.is.null,ban_status.not.in.(temp_banned,permanently_banned)")
         .maybeSingle();
       if (profileErr || !eligibleProfile) {

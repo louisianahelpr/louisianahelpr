@@ -184,7 +184,7 @@ const AdminAnalytics = () => {
     escrowTotal,
     pendingPayoutTotal,
     subPieData,
-    approvedUsers,
+    verifiedUsers,
     totalFeesKnown,
     capturedJobsMissingFee,
     payoutLedgerUnavailable,
@@ -566,7 +566,7 @@ const AdminAnalytics = () => {
       {/* ── Row 6: User Status & Quick Stats ── */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <AdminCard title="User Status" contentClassName="space-y-2">
-          <StatusRow icon={CheckCircle} label="Approved" count={approvedUsers} color="text-primary" />
+          <StatusRow icon={CheckCircle} label="Email verified" count={verifiedUsers} color="text-primary" />
         </AdminCard>
 
         <AdminCard title="Job Completion Funnel" contentClassName="space-y-2">

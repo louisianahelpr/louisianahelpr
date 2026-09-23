@@ -75,7 +75,6 @@ type PublicProfileStatsRow = {
   revision_rate: number | string | null;
   repeat_client_sample: number | null;
   repeat_hire_percent: number | string | null;
-  approval_status: string | null;
   is_id_verified: boolean | null;
   has_stripe_account: boolean | null;
   is_background_checked: boolean | null;
@@ -148,14 +147,14 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     queryFn: async () => {
-      // `get_safe_profiles` only returns *approved*, non-banned rows, so
-      // it deliberately hides profiles that aren't public yet. That's
+      // `get_safe_profiles` only returns email-verified, non-banned rows,
+      // so it deliberately hides profiles that aren't public yet. That's
       // correct for viewing other people — but it also hid the viewer's
       // OWN profile from the "How others see you" preview whenever their
-      // account was still pending approval, surfacing a false "User not
-      // found". When the requested id is the current user's, fall back to
-      // a direct self-select (the profiles RLS policy already permits the
-      // owner to read their own row regardless of approval_status).
+      // row was not yet public, surfacing a false "User not found". When
+      // the requested id is the current user's, fall back to a direct
+      // self-select (the profiles RLS policy lets the owner read their own
+      // row whatever its state).
       // Primary path: the masked RPC. We deliberately do NOT throw on its
       // error — a missing function (PGRST202 before a migration is pushed)
       // or any transient RPC failure used to collapse the whole query into
@@ -257,7 +256,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // relies on), so a direct select is fine.
         supabase
           .from("profiles")
-          .select("approval_status, stripe_identity_verified, stripe_account_id, background_check_status")
+          .select("stripe_identity_verified, stripe_account_id, background_check_status")
           .eq("user_id", userId!)
           .maybeSingle(),
         // Count-only queries — `head: true` skips row payload, so these
@@ -678,7 +677,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       let reviews: any[] = [];
       /* PREFERRED PATH: the DEFINER function. It already applied the reveal
          window and the cancelled-job exclusion in SQL, masked the reviewer's
-         name by the same approved-and-not-banned rule get_safe_profiles uses,
+         name by the same email-verified-and-not-banned rule get_safe_profiles uses,
          and returned the job's CATEGORY rather than its title — titles are
          free text and routinely carry a street or a surname, and a sibling
          lane spent today closing an address leak. It also saves the two
@@ -841,7 +840,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // HelperTierBadge, which was therefore tier 0 (badge hidden) on every
         // visitor's view for the same RLS reason.
         tierProfile: {
-          approval_status: publicStats?.approval_status ?? idCheckRes.data?.approval_status ?? null,
           stripe_identity_verified:
             publicStats?.is_id_verified ?? idCheckRes.data?.stripe_identity_verified ?? null,
           /* The ladder only ever truthiness-tests this (`if

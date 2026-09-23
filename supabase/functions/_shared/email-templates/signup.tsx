@@ -51,7 +51,7 @@ export const SignupEmail = ({
           you're approved!"
           Every clause of it was false, and had been since manual review was
           removed:
-            • `complete-signup/index.ts` sets `approval_status: "approved"`
+            • `complete-signup/index.ts` set `approval_status: "approved"`
               unconditionally, with its own comment saying "Auto-approve —
               there's no manual admin review step anymore".
             • There is therefore no 24–48 hour window. Prod, 2026-08-31: 30 of

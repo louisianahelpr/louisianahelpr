@@ -93,10 +93,10 @@ describe("complete-signup — the retired ID / portfolio uploads (Q40)", () => {
     // Nothing was uploaded to any bucket.
     expect([...scenario.storage.objects]).toEqual([]);
 
-    // The approving UPDATE ran (not vacuous) and carries neither column.
+    // The signup UPDATE ran (not vacuous) and carries neither column.
     const update = scenario.writes.find((w) => w.table === "profiles" && w.op === "update");
     const payload = update?.payload as Record<string, unknown> | undefined;
-    expect(payload?.approval_status).toBe("approved");
+    expect(payload?.terms_version_accepted).toBeTruthy();
     expect(payload).not.toHaveProperty("id_document_url");
     expect(payload).not.toHaveProperty("portfolio_urls");
     const json = (await res.json()) as Record<string, unknown>;

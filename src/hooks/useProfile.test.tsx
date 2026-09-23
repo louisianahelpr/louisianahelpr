@@ -32,7 +32,6 @@ const sampleRow = {
   email: "marie@example.com",
   avatar_url: null,
   ban_status: null,
-  approval_status: "approved",
   idv_status: "verified",
   created_at: "2026-01-01T00:00:00Z",
   bio: null,
@@ -92,7 +91,8 @@ describe("fetchProfile", () => {
     // `stringContaining` probes covered 2 of 11 — dropping `ban_status` (the
     // column the ban banner and every hiring gate read) stayed green.
     const schemaKeys = Object.keys(sharedProfileOrNullSchema.unwrap().shape);
-    expect(schemaKeys.length).toBeGreaterThanOrEqual(11);
+    // 10 since Q205b dropped approval_status from the shared select.
+    expect(schemaKeys.length).toBeGreaterThanOrEqual(10);
     maybeSingleMock.mockResolvedValue({ data: sampleRow, error: null });
     await fetchProfile("user-1");
     const selected = String(selectMock.mock.calls[0][0])

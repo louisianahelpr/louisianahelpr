@@ -136,7 +136,6 @@ const PROFILE_ROWS = [
     bio: "Ten years of moving and handyman work across the parish.",
     subscription_tier: "pro",
     is_verified: true,
-    approval_status: "approved",
     ban_status: "active",
     is_id_verified: true,
     is_payout_ready: true,
@@ -153,7 +152,6 @@ const PROFILE_ROWS = [
     bio: "Detail cleaning, move-outs and post-renovation work.",
     subscription_tier: "free",
     is_verified: true,
-    approval_status: "approved",
     ban_status: "active",
     is_id_verified: false,
     is_payout_ready: true,
@@ -166,7 +164,6 @@ const PROFILE_ROWS = [
     location: "Baton Rouge, LA",
     subscription_tier: "free",
     is_verified: true,
-    approval_status: "approved",
     ban_status: "active",
   },
 ];

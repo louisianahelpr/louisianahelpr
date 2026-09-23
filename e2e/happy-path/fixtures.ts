@@ -134,7 +134,6 @@ export function buildFakeProfile(user: FakeUser) {
     date_of_birth: "1990-01-01",
     phone: "5045550100",
     location: "New Orleans, LA",
-    approval_status: "approved",
     ban_status: "active",
     is_legacy_user: true,
     subscription_tier: "free",

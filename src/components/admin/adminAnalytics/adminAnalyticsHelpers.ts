@@ -79,20 +79,22 @@ export const computeMetrics = (
       helperJobsByUser.set(j.helper_id, (helperJobsByUser.get(j.helper_id) ?? 0) + 1);
     }
   }
-  const helpersApproved = helpers.filter(p => p.approval_status === "approved");
-  const helpersConnectOnboarded = helpersApproved.filter(p => !!(p as { stripe_account_id?: string }).stripe_account_id);
+  // The can-work milestone is a confirmed email: the only entry gate
+  // (Q205b; this was approval_status === "approved").
+  const helpersVerified = helpers.filter(p => p.email_verified);
+  const helpersConnectOnboarded = helpersVerified.filter(p => !!(p as { stripe_account_id?: string }).stripe_account_id);
   const helpersWithFirstJob = new Set(
     allJobs.filter(j => j.helper_id && j.status === "completed").map(j => j.helper_id).filter((x): x is string => !!x),
   );
   // Same fix as customerFunnel — a helper can complete a job without ever
   // having a stripe_account_id (legacy data, admin-elevated test accounts).
-  // Denominate "Completed first job" against Approved (the actual can-work
-  // milestone), not Connect onboarded. Was rendering 4/0 → 400%.
+  // Denominate "Completed first job" against Email verified (the actual
+  // can-work milestone), not Connect onboarded. Was rendering 4/0 → 400%.
   const helperFunnel = [
     { label: "Signed up", count: helpers.length, of: helpers.length },
-    { label: "Approved", count: helpersApproved.length, of: helpers.length },
-    { label: "Connect onboarded", count: helpersConnectOnboarded.length, of: helpersApproved.length || 1 },
-    { label: "Completed first job", count: helpersWithFirstJob.size, of: helpersApproved.length || 1 },
+    { label: "Email verified", count: helpersVerified.length, of: helpers.length },
+    { label: "Connect onboarded", count: helpersConnectOnboarded.length, of: helpersVerified.length || 1 },
+    { label: "Completed first job", count: helpersWithFirstJob.size, of: helpersVerified.length || 1 },
   ];
 
   // ─── Monthly signup cohorts × current activity ───
@@ -335,10 +337,9 @@ export const computeMetrics = (
     if (j.helper_id) helperJobCount[j.helper_id] = (helperJobCount[j.helper_id] || 0) + 1;
   });
 
-  // Accounts that finished signup. There is no approval review (Q193): a row
-  // left `pending` is a signup whose complete-signup never ran, and `denied`
-  // no longer exists, so neither gets a count of its own (Q205c).
-  const approvedUsers = profiles.filter(p => p.approval_status === "approved").length;
+  // Accounts past the entry gate. There is no approval review (Q193) and
+  // approval_status is retired (Q205b): email verification is the gate.
+  const verifiedUsers = profiles.filter(p => p.email_verified).length;
 
   return {
     helperPayoutsFromLedger,
@@ -382,6 +383,6 @@ export const computeMetrics = (
     pendingPayoutTotal,
     subPieData,
     helperJobCount,
-    approvedUsers,
+    verifiedUsers,
   };
 };

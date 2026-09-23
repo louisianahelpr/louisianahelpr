@@ -332,7 +332,6 @@ export function IdentityHeader({
               <div className="flex flex-wrap items-center gap-1.5 mt-2">
                 <HelperTierBadge
                   profile={{
-                    approval_status: profile?.approval_status ?? null,
                     stripe_identity_verified: profile?.stripe_identity_verified ?? null,
                     stripe_account_id: profile?.stripe_account_id ?? null,
                   }}

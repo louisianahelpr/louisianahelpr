@@ -26,7 +26,6 @@ const sharedProfileSchema = z
     email: z.string().nullable(),
     avatar_url: z.string().nullable(),
     ban_status: z.string().nullable(),
-    approval_status: z.string().nullable(),
     idv_status: z.string().nullable(),
     created_at: z.string().nullable(),
     bio: z.string().nullable(),

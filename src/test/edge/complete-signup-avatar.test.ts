@@ -10,7 +10,7 @@
  * member (22 of them in press-every-control that night).
  *
  * The UPDATE's own failure modes are not theoretical here. It is the write that
- * sets `approval_status: "approved"`, it already has a zero-row guard because a
+ * records the signup, it already has a zero-row guard because a
  * missing profile row is reachable on the JWT path, and an UPDATE matching zero
  * rows answers `{ data: [], error: null }` — indistinguishable from success if
  * you only read `error`.
@@ -28,7 +28,7 @@
 //   (1) sweeping on the uploaded name alone deletes the object a racing
 //   replacement already moved the row onto; (2) filtering the UPDATE on `id`
 //   instead of `user_id` matches zero rows on prod and silently leaves the
-//   account unapproved.
+//   signup unrecorded.
 // @mutate supabase/functions/complete-signup/index.ts | rowName && rowName !== avatarObjectName ? [avatarObjectName, rowName] : avatarObjectName, | avatarObjectName,
 // @mutate supabase/functions/complete-signup/index.ts | .update(updateData)\n      .eq("user_id", userId)\n      .select("user_id"); | .update(updateData)\n      .eq("id", userId)\n      .select("user_id");
 import { describe, it, expect, beforeEach, afterEach, type MockInstance } from "vitest";
@@ -127,8 +127,8 @@ describe("complete-signup — avatar row before avatar object", () => {
     );
     // …filtered on `user_id`, the column that actually holds the auth id.
     // `profiles.id` is a SEPARATE surrogate key, so `.eq("id", userId)` matches
-    // ZERO rows on prod and answers `{ data: [], error: null }` — the account
-    // is left unapproved and the avatar row never moves, with nothing thrown.
+    // ZERO rows on prod and answers `{ data: [], error: null }` — the signup
+    // is left unrecorded and the avatar row never moves, with nothing thrown.
     // The mock resolves writes by TABLE, not by filter, so every other
     // assertion in this file passes with the wrong column; only this one sees
     // it (probe 2026-09-21: the swap left both complete-signup guards 12/12).

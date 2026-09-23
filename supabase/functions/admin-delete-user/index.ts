@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
     // signup) could not be deleted through this path at all.
     const { data: profile, error: profileErr } = await supabaseAdmin
       .from("profiles")
-      .select("approval_status, full_name, email")
+      .select("full_name, email")
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -168,7 +168,6 @@ Deno.serve(async (req) => {
       details: {
         email: profile?.email ?? null,
         full_name: profile?.full_name ?? null,
-        approval_status: profile?.approval_status ?? null,
       },
     });
     // NOTE: a PostgrestBuilder is a lazy PromiseLike that implements `then`

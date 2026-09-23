@@ -161,17 +161,17 @@ const HELPER = { email: "helpr-e2e-helper-0902@mailinator.com", key: "helper-e2e
 const OWNED = {
   // `pending` / `denied` are historical KEYS only (their ids are fixture anchors
   // below): both approval states were retired in Q193, so both are approved.
-  pending: { email: "helpr-seed-pending-0912@mailinator.com", full_name: "Seed Pending Tester", approval_status: "approved", ban_status: "active" },
-  denied: { email: "helpr-seed-denied-0912@mailinator.com", full_name: "Seed Denied Tester", approval_status: "approved", ban_status: "active" },
-  banned: { email: "helpr-seed-banned-0912@mailinator.com", full_name: "Seed Banned Tester", approval_status: "approved", ban_status: "permanently_banned" },
-  restricted: { email: "helpr-seed-restricted-0912@mailinator.com", full_name: "Seed Restricted Tester", approval_status: "approved", ban_status: "temp_banned" },
+  pending: { email: "helpr-seed-pending-0912@mailinator.com", full_name: "Seed Pending Tester", ban_status: "active" },
+  denied: { email: "helpr-seed-denied-0912@mailinator.com", full_name: "Seed Denied Tester", ban_status: "active" },
+  banned: { email: "helpr-seed-banned-0912@mailinator.com", full_name: "Seed Banned Tester", ban_status: "permanently_banned" },
+  restricted: { email: "helpr-seed-restricted-0912@mailinator.com", full_name: "Seed Restricted Tester", ban_status: "temp_banned" },
   // Profile deliberately INCOMPLETE (no avatar, not legacy) so /complete-profile
   // actually renders for the sweep instead of redirecting to the dashboard.
-  incomplete: { email: "helpr-seed-incomplete-0912@mailinator.com", full_name: "Seed Incomplete Tester", approval_status: "approved", ban_status: "active", profile: { avatar_url: null, is_legacy_user: false } },
+  incomplete: { email: "helpr-seed-incomplete-0912@mailinator.com", full_name: "Seed Incomplete Tester", ban_status: "active", profile: { avatar_url: null, is_legacy_user: false } },
   // Admin role (one user_roles row, upserted on --apply, deleted on --teardown)
   // so the admin screens can be swept on prod. Owner-approved 2026-09-12.
-  admin: { email: "helpr-seed-admin-0912@louisianahelpr.com", full_name: "Seed Admin Tester", approval_status: "approved", ban_status: "active", role: "admin" },
-  heavy: { email: "helpr-seed-heavy-0912@mailinator.com", full_name: "Marie-Thérèse Boudreaux-Fontenot de la Houssaye 🦞 (Seed Heavy)", approval_status: "approved", ban_status: "active" },
+  admin: { email: "helpr-seed-admin-0912@louisianahelpr.com", full_name: "Seed Admin Tester", ban_status: "active", role: "admin" },
+  heavy: { email: "helpr-seed-heavy-0912@mailinator.com", full_name: "Marie-Thérèse Boudreaux-Fontenot de la Houssaye 🦞 (Seed Heavy)", ban_status: "active" },
 };
 /**
  * THE HELPER'S WEEKLY HOURS — the SEEDER owns them, and it owns all SEVEN days.
@@ -203,7 +203,6 @@ for (let i = 1; i <= APPLICANT_COUNT; i++) {
   OWNED[`applicant${n}`] = {
     email: `helpr-seed-applicant-${n}-0912@mailinator.com`,
     full_name: ["Nguyễn Thị Minh Khai", "Jean-Baptiste Émile Arceneaux-Thibodeaux III", "李小龍", "محمد عبد الرحمن", "Zoë 🌶️ Landry"][i % 5] + ` (Seed ${n})`,
-    approval_status: "approved",
     ban_status: "active",
   };
 }
@@ -230,7 +229,7 @@ async function findAuthUser(email) {
 }
 
 async function profileByEmail(email) {
-  const rows = await select(`profiles?email=eq.${encodeURIComponent(email)}&select=user_id,email,is_seed,approval_status,ban_status`);
+  const rows = await select(`profiles?email=eq.${encodeURIComponent(email)}&select=user_id,email,is_seed,ban_status`);
   return rows[0] ?? null;
 }
 
@@ -269,7 +268,6 @@ async function ensureOwnedAccount(key, spec) {
     terms_accepted_at: new Date().toISOString(),
     location: "Lafayette, LA",
     avatar_url: PIXEL,
-    approval_status: spec.approval_status,
     ban_status: spec.ban_status,
     denial_reason: spec.denial_reason ?? null,
     auto_suspended_until: key === "restricted" ? new Date(Date.now() + 30 * 86_400_000).toISOString() : null,
@@ -1007,7 +1005,7 @@ async function verify() {
   await check("fraud_flags (seed)", `fraud_flags?id=${inList([sid("fraud:banned"), sid("fraud:denied")])}&select=id`, 2);
   await check("user_bans (seed)", `user_bans?id=${inList([sid("ban:banned"), sid("ban:restricted")])}&select=id`, 2);
   for (const [k, spec] of Object.entries({ pending: OWNED.pending, denied: OWNED.denied, banned: OWNED.banned, restricted: OWNED.restricted })) {
-    await check(`account ${k} (is_seed)`, `profiles?email=eq.${encodeURIComponent(spec.email)}&is_seed=eq.true&approval_status=eq.${spec.approval_status}&ban_status=eq.${spec.ban_status}&select=user_id`, 1);
+    await check(`account ${k} (is_seed)`, `profiles?email=eq.${encodeURIComponent(spec.email)}&is_seed=eq.true&ban_status=eq.${spec.ban_status}&select=user_id`, 1);
   }
   await check("account incomplete profile (seed, not legacy)", `profiles?email=eq.${encodeURIComponent(OWNED.incomplete.email)}&is_seed=eq.true&avatar_url=is.null&is_legacy_user=eq.false&select=user_id`, 1);
   await check("account admin role (seed)", `user_roles?id=eq.${sid("role:admin")}&role=eq.admin&select=id`, 1);

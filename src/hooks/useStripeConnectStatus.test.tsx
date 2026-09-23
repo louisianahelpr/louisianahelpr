@@ -8,9 +8,9 @@ const mocks = vi.hoisted(() => {
   const invoke = vi.fn();
   const report = vi.fn();
   const store = new Map<string, string>();
-  const currentUser: { user: { id: string } | null; profile: { approval_status: string } | null } = {
+  const currentUser: { user: { id: string } | null; profile: { user_id: string } | null } = {
     user: { id: "u1" },
-    profile: { approval_status: "approved" },
+    profile: { user_id: "u1" },
   };
   return { invoke, report, store, currentUser };
 });
@@ -48,7 +48,7 @@ describe("useStripeConnectStatus", () => {
     mocks.report.mockReset();
     mocks.store.clear();
     mocks.currentUser.user = { id: "u1" };
-    mocks.currentUser.profile = { approval_status: "approved" };
+    mocks.currentUser.profile = { user_id: "u1" };
   });
 
   it("payouts enabled → nothing to prompt, and remembers it for next cold launch", async () => {
@@ -120,8 +120,8 @@ describe("useStripeConnectStatus", () => {
     expect(result.current.payoutPrompt).toEqual({ kind: "reserve" });
   });
 
-  it("never asks Stripe for an account that isn't approved yet", async () => {
-    mocks.currentUser.profile = { approval_status: "pending" };
+  it("never asks Stripe before the profile has loaded", async () => {
+    mocks.currentUser.profile = null;
     const { result } = renderHook(() => useStripeConnectStatus(), { wrapper });
     expect(result.current.payoutPrompt).toEqual({ kind: "none" });
     expect(mocks.invoke).not.toHaveBeenCalled();

@@ -24,6 +24,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { countFindings, foldFindings } from "./lib/auditFindings.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DIR = join(ROOT, "docs/audit/launch-2026-09");
@@ -64,50 +65,9 @@ function emit(rec) {
   return rec;
 }
 
-/**
- * Fold the append-only log into current state: the newest status record for an
- * id wins. This is what every consumer should use instead of reading raw lines.
- */
+/** Fold the append-only log into current state (scripts/lib/auditFindings.mjs). */
 function fold() {
-  const findings = new Map();
-  for (const r of readAll()) {
-    if (r.kind === "finding") {
-      // A SECOND finding under an existing id must never DELETE the first.
-      //
-      // nextId() above stops new collisions; this stops the ones already on
-      // disk from staying invisible. Twelve findings were shadowed before that
-      // fix landed — all 8 of lh-verification-credentials' (VC-001..VC-008,
-      // overwritten by lh-visual-critic), 3 of lh-copy-content's
-      // (CC-001..CC-003, overwritten by lh-concurrency-cache) and main's
-      // TC-001 (overwritten by lh-test-ci) — including two HIGH findings about
-      // a credential tier any signed-in user can self-grant and a license that
-      // never expires. The ledger is append-only, so every one of those rows is
-      // still in the file; only this fold dropped them.
-      //
-      // The incumbent keeps the id, because any status rows filed against that
-      // id were filed against IT. The newcomer is kept under `<id>#<agent>` so
-      // it stays readable instead of vanishing.
-      const incumbent = findings.get(r.id);
-      if (incumbent && incumbent.agent !== r.agent) {
-        findings.set(`${r.id}#${r.agent}`, {
-          ...r,
-          id: `${r.id}#${r.agent}`,
-          collided_with: r.id,
-          status: "filed",
-          history: [],
-        });
-        continue;
-      }
-      findings.set(r.id, { ...r, status: "filed", history: [] });
-    } else if (r.kind === "status") {
-      const f = findings.get(r.id);
-      if (!f) continue;
-      f.status = r.status;
-      if (r.dupe_of) f.dupe_of = r.dupe_of;
-      f.history.push(r);
-    }
-  }
-  return [...findings.values()];
+  return foldFindings(readAll());
 }
 
 function nextId(agent) {
@@ -201,14 +161,21 @@ if (cmd === "file") {
   console.log(existsSync(p) ? readFileSync(p, "utf8") : "(empty inbox)");
 } else if (cmd === "rollup") {
   const all = fold();
+  // The tables below list everything not retracted/duplicate (fixed rows stay
+  // visible with their status). The HEADLINE counts come from countFindings —
+  // the same definition COVERAGE.md prints — so "open" means open everywhere.
   const live = all.filter((f) => !["retracted", "duplicate"].includes(f.status));
+  const n = countFindings(all);
+  // Stamped with the newest bus record, not the wall clock, so regenerating an
+  // unchanged ledger is byte-identical (scripts/check-generated-current.mjs).
+  const asOf = readAll().reduce((m, r) => (r.ts && r.ts > m ? r.ts : m), "");
   const lines = [
     "# Launch audit — findings rollup",
     "",
-    `_Generated ${now()} from findings.jsonl. Do not hand-edit — run \`node scripts/audit-bus.mjs rollup\`._`,
+    `_Generated from findings.jsonl as of its newest entry (${asOf || "empty"}). Do not hand-edit — run \`node scripts/audit-bus.mjs rollup\`._`,
     "",
-    `**${live.length} live findings** · ${live.filter((f) => f.launch_blocker).length} launch blockers · `
-      + `${all.filter((f) => f.status === "retracted").length} retracted · ${all.filter((f) => f.status === "fixed").length} fixed`,
+    `**${n.open} open findings** · ${n.openBlockers} open launch blockers · ${n.fixed} fixed · ${n.wontfix} wontfix · `
+      + `${n.retracted} retracted · ${n.duplicate} duplicate · ${n.filed} filed all time`,
     "",
   ];
   for (const sev of SEVERITIES) {
@@ -223,7 +190,7 @@ if (cmd === "file") {
     lines.push("");
   }
   writeFileSync(join(DIR, "ROLLUP.md"), lines.join("\n"));
-  console.log(`rollup written: ${live.length} live findings`);
+  console.log(`rollup written: ${n.open} open findings (${n.openBlockers} open blockers), ${n.filed} filed`);
 } else {
   console.log(readFileSync(fileURLToPath(import.meta.url), "utf8").split("*/")[0].split("/**")[1].trim());
 }

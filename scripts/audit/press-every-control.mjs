@@ -61,6 +61,11 @@ import {
   remintSession, rowNamesTestOwner, sessionStillAlive, snapshotProfile, urlOwnership,
 } from "./pressProdSafety.mjs";
 import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
+import {
+  FOREIGN_FIXTURE_SKIP, NOT_REACHED_STATUS, classifyConsoleError, classifyFailedResponse, clickFailureReason,
+  isForeignSweepFixture, overTimeBudget, refusalIsDeath, tokenNeedsRefresh,
+} from "./pressFailureClass.mjs";
+import { recordRouteProbePasses, routeProbePasses } from "./pressRouteProbe.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const REPO = resolve(HERE, "../..");
@@ -372,10 +377,13 @@ export const BOUNCED_SKIP = "the screen redirected away on a later load; its con
  *                              35692554813 excused seven page-level controls
  *                              on /account-banned before this line existed.
  */
-export function missingControlDisposition({ scope, onSameScreen, consumed, transient = false }) {
+export function missingControlDisposition({ scope, onSameScreen, consumed, transient = false, foreignFixture = false }) {
   if (!onSameScreen) return BOUNCED_SKIP;
   if (scope === "overlay" && consumed) return CONSUMED_SKIP;
   if (transient) return TRANSIENT_STATUS_SKIP;
+  // Q128: reached through another sweep's live fixture row, which that sweep
+  // moved on between loads (pressFailureClass.mjs, class 3).
+  if (foreignFixture) return FOREIGN_FIXTURE_SKIP;
   return null;
 }
 
@@ -508,6 +516,7 @@ export const DOCUMENTED_SKIPS = new Set([
   BOUNCED_SKIP,
   TRANSIENT_STATUS_SKIP,
   FORM_MIRROR_SKIP,
+  FOREIGN_FIXTURE_SKIP,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -693,6 +702,9 @@ async function main() {
   // so anything shorter here enumerates a screen the app has not finished with.
   const OVERLAY_FILL_MS = Number(process.env.OVERLAY_FILL_MS ?? 16_000);
   const RUN_ID = process.env.RUN_ID ?? `${Date.now()}-${process.pid}`;
+  // Q128 class 6: the sweep's own budget, below the job's timeout-minutes, so
+  // it stops itself and reports instead of being cancelled with no report.
+  const TIME_BUDGET_MS = Number(process.env.TIME_BUDGET_MIN ?? 0) * 60_000;
   const runStart = Date.now();
   mkdirSync(OUT, { recursive: true });
 
@@ -811,12 +823,30 @@ async function main() {
   const SESSION_VERIFY_MS = 5 * 60 * 1000;
   const sessionDeaths = [];   // every re-mint, with the row it was noticed on
   const sessionLostRows = []; // rows whose failures are NOT product defects
+  const sessionRefreshes = []; // routine expiry refreshes (Q128) — not deaths
   let noticedOn = "run start";
   const ensureLiveSession = async (persona) => {
     const s = sessions[persona];
     if (!s) return null;
+    // Q128 class 5: an access token about to expire is refreshed, not mourned.
+    // A shard outlives the 1h token; letting it lapse made the page refresh
+    // the one shared refresh token from several contexts, and counted the
+    // refusal of an EXPIRED token as a death that failed the run.
+    const refresh = async () => {
+      try {
+        const fresh = { account: s.account, ...(await remintSession(s.account)) };
+        sessions[persona] = fresh;
+        sessionRefreshes.push({ persona, account: s.account, noticedOn, at: new Date().toISOString() });
+        return fresh;
+      } catch (e) {
+        console.log(`::warning title=press token refresh failed::${s.account}: ${String(e.message).slice(0, 160)} — treating as a session death`);
+        return null;
+      }
+    };
+    if (tokenNeedsRefresh(s.accessToken)) { const fresh = await refresh(); if (fresh) return fresh; }
     if (!s.suspect && Date.now() - s.at < SESSION_VERIFY_MS) return s;
     if (await sessionStillAlive(s)) { s.at = Date.now(); s.suspect = false; return s; }
+    if (!refusalIsDeath(s.accessToken)) { const fresh = await refresh(); if (fresh) return fresh; }
     console.log(`::error title=press SESSION DIED::GoTrue refuses the ${s.account} session (noticed on ${noticedOn}) — re-minting; presses measured with it are not product defects`);
     try {
       const fresh = { account: s.account, ...(await remintSession(s.account)) };
@@ -838,8 +868,13 @@ async function main() {
     }
     const personas = route.personas.filter((p) => PERSONAS.includes(p));
     for (const persona of personas) {
-      const rec = { route: route.url, persona, status: "ok", landedOn: null, found: 0, pressed: 0, passed: 0, failed: 0, skipped: 0, controls: [], notes: [], net: null };
+      const rec = { route: route.url, persona, status: "ok", landedOn: null, found: 0, pressed: 0, passed: 0, failed: 0, skipped: 0, controls: [], notes: [], net: null, nonApp: [] };
       results.push(rec);
+      if (overTimeBudget({ startedAt: runStart, budgetMs: TIME_BUDGET_MS })) {
+        rec.status = NOT_REACHED_STATUS;
+        rec.notes.push(`not reached: the sweep's own time budget (${TIME_BUDGET_MS / 60_000} min) ran out first`);
+        continue;
+      }
       noticedOn = `${route.url} (${persona})`;
       const session = persona === "anon" ? null : await ensureLiveSession(persona);
       if (persona !== "anon" && !session) {
@@ -869,19 +904,28 @@ async function main() {
       const page = await ctx.newPage();
       const consoleErrors = [];
       const netFails = [];
+      // Q128 classes 1-2: our own telemetry refused, a vendor's 5xx. Listed in
+      // coverage.md, never counted against the control that was pressed.
+      const nonAppFails = rec.nonApp;
       const popups = [];
       page.on("console", (m) => {
         if (m.type() !== "error") return;
         const t = m.text();
         if (CONSOLE_NOISE.some((rx) => rx.test(t))) return;
         if (ignoreHostOnlyAsset(m.location()?.url, BASE)) return;
+        const cls = classifyConsoleError({ text: t, locationUrl: m.location()?.url });
+        if (cls !== "app") { nonAppFails.push(`${cls}: console ${t.replace(/\s+/g, " ").slice(0, 120)} (${String(m.location()?.url ?? "").replace(/\?.*$/, "").slice(0, 120)})`); return; }
         consoleErrors.push(t.replace(/\s+/g, " ").slice(0, 200));
       });
       page.on("pageerror", (e) => consoleErrors.push("uncaught: " + String(e.message).slice(0, 200)));
       page.on("response", (r) => {
         const s = r.status();
         if (ignoreHostOnlyAsset(r.url(), BASE)) return;
-        if (s >= 400 && s !== 406) netFails.push(`${s} ${r.request().method()} ${r.url().replace(/\?.*$/, "").split("/").slice(-2).join("/")}`);
+        if (s < 400 || s === 406) return;
+        const line = `${s} ${r.request().method()} ${r.url().replace(/\?.*$/, "").split("/").slice(-2).join("/")}`;
+        const cls = classifyFailedResponse({ url: r.url(), status: s });
+        if (cls !== "app") { nonAppFails.push(`${cls}: ${s} ${r.request().method()} ${r.url().replace(/\?.*$/, "").slice(0, 160)}`); return; }
+        netFails.push(line);
       });
       ctx.on("page", (p) => { popups.push(p.url()); p.close().catch(() => {}); });
       const downloads = [];
@@ -1161,6 +1205,12 @@ async function main() {
         let pageDirty = false; // a press changed the resting page; reload before the next one
 
         while (idx < queue.length) {
+          if (overTimeBudget({ startedAt: runStart, budgetMs: TIME_BUDGET_MS })) {
+            // Q128 class 6: stop mid-row rather than be cancelled mid-row.
+            rec.status = NOT_REACHED_STATUS;
+            rec.notes.push(`cut short: the sweep's own time budget ran out with ${queue.length - idx} control(s) of this row unpressed`);
+            break;
+          }
           const item = queue[idx++];
           const { meta } = item;
           const chain = item.chain.map((s) => s);
@@ -1281,6 +1331,7 @@ async function main() {
                 onSameScreen,
                 consumed: item.step.scope === "overlay" ? await consumedHere(now) : false,
                 transient: !!meta.inStatus,
+                foreignFixture: isForeignSweepFixture(entry.chain),
               });
               if (why) { skip(why); continue; }
             }
@@ -1428,12 +1479,13 @@ async function main() {
                   onSameScreen,
                   consumed: item.step.scope === "overlay" ? await consumedHere(now) : false,
                   transient: !!meta.inStatus,
+                  foreignFixture: isForeignSweepFixture(entry.chain),
                 });
                 if (why) { skip(why); pageDirty = true; continue; }
               }
             }
             if (last) {
-              entry.result = "FAIL"; entry.why = "NOT CLICKABLE: " + String(last.message).replace(/\s+/g, " ").slice(0, 600);
+              entry.result = "FAIL"; entry.why = `NOT CLICKABLE (${clickFailureReason(last.message)}): ` + String(last.message).replace(/\s+/g, " ").slice(0, 600);
               rec.failed++; failedPresses++;
               entry.shot = await shoot(`unclickable-${slug(label)}`);
               pageDirty = true;
@@ -1576,6 +1628,9 @@ async function main() {
   await browser.close();
 
   // ---- clean up what the presses created --------------------------------------
+  // Q128 class 5: the clean-up ran on tokens that had expired hours earlier
+  // ("admin applications: HTTP 401 JWT expired" x11) and cleaned nothing.
+  for (const p of Object.keys(sessions)) { noticedOn = "clean-up"; await ensureLiveSession(p); }
   const cleaned = await cleanup({ sessions, since: runStart - 60_000, profilesBefore });
   for (const l of cleaned.log) console.log(`cleaned: ${l}`);
   for (const l of cleaned.residue) console.log(`::warning title=clean-up residue::${l}`);
@@ -1594,12 +1649,18 @@ async function main() {
       "",
     );
   }
+  const notReached = results.filter((r) => r.status === NOT_REACHED_STATUS);
+  if (notReached.length) {
+    lines.push(`> **TIME BUDGET — ${notReached.length} ROW(S) NOT REACHED.** The sweep stopped itself at its ${TIME_BUDGET_MS / 60_000}-minute budget (below the job's timeout) so this report exists; these rows were not measured:`, "",
+      ...notReached.map((r) => `- not reached: ${r.route} (${r.persona})`), "");
+  }
   const uncovered = results.filter((r) => r.status === "uncovered");
   if (uncovered.length) lines.push(`**UNCOVERED personas:** ${[...new Set(uncovered.map((r) => `${r.persona} (${r.notes[0]})`))].join("; ")}`, "");
   lines.push("| route | persona | found | pressed | pass | fail | skipped (documented) | undocumented |", "|---|---|---:|---:|---:|---:|---:|---:|");
   for (const r of results) {
     if (r.status === "redirect") { lines.push(`| ${r.route} | ${r.persona} | — | — | — | — | redirect → ${r.landedOn ?? "target"} | — |`); continue; }
     if (r.status === "uncovered") { lines.push(`| ${r.route} | ${r.persona} | — | — | — | — | UNCOVERED (${r.notes[0]}) | — |`); continue; }
+    if (r.status === NOT_REACHED_STATUS) { lines.push(`| ${r.route} | ${r.persona} | — | — | — | — | NOT REACHED (time budget) | — |`); continue; }
     const doc = r.controls.filter((c) => c.result === "SKIP" && DOCUMENTED_SKIPS.has(c.why)).length;
     const undoc = r.controls.filter((c) => c.result === "SKIP" && !DOCUMENTED_SKIPS.has(c.why)).length;
     lines.push(`| ${r.route} | ${r.persona} | ${r.found} | ${r.pressed} | ${r.passed} | ${r.failed} | ${doc} | ${undoc} |`);
@@ -1621,9 +1682,23 @@ async function main() {
   // the proof that this run's own presses are what removed it.
   const consumed = results.flatMap((r) => r.controls.filter((c) => c.consumedProof).map((c) => `- ${r.route} (${r.persona}) › ${c.chain.join(" › ")} — ${c.consumedProof}`));
   lines.push("", `## Rows the sweep consumed before it could press them (${consumed.length})`, "", ...consumed);
+  // Q128: every reclassified request, listed — telemetry refusals (our own
+  // reporter; they need their own look) and vendor 5xx. Not control failures.
+  const nonApp = results.flatMap((r) => (r.nonApp ?? []).map((l) => `- ${r.route} (${r.persona}) — ${l}`));
+  const telemetryCount = nonApp.filter((l) => l.includes(" — telemetry: ")).length;
+  lines.push("", `## Request failures that are not the app's (${nonApp.length}; telemetry ${telemetryCount})`, "", ...nonApp);
+  if (sessionRefreshes.length) lines.push("", `## Routine token refreshes (${sessionRefreshes.length}) — expiry, not session deaths`, "", ...sessionRefreshes.map((r) => `- ${r.account} (${r.persona}) before ${r.noticedOn} at ${r.at}`));
   lines.push("", `## Clean-up`, "", ...cleaned.log.map((l) => `- ${l}`), ...cleaned.residue.map((l) => `- **RESIDUE** ${l}`));
   writeFileSync(`${OUT}/coverage.md`, lines.join("\n") + "\n");
-  writeFileSync(`${OUT}/results.json`, JSON.stringify({ width: WIDTH, theme: THEME, runId: RUN_ID, uncovered: unavailable, sessionDeaths, sessionLostRows, cleanup: cleaned, results }, null, 2));
+  writeFileSync(`${OUT}/results.json`, JSON.stringify({ width: WIDTH, theme: THEME, runId: RUN_ID, uncovered: unavailable, sessionDeaths, sessionLostRows, sessionRefreshes, cleanup: cleaned, results }, null, 2));
+  if (telemetryCount) console.log(`::warning title=press telemetry refused::${telemetryCount} request(s) to our own telemetry (Sentry/PostHog) were refused (429s are the reporter being rate-limited) — listed in coverage.md, not counted as control failures`);
+
+  // Q94: the synthetic half of the user-error-screen close rule. Every screen
+  // this shard walked cleanly is recorded, so ops_alert_condition can close a
+  // real person's error-screen item only after a pass newer than it.
+  const probePasses = routeProbePasses(results);
+  const probe = await recordRouteProbePasses(probePasses, RUN_ID, { readEnvFile: () => readFileSync(".env", "utf8") });
+  console.log(probe.ok ? `route probe: recorded ${probe.recorded} clean screen(s) in ops_route_probe` : `::warning title=route probe not recorded::${probe.why}`);
 
   const pressedOrDocumented = totalFound - undocumented;
   console.log(`\nfound=${totalFound} pressed=${totalPressed} failed=${failedPresses} undocumented-skips=${undocumented} coverage=${totalFound ? ((pressedOrDocumented / totalFound) * 100).toFixed(1) : "100.0"}%`);
@@ -1636,8 +1711,8 @@ async function main() {
   // (2) UNCOVERED personas (not minted) were a ::warning:: — every control on
   // their routes went unpressed and the run still exited 0.
   const uncoveredPersonas = Object.keys(unavailable);
-  if (failedPresses > 0 || undocumented > 0 || sessionDeaths.length > 0 || totalFound === 0 || uncoveredPersonas.length > 0) {
-    console.log(`FAIL: ${failedPresses} failed press(es), ${undocumented} control(s) unpressed without a documented reason, ${sessionDeaths.length} session death(s), ${totalFound} control(s) found, ${uncoveredPersonas.length} persona(s) uncovered${uncoveredPersonas.length ? ` (${uncoveredPersonas.join(", ")})` : ""}`);
+  if (failedPresses > 0 || undocumented > 0 || sessionDeaths.length > 0 || totalFound === 0 || uncoveredPersonas.length > 0 || notReached.length > 0) {
+    console.log(`FAIL: ${failedPresses} failed press(es), ${undocumented} control(s) unpressed without a documented reason, ${sessionDeaths.length} session death(s), ${totalFound} control(s) found, ${uncoveredPersonas.length} persona(s) uncovered${uncoveredPersonas.length ? ` (${uncoveredPersonas.join(", ")})` : ""}, ${notReached.length} row(s) not reached (time budget)`);
     process.exit(1);
   }
 }

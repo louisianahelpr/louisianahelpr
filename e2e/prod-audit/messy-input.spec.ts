@@ -57,6 +57,7 @@ import {
   WS,
   assertHealthy,
   baselineOf,
+  ensureDisputedJob,
   ensureFundedOpenJob,
   ensureMessyInputState,
   fieldLabel,
@@ -107,6 +108,9 @@ const SCOPE_RE = SCOPE ? new RegExp(SCOPE) : null;
 const scoped: typeof test = ((...args: Parameters<typeof test>) =>
   !SCOPE_RE || SCOPE_RE.test(String(args[0])) ? test(...args) : test.skip(...args)) as typeof test;
 
+/** BudgetSection's aria-label on the post-job price field (pinned by src/test/messyInputPriceField.test.ts). */
+const BUDGET_FIELD_LABEL = /job budget in dollars/i;
+
 const sessions = new Map<Account, Session>();
 let fx: Fixtures;
 let adminState: Awaited<ReturnType<typeof ensureMessyInputState>> | undefined;
@@ -119,6 +123,12 @@ test.beforeAll(async ({ request, browser }) => {
   if (!SCOPE_RE || ["explore: openJob-helper", "explore: openJob-poster"].some((t) => SCOPE_RE.test(t))) {
     const funded = await ensureFundedOpenJob(request, browser, sessions.get("poster")!, sessions.get("helper")!);
     console.log(`[messy-input] funded fixture: ${funded.log.join("; ")}`);
+  }
+  // Q132: the disputedJob explores need a disputed job between the two
+  // accounts; prod-audit run 35844514386 found none and skipped both.
+  if (!SCOPE_RE || ["explore: disputedJob-poster", "explore: disputedJob-helper"].some((t) => SCOPE_RE.test(t))) {
+    const disputed = await ensureDisputedJob(request, browser, sessions.get("poster")!, sessions.get("helper")!);
+    console.log(`[messy-input] dispute fixture: ${disputed.log.join("; ")}`);
   }
   fx = await resolveFixtures(request, sessions.get("poster")!, sessions.get("helper")!);
   mkdirSync(CREDITS, { recursive: true });
@@ -399,7 +409,12 @@ test.describe("targeted rules", () => {
     if (await desc.isVisible().catch(() => false)) await desc.fill("Messy-input probe. Never posted.");
     let price: Locator | null = null;
     for (let step = 0; step < 6 && !price; step++) {
-      const p = page.getByRole("spinbutton").filter({ visible: true }).first();
+      // Q132: the budget is CurrencyInput (src/components/ui/currency-input.tsx),
+      // type="text" inputMode="decimal" — a textbox, never a spinbutton — so the
+      // old getByRole("spinbutton") could not find it at any step (prod-audit
+      // run 35844514386: "GAP: no price field reached"). Find it by the label
+      // BudgetSection gives it.
+      const p = page.getByLabel(BUDGET_FIELD_LABEL).filter({ visible: true }).first();
       if (await p.isVisible().catch(() => false)) {
         price = p;
         break;

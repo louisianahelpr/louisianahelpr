@@ -159,7 +159,7 @@ export function scheduledEndMs(
 }
 
 /** The scheduled end for a job row, or NaN when the row carries no date. */
-export function jobScheduledEndMs(job: StalledEvidence): number {
+function jobScheduledEndMs(job: StalledEvidence): number {
   if (!job.date_needed) return Number.NaN;
   return scheduledEndMs(job.date_needed, job.start_time, job.estimated_hours);
 }

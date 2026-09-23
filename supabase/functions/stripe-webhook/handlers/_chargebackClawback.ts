@@ -42,7 +42,7 @@ import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 
 type Db = WebhookContext["supabase"];
 
-export type ClawbackRow = {
+type ClawbackRow = {
   id: string;
   dispute_id: string;
   job_id: string;

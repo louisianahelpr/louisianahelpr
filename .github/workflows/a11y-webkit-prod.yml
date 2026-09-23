@@ -146,7 +146,7 @@ jobs:
           set -u
           GEN="a11y-prod-out/${{ matrix.engine }}/axe-baseline-generated.json"
           if [ -f "$GEN" ]; then
-            COUNT=$(node -e "console.log(JSON.parse(require('node:fs').readFileSync(process.argv[1],'utf8')).length)" "$GEN" 2>/dev/null || echo "?")
+            COUNT=$(node -e "console.log(JSON.parse(require('node:fs').readFileSync(process.argv[1],'utf8')).length)" "$GEN")
             echo "::error title=axe WCAG baseline missing (${{ matrix.engine }})::e2e/happy-path/axe-known-violations.json does not exist. $COUNT violation(s) generated at $GEN — download the a11y-prod-${{ matrix.engine }} artifact, review each entry, then commit it as e2e/happy-path/axe-known-violations.json."
             {
               echo "## axe WCAG 2.2 AA baseline missing (${{ matrix.engine }})"

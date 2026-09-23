@@ -126,6 +126,9 @@ type SectionDecl = string | { out: string };
  * { out: reason } for a section that is deliberately NOT shrink-checked.
  */
 const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
+  "e2e/happy-path/axe-known-violations.json": {
+    "[]": "e2e/happy-path/knownAxeViolations.ts:out.stale.push(",
+  },
   "docs/audit/loading-states/baseline.json": {
     allow: "scripts/check-loading-state-shape.mjs:const stale = [...allow].filter((id) => !seen.has(id))",
     byDesign: {

@@ -77,7 +77,7 @@ const DELIVERY_PATHS = ["deliver_job_match", "release_job_match_holds"];
 /** Writers that name no job, with why the window does not apply. */
 const NAMES_NO_JOB: Record<string, string> = {
   sweep_daily_job_digest:
-    "daily 'New jobs in <parish>' count and budget range, linking to /dashboard: no title, no job link (its young-job edge is Q299)",
+    "daily 'New jobs in <parish>' count and budget range, linking to /dashboard: no title, no job link (its young-job edge is Q305)",
 };
 
 /** The `SELECT CASE ... END` tier table of a function body, whitespace-normalised. */
@@ -154,7 +154,7 @@ describe("Q225: job-match notifications wait for the recipient's Early Access wi
   // @two-way src/test/jobMatchEarlyAccess.test.ts:stale edge known gap
   const EDGE_KNOWN_GAPS: Record<string, string> = {
     "daily-match-digest":
-      "Q299: the daily digest links /dashboard and names its oldest queued job; a job queued minutes before the run can be named inside a free member's window",
+      "Q305: the daily digest links /dashboard and names its oldest queued job; a job queued minutes before the run can be named inside a free member's window",
   };
 
   it("every edge function that inserts a job_match row carries its job in the link (so the backstop can hold it)", () => {

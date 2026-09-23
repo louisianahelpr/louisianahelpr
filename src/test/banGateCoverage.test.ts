@@ -34,6 +34,7 @@ const SNAP = JSON.parse(read("scripts/probes/fixtures/ban-gate-inventory.live.js
   writable: { tbl: string; op: string }[];
   gated: { tbl: string; op: string; tgname: string; proname: string }[];
   rpcs: string[];
+  captured: string;
 };
 const RUNNER = read("scripts/check-ban-gate-coverage.mjs");
 const PROBE = read("scripts/probes/ban-gate-coverage.probe.mjs");
@@ -57,7 +58,33 @@ const migGated = [...(MIG.match(/FOREACH v_pair IN ARRAY ARRAY\[([\s\S]*?)\]/)?.
 // @mutate supabase/migrations/20260923185224_ban_enforcement_everywhere.sql | IF TG_OP = 'DELETE' THEN | IF false THEN
 // @mutate supabase/migrations/20260923185224_ban_enforcement_everywhere.sql |      AND current_setting('app.ban_started_in_txn', true) IS DISTINCT FROM auth.uid()::text THEN\n    RAISE EXCEPTION 'account_restricted' |  THEN\n    RAISE EXCEPTION 'account_restricted'
 // @mutate scripts/ci/ban-gate-coverage.sql | UNION ALL SELECT rule, object, detail FROM auth_ban_set\n |
+// @mutate scripts/ci/ban-gate-coverage.sql |   ('rpc_settle_dispute_without_payment', 'admin-only (body checks has_role admin)'),\n |
 // @mutate supabase/migrations/20260923185224_ban_enforcement_everywhere.sql | NEW.user_id::text, true); | NEW.user_id::text, false);
+
+// RPCs a migration NEWER than the snapshot grants to authenticated, whose
+// latest body does not call is_caller_banned(). The snapshot alone could not
+// see rpc_settle_dispute_without_payment (20260923205812), so db-deploy went
+// red after the push (run 35921603040) instead of CI before it.
+const SNAP_VERSION = SNAP.captured.replace(/\D/g, "").slice(0, 14);
+function postSnapshotUngatedRpcs(): string[] {
+  const files = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort();
+  const lastBody = new Map<string, string>();
+  const granted = new Set<string>();
+  for (const f of files) {
+    const sql = blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8"));
+    for (const m of sql.matchAll(/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.([a-z0-9_]+)\s*\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$[^;]*/gi)) {
+      // Whole statement: attributes sit before AS $$ or after the closing $$.
+      lastBody.set(m[1], m[0]);
+    }
+    if (f.slice(0, 14) <= SNAP_VERSION) continue;
+    for (const m of sql.matchAll(/GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.([a-z0-9_]+)\s*\([^)]*\)\s+TO\s+([^;]+);/gi)) {
+      if (/\bauthenticated\b/i.test(m[2])) granted.add(m[1]);
+    }
+  }
+  // The live check counts VOLATILE functions only; a STABLE/IMMUTABLE one writes nothing.
+  const volatile = (fn: string) => !/\b(STABLE|IMMUTABLE)\b/i.test((lastBody.get(fn) ?? "").replace(/\$(\w*)\$[\s\S]*?\$\1\$/, ""));
+  return [...granted].filter((fn) => volatile(fn) && !/is_caller_banned\s*\(/.test(lastBody.get(fn) ?? "")).sort();
+}
 
 describe("Q281 ban gate: every client write path is gated or exempt with a reason", () => {
   it("parses a real inventory (floors)", () => {
@@ -105,8 +132,14 @@ describe("Q281 ban gate: every client write path is gated or exempt with a reaso
 
   it("every live VOLATILE authenticated RPC is exempt with a reason, and no exemption is stale", () => {
     const exempt = new Set(rpcExempt.map((e) => e.fn));
-    expect(SNAP.rpcs.filter((f) => !exempt.has(f)), "RPC with no classification").toEqual([]);
-    expect([...exempt].filter((f) => !SNAP.rpcs.includes(f)), "exemption for an RPC prod does not expose").toEqual([]);
+    const universe = new Set([...SNAP.rpcs, ...postSnapshotUngatedRpcs()]);
+    expect([...universe].filter((f) => !exempt.has(f)), "RPC with no classification").toEqual([]);
+    expect([...exempt].filter((f) => !universe.has(f)), "exemption for an RPC prod does not expose").toEqual([]);
+  });
+
+  it("the post-snapshot migration scan reads a real snapshot version", () => {
+    expect(SNAP_VERSION).toMatch(/^2026\d{10}$/);
+    expect(postSnapshotUngatedRpcs()).toContain("rpc_settle_dispute_without_payment");
   });
 
   it("every exemption carries a real reason", () => {

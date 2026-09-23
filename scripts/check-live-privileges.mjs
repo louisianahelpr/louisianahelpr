@@ -43,8 +43,12 @@ const NULL_UID_SQL = load("./ci/null-uid-trust.sql");
 // Q304: profiles columns only the server may write. The locked list is what
 // sync_profiles_update_grants() subtracts every 10 minutes; the two literals
 // keep the ban columns checked even if they were dropped from it.
-const SERVER_ONLY_COLUMNS = `(CASE WHEN to_regprocedure('public.profiles_locked_update_columns()') IS NOT NULL
-    THEN public.profiles_locked_update_columns() ELSE ARRAY[]::text[] END
+// The list is read from the function's SOURCE, not by calling it: CI queries
+// with read_only:true (supabase_read_only_user), which has no EXECUTE on it
+// (db-deploy run 35923703691: "permission denied for function").
+const SERVER_ONLY_COLUMNS = `(COALESCE((SELECT array_agg(m[1]) FROM pg_proc p,
+      regexp_matches(regexp_replace(p.prosrc, '--[^' || chr(10) || ']*', '', 'g'), '''([a-z_]+)''', 'g') m
+    WHERE p.oid = to_regprocedure('public.profiles_locked_update_columns()')), ARRAY[]::text[])
     || ARRAY['ban_status', 'auto_suspended_until'])`;
 
 // One round trip. The two counts prove the catalog was actually read: prod has

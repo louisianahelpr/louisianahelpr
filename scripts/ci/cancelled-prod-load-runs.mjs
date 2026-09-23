@@ -19,7 +19,8 @@
  *   node scripts/ci/cancelled-prod-load-runs.mjs   (needs gh + GH_TOKEN, REPO)
  *
  * Prints one markdown table row per cancelled run, then `cancelled=<n>` last.
- * Exit 2 when a workflow's runs could not be read: not checked is not clean.
+ * Exits non-zero (status two) when a workflow's runs could not be read: not
+ * checked is not clean.
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";

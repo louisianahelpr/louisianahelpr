@@ -22,12 +22,11 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parse } from "yaml";
 import { blankComments } from "./helpers/blankNonCode";
-// @ts-expect-error - plain .mjs tool script, no types
 import * as cls from "../../scripts/audit/pressFailureClass.mjs";
 
 const ROOT = resolve(__dirname, "../..");
 const read = (f: string) => readFileSync(resolve(ROOT, f), "utf8");
-const answerSentryLocally = cls.answerSentryLocally as (ctx: unknown) => Promise<RegExp>;
+const answerSentryLocally = cls.answerSentryLocally as unknown as (ctx: unknown) => Promise<RegExp>;
 
 /** The DSN host the shipped bundle reports to, read from the app, not retyped here. */
 function appDsnIngestUrl(): string {

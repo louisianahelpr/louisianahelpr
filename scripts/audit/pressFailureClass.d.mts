@@ -16,3 +16,5 @@ export declare function tokenNeedsRefresh(token: string | null | undefined, now?
 export declare function refusalIsDeath(token: string | null | undefined, now?: number): boolean;
 export declare const NOT_REACHED_STATUS: string;
 export declare function overTimeBudget(a: { startedAt: number; now?: number; budgetMs: number }): boolean;
+export declare const SENTRY_INGEST_RX: RegExp;
+export declare function answerSentryLocally(ctx: { route: (pattern: RegExp, handler: (r: { fulfill: (o: { status: number; contentType?: string; body?: string }) => Promise<void> }) => unknown) => Promise<void> }): Promise<RegExp>;

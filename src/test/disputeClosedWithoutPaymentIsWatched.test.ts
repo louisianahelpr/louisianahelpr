@@ -96,7 +96,13 @@ describe("a dispute closed without moving money is watched", () => {
   });
 
   it("PREMISE 1: process-scheduled-payouts still excludes disputed jobs", () => {
-    const src = read("supabase/functions/process-scheduled-payouts/index.ts");
+    // CODE only: the same text sits in a comment further down (line ~148), and a
+    // plain toContain() passed with the real filter deleted — vacuity showed
+    // this guard SURVIVING its own mutation (2026-09-23).
+    const src = read("supabase/functions/process-scheduled-payouts/index.ts")
+      .split("\n")
+      .map((l) => l.replace(/\/\/.*$/, ""))
+      .join("\n");
     expect(
       src,
       "The sweep's message says process-scheduled-payouts will never pay a disputed job. " +
@@ -181,5 +187,5 @@ describe("a dispute closed without moving money is watched", () => {
 });
 
 // Proof this is able to fail. Each mutation breaks a different premise:
-// @mutate supabase/functions/process-scheduled-payouts/index.ts | .is("disputed_at", null) | .is("disputed_at2", null)
-// @mutate supabase/migrations/20260922183808_dispute_closed_without_moving_money.sql | AND d.execution_refund_id   IS NULL | AND true
+// @mutate supabase/functions/process-scheduled-payouts/index.ts | .is("disputed_at", null)          // defense-in-depth | .is("disputed_at2", null)          // defense-in-depth
+// @mutate supabase/migrations/20260922224023_dispute_sweep_locks_the_job_row_it_judges.sql | AND d.execution_refund_id   IS NULL | AND true

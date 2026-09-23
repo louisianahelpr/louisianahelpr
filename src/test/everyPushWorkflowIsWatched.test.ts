@@ -1,3 +1,5 @@
+// @mutate .github/workflows/main-red-watch.yml | - Vitest | - Vitestx
+
 /*
  * CLASS GUARD: a push-on-main workflow that fails must land somewhere a person
  * will see.

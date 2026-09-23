@@ -1,3 +1,4 @@
+// @mutate src/components/profile/CredentialsTab.tsx | const safe = safeDocumentUrl(path); | const safe = path;
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";

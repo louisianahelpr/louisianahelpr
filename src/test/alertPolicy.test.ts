@@ -19,7 +19,7 @@
  * function replaced directly in the live database — or dropped there — is
  * invisible; only `pg_get_functiondef` against prod would see it.
  *
- * @mutate supabase/functions/_shared/alertPolicy.ts | return severity === 'critical' \|\| (!!kind && | return severity !== 'never' \|\| (!!kind &&
+ * @mutate supabase/functions/_shared/alertPolicy.ts | includes(kind)) return 'critical' | includes(kind)) return 'warning'
  * @mutate supabase/functions/_shared/alertPolicy.ts | 'rls-escalation-refused', | 'rls-escalation-tolerated',
  */
 import { describe, it, expect } from "vitest";

@@ -1,3 +1,4 @@
+// @mutate src/pages/dashboard/useDashboardSideQueries.ts | .from("gift_cards" as never) | .from("gift_cardz" as never)
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";

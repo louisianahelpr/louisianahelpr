@@ -1,3 +1,4 @@
+// @mutate src/lib/messageAttachments.ts | if (!isStorageObjectPath(path)) return null; | if (false) return null;
 /**
  * ONLY A STORAGE PATH GETS SIGNED — the class guard for "a stored value that is
  * already a URL was sent to Storage as if it were an object path".

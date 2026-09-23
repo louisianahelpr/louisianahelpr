@@ -1,3 +1,4 @@
+// @mutate supabase/migrations/20260923034829_notification_links_die_with_their_job.sql | AFTER DELETE ON public.jobs | AFTER UPDATE ON public.jobs
 /**
  * A LINK THE READER CAN TAP MUST NOT OUTLIVE THE JOB IT NAMES — the class
  * guard for "tapped a notification, landed on a job that is gone".
@@ -115,6 +116,7 @@ describe("a notification link dies with the job it names", () => {
   const inventory = rendered(tablesWithLink(migs));
 
   it("the inventory is real: notifications is a rendered link table", () => {
+    expect(migs.length, "read no migrations").toBeGreaterThan(500);
     expect(inventory).toContain("notifications");
     // notification_dedupe_suppressions has a link column but is an audit log
     // the client never reads — the inventory must not need a hand exclusion.

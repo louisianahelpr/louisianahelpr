@@ -173,4 +173,4 @@ describe("auth is never sampled once and treated as final", () => {
 });
 
 // Proof this is able to fail — restores the exact shape that shipped.
-// @mutate src/components/NotificationPreferences.tsx | }, [authReady, authUser]); | }, []);
+// @mutate src/components/NotificationPreferences.tsx | }, [authReady, authUserId]); | }, []);

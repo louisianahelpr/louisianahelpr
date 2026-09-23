@@ -1,3 +1,4 @@
+// @mutate src/lib/storagePath.ts | export function safeDocumentUrl( | export const vacuityUnusedProbe = 1; export function safeDocumentUrl(
 /*
  * The unused-export count may only go DOWN.
  *
@@ -39,6 +40,7 @@ function measure(): { exports: number; types: number } {
   const { issues } = JSON.parse(raw) as { issues: KnipIssue[] };
   // A knip that ran on nothing would report 0 and "pass" by lowering the bar.
   expect(Array.isArray(issues)).toBe(true);
+  expect(issues.length, "knip reported no files at all").toBeGreaterThan(0);
   return {
     exports: issues.reduce((n, i) => n + i.exports.length, 0),
     types: issues.reduce((n, i) => n + i.types.length, 0),

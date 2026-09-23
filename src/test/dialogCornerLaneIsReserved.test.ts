@@ -28,9 +28,9 @@
  * their glyph. That threshold is checked against the same derived lane, not
  * against a number somebody remembered.
  *
- * @mutate src/components/dashboard/JobDetailDialog.tsx | export const DIALOG_SLOT_ICON = 44; | export const DIALOG_SLOT_ICON = 32;
- * @mutate src/components/dashboard/JobDetailDialog.tsx | export const DIALOG_SLOT_ROW_RIGHT = 56; | export const DIALOG_SLOT_ROW_RIGHT = 46;
- * @mutate src/components/dashboard/JobDetailDialog.tsx | export const DIALOG_CLOSE_X_BOX = 44; | export const DIALOG_CLOSE_X_BOX = 32;
+ * @mutate src/components/dashboard/JobDetailDialog.tsx | const DIALOG_SLOT_ICON = 44; | const DIALOG_SLOT_ICON = 32;
+ * @mutate src/components/dashboard/JobDetailDialog.tsx | const DIALOG_SLOT_ROW_RIGHT = 56; | const DIALOG_SLOT_ROW_RIGHT = 46;
+ * @mutate src/components/dashboard/JobDetailDialog.tsx | const DIALOG_CLOSE_X_BOX = 44; | const DIALOG_CLOSE_X_BOX = 32;
  * @mutate src/components/dashboard/JobDetailDialog.tsx | export const CROWDED_RAIL_RESERVE_PX = 200; | export const CROWDED_RAIL_RESERVE_PX = 9999;
  */
 import { describe, expect, it } from "vitest";

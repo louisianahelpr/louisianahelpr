@@ -1,3 +1,4 @@
+// @mutate src/components/OfflineBanner.tsx | data-rail-inset | data-rail-off
 /**
  * THE RIGHT RAIL MUST NOT SIT ON TOP OF A FIXED PAGE SURFACE.
  *
@@ -74,7 +75,9 @@ function fixedFullWidthLines(text: string): string[] {
 describe("desktop rail never overlaps a fixed page surface", () => {
   it("every fixed full-width surface either insets or is an allowed exception", () => {
     const unhandled: string[] = [];
-    for (const file of walk(SRC)) {
+    const files = walk(SRC);
+    expect(files.length, "walked no source files").toBeGreaterThan(300);
+    for (const file of files) {
       const rel = file.slice(process.cwd().length + 1);
       if (DELIBERATELY_FULL_WIDTH.has(rel)) continue;
       const text = readFileSync(file, "utf8");

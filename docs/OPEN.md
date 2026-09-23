@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 128 done, 15 partly done (fixed, protection pending), 134 open. Source of truth for work.
+- **Queue (this file):** 129 done, 14 partly done (fixed, protection pending), 134 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 277 items — 128 done, 15 partly done (fixed, protection pending), 134 open.**
+**Queue: 277 items — 129 done, 14 partly done (fixed, protection pending), 134 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -728,7 +728,7 @@ sure someone hears it and closes it.
   found itself in the shared checkout mid-task. Make the session-start hook
   create or enter a per-session worktree (or warn loudly), and treat the main
   checkout as read-only for sessions.
-- [~] **Q48 Messages search: the close ✕ overlaps where the magnifier returns**
+- [x] **Q48 DONE 2026-09-23 via Q143 (owner picked option D; commit 17bad67b0): below 360px the Messages search opens on its own line, so the ✕ no longer overlaps the magnifier. Guard: src/test/messagesSearchOwnLineBelow360.test.tsx + e2e/prod-audit/expanding-search-geometry.spec.ts own-line clause. Was:** Messages search: the close ✕ overlaps where the magnifier returns
   (prod-audit run 35817028797 on 3c81624d0): by 28px at 320 and 26px at 375.
   Pressing ✕ to dismiss puts the next tap on the re-open control. Found by
   e2e/prod-audit/expanding-search-geometry.spec.ts:559. Fix the geometry,

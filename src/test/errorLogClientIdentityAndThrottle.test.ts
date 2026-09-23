@@ -9,12 +9,16 @@
 // @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | AND e.tags ->> 'guest_fp' = v_fp | AND true
 // @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | NEW.tags := jsonb_set(NEW.tags, '{guest_fp}', to_jsonb(v_fp), true); | NULL;
 // @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | PERFORM public.record_error_log_throttle_drop('guest');\n | 
-// @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | VALUES (date_trunc('minute', now()), pg_backend_pid(), p_kind | VALUES (date_trunc('minute', now()), 0, p_kind
+// @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | VALUES (date_trunc('minute', now()), pg_backend_pid(), p_kind | VALUES (date_trunc('minute', now()), 0, p_kind
 // @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | ALTER TABLE public.error_log_throttle_drops ENABLE ROW LEVEL SECURITY; | 
 // @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | ELSIF p_source = 'error-log-throttled' THEN | ELSIF p_source = 'error-log-throttled-x' THEN
 // @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | IF v_min < p_since THEN RETURN NULL; END IF; | 
-// @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | jsonb_build_object('source', 'error-log-throttled', 'area', 'observability') | jsonb_build_object('source', 'error-log-throttle', 'area', 'observability')
+// @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | jsonb_build_object('source', 'error-log-throttled', 'area', 'observability') | jsonb_build_object('source', 'error-log-throttle', 'area', 'observability')
 // @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | PERFORM cron.schedule('error-log-throttle-check', '*/5 * * * *', | PERFORM cron.schedule('error-log-throttle-check', '0 3 * * *',
+// @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | ON CONFLICT (minute, backend_pid, drop_kind) | ON CONFLICT (minute, backend_pid, kind)
+// @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | GROUP BY d.drop_kind) k; | GROUP BY d.kind) k;
+// @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | CHECK (drop_kind IN ('guest', 'guest_fp', 'account')) | CHECK (drop_kind IN ('guest', 'guest_fp'))
+// @mutate src/integrations/supabase/types.ts | backend_pid: number\n          drop_kind: string\n          dropped: number | backend_pid: number\n          kind: string\n          dropped: number
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -217,7 +221,9 @@ describe("error_logs client insert path (Q106, Q98)", () => {
       expect(rec!.header).toMatch(/SECURITY DEFINER/i);
       expect(rec!.header).toMatch(/SET search_path = public, pg_temp/i);
       const r = rec!.body;
-      expect(r).toMatch(/ON CONFLICT \(minute, backend_pid, kind\) DO UPDATE SET dropped = d\.dropped \+ 1/);
+      expect(r).toMatch(/ON CONFLICT \(minute, backend_pid, drop_kind\) DO UPDATE SET dropped = d\.dropped \+ 1/);
+      // Q122: the column is drop_kind (a bare `kind` column made every `{ kind: ... }` test literal a row of this table).
+      expect(r).toMatch(/INSERT INTO public\.error_log_throttle_drops AS d \(minute, backend_pid, drop_kind, dropped, first_at, last_at\)/);
       expect(r).toMatch(/VALUES \(date_trunc\('minute', now\(\)\), pg_backend_pid\(\), p_kind/);
       expect(r).toMatch(/set_config\('lock_timeout', '\d+ms', true\)/);
       expect(r).toMatch(/EXCEPTION WHEN lock_not_available OR deadlock_detected THEN NULL; WHEN OTHERS THEN NULL; END;/);
@@ -235,6 +241,20 @@ describe("error_logs client insert path (Q106, Q98)", () => {
       expect(sql).not.toMatch(/GRANT [^;]*ON TABLE public\.error_log_throttle_drops TO [^;]*\b(anon|authenticated)\b/);
     });
 
+    it("Q122: the drop column is drop_kind, renamed replay-safely, CHECK on the new name", () => {
+      // A column named `kind` on this table made every `{ kind: ... }` literal in the test tree a row of it
+      // (fixtureSchemaContract's distinctiveColumns): 40 false findings measured 2026-09-23 at 0ff197995, Vitest red on main.
+      const file = files.filter((f) => /RENAME COLUMN kind TO drop_kind/.test(stripSqlComments(sqlOf.get(f)!))).pop();
+      expect(file, "no migration renames error_log_throttle_drops.kind to drop_kind").toBeDefined();
+      const sql = ws(stripSqlComments(sqlOf.get(file!)!));
+      expect(sql).toMatch(/column_name = 'kind'\) AND NOT EXISTS \(SELECT 1 FROM information_schema\.columns WHERE table_schema = 'public' AND table_name = 'error_log_throttle_drops' AND column_name = 'drop_kind'\) THEN ALTER TABLE public\.error_log_throttle_drops RENAME COLUMN kind TO drop_kind;/);
+      expect(sql).toMatch(/ADD CONSTRAINT error_log_throttle_drops_drop_kind_check CHECK \(drop_kind IN \('guest', 'guest_fp', 'account'\)\);/);
+      const types = readFileSync(join(process.cwd(), "src/integrations/supabase/types.ts"), "utf8");
+      const block = types.slice(types.indexOf("      error_log_throttle_drops: {"), types.indexOf("Relationships", types.indexOf("      error_log_throttle_drops: {")));
+      expect(block).toMatch(/\n {10}drop_kind: string\n/);
+      expect(block).not.toMatch(/\n {10}kind\??:/);
+    });
+
     it("check_error_log_throttle raises 'error-log-throttled' on drops in >= 2 of the last 10 complete minutes, at most every 15 min", () => {
       expect(chk, "check_error_log_throttle is not defined").not.toBeNull();
       const c = chk!.body;
@@ -244,6 +264,10 @@ describe("error_logs client insert path (Q106, Q98)", () => {
       expect(c).toMatch(/IF v_minutes >= v_min_minutes AND NOT EXISTS \(/);
       expect(c).toMatch(/e\.created_at > now\(\) - interval '15 minutes'/);
       expect(c).toMatch(/jsonb_build_object\('source', 'error-log-throttled', 'area', 'observability'\)/);
+      // Q122: grouped by the renamed column; a stale `kind` here fails at runtime, every 5 minutes, in cron.
+      expect(c).toMatch(/SELECT d\.drop_kind, sum\(d\.dropped\) n FROM public\.error_log_throttle_drops d/);
+      expect(c).toMatch(/GROUP BY d\.drop_kind\) k;/);
+      expect(c).not.toMatch(/\bd\.kind\b/);
       let schedule: string | null = null;
       let expectation = false;
       for (const file of files) {

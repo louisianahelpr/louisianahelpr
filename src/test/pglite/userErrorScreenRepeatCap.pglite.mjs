@@ -8,6 +8,8 @@
  *   NEW_MIGRATION=skip node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs       # RED: neither fix
  *   NEW_MIGRATION=skip-q106 node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs  # RED: Q96/Q97 only
  *   NEW_MIGRATION=skip-q113 node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs  # RED: no Q113 fix
+ *   NEW_MIGRATION=skip-q122 node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs  # RED: drop column still `kind`
+ *   MUTATE=q122-rename-only node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs  # RED: renamed, bodies not replaced
  *   MUTATE=no-stamp node src/test/pglite/userErrorScreenRepeatCap.pglite.mjs          # RED: Q106 stamp line removed
  *
  * pglite is not a dependency (CLAUDE.md): it is loaded from ~/.lh-pglite
@@ -44,6 +46,11 @@
  *         is NULL before a complete minute after the occurrence, failing while
  *         the latest complete minute dropped, cleared on a clean one, and
  *         ops_alert_verify closes it only then.
+ *   Q122 - (20260923105333) the drop column is drop_kind (no `kind` column, which
+ *         made every `{ kind: ... }` test literal a row of this table), its CHECK
+ *         is on drop_kind, and every Q113 count above still lands under the new
+ *         name. MUTATE=q122-rename-only applies only the rename: the recorder
+ *         then swallows its own error and every drop count is 0.
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -62,6 +69,7 @@ const CHAIN = [
 const Q96 = "20260923092838_user_error_screen_repeat_cap_and_client_seed_tag.sql";
 const Q106 = "20260923094457_error_logs_client_identity_and_throttle.sql";
 const Q113 = "20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql";
+const Q122 = "20260923105333_throttle_drops_kind_rename.sql";
 
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -148,12 +156,15 @@ for (const f of CHAIN) {
   }
 }
 const MODE = process.env.NEW_MIGRATION ?? "";
-const NEWS = MODE === "skip" ? [] : MODE === "skip-q106" ? [Q96] : MODE === "skip-q113" ? [Q96, Q106] : [Q96, Q106, Q113];
+const NEWS = MODE === "skip" ? [] : MODE === "skip-q106" ? [Q96] : MODE === "skip-q113" ? [Q96, Q106] : MODE === "skip-q122" ? [Q96, Q106, Q113] : [Q96, Q106, Q113, Q122];
 if (MODE) console.log(`NEW_MIGRATION=${MODE}: running against a partly UNFIXED chain (expect FAILs)`);
 for (const f of NEWS) {
   for (let i = 1; i <= 3; i++) {
     try {
-      await db.exec(mig(f));
+      let sql = mig(f);
+      // MUTATE=q122-rename-only: the column rename without the function bodies that name it.
+      if (f === Q122 && process.env.MUTATE === "q122-rename-only") sql = sql.slice(0, sql.indexOf("-- ── 2."));
+      await db.exec(sql);
       check(`apply ${f.slice(0, 14)} pass #${i}`, true);
     } catch (e) {
       check(`apply ${f.slice(0, 14)} pass #${i}`, false, e.message);
@@ -297,8 +308,25 @@ check("Q98: ... and a single 70-row batch INSERT stores only 60", (await clientR
 const word = (i) => String.fromCharCode(103 + (i % 20)) + String.fromCharCode(103 + (Math.floor(i / 20) % 20)) +
   String.fromCharCode(103 + Math.floor(i / 400));
 const hasDrops = !!(await q(`SELECT to_regclass('public.error_log_throttle_drops') t`))[0].t;
+// Q122: the column the chain actually has, so NEW_MIGRATION=skip-q122 fails on the Q122 checks, not by crashing.
+const dropCols = hasDrops ? (await q(`SELECT column_name c FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'error_log_throttle_drops'`)).map((r) => r.c) : [];
+const K = dropCols.includes("drop_kind") ? "drop_kind" : "kind";
+if (hasDrops) {
+  check("Q122: error_log_throttle_drops has drop_kind and no `kind` column",
+    dropCols.includes("drop_kind") && !dropCols.includes("kind"), dropCols.join(","));
+  const cons = (await q(`SELECT conname, pg_get_constraintdef(oid) d FROM pg_constraint
+    WHERE conrelid = 'public.error_log_throttle_drops'::regclass AND contype = 'c'`));
+  check("Q122: its CHECK is error_log_throttle_drops_drop_kind_check on drop_kind (guest, guest_fp, account)",
+    cons.length === 1 && cons[0].conname === "error_log_throttle_drops_drop_kind_check" &&
+      /drop_kind/.test(cons[0].d) && ["guest", "guest_fp", "account"].every((v) => cons[0].d.includes(`'${v}'`)),
+    JSON.stringify(cons));
+  const [{ pk }] = await q(`SELECT pg_get_constraintdef(oid) pk FROM pg_constraint
+    WHERE conrelid = 'public.error_log_throttle_drops'::regclass AND contype = 'p'`);
+  check("Q122: the primary key follows the rename", pk === "PRIMARY KEY (minute, backend_pid, drop_kind)", pk);
+}
 const drops = async (kind) =>
-  hasDrops ? (await q(`SELECT coalesce(sum(dropped), 0)::int n FROM public.error_log_throttle_drops WHERE kind = $1`, [kind]))[0].n : -1;
+  hasDrops ? (await q(`SELECT coalesce(sum(dropped), 0)::int n FROM public.error_log_throttle_drops WHERE ${K} = $1`, [kind]))[0].n : -1;
 const fpRows = async (msgLike) =>
   (await q(`SELECT count(*)::int n FROM public.error_logs WHERE user_id IS NULL AND message LIKE $1
              AND created_at > now() - interval '1 minute'`, [msgLike]))[0].n;
@@ -352,11 +380,13 @@ if (hasDrops && (await exists("public.check_error_log_throttle()"))) {
   let [{ r }] = await q(`SELECT public.check_error_log_throttle() r`);
   check("Q113: drops only in the current, incomplete minute do not raise", r.raised === false && r.minutes === 0, JSON.stringify(r));
   // Sustained: drops in two of the last 10 complete minutes.
-  await db.exec(`UPDATE public.error_log_throttle_drops SET minute = minute - interval '3 minutes' WHERE kind = 'guest';
-                 UPDATE public.error_log_throttle_drops SET minute = minute - interval '2 minutes' WHERE kind = 'guest_fp';
-                 DELETE FROM public.error_log_throttle_drops WHERE kind NOT IN ('guest', 'guest_fp');`);
+  await db.exec(`UPDATE public.error_log_throttle_drops SET minute = minute - interval '3 minutes' WHERE ${K} = 'guest';
+                 UPDATE public.error_log_throttle_drops SET minute = minute - interval '2 minutes' WHERE ${K} = 'guest_fp';
+                 DELETE FROM public.error_log_throttle_drops WHERE ${K} NOT IN ('guest', 'guest_fp');`);
   [{ r }] = await q(`SELECT public.check_error_log_throttle() r`);
   check("Q113: drops in 2 of the last 10 complete minutes raise", r.raised === true && r.minutes === 2, JSON.stringify(r));
+  check("Q122: ... and the check reports them by kind (grouped by the renamed column)",
+    !!r.by_kind && r.by_kind.guest > 0 && r.by_kind.guest_fp > 0 && Object.keys(r.by_kind).length === 2, JSON.stringify(r.by_kind));
   const led = async () => (await q(`SELECT id, status, verify_kind, verify_ref, count::int n, last_seen FROM public.ops_alert_ledger
                                      WHERE source = 'error-log-throttled'`))[0];
   let L = await led();
@@ -368,7 +398,7 @@ if (hasDrops && (await exists("public.check_error_log_throttle()"))) {
   const c = async (since) =>
     (await q(`SELECT public.ops_alert_condition('error-log-throttled', '{}'::jsonb, ${since}, false) c`))[0].c;
   check("Q113: close rule is NULL (cannot tell) before a complete minute after the occurrence", (await c("now()")) === null);
-  await db.exec(`INSERT INTO public.error_log_throttle_drops (minute, backend_pid, kind, dropped)
+  await db.exec(`INSERT INTO public.error_log_throttle_drops (minute, backend_pid, ${K}, dropped)
                  VALUES (date_trunc('minute', now()) - interval '1 minute', 1, 'guest', 3)`);
   check("Q113: close rule says FAILING while the latest complete minute dropped rows",
     (await c("now() - interval '10 minutes'")) === true);

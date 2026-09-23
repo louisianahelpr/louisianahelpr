@@ -24,7 +24,7 @@
  *
  * @mutate supabase/migrations/20260923050059_ops_alert_ledger_never_blocks_and_keeps_status_codes.sql | PERFORM set_config('lock_timeout', '100ms', true); | PERFORM 1;
  * @mutate supabase/migrations/20260923050059_ops_alert_ledger_never_blocks_and_keeps_status_codes.sql | EXCEPTION WHEN lock_not_available OR deadlock_detected THEN | EXCEPTION WHEN division_by_zero THEN
- * @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | PERFORM set_config('lock_timeout', '50ms', true); | PERFORM 1;
+ * @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | PERFORM set_config('lock_timeout', '50ms', true); | PERFORM 1;
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

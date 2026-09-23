@@ -682,25 +682,25 @@ export type Database = {
       error_log_throttle_drops: {
         Row: {
           backend_pid: number
+          drop_kind: string
           dropped: number
           first_at: string
-          kind: string
           last_at: string
           minute: string
         }
         Insert: {
           backend_pid: number
+          drop_kind: string
           dropped?: number
           first_at?: string
-          kind: string
           last_at?: string
           minute: string
         }
         Update: {
           backend_pid?: number
+          drop_kind?: string
           dropped?: number
           first_at?: string
-          kind?: string
           last_at?: string
           minute?: string
         }

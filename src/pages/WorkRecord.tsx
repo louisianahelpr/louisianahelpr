@@ -47,7 +47,6 @@ type Job = ReadableJobRow;
 interface WorkRecordData {
   profile: {
     full_name: string | null;
-    approval_status: string;
     stripe_identity_verified: boolean | null;
     idv_status: string | null;
     created_at: string;
@@ -134,12 +133,11 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
       // /wrapped and /profile resolve it.
       const profileRes = await supabase
         .from("profiles")
-        .select("full_name, approval_status, stripe_identity_verified, idv_status, created_at, subscription_tier, subscription_expires_at")
+        .select("full_name, stripe_identity_verified, idv_status, created_at, subscription_tier, subscription_expires_at")
         .eq("user_id", userId)
         .single();
       const profileRow = unwrap(profileRes) as {
         full_name: string | null;
-        approval_status: string;
         stripe_identity_verified: boolean | null;
         idv_status: string | null;
         created_at: string;
@@ -148,7 +146,6 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
       };
       const profile = {
         full_name: profileRow.full_name,
-        approval_status: profileRow.approval_status,
         stripe_identity_verified: profileRow.stripe_identity_verified,
         idv_status: profileRow.idv_status,
         created_at: profileRow.created_at,

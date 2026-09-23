@@ -6,7 +6,6 @@
  * looks identical to one with 30 5-star jobs. This computes a four-step
  * ladder (0 / 1 Verified / 2 Trusted / 3 Top Rated) from data we already have:
  *
- *   - `profiles.approval_status`         — admin/IDV approval
  *   - `profiles.stripe_identity_verified` — Stripe Connect's identity verdict
  *   - `profiles.stripe_account_id`   — Stripe Connect onboarding
  *   - completed-job count + avg rating from existing per-helpr stats
@@ -30,7 +29,6 @@ export type HelperTier = 0 | 1 | 2 | 3;
  * satisfies this; tests can build a plain object literal.
  */
 export interface HelperTierProfile {
-  approval_status?: string | null;
   /**
    * Stripe Connect's identity verdict, cached by the `account.updated`
    * webhook. This replaced `idv_status` as the Tier-1 gate: `idv_status` is
@@ -65,7 +63,10 @@ export const TIER_THRESHOLDS = {
 } as const;
 
 const isTier1Verified = (profile: HelperTierProfile): boolean => {
-  if (profile.approval_status !== "approved") return false;
+  // There was an `approval_status === "approved"` check here. It is retired
+  // (Q205b): the approval step is gone, and every profile this ladder is
+  // shown for already passed the entry gate server-side (get_safe_profiles /
+  // get_public_profile_stats gate on a confirmed email).
   if (profile.stripe_identity_verified !== true) return false;
   // Stripe Connect onboarding: presence of an account id is the project's
   // existing signal (see EarningsTab + ProfileLanding). Live payouts
@@ -133,7 +134,6 @@ export function describeTierProgress(
   if (current === 0) {
     // Climbing onto the ladder — list the missing onboarding signals.
     const missing: string[] = [];
-    if (profile?.approval_status !== "approved") missing.push("Finish account approval");
     if (profile?.stripe_identity_verified !== true) missing.push("Finish Stripe identity verification");
     if (!profile?.stripe_account_id) missing.push("Connect Stripe for payouts");
     return { nextTier: 1, missing };

@@ -343,16 +343,6 @@ const CompleteProfile = () => {
         zip_code: zipCode.trim(),
         ...(parish ? { parish } : {}),
         date_of_birth: dateOfBirth,
-        // `approval_status: "pending"` used to be sent here. It never did
-        // anything for a normal user — the BEFORE UPDATE trigger
-        // `tr_prevent_self_escalation` (public.prevent_self_escalation) pins
-        // approval_status back to OLD for every non-admin, so the column was
-        // written and discarded on every submit. For an ADMIN the trigger
-        // returns NEW untouched, so the one account it COULD reach was an
-        // admin completing their own profile — demoting themselves to
-        // `pending` and (while the approval gate existed) locking themselves
-        // out of most routes. A field the DB refuses to take from this caller does not
-        // belong in this caller's payload.
         // Stamp the moment the user accepted the rules / terms / privacy.
         // Persisting this means the checklist won't ask again on refresh.
         //
@@ -451,59 +441,15 @@ const CompleteProfile = () => {
         });
       }
 
-      // Clear a stale `pending` so finishing this form actually finishes
-      // onboarding.
-      //
-      // `approval_status` is pinned to OLD by `tr_prevent_self_escalation` for
-      // every non-admin, so the update above cannot move it and this screen
-      // must not pretend otherwise. Without this call the gate reorder in
-      // ProtectedRoute would only relocate the trap: a pending user would be
-      // routed here (correctly), fill the form, and be bounced straight back
-      // to /account-pending because nothing had changed the column.
-      //
-      // `complete-signup` is the ONE authority that already owns this
-      // transition — it is what approves every email signup — and it accepts a
-      // JWT for exactly this "resubmission from a logged-in user" case. Reusing
-      // it beats adding a second writer with its own idea of when an account
-      // is cleared. Only fired when actually needed, so the normal (already
-      // approved) completion keeps its single-round-trip shape.
-      //
-      // There is no `denied` state any more (Q193); a banned account is
-      // refused by complete-signup (403 `account_locked`, Q197) and routed to
-      // /account-banned rather than here.
-      let approvalRow: Record<string, unknown> | null = null;
-      if (savedRow?.approval_status === "pending") {
-        const { data: fnData, error: fnError } = await supabase.functions.invoke("complete-signup", {
-          body: { ageAttested: true, termsAccepted: true },
-        });
-        // A flag, not a message: neither the SDK's wrapper nor the body is
-        // shown — the copy below is fixed.
-        const fnFailed = Boolean(fnError) || Boolean((fnData as { error?: string } | null)?.error);
-        if (fnFailed) {
-          // Surfaced, not swallowed: the profile is saved but the account is
-          // still gated, and telling the user "done" here would drop them back
-          // on /account-pending with no explanation.
-          throw new Error(
-            "Your profile is saved, but we couldn't finish activating your account. Tap Save again in a moment.",
-          );
-        }
-        // Re-read rather than assume: the edge function wrote the row, so the
-        // cache must hold what the DATABASE has, not an optimistic merge. This
-        // is the same rule the update above follows.
-        const { data: refreshed, error: refreshErr } = await withTimeout(
-          Promise.resolve(supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle()),
-          "Profile refresh",
-          12000,
-        );
-        if (refreshErr) throw refreshErr;
-        approvalRow = refreshed as Record<string, unknown> | null;
-      }
-
+      // There used to be a follow-up here: when the saved row still read
+      // approval_status 'pending', invoke complete-signup to flip it. The
+      // approval step is retired (Q193/Q205b) — nothing reads the column —
+      // so the save above IS the completion.
       queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: { isAdmin?: boolean } | undefined) => ({
         ...(current ?? {}),
         // The row Postgres actually persisted — guaranteed non-null by the
         // guard above.
-        profile: approvalRow ?? savedRow,
+        profile: savedRow,
         isAdmin: current?.isAdmin ?? false,
       }));
       // No invalidate + sleep here: that triggered a background refetch that

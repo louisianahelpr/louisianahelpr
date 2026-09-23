@@ -1,6 +1,7 @@
-// Deletes accounts that never finished onboarding within 30 days.
-// Targets: users whose email is unverified after 30 days, OR helpers who
-// never connected Stripe and have no jobs/applications/messages after 30 days.
+// Deletes accounts that never passed the entry gate within 30 days.
+// Targets: users whose email is still unconfirmed after 30 days and who have
+// no jobs/applications/messages. Email verification is the only entry gate
+// (owner, 2026-09-23), so a confirmed account is never a cleanup candidate.
 //
 // Run on a daily cron via pg_cron + pg_net.
 //
@@ -99,7 +100,16 @@ Deno.serve(async (req) => {
 
     for (const u of candidates) {
       try {
-        // Pull profile to determine Stripe + approval/ban state.
+        // A confirmed email means the account passed the entry gate: never
+        // abandoned. This replaced `approval_status === "approved"` (Q205b):
+        // the approval step is gone, and 'approved' had become "confirmed, or
+        // submitted the signup form" — the auth row is the source of truth.
+        if (u.email_confirmed_at) {
+          skipped.push(u.id);
+          continue;
+        }
+
+        // Pull profile to determine ban state.
         //
         // This used to also select `role`, a column DROPPED when accounts were
         // unified (2026-05). PostgREST 400s the whole SELECT on an unknown
@@ -110,7 +120,7 @@ Deno.serve(async (req) => {
         // invisible. The error is checked now so the next such break says so.
         const { data: profile, error: profileErr } = await supabase
           .from("profiles")
-          .select("stripe_account_id, approval_status, ban_status")
+          .select("ban_status")
           .eq("user_id", u.id)
           .maybeSingle();
 
@@ -121,12 +131,8 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Never delete approved/banned/admin accounts
+        // Never delete banned/admin accounts (or one with no profile row).
         if (!profile) {
-          skipped.push(u.id);
-          continue;
-        }
-        if (profile.approval_status === "approved") {
           skipped.push(u.id);
           continue;
         }
@@ -205,21 +211,11 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Decide: abandoned? Role-agnostic — same rules apply to every
-        // account regardless of legacy customer/helper value.
-        // 1. Email never verified after 30d → delete
-        // 2. Approval still pending after 30d → delete (admin never reviewed
-        //    OR user never finished onboarding)
-        // 3. No Stripe Connect after 30d → delete (can never be paid out,
-        //    so the account has no path to participating in transactions)
-        const emailUnverified = !u.email_confirmed_at;
-        const stillPending = profile.approval_status === "pending";
-        const noStripeConnect = !profile.stripe_account_id;
-
-        if (!emailUnverified && !stillPending && !noStripeConnect) {
-          skipped.push(u.id);
-          continue;
-        }
+        // Abandoned: 30+ days old, email never confirmed (checked at the top
+        // of this loop), not banned, not an admin, and no activity at all.
+        // The old "approval still pending" and "no Stripe Connect" arms only
+        // ever applied to accounts that were not 'approved', i.e. unconfirmed
+        // ones, so they added nothing this rule does not already say.
 
         // Everything below this line is irreversible.
         if (dryRun) {

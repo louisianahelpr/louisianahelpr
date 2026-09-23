@@ -5,7 +5,7 @@ import { getAppUrl } from '../_shared/appUrl.ts'
 import { FROM_DEFAULT } from '../_shared/resend.ts'
 import { buildUnsubscribeUrl, unsubscribeHeaders } from '../_shared/unsubscribe.ts'
 import { scanAll, scanDefect } from '../_shared/paginate.ts'
-import { AdminDigestEmail, ApprovalReminderEmail } from '../_shared/email-templates/lifecycle.tsx'
+import { AdminDigestEmail } from '../_shared/email-templates/lifecycle.tsx'
 import {
   ReEngagementEmail,
   WelcomeDripStep1Email,
@@ -78,7 +78,6 @@ async function adminDigestEmail(stats: {
   newUsers: number
   newJobs: number
   completedJobs: number
-  pendingApprovals: number
   openReports: number
   revenue: number
 }): Promise<RenderedEmail> {
@@ -195,14 +194,14 @@ Deno.serve(async (_req) => {
   const supabaseKey = (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
   const supabase = createClient(supabaseUrl, supabaseKey)
 
-  const results = { drip: 0, approvalResend: 0, reEngagement: 0, adminDigest: 0, errors: [] as string[] }
+  const results = { drip: 0, reEngagement: 0, adminDigest: 0, errors: [] as string[] }
 
   try {
     // ─── Load suppressed emails to avoid CAN-SPAM violations ─────
     // Fail closed. `suppressedSet` is the only thing standing between this cron
     // and the addresses that bounced, complained, or unsubscribed. Dropping the
     // error meant a failed read produced an EMPTY suppression set, so every
-    // drip/approval/win-back sequence below would mail the exact people we are
+    // drip/win-back sequence below would mail the exact people we are
     // required not to mail — and would look like a normal successful run.
     //
     // This is the HARD list (bounces + spam complaints, written by
@@ -412,11 +411,10 @@ Deno.serve(async (_req) => {
         .lt('drip_step', 3)
         .not('email', 'is', null)
       // Automated lifecycle mail previously went to EVERY profile with an
-      // address — including unverified addresses and accounts an admin had
-      // denied. send-marketing-blast already gated on these two columns; the
-      // cron loops did not.
+      // address — including unverified addresses. Email verification is the
+      // only entry gate (the approval_status read that sat beside this was
+      // retired in Q205b).
       .eq('email_verified', true)
-      .eq('approval_status', 'approved')
       // The signup opt-in. NEW versus the pre-deletion code, which gated the
       // drip on nothing of the sort — see the header note.
       .eq('marketing_consent', true),
@@ -478,149 +476,12 @@ Deno.serve(async (_req) => {
       results.drip++
     }
 
-    // ─── 1b. Auto-resend Approval Emails (TRANSACTIONAL) ─────────
-    // Approved users who haven't logged in, resend every 3 days up to 3 emails total
-    // Only target users approved within the last 14 days — long-approved users
-    // should never receive "your account is approved" reminders, even if their
-    // counter was bumped manually or by a backfill.
-    //
-    // Deliberately NOT gated on marketing_consent / email_promotions: this is
-    // account-status mail. It correspondingly carries no unsubscribe control.
-    //
-    // The `error` on this read used to be dropped entirely — `const { data:
-    // approvedUsers } = await ...` — so a PostgREST failure produced
-    // `undefined`, the loop ran zero times, and the run reported a clean
-    // `approvalResend: 0`. Paged and checked, like its two siblings.
-    type ApprovedUser = {
-      user_id: string
-      full_name: string | null
-      email: string
-      approval_email_count: number | null
-      last_approval_email_at: string | null
-      created_at: string
-    }
-    const approvedScan = await scanAll<ApprovedUser>('approval-resend recipients', (countOpt) =>
-      supabase
-        .from('profiles')
-        .select(
-          'user_id, full_name, email, approval_email_count, last_approval_email_at, created_at',
-          countOpt,
-        )
-        .order('user_id', { ascending: true })
-        .eq('approval_status', 'approved')
-        .lt('approval_email_count', 3)
-        .gte('created_at', fourteenDaysAgo)
-        .not('email', 'is', null)
-        .eq('email_verified', true),
-    )
-    const approvedDefect = scanDefect('approval-resend recipient query', approvedScan)
-    if (approvedDefect) results.errors.push(approvedDefect)
-
-    for (const user of approvedScan.rows) {
-      // Skip suppressed emails
-      if (suppressedSet.has((user.email || '').toLowerCase())) continue
-
-      const emailCount = user.approval_email_count || 0
-      if (emailCount < 1) continue // First email sent on approval, skip if 0
-
-      // Check if 3+ days since last approval email
-      if (user.last_approval_email_at) {
-        const daysSinceLast = (now.getTime() - new Date(user.last_approval_email_at).getTime()) / (1000 * 60 * 60 * 24)
-        if (daysSinceLast < 3) continue
-      }
-
-      // Check if user has any activity (jobs, messages, recent profile update)
-      const [jobsRes, msgsRes] = await Promise.all([
-        supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('customer_id', user.user_id),
-        supabase.from('messages').select('id', { count: 'exact', head: true }).eq('sender_id', user.user_id),
-      ])
-
-      // Both errors were dropped, and `(count || 0) > 0` made a FAILED count
-      // indistinguishable from "this user has done nothing" — so a transient
-      // read fault mailed "your account is approved, ready when you are" to
-      // someone who had already posted jobs and sent messages. That is the one
-      // person this branch exists to exempt. Skip on a failed read rather than
-      // guessing the answer that produces a send.
-      if (jobsRes.error || msgsRes.error) {
-        results.errors.push(
-          `approval-resend activity check failed for ${user.user_id} (${jobsRes.error?.message ?? msgsRes.error?.message}) — reminder withheld rather than sent to a possibly-active user`,
-        )
-        continue
-      }
-
-      // If user has posted jobs or sent messages, they're active — stop resending
-      if ((jobsRes.count || 0) > 0 || (msgsRes.count || 0) > 0) {
-        // The only `profiles` write in this file that was not routed through
-        // `advanceCursor`, and it needs it more than most: this is the cursor
-        // that STOPS the sequence. A dropped error or a zero-row match here
-        // leaves the counter under 3 and the reminder goes out again tomorrow,
-        // and every tomorrow after, to a user the code has just established is
-        // active. `advanceCursor` proves the row moved and records a defect.
-        await advanceCursor(
-          supabase,
-          user.user_id,
-          { approval_email_count: 3 },
-          'approval-resend stop',
-          results,
-        )
-        continue
-      }
-
-      const subject = "Your Louisiana Helpr account is approved — ready when you are."
-
-      const { html: htmlContent, text: textContent } = await renderEmail(
-        React.createElement(ApprovalReminderEmail, {
-          greetingName: user.full_name || "",
-          dashboardUrl: `${getAppUrl()}/dashboard`,
-          prefsUrl: `${getAppUrl()}/profile?tab=notifications`,
-        }),
-      )
-
-      const messageId = crypto.randomUUID()
-      await logSend(
-        supabase,
-        { message_id: messageId, template_name: 'approval_reminder', recipient_email: user.email, status: 'pending' },
-        results,
-      )
-
-      const { error: enqueueErr } = await supabase.rpc('enqueue_email', {
-        queue_name: 'transactional_emails',
-        payload: {
-          run_id: crypto.randomUUID(),
-          message_id: messageId,
-          to: user.email,
-          from: FROM_DEFAULT,
-          subject,
-          html: htmlContent,
-          text: textContent,
-          purpose: 'transactional',
-          // No List-Unsubscribe: transactional mail must never offer an
-          // opt-out control, because a mail client will happily use it to
-          // "unsubscribe" someone from their own account notices.
-          label: 'approval_reminder',
-          queued_at: now.toISOString(),
-        },
-      })
-
-      if (enqueueErr) {
-        results.errors.push(`Approval resend failed for ${user.email}: ${enqueueErr.message}`)
-        continue
-      }
-
-      const approvalAdvanced = await advanceCursor(
-        supabase,
-        user.user_id,
-        {
-          approval_email_count: emailCount + 1,
-          last_approval_email_at: now.toISOString(),
-        },
-        'approval-resend',
-        results,
-      )
-      if (!approvalAdvanced) continue
-
-      results.approvalResend++
-    }
+    // ─── 1b. (retired) Auto-resend Approval Emails ───────────────
+    // Deleted in Q205b. The series only ever resent to accounts whose
+    // approval_email_count was already >= 1, and the one writer of that first
+    // email (the admin Approve action / send-account-status-email 'approved')
+    // went with the approval step in Q193, so it could not start for anyone.
+    // It also read profiles.approval_status, which is being retired.
 
     // ─── 2. Re-engagement Nudges (COMMERCIAL) ─────────────────────
     // Users inactive for 14+ days (no job posted, no message, no login update)
@@ -697,11 +558,10 @@ Deno.serve(async (_req) => {
     } else {
     const yesterday = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString() // last 7 days
 
-    const [newUsersRes, newJobsRes, completedJobsRes, pendingRes, reportsRes, revenueRes, adminRolesRes] = await Promise.all([
+    const [newUsersRes, newJobsRes, completedJobsRes, reportsRes, revenueRes, adminRolesRes] = await Promise.all([
       supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', yesterday),
       supabase.from('jobs').select('id', { count: 'exact', head: true }).gte('created_at', yesterday),
       supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'completed').gte('updated_at', yesterday),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('approval_status', 'pending'),
       supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('jobs').select('platform_fee_amount').eq('status', 'completed').gte('updated_at', yesterday),
       supabase.from('user_roles').select('user_id').eq('role', 'admin'),
@@ -723,7 +583,6 @@ Deno.serve(async (_req) => {
       ['new users', newUsersRes],
       ['new jobs', newJobsRes],
       ['completed jobs', completedJobsRes],
-      ['pending approvals', pendingRes],
       ['open reports', reportsRes],
       ['revenue', revenueRes],
     ]
@@ -743,7 +602,6 @@ Deno.serve(async (_req) => {
       newUsers: newUsersRes.count || 0,
       newJobs: newJobsRes.count || 0,
       completedJobs: completedJobsRes.count || 0,
-      pendingApprovals: pendingRes.count || 0,
       openReports: reportsRes.count || 0,
       revenue,
     }
@@ -782,8 +640,8 @@ Deno.serve(async (_req) => {
       // The hard suppression list applies to EVERY send in this file, and the
       // header two hundred lines up says so in as many words: "it applies to
       // EVERY send below, transactional included, because continuing to mail a
-      // hard-bounced address is how a sending domain dies." The drip, approval
-      // and win-back loops all honour it; this one did not, so a bounced or
+      // hard-bounced address is how a sending domain dies." The drip and
+      // win-back loops both honour it; this one did not, so a bounced or
       // complained admin address was mailed weekly forever while the run
       // reported clean. An admin is not exempt from a mailbox provider.
       if (suppressedSet.has(adminProfile.email.toLowerCase())) continue

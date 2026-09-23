@@ -200,7 +200,6 @@ Deno.serve(async (req) => {
         idv_status: 'verified',
         idv_confidence: 100,
         idv_failure_reason: null,
-        approval_status: 'approved',
         legacy_manual_review: true,
       } as any).eq('user_id', targetUserId)
       if (verifyErr) throw new Error(`Failed to verify user: ${verifyErr.message}`)

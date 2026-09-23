@@ -177,8 +177,10 @@ describe("complete-signup parish derivation", () => {
     // Absent, not null — the function omits keys it has no value for, and
     // writing an explicit null would stomp a parish a later path had set.
     expect(update).not.toHaveProperty("parish");
-    // approval_status still went through, i.e. the account is actually usable.
-    expect(update?.approval_status).toBe("approved");
+    // The rest of the signup still went through (terms consent is written on
+    // every call); the retired approval_status is not (Q205b).
+    expect(update?.terms_version_accepted).toBeTruthy();
+    expect(update).not.toHaveProperty("approval_status");
   });
 
   it("does not attempt a lookup for a ZIP that cannot be one", async () => {

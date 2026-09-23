@@ -98,7 +98,8 @@ Deno.serve(async (req) => {
         .select("user_id, full_name, email, subscription_tier, subscription_expires_at", countOpt)
         .order("user_id", { ascending: true })
         .in("user_id", chunk)
-        .eq("approval_status", "approved")
+        // Entry gate (Q205b: was approval_status = 'approved').
+        .eq("email_verified", true)
         .in("subscription_tier", [...REPORT_TIERS]),
     );
     const helperDefect = scanDefect("pro helpers", helperScan);

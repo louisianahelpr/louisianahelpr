@@ -142,13 +142,14 @@ Deno.serve(async (req) => {
     // job posted after the migration. Same for the Elite-only filter at
     // current scale (likely 0 Elite subscribers).
     //
-    // New filter: approved, non-banned, not the poster. Tier-priority
+    // New filter: email-verified (the only entry gate; this read
+    // approval_status = 'approved' until Q205b), non-banned, not the poster. Tier-priority
     // (Elite gets matched first / more aggressively) can come back as a
     // sort dimension once the user base actually splits across tiers.
     const { data: helpers, error: helpersError } = await supabase
       .from("profiles")
       .select("user_id, full_name, skills, location, subscription_tier, subscription_expires_at, ban_status")
-      .eq("approval_status", "approved")
+      .eq("email_verified", true)
       .neq("user_id", job.customer_id);
 
     if (helpersError) throw helpersError;

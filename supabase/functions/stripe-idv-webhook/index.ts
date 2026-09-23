@@ -389,7 +389,6 @@ serve(async (req) => {
 
         if (confidence >= threshold) {
           updateData.idv_status = "verified";
-          updateData.approval_status = "approved";
           updateData.idv_failure_reason = null;
           updateData.legacy_manual_review = false;
         } else {

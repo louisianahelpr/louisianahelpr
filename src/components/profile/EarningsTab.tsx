@@ -445,7 +445,11 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         {range === "week" && (
           <EarningsForecastCard
             helperId={helperId}
-            enabled={profile?.approval_status === "approved"}
+            // Was `approval_status === "approved"` (retired, Q205b). Every
+            // account that reaches this tab has passed the only entry gate
+            // (a confirmed email, ProtectedRoute), so "profile loaded" is the
+            // whole condition.
+            enabled={!!profile}
             feeFallbackPercent={helperFeeFallbackPct}
           />
         )}

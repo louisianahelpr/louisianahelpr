@@ -13,7 +13,6 @@ import {
 // regress without a UI test catching it.
 
 const verifiedProfile: HelperTierProfile = {
-  approval_status: "approved",
   stripe_identity_verified: true,
   stripe_account_id: "acct_TEST123",
 };
@@ -27,12 +26,6 @@ const zeroStats: HelperTierStats = {
 describe("computeHelperTier — Tier 0 (no badge)", () => {
   it("returns 0 when profile is null", () => {
     expect(computeHelperTier(null, zeroStats)).toBe(0);
-  });
-
-  it("returns 0 when approval_status is not 'approved'", () => {
-    expect(
-      computeHelperTier({ ...verifiedProfile, approval_status: "pending" }, zeroStats),
-    ).toBe(0);
   });
 
   it("returns 0 unless STRIPE verified the identity", () => {
@@ -55,7 +48,6 @@ describe("computeHelperTier — Tier 0 (no badge)", () => {
     // A profile row still carrying the old admin/upload state must NOT earn
     // the rung — `idv_status` is no longer part of the ladder's input at all.
     const legacy = {
-      approval_status: "approved",
       stripe_account_id: "acct_123",
       idv_status: "verified",
     };
@@ -190,11 +182,13 @@ describe("describeTierProgress", () => {
   it("at tier 0, lists every missing onboarding signal", () => {
     const hint = describeTierProgress(
       0,
-      { approval_status: "pending", stripe_identity_verified: false, stripe_account_id: null },
+      { stripe_identity_verified: false, stripe_account_id: null },
       zeroStats,
     );
     expect(hint.nextTier).toBe(1);
-    expect(hint.missing.length).toBe(3);
+    // Two signals: Stripe identity + Stripe Connect. "Finish account approval"
+    // went with the approval step (Q205b).
+    expect(hint.missing).toEqual(["Finish Stripe identity verification", "Connect Stripe for payouts"]);
   });
 
   it("at tier 1, counts the exact gap to Trusted", () => {
@@ -245,5 +239,5 @@ describe("describeTierProgress", () => {
 
 // Tier 1 is a publicly-rendered "Verified" claim, so it needs an explicit
 // `true` from Stripe. Treating null/undefined (never verified) as good enough
-// hands the rung to every approved helper with a Connect account.
+// hands the rung to every helper with a Connect account.
 // @mutate src/lib/helperTier.ts | if (profile.stripe_identity_verified !== true) return false; | if (profile.stripe_identity_verified === false) return false;

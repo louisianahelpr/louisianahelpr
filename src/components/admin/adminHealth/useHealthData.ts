@@ -122,7 +122,8 @@ export const useHealthData = () => {
               .from("profiles")
               .select("user_id, parish, ban_status")
               .not("parish", "is", null)
-              .eq("approval_status", "approved"),
+              // The fan-out's own gate (Q205b: was approval_status = 'approved').
+              .eq("email_verified", true),
           ) as { user_id: string; parish: string | null; ban_status: string | null }[])(),
       ]);
 

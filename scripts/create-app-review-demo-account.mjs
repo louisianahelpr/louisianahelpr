@@ -163,7 +163,6 @@ async function main() {
     location: "New Orleans, LA",
     zip_code: "70112",
     parish: "Orleans",
-    approval_status: "approved",
     ban_status: "active",
     // Two similarly-named columns exist (`idv_status` is the one the actual
     // gate — post-a-job, accept-an-offer — reads; `id_verification_status` is

@@ -62,8 +62,10 @@ const ChartFallback = () => (
 export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleByUser: Map<string, string> }) => {
   // No approval-status filter (Q205c): there is no approval review (Q193), so
   // "pending" / "denied" tabs named states that no longer route anyone.
-  const statusColor = (status: string) =>
-    status === "approved" ? "bg-primary/10 text-primary" : "bg-accent/20 text-[hsl(var(--accent-ink))]";
+  // Email verification is the only entry gate (Q205b: this badge showed
+  // approval_status, which no longer means anything).
+  const verifiedColor = (verified: boolean) =>
+    verified ? "bg-primary/10 text-primary" : "bg-accent/20 text-[hsl(var(--accent-ink))]";
 
   return (
     <div className="space-y-3">
@@ -85,7 +87,7 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
                 {u.subscription_tier && (
                   <Badge className="text-ds-10 bg-primary/10 text-primary">{tierDisplayName(u.subscription_tier)}</Badge>
                 )}
-                <Badge className={`text-ds-11 capitalize ${statusColor(u.approval_status)}`}>{u.approval_status}</Badge>
+                <Badge className={`text-ds-11 ${verifiedColor(u.email_verified)}`}>{u.email_verified ? "Email verified" : "Unverified"}</Badge>
               </div>
             </div>
             <p className="text-ds-10 text-muted-foreground mt-2">Joined {formatShortDate(u.created_at)} · {roleByUser.get(u.user_id) ?? "—"}</p>

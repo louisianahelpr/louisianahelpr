@@ -257,7 +257,7 @@ const fetchCurrentUser = async (
  *
  * What actually keeps the profile fresh is the query config below —
  * `staleTime: 30s` plus `refetchOnWindowFocus` and `refetchOnReconnect`. An
- * admin flipping `approval_status`, `idv_status`, `subscription_tier` or a ban
+ * admin flipping `idv_status`, `subscription_tier` or a ban
  * reaches an open client on the next focus or within 30 seconds. That was
  * always the real mechanism; it just was not the one the comments credited.
  */

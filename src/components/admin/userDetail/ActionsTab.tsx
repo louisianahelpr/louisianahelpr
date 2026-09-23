@@ -200,8 +200,8 @@ export function ActionsTab({
       <AdminUserNotes userId={viewProfile.user_id} />
 
       {/* Verification audit trail (helper_verifications table) —
-          shows every change to approval_status, idv_status,
-          legacy_manual_review, etc., with actor + timestamp. */}
+          shows every change to idv_status, legacy_manual_review,
+          etc., with actor + timestamp. */}
       <UserVerificationHistory userId={viewProfile.user_id} />
 
       {/* Audit log — who-did-what-when for this user. Merges

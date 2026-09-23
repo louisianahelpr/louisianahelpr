@@ -392,11 +392,11 @@ serve(async (req) => {
     checkBase64Size(insuranceBase64, "Insurance document");
 
     // Q133: a credential document's type is decided BEFORE anything is
-    // uploaded. The path lands in the same profiles UPDATE that approves the
-    // account, and auto_pending_credentials() refuses (22023) any extension
+    // uploaded. The path lands in the same profiles UPDATE that records the
+    // signup, and auto_pending_credentials() refuses (22023) any extension
     // outside the user-documents set, so an unsupported file checked only
-    // there would 500 the whole signup AFTER the uploads: account left
-    // unapproved, objects orphaned. Refusing it here is a permanent property
+    // there would 500 the whole signup AFTER the uploads: signup not
+    // recorded, objects orphaned. Refusing it here is a permanent property
     // of the file (a 400, not the "try again" 502), and nothing is written.
     const licenseDoc = licenseBase64 ? credentialDocument(licenseContentType, licenseExt) : null;
     const insuranceDoc = insuranceBase64 ? credentialDocument(insuranceContentType, insuranceExt) : null;
@@ -514,9 +514,9 @@ serve(async (req) => {
     // Profile. A stale caller that still sends them has them ignored.
 
     // 3b. A PROVIDED document that failed to upload must NOT slip through to
-    // auto-approval. Each upload block above only console.error'd on failure
+    // the profile write. Each upload block above only console.error'd on failure
     // and continued, so a user could submit a license / insurance doc, have
-    // the storage write fail, and still land "approved" with the doc missing.
+    // the storage write fail, and still complete signup with the doc missing.
     // Detect provided-but-unstored files and make the caller retry instead.
     const uploadFailures: string[] = [];
     // `avatarExt` is no longer part of the condition: it is not required to
@@ -541,8 +541,8 @@ serve(async (req) => {
     // signup form now forces (ageAttested). When a DOB *is* present (a
     // resubmission, or a user who filled it in), we still hard-validate that
     // it's a real date and ≥18. A direct API call that skips the form — no DOB
-    // AND no attestation — is refused, so we never auto-approve an account with
-    // no proof of age.
+    // AND no attestation — is refused, so no signup is recorded without
+    // proof of age.
     const effectiveDob: string | null = dateOfBirth || currentProfile?.date_of_birth || null;
     if (effectiveDob) {
       const dob = new Date(effectiveDob);
@@ -571,14 +571,12 @@ serve(async (req) => {
     // first post/apply), so they are intentionally NOT required on the initial
     // path: hard-requiring them rejected every real signup.
 
-    // 5. Update profile. Auto-approve — there's no manual admin review
-    // step anymore. As long as the user submitted all required fields
-    // (validated above), they're cleared the moment this function
-    // succeeds. Identity verification + payout setup happen later as
-    // separate Stripe-gated steps when posting / applying / accepting.
-    const updateData: Record<string, unknown> = {
-      approval_status: "approved",
-    };
+    // 5. Update profile. There is no approval step (Q193/Q205b): email
+    // verification is the only entry gate, and it is not this function's to
+    // grant. This write records what the form submitted. Identity
+    // verification + payout setup happen later as separate Stripe-gated steps
+    // when posting / applying / accepting.
+    const updateData: Record<string, unknown> = {};
 
     if (phone) updateData.phone = phone;
     if (bio) updateData.bio = bio;
@@ -683,21 +681,19 @@ serve(async (req) => {
     if (extraComments) updateData.extra_comments = extraComments;
 
     // `.select("user_id")` + a zero-row branch, per CLAUDE.md. This UPDATE is
-    // what sets `approval_status: "approved"` (line 397) — it is the write that
-    // decides whether the account can post or apply at all — and an UPDATE
-    // matching zero rows returns `{ data: [], error: null }`, indistinguishable
-    // from success.
+    // what records the signup form (terms consent, ZIP/parish, credentials) —
+    // and an UPDATE matching zero rows returns `{ data: [], error: null }`,
+    // indistinguishable from success.
     //
     // Zero rows is genuinely reachable here, not theoretical: on the JWT path
     // the profile read at :323-335 deliberately tolerates PGRST116 ("no profile
     // row yet"), so execution arrives here with no proof a row exists. Without
     // the guard the function answered `success: true` and Signup.tsx treated
-    // the account as finished, leaving the user stranded unapproved with no
+    // the account as finished, leaving the user's signup unrecorded with no
     // error surfaced anywhere.
     //
-    // No approval_status condition in the WHERE any more: 'denied' no longer
-    // exists (Q193, CHECK profiles_approval_status_no_denied), and a ban landing
-    // mid-request lives in ban_status, which this write does not touch.
+    // No status condition in the WHERE: a ban landing mid-request lives in
+    // ban_status, which this write does not touch.
     const { data: updatedRows, error: profileErr } = await supabase
       .from("profiles")
       .update(updateData)
@@ -707,7 +703,7 @@ serve(async (req) => {
     if (profileErr || (updatedRows?.length ?? 0) === 0) {
       console.error(
         "Profile update error:",
-        profileErr ?? `zero rows matched for user_id ${userId} — profile row missing, account left unapproved`,
+        profileErr ?? `zero rows matched for user_id ${userId} — profile row missing, signup not recorded`,
       );
       return new Response(JSON.stringify({ error: "Failed to update profile" }), {
         status: 500,
@@ -854,7 +850,7 @@ serve(async (req) => {
       const NEW_MEMBER_TITLE = "New member joined";
       const userName = profile?.full_name || "Someone";
       const userLocation = profile?.location ? ` from ${profile.location}` : "";
-      const notifMessage = `${userName}${userLocation} just joined. They're auto-approved and can start posting + applying right away.`;
+      const notifMessage = `${userName}${userLocation} just joined. They can start posting + applying as soon as they confirm their email.`;
 
       // Dedupe: skip if an identical notification was sent in the last 24h.
       //

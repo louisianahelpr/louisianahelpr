@@ -15,6 +15,8 @@ interface VerificationRow {
 }
 
 const FIELD_LABEL: Record<string, string> = {
+  // A label for history rows written before Q205b retired the column; no new
+  // rows carry this field.
   approval_status: "Approval status",
   idv_status: "Stripe IDV status",
   idv_confidence: "IDV confidence",

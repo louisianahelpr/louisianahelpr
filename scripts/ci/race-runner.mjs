@@ -118,7 +118,7 @@ async function fixture(admin, race) {
     // tests the lock, not onboarding.
     await admin.query(
       `UPDATE public.profiles
-          SET full_name = $2, approval_status = 'approved',
+          SET full_name = $2, email_verified = true,
               stripe_account_id = 'acct_ci_race', stripe_payouts_enabled = true,
               stripe_identity_verified = true
         WHERE user_id = $1`,
@@ -371,7 +371,7 @@ async function disputeFixture(admin) {
     await admin.query("INSERT INTO auth.users (id, email) VALUES ($1, $2)", [id, `race-${who}-${id}@helpr.test`]);
     await admin.query(
       `UPDATE public.profiles
-          SET full_name = $2, approval_status = 'approved',
+          SET full_name = $2, email_verified = true,
               stripe_account_id = 'acct_ci_race', stripe_payouts_enabled = true,
               stripe_identity_verified = true
         WHERE user_id = $1`,

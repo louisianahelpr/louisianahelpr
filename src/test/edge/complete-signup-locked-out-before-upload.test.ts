@@ -94,14 +94,17 @@ describe("Q197: complete-signup refuses a locked-out account before any upload",
     expect(scenario.writes.some((w) => w.table === "profiles" && w.op === "update")).toBe(false);
   });
 
-  it("the same call from an active account uploads and approves (the refusal is not vacuous)", async () => {
+  it("the same call from an active account uploads and records the signup (the refusal is not vacuous)", async () => {
     seed({ ban_status: "active", auto_suspended_until: null });
     const res = await call();
     expect(res.status).toBe(200);
     // All three files were stored, so the harness really exercises uploads.
     expect(scenario.storage.objects.size).toBe(3);
     const update = scenario.writes.find((w) => w.table === "profiles" && w.op === "update");
-    expect((update?.payload as Record<string, unknown>)?.approval_status).toBe("approved");
+    // The signup UPDATE ran (terms consent is written on every call), and it
+    // no longer writes the retired approval_status (Q205b).
+    expect((update?.payload as Record<string, unknown>)?.terms_version_accepted).toBeTruthy();
+    expect(update?.payload).not.toHaveProperty("approval_status");
   });
 
   it("a temp ban that has already lapsed is not a lockout (same definition as ProtectedRoute)", async () => {

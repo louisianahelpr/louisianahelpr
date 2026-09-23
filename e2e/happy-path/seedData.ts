@@ -923,7 +923,6 @@ export const SEED_PROFILES = [
     location: "New Orleans, LA",
     bio: "Ten years of moving and handyman work across the parish.",
     subscription_tier: "pro",
-    approval_status: "approved",
     ban_status: "active",
     created_at: AGO(400),
     updated_at: NOW,
@@ -937,7 +936,6 @@ export const SEED_PROFILES = [
     location: "Baton Rouge, LA",
     bio: "Detail cleaning, move-outs and post-renovation work.",
     subscription_tier: "free",
-    approval_status: "approved",
     ban_status: "active",
     created_at: AGO(200),
     updated_at: NOW,
@@ -959,7 +957,6 @@ export const SEED_PROFILES = [
     skills: "handyman,moving,events",
     hourly_rate: 45,
     subscription_tier: "elite",
-    approval_status: "approved",
     ban_status: "active",
     idv_status: "verified",
     id_verification_status: "verified",
@@ -985,7 +982,6 @@ export const SEED_PROFILES = [
     parish: "Jefferson",
     bio: "New to Helpr. Looking for help around a rental duplex.",
     subscription_tier: "free",
-    approval_status: "pending",
     ban_status: "active",
     idv_status: "not_started",
     id_verification_status: "unverified",
@@ -1004,10 +1000,8 @@ export const SEED_PROFILES = [
     parish: "Vermilion",
     bio: "Yard work and pressure washing.",
     subscription_tier: "free",
-    // Was the "denied" fixture; the denied state was retired in Q193 and
-    // profiles_approval_status_no_denied now refuses it. The failed IDV below
-    // is what still distinguishes this account.
-    approval_status: "approved",
+    // Was the "denied" fixture; the denied state was retired in Q193. The
+    // failed IDV below is what distinguishes this account.
     ban_status: "active",
     idv_status: "failed",
     id_verification_status: "failed",
@@ -1026,7 +1020,6 @@ export const SEED_PROFILES = [
     parish: "Calcasieu",
     bio: "Moving help.",
     subscription_tier: "free",
-    approval_status: "approved",
     ban_status: "permanently_banned",
     idv_status: "verified",
     id_verification_status: "verified",
@@ -1046,7 +1039,6 @@ export const SEED_PROFILES = [
     parish: "East Baton Rouge",
     bio: "Errands and grocery runs for seniors.",
     subscription_tier: "pro",
-    approval_status: "approved",
     ban_status: "temp_banned",
     auto_suspended_until: FUTURE(5),
     idv_status: "verified",
@@ -1067,7 +1059,6 @@ export const SEED_PROFILES = [
     parish: "Lincoln",
     bio: "LSU grad student. Pet sitting and tutoring.",
     subscription_tier: "free",
-    approval_status: "approved",
     ban_status: "active",
     idv_status: "not_started",
     id_verification_status: "unverified",
@@ -1086,7 +1077,6 @@ export const SEED_PROFILES = [
     parish: "St. Landry",
     bio: "Painting and drywall.",
     subscription_tier: "free",
-    approval_status: "approved",
     ban_status: "final_warning",
     idv_status: "manual_review",
     id_verification_status: "submitted",
@@ -1106,7 +1096,6 @@ export const SEED_PROFILES = [
     parish: "Orleans",
     bio: "Trust and safety.",
     subscription_tier: "free",
-    approval_status: "approved",
     ban_status: "active",
     created_at: AGO(700),
     updated_at: NOW,
@@ -1882,7 +1871,6 @@ function profileStats(ctx: SeedRpcContext, uid: string): R {
   const p = profileOf(ctx, uid) ?? {};
   return {
     user_id: uid,
-    approval_status: p.approval_status ?? "approved",
     avg_rating: avg(helperReviews.length ? helperReviews : got),
     review_count: got.length,
     poster_avg_rating: avg(posterReviews),

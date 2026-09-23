@@ -229,7 +229,6 @@ Deno.serve(async (req) => {
           .select("user_id, email, full_name, parish", countOpt)
           .not("email", "is", null)
           .eq("email_verified", true)
-          .eq("approval_status", "approved")
           .eq("marketing_consent", true);
         if (body.segment === "by_parish" && body.parish) b = b.eq("parish", body.parish);
         return b.order("user_id", { ascending: true });

@@ -113,9 +113,10 @@ export const stripeConnectStatusKey = (userId: string) =>
 export function useStripeConnectStatus(): StripeConnectStatusResult {
   const { user, profile } = useCurrentUser();
   const userId = user?.id;
-  // Same gate the old effect used: only an approved account is expected to
-  // have a payout account, so nobody else pays for this round-trip.
-  const approved = profile?.approval_status === "approved";
+  // Wait for the profile, as the old `approval_status === "approved"` gate
+  // did. That gate is retired (Q205b): every account past ProtectedRoute has
+  // passed the only entry gate, a confirmed email.
+  const profileLoaded = !!profile;
 
   // Read the seed when the id resolves and then leave it alone. It must NOT
   // track the query result: flipping it mid-session would re-open a reserved
@@ -124,7 +125,7 @@ export function useStripeConnectStatus(): StripeConnectStatusResult {
 
   const { data, isError, refetch } = useQuery<PayoutAccountStatus | null, Error, StripeConnectStatus>({
     queryKey: stripeConnectStatusKey(userId ?? ""),
-    enabled: !!userId && approved,
+    enabled: !!userId && profileLoaded,
     queryFn: fetchPayoutStatus,
     // staleTime / gcTime / the never-persist policy all live with the fetcher
     // in payoutSetupQueries.ts — one place, so the two consumers of this key
@@ -162,7 +163,7 @@ export function useStripeConnectStatus(): StripeConnectStatusResult {
   }, [userId, data]);
 
   const payoutPrompt = useMemo<PayoutPrompt>(() => {
-    if (!userId || !approved) return { kind: "none" };
+    if (!userId || !profileLoaded) return { kind: "none" };
     if (isError) return { kind: "error" };
     if (data) return data.payouts_enabled ? { kind: "none" } : { kind: "setup" };
     // No answer yet. Reserve the banner's height on the bare UNKNOWN — a
@@ -175,7 +176,7 @@ export function useStripeConnectStatus(): StripeConnectStatusResult {
     // payouts enabled still sees the placeholder once; nothing on the device
     // can distinguish it from the unpaid case until the RPC answers.
     return lastKnownPayoutsEnabled === true ? { kind: "none" } : { kind: "reserve" };
-  }, [userId, approved, isError, data, lastKnownPayoutsEnabled]);
+  }, [userId, profileLoaded, isError, data, lastKnownPayoutsEnabled]);
 
   return { payoutPrompt, refetchStatus: () => { void refetch(); } };
 }

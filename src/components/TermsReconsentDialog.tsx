@@ -31,13 +31,14 @@ export function TermsReconsentDialog() {
   const userId = user?.id ?? null;
   // Only prompt users who have finished the front door — an unconfirmed
   // email sits on /signup-pending and should not be double-gated. Banned
-  // users bounce to /account-banned via ProtectedRoute long
-  // before this component matters, so `approved` is the only state that
-  // benefits from a re-consent nag.
+  // users bounce to /account-banned via ProtectedRoute long before this
+  // component matters. A confirmed email is the whole front door (the
+  // approval_status check that sat here was retired, Q205b); the profile must
+  // have loaded so the ban check below reads a real value.
   const isEligible =
     !!userId &&
     !!user?.email_confirmed_at &&
-    profile?.approval_status === "approved" &&
+    !!profile &&
     // `ban_status` is NEVER empty: the column defaults to 'active' (verified in
     // prod 2026-09-07 — every row reads 'active'), so the previous
     // `!profile?.ban_status` was false for every user and this dialog could

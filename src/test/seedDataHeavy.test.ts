@@ -87,11 +87,11 @@ describe("normal seed", () => {
     expect(months.size).toBeGreaterThanOrEqual(3);
   });
 
-  it("has accounts pending and banned, with and without Stripe, and IDV unverified — and none denied (Q193)", () => {
+  it("has accounts banned, with and without Stripe, and IDV unverified — and none carrying an approval state (Q193/Q205b)", () => {
     const p = seed.SEED_TABLES.profiles as R[];
-    expect(p.some((x) => x.approval_status === "pending")).toBe(true);
-    // The denied state was retired (Q193); the DB CHECK now refuses it.
-    expect(p.some((x) => x.approval_status === "denied")).toBe(false);
+    // The approval step is retired: pending/denied (Q193) and then the column's
+    // last meaning (Q205b). No fixture profile names it.
+    expect(p.filter((x) => "approval_status" in x)).toEqual([]);
     expect(p.some((x) => String(x.ban_status).includes("banned"))).toBe(true);
     expect(p.some((x) => x.stripe_account_id)).toBe(true);
     expect(p.some((x) => x.stripe_account_id === null)).toBe(true);

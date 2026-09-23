@@ -27,7 +27,6 @@ export interface SharedProfile {
   email: string | null;
   avatar_url: string | null;
   ban_status: string | null;
-  approval_status: string | null;
   idv_status: string | null;
   created_at: string | null;
   bio: string | null;
@@ -36,7 +35,7 @@ export interface SharedProfile {
 }
 
 const PROFILE_FIELDS =
-  "user_id, full_name, email, avatar_url, ban_status, approval_status, idv_status, created_at, bio, location, onboarding_fee_paid";
+  "user_id, full_name, email, avatar_url, ban_status, idv_status, created_at, bio, location, onboarding_fee_paid";
 
 /**
  * Direct profile fetch. Exported for non-React call sites (e.g. event

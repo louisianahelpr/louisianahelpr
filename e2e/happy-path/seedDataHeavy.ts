@@ -104,7 +104,6 @@ export const HEAVY_PROFILES = Array.from({ length: 45 }, (_, i) => ({
   skills: "handyman,moving,cleaning,yard_work,painting,assembly,pet_care,errands,delivery,events,storm_prep",
   hourly_rate: 45 + i,
   subscription_tier: ["free", "pro", "elite"][i % 3],
-  approval_status: "approved",
   ban_status: "active",
   idv_status: i % 4 === 0 ? "not_started" : "verified",
   created_at: AGO(30 + i * 9),

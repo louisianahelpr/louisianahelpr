@@ -14,6 +14,15 @@ permissions:
 # e2e/a11y-prod/a11y-prod.spec.ts (same capture + gate as the mocked sweep,
 # via e2e/happy-path/sweepCore.ts). Diff: scripts/audit/a11y-engine-diff.mjs.
 #
+# AXE TAG SET (Q181, docs/OPEN.md, 2026-09-23): sweepCore's axe scan runs
+# AXE_TAGS (e2e/happy-path/axeTags.ts) — wcag2a/2aa/21a/21aa PLUS wcag22aa
+# (WCAG 2.2 AA) and best-practice — against the two-way baseline in
+# e2e/happy-path/knownAxeViolations.ts. A violation not on the baseline fails
+# the sweep; a baseline entry not seen fails it too (the list only shrinks).
+# If the baseline file (e2e/happy-path/axe-known-violations.json) does not
+# exist, the sweep generates it from this run's findings and fails with
+# "axe baseline missing" — see the "Surface a missing axe baseline" step below.
+#
 # Read-only against prod: the accounts are signed in and looked at, nothing is
 # written, so the two engines run in parallel and this does not take the
 # shared-account concurrency group.
@@ -122,6 +131,30 @@ jobs:
         # The serial describe ignores --workers; kept on one line for
         # src/test/e2eSpecsReachableInCi.test.ts, which reads this file.
         run: npx playwright test --project=${{ matrix.project }} --reporter=list,./e2e/reporters/skipReporter.ts
+
+      - name: Surface a missing axe baseline (Q181)
+        # assertSweepGate (sweepCore.ts) writes this file and fails the sweep
+        # above when e2e/happy-path/axe-known-violations.json does not exist —
+        # first run against the wcag22aa+best-practice tag set, or the
+        # baseline was deleted. That failure is buried in Playwright output;
+        # this step puts it where a run's Summary tab and Actions annotations
+        # actually show it, and names the artifact it is already inside (the
+        # a11y-prod-${{ matrix.engine }} upload below covers the whole
+        # a11y-prod-out/ directory, this file included).
+        if: always()
+        run: |
+          set -u
+          GEN="a11y-prod-out/${{ matrix.engine }}/axe-baseline-generated.json"
+          if [ -f "$GEN" ]; then
+            COUNT=$(node -e "console.log(JSON.parse(require('node:fs').readFileSync(process.argv[1],'utf8')).length)" "$GEN" 2>/dev/null || echo "?")
+            echo "::error title=axe WCAG baseline missing (${{ matrix.engine }})::e2e/happy-path/axe-known-violations.json does not exist. $COUNT violation(s) generated at $GEN — download the a11y-prod-${{ matrix.engine }} artifact, review each entry, then commit it as e2e/happy-path/axe-known-violations.json."
+            {
+              echo "## axe WCAG 2.2 AA baseline missing (${{ matrix.engine }})"
+              echo "\`e2e/happy-path/axe-known-violations.json\` does not exist yet — generated **$COUNT** violation(s) at \`$GEN\`."
+              echo ""
+              echo "Download the \`a11y-prod-${{ matrix.engine }}\` artifact from this run, review every entry in \`$GEN\` (this grandfathers real, measured debt — do not rubber-stamp it), then commit it as \`e2e/happy-path/axe-known-violations.json\` and register it in \`src/test/baselinesAreTwoWay.test.ts\`'s \`JSON_TWO_WAY\` (see \`e2e/happy-path/knownAxeViolations.ts\`'s header). This gate stays red until that file exists."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Keep the report and every screenshot
         if: always()

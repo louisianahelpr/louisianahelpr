@@ -554,9 +554,19 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel }) => {
     return parts.join(" > ");
   };
   const out = [];
+  // Q294: a modal already open when the page pass runs (/jobs/:id renders
+  // JobDetailDialog as the page) covers everything behind it, and no overlay
+  // pass ever runs for it because no press opened it. The page pass then owns
+  // that modal's controls and nothing outside it; pressing the covered
+  // background returned 9 NOT CLICKABLE on /jobs/:id (run 35905268411).
+  const loadModal = scope !== "overlay"
+    ? [...document.querySelectorAll('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]')].pop() ?? null
+    : null;
   root.querySelectorAll(controlSel).forEach((el) => {
+    if (loadModal) {
+      if (!loadModal.contains(el)) return;
     // Page pass: a control inside an overlay belongs to the overlay pass.
-    if (scope !== "overlay" && el.closest(overlaySel)) return;
+    } else if (scope !== "overlay" && el.closest(overlaySel)) return;
     // The overlay pass owns only the newest overlay's controls.
     if (scope === "overlay" && [...document.querySelectorAll(overlaySel)].pop() !== el.closest(overlaySel)) return;
     const r = el.getBoundingClientRect();

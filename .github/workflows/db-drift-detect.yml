@@ -209,6 +209,20 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-anon-table-grants.mjs
 
+      # Q281: a banned account is refused on every client write path (tables,
+      # RPCs, storage) or carries a reasoned exemption, and every profile ban is
+      # mirrored into auth.users.banned_until so the session cannot refresh.
+      # The data half (auth-sync:drift) can only be seen live. Same
+      # continue-on-error + fail-at-the-end shape.
+      - name: A banned account is refused on every client write path
+        id: ban_gate_coverage
+        continue-on-error: true
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-ban-gate-coverage.mjs
+
       # The migration ledger above compares VERSIONS, and the repo's parity
       # tests read the newest migration FILE; neither sees the body prod runs.
       # 2026-09-15: prod's report_helper_no_show was 20260914215112's body
@@ -476,6 +490,7 @@ jobs:
           JOBS_DYNAMIC_WRITERS: ${{ steps.jobs_dynamic_writers.outcome }}
           LIVE_PRIVILEGES: ${{ steps.live_privileges.outcome }}
           ANON_TABLE_GRANTS: ${{ steps.anon_table_grants.outcome }}
+          BAN_GATE_COVERAGE: ${{ steps.ban_gate_coverage.outcome }}
           FUNCTION_BODY_DRIFT: ${{ steps.function_body_drift.outcome }}
           UNVALIDATED_CONSTRAINTS: ${{ steps.unvalidated_constraints.outcome }}
           MIGRATION_PROVENANCE: ${{ steps.migration_provenance.outcome }}
@@ -502,6 +517,11 @@ jobs:
           if [ "${ANON_TABLE_GRANTS:-success}" = "failure" ]; then
             echo "::error::An exposed-schema table carries an excess anon grant — an anon write no policy backs, or an anon SELECT on a sensitive table. See 'No exposed-schema table carries an excess anon grant' above."
             echo "::error::FIX: in the migration that owns the table, REVOKE ALL ON <table> FROM anon, PUBLIC (or REVOKE SELECT for a read-only offender), keeping authenticated's explicit grants. A CREATE TABLE re-opens it via default privileges."
+            failed=1
+          fi
+          if [ "${BAN_GATE_COVERAGE:-success}" = "failure" ]; then
+            echo "::error::A client write path lets a banned account through, an exemption is stale, or a profile ban and auth.users.banned_until disagree (or the live read failed). See 'A banned account is refused on every client write path' above."
+            echo "::error::FIX: gate it (BEFORE trigger EXECUTE FUNCTION public.enforce_ban_gate(), or is_caller_banned() in the RPC body) or exempt it with a reason in scripts/ci/ban-gate-coverage.sql."
             failed=1
           fi
           if [ "${UNVALIDATED_CONSTRAINTS:-success}" = "failure" ]; then

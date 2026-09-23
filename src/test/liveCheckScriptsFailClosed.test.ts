@@ -34,6 +34,7 @@
  */
 
 // @mutate scripts/check-anon-table-grants.mjs | if (!tablesChecked \|\| !Array.isArray(offenders)) { | if (false) {
+// @mutate scripts/check-ban-gate-coverage.mjs | if (!tablesChecked \|\| !Number(row?.has_ban_helper) \|\| !Array.isArray(offenders)) { | if (false) {
 // @mutate scripts/check-stripe-webhook-events.mjs | fail(\n      `No enabled test-mode endpoint | notes.push(\n      `No enabled test-mode endpoint
 // @mutate scripts/check-test-account-strikes.mjs | if (missing.length) { | if (false) {
 // @mutate scripts/audit/write-contract.mjs | if (nTables < 20 \|\| nFunctions < 50) { | if (false) {
@@ -157,6 +158,7 @@ const catalogCheck = (readFail: RegExp): Case[] => [
 
 const HERMETIC: Record<string, Case[]> = {
   "scripts/check-anon-table-grants.mjs": catalogCheck(/could not read live grant catalog/),
+  "scripts/check-ban-gate-coverage.mjs": catalogCheck(/could not read the live catalog/),
   "scripts/check-jobs-dynamic-writers.mjs": catalogCheck(/could not read live pg_proc/),
   "scripts/check-edge-rpcs-live.mjs": catalogCheck(/could not read the live function catalog/),
   "scripts/check-live-privileges.mjs": catalogCheck(/could not read the live catalog/),

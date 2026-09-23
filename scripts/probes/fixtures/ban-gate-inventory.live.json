@@ -1,0 +1,603 @@
+{
+ "captured": "2026-09-23T18:11:36.900Z",
+ "source": "prod fncmgoasalhdgfwzhsqa, read-only catalog query; fixture for scripts/probes/ban-gate-coverage.probe.mjs",
+ "writable": [
+  {
+   "op": "INSERT",
+   "tbl": "admin_audit_log"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "admin_user_notes"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "admin_user_notes"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "admin_user_notes"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "analytics_events"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "applications"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "applications"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "applications"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "broadcast_dismissals"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "broadcast_messages"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "broadcast_messages"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "broadcast_messages"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "disputes"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "disputes"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "disputes"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "error_logs"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "favorite_helpers"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "favorite_helpers"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "favorite_helpers"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "fraud_flags"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "fraud_flags"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "fraud_flags"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "group_job_helpers"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "group_job_helpers"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "group_job_helpers"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "helper_availability"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "helper_availability"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "helper_availability"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "helper_credentials"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "helper_credentials"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "helper_shadowbans"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "helper_shadowbans"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "helper_shadowbans"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "helper_w9_records"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "job_checkins"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "job_pets"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "job_pets"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "job_pets"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "job_revisions"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "job_revisions"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "job_revisions"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "job_tracking"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "job_tracking"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "job_views"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "jobs"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "jobs"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "jobs"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "legal_acceptances"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "login_history"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "louisiana_zip_parishes"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "louisiana_zip_parishes"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "louisiana_zip_parishes"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "marketing_content"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "marketing_content"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "marketing_content"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "marketing_settings"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "message_reactions"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "message_reactions"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "message_reactions"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "messages"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "messages"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "messages"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "notification_preferences"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "notification_preferences"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "notifications"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "notifications"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "notifications"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "nps_responses"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "payment_refunds"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "payout_transfers"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "payout_transfers"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "pet_profiles"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "pet_profiles"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "pet_profiles"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "platform_settings"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "platform_settings"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "profile_views"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "profiles"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "profiles"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "push_tokens"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "push_tokens"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "push_tokens"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "recurring_visit_releases"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "recurring_visit_releases"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "referral_codes"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "reports"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "reports"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "reviews"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "saved_jobs"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "saved_jobs"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "saved_searches"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "saved_searches"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "saved_searches"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "str_calendar_connections"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "str_calendar_connections"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "str_calendar_connections"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "stripe_webhook_events"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "stripe_webhook_events"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "stripe_webhook_events"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "thread_archives"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "thread_archives"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "thread_archives"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "thread_mutes"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "thread_mutes"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "thread_pins"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "thread_pins"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "user_bans"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "user_bans"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "user_bans"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "user_blocks"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "user_blocks"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "user_roles"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "user_roles"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "user_roles"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "user_strikes"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "user_strikes"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "user_strikes"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "user_violations"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "user_violations"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "user_violations"
+  },
+  {
+   "op": "DELETE",
+   "tbl": "verification_exceptions"
+  },
+  {
+   "op": "INSERT",
+   "tbl": "verification_exceptions"
+  },
+  {
+   "op": "UPDATE",
+   "tbl": "verification_exceptions"
+  }
+ ],
+ "gated": [
+  {
+   "op": "INSERT",
+   "proname": "enforce_ban_gate",
+   "tbl": "applications",
+   "tgname": "trg_ban_gate_applications"
+  },
+  {
+   "op": "INSERT",
+   "proname": "enforce_ban_gate",
+   "tbl": "job_revisions",
+   "tgname": "trg_ban_gate_job_revisions"
+  },
+  {
+   "op": "INSERT",
+   "proname": "enforce_ban_gate",
+   "tbl": "jobs",
+   "tgname": "trg_ban_gate_jobs_insert"
+  },
+  {
+   "op": "UPDATE",
+   "proname": "enforce_ban_gate",
+   "tbl": "jobs",
+   "tgname": "trg_ban_gate_jobs_update"
+  },
+  {
+   "op": "INSERT",
+   "proname": "enforce_ban_gate",
+   "tbl": "message_reactions",
+   "tgname": "trg_ban_gate_message_reactions"
+  },
+  {
+   "op": "INSERT",
+   "proname": "enforce_ban_gate",
+   "tbl": "messages",
+   "tgname": "trg_ban_gate_messages"
+  },
+  {
+   "op": "UPDATE",
+   "proname": "enforce_banned_profile_text_lock",
+   "tbl": "profiles",
+   "tgname": "enforce_banned_profile_text_lock"
+  },
+  {
+   "op": "INSERT",
+   "proname": "enforce_ban_gate",
+   "tbl": "reviews",
+   "tgname": "trg_ban_gate_reviews_insert"
+  },
+  {
+   "op": "UPDATE",
+   "proname": "enforce_ban_gate",
+   "tbl": "reviews",
+   "tgname": "trg_ban_gate_reviews_update"
+  }
+ ],
+ "rpcs": [
+  "accept_application",
+  "accept_group_application",
+  "admin_delete_review",
+  "admin_reverse_violation",
+  "apply_cancellation_violation_consequence",
+  "apply_low_rating_flag",
+  "apply_message_violation_consequence",
+  "apply_to_job",
+  "block_user_and_settle",
+  "clear_available_now",
+  "clear_thread_mute",
+  "decline_job_offer",
+  "get_helper_earnings_export",
+  "helper_abort_job",
+  "helper_cancel_booking",
+  "helper_mark_on_the_way",
+  "mark_applications_viewed",
+  "mark_helper_arrival",
+  "poster_cancel_job",
+  "process_referral",
+  "record_job_view",
+  "record_profile_view",
+  "reject_other_applications_on_accept",
+  "report_helper_no_show",
+  "resolve_stalled_job_flag",
+  "respond_to_direct_offer",
+  "respond_to_review",
+  "review_credential",
+  "rpc_add_dispute_evidence",
+  "rpc_decide_dispute",
+  "rpc_escalate_dispute",
+  "rpc_group_member_confirm",
+  "rpc_group_member_mark_arrival",
+  "rpc_group_member_mark_done",
+  "rpc_group_member_on_the_way",
+  "rpc_group_member_set_proof",
+  "rpc_helper_mark_done",
+  "rpc_open_dispute",
+  "rpc_poster_confirm_member_arrival",
+  "rpc_record_application_attempt",
+  "rpc_supersede_dispute_decision",
+  "rpc_withdraw_dispute",
+  "save_weekly_availability",
+  "search_profiles_by_name",
+  "set_available_now",
+  "set_thread_snooze",
+  "toggle_thread_mute"
+ ]
+}

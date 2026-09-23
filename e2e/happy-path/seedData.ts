@@ -1554,15 +1554,6 @@ export const SEED_HELPER_CREDENTIALS = [
     updated_at: AGO(14),
   },
   {
-    id: "68000000-0000-4000-8000-000000000005",
-    user_id: HELPER_ID,
-    credential_type: "bond",
-    status: "rejected",
-    rejection_reason: "Bond certificate was for a different business name.",
-    created_at: AGO(30),
-    updated_at: AGO(28),
-  },
-  {
     id: "68000000-0000-4000-8000-000000000006",
     user_id: A3,
     credential_type: "trade_license",

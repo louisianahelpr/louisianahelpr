@@ -739,7 +739,6 @@ async function apply() {
     // 2026-09-23; docs/OPEN.md Q49).
     { id: sid("cred:license"), user_id: helperId, credential_type: "trade_license", trade_category: "handyman", license_number: "SEED-LA-HIC-0000", license_state: "LA", status: "submitted", document_url: await ensureSeedLicenseDocument(helperId) },
     { id: sid("cred:insurance"), user_id: helperId, credential_type: "insurance", issuing_authority: "SEED Gulf South Mutual", expiration_date: "2026-07-31", status: "expired" },
-    { id: sid("cred:bond"), user_id: helperId, credential_type: "bond", status: "rejected", rejection_reason: "SEED: bond certificate was for a different business name." },
   ]);
   await upsert("pet_profiles", [
     { id: sid("pet:dog"), owner_id: posterId, name: "Boudreaux (seed)", species: "dog", breed: "Catahoula", age_years: 4, weight_lbs: 62, feeding_schedule: "2 cups at 7am and 6pm", behavioral_notes: "Pulls near squirrels." },
@@ -837,7 +836,7 @@ async function teardown() {
   await del("saved_jobs", `id=eq.${sid("saved:helper-pets")}`);
   await del("reports", `id=${inList(["user", "job", "message", "support"].map((k) => sid(`report:${k}`)))}`);
   await del("helper_availability", `id=${inList(SEED_AVAILABILITY_DAYS.map((d) => sid(`avail:${d}`)))}`);
-  await del("helper_credentials", `id=${inList(["license", "insurance", "bond"].map((k) => sid(`cred:${k}`)))}`);
+  await del("helper_credentials", `id=${inList(["license", "insurance"].map((k) => sid(`cred:${k}`)))}`);
   {
     // The licence row's document (Q130), after the row that names it is gone.
     const r = await fetch(`${BASE}/storage/v1/object/user-documents`, {

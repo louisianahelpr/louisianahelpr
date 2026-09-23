@@ -33,7 +33,7 @@ import { walkSource, readSource } from "./helpers/walkSource";
 import { objectLiterals } from "./helpers/schemaConstraints";
 
 const REPO = resolve(__dirname, "../..");
-const NEEDS_DOCUMENT_TYPES = new Set(["trade_license", "insurance", "bond"]); // bond: Q130 (helper_credentials_pending_bond_needs_document)
+const NEEDS_DOCUMENT_TYPES = new Set(["trade_license", "insurance"]); // bond was here (Q130) until Q141 removed the type
 const PENDING_STATUSES = new Set(["unverified", "submitted"]);
 
 /** `key: <raw value up to the next top-level comma or closing brace>`, or null if absent. */

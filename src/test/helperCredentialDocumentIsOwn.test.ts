@@ -1,15 +1,14 @@
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |     IF is_member THEN\n      RAISE EXCEPTION 'A submitted |     IF false THEN\n      RAISE EXCEPTION 'A submitted
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql | IF is_member AND NEW.credential_type IN ('identity', 'background_check') THEN | IF false THEN
-// @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql | IF p_path !~ ('^' \|\| p_user_id::text \|\| '/credentials/' \|\| p_type | IF p_path !~ ('/credentials/' \|\| p_type
-// @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql | WHERE o.bucket_id = 'user-documents' AND o.name = p_path\n  );\nEND;\n$fn$;\n\nREVOKE ALL ON FUNCTION public.helper_credential_document_ok | WHERE o.bucket_id = 'user-documents' AND o.name <> p_path\n  );\nEND;\n$fn$;\n\nREVOKE ALL ON FUNCTION public.helper_credential_document_ok
-// @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql | p_type \|\| '-[0-9]{13}\.([Pp][Dd][Ff]\|[Pp][Nn][Gg]\|[Jj][Pp][Ee]?[Gg]\|[Ww][Ee][Bb][Pp]\|[Hh][Ee][Ii][Cc])$') THEN | p_type \|\| '-[0-9]{13}\.([Pp][Dd][Ff]\|[Pp][Nn][Gg]\|[Jj][Pp][Ee]?[Gg]\|[Ww][Ee][Bb][Pp]\|[Hh][Ee][Ii][Cc]\|[Ss][Vv][Gg])$') THEN
+// @mutate supabase/migrations/20260923130457_remove_bond_credential_type.sql | IF p_path !~ ('^' \|\| p_user_id::text \|\| '/credentials/' \|\| p_type | IF p_path !~ ('/credentials/' \|\| p_type
+// @mutate supabase/migrations/20260923130457_remove_bond_credential_type.sql | WHERE o.bucket_id = 'user-documents' AND o.name = p_path\n  );\nEND;\n$fn$;\n\nREVOKE ALL ON FUNCTION public.helper_credential_document_ok | WHERE o.bucket_id = 'user-documents' AND o.name <> p_path\n  );\nEND;\n$fn$;\n\nREVOKE ALL ON FUNCTION public.helper_credential_document_ok
+// @mutate supabase/migrations/20260923130457_remove_bond_credential_type.sql | p_type \|\| '-[0-9]{13}\.([Pp][Dd][Ff]\|[Pp][Nn][Gg]\|[Jj][Pp][Ee]?[Gg]\|[Ww][Ee][Bb][Pp]\|[Hh][Ee][Ii][Cc])$') THEN | p_type \|\| '-[0-9]{13}\.([Pp][Dd][Ff]\|[Pp][Nn][Gg]\|[Jj][Pp][Ee]?[Gg]\|[Ww][Ee][Bb][Pp]\|[Hh][Ee][Ii][Cc]\|[Ss][Vv][Gg])$') THEN
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |     IF NEW.document_url IS NOT NULL THEN\n      RAISE EXCEPTION '% credentials carry no document' |     IF false THEN\n      RAISE EXCEPTION '% credentials carry no document'
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql | REVOKE UPDATE (document_url, credential_type) ON | REVOKE UPDATE (credential_type) ON
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |     USING ((SELECT auth.uid()) = user_id)\n    WITH CHECK ((SELECT auth.uid()) = user_id); |     USING ((SELECT auth.uid()) = user_id);
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |     BEFORE INSERT OR UPDATE ON public.helper_credentials |     BEFORE INSERT ON public.helper_credentials
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |      WHERE c.user_id = auth.uid() |      WHERE true
-// @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |         credential_type <> 'bond'\n |         credential_type <> 'bond' OR true\n
-// @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql | helper_credential_document_ok(uuid, text, text) FROM PUBLIC, anon, authenticated; | helper_credential_document_ok(uuid, text, text) FROM PUBLIC, anon;
+// @mutate supabase/migrations/20260923130457_remove_bond_credential_type.sql | helper_credential_document_ok(uuid, text, text) FROM PUBLIC, anon, authenticated; | helper_credential_document_ok(uuid, text, text) FROM PUBLIC, anon;
 // @mutate scripts/audit/prod-seed.mjs | document_url: await ensureSeedLicenseDocument(helperId) | document_url: PIXEL
 // @mutate e2e/prod-audit/harness.ts | license_state: "LA", document_url: docPath, | license_state: "LA", document_url: SEED_PIXEL,
 import { describe, expect, it } from "vitest";
@@ -27,8 +26,10 @@ import { objectLiterals } from "./helpers/schemaConstraints";
  * Before (prod, 2026-09-23): the only document test was a CHECK using
  * nullif(btrim(..)), which U+200B passes; members held column UPDATE on
  * document_url and credential_type; the UPDATE policy had no WITH CHECK; a
- * 'submitted' row's document could be swapped with status unchanged; bond /
- * identity / background_check could be 'submitted' with no document.
+ * 'submitted' row's document could be swapped with status unchanged;
+ * identity / background_check could be 'submitted' with no document. (Q130
+ * also required a document on a pending bond; Q141 removed the bond type and
+ * that CHECK: src/test/noBondCredentialType.test.ts.)
  *
  * Reading the NEWEST definitions across all migrations (any dollar-quote tag,
  * SQL comments stripped), this pins:
@@ -41,7 +42,6 @@ import { objectLiterals } from "./helpers/schemaConstraints";
  *   - the trigger is attached BEFORE INSERT OR UPDATE and never dropped later;
  *   - UPDATE on document_url / credential_type revoked from members, never
  *     re-granted; the UPDATE policy has a WITH CHECK;
- *   - a pending bond needs a document;
  *   - is_submitted_credential_object freezes the objects the caller's
  *     helper_credentials rows name;
  *   - every helper_credentials row literal under e2e/ and scripts/ that sets a
@@ -113,7 +113,7 @@ describe("helper_credentials.document_url is the member's own uploaded document 
 
   it("the path helper anchors own folder + kind + a closed extension set, and requires the object", () => {
     const b = ok!.body;
-    expect(b).toContain("p_type NOT IN ('trade_license', 'insurance', 'bond')");
+    expect(b).toContain("p_type NOT IN ('trade_license', 'insurance')");
     expect(b).toContain(`IF p_path !~ ('^' || p_user_id::text || '/credentials/' || p_type || '-[0-9]{13}\\.(`);
     expect(extensionsOf(b)).toEqual(ALLOWED_EXT);
     expect(b).toContain("RETURN EXISTS ( SELECT 1 FROM storage.objects o WHERE o.bucket_id = 'user-documents' AND o.name = p_path );");
@@ -166,12 +166,6 @@ describe("helper_credentials.document_url is the member's own uploaded document 
   it("the member UPDATE policy has a WITH CHECK", () => {
     expect(allFrom(FIX)).toContain(
       `ALTER POLICY "Users can update own credentials" ON public.helper_credentials USING ((SELECT auth.uid()) = user_id) WITH CHECK ((SELECT auth.uid()) = user_id);`,
-    );
-  });
-
-  it("a pending bond needs a document", () => {
-    expect(allFrom(FIX)).toContain(
-      "ADD CONSTRAINT helper_credentials_pending_bond_needs_document CHECK ( credential_type <> 'bond' OR status NOT IN ('unverified', 'submitted') OR nullif(btrim(document_url), '') IS NOT NULL );",
     );
   });
 

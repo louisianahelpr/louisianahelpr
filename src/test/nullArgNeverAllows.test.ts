@@ -1,4 +1,4 @@
-// @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql | IF p_user_id IS NULL OR p_type IS NULL OR p_path IS NULL THEN | IF p_user_id IS NULL OR p_path IS NULL THEN
+// @mutate supabase/migrations/20260923130457_remove_bond_credential_type.sql | IF p_user_id IS NULL OR p_type IS NULL OR p_path IS NULL THEN | IF p_user_id IS NULL OR p_path IS NULL THEN
 // @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql | IF p_user_id IS NULL OR p_kind IS NULL OR p_path IS NULL THEN | IF p_user_id IS NULL OR p_path IS NULL THEN
 // @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql |   SELECT p_user_id IS NOT NULL\n     AND (SELECT count(*) < 3 |   SELECT true\n     AND (SELECT count(*) < 3
 // @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql | p_idv_status IS NOT DISTINCT FROM 'verified' | p_idv_status = 'verified'

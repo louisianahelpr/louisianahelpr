@@ -30,7 +30,9 @@ const MODE = process.env.NEW_MIGRATION ?? "";
 if (MODE) console.log(`NEW_MIGRATION=${MODE}: running against the pre-fix definitions (expect FAILs)`);
 
 const migFiles = readdirSync(`${ROOT}supabase/migrations`).filter((f) => f.endsWith(".sql")).sort()
-  .filter((f) => !(MODE && f === FIX));
+  // Skip mode drops the fix AND everything after it: a later migration (Q141,
+  // 20260923130457) restates helper_credential_document_ok with the fix in it.
+  .filter((f) => !(MODE && f >= FIX));
 const migText = new Map(migFiles.map((f) => [f, readFileSync(`${ROOT}supabase/migrations/${f}`, "utf8")]));
 
 /** The newest `CREATE [OR REPLACE] FUNCTION public.<name>(` statement, verbatim, any dollar tag. */

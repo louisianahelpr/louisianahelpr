@@ -122,6 +122,7 @@ describe("evaluateQuotas", () => {
 type Mode = {
   sql: "ok" | "empty" | "fail" | "full" | "zero"; logs: "ok" | "fail"; gh: "ok" | "empty"; sentry: "ok" | "forbidden";
   replays?: "low" | "dropping";
+  errors?: "low" | "dropping";
 };
 let server: Server;
 let base = "";
@@ -155,6 +156,21 @@ beforeAll(async () => {
           groups: [
             { by: { outcome: "accepted" }, totals: { "sum(quantity)": dropped ? 50 : 3 } },
             { by: { outcome: "rate_limited" }, totals: { "sum(quantity)": dropped ? 37 : 0 } },
+          ],
+        });
+      }
+      if (url.includes("category=error")) {
+        // Q311: Sentry recorded zero errors for ~17h; "dropping" reproduces a
+        // quota/rate-limit drop so the accepted-only read stays blind while
+        // this outcome-split read catches it.
+        const dropped = mode.errors === "dropping";
+        return send(200, {
+          intervals: ["2026-09-22T00:00:00Z"],
+          groups: [
+            { by: { outcome: "accepted" }, totals: { "sum(quantity)": dropped ? 0 : 42 } },
+            { by: { outcome: "rate_limited" }, totals: { "sum(quantity)": dropped ? 4500 : 0 } },
+            { by: { outcome: "filtered" }, totals: { "sum(quantity)": dropped ? 8 : 2 } },
+            { by: { outcome: "invalid" }, totals: { "sum(quantity)": dropped ? 1 : 0 } },
           ],
         });
       }
@@ -222,7 +238,7 @@ describe("check-quota-usage.mjs (stub APIs)", () => {
 
   // Q275: Sentry showed "Replay Quota Exceeded" (2026-09-23) and no monitor saw it.
   // @mutate scripts/check-quota-usage.mjs |   await Promise.all([readSql(), readEdgeInvocations(), readDeploys(), readSentry(), readSentryReplays()]); |   await Promise.all([readSql(), readEdgeInvocations(), readDeploys(), readSentry()]);
-  // @mutate scripts/check-quota-usage.mjs |       value: by.accepted + by.rate_limited, |       value: by.accepted,
+  // @mutate scripts/check-quota-usage.mjs |       value: by.accepted + by.rate_limited,\n      note: \`org stats_v2 category=replay: |       value: by.accepted,\n      note: \`org stats_v2 category=replay:
   it("replays dropped by the Sentry quota -> the replay row reads OVER and alerts", async () => {
     const low = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", replays: "low" });
     expect(low.code, low.out).toBe(0);
@@ -231,6 +247,23 @@ describe("check-quota-usage.mjs (stub APIs)", () => {
     expect(full.code, full.out).toBe(0);
     expect(full.out).toMatch(/::warning title=Quota at 174%::Sentry Session replays sent/);
     expect(full.out).toMatch(/50 accepted, 37 dropped by quota/);
+  }, 90_000);
+
+  // Q311: Sentry recorded 0 errors for ~17h on 2026-09-23; an accepted-only read cannot tell
+  // a genuinely quiet window from one where events are being dropped (quota /
+  // rate limit). Ask for every outcome and count accepted + rate_limited
+  // against the quota, the way the replay reader already does.
+  // @mutate scripts/check-quota-usage.mjs |       value: by.accepted + by.rate_limited,\n      note: \`org stats_v2 category=error: |       value: by.accepted,\n      note: \`org stats_v2 category=error:
+  it("errors dropped by the Sentry quota -> the errors row includes them and warns", async () => {
+    const low = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", errors: "low" });
+    expect(low.code, low.out).toBe(0);
+    expect(low.out).toMatch(/42 accepted, 0 dropped by quota \(rate_limited\), 2 filtered, 0 invalid/);
+    const dropping = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", errors: "dropping" });
+    expect(dropping.code, dropping.out).toBe(0);
+    // accepted (0) alone would read as 0/5000 (0%) and never warn; accepted +
+    // rate_limited (4500) crosses the 80% warn line at LH_QUOTA_SENTRY_ERRORS.
+    expect(dropping.out).toMatch(/::warning title=Quota at 90%::Sentry Error events/);
+    expect(dropping.out).toMatch(/0 accepted, 4500 dropped by quota \(rate_limited\), 8 filtered, 1 invalid/);
   }, 90_000);
 
   it("Sentry refusing both endpoints -> red with both statuses", async () => {

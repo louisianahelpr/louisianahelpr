@@ -10,9 +10,11 @@
  *      email_send_log 'sent' rows (month to date, last 24h).
  *   2. Management API logs.all: function_edge_logs rows in the last 24h.
  *   3. GitHub REST: deployments created in the last 24h (all environments).
- *   4. Sentry REST: accepted error events over 30 days (org stats_v2; on a
- *      401/403 falls back to the project stats endpoint, which needs only
- *      project:read).
+ *   4. Sentry REST: error events over 30 days, accepted + rate_limited (org
+ *      stats_v2, all four outcomes read and split in the note; Q311 — an
+ *      accepted-only read cannot tell a quiet window from one where events
+ *      are being dropped by quota/rate-limit). On a 401/403 falls back to the
+ *      project stats endpoint (project:read only), which cannot split outcomes.
  *   5. Sentry REST: session replays over 30 days, accepted + rate_limited
  *      (org stats_v2 category=replay; Q275). No project-level fallback
  *      exists for replays, so a refused read is UNREADABLE.
@@ -152,18 +154,25 @@ async function readDeploys() {
 }
 
 async function readSentry() {
+  // Q311: a 401/403/429 or quota exhaustion drops events under outcome
+  // rate_limited/filtered/invalid, which an accepted-only read can never see —
+  // that is how Sentry showed 0 errors for 17h on 2026-09-23 with no monitor noticing.
+  // Ask for every outcome and count accepted + rate_limited against the
+  // quota, the same way readSentryReplays() already does.
   const id = "sentry.errors_30d";
   const { SENTRY_AUTH_TOKEN: t, SENTRY_ORG: org, SENTRY_PROJECT: project } = env;
   if (!t || !org) return fail([id], "could not read: SENTRY_AUTH_TOKEN and SENTRY_ORG are required");
   const h = { Authorization: `Bearer ${t}` };
   try {
     const res = await fetch(
-      `${SENTRY}/api/0/organizations/${org}/stats_v2/?field=sum(quantity)&category=error&outcome=accepted&statsPeriod=30d&interval=1d`,
+      `${SENTRY}/api/0/organizations/${org}/stats_v2/?field=sum(quantity)&category=error`
+        + `&outcome=accepted&outcome=rate_limited&outcome=filtered&outcome=invalid&groupBy=outcome&statsPeriod=30d&interval=1d`,
       { headers: h, signal: AbortSignal.timeout(20_000) },
     );
     if ((res.status === 401 || res.status === 403) && project) {
       // The ledger-sync token is scoped project:read + event:read; stats_v2 wants
-      // org:read. The project stats endpoint needs only project:read.
+      // org:read. The project stats endpoint needs only project:read, but it
+      // reports 'received' only — it cannot split out dropped events.
       const until = Math.floor(Date.now() / 1000);
       const r2 = await fetch(
         `${SENTRY}/api/0/projects/${org}/${project}/stats/?stat=received&resolution=1d&since=${until - 30 * 86400}&until=${until}`,
@@ -172,7 +181,7 @@ async function readSentry() {
       if (!r2.ok) throw new Error(`Sentry stats_v2 ${res.status}, project stats ${r2.status}: ${(await r2.text()).slice(0, 200)}`);
       const pts = await r2.json();
       if (!Array.isArray(pts) || pts.length === 0) throw new Error("Sentry project stats returned no points — refusing to report clean");
-      readings[id] = { value: pts.reduce((s, p) => s + num(p?.[1] ?? 0), 0), note: "project stats 'received' (stats_v2 refused the token; this is an upper bound)" };
+      readings[id] = { value: pts.reduce((s, p) => s + num(p?.[1] ?? 0), 0), note: "project stats 'received' (stats_v2 refused the token; this is an upper bound, and cannot see filtered/invalid)" };
       return;
     }
     if (!res.ok) throw new Error(`Sentry stats_v2 ${res.status}: ${(await res.text()).slice(0, 200)}`);
@@ -180,8 +189,16 @@ async function readSentry() {
     if (!Array.isArray(body?.groups) || !Array.isArray(body?.intervals) || body.intervals.length === 0) {
       throw new Error(`Sentry stats_v2 answered without groups/intervals — refusing to report clean: ${JSON.stringify(body).slice(0, 160)}`);
     }
-    const v = body.groups.reduce((s, g) => s + num(g?.totals?.["sum(quantity)"] ?? 0), 0);
-    readings[id] = { value: v, note: "org stats_v2, outcome accepted" };
+    const by = { accepted: 0, rate_limited: 0, filtered: 0, invalid: 0 };
+    for (const g of body.groups) {
+      const o = g?.by?.outcome;
+      if (o === "rate_limited" || o === "filtered" || o === "invalid") by[o] += num(g?.totals?.["sum(quantity)"] ?? 0);
+      else by.accepted += num(g?.totals?.["sum(quantity)"] ?? 0);
+    }
+    readings[id] = {
+      value: by.accepted + by.rate_limited,
+      note: `org stats_v2 category=error: ${by.accepted} accepted, ${by.rate_limited} dropped by quota (rate_limited), ${by.filtered} filtered, ${by.invalid} invalid`,
+    };
   } catch (e) {
     fail([id], `could not read Sentry: ${e?.message ?? e}`);
   }

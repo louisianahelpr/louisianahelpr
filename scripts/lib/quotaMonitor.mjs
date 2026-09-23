@@ -180,7 +180,7 @@ export const QUOTAS = [
     window: "trailing 30 days",
     read: "sentry",
     env: "LH_QUOTA_SENTRY_ERRORS",
-    limitSource: "Sentry Developer plan: 5,000 errors/month (ASSUMED: the owner said only 'Sentry has plan limits'; override with LH_QUOTA_SENTRY_ERRORS). Measured: Sentry stats for this project, outcome accepted.",
+    limitSource: "Sentry Developer plan: 5,000 errors/month (ASSUMED: the owner said only 'Sentry has plan limits'; override with LH_QUOTA_SENTRY_ERRORS). Measured: org stats_v2 category=error, outcomes accepted + rate_limited (Q311 — an accepted-only read cannot tell a quiet window from one where events are being dropped), with filtered/invalid also read and shown in the note.",
   },
   {
     id: "sentry.replays_30d",

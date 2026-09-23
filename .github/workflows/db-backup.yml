@@ -3,9 +3,10 @@
 # WHY THIS EXISTS. It was written when the project was on the free tier (no
 # platform backups). Measured 2026-09-23: the org reports plan "pro" and
 # `supabase backups list` shows 7 days of daily PHYSICAL backups, pitr_enabled
-# false. Those restore the whole project IN PLACE from the dashboard; this
-# workflow is the only copy this repo controls, the only one kept 90 days, and
-# the only one that can be restored somewhere else (a new project, a laptop).
+# false. Those are restored from the dashboard (never exercised here); this
+# workflow is the only copy this repo controls, kept 14 days (repo artifact
+# retention cap, measured 2026-09-23; the platform keeps 7), and
+# the one that can be loaded into any Postgres (a new project, a laptop).
 # A dropped table, a bad migration or an account problem must never be able
 # to take every profile, job and escrow record with it.
 #
@@ -303,8 +304,13 @@ jobs:
         with:
           name: db-backup-${{ env.STAMP }}
           path: backup-${{ env.STAMP }}.tar.gz.gpg
-          # 90 days is the GitHub free-tier maximum. Long enough that a problem
-          # discovered weeks late is still recoverable.
+          # Asks for 90 days, but the REPO setting caps it: measured 2026-09-23,
+          # `gh api repos/:o/:r/actions/permissions/artifact-and-log-retention`
+          # -> {"days":14,"maximum_allowed_days":90}, and the upload logs
+          # "Using 14 instead". Backups are therefore kept 14 DAYS. Raising the
+          # repo setting to 90 lengthens every workflow's artifacts and logs,
+          # which may exceed the free artifact-storage quota: an owner decision
+          # (docs/OPEN.md MORNING QUESTIONS).
           retention-days: 90
           if-no-files-found: error
 

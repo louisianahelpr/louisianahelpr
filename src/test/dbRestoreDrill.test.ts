@@ -2,8 +2,8 @@
  * GUARD (docs/OPEN.md Q45): the database backup is PROVEN restorable, on a
  * schedule, and a failed restore is reported.
  *
- * Prod has no PITR, and the platform's daily backups restore only IN PLACE. The
- * nightly db-backup artifact is the only restore source, and until
+ * Prod has no PITR, and nobody here has ever exercised a platform restore. The
+ * daily db-backup artifact is the restore source this repo controls, and until
  * 2026-09-23 no one had ever restored one. This test pins the drill that does:
  * the workflow exists, is scheduled, downloads the latest backup artifact,
  * decrypts it, restores into a THROWAWAY local stack (never prod), runs the

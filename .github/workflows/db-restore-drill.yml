@@ -1,15 +1,17 @@
 # Weekly RESTORE DRILL of the daily database backup (docs/OPEN.md Q45).
 #
-# WHY. Prod is on the Supabase free tier: no platform backups, no PITR
-# (`supabase backups list` -> empty, pitr_enabled false). db-backup.yml's
-# encrypted daily dump is the ONLY restore source that exists, and until this
-# workflow nobody had ever restored one. An untested backup is a hypothesis.
+# WHY. There is no PITR (pitr_enabled false, 2026-09-23). The platform's
+# daily backups are restored from the dashboard and have never been rehearsed
+# (there is one database, and it is prod). db-backup.yml's encrypted daily dump
+# is the restore source this repo controls, and until this workflow nobody had
+# ever restored one. An untested backup is a hypothesis.
 #
 # WHAT IT DOES. Downloads the newest successful db-backup artifact, decrypts it
 # on the runner, starts a throwaway local Supabase stack (db + auth + storage,
-# so auth/storage/cron schemas exist exactly as in a new project), restores
-# roles.sql -> schema.sql -> data.sql the way the runbook says, and then
-# scripts/db-restore-drill.sh:
+# so auth/storage/cron schemas exist exactly as in a new project), and runs
+# scripts/db-restore-drill.sh, which performs the runbook's restore steps
+# (roles, ACL-trap fix, schema, pgmq queues, ensure_rls, data, cron schedules,
+# storage policies) and then:
 #   - fails on any restore error not listed (with a reason) in
 #     scripts/db-restore-drill-known-errors.txt;
 #   - counts the key marketplace AND money-ledger tables on the restored copy

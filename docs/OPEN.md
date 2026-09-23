@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 22 done, 5 partly done (fixed, protection pending), 66 open. Source of truth for work.
+- **Queue (this file):** 23 done, 5 partly done (fixed, protection pending), 65 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 93 items — 22 done, 5 partly done (fixed, protection pending), 66 open.**
+**Queue: 93 items — 23 done, 5 partly done (fixed, protection pending), 65 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -508,12 +508,23 @@ sure someone hears it and closes it.
   supabase/migrations/** or scripts/vacuity/** runs `npm run gate` (or the
   relevant CI job) before it lands. Measure it: count main-red runs per day
   before and after.
-- [ ] **Q45 Prove the database backup can be RESTORED.** The DB is on the free
-  tier with no restorable backup (db-deploy.yml says so). db-backup runs
-  nightly, but no restore has ever been tested. Add a monthly automated drill:
-  restore the latest dump into a throwaway Postgres (CI service or PGlite
-  where possible), compare row counts of key tables with prod, and report
-  through nightly-issue-sync.
+- [x] **Q45 Prove the database backup can be RESTORED.** DONE 2026-09-23.
+  Guard: `src/test/dbRestoreDrill.test.ts` pins `.github/workflows/db-restore-drill.yml`
+  (weekly, Tue 14:17 UTC; restores the newest db-backup artifact into a
+  throwaway local Supabase stack via `scripts/db-restore-drill.sh`, fails on
+  any unlisted restore error, on a key or money-ledger table missing, empty or
+  off by more than max(50, half of prod), on anon EXECUTE above the backup's
+  own grants, and on missing cron schedules or storage policies; reports via
+  nightly-issue-sync). Red on 3 mutations. The first restore (run 35836045277)
+  was red: every function came back anon-executable (306/306; prod 17/321), 0/55
+  cron schedules, no pgmq queues, no `ensure_rls`. The drill now carries those
+  repairs, and db-backup now also exports `cron.sql` and
+  `storage-policies.sql` and retries the dump. Green: run 35837914689 (4 s
+  restore, 0 errors, all counts match the backup). Runbook:
+  `docs/runbooks/restore-from-backup.md`. Two facts contradict older docs, both
+  measured: the org plan is **pro** with 7 daily platform backups (no PITR),
+  and artifacts are kept **14 days**, not 90 (repo retention cap). Owner
+  decisions: MORNING QUESTIONS 7.
 - [ ] **Q46 Test data is seed data from birth.** E2E/press/prod-audit write to
   prod (by design: no mock mode). Every fixture writer must set is_seed at
   insert time, and every alerting detector must state how it treats is_seed.
@@ -1003,6 +1014,32 @@ sure someone hears it and closes it.
    rightmost below 360 (changes the VN-35 button order); (D) open search on
    its own line below 360, where the tab strip sits. Screenshots in
    ~/.lh-shots/q48/.
+
+7. **Backups (Q45): the restore is proven weekly now; five things are yours.**
+   Measured 2026-09-23. Nothing below is needed for the drill to stay green.
+   (a) **Is the Supabase org really on Pro?** The API says `plan: "pro"`, and
+   `supabase backups list` shows 7 daily platform backups. Every doc said
+   "free tier". If you are paying $25/mo, you already have in-place daily
+   restores for 7 days. If you did not mean to be on Pro, that is a bill.
+   (b) **Backup retention is 14 days, not 90.** The repo caps artifacts and
+   logs at 14 days (`maximum_allowed_days` 90). Raising it to 90 is one
+   setting, but it lengthens EVERY workflow's artifacts, and on the free
+   GitHub plan that can go past the artifact-storage quota (billed). The
+   alternative is a monthly copy somewhere else. Your call.
+   (c) **Storage files (photos, ID documents) are in NO backup**: 152 objects,
+   about 10 MB (proof-photos 64, job-photos 61, message-attachments 18,
+   user-documents 4, avatars 4, id-documents 1). The platform backup excludes
+   them too. Backing them up needs a service-role key as an Actions secret and
+   puts ID documents (encrypted) into a GitHub artifact: a privacy trade-off.
+   (d) **PITR** (restore to the minute) is a paid add-on, about $100/mo plus
+   Small compute. Without it, worst-case loss is about 24 h (platform) or
+   24 h + GitHub's up-to-7 h schedule delay (ours). You said no paid upgrades,
+   so this is only the measured gap.
+   (e) **Two secrets that no backup holds.** `BACKUP_PASSPHRASE`: is there a
+   copy outside GitHub? If not, losing the GitHub account also loses every
+   backup. `ban_fingerprint_salt` (vault): it cannot be re-created, and
+   without it every stored ban fingerprint stops matching after a restore.
+   Want it (encrypted) in the backup, or kept in your password manager?
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

@@ -7587,7 +7587,7 @@ rows are non-tappable; panel identical in WebKit and Chromium.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 59 items — 11 done, 4 partly done (fixed, protection pending), 44 open.**
+**Queue: 67 items — 11 done, 4 partly done (fixed, protection pending), 52 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -8106,3 +8106,40 @@ sure someone hears it and closes it.
   read-only SQL, refreshed by a scheduled workflow (commits via Q57) and at
   session start, with each row's "measured at" stamp covered by the
   staleness watch. A row that can't be measured shows UNKNOWN, never green.
+- [ ] **Q60 LOAD TEST before launch.** The DB starved on 2026-09-22 with ZERO real
+  users (Q53). Nobody knows how many concurrent users the current tier holds.
+  Simulate realistic mixes (browse, post, apply, message, realtime, test-mode
+  pay) with a test-account pool against prod at a quiet hour, stepping up
+  until p95 or errors break. Record the ceiling and what gives first, and set
+  alert thresholds below it. Owner decision after: tier, or optimisation.
+- [ ] **Q61 Hourly canary on the core loop.** Full journeys run nightly, so a
+  broken core loop can go 20+ hours unseen. An hourly lightweight synthetic
+  run on prod (sign in -> browse -> open a job -> apply -> message ->
+  test-mode checkout start, then clean up) that pages through the ledger on
+  failure.
+- [ ] **Q62 Expiry monitor.** Things that die silently on a date: the Apple APNs
+  key and distribution certificate/profiles, the Stripe webhook secret, API
+  tokens (Supabase access token, GitHub PAT, Resend, Sentry), the domain
+  registration, SSL. Inventory each with its expiry, alert 30 days ahead,
+  and add each to the scoreboard.
+- [ ] **Q63 Quota and limit monitor, before any free-tier limit bites.**
+  Supabase (DB size, egress, connections, edge invocations, realtime
+  messages; supabase-usage.yml covers part of it), Vercel (deploys,
+  bandwidth, function time), GitHub Actions minutes, Resend send volume,
+  Sentry quota. Alert at 70% and 90%, and show each on the scoreboard.
+- [ ] **Q64 User-reported problems become tracked items.** In-app "report a
+  problem" / support messages / App Store reviews mentioning a bug create
+  an alert-ledger item (source `user-report`), so they're fixed and
+  verified like any alert.
+- [ ] **Q65 Test-data hygiene on prod.** E2E/press/prod-audit write to prod by
+  design. Measure how many is_seed jobs, users, messages, notifications and
+  storage objects have built up; purge anything past a retention window on
+  a schedule (dry run first); prove no real user ever sees seed data (the
+  browse views already exclude it; verify every other surface).
+- [ ] **Q66 Targets ("SLOs") on the scoreboard.** Define "working" as numbers:
+  p95 page load (web + app), API error rate, uptime, payment success rate,
+  notification delivery rate, time to a payout. Show each with its target on
+  the Q59 scoreboard, red when missed.
+- [ ] **Q67 An automatic morning page.** Generated daily: what shipped (commits
+  grouped), what's red (scoreboard), new alerts, and the decisions waiting on
+  the owner. The owner should never have to ask "what happened overnight".

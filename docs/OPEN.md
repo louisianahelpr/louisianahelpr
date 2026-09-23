@@ -1704,6 +1704,19 @@ What was fixed or obsolete is closed in the archive's reconcile log with
 evidence; what follows is still open ("not reached" means nobody could settle
 it read-only; treat it as open).
 
+### PAUSED 2026-09-23 ~19:10Z (owner: 50% usage). Only the TOP 10 below; everything else waits.
+1. Q281 ban enforcement: on main (fbb1e181a); after db-deploy run `node scripts/check-ban-gate-coverage.mjs` and `~/.lh-shots/q281/probe.mjs run after`, record + tick.
+2. Q210 (c,d,e) $250 urgent-bonus cap + terms bump: cloud/q210-bonus-terms, money review APPROVED; before landing check the /terms-under-the-reconsent-gate lead and update is_seed profiles' terms_version.
+3. Q139 seed notifications carry their subject: cloud/q139-v2, needs a lh-silent-failure review, then land.
+4. Q274 / Q244 / Q235 money-path gaps: cloud/q274-q244-q235, money review before landing.
+5. Q223 / Q255 / Q182 security: cloud/q223-q255-q182, authz review before landing.
+6. Q290 / Q292 / Q288 / Q219 account deletion + data export (App Store 5.1.1(v)): Q292 fix on main (77e03db35), privacy run 35907558297 must go green; rest in cloud/q290-q288-q219.
+7. Q82 + Q152 push notifications + TestFlight (launch blocker, needs the owner's phone; LAST step).
+8. Q60 load test before launch.
+9. Q280 press every control + journeys on prod: runs 35905268411 / 35905284660; read failures, fix.
+10. Q275 / Q15 / Q11 Sentry quota + noise: cloud/q275-sentry.
+Paused mid-flight: lead/q32-wip (lands 8 stranded PRs + fixes why refresh PR #1713 can't merge; rebase, re-verify, push, close PRs), lead/q226-wip (admin-refund/ban/no-show journeys). Cloud branches to land later (each needs its review): q282-q262-q224, q287-q298-q291, q232-admin, q286-client, q297-tooling, q283-q225-q289, q272-press, q228-copy, q265-layout (needs 375/1440 screenshots), q206-perf.
+
 ### OPEN (report for the owner, not a task) — 160 unused exports + 22 unused types (2026-09-22)
 Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] Owner decision needed on removing 160 dead exports / 22 dead types — Report stands; owner has not yet decided whether to spend a pass verifying/removing the 160 exports + 22 types. (archive L20)

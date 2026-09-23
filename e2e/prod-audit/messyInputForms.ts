@@ -133,8 +133,47 @@ const idFor = (a: Account): string => {
 
 /** Expand an Activity/My Jobs card by tapping its own title bar (JobCardShell's whole header is the toggle — see JobCardShell.tsx). */
 const expandJobCard = async (page: Page, title: string) => {
-  await page.getByText(title, { exact: false }).first().click();
+  const card = page.getByText(title, { exact: false }).first();
+  await card.waitFor({ timeout: 20_000 });
+  await card.click();
 };
+
+/**
+ * OPEN ONE JOB'S CARD ON AN ACTIVITY TAB. A card lives in whichever bucket
+ * (Needs You / Waiting / Scheduled / Done) its state puts it, and only the
+ * default bucket is on screen at load — which is why the pending-application
+ * sweep waited 20s for a title that was not in the default "Needs You" bucket
+ * (measured on prod 2026-09-23: "SEED Feed and walk two dogs"). `?job=<id>`
+ * is the app's own deep link (Activity.tsx `deepLinkJobId`): it resolves the
+ * bucket the job is ACTUALLY in, exactly as a notification tap does.
+ */
+const openActivityCard = async (page: Page, tab: "/my-jobs" | "/my-posts", job: { id: string; title: string }) => {
+  await page.goto(`${tab}?job=${job.id}`);
+  await settle(page);
+  await expandJobCard(page, job.title);
+};
+
+/** Press a card chip by its accessible name (JobActionChip's `ariaLabel`, not its visible label) and wait for the field it opens. */
+//
+// A step whose action row is full parks the rest behind its "More" overflow
+// (JobActionRow.tsx `data-job-step-overflow`) — measured on prod 2026-09-23:
+// the confirmed card shows Directions · More · I'm On My Way, with Cancel Job
+// inside More. So: the chip if it is on the row, else open the overflow first.
+const pressChipForField = async (page: Page, name: RegExp, opts: { field?: boolean } = {}) => {
+  const chip = page.getByRole("button", { name }).filter({ visible: true }).first();
+  const onRow = await chip.waitFor({ timeout: 5_000 }).then(() => true).catch(() => false);
+  if (!onRow) {
+    const more = page.locator("[data-job-step-overflow]").filter({ visible: true }).first();
+    await more.waitFor({ timeout: 10_000 });
+    await more.click();
+    await chip.waitFor({ timeout: 10_000 });
+  }
+  await chip.click();
+  // `field: false` for a control that opens a CHOICE first (withdraw reasons):
+  // the caller waits for its own field once the choice is made.
+  if (opts.field !== false) await page.locator(TEXTLIKE).filter({ visible: true }).first().waitFor({ timeout: 15_000 });
+};
+
 
 /**
  * OPEN A REAL MESSAGE THREAD — RichMessageInput/ChatView render only inside
@@ -158,21 +197,40 @@ const openSavedSearches = async (page: Page) => {
   await row.click();
 };
 
-/** /user/:id's "More options" menu holds Report User (UserProfile.tsx). */
+/**
+ * /user/:id's "More options" menu holds Report User (UserProfile.tsx). The
+ * dialog OPENS ON A REASON PICKER, not a text box (ReportDialog.tsx `step`:
+ * reason → details → confirmation) — the description field only exists once
+ * a reason is chosen, which is why the sweep found "no text-like field" on a
+ * dialog that had opened perfectly (prod, 2026-09-23). "Something else" is the
+ * one reason every report context offers.
+ */
 const openReportDialog = (target: Account) => async (page: Page) => {
   await page.goto(`/user/${idFor(target)}`);
   await settle(page);
   await page.getByRole("button", { name: /more options/i }).first().click();
   await page.getByRole("menuitem", { name: /report user/i }).first().click();
+  const dialog = page.getByRole("dialog").filter({ visible: true }).last();
+  await dialog.getByRole("button", { name: /something else/i }).first().click();
+  await dialog.locator("textarea").first().waitFor({ timeout: 10_000 });
 };
 
-/** The "Dispute" chip on an in-progress posted job opens ActivityDialogs' DisputeDialog (InProgressStep.tsx). */
+/**
+ * DisputeDialog (the one ActivityDialogs mounts for both sides), opened from
+ * the HELPER's "Report a problem" chip on a job they are on the way to or
+ * working (ActiveJobSection.tsx `showReport`).
+ *
+ * Not from the poster's "Dispute" chip: that chip only exists on a
+ * `revision_requested` job whose revision window has run out
+ * (DisputeLink.tsx `shouldShowDisputeLink`), a state no seeded job is in and
+ * none can be put in without running a real revision cycle. The poster's
+ * in-progress card offers SOS / More / Approve — measured on prod 2026-09-23,
+ * where the old spec waited 10s for a chip that is correctly absent.
+ */
 const openDisputeDialog = async (page: Page) => {
-  const job = fixtureOrThrow("inProgressJob", "in-progress job");
-  await expandJobCard(page, job.title);
-  const chip = page.getByRole("button", { name: /^dispute$/i }).first();
-  await chip.waitFor({ timeout: 10_000 });
-  await chip.click();
+  const job = fixtureOrThrow("helperEnRouteJob", "job the helper is on the way to or working");
+  await openActivityCard(page, "/my-jobs", job);
+  await pressChipForField(page, /^report a problem/i);
 };
 
 /**
@@ -183,14 +241,21 @@ const openDisputeDialog = async (page: Page) => {
  * (ActiveJobSection.tsx: `showExit`/`showReport`). Press whichever the
  * standing job is actually showing rather than assuming one.
  */
+//
+// The field this FormSpec covers is ActiveJobSection's OWN abort-reason box,
+// which only the Cancel Job confirm holds — so it opens on a job the helper
+// has confirmed and not yet left for (`helperConfirmedJob`), never on the
+// Report-a-problem side, whose field belongs to DisputeDialog (the
+// activity-dispute-dialog spec). The old version pressed "whichever is
+// showing", matched neither (both chips' accessible names are their
+// `ariaLabel`s — "Cancel this job? …" and "Report a problem — …" — so the
+// exact-label regexes never matched), and swallowed the miss.
 const openActiveJobSection = async (page: Page) => {
-  const job = fixtureOrThrow("inProgressJob", "in-progress job");
-  await expandJobCard(page, job.title);
-  const cancel = page.getByRole("button", { name: /^cancel job$/i }).first();
-  const report = page.getByRole("button", { name: /^report a problem$/i }).first();
-  if (await cancel.isVisible().catch(() => false)) await cancel.click();
-  else if (await report.isVisible().catch(() => false)) await report.click();
-  await page.locator(TEXTLIKE).filter({ visible: true }).first().waitFor({ timeout: 10_000 }).catch(() => {});
+  const job = fixtureOrThrow("helperConfirmedJob", "job the helper confirmed but has not left for");
+  await openActivityCard(page, "/my-jobs", job);
+  // Unanchored: inside the overflow sheet the same control is named
+  // "Cancel Job — Cancel this job? …" (label + ariaLabel).
+  await pressChipForField(page, /cancel this job\?/i);
 };
 
 /**
@@ -201,21 +266,24 @@ const openActiveJobSection = async (page: Page) => {
  * pinned by the fixture picker, so press Respond when it is offered and fall
  * back to Withdraw only so the section itself is still exercised.
  */
+//
+// The fixture is `helperDisputedJob`: a dispute the OTHER side filed that the
+// helper has not answered (harness.ts), so Respond is always the control
+// offered — Withdraw has no typed field and would sweep nothing. Resolved from
+// the helper's own jobs, any poster: poster-e2e had no disputed job on prod
+// 2026-09-23, while the helper was assigned one a seeded poster had filed.
 const openDisputedSectionResponse = async (page: Page) => {
-  const job = fixtureOrThrow("disputedJob", "disputed job");
-  await expandJobCard(page, job.title);
-  const respond = page.getByRole("button", { name: /respond to dispute|add your side/i }).first();
-  if (await respond.isVisible().catch(() => false)) await respond.click();
-  else await page.getByRole("button", { name: /^withdraw dispute$/i }).first().click().catch(() => {});
+  const job = fixtureOrThrow("helperDisputedJob", "dispute filed against the helper, unanswered");
+  await openActivityCard(page, "/my-jobs", job);
+  await pressChipForField(page, /respond to dispute|add your side/i);
 };
 
 /** The helper's expanded pending-application card's "Edit" chip opens the message editor (AppliedJobCard.tsx). */
+// The pencil's accessible name is "Edit your message" (PendingApplicationSection.tsx).
 const openPendingApplicationEdit = async (page: Page) => {
   const job = fixtureOrThrow("jobWithPendingApplicant", "job with a pending application");
-  await expandJobCard(page, job.title);
-  const edit = page.getByRole("button", { name: /^edit$/i }).first();
-  await edit.waitFor({ timeout: 10_000 });
-  await edit.click();
+  await openActivityCard(page, "/my-jobs", job);
+  await pressChipForField(page, /^edit your message$/i);
 };
 
 /**
@@ -399,17 +467,33 @@ export const FORMS: FormSpec[] = [
   },
   { name: "saved-searches-dialog", url: "/dashboard", as: "poster", prepare: openSavedSearches, covers: ["src/components/SavedSearches.tsx"] },
   { name: "report-user-dialog", url: "/dashboard", as: "poster", prepare: openReportDialog("helper"), covers: ["src/components/ReportDialog.tsx"] },
-  { name: "activity-dispute-dialog", url: "/my-posts", as: "poster", prepare: openDisputeDialog, covers: ["src/components/activity/ActivityDialogs.tsx"] },
+  // Covers DisputeDialog.tsx, the file that renders the fields. The old entry
+  // named ActivityDialogs.tsx, which only mounts it and is not in the form
+  // inventory at all — a `covers` entry the coverage test could never check.
+  { name: "activity-dispute-dialog", url: "/my-jobs", as: "helper", prepare: openDisputeDialog, covers: ["src/components/DisputeDialog.tsx"] },
   { name: "active-job-section", url: "/my-jobs", as: "helper", prepare: openActiveJobSection, covers: ["src/components/activity/appliedJobCard/ActiveJobSection.tsx"] },
   { name: "disputed-section", url: "/my-jobs", as: "helper", prepare: openDisputedSectionResponse, covers: ["src/components/activity/appliedJobCard/DisputedSection.tsx"] },
   { name: "pending-application-section", url: "/my-jobs", as: "helper", prepare: openPendingApplicationEdit, covers: ["src/components/activity/appliedJobCard/PendingApplicationSection.tsx"] },
   {
     name: "admin-reports-message", url: "/admin?view=reports", as: "admin",
+    // "Message <name>" renders only on a report that is still open — New or
+    // Investigating (AdminReports.tsx) — and the view opens on New. On prod
+    // 2026-09-23 New was empty while four reports sat in Investigating, so
+    // the old wait timed out on a correct empty state. Widen to "All" (the
+    // filter strip's own chip, told apart from the per-report "Investigating"
+    // ACTION by `aria-pressed`); ensureMessyInputState (harness.ts) makes
+    // sure at least one open report exists.
     prepare: async (page) => {
       await recoverAdminGate(page);
-      const msg = page.getByRole("button", { name: /^message /i }).first();
+      const all = page.locator("button[aria-pressed]").filter({ hasText: /^all$/i }).first();
+      await all.waitFor({ timeout: 20_000 });
+      await all.click();
+      // Enabled only: a report whose subject was deleted renders a DISABLED
+      // "Message Reported" first (measured on prod 2026-09-23).
+      const msg = page.getByRole("button", { name: /^message /i, disabled: false }).first();
       await msg.waitFor({ timeout: 15_000 });
       await msg.click();
+      await page.getByRole("textbox", { name: /message to user/i }).waitFor({ timeout: 10_000 });
     },
     covers: ["src/components/admin/AdminReports.tsx"],
   },
@@ -421,12 +505,17 @@ export const FORMS: FormSpec[] = [
     covers: ["src/components/admin/AdminUserNotes.tsx"],
   },
   {
+    // Reject renders only on a pending credential WITH a document
+    // (AdminCredentialQueue.tsx). ensureMessyInputState (harness.ts) attaches
+    // one to the helper's own pending credential for the run — prod's only
+    // queue row on 2026-09-23 had none, so the row rendered with no actions.
     name: "admin-credential-reject", url: "/admin?view=credentials", as: "admin",
     prepare: async (page) => {
       await recoverAdminGate(page);
       const reject = page.getByRole("button", { name: /^reject$/i }).first();
-      await reject.waitFor({ timeout: 15_000 });
+      await reject.waitFor({ timeout: 20_000 });
       await reject.click();
+      await page.getByRole("textbox", { name: /credential rejection reason/i }).waitFor({ timeout: 10_000 });
     },
     covers: ["src/components/admin/AdminCredentialQueue.tsx"],
   },
@@ -473,7 +562,111 @@ export const FORMS: FormSpec[] = [
   { name: "admin-job-refund", url: "/admin?view=jobs", as: "admin", prepare: openAdminJobAction(/^refund poster$/i), covers: ["src/components/admin/adminJobs/RefundJobDialog.tsx"] },
   { name: "admin-job-remove", url: "/admin?view=jobs", as: "admin", prepare: openAdminJobAction(/^remove job$/i), covers: ["src/components/admin/adminJobs/RemoveJobDialog.tsx"] },
   { name: "admin-job-override", url: "/admin?view=jobs", as: "admin", prepare: openAdminJobAction(/manual override/i), covers: ["src/components/admin/adminJobs/StatusOverrideDialog.tsx"] },
+
+  // ── The coverage test's 14 unaccounted files (prod run 35817028797, and the
+  // local rerun 2026-09-23): 7 FormSpecs here, 3 non-text files and 4
+  // funded-open-job forms in GAPS ─────────────────────────────────────────────
+  // Each was expected to be credited by an EXPLORE pass, and none ever was:
+  // the explore presses a screen's top-level controls, and every one of these
+  // sits one level deeper — inside an expanded activity card, behind a card's
+  // overflow, in a panel a chip opens, or behind a pencil. Credited here by a
+  // FormSpec that opens it the way a person does, so the sweep types into the
+  // real field instead of the coverage test hoping a presser stumbles on it.
+  {
+    name: "withdraw-application-other", url: "/my-jobs", as: "helper",
+    prepare: async (page) => {
+      await openActivityCard(page, "/my-jobs", fixtureOrThrow("jobWithPendingApplicant", "job with a pending application"));
+      await pressChipForField(page, /^withdraw application$/i, { field: false });
+      // The reason list is radio-like rows; only "Other" reveals the box.
+      await page.getByRole("button", { name: /^other$/i }).or(page.getByRole("radio", { name: /^other$/i })).first().click();
+      await page.getByRole("textbox", { name: /withdraw reason — other/i }).waitFor({ timeout: 10_000 });
+    },
+    covers: ["src/components/activity/AppliedJobsTab.tsx"],
+  },
+  {
+    name: "block-user-dialog", url: "/dashboard", as: "poster",
+    prepare: async (page) => {
+      await page.goto(`/user/${idFor("helper")}`);
+      await settle(page);
+      await page.getByRole("button", { name: /more options/i }).first().click();
+      await page.getByRole("menuitem", { name: /block/i }).first().click();
+      await page.getByRole("textbox", { name: /block reason/i }).waitFor({ timeout: 10_000 });
+    },
+    covers: ["src/components/BlockUserDialog.tsx"],
+  },
+  {
+    // Own profile only: "Add Response" renders for the profile's owner on a
+    // review with no response yet (ReviewsSection.tsx `isOwnProfile`). The
+    // helper held 25 such reviews on prod, 2026-09-23. The list is collapsed
+    // behind the reviews tile until `?tab=reviews` (UserProfile.tsx `showReviews`).
+    name: "review-public-response", url: "/dashboard", as: "helper",
+    prepare: async (page) => {
+      await page.goto(`/user/${idFor("helper")}?tab=reviews`);
+      await settle(page);
+      const add = page.getByRole("button", { name: /^add response$/i }).first();
+      await add.waitFor({ timeout: 20_000 });
+      await add.click();
+      await page.getByRole("textbox", { name: /write a public response/i }).waitFor({ timeout: 10_000 });
+    },
+    covers: ["src/pages/userProfile/ReviewsSection.tsx"],
+  },
+  {
+    name: "saved-helper-note", url: "/profile?tab=saved_helpers", as: "poster",
+    prepare: async (page) => {
+      const note = page.getByRole("button", { name: /^(edit|add) (a )?private note$/i }).filter({ visible: true }).first();
+      await note.waitFor({ timeout: 20_000 });
+      await note.click();
+      await page.getByRole("textbox", { name: /private note about this helpr/i }).waitFor({ timeout: 10_000 });
+    },
+    covers: ["src/components/profile/savedHelpersTab/SavedHelperCard.tsx"],
+  },
+  {
+    // The goal card renders only on the "This Month" range (EarningsTab.tsx
+    // `range === "month"`); the tab opens on Lifetime.
+    name: "monthly-goal", url: "/profile?tab=earnings", as: "helper",
+    prepare: async (page) => {
+      const month = page.getByRole("button", { name: /^this month$/i }).or(page.getByRole("tab", { name: /^this month$/i })).or(page.getByRole("radio", { name: /^this month$/i })).first();
+      await month.waitFor({ timeout: 20_000 });
+      await month.click();
+      const edit = page.getByRole("button", { name: /edit monthly goal/i }).first();
+      await edit.waitFor({ timeout: 20_000 });
+      await edit.click();
+      await page.getByRole("spinbutton", { name: /monthly earnings goal/i }).waitFor({ timeout: 10_000 });
+    },
+    covers: ["src/components/profile/MonthlyGoalCard.tsx"],
+  },
+  {
+    // The field renders only while "I Am Licensed"/"I Am Insured" is on, so
+    // the prepare flips the switch the way the helper does. The write it makes
+    // does not stick on prod — `prevent_self_escalation` resets
+    // profiles.is_licensed for every non-admin (measured 2026-09-23; filed in
+    // docs/OPEN.md) — so there is nothing to undo; the UI shows the field from
+    // its own cache patch, which is all the sweep needs.
+    name: "credentials-business-name", url: "/profile?tab=credentials", as: "helper",
+    prepare: async (page) => {
+      const lic = page.locator("#lic-toggle");
+      await lic.waitFor({ timeout: 20_000 });
+      if ((await lic.getAttribute("data-state")) !== "checked") await lic.click();
+      await page.locator("#business-name").waitFor({ timeout: 15_000 });
+    },
+    covers: ["src/components/profile/CredentialsTab.tsx"],
+  },
+  {
+    // The AI builder is a collapsed card on the post-job ENTRY step
+    // (EntryChoice.tsx), so this does not press "Start Fresh".
+    name: "ai-job-builder", url: "/post-job", as: "poster",
+    prepare: async (page) => {
+      const toggle = page.locator("button[aria-expanded]").filter({ hasText: /let ai fill/i }).first();
+      await toggle.waitFor({ timeout: 20_000 });
+      if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+      await page.getByRole("textbox", { name: /^describe your job$/i }).waitFor({ timeout: 10_000 });
+    },
+    covers: ["src/components/postjob/AiJobBuilder.tsx"],
+  },
 ];
+
+const FUNDED_OPEN_JOB_GAP =
+  "needs a FUNDED open job of poster-e2e with a pending applicant — none on prod (every open one is unpaid/abandoned, which My Posts hides); creating one is a Stripe test checkout, tracked in docs/OPEN.md";
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
@@ -485,6 +678,9 @@ export const GAPS: Record<string, string> = {
   "src/components/notificationPreferences/constants.tsx": "false positive — constants module",
   "src/components/activity/JobCardMetaRow.tsx": "false positive — displays a date, no control",
   "src/components/dashboard/JobCard.tsx": "false positive — displays a date, no control",
+  "src/hooks/useComboboxKeyboard.ts": "false positive — a keyboard hook; the scanner matched `<input type=\"search\">` in a comment, it renders nothing",
+  "src/components/postjob/CheckoutStep.tsx": "checkboxes only (save-card, confirm-details) — the 'input×1' is a comment naming the raw `<input type=\"checkbox\">` it replaced; no typed text",
+  "src/components/DisputeTimelineDialog.tsx": "file input only (evidence upload) — no typed text",
   // Reached only through a control the explore is FORBIDDEN to press.
   // `NEVER_PRESS` in harness.ts matches /delete (my )?account/, so the button
   // that opens this dialog is refused before the dialog can exist. That is not
@@ -519,7 +715,6 @@ export const GAPS: Record<string, string> = {
   "src/components/admin/adminJobs/JobDetailDialog.tsx": "calendar display only",
   "src/components/EarningsExport.tsx": "selects + date pickers, constrained",
   "src/pages/postjob/DirectOfferBanner.tsx": "select only",
-  "src/components/admin/dashboard/DateRangeBar.tsx": "date range input, constrained by the browser",
   "src/components/TimeRangeField.tsx": "time input, constrained by the browser",
   "src/components/profile/AvatarCropDialog.tsx": "file input / zoom slider — no typed text",
   "src/components/PhotoProof.tsx": "file input only",
@@ -543,6 +738,20 @@ export const GAPS: Record<string, string> = {
   // Stripe Identity attempt. Re-check when prod has a row.
   "src/components/admin/AdminBanReview.tsx": "empty queue on prod — /admin?view=banreview renders \"No accounts awaiting review\"; the ban-reason and dismissal-note boxes live on a pending-review row and there is none. Seeding one means putting a real consequence-ladder restriction on a shared test account",
   "src/components/admin/AdminIDVReview.tsx": "empty queue on prod — /admin?view=idvreview renders \"Nobody is waiting on a human\"; a row lands here only after Stripe CHARGED for an identity attempt and failed it, which cannot be seeded without paying Stripe for a real verification",
+  // Opened only from a FUNDED open job of the poster's (OpenStep.tsx: Edit
+  // job / Cancel job; PostedJobsTab: the applicants panel and its Decline
+  // sheet). My Posts hides an unfunded open job entirely
+  // (activityFilters.ts `jobIsUnfundedDraft`), and on prod 2026-09-23
+  // poster-e2e's every open job was unpaid/abandoned — the seeded
+  // pending-applicant job is `abandoned`. Making one means a real Stripe
+  // test-mode checkout plus a helper application, torn down with
+  // cancel_escrow: a money fixture, tracked in docs/OPEN.md (Q49 follow-up,
+  // "funded open job fixture"). The FormSpec stops being a gap the day it
+  // lands — the stale-gap check fails if these are ever credited.
+  "src/components/activity/EditJobDialog.tsx": FUNDED_OPEN_JOB_GAP,
+  "src/components/CancellationDialog.tsx": FUNDED_OPEN_JOB_GAP,
+  "src/components/activity/postedJobs/ApplicantsPanel.tsx": FUNDED_OPEN_JOB_GAP,
+  "src/components/activity/postedJobs/DeclineApplicantSheet.tsx": FUNDED_OPEN_JOB_GAP,
   // Read-only by decision, not by reachability.
   "src/components/admin/EditEmailDialog.tsx": "reachable (user detail → Edit email) but deliberately NOT swept: it rewrites an account's login address, and every shared test account is a sign-in dependency for this whole suite. One stray submit slipping the write firewall would lock every lane out of that account",
 };

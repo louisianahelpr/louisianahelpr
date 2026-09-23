@@ -709,7 +709,11 @@ async function apply() {
     id: sid(`avail:${d}`), helper_id: helperId, day_of_week: d, start_time: SEED_AVAILABILITY_START, end_time: SEED_AVAILABILITY_END, is_available: true, specific_date: null,
   })));
   await upsert("helper_credentials", [
-    { id: sid("cred:license"), user_id: helperId, credential_type: "trade_license", trade_category: "handyman", license_number: "SEED-LA-HIC-0000", license_state: "LA", status: "submitted" },
+    // WITH a document: the admin queue renders Approve/Reject only for a
+    // pending credential that has one (AdminCredentialQueue.tsx), so a
+    // document-less seed row sat in the queue with no action on it (prod,
+    // 2026-09-23; docs/OPEN.md Q49).
+    { id: sid("cred:license"), user_id: helperId, credential_type: "trade_license", trade_category: "handyman", license_number: "SEED-LA-HIC-0000", license_state: "LA", status: "submitted", document_url: PIXEL },
     { id: sid("cred:insurance"), user_id: helperId, credential_type: "insurance", issuing_authority: "SEED Gulf South Mutual", expiration_date: "2026-07-31", status: "expired" },
     { id: sid("cred:bond"), user_id: helperId, credential_type: "bond", status: "rejected", rejection_reason: "SEED: bond certificate was for a different business name." },
   ]);

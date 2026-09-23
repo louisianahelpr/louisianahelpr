@@ -57,6 +57,7 @@ import {
   WS,
   assertHealthy,
   baselineOf,
+  ensureMessyInputState,
   fieldLabel,
   fieldSignature,
   health,
@@ -107,6 +108,7 @@ const scoped: typeof test = ((...args: Parameters<typeof test>) =>
 
 const sessions = new Map<Account, Session>();
 let fx: Fixtures;
+let adminState: Awaited<ReturnType<typeof ensureMessyInputState>> | undefined;
 
 test.beforeAll(async ({ request }) => {
   for (const a of ["poster", "helper", "incomplete", "admin"] as Account[]) sessions.set(a, await sessionFor(request, a));
@@ -119,6 +121,19 @@ test.beforeAll(async ({ request }) => {
     runtime.userId[a] = s.user.id;
     if (s.user.email) runtime.email[a] = s.user.email;
   }
+  // The admin-reports and admin-credential-reject sweeps open a dialog FROM a
+  // queue row; make sure each queue holds one (test-owned, undone in afterAll).
+  adminState = await ensureMessyInputState(request, {
+    poster: sessions.get("poster")!, helper: sessions.get("helper")!, admin: sessions.get("admin")!,
+  });
+  if (adminState.did.length) console.log(`[messy-input] fixture state: ${adminState.did.join("; ")}`);
+});
+
+test.afterAll(async ({ playwright }) => {
+  if (!adminState) return;
+  const api = await playwright.request.newContext();
+  const out = await adminState.undo(api).finally(() => api.dispose());
+  if (out?.length) console.log(`[messy-input] fixture cleanup: ${out.join("; ")}`);
 });
 
 async function open(browser: Browser, f: { url: string; as: Account | null; prepare?: (p: Page) => Promise<void> }): Promise<{ ctx: BrowserContext; page: Page }> {

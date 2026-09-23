@@ -509,6 +509,22 @@ export interface Fixtures {
   completedJob: { id: string; title: string } | null;
   /** A job with an existing message thread between the two accounts (thread deep link). */
   threadJob: { id: string; title: string } | null;
+  /**
+   * HELPER-SIDE FIXTURES, from ANY poster — the helper's own assigned jobs,
+   * read as the helper. The three above are all poster-e2e's jobs, and three
+   * helper-card states live only on jobs the seeded pairs posted
+   * (`5eed0a10-…` rows, is_seed): a job the helper CONFIRMED but has not left
+   * for (ActiveJobSection's "Cancel Job" → abort-reason box), one the helper
+   * is on the way to or working (its "Report a problem" chip → DisputeDialog),
+   * and a dispute the OTHER side filed (DisputedSection's "Respond to
+   * Dispute" box). Measured on prod 2026-09-23: poster-e2e had no disputed
+   * job at all, which is exactly what the sweep reported, while the helper
+   * was assigned one. Titles are picked unique among the helper's own jobs,
+   * because a card is opened by its title and five lifecycle rows share one.
+   */
+  helperConfirmedJob: { id: string; title: string } | null;
+  helperEnRouteJob: { id: string; title: string } | null;
+  helperDisputedJob: { id: string; title: string } | null;
   /** A job id that does not exist. */
   goneJobId: string;
 }
@@ -526,6 +542,21 @@ export async function resolveFixtures(api: APIRequestContext, poster: Session, h
     const j = jobs.find(f);
     return j ? { id: j.id, title: j.title } : null;
   };
+  type H = {
+    id: string; title: string; status: string; disputed_at: string | null; disputed_by: string | null; dispute_helper_response: string | null;
+    helper_confirmed_at: string | null; helper_on_the_way_at: string | null; helper_completed_at: string | null; poster_completed_at: string | null;
+  };
+  const mine = await selectAs<H[]>(
+    api, helper,
+    `jobs?helper_id=eq.${helper.user.id}&status=in.(in_progress,disputed)&select=id,title,status,disputed_at,disputed_by,dispute_helper_response,helper_confirmed_at,helper_on_the_way_at,helper_completed_at,poster_completed_at&order=created_at.desc&limit=200`,
+  );
+  const titleCount = new Map<string, number>();
+  for (const j of mine) titleCount.set(j.title, (titleCount.get(j.title) ?? 0) + 1);
+  const pickMine = (f: (j: H) => boolean) => {
+    const j = mine.find((x) => titleCount.get(x.title) === 1 && f(x));
+    return j ? { id: j.id, title: j.title } : null;
+  };
+  const live = (j: H) => j.status === "in_progress" && !j.disputed_at && !j.helper_completed_at && !j.poster_completed_at;
   return {
     openJob: pick((j) => j.status === "open" && j.payment_status === "escrow" && !appliedIds.has(j.id)),
     inProgressJob: pick((j) => j.status === "in_progress" && j.helper_id === helper.user.id),
@@ -533,6 +564,9 @@ export async function resolveFixtures(api: APIRequestContext, poster: Session, h
     disputedJob: pick((j) => j.status === "disputed" && j.helper_id === helper.user.id),
     completedJob: pick((j) => j.status === "completed" && j.helper_id === helper.user.id),
     threadJob: pick((j) => threadJobIds.has(j.id)),
+    helperConfirmedJob: pickMine((j) => live(j) && !!j.helper_confirmed_at && !j.helper_on_the_way_at),
+    helperEnRouteJob: pickMine((j) => live(j) && !!j.helper_on_the_way_at),
+    helperDisputedJob: pickMine((j) => j.status === "disputed" && !!j.disputed_by && j.disputed_by !== helper.user.id && !j.dispute_helper_response),
     goneJobId: "00000000-0000-4000-8000-00000000dead",
   };
 }
@@ -556,3 +590,119 @@ export const runtime: { fixtures: Fixtures | null; userId: Partial<Record<Accoun
   userId: {},
   email: {},
 };
+
+/**
+ * SERVICE ROLE, ONLY TO UNDO WHAT A SPEC CREATED. Read from `.env`, which
+ * exists locally and — for the length of the test step — in prod-audit.yml
+ * ("Provide the service-role key to the seeded-account minter"). Used by
+ * `ensureMessyInputState`'s cleanup for rows no test account may delete
+ * (`reports` and `helper_credentials` have no DELETE policy for anyone), and
+ * by nothing else. Null when there is no key: then nothing is created that
+ * could not be removed.
+ */
+function serviceRoleKey(): string | null {
+  try {
+    const m = /^SUPABASE_SERVICE_ROLE_KEY=(.*)$/m.exec(readFileSync(join(process.cwd(), ".env"), "utf8"));
+    return m ? m[1].trim().replace(/^["']|["']$/g, "") : null;
+  } catch {
+    // No .env (a CI job that never minted the key): null is the documented
+    // answer, and every caller then creates nothing it could not remove.
+    return null;
+  }
+}
+
+/** A 1×1 PNG — the same fixture document scripts/audit/prod-seed.mjs uses for avatars and ID photos. */
+const SEED_PIXEL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+/**
+ * THE ADMIN QUEUES THE MESSY-INPUT SWEEP OPENS A DIALOG FROM MUST HOLD A ROW
+ * THE DIALOG CAN OPEN ON — make sure they do, on test-owned records, and hand
+ * back the undo.
+ *
+ * - Reports: "Message <name>" renders only on a report that is new/pending or
+ *   investigating (AdminReports.tsx). If prod holds none, the shared poster
+ *   files one against the shared helper, carrying MARKER, deleted afterwards
+ *   with the service role (no role may delete a report through RLS).
+ * - Credentials: "Reject" renders only on a pending credential that HAS a
+ *   document (`license_status === "pending" && license_url`). Measured on
+ *   prod 2026-09-23: the queue's only row was the helper's seeded
+ *   `trade_license`, `submitted` with `document_url` NULL — a queue row with
+ *   no Approve and no Reject on it. The helper attaches a document to its OWN
+ *   pending credential (an UPDATE its RLS and column grants allow; the status
+ *   stays server-owned, trg_credential_status_server_owned), exactly the
+ *   step a real Helpr takes, and the original value is put back afterwards.
+ *   When the helper holds no pending credential at all, it submits one
+ *   (INSERT → the trigger forces status 'submitted') and the service role
+ *   deletes it afterwards.
+ *
+ * Returns what it did (for the report annotation) and an undo that never
+ * throws, so a teardown failure cannot mask the sweep's own result.
+ */
+export async function ensureMessyInputState(
+  api: APIRequestContext,
+  s: { poster: Session; helper: Session; admin: Session },
+): Promise<{ did: string[]; undo: (api: APIRequestContext) => Promise<string[]> }> {
+  const did: string[] = [];
+  // Each undo runs on the API context it is HANDED: Playwright refuses to
+  // reuse beforeAll's `request` in afterAll (measured, first local run: the
+  // restore threw "Fixture { request } from beforeAll cannot be reused").
+  const undo: Array<(a: APIRequestContext) => Promise<string>> = [];
+  const svc = serviceRoleKey();
+  const svcDelete = async (a: APIRequestContext, table: string, id: string) => {
+    if (!svc) return `${table}/${id}: NOT removed (no service-role key)`;
+    const r = await a.delete(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, { headers: { apikey: svc, Authorization: `Bearer ${svc}` } });
+    return `${table}/${id}: ${r.ok() ? "removed" : `NOT removed (${r.status()})`}`;
+  };
+
+  const open = await selectAs<{ id: string }[]>(api, s.admin, `reports?status=in.(pending,new,investigating)&select=id&limit=1`);
+  if (!open.length && svc) {
+    const r = await restAs(api, s.poster, "post", "reports", {
+      reporter_id: s.poster.user.id, reported_id: s.helper.user.id, reported_type: "user", reason: "Something else",
+      description: `${MARKER} messy-input admin-reports fixture — never acted on`,
+    });
+    expect(r.ok(), `seed an open report: ${r.status()} ${await r.text()}`).toBe(true);
+    const id = ((await r.json()) as { id: string }[])[0].id;
+    did.push(`created report ${id}`);
+    undo.push((a) => svcDelete(a, "reports", id));
+  }
+
+  type C = { id: string; status: string; document_url: string | null };
+  const creds = await selectAs<C[]>(
+    api, s.helper,
+    `helper_credentials?user_id=eq.${s.helper.user.id}&credential_type=in.(trade_license,insurance)&status=in.(unverified,submitted)&select=id,status,document_url`,
+  );
+  if (creds.some((c) => c.document_url)) {
+    // A reviewable row already exists — nothing to do.
+  } else if (creds.length) {
+    const c = creds[0];
+    const r = await restAs(api, s.helper, "patch", `helper_credentials?id=eq.${c.id}`, { document_url: SEED_PIXEL });
+    expect(r.ok() && ((await r.json()) as unknown[]).length === 1, `attach a document to credential ${c.id}: ${r.status()}`).toBe(true);
+    did.push(`attached a fixture document to credential ${c.id}`);
+    undo.push(async (a) => {
+      const u = await restAs(a, await sessionFor(a, "helper"), "patch", `helper_credentials?id=eq.${c.id}`, { document_url: c.document_url });
+      return `helper_credentials/${c.id}: document_url ${u.ok() ? "restored" : `NOT restored (${u.status()})`}`;
+    });
+  } else if (svc) {
+    const r = await restAs(api, s.helper, "post", "helper_credentials", {
+      user_id: s.helper.user.id, credential_type: "trade_license", trade_category: "handyman",
+      license_number: `${MARKER} messy-input`, license_state: "LA", document_url: SEED_PIXEL,
+    });
+    expect(r.ok(), `submit a fixture credential: ${r.status()} ${await r.text()}`).toBe(true);
+    const id = ((await r.json()) as { id: string }[])[0].id;
+    did.push(`submitted credential ${id}`);
+    undo.push((a) => svcDelete(a, "helper_credentials", id));
+  }
+
+  return {
+    did,
+    // The undo mints FRESH sessions (sessionFor re-verifies and re-mints): a
+    // full run is ~55 minutes, and the helper's beforeAll token had expired by
+    // the time the first full local run restored the credential (401, measured).
+    undo: async (a: APIRequestContext) => {
+      const out: string[] = [];
+      for (const u of undo.reverse()) out.push(await u(a).catch((e) => `undo failed: ${String(e).slice(0, 120)}`));
+      return out;
+    },
+  };
+}

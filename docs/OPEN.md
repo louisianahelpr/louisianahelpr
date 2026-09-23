@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 28 done, 4 partly done (fixed, protection pending), 66 open. Source of truth for work.
+- **Queue (this file):** 29 done, 4 partly done (fixed, protection pending), 69 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 98 items — 28 done, 4 partly done (fixed, protection pending), 66 open.**
+**Queue: 102 items — 29 done, 4 partly done (fixed, protection pending), 69 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -593,15 +593,74 @@ sure someone hears it and closes it.
   cluster so the magnifier is rightmost below 360 (changes VN-35's order);
   (D) open the field on its own line under the title below 360 (it is where
   the tab strip sits, which search already hides).
-- [ ] **Q49 7 of the 21 new messy-input FormSpecs fail on prod** (same run;
-  they were written without a local run because the credentials are CI-only):
-  report-user-dialog (the dialog never opened: "no text-like field"),
-  activity-dispute-dialog, active-job-section, disputed-section ("no disputed
-  job between the shared poster/helper accounts on prod right now"),
-  pending-application-section, admin-reports-message, admin-credential-reject
-  (15-20s locator timeouts). Fix each against the real screens. Where state is
-  missing, the spec's fixture setup creates it (is_seed, cleaned up), so the
-  coverage test goes green. Re-dispatch prod-audit to prove it.
+- [x] **Q49 DONE 2026-09-23: the messy-input FormSpecs that failed on prod now reach their forms.**
+  GUARD: e2e/prod-audit/messy-input.spec.ts itself (its per-form field floor
+  plus the coverage test), run LOCALLY against prod (`PLAYWRIGHT_WEB_SERVER=1
+  npx playwright test --project=prod-audit e2e/prod-audit/messy-input.spec.ts`).
+  RED on the original: all 7 sweeps failed exactly as in run 35817028797
+  (before.log), and the coverage test failed on 14 unaccounted files (the same
+  14 CI named plus DisputeDialog). GREEN after (second full run, 55 min): 113 passed, 2 failed; the
+  7 sweeps and 7 new FormSpecs pass; the coverage test's unaccounted list is empty (67 exercised, 51
+  gaps, 118 inventory). The 2 that did not: `explore: admin-health` (Q101, a
+  detector false positive on data, passed in the first full run) and the
+  coverage test's stale-gap half, which was ALREADY red under the first failure
+  (DateRangeBar.tsx listed as a gap but credited by `explore: admin`) - gap
+  removed, coverage re-run green on the same credits. Causes, per form: the
+  report dialog opens on a reason picker (press "Something else"); both
+  helper-card chips are named by their ariaLabel and Cancel Job sits behind the
+  card's More overflow; the poster "Dispute" chip only exists on an expired
+  revision, so DisputeDialog is opened from the helper's "Report a problem"
+  (and `covers` now names DisputeDialog.tsx, not ActivityDialogs.tsx, which the
+  inventory does not list); the disputed/confirmed/en-route fixtures are
+  resolved from the HELPER's own jobs (any poster; harness.ts
+  `helperDisputedJob` etc.) because poster-e2e had no disputed job; cards are
+  opened with the app's own `?job=` deep link, so the right bucket is shown;
+  Admin Reports widens to "All" and skips the disabled "Message Reported";
+  the credential queue's only row had no document, so the helper attaches one
+  to its own pending credential for the run (harness.ts
+  `ensureMessyInputState`, restored in afterAll with a fresh session) and
+  prod-seed.mjs now seeds it with one. CI re-dispatch of prod-audit NOT done
+  (GitHub API rate-limited this session). Evidence ~/.lh-shots/q49/.
+- [ ] **Q99 "I Am Licensed" / "I Am Insured" switches do nothing on prod, and the
+  screen says they worked.** Measured 2026-09-23 08:38Z as helper-e2e:
+  pressing the switch on /profile?tab=credentials sends `PATCH profiles
+  {is_licensed:true}`, which returns 200 with one row, but `prevent_self_escalation`
+  (BEFORE UPDATE on profiles) resets `is_licensed`/`is_insured` for every
+  non-admin, so the column stays false. The switch still shows ON after a
+  reload (the persisted React Query cache is patched from the request, not
+  the row), so the Helpr believes it is on and sees the attach area that
+  depends on it. Not checked: whether the attach/upload path's
+  `license_status: "pending"` write survives the same trigger. Screenshots
+  ~/.lh-shots/q49/probe/cred-*.png (review-log: defect). Decide the intended
+  owner of the column, then fix the client or the trigger, with a guard red on
+  the switch-shows-on-while-DB-says-off state.
+- [ ] **Q100 A funded open job fixture for the four poster-side forms (Q49
+  follow-up).** EditJobDialog, CancellationDialog, ApplicantsPanel and
+  DeclineApplicantSheet open only from a FUNDED open job of poster-e2e with a
+  pending applicant; My Posts hides unfunded open jobs
+  (activityFilters.ts `jobIsUnfundedDraft`) and on 2026-09-23 every open job
+  poster-e2e had was unpaid/abandoned. They are GAPS in messyInputForms.ts
+  (`FUNDED_OPEN_JOB_GAP`) until a fixture posts one through a Stripe test
+  checkout, has the helper apply, and tears down with cancel_escrow; the
+  coverage test's stale-gap check fails the day they are credited.
+- [ ] **Q101 The error-screen detector reads QUOTED error copy as an error
+  screen.** `explore: admin-health` failed "broken before any input" on the
+  second local run because /admin?view=health lists recent error_logs rows,
+  one of which reads "Error screen shown: We couldn't load your account."
+  (4 rows, 2026-09-22 15:10Z), and findErrorScreen matches body text. It
+  passed on the first run (timing of that list). admin-views.spec.ts reads the
+  same way. Exclude quoted log text from the check (e.g. a data attribute on
+  the health rows, stripped before matching) with a guard that stays red on a
+  real ProtectedRoute failure.
+- [ ] **Q102 The admin credential queue can show a row with no Approve or
+  Reject.** `get_pending_credentials` lists any helper_credentials row in
+  unverified/submitted, but AdminCredentialQueue renders the actions only
+  when that row has a document (license_status pending AND license_url).
+  RLS lets a member INSERT a helper_credentials row with no document_url, so a
+  pending row can sit in the queue with nothing for an admin to act on
+  (prod's seeded one still does outside a messy-input run, until prod-seed.mjs
+  is re-applied). Either require a document server-side or
+  render the row as "no document yet".
 - [x] **Q50 Verify card holds on cancelled jobs on STRIPE's side, not just ours.**
   DONE 2026-09-23 07:20Z. A temporary read-only edge function (deployed, run,
   deleted; key mode test) read all 79 cancelled jobs' PaymentIntents: every

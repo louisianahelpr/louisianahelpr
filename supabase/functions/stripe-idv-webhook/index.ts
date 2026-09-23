@@ -484,7 +484,11 @@ serve(async (req) => {
               // admin_alert: the operator type the admin push->Slack mirror
               // pages on (docs/OPEN.md Q2 review, 2026-09-23).
               type: "admin_alert",
-              link: "/admin",
+              // The member is the SUBJECT (Q139): `&user=` lets the Q137 seed
+              // boundary refuse a seed member's alert to a real admin, and
+              // opens that member's profile (AdminUsers' deep link) instead of
+              // the dashboard home.
+              link: `/admin?view=people&user=${userId}`,
             }))
           );
           if (adminNotifErr) {

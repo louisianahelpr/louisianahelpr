@@ -11,6 +11,7 @@ import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { TIER_FEE_PERCENT } from "../../_shared/helperFees.ts";
 import { ONE_TIME_PASS_DAYS } from "../../_shared/proTiers.ts";
 import { sendGiftCardEmail } from "../../_shared/giftCardEmail.ts";
+import { giftEmailCrossesSeedBoundary } from "../../_shared/seedBoundary.ts";
 import { settleOnboardingFee } from "./settleOnboardingFee.ts";
 import { standardPayoutAtIso } from "../../_shared/escrowTiming.ts";
 import { subscriptionCurrentPeriodEndISO } from "../../_shared/stripeSubscriptionPeriod.ts";
@@ -260,6 +261,7 @@ export async function handleCheckoutSessionCompleted(
         if (tipHelperId) {
           await supabase.from("notifications").insert({
             user_id: tipHelperId,
+            job_id: tipJobId,
             title: "You received a tip!",
             message: `Someone tipped you for a completed job. Thanks for the great work!`,
             type: "payment",
@@ -701,20 +703,41 @@ export async function handleCheckoutSessionCompleted(
               title: "You received a Helpr credit!",
               message: `${donorName} sent you a $${(amountCents / 100).toFixed(0)} credit to use toward any job. Tap to redeem it.`,
               type: "payment",
-              link: "/profile?tab=gift_card",
+              // `&user=` names the SUBJECT, the donor (Q139): the Q137 seed
+              // boundary reads it, so a seed donor never notifies a real
+              // recipient. Nothing on /profile reads `user`.
+              link: `/profile?tab=gift_card&user=${donorId}`,
             });
           }
 
-          // ALWAYS email the named address — the claim link both onboards a
-          // brand-new recipient and doubles as a receipt for a registered one.
-          const emailed = await sendGiftCardEmail(supabase, {
-            recipientEmail,
-            donorName,
-            amountCents,
-            message: giftMessage,
-            claimToken,
-          });
-          if (!emailed) logStep("WARNING: gift card email not sent", { recipientEmail, sessionId: session.id });
+          // Email the named address — the claim link both onboards a
+          // brand-new recipient and doubles as a receipt for a registered one —
+          // UNLESS the donor is a seed (test) account and the recipient is not
+          // (Q139: test data never notifies a real person). The gift itself is
+          // minted either way; only the email is withheld.
+          const seedGate = await giftEmailCrossesSeedBoundary(supabase, donorId, recipientId);
+          if (seedGate.checkFailed) {
+            // Fails closed, and loudly: a withheld gift email to a REAL
+            // recipient must be re-sent by hand once the check answers again.
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "critical",
+              title: "Gift card email withheld: the seed-boundary check failed",
+              message: "The gift was minted but its email was NOT sent, because the seed-boundary check could not answer (it fails closed). Re-send it by hand if the donor is a real account.",
+              fields: { session_id: session.id, donor_id: donorId, recipient_email: recipientEmail, error: seedGate.checkFailed },
+            });
+          } else if (seedGate.crosses) {
+            logStep("gift_card_purchase: seed donor, real recipient — email not sent (Q137)", { sessionId: session.id, donorId });
+          } else {
+            const emailed = await sendGiftCardEmail(supabase, {
+              recipientEmail,
+              donorName,
+              amountCents,
+              message: giftMessage,
+              claimToken,
+            });
+            if (!emailed) logStep("WARNING: gift card email not sent", { recipientEmail, sessionId: session.id });
+          }
         }
       }
     }

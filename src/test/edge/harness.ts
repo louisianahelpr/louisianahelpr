@@ -270,6 +270,16 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/stripeSubscriptionPeriod.ts";`,
   );
 
+  // Seed boundary (Q139): `_shared/seedBoundary.ts` has ZERO imports and only
+  // calls the client it is handed, so the generated file points at the REAL
+  // module. The questions it asks (rpc notification_crosses_seed_boundary,
+  // profiles.is_seed) reach the test's own Supabase mock, which is what lets a
+  // test decide whether a zero-row insert was the boundary's drop.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/seedBoundary\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/seedBoundary.ts";`,
+  );
+
   // Tier display names: `_shared/tierNames.ts` has ZERO imports and is a plain
   // lookup table, so the generated file points at the REAL module. It is what
   // stops a lapse notification telling a member "Your pro pass ended" with the

@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
+import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -199,6 +200,10 @@ Deno.serve(async (req) => {
         return 0;
       }
       if (!inserted || inserted.length === 0) {
+        // A seed job's reminder to real admins is dropped BY DESIGN by the
+        // Q137 seed boundary (the `&job=` in the link is its subject): not a
+        // defect (Q139).
+        if ((await seedBoundaryDropsRow(supabase, pending[0])) === true) return 0;
         console.error(`[auto-resolve-disputes] ${defectLabel} matched 0 rows — nobody was told`);
         defects.record(`${defectLabel}: insert returned 0 rows`);
         return 0;

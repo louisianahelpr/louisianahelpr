@@ -968,6 +968,7 @@ serve(async (req) => {
         if (job.helper_id) {
           await supabaseAdmin.from("notifications").insert({
             user_id: job.helper_id,
+            job_id: job.id,
             title: "Job completed!",
             message: `"${job.title}" is complete. $${formatPayoutDollars(helperPayout)} will be sent to your account ${STANDARD_PAYOUT_PHRASE}.`,
             type: "payment", link: "/profile?tab=earnings",
@@ -1845,6 +1846,7 @@ serve(async (req) => {
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
+          job_id: job.id,
           title: "Dispute resolved — payment released!",
           message: `The dispute on "${job.title}" has been resolved in your favor. $${formatPayoutDollars(helperPayout)} has been transferred.`,
           type: "payment", link: "/profile?tab=earnings",
@@ -2506,6 +2508,7 @@ serve(async (req) => {
       if (!isPartial && job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
+          job_id: job.id,
           title: "Job cancelled",
           message: `"${job.title}" was cancelled by support and refunded to the person who posted it.${reason ? ` Reason: ${reason}` : ""}`,
           // `?job=` — same shape as the poster half above, and as every

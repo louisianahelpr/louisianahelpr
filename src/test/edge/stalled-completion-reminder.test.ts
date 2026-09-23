@@ -127,7 +127,8 @@ function assertNoMoneyMoved() {
   // …and no admin action was fabricated.
   expect(scenario.writes.filter((w) => w.table === "admin_audit_log")).toEqual([]);
   expect(scenario.writes.filter((w) => w.table === "admin_user_notes")).toEqual([]);
-  expect((scenario.rpcCalls ?? []).map((c) => c.name)).toEqual([]);
+  // The seed-boundary question (Q139) is a read-only STABLE function.
+  expect((scenario.rpcCalls ?? []).map((c) => c.name).filter((n) => n !== "notification_crosses_seed_boundary")).toEqual([]);
 }
 
 describe("stalled-completion-reminder", () => {
@@ -327,6 +328,38 @@ describe("stalled-completion-reminder", () => {
     const res = await fn.fetch(cronRequest(fn));
     expect(res.status).not.toBe(200);
     assertNoMoneyMoved();
+  });
+
+  // Q139: the insert now carries job_id, so the Q137 trigger DROPS the row for
+  // a seed job and a real party. That zero is by design: no defect, no email.
+  it("a zero-row insert the seed boundary dropped BY DESIGN is not a defect, and sends no email", async () => {
+    const fn = await load();
+    seedStalled(STALLED_FIRST_AFTER_HOURS + 1, null);
+    scenario.writeSelectRows.notifications = [];
+    scenario.rpc.notification_crosses_seed_boundary = true;
+
+    const res = await fn.fetch(cronRequest(fn));
+    expect(res.status).toBe(200);
+    const inserts = scenario.writes.filter((w) => w.table === "notifications" && w.op === "insert");
+    expect(inserts.length).toBeGreaterThan(0);
+    for (const w of inserts) expect((w.payload as { job_id?: string }).job_id).toBe("job-stalled");
+    const asked = (scenario.rpcCalls ?? []).filter((c) => c.name === "notification_crosses_seed_boundary");
+    expect(asked.length).toBe(inserts.length);
+    expect(asked[0].args).toMatchObject({ p_job_id: "job-stalled" });
+    const mailed = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls
+      .filter(([url]) => String(url).includes("send-notification-email"));
+    expect(mailed).toEqual([]);
+    assertNoMoneyMoved();
+  });
+
+  it("a zero-row insert the boundary did NOT drop is still a defect", async () => {
+    const fn = await load();
+    seedStalled(STALLED_FIRST_AFTER_HOURS + 1, null);
+    scenario.writeSelectRows.notifications = [];
+    scenario.rpc.notification_crosses_seed_boundary = false;
+
+    const res = await fn.fetch(cronRequest(fn));
+    expect(res.status).not.toBe(200);
   });
 });
 

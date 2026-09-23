@@ -121,6 +121,7 @@ serve(async (req) => {
         if (result?.recipient_id) {
           const { error: noteErr } = await supabaseAdmin.from("notifications").insert({
             user_id: result.recipient_id,
+            job_id: job.id,
             title: "Your gift is back",
             message: `"${job.title}" was cancelled, so the $${formatPayoutDollars(dollars)} gift you used on it is available again.`,
             type: "payment",
@@ -372,6 +373,7 @@ serve(async (req) => {
 
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
+          job_id: job.id,
           title: "Cancellation fee received",
           message: `You received a $${formatPayoutDollars(helperPayout)} cancellation fee for "${job.title}" (${commissionPercent}% commission deducted).`,
           type: "payment",

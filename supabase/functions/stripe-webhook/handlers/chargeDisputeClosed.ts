@@ -243,6 +243,7 @@ export async function handleChargeDisputeClosed(
         for (const adminId of wonAdminIds) {
           const { error: noticeErr } = await supabase.from("notifications").insert({
             user_id: adminId,
+            job_id: closedJob.id,
             title: repaid.failed.length > 0
               ? "Chargeback WON — paying the Helpr back FAILED"
               : nothingTaken
@@ -271,6 +272,7 @@ export async function handleChargeDisputeClosed(
         for (const adminId of wonAdminIds) {
           await supabase.from("notifications").insert({
             user_id: adminId,
+            job_id: closedJob.id,
             title: held
               ? "Chargeback WON — job still on hold"
               : hold.readError
@@ -393,6 +395,7 @@ export async function handleChargeDisputeClosed(
           for (const adminId of warnAdminIds) {
             await supabase.from("notifications").insert({
               user_id: adminId,
+              job_id: closedJob.id,
               title: held
                 ? "Retrieval request closed — job still on hold"
                 : restoredPaymentStatus === "payout_pending"

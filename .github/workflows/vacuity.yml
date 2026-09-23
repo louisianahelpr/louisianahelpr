@@ -25,7 +25,7 @@ name: Vacuity
 # PER-PUSH SCOPE is deliberate: the mutation set is limited to guards whose
 # guard file or guarded file changed vs origin/main, which keeps this job at a
 # couple of seconds on a normal commit. The FULL set runs WEEKLY below
-# (Sundays 14:17 UTC — owner cost decision 2026-09-22; see the cron).
+# (Sundays 07:17 UTC — owner cost decision 2026-09-22; see the cron).
 #
 # Linux runner (memory `github-actions-macos-billing`): macos-15 minutes are a
 # 10x multiplier and this is pure Node.
@@ -47,7 +47,9 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    # 14:17 UTC on SUNDAYS — the full mutation set, which is too slow for a push.
+    # 07:17 UTC on SUNDAYS — the full mutation set, which is too slow for a push.
+    # Was 14:17, where its worst case (305 min) ran over 16:17 loading-states
+    # and 19:17 scoreboard. Q318 (2026-09-23): moved so no prod-load run is due while another's worst case (timeout x waves) still holds the group; src/test/prodWorkflowSpacing.test.ts rule 5.
     #
     # WEEKLY, NOT DAILY (owner decision 2026-09-22, on cost). The set is 1018
     # registrations, and giving this job credentials means the e2e ones now
@@ -68,7 +70,7 @@ on:
     # minutes from every other daily prod cron. 06:10 was 53 min from
     # db-drift-detect (05:17) and 67 from db-backup (07:17), so it moved rather
     # than crowd two database jobs with a Playwright sweep.
-    - cron: "17 14 * * 0"
+    - cron: "17 7 * * 0"
   workflow_dispatch:
     inputs:
       full:
@@ -173,7 +175,7 @@ jobs:
         # what changed. Weekly (schedule): every registered mutation.
         run: |
           # The full set on the weekly schedule, or on demand. Waiting until
-          # 14:17 to find out whether a change to this job's credentials or
+          # 07:17 to find out whether a change to this job's credentials or
           # scope actually works is how the e2e half stayed unproven for so
           # long — a dispatch that cannot reproduce the weekly sweep is not a
           # reproduction.

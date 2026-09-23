@@ -66,7 +66,7 @@ bytes to `node_modules/.vacuity-rescue-*`.
 - `npm run vacuity` — per push. Ratchet + scan + preflight + mutations for
   guards whose guard file or guarded file changed vs `origin/main`.
   **~1.4s with nothing in scope; ~7s with 7 mutations in scope.**
-- `npm run vacuity:all` — weekly (vacuity.yml, Sundays 14:17 UTC; owner cost decision 2026-09-22). Every registered mutation, ~0.9s each for a unit guard; the e2e ones take minutes, which is why a full sweep runs for hours.
+- `npm run vacuity:all` — weekly (vacuity.yml, Sundays 07:17 UTC; owner cost decision 2026-09-22). Every registered mutation, ~0.9s each for a unit guard; the e2e ones take minutes, which is why a full sweep runs for hours.
 - `npm run vacuity:report` — no gate; writes `docs/audit/vacuity-report.json`.
 
 ## What it CANNOT do

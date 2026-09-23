@@ -61,9 +61,11 @@ name: DB backup (nightly)
 
 on:
   schedule:
-    # Daily 07:17 UTC ≈ 02:17 America/Chicago — its own 2h prod-load slot
-    # (prod load spread, 2026-09-14), so a long dump cannot contend with a sweep.
-    - cron: "17 7 * * *"
+    # Daily 15:17 UTC ≈ 10:17 America/Chicago — its own 2h prod-load slot, so a
+    # long dump cannot contend with a sweep. Was 07:17, inside the worst case
+    # of the 03:17 suites, where it cancelled a pending db-drift-detect.
+    # Q318 (2026-09-23): moved so no prod-load run is due while another's worst case (timeout x waves) still holds the group; src/test/prodWorkflowSpacing.test.ts rule 5.
+    - cron: "17 15 * * *"
   workflow_dispatch:
 
 concurrency:

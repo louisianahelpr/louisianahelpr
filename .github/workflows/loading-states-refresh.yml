@@ -26,10 +26,10 @@ name: Loading states refresh
 
 on:
   schedule:
-    # 16:17 UTC daily: >= 90 min from every other prod-hitting cron (the
-    # nearest are 14:17 Sun vacuity and 11:17 daily), :17 clears the hourly
-    # prod-errors monitor at :47. See src/test/prodWorkflowSpacing.test.ts.
-    - cron: "17 16 * * *"
+    # 17:17 UTC daily: its worst case (80 min) ends before 19:17 scoreboard,
+    # and 15:17 db-backup ends before it; :17 clears the hourly prod-errors
+    # monitor at :47. Q318 (2026-09-23): moved so no prod-load run is due while another's worst case (timeout x waves) still holds the group; src/test/prodWorkflowSpacing.test.ts rule 5.
+    - cron: "17 17 * * *"
   workflow_dispatch:
 
 permissions:

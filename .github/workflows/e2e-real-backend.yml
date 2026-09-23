@@ -68,8 +68,9 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    # Sun, Mon, Wed, Fri 11:17 UTC (prod load spread, 2026-09-14).
-    - cron: "17 11 * * 0,1,3,5"
+    # Mon, Wed, Fri, Sat 11:17 UTC. Sunday moved to Saturday: Sunday's morning is
+    # prod-audit (01:17) then vacuity (07:17, worst case to 12:22). Q318 (2026-09-23): moved so no prod-load run is due while another's worst case (timeout x waves) still holds the group; src/test/prodWorkflowSpacing.test.ts rule 5.
+    - cron: "17 11 * * 1,3,5,6"
   workflow_dispatch:
     inputs:
       run_two_role:

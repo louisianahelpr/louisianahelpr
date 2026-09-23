@@ -14,7 +14,7 @@ import * as contract from "../../scripts/audit/write-contract.mjs";
 /**
  * WRITE CONTRACT guard. Every `.insert/.update/.upsert/.delete/.rpc` in src/
  * is checked against the COMMITTED prod schema snapshot
- * (scripts/audit/write-contract.snapshot.json, refreshed WEEKLY — Sat 11:17
+ * (scripts/audit/write-contract.snapshot.json, refreshed WEEKLY — Sat 09:17
  * UTC — by .github/workflows/write-contract-refresh.yml). Nothing here queries
  * prod: between refreshes this is a source-text pin against a frozen copy of
  * the schema, so a column added or dropped in prod is invisible to it until

@@ -15,8 +15,9 @@ name: Write contract snapshot refresh
 
 on:
   schedule:
-    # Sat 11:17 UTC (prod load spread, 2026-09-14).
-    - cron: "17 11 * * 6"
+    # Sat 09:17 UTC, after 03:17 press (worst case 320 min); e2e-real-backend
+    # took Sat 11:17. Q318 (2026-09-23): moved so no prod-load run is due while another's worst case (timeout x waves) still holds the group; src/test/prodWorkflowSpacing.test.ts rule 5.
+    - cron: "17 9 * * 6"
   workflow_dispatch:
 
 permissions:

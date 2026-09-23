@@ -15,7 +15,7 @@ the newest backup. If the drill is green, this procedure worked that week.
 | Platform backups | **7 daily physical backups** (2026-09-16 … 2026-09-22, about 09:37 UTC each) plus 3 extra on 2026-09-22 | `supabase backups list --project-ref fncmgoasalhdgfwzhsqa -o json` |
 | Point-in-time recovery | **off** (`pitr_enabled: false`) | same |
 | Our own backup | `db-backup.yml`, daily, GPG-encrypted artifact, kept **14 days** (the workflow asks for 90; the repo caps artifacts at 14) | `gh api repos/louisianahelpr/louisianahelpr/actions/permissions/artifact-and-log-retention` → `{"days":14,"maximum_allowed_days":90}`; the upload step logs "Using 14 instead" |
-| Its real start times | cron says 07:17 UTC; scheduled runs actually started 11:55–14:06 UTC (09-15 … 09-22) | `gh run list -w db-backup.yml` |
+| Its real start times | cron said 07:17 UTC until Q318 moved it to 15:17 (2026-09-23); scheduled runs actually started 11:55–14:06 UTC (09-15 … 09-22) | `gh run list -w db-backup.yml` |
 | Longest gap between good backups, last 10 days | **about 36 h** (09-21 14:06 → 09-23 02:23; the 09-22 run hit a pooler timeout) | same; now retried 3× |
 | Restore time | **4 s** to load roles + schema + data + cron + policies; **about 100 s** to start a blank local stack; drill job 1 min 55 s end to end | drill run 35837914689 |
 | Database size | 68 MB | `pg_database_size` |
@@ -188,6 +188,6 @@ real user to check an escrow-held job against Stripe.
 | 2026-09-23 | 35838927109 | red | a newer backup held `auth.one_time_tokens` rows, and the local auth image lacked `expires_at` (see the venue note in §3) |
 | 2026-09-23 | 35839296119 | **green** | all 8 steps, 0 restore errors; storage policies 36/36, cron 55/55, buckets 8/8, objects 152/152 (rows only), anon 17/321; restore 3 s |
 
-Weekly after that: Tuesdays 14:17 UTC. A red run opens a `nightly-red` issue
+Weekly after that: Mondays 01:17 UTC. A red run opens a `nightly-red` issue
 titled `db-restore-drill` and closes it on the next green run. #1659 did
 exactly that during the runs above.

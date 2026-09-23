@@ -31,6 +31,9 @@
  *      `schedule` only. Rule 3 spaces the CRONS so they never queue behind
  *      each other; nothing spaces a dispatch, and a dispatch is exactly how a
  *      fix gets re-verified.
+ *   5. no prod-load run is due while another prod-load run's WORST-CASE
+ *      length (derived from its job graph: timeout-minutes x matrix waves)
+ *      still holds the group — see `worstCaseMinutes` (Q318).
  *
  * WHAT RULE 4 CATCHES (2026-09-21, issues #1595 and #1626). `cancel-in-progress:
  * false` does not mean "queue forever". GitHub keeps exactly ONE *pending* run
@@ -63,6 +66,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { parse as parseYaml } from "yaml";
 
 // PROD_WORKFLOWS_DIR: point at another checkout's workflows for a red proof.
 const WORKFLOWS = process.env.PROD_WORKFLOWS_DIR ?? resolve(__dirname, "../../.github/workflows");
@@ -379,6 +383,120 @@ export function violations(wfs: Wf[]): string[] {
   return out;
 }
 
+/**
+ * RULE 5 — RUN LENGTH (docs/OPEN.md Q318, 2026-09-23). Rule 3 spaces the
+ * START times; it knew nothing about how long a run lasts. When
+ * press-every-control went to `max-parallel: 2` its 03:17 run grew to
+ * ~2 x 150 min and still held prod-load at 05:17 (db-drift-detect) and 07:17
+ * (db-backup). GitHub keeps ONE pending run per group, so the 07:17 backup
+ * cancelled the pending 05:17 drift-detect: a hidden red "cancelled" with no
+ * notify job. Measured: on 2026-09-23 drift-detect sat 61 min pending behind
+ * press (it normally finishes inside a minute).
+ *
+ * So each prod-load run's WORST-CASE length is derived from its own file — the
+ * critical path through its job graph, each job counted as
+ * `timeout-minutes` (GitHub's 360 when unset) x the waves its matrix runs in
+ * (ceil(entries / max-parallel); a matrix job holding a job-level concurrency
+ * group runs one entry at a time) — and no other prod-load run may be due
+ * before it ends. Nothing is listed by hand: raise a timeout or a matrix and
+ * the window grows with it.
+ */
+const GITHUB_DEFAULT_TIMEOUT = 360;
+
+type YJob = {
+  needs?: string | string[];
+  "timeout-minutes"?: unknown;
+  concurrency?: unknown;
+  strategy?: { "max-parallel"?: unknown; matrix?: unknown };
+};
+
+function matrixEntries(matrix: unknown): number {
+  if (matrix === undefined) return 1;
+  if (typeof matrix !== "object" || matrix === null) {
+    throw new Error("matrix is an expression; its size cannot be modelled");
+  }
+  const m = matrix as Record<string, unknown>;
+  const axes = Object.entries(m).filter(([k]) => k !== "include" && k !== "exclude");
+  for (const [k, v] of axes) if (!Array.isArray(v)) throw new Error(`matrix axis "${k}" is not a literal list`);
+  const product = axes.reduce((n, [, v]) => n * (v as unknown[]).length, 1);
+  const include = Array.isArray(m.include) ? m.include.length : 0;
+  // Upper bound: include entries may extend existing combinations rather than
+  // add new ones, and excludes are ignored. Worst case is the point.
+  return axes.length ? product + include : Math.max(include, 1);
+}
+
+/** Worst-case minutes from a run's start to its last job's end. */
+export function worstCaseMinutes(src: string): number {
+  const doc = parseYaml(src) as { jobs?: Record<string, YJob> };
+  const jobs = doc?.jobs ?? {};
+  const memo = new Map<string, number>();
+  const visiting = new Set<string>();
+  const endOf = (name: string): number => {
+    const hit = memo.get(name);
+    if (hit !== undefined) return hit;
+    const j = jobs[name];
+    if (!j) throw new Error(`needs unknown job "${name}"`);
+    if (visiting.has(name)) throw new Error(`job graph cycle at "${name}"`);
+    visiting.add(name);
+    const needs = j.needs === undefined ? [] : Array.isArray(j.needs) ? j.needs : [j.needs];
+    const start = needs.reduce((mx, n) => Math.max(mx, endOf(n)), 0);
+    const t = typeof j["timeout-minutes"] === "number" ? j["timeout-minutes"] : GITHUB_DEFAULT_TIMEOUT;
+    const entries = matrixEntries(j.strategy?.matrix);
+    const mp = typeof j.strategy?.["max-parallel"] === "number" ? j.strategy["max-parallel"] : entries;
+    const perWave = j.concurrency ? 1 : Math.max(1, Math.min(mp, entries));
+    const end = start + t * Math.ceil(entries / perWave);
+    visiting.delete(name);
+    memo.set(name, end);
+    return end;
+  };
+  return Object.keys(jobs).reduce((mx, n) => Math.max(mx, endOf(n)), 0);
+}
+
+/** Workflows whose SCHEDULED runs enter the shared prod-load group. */
+function inProdLoad(w: Wf): boolean {
+  const { group } = concurrencyOf(w.src);
+  return (
+    group === SHARED_GROUP || (!!group && /github\.event_name\s*==\s*'schedule'\s*&&\s*'prod-load'/.test(group))
+  );
+}
+
+export function overlapViolations(wfs: Wf[]): string[] {
+  const out: string[] = [];
+  const runs: { file: string; at: number; len: number }[] = [];
+  for (const w of prodHitting(wfs)) {
+    if (EXEMPT[w.file] || !inProdLoad(w)) continue;
+    let len: number;
+    try {
+      len = worstCaseMinutes(w.src);
+    } catch (e) {
+      out.push(`${w.file}: cannot model its worst-case run length: ${(e as Error).message}`);
+      continue;
+    }
+    for (const cron of w.crons) {
+      let fires: number[];
+      try {
+        fires = fireMinutes(cron);
+      } catch {
+        continue; // rule 2/3 already report an unparseable cron
+      }
+      for (const at of fires) runs.push({ file: w.file, at, len });
+    }
+  }
+  for (const a of runs) {
+    for (const b of runs) {
+      if (a === b) continue;
+      const after = (((b.at - a.at) % WEEK) + WEEK) % WEEK;
+      if (after > 0 && after < a.len) {
+        out.push(
+          `${b.file} (${fmt(b.at)}) is due ${after} min into ${a.file} (${fmt(a.at)}), ` +
+            `whose worst case holds prod-load for ${a.len} min`,
+        );
+      }
+    }
+  }
+  return out;
+}
+
 function loadWorkflows(): Wf[] {
   return readdirSync(WORKFLOWS)
     .filter((f) => /\.ya?ml$/.test(f))
@@ -394,6 +512,12 @@ function loadWorkflows(): Wf[] {
 // the registration failed rather than proving anything. Breaking the STRING
 // the expression yields is the same proof against the new shape.
 // @mutate .github/workflows/prod-audit.yml | github.event_name == 'schedule' && 'prod-load' | github.event_name == 'schedule' && 'prod-audit-nightly'
+// Rule 5 (Q318), red on the original bug: drift-detect or backup back at
+// 05:17 / 07:17, inside the 03:17 press run's two-wave worst case; and a
+// timeout raise alone (no cron moved) must widen the window and go red too.
+// @mutate .github/workflows/db-drift-detect.yml | - cron: "17 13 * * *" | - cron: "17 5 * * *"
+// @mutate .github/workflows/db-backup.yml | - cron: "17 15 * * *" | - cron: "17 7 * * *"
+// @mutate .github/workflows/e2e-abuse-notifications.yml |     timeout-minutes: 60 |     timeout-minutes: 250
 describe("prod-hitting workflow schedules", () => {
   const wfs = loadWorkflows();
 
@@ -466,6 +590,65 @@ describe("prod-hitting workflow schedules", () => {
 
   it("no overlaps, prod-load concurrency on each, nothing more often than hourly", () => {
     expect(violations(wfs)).toEqual([]);
+  });
+
+  it("rule 5: no prod-load run is due while another's worst case still holds the group (Q318)", () => {
+    const modelled = prodHitting(wfs).filter((w) => !EXEMPT[w.file] && inProdLoad(w));
+    // Inventory floor: the model must see the long suites, or it proves nothing.
+    expect(modelled.length).toBeGreaterThan(10);
+    const press = wfs.find((w) => w.file === "press-every-control.yml")!;
+    // 4 shards, max-parallel 2 -> two 150-min waves, then cleanup and notify.
+    expect(worstCaseMinutes(press.src)).toBeGreaterThan(300);
+    const print = modelled
+      .map((w) => `${w.file}: ${worstCaseMinutes(w.src)} min @ ${w.crons.join(" ; ")}`)
+      .join("\n");
+    expect(overlapViolations(wfs), `worst-case run lengths:\n${print}`).toEqual([]);
+  });
+
+  it("rule 5 can fail: the Q318 shape (press 03:17 with two waves, drift 05:17, backup 07:17) is red", () => {
+    const job = (extra: string) => `jobs:\n  a:\n    runs-on: x\n${extra}`;
+    const suite = (file: string, cron: string, jobs: string): Wf => ({
+      file,
+      src:
+        `on:\n  schedule:\n    - cron: "${cron}"\nconcurrency:\n  group: prod-load\n  cancel-in-progress: false\n` +
+        `env:\n  PLAYWRIGHT_POSTER_EMAIL: x\n${jobs}`,
+      crons: [cron],
+    });
+    const pressSrc =
+      "jobs:\n  press:\n    timeout-minutes: 150\n    strategy:\n      max-parallel: 2\n      matrix:\n        shard: [1, 2, 3, 4]\n" +
+      "  cleanup:\n    needs: [press]\n    timeout-minutes: 15\n  notify:\n    needs: [press, cleanup]\n    timeout-minutes: 5\n";
+    expect(worstCaseMinutes(pressSrc)).toBe(320);
+    // One wave (no max-parallel) is 170: the pre-Q317 shape fitted before 05:17... barely.
+    expect(worstCaseMinutes(pressSrc.replace("      max-parallel: 2\n", ""))).toBe(170);
+    // A matrix job holding a job-level group runs its entries one at a time.
+    expect(
+      worstCaseMinutes("jobs:\n  a:\n    timeout-minutes: 60\n    concurrency:\n      group: g\n    strategy:\n      matrix:\n        include:\n          - p: 1\n          - p: 2\n"),
+    ).toBe(120);
+    // No timeout-minutes means GitHub's 360.
+    expect(worstCaseMinutes(job(""))).toBe(360);
+    const q318 = [
+      suite("press-every-control.yml", "17 3 * * 1,3,6", pressSrc),
+      suite("db-drift-detect.yml", "17 5 * * *", job("    timeout-minutes: 5\n")),
+      suite("db-backup.yml", "17 7 * * *", job("    timeout-minutes: 30\n")),
+    ];
+    const v = overlapViolations(q318);
+    expect(v.some((s) => s.startsWith("db-drift-detect.yml (Mon 05:17) is due 120 min into press-every-control.yml"))).toBe(true);
+    expect(v.some((s) => s.startsWith("db-backup.yml (Mon 07:17) is due 240 min into press-every-control.yml"))).toBe(true);
+    // Rule 3 alone was green on this exact shape — that is the gap rule 5 closes.
+    expect(violations(q318)).toEqual([]);
+    // Move the DB jobs past the press window and it is green.
+    expect(
+      overlapViolations([
+        q318[0],
+        suite("db-drift-detect.yml", "17 13 * * *", job("    timeout-minutes: 5\n")),
+        suite("db-backup.yml", "17 15 * * *", job("    timeout-minutes: 30\n")),
+      ]),
+    ).toEqual([]);
+    // An expression matrix cannot be sized, so it is reported rather than guessed.
+    expect(
+      overlapViolations([suite("x.yml", "17 3 * * 1", "jobs:\n  a:\n    timeout-minutes: 5\n    strategy:\n      matrix: ${{ fromJSON(needs.p.outputs.m) }}\n")])
+        .some((s) => s.includes("cannot model")),
+    ).toBe(true);
   });
 
   it("can fail: the pre-2026-09-14 shape is red", () => {

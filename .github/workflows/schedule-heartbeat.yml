@@ -36,8 +36,8 @@ name: Schedule Heartbeat
 
 on:
   # 11:23 UTC — its own minute, no collision with any other cron here
-  # (05:17 db-drift, 06:00 Sun lighthouse, 08:00 Mon security-audit,
-  # 09:00 Tue broken-links, 11:17 Thu edge-function-smoke).
+  # (13:17 db-drift, 06:00 Sun lighthouse, 08:00 Mon security-audit,
+  # 09:00 Tue broken-links, 07:17 Thu edge-function-smoke).
   schedule:
     - cron: "23 11 * * *"
   workflow_dispatch:

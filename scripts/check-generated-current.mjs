@@ -139,7 +139,7 @@ export const EVIDENCE = [
     script: "scripts/audit/measure-loading-states.mjs",
     outputs: ["docs/audit/loading-states/measurements.json"],
     refresh: "npm run loading-states:measure (browser + test accounts)",
-    refreshedBy: ".github/workflows/loading-states-refresh.yml (daily 16:17 UTC; uploads the fresh set and lands measurements.json through an auto-merging refresh PR, Q57)",
+    refreshedBy: ".github/workflows/loading-states-refresh.yml (daily 17:17 UTC; uploads the fresh set and lands measurements.json through an auto-merging refresh PR, Q57)",
     checkedBy: "check-loading-state-shape.mjs on the FRESH measurement in that run; check-staleness.mjs binds currency to its last successful run (2 days)",
   },
   {

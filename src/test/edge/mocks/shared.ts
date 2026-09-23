@@ -69,6 +69,8 @@ export function resetSharedMocks() {
   rateLimitState.retryAfter = 60;
   slackAlerts.length = 0;
   postSlackOpsAlert.mockClear();
+  ledgerWrites.length = 0;
+  recordOpsAlertLedger.mockClear();
   giftCardEmails.length = 0;
   sendGiftCardEmail.mockClear();
 }
@@ -137,6 +139,12 @@ export const slackAlerts: unknown[] = [];
 /** Fire-and-forget Slack alert stub — records the input, never throws. */
 export const postSlackOpsAlert = vi.fn(async (input: unknown) => {
   slackAlerts.push(input);
+});
+
+/** Captures every ops alert ledger write (opsAlertLedger.ts re-export). */
+export const ledgerWrites: unknown[] = [];
+export const recordOpsAlertLedger = vi.fn(async (input: unknown) => {
+  ledgerWrites.push(input);
 });
 
 /** Captures every gift card email the function tried to send. */

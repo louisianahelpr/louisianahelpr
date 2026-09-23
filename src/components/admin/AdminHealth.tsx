@@ -17,6 +17,7 @@ import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { useFillRate } from "./adminHealth/useFillRate";
 import { useConfigChecks, type CheckTone, type ConfigCheck } from "./adminHealth/useConfigChecks";
 import { useCronHealth } from "./adminHealth/useCronHealth";
+import { useOpenAlerts } from "./adminHealth/useOpenAlerts";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
@@ -62,6 +63,7 @@ const AdminHealth = () => {
   const { fillDays, setFillDays, fillSort, fillSortAsc, fillData, fillFetching, sortedParishes, handleFillSort } = useFillRate();
   const { data: configChecks } = useConfigChecks();
   const { data: cronChecks } = useCronHealth();
+  const { data: openAlerts } = useOpenAlerts();
 
   // Send a test push to the admin's own user_id. Verifies the entire
   // pipeline (push_tokens lookup → APNs/FCM auth → device delivery)
@@ -167,6 +169,26 @@ const AdminHealth = () => {
           </div>
         </div>
       )}
+
+      {/* Open alerts (docs/OPEN.md Q1). Every alert — error_logs, Slack posts,
+          nightly-red issues, Sentry — stays here until its own detector is
+          re-run and shows it cleared. First on the page because it is the
+          to-do list; the cards below are the instruments. */}
+      <AdminCard
+        title="Open Alerts"
+        surface="none"
+        subtitle="Each alert stays open until its detector re-runs and shows it cleared."
+      >
+        {!openAlerts || openAlerts.length === 0 ? (
+          <p className="text-ds-11 text-muted-foreground">Reading the alert ledger…</p>
+        ) : (
+          <ul className="space-y-2">
+            {openAlerts.map((c) => (
+              <CheckRow key={c.id} check={c} />
+            ))}
+          </ul>
+        )}
+      </AdminCard>
 
       {/* Configuration checks. Everything here is a defect the 2026-08-25 audit
           found by hand, and they share the trait that makes them dangerous:

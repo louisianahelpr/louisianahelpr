@@ -32,6 +32,7 @@
  * Exit: 0 clean or deleted; 2 cap tripped; 1 failure.
  */
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
+import { recordOpsAlert } from "./lib/opsAlertLedger.mjs";
 import { DEFAULTS, checkCaps, emptyListingError, formatMB, orphanReason, selectOrphans } from "./lib/storageOrphans.mjs";
 
 const args = process.argv.slice(2);
@@ -212,6 +213,16 @@ async function slack(text) {
   if (!res.ok) console.error(`::warning::Slack rejected the summary: HTTP ${res.status}`);
 }
 
+// A sweep that pages is an alert: it goes in the ops alert ledger too
+// (docs/OPEN.md Q1) and closes when supabase-usage.yml re-runs green. The
+// plain weekly summary is a report, not an alert, and is not recorded.
+async function ledger(title, severity, sample) {
+  await recordOpsAlert({
+    sourceKind: "workflow", source: "storage-orphan-sweep", title, severity,
+    sample: redact(sample), sampleRef: { run_url: process.env.RUN_URL ?? null }, verifyRef: "supabase-usage.yml",
+  });
+}
+
 function output(key, value) {
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${redact(String(value)).replace(/\n/g, " ")}\n`);
 }
@@ -260,6 +271,7 @@ async function main() {
     output("summary", summary);
     output("cap_tripped", "true");
     await slack(`:rotating_light: CRITICAL ${summary}${process.env.RUN_URL ? `\n${process.env.RUN_URL}` : ""}`);
+    await ledger("storage orphan sweep: cap tripped, nothing deleted", "critical", summary);
     console.error(`::error::${summary}`);
     return 2;
   }
@@ -312,6 +324,7 @@ async function main() {
   output("summary", summary);
   console.log(summary);
   await slack(failures.length ? `:warning: ${summary}` : summary);
+  if (failures.length) await ledger("storage orphan sweep: deletes failed", "warning", summary);
   return failures.length ? 1 : 0;
 }
 

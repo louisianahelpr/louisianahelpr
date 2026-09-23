@@ -28,7 +28,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { resetSupabaseMock, scenario } from "./mocks/supabase";
-import { resetSharedMocks } from "./mocks/shared";
+import { ledgerWrites, recordOpsAlertLedger, resetSharedMocks } from "./mocks/shared";
 
 const CRON_SECRET = "cron-secret";
 
@@ -304,6 +304,59 @@ describe("slack-ops-alert — a REJECTED post is recorded, never swallowed", () 
     expect(errorLogInserts()).toHaveLength(0);
   });
 });
+
+describe("slack-ops-alert — every alert is also an ops alert ledger item (docs/OPEN.md Q1)", () => {
+  beforeEach(() => {
+    resetSupabaseMock();
+    resetSharedMocks();
+    resetEnv();
+    slackPosts = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        slackPosts.push(JSON.parse(String(init.body)));
+        return new Response(JSON.stringify({ ok: true, ts: "1.0" }), { status: 200 });
+      }),
+    );
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("records a SQL watcher's alert in the ledger", async () => {
+    const fn = await load();
+    await fn.fetch(call(fn, watcherBody()));
+    expect(recordOpsAlertLedger).toHaveBeenCalledTimes(1);
+    expect(ledgerWrites[0]).toMatchObject({
+      sourceKind: "sql_slack",
+      source: "slack-ops-alert:custom",
+      title: watcherBody().title,
+      severity: "critical",
+    });
+  });
+
+  it("records it even when Slack is not configured (the ledger does not depend on the transport)", async () => {
+    setEnv({ CRON_SECRET, SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key" });
+    const fn = await loadEdgeFunction("slack-ops-alert");
+    const res = await fn.fetch(call(fn, watcherBody()));
+    expect((await json(res)).skipped).toBe(true);
+    expect(ledgerWrites).toHaveLength(1);
+  });
+
+  it("does not double-record an error_logs relay (the table trigger recorded it) or the digest", async () => {
+    const fn = await load();
+    await fn.fetch(call(fn, { ...watcherBody(), fields: { "error_logs.id": "abc" } }));
+    await fn.fetch(call(fn, { kind: "digest", title: "Daily digest", message: "94 events", severity: "info" }));
+    expect(ledgerWrites).toHaveLength(0);
+    expect(slackPosts).toHaveLength(2);
+  });
+
+  it("records nothing for an unauthenticated caller", async () => {
+    const fn = await load();
+    await fn.fetch(fn.request({ headers: {}, body: watcherBody() }));
+    expect(ledgerWrites).toHaveLength(0);
+  });
+});
+
+// @mutate supabase/functions/slack-ops-alert/index.ts | if (body.kind !== 'digest' && !body.fields?.['error_logs.id']) { | if (false) {
 
 // ── Shown able to fail ─────────────────────────────────────────────────────
 // The whole Slack-rejection branch. Deleting it makes every refused post

@@ -7590,7 +7590,17 @@ Owner order: every alert, from anywhere, is fixed AND verified fixed (CLAUDE.md)
 Nothing here gets muted: every failure still fails loudly; the work is making
 sure someone hears it and closes it.
 
-- [ ] **Q1 Alert ledger.** One tracked item per distinct alert fingerprint,
+- [ ] **Q1 Alert ledger.** BUILT 2026-09-23 (migration 20260923043402,
+  `public.ops_alert_ledger`; CLI `scripts/ops-alert-ledger.mjs`; hourly sync in
+  prod-errors.yml; Open Alerts card on /admin?view=health; session-start hook
+  prints the open list; guard src/test/opsAlertLedgerCoverage.test.ts, red on
+  the old tree with 12 bypasses). Left open until: (a) lh-authz-rls review of
+  the migration, (b) first hourly sync shows nightly-red issues in the ledger,
+  (c) Sentry syncs (needs SENTRY_AUTH_TOKEN/ORG/PROJECT repo secrets — the sync
+  says SKIPPED otherwise), (d) more `sql_condition` verify hooks: cron-http,
+  cron-silent, dispute-unsettled, rls-escalation-refused and every edge
+  `ops-alert:*` item are `manual`/`companions` today.
+  One tracked item per distinct alert fingerprint,
   from error_logs (server rows, every severity), Slack posts that bypass
   error_logs, Sentry, nightly-red issues and CI. Auto-opened, and closed only
   after that alert's own detector has been re-run and shows it cleared. A

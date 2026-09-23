@@ -120,10 +120,18 @@ jobs:
       - name: Tell Slack
         if: steps.probe.outputs.status == 'down'
         env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SUMMARY: ${{ steps.probe.outputs.summary }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          # Ops alert ledger (docs/OPEN.md Q1): the Slack post scrolls away; the
+          # ledger item stays open until this workflow's own re-run is green.
+          # Recorded FIRST so a missing webhook cannot skip it; never fails the step.
+          node scripts/ops-alert-ledger.mjs record --source-kind workflow --source "uptime" \
+            --title "Louisiana Helpr is DOWN" --severity critical --verify-ref "uptime.yml" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true
           set -euo pipefail
           if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
             echo "::error::Prod is down and there is no SLACK_WEBHOOK_URL repo secret, so nobody was paged. OWNER ACTION: create a Slack Incoming Webhook and add it as the repo secret SLACK_WEBHOOK_URL (Settings -> Secrets and variables -> Actions). The prod-down issue was still opened."

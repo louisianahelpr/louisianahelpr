@@ -9,6 +9,7 @@
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { effectiveSeverity, postsImmediately, type AlertSeverity } from '../_shared/alertPolicy.ts'
+import { recordOpsAlertLedger } from '../_shared/opsAlertLedger.ts'
 
 const SLACK_API_URL = 'https://slack.com/api'
 const DEFAULT_CHANNEL = Deno.env.get('SLACK_OPS_CHANNEL') || '#ops-alerts'
@@ -124,16 +125,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const slackKey = Deno.env.get('SLACK_API_KEY')
-
-    if (!slackKey) {
-      console.error('slack-ops-alert: missing SLACK_API_KEY')
-      return new Response(
-        JSON.stringify({ skipped: true, reason: 'slack_not_configured' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
     const body = (await req.json()) as AlertBody
     if (!body?.title || !body?.message) {
       return new Response(
@@ -145,6 +136,33 @@ Deno.serve(async (req) => {
     if (!body.kind) body.kind = 'custom'
 
     const severity: AlertSeverity = effectiveSeverity(body.kind, body.severity)
+
+    // Ops alert ledger (docs/OPEN.md Q1). Every SQL caller posts through here,
+    // so recording here covers them all — BEFORE the transport check, so an
+    // unconfigured Slack still leaves a tracked item. Two exceptions, both
+    // already in the ledger by another road: a post relayed from an error_logs
+    // row (trg_error_logs_zz_ledger recorded that row) and the daily digest,
+    // which summarises alerts rather than being one.
+    if (body.kind !== 'digest' && !body.fields?.['error_logs.id']) {
+      await recordOpsAlertLedger({
+        sourceKind: 'sql_slack',
+        source: `slack-ops-alert:${body.kind}`,
+        title: body.title,
+        severity,
+        sample: `${body.title} — ${body.message}`,
+        sampleRef: { link: body.link ?? null },
+      })
+    }
+
+    const slackKey = Deno.env.get('SLACK_API_KEY')
+
+    if (!slackKey) {
+      console.error('slack-ops-alert: missing SLACK_API_KEY')
+      return new Response(
+        JSON.stringify({ skipped: true, reason: 'slack_not_configured' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Severity policy lives in _shared/alertPolicy.ts. As of 2026-09-22 EVERY
     // severity posts (owner: "medium and low alerts should show in slack

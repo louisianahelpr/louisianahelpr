@@ -108,8 +108,9 @@ function rewriteExternalImports(src: string): string {
   // `../` depth (index.ts uses `../_shared/...`; nested handlers use
   // `../../_shared/...`). giftCardEmail does network I/O (Resend), so it's
   // mocked network-free like slack-alerts rather than pointed at the real file.
+  // opsAlertLedger (the ops alert ledger RPC) is mocked the same way.
   out = out.replace(
-    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/(rate-limit|slack-alerts|cors|appUrl|giftCardEmail)\.ts["'];?/g,
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/(rate-limit|slack-alerts|cors|appUrl|giftCardEmail|opsAlertLedger)\.ts["'];?/g,
     `import {$1} from "${MOCK.shared}";`,
   );
 

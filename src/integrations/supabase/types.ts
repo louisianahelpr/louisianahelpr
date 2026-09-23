@@ -2548,6 +2548,75 @@ export type Database = {
         }
         Relationships: []
       }
+      ops_alert_ledger: {
+        Row: {
+          closed_at: string | null
+          closed_evidence: string | null
+          count: number
+          fingerprint: string
+          first_seen: string
+          id: string
+          last_seen: string
+          reopen_count: number
+          sample: string | null
+          sample_ref: Json
+          severity: string
+          source: string
+          source_kind: string
+          status: string
+          title: string
+          updated_at: string
+          verify_kind: string
+          verify_note: string | null
+          verify_ref: string | null
+          verify_started_at: string | null
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_evidence?: string | null
+          count?: number
+          fingerprint: string
+          first_seen?: string
+          id?: string
+          last_seen?: string
+          reopen_count?: number
+          sample?: string | null
+          sample_ref?: Json
+          severity: string
+          source: string
+          source_kind: string
+          status?: string
+          title: string
+          updated_at?: string
+          verify_kind?: string
+          verify_note?: string | null
+          verify_ref?: string | null
+          verify_started_at?: string | null
+        }
+        Update: {
+          closed_at?: string | null
+          closed_evidence?: string | null
+          count?: number
+          fingerprint?: string
+          first_seen?: string
+          id?: string
+          last_seen?: string
+          reopen_count?: number
+          sample?: string | null
+          sample_ref?: Json
+          severity?: string
+          source?: string
+          source_kind?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          verify_kind?: string
+          verify_note?: string | null
+          verify_ref?: string | null
+          verify_started_at?: string | null
+        }
+        Relationships: []
+      }
       payment_refunds: {
         Row: {
           amount_cents: number
@@ -5664,6 +5733,39 @@ export type Database = {
         }
         Returns: string
       }
+      ops_alert_close: {
+        Args: { p_evidence: string; p_id: string; p_rerun_started_at: string }
+        Returns: boolean
+      }
+      ops_alert_condition: {
+        Args: {
+          p_probe_only?: boolean
+          p_sample_ref: Json
+          p_since: string
+          p_source: string
+        }
+        Returns: boolean
+      }
+      ops_alert_mark_fixed: {
+        Args: { p_id: string; p_note: string }
+        Returns: boolean
+      }
+      ops_alert_normalise: { Args: { p_text: string }; Returns: string }
+      ops_alert_record: {
+        Args: {
+          p_sample?: string
+          p_sample_ref?: Json
+          p_seen_at?: string
+          p_severity: string
+          p_source: string
+          p_source_kind: string
+          p_title: string
+          p_verify_kind?: string
+          p_verify_ref?: string
+        }
+        Returns: string
+      }
+      ops_alert_verify: { Args: never; Returns: Json }
       poster_cancel_job: {
         Args: { p_job_id: string; p_reason?: string }
         Returns: Json

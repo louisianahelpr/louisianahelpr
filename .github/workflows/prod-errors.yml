@@ -40,6 +40,8 @@ on:
 permissions:
   contents: read
   issues: write
+  # ops alert ledger sync reads workflow runs to decide what a green re-run closed.
+  actions: read
 
 concurrency:
   # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
@@ -114,3 +116,34 @@ jobs:
               echo "Quiet, nothing open."
             fi
           fi
+
+  # Ops alert ledger (docs/OPEN.md Q1). Same hourly slot, no new cron: pull the
+  # open nightly-red / prod-down / prod-errors / supabase-usage issues and
+  # Sentry into public.ops_alert_ledger, close only what its own detector has
+  # re-run and shown cleared (a bot-closed issue, a green run after the last
+  # alert, or ops_alert_verify() re-asking a SQL condition), and print the
+  # open list. Its own failure is red on this run: a ledger that silently
+  # stops syncing is the exact failure it exists to prevent.
+  ledger:
+    name: Sync and verify the ops alert ledger
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Sync, verify, list
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: |
+          set -euo pipefail
+          node scripts/ops-alert-ledger.mjs sync
+          node scripts/ops-alert-ledger.mjs list | tee -a "$GITHUB_STEP_SUMMARY"

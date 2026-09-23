@@ -20,6 +20,7 @@
 // log rather than vanishing, so a missing alarm is discoverable.
 
 import { effectiveSeverity, postsImmediately, utcDayStartIso, type AlertSeverity } from './alertPolicy.ts'
+import { recordOpsAlertLedger } from './opsAlertLedger.ts'
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/slack/api'
 
@@ -231,6 +232,20 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
   let heldKey: { rowId: string; key: string } | null = null
   try {
     const policySeverity = effectiveSeverity(input.kind, input.severity)
+
+    // Every call is an occurrence in the ops alert ledger (docs/OPEN.md Q1),
+    // including the ones the hourly cap or the once-per-day key keep out of
+    // Slack: those are still alerts, and the ledger is what stays open until
+    // the condition is shown cleared. Awaited so it survives the isolate, but
+    // it cannot throw.
+    await recordOpsAlertLedger({
+      sourceKind: 'edge_slack',
+      source: `ops-alert:${input.kind}`,
+      title: input.title,
+      severity: policySeverity,
+      sample: `${input.title} — ${input.message}`,
+      sampleRef: { link: input.link ?? null, oncePerDayKey: input.oncePerDayKey ?? null },
+    })
 
     // A non-critical kind that posts anyway (today: support_request) gets an
     // hourly ceiling. Critical is never capped: a page must never be

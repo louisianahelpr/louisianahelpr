@@ -31,11 +31,12 @@
 //   account unapproved.
 // @mutate supabase/functions/complete-signup/index.ts | rowName && rowName !== avatarObjectName ? [avatarObjectName, rowName] : avatarObjectName, | avatarObjectName,
 // @mutate supabase/functions/complete-signup/index.ts | .update(updateData)\n      .eq("user_id", userId)\n      .or( | .update(updateData)\n      .eq("id", userId)\n      .or(
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, type MockInstance } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
+import { stubSignupCapRead } from "./mocks/signupCapFetch";
 
 const USER_ID = "11111111-1111-1111-1111-111111111111";
 const AVATARS = `${USER_ID}`;
@@ -101,11 +102,14 @@ function signupBody(overrides: Record<string, unknown> = {}) {
 const objects = () => [...scenario.storage.objects].sort();
 
 describe("complete-signup — avatar row before avatar object", () => {
+  let capRead: MockInstance<typeof fetch>;
   beforeEach(() => {
     resetEnv();
     resetSupabaseMock();
     resetSharedMocks();
+    capRead = stubSignupCapRead();
   });
+  afterEach(() => capRead.mockRestore());
 
   it("uploads, confirms the row, THEN retires the superseded object", async () => {
     seedFreshSignup();

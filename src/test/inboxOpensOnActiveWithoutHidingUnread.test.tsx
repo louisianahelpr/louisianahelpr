@@ -34,6 +34,12 @@ import { render, screen, cleanup, fireEvent, within } from "@testing-library/rea
 import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+// No network (Q55a): ConversationList's mount-time pin/archive loads read
+// thread_pins / thread_archives from Supabase. See the helper.
+vi.mock("@/lib/pinnedConversations", async (io) =>
+  (await import("@/test/helpers/threadStoresOffline")).pinnedConversationsOffline(io));
+vi.mock("@/lib/archivedConversations", async (io) =>
+  (await import("@/test/helpers/threadStoresOffline")).archivedConversationsOffline(io));
 vi.mock("@/lib/haptics", () => ({
   hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),
   hapticMedium: vi.fn(), hapticSelection: vi.fn(), hapticWarning: vi.fn(), hapticHeavy: vi.fn(),

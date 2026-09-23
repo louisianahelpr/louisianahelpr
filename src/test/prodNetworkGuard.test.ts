@@ -19,6 +19,7 @@ import {
 
 // @mutate src/test/prodNetworkGuard.ts | if (!isGuardedHost(url) \|\| specIsAllowed(spec)) return null; | return null;
 // @mutate src/test/setup.ts | installProdNetworkGuard();\n |
+// @mutate vitest.config.ts | VITE_SUPABASE_URL: "https://unit-test.invalid", | VITE_SUPABASE_URL: "https://fncmgoasalhdgfwzhsqa.supabase.co",
 
 const REPO_ROOT = resolve(__dirname, "..", "..");
 
@@ -80,6 +81,8 @@ describe("prodNetworkGuard (Q55a)", () => {
       .filter((f) => MARKER_LINE.test(readFileSync(resolve(REPO_ROOT, f), "utf8")))
       .sort();
     const listed = Object.keys(LIVE_PROD_ALLOWLIST).sort();
+    for (const f of listed) expect(marked, `stale LIVE_PROD_ALLOWLIST entry ${f} — remove it`).toContain(f);
+    for (const f of marked) expect(listed, `${f} carries @live-prod: but is not in LIVE_PROD_ALLOWLIST`).toContain(f);
     expect(marked).toEqual(listed);
     for (const reason of Object.values(LIVE_PROD_ALLOWLIST)) expect(reason.trim().length).toBeGreaterThan(20);
   });

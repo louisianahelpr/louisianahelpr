@@ -83,7 +83,13 @@ export default defineConfig({
     // Publishable/anon keys only — safe to expose (they ship in the bundle).
     env: {
       VITE_SUPABASE_PROJECT_ID: "fncmgoasalhdgfwzhsqa",
-      VITE_SUPABASE_URL: "https://fncmgoasalhdgfwzhsqa.supabase.co",
+      // NOT prod (Q55a). Until 2026-09-23 this was the prod URL, and every spec
+      // that rendered a data-loading component unmocked sent real requests
+      // (~4,190/day `uuid: "user-1"` errors in the prod Postgres logs).
+      // `.invalid` is reserved (RFC 2606) and never resolves, so even with the
+      // guard bypassed a unit test cannot reach any database. The guard
+      // (src/test/prodNetworkGuard.ts) refuses this host and *.supabase.co.
+      VITE_SUPABASE_URL: "https://unit-test.invalid",
       VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP",
     },
     projects: [

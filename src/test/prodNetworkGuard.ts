@@ -21,10 +21,15 @@
  */
 import { afterAll, afterEach, expect } from "vitest";
 
-/** Spec path (repo-relative) → why it must reach prod. Exact: see the test. */
+/**
+ * Spec path (repo-relative) → why it must reach prod. EMPTY on 2026-09-23: the
+ * full unit suite was run with the guard on and no spec needed a real
+ * response (every one that reached Supabase did so by accident).
+ */
+// @two-way src/test/prodNetworkGuard.test.ts:stale LIVE_PROD_ALLOWLIST entry
 export const LIVE_PROD_ALLOWLIST: Readonly<Record<string, string>> = {};
 
-export const LIVE_PROD_MARKER = "@live-prod:";
+const LIVE_PROD_MARKER = "@live-prod:";
 
 /** The host the app's Supabase client is configured with in unit tests (vitest.config.ts test.env). */
 function configuredClientHost(): string | null {
@@ -59,7 +64,7 @@ function currentSpec(): string {
   return i >= 0 ? p.slice(i + 1) : p || "<unknown spec>";
 }
 
-export function specIsAllowed(spec: string): boolean {
+function specIsAllowed(spec: string): boolean {
   return Object.prototype.hasOwnProperty.call(LIVE_PROD_ALLOWLIST, spec);
 }
 

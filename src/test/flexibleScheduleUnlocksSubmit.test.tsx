@@ -1,7 +1,21 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { render, renderHook, screen, cleanup } from "@testing-library/react";
+
+// No network (Q55a, src/test/prodNetworkGuard.ts): the real hooks below fetch
+// price stats, Helpr activity and a MapKit token from Supabase on mount. None
+// of that bears on the submit gate this spec proves.
+vi.mock("@/hooks/useCategoryPriceStats", () => ({
+  useCategoryPriceStats: () => ({ stats: null, loading: false }),
+}));
+vi.mock("@/hooks/useHelprActivity", () => ({
+  useHelprActivity: () => ({ activity: null, loading: false }),
+}));
+vi.mock("@/hooks/useMapKitJs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/hooks/useMapKitJs")>()),
+  useMapKitJs: () => "missing-token" as const,
+}));
 
 import { useJobDerived } from "@/pages/postjob/useJobDerived";
 import { FormStep } from "@/pages/postjob/FormStep";

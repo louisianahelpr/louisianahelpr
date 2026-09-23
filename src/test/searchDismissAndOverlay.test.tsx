@@ -72,6 +72,12 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+// No network (Q55a): ConversationList's mount-time pin/archive loads read
+// thread_pins / thread_archives from Supabase. See the helper.
+vi.mock("@/lib/pinnedConversations", async (io) =>
+  (await import("@/test/helpers/threadStoresOffline")).pinnedConversationsOffline(io));
+vi.mock("@/lib/archivedConversations", async (io) =>
+  (await import("@/test/helpers/threadStoresOffline")).archivedConversationsOffline(io));
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "user-1" }, loading: false }),
 }));

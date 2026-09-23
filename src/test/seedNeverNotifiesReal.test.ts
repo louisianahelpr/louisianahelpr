@@ -32,6 +32,12 @@ import { walkSource } from "./helpers/walkSource";
  * and each producer that does NOT carry its subject must be classified here
  * (no seed subject / a digest that filters seed itself / a KNOWN gap). A new
  * producer that neither carries its subject nor is classified fails CI.
+ * Q139 (2026-09-23): KNOWN_GAP went 45 -> 0 (migration 20260923205635 + edge
+ * functions). Each SQL INSERT is now judged on its own statement and each TS
+ * literal on its own balanced braces; the old body-wide / 900-char judging hid
+ * 6 more producers, fixed in the same change. A producer that reads the row
+ * count back must ask the boundary before calling zero rows a failure, and
+ * the gift email (sent to an address) asks it with the donor as actor.
  * Behaviour (live trigger chain, applied 3x):
  * src/test/pglite/seedNeverNotifiesReal.pglite.mjs — ALL PASS (30);
  * NEW_MIGRATION=skip -> 17 FAILED.
@@ -54,12 +60,20 @@ import { walkSource } from "./helpers/walkSource";
 // @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |   IF NOT COALESCE(public.has_role(auth.uid(), 'admin'::public.app_role), false) THEN |   IF false THEN
 // @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql | admin_notification_crosses_seed_boundary(uuid, uuid, text) FROM PUBLIC, anon; | admin_notification_crosses_seed_boundary(uuid, uuid, text) FROM PUBLIC;
 // @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |      AND l.error_message LIKE 'seed boundary check failed%';\n\n  IF v_24h = 0 THEN |      AND l.error_message LIKE 'seed_boundary_check_failed%';\n\n  IF v_24h = 0 THEN
-// @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |   ELSIF p_source = 'seed-boundary-check-failed' THEN |   ELSIF p_source = 'seed-boundary-check-failed-x' THEN
+// @mutate supabase/migrations/20260923133021_cron_missed_slot_catch_up.sql |   ELSIF p_source = 'seed-boundary-check-failed' THEN |   ELSIF p_source = 'seed-boundary-check-failed-x' THEN
 // @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |     PERFORM cron.schedule('seed-boundary-failures', '41 * * * *', |     PERFORM cron.schedule('seed-boundary-failures', '41 3 1 1 *',
 // @mutate .github/workflows/functions-deploy.yml |         run: node scripts/check-edge-rpcs-live.mjs --wait 300\n |         run: echo skipped\n
 // @mutate supabase/functions/create-notification/index.ts |         p_actor: user.id, |         p_actor: null,
 // @mutate supabase/functions/create-notification/index.ts |     if (crossesSeed === true) { |     if (crossesSeed === "never") {
 // @mutate supabase/functions/daily-match-digest/index.ts | .from("notifications").insert(notifications) | .from("notifications").insert(notifications); await supabase.from("notifications").insert({ user_id: userId, title, message, type: "job_match" })
+// @mutate supabase/migrations/20260923205635_notification_producers_carry_their_subject.sql | '/admin?view=fraud&user=' \|\| p_reviewee_id, | '/admin?view=fraud',
+// @mutate supabase/migrations/20260923205635_notification_producers_carry_their_subject.sql | INSERT INTO public.notifications (user_id, title, message, type, link, job_id)\n    VALUES (\n      _admin, | INSERT INTO public.notifications (user_id, title, message, type, link)\n    VALUES (\n      _admin,
+// @mutate supabase/functions/create-payment/index.ts |             user_id: job.helper_id,\n            job_id: job.id,\n            title: "Job completed!", |             user_id: job.helper_id,\n            title: "Job completed!",
+// @mutate supabase/functions/stripe-idv-webhook/index.ts |               link: `/admin?view=people&user=${userId}`, |               link: "/admin",
+// @mutate supabase/functions/arrival-confirm-reminder/index.ts |       if ((await seedBoundaryDropsRow(supabase, { user_id: userId, job_id: jobId, link })) === true) return;\n |       if (false) return;\n
+// @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           } else if (seedGate.crosses) { |           } else if (false) {
+// @mutate supabase/functions/_shared/seedBoundary.ts |     return { crosses: data?.is_seed === true, checkFailed: null }; |     return { crosses: false, checkFailed: null };
+// @mutate supabase/functions/_shared/seedBoundary.ts |     if (error \|\| typeof data !== "boolean") return null; |     if (error) return null;
 
 const ROOT = join(__dirname, "..", "..");
 const MIG = join(ROOT, "supabase", "migrations");
@@ -110,7 +124,22 @@ const liveFunctions = [...newest.keys()].filter((n) => liveDef(n));
 const LINK_SUBJECT = /[?&](?:job|jobId|quickApply|userId|offerTo|user)=|\/jobs\//;
 const INSERT_NOTIF_SQL = /INSERT\s+INTO\s+(?:public\.)?notifications\s*\(([^)]*)\)/gi;
 
-type Site = { key: string; carries: boolean; text: string };
+type Site = { key: string; carries: boolean; text: string; zeroRowChecked?: boolean };
+// The INSERT statement itself, up to its terminating `;` outside a '...' literal.
+function sqlStatement(body: string, at: number): string {
+  let inStr = false;
+  for (let i = at; i < body.length; i++) {
+    if (body[i] === "'") inStr = !inStr;
+    else if (body[i] === ";" && !inStr) return body.slice(at, i);
+  }
+  return body.slice(at);
+}
+// Q139: each INSERT is judged on ITS OWN statement. Until 2026-09-23 a link
+// anywhere in the body counted for every insert in it, which hid two
+// producers ('Payout released' in notify_on_payment_escrowed, the admin 'Job
+// disputed' in open_dispute_as) behind a sibling insert's job link. Only a
+// link held in a VARIABLE (v_link, built earlier in the body) is judged on the
+// body.
 function sqlSites(): Site[] {
   const out: Site[] = [];
   for (const name of liveFunctions) {
@@ -119,7 +148,12 @@ function sqlSites(): Site[] {
     for (const m of body.matchAll(INSERT_NOTIF_SQL)) {
       k++;
       const cols = m[1].toLowerCase();
-      const carries = /\bjob_id\b/.test(cols) || (/\blink\b/.test(cols) && LINK_SUBJECT.test(body));
+      const stmt = sqlStatement(body, m.index!);
+      const values = stmt.slice(m[0].length);
+      const linkVar = /\b[a-z_]*link[a-z_0-9]*\b/i.test(values.replace(/'[^']*'/g, "''"));
+      const carries =
+        /\bjob_id\b/.test(cols) ||
+        (/\blink\b/.test(cols) && (LINK_SUBJECT.test(stmt) || (linkVar && LINK_SUBJECT.test(body))));
       out.push({ key: `sql:${name}#${k}`, carries, text: body });
     }
   }
@@ -132,6 +166,22 @@ const tsFiles = [...walkSource([FN_ROOT]), ...walkSource([join(ROOT, "src")])].f
 );
 const codeOf = new Map(tsFiles.map((f) => [f, blankComments(readFileSync(f, "utf8"))]));
 const rel = (f: string) => relative(ROOT, f);
+function balancedLiteral(s: string): string {
+  let depth = 0;
+  let quote: string | null = null;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (quote) {
+      if (c === "\\") i++;
+      else if (c === quote) quote = null;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") quote = c;
+    else if (c === "{" || c === "[" || c === "(") depth++;
+    else if ((c === "}" || c === "]" || c === ")") && --depth === 0) return s.slice(0, i + 1);
+  }
+  return s;
+}
 const INSERT_NOTIF_TS = /from\(\s*["']notifications["']\s*\)\s*\.(?:insert|upsert)\(\s*/g;
 function tsSites(): Site[] {
   const out: Site[] = [];
@@ -141,11 +191,16 @@ function tsSites(): Site[] {
     for (const m of src.matchAll(INSERT_NOTIF_TS)) {
       k++;
       const after = src.slice(m.index! + m[0].length);
-      // An inline object/array literal: judge the literal. A variable (rows
-      // built earlier): judge the whole file.
-      const window = /^[[{]/.test(after) ? after.slice(0, 900) : src;
+      // An inline object/array literal: judge THAT literal (balanced, Q139: a
+      // fixed 900-char window read the NEXT insert's job link and hid four
+      // producers). A variable (rows built earlier): judge the whole file.
+      const literal = /^[[{]/.test(after);
+      const window = literal ? balancedLiteral(after) : src;
       const carries = /\bjob_id\b/.test(window) || LINK_SUBJECT.test(window);
-      out.push({ key: `ts:${rel(f)}#${k}`, carries, text: window });
+      // `.insert(x).select(...)`: the producer reads the row count back.
+      const rest = literal ? after.slice(window.length) : after.replace(/^[A-Za-z_$][\w$.]*/, "");
+      const zeroRowChecked = /^\s*\)\s*\.select\(/.test(rest);
+      out.push({ key: `ts:${rel(f)}#${k}`, carries, text: window, zeroRowChecked });
     }
   }
   return out;
@@ -175,6 +230,9 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   "sql:sweep_pending_broadcast_fan_outs#1": "admin broadcast",
   "sql:sweep_expired_auto_bans#1": "own restriction lifted",
   "sql:apply_consequence_ladder#1": "own warning",
+  "sql:auto_restrict_repeat_violators#2": "own account suspended (30 days)",
+  "sql:auto_restrict_repeat_violators#4": "own account suspended (7 days)",
+  "sql:auto_restrict_repeat_violators#6": "own final warning",
   "sql:apply_message_scan_consequence#1": "own message hidden",
   "sql:admin_reverse_violation#1": "own warning removed",
 };
@@ -184,57 +242,12 @@ const DIGEST_FILTERS_SEED: Record<string, string> = {
   "sql:sweep_daily_job_digest#1": "New jobs in <parish>: counts seed jobs only for seed recipients (Q137)",
 };
 // KNOWN_GAP: about a job or a counterpart, but the row does not carry it, so
-// the trigger cannot judge it. EXACT (two-way). Closing one = add job_id (or a
-// job/actor link) to its insert and delete its line here. Follow-up: Q139.
+// the trigger cannot judge it. EXACT (two-way). EMPTY since Q139 (2026-09-23):
+// all 45 listed by Q137, plus the 6 the tightened per-statement / per-literal
+// judging found, now pass their subject (migration 20260923205635 and the edge
+// functions). A new entry here needs a reason it truly cannot carry one.
 // @two-way src/test/seedNeverNotifiesReal.test.ts:const staleClassified =
-const KNOWN_GAP: Record<string, string> = {
-  "ts:supabase/functions/arrival-confirm-reminder/index.ts#1": "job",
-  "ts:supabase/functions/auto-expire-jobs/index.ts#2": "job",
-  "ts:supabase/functions/auto-expire-jobs/index.ts#3": "job",
-  "ts:supabase/functions/charge-recurring-visits/index.ts#2": "series job",
-  "ts:supabase/functions/check-pro-subscription/index.ts#1": "referred account (actor)",
-  "ts:supabase/functions/create-payment/index.ts#12": "job",
-  "ts:supabase/functions/execute-dispute-split/index.ts#1": "job",
-  "ts:supabase/functions/payment-confirm-reminder/index.ts#1": "job",
-  "ts:supabase/functions/process-scheduled-payouts/index.ts#2": "job (admin alert)",
-  "ts:supabase/functions/process-scheduled-payouts/index.ts#4": "job (admin alert)",
-  "ts:supabase/functions/release-payout/index.ts#1": "job (admin alert)",
-  "ts:supabase/functions/release-payout/index.ts#2": "job (admin alert)",
-  "ts:supabase/functions/release-payout/index.ts#3": "job (admin alert)",
-  "ts:supabase/functions/review-nag-cron/index.ts#1": "job",
-  "ts:supabase/functions/stalled-completion-reminder/index.ts#1": "job",
-  "ts:supabase/functions/stripe-idv-webhook/index.ts#2": "member (admin alert)",
-  "ts:supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts#1": "job (admin alert)",
-  "ts:supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts#2": "job (admin alert)",
-  "ts:supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts#3": "job (admin alert)",
-  "ts:supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts#1": "job (admin alert)",
-  "ts:supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts#1": "job (tip)",
-  "ts:supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts#3": "donor (actor)",
-  "ts:supabase/functions/void-cancelled-payments/index.ts#1": "job",
-  "ts:supabase/functions/void-cancelled-payments/index.ts#2": "job",
-  "sql:check_referral_bonus#1": "job",
-  "sql:check_referral_bonus#2": "job",
-  "sql:check_referral_bonus#3": "job",
-  "sql:check_referral_bonus#4": "job",
-  "sql:track_revision_scope_creep#1": "job",
-  "sql:track_revision_scope_creep#2": "job",
-  "sql:notify_poster_on_status_change#1": "job",
-  "sql:notify_helper_on_tip#1": "job",
-  "sql:notify_helper_on_direct_offer#1": "job",
-  "sql:notify_helper_application_viewed#1": "job",
-  "sql:respond_to_direct_offer#1": "job",
-  "sql:expire_unanswered_offers#1": "job",
-  "sql:expire_unanswered_offers#2": "job",
-  "sql:sweep_dayof_confirm_reminders#1": "job",
-  "sql:sweep_dayof_confirm_reminders#2": "job",
-  "sql:sweep_dayof_confirm_reminders#3": "job",
-  "sql:apply_job_denial_consequence#1": "job",
-  "sql:sweep_release_last_chance#1": "job",
-  "sql:helper_abort_job#1": "job",
-  "sql:helper_abort_job#2": "job",
-  "sql:apply_low_rating_flag#1": "member (admin alert)",
-  "sql:apply_consequence_ladder#2": "member (admin alert)",
-};
+const KNOWN_GAP: Record<string, string> = {};
 
 const sites = [...sqlSites(), ...tsSites()];
 const uncarried = sites.filter((s) => !s.carries).map((s) => s.key).sort();
@@ -245,7 +258,7 @@ const sqlCalling = (needle: string) => liveFunctions.filter((n) => liveDef(n)!.b
 const tsCalling = (re: RegExp) => tsFiles.filter((f) => re.test(codeOf.get(f)!)).map(rel).sort();
 // Email senders other than the notification mail. Each mails an account about
 // ITSELF (or support / marketing), never about a job or a counterpart; the
-// gift-card mail names a donor and is a KNOWN gap (Q139).
+// gift-card mail names a donor, and its caller asks the boundary first (Q139).
 const EMAIL_SENDERS: Record<string, string> = {
   "supabase/functions/_shared/resend.ts": "the transport itself",
   "supabase/functions/send-notification-email/index.ts": "CHOKE POINT: asks notification_crosses_seed_boundary first",
@@ -258,7 +271,7 @@ const EMAIL_SENDERS: Record<string, string> = {
   "supabase/functions/send-marketing-blast/index.ts": "admin-authored marketing",
   "supabase/functions/admin-update-email/index.ts": "own email changed by an admin",
   "supabase/functions/admin-user-actions/index.ts": "own verification / ID re-upload / password reset / formal warning",
-  "supabase/functions/_shared/giftCardEmail.ts": "KNOWN GAP (Q139): names the donor",
+  "supabase/functions/_shared/giftCardEmail.ts": "names the donor: its one caller asks giftEmailCrossesSeedBoundary first (Q139, asserted below)",
 };
 
 describe("Q137: a seed subject never notifies a real person", () => {
@@ -280,6 +293,47 @@ describe("Q137: a seed subject never notifies a real person", () => {
     const staleClassified = classified.filter((k) => !uncarried.includes(k));
     expect({ missing, stale: staleClassified }).toEqual({ missing: [], stale: [] });
     expect(new Set(classified).size).toBe(classified.length);
+  });
+
+  it("Q139: a producer that reads the row count back asks the boundary before calling zero rows a failure", () => {
+    // Once a row carries its subject, the trigger DROPS it for a seed subject
+    // and a real recipient: zero rows BY DESIGN. A producer that treats zero
+    // rows as a failed write (throws, records a defect, pages) must ask the
+    // boundary (seedBoundaryDropsRow / notification_crosses_seed_boundary /
+    // the admin twin) or it pages on every seed job with a real party (Q158).
+    const checked = sites.filter((s) => s.key.startsWith("ts:") && s.carries && s.zeroRowChecked);
+    expect(checked.length).toBeGreaterThan(6);
+    const asks = /seedBoundaryDropsRow\(|["']notification_crosses_seed_boundary["']|["']admin_notification_crosses_seed_boundary["']/;
+    const silent = checked
+      .map((s) => s.key.replace(/^ts:/, "").replace(/#\d+$/, ""))
+      .filter((f) => !asks.test(codeOf.get(join(ROOT, f))!));
+    expect([...new Set(silent)].sort()).toEqual([]);
+    // The helper asks the trigger's own question with the trigger's arguments.
+    const helper = ws(codeOf.get(join(FN_ROOT, "_shared", "seedBoundary.ts"))!);
+    expect(helper).toContain(
+      'supabase.rpc("notification_crosses_seed_boundary", { p_recipient: row.user_id, p_job_id: row.job_id ?? null, p_link: row.link ?? null, });',
+    );
+    expect(helper).toMatch(/if \(error \|\| typeof data !== "boolean"\) return null; return data;/);
+  });
+
+  it("Q139: the gift email (an address, outside both choke points) asks the boundary with the donor as actor", () => {
+    const h = codeOf.get(join(FN_ROOT, "stripe-webhook", "handlers", "checkoutSessionCompleted.ts"))!;
+    const ask = h.indexOf("await giftEmailCrossesSeedBoundary(supabase, donorId, recipientId)");
+    expect(ask).toBeGreaterThan(0);
+    const send = h.indexOf("await sendGiftCardEmail(");
+    expect(send).toBeGreaterThan(ask);
+    // The send lives only in the branch where the check answered AND said no.
+    expect(ws(h.slice(ask, send))).toMatch(
+      /if \(seedGate\.checkFailed\) \{ await postSlackOpsAlert\(.*\} else if \(seedGate\.crosses\) \{ .* \} else \{ const emailed =$/,
+    );
+    expect(h.split("sendGiftCardEmail(").length - 1).toBe(1);
+    const g = ws(codeOf.get(join(FN_ROOT, "_shared", "seedBoundary.ts"))!);
+    // With an account: the trigger's question, donor as actor.
+    expect(g).toContain("p_recipient: recipientId, p_job_id: null, p_link: null, p_actor: donorId,");
+    // No account behind the address: an unknown person is REAL, so a seed donor is refused.
+    expect(g).toContain("return { crosses: data?.is_seed === true, checkFailed: null };");
+    // Fails closed on every error.
+    expect(g.match(/return \{ crosses: true, checkFailed:/g)?.length).toBe(3);
   });
 
   it("a digest producer filters seed jobs itself", () => {

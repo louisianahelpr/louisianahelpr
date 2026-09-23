@@ -107,6 +107,35 @@ describe("payment-confirm-reminder edge function", () => {
     expect(markWrites()).toHaveLength(1);
   });
 
+  // Q139: the reminder carries its SUBJECT (job_id), so the Q137 trigger drops
+  // it for a seed job with a real poster. That zero is by design: the job is
+  // marked (never retried every tick) and nothing pages.
+  it("carries job_id; a row the seed boundary dropped BY DESIGN is marked, not a defect", async () => {
+    const fn = await loadConfigured();
+    seedDueJob();
+    scenario.writeSelectRows["notifications:insert"] = [];
+    scenario.rpc.notification_crosses_seed_boundary = true;
+
+    const res = await fn.fetch(cronRequest(fn));
+    const b = await body(res);
+
+    expect(res.status).toBe(200);
+    expect((notifWrites()[0].payload as { job_id?: string }).job_id).toBe("job-1");
+    expect(b.sent).toBe(0);
+    expect((b.results as Array<{ status: string }>)[0].status).toBe("suppressed_seed");
+    expect(markWrites()).toHaveLength(1);
+  });
+
+  it("a zero-row reminder the boundary did NOT drop is still an error, and the job stays unmarked", async () => {
+    const fn = await loadConfigured();
+    seedDueJob();
+    scenario.writeSelectRows["notifications:insert"] = [];
+
+    const res = await fn.fetch(cronRequest(fn));
+    expect(res.status).toBe(500);
+    expect(markWrites()).toHaveLength(0);
+  });
+
   it("GUARDS the idempotency mark: a zero-row update is a defect, not a success", async () => {
     // `payment_confirm_notif_sent` is the ONLY thing stopping tomorrow's tick
     // nudging the same poster again, and an UPDATE matching zero rows returns

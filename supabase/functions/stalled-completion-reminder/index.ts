@@ -50,6 +50,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import {
   hoursPastScheduledEnd,
   stalledCompletionStage,
@@ -111,20 +112,27 @@ Deno.serve(async (req) => {
     message: string,
     link: string,
     type: string,
+    // The SUBJECT (Q139): the Q137 seed boundary reads it, so a seed job never
+    // notifies a real account.
+    jobId: string,
   ) => {
     // .select("id"): a null `error` is not a write. Without the row count back
     // there is no way to tell a landed insert from a silent no-op.
     const { data, error } = await supabase
       .from("notifications")
-      .insert({ user_id: userId, title, message, type, link })
+      .insert({ user_id: userId, job_id: jobId, title, message, type, link })
       .select("id");
     if (error) throw error;
-    if ((data?.length ?? 0) === 0) throw new Error(`notification insert matched 0 rows for ${userId}`);
+    if ((data?.length ?? 0) === 0) {
+      // Dropped BY DESIGN by the seed boundary: not a defect, and no email.
+      if ((await seedBoundaryDropsRow(supabase, { user_id: userId, job_id: jobId, link })) === true) return;
+      throw new Error(`notification insert matched 0 rows for ${userId}`);
+    }
     try {
       const res = await fetch(`${supabaseUrl}/functions/v1/send-notification-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
-        body: JSON.stringify({ user_id: userId, title, message, type, link }),
+        body: JSON.stringify({ user_id: userId, title, message, type, link, job_id: jobId }),
       });
       if (!res.ok) {
         defects.record(
@@ -223,6 +231,7 @@ Deno.serve(async (req) => {
             stalledNudgeBodyPosted(job.title, second),
             postedLink,
             "job_updates",
+            job.id,
           );
           await notifyUser(
             job.helper_id!,
@@ -230,6 +239,7 @@ Deno.serve(async (req) => {
             stalledNudgeBodyWorking(job.title, second),
             workingLink,
             "job_updates",
+            job.id,
           );
         } else {
           // The ledger row claimed above IS the queue item: escalated_at set,
@@ -259,6 +269,7 @@ Deno.serve(async (req) => {
               // mirror could not tell a seed job's alert from a real one.
               `/admin?view=stalled&job=${job.id}`,
               "admin_alert",
+              job.id,
             );
           }
           await notifyUser(
@@ -267,6 +278,7 @@ Deno.serve(async (req) => {
             stalledEscalatedBody(job.title),
             postedLink,
             "job_updates",
+            job.id,
           );
           await notifyUser(
             job.helper_id!,
@@ -274,6 +286,7 @@ Deno.serve(async (req) => {
             stalledEscalatedBody(job.title),
             workingLink,
             "job_updates",
+            job.id,
           );
           await postSlackOpsAlert({
             kind: "custom",

@@ -54,6 +54,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
+import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 
 /**
  * Width of each nag window, in hours. MUST be >= the cron period, or jobs fall
@@ -110,6 +111,7 @@ serve(async (req) => {
     title: string,
     message: string,
     link: string,
+    job_id: string,
   ): Promise<"sent" | "skipped" | "failed"> => {
     try {
       const res = await fetch(`${supabaseUrl}/functions/v1/send-notification-email`, {
@@ -118,7 +120,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
           "Authorization": authHeader,
         },
-        body: JSON.stringify({ user_id, title, message, type: "review", link }),
+        body: JSON.stringify({ user_id, title, message, type: "review", link, job_id }),
       });
 
       if (!res.ok) {
@@ -297,6 +299,9 @@ serve(async (req) => {
           .from("notifications")
           .insert({
             user_id: party.user_id,
+            // The SUBJECT (Q139): the Q137 seed boundary reads it, so a seed
+            // job never nags a real account.
+            job_id: job.id,
             title,
             message,
             type: "review",
@@ -309,6 +314,11 @@ serve(async (req) => {
           continue;
         }
         if ((inserted?.length ?? 0) === 0) {
+          // Dropped BY DESIGN by the seed boundary (seed job, real party): not
+          // a defect, and no email either.
+          if ((await seedBoundaryDropsRow(supabase, { user_id: party.user_id, job_id: job.id, link })) === true) {
+            continue;
+          }
           console.error("[review-nag-cron] notification insert matched 0 rows:", party.user_id);
           defects.record(
             `notification insert ${party.user_id}: no error, zero rows written — no nag exists for job ${job.id}`,
@@ -316,7 +326,7 @@ serve(async (req) => {
           continue;
         }
 
-        const emailOutcome = await sendEmail(party.user_id, title, message, link);
+        const emailOutcome = await sendEmail(party.user_id, title, message, link, job.id);
         if (emailOutcome === "skipped") emails_skipped++;
         if (emailOutcome === "failed") email_failures++;
         if (emailOutcome !== "failed") nags_sent++;

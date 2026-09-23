@@ -276,6 +276,106 @@ describe("the gift claim email is handed a client so it can queue", () => {
 // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const emailed = await sendGiftCardEmail(supabase, { | const emailed = await sendGiftCardEmail({
 
 /**
+ * Q139: a SEED (test) donor's gift is never emailed to a real person.
+ *
+ * The gift email goes to an ADDRESS, outside both Q137 choke points (the
+ * notifications trigger and send-notification-email). With no account behind
+ * the address the recipient is an unknown person, so it is treated as real.
+ */
+describe("Q139: a seed donor's gift email never reaches a real person", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+
+  const giftEvent = (id: string) => ({
+    id,
+    type: "checkout.session.completed",
+    data: {
+      object: {
+        id: `cs_${id}`,
+        mode: "payment",
+        payment_intent: `pi_${id}`,
+        customer_email: "donor@example.com",
+        metadata: {
+          kind: "gift_card_purchase",
+          donor_id: "donor-1",
+          donor_name: "Donor",
+          recipient_email: "newperson@example.com",
+          amount_cents: "5000",
+        },
+      },
+    },
+  });
+
+  it("a seed donor to an address with no account: minted, NOT emailed", async () => {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue(giftEvent("evt_seed_gift"));
+    // Nobody holds the address; the donor's own profile answers is_seed.
+    scenario.reads.profiles = {
+      rows: [],
+      selectOverrides: [{ includes: "is_seed", result: { rows: [{ is_seed: true }] } }],
+    };
+    scenario.reads.gift_cards = { rows: [] };
+
+    await fn.fetch(webhookRequest(fn, "{}"));
+
+    expect(scenario.writes.some((w) => w.table === "gift_cards")).toBe(true);
+    expect(sendGiftCardEmail).not.toHaveBeenCalled();
+  });
+
+  it("a real donor: emailed exactly as before", async () => {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue(giftEvent("evt_real_gift"));
+    scenario.reads.profiles = {
+      rows: [],
+      selectOverrides: [{ includes: "is_seed", result: { rows: [{ is_seed: false }] } }],
+    };
+    scenario.reads.gift_cards = { rows: [] };
+
+    await fn.fetch(webhookRequest(fn, "{}"));
+
+    expect(sendGiftCardEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("a recipient WITH an account: the trigger's own question, donor as actor", async () => {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue(giftEvent("evt_acct_gift"));
+    scenario.reads.profiles = { rows: [{ user_id: "recipient-1" }] };
+    scenario.reads.gift_cards = { rows: [] };
+    scenario.rpc.notification_crosses_seed_boundary = true;
+
+    await fn.fetch(webhookRequest(fn, "{}"));
+
+    const asked = (scenario.rpcCalls ?? []).filter((c) => c.name === "notification_crosses_seed_boundary");
+    expect(asked.map((c) => c.args)).toEqual([
+      { p_recipient: "recipient-1", p_job_id: null, p_link: null, p_actor: "donor-1" },
+    ]);
+    expect(sendGiftCardEmail).not.toHaveBeenCalled();
+    // The in-app row names the donor, so the trigger judges it the same way.
+    const note = scenario.writes.find((w) => w.table === "notifications" && w.op === "insert");
+    expect((note?.payload as { link?: string })?.link).toBe("/profile?tab=gift_card&user=donor-1");
+  });
+
+  it("a check that cannot answer: NOT emailed, and ops is paged", async () => {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue(giftEvent("evt_check_down"));
+    scenario.reads.profiles = {
+      rows: [],
+      selectOverrides: [{ includes: "is_seed", result: { error: { message: "connection timeout" } } }],
+    };
+    scenario.reads.gift_cards = { rows: [] };
+
+    await fn.fetch(webhookRequest(fn, "{}"));
+
+    expect(sendGiftCardEmail).not.toHaveBeenCalled();
+    expect(slackAlerts.some((a) => JSON.stringify(a).includes("Gift card email withheld"))).toBe(true);
+  });
+});
+
+/**
  * An INQUIRY is not a chargeback.
  *
  * Stripe delivers inquiries and early-fraud warnings through the same

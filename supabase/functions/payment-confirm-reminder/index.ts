@@ -72,6 +72,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { AUTO_COMPLETE_HOURS } from "../_shared/escrowTiming.ts";
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
+import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 
 /**
  * Hours after the helper marks complete before the poster is nudged. Leaves
@@ -234,7 +235,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const results: Array<{ job_id: string; status: "sent" | "error"; error?: string }> = [];
+    const results: Array<{ job_id: string; status: "sent" | "suppressed_seed" | "error"; error?: string }> = [];
     const markFailures: string[] = [];
 
     for (const job of jobs) {
@@ -252,13 +253,12 @@ Deno.serve(async (req) => {
           title: "Your Helpr marked the job done",
           message: `"${job.title}" — please confirm completion or request a revision. Payment auto-releases in ~24h.`,
           type: "job_updates",
-          // No job_id here: public.notifications is (id, user_id, title,
-          // message, type, read, link, created_at) and no migration ever adds
-          // a job_id column. Passing one made PostgREST reject the INSERT with
-          // PGRST204, which threw into the per-job catch below — so this
-          // reminder has never once been delivered since the function was
-          // written, while the run still returned HTTP 200 with sent: 0. The
-          // link already carries the poster to the job.
+          // job_id is the SUBJECT (Q139): the Q137 seed boundary reads it, so a
+          // seed job never reminds a real poster. The column exists since
+          // 20260901035600_notifications_carry_a_job_reference.sql (it did NOT
+          // when this function was written: a job_id then was PGRST204 and the
+          // reminder was never delivered).
+          job_id: job.id,
           // `?job=`, not `?filter=in_progress`. `in_progress` is a legacy filter
           // key with no chip in the five-bucket strip (activityFilters.ts), so
           // the poster landed on a filtered list with nothing selected. And the
@@ -273,9 +273,17 @@ Deno.serve(async (req) => {
           // Log but don't mark the flag — next cron run can retry this job.
           throw notifErr;
         }
-        if ((notifRows?.length ?? 0) === 0) {
+        const suppressedSeed = (notifRows?.length ?? 0) === 0 &&
+          (await seedBoundaryDropsRow(supabase, {
+            user_id: job.customer_id,
+            job_id: job.id,
+            link: `/my-posts?job=${job.id}`,
+          })) === true;
+        if ((notifRows?.length ?? 0) === 0 && !suppressedSeed) {
           // Same handling as an error: do NOT mark the flag, so the next run
           // retries rather than recording a reminder that does not exist.
+          // (A row the seed boundary dropped BY DESIGN is marked below like a
+          // sent one, so a seed job is not retried every tick.)
           throw new Error(
             `notification insert matched 0 rows with no error — no reminder exists for job ${job.id}`,
           );
@@ -309,7 +317,7 @@ Deno.serve(async (req) => {
           markFailures.push(`mark ${job.id}: ${markErr.message}`);
         }
 
-        results.push({ job_id: job.id, status: "sent" });
+        results.push({ job_id: job.id, status: suppressedSeed ? "suppressed_seed" : "sent" });
       } catch (err) {
         console.error(`[payment-confirm-reminder] failed to notify for job ${job.id}`, err);
         results.push({ job_id: job.id, status: "error", error: String(err) });

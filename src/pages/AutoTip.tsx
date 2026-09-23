@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
@@ -82,6 +83,17 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
   const [value, setValue] = useState<string>("15");
   const [cap, setCap] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  // The inline "Saved" beat on the button itself — the same confirmation the
+  // profile editor's SaveBar gives (src/components/profile/profileEditForm/SaveBar.tsx).
+  // Without it a successful save changed NOTHING on screen: success toasts are
+  // suppressed app-wide (toastPolicy.ts), the haptic is a no-op on web, and
+  // re-seeding writes back the values already showing. press-every-control run
+  // 35813177418 scored "Save" here "no observable change" for both accounts —
+  // exactly this file's own quoted report, "when I click save nothing happens
+  // like it didn't work".
+  const [justSaved, setJustSaved] = useState(false);
+  const justSavedTimer = useRef<number>();
+  useEffect(() => () => window.clearTimeout(justSavedTimer.current), []);
   const [loaded, setLoaded] = useState(false);
 
   // Seed from the profile once it arrives. Guarded by `loaded` so a later
@@ -179,6 +191,9 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
     // (and drops on a cold native socket) — this makes the read-back certain.
     void refresh();
     void hapticLight();
+    setJustSaved(true);
+    window.clearTimeout(justSavedTimer.current);
+    justSavedTimer.current = window.setTimeout(() => setJustSaved(false), 2500);
   };
 
   // A worked example beats a description. $150 is close to the median job.
@@ -467,10 +482,10 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
         <Button
           variant="primary"
           onClick={() => void save()}
-          disabled={saving || !valueValid || !capValid}
+          disabled={saving || justSaved || !valueValid || !capValid}
           className="w-full rounded-ds-md"
         >
-          {saving ? "Saving…" : "Save"}
+          {saving ? "Saving…" : justSaved ? (<><Check className="w-4 h-4 mr-1.5" strokeWidth={3} aria-hidden /> Saved</>) : "Save"}
         </Button>
         {/* A trailing explainer card used to sit here. Removed on owner
             instruction: it was a second explanation of the same feature at the

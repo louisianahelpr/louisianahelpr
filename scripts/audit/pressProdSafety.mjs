@@ -261,7 +261,14 @@ export async function urlOwnership(session, url, owners) {
 }
 
 /** Labels that move money: pressed only while Stripe is in TEST mode. */
-export const PAYMENT_RX = /\b(pay|checkout|fund|tip|boost|purchase|buy|subscribe|upgrade|withdraw|release|refund|payout|gift card|deposit)\b/i;
+// `paying`: "Finish Paying “…”" (/post-job's unpaid drafts, useFundExistingJob)
+// matched neither `\bpay\b` nor DESTRUCTIVE_RX, so run 35813177418 pressed it
+// on three shared SEED drafts ("SEED Haul storm debris…", "SEED Feed and walk
+// two dogs", "SEED Mow and edge a corner lot") with NO gate — not the Stripe
+// test-mode probe, not ownership, not the shared-SEED rule. (The eight
+// "[PRESS DO NOT ACCEPT]" drafts beside them were gated only by luck: their
+// title contains "accept".)
+export const PAYMENT_RX = /\b(pay|paying|checkout|fund|tip|boost|purchase|buy|subscribe|upgrade|withdraw|release|refund|payout|gift card|deposit)\b/i;
 /** Labels that would destroy or lock the SHARED test account. Never pressed. */
 export const ACCOUNT_DESTROY_RX = /\b(delete (my )?account|deactivate|close (my )?account|delete profile|request deletion|erase my data)\b/i;
 /**

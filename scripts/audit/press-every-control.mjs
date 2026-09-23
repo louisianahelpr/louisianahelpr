@@ -362,10 +362,102 @@ export const BOUNCED_SKIP = "the screen redirected away on a later load; its con
  *                              35692554813 excused seven page-level controls
  *                              on /account-banned before this line existed.
  */
-export function missingControlDisposition({ scope, onSameScreen, consumed }) {
+export function missingControlDisposition({ scope, onSameScreen, consumed, transient = false }) {
   if (!onSameScreen) return BOUNCED_SKIP;
   if (scope === "overlay" && consumed) return CONSUMED_SKIP;
+  if (transient) return TRANSIENT_STATUS_SKIP;
   return null;
+}
+
+/**
+ * A CONTROL INSIDE A SELF-DISMISSING ANNOUNCEMENT.
+ *
+ * Run 35813177418: "Dismiss" failed "control not found on a freshly loaded
+ * page" on /profile?tab=payment and /profile?tab=earnings (helper). The control
+ * is PayoutCelebration's close button (src/components/wallet/PayoutCelebration.tsx):
+ * a `role="status" aria-live="polite"` card that appears once per new payout,
+ * advances `helpr_last_seen_payout_at` the moment it shows (so a reload never
+ * shows it again) and closes itself after AUTO_DISMISS_MS = 4s. It is a toast
+ * in all but library — and "inside a toast" is already a documented skip.
+ *
+ * Narrow on purpose: this ONLY applies when the control has gone missing, it
+ * was enumerated inside a live status/alert region, and we are still on the
+ * same screen. A control in such a region that IS there is pressed normally,
+ * and a missing control anywhere else is still a failure.
+ */
+export const TRANSIENT_STATUS_SKIP = "inside a transient status region that dismissed itself (an announcement, not page chrome)";
+export const TRANSIENT_REGION_SEL = '[role="status"][aria-live], [role="alert"]';
+
+/**
+ * RADIX'S HIDDEN FORM MIRROR IS NOT A CONTROL.
+ *
+ * Run 35813177418, /complete-profile: `<input type=checkbox>` "NOT CLICKABLE"
+ * — the resolved element is `<input value="on" tabindex="-1"
+ * type="checkbox" aria-hidden="true"/>`. That is @radix-ui/react-checkbox's
+ * BubbleInput: a native input rendered beside the real `<button
+ * role="checkbox">` only so a surrounding <form> submits a value, styled
+ * `pointer-events: none; opacity: 0`. No pointer and no assistive tech can
+ * reach it, by construction. The real checkbox on that screen was pressed in
+ * the same run and passed ("changed a toggle/field").
+ *
+ * All three conditions, read from the live element: aria-hidden, removed from
+ * the tab order, and pointer-events none. A visible input missing any of them
+ * is still pressed.
+ */
+export const FORM_MIRROR_SKIP = "hidden form mirror of a styled control (aria-hidden, tabindex -1, pointer-events none — the visible control is pressed)";
+export function isHiddenFormMirror({ tag, ariaHidden, tabIndex, pointerEvents } = {}) {
+  return tag === "input" && ariaHidden === "true" && Number(tabIndex) === -1 && pointerEvents === "none";
+}
+
+/**
+ * A DESIGNED VALIDATION REFUSAL THAT HANDS YOU THE FIX.
+ *
+ * Run 35813177418, /admin?view=social: "Schedule" on a draft with no time
+ * raised the error toast "Pick a date and time — a scheduled post with no time
+ * would never be picked up." and opened the composer on that draft
+ * (MarketingQueue.schedule: toast.error(issues[0].message); onEdit(row)). That
+ * is the product refusing an unpublishable post and taking the user to the
+ * field that fixes it — the correct outcome.
+ *
+ * Each entry is the EXACT copy, the file that prints it (a test asserts the
+ * string is still there, so rewording reopens this), and the outcome that must
+ * accompany it. An error toast that does not match, or matches without the
+ * remediation surface opening, still fails.
+ */
+export const VALIDATION_REFUSALS = [
+  {
+    toast: "Pick a date and time — a scheduled post with no time would never be picked up.",
+    source: "src/components/admin/marketing/marketingTypes.ts",
+    requires: "opened an overlay",
+  },
+];
+export function isDesignedValidationRefusal({ toast, changed } = {}) {
+  const t = String(toast ?? "").trim();
+  return VALIDATION_REFUSALS.some((v) => v.toast === t && changed === v.requires);
+}
+
+/**
+ * PRESS PAYMENT CONTROLS AT A HUMAN PACE — THE LIMITER'S OWN PACE.
+ *
+ * Run 35813177418, /post-job (poster): the 11th "Finish Paying" press in 17s
+ * got 429 from create-payment. Measured in edge_rate_limit_log: the poster
+ * account hit bucket `create-payment` 11 times between 03:24:20 and 03:24:37,
+ * all from this sweep; the function allows 10 per subject per minute
+ * (supabase/functions/create-payment/index.ts checkRateLimit). No person
+ * presses eleven checkout buttons in seventeen seconds, so the 429 measured
+ * the sweep, not the app.
+ *
+ * The answer is not to excuse 429s (a real limiter bug would hide behind
+ * that) but to never exceed the limit: after any press that POSTs
+ * create-payment, the next payment-labelled press waits windowMs/maxRequests.
+ * The pace is READ from the function's source, so tightening the limiter
+ * slows the sweep instead of turning it red.
+ */
+export function paymentPaceMs(src = readFileSync(resolve(REPO, "supabase/functions/create-payment/index.ts"), "utf8")) {
+  const m = /checkRateLimit\(req,\s*\{\s*windowMs:\s*([\d_]+),\s*maxRequests:\s*(\d+),\s*keyPrefix:\s*"create-payment"/.exec(src);
+  if (!m) throw new Error("create-payment's checkRateLimit call not found — paymentPaceMs cannot derive the sweep's pace");
+  const windowMs = Number(m[1].replace(/_/g, "")), max = Number(m[2]);
+  return Math.ceil(windowMs / max) + 500;
 }
 
 const CONSOLE_NOISE = [
@@ -404,12 +496,14 @@ export const DOCUMENTED_SKIPS = new Set([
   "opener chain could not be replayed (parent press reported separately)",
   CONSUMED_SKIP,
   BOUNCED_SKIP,
+  TRANSIENT_STATUS_SKIP,
+  FORM_MIRROR_SKIP,
 ]);
 
 // ---------------------------------------------------------------------------
 // Runtime
 // ---------------------------------------------------------------------------
-const OPEN_OVERLAY =
+export const OPEN_OVERLAY =
   '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"], [role="menu"][data-state="open"], [role="listbox"][data-state="open"], [data-radix-popper-content-wrapper]';
 
 const CONTROL_SEL =
@@ -422,7 +516,7 @@ const CONTROL_SEL =
  * (document.body for the page; the newest open overlay for a recursion).
  * Runs in the page.
  */
-const ENUMERATE = ({ controlSel, overlaySel, scope, base }) => {
+const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel }) => {
   const root = scope === "overlay"
     ? [...document.querySelectorAll(overlaySel)].pop()
     : document.body;
@@ -481,6 +575,11 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base }) => {
         el.dataset.state === "active" || el.closest('[data-state="active"]') !== null,
       external, self,
       inToast: el.closest("[data-sonner-toaster]") !== null,
+      // See TRANSIENT_STATUS_SKIP / isHiddenFormMirror — read here, judged in node.
+      inStatus: el.closest(transientSel) !== null,
+      ariaHidden: el.getAttribute("aria-hidden"),
+      tabIndex: el.tabIndex,
+      pointerEvents: cs.pointerEvents,
       // The record this control acts on, as the user sees it: the nearest row / card / dialog.
       rowText: (el.closest('tr, li, article, [role="row"], [role="listitem"], [role="dialog"], [role="alertdialog"], [class*="card"], [class*="Card"]')?.innerText || "").replace(/\s+/g, " ").slice(0, 400),
     });
@@ -531,10 +630,18 @@ const OVERLAY_FINGERPRINT = ({ overlaySel, controlSel }) => {
 };
 
 /** Structural fingerprint of the page; any difference is "something happened". */
-const SNAPSHOT = ({ overlaySel }) => {
+export const SNAPSHOT = ({ overlaySel }) => {
   const stripStyle = (html) => html.replace(/\sstyle="[^"]*"/g, "").replace(/\sdata-(?:focus-visible|highlighted)[^\s>]*/g, "");
   const rootEl = document.getElementById("root");
-  const html = rootEl ? stripStyle(rootEl.innerHTML) : "";
+  // #root AND every open overlay. Radix portals dialogs, popovers and menus
+  // to <body>, OUTSIDE #root, so hashing #root alone made every change that
+  // happens only inside a dialog invisible. Run 35813177418: "Manual Override
+  // › Mark complete" set the dialog's choice and relabelled its primary
+  // button "Set to completed" — all inside the portal — and was scored "no
+  // observable change"; a notification row that stopped being role=button
+  // once read, likewise.
+  const overlayHtml = [...document.querySelectorAll(overlaySel)].map((o) => o.outerHTML).join("");
+  const html = stripStyle((rootEl ? rootEl.innerHTML : "") + overlayHtml);
   let h = 0;
   for (let i = 0; i < html.length; i++) h = (h * 31 + html.charCodeAt(i)) | 0;
   return {
@@ -636,6 +743,10 @@ async function main() {
   await acquireBrowserLock();
   process.on("exit", () => releaseBrowserLock());
   const browser = await chromium.launch();
+  // Shared across every route × persona: create-payment's limiter is per
+  // account, and the same test accounts are walked row after row.
+  const PAYMENT_PACE_MS = paymentPaceMs();
+  const paymentClock = { last: 0 };
   const results = []; // one per route × persona
   let failedPresses = 0, undocumented = 0, totalFound = 0, totalPressed = 0, shots = 0;
   const ownershipCache = new Map();
@@ -750,6 +861,38 @@ async function main() {
       const downloads = [];
       page.on("download", (d) => { downloads.push(d.suggestedFilename()); d.cancel().catch(() => {}); });
       /**
+       * THE OS FILE CHOOSER IS AN OUTCOME. Run 35813177418: "New post › Attach
+       * image" and "Edit › Attach image" (MarketingComposerDialog.pickFile
+       * clicks a hidden <input type=file>) were scored "moved focus only". The
+       * press did exactly its job — it asked the OS for a file — and that
+       * dialog is browser chrome the DOM never sees. With a listener attached
+       * Playwright intercepts the chooser instead of showing it, so nothing
+       * blocks the sweep. A button that does NOT open it still fails.
+       */
+      const fileChoosers = [];
+      page.on("filechooser", (fc) => { fileChoosers.push(fc.isMultiple() ? "multiple" : "single"); });
+      /**
+       * API REQUESTS IN FLIGHT. `settle()` waits for aria-busy / pulses and a
+       * fixed 600ms; a press whose request takes longer was classified before
+       * its answer arrived. Run 35813177418, /admin?view=jobs: "Refund Poster ›
+       * Issue Refund" was scored "moved focus only" at 03:25:56.4 while
+       * create-payment's 409 (function_edge_logs, POST 03:25:56.412) was still
+       * on its way — the outcome the press exists to measure was never seen.
+       * So after a press, wait (bounded) for the backend calls it started.
+       */
+      const inflight = new Set();
+      const isApiCall = (r) => ["fetch", "xhr"].includes(r.resourceType()) && /\/(rest|functions|auth|storage)\/v1\//.test(r.url());
+      page.on("request", (r) => {
+        if (!isApiCall(r)) return;
+        inflight.add(r);
+        if (r.method() === "POST" && /\/functions\/v1\/create-payment\b/.test(r.url())) paymentClock.last = Date.now();
+      });
+      page.on("requestfinished", (r) => inflight.delete(r));
+      page.on("requestfailed", (r) => inflight.delete(r));
+      const awaitApiQuiet = async (maxMs = 12_000) => {
+        for (let waited = 0; inflight.size > 0 && waited < maxMs; waited += 100) await page.waitForTimeout(100);
+      };
+      /**
        * PER-REQUEST SEND/RESPONSE TIMING, recorded in CI.
        *
        * The listeners above existed only to collect 4xx/5xx into `netFails`, so
@@ -863,22 +1006,53 @@ async function main() {
         const vh = page.viewportSize()?.height ?? 0;
         const offscreen = !box || box.y >= vh || box.y + box.height <= 0;
         if (!offscreen) return;
+        /**
+         * NEVER SCROLL INSIDE AN OVERLAY. Run 35813177418, /complete-profile:
+         * "January 1, 1990 › October / November / December" NOT CLICKABLE. The
+         * date-of-birth picker (DateWheelPicker.tsx) is three scroll wheels
+         * whose value FOLLOWS scroll position — so resetting every scroller to
+         * 0 here picked Month=January, Day=1, Year=2008 (the top of each
+         * wheel; screenshot complete_profile_incomplete_unclickable_October-5
+         * shows "January 1, 2008"). 2008 is the youngest allowed year, which
+         * offers only Jan–Sep, so Oct–Dec ceased to exist under the click.
+         * The dock this exists for is page chrome; an overlay's control is
+         * brought into view by scrollIntoViewIfNeeded, as a user would.
+         */
+        const inOverlay = await target.evaluate((el, sel) => el.closest(sel) !== null, OPEN_OVERLAY).catch(() => false);
+        if (inOverlay) return;
         await page
-          .evaluate(() => {
+          .evaluate((sel) => {
             window.scrollTo({ top: 0, behavior: "auto" });
             document.querySelectorAll("*").forEach((el) => {
-              if (el instanceof HTMLElement && el.scrollTop > 0) el.scrollTop = 0;
+              if (el instanceof HTMLElement && el.scrollTop > 0 && !el.closest(sel) && el.getAttribute("role") !== "listbox") el.scrollTop = 0;
             });
-          })
+          }, OPEN_OVERLAY)
           .catch(() => {});
         // The bar's return is a CSS transition, so a settled DOM is not enough.
         await page.waitForTimeout(700);
       };
-      const snapshot = () => page.evaluate(SNAPSHOT, { overlaySel: OPEN_OVERLAY });
+      /**
+       * A PRESS THAT NAVIGATES MUST NOT KILL THE ROW. Run 35813177418,
+       * /profile?tab=subscription (customer AND helper): "Upgrade" sends the
+       * browser to Stripe Checkout, the page's execution context was destroyed
+       * mid-evaluate, and the uncaught throw turned the whole row into
+       * "HARNESS ERROR" — two failures that measured nothing. A destroyed
+       * context means a navigation is under way: wait for it to land and read
+       * the new document (its URL then differs, which IS the outcome).
+       */
+      const snapshot = async () => {
+        for (let attempt = 0; ; attempt++) {
+          try { return await page.evaluate(SNAPSHOT, { overlaySel: OPEN_OVERLAY }); }
+          catch (e) {
+            if (attempt >= 3 || !/Execution context was destroyed|navigat/i.test(String(e?.message))) throw e;
+            await page.waitForLoadState("domcontentloaded", { timeout: 15_000 }).catch(() => {});
+          }
+        }
+      };
       // Signatures are computed HERE, not in the page, so `controlSignature`
       // stays a plain exported function a unit test can drive.
       const enumerate = async (scope) =>
-        withSignatures(await page.evaluate(ENUMERATE, { controlSel: CONTROL_SEL, overlaySel: OPEN_OVERLAY, scope, base: BASE }));
+        withSignatures(await page.evaluate(ENUMERATE, { controlSel: CONTROL_SEL, overlaySel: OPEN_OVERLAY, scope, base: BASE, transientSel: TRANSIENT_REGION_SEL }));
       /**
        * Wait until the newest open overlay stops changing shape. Two identical
        * samples 250ms apart, capped at OVERLAY_FILL_MS; a still-moving overlay
@@ -1004,6 +1178,7 @@ async function main() {
           if (meta.external) { skip("external / new-tab link (covered by walk-every-control's new-tab pass)"); continue; }
           if (meta.type === "file") { skip("file picker (opens the OS dialog; not a DOM outcome)"); continue; }
           if (meta.inToast) { skip("inside a toast (transient; not page chrome)"); continue; }
+          if (isHiddenFormMirror(meta)) { skip(FORM_MIRROR_SKIP); continue; }
           if (DESTRUCTIVE_RX.test(label) || meta.type === "submit" || PAYMENT_RX.test(label)) {
             const why = await gate(label, meta, item.chainOwned);
             if (why) { skip(why); continue; }
@@ -1079,6 +1254,7 @@ async function main() {
                 scope: item.step.scope,
                 onSameScreen,
                 consumed: item.step.scope === "overlay" ? await consumedHere(now) : false,
+                transient: !!meta.inStatus,
               });
               if (why) { skip(why); continue; }
             }
@@ -1154,7 +1330,32 @@ async function main() {
               return submits && !form.checkValidity();
             })
             .catch(() => false);
-          const errs0 = consoleErrors.length, net0 = netFails.length, pop0 = popups.length, dl0 = downloads.length;
+          const errs0 = consoleErrors.length, net0 = netFails.length, pop0 = popups.length, dl0 = downloads.length, fc0 = fileChoosers.length;
+          // See paymentPaceMs: never outrun create-payment's own limiter.
+          if (PAYMENT_RX.test(label) && paymentClock.last) {
+            const wait = paymentClock.last + PAYMENT_PACE_MS - Date.now();
+            if (wait > 0) await page.waitForTimeout(wait);
+          }
+          /**
+           * DID THE CONTROL ACKNOWLEDGE THE PRESS? Run 35813177418: "Refresh"
+           * on /admin?view=notiflogs and /admin?view=payouts was scored "no
+           * observable change". Both buttons go disabled and spin / read
+           * "Refreshing…" while they refetch (AdminNotificationLogs.tsx,
+           * AdminPayoutBatches.tsx), then return to rest over identical data —
+           * the refetch worked, the screen correctly looks the same, and the
+           * only evidence was on the button, gone before the after-snapshot.
+           * So watch the pressed control's OWN subtree for a busy/label flip.
+           * Counted only for a NON-mutating press (see the classifier): a write
+           * that leaves the screen identical is indistinguishable from a dead
+           * button, however briefly its label flickered.
+           */
+          await target.evaluate((el) => {
+            const w = /** @type {any} */ (window);
+            w.__pressAck?.disconnect?.();
+            w.__pressAcked = false;
+            w.__pressAck = new MutationObserver(() => { w.__pressAcked = true; });
+            w.__pressAck.observe(el, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["disabled", "aria-busy", "aria-disabled", "class"] });
+          }).catch(() => {});
           try {
             await revealIfScrolledAway(target);
             await target.scrollIntoViewIfNeeded({ timeout: 2500 }).catch(() => {});
@@ -1200,6 +1401,7 @@ async function main() {
                   scope: item.step.scope,
                   onSameScreen,
                   consumed: item.step.scope === "overlay" ? await consumedHere(now) : false,
+                  transient: !!meta.inStatus,
                 });
                 if (why) { skip(why); pageDirty = true; continue; }
               }
@@ -1216,7 +1418,11 @@ async function main() {
           // Remember WHAT was pressed in this scope: a control that vanishes
           // later is only excused when a control this run pressed is gone too.
           pressedInScope.get(item.scopeKey ?? "page")?.add(meta.sig);
+          await awaitApiQuiet();
           await settle();
+          const acked = await page
+            .evaluate(() => { const w = /** @type {any} */ (window); w.__pressAck?.disconnect?.(); return w.__pressAcked === true; })
+            .catch(() => false);
           const after = await snapshot();
 
           // ---- classify ------------------------------------------------
@@ -1230,10 +1436,16 @@ async function main() {
             const permission = await page
               .evaluate(() => (typeof Notification === "undefined" ? "unsupported" : Notification.permission))
               .catch(() => "unknown");
-            const real = newErrToasts.filter((t) => !isTruthfulPermissionRefusal({ toast: t, chain: entry.chain, permission }));
+            const openedOverlay = after.overlays > before.overlays ? "opened an overlay" : "";
+            const real = newErrToasts.filter((t) =>
+              !isTruthfulPermissionRefusal({ toast: t, chain: entry.chain, permission }) &&
+              !isDesignedValidationRefusal({ toast: t, changed: openedOverlay }));
+            const validation = newErrToasts.find((t) => isDesignedValidationRefusal({ toast: t, changed: openedOverlay }));
+            if (validation) entry.excused = `designed validation refusal that opened the fix: "${validation}"`;
             if (real.length) problems.push(`error toast: "${real[0]}"`);
-            if (real.length < newErrToasts.length) {
-              entry.excused = `truthful permission refusal (Notification.permission = ${permission}): "${newErrToasts.find((t) => !real.includes(t))}"`;
+            const refusal = newErrToasts.find((t) => isTruthfulPermissionRefusal({ toast: t, chain: entry.chain, permission }));
+            if (refusal) {
+              entry.excused = `truthful permission refusal (Notification.permission = ${permission}): "${refusal}"`;
             }
           }
           if (ERROR_BOUNDARY_RX.test(after.text) && !ERROR_BOUNDARY_RX.test(before.text)) problems.push("error boundary / error copy rendered");
@@ -1258,12 +1470,14 @@ async function main() {
             after.url !== before.url ? `navigated → ${after.url.replace(BASE, "")}` :
             popups.length > pop0 ? `opened a new tab (${popups[pop0]})` :
             downloads.length > dl0 ? `started a download (${downloads[dl0]})` :
+            fileChoosers.length > fc0 ? "opened the OS file chooser" :
             after.overlays > before.overlays ? "opened an overlay" :
             after.overlays < before.overlays ? "closed the overlay" :
             after.toasts > before.toasts ? "showed a toast" :
             after.inputs !== before.inputs ? `revealed/removed a field (${before.inputs}→${after.inputs})` :
             after.state !== before.state ? "changed a toggle/field" :
             after.hash !== before.hash ? `changed the DOM (${after.body - before.body >= 0 ? "+" : ""}${after.body - before.body} chars)` :
+            acked && !entry.mutating ? "the control went busy and returned (a read over unchanged data)" :
             after.focused !== before.focused ? "moved focus only" :
             "";
           if (!alreadyActive && !blockedByValidation) {

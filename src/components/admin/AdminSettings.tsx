@@ -688,9 +688,14 @@ const AdminSettings = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && searchUsers()}
               />
+              {/* Inert while the field is empty: `searchUsers` returns without a
+                  word on a blank query, so an enabled button there was a tap
+                  that did nothing (press-every-control run 35813177418,
+                  "Add Admin › Search users"). Enter in the field was already a
+                  no-op for the same reason; now the button says so too. */}
               <Button
                 onClick={searchUsers}
-                disabled={searching}
+                disabled={searching || !searchQuery.trim()}
                 size="icon"
                 className="shrink-0"
                 aria-label="Search users"

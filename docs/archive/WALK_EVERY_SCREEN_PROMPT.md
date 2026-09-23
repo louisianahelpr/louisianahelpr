@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: nothing in it was still true and unqueued; findings checked against the source at 9a0582ecf.
+
 # Task: walk every screen of Louisiana Helpr and report what does not work
 
 Paste this whole file as the task for a fresh session.
@@ -9,7 +11,7 @@ execution).
 
 ## Why this task exists
 
-`docs/audit/COVERAGE_LEDGER.md` currently reads **0 WALKED / 27 PARTIAL / 107
+`docs/archive/COVERAGE_LEDGER.md` currently reads **0 WALKED / 27 PARTIAL / 107
 NEVER WALKED** out of 134 tracked units. Zero units in this app have a durable
 artifact proving they work against real, production-shaped data.
 
@@ -107,7 +109,7 @@ repeat offender in this codebase.
 
 ## Scope — work down the ledger
 
-`docs/audit/COVERAGE_LEDGER.md` lists all 134 units. Work through them, and
+`docs/archive/COVERAGE_LEDGER.md` lists all 134 units. Work through them, and
 update each row **only on real evidence**, in a **separate commit** from any fix
 (never mark something verified in the same edit that changed it).
 

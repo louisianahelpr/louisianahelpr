@@ -73,6 +73,7 @@ export const LIVE_DOCS = {
   "docs/audit/launch-2026-09/WAVES.md": { consumer: "scripts/audit-coverage.mjs", why: "the fleet's wave schedule, parsed for the coverage report" },
   "docs/audit/STATE_REVIEW_PROMPT.md": { consumer: "scripts/state-review.mjs", why: "the default --prompt of the state review" },
   "docs/audit/launch-2026-09/deferred/README.md": { consumer: "docs/audit/launch-2026-09/deferred/Overlay.tsx.deferred", why: "the note on the code parked beside it" },
+  "docs/audit/visual-notes-2026-09-14.md": { consumer: "scripts/check-visual-notes.mjs", why: "the owner's VN checklist, its default input; its evidence folder sits beside it" },
   "docs/audit/OPEN_ITEMS.md": { consumer: "src/test/onlyOneOpenList.test.ts", why: "the retired pointer to docs/OPEN.md (Q16)" },
 };
 const ARCHIVE_HOW = "re-check its open findings against the source, carry the true ones into docs/OPEN.md, then `git mv` it to docs/archive/ with the banner 'historical, superseded by docs/OPEN.md' (Q165)";

@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: its still-true findings not already queued are Q243, Q244, Q245; findings checked against the source at 9a0582ecf.
+
 # Edge `jobs` lifecycle writes with no status predicate — audit 2026-09-14
 
 Scope: the 21 `edge:` entries baselined in `scripts/race-class-baseline.json` on 2026-09-12

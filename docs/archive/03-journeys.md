@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: its still-true findings not already queued are Q253; findings checked against the source at 9a0582ecf.
+
 # Phase 3 — End-to-End Journey Health + Test Coverage
 
 Authored by the coordinator. Facts: route guards from `src/App.tsx`, test

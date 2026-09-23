@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: nothing in it was still true and unqueued; findings checked against the source at 9a0582ecf.
+
 # Louisiana Helpr — Full-Surface Exhaustive Audit
 
 **Paste this entire file as the task for a fresh session.** Repo:
@@ -5,7 +7,7 @@
 
 This is the **exhaustive** audit: every screen, every path into it, every popup,
 every state, every persona, every breakpoint, every platform. It supersedes
-`docs/audit/WALK_EVERY_SCREEN_PROMPT.md` (which references a script that no
+`docs/archive/WALK_EVERY_SCREEN_PROMPT.md` (which references a script that no
 longer exists) and complements `/audit` (static grading) and `/improve`.
 
 ---
@@ -19,7 +21,7 @@ longer exists) and complements `/audit` (static grading) and `/improve`.
 3. `AGENTS.md` — brand voice, dialog rules, safe-area rules.
 4. `docs/PLATFORM_CONVENTIONS.md` — casing, tokens, §7 lane split, §8 what
    headless Chromium genuinely cannot verify.
-5. `docs/audit/COVERAGE_LEDGER.md` — the manifest you are here to fill.
+5. `docs/archive/COVERAGE_LEDGER.md` — the manifest you are here to fill.
 
 ### Contradictions — FIXED AT SOURCE 2026-08-31, do not re-litigate
 
@@ -36,7 +38,7 @@ way it went.
 | `.claude/commands/audit.md` "apply migrations via MCP `apply_migration`" vs CLAUDE.md "**NEVER**" | **CLAUDE.md wins.** Never `apply_migration`. `execute_sql` for read-only checks and test-account rows is fine. Schema changes go through `npm run migration:new -- <slug>` and auto-deploy on merge via `db-deploy.yml`. (`audit.md` corrected; SKILL.md's self-provision block now says `execute_sql` too.) |
 | `docs/TWO_ACCOUNT_E2E_TEST_PROMPT.md` "You cannot type passwords, that restriction is absolute" vs SKILL.md §5 "self-provision gated cells" | **Both are satisfied, and the conflict was false:** no password is ever typed *because* sessions are minted through Supabase admin `generate_link`. Use `scripts/test-signin-link.mjs` or the four-step recipe in §3. "I couldn't sign in" is not an acceptable reason for an unfilled cell. |
 
-Also fixed: `docs/audit/WALK_EVERY_SCREEN_PROMPT.md` calls
+Also fixed: `docs/archive/WALK_EVERY_SCREEN_PROMPT.md` calls
 `node scripts/test-signin-link.mjs poster|helper` — **that script now exists**
 (it did not, which stalled every session that followed that prompt). It prints
 a magic link, or `--session --json` for the localStorage blob, and refuses any
@@ -84,7 +86,7 @@ never been opened is exactly the substitution this ledger exists to prevent.
 **You are done when — and only when — all of the following are true:**
 
 - Every one of the **90 navigable surfaces** in §5 is `WALKED` in
-  `docs/audit/COVERAGE_LEDGER.md`, with real evidence.
+  `docs/archive/COVERAGE_LEDGER.md`, with real evidence.
 - Every one of the **78 overlay roots** in §6 has been *opened and operated*,
   and each has a ledger row.
 - All **63 edge functions** have an observed HTTP status.
@@ -954,7 +956,7 @@ a CI gate.
 
 ### Updating the ledger
 
-`docs/audit/COVERAGE_LEDGER.md` columns:
+`docs/archive/COVERAGE_LEDGER.md` columns:
 `| Route | Component | Status | Last genuinely walked | Evidence |`
 
 - Status: `WALKED` · `PARTIAL` · `NEVER WALKED`

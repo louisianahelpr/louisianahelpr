@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: its still-true findings not already queued are Q254, Q255, Q256, Q257; findings checked against the source at 9a0582ecf.
+
 # Full-surface audit — 2026-08-31
 
 Run overnight against `main`, unattended. Every claim below carries an artifact
@@ -488,7 +490,7 @@ d15c9a5f (now):        exit 1 · Unused files (16) · Unused exports (147)
 3. **The coverage ledger was structurally incomplete**, not merely stale: it
    tracked no overlays (78 of them) and no admin views (24). "All routes walked"
    was technically true and substantively misleading. Fixed in `aea0b7bb`.
-4. **`docs/audit/WALK_EVERY_SCREEN_PROMPT.md` points at
+4. **`docs/archive/WALK_EVERY_SCREEN_PROMPT.md` points at
    `node scripts/test-signin-link.mjs`.** ~~Which does not exist.~~ **CORRECTED
    2026-09-02: it does exist** — 12,177 bytes, executable, and documented as
    verified end to end. The original claim here was wrong, and left standing it
@@ -497,7 +499,7 @@ d15c9a5f (now):        exit 1 · Unused files (16) · Unused exports (147)
    documented alternative, not a required substitute.
 5. **Five contradictions between your own audit documents**, each of which will
    stall or mislead a future run. I ruled on all five in
-   `docs/audit/FULL_SURFACE_AUDIT_PROMPT.md` §0, but they are worth settling at
+   `docs/archive/FULL_SURFACE_AUDIT_PROMPT.md` §0, but they are worth settling at
    source:
    - `lh-audit` §1 says a large UNVERIFIED section is a *good* outcome; §5 says
      UNVERIFIED is *not an acceptable final state*.
@@ -537,7 +539,7 @@ or listed above for your triage.
 
 ## Evidence self-check
 
-`npm run check:audit-evidence -- docs/audit/FULL-SURFACE-2026-08-31.md`
+`npm run check:audit-evidence -- docs/archive/FULL-SURFACE-2026-08-31.md`
 reports 26 claim lines, 6 carrying an inline artifact, and confirms the
 required `UNVERIFIED` section is present.
 
@@ -559,5 +561,5 @@ Suggestions, which are opinions and are labelled as such.
 | Layout + axe records | `~/lh-audit-2026-08-30/measure-1440-{light,dark}.json` |
 | Sweep reports | `~/lh-audit-2026-08-30/report-{light,dark}-*.json` |
 | Edge function statuses | `~/lh-audit-2026-08-30/edge-functions.txt` |
-| Coverage manifest | `docs/audit/COVERAGE_LEDGER.md` |
-| The prompt this ran from | `docs/audit/FULL_SURFACE_AUDIT_PROMPT.md` |
+| Coverage manifest | `docs/archive/COVERAGE_LEDGER.md` |
+| The prompt this ran from | `docs/archive/FULL_SURFACE_AUDIT_PROMPT.md` |

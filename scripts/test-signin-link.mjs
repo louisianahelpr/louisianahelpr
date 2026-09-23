@@ -4,7 +4,7 @@
  *
  * WHY THIS FILE EXISTS
  * --------------------
- * `docs/audit/WALK_EVERY_SCREEN_PROMPT.md` and
+ * `docs/archive/WALK_EVERY_SCREEN_PROMPT.md` and
  * `docs/TWO_ACCOUNT_E2E_TEST_PROMPT.md` both tell a fresh session to run
  * `node scripts/test-signin-link.mjs poster|helper` as step one. The file did
  * not exist, so every session following those prompts stalled at sign-in — and

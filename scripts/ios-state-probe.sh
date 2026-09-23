@@ -14,7 +14,7 @@
 #
 # Chromium has no content-process jetsam, no software keyboard, and reports
 # zero safe-area insets. No amount of Playwright fixes that. This script covers
-# what the SIMULATOR genuinely can, and `docs/audit/IOS_COVERAGE.md` states
+# what the SIMULATOR genuinely can, and `docs/archive/IOS_COVERAGE.md` states
 # plainly what still needs hardware. Nothing here is claimed beyond what it
 # does.
 #
@@ -27,7 +27,7 @@
 #   - pins the status bar to 9:41 / full battery so frames diff cleanly;
 #   - restores every setting it changed on exit, including on Ctrl-C.
 #
-# WHAT IT CANNOT DO — see docs/audit/IOS_COVERAGE.md for the full list
+# WHAT IT CANNOT DO — see docs/archive/IOS_COVERAGE.md for the full list
 #   - force an app STATE. The shipped bundle has no mock layer: it loads the
 #     real Supabase with whatever the signed-in account happens to hold. The
 #     195-cell state matrix is therefore Chromium-only today.
@@ -209,4 +209,4 @@ echo "Still UNVERIFIED after this run, and not fixable by adding passes here:"
 echo "  - content-process jetsam / app-lock re-arm  (no simctl verb; device only)"
 echo "  - software keyboard covering a sheet        (needs UI automation to focus a field)"
 echo "  - any state the signed-in account does not already hold"
-echo "See docs/audit/IOS_COVERAGE.md."
+echo "See docs/archive/IOS_COVERAGE.md."

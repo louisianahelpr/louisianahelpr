@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: its still-true findings not already queued are Q229; findings checked against the source at 9a0582ecf.
+
 # Production monitoring — what is captured, where it goes, who is told
 
 Terminal 4, production watching, 2026-09-12. Verified live against prod

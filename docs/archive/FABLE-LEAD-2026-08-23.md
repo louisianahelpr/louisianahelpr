@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: its still-true findings not already queued are Q249, Q258, Q259, Q260, Q261; findings checked against the source at 9a0582ecf.
+
 # Full-app audit — Fable lead pass, 2026-08-23
 
 **Head at close:** `690211b93` · **Base:** `05ac2ed25` · 8 commits shipped, all

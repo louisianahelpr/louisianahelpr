@@ -6,7 +6,7 @@
  * users, a script's teardown, a job row removed by an RPC) strand files. The
  * 2026-09-14 audit found 32 of them, 10.3 MB, including 14 public avatars and 3
  * credential scans of users who no longer exist
- * (docs/audit/storage-audit-2026-09-14.md). The app-side leaks are fixed, but a
+ * (docs/archive/storage-audit-2026-09-14.md). The app-side leaks are fixed, but a
  * new deletion path will appear one day; this is the net under all of them.
  *
  * SAFETY, in the order it is applied (rules in scripts/lib/storageOrphans.mjs):

@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: nothing in it was still true and unqueued; findings checked against the source at 9a0582ecf.
+
 # Seed coverage — what the mocked Supabase answers
 
 Generated 2026-09-12 from a scan of `src/` (every `.from("…")` / `.rpc("…")`, including the

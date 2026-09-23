@@ -1119,7 +1119,7 @@ export const SEED_PROFILES = [
 // Before this block the seed answered 6 tables and every other SELECT in the
 // app came back `[]`, so the earnings ledger, the dispute timeline, the admin
 // queues, saved Helprs, pets, credentials, availability and the referral card
-// had only ever been photographed EMPTY. docs/audit/seed-coverage.md lists
+// had only ever been photographed EMPTY. docs/archive/seed-coverage.md lists
 // every table and RPC the app reads and which of them this file answers.
 //
 // Same rules as the header: fixed ids, `satisfies <table>Insert[]` so a column

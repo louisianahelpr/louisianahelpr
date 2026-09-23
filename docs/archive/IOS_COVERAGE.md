@@ -1,6 +1,8 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: its still-true findings not already queued are Q251, Q252; findings checked against the source at 9a0582ecf.
+
 # iOS coverage — what the simulator can reach, and what needs hardware
 
-Companion to `docs/audit/STATE_MATRIX.md`. That document covers the state
+Companion to `docs/archive/STATE_MATRIX.md`. That document covers the state
 space Chromium can render. This one is about the states it **cannot**, and is
 deliberately written to be disappointing where the truth is disappointing.
 

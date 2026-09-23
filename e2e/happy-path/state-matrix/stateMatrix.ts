@@ -3,7 +3,7 @@
  *
  * WHY THIS EXISTS
  * ---------------
- * `docs/audit/COVERAGE_LEDGER.md` counted 232 units: routes x breakpoints x
+ * `docs/archive/COVERAGE_LEDGER.md` counted 232 units: routes x breakpoints x
  * admin views x overlay roots. Every unit it counted was a PLACE. Every defect
  * the owner found in 45 minutes of tapping a real build lived in a STATE:
  *

@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../../OPEN.md)). Archived 2026-09-23 by Q165: its still-true findings not already queued are Q231, Q232, Q233, Q234, Q235, Q236, Q237, Q238, Q239, Q240, Q246; findings checked against the source at 9a0582ecf.
+
 # Overnight run — owner asleep from 2026-09-08 ~00:40 PT
 
 Standing instruction (owner, verbatim): "Finish this out autonomously. If you need

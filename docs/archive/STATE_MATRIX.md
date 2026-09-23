@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: its still-true findings not already queued are Q251; findings checked against the source at 9a0582ecf.
+
 # The state matrix
 
 **What this is:** the enumeration of the states Louisiana Helpr can render, so
@@ -266,7 +268,7 @@ Written here so a full manifest is never mistaken for a full audit.
 - **Everything WKWebView-only.** Chromium has no content-process jetsam, no
   software keyboard, and reports zero safe-area insets. The app-lock bug, the
   keyboard-covers-the-sheet bug and every safe-area bug are invisible to it by
-  construction. `docs/audit/IOS_COVERAGE.md` states what the simulator covers
+  construction. `docs/archive/IOS_COVERAGE.md` states what the simulator covers
   and what needs hardware.
 - **Motion.** Frames are still. A transition that flashes the wrong colour, a
   layout that jumps on mount, a skeleton that never resolves — none survives

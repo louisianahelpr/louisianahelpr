@@ -2,7 +2,7 @@
  * Removing the storage a deleted row owned, from the client.
  *
  * ── Why ─────────────────────────────────────────────────────────────────────
- * The 2026-09-14 storage audit (docs/audit/storage-audit-2026-09-14.md) found
+ * The 2026-09-14 storage audit (docs/archive/storage-audit-2026-09-14.md) found
  * files outliving their rows: a chat attachment whose message was deleted
  * (`Messages.tsx` deleteMessage removed the row only), and job photos of jobs
  * deleted after a failed checkout (`cleanupOrphanJob`). Once the row is gone

@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: its still-true findings not already queued are Q241, Q242, Q243; findings checked against the source at 9a0582ecf.
+
 # Integrations and secrets inventory — 2026-09-14
 
 Report only. Nothing was deleted, revoked or rotated, and no secret value was read or printed.

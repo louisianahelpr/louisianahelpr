@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: nothing in it was still true and unqueued; findings checked against the source at 9a0582ecf.
+
 # Deep Pass 05 — Trust, Safety, Moderation, Discovery & Location Privacy (Phases 5–6)
 
 Companion to `docs/PRE_LAUNCH_AUDIT.md`. Every finding cites `file:line`.

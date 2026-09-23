@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-09-23 by Q165: nothing in it was still true and unqueued; findings checked against the source at 9a0582ecf.
+
 # lh-ledger-integrity run log — one line per run: `date, total, walked, partial, never`
 # Baseline row is the summary the ledger STATED before the 2026-09-04 recompute.
 2026-08-31, 231, 154, 0, 77   # as stated in the file (not independently verified)

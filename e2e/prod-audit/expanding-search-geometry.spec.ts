@@ -60,6 +60,10 @@
 // search wrapper is what lets it shrink inside its flex row; demanding 900px
 // instead makes it both steal from its siblings and hang off the right edge.
 // @mutate src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx | relative flex-1 min-w-0 lg:max-w-md | relative flex-1 min-w-[900px] lg:max-w-md
+// Q143: the Messages field below 360 must open on its own line with the row at
+// rest. Un-holding the chevron's box below 360 moves the hamburger on open
+// (measured 187 -> 235, the first run of this clause).
+// @mutate src/components/messages/ConversationList.tsx | <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch" /> | <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch max-[359px]:hidden" />
 
 import { test, expect, type Page, type Browser, type TestInfo } from "@playwright/test";
 import { mkdirSync } from "node:fs";
@@ -81,6 +85,13 @@ const SCHEME: "light" | "dark" = process.env.LH_SEARCH_SCHEME === "dark" ? "dark
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 
 type Rect = { x: number; y: number; w: number; h: number; label: string };
+
+/**
+ * A surface whose field opens on its OWN LINE below a width (Messages below
+ * 360, Q143): `lineSel` is that line, `clusterSel` a control in the header
+ * row's trailing cluster that must not move while the field is open.
+ */
+type OwnLine = { lineSel: string; clusterSel: string };
 
 /** Overlap of two rects in px, 0 when they do not intersect. */
 function overlap(a: Rect, b: Rect): { x: number; y: number } {
@@ -242,10 +253,16 @@ async function assertSurface(
     rowSel?: string;
     soloRow?: string;
     minFieldPx?: number;
+    ownLine?: OwnLine;
   },
 ) {
-  const { name, vw, triggerSel, fieldSel, closeSel, rowSel, soloRow, minFieldPx } = opts;
-  const tag = `${name}@${vw}`;
+  const { name, vw, triggerSel, fieldSel, closeSel, soloRow, minFieldPx, ownLine } = opts;
+  // On an own-line width the field's row IS its line, and it is alone there
+  // by design (see OwnLine).
+  const rowSel = ownLine ? ownLine.lineSel : opts.rowSel;
+  const tag = `${name}@${vw}${ownLine ? "(own line)" : ""}`;
+  const restCluster = ownLine ? await rectOf(page, ownLine.clusterSel, "cluster(rest)") : null;
+  if (ownLine) expect(restCluster, `${tag}: no ${ownLine.clusterSel} in the header row at rest`).not.toBeNull();
 
   // ── the magnifier at rest. This is the rect (c) is measured against. ──
   const closedTrigger = await rectOf(page, triggerSel, "trigger(closed)");
@@ -285,7 +302,7 @@ async function assertSurface(
   // so an empty set has to be DECLARED (`soloRow`, with the reason), never
   // received by accident from a mis-resolved row.
   expect(
-    geom!.siblings.length > 0 || !!soloRow,
+    geom!.siblings.length > 0 || !!soloRow || !!ownLine,
     `${tag}: the open field has no measurable siblings and this surface did not declare soloRow — (a) would pass over an empty set. Fix rowSel.`,
   ).toBe(true);
   const intersecting = geom!.siblings.filter((s) => {
@@ -353,11 +370,61 @@ async function assertSurface(
     withoutSlot.slotCount,
     `${tag}: no [data-search-trigger-slot] in the open row. Either this surface never got the fix, or the marker moved — either way (c) above is unfalsifiable here.`,
   ).toBeGreaterThan(0);
-  const regressed = overlap(withoutSlot.rect as Rect, closedTrigger!);
-  expect(
-    Math.round(regressed.x),
-    `${tag}: removing the landing slot did NOT bring the overlap back, so the 0px above proves nothing about the slot. Re-derive the geometry before believing this check.`,
-  ).toBeGreaterThan(0);
+  if (ownLine) {
+    // OWN-LINE WIDTHS. The ✕ is on the line UNDER the magnifier's row, so (c)
+    // holds by construction and the slot's job here is different: it keeps
+    // the row at rest, so the hamburger/chevron do not slide while the field
+    // is open and the magnifier returns where it was pressed. Proved three
+    // ways, each able to fail:
+    //   1. the field is BELOW the magnifier's row, not in it;
+    //   2. the cluster sits exactly where it sat at rest;
+    //   3. deleting the slot moves the cluster (so 2 measures the slot).
+    const field = geom!.item;
+    note(info, {
+      type: `${tag} (own line)`,
+      description: `field top ${Math.round(field.y)} vs magnifier bottom ${Math.round(closedTrigger!.y + closedTrigger!.h)}`,
+    });
+    expect(
+      Math.round(field.y),
+      `${tag}: the field is not on its own line — its top (${Math.round(field.y)}) is above the magnifier row's bottom`,
+    ).toBeGreaterThanOrEqual(Math.round(closedTrigger!.y + closedTrigger!.h) - 1);
+    const openCluster = await rectOf(page, ownLine.clusterSel, "cluster(open)");
+    expect(
+      [Math.round(openCluster!.x), Math.round(openCluster!.y)],
+      `${tag}: the header cluster moved when search opened on its own line`,
+    ).toEqual([Math.round(restCluster!.x), Math.round(restCluster!.y)]);
+    // The held slot IS the magnifier's box: it starts exactly where the
+    // magnifier did, and deleting it moves the cluster's leading edge (so the
+    // equality is a measurement of the slot, not of a row that cannot move).
+    // Measured 2026-09-23 when the chevron's box was not held below 360: the
+    // hamburger jumped 187 -> 235 on open, which the check above caught.
+    const slotEdge = await page.evaluate(() => {
+      const slot = document.querySelector<HTMLElement>("[data-search-trigger-slot]");
+      const cluster = slot?.parentElement;
+      if (!slot || !cluster) return null;
+      const withSlot = slot.getBoundingClientRect().x;
+      const next = slot.nextSibling;
+      slot.remove();
+      const clusterNoSlot = cluster.getBoundingClientRect().x;
+      cluster.insertBefore(slot, next);
+      return { withSlot, clusterNoSlot };
+    });
+    expect(slotEdge, `${tag}: no held slot in the header row`).not.toBeNull();
+    expect(
+      Math.round(slotEdge!.withSlot),
+      `${tag}: the held slot does not sit where the magnifier was — it comes back somewhere else`,
+    ).toBe(Math.round(closedTrigger!.x));
+    expect(
+      Math.abs(Math.round(slotEdge!.clusterNoSlot - slotEdge!.withSlot)),
+      `${tag}: deleting the held slot did not move the cluster's leading edge, so the check above proves nothing about the slot`,
+    ).toBeGreaterThan(0);
+  } else {
+    const regressed = overlap(withoutSlot.rect as Rect, closedTrigger!);
+    expect(
+      Math.round(regressed.x),
+      `${tag}: removing the landing slot did NOT bring the overlap back, so the 0px above proves nothing about the slot. Re-derive the geometry before believing this check.`,
+    ).toBeGreaterThan(0);
+  }
 
   // ── (d) THE FIELD IS WIDE ENOUGH TO READ WHAT YOU TYPED ───────────────────
   //
@@ -476,6 +543,8 @@ const SURFACES: {
    * can get worse and this spec will say so.
    */
   minFieldPx?: number;
+  /** Below this width the field opens on its OWN LINE under the header row. */
+  ownLine?: OwnLine & { belowPx: number };
 }[] = [
   {
     name: "browse-desktop-strip",
@@ -517,6 +586,15 @@ const SURFACES: {
     triggerSel: "[data-search-trigger]",
     fieldSel: 'input[aria-label="Search conversations"]',
     closeSel: 'button[aria-label="Close search"]',
+    /* Q143 (owner, 2026-09-23, Q48 option D): below 360 the field opens on its
+       own line, where the Active/All strip sits. At 320 in the row it was
+       90px against the 120px floor with the slot held, and the ✕ sat 28px
+       over the magnifier without it. 375 and up: the row, as before. */
+    ownLine: {
+      belowPx: 360,
+      lineSel: "[data-search-own-line]",
+      clusterSel: 'button[aria-label="Conversation list options"]',
+    },
   },
   {
     name: "saved-helprs",
@@ -573,6 +651,7 @@ for (const vw of [320, 375, 1440] as const) {
           rowSel: surface.rowSel,
           soloRow: surface.soloRow,
           minFieldPx: surface.minFieldPx,
+          ownLine: surface.ownLine && vw < surface.ownLine.belowPx ? surface.ownLine : undefined,
         });
       } finally {
         await ctx.close();

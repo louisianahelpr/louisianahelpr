@@ -21,7 +21,7 @@ import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllus
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
-import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
+import { ScreenHeaderRow, SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 // Card-matching skeleton — mirrors the actual ConversationRow shape
 // (avatar + name/job/last-msg lines + timestamp + unread dot) so the
 // loading→loaded swap doesn't shift the row. See task #121.
@@ -214,6 +214,46 @@ const HEADER_ICON_BUTTON_CLASS =
 const INBOX_TABS_ID = "inbox-filter-tabs";
 
 /**
+ * BELOW 360px, SEARCH OPENS ON ITS OWN LINE (owner, 2026-09-23, Q48 option D;
+ * work item Q143).
+ *
+ * At 320 the header row cannot hold a typable field beside the cluster: with
+ * the magnifier's slot held open (the three-click fix) the field was 90px,
+ * under the 120px floor (MIN_TYPABLE_FIELD_PX); without the slot the ✕ sat
+ * 28px over the returning magnifier. So below 360 the header row stays as it
+ * is at rest (the visible name, the held slot, hamburger, chevron) and the
+ * field takes the line UNDER it, where the Active/All strip sits, full width.
+ * The strip is hidden while search is open at every width anyway ("one control
+ * at a time"), so nothing moves down. 375 and up are unchanged.
+ *
+ * A media query read in JS, not a Tailwind breakpoint: the two arrangements
+ * put the field in different PARENTS (the header row vs the line below), which
+ * CSS alone cannot do without rendering the autofocused input twice. The value
+ * is computed on the first render, like useIsWebDesktop, so there is no
+ * wrong-arrangement frame.
+ */
+const SEARCH_OWN_LINE_QUERY = "(max-width: 359px)";
+
+function matchesQuery(query: string): boolean {
+  return typeof window !== "undefined" && typeof window.matchMedia === "function"
+    ? window.matchMedia(query).matches
+    : false;
+}
+
+function useSearchOnOwnLine(): boolean {
+  const [on, setOn] = useState(() => matchesQuery(SEARCH_OWN_LINE_QUERY));
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const mql = window.matchMedia(SEARCH_OWN_LINE_QUERY);
+    const apply = () => setOn(mql.matches);
+    apply();
+    mql.addEventListener?.("change", apply);
+    return () => mql.removeEventListener?.("change", apply);
+  }, []);
+  return on;
+}
+
+/**
  * ConversationList — the inbox surface of the Messages page: the
  * Messages title card, the "All threads" header, and the pull-to-
  * refresh, virtualized list of conversation rows (avatar, unread
@@ -247,6 +287,8 @@ export function ConversationList({
      False on phone and on native at every size, so the phone rendering is
      byte-for-byte unchanged. */
   const isWebDesktop = useIsWebDesktop();
+  /* Below 360px on phone/native only; see SEARCH_OWN_LINE_QUERY. */
+  const searchOnOwnLine = useSearchOnOwnLine() && !isWebDesktop;
   const [showAllConvos, setShowAllConvos] = useState(false);
   // Multi-select delete mode. `selectMode` swaps each row into a
   // checkbox toggle (opening is suppressed) and reveals a bottom action
@@ -1089,10 +1131,16 @@ export function ConversationList({
           field 90px, ✕ clear. Not holding it: field 138px, ✕ overlapping the
           magnifier by 28px. Both clauses of the geometry spec cannot hold at
           320 with three 44px controls in this order; which one yields is the
-          owner's call. `max-[359px]` is the same breakpoint as the row's
-          `max-[359px]:gap-2` below. */}
+          owner's call.
+
+          THE OWNER'S CALL (2026-09-23, Q48 option D, Q143): below 360 search
+          opens on its OWN LINE under this row (SEARCH_OWN_LINE_QUERY), so the
+          field no longer competes with this box and it is held at every
+          width. Measured on a local build against prod before holding it at
+          320: the hamburger jumped 187 -> 235 when search opened on its own
+          line; held, the row does not move. */}
       {!isWebDesktop && searchOpen && (
-        <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch max-[359px]:hidden" />
+        <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch" />
       )}
       {!isWebDesktop && !searchOpen && (
         <button
@@ -1184,12 +1232,30 @@ export function ConversationList({
               borderBottom: embedded ? "1px solid hsl(var(--olivewood) / 0.1)" : undefined,
             }}
             meta={rowTakeover ? undefined : headerMeta}
-            actions={rowTakeover ? undefined : headerActions}
+            actions={
+              rowTakeover
+                ? undefined
+                : searchOpen && searchOnOwnLine
+                  ? (
+                    /* Below 360 the row stays at rest while the field sits on
+                       the line below: the magnifier is inside the field, and
+                       its box here is HELD OPEN so the hamburger and chevron
+                       do not slide, and the magnifier comes back exactly
+                       where it was pressed. */
+                    <>
+                      <SearchTriggerSlot width="44px" />
+                      {headerActionsWithoutSearch}
+                    </>
+                  )
+                  : headerActions
+            }
             /* Search is the SHARED slot. `open` is false whenever select mode
                has the row (the two takeovers are mutually exclusive and select
                mode wins), which puts the row back on `children`. */
             expandingSearch={{
-              open: searchOpen && !selectMode,
+              /* Not in the row below 360: there the field has its own line
+                 (see SEARCH_OWN_LINE_QUERY and the line under this row). */
+              open: searchOpen && !selectMode && !searchOnOwnLine,
               field: searchField,
               /* HEADER_ICON_BUTTON_CLASS is `h-11 w-11`. The slot reserves the
                  magnifier's real box, not a guess — see SearchTriggerSlot. */
@@ -1241,6 +1307,14 @@ export function ConversationList({
                already comfortable. */
             <div id={INBOX_TABS_ID} className="shrink-0 -mx-1 px-1 pb-0.5 overflow-x-auto scrollbar-hide">
               {inboxTabs}
+            </div>
+          )}
+          {/* BELOW 360: the search field, on the line the strip above gives up
+              while search is open. Full width; same field, same ✕, same
+              Escape as the in-row field at 375 and up. */}
+          {searchOnOwnLine && searchOpen && !selectMode && (
+            <div data-search-own-line className="shrink-0 flex items-center py-1">
+              {searchField}
             </div>
           )}
           {!searchOpen && !selectMode && pinnedFilterChip}

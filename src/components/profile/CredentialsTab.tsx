@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isStorageObjectPath, safeDocumentUrl } from "@/lib/storagePath";
 import { unwrapMutationRow, mutationErrorMessage } from "@/lib/mutationResult";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -160,6 +159,8 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
   // switching on saves nothing, and after a reload the switch shows what the
   // row holds, never a value the database refused.
   const [intent, setIntent] = useState<Partial<Record<Kind, boolean>>>({});
+  // The hidden file inputs behind the "Add License" / "Add Insurance" buttons.
+  const addInputRefs = useRef<Partial<Record<Kind, HTMLInputElement | null>>>({});
   const licensedOn = (data.is_licensed ?? false) || !!intent.license;
   const insuredOn = (data.is_insured ?? false) || !!intent.insurance;
 
@@ -201,8 +202,8 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
     return true;
   };
 
-  const attachDoc = (file: File, kind: Kind) => {
-    if (!validate(file, kind === "license" ? "License" : "Insurance")) return;
+  const attachDoc = (file: File, kind: Kind): boolean => {
+    if (!validate(file, kind === "license" ? "License" : "Insurance")) return false;
     setDrafts((prev) => {
       const existing = prev[kind];
       if (existing?.previewUrl) URL.revokeObjectURL(existing.previewUrl);
@@ -214,6 +215,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
         },
       };
     });
+    return true;
   };
 
   const discardDraft = (kind: Kind) => {
@@ -453,61 +455,71 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
     const draft = drafts[kind];
     const on = kind === "license" ? licensedOn : insuredOn;
     const noun = KIND_NOUN[kind];
-    const toggleId = kind === "license" ? "lic-toggle" : "ins-toggle";
 
     return (
       <div className="rounded-2xl liquid-glass p-5 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            {/* Status eyebrow removed (owner, 2026-08-29: "delete globally"). */}
-            <Label
-              htmlFor={toggleId}
-              className="font-display italic font-bold leading-tight cursor-pointer text-headline-card"
-              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-            >
-              {kind === "license" ? "I Am Licensed" : "I Am Insured"}
-            </Label>
-            <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {!on
-                ? kind === "license"
-                  ? "Toggle on if you hold a professional license — attach it to verify."
-                  : "Toggle on if you carry professional insurance — attach it to verify."
-                : kind === "license"
-                  ? "Attach your professional license, then send it for review to earn the badge."
-                  : "Attach your Certificate of Insurance (COI), then send it for review to earn the badge."}
-            </p>
-          </div>
-          <Switch
-            id={toggleId}
-            checked={on}
-            onCheckedChange={(v) => {
-              // History: first a CACHE-ONLY write (patchCache and return), then
-              // a real `PATCH {is_licensed}` — which returned 200 while
-              // `prevent_self_escalation()` put the column back, so the switch
-              // still showed ON after a reload over a row that said false (Q99,
-              // measured on prod 2026-09-23). The column is server-owned, so
-              // this handler writes nothing: switching ON only opens the attach
-              // area for this visit, and the row turns true when a document is
-              // SENT (`trg_auto_pending_credentials`).
-              if (drafts[kind] && !v) discardDraft(kind);
-              if (!v && url) {
-                // Something is already with the reviewers — confirm before
-                // pulling it back. The toggle stays on until they say yes.
-                setPullBack(kind);
-                return;
-              }
-              const rowOn = (kind === "license" ? data.is_licensed : data.is_insured) ?? false;
-              if (!v && rowOn) {
-                // On in the row with no document behind it: only our team can
-                // set that, and a member's write to clear it is reset by the
-                // same trigger. Keep showing what the row holds.
-                toast.error("Our team set this, so it can't be switched off here. Contact support to change it.");
-                return;
-              }
-              setIntent((prev) => ({ ...prev, [kind]: v }));
-            }}
-          />
+        <div className="min-w-0">
+          {/* Status eyebrow removed (owner, 2026-08-29: "delete globally"). */}
+          <h3
+            className="font-display italic font-bold leading-tight text-headline-card"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+          >
+            {kind === "license" ? "Professional License" : "Insurance"}
+          </h3>
+          <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            {!on
+              ? kind === "license"
+                ? "Hold a professional license? Add it and send it for review to earn the badge."
+                : "Carry professional insurance? Add your Certificate of Insurance (COI) and send it for review to earn the badge."
+              : kind === "license"
+                ? "Attach your professional license, then send it for review to earn the badge."
+                : "Attach your Certificate of Insurance (COI), then send it for review to earn the badge."}
+          </p>
         </div>
+
+        {/* THE "ADD" BUTTON (owner, 2026-09-23, MORNING QUESTIONS 6 option b,
+            Q142). This was an "I Am Licensed" / "I Am Insured" SWITCH, which
+            looked like it set the badge. It never could: `is_licensed` /
+            `is_insured` are server-owned (`prevent_self_escalation()` puts a
+            member's write back, measured on prod 2026-09-23, Q99), and
+            `trg_auto_pending_credentials` turns them on only when a document
+            is SENT. So the control now says what it does: it opens the file
+            picker, straight into the existing attach -> "Send for review"
+            flow, and writes nothing itself.
+
+            It is also where withdrawing a sent document leaves you (Q111):
+            taking a copy back resets the row to is_<kind> = false, so the card
+            returns here with the way to add a new one on screen, as the
+            withdraw dialog promises. */}
+        {!on && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => addInputRefs.current[kind]?.click()}
+            >
+              <Upload className="w-4 h-4" />
+              {kind === "license" ? "Add License" : "Add Insurance"}
+            </Button>
+            <Input
+              ref={(el) => { addInputRefs.current[kind] = el; }}
+              type="file"
+              accept="image/*,application/pdf"
+              className="hidden"
+              data-credential-add={kind}
+              aria-label={kind === "license" ? "Choose your license document" : "Choose your insurance document"}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (!f || !attachDoc(f, kind)) return;
+                // Local only, like every attached draft: the card opens on the
+                // file you picked, and nothing reaches the server until Send.
+                setIntent((prev) => ({ ...prev, [kind]: true }));
+              }}
+            />
+          </>
+        )}
 
         {on && (
           <div className="space-y-3">

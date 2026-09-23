@@ -182,7 +182,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/NotificationPreferences.tsx` | input×2, checkbox/switch/radio×1, date/calendar×2 | time |  | Saving · Quiet hours start time · Quiet hours end time · Send test notification |
 | `src/components/notificationPreferences/constants.tsx` | input×1, date/calendar×1 | time |  |  |
 | `src/components/profile/AvailabilityTab.tsx` | checkbox/switch/radio×1 |  |  |  |
-| `src/components/profile/CredentialsTab.tsx` | input×2, checkbox/switch/radio×1 | file, text |  | business-name · e.g. Bayou Plumbing LLC · business-name-help |
+| `src/components/profile/CredentialsTab.tsx` | input×3 | text, file |  | business-name · e.g. Bayou Plumbing LLC · business-name-help |
 | `src/components/profile/earningsTab/PayoutHistory.tsx` | select×1 |  |  | Export year |
 | `src/components/profile/MonthlyGoalCard.tsx` | input×1 | number |  | Edit monthly goal · Monthly earnings goal in dollars · Save goal · Cancel |
 | `src/components/profile/ProfileEditForm.tsx` | input×4, textarea×1 | tel, text | 5 | phone · location · zipCode · bio · bio-contact-leak · skillsOther · Anything else you offer… |

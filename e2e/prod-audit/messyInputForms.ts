@@ -627,17 +627,25 @@ export const FORMS: FormSpec[] = [
     covers: ["src/components/profile/MonthlyGoalCard.tsx"],
   },
   {
-    // The field renders only while "I Am Licensed"/"I Am Insured" is on, so
-    // the prepare flips the switch the way the helper does. Since Q99 the
-    // switch writes nothing (profiles.is_licensed is server-owned:
-    // `prevent_self_escalation` resets it for every non-admin), so there is
-    // nothing to undo; the switch opens the field for this visit only.
+    // The field renders only once a license or COI is on the card. Since Q142
+    // the switches are "Add License" / "Add Insurance" buttons that open a
+    // file picker, so the prepare picks a file into the license input the way
+    // the helper does. A picked file is a LOCAL draft: nothing is uploaded or
+    // written until "Send for Review", which this never presses, so there is
+    // nothing to undo. If the account already has a license on its row the
+    // card is open and the field is already there.
     name: "credentials-business-name", url: "/profile?tab=credentials", as: "helper",
     prepare: async (page) => {
-      const lic = page.locator("#lic-toggle");
-      await lic.waitFor({ timeout: 20_000 });
-      if ((await lic.getAttribute("data-state")) !== "checked") await lic.click();
-      await page.locator("#business-name").waitFor({ timeout: 15_000 });
+      const name = page.locator("#business-name");
+      const add = page.locator('input[type="file"][data-credential-add="license"]');
+      await page.waitForSelector('#business-name, input[type="file"][data-credential-add="license"]', {
+        state: "attached",
+        timeout: 20_000,
+      });
+      if (!(await name.isVisible())) {
+        await add.setInputFiles({ name: "license.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n") });
+      }
+      await name.waitFor({ timeout: 15_000 });
     },
     covers: ["src/components/profile/CredentialsTab.tsx"],
   },

@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-23T17:02:37.216Z",
-  "guards": 799,
-  "registered": 799,
+  "generated": "2026-09-23T17:03:26.548Z",
+  "guards": 801,
+  "registered": 801,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -239,6 +239,7 @@
         "src/test/inboxOpensOnActiveWithoutHidingUnread.test.tsx",
         "src/test/messagesDesktopFilterTabsInline.test.tsx",
         "src/test/messagesNoSeparateTopPanel.test.tsx",
+        "src/test/messagesSearchOwnLineBelow360.test.tsx",
         "src/test/searchDismissAndOverlay.test.tsx"
       ],
       "parents": [

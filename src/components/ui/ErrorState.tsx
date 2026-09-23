@@ -1,7 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 import { useEffect, type CSSProperties } from "react";
 import { report } from "@/lib/errorLogger";
-import { currentScreen } from "@/lib/currentScreen";
+import { currentScreen, USER_ERROR_SCREEN } from "@/lib/currentScreen";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 
@@ -68,7 +68,7 @@ export function ErrorState({
     if (typeof navigator !== "undefined" && navigator.onLine === false) return;
     report(new Error(`Error screen shown: ${title}`), {
       severity: "warning",
-      tags: { source: "ErrorState", screen: currentScreen(), title },
+      tags: { source: "ErrorState", kind: USER_ERROR_SCREEN, screen: currentScreen(), title },
     });
   }, [title]);
   return (

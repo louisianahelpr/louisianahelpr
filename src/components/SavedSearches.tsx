@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertTriangle, Bell, BellOff, Bookmark, Loader2, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { toast } from "sonner";
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { categoryLabels } from "@/components/activity/activityConstants";
@@ -414,6 +415,7 @@ export function SavedSearches({
             // Failed fetch reads as recoverable instead of the misleading
             // "No saved searches yet." empty state.
             <div className="flex flex-col items-center text-center px-6 py-6 gap-2">
+              <ReportErrorScreen source="SavedSearches" title="We couldn't load your saved searches." />
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center"
                 style={{

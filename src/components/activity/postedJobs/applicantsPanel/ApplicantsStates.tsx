@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { formatPrice } from "@/lib/format";
 import { daysPastDue, jobDateMs, todayMs } from "@/lib/jobDate";
@@ -50,6 +51,7 @@ export function ApplicantsLoadingState() {
 export function ApplicantsErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-4 text-center px-6">
+      <ReportErrorScreen source="ApplicantsErrorState" title="Couldn't load applicants" />
       <AlertCircle className="w-8 h-8 text-destructive" />
       <div className="space-y-1">
         <p className="font-semibold text-foreground text-ds-15">Couldn't load applicants</p>

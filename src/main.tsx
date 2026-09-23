@@ -3,6 +3,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { initNative, hideSplash } from "./lib/nativeInit";
 import { installGlobalErrorHandlers, report } from "./lib/errorLogger";
+import { USER_ERROR_SCREEN } from "./lib/currentScreen";
 import { initShakeToReport } from "./lib/shakeToReport";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
 import { isSpeculativePrefetchInFlight, recoverFromChunkError } from "./lib/chunkReload";
@@ -41,7 +42,7 @@ try {
     if (!rec.offline) {
       report(new Error(`Boot failed: entry module graph did not load (${rec.src ?? "unknown"})`), {
         severity: "error",
-        tags: { source: "BootWatchdog", route: rec.url ?? "", screen: (rec.url ?? "").split("?")[0] },
+        tags: { source: "BootWatchdog", kind: USER_ERROR_SCREEN, route: rec.url ?? "", screen: (rec.url ?? "").split("?")[0] },
         context: { failedAt: rec.at },
       });
     }

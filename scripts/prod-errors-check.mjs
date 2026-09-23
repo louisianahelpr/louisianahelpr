@@ -77,7 +77,7 @@ WITH w AS (
 classed AS (
   SELECT
     CASE
-      WHEN tags->>'source' IN (${inList(SURFACE_SOURCES)}) THEN 'surface'
+      WHEN tags->>'source' IN (${inList(SURFACE_SOURCES)}) OR tags->>'kind' = 'user-error-screen' THEN 'surface'
       WHEN tags->>'source' IN (${inList(REQUEST_SOURCES)}) OR tags->>'source' LIKE 'money.%' THEN 'request'
       ELSE 'other'
     END AS klass,

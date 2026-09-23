@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { subscribeWithRecovery, type RecoveringSubscription } from "@/lib/realtimeRecovery";
 import { useReducedMotion } from "@/lib/accessibility";
 import { AlertTriangle, BellRing, CheckCheck, Loader2 } from "lucide-react";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import {
   Popover,
   PopoverTrigger,
@@ -734,6 +735,7 @@ const NotificationPanel = () => {
                empty state's compact shape instead, so the recovery action is
                always visible without scrolling. */
             <div className="px-6 py-7 flex flex-col items-center text-center gap-2">
+              <ReportErrorScreen source="NotificationPanel" title="Couldn't load notifications." />
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center"
                 style={{

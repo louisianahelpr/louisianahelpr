@@ -3,7 +3,7 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isChunkLoadError, hardReloadBypassCache, recoverFromChunkError } from "@/lib/chunkReload";
 import { report } from "@/lib/errorLogger";
-import { currentScreen } from "@/lib/currentScreen";
+import { currentScreen, USER_ERROR_SCREEN } from "@/lib/currentScreen";
 
 /**
  * SectionBoundary — scoped <ErrorBoundary> + <Suspense> for a single
@@ -69,7 +69,7 @@ class SectionErrorBoundary extends React.Component<
     if (isChunkLoadError(error) && recoverFromChunkError()) return;
     report(error, {
       severity: "error",
-      tags: { source: "SectionBoundary", section: this.props.label, screen: currentScreen() },
+      tags: { source: "SectionBoundary", kind: USER_ERROR_SCREEN, section: this.props.label, screen: currentScreen() },
       context: { componentStack: errorInfo.componentStack },
     });
   }

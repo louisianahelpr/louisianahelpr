@@ -23,7 +23,16 @@
  * absent) and the source-text inventory. The render half is the one that
  * matters; it is why this guard is .tsx.
  */
-// @mutate src/components/ui/ErrorState.tsx | tags: { source: "ErrorState", screen: currentScreen(), title }, | tags: { source: "ErrorState", title },
+// @mutate src/components/ui/ErrorState.tsx | tags: { source: "ErrorState", kind: USER_ERROR_SCREEN, screen: currentScreen(), title }, | tags: { source: "ErrorState", kind: USER_ERROR_SCREEN, title },
+//
+// Q39 (2026-09-23): every surface also sends tags.kind = "user-error-screen",
+// the tag trigger trg_error_logs_zz_user_error_screen keys on to turn a REAL
+// person's error screen into an ops alert ledger item. Proven red 2026-09-23:
+// dropping the kind tag from ErrorState reds the ErrorState + ProtectedRoute
+// renders; removing <ReportErrorScreen> from ChatTimeline reds the inventory.
+// @mutate src/components/ui/ErrorState.tsx | kind: USER_ERROR_SCREEN, screen: currentScreen(), title | screen: currentScreen(), title
+// @mutate src/components/messages/chatView/ChatTimeline.tsx | <ReportErrorScreen source="ChatTimeline" title="Couldn't load this conversation." /> | {null}
+// @mutate src/components/RouteErrorBoundary.tsx | kind: USER_ERROR_SCREEN, route: | route:
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
@@ -63,6 +72,8 @@ import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { SectionBoundary } from "@/components/SectionBoundary";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
+import { USER_ERROR_SCREEN } from "@/lib/currentScreen";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { queryClient } from "@/lib/queryClient";
 
@@ -115,6 +126,7 @@ describe("every error surface reports with a screen tag", () => {
     expect(screen.getByText(/This page hit a problem/)).toBeTruthy();
     const tags = reportedTags();
     expect(tags.source).toBe("RouteErrorBoundary");
+    expect(tags.kind, "a crashed route is a person looking at an error screen").toBe(USER_ERROR_SCREEN);
     expect(tags.screen).toBe("/messages");
   });
 
@@ -124,6 +136,7 @@ describe("every error surface reports with a screen tag", () => {
     expect(screen.getByText(/Something went sideways/)).toBeTruthy();
     const tags = reportedTags();
     expect(tags.source).toBe("ErrorBoundary");
+    expect(tags.kind).toBe(USER_ERROR_SCREEN);
     expect(tags.screen).toBe("/activity");
   });
 
@@ -140,6 +153,7 @@ describe("every error surface reports with a screen tag", () => {
     expect(screen.getByText(/Couldn't load recommended jobs/)).toBeTruthy();
     const tags = reportedTags();
     expect(tags.source).toBe("SectionBoundary");
+    expect(tags.kind).toBe(USER_ERROR_SCREEN);
     expect(tags.section).toBe("recommended jobs");
     expect(tags.screen).toBe("/activity");
   });
@@ -149,6 +163,7 @@ describe("every error surface reports with a screen tag", () => {
     expect(screen.getByText(/couldn't load your jobs/)).toBeTruthy();
     const tags = reportedTags();
     expect(tags.source).toBe("ErrorState");
+    expect(tags.kind).toBe(USER_ERROR_SCREEN);
     expect(tags.title).toBe("We couldn't load your jobs.");
     expect(tags.screen).toBe("/activity");
   });
@@ -175,8 +190,33 @@ describe("every error surface reports with a screen tag", () => {
     const call = report.mock.calls.find((c) => (c[1] as { tags?: { source?: string } })?.tags?.source === "ProtectedRoute.profileFetchError");
     expect(call, "ProtectedRoute must report its own account-load failure").toBeTruthy();
     expect((call![1] as { tags: { screen: string } }).tags.screen).toBe("/dashboard");
+    // The card itself (ErrorState) is what reaches the ops ledger (Q12/Q39).
+    const card = report.mock.calls.find((c) => (c[1] as { tags?: { kind?: string } })?.tags?.kind === USER_ERROR_SCREEN);
+    expect(card, "the account-load card must report as a user error screen").toBeTruthy();
     currentUser.isError = false;
   });
+
+  it("ReportErrorScreen (hand-drawn pane error cards)", () => {
+    render(<ReportErrorScreen source="ChatTimeline" title="Couldn't load this conversation." />);
+    const tags = reportedTags();
+    expect(tags.source).toBe("ChatTimeline");
+    expect(tags.kind).toBe(USER_ERROR_SCREEN);
+    expect(tags.title).toBe("Couldn't load this conversation.");
+    expect(tags.screen).toBe("/activity");
+  });
+
+  it("ReportErrorScreen does not report while offline", () => {
+    const spy = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    render(<ReportErrorScreen source="X" title="y" />);
+    expect(report).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  // The pane cards that carry <ReportErrorScreen> (ChatTimeline,
+  // ApplicantsErrorState, SavedSearches, NotificationPanel) are held by the
+  // source inventory below; mounting them here drags in their whole trees
+  // (ApplicantsStates -> ShareJobButton -> radix popover), which flaked
+  // with a react/jsx-runtime interop error under a multi-file run.
 
   it("a failed query reports through the shared QueryCache", async () => {
     await queryClient
@@ -228,6 +268,7 @@ describe("error-surface inventory", () => {
     const block = main.slice(main.indexOf("helpr_boot_failure"));
     expect(block).toMatch(/report\(new Error\(`Boot failed/);
     expect(block).toMatch(/source: "BootWatchdog"/);
+    expect(block, "the boot failure screen is a user error screen").toMatch(/kind: USER_ERROR_SCREEN/);
     expect(block).toMatch(/screen:/);
   });
 
@@ -257,5 +298,90 @@ describe("error-surface inventory", () => {
         expect(tags, `${f}: report() without screen tag`).toMatch(/screen:/);
       }
     }
+  });
+});
+
+// ── Q39: every error screen in src reaches the ops alert ledger ───────────
+//
+// INVENTORY FROM SOURCE: every .tsx file that renders error-screen copy
+// ("couldn't load", "This page hit a problem", "Something went sideways",
+// "We couldn't verify your access") outside comments / toasts / console /
+// report() lines. Each must report with kind "user-error-screen" — by
+// rendering <ErrorState> (which does), by rendering <ReportErrorScreen>, or by
+// its own report(..., { kind: USER_ERROR_SCREEN }). The only other way out is
+// EXCUSED_INLINE, for one-line rows that are not a screen, and that list is
+// two-way (an excused file that stops matching is stale).
+const ERROR_COPY = /(?:We\s+)?[Cc]ouldn(?:'|&apos;|\u2019)t load\b|This page hit a problem|Something went sideways|We couldn't verify your access/;
+
+function errorCopyLines(src: string): number[] {
+  const hits: number[] = [];
+  let inBlock = false;
+  src.split("\n").forEach((l, i) => {
+    const t = l.trim();
+    if (inBlock) {
+      if (t.includes("*/")) inBlock = false;
+      return;
+    }
+    if (t.startsWith("/*") || t.startsWith("{/*")) {
+      if (!t.includes("*/")) inBlock = true;
+      return;
+    }
+    if (t.startsWith("//") || t.startsWith("*")) return;
+    if (/toast\.|console\.|\breport\(/.test(l)) return;
+    if (ERROR_COPY.test(l)) hits.push(i + 1);
+  });
+  return hits;
+}
+
+const EXCUSED_INLINE: Record<string, string> = {
+  "components/InstantPayoutDialog.tsx": "an inline error line inside the payout dialog, not a screen",
+  "components/admin/AdminNotifications.tsx": "one admin-only <p> under a settings card",
+  "components/profile/ProfileSectionError.tsx": "a one-line row inside a Profile sub-section; the profile itself loaded",
+  "components/profile/SecurityTab.tsx": "one line of the session-history list; reported as SecurityTab.sessions",
+  "components/profile/profileEditForm/PhotoNameSection.tsx": "a field hint under the avatar picker",
+  "components/reviewPanel/ReviewList.tsx": "one line under the review summary; reported as ReviewPanel.load",
+  "pages/dashboard/QuickApplyHandler.tsx": "a toast (failWith), not a rendered screen",
+};
+
+const tsxFiles = walk(SRC).filter((f) => f.endsWith(".tsx"));
+const rel = (f: string) => f.slice(SRC.length + 1);
+const reachesLedger = (src: string) =>
+  /<ErrorState\b/.test(src) || /<ReportErrorScreen\b/.test(src) || /kind: USER_ERROR_SCREEN/.test(src);
+
+describe("every error screen in src reaches the ops alert ledger (Q39)", () => {
+  const withCopy = tsxFiles.filter((f) => errorCopyLines(readFileSync(f, "utf8")).length > 0);
+
+  it("inventory floor: the scan finds the app's error screens", () => {
+    expect(withCopy.length).toBeGreaterThan(40);
+  });
+
+  it("each one reports with kind user-error-screen (or is an excused inline row)", () => {
+    const silent = withCopy
+      .filter((f) => !(rel(f) in EXCUSED_INLINE))
+      .filter((f) => !reachesLedger(readFileSync(f, "utf8")))
+      .map((f) => `${rel(f)}:${errorCopyLines(readFileSync(f, "utf8")).join(",")}`);
+    expect(silent, "error screen that never becomes a user-error-screen report — render <ErrorState>, add <ReportErrorScreen>, or excuse it here with a reason").toEqual([]);
+  });
+
+  it("EXCUSED_INLINE is two-way: every excused file still renders error copy", () => {
+    const stale = Object.keys(EXCUSED_INLINE).filter((k) => !withCopy.some((f) => rel(f) === k));
+    expect(stale).toEqual([]);
+  });
+
+  it("every error boundary (getDerivedStateFromError) reports with the kind tag", () => {
+    const boundaries = tsxFiles.filter((f) => /getDerivedStateFromError/.test(readFileSync(f, "utf8")));
+    expect(boundaries.length).toBeGreaterThanOrEqual(3);
+    const missing = boundaries.filter((f) => !/kind: USER_ERROR_SCREEN/.test(readFileSync(f, "utf8"))).map(rel);
+    expect(missing).toEqual([]);
+  });
+
+  it("the kind value is the one the database trigger keys on (newest is_user_error_screen_row)", () => {
+    const dir = join(SRC, "..", "supabase", "migrations");
+    const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+    let body = "";
+    const re = /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.is_user_error_screen_row\s*\([\s\S]*?\bAS\s+(\$\w*\$)([\s\S]*?)\1/gi;
+    for (const f of files) for (const m of readFileSync(join(dir, f), "utf8").matchAll(re)) body = m[2];
+    expect(body, "no migration defines public.is_user_error_screen_row").not.toBe("");
+    expect(body).toContain(`p_tags ->> 'kind' = '${USER_ERROR_SCREEN}'`);
   });
 });

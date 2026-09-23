@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { report } from "@/lib/errorLogger";
-import { currentScreen } from "@/lib/currentScreen";
+import { currentScreen, USER_ERROR_SCREEN } from "@/lib/currentScreen";
 import {
   isChunkLoadError,
   hardReloadBypassCache,
@@ -60,7 +60,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     if (isChunkLoadError(error) && recoverFromChunkError()) return;
     report(error, {
       severity: "error",
-      tags: { source: "ErrorBoundary", screen: currentScreen() },
+      tags: { source: "ErrorBoundary", kind: USER_ERROR_SCREEN, screen: currentScreen() },
       context: { componentStack: errorInfo.componentStack },
     });
   }

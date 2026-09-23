@@ -1,6 +1,7 @@
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { AlertTriangle, MessageSquare, Loader2, RotateCw } from "lucide-react";
 import { TypingIndicator } from "@/components/ChatPresence";
 import { MessageBubble } from "../MessageBubble";
@@ -136,6 +137,7 @@ export function ChatTimeline({
           failure never masquerades as an empty conversation. */}
       {!chatLoading && chatLoadError && (
         <div className="flex flex-col items-center text-center py-14 gap-3">
+          <ReportErrorScreen source="ChatTimeline" title="Couldn't load this conversation." />
           <div
             className="w-14 h-14 rounded-full flex items-center justify-center"
             style={{

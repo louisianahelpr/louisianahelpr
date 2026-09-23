@@ -61,7 +61,9 @@ function walk(dir: string, out: string[] = []): string[] {
 
 describe("the prod presser never flips an admin setting", () => {
   it("inventory: admin screens really do render switches (floor)", () => {
-    const n = walk(join(ROOT, "src/components/admin"))
+    const files = walk(join(ROOT, "src/components/admin"));
+    expect(files.length).toBeGreaterThan(50);
+    const n = files
       .map((f) => (blankComments(readFileSync(f, "utf8")).match(/<Switch\b/g) ?? []).length)
       .reduce((a, b) => a + b, 0);
     expect(n).toBeGreaterThan(2);

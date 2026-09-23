@@ -30,7 +30,7 @@
  *       the database unless the re-run started after the last occurrence.
  */
 import { execFileSync } from "node:child_process";
-import { OPEN_ITEMS_SQL, lit, recordOpsAlert, sql } from "./lib/opsAlertLedger.mjs";
+import { OPEN_ITEMS_SQL, lit, newestNightlyIssueByTitle, recordOpsAlert, sql } from "./lib/opsAlertLedger.mjs";
 
 const [, , cmd, ...rest] = process.argv;
 const opt = (name, dflt = undefined) => {
@@ -44,6 +44,8 @@ const TRACKED_LABELS = ["nightly-red", "prod-down", "prod-errors", "supabase-usa
 function gh(args) {
   return JSON.parse(execFileSync("gh", args, { encoding: "utf8", maxBuffer: 1 << 24 }) || "null");
 }
+
+const newestIssueByTitle = (repo, title) => newestNightlyIssueByTitle(repo, title, gh);
 
 async function list() {
   const brief = flag("brief");
@@ -129,7 +131,21 @@ async function sync() {
     const ref = typeof it.sample_ref === "string" ? JSON.parse(it.sample_ref) : it.sample_ref ?? {};
     let evidence = null;
     let rerunAt = null;
-    if (it.source_kind === "nightly_red" && ref.issue) {
+    if (it.source_kind === "nightly_red" && !ref.issue) {
+      // main-red-watch.yml records the SAME title ("nightly-red: main: X")
+      // with only a run_url, and ops_alert_apply overwrites sample_ref, so the
+      // item loses its issue number and step 2 above could never close it
+      // (docs/OPEN.md Q42: "main: vacuity" and "main: staleness watch" stayed
+      // open after their issues were closed green). Find the issue by its
+      // exact title instead: the newest one, closed by the workflow's own
+      // green run AFTER the last occurrence, is the evidence.
+      const iss = newestIssueByTitle(repo, it.title);
+      if (iss && iss.state === "closed" && iss.closed_by?.login === "github-actions[bot]"
+          && new Date(iss.closed_at) > new Date(it.last_seen)) {
+        evidence = `issue #${iss.number} "${iss.title}" closed by its workflow's own green run (github-actions[bot]) at ${iss.closed_at}, after the last occurrence: ${iss.html_url}`;
+        rerunAt = iss.closed_at;
+      }
+    } else if (it.source_kind === "nightly_red" && ref.issue) {
       const iss = gh(["api", `repos/${repo}/issues/${ref.issue}`]);
       if (iss.state === "closed" && iss.closed_by?.login === "github-actions[bot]") {
         evidence = `issue #${ref.issue} closed by its workflow's own green run (github-actions[bot]) at ${iss.closed_at}: ${iss.html_url}`;

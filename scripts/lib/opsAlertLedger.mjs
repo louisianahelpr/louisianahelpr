@@ -89,3 +89,18 @@ SELECT id, severity, status, source_kind, source, title, count, first_seen, last
   FROM public.ops_alert_ledger
  WHERE status <> 'closed'
  ORDER BY array_position(ARRAY['fatal','critical','error','warning','info'], severity), last_seen DESC`;
+
+/**
+ * The newest nightly-red issue (any state) whose title equals `title`,
+ * compared case-insensitively (the ledger stores the normalised, lower-cased
+ * title). `run(args)` is the gh JSON runner. Returns the full issue (with
+ * closed_by) or null. Used by `ops-alert-ledger.mjs sync` for nightly_red
+ * items that lost their issue number (docs/OPEN.md Q42).
+ */
+export function newestNightlyIssueByTitle(repo, title, run) {
+  const want = String(title).trim().toLowerCase();
+  const found = run(["issue", "list", "--repo", repo, "--label", "nightly-red", "--state", "all", "--limit", "50",
+    "--search", `in:title "${String(title).replace(/"/g, "")}"`, "--json", "number,title"]) ?? [];
+  const same = found.filter((i) => String(i.title).trim().toLowerCase() === want).sort((a, b) => b.number - a.number);
+  return same.length ? run(["api", `repos/${repo}/issues/${same[0].number}`]) : null;
+}

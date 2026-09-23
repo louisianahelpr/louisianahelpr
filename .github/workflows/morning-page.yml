@@ -1,0 +1,94 @@
+name: Morning page
+
+# docs/OPEN.md Q67 (owner 2026-09-23: "The owner should never have to ask 'what
+# happened overnight'"). scripts/morning-page.mjs writes docs/morning/<date>.md:
+# what shipped (commits grouped by queue item), what's red (the scoreboard, the
+# open nightly-red issues, the ops alert ledger counts), new alerts (ledger
+# items first seen in 24h) and the OPEN.md items waiting on the OWNER.
+#
+# The scoreboard rows come from the newest successful scoreboard.yml run's
+# artifact (measured the previous evening, 19:17 UTC; the page prints its age),
+# falling back to the committed docs/SCOREBOARD.md. Anything it cannot read is
+# printed as "Could not check: <why>", never as nothing.
+#
+# UNTIL Q57 (Actions may commit) the page is published as the JOB SUMMARY and
+# an ARTIFACT; a session commits it if wanted.
+#
+# PROD LOAD: two read-only aggregate queries on public.ops_alert_ledger (tens
+# of rows) through the Management API, once a day. Exempt by name from the
+# 90-min spacing rule in src/test/prodWorkflowSpacing.test.ts for that reason,
+# so it keeps its own concurrency group (never prod-load).
+#
+# 12:05 UTC = 07:05 Central (daylight time), after the overnight suites.
+
+on:
+  schedule:
+    - cron: "5 12 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+concurrency:
+  group: morning-page
+  cancel-in-progress: false
+
+jobs:
+  page:
+    name: Write the morning page
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the last 24h of commits on main
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Fetch the newest scoreboard measurement
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          ID=$(gh run list --workflow scoreboard.yml --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -n "$ID" ] && gh run download "$ID" --name scoreboard --dir sb-latest; then
+            echo "scoreboard artifact from run $ID"
+          else
+            echo "::warning::no scoreboard artifact to read; the page uses the committed docs/SCOREBOARD.md (it prints how old that is)"
+          fi
+      - name: Write the page
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/morning-page.mjs --scoreboard sb-latest/docs/SCOREBOARD.md
+      - name: Publish as the job summary
+        if: always()
+        run: |
+          for f in docs/morning/*.md; do [ -f "$f" ] && cat "$f" >> "$GITHUB_STEP_SUMMARY"; done
+      - name: Upload the page
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: morning-page
+          path: docs/morning/
+          retention-days: 90
+
+  notify:
+    name: Report result
+    needs: [page]
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: morning-page
+          status: ${{ needs.page.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

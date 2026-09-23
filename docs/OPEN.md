@@ -1250,11 +1250,11 @@ sure someone hears it and closes it.
   storage objects have built up; purge anything past a retention window on
   a schedule (dry run first); prove no real user ever sees seed data (the
   browse views already exclude it; verify every other surface).
-- [ ] **Q66 Targets ("SLOs") on the scoreboard.** Define "working" as numbers:
+- [ ] **Q66 Targets ("SLOs") on the scoreboard.** STATUS 2026-09-23 (landed from cloud/q66-q67-slo-morning): scripts/slo.mjs defines each target with its source; live rows on the scoreboard (not-measured metrics say why); guard src/test/sloTargetsTwoWay.test.ts. Tick after the scoreboard workflow measures them on CI. Define "working" as numbers:
   p95 page load (web + app), API error rate, uptime, payment success rate,
   notification delivery rate, time to a payout. Show each with its target on
   the Q59 scoreboard, red when missed.
-- [ ] **Q67 An automatic morning page.** Generated daily: what shipped (commits
+- [ ] **Q67 An automatic morning page.** STATUS 2026-09-23 (landed): scripts/morning-page.mjs + .github/workflows/morning-page.yml write docs/morning/YYYY-MM-DD.md daily (shipped / red / new alerts / owner decisions); guard src/test/morningPage.test.ts. The lead ran it locally and it produced a correct page. Tick after the first scheduled run commits one (needs Q57 wiring). Generated daily: what shipped (commits
   grouped), what's red (scoreboard), new alerts, and the decisions waiting on
   the owner. The owner should never have to ask "what happened overnight".
 - [ ] **Q68 Slow and patchy networks (rural Louisiana).** Run the core journeys

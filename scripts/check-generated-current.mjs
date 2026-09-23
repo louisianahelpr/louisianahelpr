@@ -211,6 +211,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/gateLock.mjs": "lock file",
   "scripts/generate-ios-icons.mjs": "binary app icons from the source artwork; ios-icon-sync.yml",
   "scripts/measure-back-control-hover.mjs": "--out measurement dir",
+  "scripts/morning-page.mjs": "docs/morning/<date>.md, a DATED daily record that claims only its own date (Q67); morning-page.yml publishes it as the job summary + artifact until Actions may commit (Q57)",
   "scripts/new-migration.mjs": "scaffolds a new migration (authored, not generated)",
   "scripts/new-repro.mjs": "scaffolds a new repro spec (authored, not generated)",
   "scripts/prerender.mjs": "dist/ (build output)",

@@ -39,12 +39,13 @@
  *   node scripts/scoreboard.mjs --check      # shape check of the committed files only
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { queueCounts } from "./queue-count.mjs";
 import { countFindings, foldFindings, parseFindingsLog } from "./lib/auditFindings.mjs";
 import { INVENTORY as EXPIRY_INVENTORY, inventoryCounts, runAll as runExpiry, scoreboardRows as expiryScoreboardRows } from "./lib/expiryMonitor.mjs";
+import { measureSlos, realIo, sloRecord, sloTargetRows } from "./slo.mjs";
 
 export const REPO = resolve(import.meta.dirname, "..");
 export const SCOREBOARD = "docs/SCOREBOARD.md";
@@ -147,6 +148,8 @@ export function localRows(read = (p) => readFileSync(join(REPO, p), "utf8")) {
   } catch (e) {
     rows.push(unknown("expiry", "expiry inventory (items with no date source yet)", `could not read ${EXPIRY_INVENTORY}: ${e.message}`, { at: AT_HEAD }));
   }
+  // Q66: what "working" means, as targets. The verdicts are live rows.
+  rows.push(...sloTargetRows(AT_HEAD));
 
   rows.push({ group: "notes", signal: "Zod v4 `script-src eval` CSP report per page", status: "INFO", at: "2026-09-23 (Q13 note)",
     source: "node_modules/zod/v4/core/schemas.js (`jit && allowsEval.value`)",
@@ -638,6 +641,9 @@ export async function liveRows({ now = new Date(), sqlFn } = {}) {
   rows.push(...(await dbHealthRows(readOnly, now)));
   rows.push(...(await dbSaturationRows(readOnly, now)));
   rows.push(...(await expiryRows(now)));
+  // Q66: each target measured against its own source (scripts/slo.mjs).
+  const slo = await measureSlos({ now, ...(await realIo(readOnly)) });
+  rows.push(...slo);
   if (wf.summary) {
     const s = wf.summary;
     rows.push({ group: "CI", signal: "all workflows on main (last conclusive run)", status: s.FAIL || s.UNKNOWN || s.STALE ? "FAIL" : "PASS",
@@ -646,7 +652,7 @@ export async function liveRows({ now = new Date(), sqlFn } = {}) {
   rows.push(...wf.rows);
   // An UNKNOWN still says when the attempt was made.
   for (const r of rows) if (r.at === "not measured") r.at = `attempted ${iso(now)}`;
-  return { rows, at: iso(now), ledger: ledger.summary, red: red.summary, wf: wf.summary, branches: branches.summary };
+  return { rows, at: iso(now), ledger: ledger.summary, red: red.summary, wf: wf.summary, branches: branches.summary, slo: sloRecord(slo, now) };
 }
 
 // ── documents ───────────────────────────────────────────────────────────────
@@ -815,6 +821,10 @@ async function main() {
   let sbLive, openLive;
   if (argv.includes("--write")) {
     const live = await liveRows();
+    // The dated SLO record (Q66): scoreboard.yml uploads test-results/ as its artifact.
+    const dir = join(REPO, "test-results", "slo");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, `slo-${live.slo.measuredAt.slice(0, 10)}.json`), JSON.stringify(live.slo, null, 2) + "\n");
     sbLive = renderLiveScoreboard(live);
     openLive = renderLiveOpen(live);
   } else {

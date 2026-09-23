@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { queryKeys } from "@/lib/queryKeys";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
+import { isAccountRestricted } from "@/lib/banStatus";
 
 interface ReferralCredit {
   id: string;
@@ -54,7 +55,13 @@ export async function fetchReferralData(userId: string): Promise<ReferralData> {
       .insert({ user_id: userId, code: newCode })
       .select("code")
       .single();
-    if (insertErr) report(insertErr, { context: { where: "referral_codes.insert", userId } });
+    // A banned account's mint is refused by enforce_ban_gate (account_restricted).
+    // That is the ban working, not a fault: the page still renders without a
+    // code and the account screen explains the ban, so it is not sent to Sentry
+    // (Q302: otherwise every banned sign-in reported an error).
+    if (insertErr && !isAccountRestricted(insertErr)) {
+      report(insertErr, { context: { where: "referral_codes.insert", userId } });
+    }
     referralCode = inserted?.code ?? null;
   }
 

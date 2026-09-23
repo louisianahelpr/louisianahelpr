@@ -16,6 +16,7 @@ import { cn, formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
 import { toneTextClasses } from "@/components/admin/tones";
 import { RestrictApplicationsDialog } from "../RestrictApplicationsDialog";
+import { isIdentityVerified } from "@/lib/awardGate";
 
 
 interface ActionsTabProps {
@@ -72,6 +73,8 @@ export function ActionsTab({
     navigate("/dashboard");
   };
 
+  const alreadyVerified = isIdentityVerified({ connectIdentityVerified: viewProfile.stripe_identity_verified, idvStatus: viewProfile.idv_status });
+
   return (
     <TabsContent value="actions" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
       {/* Primary lifecycle actions */}
@@ -127,7 +130,15 @@ export function ActionsTab({
             Two columns fit the longest label ("Restrict Applications") with
             room to spare. */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setManualVerifyProfile(viewProfile)}>
+          {/* Q234: nothing to verify on an account whose identity already is. */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 justify-start"
+            disabled={alreadyVerified}
+            title={alreadyVerified ? "Identity already verified" : undefined}
+            onClick={() => setManualVerifyProfile(viewProfile)}
+          >
             <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" /> Manually Verify
           </Button>
           <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setWarningProfile(viewProfile)}>

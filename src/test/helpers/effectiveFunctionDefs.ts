@@ -84,7 +84,7 @@ export function parseRewrites(sql: string, file = ""): Rewrite[] {
 }
 
 /** Postgres regexp_replace, in JS. ARE `.` spans newlines unless flag `n`. */
-export function pgRegexpReplace(src: string, pattern: string, replacement: string, flags: string): string {
+function pgRegexpReplace(src: string, pattern: string, replacement: string, flags: string): string {
   const jsFlags = (flags.includes("g") ? "g" : "") + (flags.includes("n") ? "" : "s") + (flags.includes("i") ? "i" : "");
   const rep = replacement
     .replace(/\$/g, "$$$$")

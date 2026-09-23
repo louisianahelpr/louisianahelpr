@@ -61,7 +61,10 @@ beforeEach(() => {
   });
 });
 
+vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+
 import { fetchReferralData } from "./useReferralData";
+import { report } from "@/lib/errorLogger";
 
 describe("fetchReferralData — happy path", () => {
   it("returns existing code, credits, count, and stripe flag for a fully-set-up user", async () => {
@@ -248,6 +251,46 @@ describe("fetchReferralData — a failed read is surfaced, never papered over", 
     await expect(fetchReferralData("u1")).rejects.toThrow(/profile failed/);
   });
 });
+
+// Q302: a banned account's code mint is refused by enforce_ban_gate with
+// 'account_restricted' (42501). That is the ban working, so it must not reach
+// Sentry via report(), while any OTHER insert failure still must.
+describe("fetchReferralData — a banned account's refused mint is not an error report", () => {
+  function failInsertWith(error: { message: string; code: string }) {
+    const base = fromMock.getMockImplementation()!;
+    fromMock.mockImplementation((table: string) => {
+      const b = base(table) as Record<string, (...a: unknown[]) => unknown>;
+      if (table === "referral_codes") {
+        const origInsert = b.insert;
+        b.insert = (row: unknown) => {
+          origInsert(row);
+          b.single = () => Promise.resolve({ data: null, error });
+          return b;
+        };
+      }
+      return b;
+    });
+  }
+
+  beforeEach(() => {
+    vi.mocked(report).mockClear();
+  });
+
+  it("an account_restricted refusal renders no code and is NOT reported", async () => {
+    failInsertWith({ message: "account_restricted", code: "42501" });
+    const result = await fetchReferralData("u1");
+    expect(result.referralCode).toBeNull();
+    expect(vi.mocked(report), "the expected ban refusal was sent to Sentry").not.toHaveBeenCalled();
+  });
+
+  it("any other insert failure is still reported", async () => {
+    failInsertWith({ message: "duplicate key value", code: "23505" });
+    const result = await fetchReferralData("u1");
+    expect(result.referralCode).toBeNull();
+    expect(vi.mocked(report)).toHaveBeenCalledTimes(1);
+  });
+});
+// @mutate src/hooks/useReferralData.ts | if (insertErr && !isAccountRestricted(insertErr)) { | if (insertErr) {
 
 // The duplicate-code gate: without it a user with a perfectly good code has a
 // second one written over it on every load.

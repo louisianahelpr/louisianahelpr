@@ -18,7 +18,7 @@
 // is decided in create-notification, not here.
 
 /** The row facts a template may read. Loaded server-side by job id. */
-export interface TemplateJob {
+interface TemplateJob {
   id: string;
   title: string | null;
   customer_id: string | null;
@@ -50,7 +50,7 @@ export interface BuiltNotification {
 }
 
 /** Extra reads a template needs before it can be built. */
-export type TemplateNeed = "revision" | "application" | "posterName" | "noShow";
+type TemplateNeed = "revision" | "application" | "posterName" | "noShow";
 
 export interface NotificationTemplate {
   /**

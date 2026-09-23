@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { DeleteUserDialog } from "./DeleteUserDialog";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -41,6 +41,10 @@ const sampleProfile = {
   full_name: "Lexi Lombas",
   email: "lexi@example.com",
 } as unknown as Profile;
+
+function typeConfirm() {
+  fireEvent.change(screen.getByLabelText(/to confirm deleting this account/i), { target: { value: "DELETE" } });
+}
 
 describe("DeleteUserDialog", () => {
   beforeEach(() => {
@@ -85,6 +89,7 @@ describe("DeleteUserDialog", () => {
         onSuccess={onSuccess}
       />,
     );
+    typeConfirm();
     const deleteBtn = screen.getByRole("button", { name: /Delete Permanently/ });
     deleteBtn.click();
     await waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(1));
@@ -110,11 +115,27 @@ describe("DeleteUserDialog", () => {
         onSuccess={onSuccess}
       />,
     );
+    typeConfirm();
     screen.getByRole("button", { name: /Delete Permanently/ }).click();
     await waitFor(() => expect(requireBiometricMock).toHaveBeenCalled());
     expect(invokeMock).not.toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("stays disabled and deletes nothing until DELETE is typed (Q234)", async () => {
+    invokeMock.mockResolvedValue({ data: { success: true }, error: null });
+    render(<DeleteUserDialog profile={sampleProfile} onClose={vi.fn()} />);
+    const btn = screen.getByRole("button", { name: /Delete Permanently/ });
+    expect(btn).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/to confirm deleting this account/i), { target: { value: "delete" } });
+    expect(btn).toBeDisabled();
+    btn.click();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(requireBiometricMock).not.toHaveBeenCalled();
+    expect(invokeMock).not.toHaveBeenCalled();
+    typeConfirm();
+    expect(btn).toBeEnabled();
   });
 
   it("toasts an error when the edge function fails", async () => {
@@ -123,6 +144,7 @@ describe("DeleteUserDialog", () => {
     render(
       <DeleteUserDialog profile={sampleProfile} onClose={onClose} />,
     );
+    typeConfirm();
     screen.getByRole("button", { name: /Delete Permanently/ }).click();
     await waitFor(() => expect(toastError).toHaveBeenCalled());
     expect(toastError).toHaveBeenCalledWith(expect.stringContaining("nope"));

@@ -14,6 +14,7 @@ import {
   DialogDestructiveAction,
 } from "@/components/ui/dialog";
 import { AlertTriangle } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
@@ -27,16 +28,22 @@ interface DeleteUserDialogProps {
   onSuccess?: () => void;
 }
 
+const CONFIRM_PHRASE = "DELETE";
+
 export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDialogProps) {
   const [deleting, setDeleting] = useState(false);
+  // Q234: the most irreversible admin action gets the same typed confirm the
+  // user's own Delete Account uses (biometry only gates it on device).
+  const [confirmText, setConfirmText] = useState("");
 
   const handleClose = () => {
     if (deleting) return;
+    setConfirmText("");
     onClose();
   };
 
   const submit = async () => {
-    if (!profile) return;
+    if (!profile || confirmText !== CONFIRM_PHRASE) return;
     // Face ID / Touch ID gate: this permanently destroys an account and all its
     // data — the single most irreversible action in the admin console. No-op on
     // web. On device it prompts whenever the device can authenticate its owner at
@@ -52,6 +59,7 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       onSuccess?.();
+      setConfirmText("");
       onClose();
     } catch (err) {
       toast.error((err as Error).message || "Couldn't delete that account — try again");
@@ -79,12 +87,23 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
               This action is permanent and cannot be undone. All user data will be removed.
             </p>
           </div>
+          <p className="text-ds-13 text-muted-foreground">
+            Type <span className="font-mono font-semibold">{CONFIRM_PHRASE}</span> below to confirm.
+          </p>
+          <Input
+            aria-label={`Type ${CONFIRM_PHRASE} to confirm deleting this account`}
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder={CONFIRM_PHRASE}
+            className="h-11 text-center font-mono tracking-wide rounded-ds-md"
+            disabled={deleting}
+          />
         </div>
         <DialogFooter>
           <DialogSecondaryAction onClick={handleClose} disabled={deleting}>
             Cancel
           </DialogSecondaryAction>
-          <DialogDestructiveAction onClick={submit} disabled={deleting}>
+          <DialogDestructiveAction onClick={submit} disabled={deleting || confirmText !== CONFIRM_PHRASE}>
             {deleting ? "Deleting…" : "Delete Permanently"}
           </DialogDestructiveAction>
         </DialogFooter>

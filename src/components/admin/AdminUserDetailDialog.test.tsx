@@ -152,6 +152,19 @@ describe("AdminUserDetailDialog", () => {
     expect(props.setDeleteProfile).toHaveBeenCalledWith(pendingProfile);
   });
 
+  it.each([
+    ["idv_status verified", { idv_status: "verified" }],
+    ["Stripe identity verified", { stripe_identity_verified: true }],
+  ])("disables Manually Verify on an already-verified account: %s (Q234)", (_label, patch) => {
+    const verified = { ...pendingProfile, ...patch } as typeof pendingProfile;
+    const props = makeProps(verified);
+    render(<AdminUserDetailDialog {...props} />);
+    const btn = screen.getByRole("button", { name: /Manually Verify/ });
+    expect(btn).toBeDisabled();
+    fireEvent.click(btn);
+    expect(props.setManualVerifyProfile).not.toHaveBeenCalled();
+  });
+
   it("disables Suspend / Ban on the acting admin's OWN row", async () => {
     // A self-issued ban locks the admin out of this console with no
     // self-serve undo, and the database refuses the row outright

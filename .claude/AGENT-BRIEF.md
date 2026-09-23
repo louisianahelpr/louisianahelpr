@@ -36,7 +36,7 @@ says more.
 - Before pushing ANY new or changed test, also run the repo-wide guards that
   scan every test file; each turned main red at least once on 2026-09-23
   because a lane ran only its own test:
-  `npx vitest run src/test/baselinesAreTwoWay.test.ts src/test/guardsDoNotDeleteSource.test.ts src/test/guardsReadTheNewestMigration.test.ts src/test/liveCheckScriptsFailClosed.test.ts src/test/fixtureSchemaContract.test.ts src/test/helprNotHelperInCopy.test.ts src/test/queueItemsNameTheirGuard.test.ts`
+  `npx vitest run src/test/baselinesAreTwoWay.test.ts src/test/guardsDoNotDeleteSource.test.ts src/test/guardsReadTheNewestMigration.test.ts src/test/liveCheckScriptsFailClosed.test.ts src/test/fixtureSchemaContract.test.ts src/test/helprNotHelperInCopy.test.ts src/test/queueItemsNameTheirGuard.test.ts src/test/e2eImportsInAppTsconfig.test.ts`
 
 ## Data and prod
 - Prod (`fncmgoasalhdgfwzhsqa`) is the only database. Read-only SQL is fine;

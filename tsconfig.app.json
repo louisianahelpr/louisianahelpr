@@ -47,6 +47,8 @@
     "e2e/skipSites.ts",
     "e2e/skipAllowlist.ts",
     "e2e/reporters/skipReporter.ts",
+    // src/test/fundedOpenJobPlan.test.ts (Q100). Pinned by src/test/e2eImportsInAppTsconfig.test.ts.
+    "e2e/prod-audit/fundedOpenJobPlan.ts",
     "supabase/functions/_shared/businessSeatTiers.ts",
     "supabase/functions/_shared/proTiers.ts",
     "supabase/functions/_shared/tierNames.ts",

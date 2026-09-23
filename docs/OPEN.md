@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 54 done, 6 partly done (fixed, protection pending), 75 open. Source of truth for work.
+- **Queue (this file):** 55 done, 6 partly done (fixed, protection pending), 76 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 136 items — 54 done, 6 partly done (fixed, protection pending), 76 open.**
+**Queue: 137 items — 55 done, 6 partly done (fixed, protection pending), 76 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -470,6 +470,7 @@ sure someone hears it and closes it.
 - [ ] **Q136 arbitraryWidthVariantsCompile races vacuityGate's temp fixture in a whole-repo vitest run (found by the Q129 lane 2026-09-23).** src/test/vacuityGate.test.ts writes then deletes src/test/fixtures/vacuitySelfTest-<pid>-<rand>/planted.spec.ts inside the repo; src/test/arbitraryWidthVariantsCompile.test.ts runs Tailwind over the tree concurrently and threw ENOENT stat on that file (full run 2026-09-23 04:50, ~/.lh-shots/q129/full-vitest.log); alone it passes. Fix: vacuityGate writes its fixture outside Tailwind's content globs (or tailwind content excludes src/test/fixtures/vacuitySelfTest-*), with a case proving the glob excludes it.
 - [ ] **Q137 A seed subject can notify a REAL person (money/trust review of Q100, 2026-09-23).** When the Q100 funded fixture job (is_seed, e3e08fd1-3449-40f7-a99d-f5d49dbe53df) became escrowed at 11:35Z, notify_helpers_on_job_post sent "New job in your parish" (job_match) to two East Baton Rouge accounts and called send-notification-email via net.http_post. The triggers skip a seed job only while seed_jobs_hidden_publicly() is true, and it is FALSE on prod (the launch switch). Both recipients were seed today, but any real helper in that parish would be pushed and emailed about a fake job, and the fixture re-funds on a schedule. Principle: a seed subject or seed actor never notifies a NON-seed recipient, whatever the switch; seed-to-seed stays. In progress.
 - [ ] **Q128 Triage press-every-control run 35837735324 (e96adc16d, red, 2026-09-23).** Classes seen: (1) 429 on Sentry `envelope/` counted as a control failure (earnings, signup, schedule, home_history) — our own telemetry rate limit, not a product defect; the harness must not blame the control, and 429s from our own reporter need their own look; (2) "Copy Mon to all" on /profile?tab=availability: no observable change for customer AND helper — real defect or harness blind spot, measure; (3) /jobs/:id "Done — <date>" timeline buttons NOT CLICKABLE (16s timeout, 3 rows) — something covers them or they are disabled-looking-enabled; (4) /admin?view=credentials "Open" no observable change; (5) apay-us.amazon.com 500 (third party); (6) admin Refund Poster not found on reload (transient DOM); (7) GoTrue refused test sessions mid-run and parts were cancelled on time budget (a cancelled run is a hidden red). Fix real defects with guards, reclassify harness noise with a guard that each class stays classified, and re-dispatch press.
+- [x] **Q138 DONE: a test importing an unlisted e2e file can no longer turn typecheck red unseen (2026-09-23).** tsconfig.app.json is composite, so every e2e file a src/test file imports must be listed; lanes run only targeted vitest, so TS6307 surfaced only in the Test workflow (twice tonight: e2eSkipsAreJustified, then fundedOpenJobPlan since 8f6256c2a). Listed e2e/prod-audit/fundedOpenJobPlan.ts. Guard: src/test/e2eImportsInAppTsconfig.test.ts (follows each import's e2e closure; red on the old tsconfig naming exactly that file; typecheck clean after).
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes

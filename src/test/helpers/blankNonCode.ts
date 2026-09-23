@@ -98,6 +98,35 @@ function scan(src: string, blankStrings: boolean): string {
       i = j + 2;
       continue;
     }
+    if (c === "/" && regexCanStart(src, i)) {
+      /*
+       * A REGEX LITERAL IS NOT CODE EITHER (Q24).
+       *
+       * `/null \(reading 'use[A-Z]\w*'\)/i` (src/lib/chunkReload.ts) holds a
+       * `'`; read as code, that quote opened a "string" which ran to the next
+       * `'` in the file and swallowed the comments in between, so guards read
+       * them as live code. A `/` where an expression can START is a regex, not
+       * division. Its body is kept as-is (like a string with blankStrings off).
+       */
+      let j = i + 1;
+      let inClass = false;
+      while (j < n && src[j] !== "\n") {
+        const ch = src[j];
+        if (ch === "\\") { j += 2; continue; }
+        if (ch === "[") inClass = true;
+        else if (ch === "]") inClass = false;
+        else if (ch === "/" && !inClass) break;
+        j++;
+      }
+      if (j < n && src[j] === "/") {
+        if (blankStrings) blank(i + 1, j /* regex body */);
+        j++;
+        while (j < n && /[a-z]/i.test(src[j])) j++;
+        i = j;
+        continue;
+      }
+      // No closing `/` on the line: not a regex after all; fall through.
+    }
     if (c === '"' || c === "'" || c === "`") {
       /*
        * AN APOSTROPHE IN PROSE IS NOT A STRING QUOTE.
@@ -131,6 +160,27 @@ function scan(src: string, blankStrings: boolean): string {
     i++;
   }
   return out.join("");
+}
+
+/**
+ * Whether a `/` at `i` can open a regex literal: the previous significant
+ * token must be one after which an expression starts (an operator, an opening
+ * bracket, a comma, or a keyword like `return`), not an identifier, number or
+ * closing bracket (which make it division).
+ */
+function regexCanStart(src: string, i: number): boolean {
+  let k = i - 1;
+  while (k >= 0 && /[ \t\r\n]/.test(src[k])) k--;
+  if (k < 0) return true;
+  const p = src[k];
+  if ("([{,;:=!&|?+-*%<>~^".includes(p)) return true;
+  if (/[A-Za-z_$]/.test(p)) {
+    let s = k;
+    while (s >= 0 && /[A-Za-z_$]/.test(src[s])) s--;
+    const word = src.slice(s + 1, k + 1);
+    return ["return", "typeof", "case", "in", "of", "delete", "void", "throw", "new", "else", "do", "yield", "await"].includes(word);
+  }
+  return false;
 }
 
 /**

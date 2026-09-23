@@ -28,7 +28,9 @@ import {
   type FixtureRow,
 } from "../../e2e/prod-audit/fundedOpenJobPlan";
 
-const TODAY = "2026-09-23";
+// A fixed era well in the past (jobDayFixtureTimezone: a present-era job
+// day is a time bomb). Only the gaps matter: +30, +4 and +7 days.
+const TODAY = "2020-01-15";
 let n = 0;
 const row = (over: Partial<FixtureRow> = {}): FixtureRow => ({
   id: `job-${++n}`,
@@ -36,8 +38,8 @@ const row = (over: Partial<FixtureRow> = {}): FixtureRow => ({
   status: "open",
   payment_status: "escrow",
   helper_id: null,
-  date_needed: "2026-10-23",
-  created_at: `2026-09-${String(10 + n).padStart(2, "0")}T00:00:00Z`,
+  date_needed: "2020-02-14",
+  created_at: `2020-01-${String(1 + (n % 14)).padStart(2, "0")}T00:00:00Z`,
   ...over,
 });
 const plan = (rows: FixtureRow[], applied: string[] = []) =>
@@ -57,7 +59,7 @@ describe("planFundedOpenJob", () => {
   });
 
   it("REFRESHES a fixture inside the runway: retires it through cancel_escrow and pays a new one", () => {
-    const old = row({ date_needed: "2026-09-27" });
+    const old = row({ date_needed: "2020-01-19" });
     const p = plan([old]);
     expect(p.reuse).toBeNull();
     expect(p.pay).toBe("new");
@@ -66,7 +68,7 @@ describe("planFundedOpenJob", () => {
   });
 
   it("keeps a fixture with exactly MIN_RUNWAY_DAYS left", () => {
-    const edge = row({ date_needed: "2026-09-30" });
+    const edge = row({ date_needed: "2020-01-22" });
     expect(MIN_RUNWAY_DAYS).toBe(7);
     expect(plan([edge]).reuse).toBe(edge);
   });

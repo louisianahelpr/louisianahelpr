@@ -1,19 +1,15 @@
 /**
  * useAdminUsersFilter
  *
- * Pure filter + sort logic for the admin user list.
- * Extracted verbatim from AdminUsers.tsx — behaviour-preserving structural
- * refactor.
+ * Tab / sort types and the client-side reorder for the admin user list.
+ * Filtering moved server-side in Q232 (adminUsersQuery.ts).
  */
 import type { Profile } from "../adminUserHelpers";
-import { isAwaitingEmail } from "../adminUserHelpers";
 
 // No "pending" / "denied" tabs: approval review was retired in Q193 (owner,
 // 2026-09-23). "approved" (labelled Active) = email confirmed and not banned.
 export type Tab = "awaiting_email" | "approved" | "banned" | "all";
 
-const isBanned = (p: Profile) => ["temp_banned", "permanently_banned"].includes(p.ban_status || "");
-const isActive = (p: Profile) => !isAwaitingEmail(p) && !isBanned(p);
 export type SortDir =
   | "desc"
   | "asc"
@@ -26,75 +22,30 @@ export type SortDir =
   | "joined_old"
   | "never_logged_in";
 
-interface FilterDeps {
+interface SortDeps {
   profiles: Profile[];
-  tab: Tab;
-  searchQuery: string;
   sortDir: SortDir;
   strikesSummary: Record<string, number>;
   lastLoginSummary: Record<string, string>;
   paySummary: Record<string, number>;
 }
 
-export const filterAndSortProfiles = ({
+/**
+ * Tab, search and the column sorts (alpha / joined) run in Postgres now
+ * (adminUsersQuery.ts, Q232), so the rows arrive already filtered and in
+ * server order. This only reorders the LOADED rows for the sorts that read
+ * another table's data (last login, pay, strikes); for a server sort it
+ * returns the rows untouched.
+ */
+export const sortLoadedProfiles = ({
   profiles,
-  tab,
-  searchQuery,
   sortDir,
   strikesSummary,
   lastLoginSummary,
   paySummary,
-}: FilterDeps): Profile[] => {
-  return profiles.filter((p) => {
-    // Tab filter
-    if (tab === "awaiting_email" && !isAwaitingEmail(p)) return false;
-    else if (tab === "approved" && !isActive(p)) return false;
-    else if (tab === "banned" && !isBanned(p)) return false;
-
-    // Multi-field search — name, email (with fuzzy match), and phone.
-    // The job-UUID lookup is handled one layer up (in AdminUsers) so it
-    // can drill into a job admin view instead of filtering the list.
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      const profileWithPhone = p as Profile & { phone?: string | null; phone_number?: string | null };
-      // Pull phone from whatever column exists on the profile row (the
-      // schema isn't fully consistent across deployments — newer rows use
-      // `phone`, older ones used `phone_number`).
-      const phoneRaw = (profileWithPhone.phone || profileWithPhone.phone_number || "").toString();
-      const phoneDigits = phoneRaw.replace(/\D/g, "");
-      const qDigits = q.replace(/\D/g, "");
-
-      // Phone-first: if the query is mostly digits and we can find a
-      // 4+-digit substring match in the phone, accept the row.
-      if (qDigits.length >= 4 && phoneDigits && phoneDigits.includes(qDigits)) {
-        return true;
-      }
-
-      const name = (p.full_name || "").toLowerCase();
-      const email = (p.email || "").toLowerCase();
-
-      // Exact substring match on name/email — fastest path, covers most cases.
-      if (name.includes(q) || email.includes(q)) return true;
-
-      // Fuzzy email match: drop punctuation (dots, plus addressing) from
-      // both sides so "jane.doe+ops@gmail" finds "janedoe@gmail" and vice
-      // versa. Cheap and forgiving without going full Levenshtein.
-      if (email) {
-        const normEmail = email.replace(/[._+-]/g, "");
-        const normQ = q.replace(/[._+-]/g, "");
-        if (normQ.length >= 3 && normEmail.includes(normQ)) return true;
-      }
-
-      return false;
-    }
-
-    return true;
-  }).sort((a, b) => {
-    if (sortDir === "alpha") {
-      const aName = (a.full_name || a.email || "").toLowerCase();
-      const bName = (b.full_name || b.email || "").toLowerCase();
-      return aName.localeCompare(bName);
-    }
+}: SortDeps): Profile[] => {
+  if (sortDir === "alpha" || sortDir === "joined_new" || sortDir === "joined_old") return profiles;
+  return [...profiles].sort((a, b) => {
     if (sortDir === "standing_worst" || sortDir === "standing_best") {
       const aStrikes = strikesSummary[a.user_id] || 0;
       const bStrikes = strikesSummary[b.user_id] || 0;
@@ -113,11 +64,6 @@ export const filterAndSortProfiles = ({
       const aPay = paySummary[a.user_id] || 0;
       const bPay = paySummary[b.user_id] || 0;
       return sortDir === "pay_high" ? bPay - aPay : aPay - bPay;
-    }
-    if (sortDir === "joined_new" || sortDir === "joined_old") {
-      const aJoined = new Date(a.created_at || 0).getTime();
-      const bJoined = new Date(b.created_at || 0).getTime();
-      return sortDir === "joined_new" ? bJoined - aJoined : aJoined - bJoined;
     }
     if (sortDir === "never_logged_in") {
       // Never-logged-in users first, then those with the oldest signup date among them.
@@ -140,16 +86,4 @@ export const filterAndSortProfiles = ({
     const diff = new Date(bLogin).getTime() - new Date(aLogin).getTime();
     return sortDir === "desc" ? diff : -diff;
   });
-};
-
-export const getTabCounts = (
-  profiles: Profile[],
-  isUnseen: (p: Profile) => boolean,
-) => {
-  const awaitingEmailCount = profiles.filter((p) => isAwaitingEmail(p)).length;
-  const bannedCount = profiles.filter((p) => isBanned(p) && isUnseen(p)).length;
-  const approvedCount = profiles.filter((p) => isActive(p) && isUnseen(p)).length;
-  const allCount = profiles.filter(isUnseen).length;
-
-  return { awaitingEmailCount, bannedCount, approvedCount, allCount };
 };

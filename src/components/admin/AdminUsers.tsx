@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { safeStorage } from "@/lib/safeStorage";
 import { VirtualList } from "@/components/VirtualList";
 import { AutoRestrictedRail } from "./AutoRestrictedRail";
 import { BanDialog } from "./BanDialog";
@@ -18,11 +17,12 @@ import { type Profile } from "./adminUserHelpers";
 import { useAdminUserSummaries } from "./useAdminUserSummaries";
 import { makeOpenProfile, type AdminProfileBan, type AdminProfileJob, type AdminProfileViolation } from "./adminusers/useOpenProfile";
 import { makeAdminUserActions } from "./adminusers/useAdminUserActions";
-import { filterAndSortProfiles, getTabCounts, type Tab, type SortDir } from "./adminusers/useAdminUsersFilter";
+import { sortLoadedProfiles, type Tab, type SortDir } from "./adminusers/useAdminUsersFilter";
+import { ADMIN_USERS_PAGE_SIZE, SERVER_SORTS, fetchTabCounts, fetchUserById, fetchUsersPage, type TabCounts } from "./adminusers/adminUsersQuery";
 import { AdminUserRow } from "./adminusers/AdminUserRow";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/button";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 
 // UUID v4-ish pattern. Loose enough to accept any 8-4-4-4-12 hex group;
@@ -113,58 +113,73 @@ const AdminUsers = () => {
   const trimmedQuery = searchQuery.trim();
   const isUuid = UUID_RE.test(trimmedQuery);
 
-  // Track which user IDs the admin has already seen (per tab category) — persisted in storage
-  const SEEN_KEY = "admin_seen_user_ids_v1";
-  const [seenUserIds, setSeenUserIds] = useState<Set<string>>(() => {
+  // Server-side paging (Q232). `profiles` is the pages loaded so far for the
+  // current tab + search + sort; `total` is the server's count for that same
+  // filter; `tabCounts` are head:true count queries, never array lengths.
+  const [total, setTotal] = useState(0);
+  const [tabCounts, setTabCounts] = useState<TabCounts | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(isUuid ? "" : trimmedQuery), 300);
+    return () => clearTimeout(t);
+  }, [trimmedQuery, isUuid]);
+  // Every request is stamped; a response for a superseded tab/search/sort is
+  // dropped rather than overwriting the newer one.
+  const requestSeq = useRef(0);
+
+  const loadCounts = useCallback(async () => {
     try {
-      const raw = safeStorage.getItem(SEEN_KEY);
-      return new Set<string>(raw ? JSON.parse(raw) : []);
-    } catch {
-      return new Set<string>();
+      setTabCounts(await fetchTabCounts());
+    } catch (error) {
+      console.error("[AdminUsers] loadCounts:", error);
+      toast.error("Couldn't load user counts — refresh to retry.");
     }
-  });
+  }, []);
 
-  const markUsersSeen = (ids: string[]) => {
-    if (!ids.length) return;
-    setSeenUserIds((prev) => {
-      const next = new Set(prev);
-      let changed = false;
-      for (const id of ids) {
-        if (!next.has(id)) {
-          next.add(id);
-          changed = true;
-        }
-      }
-      if (changed) {
-        try {
-          safeStorage.setItem(SEEN_KEY, JSON.stringify(Array.from(next)));
-        } catch {}
-      }
-      return next;
-    });
-  };
-
-  const loadProfiles = async () => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) {
+  const loadPage = useCallback(async (offset: number, keep: Profile[]) => {
+    const seq = ++requestSeq.current;
+    try {
+      const { rows, total: count } = await fetchUsersPage({ tab, search: debouncedSearch, sortDir, offset });
+      if (seq !== requestSeq.current) return;
+      const next = offset === 0 ? rows : [...keep, ...rows];
+      setProfiles(next);
+      setTotal(count);
+      // Summaries replace their state per call, so they are loaded for every
+      // row on screen (bounded by the pages the admin chose to load).
+      loadSummaries(next.map((p) => p.user_id), next);
+    } catch (error) {
+      if (seq !== requestSeq.current) return;
       console.error("[AdminUsers] loadProfiles:", error);
       toast.error("Couldn't load users — refresh to retry.");
-    } else if (data) {
-      setProfiles(data);
-      // Load supplemental data in parallel (non-blocking). `profiles` (the
-      // prior render's state) is passed for loadActivitySummary's
-      // failed-ID detection — matching the previous closure behaviour.
-      loadSummaries(data.map((p) => p.user_id), profiles);
+    } finally {
+      if (seq === requestSeq.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
-    setLoading(false);
+    // loadSummaries is recreated each render by its hook; the page request
+    // only depends on the filter inputs.
+     
+  }, [tab, debouncedSearch, sortDir]);
+
+  const loadProfiles = () => {
+    loadCounts();
+    return loadPage(0, []);
   };
 
   useEffect(() => {
-    loadProfiles();
-  }, []);
+    loadCounts();
+  }, [loadCounts]);
+
+  useEffect(() => {
+    loadPage(0, []);
+  }, [loadPage]);
+
+  const loadMore = () => {
+    setLoadingMore(true);
+    loadPage(profiles.length, profiles);
+  };
 
   // Build openProfile from the extracted factory. Memoized so the
   // reference stays stable across renders — the memoized AdminUserRow
@@ -190,16 +205,25 @@ const AdminUsers = () => {
   // automatically. Strip the ?user= param afterwards so navigating back
   // doesn't re-open the dialog every time.
   useEffect(() => {
+    // The user may not be on a loaded page, so fetch them by id.
     const userIdParam = searchParams.get("user");
-    if (!userIdParam || profiles.length === 0) return;
-    const target = profiles.find((p) => p.user_id === userIdParam);
-    if (target) {
-      openProfile(target);
-      const next = new URLSearchParams(searchParams);
-      next.delete("user");
-      setSearchParams(next, { replace: true });
-    }
-  }, [profiles, searchParams]);
+    if (!userIdParam) return;
+    let cancelled = false;
+    fetchUserById(userIdParam)
+      .then((target) => {
+        if (cancelled) return;
+        if (target) openProfile(target);
+        else toast.error("That user no longer exists.");
+        const next = new URLSearchParams(searchParams);
+        next.delete("user");
+        setSearchParams(next, { replace: true });
+      })
+      .catch((error) => {
+        console.error("[AdminUsers] deep link:", error);
+        toast.error("Couldn't open that user — refresh to retry.");
+      });
+    return () => { cancelled = true; };
+  }, [searchParams]);
 
   const [resending, setResending] = useState<string | null>(null);
 
@@ -215,40 +239,25 @@ const AdminUsers = () => {
     setViewProfile(null);
   };
 
-  // Filter + sort — extracted into filterAndSortProfiles
-  const filtered = filterAndSortProfiles({
+  // Rows arrive filtered and server-ordered; only the cross-table sorts
+  // reorder what is loaded.
+  const filtered = sortLoadedProfiles({
     profiles,
-    tab,
-    searchQuery,
     sortDir,
     strikesSummary,
     lastLoginSummary,
     paySummary,
   });
-
-  const isUnseen = (p: Profile) => !seenUserIds.has(p.user_id);
-
-  // When the admin views a tab, mark the users they're seeing as "seen" so the
-  // notification badge clears after a short dwell. Runs on tab change + new data.
-  useEffect(() => {
-    if (loading || filtered.length === 0) return;
-    const ids = filtered.map((p) => p.user_id);
-    const t = setTimeout(() => markUsersSeen(ids), 800);
-    return () => clearTimeout(t);
-
-  }, [tab, profiles.length, loading]);
-
-  // Tab counts — extracted into getTabCounts
-  const { awaitingEmailCount, bannedCount, approvedCount, allCount } =
-    getTabCounts(profiles, isUnseen);
+  const hasMore = profiles.length < total;
+  const sortIsServerSide = SERVER_SORTS.has(sortDir);
 
   if (loading) return <p className="text-muted-foreground">Loading users…</p>;
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "all", label: "All", count: allCount },
-    { key: "approved", label: "Active", count: approvedCount },
-    { key: "awaiting_email", label: "Email", count: awaitingEmailCount },
-    { key: "banned", label: "Banned", count: bannedCount },
+    { key: "all", label: "All", count: tabCounts?.all ?? 0 },
+    { key: "approved", label: "Active", count: tabCounts?.approved ?? 0 },
+    { key: "awaiting_email", label: "Email", count: tabCounts?.awaiting_email ?? 0 },
+    { key: "banned", label: "Banned", count: tabCounts?.banned ?? 0 },
   ];
 
   const tabCountLabel: Record<Tab, string> = {
@@ -314,7 +323,13 @@ const AdminUsers = () => {
       <AutoRestrictedRail
         onReview={(userId) => {
           const p = profiles.find((pr) => pr.user_id === userId);
-          if (p) openProfile(p);
+          if (p) { openProfile(p); return; }
+          fetchUserById(userId)
+            .then((row) => { if (row) openProfile(row); })
+            .catch((error) => {
+              console.error("[AdminUsers] rail review:", error);
+              toast.error("Couldn't open that user — refresh to retry.");
+            });
         }}
         onChange={() => loadProfiles()}
       />
@@ -380,7 +395,9 @@ const AdminUsers = () => {
 
       <div className="flex items-center justify-between px-1">
         <p className="text-ds-11 text-muted-foreground">
-          {filtered.length} {tabCountLabel[tab]} {filtered.length === 1 ? "user" : "users"}
+          {total} {tabCountLabel[tab]} {total === 1 ? "user" : "users"}
+          {hasMore && ` · showing ${profiles.length}`}
+          {hasMore && !sortIsServerSide && " (this sort orders the loaded users)"}
         </p>
         {searchQuery && (
           <button
@@ -421,6 +438,13 @@ const AdminUsers = () => {
             />
           )}
         />
+      )}
+      {hasMore && (
+        <div className="flex justify-center">
+          <Button variant="outline" size="sm" onClick={loadMore} disabled={loadingMore}>
+            {loadingMore ? "Loading…" : `Load ${Math.min(ADMIN_USERS_PAGE_SIZE, total - profiles.length)} more`}
+          </Button>
+        </div>
       )}
 
 

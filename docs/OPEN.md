@@ -7742,7 +7742,7 @@ sure someone hears it and closes it.
   ops-daily-digest (14:40 UTC) fell inside the 09-22 pg_cron outage
   (14:00-15:00), so no digest ran from 09-21 14:40 until the next slot, 38h+.
   Detect missed daily/weekly slots and run them once when the database is back.
-- [ ] **Q31 void-cancelled-payments (MONEY: releases card holds on cancelled
+- [x] **Q31 DONE (measured 2026-09-23 05:00Z): healthy since the 30s timeout change.** 0 cron-http/cron-dead failures after 22:35Z (last 20:15Z, during the timeout era); pg_cron failures only 08:00-14:00Z (the outage). All 79 cancelled jobs with a PaymentIntent are payment_status refunded (4) or cancelled (75): 0 live holds IN THE DB. NOT verified: Stripe-side PI state (the Stripe MCP needs auth). Ongoing coverage: the ledger cron-dead condition + money-reconciliation. Was: void-cancelled-payments (MONEY: releases card holds on cancelled
   jobs):** 14 "cron-dead: last 3 runs failed" and 46 HTTP 5s timeouts in 24h.
   Check whether it's healthy since the 30s timeout change. If not, customers'
   card holds on cancelled jobs aren't being released. Verify with the count of

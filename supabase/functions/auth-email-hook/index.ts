@@ -1,5 +1,6 @@
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
+import { renderEmail } from '../_shared/email-templates/render.ts'
 import { Webhook } from 'npm:standardwebhooks'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { SignupEmail } from '../_shared/email-templates/signup.tsx'
@@ -9,7 +10,7 @@ import { RecoveryEmail } from '../_shared/email-templates/recovery.tsx'
 import { EmailChangeEmail } from '../_shared/email-templates/email-change.tsx'
 import { ReauthenticationEmail } from '../_shared/email-templates/reauthentication.tsx'
 import { getAppUrl } from '../_shared/appUrl.ts'
-import { FROM_DEFAULT, SENDER_DOMAIN } from '../_shared/resend.ts'
+import { FROM_DEFAULT, SENDER_DOMAIN, sendWithResend } from '../_shared/resend.ts'
 
 // Supabase Auth "Send Email Hook" handler.
 //
@@ -26,9 +27,24 @@ import { FROM_DEFAULT, SENDER_DOMAIN } from '../_shared/resend.ts'
 // webhook-signature); the standardwebhooks npm package validates them.
 //
 // The function parses Supabase's payload, renders the appropriate
-// React Email template, and enqueues to pgmq.q_auth_emails. The
-// process-email-queue cron picks up the message every 5 min and sends
-// via Resend.
+// React Email template ONCE (html + text from one render), then:
+//   - SEND_INLINE types (the signup confirmation) go to Resend right here, so
+//     the new user's "Check your email" screen is not waiting on the next
+//     process-email-queue tick (cron '3-58/5 * * * *': up to 5 minutes).
+//     Q258. If the inline send fails or times out, the message falls back to
+//     the queue below, so a Resend blip delays the mail instead of losing it.
+//   - everything else is enqueued to pgmq.q_auth_emails and sent by the
+//     process-email-queue cron.
+
+// Types sent inline. Kept to the signup confirmation (Q258); recovery,
+// magic link and the rest still ride the queue (follow-up filed in
+// docs/OPEN.md under Q258).
+const SEND_INLINE = new Set<string>(['signup'])
+
+// GoTrue waits on this hook with its own (short) HTTP timeout, and a hook
+// that errors fails the signup itself. So the inline send gets a budget well
+// under that, and a slower Resend falls back to the queue instead.
+const INLINE_SEND_TIMEOUT_MS = 3_000
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -207,11 +223,11 @@ async function handleWebhook(req: Request): Promise<Response> {
     newEmail: user.new_email || emailData.new_email,
   }
 
-  // Render React Email template to HTML + plain text
-  const html = await renderAsync(React.createElement(EmailTemplate, templateProps))
-  const text = await renderAsync(React.createElement(EmailTemplate, templateProps), { plainText: true })
+  // Render React Email template ONCE to HTML + plain text (Q258: this used to
+  // render the whole tree twice, once per part).
+  const { html, text } = await renderEmail(React.createElement(EmailTemplate, templateProps))
+  const subject = EMAIL_SUBJECTS[emailType] || 'Notification'
 
-  // Enqueue for async send via process-email-queue → Resend
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
@@ -220,13 +236,54 @@ async function handleWebhook(req: Request): Promise<Response> {
   const messageId = crypto.randomUUID()
 
   // Log pending BEFORE enqueue so we have a record even if enqueue crashes
-  await supabase.from('email_send_log').insert({
+  const { error: pendingLogError } = await supabase.from('email_send_log').insert({
     message_id: messageId,
     template_name: emailType,
     recipient_email: user.email,
     status: 'pending',
   })
+  if (pendingLogError) {
+    // Not fatal (the mail matters more than the audit row), never silent.
+    console.error('email_send_log pending insert failed', { emailType, error: pendingLogError.message })
+  }
 
+  // Inline send (Q258). Success → mark the pending row sent and return; the
+  // queue never sees it. Failure → fall through to the queue with the SAME
+  // message_id, so process-email-queue's 'sent' lookup still dedupes.
+  const resendApiKey = Deno.env.get('RESEND_API_KEY')
+  if (SEND_INLINE.has(emailType) && resendApiKey) {
+    try {
+      await sendWithResend(resendApiKey, {
+        to: user.email,
+        from: FROM_DEFAULT,
+        subject,
+        html,
+        text,
+      }, INLINE_SEND_TIMEOUT_MS)
+      const { error: sentLogError } = await supabase
+        .from('email_send_log')
+        .update({ status: 'sent', error_message: null })
+        .eq('message_id', messageId)
+      if (sentLogError) {
+        console.error('Failed to mark inline auth email sent', { emailType, error: sentLogError.message })
+      }
+      console.log('Auth email sent inline', { emailType })
+      return new Response(
+        JSON.stringify({ success: true, queued: false }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    } catch (error) {
+      // A timed-out send may still be delivered by Resend; the queued retry
+      // can then duplicate it. One extra confirmation mail is the right trade
+      // against a signup that never gets one.
+      console.error('Inline auth email send failed, falling back to queue', {
+        emailType,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  // Enqueue for async send via process-email-queue → Resend
   const { error: enqueueError } = await supabase.rpc('enqueue_email', {
     queue_name: 'auth_emails',
     payload: {
@@ -234,7 +291,7 @@ async function handleWebhook(req: Request): Promise<Response> {
       to: user.email,
       from: FROM_DEFAULT,
       sender_domain: SENDER_DOMAIN,
-      subject: EMAIL_SUBJECTS[emailType] || 'Notification',
+      subject,
       html,
       text,
       purpose: 'transactional',

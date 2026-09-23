@@ -491,6 +491,13 @@ function rewriteExternalImports(src: string): string {
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/email-templates\/[A-Za-z0-9_-]+\.tsx?["'];?/g,
     `import {$1} from "${MOCK.email}";`,
   );
+  // auth-email-hook (Q258): its webhook verifier (`npm:standardwebhooks`) and
+  // the preview endpoint's `renderAsync` point at the same email double, so
+  // the hook's delivery decision (inline Resend send vs. queue) can run.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["']npm:(?:standardwebhooks|@react-email\/components@[^"']+)["'];?/g,
+    `import {$1} from "${MOCK.email}";`,
+  );
   // `import * as React from 'npm:react@18.3.1'` — this repo already depends on
   // React 18, so the real library serves. `React.createElement` on an inert
   // template component is exactly what the function does in production; only

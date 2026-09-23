@@ -20,6 +20,7 @@ import { vi } from "vitest";
 
 /** Sender identity — one place, matching `_shared/resend.ts`'s contract. */
 export const FROM_DEFAULT = "Louisiana Helpr <hello@louisianahelpr.com>";
+export const SENDER_DOMAIN = "louisianahelpr.com";
 
 /** Every `renderEmail(...)` call, in order, with the element it was given. */
 export const emailRenders: unknown[] = [];
@@ -64,3 +65,29 @@ export const NotificationEmail = inert("NotificationEmail");
 
 /** Every direct `sendWithResend(key, message)` call, in order (send-notification-email's fallback). */
 export const sendWithResend = vi.fn(async (_key: string, _message: unknown) => ({ id: "resend-mock-id" }));
+
+// auth-email-hook's templates (inert, like the ones above).
+export const SignupEmail = inert("SignupEmail");
+export const InviteEmail = inert("InviteEmail");
+export const MagicLinkEmail = inert("MagicLinkEmail");
+export const RecoveryEmail = inert("RecoveryEmail");
+export const EmailChangeEmail = inert("EmailChangeEmail");
+export const ReauthenticationEmail = inert("ReauthenticationEmail");
+
+/** The preview endpoint's direct render; the webhook path goes through renderEmail. */
+export const renderAsync = vi.fn(async (element: unknown) => {
+  emailRenders.push(element);
+  return "<p>mock</p>";
+});
+
+/**
+ * `npm:standardwebhooks` double: a request signs as valid by carrying
+ * `webhook-signature: valid`; anything else throws like a bad signature.
+ */
+export class Webhook {
+  constructor(_secret: string) {}
+  verify(body: string, headers: Record<string, string>): unknown {
+    if (headers["webhook-signature"] !== "valid") throw new Error("bad signature");
+    return JSON.parse(body);
+  }
+}

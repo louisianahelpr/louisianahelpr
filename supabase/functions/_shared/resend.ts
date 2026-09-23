@@ -243,6 +243,13 @@ export const SEND_TIMEOUT_MS = 10_000
 export async function sendWithResend(
   apiKey: string,
   params: SendEmailParams,
+  /**
+   * Override the ceiling for a caller that is itself on a clock shorter than
+   * SEND_TIMEOUT_MS: auth-email-hook sends the signup confirmation inline
+   * while GoTrue waits on the hook (Q258), and falls back to the queue on a
+   * timeout rather than letting a slow Resend fail the signup.
+   */
+  timeoutMs: number = SEND_TIMEOUT_MS,
 ): Promise<string> {
   if (!apiKey) {
     const err: ResendSendError = new Error('Resend API key missing')
@@ -293,11 +300,11 @@ export async function sendWithResend(
     new Promise<never>((_, reject) =>
       setTimeout(() => {
         const err: ResendSendError = new Error(
-          `Resend send timed out after ${SEND_TIMEOUT_MS}ms`,
+          `Resend send timed out after ${timeoutMs}ms`,
         )
         err.status = 504
         reject(err)
-      }, SEND_TIMEOUT_MS)
+      }, timeoutMs)
     ),
   ])
 

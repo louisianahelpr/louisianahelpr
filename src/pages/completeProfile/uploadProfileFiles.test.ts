@@ -220,3 +220,5 @@ describe("uploadProfileFiles — the profile row is saved before anything is del
     expect(objects.has(`avatars/${USER}/avatar.jpg`)).toBe(true);
   });
 });
+
+// @mutate src/pages/completeProfile/uploadProfileFiles.ts | return { saved: await saveRow({ avatarUrl: null }), staleAvatarObjects: [] }; | return { saved: await saveRow({ avatarUrl: null }), staleAvatarObjects: ["x"] };

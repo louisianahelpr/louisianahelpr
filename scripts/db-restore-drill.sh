@@ -47,6 +47,17 @@ fi
 # failure, not stop at the first. data.sql is one multi-row INSERT per table,
 # so a failed statement loses a whole table — which the counts below catch.
 PSQL=(psql "$TARGET" -X -q -v ON_ERROR_STOP=0)
+# Every restore step runs through here: output to <name>.out/.err, and a
+# non-zero psql exit is recorded as a failure instead of killing the script
+# before it can report which step broke.
+step() {
+  local name=$1 rc=0; shift
+  "${PSQL[@]}" "$@" > "$OUT/$name.out" 2> "$OUT/$name.err" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "::error::restore step '$name' exited $rc: $(tail -n 3 "$OUT/$name.err" | tr '\n' ' ')"
+    FAIL=1
+  fi
+}
 
 # What the dump contains, by NAME only (no row data): which tables carry rows.
 echo "--- data.sql INSERT targets by schema ---"
@@ -56,7 +67,7 @@ cut -d. -f1 "$OUT/data-targets.txt" | sort | uniq -c
 echo "non-public targets: $(grep -v '^public\.' "$OUT/data-targets.txt" | tr '\n' ' ')"
 
 T0=$(date +%s)
-"${PSQL[@]}" -f "$DIR/roles.sql"  > "$OUT/roles.out"  2> "$OUT/roles.err"
+step roles -f "$DIR/roles.sql"
 # STEP 1b — close the default-privileges trap BEFORE loading the schema.
 # Every Supabase project's pg_default_acl grants anon/authenticated/
 # service_role on each new public function, table and sequence. pg_dump
@@ -66,12 +77,12 @@ T0=$(date +%s)
 # had 17 of 321). With the defaults revoked for the restoring role, the dump's
 # own GRANTs are the only grants, i.e. exactly prod's; the dump's trailing
 # ALTER DEFAULT PRIVILEGES statements then put prod's defaults back.
-"${PSQL[@]}" > "$OUT/acl.out" 2> "$OUT/acl.err" <<'SQL'
+step acl <<'SQL'
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES    FROM anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated, service_role;
 SQL
-"${PSQL[@]}" -f "$DIR/schema.sql" > "$OUT/schema.out" 2> "$OUT/schema.err"
+step schema -f "$DIR/schema.sql"
 # STEP 2b — pgmq queues. schema.sql is `public` only, so the email queues'
 # tables (pgmq.q_<name>, pgmq.a_<name>) do not exist in a new project and their
 # rows and sequence positions fail to load. Create each queue the dump names
@@ -86,12 +97,13 @@ echo "pgmq queues named by the dump: ${QUEUES:-none}"
     echo "SELECT pgmq.create('$q') WHERE NOT EXISTS (SELECT 1 FROM pgmq.meta WHERE queue_name = '$q');"
   done
   if grep -q '^INSERT INTO "pgmq"\."meta"' "$DIR/data.sql"; then echo "DELETE FROM pgmq.meta;"; fi
-} | "${PSQL[@]}" > "$OUT/pgmq.out" 2> "$OUT/pgmq.err"
+} > "$OUT/pgmq.sql"
+step pgmq -f "$OUT/pgmq.sql"
 # STEP 2c — the ensure_rls event trigger. The CLI's schema dump comments event
 # triggers out, and this one is ours (created from the dashboard, in no
 # migration): it turns RLS on for every new public table. Measured on the
 # first drill: 6 event triggers restored, prod has 7, ensure_rls the missing one.
-"${PSQL[@]}" > "$OUT/evt.out" 2> "$OUT/evt.err" <<'SQL'
+step evt <<'SQL'
 DO $$ BEGIN
   IF to_regprocedure('public.rls_auto_enable()') IS NOT NULL
      AND NOT EXISTS (SELECT 1 FROM pg_event_trigger WHERE evtname = 'ensure_rls') THEN
@@ -107,18 +119,18 @@ SQL
 # restored into is at least as new as prod and has them; adding them here keeps
 # the drill measuring the BACKUP, not the CLI's image version. Types measured
 # on prod 2026-09-23 (information_schema.columns).
-"${PSQL[@]}" > "$OUT/venue.out" 2> "$OUT/venue.err" <<'SQL'
+step venue <<'SQL'
 ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS lifecycle_configuration jsonb;
 ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS lifecycle_configuration_generation uuid;
 SQL
-"${PSQL[@]}" -c 'SET session_replication_role = replica' -f "$DIR/data.sql" > "$OUT/data.out" 2> "$OUT/data.err"
+step data -c 'SET session_replication_role = replica' -f "$DIR/data.sql"
 # STEP 4 — cron schedules (db-backup.yml exports them as cron.sql; the data
 # dump carries none). Loaded, then ALL deactivated in the same transaction: on
 # a real restore they are switched back on only after the vault secrets they
 # call through exist (runbook §4). Required: a backup without them is a
 # restore that silently stops releasing payments.
 if [ -s "$DIR/cron.sql" ]; then
-  "${PSQL[@]}" -1 -f "$DIR/cron.sql" -c 'UPDATE cron.job SET active = false' > "$OUT/cron.out" 2> "$OUT/cron.err"
+  step cron -1 -f "$DIR/cron.sql" -c 'UPDATE cron.job SET active = false'
 else
   echo "::error::backup has no cron.sql — the $(date -u +%F) restore would bring back zero cron schedules"
   : > "$OUT/cron.err"

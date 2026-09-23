@@ -1,4 +1,3 @@
-import { report } from "@/lib/errorLogger";
 import { useEffect, useState } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -13,13 +12,10 @@ import {
   ChevronDown,
   type LucideIcon,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
-import { getBlockedUserIds } from "@/lib/userBlocks";
-import { isArchived, ARCHIVE_CHANGED_EVENT } from "@/lib/archivedConversations";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { useSidePanel } from "@/components/sidePanelOpen";
+import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
@@ -103,69 +99,11 @@ const DesktopSidebarNav = () => {
     if (adminActive) setAdminOpen(true);
   }, [adminActive]);
   const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
-  const [unreadCount, setUnreadCount] = useState(0);
+  // The SAME shared store MobileNav reads (Q103): one unread query and one
+  // realtime channel per user, however many navs are mounted.
+  const { unreadCount } = useNavUnreadCount(user);
 
   const isPendingApproval = profile?.approval_status === "pending";
-
-  // Mirror MobileNav's unread-count query so the Messages badge matches the
-  // dock exactly. Scoped + nonced realtime channel per the project rules.
-  //
-  // Gated on isWebDesktop as well as `user`. This component returns null
-  // below on anything narrower, but effects run BEFORE that early return —
-  // so every phone and native page load was opening a websocket channel and
-  // running a messages count query for a rail that never paints. It also
-  // exactly duplicates useNavUnreadCount (mobileNav/useNavUnreadCount.ts),
-  // which is the one that actually renders on those viewports.
-  useEffect(() => {
-    if (!user || !isWebDesktop) return;
-    const loadCounts = async () => {
-      // getBlockedUserIds now THROWS on a failed read rather than returning an
-      // empty set, because an empty set reads as "nobody is blocked" and would
-      // put blocked people back in the badge. Skip the update instead — a
-      // slightly stale count is strictly better than surfacing blocked users.
-      let blockedSet: Set<string>;
-      try {
-        blockedSet = await getBlockedUserIds(user.id);
-      } catch (err) {
-        report(err, { severity: "warning", tags: { source: "DesktopSidebarNav.unreadCount" } });
-        return;
-      }
-      const base = supabase
-        .from("messages")
-        .select("job_id, sender_id, created_at")
-        .eq("receiver_id", user.id)
-        .eq("read", false);
-      let query: any = base;
-      query = query.not("is_system", "is", true);
-      if (blockedSet.size > 0) {
-        query = query.not("sender_id", "in", `(${[...blockedSet].join(",")})`);
-      }
-      const { data, error } = await query;
-      if (error) return;
-      const next = (data ?? []).filter(
-        (m: { job_id: string | null; sender_id: string | null; created_at: string }) =>
-          !isArchived(user.id, m.job_id ?? "", m.sender_id ?? "", m.created_at),
-      ).length;
-      setUnreadCount(next);
-    };
-    loadCounts();
-    const sub = subscribeWithRecovery(
-      (name) => supabase
-      .channel(name)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
-        () => loadCounts(),
-      ),
-      { name: `unread-sidebar-${user.id}`, onRecovered: () => void loadCounts() },
-    );
-    const onArchiveChanged = () => loadCounts();
-    window.addEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
-    return () => {
-      sub.close();
-      window.removeEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
-    };
-  }, [user?.id, isWebDesktop]);
 
   // Render nothing unless we're on the wide desktop website. This is the same
   // gate as the `web-desktop` <html> class, so the rail and the CSS that

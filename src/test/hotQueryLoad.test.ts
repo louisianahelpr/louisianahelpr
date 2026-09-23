@@ -2,6 +2,7 @@
 // @mutate src/hooks/useActivityBadgeCounts.ts | onRecovered: scheduleLoad } | onRecovered: loadCounts }
 // @mutate src/hooks/useActivityBadgeCounts.ts | same way the schedule-time path above does.\n      if (isHidden()) { | same way the schedule-time path above does.\n      if (false) {
 // @mutate src/hooks/useActivityBadgeCounts.ts | let store = stores.get(userId); | let store = undefined as BadgeStore \| undefined;
+// @mutate src/components/mobileNav/useNavUnreadCount.ts | let store = stores.get(userId); | let store = undefined as UnreadStore \| undefined;
 // @mutate src/hooks/useActivityBadgeCounts.ts | const BADGE_REFRESH_DEBOUNCE_MS = 400; | const BADGE_REFRESH_DEBOUNCE_MS = 0;
 // @mutate src/components/admin/AdminBroadcasts.tsx | refetchInterval: 15_000, | refetchInterval: 2_000,
 // @mutate src/hooks/useActivityBadgeCounts.ts |       if (isHidden()) {\n        dirtyWhileHidden = true;\n        return;\n      }\n      loadCounts(); |       loadCounts();
@@ -208,6 +209,30 @@ describe("hot-query load (Q53)", () => {
       });
     }
     expect(hits).toEqual([]);
+  });
+
+  describe("useNavUnreadCount (the unread-messages badge, Q103)", () => {
+    const file = join(SRC, "components/mobileNav/useNavUnreadCount.ts");
+    const sf = parse(file);
+
+    it("is mounted by more than one nav, which is why it must share", () => {
+      const callers = files.filter((f) => f !== file && /\buseNavUnreadCount\(/.test(readFileSync(f, "utf8")));
+      expect(callers.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("reuses one store per user instead of opening a new one per consumer", () => {
+      let reuses = false;
+      visit(sf, (n) => {
+        if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === "store" && n.initializer?.getText(sf) === "stores.get(userId)") reuses = true;
+      });
+      expect(reuses, "useNavUnreadCount must look up the shared store before opening one").toBe(true);
+    });
+
+    it("no other non-test file runs its own unread `messages` badge query", () => {
+      const own = files.filter((f) => f !== file && /from\("messages"\)[\s\S]{0,200}\.eq\("read", false\)/.test(readFileSync(f, "utf8"))
+        && /unread/i.test(readFileSync(f, "utf8")) && /Nav/.test(f));
+      expect(own.map((f) => relative(SRC, f))).toEqual([]);
+    });
   });
 
   describe("useActivityBadgeCounts (the #2 statement by DB time)", () => {

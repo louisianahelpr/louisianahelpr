@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 94 done, 10 partly done (fixed, protection pending), 87 open. Source of truth for work.
+- **Queue (this file):** 95 done, 10 partly done (fixed, protection pending), 86 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 191 items — 94 done, 10 partly done (fixed, protection pending), 87 open.**
+**Queue: 191 items — 95 done, 10 partly done (fixed, protection pending), 86 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -368,7 +368,7 @@ sure someone hears it and closes it.
   UPDATE of that row fails with an opaque check_violation. Add a live check
   (pg_constraint.convalidated = false on public tables) to db-deploy post-apply
   and to the drift detector.
-- [ ] **Q103 Re-measure the nav-badge cut ON PROD, then dedupe the unread-messages pair the same way (Q53 follow-up).**
+- [x] **Q103 DONE 2026-09-23. (1) Re-measured ON PROD (edge_logs, get_my_pending_direct_offers per user_blocks request, hourly): ~1.9 from 00:00-10:00Z (pre-change builds), ~1.0 from 11:00Z on (14:00Z: 1814/2299). (2) Unread-messages pair deduped: useNavUnreadCount is now one reference-counted store per user (one query + one realtime channel), and DesktopSidebarNav reads it instead of running its own copy. GUARD: src/test/hotQueryLoad.test.ts "useNavUnreadCount" block (3 cases red on the old code; @mutate on the store lookup). Was:** Re-measure the nav-badge cut ON PROD, then dedupe the unread-messages pair the same way (Q53 follow-up).
   Q53 halved useActivityBadgeCounts per page load (fake-transport count
   2 rpc / 2 counts / 2 channels -> 1/1/1), but no prod session built from
   82c0f6992 or later had run by 09:30Z 2026-09-23: every 127.0.0.1:4173 /

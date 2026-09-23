@@ -1313,6 +1313,17 @@ sure someone hears it and closes it.
    its own line below 360, where the tab strip sits. Screenshots in
    ~/.lh-shots/q48/.
 
+7. **Turn off Supabase's GitHub auto-deploy to production (Q121). Top priority.**
+   On every push to main, Supabase's GitHub integration applies new migrations
+   (and deploys edge functions) to prod within about a minute. Our deploy
+   workflow's safety checks (lint, replay test, destructive-DDL stop) run after
+   that, so for the last 24h (24 migrations) they have not blocked anything.
+   Measured from prod's own logs 2026-09-23 (Q117). What you do: Supabase
+   dashboard > Project Settings > Integrations > GitHub, and switch off
+   automatic deploys to the production branch (exact toggle name not verified).
+   Until then, each new migration turns db-deploy red by design (the new
+   provenance check), so the side channel stays visible.
+
 7. **Backups (Q45): the restore is proven weekly now; five things are yours.**
    Measured 2026-09-23. Nothing below is needed for the drill to stay green.
    (a) **Is the Supabase org really on Pro?** The API says `plan: "pro"`, and

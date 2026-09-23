@@ -61,6 +61,7 @@ const CLIP_RE = /(^|\s)(?:[a-z0-9-]+:)*(truncate|text-ellipsis|line-clamp-(?:\d+
  * yet measured. Tracked as Q119 in docs/OPEN.md.
  */
 const UNMEASURED = "Q119: not yet measured on screen (found by the Q116 widening, 2026-09-23)";
+// @two-way src/test/truncatedActionLabel.test.ts:expect([...offenders].sort()).toEqual(Object.keys(KNOWN).sort());
 const KNOWN: Record<string, string> = {
   "src/components/profile/LegalTab.tsx:TabsTrigger:{TAB_LABELS[key]}":
     "MEASURED NOT CLIPPED 2026-09-23: Terms/Rules/Privacy sw==cw (35/31/41px) at 320 and 375, 41/37/49 at 1440",

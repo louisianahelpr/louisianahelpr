@@ -36,6 +36,11 @@ async function fanOutToPostHog(event: string, props: Record<string, unknown>) {
 /**
  * Curated list of "aha moment" + funnel events. Adding the type up here
  * keeps event names consistent and makes them easy to grep.
+ *
+ * Every member is emitted by at least one `track(` call: a declared name no
+ * code sends is a funnel step that reads as zero forever (Q222 removed
+ * profile_completed, first_payout_received, error_shown, app_crashed).
+ * src/test/analyticsFreshness.test.ts fails on a member nothing emits.
  */
 export const AhaEvent = {
   // Activation funnel
@@ -44,7 +49,6 @@ export const AhaEvent = {
   SignupStepValidationFailed: "signup_step_validation_failed",
   SignupCompleted: "signup_completed",
   EmailVerified: "email_verified",
-  ProfileCompleted: "profile_completed",
   // Aha moments — moments where users "get it"
   FirstJobPosted: "first_job_posted",
   FirstJobApplication: "first_job_application_sent",
@@ -54,11 +58,11 @@ export const AhaEvent = {
   FirstReviewLeft: "first_review_left",
   FirstFiveStarReview: "first_five_star_review",
   FirstPaymentCollected: "first_payment_collected",
-  FirstPayoutReceived: "first_payout_received",
   // Engagement
   JobPosted: "job_posted",
   JobApplied: "job_applied",
   JobAccepted: "job_accepted",
+  JobCompleted: "job_completed",
   PaymentMade: "payment_made",
   PayoutSetupStarted: "payout_setup_started",
   PayoutSetupCompleted: "payout_setup_completed",
@@ -68,9 +72,7 @@ export const AhaEvent = {
   AppOpenedFromDeepLink: "app_opened_from_deep_link",
   PushReceivedForeground: "push_received_foreground",
   // Friction
-  ErrorShown: "error_shown",
   PermissionDenied: "permission_denied",
-  AppCrashed: "app_crashed",
   // Forced /login bounce from ProtectedRoute when the profile fetch fails.
   // Pair with a Sentry rule on `tags.source: ProtectedRoute.profileFetchError`
   // so the next has_role-style regression pages within minutes instead of

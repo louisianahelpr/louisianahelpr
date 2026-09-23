@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { trackJobCompleted } from "@/lib/jobCompletedEvent";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -262,6 +263,8 @@ export function PostedJobActions({
         onActionComplete();
         return;
       }
+      // Analytics (Q222): closing the dispute released and completed the job.
+      trackJobCompleted(job.id, releaseData, "dispute_resolved", job.customer_id);
       if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The person who posted this job confirmed the issue on "${job.title}" is resolved. Payment will be released.`, // `?job=` — `completed` is a legacy key (the chip is "Done"), and the
         // payment is still releasing, so the bucket is not settled yet.
         type: "payment", link: `/my-jobs?job=${job.id}` });

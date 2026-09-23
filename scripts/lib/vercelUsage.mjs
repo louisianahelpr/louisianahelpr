@@ -10,37 +10,22 @@
  * (one JSON object per line: ServiceName, ConsumedQuantity, ConsumedUnit,
  * ChargePeriodStart/End, ...) for a team over a date range. This sums
  * ConsumedQuantity per ServiceName and compares five metrics against the
- * Pro plan's published included amounts.
+ * included amounts of the plan the team is ACTUALLY on.
  *
- * WHAT "INCLUDED (PRO)" ACTUALLY MEANS TODAY (checked 2026-09-14/15 against
- * vercel.com/docs — Vercel moved Pro to credit-based billing; most resources
- * no longer have a fixed free quota, they draw from the $20/month platform
- * credit from the first unit):
+ * THE PLAN IS HOBBY (FREE), measured 2026-09-23 (docs/OPEN.md Q221). This file
+ * used to grade against the Pro plan's included amounts (Flat Rate CDN 1M
+ * requests / 1 TB transfer, read 2026-09-14/15), which is ten times the Hobby
+ * transfer allowance: a Hobby team could be at 100% and read 10%. The limits
+ * now come from the ONE definition, PLAN_LIMITS in scripts/lib/quotaMonitor.mjs,
+ * shared with quota-monitor.yml and scripts/supabase-usage-check.mjs; each
+ * `source` there says where the number came from and that it was not re-read
+ * on 2026-09-23 (vendor pages are egress-blocked from the cloud session).
  *
- *   - Edge Requests & Fast Data Transfer: Pro DOES include a fixed amount —
- *     the lowest Flat Rate CDN tier, at no extra cost:
- *       "Included with Pro | 1M | 1 TB"
- *       https://vercel.com/docs/pricing/flat-rate-cdn#flat-rate-cdn-tiers
- *     (also restated in https://vercel.com/docs/plans/pro-plan under
- *     "Monthly credit": "a capacity of 1 million CDN requests and 1 TB of
- *     data transfer each month"). CDN requests appear as "Edge Requests" in
- *     Vercel's own billing dashboard (same flat-rate-cdn page). 1 TB is
- *     taken as 1000 GB, matching Vercel's own decimal usage (their Hobby
- *     tables read "100 GB" / "10 GB", not GiB).
- *
- *   - Function Invocations, Build Minutes, Deployment Storage: Pro has NO
- *     published fixed included quantity — each is billed from the shared
- *     $20/month credit starting at the first unit:
- *       Function Invocations: the Vercel Functions table lists "N/A" under
- *       Pro (Hobby's "1 million included" has no Pro counterpart) —
- *       https://vercel.com/docs/pricing#vercel-functions
- *       Build Minutes: "Basic usage is billed at $0.0035 per CPU minute"
- *       with no free Pro allotment described —
- *       https://vercel.com/docs/builds/managing-builds#build-machines
- *       Deployment Storage: "$0.10 per GB-month ... Your plan or contract
- *       may also include an allowance. Use Usage and your invoice to
- *       confirm your team's allowance" — no number Vercel publishes —
- *       https://vercel.com/docs/deployment-storage#pricing
+ * WINDOW. Hobby allowances are MONTHLY; this check reads a trailing window
+ * (7 days, scripts/check-vercel-usage.mjs). The window's consumption is
+ * projected to 30 days before grading (`windowDays`), the same projection
+ * quota-monitor.yml makes for edge invocations. Grading 7 days of use against
+ * a monthly allowance under-read every metric by ~4x.
  *
  * A metric with `limit: null` NEVER pages — there is nothing to be 80% of.
  * It is only ever logged (consumed quantity, for visibility), exactly like
@@ -54,7 +39,12 @@
  * never treated as a fetch failure.
  */
 
+import { PLAN_LIMITS, PLANS } from "./quotaMonitor.mjs";
+
 export const TEAM_ID = "team_UQHppAVoPIPQbyh2b43y21BG";
+
+/** The plan the grading is against, from the shared definition. */
+export const PLAN = PLANS.vercel;
 
 export const CHARGES_URL = "https://api.vercel.com/v1/billing/charges";
 
@@ -65,50 +55,50 @@ export const SKIP_MESSAGE =
 
 /**
  * The five metrics docs/OPEN.md asks for, each with the regex that matches
- * its ServiceName in the FOCUS JSONL, its Pro-included amount (`null` when
- * Vercel publishes none — see the file header), a display unit, and the
- * doc URL the number came from.
+ * its ServiceName in the FOCUS JSONL, its MONTHLY included amount on the
+ * team's plan from PLAN_LIMITS (`null` when none is published — see
+ * quotaMonitor.mjs), a display unit, and the doc URL for the metric.
  */
 export const METRICS = [
   {
     name: "Edge Requests",
     match: /edge request|cdn request/i,
-    limit: 1_000_000,
-    unit: "requests/7d window",
-    sourceUrl: "https://vercel.com/docs/pricing/flat-rate-cdn#flat-rate-cdn-tiers",
-    note: "Flat Rate CDN's lowest tier, included free with Pro.",
+    limit: PLAN_LIMITS.vercel_edge_requests_month.value,
+    unit: "requests/month",
+    sourceUrl: "https://vercel.com/docs/limits",
+    note: PLAN_LIMITS.vercel_edge_requests_month.source,
   },
   {
     name: "Fast Data Transfer",
     match: /fast data transfer/i,
-    limit: 1000, // 1 TB, taken as 1000 GB (Vercel's own decimal convention)
-    unit: "GB/7d window",
-    sourceUrl: "https://vercel.com/docs/pricing/flat-rate-cdn#flat-rate-cdn-tiers",
-    note: "Flat Rate CDN's lowest tier, included free with Pro.",
+    limit: PLAN_LIMITS.vercel_fast_data_transfer_gb_month.value,
+    unit: "GB/month",
+    sourceUrl: "https://vercel.com/docs/limits",
+    note: PLAN_LIMITS.vercel_fast_data_transfer_gb_month.source,
   },
   {
     name: "Function Invocations",
     match: /function invocation|^invocations$/i,
-    limit: null,
-    unit: "invocations/7d window",
+    limit: PLAN_LIMITS.vercel_function_invocations_month.value,
+    unit: "invocations/month",
     sourceUrl: "https://vercel.com/docs/pricing#vercel-functions",
-    note: "No published Pro quota — billed from the shared $20/month credit from the first invocation.",
+    note: PLAN_LIMITS.vercel_function_invocations_month.source,
   },
   {
     name: "Build Minutes",
     match: /build/i,
-    limit: null,
-    unit: "CPU minutes/7d window",
+    limit: PLAN_LIMITS.vercel_build_minutes_month.value,
+    unit: "CPU minutes/month",
     sourceUrl: "https://vercel.com/docs/builds/managing-builds#build-machines",
-    note: "No published Pro quota — $0.0035/CPU-minute from the first minute, funded by the shared credit.",
+    note: PLAN_LIMITS.vercel_build_minutes_month.source,
   },
   {
     name: "Deployment Storage",
     match: /deployment storage/i,
-    limit: null,
+    limit: PLAN_LIMITS.vercel_deployment_storage_gb_month.value,
     unit: "GB-months",
     sourceUrl: "https://vercel.com/docs/deployment-storage#pricing",
-    note: "No published Pro quota — $0.10/GB-month; Vercel says only \"your plan may include an allowance\", with no number given.",
+    note: PLAN_LIMITS.vercel_deployment_storage_gb_month.source,
   },
 ];
 
@@ -173,11 +163,14 @@ export function aggregateByMetric(rows, metrics = METRICS) {
  * Evaluate each metric against its limit. `pct`/`critical` are null/false
  * for a `limit: null` metric — it is measured and logged, never paged.
  */
-export function evaluateMetrics(byMetric, { thresholdPercent = 80, metrics = METRICS } = {}) {
+export function evaluateMetrics(byMetric, { thresholdPercent = 80, metrics = METRICS, windowDays = 30 } = {}) {
+  // Monthly allowances: project the window's consumption to 30 days. A
+  // 30-day window (the default) grades the raw number.
+  const scale = 30 / windowDays;
   return metrics.map((m) => {
     const agg = byMetric?.[m.name] ?? { consumed: 0, reportedUnits: [] };
     const consumed = agg.consumed;
-    const pct = m.limit == null ? null : (consumed / m.limit) * 100;
+    const pct = m.limit == null ? null : ((consumed * scale) / m.limit) * 100;
     return {
       name: m.name,
       consumed,
@@ -205,32 +198,32 @@ export function formatSummary(evals, thresholdPercent) {
   const critical = evals.filter((e) => e.critical);
   if (critical.length) {
     return `WARN — ${critical
-      .map((e) => `${e.name} at ${e.pct.toFixed(1)}% of the Pro-included ${fmtQty(e.limit)} ${e.unit} (${fmtQty(e.consumed)} used)`)
+      .map((e) => `${e.name} at ${e.pct.toFixed(1)}% of the ${PLAN}-included ${fmtQty(e.limit)} ${e.unit} (${fmtQty(e.consumed)} used in the window)`)
       .join("; ")}`;
   }
   const measured = evals.filter((e) => e.limit != null);
-  if (!measured.length) return "no metric with a published Pro quota was measured this run";
-  return `ok — under ${thresholdPercent}% of every Pro-included limit measured`;
+  if (!measured.length) return `no metric with a published ${PLAN} quota was measured this run`;
+  return `ok — under ${thresholdPercent}% of every ${PLAN}-included limit measured`;
 }
 
 /** The full markdown report written to vercel-usage-report.md and the job summary. */
-export function buildReportMarkdown({ evals, ignored, thresholdPercent, from, to, parseErrors = [] }) {
+export function buildReportMarkdown({ evals, ignored, thresholdPercent, from, to, parseErrors = [], windowDays = 30 }) {
   const rows = evals.map((e) => {
-    const limitCell = e.limit == null ? "no published Pro quota" : `${fmtQty(e.limit)} ${e.unit}`;
+    const limitCell = e.limit == null ? `no published ${PLAN} quota` : `${fmtQty(e.limit)} ${e.unit}`;
     const pctCell = e.pct == null ? `— (${e.note})` : `${e.pct.toFixed(1)}%`;
-    return `| ${e.name} | ${fmtQty(e.consumed)} ${e.unit} | ${limitCell} | ${pctCell} |`;
+    return `| ${e.name} | ${fmtQty(e.consumed)} | ${limitCell} | ${pctCell} |`;
   });
   const lines = [
-    "## Vercel Pro usage",
+    `## Vercel ${PLAN} usage`,
     "",
-    `Window: ${from} to ${to} · Warn threshold: ${thresholdPercent}%`,
+    `Window: ${from} to ${to} (${windowDays} days, projected to 30 for the share) · Warn threshold: ${thresholdPercent}%`,
     "",
-    "| Metric | Used | Pro-included limit | Share |",
+    `| Metric | Used in the window | ${PLAN}-included limit | Share (projected month) |`,
     "| --- | --- | --- | --- |",
     ...rows,
     "",
-    "Sources (fetched 2026-09-14/15, re-verify if this starts to drift):",
-    ...evals.map((e) => `- [${e.name}](${e.sourceUrl})`),
+    "Limits: PLAN_LIMITS in scripts/lib/quotaMonitor.mjs (one definition; not re-read from Vercel on 2026-09-23):",
+    ...evals.map((e) => `- [${e.name}](${e.sourceUrl}) — ${e.note}`),
   ];
   if (ignored.length) {
     lines.push(
@@ -260,6 +253,7 @@ export async function runVercelUsageCheck({
   to,
   thresholdPercent = 80,
   metrics = METRICS,
+  windowDays = 30,
 } = {}) {
   if (!token) {
     return { outcome: "skip", warn: false, summary: "skipped — no VERCEL_TOKEN repo secret", message: SKIP_MESSAGE };
@@ -321,9 +315,9 @@ export async function runVercelUsageCheck({
     };
   }
 
-  const evals = evaluateMetrics(byMetric, { thresholdPercent, metrics });
+  const evals = evaluateMetrics(byMetric, { thresholdPercent, metrics, windowDays });
   const warn = anyCritical(evals);
   const summary = formatSummary(evals, thresholdPercent);
-  const report = buildReportMarkdown({ evals, ignored, thresholdPercent, from, to, parseErrors });
+  const report = buildReportMarkdown({ evals, ignored, thresholdPercent, from, to, parseErrors, windowDays });
   return { outcome: "ok", warn, summary, report, evals, ignored, parseErrors };
 }

@@ -7,6 +7,7 @@ export interface VercelMetric {
   note: string;
 }
 export const TEAM_ID: string;
+export const PLAN: string;
 export const CHARGES_URL: string;
 export const SKIP_MESSAGE: string;
 export const METRICS: VercelMetric[];
@@ -50,7 +51,7 @@ export interface MetricEvaluation {
 }
 export function evaluateMetrics(
   byMetric: Record<string, MetricAggregate>,
-  opts?: { thresholdPercent?: number; metrics?: VercelMetric[] },
+  opts?: { thresholdPercent?: number; metrics?: VercelMetric[]; windowDays?: number },
 ): MetricEvaluation[];
 export function anyCritical(evals: MetricEvaluation[]): boolean;
 export function formatSummary(evals: MetricEvaluation[], thresholdPercent: number): string;
@@ -61,6 +62,7 @@ export function buildReportMarkdown(args: {
   from: string;
   to: string;
   parseErrors?: ParseError[];
+  windowDays?: number;
 }): string;
 
 export type VercelUsageResult =
@@ -83,4 +85,5 @@ export function runVercelUsageCheck(args: {
   to: string;
   thresholdPercent?: number;
   metrics?: VercelMetric[];
+  windowDays?: number;
 }): Promise<VercelUsageResult>;

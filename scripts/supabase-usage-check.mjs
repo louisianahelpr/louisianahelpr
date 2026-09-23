@@ -1,9 +1,14 @@
 #!/usr/bin/env node
 /**
- * Weekly free-tier headroom check — how close is prod to its limits?
+ * Weekly plan headroom check — how close is prod to its limits?
  *
- * Owner-approved 2026-09-14. Free tier: 500 MB database, 1 GB storage. This
- * warns at 70% of either, so the ceiling is never hit as a surprise mid-week.
+ * Owner-approved 2026-09-14, when prod was on the FREE tier (500 MB database,
+ * 1 GB storage). The plan is PRO since (measured 2026-09-23, docs/OPEN.md
+ * Q221), so the limits are no longer written here: they come from PLAN_LIMITS
+ * in scripts/lib/quotaMonitor.mjs, the ONE definition quota-monitor.yml and
+ * the Vercel check also read (src/test/planLimits.test.ts holds all three to
+ * it). This warns at 70% of either, so the ceiling is never hit as a surprise
+ * mid-week.
  *
  * MANAGEMENT API, NOT SQL. Deliberately: prod is a t4g.nano that fell over on
  * 2026-09-13 under workflow load. `pg_database_size()` is cheap but it still
@@ -30,12 +35,14 @@
  * summary=<one line>. Writes supabase-usage-report.md always.
  */
 import { appendFileSync, writeFileSync } from "node:fs";
+import { PLAN_LIMITS, PLANS } from "./lib/quotaMonitor.mjs";
 
 const TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
 const REF = process.env.SUPABASE_PROJECT_REF;
 const THRESHOLD = Number(process.env.WARN_AT_PERCENT || 70);
-const DB_LIMIT = 500 * 1024 * 1024; // free tier
-const STORAGE_LIMIT = 1024 * 1024 * 1024; // free tier
+const PLAN = PLANS.supabase;
+const DB_LIMIT = PLAN_LIMITS.supabase_db_bytes.value;
+const STORAGE_LIMIT = PLAN_LIMITS.supabase_storage_bytes.value;
 
 if (!TOKEN || !REF) {
   console.error("::error::SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required");
@@ -284,7 +291,7 @@ let warn = false;
 const warnings = [];
 
 /**
- * `limit` null means "no published free-tier ceiling for this one" — it is
+ * `limit` null means "no published plan ceiling for this one" — it is
  * reported as a raw value, never silently turned into a percentage.
  */
 function metric(name, hit, limit, fmt = mb) {
@@ -295,13 +302,13 @@ function metric(name, hit, limit, fmt = mb) {
   const v = hit.hit.value;
   const src = `\`${hit.hit.key}\` from \`${hit.p.path}\``;
   if (limit == null) {
-    rows.push(`| ${name} | ${fmt(v)} | — | no published free-tier limit (${src}) |`);
+    rows.push(`| ${name} | ${fmt(v)} | — | no published ${PLAN} limit (${src}) |`);
     return;
   }
   const pct = (v / limit) * 100;
   if (pct >= THRESHOLD) {
     warn = true;
-    warnings.push(`${name} at ${pct.toFixed(1)}% of the free-tier limit (${fmt(v)} of ${fmt(limit)})`);
+    warnings.push(`${name} at ${pct.toFixed(1)}% of the ${PLAN} limit (${fmt(v)} of ${fmt(limit)})`);
   }
   rows.push(`| ${name} | ${fmt(v)} | ${fmt(limit)} | ${pct.toFixed(1)}% (${src}) |`);
 }
@@ -319,17 +326,17 @@ metric("Disk IO baseline provisioned (MB/s)", ioBaselineHit, null, String);
 const summary = warn
   ? `WARN — ${warnings.join("; ")}`
   : dbHit || storageHit
-    ? `ok — under ${THRESHOLD}% of every free-tier limit measured`
+    ? `ok — under ${THRESHOLD}% of every ${PLAN} limit measured`
     : "UNMEASURED — nothing available could report database or storage size (see the endpoint table)";
 
 const report = [
-  "## Supabase free-tier headroom",
+  `## Supabase ${PLAN} headroom`,
   "",
   `**${summary}**`,
   "",
-  `Warn threshold: ${THRESHOLD}% · Free tier: 500 MB database, 1 GB storage.`,
+  `Warn threshold: ${THRESHOLD}% · ${PLAN} plan: ${mb(DB_LIMIT)} database, ${mb(STORAGE_LIMIT)} storage (PLAN_LIMITS, scripts/lib/quotaMonitor.mjs).`,
   "",
-  "| Metric | Used | Free-tier limit | Share |",
+  `| Metric | Used | ${PLAN} limit | Share |`,
   "| --- | --- | --- | --- |",
   ...rows,
   "",

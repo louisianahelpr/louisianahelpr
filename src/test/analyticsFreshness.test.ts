@@ -1,6 +1,9 @@
 // @mutate scripts/lib/analyticsFreshness.mjs |     return real >= 1 ? "broken" : "quiet"; |     return "quiet";
 // @mutate scripts/lib/analyticsFreshness.mjs |   if (hasGround && real >= min && events < real * ratio) return "degraded"; |
-// @mutate scripts/lib/analyticsFreshness.mjs |   job_completed: "No completion | job_posted_x: "No completion
+// @mutate scripts/lib/analyticsFreshness.mjs |   first_job_completed: "first-time variant of job_completed", |
+// @mutate src/lib/jobCompletedEvent.ts |   track(AhaEvent.JobCompleted, { job_id: jobId, source }); |
+// @mutate src/lib/analytics.ts |   JobCompleted: "job_completed", |   JobCompleted: "job_completed", NeverSent: "never_sent",
+// @mutate src/pages/activity/activityActions/useOfferHandlers.ts |         if (!hiredErr && (count ?? 0) <= 1) track(AhaEvent.FirstHelperHired, { job_id: selectedJob.id }); |
 // @mutate scripts/lib/analyticsFreshness.mjs |   nps_submitted: "survey plumbing", |
 // @mutate scripts/check-analytics-freshness.mjs |     process.exit(1); |     process.exit(0);
 // @mutate .github/workflows/quota-monitor.yml |         run: node scripts/check-analytics-freshness.mjs |         run: echo skipped
@@ -82,13 +85,18 @@ describe("the monitored event list is derived from the track( call sites", () =>
   it("the missing milestones are really missing (move them to KEY_EVENTS the day they are emitted)", () => {
     const nowEmitted = Object.keys(MISSING_MILESTONES).filter((e) => emitted.has(e));
     expect(nowEmitted, `now emitted — monitor it: ${nowEmitted.join(", ")}`).toEqual([]);
-    expect(Object.keys(MISSING_MILESTONES).length).toBeGreaterThan(0);
   });
 
-  it("covers every milestone the owner named: signup, posted, applied, hired, paid, reviewed", () => {
+  it("every declared AhaEvent is emitted somewhere (no dead funnel steps, Q222)", () => {
+    const dead = Object.entries(AHA).filter(([, v]) => !emitted.has(v)).map(([k, v]) => `AhaEvent.${k} (${v})`).sort();
+    expect(dead, `declared in src/lib/analytics.ts but no track( call emits it — emit it or delete it: ${dead.join(", ")}`).toEqual([]);
+    expect(Object.keys(AHA).length).toBeGreaterThan(20);
+  });
+
+  it("covers every milestone the owner named: signup, posted, applied, hired, paid, completed, reviewed", () => {
     const labels = KEY_EVENTS.map((k) => k.label).join(" | ");
-    for (const m of ["signup", "posted", "applied", "hired", "paid", "reviewed"]) expect(labels, m).toContain(m);
-    expect(Object.keys(MISSING_MILESTONES)).toContain("job_completed");
+    for (const m of ["signup", "posted", "applied", "hired", "paid", "completed", "reviewed"]) expect(labels, m).toContain(m);
+    expect(key).toContain("job_completed");
   });
 });
 

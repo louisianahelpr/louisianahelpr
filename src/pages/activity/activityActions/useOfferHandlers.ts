@@ -334,6 +334,19 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     // self-respects reduced motion (static check, no draw-in).
     hapticSuccess();
     fireSuccessMoment({ label: "Applicant hired" });
+    // First-hire aha (Q222): the poster's jobs that now have a Helpr picked.
+    // <= 1 covers the job this offer just assigned (same shape as the
+    // FirstJobAccepted count below). Analytics must never break the flow.
+    void (async () => {
+      try {
+        const { count, error: hiredErr } = await supabase
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("customer_id", user.id)
+          .not("helper_id", "is", null);
+        if (!hiredErr && (count ?? 0) <= 1) track(AhaEvent.FirstHelperHired, { job_id: selectedJob.id });
+      } catch { /* analytics must never break the flow */ }
+    })();
     setDeadlineDialogApp(null);
     setSelectedJob(null);
     setApplications([]);

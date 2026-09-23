@@ -16,6 +16,7 @@ import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { arrivalEstablished, arrivalEvidenceState, arrivalGateMessage, arrivalMapLabel, arrivalRefusalFromError, arrivalRefusalMessage, arrivalState, arrivalStateLabel, arrivalVerdictFromRpc, arrivalVerdictMessage, type ArrivalRefusal, type ArrivalState, type ArrivalVerdict } from "@/lib/arrivalGate";
 import { report } from "@/lib/errorLogger";
+import { trackJobCompleted } from "@/lib/jobCompletedEvent";
 import { BEFORE_PHOTO_GATE_REASON, lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -1339,6 +1340,10 @@ export function JobTracking({
             context: { jobId },
           });
           toast.warning("Marked done. The person who posted this job already approved, but we couldn't start your payout just now — it releases automatically unless something needs a look. Pull to refresh.", { duration: 8000 });
+        } else {
+          // Analytics (Q222): the Helpr's Done finished a job the poster had
+          // already approved. Once per job.
+          trackJobCompleted(jobId, rel as { bothDone?: boolean } | null, "job_tracking", helperId);
         }
       }
     }

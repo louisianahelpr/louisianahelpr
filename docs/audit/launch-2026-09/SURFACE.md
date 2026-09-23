@@ -14,23 +14,23 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 34 |
-| Redirect-only routes | route | 20 |
-| `?tab=` variants | variant | 23 |
-| `?view=` variants | variant | 24 |
-| Overlay surfaces | **instance** | 142 |
+| Routes (non-redirect) | route | 28 |
+| Redirect-only routes | route | 17 |
+| `?tab=` variants | variant | 31 |
+| `?view=` variants | variant | 26 |
+| Overlay surfaces | **instance** | 151 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
-| Toast messages | **call site** | 524 (across 136 files) |
-| Multi-step flows — confirmed | flow | 12 |
-| Multi-step flows — probable | flow | 18 |
-| Back/next navigation only | flow | 33 |
-| Forms (submittable) | form | 40 |
-| Admin components (components/admin + pages/Admin*) | **file** | 93 |
+| Toast messages | **call site** | 552 (across 145 files) |
+| Multi-step flows — confirmed | flow | 16 |
+| Multi-step flows — probable | flow | 16 |
+| Back/next navigation only | flow | 40 |
+| Forms (submittable) | form | 43 |
+| Admin components (components/admin + pages/Admin*) | **file** | 105 |
 | Email templates | **exported template** | 20 |
-| Notification types (defined in notification_type_pref_map) | type | 14 ⚠︎ prod has sent 3 more with no map row — NT-001 |
-| **Navigable surfaces** (places a person can stand) | mixed | **439** |
-| **Copy surfaces** (strings a person may read) | mixed | **558** |
-| **Total auditable surface** | mixed | **997** |
+| Notification types (defined in notification_type_pref_map) | type | 21 ⚠︎ prod has sent 3 more with no map row — NT-001 |
+| **Navigable surfaces** (places a person can stand) | mixed | **473** |
+| **Copy surfaces** (strings a person may read) | mixed | **593** |
+| **Total auditable surface** | mixed | **1066** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -67,12 +67,12 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 34 | 34 | agree |
-| Redirect-only routes | 20 | 14 | agree |
-| Admin `?view=` | 24 | 24 | agree |
-| Overlay surfaces | 142 | 130 | agree within method (script counts every menu instance) |
-| Forms | 40 | ~38 | agree |
-| Confirmed multi-step flows | 12 | 9 | agree; the agent excluded section routers this script still counts |
+| Real routes | 28 | 34 | agree |
+| Redirect-only routes | 17 | 14 | agree |
+| Admin `?view=` | 26 | 24 | agree |
+| Overlay surfaces | 151 | 130 | agree within method (script counts every menu instance) |
+| Forms | 43 | ~38 | agree |
+| Confirmed multi-step flows | 16 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -102,26 +102,18 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/messages`
 - [ ] `/support`
 - [ ] `/legal`
-- [ ] `/jobs`
+- [ ] `/terms`
+- [ ] `/privacy`
 - [ ] `/jobs/:id`
 - [ ] `/browse`
-- [ ] `/str-settings`
-- [ ] `/auto-tip`
-- [ ] `/gift-card`
-- [ ] `/analytics`
-- [ ] `/home-history`
-- [ ] `/work-record`
+- [ ] `/rules`
 - [ ] `/help`
-- [ ] `/wrapped`
-- [ ] `/pets`
 - [ ] `*`
 
 ## Redirect-only routes (verify they land correctly, incl. query preservation)
 
 - [ ] `/activity`
 - [ ] `/earnings`
-- [ ] `/terms`
-- [ ] `/privacy`
 - [ ] `/data-rights`
 - [ ] `/warnings`
 - [ ] `/j/:id`
@@ -130,13 +122,12 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/messages/:id`
 - [ ] `/post-job/*`
 - [ ] `/legal/:tab`
-- [ ] `/rules`
 - [ ] `/schedule`
 - [ ] `/availability`
+- [ ] `/saved-helprs`
 - [ ] `/saved-helpers`
-- [ ] `/gift-card (retired old route)`
-- [ ] `/dashboard/post-login`
-- [ ] `/settings/profile`
+- [ ] `/gift-card`
+- [ ] `/help-center`
 - [ ] `/settings`
 
 ## `?tab=` variants
@@ -148,22 +139,30 @@ database and `lh-notifications` must correct it from there.
 - [ ] `?tab=admin/people:denied`
 - [ ] `?tab=admin/people:pending`
 - [ ] `?tab=profile:accessibility`
+- [ ] `?tab=profile:analytics`
+- [ ] `?tab=profile:auto_tip`
 - [ ] `?tab=profile:availability`
 - [ ] `?tab=profile:credentials`
 - [ ] `?tab=profile:earnings`
+- [ ] `?tab=profile:gift_card`
+- [ ] `?tab=profile:home_history`
 - [ ] `?tab=profile:landing`
 - [ ] `?tab=profile:legal`
 - [ ] `?tab=profile:notifications`
 - [ ] `?tab=profile:payment`
+- [ ] `?tab=profile:pets`
 - [ ] `?tab=profile:profile`
 - [ ] `?tab=profile:referral`
 - [ ] `?tab=profile:reviews`
 - [ ] `?tab=profile:saved_helpers`
 - [ ] `?tab=profile:schedule`
 - [ ] `?tab=profile:security`
+- [ ] `?tab=profile:str_settings`
 - [ ] `?tab=profile:subscription`
 - [ ] `?tab=profile:support`
 - [ ] `?tab=profile:warnings`
+- [ ] `?tab=profile:work_record`
+- [ ] `?tab=profile:wrapped`
 
 ## `?view=` variants
 
@@ -188,6 +187,8 @@ database and `lh-notifications` must correct it from there.
 - [ ] `?view=referrals`
 - [ ] `?view=reports`
 - [ ] `?view=settings`
+- [ ] `?view=social`
+- [ ] `?view=stalled`
 - [ ] `?view=subscriptions`
 - [ ] `?view=support`
 - [ ] `?view=tiers`
@@ -200,35 +201,37 @@ dismissible, and correct in every state.
 
 | Component | Surfaces | Kinds |
 |---|---|---|
-| `src/components/activity/ActivityDialogs.tsx` | 2 | Dialog×2 |
+| `src/components/activity/ActivityDialogs.tsx` | 1 | Dialog |
 | `src/components/activity/appliedJobCard/ActiveJobSection.tsx` | 1 | BrandConfirmDialog |
 | `src/components/activity/appliedJobCard/ConfirmedSection.tsx` | 1 | BrandConfirmDialog |
+| `src/components/activity/appliedJobCard/DisputedSection.tsx` | 1 | BrandConfirmDialog |
 | `src/components/activity/appliedJobCard/OfferedActions.tsx` | 1 | BrandConfirmDialog |
 | `src/components/activity/AppliedJobsTab.tsx` | 1 | Sheet |
 | `src/components/activity/CompletionChoiceSheet.tsx` | 1 | Sheet |
-| `src/components/activity/EditJobDialog.tsx` | 3 | Dialog, AlertDialog×2 |
-| `src/components/activity/PetReportCard.tsx` | 2 | Dialog×2 |
-| `src/components/activity/postedJobCard/PostedJobActions.tsx` | 1 | BrandConfirmDialog |
+| `src/components/activity/EditJobDialog.tsx` | 3 | Dialog×3 |
+| `src/components/activity/JobActionRow.tsx` | 1 | Popover |
+| `src/components/activity/postedJobCard/steps/DisputedStep.tsx` | 2 | BrandConfirmDialog×2 |
+| `src/components/activity/postedJobCard/steps/InProgressStep.tsx` | 1 | Dialog |
 | `src/components/activity/postedJobs/ApplicantsPanel.tsx` | 1 | hand-rolled **⚠ hand-rolled** |
 | `src/components/activity/postedJobs/DeclineApplicantSheet.tsx` | 1 | Sheet |
-| `src/components/admin/AdminBanReview.tsx` | 2 | AlertDialog×2 |
+| `src/components/admin/AdminBanReview.tsx` | 2 | Dialog×2 |
 | `src/components/admin/AdminBroadcasts.tsx` | 1 | BrandConfirmDialog |
 | `src/components/admin/AdminCommandPalette.tsx` | 2 | Dialog, Command |
-| `src/components/admin/AdminCredentialQueue.tsx` | 1 | AlertDialog |
+| `src/components/admin/AdminCredentialQueue.tsx` | 1 | Dialog |
 | `src/components/admin/AdminDisputes.tsx` | 1 | BrandConfirmDialog |
-| `src/components/admin/AdminExceptionQueue.tsx` | 2 | AlertDialog×2 |
-| `src/components/admin/AdminFraudDashboard.tsx` | 1 | AlertDialog |
-| `src/components/admin/AdminIDVReview.tsx` | 1 | AlertDialog |
+| `src/components/admin/AdminExceptionQueue.tsx` | 2 | Dialog×2 |
+| `src/components/admin/AdminFraudDashboard.tsx` | 1 | Dialog |
+| `src/components/admin/AdminIDVReview.tsx` | 1 | Dialog |
 | `src/components/admin/adminJobs/JobDetailDialog.tsx` | 1 | Dialog |
 | `src/components/admin/adminJobs/RefundJobDialog.tsx` | 1 | Dialog |
 | `src/components/admin/adminJobs/RemoveJobDialog.tsx` | 1 | Dialog |
 | `src/components/admin/adminJobs/StatusOverrideDialog.tsx` | 1 | Dialog |
 | `src/components/admin/AdminMarketing.tsx` | 1 | BrandConfirmDialog |
 | `src/components/admin/AdminPayoutBatches.tsx` | 4 | Dialog×2, BrandConfirmDialog×2 |
-| `src/components/admin/AdminReports.tsx` | 2 | Dialog, AlertDialog |
+| `src/components/admin/AdminReports.tsx` | 2 | Dialog×2 |
 | `src/components/admin/AdminSettings.tsx` | 2 | Dialog, BrandConfirmDialog |
 | `src/components/admin/AdminUserDetailDialog.tsx` | 1 | Dialog |
-| `src/components/admin/AdminUserNotes.tsx` | 1 | AlertDialog |
+| `src/components/admin/AdminUserNotes.tsx` | 1 | Dialog |
 | `src/components/admin/adminusers/NotesIndicator.tsx` | 1 | HoverCard |
 | `src/components/admin/BanDialog.tsx` | 1 | Dialog |
 | `src/components/admin/DeleteUserDialog.tsx` | 1 | Dialog |
@@ -236,8 +239,12 @@ dismissible, and correct in every state.
 | `src/components/admin/EditEmailDialog.tsx` | 1 | Dialog |
 | `src/components/admin/FormalWarningDialog.tsx` | 1 | Dialog |
 | `src/components/admin/ManualVerifyDialog.tsx` | 1 | Dialog |
+| `src/components/admin/marketing/MarketingComposerDialog.tsx` | 1 | Dialog |
+| `src/components/admin/marketing/MarketingQueue.tsx` | 1 | BrandConfirmDialog |
+| `src/components/admin/marketing/MarketingSettingsCard.tsx` | 2 | BrandConfirmDialog×2 |
 | `src/components/admin/ResetPasswordDialog.tsx` | 1 | Dialog |
-| `src/components/admin/ReuploadIdDialog.tsx` | 1 | Dialog |
+| `src/components/admin/RestrictApplicationsDialog.tsx` | 1 | Dialog |
+| `src/components/admin/userDetail/UserAuditLog.tsx` | 1 | Dialog |
 | `src/components/AppLockGate.tsx` | 2 | hand-rolled×2 **⚠ hand-rolled** |
 | `src/components/AwardGateDialog.tsx` | 1 | Dialog |
 | `src/components/BirthdayPopup.tsx` | 1 | Dialog |
@@ -274,10 +281,11 @@ dismissible, and correct in every state.
 | `src/components/NotificationPanel.tsx` | 2 | Popover, anchoredPanel |
 | `src/components/OnboardingTour.tsx` | 1 | Dialog |
 | `src/components/PayoutSetupForm.tsx` | 1 | BrandConfirmDialog |
-| `src/components/PermissionRationaleDialog.tsx` | 1 | AlertDialog |
+| `src/components/PermissionRationaleDialog.tsx` | 1 | Dialog |
 | `src/components/PhotoProof.tsx` | 2 | Dialog×2 |
+| `src/components/profile/AvatarCropDialog.tsx` | 1 | Dialog |
 | `src/components/profile/CredentialsTab.tsx` | 2 | BrandConfirmDialog×2 |
-| `src/components/profile/DeleteAccountDialog.tsx` | 2 | AlertDialog, BrandConfirmDialog |
+| `src/components/profile/DeleteAccountDialog.tsx` | 3 | Dialog×2, BrandConfirmDialog |
 | `src/components/profile/EarningsForecastCard.tsx` | 1 | Popover |
 | `src/components/profile/earningsTab/EarningsToolsMenu.tsx` | 1 | DropdownMenu |
 | `src/components/profile/HelperScheduleStrip.tsx` | 1 | Dialog |
@@ -293,10 +301,10 @@ dismissible, and correct in every state.
 | `src/components/ResponseDeadlineDialog.tsx` | 1 | Dialog |
 | `src/components/reviewPanel/ReviewForm.tsx` | 2 | Dialog×2 |
 | `src/components/richMessageInput/AttachSourceSheet.tsx` | 1 | Popover |
-| `src/components/richMessageInput/ViolationDialog.tsx` | 1 | AlertDialog |
+| `src/components/richMessageInput/ViolationDialog.tsx` | 1 | Dialog |
 | `src/components/SavedSearches.tsx` | 1 | Dialog |
 | `src/components/SosShareButton.tsx` | 1 | Sheet |
-| `src/components/TermsReconsentDialog.tsx` | 1 | AlertDialog |
+| `src/components/TermsReconsentDialog.tsx` | 1 | Dialog |
 | `src/components/TimeRangeField.tsx` | 1 | Popover |
 | `src/components/TipDialog.tsx` | 1 | Dialog |
 | `src/components/W9CollectionDialog.tsx` | 1 | Dialog |
@@ -308,6 +316,7 @@ dismissible, and correct in every state.
 | `src/pages/Profile.tsx` | 1 | BrandConfirmDialog |
 | `src/pages/StrSettings.tsx` | 1 | BrandConfirmDialog |
 | `src/pages/UserProfile.tsx` | 1 | DropdownMenu |
+| `src/pages/userProfile/ProfileBadge.tsx` | 1 | Popover |
 | `src/pages/userProfile/RecognitionRow.tsx` | 1 | Popover |
 
 **⚠ hand-rolled** overlays do NOT go through the shared `Dialog`'s portal, so
@@ -329,13 +338,17 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 
 | Component | Signals |
 |---|---|
+| `src/components/activity/appliedJobCard/ActiveJobSection.tsx` | switch, union-state |
+| `src/components/activity/appliedJobCard/steps/HelperPhotoAsk.tsx` | compare |
+| `src/components/activity/postedJobCard/PostedJobActions.tsx` | switch |
+| `src/components/activity/postedJobCard/steps/posterStepContract.ts` | compare |
 | `src/components/activity/postedJobs/applicantsPanel/ApplicantsStates.tsx` | switch |
 | `src/components/analytics/ApplicationsPanel.tsx` | step-array |
 | `src/components/CompletionPrompts.tsx` | compare, nav-handler, union-state |
-| `src/components/dashboard/JobDetailDialog.tsx` | compare, nav-handler, union-state |
 | `src/components/profile/SubscriptionTab.tsx` | nav-handler, union-state |
 | `src/components/ReportDialog.tsx` | compare, nav-handler |
 | `src/pages/Admin.tsx` | switch, nav-handler |
+| `src/pages/GiftCard.tsx` | nav-handler, union-state |
 | `src/pages/PostJob.tsx` | compare, nav-handler |
 | `src/pages/postjob/EntryChoice.tsx` | nav-handler, union-state |
 | `src/pages/postjob/usePostJobForm.ts` | compare, nav-handler |
@@ -348,7 +361,6 @@ A useState string-union of 2+ states. Some are real flows, some are display-stat
 
 | Component | Signals |
 |---|---|
-| `src/components/activity/appliedJobCard/ActiveJobSection.tsx` | union-state |
 | `src/components/activity/CompletionChoiceSheet.tsx` | union-state |
 | `src/components/admin/AdminAnalyticsDrilldowns.tsx` | union-state |
 | `src/components/admin/AdminCredentialQueue.tsx` | union-state |
@@ -363,7 +375,6 @@ A useState string-union of 2+ states. Some are real flows, some are display-stat
 | `src/components/TimeRangeField.tsx` | union-state |
 | `src/components/UserAvatar.tsx` | union-state |
 | `src/pages/Messages.tsx` | union-state |
-| `src/pages/GiftCard.tsx` | union-state |
 | `src/pages/ResetPassword.tsx` | union-state |
 | `src/pages/UserProfile.tsx` | union-state |
 
@@ -376,7 +387,6 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/components/activity/postedJobs/ApplicantsPanel.tsx` | nav-handler |
 | `src/components/admin/AdminSectionHeader.tsx` | nav-handler |
 | `src/components/AppPage.tsx` | nav-handler |
-| `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | nav-handler |
 | `src/components/messages/ChatHeader.tsx` | nav-handler |
 | `src/components/messages/ChatView.tsx` | nav-handler |
 | `src/components/PageHeader.tsx` | nav-handler |
@@ -389,6 +399,7 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/components/profile/ProfileEditForm.tsx` | nav-handler |
 | `src/components/profile/profileEditForm/SaveBar.tsx` | nav-handler |
 | `src/components/profile/profileEditForm/types.ts` | nav-handler |
+| `src/components/profile/ProfileTabFallback.tsx` | nav-handler |
 | `src/components/profile/ProfileTabHeader.tsx` | nav-handler |
 | `src/components/profile/ReviewsTab.tsx` | nav-handler |
 | `src/components/profile/SavedHelpersTab.tsx` | nav-handler |
@@ -397,15 +408,22 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/components/profile/SecurityTab.tsx` | nav-handler |
 | `src/components/profile/SupportInline.tsx` | nav-handler |
 | `src/components/profile/WarningsTab.tsx` | nav-handler |
-| `src/pages/Dashboard.tsx` | nav-handler |
+| `src/components/ProfileRouteSkeleton.tsx` | nav-handler |
+| `src/hooks/useDeleteAccount.ts` | nav-handler |
+| `src/pages/AutoTip.tsx` | nav-handler |
 | `src/pages/HelperAnalytics.tsx` | nav-handler |
+| `src/pages/HelprWrapped.tsx` | nav-handler |
+| `src/pages/HomeHistory.tsx` | nav-handler |
 | `src/pages/Legal.tsx` | nav-handler |
+| `src/pages/PetProfiles.tsx` | nav-handler |
 | `src/pages/postjob/CheckoutStepIndicator.tsx` | nav-handler |
 | `src/pages/postjob/CheckoutStepView.tsx` | nav-handler |
 | `src/pages/postjob/useJobEntry.ts` | nav-handler |
 | `src/pages/postjob/useJobSubmit.ts` | nav-handler |
 | `src/pages/Profile.tsx` | nav-handler |
 | `src/pages/profile/ProfileTabPanels.tsx` | nav-handler |
+| `src/pages/StrSettings.tsx` | nav-handler |
+| `src/pages/WorkRecord.tsx` | nav-handler |
 
 
 ## Forms — every submittable surface
@@ -430,6 +448,8 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/admin/AdminUserNotes.tsx` (dialog/mutation)
 - [ ] `src/components/admin/BanDialog.tsx` (dialog/mutation)
 - [ ] `src/components/admin/DenyUserDialog.tsx` (dialog/mutation)
+- [ ] `src/components/admin/RestrictApplicationsDialog.tsx` (dialog/mutation)
+- [ ] `src/components/admin/userDetail/UserAuditLog.tsx` (dialog/mutation)
 - [ ] `src/components/CancellationDialog.tsx` (dialog/mutation)
 - [ ] `src/components/CompletionPrompts.tsx` (dialog/mutation)
 - [ ] `src/components/DisputeDialog.tsx` (dialog/mutation)
@@ -437,6 +457,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/HelperAvailability.tsx` (dialog/mutation)
 - [ ] `src/components/NotificationPreferences.tsx` (dialog/mutation)
 - [ ] `src/components/postjob/CheckoutStep.tsx` (dialog/mutation)
+- [ ] `src/components/profile/AvailabilityTab.tsx` (dialog/mutation)
 - [ ] `src/components/profile/CredentialsTab.tsx` (dialog/mutation)
 - [ ] `src/components/profile/ProfileEditForm.tsx` (form tag)
 - [ ] `src/components/profile/SupportInline.tsx` (form tag)
@@ -447,8 +468,8 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/pages/AutoTip.tsx` (dialog/mutation)
 - [ ] `src/pages/CompleteProfile.tsx` (form tag)
 - [ ] `src/pages/ForgotPassword.tsx` (form tag)
-- [ ] `src/pages/Login.tsx` (form tag)
 - [ ] `src/pages/GiftCard.tsx` (dialog/mutation)
+- [ ] `src/pages/Login.tsx` (form tag)
 - [ ] `src/pages/petProfiles/petProfilesHelpers.ts` (form tag)
 - [ ] `src/pages/postjob/FormStep.tsx` (form tag)
 - [ ] `src/pages/ResetPassword.tsx` (form tag)
@@ -470,11 +491,11 @@ long/missing fields, and a working unsubscribe where required.
 | `AdminEmailChangedEmail` | `supabase/functions/_shared/email-templates/email-changed.tsx` |
 | `ApprovalReminderEmail` | `supabase/functions/_shared/email-templates/lifecycle.tsx` |
 | `EmailChangeEmail` | `supabase/functions/_shared/email-templates/email-change.tsx` |
+| `GiftCardEmail` | `supabase/functions/_shared/email-templates/gift-card.tsx` |
 | `InviteEmail` | `supabase/functions/_shared/email-templates/invite.tsx` |
 | `MagicLinkEmail` | `supabase/functions/_shared/email-templates/magic-link.tsx` |
 | `MarketingBlastEmail` | `supabase/functions/_shared/email-templates/marketing-blast.tsx` |
 | `NotificationEmail` | `supabase/functions/_shared/email-templates/notification.tsx` |
-| `GiftCardEmail` | `supabase/functions/_shared/email-templates/gift-card.tsx` |
 | `ReauthenticationEmail` | `supabase/functions/_shared/email-templates/reauthentication.tsx` |
 | `RecoveryEmail` | `supabase/functions/_shared/email-templates/recovery.tsx` |
 | `ReEngagementEmail` | `supabase/functions/_shared/email-templates/drip.tsx` |
@@ -487,4 +508,4 @@ long/missing fields, and a working unsubscribe where required.
 
 ## Notification types (each is distinct copy + a tap destination)
 
-`application` · `expired` · `financial_alerts` · `job_match` · `job_update` · `job_updates` · `message` · `new_offers` · `payment` · `review` · `system_alert` · `transit_updates` · `verified` · `work_status`
+`admin_alert` · `application` · `banned` · `expired` · `financial_alerts` · `info` · `job_match` · `job_update` · `job_updates` · `message` · `new_offers` · `payment` · `phase` · `review` · `success` · `sweep_daily_job_digest` · `system_alert` · `transit_updates` · `verified` · `warning` · `work_status`

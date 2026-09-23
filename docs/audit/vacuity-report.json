@@ -1,25 +1,8 @@
 {
-  "generated": "2026-09-21T23:40:51.698Z",
-  "guards": 658,
-  "registered": 642,
-  "unregistered": [
-    "e2e/a11y-prod/a11y-prod.spec.ts",
-    "e2e/auth.spec.ts",
-    "e2e/happy-path/error-state-sweep.spec.ts",
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "e2e/happy-path/zz-runtime-probe.spec.ts",
-    "e2e/journeys/02-marketplace.spec.ts",
-    "e2e/journeys/03-account.spec.ts",
-    "e2e/payment-lifecycle.spec.ts",
-    "e2e/prod-audit/activity-tabs-visible.spec.ts",
-    "e2e/prod-audit/expanding-search-geometry.spec.ts",
-    "e2e/prod-audit/interruptions.spec.ts",
-    "e2e/prod-audit/messy-input.spec.ts",
-    "e2e/prod-audit/profile-tab-scroll-fill.spec.ts",
-    "e2e/prod-lifecycle.spec.ts",
-    "e2e/two-role-lifecycle.spec.ts",
-    "e2e/visual-audit/desktop-fill.spec.ts"
-  ],
+  "generated": "2026-09-23T04:48:32.422Z",
+  "guards": 715,
+  "registered": 715,
+  "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/activity/appliedJobCard/helperDisputeCopy.test.tsx",
@@ -73,6 +56,7 @@
         "src/test/enRouteAddressVisible.test.tsx",
         "src/test/jobCardPersonTileAboveRow.test.tsx",
         "src/pages/activity/activityBadgeListAgreement.test.tsx",
+        "src/components/activity/AppliedJobCard.locationTapExpands.test.tsx",
         "src/components/activity/AppliedJobCard.posterTile.test.tsx",
         "src/components/activity/photoProofChip.test.tsx"
       ],
@@ -156,15 +140,6 @@
       "tests": [
         "src/components/admin/ResetPasswordDialog.test.tsx",
         "src/components/admin/adminDialogsInFlight.test.tsx"
-      ],
-      "parents": [
-        "src/components/admin/AdminUsers.tsx"
-      ]
-    },
-    {
-      "module": "src/components/admin/ReuploadIdDialog.tsx",
-      "tests": [
-        "src/components/admin/ReuploadIdDialog.test.tsx"
       ],
       "parents": [
         "src/components/admin/AdminUsers.tsx"
@@ -280,15 +255,6 @@
       ]
     },
     {
-      "module": "src/components/postjob/AiJobBuilder.tsx",
-      "tests": [
-        "src/components/postjob/AiJobBuilder.test.tsx"
-      ],
-      "parents": [
-        "src/pages/postjob/EntryChoice.tsx"
-      ]
-    },
-    {
       "module": "src/components/profile/EarningsForecastCard.tsx",
       "tests": [
         "src/components/profile/EarningsForecastCard.test.tsx"
@@ -371,12 +337,30 @@
       ]
     },
     {
+      "module": "src/pages/giftCards/CreditCard.tsx",
+      "tests": [
+        "src/pages/giftCards/giftCardSpendGate.test.tsx"
+      ],
+      "parents": [
+        "src/pages/GiftCard.tsx"
+      ]
+    },
+    {
       "module": "src/pages/giftCards/RecipientPicker.tsx",
       "tests": [
         "src/pages/giftCards/RecipientPicker.test.tsx"
       ],
       "parents": [
         "src/pages/GiftCard.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/postjob/EntryChoice.tsx",
+      "tests": [
+        "src/pages/postjob/unpaidDraftsAreReachable.test.tsx"
+      ],
+      "parents": [
+        "src/pages/PostJob.tsx"
       ]
     },
     {

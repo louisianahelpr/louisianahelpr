@@ -8,6 +8,8 @@ means youre fixing it for good."*
 
 ## The score
 
+*Last regenerated 2026-09-23 from `npm run vacuity:report` + a per-scope count of registered/exempt guards (48 guards added 09-22/23, every one registered; 1 missing registration — helperTrackerPrimarySweep.tz — added the same night).*
+
 *Regenerate from `npm run vacuity` + `src/test/vacuity.baseline.json`; do not
 hand-edit the numbers.*
 
@@ -37,17 +39,17 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 
 | scope | files | proven able to fail | exempt, with a reason | still owed |
 |---|---|---|---|---|
-| **`src/test/*.test.ts*`** | 208 | **208 — COMPLETE** | 0 | **0** |
-| **`src/test/edge/` (money)** | 53 | **53 — COMPLETE** | 0 | **0** |
-| **colocated beside components** | 345 | **345 — COMPLETE** | 0 | **0** |
+| **`src/test/*.test.ts*`** | 251 | **251 — COMPLETE** | 0 | **0** |
+| **`src/test/edge/` (money)** | 57 | **57 — COMPLETE** | 0 | **0** |
+| **colocated beside components** | 346 | **346 — COMPLETE** | 0 | **0** |
 | **Playwright `e2e/`** | 61 | **53 — COMPLETE** | 8 | **0** |
-| **total** | **667** | **659 (99%)** | **8** | **0** |
+| **total** | **715** | **707 (99%)** | **8** | **0** |
 
 `npm run vacuity` prints the same three numbers on every run, so this table and
 the tool cannot drift apart:
 
 ```
-registration: 659/667 guards register a mutation (8 exempt with a reason, 0 grandfathered)
+registration: 707/715 guards register a mutation (8 exempt with a reason, 0 grandfathered)
 ```
 
 **NOTHING IS STILL OWED, and `vacuity.baseline.json`'s `unregistered` list is
@@ -110,7 +112,7 @@ everything, so no CI job loses a single test.
 
 A single "remaining" number was doing two different kinds of damage.
 
-**PROVEN (659, 2026-09-22).** A registered `@mutate` that has been run and killed the guard.
+**PROVEN (707, 2026-09-23).** A registered `@mutate` that has been run and killed the guard.
 
 **EXEMPT WITH A REASON (8, 2026-09-22).** The gate mutates a file under `src/` and runs
 `npm run build`. It never runs `supabase db push` and never deploys an edge

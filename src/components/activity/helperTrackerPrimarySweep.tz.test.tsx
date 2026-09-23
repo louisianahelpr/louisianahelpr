@@ -1,3 +1,4 @@
+// @mutate src/components/activity/appliedJobCard/HelperTrackerPanel.tsx | (jobDayStart(job.date_needed).getTime() - Date.now()) | (new Date(job.date_needed + "T00:00:00").getTime() - Date.now())
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import { act, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";

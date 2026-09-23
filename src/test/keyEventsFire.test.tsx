@@ -162,6 +162,9 @@ vi.mock("@/pages/postjob/firstPostConfetti", () => ({ maybeFireFirstPostConfetti
 
 import { KEY_EVENTS } from "../../scripts/lib/analyticsFreshness.mjs";
 import { __resetJobCompletedForTests } from "@/lib/jobCompletedEvent";
+import { __resetMessageSentForTests } from "@/lib/messageSentEvent";
+import { createSendHandlers } from "@/pages/messages/messagesData/sendHandlers";
+import type { Conversation, Message } from "@/components/messages/types";
 import Signup from "@/pages/Signup";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import { ReviewForm } from "@/components/reviewPanel/ReviewForm";
@@ -335,6 +338,39 @@ async function driveReviewLeft(): Promise<string> {
   return JOB;
 }
 
+const SENT_ROW = { id: "msg-sent-1", job_id: "job-msg-1", sender_id: h.USER_ID, receiver_id: "helper-1", content: "See you at 9", attachment_url: null, reply_to_id: null };
+
+/** The real Messages send path (createSendHandlers), state held in plain arrays. */
+function sendHandlers() {
+  let messages: Message[] = [];
+  const setMessages = (u: Message[] | ((p: Message[]) => Message[])) => { messages = typeof u === "function" ? u(messages) : u; };
+  const handlers = createSendHandlers({
+    userId: h.USER_ID,
+    cachedUser: null,
+    activeConvo: { jobId: SENT_ROW.job_id, otherUserId: SENT_ROW.receiver_id } as unknown as Conversation,
+    messages,
+    warningShown: false,
+    setWarningShown: vi.fn(),
+    setMessages: setMessages as Parameters<typeof createSendHandlers>[0]["setMessages"],
+    setConversations: vi.fn(),
+    scrollToBottom: vi.fn(),
+    activeConvoRef: { current: null },
+    loadConversations: async () => undefined,
+  });
+  return { handlers, messages: () => messages };
+}
+
+async function driveMessageSent(): Promise<string> {
+  h.state.fromHandler = (c, t) =>
+    c.table === "messages" && t === "single" && c.ops.some((o) => o.m === "insert") ? { data: SENT_ROW, error: null } : undefined;
+  const { handlers, messages } = sendHandlers();
+  let ok = false;
+  await act(async () => { ok = await handlers.sendMessage("See you at 9"); });
+  expect(ok).toBe(true);
+  expect(messages().map((m) => m.id)).toContain(SENT_ROW.id); // the server row replaced the bubble
+  return SENT_ROW.job_id;
+}
+
 /**
  * Event -> the real path that emits it. The inventory test holds these keys
  * equal to KEY_EVENTS both ways; each driver returns the job_id the event must
@@ -348,6 +384,7 @@ const DRIVERS: Record<string, () => Promise<string | undefined>> = {
   payment_made: drivePaymentMade,
   job_completed: driveJobCompleted,
   review_left: driveReviewLeft,
+  message_sent: driveMessageSent,
 };
 
 let createObjectURLBefore: typeof URL.createObjectURL | undefined;
@@ -362,6 +399,7 @@ beforeEach(() => {
   h.state.invokeHandler = null;
   h.state.signUpCalls = 0;
   __resetJobCompletedForTests();
+  __resetMessageSentForTests();
   localStorage.clear();
   sessionStorage.clear();
   createObjectURLBefore = URL.createObjectURL;
@@ -404,6 +442,38 @@ describe("job_completed counts a completion once", () => {
   });
 });
 
+describe("message_sent counts a message once", () => {
+  it("a refused send emits nothing; a retry that reconciles with the row that already landed emits once", async () => {
+    // First attempt: the insert fails (response lost) -> failed bubble, no event.
+    let attempt = 0;
+    h.state.fromHandler = (c, t) => {
+      if (c.table !== "messages") return undefined;
+      if (t === "single" && c.ops.some((o) => o.m === "insert")) {
+        attempt += 1;
+        return attempt === 1 ? { data: null, error: { code: "08006", message: "network" } } : { data: null, error: { code: "23505", message: "duplicate key" } };
+      }
+      if (t === "maybeSingle") return { data: SENT_ROW, error: null };
+      return undefined;
+    };
+    const first = sendHandlers();
+    await act(async () => { await first.handlers.sendMessage("See you at 9"); });
+    flushAnalytics();
+    await new Promise((r) => setTimeout(r, 30));
+    flushAnalytics();
+    expect(rowsFor("message_sent")).toEqual([]);
+    // Retry: 23505, read back the landed row -> counted once.
+    const failed = first.messages().find((m) => m.sendStatus === "failed");
+    expect(failed).toBeTruthy();
+    await act(async () => { await first.handlers.dispatchMessage({ ...failed!, sendStatus: "sending" }); });
+    await act(async () => { await first.handlers.dispatchMessage({ ...failed!, sendStatus: "sending" }); });
+    await expectSent("message_sent", SENT_ROW.job_id);
+    await new Promise((r) => setTimeout(r, 30));
+    flushAnalytics();
+    expect(rowsFor("message_sent")).toHaveLength(1);
+    expect(rowsFor("message_sent")[0].properties).not.toHaveProperty("content");
+  });
+});
+
 describe("inventory", () => {
   it("covers exactly the KEY_EVENTS the freshness monitor watches (two-way)", () => {
     const monitored = KEY_EVENTS.map((k) => k.event).sort();
@@ -423,4 +493,6 @@ describe("inventory", () => {
 // @mutate src/pages/PaymentSuccess.tsx | track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps }); | void 0;
 // @mutate src/pages/activity/activityActions/useLifecycleHandlers.ts | trackJobCompleted(jobId, data, "activity", user?.id); | void 0;
 // @mutate src/lib/jobCompletedEvent.ts | if (emitted.has(jobId)) return false; | void 0;
+// @mutate src/pages/messages/messagesData/sendHandlers.ts |     trackMessageSent(data); |     void data;
+// @mutate src/lib/messageSentEvent.ts |   if (emitted.has(row.id)) return false; |   void 0;
 // @mutate src/components/reviewPanel/ReviewForm.tsx | track(AhaEvent.ReviewLeft, { job_id: jobId, rating }); | void 0;

@@ -99,7 +99,7 @@ happen".**
 |---|---|
 | Activation funnel | `signup_started`, `signup_step_completed`, `signup_step_validation_failed`, `signup_completed`, `email_verified`, `profile_completed` |
 | Aha moments (first time) | `first_job_posted`, `first_job_application_sent`, `first_helper_hired`, `first_job_accepted`, `first_job_completed`, `first_review_left`, `first_five_star_review`, `first_payment_collected`, `first_payout_received` |
-| Engagement | `job_posted`, `job_applied`, `job_accepted`, `payment_made`, `payout_setup_started`, `payout_setup_completed`, `review_left` |
+| Engagement | `job_posted`, `job_applied`, `job_accepted`, `payment_made`, `payout_setup_started`, `payout_setup_completed`, `review_left`, `message_sent` (Q283, from 2026-09-23) |
 | Retention | `app_opened_from_push`, `app_opened_from_deep_link`, `push_received_foreground` |
 | Friction | `error_shown`, `permission_denied`, `app_crashed` |
 | Diagnostic | `forced_logout_bounce` |

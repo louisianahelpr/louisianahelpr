@@ -67,6 +67,8 @@ export const AhaEvent = {
   PayoutSetupStarted: "payout_setup_started",
   PayoutSetupCompleted: "payout_setup_completed",
   ReviewLeft: "review_left",
+  // One per message a person sends (src/lib/messageSentEvent.ts, Q283).
+  MessageSent: "message_sent",
   // Retention
   AppOpenedFromPush: "app_opened_from_push",
   AppOpenedFromDeepLink: "app_opened_from_deep_link",

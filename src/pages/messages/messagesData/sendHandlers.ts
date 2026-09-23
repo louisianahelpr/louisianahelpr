@@ -12,6 +12,7 @@ import {
   isLockoutRefusal,
 } from "@/lib/messagingLockout";
 import { RECIPIENT_RESTRICTED_TOAST, fetchRecipientRestricted } from "@/lib/recipientGate";
+import { trackMessageSent } from "@/lib/messageSentEvent";
 
 // Module-level so it survives the per-render re-creation of the handlers:
 // a blocked send logs at most ONE violation per unique (user, message) —
@@ -263,6 +264,9 @@ export function createSendHandlers({
       );
       return;
     }
+
+    // The message is on the server: count it (once per server row, Q283).
+    trackMessageSent(data);
 
     // Reconcile: swap the optimistic bubble for the confirmed server row.
     // If the realtime echo raced ahead and already appended the real row,

@@ -93,9 +93,9 @@ describe("the monitored event list is derived from the track( call sites", () =>
     expect(Object.keys(AHA).length).toBeGreaterThan(20);
   });
 
-  it("covers every milestone the owner named: signup, posted, applied, hired, paid, completed, reviewed", () => {
+  it("covers every milestone the owner named: signup, posted, applied, hired, paid, completed, reviewed, message sent", () => {
     const labels = KEY_EVENTS.map((k) => k.label).join(" | ");
-    for (const m of ["signup", "posted", "applied", "hired", "paid", "completed", "reviewed"]) expect(labels, m).toContain(m);
+    for (const m of ["signup", "posted", "applied", "hired", "paid", "completed", "reviewed", "message sent"]) expect(labels, m).toContain(m);
     expect(key).toContain("job_completed");
   });
 });

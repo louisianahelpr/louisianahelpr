@@ -127,6 +127,23 @@ export const KEY_EVENTS = [
                LEFT JOIN public.profiles rp ON rp.user_id = r.reviewer_id
               WHERE r.created_at > $SINCE`,
   },
+  {
+    event: "message_sent",
+    label: "message sent",
+    windowDays: 7,
+    // Q283. Emitted by src/lib/messageSentEvent.ts from the one client send
+    // path (createSendHandlers' dispatchMessage) once the insert returns its
+    // row. The only server-side writers are the job-status triggers, which
+    // insert is_system rows (20260612370000, 20260720130000), so non-system
+    // rows are exactly the messages people sent. messages has no is_seed:
+    // a message is test traffic when its sender or its job is.
+    ground: `SELECT count(*) FILTER (WHERE NOT coalesce(sp.is_seed, false) AND NOT coalesce(j.is_seed, false)) AS real,
+                    count(*) FILTER (WHERE sp.is_seed OR j.is_seed) AS test
+               FROM public.messages m
+               LEFT JOIN public.jobs j ON j.id = m.job_id
+               LEFT JOIN public.profiles sp ON sp.user_id = m.sender_id
+              WHERE m.created_at > $SINCE AND NOT m.is_system`,
+  },
 ];
 
 /**

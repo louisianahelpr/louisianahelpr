@@ -23,6 +23,7 @@
  * `storageBucketLimits.test.ts` replays), not a hand-typed list.
  */
 
+// @mutate supabase/migrations/20260312150324_6037fdd9-3624-4d54-8522-8ce71ca43cb0.sql | ('id-documents', 'id-documents', false), | ('id-documents-x', 'id-documents-x', false),
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";

@@ -62,8 +62,13 @@ interface HelperStreakBadgeProps {
   className?: string;
 }
 
-export function HelperStreakBadge({ helperId, className }: HelperStreakBadgeProps) {
-  const { data: streak = 0 } = useQuery<number>({
+/**
+ * The streak query, shared by the badge and by EarningsTab's arrival gate
+ * (Q169): the page waits for it so the badge row does not appear ~150ms after
+ * the Earned card and push it down 48px. Same key, so one request.
+ */
+export function useHelperStreak(helperId: string) {
+  const { data: streak = 0, isPending } = useQuery<number>({
     queryKey: queryKeys.helperStreak.byHelper(helperId),
     queryFn: async () => {
       // Pull the most recent reviews (capped) so a helper with thousands
@@ -88,6 +93,11 @@ export function HelperStreakBadge({ helperId, className }: HelperStreakBadgeProp
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
   });
+  return { streak, settled: !helperId || !isPending };
+}
+
+export function HelperStreakBadge({ helperId, className }: HelperStreakBadgeProps) {
+  const { streak } = useHelperStreak(helperId);
 
   if (streak < MIN_STREAK) return null;
 

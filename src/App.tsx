@@ -579,7 +579,9 @@ const SessionManager = () => {
   // file's header.
   const { profile } = useCurrentUser();
   useEffect(() => {
-    const profileSenior = !!(profile as unknown as { senior_mode?: boolean })?.senior_mode;
+    // null until the profile lands, so the cached account flag the first
+    // paint used is not switched off and back on (Q169).
+    const profileSenior = profile ? !!(profile as unknown as { senior_mode?: boolean }).senior_mode : null;
     const osLargeText = dynamicTypeScale >= OS_LARGE_TEXT_THRESHOLD;
     syncSeniorMode({ profileSenior, osLargeText });
   }, [profile, dynamicTypeScale]);

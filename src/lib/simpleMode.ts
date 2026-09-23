@@ -165,7 +165,32 @@ function storedPreference(): boolean | null {
  * size. One resolver, one writer, and the inputs can no longer clobber each
  * other.
  */
-let profileSeniorMode = false;
+/**
+ * THE ACCOUNT FLAG, REMEMBERED ON THIS DEVICE (Q169). The profile arrives a
+ * network round-trip after first paint, so for a signed-in user whose Senior
+ * Mode comes from their ACCOUNT every page painted at the normal size and then
+ * grew — measured on /payment-success at 375: every line of text re-flowed and
+ * the card moved 19px ~300ms in (CLS 0.062), and the same on every route. The
+ * last flag seen is cached and used for the first paint, but only while an
+ * auth token is stored (a signed-out visitor never inherits it); the live
+ * profile corrects it the moment it lands.
+ */
+const PROFILE_FLAG_KEY = "helpr_profile_senior_mode";
+function hasStoredSession(): boolean {
+  try {
+    return Object.keys(localStorage).some((k) => /^sb-.+-auth-token$/.test(k));
+  } catch {
+    return false;
+  }
+}
+function cachedProfileFlag(): boolean {
+  try {
+    return hasStoredSession() && safeStorage.getItem(PROFILE_FLAG_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+let profileSeniorMode = cachedProfileFlag();
 
 /**
  * Resolve the mode from all three inputs.
@@ -204,10 +229,18 @@ function isSimpleMode(osLargeText = false): boolean {
  * resolver above, so a later call can never drop an input an earlier one set.
  */
 export function syncSeniorMode(input: {
-  profileSenior: boolean;
+  /** null = the profile has not loaded yet: keep the cached account flag. */
+  profileSenior: boolean | null;
   osLargeText: boolean;
 }): void {
-  profileSeniorMode = input.profileSenior;
+  if (input.profileSenior !== null) {
+    profileSeniorMode = input.profileSenior;
+    try {
+      safeStorage.setItem(PROFILE_FLAG_KEY, input.profileSenior ? "1" : "0");
+    } catch {
+      /* best-effort: without the cache the first paint is merely unsized */
+    }
+  }
   applyClass(isSimpleMode(input.osLargeText));
 }
 

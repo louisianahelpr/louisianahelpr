@@ -75,15 +75,26 @@ export function JobCardSkeleton() {
               className="h-5 flex-1 min-w-0 max-w-[70%] rounded"
               style={{ background: "hsl(var(--olivewood) / 0.14)" }}
             />
-            <Skeleton
-              className="h-9 w-16 shrink-0 rounded-ds-md"
+            {/* The price chip's OWN box (MoneyChip: px-2.5 py-1 around a
+                text-ds-17 leading-none figure), holding an invisible figure so
+                it is the chip's height at every text size. A fixed h-9 bone
+                stood here: 36px against the real 27, so every bone was 7px
+                taller than its card and a 5-card feed stepped 35px when the
+                cards landed (Q169, measured at 375). */}
+            <span
+              className="relative inline-flex shrink-0 items-center justify-center rounded-ds-md px-2.5 py-1 overflow-hidden"
               style={{ background: "hsl(var(--olivewood) / 0.12)" }}
-            />
+            >
+              <span className="invisible font-sans leading-none tabular-nums text-ds-17">$000</span>
+            </span>
           </div>
           {/* Meta — location · date on one line, in the card's own meta block
               so the `mt-1.5` and the line height are not restated here. */}
           <div className={JOB_CARD_META}>
             <div className="flex items-center gap-x-2">
+              {/* A zero-width character gives this row the meta block's real
+                  line box (text-ds-11 leading-tight), not the 12px bone's. */}
+              <span className="invisible w-0">{"​"}</span>
               <Skeleton
                 className="h-3 w-24 rounded"
                 style={{ background: "hsl(var(--olivewood) / 0.10)" }}

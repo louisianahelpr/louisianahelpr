@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { MapPin, Clock, Calendar, ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, Search, Plus, ListFilter } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import {
@@ -401,8 +401,8 @@ const UPCOMING_FILTERS: { value: UpcomingFilter; label: string }[] = [
  * Below 1024 the page stacks exactly as before, calendar then list; the gap
  * is `gap-4`, the same 16px the `space-y-4` stack used.
  *
- * The loading skeleton wears the same class, so the page does not jump from
- * one column to two when the data lands. Pinned by ScheduleTab.layout.test.tsx,
+ * While loading, the tab shows the shared ProfileTabBodyReserve (Q169) and
+ * the whole layout arrives at once. Pinned by ScheduleTab.layout.test.tsx,
  * which compiles this string through the real Tailwind config.
  */
 export const SCHEDULE_LAYOUT_CLASS =
@@ -504,25 +504,12 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
       )}
 
       {loading ? (
-        <div className={SCHEDULE_LAYOUT_CLASS}>
-          <div className="rounded-2xl liquid-glass p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-8 w-8 rounded-md" />
-              <Skeleton className="h-5 w-32 rounded" />
-              <Skeleton className="h-8 w-8 rounded-md" />
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {Array.from({ length: 35 }).map((_, i) => (
-                <Skeleton key={i} className="h-9 rounded min-[1024px]:h-auto min-[1024px]:aspect-square" />
-              ))}
-            </div>
-          </div>
-          <div className="space-y-3 min-w-0">
-            <Skeleton className="h-5 w-32 rounded" />
-            <Skeleton className="h-20 rounded-ds-md" />
-            <Skeleton className="h-20 rounded-ds-md" />
-          </div>
-        </div>
+        // The SAME placeholder the tab's chunk load showed a moment earlier
+        // (Q169): one skeleton, not two. The calendar-shaped one that stood
+        // here drew 5 week rows of 36px bones against a taller real calendar
+        // with its legend, so "Upcoming jobs" dropped 156px when the data
+        // landed (CLS 0.14 at 375).
+        <ProfileTabBodyReserve />
       ) : (
         <div data-testid="schedule-layout" className={SCHEDULE_LAYOUT_CLASS}>
           {/* Calendar card — item 27, significantly more compact than before.

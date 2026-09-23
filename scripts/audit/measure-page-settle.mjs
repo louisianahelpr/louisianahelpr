@@ -93,6 +93,10 @@ export const SETTLE_INIT = (placeholderSel) => {
         if (byKey.get(k) < 2) continue;
         if (c.matches(placeholderSel) || c.querySelector(placeholderSel)) continue;
         if (c.getAttribute("aria-hidden") === "true" || c.closest('[aria-busy="true"]')) continue;
+        // Page CONTENT only: the persistent chrome (the desktop rail, the tab
+        // dock, the site nav and footer) mounting before the page is not the
+        // page's list arriving in a second wave.
+        if (c.closest('nav, aside, header, footer, [role="navigation"]')) continue;
         const r = c.getBoundingClientRect();
         if (r.height < 40 || r.width < 120) continue;
         if ((c.textContent || "").trim().length < 8) continue;
@@ -157,8 +161,23 @@ async function measureOne(browser, { url, persona, session, width }) {
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
   }
   const res = { url, persona, width, throttle: THROTTLE || "none" };
+  Object.assign(res, await settlePage(page, BASE + url, { quietMs: QUIET_MS, maxMs: MAX_MS }));
+  await ctx.close();
+  return res;
+}
+
+/**
+ * Load `fullUrl` in a page whose context already carries SETTLE_INIT, wait
+ * until nothing has shifted, arrived or shimmered for `quietMs` (at most
+ * `maxMs`), and return the numbers. Shared by this script and
+ * e2e/prod-audit/page-settle.spec.ts, so the CI budget and the audit table
+ * are one measurement.
+ */
+export async function settlePage(page, fullUrl, { quietMs = 2500, maxMs = 15000 } = {}) {
+  const res = {};
+  const QUIET_MS = quietMs, MAX_MS = maxMs;
   try {
-    await page.goto(BASE + url, { waitUntil: "domcontentloaded", timeout: MAX_MS });
+    await page.goto(fullUrl, { waitUntil: "domcontentloaded", timeout: MAX_MS });
     const t0 = Date.now();
     let lastSig = "", lastChange = Date.now();
     while (Date.now() - t0 < MAX_MS) {
@@ -191,7 +210,6 @@ async function measureOne(browser, { url, persona, session, width }) {
   } catch (e) {
     res.error = String(e).slice(0, 200);
   }
-  await ctx.close();
   return res;
 }
 

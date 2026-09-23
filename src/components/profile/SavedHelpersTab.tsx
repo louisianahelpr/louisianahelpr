@@ -28,6 +28,7 @@ import type { SavedHelpersTabProps } from "@/components/profile/savedHelpersTab/
 import { useSavedHelpers } from "@/components/profile/savedHelpersTab/useSavedHelpers";
 import { SavedHelperCard } from "@/components/profile/savedHelpersTab/SavedHelperCard";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 
 const CATEGORY_FILTER_OPTIONS = Object.entries(JOB_CATEGORY_LABELS) as [JobCategory, string][];
 
@@ -364,20 +365,11 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
         )}
 
         {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="rounded-2xl liquid-glass p-4 flex items-center gap-3 motion-safe:animate-pulse"
-              >
-                <div className="w-12 h-12 rounded-full bg-muted" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 w-32 bg-muted rounded" />
-                  <div className="h-3 w-48 bg-muted rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
+          // The SAME placeholder the tab's chunk load showed a moment earlier
+          // (Q169): one skeleton, not two. The three bone rows this replaced
+          // sat where the filter/sort row later appears, so every card slid
+          // 60px down when the list landed (CLS 0.022 at 375).
+          <ProfileTabBodyReserve />
         ) : loadError ? (
           // A failed RPC fetch shows a recoverable retry surface instead
           // of the misleading "no saved helprs yet" empty state.

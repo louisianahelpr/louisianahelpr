@@ -21,7 +21,8 @@ import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
 import { EarningsPageSkeleton } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { HelperStreakBadge } from "@/components/profile/HelperStreakBadge";
+import { HelperStreakBadge, useHelperStreak } from "@/components/profile/HelperStreakBadge";
+import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { MonthlyGoalCard } from "@/components/profile/MonthlyGoalCard";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -86,6 +87,10 @@ function SectionRule() {
 export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName }: EarningsTabProps) {
   const navigate = useNavigate();
   const { profile } = useCurrentUser();
+  // One paint (Q169): the streak badge sits above the Earned card, so the
+  // page skeleton holds until it has settled too (capped).
+  const streakState = useHelperStreak(helperId);
+  const earningsReady = useArrivalGate(!loading, streakState.settled);
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   // Instant Payout comes with ANY paid membership — Basic and up (see
@@ -415,8 +420,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           "Your schedule" left this page (it is the Schedule tab's subject),
           and nothing renders piecemeal: until the earnings rows are in, the
           whole view is ONE skeleton with the loaded layout. */}
-      {view === "earnings" && loading && <EarningsPageSkeleton withHeader={false} />}
-      {view === "earnings" && !loading && (
+      {view === "earnings" && !earningsReady && <EarningsPageSkeleton withHeader={false} />}
+      {view === "earnings" && earningsReady && (
       <section className="space-y-3">
         {helperId && (
           <div className="flex">

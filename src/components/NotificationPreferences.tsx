@@ -15,6 +15,7 @@ import { QuietHoursClock } from "@/components/profile/QuietHoursClock";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import type { Prefs } from "./notificationPreferences/types";
 import { defaultPrefs, trimTime, rows } from "./notificationPreferences/constants";
+import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 
 /** One delivery channel's outcome, as reported by `create-notification`. */
 type TestChannel = {
@@ -494,6 +495,13 @@ const NotificationPreferences = () => {
   // this card: the only scroll surface on the tab is Profile.tsx's wrapper, and
   // `src/components/profile/profileTabScroll.test.ts` fails the moment one
   // comes back — in ANY tab panel, not just this file.
+  // ONE PAINT (Q169). The rows are data-shaped — Quiet Hours grows its
+  // From/To rows only when it is on — so painting the table with default
+  // values first and the real ones later moved every row below it (measured
+  // at 375: 82px, CLS 0.055). Until the preferences are in, the tab keeps the
+  // placeholder its chunk load already showed; then the real table, once.
+  if (!loaded) return <ProfileTabBodyReserve />;
+
   return (
     <div className="rounded-2xl liquid-glass overflow-hidden shadow-sm">
       {/* Column header — App / Email column labels sit directly above

@@ -13,6 +13,31 @@ import { OfferToSavedHelpr } from "./OfferToSavedHelpr";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 import { formatPrice, formatShortDate } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
+import { useArrivalGate } from "@/hooks/useArrivalGate";
+
+/**
+ * The entry column while its data rows settle: five collapsed-card shells, the
+ * shape and height (104px) of the real rows, so the column holds its place and
+ * hands over to the real cards in one step.
+ */
+function EntryChoiceSkeleton() {
+  return (
+    <div className="flex flex-col gap-3" role="status" aria-busy="true" data-testid="entry-choice-skeleton">
+      <span className="sr-only">Loading…</span>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="rounded-2xl liquid-glass p-4 flex items-center" style={{ minHeight: "104px" }} aria-hidden>
+          <div className="flex items-center gap-4 w-full">
+            <span className="w-11 h-11 rounded-full shrink-0 animate-pulse" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} />
+            <span className="min-w-0 flex-1">
+              <span className="block h-4 w-40 rounded animate-pulse" style={{ background: "hsl(var(--olivewood) / 0.10)" }} />
+              <span className="block h-3 w-28 rounded mt-1.5 animate-pulse" style={{ background: "hsl(var(--olivewood) / 0.07)" }} />
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 interface EntryChoiceProps {
   form: ReturnType<typeof usePostJobForm>;
@@ -112,6 +137,19 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // Same predicate FormStep uses; `null` means the preflight count has not
   // landed yet, which must read as "not at the limit", never as a refusal.
   const atOpenJobLimit = form.openJobCount !== null && form.openJobCount >= 5;
+
+  // ONE PAINT (Q169). Three rows here depend on data — the open-job cap
+  // notice, one "Finish Paying" row per unpaid job, and "Repost" — and every
+  // one of them sits ABOVE the static cards. Painted as each query landed,
+  // measured at 375 on prod: the static cards rendered, then three Finish
+  // Paying rows and Repost arrived and shoved them 376px down (CLS 0.32). The
+  // column now holds a card-shaped skeleton until all three have settled (at
+  // most ARRIVAL_CAP_MS), then renders once in its final order.
+  const entryReady = useArrivalGate(
+    true,
+    unpaidDrafts !== null && recentPosted !== null && form.openJobCount !== null,
+  );
+  if (!entryReady) return <EntryChoiceSkeleton />;
 
   return (
     // Top-level cards render as a stacked column on phones and flip to a

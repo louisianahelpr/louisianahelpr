@@ -412,7 +412,14 @@ const Dashboard = () => {
         // would add a second, in-flow sticky header on phone/native (where
         // the "Full-bleed top header" CSS rule never fires), stacking on top
         // of the title card's own emblem+bell instead of replacing them.
-        titleCard={<DashboardTitleBar
+        // SAME FRAME AS THE LOADED PAGE ON THE DESKTOP WEBSITE (Q169). The
+        // loaded desktop page has no title card (its controls moved into the
+        // feed column's strip) and splits into feed + map columns. This
+        // loading frame used to draw the phone title card at every width, so
+        // at 1440 the whole panel jumped 42px up when the feed landed (CLS
+        // 0.045) and four full-width bars became a narrow column beside a
+        // map. It now draws the columns the loaded page draws.
+        titleCard={isWebDesktop ? undefined : <DashboardTitleBar
             actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
           />}
@@ -422,7 +429,30 @@ const Dashboard = () => {
             doesn't exist yet here — so the pending screen had no heading at
             all. Visually hidden; the skeleton stays the visible design. */}
         <LoadingHeading title="Home" message="Loading jobs near you…" />
-        <DashboardSkeleton />
+        {isWebDesktop ? (
+          <div className="flex flex-1 min-h-0 overflow-hidden" data-testid="dashboard-desktop-loading">
+            <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
+              {/* The feed strip's box: px-4 py-2 around its 40px controls. */}
+              <div
+                className="shrink-0 flex items-center gap-2 px-4 py-2"
+                style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.12)" }}
+                aria-hidden
+              >
+                <div className="h-10" />
+              </div>
+              <DashboardSkeleton />
+            </div>
+            {mapVisible && (
+              <div
+                className="w-[48%] shrink-0 min-h-0"
+                style={{ borderLeft: "1px solid hsl(var(--olivewood) / 0.12)" }}
+                aria-hidden
+              />
+            )}
+          </div>
+        ) : (
+          <DashboardSkeleton />
+        )}
       </PageScaffold>
     );
   }

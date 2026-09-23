@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
-import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
+import GuestBrowseSkeleton, { GUEST_FEED_GRID_CLASS, GUEST_FEED_RESERVE_CLASS } from "@/components/GuestBrowseSkeleton";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
@@ -155,7 +155,9 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
  * the original `gap-2.5` rhythm. Only at `md`+ does it widen to /jobs'
  * `gap-4`, which is the gutter a two-column layout needs.
  */
-const FEED_GRID_CLASS = "grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-4";
+// Defined beside GuestBrowseSkeleton so the chunk-load placeholder lays its
+// bones out on the very grid the cards land on (Q169).
+const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS;
 
 function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup: () => void }) {
   return (
@@ -578,10 +580,14 @@ const DashboardGuest = () => {
           role="status"
           aria-live="polite"
           aria-busy="true"
-          className={`${FEED_GRID_CLASS} ${feedBottomClass}`}
+          // Reserve (Q169): the same class the chunk-load skeleton uses; see
+          // GUEST_FEED_RESERVE_CLASS for the measured reason.
+          className={`${FEED_GRID_CLASS} ${feedBottomClass} ${GUEST_FEED_RESERVE_CLASS}`}
         >
           <span className="sr-only">Loading jobs…</span>
-          {Array.from({ length: 5 }).map((_, i) => (
+          {/* Six, the same count GuestBrowseSkeleton draws, so the chunk-load
+              frame and this one are the same picture. */}
+          {Array.from({ length: 6 }).map((_, i) => (
             <JobCardSkeleton key={i} />
           ))}
         </div>

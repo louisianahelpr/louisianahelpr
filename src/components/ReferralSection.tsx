@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { Gift, Copy, Users, DollarSign, Check, Banknote, Loader2, Share2, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useReferralData } from "@/hooks/useReferralData";
@@ -161,32 +161,14 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   const unredeemedCredits = earnings.unredeemed;
 
   if (loading) {
-    // Skeleton mirrors the live single-screen layout exactly — no jump on load.
-    return (
-      <div className="h-full flex flex-col justify-between gap-3 overflow-hidden">
-        <Skeleton className="h-10 w-full rounded-ds-sm" />
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-3">
-          <Skeleton className="h-3 w-32 mx-auto" />
-          <Skeleton className="h-9 w-48 mx-auto rounded-md" />
-          <div className="flex gap-2">
-            <Skeleton className="h-10 flex-1 rounded-md" />
-            <Skeleton className="h-10 flex-1 rounded-md" />
-          </div>
-          <Skeleton className="h-8 w-full rounded-md" />
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <Skeleton className="h-16 rounded-ds-md" />
-          <Skeleton className="h-16 rounded-ds-md" />
-          <Skeleton className="h-16 rounded-ds-md" />
-        </div>
-        <div className="rounded-ds-md liquid-glass p-3 space-y-2 flex-1 min-h-0">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-5/6" />
-          <Skeleton className="h-3 w-4/6" />
-        </div>
-      </div>
-    );
+    // The SAME placeholder the tab's chunk load showed a moment earlier
+    // (Q169). The bespoke skeleton that stood here claimed to mirror the live
+    // layout and did not: an extra bar on top, a p-4 code card against the
+    // real p-6, and a full-height flex that spread the bones apart — measured
+    // at 375 the stat tiles moved 239px when the data landed (CLS 0.097). A
+    // second, different skeleton after the first is exactly the "so many
+    // skeletons" the owner asked about.
+    return <ProfileTabBodyReserve />;
   }
 
   if (isError) {

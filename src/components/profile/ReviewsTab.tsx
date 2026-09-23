@@ -91,7 +91,11 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
       {/* Hero summary — big rating number + stars + count. Anchors the
           page so the reader has the at-a-glance signal before they scroll
           into individual reviews. Hides when there are no reviews. */}
-      {reviewCount > 0 && avgRating != null && (
+      {/* `!loading` (Q169): the count comes from a query that lands before
+          the review list, so the real hero appeared ABOVE the loading
+          skeleton — which already draws a hero bone — and pushed it 123px
+          down (CLS 0.079 at 375). Hero and list now arrive together. */}
+      {!loading && reviewCount > 0 && avgRating != null && (
         <div className="rounded-2xl liquid-glass px-5 py-4 flex items-center gap-4">
           <div className="shrink-0 text-center">
             <p

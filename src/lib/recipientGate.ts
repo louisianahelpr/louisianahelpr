@@ -38,11 +38,10 @@ export const RECIPIENT_RESTRICTED_TOAST =
 
 /** The server gate's answer, or null when it could not be asked. */
 async function askGate(jobId: string, receiverId: string): Promise<boolean | null> {
-  // Not in the generated types yet (20260914210443); a known server function.
-  const { data, error } = await supabase.rpc("can_send_message_to_in_job" as never, {
+  const { data, error } = await supabase.rpc("can_send_message_to_in_job", {
     _job_id: jobId,
     _receiver: receiverId,
-  } as never);
+  });
   if (error) {
     if ((error as { code?: string }).code !== "PGRST202") {
       report(error, { severity: "warning", tags: { source: "recipientGate.askGate" } });

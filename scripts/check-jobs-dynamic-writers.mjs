@@ -25,7 +25,7 @@
  * the linked Supabase CLI. Exit 1 on an offender, 2 if it could not look.
  */
 import { execFileSync } from "node:child_process";
-import { aclIsClientCallable, dynamicJobsWriterReasons, parseArgs } from "./lib/jobsWriteSurface.mjs";
+import { aclIsClientCallable, dynamicJobsWriterReasons, isReviewedJobsWriter, parseArgs } from "./lib/jobsWriteSurface.mjs";
 
 const SQL = `
 SELECT p.proname::text AS name,
@@ -87,6 +87,7 @@ if (process.argv.includes("--inject-fake")) {
 const offenders = [];
 for (const r of rows) {
   if (!aclIsClientCallable(r.acl)) continue;
+  if (isReviewedJobsWriter(r.name, r.body)) continue;
   const reasons = dynamicJobsWriterReasons({ name: r.name, args: parseArgs(r.args), body: r.body });
   if (reasons.length) offenders.push({ name: r.name, reasons });
 }

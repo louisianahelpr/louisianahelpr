@@ -27,3 +27,5 @@ export function newestFunctions(files: MigrationFile[]): Map<string, NewestFn>;
 export function jobsTriggers(files: MigrationFile[]): Map<string, string>;
 export function dynamicJobsWriterReasons(fn: { name: string; args: FnArg[]; body: string }): string[];
 export function aclIsClientCallable(acl: string | null | undefined): boolean;
+export const REVIEWED_JOBS_WRITERS: Map<string, RegExp>;
+export function isReviewedJobsWriter(name: string, body: string | null | undefined): boolean;

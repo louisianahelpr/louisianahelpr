@@ -7,6 +7,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   dynamicJobsWriterReasons,
+  isReviewedJobsWriter,
   jobsTriggers,
   newestFunctions,
   parseArgs,
@@ -335,24 +336,11 @@ describe("jobs money / state-machine columns: every client-writable one has a tr
  * chose, that caller would be writing guarded columns as postgres.
  */
 describe("no client-callable SECURITY DEFINER function writes jobs from caller-supplied columns", () => {
-  // Reviewed-safe dynamic writers: each writes a jobs column from a caller
-  // argument but validates every element server-side, so the "trusts the
-  // caller" heuristic is a false positive. Keep tiny; every entry needs a why.
-  const DYNAMIC_ALLOWLIST = new Set<string>([
-    // rpc_add_dispute_evidence (dispute-races, 20260915034822): appends to
-    // jobs.dispute_evidence_urls from the caller's text[], but validates every
-    // element with dispute_evidence_url_ok (must be the caller's OWN signed
-    // proof-photo path), requires the caller be a party to an admin-reopened
-    // OPEN dispute, and an append-only trigger blocks removals. Cleared by the
-    // dispute-races money + authz reviews (2026-09-15); docs/OPEN.md LOW-4
-    // tracks moving it off jobs onto disputes as the eventual real fix.
-    "rpc_add_dispute_evidence",
-  ]);
   const offenders = (fns: Map<string, Fn>) =>
     [...fns.values()]
       .filter((f) => f.secdef && f.clientCallable && !f.returnsTrigger)
       .map((f) => ({ name: f.name, file: f.file, reasons: dynamicJobsWriterReasons(f) }))
-      .filter((o) => o.reasons.length > 0 && !DYNAMIC_ALLOWLIST.has(o.name));
+      .filter((o) => o.reasons.length > 0 && !isReviewedJobsWriter(o.name, fns.get(o.name)?.body));
 
   it("none in the newest migration definitions", () => {
     const fns = newestFunctions(FILES) as Map<string, Fn>;

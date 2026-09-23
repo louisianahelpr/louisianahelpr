@@ -214,3 +214,30 @@ export function aclIsClientCallable(acl) {
       return grantee === "" || grantee === "anon" || grantee === "authenticated";
     });
 }
+
+/**
+ * Reviewed-safe definer functions that R3 flags: each writes ONE named jobs
+ * column from a caller argument but validates every element server-side. One
+ * list for the static test (src/test/jobsStateColumnGuard.test.ts) and the live
+ * check (scripts/check-jobs-dynamic-writers.mjs) — they held separate copies,
+ * and the live one without the entry was red every night from 2026-09-20.
+ * An entry only exempts while the body still calls its validator: strip the
+ * validation and the function is an offender again. Keep tiny; every entry
+ * needs a why.
+ */
+export const REVIEWED_JOBS_WRITERS = new Map([
+  // rpc_add_dispute_evidence (dispute-races, 20260915034822): appends to
+  // jobs.dispute_evidence_urls from the caller's text[], but validates every
+  // element with dispute_evidence_url_ok (must be the caller's OWN signed
+  // proof-photo path), requires the caller be a party to an admin-reopened
+  // OPEN dispute, and an append-only trigger blocks removals. Cleared by the
+  // dispute-races money + authz reviews (2026-09-15); docs/OPEN.md LOW-4
+  // tracks moving it off jobs onto disputes as the eventual real fix.
+  ["rpc_add_dispute_evidence", /\bdispute_evidence_url_ok\s*\(/i],
+]);
+
+/** True when `name` is a reviewed writer AND its body still carries the validator. */
+export function isReviewedJobsWriter(name, body) {
+  const validator = REVIEWED_JOBS_WRITERS.get(name);
+  return !!validator && validator.test(codeOnly(body ?? ""));
+}

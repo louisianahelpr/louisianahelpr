@@ -194,7 +194,7 @@ export const DisputeTimelineDialog = ({
         // either party there (party check, own-upload path check, set-like
         // append, jobs mirror — all server-side), and it returns the merged
         // array, so there is no last-write-wins window to re-read around.
-        const { data: merged, error: rpcErr } = await (supabase.rpc as any)("rpc_add_dispute_evidence", {
+        const { data: merged, error: rpcErr } = await supabase.rpc("rpc_add_dispute_evidence", {
           _dispute_id: dispute.id,
           _evidence_urls: newUrls,
         });

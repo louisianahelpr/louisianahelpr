@@ -76,12 +76,7 @@ const StalledJobsInner = () => {
     key: queryKey,
     fallback: EMPTY_STATE,
     fetcher: async () => {
-      // `admin_stalled_job_queue` ships in the migration this screen was built
-      // for, so the generated `Functions` block does not describe it. The cast
-      // is exactly as wide as that gap and no wider —
-      // `rpcCastsOnDeclaredRpcs.test.ts` turns red the moment types.ts learns
-      // the name, which is when it must come out.
-      const res = await (supabase.rpc as any)("admin_stalled_job_queue", {
+      const res = await supabase.rpc("admin_stalled_job_queue", {
         p_include_resolved: includeResolved,
       });
 
@@ -142,8 +137,7 @@ const StalledJobsInner = () => {
     inFlight.current.add(row.job_id);
     setBusyId(row.job_id);
     try {
-      // Same cast, same reason as the queue read above.
-      const res = await (supabase.rpc as any)("resolve_stalled_job_flag", {
+      const res = await supabase.rpc("resolve_stalled_job_flag", {
         p_job_id: row.job_id,
       });
       if (res.error && isMissingRpc(res.error)) {

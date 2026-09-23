@@ -292,7 +292,15 @@ describe("every fixture literal could be inserted", () => {
 
   // Object literals that look like a table row but are not one. Each entry names
   // the file and the keys that identify the non-row shape.
-  const NOT_ROWS = [{ file: "e2e/visual-audit/responsive.spec.ts", keys: ["screen", "url", "notes"] }];
+  const NOT_ROWS = [
+    { file: "e2e/visual-audit/responsive.spec.ts", keys: ["screen", "url", "notes"] },
+    // A test BODY (`{ scenario.reads.jobs = …; scenario.reads.disputes = …;
+    // fn.request({ headers, body: { action } }) }`), not a row: a jobs row, a
+    // disputes row and a request share one brace. It was skipped as ambiguous
+    // until admin_stalled_job_queue's return columns (types.ts, 2026-09-23)
+    // stopped its jobs keys being distinctive, leaving only disputes'.
+    { file: "src/test/edge/create-payment.test.ts", keys: ["execution_status", "payout_split", "headers", "body", "action"] },
+  ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];
   let valuesGraded = 0;

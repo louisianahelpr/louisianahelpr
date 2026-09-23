@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-23T13:46:28.533Z",
-  "guards": 767,
-  "registered": 767,
+  "generated": "2026-09-23T13:55:18.034Z",
+  "guards": 769,
+  "registered": 769,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -28,6 +28,7 @@
     "src/test/messageToneInvariant.test.ts",
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
+    "src/test/pressNeverFlipsAdminSettings.test.ts",
     "src/test/storageBucketLimits.test.ts",
     "src/test/unknownZipIsNeverSilent.test.ts"
   ],

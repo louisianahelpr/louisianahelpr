@@ -293,6 +293,30 @@ export const ACCOUNT_DESTROY_RX = /\b(delete (my )?account|deactivate|close (my 
  * messy-input. This sweep never consumed it — that omission is the bug.
  */
 export const SESSION_END_RX = /\bsign ?out\b|\blog ?out\b|\bsign out everywhere\b|\bswitch account\b/i;
+/**
+ * An ADMIN STATE TOGGLE: a switch / checkbox, or a "Turn on" / "Enable" style
+ * confirm, pressed as the admin persona. Those flip PLATFORM-WIDE state, not a
+ * record, so they are mutating even though no word in DESTRUCTIVE_RX matches.
+ *
+ * docs/OPEN.md Q42, proven from the API gateway's own edge_logs: every
+ * press-every-control run from 22 Sep 17:52Z to 23 Sep 10:50Z (runs
+ * 35761400822, 35768341847, 35805671843, 35813177418, 35822080143,
+ * 35837735324) PATCHed `marketing_settings` as admin@louisianahelpr.com from
+ * the runner's 127.0.0.1:4173 referer. /admin?view=social's "Auto-publish"
+ * and per-channel switches are role="switch" labelled "Auto-publish" /
+ * "Instagram" / "Facebook", and the confirm is "Turn on": none is a
+ * DESTRUCTIVE_RX word, so none was ever gated. The 10:50:07Z PATCH is what set
+ * auto_publish_enabled = true on prod (the public-posting kill switch), and the
+ * Facebook switch the owner turned off was being flipped by the same runs.
+ */
+export const STATE_TOGGLE_LABEL_RX = /\b(turn on|turn off|enable|disable|activate|pause|resume|go live)\b/i;
+const TOGGLE_ROLES = new Set(["switch", "checkbox", "menuitemcheckbox", "menuitemradio", "radio"]);
+export function isAdminStateToggle({ persona, meta = {}, label = "" }) {
+  if (persona !== "admin") return false;
+  const role = String(meta.role ?? "").toLowerCase();
+  const isToggle = TOGGLE_ROLES.has(role) || (meta.tag === "input" && /^(checkbox|radio)$/i.test(String(meta.type ?? "")));
+  return isToggle || STATE_TOGGLE_LABEL_RX.test(label);
+}
 /** Routes whose subject is the signed-in account (a mutation there touches only the test account's own rows). */
 export const SELF_ROUTE_RX = /^\/(profile|post-job|support|schedule|availability|settings|complete-profile|warnings|data-rights|my-posts|payment-success|gift-card|forgot-password|reset-password|signup|login)(\/|\?|$)/;
 

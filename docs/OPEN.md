@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 78 done, 10 partly done (fixed, protection pending), 76 open. Source of truth for work.
+- **Queue (this file):** 79 done, 10 partly done (fixed, protection pending), 76 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 164 items — 78 done, 10 partly done (fixed, protection pending), 76 open.**
+**Queue: 165 items — 79 done, 10 partly done (fixed, protection pending), 76 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -500,6 +500,7 @@ sure someone hears it and closes it.
 - [ ] **Q163 OWNER (Stripe LIVE dashboard): identify the 2026-09-23 12:43:26Z delivery to /functions/v1/stripe-webhook, and check the live endpoint stays enabled until launch.** Q156 showed it was a real Stripe delivery that no sandbox event matches; the live endpoint documented in scripts/e2e/stripe-sandbox-off.sh is the likely sender, and a test key cannot see live mode. Since Q156 a live event hitting this URL during sandbox is answered 400, so Stripe retries it and may email about, or eventually disable, the live endpoint. LAUNCH DAY: after stripe-sandbox-off.sh, confirm in the live dashboard that the endpoint is enabled and resend any live events it failed.
 - [ ] **Q164 A temporary edge function vanished within a minute of a successful deploy (2026-09-23 13:19Z).** `supabase functions deploy tmp-q156-stripe-events` printed Deployed; about a minute later POST returned 404 twice and `supabase functions list` had no such function; a redeploy came back as version 1 of a new function (13:19:59) and stayed. Unexplained: check whether the Supabase GitHub integration (Q121) or a hygiene job deletes functions that are not in the repo, before any lane relies on a temporary function.
 - [ ] **Q165 Stale reports: archive what no longer describes the app (owner asked 2026-09-23).** Measured: 30 of 41 docs/audit/*.md not updated since before 2026-09-16 (oldest 2026-06-19: 01-screens, 03-journeys, 04-security-money, 05-trust-discovery); TODO.md 807 lines last touched 2026-09-01 (a second backlog, see Q84); AGENTS.md 2026-09-05; launch-2026-09/ROLLUP.md 2026-09-22. For each: carry any still-open finding into this file (verified live, not copied), then move it to docs/archive/ with a one-line 'historical, superseded by docs/OPEN.md' banner; keep dated records (morning/, evidence) where they are. Guard: extend scripts/check-staleness.mjs so a non-dated, non-archived report older than 14 days fails staleness-watch.
+- [x] **Q166 DONE 2026-09-23: the prod presser flipped admin settings (it turned marketing auto-publish ON).** Measured from edge_logs: 17 PATCHes to `marketing_settings` as admin@louisianahelpr.com from press-every-control runs 35761400822, 35768341847, 35805671843, 35813177418, 35822080143 and 35837735324; the 10:50:07Z one set auto_publish_enabled = true. Cause: a control counted as mutating only by label vocabulary (DESTRUCTIVE_RX / PAYMENT_RX / type=submit); switches are labelled with the setting's name ("Auto-publish", "Instagram") and the confirm says "Turn on". Fix: `isAdminStateToggle` (scripts/audit/pressProdSafety.mjs) makes any switch/checkbox/radio, or a turn on/off / enable / disable label, pressed as admin a mutating control, so mutationGate skips it unless it acts on a test-owned row; ENUMERATE now records the role. Guard: src/test/pressNeverFlipsAdminSettings.test.ts (3 @mutate, all red when applied by hand: 6/9, 1/9 and 1/9 failing). The setting itself was left as found: MORNING QUESTIONS 8.
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes
@@ -562,6 +563,18 @@ sure someone hears it and closes it.
    (b) replace each switch with an "Add license" / "Add insurance" button that
    goes straight to upload-for-review; (c) remove the switches and show the
    attach areas all the time.
+8. **Should marketing auto-publish be ON? (Q42/Q166)** You did not turn it on.
+   Measured from the API gateway's edge_logs: press-every-control run
+   35837735324 PATCHed `marketing_settings` at 10:50:07Z on 2026-09-23 as
+   admin@louisianahelpr.com (referer 127.0.0.1:4173, the CI runner), and every
+   press run since 2026-09-22 17:52Z had been flipping the Auto-publish and
+   channel switches the same way (17 PATCHes in 6 runs). The sweep can no
+   longer press admin switches (Q166). Live now: auto_publish_enabled = true,
+   Instagram on, Facebook off; the Meta secrets are missing, so nothing posts
+   and marketing-publish now reports this once a day as an owner to-do instead
+   of a critical page every 15 minutes. Pick one: (a) **off** until you add the
+   Meta secrets (I switch it off in Admin -> Social); (b) leave it on, so
+   scheduled Instagram rows post as soon as the secrets exist.
 - [ ] **Q41 Morning report: everything the design no longer uses (owner,
   2026-09-23: "we can likely delete it").** REPORT ONLY, no deletion; the owner
   decides. Inventory with evidence for each item (call-site counts,

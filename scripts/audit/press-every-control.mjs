@@ -208,7 +208,7 @@ export function screenErrorText(snap) {
 export const SENTRY_PROBE_RX = /uncaught:\s*Sentry uncaught test\b/i;
 export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout)\b/i;
 export { ACCOUNT_DESTROY_RX, SESSION_END_RX, PAYMENT_RX, SELF_ROUTE_RX } from "./pressProdSafety.mjs";
-import { PAYMENT_RX } from "./pressProdSafety.mjs";
+import { PAYMENT_RX, isAdminStateToggle } from "./pressProdSafety.mjs";
 /** Console lines the HARNESS causes, not the app. */
 /**
  * Scripts only Vercel's edge serves. The harness runs against a local
@@ -578,6 +578,9 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel }) => {
       sigText: (el.getAttribute("aria-label") || el.innerText || el.getAttribute("title") || "").replace(/\s+/g, " ").trim().slice(0, 240),
       href: href ?? "",
       tag: el.tagName.toLowerCase(),
+      // isAdminStateToggle (pressProdSafety.mjs) reads it: a role="switch" is a
+      // setting, and as admin a setting is platform-wide state (Q42).
+      role: el.getAttribute("role"),
       type: el.getAttribute("type"),
       disabled: el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true",
       srOnly,
@@ -1202,7 +1205,7 @@ async function main() {
           if (meta.type === "file") { skip("file picker (opens the OS dialog; not a DOM outcome)"); continue; }
           if (meta.inToast) { skip("inside a toast (transient; not page chrome)"); continue; }
           if (isHiddenFormMirror(meta)) { skip(FORM_MIRROR_SKIP); continue; }
-          if (DESTRUCTIVE_RX.test(label) || meta.type === "submit" || PAYMENT_RX.test(label)) {
+          if (DESTRUCTIVE_RX.test(label) || meta.type === "submit" || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label })) {
             const why = await gate(label, meta, item.chainOwned);
             if (why) { skip(why); continue; }
             entry.mutating = true;

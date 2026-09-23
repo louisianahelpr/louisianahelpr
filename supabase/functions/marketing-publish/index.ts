@@ -45,6 +45,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { metaSecretGapAlert } from "../_shared/marketing/secretGap.ts";
 import {
   findRecentDuplicate,
   MetaConfigError,
@@ -260,23 +261,14 @@ Deno.serve(async (req) => {
     }
     if (secretGaps.length > 0) {
       // Claiming nothing keeps every queued row intact and retryable the moment
-      // the secret is set.
-      defects.record(
-        `Meta secrets missing, claimed nothing — ${secretGaps.join(" | ")}`,
-      );
-      await postSlackOpsAlert({
-        kind: "custom",
-        severity: "critical",
-        title: "Marketing auto-publish is on but not configured",
-        message:
-          "`auto_publish_enabled` is true and rows may be due, but the Meta credentials are missing. " +
-          "Nothing was claimed, so the queue is intact — set the secrets and the backlog goes out on the next run.",
-        fields: { missing: secretGaps.join(" | ") },
-      });
+      // the secret is set. An OWNER ACTION, not a defect: one warning ledger
+      // item, Slack once a day, HTTP 200 — see _shared/marketing/secretGap.ts
+      // for why this stopped being a critical page every 15 minutes.
+      await postSlackOpsAlert(metaSecretGapAlert(secretGaps));
       return cronResult(
         FN,
-        { ...outcomes, aborted: "meta_secrets_missing" },
-        defects.defects,
+        { ...outcomes, reason: "owner_action_meta_secret_missing", missing: secretGaps },
+        { count: 0 },
         corsHeaders,
       );
     }

@@ -2484,7 +2484,12 @@ serve(async (req) => {
       stripe_status: err.statusCode,
       stack: err.stack?.split("\n").slice(0, 5).join("\n"),
     });
-    return new Response(JSON.stringify({ error: err.message }), {
+    // Client-safe fixed sentence — the raw Stripe/PostgREST text is in the
+    // console.error above. Echoing err.message handed Stripe ids and schema
+    // detail to the caller (EF-5; stripe-connect fixed the same on 2026-09-15).
+    // It reaches people now: the clients read this body via
+    // functionErrorMessage instead of supabase-js's "non-2xx" wrapper.
+    return new Response(JSON.stringify({ error: "We couldn't complete that payment step. Please try again in a moment." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500,
     });
   }

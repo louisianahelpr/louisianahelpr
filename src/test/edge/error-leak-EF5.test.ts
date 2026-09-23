@@ -172,7 +172,7 @@ export function rawErrorResponseSites(files = edgeFunctionFiles()): LeakSite[] {
  * authority is how a "fix" ships unreviewed. instant-job-match WAS fixed,
  * because this lane owns it — which is also the proof the ratchet shrinks.
  *
- *   create-payment        — the known second EF-5 site, owned by its own branch.
+ *   (create-payment was here; fixed 2026-09-22 once clients began showing the body.)
  *   admin-delete-user     — admin-authenticated, so the blast radius is small,
  *   admin-update-email      but it is still GoTrue/PostgREST detail on the wire.
  *   auth-email-hook       — called by GoTrue, not a browser; same class.
@@ -190,7 +190,6 @@ const KNOWN_LEAK_FILES: string[] = [
   "supabase/functions/admin-delete-user/index.ts",
   "supabase/functions/admin-update-email/index.ts",
   "supabase/functions/auth-email-hook/index.ts",
-  "supabase/functions/create-payment/index.ts",
   "supabase/functions/delete-own-account/index.ts",
   "supabase/functions/helpr-pass-wallet/index.ts",
   "supabase/functions/instant-payout/index.ts",

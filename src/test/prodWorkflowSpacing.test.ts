@@ -84,6 +84,20 @@ export const EXEMPT: Record<string, string> = {
     "would defeat the point — the 2026-09-13 outage lasted a day unnoticed.",
 };
 
+/**
+ * Hourly prod-hitting monitors that keep rules 2 and 3 (hourly at most, 30 min
+ * clear of every daily fire) but hold their OWN concurrency group instead of
+ * prod-load, by file name -> group. Two-way: each entry must be a prod-hitting
+ * workflow that fires more than once a day and really declares that group.
+ */
+// @two-way src/test/prodWorkflowSpacing.test.ts:const staleHourly =
+export const HOURLY_OWN_GROUP: Record<string, string> = {
+  "prod-errors.yml": "prod-errors",
+  // docs/OPEN.md Q61: the hourly core-loop canary. A few hundred requests an
+  // hour, counted and capped by its own spec (REQUEST_BUDGET).
+  "core-loop-canary.yml": "core-loop-canary",
+};
+
 const PROD_SIGNALS: RegExp[] = [
   /fncmgoasalhdgfwzhsqa/,
   // A direct PostgREST call from a workflow file — how uptime.yml reads prod.
@@ -289,10 +303,10 @@ export function violations(wfs: Wf[]): string[] {
       }
       continue;
     }
-    // The hourly monitor has its own group: GitHub keeps only ONE pending run
-    // per group, so an hourly run in prod-load would cancel a heavy suite that
-    // is queued behind an overrunning one. It is tiny and 30 min clear anyway.
-    const literal = group === "prod-load" || (w.file === "prod-errors.yml" && group === "prod-errors");
+    // The hourly monitors have their own groups: GitHub keeps only ONE pending
+    // run per group, so an hourly run in prod-load would cancel a heavy suite
+    // that is queued behind an overrunning one. They are 30 min clear anyway.
+    const literal = group === "prod-load" || (!!HOURLY_OWN_GROUP[w.file] && group === HOURLY_OWN_GROUP[w.file]);
     const scheduleExpr =
       !!group && /github\.event_name\s*==\s*'schedule'\s*&&\s*'prod-load'/.test(group);
     if (!literal && !scheduleExpr) {
@@ -431,6 +445,18 @@ describe("prod-hitting workflow schedules", () => {
         `${file} now has a job-level account lock — drop its rule-4 exemption and split the dispatch`,
       ).toBe(false);
     }
+  });
+
+  it("every hourly own-group monitor is a real multi-fire prod workflow holding that group", () => {
+    const prod = new Map(prodHitting(wfs).map((w) => [w.file, w]));
+    const staleHourly = Object.entries(HOURLY_OWN_GROUP).filter(([file, group]) => {
+      const w = prod.get(file);
+      if (!w) return true;
+      const perDay = w.crons.flatMap(fireMinutes).length / 7;
+      return perDay <= 1 || concurrencyOf(w.src).group !== group;
+    });
+    expect(staleHourly.map(([f]) => `stale baseline entry ${f} — remove it (lower the baseline)`)).toEqual([]);
+    expect(Object.keys(HOURLY_OWN_GROUP).length).toBeGreaterThan(1);
   });
 
   it("no overlaps, prod-load concurrency on each, nothing more often than hourly", () => {

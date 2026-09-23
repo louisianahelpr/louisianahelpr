@@ -1,0 +1,151 @@
+name: Core-loop canary
+
+# docs/OPEN.md Q61. The full journeys run nightly, so a broken core loop could
+# go 20+ hours unseen. Every hour this walks the smallest real version of it on
+# PROD as the two shared test accounts (e2e/canary/core-loop.spec.ts):
+#   sign in -> browse -> open a job -> apply -> message
+#     -> Stripe TEST checkout start (never paid) -> clean up (verified)
+# against this commit's LOCAL build (zero Vercel edge requests) and the real
+# backend. Guarded by src/test/coreLoopCanary.test.ts.
+#
+# RED: opens/updates `nightly-red: core-loop-canary`, records the ops alert
+# ledger item with that same title (so it closes exactly when the issue does),
+# and posts to Slack. GREEN: nightly-issue-sync closes the issue as
+# github-actions[bot], and the hourly ledger sync (prod-errors.yml) closes the
+# ledger item on that evidence.
+#
+# STANDS DOWN, without touching the issue or the ledger, while a scheduled or
+# dispatched suite is driving the same accounts (scripts/canary/
+# shared-accounts-busy.mjs): two runs on one pair of accounts turn each other
+# red, and that suite is exercising the same loop. A stand-down is neither a
+# pass nor a failure, so it must not close an open red.
+#
+# PROD LOAD (Q104): the spec counts every Supabase request it makes, prints it
+# in the run summary, and fails above its REQUEST_BUDGET. Its own concurrency
+# group, never prod-load: GitHub keeps one pending run per group, so an hourly
+# run parked in prod-load would cancel a queued nightly suite. At :47, the one
+# minute of the hour 30 min clear of every daily prod cron (all at :17).
+
+on:
+  schedule:
+    - cron: "47 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+concurrency:
+  group: core-loop-canary
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Are the shared accounts free?
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      busy: ${{ steps.busy.outputs.busy }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Ask GitHub which shared-account suites are running
+        id: busy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          node scripts/canary/shared-accounts-busy.mjs
+          if grep -q '^busy=true' "$GITHUB_OUTPUT"; then
+            echo "::notice title=Canary stood down::$(grep '^reason=' "$GITHUB_OUTPUT" | cut -d= -f2-)"
+            echo "- **Canary stood down this hour** — the shared test accounts are in use; the issue and ledger were not touched." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  canary:
+    name: Core loop on prod
+    needs: preflight
+    if: needs.preflight.outputs.busy != 'true'
+    runs-on: ubuntu-latest
+    # ~5 min normally (install, build, a ~2 min spec). 40 only for the rare run
+    # that has to mint the funded fixture: a real TEST checkout plus the
+    # 20-minute early-access wait (e2e/prod-audit/fundedOpenJob.ts).
+    timeout-minutes: 40
+    env:
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+      - name: sign in, browse, open, apply, message, checkout start, clean up
+        run: npx playwright test --project=canary --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
+      - name: Keep the trace and screenshots when the loop fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-loop-canary-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+          if-no-files-found: warn
+
+  notify:
+    name: Report the canary's result
+    needs: [preflight, canary]
+    # Not on a stand-down: that hour proved nothing either way.
+    if: always() && needs.preflight.outputs.busy != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: core-loop-canary
+          status: ${{ (needs.preflight.result == 'success' && needs.canary.result == 'success') && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Ledger and Slack on a red canary
+        if: needs.preflight.result != 'success' || needs.canary.result != 'success'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # Ops alert ledger (docs/OPEN.md Q1). Same title as the nightly-red
+          # issue, so the item closes when that issue is closed by the canary's
+          # own green run. Recorded FIRST so a missing webhook cannot skip it;
+          # the CLI never exits non-zero.
+          node scripts/ops-alert-ledger.mjs record --source-kind nightly_red --source "nightly-red" \
+            --title "nightly-red: core-loop-canary" --severity critical --verify-ref "core-loop-canary.yml" \
+            --run-url "$RUN_URL"
+          set -euo pipefail
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "::warning::SLACK_WEBHOOK_URL is not set — the nightly-red issue and ledger item were filed, no Slack post."
+          else
+            jq -n --arg t ":rotating_light: Core-loop canary is RED on prod (sign in → browse → apply → message → checkout). ${RUN_URL}" '{text:$t}' \
+              | curl -sS --fail -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
+          fi

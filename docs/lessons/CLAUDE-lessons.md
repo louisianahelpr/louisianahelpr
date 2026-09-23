@@ -637,3 +637,41 @@ Both agents refused and were right to. The refusals were the valuable output.
 - `create-pro-checkout` merged and "deployed" for 15 days while the deployed artifact stayed pinned at v87.
 
 **The rule:** before calling anything mechanical, enumerate the layers it crosses and say which you actually read. A status column, a row count, or a grep of `src/` is evidence about ONE layer. Write the layers you checked into the brief so the agent knows what is assumption and what is measurement.
+
+<a id="the-gate"></a>
+## the-gate
+
+**2026-09-22: five self-inflicted failures in one session, all the same one.**
+
+Not one of them was a missing check. Every single one already had a guard that
+was right, and every single one was found by something other than me running it:
+
+| what shipped broken | the guard that already existed | how I found out |
+|---|---|---|
+| four guards using a comment stripper that DELETES the code it searches | `guardsDoNotDeleteSource.test.ts` | repo-wide `vitest run`, after the push |
+| a migration reading `public.jobs` with no row lock | `check-race-class.mjs` | race-runner went red (#1643) |
+| an alerting policy change | five test files asserting the old rule | repo-wide `vitest run`, after the push |
+| an effect depending on a hook's user OBJECT | `notificationMasterSwitch.test.tsx` | it HUNG rather than failed — read as a flaky machine, cost a pkill and two reruns |
+| a chevron added to a two-button header | `expanding-search-geometry.spec.ts` | prod-audit, after the deploy |
+
+The pattern is not carelessness about checks. It is running SOME checks,
+believing they were THE checks, and pushing. `npm run typecheck` plus the tests
+I happened to touch feels like diligence and is not.
+
+**The fix is not a longer list.** A list in a document is what produces a
+subset. `npm run gate` runs all of it and PRINTS WHAT IT RAN, marking any
+skipped step, so a partial run cannot be mistaken for a clean one. `--fast`
+drops only the repo-wide vitest and says, in the output, that the result is not
+a clean gate.
+
+Two of the five also moved earlier, to where a mistake costs nothing:
+`local/no-deleting-comment-stripper` (eslint, so lint-staged catches it at the
+commit) and the migration guards, now in lint-staged for
+`supabase/migrations/*.sql`. A guard that fires after the push is a guard people
+learn to work around.
+
+And one lesson that is not about process: **a test that HANGS sends you to the
+wrong place.** The infinite render loop looked exactly like this Mac's
+documented vitest memory flake. Prefer a dependency on a primitive over a
+hook-returned object, and when a test hangs, read the dep array before blaming
+the machine.

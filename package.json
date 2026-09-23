@@ -39,6 +39,7 @@
     "strip:ios-sourcemaps": "node scripts/strip-ios-sourcemaps.mjs",
     "check:stripe-webhook": "node scripts/check-stripe-webhook-events.mjs",
     "check:agent-refs": "node scripts/check-agent-refs.mjs",
+    "gate": "node scripts/gate.mjs",
     "check:claude-md": "node scripts/check-claude-md.mjs",
     "check:discarded-filters": "node scripts/check-discarded-query-filters.mjs",
     "check:surface-owners": "node scripts/check-surface-owners.mjs",

@@ -43,9 +43,13 @@ const bodies = readdirSync(MIGRATIONS)
 const fnBody = (sql: string, name: string): string | null => {
   const i = sql.indexOf(`FUNCTION public.${name}(`);
   if (i === -1) return null;
-  const m = sql.slice(i).match(/AS \$fn\$([\s\S]*?)\$fn\$;/);
+  // Any dollar-quote tag ($fn$, $function$, $$, ...). Matching only `$fn$`
+  // made this guard read the PREVIOUS definition whenever a newer migration
+  // used another tag — 20260923050055 ($function$) was invisible to it and a
+  // revert of its fix stayed green (2026-09-23).
+  const m = sql.slice(i).match(/AS (\$[A-Za-z_]*\$)([\s\S]*?)\1;/);
   if (!m) return null;
-  return m[1].replace(/--.*$/gm, "");
+  return m[2].replace(/--.*$/gm, "");
 };
 
 const latestBody = (name: string): string | null => {
@@ -60,6 +64,11 @@ const latestBody = (name: string): string | null => {
 describe("a cron outage is not reported through a cron", () => {
   it("found the migrations (cannot pass vacuously)", () => {
     expect(bodies.length).toBeGreaterThan(100);
+  });
+
+  it("reads the NEWEST definition, whatever its dollar-quote tag", () => {
+    const newest = bodies.filter((b) => b.sql.includes("FUNCTION public.sweep_cron_startup_failures(")).at(-1)!;
+    expect(fnBody(newest.sql, "sweep_cron_startup_failures"), `could not parse ${newest.file}`).toBeTruthy();
   });
 
   it("the startup-timeout sweep exists and writes FATAL, not error", () => {
@@ -79,6 +88,18 @@ describe("a cron outage is not reported through a cron", () => {
     // what made sweep_dead_crons nine hours late.
     expect(body).toContain("startup timeout");
     expect(body).toContain("cron.job_run_details");
+  });
+
+  it("it counts a failed run of ANY kind, not only startup timeouts (Q33)", () => {
+    const body = latestBody("sweep_cron_startup_failures")!;
+    // 2026-09-22 19:00Z: 18 crons failed with "connection failed" and nothing
+    // paged, because the WHERE matched only '%startup timeout%'. The count must
+    // key on the run's status, and the startup-timeout text may only be used
+    // to describe the page, never to decide whether to send it.
+    const where = /FROM cron\.job_run_details[\s\S]*?WHERE([\s\S]*?);/.exec(body)?.[1] ?? "";
+    expect(where, "could not find the counting query's WHERE clause").not.toBe("");
+    expect(where).toMatch(/d\.status\s*=\s*'failed'/);
+    expect(where, "the WHERE must not filter to startup timeouts only").not.toMatch(/startup timeout/);
   });
 
   it("it does not spam: a floor to ignore background noise, and a dedupe", () => {

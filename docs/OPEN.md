@@ -7754,7 +7754,7 @@ sure someone hears it and closes it.
   sweep re-pressing the already-selected option; real candidates are the
   /complete-profile checkbox, admin Manual Override > Re-open, silent auto-tip
   Save, and the create-payment 429.
-- [ ] **Q28 Vacuity found a hollow MONEY guard.** disputeClosedWithoutPayment
+- [ ] **Q28 Vacuity found a hollow MONEY guard.** ALSO (2026-09-23): cronFailureAlertDoesNotDependOnCron parsed only `$fn$` bodies, so it silently read the PREVIOUS definition when 20260923050055 used `$function$` (409 migrations use $function$, 379 use $$, 40 $fn$, 4 $body$), and a revert of the Q33 fix stayed green. Fixed (any tag, plus a "reads the newest definition" test). The class to close: every migration-reading guard shares one parser that handles any dollar tag and fails if it can't parse the newest definition. disputeClosedWithoutPayment
   matched a comment (FIXED d8f71e47d). Look for the same "toContain matches a
   comment" shape in other source-scanning guards. A shared code-only reader
   would close the class (ties to Q24).

@@ -35,11 +35,11 @@ const files = readdirSync(MIG)
 /** Log-shaped tables with no scheduled age prune, each with why. Exact (two-way). */
 // @two-way src/test/activityLogsHaveRetention.test.ts:on NO_RETENTION but pruned or gone
 const NO_RETENTION: Record<string, string> = {
-  admin_audit_log: "Accountability record of admin actions (bans, refunds, deletions); how long to keep it is an owner decision (Q300).",
-  application_rate_log: "Gap (Q300): rate-limit log, read only over a short window, never pruned.",
-  cron_catchup_runs: "Gap (Q300): one claim row per caught-up slot, never pruned.",
-  profile_search_rate_log: "Gap (Q300): rate-limit log, read only over a short window, never pruned.",
-  str_processed_events: "Gap (Q300): STR iCal dedupe ledger, never pruned.",
+  admin_audit_log: "Accountability record of admin actions (bans, refunds, deletions); how long to keep it is an owner decision (Q301).",
+  application_rate_log: "Gap (Q301): rate-limit log, read over at most 1 day, never pruned.",
+  cron_catchup_runs: "Gap (Q301): one claim row per caught-up slot, never pruned.",
+  profile_search_rate_log: "Gap (Q301): rate-limit log, read over at most 1 day, never pruned.",
+  str_processed_events: "Gap (Q301): processed-event ledger of str-ical-sync, never pruned.",
 };
 
 const LOG_NAME = /(?:_views|_logs?|_history|_events|_requests|_details|_runs)$/;

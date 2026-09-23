@@ -62,7 +62,7 @@ const NO_FK: Record<string, string> = {
 // @two-way src/test/userIdColumnsHaveForeignKey.test.ts:on NOT_PURGED but purged or not on NO_FK
 const NOT_PURGED: Record<string, string> = {
   user_bans: "Deliberate: the ban outlives the account (20260903014600).",
-  notification_dedupe_suppressions: "Gap, filed as Q299: holds notification title/link for the user and nothing clears it at deletion.",
+  notification_dedupe_suppressions: "Gap, filed as Q300: holds notification title/link for the user and nothing clears it at deletion.",
 };
 
 /** Body of `CREATE TABLE name (` ... matching `)`, parens balanced. */

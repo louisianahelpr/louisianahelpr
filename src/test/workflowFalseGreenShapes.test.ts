@@ -173,6 +173,7 @@ const SWALLOW_OK: Allow[] = [
 ];
 /** `exit 0` before the end of a block. `match` is a substring of `job / step :: line`. */
 const EARLY_EXIT_OK: Allow[] = [
+  { file: ".github/workflows/privacy-journey.yml", match: "Decide whether this run is due :: exit 0", reason: "MONTHLY via a weekly cron (prodWorkflowSpacing refuses day-of-month): a scheduled run after the 7th sets run=false and nothing is due; missing secrets on a due run exit 1, and a dispatch always runs" },
   { file: ".github/workflows/db-deploy.yml", match: "Scan the pushed range for destructive DDL :: exit 0", reason: "the pushed range was verified to exist (`git cat-file -e`) and the diff now fails loudly (Q52), so an empty file list really means no migration changed" },
   { file: ".github/workflows/db-deploy.yml", match: "PRE-FLIGHT — destructive DDL in the exact pending set :: exit 0", reason: "reached only when the CLI itself says nothing is pending ('up to date' / 'no migrations'); any other empty parse fails" },
   { file: ".github/workflows/db-deploy.yml", match: "Notify on failure :: exit 0", reason: "Slack secret missing inside a notify-on-FAILURE step: the job is already red and says so with a ::warning:: naming the secret" },
@@ -207,6 +208,7 @@ const NOTIFY_NEED_OK: Allow[] = [
 const PIPE_OK: Allow[] = [];
 /** set +e blocks. `match` is the step name. */
 const SET_PLUS_E_OK: Allow[] = [
+  { file: ".github/workflows/privacy-journey.yml", match: "Shared test accounts carry no strikes", reason: "captures the code and maps it: 0 passes, 1 (strike) and anything else (could not read) exit non-zero" },
   { file: ".github/workflows/a11y-webkit-prod.yml", match: "Diff WebKit against Chromium", reason: "captures the diff script's own code via PIPESTATUS[0] through `| tee` and ends with `exit \"$rc\"`" },
   { file: ".github/workflows/prod-audit.yml", match: "Shared test accounts carry no strikes", reason: "captures the code and maps it: 0 passes, 1 (strike) and 2 (could not read — fixed to fail in Q52) and anything else all exit non-zero" },
   { file: ".github/workflows/prod-audit.yml", match: "Remove leftover prod-audit jobs this run could not clean up itself", reason: "captures the code and maps it: 0 passes, 1 (cap/delete failed) and 2 (could not read — fixed to fail in Q52) and anything else all exit non-zero" },

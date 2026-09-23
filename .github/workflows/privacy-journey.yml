@@ -1,0 +1,174 @@
+name: Privacy requests journey (monthly)
+
+# docs/OPEN.md Q70. Account deletion and data export, end to end, on PROD:
+# e2e/privacy/privacy-requests.spec.ts creates a DISPOSABLE seed account
+# (per-run helpr-privacy-journey-<tag>@mailinator.com, is_seed), gives it real
+# data, presses "Download My Data" and checks the JSON, presses Delete Account
+# -> Continue -> DELETE -> Delete Forever, then checks every purge step by name
+# and every row and storage object it touched, and that a job the shared helper
+# applied to still renders once its poster is gone.
+#
+# It can never delete a real account: scripts/lib/privacyJourney.mjs
+# assertDisposable() fails closed (disposable address of THIS run, not a shared
+# account, profiles.is_seed, created by this run) and runs, fresh from the
+# database, right before the irreversible press and before any cleanup delete.
+#
+# MONTHLY. src/test/prodWorkflowSpacing.test.ts lays every prod cron on a
+# weekly grid and refuses day-of-month schedules, so the cron fires every
+# Wednesday and the `gate` job lets a SCHEDULED run through only in the first
+# seven days of the month. A dispatch always runs.
+#
+# REPORTING. A red due run opens/updates the `nightly-red` issue for
+# privacy-journey; the hourly `ops-alert-ledger.mjs sync` (prod-errors.yml)
+# turns that open issue into an ops alert ledger item, which closes only when
+# the issue is closed by github-actions[bot], i.e. by the notify job of the
+# next DUE run that went green. Deliberately NOT a `record --verify-ref
+# privacy-journey.yml` item: that closes on the workflow's next green run on
+# main, and three of every four weekly runs are green by doing nothing (the
+# gate), so a red month would read as verified-fixed a week later.
+#
+# The service-role key is read at run time with the Supabase CLI, masked, and
+# written to a gitignored .env that the final step removes (same as
+# prod-audit.yml).
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    # Wed 01:17 UTC; runs only when the date is the 1st-7th (see `gate`).
+    - cron: "17 1 * * 3"
+  workflow_dispatch:
+
+concurrency:
+  # A scheduled run joins prod-load; a dispatch gets its own group (see
+  # prod-audit.yml for why a dispatch must never sit in the shared group).
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('privacy-journey-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: First week of the month (or dispatch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - name: Decide whether this run is due
+        id: check
+        env:
+          EVENT: ${{ github.event_name }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          day=$(date -u +%-d)
+          if [ "$EVENT" = "schedule" ] && [ "$day" -gt 7 ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "- Privacy journey: not this week (day $day; runs on the first Wednesday of the month)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # Fail closed: a month with no run because a secret went missing is a
+          # red run, not a skip.
+          if [ -z "$HELPER_EMAIL" ] || [ -z "$HELPER_PASSWORD" ] || [ -z "$ACCESS_TOKEN" ]; then
+            echo "::error title=Privacy journey cannot run::PLAYWRIGHT_HELPER_EMAIL/_PASSWORD and SUPABASE_ACCESS_TOKEN are required."
+            exit 1
+          fi
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
+  privacy-journey:
+    name: Privacy requests journey (privacy)
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    timeout-minutes: 30
+    env:
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+
+      - name: Provide the service-role key to the journey
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+        run: |
+          set -euo pipefail
+          KEY=$(npx --yes supabase@2 projects api-keys --project-ref "$PROJECT_REF" --reveal -o json \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+          echo "::add-mask::$KEY"
+          umask 077
+          {
+            printf 'VITE_SUPABASE_URL=%s\n' "$SUPABASE_URL"
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY"
+          } > .env
+          test -s .env
+
+      # Literal playwright line: src/test/e2eSpecsReachableInCi reads it as text.
+      - name: Run the privacy journey
+        run: npx playwright test --project=privacy --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
+
+      - name: Keep failure screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: privacy-journey-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Shared test accounts carry no strikes
+        if: always()
+        run: |
+          set +e
+          node scripts/check-test-account-strikes.mjs
+          code=$?
+          set -e
+          case "$code" in
+            0) ;;
+            1) echo "::error title=Strike on a shared test account::The privacy journey left a strike/violation on a shared test account."; exit 1 ;;
+            *) echo "::error title=Test-account strike check did not run::exit $code — not checked is not clean."; exit 2 ;;
+          esac
+
+      - name: Remove the service-role key from the runner
+        if: always()
+        run: rm -f .env
+
+  notify:
+    name: Report result
+    needs: [gate, privacy-journey]
+    if: always() && needs.gate.outputs.run != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: privacy-journey
+          status: ${{ needs.gate.result == 'success' && needs.privacy-journey.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -83,8 +83,14 @@ export async function recordOpsAlert(o) {
   }
 }
 
+// A user-report title is text a person (or a guest) typed. The repo is PUBLIC
+// and prod-errors.yml prints this listing into Actions logs and the job
+// summary, so the title is redacted HERE, at the one query every printer
+// uses (Q64 review, 2026-09-23). Read the real text on /admin?view=health.
 export const OPEN_ITEMS_SQL = `
-SELECT id, severity, status, source_kind, source, title, count, first_seen, last_seen, verify_kind,
+SELECT id, severity, status, source_kind, source,
+       CASE WHEN source_kind = 'user-report' THEN 'a user report (read it on /admin?view=health)' ELSE title END AS title,
+       count, first_seen, last_seen, verify_kind,
        coalesce(verify_ref, '') AS verify_ref, coalesce(verify_note, '') AS verify_note
   FROM public.ops_alert_ledger
  WHERE status <> 'closed'

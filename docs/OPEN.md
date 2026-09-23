@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 139 done, 13 partly done (fixed, protection pending), 133 open. Source of truth for work.
+- **Queue (this file):** 139 done, 15 partly done (fixed, protection pending), 136 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 285 items — 139 done, 13 partly done (fixed, protection pending), 133 open.**
+**Queue: 290 items — 139 done, 15 partly done (fixed, protection pending), 136 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1290,10 +1290,36 @@ sure someone hears it and closes it.
   in PGlite on a prod-shaped schema. OPEN: first prod run by the lead (dispatch quota-monitor.yml);
   GitHub Actions minutes (no API with GITHUB_TOKEN); 70/90% two-step and per-quota scoreboard rows (the
   workflow's own row is on the scoreboard); stale limits in supabase-usage.yml -> Q221.
-- [ ] **Q64 User-reported problems become tracked items.** In-app "report a
+- [~] **Q64 User-reported problems become tracked items.** In-app "report a
   problem" / support messages / App Store reviews mentioning a bug create
   an alert-ledger item (source `user-report`), so they're fixed and
   verified like any alert.
+  STATUS 2026-09-23 (cloud/q64-q70, BUILT, NOT YET LIVE — the lead lands it and runs the first live pass):
+  surfaces found in source: ReportDialog (job/message/user/review), the Profile support tab
+  (SupportInline), /support (contact-support, signed in AND guest), and four `/support?topic=`
+  entry points (shake-to-report, both dispute cards, the ban appeal); NPS is a survey, listed as
+  not-a-report. Routing: migration 20260923181420 puts trg_reports_zz_ledger (AFTER INSERT) on
+  public.reports -> one `user-report` ledger item per normalised title (dedupe: double-taps and
+  repeats count, ids stripped), severity by kind (safety reports critical, issue reports error,
+  messages warning, suggestions info), sample_ref = report id + link to /admin?view=reports|support;
+  closes (sql_condition, hourly ops_alert_verify) only when every matching report is
+  resolved/dismissed in its admin queue; seed reporters skipped. Flood cap (authz review M1): a
+  NEW item is refused past 5 per reporter / 20 overall per hour and counted on ONE overflow item
+  (closes when every open real report has its own item or is resolved). Guests (no reports row)
+  are recorded by contact-support itself, ONE item per topic (the subject rides in sample_ref, so
+  an unauthenticated caller cannot mint items; verify manual; link = the support-inbox subject
+  line). morning-page no longer prints user-report titles (user-typed text, published). The
+  old per-topic Slack companion item now closes when no user-report item is open. PGlite proof
+  src/test/pglite/userReportsLedger.pglite.mjs: ALL PASS (39) x3 applies; 31 FAIL with
+  NEW_MIGRATION=skip, 5 FAIL with the flood cap removed. GUARD: src/test/userReportsReachTheLedger.test.ts
+  (two-way surface inventory from source; 4 FAIL on the unfixed tree, 7/7 @mutate red). Reviewed:
+  lh-authz-rls REVIEW ONLY (M1, M2, L1, L2 fixed; L3 keyword severity accepted with the cap;
+  verifier fairness is Q291). LIVE PASS TO DO (lead): after
+  db-deploy, `pg_get_functiondef('public.ops_alert_condition'::regproc)` has the 'user-report'
+  branch, `pg_proc.proacl` of the six new functions has no anon/authenticated, the backfill count
+  (`select count(*) from ops_alert_ledger where source_kind='user-report'`) equals the open real
+  reports of the last 90 days, and one /support guest message lands as a 'contact-support-guest'
+  item after functions-deploy. App Store reviews are NOT ingested anywhere in source: Q289.
 - [ ] **Q65 Test-data hygiene on prod.** E2E/press/prod-audit write to prod by
   design. Measure how many is_seed jobs, users, messages, notifications and
   storage objects have built up; purge anything past a retention window on
@@ -1317,11 +1343,37 @@ sure someone hears it and closes it.
   migration, apply it in PGlite, and document the prod steps), and pulling or
   expediting an app build. Write the runbook, and re-drill quarterly.
   STATUS 2026-09-23 (cloud/q68-q69, BUILT, FIRST DRILL IS THE LEAD'S): scripts/rollback/rollback.mjs scripts the three undo paths: `web` (vercel rollback to the previous production deployment + rollback status), `migration` (a NEW forward revert migration stamped by migration:new, proved in PGlite by scripts/rollback/pglite-apply.mjs bad×1 + revert×3, pushed to main for db-deploy; the applied file is never touched) and `function` (redeploy one edge function from the previous commit in a temp worktree; also revert on main or functions-deploy undoes it). Dry run is the default and prints every command; live needs `--execute` AND LH_ROLLBACK_CONFIRM=<path>; every step is timed into ~/.lh-rollback/timing.jsonl. Runbook: docs/RUNBOOK-rollback.md (also covers the app build: App Store Connect actions, owner only). GUARD: src/test/rollbackDryRunNeverMutates.test.ts (recording shims for vercel/supabase/git/npm/node: every dry-run path, with and without a lone --execute, calls only allowlisted reads; a live control proves the detector fires; 3 @mutate lines, all red). NEXT (lead): run `node scripts/rollback/rollback.mjs plan`, then one live `web` drill, and fill the runbook's drill log with the timings.
-- [ ] **Q70 Privacy requests end to end, monthly.** Account deletion and data
+- [~] **Q70 Privacy requests end to end, monthly.** Account deletion and data
   export run against a test account on a schedule: every table the user
   touched is anonymised/deleted per policy, the export contains everything,
   and a job outliving its poster still renders (CLAUDE.md "a job can outlive
   its poster").
+  STATUS 2026-09-23 (cloud/q64-q70, BUILT, FIRST LIVE RUN NOT YET DONE — the lead dispatches it):
+  e2e/privacy/privacy-requests.spec.ts (Playwright project `privacy`, this commit's local build,
+  prod backend) creates a DISPOSABLE seed account (helpr-privacy-journey-<run tag>@mailinator.com,
+  is_seed), gives it two jobs (one the shared helper applied to), an avatar + a user-documents
+  object (both listed first, as a positive control), a support report and notification
+  preferences; presses "Download My Data" and checks every section, the profile and both jobs,
+  and that the seeded tables left out are exactly KNOWN_NOT_EXPORTED; presses Delete Account -> Continue -> DELETE ->
+  Delete Forever; asserts every purge step BY NAME ok (stripe, storage, avatar_pointer,
+  retain_ban, database, job_media, message_attachments), purge_user_data's counters, auth user +
+  profile gone, every identity bucket (accountPurge.ts IDENTITY_BUCKETS) empty at <uid>/, the unhired job deleted, the applied-to
+  job kept but ownerless/redacted with status preserved, the report anonymised, the prefs deleted;
+  then the applicant's Activity (/my-jobs) renders healthy (/jobs/:id cannot show an ownerless job
+  by design: quick-apply reads open_jobs_browse). Cleanup reads every delete back; residue fails. Never a real account: scripts/lib/privacyJourney.mjs
+  assertDisposable (this run's address, not a shared account, is_seed, created this run) runs
+  fresh from the DB right before the irreversible press and before any cleanup, which goes
+  through delete-own-account itself. Monthly: .github/workflows/privacy-journey.yml (weekly cron
+  Wed 01:17 UTC + a first-7-days gate, since prodWorkflowSpacing refuses day-of-month; dispatch
+  always runs; missing secrets = red), red -> the nightly-red issue, which the hourly ledger sync
+  turns into a ledger item that closes only when a DUE run goes green (a `record --verify-ref`
+  item would close on the next gated no-op week). GUARD: src/test/privacyJourneyCoversPurge.test.ts (purge steps, identity buckets and
+  export sections two-way with accountPurge.ts / DataExportCard.tsx, counters vs the newest
+  purge_user_data, the fail-closed allowlist; 8/8 @mutate red). Reviewed: lh-silent-failure REVIEW
+  ONLY (H1 avatar gate, H2 outlive surface, H3 ledger close, M4-M6, L8-L10 fixed; M7 is Q293). The export OMITS rows the account
+  has (KNOWN_NOT_EXPORTED: reports, notification_preferences; and messages, notifications etc.
+  beyond what the journey seeds): Q290. LIVE RUN TO DO (lead): `gh workflow run
+  privacy-journey.yml`, then read the run and confirm no helpr-privacy-journey-* account remains.
 - [ ] **Q71 Accessibility on every route.** An automated axe scan across the full
   route inventory in CI (both themes, 375 + 1440), failing on
   serious/critical issues, plus a real VoiceOver pass on iOS each release,
@@ -2413,3 +2465,8 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q286 Q199 follow-ups outside chunkReload.ts (found 2026-09-23, left for a components pass).** (a) The page-level ErrorBoundary (src/components/ErrorBoundary.tsx) and SectionBoundary have no quiet state: since Q199, recoverFromChunkError() returns true while a retry WAITS (up to 40s), and those two skip the report but still render their error card for that wait. RouteErrorBoundary (every lazy route) is quiet and is what the Q199 spec drives; a chunk failing inside a section or above the routes is not. Give both the RouteErrorBoundary quiet state when recoverFromChunkError() is true or isRecoveryReloadInFlight(). (b) Stale comments still say "one-shot" reload: src/main.tsx:64, SectionBoundary.tsx:65, ErrorBoundary.tsx:54 ("at most two"). Guard: extend e2e/happy-path/deploy-stale-chunk.spec.ts with a section-level lazy chunk.
 - [ ] **Q287 'cron-http-untagged' and the new Q207 'cron-missed-slot' (catch-up HTTP failed) alerts have no automatic close in ops_alert_condition (found building Q218, 2026-09-23).** Both reach the ops alert ledger through error_logs, but ops_alert_condition has no branch for 'cron-http-untagged' (so it is verified by hand only), and 'cron-missed-slot' is manual by design. Fix: add a 'cron-http-untagged' branch that clears when no active cron.job row with that jobname calls net.http_post without cron_http_tag( (restate ops_alert_condition from its newest definition); PGlite red on a still-untagged job. Guard to add: extend src/test/cronHttpRequestsAreTagged.test.ts.
 - [ ] **Q288 Drop profiles.approval_status (Q205b follow-up, 2026-09-23).** Q205b left the column inert: no code, function, policy, view or index reads or writes it (src/test/retiredApprovalReads.test.ts). Drop it once the Q205b edge functions and web bundle are live: ALTER TABLE public.profiles DROP COLUMN IF EXISTS approval_status (takes profiles_approval_status_no_denied with it), guarded by information_schema; remove it from src/integrations/supabase/types.ts, the PGlite fixtures that still create it (src/test/pglite/*.pglite.mjs), supabase/seed.sql, scripts/probes/fixtures/null-uid-guards.live.sql, and test fixtures that still name it; retire the UserVerificationHistory label only if no helper_verifications row has field = 'approval_status' (measure live first). Also measure live before dropping: the Q205b migration's NOTICE (approved-but-unconfirmed rows) and that no deployed edge function version still selects the column.
+- [ ] **Q289 App Store / Play reviews that report a bug reach nobody (found by Q64, 2026-09-23).** Q64's text names App Store reviews, but no source ingests them: apple-app-store-notifications handles subscription server notifications only, and nothing reads the App Store Connect customer-reviews API or Play's reviews API. Build: a scheduled pull of new reviews (App Store Connect API key is an OWNER credential) that records rating <= 3 reviews as `user-report` ledger items (source app-store-review, verify manual). Guard when built: add the ingester to src/test/userReportsReachTheLedger.test.ts SURFACES.
+- [ ] **Q290 "Download My Data" omits most of what an account holds (found by Q70, 2026-09-23).** src/pages/legal/DataExportCard.tsx exports profile, jobs, applications and reviews only; the card's copy calls it "a complete copy". Not exported (read from purge_user_data's own table list): messages, notifications, notification_preferences, reports filed, saved searches, saved jobs, favorite helpers, helper availability, legal acceptances, referral rows, payout rows, login history, and storage objects (avatar, documents). GDPR Art. 20 / CCPA need the data the person provided. Build the export server-side (one edge function reading every table purge_user_data touches), then shrink KNOWN_NOT_EXPORTED in scripts/lib/privacyJourney.mjs to []. Guard: src/test/privacyJourneyCoversPurge.test.ts (export sections two-way) + the monthly journey's exact KNOWN_NOT_EXPORTED check.
+- [ ] **Q291 ops_alert_verify can be starved by volume (found by the Q64 authz review, 2026-09-23; pre-existing).** It re-asks at most 200 open items per run, newest `last_seen` first (20260923050059), so a burst of fresh items (measured in PGlite: 250 report items) means an older money item such as detect_stuck_payments is never re-checked (verify_started_at stays NULL) until the burst clears. Q64 now caps user-report items at 20 new per hour; the verifier itself should be fair (e.g. ORDER BY verify_started_at NULLS FIRST, then last_seen). Guard when fixed: a PGlite case with 250 fresh items and one old cleared item that must close.
+- [ ] **Q292 Can a person with an incomplete profile delete their account? (found by the Q70 review, 2026-09-23; NOT VERIFIED).** Delete Account is mounted only on /profile and /account-banned; ProtectedRoute's profile gate (isProfileComplete: name, avatar, DOB, phone, city) sends an incomplete new account from /profile to /complete-profile. If nothing on /complete-profile offers deletion, Apple's in-app deletion rule is unmet for them. Verify by driving a seed account with no avatar; fix by allowing /profile's delete (or mounting the dialog on /complete-profile). Guard when fixed: a privacy-journey leg on an incomplete account.
+- [ ] **Q293 A scheduled prod-load run can be cancelled with nothing reported (found by the Q70 review, 2026-09-23).** GitHub keeps one PENDING run per concurrency group; a third run entering prod-load cancels the waiting one at workflow level, so no job (not even notify) runs and no nightly-red issue is filed. For the monthly privacy journey that is a missed month. schedule-heartbeat.yml derives each workflow's cadence from its cron (weekly here, because of the first-7-days gate), so it cannot tell that the one DUE week was cancelled. Fix: have the privacy journey's green notify record the month it ran (e.g. the nightly-red issue sync, or a dated marker), and alarm when the current month has none after day 8. Guard: a test on that check.

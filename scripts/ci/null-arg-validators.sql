@@ -69,6 +69,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_seed_email',                 'classify', 'labels an address as a seed account'),
   ('is_user_error_screen_row',      'classify', 'labels an error_logs row as a user-facing error screen'),
   ('user_error_screen_is_real',     'classify', 'labels an error screen as real-user (ops alert counting)'),
+  ('user_report_is_open',           'classify', 'labels a reports row still to-do in its admin queue (ledger close rule, Q64); NULL status = pending'),
+  ('user_report_is_real',           'classify', 'labels a reporter as real (ledger routing, Q64); NULL reporter = a deleted account = real'),
   ('is_caller_banned',              'noarg',    'reads auth.uid() only'),
   ('is_server_context',             'noarg',    'reads the session only'),
   ('seed_jobs_hidden_publicly',     'noarg',    'reads the launch switch only'),

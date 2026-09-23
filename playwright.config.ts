@@ -168,6 +168,33 @@ export default defineConfig({
         actionTimeout: 20_000,
       },
     },
+    // PRIVACY REQUESTS (docs/OPEN.md Q70): create a disposable seed account,
+    // export its data through the real button, delete it through the real
+    // dialog, verify the purge row by row. Prod backend, this commit's local
+    // build. Monthly: .github/workflows/privacy-journey.yml.
+    //
+    // The block opens with `name:` on purpose (src/test/e2eSpecsReachableInCi).
+    {
+      name: "privacy",
+      testDir: "./e2e/privacy",
+      fullyParallel: false,
+      workers: 1,
+      timeout: 12 * 60_000,
+      retries: 0,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 375, height: 812 },
+        isMobile: false,
+        hasTouch: true,
+        userAgent:
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+        serviceWorkers: "block",
+        acceptDownloads: true,
+        screenshot: "only-on-failure",
+        trace: "retain-on-failure",
+        actionTimeout: 20_000,
+      },
+    },
     {
       name: "canary",
       // docs/OPEN.md Q61: the HOURLY core-loop canary on prod, one serial test
@@ -214,7 +241,7 @@ export default defineConfig({
       name: "chromium",
       // The real-backend specs outside a project dir — excludes happy-path/*
       // (mocked) and the dirs that have their own project.
-      testIgnore: /(happy-path|journeys|a11y-prod|prod-audit|canary|slow-network)\//,
+      testIgnore: /(happy-path|journeys|a11y-prod|prod-audit|canary|slow-network|privacy)\//,
       use: { ...devices["Desktop Chrome"] },
     },
     {

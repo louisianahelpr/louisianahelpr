@@ -113,6 +113,8 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
   { file: "e2e/slow-network/", match: "test.skip(!avail.ok, avail.why)", verdict: "failure", why: MISSING_CREDS },
   { file: "e2e/journeys/time-travel.spec.ts", match: "sessionsAvailable().why", verdict: "failure", why: MISSING_CREDS },
   { file: "e2e/journeys/trailing-icon-fields.spec.ts", match: "!session,", verdict: "failure", why: MISSING_CREDS },
+  // Local only: in CI the same condition THROWS (a month with no privacy run is red, docs/OPEN.md Q70).
+  { file: "e2e/privacy/privacy-requests.spec.ts", match: "test.skip(true, why)", verdict: "failure", why: MISSING_CREDS },
   { file: "e2e/auth.spec.ts", match: "!haveCreds", verdict: "failure", why: MISSING_CREDS },
   { file: "e2e/payment-lifecycle.spec.ts", match: "!haveCreds", verdict: "failure", why: MISSING_CREDS },
   { file: "e2e/prod-lifecycle.spec.ts", match: "!READY", verdict: "failure", why: MISSING_CREDS },

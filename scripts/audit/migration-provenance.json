@@ -1,5 +1,10 @@
 {
   "_what": "Q117. scripts/check-migration-provenance.mjs judges every prod migration version NEWER than cutoff: it must have a db-deploy receipt in public.migration_deploy_ledger, or be listed in acknowledged. Versions <= cutoff predate the receipt table (20260923103737 creates it) and cannot be judged; measured 2026-09-23, the Supabase GitHub integration applied every one of the 24 migrations in the preceding 24h before db-deploy could. acknowledged is EXACT: an entry that is not an unreceipted prod version newer than cutoff fails the check.",
   "cutoff": "20260923103737",
-  "acknowledged": []
+  "acknowledged": [
+    {
+      "version": "20260923104534",
+      "why": "Q120. Applied by the Supabase GitHub integration (Q121), not db-deploy: prod workflow_run_logs 2026-09-23T10:53:46Z 'Applying migration... file=20260923104534_blank_credential_url_is_absent.sql' after 'Cloning git repo... git_ref=main' at 10:53:39Z (push of 6e6af2a8a at ~10:53:00Z); 0 rows in migration_deploy_ledger at 10:53:57Z."
+    }
+  ]
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -87,7 +88,10 @@ export function PayoutSetupForm() {
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: { action, return_url: returnUrl },
       });
-      if (error) throw error;
+      // A non-2xx leaves `error` a FunctionsHttpError whose .message is
+      // "Edge Function returned a non-2xx status code"; the function's own
+      // sentence (a 409 guard, a 429) is in the body. See functionErrorMessage.
+      if (error) throw new Error(await functionErrorMessage(error, "We couldn't start payout setup — try again in a moment."));
       if (data?.error) throw new Error(data.error);
       if (!data?.url) throw new Error("Stripe didn't return a setup link — try again in a moment.");
       // Native returns here when the sheet is dismissed; re-read status so a
@@ -115,7 +119,10 @@ export function PayoutSetupForm() {
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: { action: "dashboard", return_url: returnUrl },
       });
-      if (error) throw error;
+      // A non-2xx leaves `error` a FunctionsHttpError whose .message is
+      // "Edge Function returned a non-2xx status code"; the function's own
+      // sentence (a 409 guard, a 429) is in the body. See functionErrorMessage.
+      if (error) throw new Error(await functionErrorMessage(error, "We couldn't open your Stripe dashboard — try again in a moment."));
       if (data?.error) throw new Error(data.error);
       if (!data?.url) throw new Error("Stripe didn't return a dashboard link — try again in a moment.");
       await openExternalUrl(data.url, () => void loadData());
@@ -143,7 +150,10 @@ export function PayoutSetupForm() {
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: { action: "delete_payout_method", method_id: methodId },
       });
-      if (error) throw error;
+      // A non-2xx leaves `error` a FunctionsHttpError whose .message is
+      // "Edge Function returned a non-2xx status code"; the function's own
+      // sentence (a 409 guard, a 429) is in the body. See functionErrorMessage.
+      if (error) throw new Error(await functionErrorMessage(error, "We couldn't remove that payout method — try again in a moment."));
       if (data?.error) throw new Error(data.error);
       loadData();
     } catch (err: unknown) {
@@ -168,7 +178,10 @@ export function PayoutSetupForm() {
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: { action: "reset", return_url: returnUrl },
       });
-      if (error) throw error;
+      // A non-2xx leaves `error` a FunctionsHttpError whose .message is
+      // "Edge Function returned a non-2xx status code"; the function's own
+      // sentence (a 409 guard, a 429) is in the body. See functionErrorMessage.
+      if (error) throw new Error(await functionErrorMessage(error, "We couldn't reset your account just now — try again in a moment."));
       if (data?.error) throw new Error(data.error);
       if (!data?.url) throw new Error("Stripe didn't return a setup link — try again in a moment.");
       await openExternalUrl(data.url, () => {

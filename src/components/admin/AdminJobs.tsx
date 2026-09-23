@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -319,7 +320,10 @@ const AdminJobs = () => {
           ...(isPartial ? { amountCents: partialCents } : {}),
         },
       });
-      if (error) throw error;
+      // A non-2xx leaves `error` a FunctionsHttpError whose .message is
+      // "Edge Function returned a non-2xx status code"; the function's own
+      // sentence (a 409 guard, a 429) is in the body. See functionErrorMessage.
+      if (error) throw new Error(await functionErrorMessage(error, "Couldn't issue that refund — try again"));
       if ((data as { error?: string })?.error) throw new Error((data as { error?: string }).error);
       if (!isPartial) {
         // Full refund cancels the job — reflect locally. Partial refund

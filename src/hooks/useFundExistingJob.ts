@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { hapticError } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 
 /**
  * Fund a job that ALREADY EXISTS, by sending its poster to Stripe Checkout.
@@ -64,12 +65,20 @@ export function useFundExistingJob(): FundJobResult {
         },
       });
 
-      // `functions.invoke` reports a handled edge error in `data.error` rather
-      // than `error`, so checking only `error` would treat a refusal as a
-      // success and send the host to `undefined`.
+      // A refusal arrives two ways. A 2xx with `{ error }` lands in
+      // `data.error`; a non-2xx (429 rate limit, 409 guard, …) leaves `data`
+      // null and `error` a FunctionsHttpError whose own `.message` is the
+      // useless "Edge Function returned a non-2xx status code" — the
+      // function's sentence is in the response body, which
+      // `functionErrorMessage` reads (press-every-control run 35813177418
+      // showed that wrapper to a poster). Checking only one of them would
+      // treat a refusal as a success and send the host to `undefined`.
       const url = data?.url;
       if (error || data?.error || !url) {
-        const message = data?.error || error?.message || "Payment setup failed";
+        const message = (
+          data?.error ||
+          (error ? await functionErrorMessage(error, "Payment setup failed") : "Payment setup failed")
+        ).replace(/[.\s]+$/, "");
         report(new Error(`fund existing job failed: ${message}`), {
           tags: { source: "useFundExistingJob" },
           context: { job_id: jobId },

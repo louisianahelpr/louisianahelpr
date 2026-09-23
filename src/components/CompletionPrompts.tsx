@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 import type { Database } from "@/integrations/supabase/types";
 import {
   Dialog,
@@ -226,7 +227,10 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       const { data, error } = await supabase.functions.invoke("create-payment", {
         body: { action: "tip", jobId, amount, tipAttemptId: tipAttemptIdRef.current, native: isNativePlatform },
       });
-      if (error) throw error;
+      // A non-2xx leaves `error` a FunctionsHttpError whose .message is
+      // "Edge Function returned a non-2xx status code"; the function's own
+      // sentence (a 409 guard, a 429) is in the body. See functionErrorMessage.
+      if (error) throw new Error(await functionErrorMessage(error, "Couldn't send that tip — please try again"));
       if (data?.error) throw new Error(data.error);
       if (data?.url) await openExternalUrl(data.url);
       else throw new Error("Couldn't start checkout. Please try again.");

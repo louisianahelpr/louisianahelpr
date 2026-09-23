@@ -479,8 +479,10 @@ const CompleteProfile = () => {
         const { data: fnData, error: fnError } = await supabase.functions.invoke("complete-signup", {
           body: { ageAttested: true, termsAccepted: true },
         });
-        const fnMessage = fnError?.message || (fnData as { error?: string } | null)?.error;
-        if (fnMessage) {
+        // A flag, not a message: neither the SDK's wrapper nor the body is
+        // shown — the copy below is fixed.
+        const fnFailed = Boolean(fnError) || Boolean((fnData as { error?: string } | null)?.error);
+        if (fnFailed) {
           // Surfaced, not swallowed: the profile is saved but the account is
           // still gated, and telling the user "done" here would drop them back
           // on /account-pending with no explanation.

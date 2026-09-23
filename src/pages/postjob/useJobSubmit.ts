@@ -27,6 +27,7 @@ import {
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { removeJobPhotos } from "@/lib/storageCleanup";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 
 /**
  * Remove a job whose payment setup failed, and PROVE it went.
@@ -621,7 +622,13 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         // Delete the job since payment setup failed — don't leave orphan jobs.
         await cleanupOrphanJob(jobData.id);
         safeStorage.removeItem(COOLDOWN_KEY);
-        const errorMsg = paymentData?.error || paymentError?.message || "Payment setup failed";
+        // Not `paymentError.message`: on a non-2xx that is supabase-js's
+        // "Edge Function returned a non-2xx status code". The function's own
+        // sentence is in the response body (see functionErrorMessage).
+        const errorMsg = (
+          paymentData?.error ||
+          (paymentError ? await functionErrorMessage(paymentError, "Payment setup failed") : "Payment setup failed")
+        ).replace(/[.\s]+$/, "");
         hapticError();
         toast.error(`Couldn't start payment: ${errorMsg}. Please try again.`);
         setRedirecting(false);

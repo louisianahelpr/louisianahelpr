@@ -63,7 +63,7 @@ export const ABUSE_LIMITS: {
     unit: "signup completion",
     window: "hour",
     description:
-      "Per account and per address, in the complete-signup function. Each call uploads ID, license, insurance and portfolio files, so this is a storage-quota lever as much as a spam one. Does not touch Supabase's own auth rate limits, which are platform settings and cannot be changed from here.",
+      "Per account and per address, in the complete-signup function. Each call can upload a profile photo and license and insurance files, so this is a storage-quota lever as much as a spam one. Does not touch Supabase's own auth rate limits, which are platform settings and cannot be changed from here.",
   },
 ];
 

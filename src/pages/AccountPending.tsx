@@ -172,7 +172,7 @@ const AccountPending = () => {
   };
 
   // ----- derive checklist -----
-  const idDone = !!profile?.id_document_url || profile?.idv_status === "verified";
+  const idDone = profile?.idv_status === "verified";
   const idInProgress = !idDone && (!!profile?.idv_session_id || profile?.idv_status === "pending");
   const profDone =
     profile?.license_status === "verified" || profile?.insurance_status === "verified";

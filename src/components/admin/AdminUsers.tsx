@@ -64,7 +64,6 @@ const AdminUsers = () => {
   const [profileReviewsLeft, setProfileReviewsLeft] = useState<{ rating: number; feedback: string | null; reviewee_name: string; created_at?: string; job_title?: string }[]>([]);
   const [profileViolations, setProfileViolations] = useState<any[]>([]);
   const [, setProfileBans] = useState<any[]>([]);
-  const [idDocSignedUrl, setIdDocSignedUrl] = useState<string | null>(null);
   const [emailTracking, setEmailTracking] = useState<{ event_type: string; email_type: string; created_at: string }[]>([]);
   const [emailSendStats, setEmailSendStats] = useState<{ template_name: string; count: number; last_sent: string }[]>([]);
   // Jobs history (worked as helper + posted as customer) — the Jobs-tab
@@ -179,7 +178,6 @@ const AdminUsers = () => {
     () =>
       makeOpenProfile({
         setViewProfile,
-        setIdDocSignedUrl,
         setEmailTracking,
         setEmailSendStats,
         setProfileJobs,
@@ -442,7 +440,6 @@ const AdminUsers = () => {
         profileReviewsLeft={profileReviewsLeft}
         profileViolations={profileViolations}
         profileJobs={profileJobs}
-        idDocSignedUrl={idDocSignedUrl}
         emailTracking={emailTracking}
         emailSendStats={emailSendStats}
         lastLoginSummary={lastLoginSummary}

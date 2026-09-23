@@ -67,7 +67,6 @@ function makeProps(viewProfile: Profile | null) {
     profileReviewsLeft: [],
     profileViolations: [],
     profileJobs: [],
-    idDocSignedUrl: null,
     emailTracking: [],
     emailSendStats: [],
     lastLoginSummary: {},

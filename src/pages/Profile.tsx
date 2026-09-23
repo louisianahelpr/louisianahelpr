@@ -234,7 +234,6 @@ const ProfilePage = () => {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [idUploading, setIdUploading] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   // Senior mode — local state shadows profile.senior_mode; applied to
   // <html> as a CSS class so all pages get the enlarged styles.
@@ -444,41 +443,6 @@ const ProfilePage = () => {
     setJustSaved(true);
     hapticSuccess();
     setTimeout(() => setJustSaved(false), 1800);
-  };
-
-  const handleIdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("That file is over 5 MB — try a smaller one."); return; }
-    const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
-    if (!allowed.includes(file.type)) { toast.error("That file type isn't supported — use JPG, PNG, WEBP, or PDF."); return; }
-    setIdUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${user.id}/id-${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("id-documents").upload(path, file, { upsert: true });
-    if (upErr) { toast.error("Couldn't upload your ID — try again?"); setIdUploading(false); return; }
-    // .select("user_id"): the file is in storage already — this is the write
-    // that puts it in the verification queue. A zero-row update returns
-    // error === null, and the card would show "pending" for an ID no reviewer
-    // would ever see.
-    let saved = true;
-    try {
-      unwrapMutation(
-        await supabase.from("profiles").update({ id_document_url: path, idv_status: "pending" }).eq("user_id", user.id).select("user_id"),
-        {
-          action: "submit your ID for verification",
-          rejectedMessage: "Got your ID, but it couldn't be submitted for verification — please try again.",
-          context: { userId: user.id },
-        },
-      );
-    } catch (updErr) {
-      saved = false;
-      toast.error(mutationErrorMessage(updErr, "Got your ID, but couldn't save it to your profile. Try again?"));
-    }
-    if (saved) {
-      setProfile(prev => prev ? ({ ...prev, id_document_url: path, idv_status: "pending" }) : prev);
-    }
-    setIdUploading(false);
   };
 
   const { requestCrop: requestAvatarCrop, dialog: avatarCropDialog } = useAvatarCrop();
@@ -834,12 +798,10 @@ const ProfilePage = () => {
             setSkills={setSkills}
             initials={initials}
             avatarUploading={avatarUploading}
-            idUploading={idUploading}
             saving={saving}
             justSaved={justSaved}
             onSave={handleSave}
             onAvatarUpload={handleAvatarUpload}
-            onIdUpload={handleIdUpload}
             earningsQuery={earningsQuery}
             scheduleQuery={scheduleQuery}
             reviewsQuery={reviewsQuery}

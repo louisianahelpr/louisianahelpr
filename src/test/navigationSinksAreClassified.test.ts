@@ -117,7 +117,6 @@ const CLASSIFIED: Record<string, string> = {
   "components/admin/AdminCredentialQueue.tsx::data.signedUrl": STORAGE_SIGNED,
   "components/profile/CredentialsTab.tsx::safe": "const safe = safeDocumentUrl(path) on the line above",
   "components/profile/CredentialsTab.tsx::signed.signedUrl": STORAGE_SIGNED,
-  "components/admin/userDetail/DocumentsTab.tsx::idDocSignedUrl": "useOpenProfile sets it only to safeDocumentUrl(id_document_url) or createSignedUrl output",
   "components/messages/MessageBubble.tsx::url": "isSafeHttpsUrl(url) (new URL(url).protocol === 'https:') returns inert text first",
   // --- app-built URLs, no stored value in the scheme position ---
   "components/activity/JobCardMetaRow.tsx::mapHref": MAPS,

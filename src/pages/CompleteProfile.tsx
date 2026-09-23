@@ -378,8 +378,7 @@ const CompleteProfile = () => {
       // gone, so the save below failing (a contact-leak bio, a timeout, a
       // zero-row update) left `avatar_url` on a deleted object.
       // Government ID upload was removed from this page — Stripe Identity
-      // (triggered from the first job post) collects the real ID now, so
-      // idFile is always null here.
+      // (triggered from the first job post) collects the real ID now.
       //
       // Read the persisted row back in the same round-trip. ProtectedRoute's
       // Big-7 completeness gate re-evaluates the instant we navigate to
@@ -400,10 +399,8 @@ const CompleteProfile = () => {
       const { saved: savedRow, staleAvatarObjects } = await uploadProfileFiles(
         userId,
         avatarFile,
-        null,
-        async ({ avatarUrl, idDocumentPath }) => {
+        async ({ avatarUrl }) => {
           if (avatarUrl) updates.avatar_url = avatarUrl;
-          if (idDocumentPath) updates.id_document_url = idDocumentPath;
           return unwrapMutationRow<Record<string, unknown>>(
             await withTimeout(
               Promise.resolve(

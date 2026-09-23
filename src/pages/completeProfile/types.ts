@@ -38,5 +38,4 @@ export interface ProfileCompletionUpdates {
   terms_accepted_at: string;
   terms_version_accepted: string;
   avatar_url?: string;
-  id_document_url?: string;
 }

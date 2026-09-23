@@ -253,11 +253,11 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // Verification-ladder inputs (#112): grab the trust signals while
         // we're already touching this row. `get_safe_profiles` doesn't
         // expose these, but the profiles RLS policy already permits SELECT
-        // on any approved row (that's the same gate `id_document_url`
+        // on any approved row (the same gate the other profile reads
         // relies on), so a direct select is fine.
         supabase
           .from("profiles")
-          .select("id_document_url, approval_status, stripe_identity_verified, stripe_account_id, background_check_status")
+          .select("approval_status, stripe_identity_verified, stripe_account_id, background_check_status")
           .eq("user_id", userId!)
           .maybeSingle(),
         // Count-only queries — `head: true` skips row payload, so these

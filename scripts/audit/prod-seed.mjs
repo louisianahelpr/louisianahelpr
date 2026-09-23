@@ -267,7 +267,6 @@ async function ensureOwnedAccount(key, spec) {
     terms_accepted_at: new Date().toISOString(),
     location: "Lafayette, LA",
     avatar_url: PIXEL,
-    id_document_url: PIXEL,
     approval_status: spec.approval_status,
     ban_status: spec.ban_status,
     denial_reason: spec.denial_reason ?? null,

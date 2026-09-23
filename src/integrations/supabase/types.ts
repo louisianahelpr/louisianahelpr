@@ -2617,6 +2617,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ops_alert_pending: {
+        Row: {
+          id: string
+          queued_at: string
+          sample: string | null
+          sample_ref: Json | null
+          seen_at: string
+          severity: string | null
+          source: string | null
+          source_kind: string
+          title: string | null
+          verify_kind: string | null
+          verify_ref: string | null
+        }
+        Insert: {
+          id?: string
+          queued_at?: string
+          sample?: string | null
+          sample_ref?: Json | null
+          seen_at: string
+          severity?: string | null
+          source?: string | null
+          source_kind: string
+          title?: string | null
+          verify_kind?: string | null
+          verify_ref?: string | null
+        }
+        Update: {
+          id?: string
+          queued_at?: string
+          sample?: string | null
+          sample_ref?: Json | null
+          seen_at?: string
+          severity?: string | null
+          source?: string | null
+          source_kind?: string
+          title?: string | null
+          verify_kind?: string | null
+          verify_ref?: string | null
+        }
+        Relationships: []
+      }
       payment_refunds: {
         Row: {
           amount_cents: number
@@ -5733,6 +5775,20 @@ export type Database = {
         }
         Returns: string
       }
+      ops_alert_apply: {
+        Args: {
+          p_sample?: string
+          p_sample_ref?: Json
+          p_seen_at?: string
+          p_severity: string
+          p_source: string
+          p_source_kind: string
+          p_title: string
+          p_verify_kind?: string
+          p_verify_ref?: string
+        }
+        Returns: string
+      }
       ops_alert_close: {
         Args: { p_evidence: string; p_id: string; p_rerun_started_at: string }
         Returns: boolean
@@ -5746,6 +5802,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      ops_alert_fold_pending: { Args: never; Returns: number }
       ops_alert_mark_fixed: {
         Args: { p_id: string; p_note: string }
         Returns: boolean

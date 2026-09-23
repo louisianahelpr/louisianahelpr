@@ -7616,6 +7616,15 @@ sure someone hears it and closes it.
   check_ops_digest_delivery() is ok:false when the ops-daily-digest
   expectation row is missing (row exists live, registered 2026-09-14); the
   side effect is commented at the ops_alert_condition call site.
+  lh-silent-failure review of the fix: re-key merge chain lost counts/open
+  status (fixed: row re-read per iteration, PGlite chain case red without it);
+  one bad pending row stopped every fold (fixed: per-row sub-block, row stays
+  queued); 6+ digit numbers were `<id>` (fixed: hex ids need a letter).
+  STILL OPEN: (e) no watchdog on `ops_alert_pending` — if the hourly `ledger`
+  job stops, queued occurrences never fold and nothing says so (alert on
+  oldest queued_at age from something other than that job); the brief
+  (ops-alert-ledger.mjs) reads the ledger without folding, so it undercounts
+  during a storm.
   One tracked item per distinct alert fingerprint,
   from error_logs (server rows, every severity), Slack posts that bypass
   error_logs, Sentry, nightly-red issues and CI. Auto-opened, and closed only

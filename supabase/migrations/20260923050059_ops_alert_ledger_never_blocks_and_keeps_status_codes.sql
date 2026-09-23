@@ -71,13 +71,7 @@ GRANT ALL ON TABLE public.ops_alert_pending TO service_role;
 COMMENT ON TABLE public.ops_alert_pending IS
   'Ledger occurrences whose ledger row was locked by another transaction when they arrived (ops_alert_record never waits more than 100 ms). Folded into ops_alert_ledger by ops_alert_verify(). docs/OPEN.md Q1.';
 
--- ── 2. re-key capture (uses the normaliser still installed = the old one) ──
-DROP TABLE IF EXISTS pg_temp._ops_alert_rekey;
-CREATE TEMP TABLE _ops_alert_rekey AS
-  SELECT l.id, split_part(l.sample, ' — ', 1) AS raw
-    FROM public.ops_alert_ledger l
-   WHERE l.sample IS NOT NULL
-     AND coalesce(nullif(public.ops_alert_normalise(split_part(l.sample, ' — ', 1)), ''), '(no message)') = l.title;
+-- ── 2. (re-key of existing rows is section 9, after v2 exists) ─────────────
 
 -- ── 3. normalisation v2 ─────────────────────────────────────────────────────
 -- chr(1) marks the digits of a protected status code so the number pass skips
@@ -103,7 +97,8 @@ AS $fn$
       'https?://[^ )]+', '<url>', 'g'),
       -- ISO date / timestamp, as one unit
       '\m[0-9]{4}-[0-9]{2}-[0-9]{2}([t ][0-9]{2}:[0-9]{2}(:[0-9]{2}(\.[0-9]+)?)?(z|[+-][0-9]{2}(:?[0-9]{2})?)?)?', '<ts>', 'g'),
-      '\m(?=[a-f]*[0-9])[0-9a-f]{6,}\M', '<id>', 'g'),
+      -- hex ids need a letter AND a digit; an all-digit run is a number below
+      '\m(?=[0-9]*[a-f])(?=[a-f]*[0-9])[0-9a-f]{6,}\M', '<id>', 'g'),
       -- KEEP an HTTP-ish status code after its keyword: "returned 500", "status: 404", "http 502"
       '\m(https?|status|returned|responded|code|error)([ :=]{0,3})([1-5])([0-9])([0-9])(?![0-9])',
       '\1\2' || chr(1) || '\3' || chr(1) || '\4' || chr(1) || '\5', 'g'),
@@ -253,14 +248,19 @@ DECLARE
   v_n    int := 0;
 BEGIN
   FOR r IN
-    DELETE FROM public.ops_alert_pending p
-     WHERE p.id IN (SELECT id FROM public.ops_alert_pending
-                     ORDER BY seen_at LIMIT 5000 FOR UPDATE SKIP LOCKED)
-    RETURNING p.*
+    SELECT * FROM public.ops_alert_pending
+     ORDER BY seen_at LIMIT 5000 FOR UPDATE SKIP LOCKED
   LOOP
-    PERFORM public.ops_alert_apply(r.source_kind, r.source, r.title, r.severity, r.sample,
-                                   r.sample_ref, r.verify_kind, r.verify_ref, r.seen_at);
-    v_n := v_n + 1;
+    -- One bad row must not stop every later fold (and with it every hourly
+    -- verify): it stays queued, loudly, and the rest go through.
+    BEGIN
+      PERFORM public.ops_alert_apply(r.source_kind, r.source, r.title, r.severity, r.sample,
+                                     r.sample_ref, r.verify_kind, r.verify_ref, r.seen_at);
+      DELETE FROM public.ops_alert_pending WHERE id = r.id;
+      v_n := v_n + 1;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'ops_alert_fold_pending: % (ops_alert_pending.id=%) left queued', SQLERRM, r.id;
+    END;
   END LOOP;
   RETURN v_n;
 END;
@@ -434,16 +434,43 @@ DO $rekey$
 DECLARE
   r       record;
   v_title text;
+  v_raw   text;
   v_fp    text;
   o       public.ops_alert_ledger%ROWTYPE;
   v_rank  text[] := ARRAY['info','warning','error','critical','fatal'];
 BEGIN
+  -- Provenance: a row is re-keyed only if its sample's first ' — ' segment,
+  -- run through the v1 normaliser (inlined here verbatim from 20260923043402,
+  -- so no temp table or leftover function is needed), reproduces its stored
+  -- title. On a replay, already re-keyed rows either fail this test (skipped)
+  -- or re-key to the fingerprint they already have (no-op).
   FOR r IN
-    SELECT l.*, k.raw FROM pg_temp._ops_alert_rekey k
-      JOIN public.ops_alert_ledger l ON l.id = k.id
+    SELECT l.*, k.raw
+      FROM public.ops_alert_ledger l
+      CROSS JOIN LATERAL (SELECT split_part(l.sample, ' — ', 1) AS raw) k
+     WHERE l.sample IS NOT NULL
+       AND coalesce(nullif(left(btrim(regexp_replace(
+             regexp_replace(
+             regexp_replace(
+             regexp_replace(
+             regexp_replace(
+             regexp_replace(
+             regexp_replace(lower(k.raw),
+               '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', '<id>', 'g'),
+               '\m(pi|ch|tr|po|py|re|in|cs|pm|acct|cus|evt|sub|seti|txn|src|ba|card|dp|ipi|price|prod|whsec)_[a-z0-9]{6,}', '<id>', 'g'),
+               '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}', '<email>', 'g'),
+               'https?://[^ )]+', '<url>', 'g'),
+               '\m(?=[a-f]*[0-9])[0-9a-f]{6,}\M', '<id>', 'g'),
+               '[0-9]+([.,:][0-9]+)*', '#', 'g'),
+             '\s+', ' ', 'g')), 200), ''), '(no message)') = l.title
      ORDER BY l.last_seen DESC
   LOOP
-    v_title := coalesce(nullif(public.ops_alert_normalise(r.raw), ''), '(no message)');
+    -- The cursor's snapshot is stale once an earlier iteration merged INTO this
+    -- row (its count/status changed) or merged it away (deleted). Re-read it.
+    v_raw := r.raw;
+    SELECT * INTO r FROM public.ops_alert_ledger l WHERE l.id = r.id FOR UPDATE;
+    CONTINUE WHEN NOT FOUND;
+    v_title := coalesce(nullif(public.ops_alert_normalise(v_raw), ''), '(no message)');
     v_fp := md5(r.source_kind || '|' || r.source || '|' || v_title);
     CONTINUE WHEN v_fp = r.fingerprint;
 
@@ -479,8 +506,6 @@ BEGIN
   END LOOP;
 END;
 $rekey$;
-
-DROP TABLE IF EXISTS pg_temp._ops_alert_rekey;
 
 -- ── 10. check_ops_digest_delivery: a missing expectation is not "ok" ───────
 CREATE OR REPLACE FUNCTION public.check_ops_digest_delivery()

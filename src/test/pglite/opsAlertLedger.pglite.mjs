@@ -109,6 +109,15 @@ INSERT INTO public.error_logs (severity, message, tags, created_at) VALUES
 const v1 = await q(`SELECT title, count FROM public.ops_alert_ledger WHERE source='cron-http' ORDER BY title`);
 check("v1 (before follow-up): 500 and 404 were ONE item; +/- timeouts were TWO",
   v1.length === 3 && v1.some((r) => /returned # \(/.test(r.title) && Number(r.count) === 2), JSON.stringify(v1));
+// Merge chain (review finding): Y (newer, open) merges into O's v1 key while
+// O (closed) itself re-keys. No count may be lost and open must survive.
+await db.exec(`
+INSERT INTO public.error_logs (severity, message, tags, created_at) VALUES
+ ('error','upstream 5 status 404', '{"source":"chain","origin":"server"}', now() - interval '30 minutes'),
+ ('error','upstream -5 status 404', '{"source":"chain","origin":"server"}', now() - interval '20 minutes'),
+ ('error','upstream 5 status -1', '{"source":"chain","origin":"server"}', now() - interval '5 minutes');
+UPDATE public.ops_alert_ledger SET status='closed', closed_at=now(), closed_evidence='test: verified closed'
+ WHERE source='chain' AND title IN ('upstream # status #', 'upstream -# status #');`);
 // One of the timeout pair was verified closed: on merge, open must win.
 await db.exec(`UPDATE public.ops_alert_ledger SET status='closed', closed_at=now(), closed_evidence='test: verified closed' WHERE title LIKE '%handshake time: -#%'`);
 
@@ -135,6 +144,19 @@ rk = await q(`SELECT title, count FROM public.ops_alert_ledger WHERE source='cro
 check("after the follow-up a 500 is its own item next to the 404", rk.length === 2 &&
   rk.some((r) => r.title.includes("returned 500") && Number(r.count) === 1), JSON.stringify(rk));
 await db.exec(`DELETE FROM public.ops_alert_ledger WHERE source='cron-http'`);
+const ch = await q(`SELECT sum(count)::int n, bool_or(status <> 'closed') open FROM public.ops_alert_ledger WHERE source='chain'`);
+check("re-key merge chain: no count lost (3) and the open occurrence stays open", ch[0].n === 3 && ch[0].open === true, JSON.stringify(ch[0]));
+await db.exec(`DELETE FROM public.ops_alert_ledger WHERE source='chain'`);
+
+// Fold: a poison pending row stays queued; the good one is folded.
+await db.exec(`INSERT INTO public.ops_alert_pending (source_kind, source, title, severity, seen_at) VALUES
+  ('bogus-kind', 'fold-test', 'poison', 'error', now()),
+  ('error_logs', 'fold-test', 'Fold me', 'error', now())`);
+const fv = (await q(`SELECT public.ops_alert_verify() AS r`))[0].r;
+const left = await q(`SELECT source_kind FROM public.ops_alert_pending`);
+check("fold: one bad pending row does not stop the rest (folded 1, poison left queued)",
+  fv.folded === 1 && left.length === 1 && left[0].source_kind === "bogus-kind", JSON.stringify({ fv, left }));
+await db.exec(`DELETE FROM public.ops_alert_pending; DELETE FROM public.ops_alert_ledger WHERE source='fold-test'`);
 
 // Fingerprint regression: status codes split, ids/amounts/timestamps do not.
 const same = async (a, b) => (await q(`SELECT public.ops_alert_normalise('${a}') = public.ops_alert_normalise('${b}') AS same,
@@ -156,6 +178,8 @@ for (const [a, b] of [
   ["handshake time: -0.040000 ms", "handshake time: 62.012000 ms"],
   ["50 message(s) in the dlq", "1 message(s) in the dlq"],
   ["Timeout of 5000 ms", "Timeout of 5001 ms"],
+  ["refunded 1234567 cents", "refunded 12 cents"],
+  ["balance delta -1234567", "balance delta 1234567"],
   ["pi_3AbCdEf123456 failed for x@y.com", "pi_9ZyXwV654321 failed for a@b.org"],
 ]) {
   const r = await same(a, b);

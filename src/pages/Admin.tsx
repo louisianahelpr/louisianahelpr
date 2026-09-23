@@ -416,10 +416,18 @@ const Admin = () => {
         loadUnreadCounts();
       }, 500);
     };
-    // Deliberately unfiltered: unlike user-facing channels (which MUST be
+    // Deliberately NOT user-scoped: unlike user-facing channels (which MUST be
     // user-scoped per the realtime rule), the admin dashboard's whole job is
-    // to reflect platform-wide activity, so it watches every write to these
-    // tables. The debounce above keeps the resulting reload burst sane.
+    // to reflect platform-wide activity. The debounce above keeps a burst sane.
+    //
+    // `jobs` IS filtered to `is_seed=eq.false` (Q104/Q105): every stat and
+    // badge on this screen excludes seed rows, so a seed write cannot change
+    // anything it shows — and CI test data is meant to be seed rows (CLAUDE.md;
+    // not checked here that every spec marks its jobs). Unfiltered, every job
+    // write anywhere fired a ~25-query reload in every open admin session (one
+    // press-run admin session made 18,035 REST calls in 29 min, Q104). Cost of the filter: a hard DELETE of a real job (its payload
+    // carries only the id) no longer reloads live; the manual refresh does.
+    // `reports` has no is_seed column and is low volume.
     //
     // There is NO `profiles` binding here, and adding one would break the other
     // two. `profiles` was dropped from the `supabase_realtime` publication by
@@ -433,7 +441,7 @@ const Admin = () => {
     const sub = subscribeWithRecovery(
       (name) => supabase
       .channel(name)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, debouncedReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs', filter: 'is_seed=eq.false' }, debouncedReload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, debouncedReload),
       { name: "admin-realtime", onRecovered: debouncedReload },
     );

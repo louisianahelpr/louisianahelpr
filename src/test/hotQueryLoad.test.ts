@@ -1,4 +1,4 @@
-// @mutate src/hooks/useActivityBadgeCounts.ts | filter: `customer_id=eq.${userId}` },\n      () => scheduleLoad(), | filter: `customer_id=eq.${userId}` },\n      () => loadCounts(),
+// @mutate src/hooks/useActivityBadgeCounts.ts | subscribeUserRealtime(userId, "jobs:customer", () => scheduleLoad(), | subscribeUserRealtime(userId, "jobs:customer", () => loadCounts(),
 // @mutate src/hooks/useActivityBadgeCounts.ts | onRecovered: scheduleLoad } | onRecovered: loadCounts }
 // @mutate src/hooks/useActivityBadgeCounts.ts | same way the schedule-time path above does.\n      if (isHidden()) { | same way the schedule-time path above does.\n      if (false) {
 // @mutate src/hooks/useActivityBadgeCounts.ts | let store = stores.get(userId); | let store = undefined as BadgeStore \| undefined;
@@ -252,18 +252,31 @@ describe("hot-query load (Q53)", () => {
     });
 
     it("routes every realtime wake-up and recovery through scheduleLoad", () => {
+      // The badge's realtime rides the shared per-user channel (Q105), so its
+      // handlers are the 3rd argument of each subscribeUserRealtime(...) call
+      // and its recovery the `onRecovered` in the 4th. A raw
+      // `.on("postgres_changes", …)` here would be a second channel for rows
+      // the shared one already carries (src/test/realtimeChannelInventory).
       const handlers: string[] = [];
-      let onRecovered = "";
+      const recovered: string[] = [];
+      let rawBindings = 0;
       visit(sf, (n) => {
-        if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === "on" && n.arguments[0]?.getText(sf) === '"postgres_changes"') {
+        if (ts.isCallExpression(n) && n.expression.getText(sf) === "subscribeUserRealtime") {
           handlers.push(n.arguments[2]?.getText(sf) ?? "");
+          const opts = n.arguments[3];
+          let r = "";
+          if (opts && ts.isObjectLiteralExpression(opts)) {
+            for (const p of opts.properties) if (ts.isPropertyAssignment(p) && p.name.getText(sf) === "onRecovered") r = p.initializer.getText(sf);
+          }
+          recovered.push(r);
         }
-        if (ts.isPropertyAssignment(n) && ts.isIdentifier(n.name) && n.name.text === "onRecovered") onRecovered = n.initializer.getText(sf);
+        if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === "on" && /postgres_changes/.test(n.arguments[0]?.getText(sf) ?? "")) rawBindings++;
       });
       expect(handlers.length).toBeGreaterThanOrEqual(3);
+      expect(rawBindings, "the badge opened a channel of its own again").toBe(0);
       const direct = handlers.filter((h) => !/^\(\)\s*=>\s*scheduleLoad\(\)$/.test(h));
       expect(direct, "a realtime handler that loads directly skips the coalescing and the hidden-hold").toEqual([]);
-      expect(onRecovered).toBe("scheduleLoad");
+      expect(recovered).toEqual(handlers.map(() => "scheduleLoad"));
     });
 
     it("scheduleLoad holds a wake-up while hidden and coalesces over a non-zero window", () => {

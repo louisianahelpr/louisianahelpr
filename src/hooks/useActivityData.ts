@@ -2,6 +2,7 @@ import { useEffect, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
+import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { formatName } from "@/lib/utils";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
@@ -799,7 +800,7 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
     // subscribeWithRecovery, which keeps the Sentry report, adds backoff,
     // publishes the outage to the global banner, and invalidates on the way
     // back so the writes made during the gap are actually read.
-    // CORE channel — jobs / notifications / job_tracking / applications.
+    // CORE channel — jobs (as helper) / job_tracking.
     // Every binding here MUST be on a table in the `supabase_realtime`
     // publication: Realtime rejects a channel containing ANY binding on an
     // unpublished table, and the whole channel dies — none of its bindings
@@ -813,23 +814,29 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
       .channel(name)
       // jobs: scope to rows that can appear in this user's activity feed via
       // server-side filters, so platform-wide job churn never reaches this
-      // client. postgres_changes filters are single-column — hence three.
-      .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `customer_id=eq.${userId}` }, invalidate)
+      // client. postgres_changes filters are single-column — hence one per
+      // column; the `customer_id` half is on the shared channel below.
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `helper_id=eq.${userId}` }, invalidate)
-      // Pending direct offers are NOT covered by a `jobs` filter any more: the
-      // helper has no RLS SELECT grant on an unaccepted offer (that policy
-      // leaked the street address), and Realtime only delivers rows the
-      // subscriber can read. The DB trigger that creates the offer also
-      // inserts a notification addressed to the offered helper, so this
-      // channel carries the same wake-up — and it is a row the helper is
-      // genuinely entitled to.
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, invalidate)
-      // job_tracking / applications — scoped to rows involving this user so
-      // platform-wide write churn on these high-volume tables never fans out
-      // to every connected client.
-      .on("postgres_changes", { event: "*", schema: "public", table: "job_tracking", filter: `helper_id=eq.${userId}` }, invalidate)
-      .on("postgres_changes", { event: "*", schema: "public", table: "applications", filter: `helper_id=eq.${userId}` }, invalidate),
+      // job_tracking — scoped to rows involving this user so platform-wide
+      // write churn on this high-volume table never fans out to every
+      // connected client.
+      .on("postgres_changes", { event: "*", schema: "public", table: "job_tracking", filter: `helper_id=eq.${userId}` }, invalidate),
       { name: "activity-realtime", onRecovered: invalidate },
+    );
+    // jobs (customer_id), notifications INSERT and applications (helper_id)
+    // ride the ONE shared per-user channel (src/lib/userRealtimeBus.ts, Q105):
+    // the nav badges, mounted on this same page, bind exactly those rows, and
+    // a second copy here was a duplicate realtime.subscription row each.
+    //
+    // Pending direct offers are NOT covered by a `jobs` filter any more: the
+    // helper has no RLS SELECT grant on an unaccepted offer (that policy
+    // leaked the street address), and Realtime only delivers rows the
+    // subscriber can read. The DB trigger that creates the offer also
+    // inserts a notification addressed to the offered helper, so the
+    // notifications topic carries the same wake-up — and it is a row the
+    // helper is genuinely entitled to.
+    const sharedUnsubs = (["jobs:customer", "notifications:insert", "applications:helper"] as const).map(
+      (topic) => subscribeUserRealtime(userId, topic, invalidate, { onRecovered: invalidate }),
     );
     // reviews rides on its OWN channel: it was added to the publication by
     // migration 20260829061737, but isolating it means that if publication
@@ -846,6 +853,7 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
       if (debounce) clearTimeout(debounce);
       coreSub.close();
       reviewsSub.close();
+      for (const u of sharedUnsubs) u();
     };
   }, [userId, queryClient]);
 

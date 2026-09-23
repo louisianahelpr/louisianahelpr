@@ -7712,7 +7712,7 @@ sure someone hears it and closes it.
 - [ ] **Q16 This file is 7,600+ lines with ~205 open checkboxes.** The one
   open-work list has become unreadable. Triage it: close what's done (verified),
   archive history to docs/archive/, keep OPEN.md to live items.
-- [ ] **Q17 npm audit (prod deps): 3 moderate**: @capacitor/cli, uuid, xcode.
+- [x] **Q17 DONE: npm audit --omit=dev = 0 vulnerabilities.** The 3 were one chain, @capacitor/cli -> xcode -> uuid <11.1.1 (buffer bounds check when a buf is passed). @capacitor/cli is a build-time CLI, never bundled, and is now a devDependency, as Capacitor's own setup has it. The dev-tree uuid is unreachable: xcode only calls uuid.v4() with no buf (pbxProject.js:90). Was: npm audit (prod deps): 3 moderate: @capacitor/cli, uuid, xcode.
   Upgrade or document why each is unreachable.
 - [ ] **Q18 Agent isolation leak.** A worktree-isolated agent reported its cwd was
   swapped to the SHARED main checkout mid-task (FormSpec lane, 2026-09-23). It

@@ -24,6 +24,7 @@
 // @mutate src/lib/chunkReload.ts | backgroundImportFailureListener?.(name, err); | void name;
 // @mutate src/lib/errorLogger.ts | else persistStats.failed += batch.length; | else void 0;
 // @mutate src/lib/analytics.ts | await backgroundImport(() => import("@/lib/posthog"), "posthog"); | await backgroundImport(() => import("@/lib/posthog"));
+// @mutate src/lib/analytics.ts |     asUser ? batch : batch.map((r) => ({ ...r, user_id: null })), |     batch,
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -151,16 +152,27 @@ describe("a failed background import is visible, once per session (Q161)", () =>
     expect(rowsWithMessage("background import failed: sentry")).toHaveLength(0);
   });
 
-  it("the analytics flush reports its own failed supabase-client import", async () => {
+  it("an analytics batch persists by fetch while the supabase-client import is failing (Q162)", async () => {
+    // A stored session that has EXPIRED: analytics resolves a user_id from it,
+    // but the request goes out as anon, so user_id must be dropped or RLS
+    // (user_id null or auth.uid()) refuses the whole batch.
+    localStorage.setItem(
+      "sb-fncmgoasalhdgfwzhsqa-auth-token",
+      JSON.stringify({ access_token: "expired.jwt.token", expires_at: 1, user: { id: "00000000-0000-0000-0000-0000000000aa" } }),
+    );
     vi.useFakeTimers();
-    track("q161_flush_event", {});
-    // analytics flush is debounced 1.5s; errorLogger's own flush 250ms.
+    track("q162_flush_event", {});
+    // analytics flush is debounced 1.5s.
     await vi.advanceTimersByTimeAsync(2_000);
     vi.useRealTimers();
-    await vi.waitFor(
-      () => expect(rowsWithMessage("background import failed: supabase-client")).toHaveLength(1),
-      { timeout: 3000 },
-    );
+    await vi.waitFor(() => {
+      const call = fetchSpy.mock.calls.find((c) => String(c[0]).includes("/rest/v1/analytics_events?columns="));
+      expect(call, "analytics_events POST").toBeTruthy();
+      const rows = JSON.parse(String(call![1].body)) as Array<{ event: string; user_id: unknown }>;
+      expect(rows.map((r) => r.event)).toContain("q162_flush_event");
+      // Sent without a session: user_id must be null or RLS refuses the batch.
+      expect(rows.every((r) => r.user_id === null)).toBe(true);
+    }, { timeout: 3000 });
   });
 });
 
@@ -189,9 +201,10 @@ describe("every backgroundImport() call names its module (Q161)", () => {
       const seen = [...code.matchAll(re)].length;
       if (all !== seen) calls.push({ file, named: false, text: `${all - seen} unrecognised backgroundImport( call(s)` });
     }
-    // Inventory floor: errorLogger (sentry, posthog), analytics (supabase-client,
-    // posthog), useLoginTracking (posthog) on 2026-09-23.
-    expect(calls.length).toBeGreaterThan(4);
+    // Inventory floor: errorLogger (sentry, posthog), analytics (posthog),
+    // useLoginTracking (posthog) on 2026-09-23 (analytics' supabase-client
+    // import went away with Q162's fetch path).
+    expect(calls.length).toBeGreaterThan(3);
     expect(calls.filter((c) => !c.named).map((c) => `${c.file}: ${c.text}`)).toEqual([]);
   });
 });

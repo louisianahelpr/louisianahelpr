@@ -9,6 +9,7 @@
  *   track(AhaEvent.JobPosted, { budget_cents: 2500, parish: "Orleans" });
  */
 import { backgroundImport } from "@/lib/chunkReload";
+import { postRows } from "@/lib/restInsert";
 
 type AnalyticsEventRow = {
   event: string;
@@ -18,15 +19,6 @@ type AnalyticsEventRow = {
   referrer: string | null;
   platform: string;
 };
-
-// Supabase client is dynamically imported (NOT statically) to keep the
-// ~50KB supabase-js chunk out of pages that only call track() (e.g. landing).
-// flush() is debounced 1.5s, well past any dynamic-import resolution time.
-async function getSupabase() {
-  // Background: a failed fetch must not reload the page (backgroundImport, Q131).
-  const mod = await backgroundImport(() => import("@/integrations/supabase/client"), "supabase-client");
-  return mod.supabase;
-}
 
 // PostHog is dynamically imported (NOT statically) to keep posthog-js
 // out of the initial bundle — Lighthouse "Reduce unused JavaScript"
@@ -91,17 +83,20 @@ type EventName = typeof AhaEvent[keyof typeof AhaEvent] | (string & {});
 const queue: AnalyticsEventRow[] = [];
 let flushTimer: number | null = null;
 
+const ANALYTICS_COLUMNS = ["event", "user_id", "properties", "url", "referrer", "platform"] as const;
+
+// Plain fetch, not supabase-js (Q162): a failed supabase-client chunk is cached
+// for the whole document, so the lazy-import path lost every batch for the
+// rest of the session. The insert policy pins user_id to auth.uid(), so a batch
+// sent WITHOUT a session (no token, expired, or the anon retry) must carry
+// user_id null, or RLS refuses all of it (the Q110 class).
 async function flush() {
   if (queue.length === 0) return;
   const batch = queue.splice(0, queue.length);
-  try {
-    const supabase = await getSupabase();
-    // Cast needed: local AnalyticsEventRow.properties is Record<string,unknown>;
-    // Supabase insert expects Json. The shapes are compatible at runtime.
-    await supabase.from("analytics_events").insert(batch as any[]);
-  } catch {
-    // Network failed — silently drop, don't recurse.
-  }
+  // Never throws; a failed batch is dropped, not reported (no recursion).
+  await postRows("analytics_events", ANALYTICS_COLUMNS, (asUser) =>
+    asUser ? batch : batch.map((r) => ({ ...r, user_id: null })),
+  );
 }
 
 function schedule() {

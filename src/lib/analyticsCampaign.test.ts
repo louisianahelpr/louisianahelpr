@@ -15,16 +15,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const inserted: Record<string, unknown>[][] = [];
 
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: {
-    from: () => ({
-      insert: (rows: Record<string, unknown>[]) => {
-        inserted.push(rows);
-        return Promise.resolve({ error: null });
-      },
-    }),
-  },
-}));
+// analytics persists with a plain fetch (Q162); capture the POSTed rows.
+vi.stubGlobal(
+  "fetch",
+  vi.fn(async (_url: string, init: { body: string }) => {
+    inserted.push(JSON.parse(init.body) as Record<string, unknown>[]);
+    return { ok: true, status: 201 } as Response;
+  }),
+);
 
 /** Point the jsdom URL at a query string without reloading. */
 function setSearch(search: string) {

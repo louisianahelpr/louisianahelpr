@@ -16,7 +16,6 @@
  * import is being resolved, so each records the flag at that moment.
  */
 // @mutate src/lib/analytics.ts | const { captureEvent } = await backgroundImport(() => import("@/lib/posthog"), "posthog"); | const { captureEvent } = await import("@/lib/posthog");
-// @mutate src/lib/analytics.ts | const mod = await backgroundImport(() => import("@/integrations/supabase/client"), "supabase-client"); | const mod = await import("@/integrations/supabase/client");
 // @mutate src/lib/chunkReload.ts | const settle = beginSpeculativePrefetch();\n  // A load that never settles | const settle = () => {};\n  // A load that never settles
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // @mutate src/lib/chunkReload.ts | const gateTimer = setTimeout(settle, BACKGROUND_IMPORT_GATE_TIMEOUT_MS); | const gateTimer = setTimeout(() => {}, BACKGROUND_IMPORT_GATE_TIMEOUT_MS);
@@ -73,15 +72,15 @@ describe("backgroundImport (Q131)", () => {
     expect(isSpeculativePrefetchInFlight(), "a stalled background load must not suppress recovery forever").toBe(false);
   });
 
-  it("track() fetches posthog and the supabase client only under the gate — the path that reloaded the page on prod", async () => {
+  it("track() fetches posthog only under the gate, and never the supabase client (Q162: flush is a plain fetch)", async () => {
     vi.useFakeTimers();
     const { track, AhaEvent } = await import("./analytics");
     track(AhaEvent.JobApplied, { job_id: "q131" });
     // The posthog fan-out is immediate; the supabase flush is debounced 1.5s.
     await vi.advanceTimersByTimeAsync(2_000);
-    await vi.waitFor(() => expect(Object.keys(flagDuringImport).sort()).toEqual(["posthog", "supabase"]));
+    await vi.waitFor(() => expect(Object.keys(flagDuringImport).sort()).toEqual(["posthog"]));
     expect(flagDuringImport.posthog, "posthog was imported with recovery armed").toBe(true);
-    expect(flagDuringImport.supabase, "the analytics flush imported supabase with recovery armed").toBe(true);
+    expect(flagDuringImport.supabase, "the analytics flush no longer imports supabase at all").toBeUndefined();
     expect(isSpeculativePrefetchInFlight()).toBe(false);
   });
 });

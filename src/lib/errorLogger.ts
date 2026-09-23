@@ -9,6 +9,7 @@
  * call Sentry.captureException(err, { extra }) and you're done.
  */
 
+import { postRows } from "./restInsert";
 import { Capacitor } from "@capacitor/core";
 import type { Json } from "@/integrations/supabase/types";
 import { backgroundImport, getBackgroundImportFailures, onBackgroundImportFailure } from "@/lib/chunkReload";
@@ -99,9 +100,6 @@ function isDevEnvironment(stack: string | null | undefined): boolean {
 // POST /rest/v1/error_logs?columns=..., apikey, Authorization (the session's
 // access token, else the key), Content-Type json, Content-Profile public.
 const ERROR_LOG_COLUMNS = ["user_id", "severity", "message", "stack", "url", "user_agent", "tags", "context"] as const;
-/** fetch keepalive refuses bodies over 64 KiB; stay under it with margin. */
-const KEEPALIVE_MAX_BYTES = 60_000;
-
 /** What the persistence path has done this document (rows, not requests). */
 const persistStats = { attempted: 0, persisted: 0, failed: 0, lastStatus: 0 };
 /** Test seam: a snapshot of persistStats. */
@@ -109,69 +107,16 @@ export function _persistStats(): Readonly<typeof persistStats> {
   return { ...persistStats };
 }
 
-/**
- * The signed-in user's access token, if storage holds an unexpired one.
- * supabase-js keeps the session under `sb-<project-ref>-auth-token` (the
- * native keychain adapter mirrors it into localStorage). With no token the row
- * still lands under the anon role, which the insert policy allows; the server
- * stamps user_id from the token either way (stamp_error_log_origin, Q106).
- */
-function storedAccessToken(supabaseUrl: string): string | null {
-  try {
-    const ref = new URL(supabaseUrl).hostname.split(".")[0];
-    const raw = localStorage.getItem(`sb-${ref}-auth-token`);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { access_token?: unknown; expires_at?: unknown } | null;
-    const token = parsed?.access_token;
-    if (typeof token !== "string" || !token) return null;
-    // An expired token is refused with 401, and the whole batch with it.
-    const expiresAt = typeof parsed?.expires_at === "number" ? parsed.expires_at : 0;
-    if (expiresAt && expiresAt * 1000 <= Date.now() + 5_000) return null;
-    return token;
-  } catch {
-    // Storage blocked or unparseable: send as anon, which the policy allows.
-    return null;
-  }
-}
-
 async function postErrorLogs(batch: ErrorLogRow[]): Promise<void> {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
   persistStats.attempted += batch.length;
-  if (!supabaseUrl || !key || typeof fetch !== "function") {
-    persistStats.failed += batch.length;
-    return;
-  }
-  const columns = ERROR_LOG_COLUMNS.map((c) => `"${c}"`).join(",");
-  const url = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/error_logs?columns=${encodeURIComponent(columns)}`;
-  const body = JSON.stringify(batch);
-  const send = (bearer: string) =>
-    fetch(url, {
-      method: "POST",
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${bearer}`,
-        "Content-Type": "application/json",
-        "Content-Profile": "public",
-      },
-      body,
-      // Lets a flush that starts as the page goes away still complete.
-      keepalive: body.length < KEEPALIVE_MAX_BYTES,
-    });
-  try {
-    const token = storedAccessToken(supabaseUrl);
-    let res = await send(token ?? key);
-    // A token the server no longer accepts (revoked, clock skew): the row is
-    // still worth having, so send it once more as anon.
-    if (res.status === 401 && token) res = await send(key);
-    persistStats.lastStatus = res.status;
-    if (res.ok) persistStats.persisted += batch.length;
-    else persistStats.failed += batch.length;
-  } catch {
-    // Network failed. Counted, never reported: reporting a logging failure
-    // through the logger would recurse on itself.
-    persistStats.failed += batch.length;
-  }
+  // user_id is always null here (the server stamps it from the token, Q106),
+  // so the body is the same for either auth.
+  const status = await postRows("error_logs", ERROR_LOG_COLUMNS, () => batch);
+  persistStats.lastStatus = status;
+  // Counted, never reported: reporting a logging failure through the logger
+  // would recurse on itself.
+  if (status >= 200 && status < 300) persistStats.persisted += batch.length;
+  else persistStats.failed += batch.length;
 }
 
 // Sentry + PostHog are dynamically imported to keep ~100KB of vendor code out

@@ -1,6 +1,5 @@
 import {
   useRef,
-  useEffect,
   useState,
   useLayoutEffect,
   type ReactNode,
@@ -111,12 +110,12 @@ export function VirtualizedJobList<T>({
     getItemKey: (index) => getKey(items[index], index),
   });
 
-  // Re-measure when the list length changes (filter, infinite-scroll
-  // append, dismiss) so row positions stay accurate.
-  useEffect(() => {
-    virtualizer.measure();
-  }, [items.length, virtualizer]);
-
+  // No `virtualizer.measure()` on a length change (Q154). It CLEARS the size
+  // cache, and rows that stay mounted are never re-measured (same node, same
+  // size, so neither the ref callback nor the ResizeObserver fires): every
+  // surviving row fell back to `estimateSize` and slid up under the card
+  // above it after an optimistic removal. Sizes are cached per stable key
+  // (`getItemKey`), so a new `count` already re-lays the rows out correctly.
   const virtualItems = virtualizer.getVirtualItems();
 
   return (

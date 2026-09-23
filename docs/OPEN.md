@@ -7587,7 +7587,7 @@ rows are non-tappable; panel identical in WebKit and Chromium.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 76 items — 12 done, 4 partly done (fixed, protection pending), 60 open.**
+**Queue: 79 items — 12 done, 4 partly done (fixed, protection pending), 63 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -8204,3 +8204,18 @@ sure someone hears it and closes it.
   audit row (who, what, target, when, reason). Inventory the admin
   RPCs/edge functions from code, prove each logs one (live test on a seed
   target), and add a guard that fails when a new admin action has no audit write.
+- [ ] **Q77 Finished agents' worktrees pile up.** Every worktree-isolated agent
+  leaves a LOCKED worktree under .claude/worktrees/, and prune-git-hygiene
+  never touches locked ones (by design, since running agents lock theirs). Add a
+  safe rule: a worktree whose agent has finished (its branch is merged into
+  origin/main or has no commits, no process has cwd there, and it's older
+  than 2h) is unlocked and removed; anything unmerged is reported, never deleted.
+- [ ] **Q78 Untracked leftovers in the repo:** docs/audit/gift-live/,
+  docs/audit/morning/2026-09-21.md and 2026-09-22.md have sat untracked for
+  days. Decide keep (commit as dated records) or scratch (delete), and add
+  a staleness rule so untracked files older than N days in docs/ are flagged.
+- [ ] **Q79 Stale REMOTE branches.** origin holds old branches (e.g.
+  fix-iap-cashout-errorleak, rpc-error-map); hygiene cleans local only. List
+  every remote branch with ahead/behind counts vs main. A branch fully merged
+  can be deleted; one with unlanded commits is REPORTED to the owner (it may
+  be lost work: memory orphan-branch-leak). Never delete unmerged.

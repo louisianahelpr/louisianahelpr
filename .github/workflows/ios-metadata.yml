@@ -1,9 +1,15 @@
 name: iOS Metadata Sync (App Store Connect + Xcode)
 
 # Manual-only — syncs fastlane/ios_app_metadata.yml into the committed
-# Xcode project / Info.plist, then pushes fastlane/metadata/ (App Store
-# listing text, URLs, categories, review info, screenshots) to App Store
-# Connect WITHOUT building the app or submitting for review.
+# Xcode project / Info.plist, uploads fastlane/metadata/ (App Store listing
+# text, URLs, categories, review info, screenshots) to App Store Connect
+# WITHOUT building the app or submitting for review, then lands the synced
+# Xcode/metadata files through the shared .github/actions/refresh-pr
+# composite (Q285: the old "Commit synced Xcode metadata back to GitHub"
+# step `git push`ed with github.token straight to the dispatched branch,
+# which main's branch protection rejects — it never pushes directly now; it
+# rebuilds ONE bot branch from LATEST main and merges it through a PR
+# instead).
 #
 # Run from the Actions tab → "iOS Metadata Sync (App Store Connect)" →
 # "Run workflow". Cheap (Linux runner, no Xcode), safe to re-run.
@@ -15,7 +21,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   upload-metadata:
@@ -82,19 +88,6 @@ jobs:
           echo "Info.plist values now committed in this checkout:"
           grep -A1 -E "<key>(CFBundleDisplayName|LSApplicationCategoryType|ITSAppUsesNonExemptEncryption|NSCameraUsageDescription|NSLocationWhenInUseUsageDescription|NSPhotoLibraryUsageDescription|NSPhotoLibraryAddUsageDescription|NSContactsUsageDescription)</key>" ios/App/App/Info.plist
 
-      - name: Commit synced Xcode metadata back to GitHub
-        run: |
-          set -e
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ios/App/App.xcodeproj/project.pbxproj ios/App/App/Info.plist capacitor.config.ts fastlane/metadata/en-US/name.txt fastlane/metadata/en-US/marketing_url.txt fastlane/metadata/en-US/privacy_url.txt fastlane/metadata/en-US/support_url.txt fastlane/metadata/primary_category.txt
-          if git diff --cached --quiet; then
-            echo "No Xcode metadata changes to commit."
-          else
-            git commit -m "Sync iOS Xcode metadata [skip ci]"
-            git push
-          fi
-
       - name: Upload App Store Connect listing metadata
         env:
           DELIVER_IGNORE_LANGUAGE_DIRECTORY_VALIDATION: "true"
@@ -104,3 +97,48 @@ jobs:
           echo "Metadata directory after cleanup:"
           find fastlane/metadata -maxdepth 2 -type d | sort
           bundle exec fastlane ios metadata --verbose
+
+  land:
+    name: Land synced Xcode metadata (Q57/Q285 refresh PR)
+    needs: [upload-metadata]
+    # Run even when the ASC upload step fails: the original workflow
+    # committed the Xcode/metadata sync BEFORE uploading to App Store
+    # Connect, so a landing failure must not depend on the upload succeeding
+    # — only on the job not being cancelled outright.
+    if: needs.upload-metadata.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The ONLY write grant in this workflow (Q285): push the bot branch, open
+    # or update its PR, and dispatch its checks (a github.token PR triggers
+    # none).
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Ruby (for Fastlane)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - uses: ./.github/actions/refresh-pr
+        with:
+          id: ios-metadata
+          title: "chore(ios): sync Xcode metadata from fastlane/ios_app_metadata.yml"
+          paths: |
+            ios/App/App.xcodeproj/project.pbxproj
+            ios/App/App/Info.plist
+            capacitor.config.ts
+            fastlane/metadata/en-US/name.txt
+            fastlane/metadata/en-US/marketing_url.txt
+            fastlane/metadata/en-US/privacy_url.txt
+            fastlane/metadata/en-US/support_url.txt
+            fastlane/metadata/primary_category.txt
+          regenerate: bundle exec fastlane ios sync_xcode_metadata --verbose
+          github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
+          check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}

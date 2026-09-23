@@ -160,6 +160,31 @@ export const beginSpeculativePrefetch = (): (() => void) => {
   };
 };
 
+/**
+ * A BACKGROUND lazy import (analytics, error reporting, identify) that no
+ * user action is waiting on. Its failure must never trigger the recovery
+ * reload, for the same reason a speculative prefetch must not (see above):
+ * declining costs nothing, because nothing on screen needs that module.
+ *
+ * THE HOLE THIS CLOSES (Q131, measured on prod 2026-09-23). A browser caches
+ * a failed module fetch for the life of the document, so a chunk first
+ * requested while the device was OFFLINE keeps failing after the network
+ * returns. Applying to a job back online: `apply_to_job` answered 200 and the
+ * row landed, then onSuccess's `track()` asked for the posthog chunk, which had
+ * failed offline; `vite:preloadError` fired, the device was online again, so
+ * recovery reloaded the page to `/dashboard?_v=...` and wiped "Application
+ * sent!" as it appeared. The user was left with no confirmation for an
+ * application that had gone through.
+ */
+export async function backgroundImport<T>(load: () => Promise<T>): Promise<T> {
+  const settle = beginSpeculativePrefetch();
+  try {
+    return await load();
+  } finally {
+    settle();
+  }
+}
+
 /** True while at least one speculative route prefetch is still in flight. */
 export const isSpeculativePrefetchInFlight = (): boolean => speculativePrefetchesInFlight > 0;
 

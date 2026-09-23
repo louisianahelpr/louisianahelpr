@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { WifiOff, BookmarkCheck, AlertTriangle } from "lucide-react";
 import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
 import { helperApplyBlockNotice } from "@/lib/awardGate";
+import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { hapticMedium, hapticError } from "@/lib/haptics";
 import { scanMessage, type DetectedViolation } from "@/lib/messageScanner";
@@ -64,6 +65,9 @@ type Props = ApplyConfirmDialogProps & {
    */
   hideEarnings?: boolean;
 };
+
+/** One id, so the online effect can take down exactly the toast it put up. */
+const OFFLINE_TOAST_ID = "apply-offline";
 
 /** Counter appears with this much room left, not before. */
 const COUNTER_VISIBLE_FROM = MAX_PITCH_LENGTH - 100;
@@ -198,6 +202,16 @@ export function ApplyBody({
     return () => clearTimeout(handle);
   }, [open, jobId, draftKey, applyMessage]);
 
+  // The offline toast below is `critical` (it stays until dismissed), so
+  // without this it kept saying "You're offline" after the network was back —
+  // measured on prod 2026-09-23 (Q131): still on screen beside the closed
+  // sheet after apply_to_job had answered 200. Its Retry then offered a second
+  // submit of an application that had already landed. The moment we are
+  // online again the sentence is false, and the in-sheet button is the retry.
+  useEffect(() => {
+    if (online) toast.dismiss(OFFLINE_TOAST_ID);
+  }, [online]);
+
   const handleConfirm = () => {
     hapticMedium();
     // SAME CONTRACT AS MESSAGES. The server scans this note exactly as it scans
@@ -224,7 +238,7 @@ export function ApplyBody({
       errorToast("You're offline", {
         description: "We saved your pitch. Try again once you're back online.",
         critical: true,
-        id: "apply-offline",
+        id: OFFLINE_TOAST_ID,
         onRetry: () => {
           if (navigator.onLine) {
             safeStorage.removeItem(draftKey);

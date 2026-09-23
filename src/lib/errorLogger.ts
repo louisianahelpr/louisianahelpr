@@ -10,6 +10,7 @@
 
 import { Capacitor } from "@capacitor/core";
 import type { Json } from "@/integrations/supabase/types";
+import { backgroundImport } from "@/lib/chunkReload";
 
 // ── Tunables ─────────────────────────────────────────────────────────
 const MESSAGE_MAX_CHARS = 1000;
@@ -94,7 +95,7 @@ function isDevEnvironment(stack: string | null | undefined): boolean {
 // Anonymous landing-page visitors who never error will never download
 // supabase-js at all (Lighthouse "Reduce unused JavaScript").
 async function getSupabase() {
-  const mod = await import("@/integrations/supabase/client");
+  const mod = await backgroundImport(() => import("@/integrations/supabase/client"));
   return mod.supabase;
 }
 
@@ -104,7 +105,7 @@ async function getSupabase() {
 async function fanOutToObservability(err: unknown, extra: Record<string, unknown>) {
   try {
     const [{ captureException: sentryCapture }, { captureException: posthogCapture }] =
-      await Promise.all([import("@/lib/sentry"), import("@/lib/posthog")]);
+      await backgroundImport(() => Promise.all([import("@/lib/sentry"), import("@/lib/posthog")]));
     sentryCapture(err, extra);
     posthogCapture(err, extra);
   } catch {

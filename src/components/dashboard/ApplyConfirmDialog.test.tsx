@@ -1,13 +1,16 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ApplyConfirmDialog } from "./ApplyConfirmDialog";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { scanMessage } from "@/lib/messageScanner";
 
-// The body only imports `toast` for the over-5MB file guard, which these
-// tests never trip — a thin stub satisfies the import.
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+// `toast` is a thin stub. `dismiss` is real to these tests: ApplyBody takes
+// down its own "You're offline" toast when the network returns (Q131).
+const toastDismiss = vi.fn();
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), dismiss: (...a: unknown[]) => toastDismiss(...a) }),
+}));
 
 // ApplyBody now asks whether the CURRENT user can actually be awarded a job,
 // so it can say so above the submit button (see useAwardBlockReason). That
@@ -358,3 +361,34 @@ describe("ApplyConfirmDialog contact filter", () => {
 // from the TOP-RIGHT" grade `className`/`style`, not rendered geometry, which
 // jsdom cannot measure.
 // @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | if (violations.length > 0) { | if (violations.length > 99) {
+
+/**
+ * Q131 — the offline toast must not outlive the offline state.
+ *
+ * Measured on prod 2026-09-23 (e2e/prod-audit/interruptions.spec.ts "offline
+ * mid-apply"): the "You're offline … Retry" toast is `critical` (stays until
+ * dismissed) and was still on screen, beside the closed sheet, after the
+ * helper came back online and apply_to_job had answered 200 — a false
+ * sentence next to the confirmation, whose Retry offered to send the landed
+ * application again.
+ */
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | if (online) toast.dismiss(OFFLINE_TOAST_ID); | if (online) void OFFLINE_TOAST_ID;
+describe("ApplyConfirmDialog offline toast (Q131)", () => {
+  const setOnline = (v: boolean) => {
+    Object.defineProperty(window.navigator, "onLine", { configurable: true, get: () => v });
+    act(() => { window.dispatchEvent(new Event(v ? "online" : "offline")); });
+  };
+
+  it("takes down its own offline toast the moment the network is back", () => {
+    setOnline(false);
+    render(<ApplyConfirmDialog {...makeProps({ applyMessage: "Free Sunday." })} />);
+    // Offline: the submit is refused with the critical offline toast, and nothing dismisses it yet.
+    toastDismiss.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(toastDismiss).not.toHaveBeenCalledWith("apply-offline");
+    setOnline(true);
+    expect(toastDismiss).toHaveBeenCalledWith("apply-offline");
+    expect(screen.getByRole("button", { name: "Apply Now" })).toBeEnabled();
+    cleanup();
+  });
+});

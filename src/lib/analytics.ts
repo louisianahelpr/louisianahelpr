@@ -8,6 +8,8 @@
  *   import { track, AhaEvent } from "@/lib/analytics";
  *   track(AhaEvent.JobPosted, { budget_cents: 2500, parish: "Orleans" });
  */
+import { backgroundImport } from "@/lib/chunkReload";
+
 type AnalyticsEventRow = {
   event: string;
   user_id: string | null;
@@ -21,7 +23,8 @@ type AnalyticsEventRow = {
 // ~50KB supabase-js chunk out of pages that only call track() (e.g. landing).
 // flush() is debounced 1.5s, well past any dynamic-import resolution time.
 async function getSupabase() {
-  const mod = await import("@/integrations/supabase/client");
+  // Background: a failed fetch must not reload the page (backgroundImport, Q131).
+  const mod = await backgroundImport(() => import("@/integrations/supabase/client"));
   return mod.supabase;
 }
 
@@ -31,7 +34,7 @@ async function getSupabase() {
 // until initPostHog() runs in main.tsx.
 async function fanOutToPostHog(event: string, props: Record<string, unknown>) {
   try {
-    const { captureEvent } = await import("@/lib/posthog");
+    const { captureEvent } = await backgroundImport(() => import("@/lib/posthog"));
     captureEvent(event, props);
   } catch {
     /* analytics must never break the app */

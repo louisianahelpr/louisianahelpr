@@ -55,7 +55,14 @@ vi.mock("@/integrations/supabase/client", () => ({
         };
       }
       if (table === "profiles") {
-        return { select: () => ({ in: async () => ({ data: [], error: null }) }) };
+        // Name lookup awaits `.in()`; seedAware.fetchSeedUserIds chains `.eq()`.
+        return {
+          select: () => ({
+            in: () => Object.assign(Promise.resolve({ data: [], error: null }), {
+              eq: async () => ({ data: [], error: null }),
+            }),
+          }),
+        };
       }
       throw new Error(`unexpected table ${table}`);
     },

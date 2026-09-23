@@ -5,6 +5,7 @@ import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import { SUB_PRICE, type Job, type Profile, type Tip } from "./types";
 import { TIER_ORDER, normalizeTier, type TierId } from "@/lib/subscriptionTiers";
 import { formatCategory } from "@/lib/format";
+import { splitPaymentsCollected } from "../paymentsCollected";
 
 // Pure metric computation for the admin analytics dashboard. Extracted VERBATIM
 // from AdminAnalytics.tsx — no hooks, no state, no side effects. Given the raw
@@ -151,7 +152,13 @@ export const computeMetrics = (
   const lateCancelledPaidJobs = allJobs.filter(j => j.status === "cancelled" && j.late_cancellation && capturedPaymentStatuses.includes(j.payment_status || ""));
 
   // Gross Revenue = total amount collected via Stripe (budget + customer fee) for jobs with captured payments
-  const totalRevenue = capturedJobs.reduce((s, j) => s + Number(j.budget || 0) + Number(j.customer_fee_amount || 0), 0);
+  // "Payments Collected" is card-captured jobs only (Q233, paymentsCollected.ts);
+  // escrow jobs with no PaymentIntent are reported beside it, not in it.
+  const payments = splitPaymentsCollected(capturedJobs);
+  const totalRevenue = payments.cardGross;
+  const paymentsCollectedCount = payments.cardJobs.length;
+  const noPaymentIntentCount = payments.noIntentJobs.length;
+  const noPaymentIntentGross = payments.noIntentGross;
   // Platform Profit = only fees from jobs where payment is still held (escrow/payout_pending/released)
   // Does NOT include refunded or cancelled-payment jobs since those fees were returned
   const totalFees = capturedJobs.reduce((s, j) => s + Number(j.customer_fee_amount || 0) + Number(j.platform_fee_amount || 0), 0);
@@ -227,7 +234,7 @@ export const computeMetrics = (
    *  non-empty released bucket is a reconciliation gap, not a quiet month. */
   const settledTransferCount = settledTransfers ? settledTransfers.length : 0;
   const totalTips = tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").reduce((s, t) => s + Number(t.amount), 0);
-  const avgJobValue = capturedJobs.length > 0 ? totalRevenue / capturedJobs.length : 0;
+  const avgJobValue = capturedJobs.length > 0 ? (totalRevenue + noPaymentIntentGross) / capturedJobs.length : 0;
   const completionRate = allJobs.length > 0 ? (completedJobs.length / allJobs.length) * 100 : 0;
   const cancellationRate = allJobs.length > 0 ? (cancelledJobs.length / allJobs.length) * 100 : 0;
   const totalRefunded = refundedJobs.reduce((s, j) => s + Number(j.budget || 0) + Number(j.customer_fee_amount || 0), 0);
@@ -363,6 +370,9 @@ export const computeMetrics = (
     disputedJobs,
     lateCancelledPaidJobs,
     totalRevenue,
+    paymentsCollectedCount,
+    noPaymentIntentCount,
+    noPaymentIntentGross,
     totalFees,
     lateCancelRevenue,
     totalHelperPayouts,

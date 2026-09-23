@@ -10,6 +10,7 @@ import { previewDisputeSplit } from "@/lib/disputeSplitPreview";
 import { isUnsettled, unsettledReason } from "./unsettled";
 import { partitionEvidenceUrls } from "@/lib/evidenceUrl";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
+import { DemoBadge, isSeedRow } from "@/components/admin/seedAware";
 
 /**
  * The split readout is ONE money column — net, gross and deduction stacked.
@@ -106,6 +107,7 @@ export const DisputeCard = ({
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold text-foreground">{job.title}</h3>
+            {isSeedRow(job) && <DemoBadge />}
             {filter === "open" && slaBadge(job.disputed_at)}
             {record?.decided_at && !unsettled && (
               <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-primary/15 text-primary font-semibold uppercase tracking-wide">

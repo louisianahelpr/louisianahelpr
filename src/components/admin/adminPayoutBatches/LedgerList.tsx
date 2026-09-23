@@ -5,6 +5,7 @@ import { formatName } from "@/lib/utils";
 import { payoutStatusLabel } from "@/lib/statusLabels";
 import { LEDGER_TONE } from "./adminPayoutBatchesHelpers";
 import type { PayoutLedgerRow } from "./types";
+import { DemoBadge, isSeedRow } from "@/components/admin/seedAware";
 
 interface LedgerListProps {
   ledger: PayoutLedgerRow[];
@@ -38,6 +39,7 @@ export const LedgerList = ({ ledger }: LedgerListProps) => {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-ds-13 text-foreground truncate">{helperName}</span>
                   <Badge className={`${tone} text-ds-10`}>{payoutStatusLabel(t.status)}</Badge>
+                  {isSeedRow(t.jobs) && <DemoBadge />}
                   {t.initiated_by && t.initiated_by !== "system" && (
                     <Badge variant="outline" className="text-ds-10 capitalize">{t.initiated_by}</Badge>
                   )}

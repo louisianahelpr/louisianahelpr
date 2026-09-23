@@ -6,6 +6,8 @@ export interface PayoutBatch {
   job_count: number;
   total_payout: number;
   oldest_completed_at: string;
+  /** The helper's profile is a seed profile (seedAware, Q233). */
+  is_seed?: boolean;
 }
 
 export interface PayoutLedgerRow {
@@ -18,6 +20,6 @@ export interface PayoutLedgerRow {
   failure_reason: string | null;
   stripe_transfer_id: string | null;
   initiated_by: string | null;
-  jobs: { title?: string } | null;
+  jobs: { title?: string; is_seed?: boolean | null } | null;
   profiles: { full_name?: string | null } | null;
 }

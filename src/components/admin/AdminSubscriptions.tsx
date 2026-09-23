@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { DEMO_EXCLUDED_SUFFIX, DemoBadge, DemoExcludedNote, isSeedRow, realRows } from "@/components/admin/seedAware";
 
 interface SubscribedProfile {
   user_id: string;
@@ -18,6 +19,7 @@ interface SubscribedProfile {
   email: string | null;
   subscription_tier: string | null;
   subscription_expires_at: string | null;
+  is_seed: boolean;
 }
 
 const AdminSubscriptions = () => {
@@ -30,13 +32,13 @@ const AdminSubscriptions = () => {
     fetcher: async () => {
       const data = unwrap(await supabase
         .from("profiles")
-        .select("user_id, full_name, email, subscription_tier, subscription_expires_at")
+        .select("user_id, full_name, email, subscription_tier, subscription_expires_at, is_seed")
         .not("subscription_tier", "is", null)
         .order("subscription_expires_at", { ascending: false, nullsFirst: false }));
 
       const expiredData = unwrap(await supabase
         .from("profiles")
-        .select("user_id, full_name, email, subscription_tier, subscription_expires_at")
+        .select("user_id, full_name, email, subscription_tier, subscription_expires_at, is_seed")
         .is("subscription_tier", null)
         .not("subscription_expires_at", "is", null));
 
@@ -65,10 +67,14 @@ const AdminSubscriptions = () => {
     return true;
   });
 
-  const activeCount = allProfiles.filter(p => getStatus(p) === "active").length;
-  const expiredCount = allProfiles.filter(p => getStatus(p) === "expired").length;
+  // Totals count real subscribers only (Q233); demo rows stay in the list,
+  // badged.
+  const realProfiles = realRows(allProfiles);
+  const demoCount = allProfiles.length - realProfiles.length;
+  const activeCount = realProfiles.filter(p => getStatus(p) === "active").length;
+  const expiredCount = realProfiles.filter(p => getStatus(p) === "expired").length;
   const tierCounts: Record<string, number> = {};
-  allProfiles.filter(p => getStatus(p) === "active").forEach(p => {
+  realProfiles.filter(p => getStatus(p) === "active").forEach(p => {
     const t = p.subscription_tier || "unknown";
     tierCounts[t] = (tierCounts[t] || 0) + 1;
   });
@@ -102,14 +108,14 @@ const AdminSubscriptions = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-ds-11 text-muted-foreground">Active Subs</span>
+            <span className="text-ds-11 text-muted-foreground">Active Subs {DEMO_EXCLUDED_SUFFIX}</span>
             <Crown className="w-4 h-4 text-primary opacity-60" />
           </div>
           <p className="text-ds-24 font-bold text-foreground">{activeCount}</p>
         </div>
         <div className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-ds-11 text-muted-foreground">Expired</span>
+            <span className="text-ds-11 text-muted-foreground">Expired {DEMO_EXCLUDED_SUFFIX}</span>
             <Clock className="w-4 h-4 text-muted-foreground opacity-60" />
           </div>
           <p className="text-ds-24 font-bold text-foreground">{expiredCount}</p>
@@ -117,13 +123,14 @@ const AdminSubscriptions = () => {
         {Object.entries(tierCounts).map(([tier, count]) => (
           <div key={tier} className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-ds-11 text-muted-foreground">{tierDisplayName(tier)}</span>
+              <span className="text-ds-11 text-muted-foreground">{tierDisplayName(tier)} {DEMO_EXCLUDED_SUFFIX}</span>
               <Users className="w-4 h-4 text-primary opacity-60" />
             </div>
             <p className="text-ds-24 font-bold text-foreground">{count}</p>
           </div>
         ))}
       </div>
+      <DemoExcludedNote count={demoCount} noun="subscriber" />
 
       {/* Filters + list in one card: the search box and the status chips
           scope the list directly beneath them, and were previously three
@@ -169,7 +176,10 @@ const AdminSubscriptions = () => {
           return (
             <div key={p.user_id} className="rounded-ds-md border border-border/60 bg-background/40 p-4 flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-ds-13 font-medium text-foreground">{p.full_name || "No name"}</p>
+                <p className="text-ds-13 font-medium text-foreground flex items-center gap-1.5">
+                  {p.full_name || "No name"}
+                  {isSeedRow(p) && <DemoBadge />}
+                </p>
                 <p className="text-ds-11 text-muted-foreground">{p.email}</p>
               </div>
               <div className="flex items-center gap-2">

@@ -210,7 +210,7 @@ export const DashboardHome = ({
           {/* Same figure, same name as Analytics — it was "Captured Revenue
               (all-time)" here and "Collected Revenue" there. And it is gross
               volume, not revenue: budget + poster fee, most of it owed out. */}
-          <KpiCard label="Payments Collected (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
+          <KpiCard label="Payments Collected (all-time, excl. demo)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard
             label={feesUnknown ? "Platform Profit (not recorded)" : "Platform Profit"}
             value={feesUnknown ? "—" : v(`$${stats.totalFees.toFixed(2)}`)}

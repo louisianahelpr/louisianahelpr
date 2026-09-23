@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { splitPaymentsCollected } from "@/components/admin/paymentsCollected";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -241,7 +242,7 @@ const Admin = () => {
       supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]).eq("is_seed", false),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed").eq("is_seed", false),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed").eq("is_seed", false),
-      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", ["escrow", "payout_pending", "released"]).neq("status", "cancelled").eq("is_seed", false),
+      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, payment_status, stripe_payment_intent_id").in("payment_status", ["escrow", "payout_pending", "released"]).neq("status", "cancelled").eq("is_seed", false),
       supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null).eq("is_seed", false),
       supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, cancellation_fee").eq("status", "cancelled").in("payment_status", ["refunded", "cancelled", "escrow", "payout_pending", "released"]).eq("is_seed", false),
       // New users by created_at — rows so we can bucket into a sparkline.
@@ -352,7 +353,9 @@ const Admin = () => {
       // budget alone put $5709.99 on this tile beside $5751.99 on Analytics,
       // one click apart, under the same label — the tiles had been unified
       // visually and the number had not (measured 2026-09-07).
-      totalRevenue: paymentRows.reduce((s, j) => s + (j.budget || 0) + (j.customer_fee_amount || 0), 0),
+      // Card-captured only (Q233): the same split Analytics uses, so the two
+      // "Payments Collected" tiles stay one number.
+      totalRevenue: splitPaymentsCollected(paymentRows).cardGross,
       totalFees: paymentRows.reduce((s, j) => s + (j.platform_fee_amount || 0) + (j.customer_fee_amount || 0), 0),
       disputedJobs: disputesRes.count || 0,
       activeSubscriptions: subsRes.count || 0,

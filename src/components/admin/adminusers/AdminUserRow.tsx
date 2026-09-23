@@ -14,6 +14,7 @@ import {
   Briefcase, MapPin, CreditCard, Flag,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { DemoBadge, isSeedRow } from "@/components/admin/seedAware";
 import {
   type Profile,
   isVerifiedEmail,
@@ -118,6 +119,7 @@ const AdminUserRowBase = ({
           <div className="flex items-center gap-1.5 flex-wrap">
             <p title={formatName(p.full_name, "—")} className="font-semibold text-foreground text-ds-13 truncate">{formatName(p.full_name, "—")}</p>
             {statusBadge(p)}
+            {isSeedRow(p) && <DemoBadge />}
             <NotesIndicator userId={p.user_id} notesSummary={notesSummary} />
           </div>
           {/* Wait-time countdown — shown for awaiting-email-verification (the

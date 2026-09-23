@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DEMO_EXCLUDED_SUFFIX, DemoExcludedNote, fetchSeedUserIds, realRows } from "@/components/admin/seedAware";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -139,9 +140,14 @@ const AdminPayoutBatches = () => {
     meta: { persist: false },
     fetcher: async () => {
       const data = unwrap(await supabase.rpc("get_payout_batches"));
+      // get_payout_batches returns no seed flag; resolve it from each
+      // helper's profile (Q233) so demo batches wear a badge and stay out of
+      // the totals.
+      const seed = await fetchSeedUserIds((data ?? []).map((r) => r.helper_id));
       return (data ?? []).map((r) => ({
         ...r,
         helper_name: formatName(r.helper_name, "Unknown"),
+        is_seed: seed.has(r.helper_id),
       })) as PayoutBatch[];
     },
   });
@@ -162,7 +168,7 @@ const AdminPayoutBatches = () => {
       const data = unwrap(
         await supabase.from("payout_transfers")
           .select(
-            "id, helper_id, amount_cents, platform_fee_cents, status, created_at, failure_reason, stripe_transfer_id, initiated_by, jobs(title)"
+            "id, helper_id, amount_cents, platform_fee_cents, status, created_at, failure_reason, stripe_transfer_id, initiated_by, jobs(title, is_seed)"
           )
           .order("created_at", { ascending: false })
           .limit(50),
@@ -292,8 +298,11 @@ const AdminPayoutBatches = () => {
   const heldBatches = batches.filter((b) => holds[b.helper_id]);
   const visibleBatches = tab === "ready" ? readyBatches : heldBatches;
 
-  const grandTotal = readyBatches.reduce((s, b) => s + Number(b.total_payout || 0), 0);
-  const totalJobs = readyBatches.reduce((s, b) => s + b.job_count, 0);
+  // Totals are real Helprs only (Q233); demo batches still list, badged.
+  const realReady = realRows(readyBatches);
+  const grandTotal = realReady.reduce((s, b) => s + Number(b.total_payout || 0), 0);
+  const totalJobs = realReady.reduce((s, b) => s + b.job_count, 0);
+  const realAwaiting = realRows(batches).length;
 
   // Bulk amounts — recomputed off the live selection.
   const selectedBatches = readyBatches.filter((b) => selected.has(b.helper_id) && b.stripe_account_id);
@@ -363,19 +372,20 @@ const AdminPayoutBatches = () => {
       {batches.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="rounded-ds-md border border-border/60 bg-background/40 p-4">
-            <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Helprs awaiting</p>
-            <p className="text-ds-24 font-bold text-foreground mt-1">{batches.length}</p>
+            <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Helprs awaiting {DEMO_EXCLUDED_SUFFIX}</p>
+            <p className="text-ds-24 font-bold text-foreground mt-1">{realAwaiting}</p>
           </div>
           <div className="rounded-ds-md border border-border/60 bg-background/40 p-4">
-            <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Total jobs</p>
+            <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Total jobs {DEMO_EXCLUDED_SUFFIX}</p>
             <p className="text-ds-24 font-bold text-foreground mt-1">{totalJobs}</p>
           </div>
           <div className="rounded-ds-md border border-border bg-primary/5 p-4 col-span-2 md:col-span-1">
-            <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Total queued</p>
+            <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Total queued {DEMO_EXCLUDED_SUFFIX}</p>
             <p className="text-ds-24 font-bold text-primary mt-1">${formatPriceExact(grandTotal)}</p>
           </div>
         </div>
       )}
+      <DemoExcludedNote count={batches.length - realAwaiting} noun="Helpr batch" plural="Helpr batches" />
 
       {/* Tabs — Ready vs Hold for Review. Held batches sit in their own
           queue so they don't sneak into a bulk select. NOTE: holds live in

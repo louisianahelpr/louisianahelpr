@@ -28,6 +28,8 @@ export interface DisputedJob {
   customer_fee_amount?: number | null;
   /** Sales tax added on top of the charge, refundable pro rata. */
   sales_tax_amount?: number | null;
+  /** Seed / e2e job: badged in the queue (seedAware, Q233). */
+  is_seed?: boolean | null;
 }
 
 /** Row in the formal `public.disputes` table — null when the dispute

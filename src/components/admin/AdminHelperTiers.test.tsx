@@ -15,7 +15,14 @@ const rows = vi.hoisted(() => ({ value: [] as unknown[] }));
 const reportMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { rpc: vi.fn(async () => ({ data: rows.value, error: null })) },
+  supabase: {
+    rpc: vi.fn(async () => ({ data: rows.value, error: null })),
+    // seedAware.fetchSeedUserIds: no row in this fixture is a seed profile.
+    from: vi.fn(() => {
+      const q = { select: () => q, in: () => q, eq: async () => ({ data: [], error: null }) };
+      return q;
+    }),
+  },
 }));
 vi.mock("@/lib/errorLogger", () => ({ report: reportMock }));
 vi.mock("@/components/UserAvatar", () => ({ UserAvatar: () => null }));

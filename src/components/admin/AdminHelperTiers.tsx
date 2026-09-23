@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { report } from "@/lib/errorLogger";
+import { DemoBadge, DemoExcludedNote, fetchSeedUserIds, isSeedRow, realRows } from "@/components/admin/seedAware";
 
 interface HelperTier {
   user_id: string;
@@ -27,6 +28,8 @@ interface HelperTier {
   growth_score: number;
   /** One of the five TIER_ICON names today, but the RPC decides: see tierLook. */
   tier: string;
+  /** Resolved from the helper's profile (the RPC does not return it), Q233. */
+  is_seed?: boolean;
 }
 
 // Tier chips are a decorative BRAND palette, not a severity signal — the
@@ -83,7 +86,9 @@ const AdminHelperTiers = () => {
       // naming / nullability) — cast at the boundary. unwrap() surfaces a
       // failed RPC as the query's error state (isError), handled in render.
       const data = unwrap(await supabase.rpc("get_helper_tiers", { p_limit: 50 }));
-      return (data as HelperTier[]) || [];
+      const rows = (data as HelperTier[]) || [];
+      const seed = await fetchSeedUserIds(rows.map((r) => r.user_id));
+      return rows.map((r) => ({ ...r, is_seed: seed.has(r.user_id) }));
     },
   });
 
@@ -102,8 +107,10 @@ const AdminHelperTiers = () => {
     }
   }, [unknownTiers]);
   const visible = tierFilter === "all" ? helpers : helpers.filter((h) => h.tier === tierFilter);
+  // Chip counts are real Helprs only (Q233); demo rows still list, badged.
+  const realHelpers = realRows(helpers);
   const counts = tiers.reduce<Record<string, number>>((acc, t) => {
-    acc[t] = helpers.filter((h) => h.tier === t).length;
+    acc[t] = realHelpers.filter((h) => h.tier === t).length;
     return acc;
   }, {});
 
@@ -126,7 +133,7 @@ const AdminHelperTiers = () => {
           aria-pressed={tierFilter === "all"}
           className="shrink-0"
         >
-          All ({helpers.length})
+          All ({realHelpers.length})
         </Button>
         {tiers.map((t) => (
           <Button
@@ -141,6 +148,7 @@ const AdminHelperTiers = () => {
           </Button>
         ))}
       </AdminFilterStrip>
+      <DemoExcludedNote count={helpers.length - realHelpers.length} noun="Helpr" />
 
       {isInitialLoading ? (
         <p className="text-ds-11 text-muted-foreground">Loading tiers…</p>
@@ -178,6 +186,7 @@ const AdminHelperTiers = () => {
                     <p className="font-semibold text-ds-13 text-foreground truncate">
                       {formatName(helper.full_name, "—")}
                     </p>
+                    {isSeedRow(helper) && <DemoBadge />}
                     <Badge className={`${color} text-ds-10 gap-0.5`}>
                       <Icon className="w-3 h-3" /> {helper.tier}
                     </Badge>

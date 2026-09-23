@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import { DEMO_EXCLUDED_SUFFIX } from "@/components/admin/seedAware";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
@@ -165,6 +166,9 @@ const AdminAnalytics = () => {
     disputedJobs,
     lateCancelledPaidJobs,
     totalRevenue,
+    paymentsCollectedCount,
+    noPaymentIntentCount,
+    noPaymentIntentGross,
     totalFees,
     lateCancelRevenue,
     totalHelperPayouts,
@@ -310,9 +314,13 @@ const AdminAnalytics = () => {
             name: Dashboard Home called the identical figure "Captured Revenue
             (all-time)". One fact, one name. */}
         <MetricCard
-          label="Payments Collected"
+          label={`Payments Collected ${DEMO_EXCLUDED_SUFFIX}`}
           value={`$${totalRevenue.toFixed(2)}`}
-          sub={`${capturedJobs.length} captured payments · gross, before payouts`}
+          sub={`${paymentsCollectedCount} card ${paymentsCollectedCount === 1 ? "payment" : "payments"} · gross, before payouts${
+            noPaymentIntentCount > 0
+              ? ` · +$${noPaymentIntentGross.toFixed(2)} in ${noPaymentIntentCount} escrow ${noPaymentIntentCount === 1 ? "job" : "jobs"} with no card charge (gift card or unrecorded)`
+              : ""
+          }`}
           icon={DollarSign}
           onClick={() => openDrillDown("revenue")}
         />

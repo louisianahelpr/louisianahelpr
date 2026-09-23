@@ -1,3 +1,4 @@
+// @mutate scripts/queue-count.mjs | return [...seen].filter(([, n]) => n > 1) | return [...seen].filter(([, n]) => n > 99)
 // @mutate docs/OPEN.md | Class check: src/lib/jobDayHasEnded.tz.test.ts sweeps | Class check: a tz sweep
 /*
  * A queue item is not DONE until something stops it from recurring.
@@ -12,7 +13,7 @@
  */
 import { describe, it, expect } from "vitest";
 // @ts-expect-error — plain .mjs script, no declaration file
-import { queueCounts, countLine, storedLine } from "../../scripts/queue-count.mjs";
+import { queueCounts, countLine, storedLine, duplicateIds, nextFreeId } from "../../scripts/queue-count.mjs";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -103,5 +104,16 @@ describe("the queue's count line is current", () => {
   it("is RED when an item changes state without the line", () => {
     const md = "<!-- generated: queue-count (node scripts/queue-count.mjs --write) -->\n" + countLine({ total: 1, done: 0, partial: 0, open: 1 }) + "\n<!-- /generated: queue-count -->\n- [x] **Q1 DONE**\n";
     expect(storedLine(md)).not.toBe(countLine(queueCounts(md)));
+  });
+});
+
+describe("every queue number is used once", () => {
+  it("no two items share a Q number (take the next one from `node scripts/queue-count.mjs`)", () => {
+    expect(duplicateIds(open)).toEqual([]);
+  });
+
+  it("is RED on a duplicated number", () => {
+    expect(duplicateIds("- [ ] **Q7 a**\n- [x] **Q7 b**\n- [ ] **Q8 c**\n")).toEqual(["Q7"]);
+    expect(nextFreeId("**Q7** **Q12**")).toBe("Q13");
   });
 });

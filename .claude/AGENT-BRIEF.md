@@ -49,6 +49,9 @@ says more.
   recurring named in its text (else `[~]`), then run
   `node scripts/queue-count.mjs --write`. Anything you notice but don't fix
   becomes a new queue item — nothing lives outside `docs/OPEN.md`.
+- A new queue item takes the number `node scripts/queue-count.mjs` prints as
+  "next free", read right before you write it (and again after a rebase):
+  parallel lanes guessed the same number three times on 2026-09-23.
 
 ## Your report
 State what you MEASURED (numbers, run ids, before/after), what you could not

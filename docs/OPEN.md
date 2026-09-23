@@ -7587,7 +7587,7 @@ rows are non-tappable; panel identical in WebKit and Chromium.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 67 items — 11 done, 4 partly done (fixed, protection pending), 52 open.**
+**Queue: 67 items — 12 done, 4 partly done (fixed, protection pending), 51 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -7697,9 +7697,31 @@ sure someone hears it and closes it.
 - [~] **Q12 DONE (measured 2026-09-23): not recurring.** 14 days of error_logs: 1 non-seed occurrence, the OWNER's account at 2026-09-22 15:10Z, right after the pg_cron/DB outage window (14:00-15:00Z). The rest were E2E test accounts (09-13, 09-15). Follow-up is Q39. Was: A real user saw "We couldn't load your account" (Sentry 2F/2E/2G, PROTECTION NOT YET BUILT: a real user seeing an error screen is untracked until Q39 lands. Stays [~] until then.
   09-22, profile request timed out). Was it the pg_cron outage window, or does it
   still happen? Measure the profile-fetch timeout rate.
-- [ ] **Q13 CSP allows `'unsafe-inline'` in script-src.** It is what turned tonight's
-  stored javascript: href into code execution. Move to nonces/hashes (Vite +
-  Vercel) so a future injection is inert. Measure what inline script exists first.
+- [x] **Q13 DONE (2026-09-23): script-src has no `'unsafe-inline'`** in vercel.json,
+  index.html's Capacitor meta or public/_headers. Measured inventory (built dist/):
+  3 inline scripts in index.html (storage probe, boot watchdog, pre-paint theme),
+  1 in offline.html, 1 in tools/apple-jwt.html, 2 JSON-LD data blocks (not
+  executed, not governed), and ONE inline handler: the async-CSS
+  `onload="this.media='all'"` from vite.config.ts. That handler was the trap:
+  dropping 'unsafe-inline' alone left the whole app UNSTYLED (media=print, Times)
+  in Chromium and WebKit. It is now a hashed swap `<script>`. Each inline script
+  is allowed by its sha256. No runtime inline scripts (MapKit is loaded by
+  src=; Stripe is a redirect; PostHog external loading is off). Verified on a
+  prod build served with the vercel.json headers, both engines: boot, /login,
+  /browse, /dashboard (authed), /profile, MapKit map, Upgrade to Stripe sandbox
+  checkout, boot watchdog reload, offline.html retry; a `javascript:` href, a
+  script-inserted inline script and an `onerror=` handler are all blocked.
+  Guards: `src/test/cspScriptSrc.test.ts` (source) and
+  `scripts/check-csp-inline-scripts.mjs` (end of `npm run build` and `build:ios`,
+  so Vercel refuses a bundle whose inline script lost its hash).
+  Left open: (a) style-src still has `'unsafe-inline'`. React `style=` props and
+  the boot shell need it; lower risk (no script execution). (b) Every page logs
+  one `script-src eval` violation, and it was already there before this change:
+  zod v4's `allowsEval` probe (`Function("")` in try/catch, forms chunk). It is
+  harmless, and `z.config({ jitless: true })` would silence it. (c) public/_headers
+  is Netlify-format and Vercel ignores it. It was kept in sync, but it is dead config.
+  (d) Not device-tested in a native WKWebView. The Capacitor build's meta CSP was
+  checked in desktop WebKit over http only.
 - [ ] **Q14 Supabase security advisors (live 2026-09-23):**
   - ERROR `security_definer_view` on open_jobs_browse. Confirm it's intentional
     (CLAUDE.md puts browse visibility there) or switch to security_invoker.

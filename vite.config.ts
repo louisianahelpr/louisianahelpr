@@ -234,17 +234,57 @@ export default defineConfig(({ mode }) => ({
     // add a <noscript> fallback so non-JS clients still get styled output.
     // This is build-time only and does not change any styles or load order
     // beyond moving the stylesheet off the render-blocking critical path.
+    //
+    // CSP (Q13): the swap used to be an inline `onload="this.media='all'"`
+    // HANDLER. script-src no longer allows 'unsafe-inline', and inline handlers
+    // cannot be hash-allowed without 'unsafe-hashes' (Safari < 15.4 ignores
+    // that keyword, which would leave the whole app unstyled there). So the
+    // swap is a tiny inline <script> whose sha256 is listed in vercel.json and
+    // index.html's meta CSP. Change ASYNC_CSS_SWAP by one byte and
+    // scripts/check-csp-inline-scripts.mjs fails the build with the new hash.
     {
       name: "html-async-entry-css",
       apply: "build",
       enforce: "post",
       transformIndexHtml(html: string) {
-        return html.replace(
+        const ASYNC_CSS_SWAP =
+          '(function(){var l=document.querySelectorAll("link[data-async-css]");for(var i=0;i<l.length;i++){(function(k){var on=function(){k.media="all"};if(k.sheet)on();else k.addEventListener("load",on)})(l[i])}})();';
+        let swapped = false;
+        const out = html.replace(
           /<link rel="stylesheet"[^>]*?href="(\/assets\/[^"]+\.css)"[^>]*>/g,
-          (_match: string, href: string) =>
-            `<link rel="preload" as="style" href="${href}">` +
-            `<link rel="stylesheet" href="${href}" media="print" onload="this.media='all'">` +
-            `<noscript><link rel="stylesheet" href="${href}"></noscript>`,
+          (_match: string, href: string) => {
+            swapped = true;
+            return (
+              `<link rel="preload" as="style" href="${href}">` +
+              `<link rel="stylesheet" href="${href}" media="print" data-async-css>` +
+              `<noscript><link rel="stylesheet" href="${href}"></noscript>`
+            );
+          },
+        );
+        // One swap script after the last async link (it must run after the
+        // links exist). No links, no script — an unused hash is harmless.
+        if (!swapped) return out;
+        const at = out.lastIndexOf("</noscript>") + "</noscript>".length;
+        return out.slice(0, at) + `<script>${ASYNC_CSS_SWAP}</script>` + out.slice(at);
+      },
+    } satisfies Plugin,
+    // Dev server only: index.html's meta CSP lists sha256 hashes and no
+    // 'unsafe-inline', but @vitejs/plugin-react-swc injects an inline module
+    // preamble (React Refresh) in dev that no hash covers. Relax the meta for
+    // `vite serve` ONLY. Builds never pass through here (apply: "serve"), and
+    // scripts/check-csp-inline-scripts.mjs verifies the built policy.
+    {
+      name: "html-dev-relax-meta-csp",
+      apply: "serve",
+      transformIndexHtml(html: string) {
+        return html.replace(
+          /(<meta\s+http-equiv=["']Content-Security-Policy["']\s+content=")([^"]*)(")/i,
+          (_m: string, a: string, policy: string, z: string) =>
+            a +
+            policy
+              .replace(/\s'sha256-[A-Za-z0-9+/=]+'/g, "")
+              .replace(/script-src 'self'/, "script-src 'self' 'unsafe-inline'") +
+            z,
         );
       },
     } satisfies Plugin,

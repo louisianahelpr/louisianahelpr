@@ -107,11 +107,14 @@ export async function handleTransferCanceled(
     }
   }
   if (canceledLedger?.job_id && !requeueBlocked) {
-    const { error: jobResetErr } = await supabase
+    // `.select("id")`: a zero-row match returns a null error (Q244), so
+    // without it a job that was not 'released' read as re-queued.
+    const { data: resetRows, error: jobResetErr } = await supabase
       .from("jobs")
       .update({ payment_status: "payout_pending" })
       .eq("id", canceledLedger.job_id)
-      .eq("payment_status", "released");
+      .eq("payment_status", "released")
+      .select("id");
 
     if (jobResetErr) {
       // The job is stuck in "released" with no real payment and the payout cron
@@ -133,9 +136,27 @@ export async function handleTransferCanceled(
         `Failed to reset job ${canceledLedger.job_id} to payout_pending after canceled transfer ${transfer.id}: ${jobResetErr.message}`,
       );
     }
-    logStep("Canceled transfer — job reset to payout_pending for retry", {
-      jobId: canceledLedger.job_id,
-    });
+    if ((resetRows?.length ?? 0) === 0) {
+      // Zero rows: the job was not 'released' when this landed (refunded,
+      // charged back, or the flip to released never happened), so it was NOT
+      // re-queued. Retrying cannot change that, so page instead of throwing.
+      await postSlackOpsAlert({
+        kind: "payout_failed",
+        severity: "critical",
+        title: "Helpr payout canceled — job reset matched ZERO rows, job not re-queued",
+        message: `Stripe transfer ${transfer.id} canceled, but job ${canceledLedger.job_id} was not in 'released', so the reset to 'payout_pending' matched zero rows and the Helpr's payout was not re-queued. Read the job's payment_status and reconcile by hand.`,
+        fields: {
+          "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
+          "Transfer ID": transfer.id,
+          "Job ID": String(canceledLedger.job_id),
+        },
+        oncePerDayKey: `transfer-canceled-reset-zero-rows:${canceledLedger.job_id}`,
+      });
+    } else {
+      logStep("Canceled transfer — job reset to payout_pending for retry", {
+        jobId: canceledLedger.job_id,
+      });
+    }
   }
 
   await postSlackOpsAlert({

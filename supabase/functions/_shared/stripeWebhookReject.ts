@@ -40,7 +40,7 @@ export type WebhookRejectReason =
   | "missing_signature_header"
   | "signature_verification_failed";
 
-export const WEBHOOK_REJECT_STATUS: Readonly<Record<WebhookRejectReason, number>> = {
+const WEBHOOK_REJECT_STATUS: Readonly<Record<WebhookRejectReason, number>> = {
   stripe_key_not_configured: 500,
   webhook_secret_not_configured: 500,
   supabase_not_configured: 500,

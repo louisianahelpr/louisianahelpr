@@ -1125,6 +1125,12 @@ serve(async (req) => {
       jobRows.filter((j) => j.is_seed === true).map((j) => j.id as string),
     );
     const isSeedHit = (hit: unknown): boolean => {
+      // A gift-card hit is NEVER seed by association: gift_cards has no
+      // is_seed of its own, and a REAL card redeemed against a seed job (real
+      // accounts do hold fixture jobs) is real money the platform lost — it must
+      // page. Only job-scoped hits inherit their job's seed-ness; unknown => real.
+      // (Review of a7522133e, 2026-09-23.)
+      if ((hit as { gift_card_id?: unknown } | null)?.gift_card_id != null) return false;
       const id = (hit as { job_id?: unknown } | null)?.job_id;
       return typeof id === "string" && seedJobIds.has(id);
     };

@@ -1,3 +1,4 @@
+// @mutate supabase/functions/money-reconciliation/index.ts | if ((hit as { gift_card_id?: unknown } | null)?.gift_card_id != null) return false; | if (false) return false;
 /**
  * Unit tests for the `money-reconciliation` Supabase edge function — the
  * read-only alarm for money rows that disagree with what settlement derives.
@@ -250,6 +251,25 @@ describe("money-reconciliation edge function", () => {
       expect(res.status).toBe(500);
       const findings = b.findings as Array<{ check: string; count: number }>;
       expect(findings.find((f) => f.check === "released_without_payout_transfer")?.count).toBe(1);
+    });
+
+    it("a REAL gift card spent then refunded still pages when redeemed against a SEED job", async () => {
+      // gift_cards has no is_seed; the job it was redeemed on is not its owner.
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      const jobs = scenario.reads.jobs as { rows: Array<Record<string, unknown>> };
+      jobs.rows[0].is_seed = true;
+      scenario.reads.gift_cards = {
+        rows: [
+          { id: "gc-real", parent_credit_id: null, payment_status: "refunded", status: "redeemed", amount: 50, job_id: jobs.rows[0].id },
+        ],
+      };
+      const res = await fn.fetch(cronRequest(fn, seedUrl));
+      const b = await body(res);
+      const names = (b.findings as Array<{ check: string }>).map((f) => f.check);
+      expect(names).toContain("gift_revoked_after_being_spent");
+      const seedNames = ((b.seed_findings ?? []) as Array<{ check: string }>).map((f) => f.check);
+      expect(seedNames).not.toContain("gift_revoked_after_being_spent");
     });
   });
 

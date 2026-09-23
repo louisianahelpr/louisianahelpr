@@ -47,7 +47,7 @@ const pendingProfile = {
   user_id: "user-1",
   full_name: "Marie Beaumont",
   email: "marie@example.com",
-  approval_status: "pending",
+  
   ban_status: "active",
   email_verified: true,
   created_at: "2026-01-01T00:00:00Z",
@@ -184,9 +184,8 @@ describe("AdminUserDetailDialog", () => {
     expect(screen.getByText("Contact & Account")).toBeInTheDocument();
   });
 
-  it("offers no Move to Pending / denial resend on a leftover denied profile (Q193)", () => {
-    const denied = { ...pendingProfile, approval_status: "denied" } as unknown as Profile;
-    render(<AdminUserDetailDialog {...makeProps(denied)} />);
+  it("offers no Move to Pending / denial resend (Q193; the column is dropped, Q288)", () => {
+    render(<AdminUserDetailDialog {...makeProps(pendingProfile)} />);
     expect(screen.queryByRole("button", { name: /Move to Pending/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Resend Denial Email/ })).toBeNull();
   });

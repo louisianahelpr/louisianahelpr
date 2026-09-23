@@ -52,7 +52,7 @@ const M = (n) => `11111111-0000-0000-0000-0000000000${String(n).padStart(2, "0")
 const PSE_TEXT_COLS = `
   subscription_tier, subscription_expires_at, stripe_customer_id, stripe_subscription_id,
   subscription_billing_cycle, subscription_cancel_at_period_end, apple_original_transaction_id,
-  approval_status, ban_status, stripe_account_id, denial_reason, denial_email_count,
+  ban_status, stripe_account_id, denial_reason, denial_email_count,
   last_denial_email_at, approval_email_count, last_approval_email_at, drip_step, last_drip_at,
   idv_status, idv_session_id, idv_attempted_at, idv_attempt_count, idv_confidence,
   idv_failure_reason, legacy_manual_review, id_verification_status, has_applied_before,
@@ -127,7 +127,6 @@ BEGIN
     OR NEW.apple_original_transaction_id     IS DISTINCT FROM OLD.apple_original_transaction_id;
   v_attempted_tier := NEW.subscription_tier;
 
-  NEW.approval_status := OLD.approval_status;
   NEW.ban_status := OLD.ban_status;
   NEW.stripe_account_id := OLD.stripe_account_id;
   NEW.subscription_tier := OLD.subscription_tier;

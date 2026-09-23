@@ -43,7 +43,7 @@ async function load(): Promise<EdgeHarness> {
 function seed(ban: { ban_status: string | null; auto_suspended_until: string | null }) {
   scenario.authUser = { id: USER_ID, email: "locked@test.com" };
   scenario.reads.profiles = {
-    rows: [{ bio: null, approval_status: "pending", date_of_birth: null, user_id: USER_ID, ...ban }],
+    rows: [{ bio: null, date_of_birth: null, user_id: USER_ID, ...ban }],
   };
   scenario.writeSelectRows.profiles = [{ user_id: USER_ID }];
 }

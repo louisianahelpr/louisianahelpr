@@ -150,7 +150,7 @@ function seedSignup() {
     rows: [
       {
         bio: null,
-        approval_status: "pending",
+        
         full_name: "Newbie R",
         location: "Lafayette",
         user_id: USER_ID,

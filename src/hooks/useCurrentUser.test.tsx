@@ -251,7 +251,7 @@ describe("useCurrentUser", () => {
     mocks.authReadyState.user = { id: "u1" };
     mocks.authReadyState.isReady = true;
     mocks.profileMaybeSingle.mockResolvedValue({
-      data: { user_id: "u1", full_name: "Lexi", approval_status: "approved" },
+      data: { user_id: "u1", full_name: "Lexi" },
       error: null,
     });
     mocks.rolesMaybeSingle.mockResolvedValue({

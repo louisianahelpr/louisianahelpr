@@ -81,28 +81,24 @@ beforeEach(() => {
 });
 
 describe("ProtectedRoute gate order", () => {
-  it("an incomplete profile goes to the form, whatever its approval_status says", () => {
+  it("an incomplete profile goes to the form", () => {
     renderAt("/post-job", {
-      profile: { ...emptyProfile, approval_status: "pending", is_legacy_user: false },
+      profile: { ...emptyProfile, is_legacy_user: false },
     });
     expect(screen.getByText("COMPLETE_PROFILE")).toBeTruthy();
   });
 
-  // Q193 (owner 2026-09-23): no approval gate. A leftover `pending` or
-  // `denied` value routes nobody anywhere — both screens were deleted.
-  it.each(["pending", "denied"])(
-    "a complete, confirmed %s account is let in (no approval gate, Q193)",
-    (status) => {
-      renderAt("/post-job", {
-        profile: { ...completeProfile, approval_status: status, is_legacy_user: false },
-      });
-      expect(screen.getByText("PROTECTED")).toBeTruthy();
-    },
-  );
+  // Q193 (owner 2026-09-23): no approval gate; Q288 dropped the column.
+  it("a complete, confirmed account is let in (no approval gate, Q193)", () => {
+    renderAt("/post-job", {
+      profile: { ...completeProfile, is_legacy_user: false },
+    });
+    expect(screen.getByText("PROTECTED")).toBeTruthy();
+  });
 
   it("a banned account is still bounced first, incomplete profile or not", () => {
     renderAt("/post-job", {
-      profile: { ...emptyProfile, approval_status: "pending", ban_status: "banned" },
+      profile: { ...emptyProfile, ban_status: "banned" },
     });
     expect(screen.getByText("ACCOUNT_BANNED")).toBeTruthy();
   });
@@ -112,7 +108,7 @@ describe("ProtectedRoute gate order", () => {
     // /signup-pending (Check Your Email) is the screen holding Resend.
     renderAt("/post-job", {
       emailConfirmedAt: null,
-      profile: { ...emptyProfile, approval_status: "pending", is_legacy_user: false },
+      profile: { ...emptyProfile, is_legacy_user: false },
     });
     expect(screen.getByText("VERIFY_EMAIL")).toBeTruthy();
   });
@@ -120,21 +116,21 @@ describe("ProtectedRoute gate order", () => {
   it("/dashboard does NOT exempt an incomplete profile from the form", () => {
     renderAt(
       "/dashboard",
-      { profile: { ...emptyProfile, approval_status: "pending", is_legacy_user: false } },
+      { profile: { ...emptyProfile, is_legacy_user: false } },
     );
     expect(screen.getByText("COMPLETE_PROFILE")).toBeTruthy();
   });
 
   it("legacy users bypass the completeness gate entirely", () => {
     renderAt("/post-job", {
-      profile: { ...emptyProfile, approval_status: "approved", is_legacy_user: true },
+      profile: { ...emptyProfile, is_legacy_user: true },
     });
     expect(screen.getByText("PROTECTED")).toBeTruthy();
   });
 
   it("an approved, complete profile is not redirected anywhere", () => {
     renderAt("/post-job", {
-      profile: { ...completeProfile, approval_status: "approved", is_legacy_user: false },
+      profile: { ...completeProfile, is_legacy_user: false },
     });
     expect(screen.getByText("PROTECTED")).toBeTruthy();
   });
@@ -149,7 +145,7 @@ describe("ProtectedRoute preserves the destination across the completeness gate"
     let seen = "unset";
     useCurrentUserMock.mockReturnValue({
       user: { id: "u1", email_confirmed_at: CONFIRMED },
-      profile: { ...emptyProfile, approval_status: "approved", is_legacy_user: false },
+      profile: { ...emptyProfile, is_legacy_user: false },
       isLoading: false,
       isError: false,
       refresh: vi.fn(),
@@ -173,7 +169,7 @@ describe("ProtectedRoute preserves the destination across the completeness gate"
     let seen = "unset";
     useCurrentUserMock.mockReturnValue({
       user: { id: "u1", email_confirmed_at: CONFIRMED },
-      profile: { ...emptyProfile, approval_status: "approved", is_legacy_user: false },
+      profile: { ...emptyProfile, is_legacy_user: false },
       isLoading: false,
       isError: false,
       refresh: vi.fn(),

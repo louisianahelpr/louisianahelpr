@@ -38,7 +38,10 @@
 // all 11 bounced a complete, confirmed account whose approval_status was
 // `pending` or `denied` (22 cases).
 // @mutate src/components/ProtectedRoute.tsx | return <Navigate to="/signup-pending" replace />; | return <Navigate to="/account-pending" replace />;
-// @mutate src/components/ProtectedRoute.tsx | if (isLockedOut(profile.ban_status, profile.auto_suspended_until)) { | if ((profile as { approval_status?: string }).approval_status === "denied") return <Navigate to="/account-denied" replace />; if (isLockedOut(profile.ban_status, profile.auto_suspended_until)) {
+// Q288 (2026-09-23): profiles.approval_status is dropped, so no stored value
+// can gate anyone; the admit check below now runs once per route, and any gate
+// that bounces a confirmed, complete, unbanned account turns it red.
+// @mutate src/components/ProtectedRoute.tsx | if (isLockedOut(profile.ban_status, profile.auto_suspended_until)) { | if (!profile.is_legacy_user \|\| isLockedOut(profile.ban_status, profile.auto_suspended_until)) {
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -98,7 +101,6 @@ const completeApproved = {
   date_of_birth: "1990-01-01",
   phone: "(504) 555-0100",
   location: "New Orleans",
-  approval_status: "approved",
   is_legacy_user: false,
 };
 
@@ -165,15 +167,11 @@ describe("Q180: the email gate covers EVERY protected route", () => {
     },
   );
 
-  it.each(
-    protectedRoutes.flatMap((r) => [
-      [r.path, "pending", r] as const,
-      [r.path, "denied", r] as const,
-    ]),
-  )("protected route %s admits a confirmed, complete %s account (no approval gate, Q193)", (_path, status, row) => {
+  it.each(protectedRoutes.map((r) => [r.path, r] as const))(
+    "protected route %s admits a confirmed, complete account (no approval gate, Q193)", (_path, row) => {
     useCurrentUserMock.mockReturnValue({
       user: { id: "u1", email: "ok@example.test", email_confirmed_at: "2026-09-01T00:00:00Z" },
-      profile: { ...completeApproved, approval_status: status },
+      profile: { ...completeApproved },
       isLoading: false,
       isError: false,
       refresh: vi.fn(),

@@ -1,7 +1,7 @@
 // PROVEN ABLE TO FAIL: adding one more raw `hover:underline` anywhere under
 // src/**/*.tsx, or dropping one without lowering HOVER_UNDERLINE_SITE_COUNT
 // below, turns this red in both directions.
-// @mutate src/components/AttachmentLink.tsx | text-ds-11 hover:underline | text-ds-11 hover:underline hover:underline
+// @mutate src/components/AttachmentLink.tsx | text-primary hover:underline | text-primary hover:underline hover:underline
 
 /**
  * Q248(b): 36 hand-rolled `hover:underline` sites vs. the 4 files that use
@@ -39,6 +39,10 @@ const LINK_STANDARD_FILE_COUNT = 4;
 
 describe("Q248(b): hover:underline vs the shared link-standard", () => {
   const files = tsxFiles();
+
+  it("finds a real corpus of .tsx files to scan", () => {
+    expect(files.length).toBeGreaterThan(200);
+  });
 
   it("exactly 36 hand-rolled hover:underline sites (raise or lower this baseline in the same commit as any change)", () => {
     let hits = 0;

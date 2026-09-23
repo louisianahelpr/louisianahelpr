@@ -197,4 +197,4 @@ describe("createNotifications (batch)", () => {
 // AND fanned an "Email delivery failed" notification to every admin. Re-adding
 // the direct call fails both "makes NO direct send-notification-email invoke"
 // and the `toHaveBeenCalledOnce` in the in-app-failure test.
-// @mutate src/lib/notifications.ts | return { error: null };\n} | await supabase.functions.invoke("send-notification-email", { body: { user_id, title, message } });\n  return { error: null };\n}
+// @mutate src/lib/notifications.ts | }\n\n  return { error: null };\n} | }\n\n  await supabase.functions.invoke("send-notification-email", { body: { user_id, title, message } });\n  return { error: null };\n}

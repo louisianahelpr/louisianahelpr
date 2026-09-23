@@ -26,6 +26,7 @@ describe("live-check SQL never executes an app function (read-only role)", () =>
   const files = readdirSync(join(ROOT, "scripts")).filter((f) => /^check-live-.*\.mjs$/.test(f));
 
   it("finds the live-check scripts", () => {
+    expect(files.length).toBeGreaterThan(0);
     expect(files).toContain("check-live-privileges.mjs");
   });
 

@@ -1,9 +1,9 @@
 import { useState, type ElementType } from "react";
 import { MapPin, Calendar, Clock, Timer, Users } from "lucide-react";
 import { getCity } from "@/lib/locationUtils";
-import { formatJobDate, formatTimeLeft, parseLocalDate } from "@/lib/dateUtils";
+import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { differenceInHours } from "date-fns";
-import { jobStartTimeLabel } from "@/lib/jobDate";
+import { jobDateMs, jobStartTimeLabel } from "@/lib/jobDate";
 import type { EnrichedJob } from "../types";
 import { JobLocationPreview } from "./JobLocationPreview";
 import { calendarEventUrl } from "@/lib/calendarLink";
@@ -46,7 +46,10 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
   return (
     <div className="flex flex-col gap-2">
       {(() => {
-        const dateNeeded = parseLocalDate(job.date_needed);
+        // The job's day starts at Central midnight for everyone (jobDateMs);
+        // the reader's own midnight put the calendar event hours off (Q21).
+        const dateMs = jobDateMs(job.date_needed);
+        const dateNeeded = dateMs === null ? new Date(NaN) : new Date(dateMs);
         const dateValid = !isNaN(dateNeeded.getTime());
         let calendarUrl: string | null = null;
         if (dateValid) {

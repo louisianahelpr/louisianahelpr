@@ -7733,7 +7733,7 @@ sure someone hears it and closes it.
   next day. Class check helperTrackerPrimarySweep.tz.test.tsx runs 72h x 4
   zones. vitest.config.ts now has a `tz-sweep` project on the forks pool; its
   first full CI run is the proof.
-- [ ] **Q21 Other `parseLocalDate(date_needed)` "time until job" math** may
+- [x] **Q21 DONE: the two remaining job-date sites that used the device zone now use Central.** (1) The browse feed hid a job once the READER's calendar passed its date, so a UTC-set phone dropped every Louisiana job dated today from 19:00 Central. It now uses jobDayHasEnded (src/lib/jobDate.ts: next Central midnight). (2) The "add to calendar" tile anchored the event at the reader's midnight; it now uses jobDateMs. Class check: src/lib/jobDayHasEnded.tz.test.ts sweeps 5 device zones x 6 instants (tz-sweep project; red 5/6 when mutated). The other parseLocalDate callers are not job-time math (date picker, birthday, display formatting). Was: Other `parseLocalDate(date_needed)` "time until job" math may
   have the same device-timezone bug (not searched). Sweep src/, then extend the
   tz-sweep test to each site.
 - [x] **Q22 DONE: independent review (lh-authz-rls, verified live) found NO remaining or new XSS sink**; grants, constraints and every writer check out. Was: Independent review of the href-class commits (3c81624d0,

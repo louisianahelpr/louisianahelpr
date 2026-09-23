@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { fetchRatingStats } from "@/lib/reviewStats";
-import { parseLocalDate } from "@/lib/dateUtils";
+import { jobDayHasEnded } from "@/lib/jobDate";
 import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -430,18 +430,18 @@ export function useDashboardData() {
       );
 
       const now = new Date();
-      // Start of today (local) — a one-off job whose date has already passed
-      // is stale and must drop out of the feed even if its expires_at is null
-      // or still in the future. Flexible-schedule and recurring jobs have no
-      // single hard date, so they're exempt from the past-date cull.
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      // A one-off job whose day has ENDED (in Central) is stale and must drop
+      // out of the feed even if its expires_at is null or still in the
+      // future. Flexible-schedule and recurring jobs have no single hard
+      // date, so they're exempt from the past-date cull.
       const enriched: EnrichedJob[] = rawJobs
         .filter((j) => !appliedJobIds.has(j.id))
         .filter((j) => !j.expires_at || new Date(j.expires_at) > now)
         .filter((j) => {
           if (j.is_flexible_schedule || j.is_recurring || !j.date_needed) return true;
-          const d = parseLocalDate(j.date_needed);
-          return isNaN(d.getTime()) || d >= startOfToday;
+          // The job's day ends at Central midnight for every reader, not at
+          // the reader's own (Q21) — see jobDayHasEnded.
+          return !jobDayHasEnded(j.date_needed, now.getTime());
         })
         .map((j) => {
           const isBoosted = !!j.boost_expires_at && new Date(j.boost_expires_at) > now;

@@ -206,3 +206,22 @@ export function jobStartTimeLabel(
   const hour12 = hour % 12 === 0 ? 12 : hour % 12;
   return `${hour12}:${String(minute).padStart(2, "0")} ${period}`;
 }
+
+/**
+ * Has the job's day ended — in the PLATFORM zone, not the reader's?
+ *
+ * The browse feed hid a dated job once the reader's OWN calendar passed its
+ * date (`parseLocalDate(date_needed) >= startOfToday`, both device-local). A
+ * phone set to UTC dropped every Louisiana job dated today from 19:00 Central
+ * (Q21, 2026-09-23 — same class as the tracker's two-primaries bug, 9a0f7e61f).
+ * A job's day ends at the next Central midnight, for everyone. An unreadable
+ * date has no opinion: false (keep showing it), matching jobDateMs's contract.
+ */
+export function jobDayHasEnded(dateNeeded: string | null | undefined, nowMs: number): boolean {
+  const start = jobDateMs(dateNeeded);
+  if (start === null || !dateNeeded) return false;
+  const [y, m, d] = dateNeeded.split("-").map(Number);
+  const next = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+  const end = jobDateMs(next);
+  return end !== null && nowMs >= end;
+}

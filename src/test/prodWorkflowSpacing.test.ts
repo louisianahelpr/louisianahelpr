@@ -82,6 +82,11 @@ export const EXEMPT: Record<string, string> = {
     "one anonymous single-row select from open_jobs_browse every 10 minutes " +
     "(~6 reads an hour, less than a single page view). Spacing it to 90 min " +
     "would defeat the point — the 2026-09-13 outage lasted a day unnoticed.",
+  "morning-page.yml":
+    "The morning page (Q67) is a daily report, not a test suite: two read-only " +
+    "aggregate queries on public.ops_alert_ledger (tens of rows) through the " +
+    "Management API, once a day at 07:05 Central. Every 90-min slot in the " +
+    "owner's morning is taken by a suite; the page must land before the owner wakes.",
 };
 
 const PROD_SIGNALS: RegExp[] = [

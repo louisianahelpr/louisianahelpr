@@ -7,7 +7,10 @@ name: Scoreboard
 # scripts/scoreboard.mjs --write reads every workflow's last result on main,
 # the test/spec counts from the suites' logs, the ops alert ledger and DB
 # health (read-only SQL through the Management API), the open nightly-red
-# issues and the remote branches. A row it cannot measure says UNKNOWN.
+# issues and the remote branches, and measures each Q66 target (scripts/slo.mjs:
+# uptime from uptime.yml runs, API 5xx rate from edge_logs, payment success,
+# notification delivery and time to payout from prod tables). A row it cannot
+# measure says UNKNOWN.
 #
 # UNTIL Q57 (owner setting: Settings -> Actions -> General -> Workflow
 # permissions -> "Read and write" + "Allow GitHub Actions to create and approve
@@ -62,10 +65,12 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: scoreboard
+          # test-results/slo/: the dated SLO record (Q66, scripts/slo.mjs).
           path: |
             docs/SCOREBOARD.md
             docs/OPEN.md
-          retention-days: 14
+            test-results/slo/
+          retention-days: 90
 
   notify:
     name: Report result

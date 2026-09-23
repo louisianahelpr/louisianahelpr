@@ -40,6 +40,7 @@ import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT 
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { checkUnrecordedTransfers, claimPayout, classifyLedger, failClaim, settleClaim, type LedgerRow } from "../_shared/payoutClaim.ts";
 import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
@@ -1093,6 +1094,27 @@ serve(async (req) => {
     console.warn(
       `[release-payout] dispute ${disputeStamp.disputeId} was stamped by another writer first; its stamp was kept`,
     );
+  }
+
+  // Q76: an admin-triggered release is an admin action — record who moved
+  // which job's escrow to whom. Written AFTER the job flip and the dispute
+  // stamp (those are the critical writes; this one only records them), and
+  // before the flip's failure return, because the money is out either way.
+  // Non-fatal. Cron/auto releases have no admin to name.
+  if (initiatedBy === "admin" && initiatedByUserId) {
+    await writeAdminAudit(supabaseAdmin, {
+      adminId: initiatedByUserId,
+      action: "release_payout",
+      targetType: "job",
+      targetId: job.id,
+      details: {
+        helper_id: job.helper_id,
+        stripe_transfer_id: transfer.id,
+        amount_cents: payoutCents,
+        platform_fee_cents: platformFeeCents,
+      },
+      source: "release-payout",
+    }, postSlackOpsAlert);
   }
 
   if (!flip.ok) {

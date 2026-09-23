@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 119 done, 11 partly done (fixed, protection pending), 85 open. Source of truth for work.
+- **Queue (this file):** 120 done, 11 partly done (fixed, protection pending), 84 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 215 items — 119 done, 11 partly done (fixed, protection pending), 85 open.**
+**Queue: 215 items — 120 done, 11 partly done (fixed, protection pending), 84 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1320,7 +1320,7 @@ sure someone hears it and closes it.
   OWNER ROTATION LIST: nothing found requires a rotation. Optional: re-mint the MapKit JS token
   with an `origin` claim (Apple Developer, owner only). Also install gitleaks locally
   (`brew install gitleaks`) so the hook runs the full rule set, not only the repo shapes.
-- [ ] **Q76 Admin audit trail is complete.** Every admin action (ban/suspend,
+- [x] **Q76 DONE 2026-09-23: every admin edge function and RPC writes an admin_audit_log row (who, action, target, details); release-payout records it after the job flip; a lost row or failed alert never breaks the action. Reviewed by lh-money-escrow. Guard: src/test/adminActionsAreAudited.test.ts. Was:** Admin audit trail is complete. Every admin action (ban/suspend,
   strike reverse, refund, release payout, manual status override, remove
   job, delete user, credential approve/reject, dispute decision) writes an
   audit row (who, what, target, when, reason). Inventory the admin

@@ -165,6 +165,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/payoutClaim.ts";`,
   );
 
+  // Admin audit writer (Q76): `_shared/adminAuditLog.ts` has ZERO imports (the
+  // caller passes its Slack alert function in), so the generated file points at
+  // the REAL module — the audit row it writes lands in the scenario's writes
+  // like any other insert, where a test can assert it.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/adminAuditLog\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/adminAuditLog.ts";`,
+  );
+
   // Post-transfer release flip: `_shared/releaseFlip.ts` has ZERO imports (it
   // takes the Supabase client as a parameter), so the generated file points at
   // the REAL module — same reasoning as payoutClaim above, and for the same

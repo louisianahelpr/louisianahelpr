@@ -21,6 +21,7 @@ import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { cn } from "@/lib/utils";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { userFacingError } from "@/lib/userFacingError";
+import { logAdminAction } from "@/lib/adminAudit";
 
 interface Broadcast {
   id: string;
@@ -112,6 +113,7 @@ const AdminBroadcasts = () => {
       toast.error(`Couldn't cancel: ${mutationErrorMessage(err)}`);
       return;
     }
+    await logAdminAction("broadcast_cancel", "broadcast", pending.id, { title: pending.title });
     qc.invalidateQueries({ queryKey: BROADCASTS_KEY });
   };
 
@@ -133,7 +135,7 @@ const AdminBroadcasts = () => {
 
     const expiresAt = new Date(Date.now() + parseInt(duration) * 60 * 60 * 1000).toISOString();
 
-    const { error } = await supabase
+    const { data: created, error } = await supabase
       .from("broadcast_messages")
       .insert({
         title: title.trim(),
@@ -141,7 +143,8 @@ const AdminBroadcasts = () => {
         type,
         created_by: user.id,
         expires_at: expiresAt,
-      });
+      })
+      .select("id");
 
     setCreating(false);
     if (error) {
@@ -151,6 +154,11 @@ const AdminBroadcasts = () => {
       toast.error(userFacingError(error, "Couldn't send that broadcast — try again"));
       return;
     }
+    await logAdminAction("broadcast_create", "broadcast", created?.[0]?.id, {
+      title: title.trim(),
+      type,
+      expires_at: expiresAt,
+    });
 
     setTitle("");
     setMessage("");
@@ -178,6 +186,7 @@ const AdminBroadcasts = () => {
     } finally {
       setDeleting(false);
     }
+    await logAdminAction("broadcast_delete", "broadcast", id);
     qc.setQueryData<Broadcast[]>(BROADCASTS_KEY, (prev) =>
       (prev ?? []).filter((b) => b.id !== id),
     );

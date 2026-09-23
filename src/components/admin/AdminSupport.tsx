@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import { logAdminAction } from "@/lib/adminAudit";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -333,6 +334,7 @@ const AdminSupport = () => {
       toast.error(mutationErrorMessage(err, "Couldn't update that ticket — try again?"));
     }
     if (updated) {
+      await logAdminAction("support_ticket_status", "report", id, { status });
       qc.invalidateQueries({ queryKey });
     }
     setUpdating(null);

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
+import { logAdminAction } from "@/lib/adminAudit";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -116,17 +117,18 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("admin_user_notes").insert({
+    const { data: created, error } = await supabase.from("admin_user_notes").insert({
       user_id: userId,
       admin_id: currentAdminId,
       note: trimmed,
       category: newCategory,
-    });
+    }).select("id");
     setSaving(false);
     if (error) {
       toast.error(userFacingError(error, "Couldn't save that note — try again"));
       return;
     }
+    await logAdminAction("admin_note_add", "user", userId, { note_id: created?.[0]?.id, category: newCategory });
     setNewNote("");
     setNewCategory("general");
     loadNotes();
@@ -178,6 +180,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       toast.error(mutationErrorMessage(err, "Couldn't update that note — try again"));
       return;
     }
+    await logAdminAction("admin_note_edit", "user", userId, { note_id: id, category: editingCategory });
     cancelEdit();
     loadNotes();
   };
@@ -208,6 +211,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       return;
     }
     setDeleting(false);
+    await logAdminAction("admin_note_delete", "user", userId, { note_id: deleteNote.id, note: deleteNote.note });
     setDeleteNote(null);
     loadNotes();
   };

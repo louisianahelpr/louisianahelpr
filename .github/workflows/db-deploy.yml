@@ -78,6 +78,7 @@ on:
       - "scripts/check-updatable-views.mjs"
       - "scripts/ci/client-default-privileges.sql"
       - "scripts/ci/null-uid-trust.sql"
+      - "scripts/ci/null-arg-validators.sql"
       - "scripts/check-live-privileges.mjs"
       - "scripts/check-migration-relation-grants.mjs"
       - "scripts/ci/sensitive-anon-grants.sql"

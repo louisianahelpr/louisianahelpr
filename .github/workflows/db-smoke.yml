@@ -34,6 +34,7 @@ on:
       - "supabase/migrations/**"
       - ".github/workflows/db-smoke.yml"
       - "scripts/ci/replay-migrations.sh"
+      - "scripts/ci/null-arg-validators.sql"
   workflow_dispatch:
     inputs:
       exclude_migrations:
@@ -182,6 +183,29 @@ jobs:
             exit 1
           fi
           echo "✅ $FNS plpgsql functions in public checked — none trusts a bare NULL uid"
+
+      # Q140: helper_credential_document_ok / credential_document_path_ok said
+      # TRUE for another member's real document when the kind was NULL (a chain
+      # of IF-guards plpgsql skips on NULL). Every boolean function in public is
+      # classified in the SQL file; each `allow` one is called on a fixture that
+      # makes it TRUE and must return exactly FALSE with each argument NULL.
+      - name: Smoke — no allow check says yes to a NULL argument
+        run: |
+          set -euo pipefail
+          FNS=$(psql -v ON_ERROR_STOP=1 -At -c "SELECT count(*) FROM pg_proc WHERE pronamespace = 'public'::regnamespace AND prokind = 'f' AND prorettype = 'boolean'::regtype")
+          if [ "${FNS:-0}" -lt 40 ]; then
+            echo "::error::replayed schema has only ${FNS:-0} boolean functions in public — the check would pass vacuously"
+            exit 1
+          fi
+          OUT=$(psql -q -v ON_ERROR_STOP=1 -At -f scripts/ci/null-arg-validators.sql)
+          if [ -n "$OUT" ]; then
+            echo "$OUT" | while IFS='|' read -r fn shape detail; do
+              echo "::error::public.$fn $shape: $detail"
+            done
+            echo "::error::FIX: open the function with IF <arg> IS NULL THEN RETURN false (never STRICT: NULL in IF NOT f() allows), or classify a new function in scripts/ci/null-arg-validators.sql (20260923123701)."
+            exit 1
+          fi
+          echo "✅ $FNS boolean functions in public classified — no allow check says yes to a NULL argument"
 
       - name: Smoke — post a job, expect triggers to fire cleanly
         # The actual P0: every INSERT INTO public.jobs invokes

@@ -1,15 +1,15 @@
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |     IF is_member THEN\n      RAISE EXCEPTION 'A submitted |     IF false THEN\n      RAISE EXCEPTION 'A submitted
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql | IF is_member AND NEW.credential_type IN ('identity', 'background_check') THEN | IF false THEN
-// @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql | IF p_path !~ ('^' \|\| p_user_id::text \|\| '/credentials/' | IF p_path !~ ('/credentials/'
-// @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql | WHERE o.bucket_id = 'user-documents' AND o.name = p_path | WHERE o.bucket_id = 'user-documents' AND o.name <> p_path
-// @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql | \|[Hh][Ee][Ii][Cc])$') THEN | \|[Hh][Ee][Ii][Cc]\|[Ss][Vv][Gg])$') THEN
+// @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql | IF p_path !~ ('^' \|\| p_user_id::text \|\| '/credentials/' \|\| p_type | IF p_path !~ ('/credentials/' \|\| p_type
+// @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql | WHERE o.bucket_id = 'user-documents' AND o.name = p_path\n  );\nEND;\n$fn$;\n\nREVOKE ALL ON FUNCTION public.helper_credential_document_ok | WHERE o.bucket_id = 'user-documents' AND o.name <> p_path\n  );\nEND;\n$fn$;\n\nREVOKE ALL ON FUNCTION public.helper_credential_document_ok
+// @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql | p_type \|\| '-[0-9]{13}\.([Pp][Dd][Ff]\|[Pp][Nn][Gg]\|[Jj][Pp][Ee]?[Gg]\|[Ww][Ee][Bb][Pp]\|[Hh][Ee][Ii][Cc])$') THEN | p_type \|\| '-[0-9]{13}\.([Pp][Dd][Ff]\|[Pp][Nn][Gg]\|[Jj][Pp][Ee]?[Gg]\|[Ww][Ee][Bb][Pp]\|[Hh][Ee][Ii][Cc]\|[Ss][Vv][Gg])$') THEN
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |     IF NEW.document_url IS NOT NULL THEN\n      RAISE EXCEPTION '% credentials carry no document' |     IF false THEN\n      RAISE EXCEPTION '% credentials carry no document'
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql | REVOKE UPDATE (document_url, credential_type) ON | REVOKE UPDATE (credential_type) ON
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |     USING ((SELECT auth.uid()) = user_id)\n    WITH CHECK ((SELECT auth.uid()) = user_id); |     USING ((SELECT auth.uid()) = user_id);
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |     BEFORE INSERT OR UPDATE ON public.helper_credentials |     BEFORE INSERT ON public.helper_credentials
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |      WHERE c.user_id = auth.uid() |      WHERE true
 // @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql |         credential_type <> 'bond'\n |         credential_type <> 'bond' OR true\n
-// @mutate supabase/migrations/20260923113829_helper_credential_document_is_own.sql | helper_credential_document_ok(uuid, text, text) FROM PUBLIC, anon, authenticated; | helper_credential_document_ok(uuid, text, text) FROM PUBLIC, anon;
+// @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql | helper_credential_document_ok(uuid, text, text) FROM PUBLIC, anon, authenticated; | helper_credential_document_ok(uuid, text, text) FROM PUBLIC, anon;
 // @mutate scripts/audit/prod-seed.mjs | document_url: await ensureSeedLicenseDocument(helperId) | document_url: PIXEL
 // @mutate e2e/prod-audit/harness.ts | license_state: "LA", document_url: docPath, | license_state: "LA", document_url: SEED_PIXEL,
 import { describe, expect, it } from "vitest";
@@ -177,7 +177,8 @@ describe("helper_credentials.document_url is the member's own uploaded document 
 
   it("the helpers are revoked from clients; the storage predicate stays authenticated-only", () => {
     const later = allFrom(FIX);
-    expect(later).toContain("REVOKE ALL ON FUNCTION public.helper_credential_document_ok(uuid, text, text) FROM PUBLIC, anon, authenticated;");
+    // From the file of the NEWEST definition on (Q140 redefined it in 20260923123701), like credentialUrlIsOwnDocument.
+    expect(allFrom(ok!.file)).toContain("REVOKE ALL ON FUNCTION public.helper_credential_document_ok(uuid, text, text) FROM PUBLIC, anon, authenticated;");
     expect(later).toContain("REVOKE ALL ON FUNCTION public.enforce_helper_credential_document() FROM PUBLIC, anon, authenticated;");
     expect(later).not.toMatch(/GRANT [A-Z, ]*EXECUTE[A-Z, ]* ON FUNCTION public\.(helper_credential_document_ok|enforce_helper_credential_document)/i);
   });

@@ -7600,6 +7600,22 @@ sure someone hears it and closes it.
   says SKIPPED otherwise), (d) more `sql_condition` verify hooks: cron-http,
   cron-silent, dispute-unsettled, rls-escalation-refused and every edge
   `ops-alert:*` item are `manual`/`companions` today.
+  REVIEW FOLLOW-UP 2026-09-23 (migration 20260923050059): HIGH fixed — the
+  error_logs trigger's ledger upsert could stall a concurrent caller until its
+  COMMIT (measured 3004 ms vs a 3000 ms hold; prod lock_timeout=0). Now
+  ops_alert_record bounds the wait to 100 ms and, if the row is busy, queues
+  the occurrence in `ops_alert_pending`; ops_alert_verify() folds it in (hourly).
+  Measured after: 103 ms / 104 ms (existing row / brand-new fingerprint), both
+  transactions commit, caller's lock_timeout untouched
+  (scripts/probes/ops-alert-ledger-concurrency.embedded-pg.mjs; class guard
+  src/test/errorLogTriggersNeverWait.test.ts, red on the original). MEDIUM
+  fixed — normalise v2 keeps [1-5]xx codes after http/status/returned/
+  responded/code/error and digits glued to a name (v2, job_7); ids, amounts,
+  timestamps, signed numbers still stripped; provable existing rows re-keyed
+  (merged where two v1 items are now one; open wins). LOW fixed —
+  check_ops_digest_delivery() is ok:false when the ops-daily-digest
+  expectation row is missing (row exists live, registered 2026-09-14); the
+  side effect is commented at the ops_alert_condition call site.
   One tracked item per distinct alert fingerprint,
   from error_logs (server rows, every severity), Slack posts that bypass
   error_logs, Sentry, nightly-red issues and CI. Auto-opened, and closed only

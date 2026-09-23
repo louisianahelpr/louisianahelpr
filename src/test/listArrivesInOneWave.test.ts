@@ -32,6 +32,8 @@
 // @mutate src/pages/DashboardGuest.tsx | const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS; | const FEED_GRID_CLASS = "grid grid-cols-1 gap-3";
 // @mutate src/components/profile/SecurityTab.tsx | useArrivalGate(!sessionsLoading, !factorLoading) | useArrivalGate(true, true)
 // @mutate src/components/SaveHelperButton.tsx | variant === "icon" ? "h-10 w-10 shrink-0 " : "" | ""
+// @mutate src/components/GuestBrowseSkeleton.tsx | 0.25rem) + var(--public-nav-h))" }} /> | 1.5rem) + 3rem)" }} />
+// @mutate src/components/dashboard/VirtualizedJobList.tsx | initialRect: { width: 0, height: typeof window === "undefined" ? 800 : window.innerHeight }, |
 // @mutate src/lib/simpleMode.ts | let profileSeniorMode = cachedProfileFlag(); | let profileSeniorMode = false;
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -125,6 +127,10 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     expect(src).toMatch(/\{!securityReady \? \(\s*<ProfileTabBodyReserve \/>/);
   });
 
+  it("the virtualized feed renders rows on its FIRST pass (no empty panel between skeleton and cards)", () => {
+    expect(read("components/dashboard/VirtualizedJobList.tsx")).toMatch(/initialRect: \{ width: 0, height: typeof window === "undefined" \? 800 : window\.innerHeight \}/);
+  });
+
   it("the save-Helpr icon button is the same box while its status loads", () => {
     expect(read("components/SaveHelperButton.tsx")).toMatch(/variant === "icon" \? "h-10 w-10 shrink-0 " : ""/);
   });
@@ -151,6 +157,22 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     expect(skel).toMatch(/<PageHeader title="Browse Jobs"/);
     expect(skel).toMatch(/\$\{GUEST_FEED_GRID_CLASS\} \$\{GUEST_FEED_RESERVE_CLASS\}/);
     expect(read("pages/DashboardGuest.tsx")).toMatch(/const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS;/);
+  });
+
+  it("/browse's chunk skeleton restates the public shell's geometry VERBATIM (nav spacer, nav box, body gutter)", () => {
+    // Q176 changed the spacer the same day this skeleton was written, and the
+    // title moved 12px under the bones. These strings are compared, not
+    // remembered, so the next change to the shell fails here.
+    const skel = read("components/GuestBrowseSkeleton.tsx");
+    const spacer = /style=\{\{ height: "(calc\([^"]+\))" \}\}/.exec(read("components/marketing/PublicLayout.tsx"))?.[1];
+    expect(spacer).toBeTruthy();
+    expect(skel).toContain(`height: "${spacer}"`);
+    const navBox = /h-\[var\(--[a-z-]+\)\]/.exec(read("components/Navbar.tsx"))?.[0];
+    expect(navBox).toBeTruthy();
+    expect(skel).toContain(navBox!);
+    const gutter = /className=\{`(px-5 [^$`]+) \$\{bottomPaddingClassName\}`\}/.exec(read("components/marketing/PublicHeaderPage.tsx"))?.[1];
+    expect(gutter).toBeTruthy();
+    expect(skel).toContain(`className="${gutter} pb-16"`);
   });
 });
 

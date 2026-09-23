@@ -83,7 +83,8 @@ export function JobCardSkeleton() {
                 cards landed (Q169, measured at 375). */}
             <span
               className="relative inline-flex shrink-0 items-center justify-center rounded-ds-md px-2.5 py-1 overflow-hidden"
-              style={{ background: "hsl(var(--olivewood) / 0.12)" }}
+              // MoneyChip's own 0.5px border, transparent: part of its box.
+              style={{ background: "hsl(var(--olivewood) / 0.12)", border: "0.5px solid transparent" }}
             >
               <span className="invisible font-sans leading-none tabular-nums text-ds-17">$000</span>
             </span>

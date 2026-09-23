@@ -103,6 +103,13 @@ export function VirtualizedJobList<T>({
     count: items.length,
     getScrollElement: () => scrollElementRef.current,
     estimateSize: () => estimateSize,
+    // FIRST PAINT HAS ROWS (Q169). Without a starting rect the virtualizer
+    // knows no viewport until its scroll element is measured after mount, so
+    // its first pass renders ZERO rows: the skeleton went away, the feed panel
+    // sat empty for a frame (~500ms at 375 on Fast 3G + 4x CPU), then every
+    // card appeared. One screenful is the right first guess; the real
+    // measurement replaces it on the next tick.
+    initialRect: { width: 0, height: typeof window === "undefined" ? 800 : window.innerHeight },
     overscan,
     scrollMargin,
     // A stable key keeps measurement cache aligned to a job across

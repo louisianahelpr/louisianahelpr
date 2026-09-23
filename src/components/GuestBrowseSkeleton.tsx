@@ -34,7 +34,7 @@ export const GUEST_FEED_RESERVE_CLASS = "min-h-screen md:min-h-0 content-start";
  * nav strip is the nav's own box, and the grid is the page's grid, so the
  * bones stand exactly where the cards will land. The nav's own component is
  * not used because it pulls the auth client into the eager bundle; its box
- * (glass-nav, h-14 lg:h-16, safe-area top padding) and the layout's spacer are
+ * (glass-nav, h-[var(--public-nav-h)], safe-area top padding) and the layout's spacer are
  * restated from Navbar.tsx / PublicLayout.tsx.
  *
  * NATIVE keeps the PageScaffold-shaped placeholder below: that is the native
@@ -97,12 +97,14 @@ const GuestBrowseSkeleton = () => {
       className="fixed top-0 left-0 right-0 z-50 glass-nav"
       style={{ paddingTop: "max(var(--safe-area-top, 0px), 0.25rem)" }}
     >
-      <div className="w-full flex items-center justify-end gap-2 h-14 lg:h-16 px-5 sm:px-8 lg:px-12">
+      <div className="w-full flex items-center justify-end gap-2 h-[var(--public-nav-h)] px-5 sm:px-8 lg:px-12">
         <Skeleton className="h-9 w-16 rounded-ds-md" />
         <Skeleton className="h-9 w-24 rounded-ds-md" />
       </div>
     </div>
-    <div aria-hidden style={{ height: "calc(max(var(--safe-area-top, 0px), 1.5rem) + 3rem)" }} />
+    {/* PublicLayout's nav spacer, verbatim. src/test/listArrivesInOneWave
+        compares the two strings, so this cannot drift from the page again. */}
+    <div aria-hidden style={{ height: "calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))" }} />
     <PageHeader title="Browse Jobs" backTo="/" width="public" topInsetHandled />
     <div className="px-5 sm:px-8 lg:px-12 pb-16">
       <div className="mx-auto page-measure">

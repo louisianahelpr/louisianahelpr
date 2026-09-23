@@ -18,20 +18,6 @@ import type { ProfileReview, ProfileJob, ReplyLatency } from "./types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-// The trust-signal side queries below are deliberately soft-failing —
-// a missing table/function must hide a badge, not brick the profile. But
-// "not deployed yet" is the ONLY benign case: PGRST202 (function missing),
-// PGRST205 / 42P01 (relation missing). Every other error — RLS regression,
-// timeout, outage — has to stay observable, otherwise a real failure reads
-// as "this user has no credentials / no pet history", which is a trust claim
-// we'd be making without knowing it's true. (The dispute-count query that
-// used to sit alongside these was removed for exactly that reason — see the
-// note further down: RLS made its answer meaningless, not just fragile.)
-const NOT_DEPLOYED_CODES = new Set(["PGRST202", "PGRST205", "42P01"]);
-function isNotDeployed(err: { code?: string } | null | undefined): boolean {
-  return !!err?.code && NOT_DEPLOYED_CODES.has(err.code);
-}
-
 /* ───────────────────────────────────────────────────────────────────────────
    PUBLIC STATS — the numbers a STRANGER is allowed to be told.
 

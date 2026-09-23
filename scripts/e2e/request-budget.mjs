@@ -19,7 +19,7 @@
  *    prints its measured value as the number to write down and does not fail
  *    on that line.
  *
- * Exits 1 when any check fails. A label with no samples is reported as zero
+ * Exits non-zero when any check fails. A label with no samples is reported as zero
  * load (every test skipped); a spec that is not METERED is caught from source
  * by src/test/requestBudget.test.ts, which is exact where a run is not.
  */

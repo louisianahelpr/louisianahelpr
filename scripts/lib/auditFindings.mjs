@@ -10,7 +10,9 @@
  */
 
 /** Statuses that take a finding out of the OPEN count. */
-export const CLOSED_STATUSES = new Set(["fixed", "retracted", "duplicate", "wontfix"]);
+// `obsolete` (added 2026-09-23 reconcile): the surface or premise no longer
+// exists (feature removed, owner decision) — closed, but not "the claim was false".
+export const CLOSED_STATUSES = new Set(["fixed", "retracted", "duplicate", "wontfix", "obsolete"]);
 
 /**
  * Fold the append-only log into current state: the newest status record for an
@@ -80,5 +82,6 @@ export function countFindings(all) {
     retracted: by("retracted"),
     duplicate: by("duplicate"),
     wontfix: by("wontfix"),
+    obsolete: by("obsolete"),
   };
 }

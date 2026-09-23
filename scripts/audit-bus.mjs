@@ -32,7 +32,7 @@ const LOG = join(DIR, "findings.jsonl");
 const INBOX = join(DIR, "inbox");
 
 const SEVERITIES = ["HIGH", "MEDIUM", "LOW", "POLISH"];
-const STATUSES = ["filed", "verified", "retracted", "duplicate", "fixed", "wontfix"];
+const STATUSES = ["filed", "verified", "retracted", "duplicate", "fixed", "wontfix", "obsolete"];
 
 function args(argv) {
   const out = { _: [] };
@@ -164,7 +164,7 @@ if (cmd === "file") {
   // The tables below list everything not retracted/duplicate (fixed rows stay
   // visible with their status). The HEADLINE counts come from countFindings —
   // the same definition COVERAGE.md prints — so "open" means open everywhere.
-  const live = all.filter((f) => !["retracted", "duplicate"].includes(f.status));
+  const live = all.filter((f) => !["retracted", "duplicate", "obsolete"].includes(f.status));
   const n = countFindings(all);
   // Stamped with the newest bus record, not the wall clock, so regenerating an
   // unchanged ledger is byte-identical (scripts/check-generated-current.mjs).
@@ -174,7 +174,7 @@ if (cmd === "file") {
     "",
     `_Generated from findings.jsonl as of its newest entry (${asOf || "empty"}). Do not hand-edit — run \`node scripts/audit-bus.mjs rollup\`._`,
     "",
-    `**${n.open} open findings** · ${n.openBlockers} open launch blockers · ${n.fixed} fixed · ${n.wontfix} wontfix · `
+    `**${n.open} open findings** · ${n.openBlockers} open launch blockers · ${n.fixed} fixed · ${n.wontfix} wontfix · ${n.obsolete} obsolete · `
       + `${n.retracted} retracted · ${n.duplicate} duplicate · ${n.filed} filed all time`,
     "",
   ];

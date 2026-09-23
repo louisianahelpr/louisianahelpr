@@ -168,7 +168,7 @@ out.push("");
 out.push(`Generated from findings.jsonl as of its newest entry: ${busRecords.reduce((m, r) => (r.ts && r.ts > m ? r.ts : m), "") || "empty"}`);
 out.push("");
 out.push(`- **Lanes:** ${lanes.length} total — **${done} reported**, ${partial} ran without filing a report, **${todo} not started**`);
-out.push(`- **Findings:** ${liveTotal} open (${blockerTotal} open launch blockers), ${fixedTotal} fixed, ${totals.wontfix} wontfix, ${totals.retracted} retracted, ${totals.duplicate} duplicate, ${totals.filed} filed all time — same fold and definitions as ROLLUP.md`);
+out.push(`- **Findings:** ${liveTotal} open (${blockerTotal} open launch blockers), ${fixedTotal} fixed, ${totals.wontfix} wontfix, ${totals.obsolete} obsolete, ${totals.retracted} retracted, ${totals.duplicate} duplicate, ${totals.filed} filed all time — same fold and definitions as ROLLUP.md`);
 out.push(`- **Surface:** ${surfaceLine}`);
 out.push("");
 out.push("**A lane that filed nothing either found nothing or never ran, and those are");

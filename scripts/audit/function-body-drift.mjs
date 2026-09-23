@@ -266,13 +266,19 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const drift = diffFunctions(expected, live, baseline);
   console.log(`function-body-drift: ${expected.size} function signatures from migrations, ${live.length} live in public, ${Object.keys(baseline).length} baselined`);
   // An accepted entry is spent once prod's body changed or the newest migration now matches it.
+  // TWO-WAY (was a printed `note:` that exited 0 until 2026-09-22, so a spent
+  // entry could sit in the baseline forever): a spent entry FAILS the run.
   const liveByKey = new Map(live.map((r) => [`${r.proname}(${normalizeSignature(r.sig)})`, r]));
-  for (const [key, entry] of Object.entries(baseline)) {
-    const row = liveByKey.get(key);
-    if (!row || row.md5 !== entry.md5 || row.nmd5 === expected.get(key)?.md5) {
-      console.log(`note: baseline entry ${key} is no longer needed or no longer matches prod — remove it`);
-    }
+  const staleEntries = Object.entries(baseline)
+    .filter(([key, entry]) => {
+      const row = liveByKey.get(key);
+      return !row || row.md5 !== entry.md5 || row.nmd5 === expected.get(key)?.md5;
+    })
+    .map(([key]) => key);
+  for (const key of staleEntries) {
+    console.log(`::error::stale baseline entry ${key} — remove it (lower the baseline) from scripts/audit/function-body-drift.baseline.json: it is no longer needed or no longer matches prod`);
   }
+  if (staleEntries.length) process.exit(1);
   if (!drift.length) {
     console.log("OK: prod runs the newest migration's body for every function (baselined drift excepted)");
     process.exit(0);

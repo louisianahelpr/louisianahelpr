@@ -34,7 +34,7 @@
  * Usage:
  *   node scripts/check-asset-weight.mjs                 # staged changes (pre-commit)
  *   node scripts/check-asset-weight.mjs --base <ref>    # changes vs a ref (CI)
- *   node scripts/check-asset-weight.mjs --all           # report existing, never fails
+ *   node scripts/check-asset-weight.mjs --all           # report existing; fails only on a stale ALLOWLIST entry
  */
 
 import { execFileSync } from "node:child_process";
@@ -62,6 +62,7 @@ const DEFAULT_CAP = 300;
 
 // Exact paths permitted to exceed their cap, each with the reason it must.
 // Add here only for a file that ships to users and cannot be smaller.
+// @two-way scripts/check-asset-weight.mjs:const staleAllow =
 const ALLOWLIST = new Map([
   ["public/app-icon-1024.png", "1024px PWA/App Store icon — Apple rejects recompression artefacts"],
   ["public/app-icon-1024-dark.png", "1024px dark-variant icon, same constraint"],
@@ -97,6 +98,21 @@ if (mode === "all") {
   files = git(["diff", "--name-only", "--diff-filter=AM", base, "HEAD"]).split("\n").filter(Boolean);
 } else {
   files = git(["diff", "--cached", "--name-only", "--diff-filter=AM"]).split("\n").filter(Boolean);
+}
+
+// TWO-WAY: an ALLOWLIST entry whose file is gone from the tree, or has been
+// brought under its cap, no longer excuses anything and must leave the list —
+// otherwise it silently re-admits the next oversized blob committed at that
+// path. Checked in EVERY mode (including --all), because it is about the list,
+// not about the diff. (src/test/baselinesAreTwoWay.test.ts requires this.)
+const trackedNow = new Set(git(["ls-files", "-z"]).split("\0").filter(Boolean));
+const staleAllow = [...ALLOWLIST.keys()].filter(
+  (p) => !trackedNow.has(p) || !existsSync(p) || Math.round(statSync(p).size / 1024) <= capFor(p),
+);
+if (staleAllow.length) {
+  for (const p of staleAllow)
+    console.error(`check-asset-weight: stale baseline entry ${p} — remove it (lower the baseline): it is gone or now under its ${capFor(p)}KB cap`);
+  process.exit(1);
 }
 
 const offenders = [];

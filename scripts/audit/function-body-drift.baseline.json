@@ -1,4 +1,4 @@
 {
-  "_doc": "Accepted function-body drift, keyed by name(input types). Each entry pins prod's exact md5(prosrc): if prod's body changes, the entry stops matching and the check fails again. Remove an entry once its drift is fixed (the script prints a note when an entry no longer matches). See scripts/audit/function-body-drift.mjs.",
+  "_doc": "Accepted function-body drift, keyed by name(input types). Each entry pins prod's exact md5(prosrc): if prod's body changes, the entry stops matching and the check fails again. Remove an entry once its drift is fixed (the script FAILS on an entry that no longer matches — two-way). See scripts/audit/function-body-drift.mjs.",
   "accepted": {}
 }

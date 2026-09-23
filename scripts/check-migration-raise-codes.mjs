@@ -131,8 +131,27 @@ export function droppedCodes({ files, readFile = (f) => fs.readFileSync(path.joi
   return dropped;
 }
 
+/**
+ * TWO-WAY: allowlist entries that no longer excuse a drop — the migration is
+ * gone, or with an EMPTY allowlist it would not be reported (the code was kept
+ * after all, or the entry names the wrong function/code). A stale entry is a
+ * standing permission for a future drop at the same key, so it fails.
+ */
+export function staleAllowlistEntries({ files, readFile, allowlist = loadAllowlist() } = {}) {
+  const raw = new Set(
+    droppedCodes({ files, readFile, allowlist: [] }).map((d) => `${d.migration}|${d.function}|${d.code}`),
+  );
+  return allowlist
+    .map((a) => `${a.migration}|${a.function}|${a.code}`)
+    .filter((k) => !raw.has(k));
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const dropped = droppedCodes();
+  const stale = staleAllowlistEntries();
+  for (const k of stale) {
+    console.log(`::error::stale baseline entry ${k} — remove it (lower the baseline) from scripts/migration-raise-codes-allowlist.json: that migration no longer drops that code.`);
+  }
   if (process.argv.includes("--json")) {
     console.log(JSON.stringify(dropped, null, 2));
   } else {
@@ -141,5 +160,5 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     }
     console.log(`migration-raise-codes: ${dropped.length} dropped guard(s) (enforced from ${ENFORCED_FROM}).`);
   }
-  process.exit(dropped.length ? 1 : 0);
+  process.exit(dropped.length || stale.length ? 1 : 0);
 }

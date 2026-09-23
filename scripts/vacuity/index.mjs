@@ -121,6 +121,16 @@ if (newD.length)
   );
 else ok(`class (d) self-referential inventory: ${classD.length} known, 0 new`);
 
+// TWO-WAY, same as every other section: a grandfathered self-referential guard
+// that is no longer detected as one (fixed, or deleted) must leave the list.
+const staleD = [...dBaseline].filter((f) => !classD.some((g) => g.file === f));
+if (staleD.length)
+  fail(
+    `${BASELINE_PATH}.selfReferential is stale — these are no longer self-referential (or no longer exist). ` +
+      `stale baseline entry — remove it (lower the baseline):\n` +
+      staleD.map((f) => `    ${f}`).join("\n"),
+  );
+
 // ── 3. PREFLIGHT ────────────────────────────────────────────────────────────
 const pf = await preflight();
 const pfFail = pf.filter((f) => f.severity === "fail");
@@ -140,6 +150,20 @@ if (!pfFail.length) ok(`harness preflight: ${pf.length - pfFail.length} advisory
  */
 const { mutations, errors } = collectMutations([...guards, ...untrackedGuardFiles()]);
 for (const e of errors) fail(`registration — ${e}`);
+
+// TWO-WAY, statically (no mutation run needed): a survivingMutations entry
+// that names no registered @mutate line any more can never be re-checked —
+// the guard or its registration is gone — so it is stale.
+{
+  const registered = new Set(mutations.map((m) => `${m.guard}|${m.target}|${m.find}`));
+  const orphanSurvivors = (baseline.survivingMutations ?? []).filter((k) => !registered.has(k));
+  if (orphanSurvivors.length)
+    fail(
+      `${BASELINE_PATH}.survivingMutations names registrations that no longer exist. ` +
+        `stale baseline entry — remove it (lower the baseline):\n` +
+        orphanSurvivors.map((k) => `    ${k}`).join("\n"),
+    );
+}
 
 let scoped = mutations;
 if (!ALL && !REPORT_ONLY) {
@@ -181,7 +205,11 @@ if (!NO_MUTATE && !REPORT_ONLY && scoped.length) {
   // rots into a permanent excuse — same ratchet as every other class here.
   const stillListed = new Set(results.filter((r) => r.verdict === "SURVIVED").map(key));
   const nowKilled = results.filter((r) => r.verdict === "killed" && knownSurvivors.has(key(r)));
-  if (nowKilled.length && !stillListed.size)
+  // Was `nowKilled.length && !stillListed.size` until 2026-09-22: a fixed
+  // survivor only failed when NO other survivor remained, so one vacuous guard
+  // left in the list shielded every fixed one beside it. Any kill is stale.
+  void stillListed;
+  if (nowKilled.length)
     fail(
       `${BASELINE_PATH}.survivingMutations is stale — these mutations now KILL their guard. Remove them:\n` +
         nowKilled.map((r) => `    ${key(r)}`).join("\n"),

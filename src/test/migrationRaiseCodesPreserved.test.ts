@@ -67,6 +67,26 @@ describe("migrations keep the guards of the functions they redefine", () => {
     expect([...check.raiseCodes(check.stripSqlComments("RAISE EXCEPTION 'a_b' USING HINT = 'x -- y';"))]).toEqual(["a_b"]);
   });
 
+  it("the allowlist has no stale entry (an entry that no longer excuses a real drop must go)", () => {
+    // Shown able to fail on a synthetic pair: the same entry is live while
+    // the drop exists, and stale once the later migration keeps the code.
+    const dropping: Record<string, string> = {
+      "20260915000000_a.sql": "CREATE OR REPLACE FUNCTION public.h() RETURNS void LANGUAGE plpgsql AS $f$ BEGIN RAISE EXCEPTION 'old_guard'; END $f$;",
+      "20260915040000_b.sql": "CREATE OR REPLACE FUNCTION public.h() RETURNS void LANGUAGE plpgsql AS $f$ BEGIN NULL; END $f$;",
+    };
+    const keeping = { ...dropping, "20260915040000_b.sql": dropping["20260915000000_a.sql"] };
+    const allowlist = [{ migration: "20260915040000_b.sql", function: "public.h", code: "old_guard", reason: "x" }];
+    expect(check.staleAllowlistEntries({ files: Object.keys(dropping), readFile: (f: string) => dropping[f], allowlist })).toEqual([]);
+    expect(check.staleAllowlistEntries({ files: Object.keys(keeping), readFile: (f: string) => keeping[f], allowlist })).toEqual([
+      "20260915040000_b.sql|public.h|old_guard",
+    ]);
+    const stale: string[] = check.staleAllowlistEntries();
+    expect(
+      stale,
+      stale.map((k) => `stale baseline entry ${k} — remove it (lower the baseline)`).join("\n"),
+    ).toEqual([]);
+  });
+
   it("the live migrations drop no guard", () => {
     expect(check.droppedCodes()).toEqual([]);
   });

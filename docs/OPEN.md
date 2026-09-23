@@ -7753,3 +7753,17 @@ sure someone hears it and closes it.
   systems are checked exhaustively for gaps").** Run the launch-audit fleet
   (39 lanes) in waves. Every finding lands in this queue with a check or a
   tracker entry.
+- [ ] **Q36 Keep every monitoring number current (owner, 2026-09-23; CLAUDE.md
+  rule).** Inventory (2026-09-23): 10 baseline/budget/allowlist files and 16
+  files with KNOWN_/LEGACY_/ALLOWLIST constants.
+  - EXACT today: race-class (53, 0 stale), deadcode (97/11; fails both ways).
+  - STALE EVIDENCE: loading-states measured 2026-09-20. Skeletons and the
+    notification panel changed since, so re-measure in the browser.
+  - NO stale-entry detection yet, so a fixed item sits in the baseline forever:
+    migration-raise-codes allowlist, write-contract baseline, vacuity baseline,
+    and each KNOWN_ list (typecheck-edge KNOWN_ERRORS, knownContrastFailures,
+    roleNeutralCopy allowlist, a11y-webkit-known, EF-5 known leaks, ...).
+  - Fix as a CLASS: every baseline fails when an entry no longer reproduces
+    ("lower the baseline"), and a meta-guard (derived by scanning for baseline
+    and KNOWN_ files) requires each to have that two-way check, shown red with
+    a planted stale entry.

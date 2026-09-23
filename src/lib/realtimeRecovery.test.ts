@@ -272,6 +272,61 @@ describe("subscribeWithRecovery", () => {
     sub.close();
   });
 
+  // Q15: Sentry JAVASCRIPT-1H (`socket closed: 1005/1006`) was the top issue,
+  // 79 realtime-close events in 30 days to 2026-09-23. A socket the browser
+  // closes because the tab is hidden, or that cannot reconnect because the
+  // device is offline, is expected: it must still retry and raise the banner,
+  // but never become an error row / Sentry event.
+  // @mutate src/lib/realtimeRecovery.ts | if (!isExpectedDisconnect()) unexplainedFailures += 1; | unexplainedFailures += 1;
+  // @mutate src/lib/realtimeRecovery.ts | if (typeof document !== "undefined" && document.hidden) return true; | if (false) return true;
+  // @mutate src/lib/realtimeRecovery.ts | if (typeof navigator !== "undefined" && navigator.onLine === false) return true; | if (false) return true;
+  it("never reports failures while the tab is hidden or the device is offline (Q15)", () => {
+    const hidden = vi.spyOn(document, "hidden", "get");
+    const online = vi.spyOn(navigator, "onLine", "get");
+    try {
+      const sub = makeSub({ name: "unread-nav-u2" });
+      act(() => {
+        last().cb?.("SUBSCRIBED");
+      });
+
+      hidden.mockReturnValue(true);
+      online.mockReturnValue(true);
+      act(() => {
+        for (let i = 0; i < 8; i += 1) {
+          last().cb?.("CHANNEL_ERROR", new Error("socket closed: 1005"));
+          vi.advanceTimersByTime(60_000);
+        }
+      });
+      expect(reportMock).not.toHaveBeenCalled();
+
+      hidden.mockReturnValue(false);
+      online.mockReturnValue(false);
+      act(() => {
+        for (let i = 0; i < 8; i += 1) {
+          last().cb?.("CHANNEL_ERROR", new Error("socket closed: 1006"));
+          vi.advanceTimersByTime(60_000);
+        }
+      });
+      expect(reportMock).not.toHaveBeenCalled();
+      // Still retrying and still telling the user: expected is not ignored.
+      expect(created.length).toBeGreaterThan(10);
+
+      // Visible and online and still failing: the real signal, reported once.
+      online.mockReturnValue(true);
+      act(() => {
+        for (let i = 0; i < 6; i += 1) {
+          last().cb?.("CHANNEL_ERROR", new Error("socket closed: 1006"));
+          vi.advanceTimersByTime(60_000);
+        }
+      });
+      expect(reportMock).toHaveBeenCalledTimes(1);
+      sub.close();
+    } finally {
+      hidden.mockRestore();
+      online.mockRestore();
+    }
+  });
+
   it("exposes the live channel through `current`", () => {
     const sub = makeSub({ name: "presence-y", stableName: true });
     expect(sub.current).toBe(created[0]);

@@ -81,6 +81,21 @@ const DEAD_STATUSES = new Set(["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"]);
  */
 const REPORT_AFTER_ATTEMPTS = 4;
 
+/**
+ * A drop the environment explains is not an app failure (Q15). While the tab
+ * is hidden the browser throttles timers and may close the socket (a laptop
+ * lid, a backgrounded phone: Sentry JAVASCRIPT-1H, `socket closed: 1005/1006`,
+ * 79 events in the 30 days to 2026-09-23), and while the device is offline
+ * every retry fails by definition. Those failures still retry and still raise
+ * the banner; they just never count toward REPORT_AFTER_ATTEMPTS. A channel
+ * that keeps failing while the tab is visible AND online is still reported.
+ */
+function isExpectedDisconnect(): boolean {
+  if (typeof document !== "undefined" && document.hidden) return true;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+  return false;
+}
+
 // ── Health registry ─────────────────────────────────────────────────────────
 // Module-level rather than context: channels are opened from hooks, module
 // singletons (useCurrentUser's refcounted registry) and async callbacks alike,
@@ -230,6 +245,8 @@ export function subscribeWithRecovery(
   let everSubscribed = false;
   let degraded = false;
   let reportedThisOutage = false;
+  /** Failures this outage that the environment does not explain (Q15). */
+  let unexplainedFailures = 0;
 
   const markDown = () => {
     if (degraded) return;
@@ -296,6 +313,7 @@ export function subscribeWithRecovery(
       if (status === "SUBSCRIBED") {
         attempt = 0;
         reportedThisOutage = false;
+        unexplainedFailures = 0;
         const recovering = degraded;
         markUp();
         // Only after a real outage. A first subscribe has no gap to backfill,
@@ -313,7 +331,8 @@ export function subscribeWithRecovery(
       // so the user is told immediately either way — this gate only decides
       // whether the outage is durable enough to be worth a persisted row.
       scheduleRetry();
-      if (!reportedThisOutage && attempt >= REPORT_AFTER_ATTEMPTS) {
+      if (!isExpectedDisconnect()) unexplainedFailures += 1;
+      if (!reportedThisOutage && unexplainedFailures >= REPORT_AFTER_ATTEMPTS) {
         reportedThisOutage = true;
         report(err ?? new Error(`realtime channel ${status}`), {
           severity: "warning",
@@ -322,6 +341,7 @@ export function subscribeWithRecovery(
             channel: opts.name,
             status,
             attempts: String(attempt),
+            unexplained_failures: String(unexplainedFailures),
           },
         });
       }

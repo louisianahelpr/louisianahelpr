@@ -33,6 +33,7 @@
  *   node scripts/check-generated-current.mjs            # regenerate + diff + coverage scans
  *   node scripts/check-generated-current.mjs --only <id>[,<id>]
  *   node scripts/check-generated-current.mjs --list     # print the inventory table
+ *   node scripts/check-generated-current.mjs --fix      # regenerate all in place (npm run inventories:refresh)
  *
  * Run per push by test.yml and staleness-watch.yml (push trigger, so a
  * docs-only commit is covered too), nightly by staleness-watch.yml, and by
@@ -117,7 +118,7 @@ export const EVIDENCE = [
     outputs: ["docs/audit/loading-states/measurements.json"],
     refresh: "npm run loading-states:measure (browser + test accounts)",
     refreshedBy: ".github/workflows/loading-states-refresh.yml (daily 16:17 UTC; uploads the fresh set)",
-    checkedBy: "check-loading-state-shape.mjs on the FRESH measurement in that run; check-staleness.mjs binds currency to its last scheduled success",
+    checkedBy: "check-loading-state-shape.mjs on the FRESH measurement in that run; check-staleness.mjs binds currency to its last successful run (2 days)",
   },
   {
     id: "write-contract",
@@ -318,7 +319,7 @@ export function checkGenerator(g) {
     if (a !== b) {
       const d = firstDiff(a, b);
       problems.push(
-        `STALE ${o} — the committed copy differs from what its generator produces now.\n` +
+        `STALE ${o} — the committed copy differs from what its generator produces now (npm run inventories:refresh regenerates all of them).\n` +
           `    refresh: ${refresh}   (then commit ${o})\n` +
           `    first difference, line ${d.line}:\n      committed:   ${String(d.committed).slice(0, 160)}\n      regenerated: ${String(d.regenerated).slice(0, 160)}`,
       );
@@ -338,6 +339,23 @@ function printList() {
 function main() {
   const argv = process.argv.slice(2);
   if (argv.includes("--list")) return printList();
+  if (argv.includes("--fix")) {
+    // Regenerate everything IN PLACE (no restore), in dependency order, and say
+    // what moved. Never stages anything: the committer reviews and commits.
+    // Adding a test moves the burn-down score and the vacuity report, so this
+    // is the one command to run before pushing a new guard.
+    for (const g of GENERATED) {
+      const before = g.outputs.map((o) => (existsSync(join(REPO, o)) ? readFileSync(join(REPO, o), "utf8") : ""));
+      const run = spawnSync(g.cmd[0], g.cmd.slice(1), { cwd: REPO, encoding: "utf8", maxBuffer: 1 << 26 });
+      if (run.status !== 0 && !g.allowNonZeroExit) { console.error(`✗ ${g.id}: ${g.cmd.join(" ")} exited ${run.status}`); process.exitCode = 1; continue; }
+      g.outputs.forEach((o, k) => {
+        const after = readFileSync(join(REPO, o), "utf8");
+        const moved = normalise(before[k], g.volatile) !== normalise(after, g.volatile);
+        console.log(`${moved ? "↻ regenerated" : "  unchanged  "} ${o}`);
+      });
+    }
+    return;
+  }
   const i = argv.indexOf("--only");
   const only = i >= 0 ? new Set(argv[i + 1].split(",")) : null;
 

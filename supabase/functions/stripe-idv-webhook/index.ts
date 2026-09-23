@@ -2,6 +2,12 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import {
+  describeUnverifiedDelivery,
+  signatureFailureAlert,
+  stripeKeyMode,
+  webhookRejectResponse,
+} from "../_shared/stripeWebhookReject.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,56 +21,48 @@ serve(async (req) => {
   const webhookSecret = Deno.env.get("STRIPE_IDV_WEBHOOK_SECRET");
 
   if (!stripeKey) {
-    // A missing key means EVERY IDV event is silently dropped. Keep the 200 so
-    // Stripe stops retrying, but page ops — a console line alone would let the
-    // whole identity-verification pipeline sit broken unnoticed.
-    console.error("[stripe-idv-webhook] STRIPE_SECRET_KEY not set — acknowledging to stop retries");
+    // Refused (500), not acknowledged, so Stripe keeps the event and retries it
+    // once the key is set (docs/OPEN.md Q156; policy in
+    // _shared/stripeWebhookReject.ts). Page ops as well.
+    console.error("[stripe-idv-webhook] STRIPE_SECRET_KEY not set — refusing (500) so Stripe retries");
     await postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "critical",
       title: "Stripe IDV webhook misconfigured",
-      message: "STRIPE_SECRET_KEY is not set — every identity-verification event is being dropped (200-ACKed) with no processing.",
+      message: "STRIPE_SECRET_KEY is not set — every identity-verification event is refused (500) and retried by Stripe, not processed.",
     });
-    return new Response(JSON.stringify({ received: true, error: "stripe_key_not_configured" }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return webhookRejectResponse("stripe_key_not_configured", corsHeaders);
   }
 
   if (!webhookSecret) {
-    // Return 200 so Stripe stops retrying — same pattern as stripe-webhook.
-    // A 500 here causes Stripe to retry every IDV event indefinitely, filling
-    // logs and burning the retry budget. But a silent drop of every IDV event is
-    // an outage, so page ops instead of only logging.
-    console.error("[stripe-idv-webhook] STRIPE_IDV_WEBHOOK_SECRET not set — acknowledging to stop retries");
+    // Refused (500), not acknowledged: Stripe's retries are bounded per event
+    // (no storm), and a 200 here dropped every IDV event for good (Q156).
+    console.error("[stripe-idv-webhook] STRIPE_IDV_WEBHOOK_SECRET not set — refusing (500) so Stripe retries");
     await postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "critical",
       title: "Stripe IDV webhook misconfigured",
-      message: "STRIPE_IDV_WEBHOOK_SECRET is not set — every identity-verification event is being dropped (200-ACKed) with no processing.",
+      message: "STRIPE_IDV_WEBHOOK_SECRET is not set — every identity-verification event is refused (500) and retried by Stripe, not processed.",
     });
-    return new Response(JSON.stringify({ received: true, error: "webhook_secret_not_configured" }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return webhookRejectResponse("webhook_secret_not_configured", corsHeaders);
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
   if (!supabaseUrl || !serviceRoleKey) {
-    // createClient() throws if the URL is falsy — outside any try-catch, that
-    // produces an unhandled 500 that causes Stripe to retry indefinitely with no
-    // ops signal. Return 200 + alert so Stripe stops and ops investigates.
+    // createClient() throws if the URL is falsy, so refuse here with an alert
+    // rather than crash. 500, not 200: Stripe keeps the event and retries it
+    // once the env is fixed (Q156).
     const missing = [!supabaseUrl && "SUPABASE_URL", !serviceRoleKey && "SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY"].filter(Boolean).join(", ");
-    console.error(`[stripe-idv-webhook] Missing required env vars: ${missing} — acknowledging to stop retries`);
+    console.error(`[stripe-idv-webhook] Missing required env vars: ${missing} — refusing (500) so Stripe retries`);
     await postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "critical",
       title: "Stripe IDV webhook misconfigured — Supabase env vars missing",
-      message: `The following env vars are not set: ${missing}. Every identity-verification event is being dropped (200-ACKed) with no processing until this is fixed.`,
+      message: `The following env vars are not set: ${missing}. Every identity-verification event is refused (500) and retried by Stripe, not processed, until this is fixed.`,
     });
-    return new Response(JSON.stringify({ received: true, error: "supabase_not_configured" }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return webhookRejectResponse("supabase_not_configured", corsHeaders);
   }
 
   const stripe = new Stripe(stripeKey, {
@@ -77,35 +75,35 @@ serve(async (req) => {
   const sig = req.headers.get("stripe-signature");
 
   if (!sig) {
-    // Return 200 (not 401) — no-sig requests are either misconfigured
-    // clients or probes. A 401 causes Stripe to retry 14+ times over 3
-    // days; 200 stops the storm immediately.
-    console.error("[stripe-idv-webhook] Missing stripe-signature header — acknowledging to stop retries");
-    return new Response(JSON.stringify({ received: true, error: "missing_signature_header" }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // Stripe signs every delivery, so this caller is not Stripe: refuse it.
+    // A non-Stripe caller does not retry, so a 400 costs nothing.
+    console.error("[stripe-idv-webhook] Missing stripe-signature header — refusing (400)");
+    return webhookRejectResponse("missing_signature_header", corsHeaders);
   }
 
   let event: Stripe.Event;
   try {
     event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);
   } catch (err) {
-    // Return 200 (not 400) to stop Stripe from retrying. A signature failure
-    // here means either a wrong secret or a tampered payload — neither is
-    // fixable by retrying. Alert ops: a misconfigured STRIPE_IDV_WEBHOOK_SECRET
-    // silently drops every IDV event, breaking the entire identity-verification
-    // pipeline with no visible signal — same alerting pattern as stripe-webhook.
-    console.error("[stripe-idv-webhook] Signature verification failed:", err);
-    await postSlackOpsAlert({
-      kind: "stripe_webhook_error",
-      severity: "critical",
-      title: "Stripe IDV webhook signature failed",
-      message: "Stripe IDV webhook signature verification failed — identity verification events are being acknowledged but not processed. Check `STRIPE_IDV_WEBHOOK_SECRET`.",
-      fields: { Error: String(err).slice(0, 200) },
-    });
-    return new Response(JSON.stringify({ received: true, error: "signature_verification_failed" }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // REFUSED (400), never acknowledged (docs/OPEN.md Q156). A wrong secret IS
+    // fixable by retrying: Stripe retries the refused event on its bounded
+    // schedule, and once STRIPE_IDV_WEBHOOK_SECRET is corrected the retry
+    // lands. The old 200 told Stripe it was delivered and lost it for good.
+    // A tampered payload stays refused on every retry and is never processed.
+    const delivery = describeUnverifiedDelivery(body, sig);
+    console.error("[stripe-idv-webhook] Signature verification failed — refusing (400) so Stripe retries:", err);
+    console.error(`[stripe-idv-webhook] Claimed (UNVERIFIED) event: ${delivery.claimedId ?? "none"} type=${delivery.claimedType ?? "none"} livemode=${delivery.claimedLivemode} schemes=${delivery.schemes.join(",") || "none"}`);
+    await postSlackOpsAlert(
+      signatureFailureAlert({
+        fn: "stripe-idv-webhook",
+        title: "Stripe IDV webhook signature failed",
+        secretEnv: "STRIPE_IDV_WEBHOOK_SECRET",
+        keyMode: stripeKeyMode(stripeKey),
+        err,
+        delivery,
+      }),
+    );
+    return webhookRejectResponse("signature_verification_failed", corsHeaders);
   }
 
   // ---- Replay dedupe ----

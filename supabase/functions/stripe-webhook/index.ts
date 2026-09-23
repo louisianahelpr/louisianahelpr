@@ -2,6 +2,12 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import {
+  describeUnverifiedDelivery,
+  signatureFailureAlert,
+  stripeKeyMode,
+  webhookRejectResponse,
+} from "../_shared/stripeWebhookReject.ts";
 import { logStep, type WebhookContext } from "./context.ts";
 import { handleCheckoutSessionCompleted } from "./handlers/checkoutSessionCompleted.ts";
 import { handleCheckoutSessionExpired } from "./handlers/checkoutSessionExpired.ts";
@@ -63,17 +69,16 @@ serve(async (req) => {
   }
 
   if (!stripeKey) {
-    console.error("🚨 [STRIPE-WEBHOOK] ALERT: STRIPE_SECRET_KEY not set — acknowledging to stop retries");
+    // Refused, not acknowledged: see _shared/stripeWebhookReject.ts (Q156). A
+    // 500 keeps every event alive in Stripe's retry queue until the key is set.
+    console.error("🚨 [STRIPE-WEBHOOK] ALERT: STRIPE_SECRET_KEY not set — refusing (500) so Stripe retries");
     await postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "critical",
       title: "Stripe webhook misconfigured — STRIPE_SECRET_KEY not set",
-      message: "STRIPE_SECRET_KEY is missing from edge function secrets. All Stripe webhook events are being acknowledged but NOT processed. Payments, subscriptions, and payouts are broken until this is fixed.",
+      message: "STRIPE_SECRET_KEY is missing from edge function secrets. Every Stripe webhook event is refused (500) and retried by Stripe, NOT processed. Payments, subscriptions, and payouts are broken until this is fixed.",
     });
-    return new Response(JSON.stringify({ received: true, error: "stripe_key_not_configured" }), {
-      headers: { "Content-Type": "application/json" },
-      status: 200,
-    });
+    return webhookRejectResponse("stripe_key_not_configured");
   }
 
   const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
@@ -86,34 +91,30 @@ serve(async (req) => {
   let event: Stripe.Event;
 
   if (!webhookSecret) {
-    console.error("🚨 [STRIPE-WEBHOOK] ALERT: STRIPE_WEBHOOK_SECRET is not configured — acknowledging 200 to stop retries");
+    console.error("🚨 [STRIPE-WEBHOOK] ALERT: STRIPE_WEBHOOK_SECRET is not configured — refusing (500) so Stripe retries");
     await postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "critical",
       title: "Stripe webhook misconfigured — STRIPE_WEBHOOK_SECRET not set",
-      message: "STRIPE_WEBHOOK_SECRET is missing from edge function secrets. All Stripe webhook events are being acknowledged but NOT processed. Payments, subscriptions, and payouts are broken until this is fixed.",
+      message: "STRIPE_WEBHOOK_SECRET is missing from edge function secrets. Every Stripe webhook event is refused (500) and retried by Stripe, NOT processed. Payments, subscriptions, and payouts are broken until this is fixed.",
     });
-    return new Response(JSON.stringify({ received: true, error: "webhook_secret_not_configured" }), {
-      headers: { "Content-Type": "application/json" },
-      status: 200,
-    });
+    return webhookRejectResponse("webhook_secret_not_configured");
   }
 
   const sig = req.headers.get("stripe-signature");
   if (!sig) {
-    console.error("🚨 [STRIPE-WEBHOOK] ALERT: No stripe-signature header on request — acknowledging 200 to stop retries");
-    return new Response(JSON.stringify({ received: true, error: "missing_signature_header" }), {
-      headers: { "Content-Type": "application/json" },
-      status: 200,
-    });
+    // Stripe signs every delivery, so this caller is not Stripe: refuse it.
+    console.error("🚨 [STRIPE-WEBHOOK] No stripe-signature header on request — refusing (400)");
+    return webhookRejectResponse("missing_signature_header");
   }
 
   // Stripe issues a SEPARATE signing secret per endpoint object, and this
   // project has more than one endpoint pointed at this same function URL
   // (the account endpoint and the Connect endpoint). Verifying against a
   // single secret therefore cannot work: whichever endpoint's secret is not
-  // in the env fails signature verification 100% of the time, silently, and
-  // the 200-to-stop-retries behaviour below means Stripe never complains.
+  // in the env fails signature verification 100% of the time. (That used to
+  // be silent as well: the failure answered 200, so Stripe never complained.
+  // It now answers 400 and alerts; see the catch below.)
   //
   // So STRIPE_WEBHOOK_SECRET accepts a COMMA-SEPARATED list and each secret
   // is tried in turn. One secret is still perfectly valid input — a list of
@@ -144,24 +145,32 @@ serve(async (req) => {
   try {
     event = await verifyAgainstAny();
   } catch (err) {
-    // Loud, easy-to-find log line so you can spot signature mismatches in Supabase logs
+    // REFUSED, never acknowledged (docs/OPEN.md Q156). This used to answer 200
+    // "to stop Stripe retries", which told Stripe the event was delivered: on
+    // 2026-09-23 12:43:27Z one real Stripe delivery was dropped that way, with
+    // no retry and a success in Stripe's dashboard. A 400 makes Stripe retry on
+    // its bounded schedule (one retry sequence per event, so no storm), shows
+    // the failure in its dashboard, and lets a fixed secret recover the event.
+    // Policy and trade-offs: _shared/stripeWebhookReject.ts.
+    const delivery = describeUnverifiedDelivery(body, sig);
     console.error("🚨 [STRIPE-WEBHOOK] SIGNATURE VERIFICATION FAILED 🚨");
     console.error(`[STRIPE-WEBHOOK] Error: ${String(err)}`);
-    console.error(`[STRIPE-WEBHOOK] Signature header (first 40 chars): ${sig.slice(0, 40)}...`);
+    console.error(`[STRIPE-WEBHOOK] Signature schemes: ${delivery.schemes.join(",") || "none"} (Stripe adds v0 only to TEST-mode events)`);
+    console.error(`[STRIPE-WEBHOOK] Claimed (UNVERIFIED) event: ${delivery.claimedId ?? "none"} type=${delivery.claimedType ?? "none"} livemode=${delivery.claimedLivemode}`);
     console.error(`[STRIPE-WEBHOOK] Tried ${webhookSecrets.length} secret(s): ${webhookSecrets.map((s) => `${s.slice(0, 8)}…(${s.length})`).join(", ")}`);
-    console.error(`[STRIPE-WEBHOOK] Body length: ${body.length} bytes`);
-    console.error("[STRIPE-WEBHOOK] → Returning 200 OK to stop Stripe retries. Add the sending endpoint's signing secret to STRIPE_WEBHOOK_SECRET (comma-separate multiple endpoints).");
-    await postSlackOpsAlert({
-      kind: "stripe_webhook_error",
-      severity: "critical",
-      title: "Stripe webhook signature failed",
-      message: "Stripe webhook signature verification failed — events are being acknowledged but not processed. Check `STRIPE_WEBHOOK_SECRET`.",
-      fields: { Error: String(err).slice(0, 200), "Body bytes": body.length },
-    });
-    return new Response(JSON.stringify({ received: true, error: "signature_verification_failed" }), {
-      headers: { "Content-Type": "application/json" },
-      status: 200,
-    });
+    console.error(`[STRIPE-WEBHOOK] Body length: ${delivery.bodyBytes} bytes`);
+    console.error("[STRIPE-WEBHOOK] → Refusing (400) so Stripe retries. Add the sending endpoint's signing secret to STRIPE_WEBHOOK_SECRET (comma-separate multiple endpoints).");
+    await postSlackOpsAlert(
+      signatureFailureAlert({
+        fn: "stripe-webhook",
+        title: "Stripe webhook signature failed",
+        secretEnv: "STRIPE_WEBHOOK_SECRET",
+        keyMode: stripeKeyMode(stripeKey),
+        err,
+        delivery,
+      }),
+    );
+    return webhookRejectResponse("signature_verification_failed");
   }
 
   logStep("Event received", { type: event.type, id: event.id });

@@ -1,0 +1,23 @@
+{
+  "_comment": "Q156: shape of the Stripe TEST-mode events list on 2026-09-23. evt_1UIPUPKp2H4b7tECb12rdVVL (checkout.session.expired) was answered 500 three times by stripe-webhook (2026-09-22 08:57:20Z, 08:57:56Z, 09:57:18Z, each ~91 s) and still had pending_webhooks=1. The guard must go red on it.",
+  "since": 1790000000,
+  "until": 1790100000,
+  "data": [
+    {
+      "id": "evt_1UIPUPKp2H4b7tECb12rdVVL",
+      "object": "event",
+      "type": "checkout.session.expired",
+      "created": 1790067349,
+      "livemode": false,
+      "pending_webhooks": 1
+    },
+    {
+      "id": "evt_3UIoy7Kp2H4b7tEC1Q5ScXuB",
+      "object": "event",
+      "type": "payment_intent.succeeded",
+      "created": 1790065292,
+      "livemode": false,
+      "pending_webhooks": 0
+    }
+  ]
+}

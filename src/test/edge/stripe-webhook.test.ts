@@ -7,9 +7,11 @@
  * account updates, and payout transfer settlement.
  *
  * Critical, previously-untested invariants exercised here:
- *   - It ALWAYS returns HTTP 200, even when misconfigured or on a bad
- *     signature, so Stripe stops retrying (a non-2xx triggers infinite
- *     retry storms).
+ *   - A delivery it could not verify (bad signature, no signature, missing
+ *     key or signing secret) is REFUSED with a non-2xx and never acknowledged,
+ *     so Stripe keeps the event and retries it (docs/OPEN.md Q156: the old
+ *     200 dropped a real delivery on 2026-09-23 12:43:27Z). Stripe's retries
+ *     are bounded per event, so this is not a retry storm.
  *   - Signature verification gates all event processing.
  *   - The idempotency guard (unique event_id insert) skips replays.
  *   - checkout.session.completed funds escrow / marks tips paid.
@@ -60,16 +62,27 @@ describe("stripe-webhook edge function", () => {
     resetSharedMocks();
   });
 
-  describe("defensive 200-on-misconfig", () => {
-    it("returns 200 (not 5xx) when STRIPE_SECRET_KEY is not set", async () => {
+  /*
+   * Q156: nothing it could not verify is ever acknowledged. Each of these used
+   * to answer 200 "to stop Stripe retrying", which is how a genuine delivery
+   * was dropped on 2026-09-23 12:43:27Z with nothing left to replay.
+   *
+   * @mutate supabase/functions/_shared/stripeWebhookReject.ts | stripe_key_not_configured: 500, | stripe_key_not_configured: 200,
+   * @mutate supabase/functions/_shared/stripeWebhookReject.ts | webhook_secret_not_configured: 500, | webhook_secret_not_configured: 200,
+   * @mutate supabase/functions/_shared/stripeWebhookReject.ts | missing_signature_header: 400, | missing_signature_header: 200,
+   * @mutate supabase/functions/stripe-webhook/index.ts | return webhookRejectResponse("webhook_secret_not_configured"); | return new Response("{}", { status: 200 });
+   */
+  describe("misconfiguration is refused (non-2xx), never acknowledged", () => {
+    it("returns 500 when STRIPE_SECRET_KEY is not set, and pages ops", async () => {
       setEnv({ SUPABASE_URL: "https://x.test", STRIPE_WEBHOOK_SECRET: "whsec_x" });
       const fn = await loadEdgeFunction("stripe-webhook");
       const res = await fn.fetch(webhookRequest(fn, "{}"));
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(500);
       expect((await json(res)).error).toBe("stripe_key_not_configured");
+      expect((slackAlerts[0] as { severity?: string }).severity).toBe("critical");
     });
 
-    it("returns 200 when STRIPE_WEBHOOK_SECRET is missing", async () => {
+    it("returns 500 when STRIPE_WEBHOOK_SECRET is missing, and pages ops", async () => {
       setEnv({
         SUPABASE_URL: "https://x.test",
         SUPABASE_SERVICE_ROLE_KEY: "svc",
@@ -77,15 +90,18 @@ describe("stripe-webhook edge function", () => {
       });
       const fn = await loadEdgeFunction("stripe-webhook");
       const res = await fn.fetch(webhookRequest(fn, "{}"));
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(500);
       expect((await json(res)).error).toBe("webhook_secret_not_configured");
+      expect((slackAlerts[0] as { severity?: string }).severity).toBe("critical");
     });
 
-    it("returns 200 when the stripe-signature header is absent", async () => {
+    it("returns 400 when the stripe-signature header is absent, and writes nothing", async () => {
       const fn = await loadConfigured();
       const res = await fn.fetch(fn.request({ rawBody: "{}" }));
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(400);
       expect((await json(res)).error).toBe("missing_signature_header");
+      expect(stripeMock.webhooks.constructEventAsync).not.toHaveBeenCalled();
+      expect(scenario.writes).toHaveLength(0);
     });
 
     it("OPTIONS preflight returns 200 with CORS", async () => {
@@ -96,20 +112,54 @@ describe("stripe-webhook edge function", () => {
     });
   });
 
+  /*
+   * Q156, the incident itself: a real Stripe delivery (3524 bytes, header
+   * t=1790167406,v1=…) failed verification and was answered 200, so Stripe
+   * recorded a success and never sent it again.
+   *
+   * @mutate supabase/functions/_shared/stripeWebhookReject.ts | signature_verification_failed: 400, | signature_verification_failed: 200,
+   * @mutate supabase/functions/stripe-webhook/index.ts | return webhookRejectResponse("signature_verification_failed"); | return new Response(JSON.stringify({ received: true, error: "signature_verification_failed" }), { status: 200 });
+   * @mutate supabase/functions/_shared/stripeWebhookReject.ts | severity: "critical" as const, | severity: "warning" as const,
+   * @mutate supabase/functions/_shared/stripeWebhookReject.ts | claimedLivemode = typeof j.livemode === "boolean" ? j.livemode : null; | claimedLivemode = null;
+   * @mutate supabase/functions/stripe-webhook/index.ts | await postSlackOpsAlert(\n      signatureFailureAlert({\n        fn: "stripe-webhook", | void (\n      signatureFailureAlert({\n        fn: "stripe-webhook",
+   */
   describe("signature verification", () => {
-    it("returns 200 + signature_verification_failed on a bad signature, and alerts Slack", async () => {
+    it("REFUSES a bad signature with 400 (so Stripe retries), writes nothing, and pages ops naming the event", async () => {
       const fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockRejectedValue(
         new Error("No signatures found matching the expected signature"),
       );
-      const res = await fn.fetch(webhookRequest(fn, '{"id":"evt_1"}'));
-      expect(res.status).toBe(200);
-      expect((await json(res)).error).toBe("signature_verification_failed");
-      // A critical Slack ops alert must have fired.
-      expect(slackAlerts.length).toBeGreaterThan(0);
-      expect((slackAlerts[0] as { kind: string }).kind).toBe(
-        "stripe_webhook_error",
+      const res = await fn.fetch(
+        webhookRequest(
+          fn,
+          '{"id":"evt_q156","type":"account.updated","livemode":true}',
+          "t=1790167406,v1=5803cc6d86f73d12",
+        ),
       );
+      expect(res.status).toBe(400);
+      expect(res.status >= 200 && res.status < 300).toBe(false);
+      expect((await json(res)).error).toBe("signature_verification_failed");
+      // Nothing from an unverified body is processed: the dedupe insert is the
+      // first write, so zero writes proves it stopped at the signature.
+      expect(scenario.writes).toHaveLength(0);
+
+      // A critical alert (which opens an ops_alert_ledger item) naming what the
+      // delivery claims to be, so it can be found in Stripe and resent.
+      const alert = slackAlerts.find((a) =>
+        /signature failed/i.test(String((a as { title?: string }).title ?? "")),
+      ) as
+        | { kind: string; severity: string; oncePerDayKey?: string; fields: Record<string, unknown> }
+        | undefined;
+      expect(alert?.kind).toBe("stripe_webhook_error");
+      expect(alert?.severity).toBe("critical");
+      expect(alert?.fields["Claimed event (unverified)"]).toBe("evt_q156");
+      expect(alert?.fields["Claimed livemode (unverified)"]).toBe("true");
+      expect(alert?.fields["Key mode"]).toBe("TEST");
+      expect(alert?.fields["Signature schemes"]).toBe("t,v1");
+      expect(String(alert?.fields.Error)).toMatch(/No signatures found/);
+      // Stripe retries a refused event; the page goes out once a day, the
+      // ledger still counts every occurrence.
+      expect(alert?.oncePerDayKey).toBe("stripe-webhook:signature_verification_failed");
     });
 
     it("processes the event when the signature verifies", async () => {

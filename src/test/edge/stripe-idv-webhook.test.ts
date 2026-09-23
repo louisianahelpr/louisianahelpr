@@ -95,13 +95,21 @@ describe("stripe-idv-webhook edge function", () => {
       data: { object: { id: "vs_forged", metadata: { user_id: "victim-1" } } },
     });
 
+    /*
+     * Q156: refused with a non-2xx, never acknowledged, so a genuine event
+     * whose secret is wrong is retried by Stripe instead of lost.
+     *
+     * @mutate supabase/functions/stripe-idv-webhook/index.ts | return webhookRejectResponse("signature_verification_failed", corsHeaders); | return new Response("{}", { status: 200 });
+     * @mutate supabase/functions/stripe-idv-webhook/index.ts | return webhookRejectResponse("missing_signature_header", corsHeaders); | return new Response("{}", { status: 200 });
+     * @mutate supabase/functions/stripe-idv-webhook/index.ts | await postSlackOpsAlert(\n      signatureFailureAlert({\n        fn: "stripe-idv-webhook", | void (\n      signatureFailureAlert({\n        fn: "stripe-idv-webhook",
+     */
     it("refuses an unsigned POST and writes nothing", async () => {
       const fn = await loadConfigured();
       const res = await fn.fetch(
         fn.request({ rawBody: FORGED, headers: { "content-type": "application/json" } }),
       );
-      // 200, not 401, is deliberate: a non-2xx makes Stripe retry 14+ times.
-      expect(res.status).toBe(200);
+      // 400: Stripe signs every delivery, so this caller is not Stripe.
+      expect(res.status).toBe(400);
       expect(JSON.parse(await res.text()).error).toBe("missing_signature_header");
       expect(stripeMock.webhooks.constructEventAsync).not.toHaveBeenCalled();
       expect(scenario.writes).toHaveLength(0);
@@ -118,7 +126,8 @@ describe("stripe-idv-webhook edge function", () => {
           headers: { "stripe-signature": "t=1,v1=forged", "content-type": "application/json" },
         }),
       );
-      expect(res.status).toBe(200);
+      // 400, not 200: Stripe retries it, so fixing the secret recovers a real event.
+      expect(res.status).toBe(400);
       expect(JSON.parse(await res.text()).error).toBe("signature_verification_failed");
       // The whole point: the forged body must NOT be parsed and processed. The
       // dedupe insert is the first write, so zero writes proves the function

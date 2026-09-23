@@ -22,6 +22,13 @@
  *      As of 2026-09-12 the shipped script's hardcoded list had EIGHT missing
  *      events and still carried invoice.paid, which has no handler.
  *
+ *   C. UNDELIVERED EVENTS (docs/OPEN.md Q156). An event whose pending_webhooks
+ *      is still > 0 was never answered 2xx by our endpoint. stripe-webhook now
+ *      refuses (non-2xx) anything it cannot verify instead of acknowledging it,
+ *      so a wrong signing secret shows up here, on Stripe's side, not only in
+ *      our own logs. Measured 2026-09-23: evt_1UIPUPKp2H4b7tECb12rdVVL
+ *      (checkout.session.expired) had pending_webhooks=1 after three 500s.
+ *
  * Structure: the STATIC half needs no credentials and always runs. The LIVE
  * half needs a Stripe TEST-MODE key in STRIPE_TEST_SECRET_KEY. A missing key is
  * RED on any run that includes the live half, never a skip that still exits 0 —
@@ -71,6 +78,12 @@ const REQUIRE_LIVE = !STATIC_ONLY;
  * scripts/fixtures/stripe-webhook-endpoints/. Never used by CI.
  */
 const FIXTURE = argv.includes("--fixture") ? argv[argv.indexOf("--fixture") + 1] : null;
+/**
+ * --events-fixture <file>: grade a recorded /v1/events list ({data, since,
+ * until}) for undelivered events, so that half is provable red without a key
+ * (Q156). Pair with --static to skip the network. Never used by CI's live job.
+ */
+const EVENTS_FIXTURE = argv.includes("--events-fixture") ? argv[argv.indexOf("--events-fixture") + 1] : null;
 
 const failures = [];
 const notes = [];
@@ -185,7 +198,68 @@ async function liveHalf() {
     return;
   }
 
-  return gradeEndpoints(list);
+  gradeEndpoints(list);
+
+  // C. Stripe's own count of events it could not deliver (Q156).
+  const since = Math.floor(Date.now() / 1000) - UNDELIVERED_WINDOW_S;
+  const until = Math.floor(Date.now() / 1000) - UNDELIVERED_GRACE_S;
+  const events = [];
+  try {
+    let after = null;
+    for (let page = 0; page < 20; page++) {
+      const q = new URLSearchParams({ limit: "100", "created[gte]": String(since), "created[lte]": String(until) });
+      for (const t of handlers) q.append("types[]", t);
+      if (after) q.set("starting_after", after);
+      const res = await stripeGet(key, `events?${q}`);
+      if (!Array.isArray(res?.data)) throw new Error("the events response has no `data` array");
+      events.push(...res.data);
+      if (!res.has_more || res.data.length === 0) break;
+      after = res.data.at(-1).id;
+    }
+  } catch (e) {
+    fail(`Could not list Stripe test-mode events to check for undelivered ones: ${e.message}`);
+    return;
+  }
+  gradeUndelivered({ data: events, since, until });
+}
+
+// Q156. pending_webhooks > 0 on an event means Stripe has NOT had a 2xx from an
+// endpoint it delivers that event to: stripe-webhook refused it (a signature it
+// could not verify, a missing secret) or failed to process it. Since Q156 every
+// refusal is a non-2xx, so this is Stripe's own failed-delivery count, read from
+// outside our code. A daily run over [now-26h, now-1h] sees every event about
+// once, with overlap; the last hour is left to Stripe's first retries.
+const UNDELIVERED_WINDOW_S = 26 * 3600;
+const UNDELIVERED_GRACE_S = 3600;
+
+/** Grade a list of Stripe events: any still pending delivery is a failure. */
+function gradeUndelivered({ data, since, until }) {
+  if (!Array.isArray(data)) {
+    fail("The events list has no `data` array — refusing to grade a read that returned nothing.");
+    return;
+  }
+  if (data.some((e) => e.livemode)) {
+    fail("Live-mode events came back from a test-mode key. Refusing to grade live mode.");
+    return;
+  }
+  const pending = data.filter((e) => Number(e.pending_webhooks) > 0);
+  notes.push(
+    `Stripe test mode: ${data.length} handled-type event(s) created ${new Date(since * 1000).toISOString()}..${new Date(until * 1000).toISOString()}, ${pending.length} not delivered.`,
+  );
+  if (pending.length) {
+    fail(
+      `${pending.length} Stripe event(s) were never delivered with a 2xx (pending_webhooks > 0):\n` +
+        pending
+          .map((e) => `     ${e.id} ${e.type} created ${new Date(e.created * 1000).toISOString()} pending_webhooks=${e.pending_webhooks}`)
+          .join("\n") +
+        `\n   stripe-webhook refused or failed each of these. Read its function_logs for the event id (a signature failure logs the claimed id), fix the cause, then resend the event from the Stripe dashboard (TEST mode) and confirm it lands in stripe_webhook_events.`,
+    );
+  }
+}
+
+if (EVENTS_FIXTURE) {
+  notes.push(`FIXTURE MODE: grading ${EVENTS_FIXTURE} instead of live Stripe events.`);
+  gradeUndelivered(JSON.parse(readFileSync(EVENTS_FIXTURE, "utf8")));
 }
 
 /** Grade a /v1/webhook_endpoints list — the same logic for live and fixture. */

@@ -99,6 +99,18 @@ jobs:
             exit 1
           fi
           echo "Guard correctly failed (exit $code) on the stale-event-list fixture."
+      - name: Self-test — the guard must go red on an undelivered event (Q156)
+        run: |
+          set +e
+          node scripts/check-stripe-webhook-events.mjs --static \
+            --events-fixture scripts/fixtures/stripe-webhook-endpoints/undelivered-event-q156.json
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "::error::The guard PASSED on an event Stripe never delivered. Undelivered events are no longer detected."
+            exit 1
+          fi
+          echo "Guard correctly failed (exit $code) on the undelivered-event fixture."
 
   live-secret-present:
     name: STRIPE_TEST_SECRET_KEY is configured

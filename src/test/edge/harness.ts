@@ -206,6 +206,17 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/capturedEscrow.ts";`,
   );
 
+  // Unverified-delivery refusal: `_shared/stripeWebhookReject.ts` has ZERO
+  // imports, so the generated file points at the REAL module. It decides the
+  // HTTP status Stripe sees when a delivery cannot be verified, and that status
+  // is the whole difference between Stripe retrying a genuine event and Stripe
+  // dropping it for good (docs/OPEN.md Q156). A mock would put exactly that
+  // number outside the tests that pin it.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeWebhookReject\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/stripeWebhookReject.ts";`,
+  );
+
   // Subscription period resolver: `_shared/stripeSubscriptionPeriod.ts` has
   // ZERO imports (it is structurally typed over the Stripe payload), so the
   // generated file points at the REAL module rather than a mock — same

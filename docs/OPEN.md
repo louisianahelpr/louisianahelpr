@@ -7833,3 +7833,15 @@ sure someone hears it and closes it.
     triggers on dead columns; storage buckets with no writer (id-documents?).
   - Flows the product retired: ID upload to us (Q40), anything tier/role-gated
     that CLAUDE.md now forbids.
+- [ ] **Q42 Work down the open items in the alert ledger (43 at backfill,
+  2026-09-23).** The owner's order applies to them too: each one gets a root
+  cause and a fix (or an owner ask), and closes only when its own verify
+  passes. Group them first: stuck-payment x36 / job-stalled x30 / "asked
+  support" x10 are mostly E2E and seed jobs (ties to Q2); nightly-red x5;
+  detect_stuck_payments + ops-digest still failing; 24 manual error_logs items
+  (cron-http timeouts from before the 30s change, email-dlq, dispute-unsettled).
+- [ ] **Q43 LOOK at the alert ledger's surfaces.** The new "Open Alerts" card
+  on /admin?view=health has never been screenshotted, and the session-start
+  hook's open-alert summary hasn't been re-run since deploy. Screenshot at
+  375 and 1440, record the review, and confirm the hook prints the real
+  count within its time cap.

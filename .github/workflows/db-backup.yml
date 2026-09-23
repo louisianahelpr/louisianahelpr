@@ -150,7 +150,7 @@ jobs:
           # exported here as replayable cron.schedule() calls plus the active
           # flag. Commands reference vault secrets BY NAME; no secret value is
           # in this file.
-          Q="select coalesce(string_agg(format('SELECT cron.schedule(%L, %L, %L);', jobname, schedule, command) || case when active then '' else format(E'\nUPDATE cron.job SET active = false WHERE jobname = %L;', jobname) end, E'\n' order by jobname), '') as sql, count(*) as n from cron.job"
+          Q="select coalesce(string_agg(format('SELECT cron.schedule(%L, %L, %L);', jobname, schedule, command) || case when active then '' else format(E'\nSELECT cron.alter_job(jobid, active := false) FROM cron.job WHERE jobname = %L;', jobname) end, E'\n' order by jobname), '') as sql, count(*) as n from cron.job"
           RES=$(curl -sS --fail-with-body -X POST \
             "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" \
             -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" -H 'Content-Type: application/json' \

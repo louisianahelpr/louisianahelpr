@@ -80,10 +80,10 @@ describe("the backup restore drill exists and has teeth", () => {
   });
 
   it("the script carries the three repairs the first drill proved necessary", () => {
-    // 306 of 306 functions came back anon-executable without this (prod: 17).
+    // Drill 2026-09-23: 306 of 306 functions came back anon-executable without this (prod: 17).
     expect(script).toMatch(/ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon/);
     expect(script).toMatch(/restored copy lets anon EXECUTE[^\n]*\n\s+FAIL=1/);
-    // 0 of 55 cron schedules came back: the backup must carry cron.sql and the drill must load it.
+    // Drill 2026-09-23: 0 of 55 cron schedules came back; the backup must carry cron.sql and the drill must load it.
     expect(script).toMatch(/-f "\$DIR\/cron\.sql"/);
     expect(script).toMatch(/backup has no cron\.sql[\s\S]{0,160}FAIL=1/);
     expect(read(".github/workflows/db-backup.yml")).toMatch(/-C out roles\.sql schema\.sql data\.sql cron\.sql/);

@@ -119,10 +119,15 @@ SQL
 # restored into is at least as new as prod and has them; adding them here keeps
 # the drill measuring the BACKUP, not the CLI's image version. Types measured
 # on prod 2026-09-23 (information_schema.columns).
+# storage.buckets is owned by the storage admin, so this one runs as the local
+# stack's supabase_admin (default local password; never a hosted role).
+PSQL_TARGET_SAVED=("${PSQL[@]}")
+PSQL=(psql "${TARGET/postgres:postgres@/supabase_admin:postgres@}" -X -q -v ON_ERROR_STOP=0)
 step venue <<'SQL'
 ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS lifecycle_configuration jsonb;
 ALTER TABLE storage.buckets ADD COLUMN IF NOT EXISTS lifecycle_configuration_generation uuid;
 SQL
+PSQL=("${PSQL_TARGET_SAVED[@]}")
 step data -c 'SET session_replication_role = replica' -f "$DIR/data.sql"
 # STEP 4 — cron schedules (db-backup.yml exports them as cron.sql; the data
 # dump carries none). Loaded, then ALL deactivated in the same transaction: on
@@ -130,7 +135,7 @@ step data -c 'SET session_replication_role = replica' -f "$DIR/data.sql"
 # call through exist (runbook §4). Required: a backup without them is a
 # restore that silently stops releasing payments.
 if [ -s "$DIR/cron.sql" ]; then
-  step cron -1 -f "$DIR/cron.sql" -c 'UPDATE cron.job SET active = false'
+  step cron -1 -f "$DIR/cron.sql" -c 'SELECT cron.alter_job(jobid, active := false) FROM cron.job'
 else
   echo "::error::backup has no cron.sql — the $(date -u +%F) restore would bring back zero cron schedules"
   : > "$OUT/cron.err"

@@ -83,7 +83,7 @@ function inventory(): Fn[] {
     // CALLED, i.e. after the last `await verify…()` or the call itself.
     let anchor = call;
     const helpers = [...src.slice(0, call).matchAll(/const\s+(\w+)\s*=\s*async\s*\([^)]*\)[^{=]*=>\s*\{/g)];
-    const last = helpers.at(-1);
+    const last = helpers[helpers.length - 1];
     if (last && last.index !== undefined) {
       const bodyOpen = last.index + last[0].length - 1;
       if (blockEnd(src, bodyOpen) > call) {

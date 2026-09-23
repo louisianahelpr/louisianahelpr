@@ -13,6 +13,7 @@ import {
   type BrowserContext,
 } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { AXE_TAGS } from "./axeTags";
 import { SEED_TABLES, SEED_RPCS } from "./seedData";
 import { HEAVY_TABLES } from "./seedDataHeavy";
 import { assertFreshBundle } from "./assertFreshBundle";
@@ -839,16 +840,14 @@ export async function seedAuthedSession(context: BrowserContext, user: FakeUser,
 /**
  * Run an Axe accessibility scan at the current page state. Asserts no
  * critical or serious violations. Use `tags` to limit the rule set
- * (default = WCAG 2.0 A/AA + best-practice, which is what most CI gates
- * use).
+ * (default = AXE_TAGS — WCAG 2.0/2.1/2.2 A/AA + best-practice, see
+ * axeTags.ts — the same set the prod route sweep runs, Q181).
  */
 export async function checkA11y(
   page: Page,
   options: { context?: string; tags?: string[]; disableRules?: string[] } = {},
 ): Promise<void> {
-  const builder = new AxeBuilder({ page }).withTags(
-    options.tags ?? ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"],
-  );
+  const builder = new AxeBuilder({ page }).withTags(options.tags ?? AXE_TAGS);
   if (options.context) builder.include(options.context);
   if (options.disableRules?.length) builder.disableRules(options.disableRules);
   // Some legacy color-contrast tickets are not yet fixed app-wide.

@@ -76,7 +76,7 @@ serve(async (req) => {
     const includeSeed = new URL(req.url).searchParams.get("include_seed") === "1";
     let jobQuery = supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, sales_tax_rate")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, sales_tax_rate, is_seed")
       .eq("status", "completed")
       .eq("payment_status", "payout_pending")
       .is("disputed_at", null)          // defense-in-depth: never pay out disputed jobs
@@ -85,6 +85,26 @@ serve(async (req) => {
     const { data: jobs, error } = await jobQuery;
 
     if (error) throw error;
+
+    // ── Seed subjects never page (docs/OPEN.md Q91) ──────────────────────────
+    // On an `?include_seed=1` run `jobs` holds fixtures, and every per-job page
+    // and defect below used to reach #ops-alerts exactly like a real failure
+    // (money-reconciliation had the same bug, Q90). A job is SEED only by its
+    // OWN `jobs.is_seed === true` — never by the helper, the roster or any other
+    // associated row — and a missing flag is REAL (unknown => page). Seed jobs'
+    // alerts carry postSlackOpsAlert `seed` (error_logs + daily digest, never
+    // Slack, never the ledger); their defects are reported as `seedDefects` and
+    // not counted. ROUTING ONLY: nothing here changes what is paid or skipped.
+    // On the default run no seed job is selected, so this set stays empty.
+    const seedJobIds = new Set<string>(
+      (jobs ?? []).filter((j) => j.is_seed === true).map((j) => j.id as string),
+    );
+    const seedDefects: string[] = [];
+    /** A defect about ONE job: counted, unless that job is a seed fixture. */
+    const jobDefect = (jobId: string, reason: string) => {
+      if (seedJobIds.has(jobId)) seedDefects.push(reason);
+      else defects.record(reason);
+    };
 
     let processed = 0;
     const results: any[] = [];
@@ -171,7 +191,7 @@ serve(async (req) => {
         if (settlement.readError) {
           console.error(`[process-scheduled-payouts] dispute settlement check failed for job ${job.id}: ${settlement.readError}`);
           results.push({ job_id: job.id, status: "dispute_check_error", error: settlement.readError });
-          defects.record(`dispute settlement check ${job.id}: ${settlement.readError}`);
+          jobDefect(job.id, `dispute settlement check ${job.id}: ${settlement.readError}`);
           continue;
         }
         console.error(
@@ -180,6 +200,7 @@ serve(async (req) => {
         results.push({ job_id: job.id, status: "unsettled_dispute_hold", dispute_id: settlement.dispute?.id });
         await postSlackOpsAlert({
           kind: "money_at_risk",
+          seed: seedJobIds.has(job.id),
           severity: "critical",
           title: "Scheduled payout refused — decided dispute not executed",
           message:
@@ -207,7 +228,7 @@ serve(async (req) => {
       if (reversedErr) {
         console.error(`[process-scheduled-payouts] reversed-transfer check failed for job ${job.id}:`, reversedErr);
         results.push({ job_id: job.id, status: "reversal_check_error", error: reversedErr.message });
-        defects.record(`reversed-transfer check ${job.id}: ${reversedErr.message}`);
+        jobDefect(job.id, `reversed-transfer check ${job.id}: ${reversedErr.message}`);
         continue;
       }
       const reversed = (reversedRows ?? []).find((r) => r.status === "reversed");
@@ -218,6 +239,7 @@ serve(async (req) => {
         results.push({ job_id: job.id, status: "reversed_transfer_hold", transfer_id: reversed.stripe_transfer_id });
         await postSlackOpsAlert({
           kind: "money_at_risk",
+          seed: seedJobIds.has(job.id),
           severity: "critical",
           title: "Scheduled payout refused — a transfer on this job was reversed",
           message:
@@ -242,7 +264,7 @@ serve(async (req) => {
           // partial view of the roster is exactly the bug being fixed.
           console.error(`[process-scheduled-payouts] roster read failed for group job ${job.id}:`, rosterErr);
           results.push({ job_id: job.id, status: "roster_read_error", error: rosterErr.message });
-          defects.record(`roster read ${job.id}: ${rosterErr.message}`);
+          jobDefect(job.id, `roster read ${job.id}: ${rosterErr.message}`);
           continue;
         }
         const rosterIds = (roster ?? []).map((r) => r.helper_id).filter(Boolean);
@@ -281,6 +303,7 @@ serve(async (req) => {
           );
           await postSlackOpsAlert({
             kind: "payout_failed",
+            seed: seedJobIds.has(job.id),
             severity: "warning",
             title: "Under-filled group job paid out — escrow remainder unallocated",
             message:
@@ -341,7 +364,7 @@ serve(async (req) => {
         // notification and permanently stall the payout until manual intervention).
         console.error(`[process-scheduled-payouts] helper profile read failed for ${helperId} (job ${job.id}):`, helperProfileErr);
         results.push({ job_id: job.id, status: "helper_profile_read_error", error: helperProfileErr.message });
-        defects.record(`helper profile read ${job.id}: ${helperProfileErr.message}`);
+        jobDefect(job.id, `helper profile read ${job.id}: ${helperProfileErr.message}`);
         continue;
       }
 
@@ -393,7 +416,7 @@ serve(async (req) => {
         // paying out against an unverified charge — defer to the next run.
         console.error(`[process-scheduled-payouts] gift_cards read failed for job ${job.id}:`, giftCardErr);
         results.push({ job_id: job.id, status: "gift_card_check_error", error: giftCardErr.message });
-        defects.record(`gift_cards read ${job.id}: ${giftCardErr.message}`);
+        jobDefect(job.id, `gift_cards read ${job.id}: ${giftCardErr.message}`);
         continue;
       }
       const isPifFunded = !!giftCardRow;
@@ -425,14 +448,14 @@ serve(async (req) => {
             : `unrecognised outcome ${JSON.stringify(preview)}`;
           console.error(`[process-scheduled-payouts] gift valuation failed for job ${job.id}: ${why}`);
           results.push({ job_id: job.id, status: "gift_valuation_failed", error: why });
-          defects.record(`gift valuation ${job.id}: ${why}`);
+          jobDefect(job.id, `gift valuation ${job.id}: ${why}`);
           continue;
         }
         giftAppliedCents = Number(preview?.applied_cents ?? 0);
         if (!Number.isFinite(giftAppliedCents) || giftAppliedCents < 0) {
           console.error(`[process-scheduled-payouts] job ${job.id} gift has no usable applied amount`);
           results.push({ job_id: job.id, status: "gift_amount_unusable", skipped: true });
-          defects.record(`gift amount unusable ${job.id}`);
+          jobDefect(job.id, `gift amount unusable ${job.id}`);
           continue;
         }
       }
@@ -496,7 +519,7 @@ serve(async (req) => {
           if (captured.kind === "unverifiable") {
             console.error(`Cannot establish captured escrow for job ${job.id} (PI ${paymentIntentId}): ${captured.reason}`);
             results.push({ job_id: job.id, status: "escrow_amount_unverifiable", skipped: true });
-            defects.record(`escrow amount unverifiable ${job.id}: ${captured.reason}`);
+            jobDefect(job.id, `escrow amount unverifiable ${job.id}: ${captured.reason}`);
             continue;
           }
           if (captured.source === "amount") {
@@ -506,7 +529,7 @@ serve(async (req) => {
         } catch (e: any) {
           console.error(`Failed to verify payment for job ${job.id}:`, e);
           results.push({ job_id: job.id, status: "verify_error", error: (e as Error).message });
-          defects.record(`payment verify ${job.id}: ${(e as Error).message}`);
+          jobDefect(job.id, `payment verify ${job.id}: ${(e as Error).message}`);
           continue;
         }
       }
@@ -539,7 +562,7 @@ serve(async (req) => {
         // Fail closed: without the ledger we can't rule out a prior transfer.
         console.error(`[process-scheduled-payouts] payout_transfers read failed for job ${job.id}:`, ledgerReadErr);
         results.push({ job_id: job.id, status: "ledger_read_error", error: ledgerReadErr.message });
-        defects.record(`payout_transfers read ${job.id}: ${ledgerReadErr.message}`);
+        jobDefect(job.id, `payout_transfers read ${job.id}: ${ledgerReadErr.message}`);
         continue;
       }
       const blockingPayout = (ledgerRows ?? []).find((r) =>
@@ -583,7 +606,7 @@ serve(async (req) => {
           // ledger row is history. Only a real DB failure is worth recording.
           if (!healed.zeroRow) {
             console.error(`[process-scheduled-payouts] job ${job.id} has transfer ${blockingPayout.stripe_transfer_id} but the status flip failed: ${healed.message}`);
-            defects.record(`already-transferred heal ${job.id}: ${healed.message}`);
+            jobDefect(job.id, `already-transferred heal ${job.id}: ${healed.message}`);
           }
         }
         console.log(`[process-scheduled-payouts] Payout already exists for job ${job.id} (${blockingPayout.stripe_transfer_id}/${blockingPayout.status}); skipping.`);
@@ -616,7 +639,7 @@ serve(async (req) => {
           // "lost the race" would silently skip collecting the fee forever.
           console.error(`[process-scheduled-payouts] onboarding-fee claim failed for ${helperId} (job ${job.id}):`, claimErr);
           results.push({ job_id: job.id, status: "onboarding_fee_claim_error", error: claimErr.message });
-          defects.record(`onboarding-fee claim ${job.id}: ${claimErr.message}`);
+          jobDefect(job.id, `onboarding-fee claim ${job.id}: ${claimErr.message}`);
           continue;
         }
         if (claimed && claimed.length > 0) {
@@ -689,7 +712,7 @@ serve(async (req) => {
         console.error(`[process-scheduled-payouts] unrecorded-transfer check failed for job ${job.id}: ${unrecorded.message}`);
         await rollBackOnboardingFeeClaim();
         results.push({ job_id: job.id, status: "transfer_check_error", error: unrecorded.message });
-        defects.record(`unrecorded-transfer check ${job.id}: ${unrecorded.message}`);
+        jobDefect(job.id, `unrecorded-transfer check ${job.id}: ${unrecorded.message}`);
         continue;
       }
       if (unrecorded.kind === "inflight") {
@@ -702,13 +725,14 @@ serve(async (req) => {
         await rollBackOnboardingFeeClaim();
         await postSlackOpsAlert({
           kind: "money_at_risk",
+          seed: seedJobIds.has(job.id),
           severity: "critical",
           title: "Scheduled payout refused — a transfer for this job is at Stripe with no ledger row",
           message: `Job ${job.id} is due a payout, but Stripe shows ${unrecorded.transferIds.join(", ")} in its transfer group and payout_transfers does not record it. No second transfer was sent; reconcile the ledger against Stripe by hand.`,
           fields: { job_id: job.id, helper_id: helperId, transfer_ids: unrecorded.transferIds.join(", ") },
         });
         results.push({ job_id: job.id, status: "unrecorded_transfer_at_stripe", transfer_ids: unrecorded.transferIds });
-        defects.record(`job ${job.id}: unrecorded Stripe transfer ${unrecorded.transferIds.join(", ")} — payout refused`);
+        jobDefect(job.id, `job ${job.id}: unrecorded Stripe transfer ${unrecorded.transferIds.join(", ")} — payout refused`);
         continue;
       }
 
@@ -735,7 +759,7 @@ serve(async (req) => {
         console.error(`[process-scheduled-payouts] payout claim failed for job ${job.id} / helper ${helperId}: ${claim.message}`);
         await rollBackOnboardingFeeClaim();
         results.push({ job_id: job.id, status: "claim_error", error: claim.message });
-        defects.record(`payout claim ${job.id}: ${claim.message}`);
+        jobDefect(job.id, `payout claim ${job.id}: ${claim.message}`);
         continue;
       }
       if (claim.kind === "blocked") {
@@ -783,6 +807,7 @@ serve(async (req) => {
         await rollBackOnboardingFeeClaim();
         await postSlackOpsAlert({
           kind: "custom",
+          seed: seedJobIds.has(job.id),
           severity: "critical",
           title: "Scheduled payout blocked — exceeds captured escrow",
           message:
@@ -804,7 +829,7 @@ serve(async (req) => {
         });
         // A defect, not an outcome: a payout that should have been payable and
         // was not means something upstream is wrong, and it must not answer 2xx.
-        defects.record(
+        jobDefect(job.id,
           `payout ${payoutCents}c exceeds escrow ${escrowValueCents}c for job ${job.id}`,
         );
         continue;
@@ -917,9 +942,10 @@ serve(async (req) => {
           console.error(
             `[process-scheduled-payouts] Ledger settle failed for job ${job.id} (transfer ${transfer.id}): ${settled.message}`,
           );
-          defects.record(`ledger settle ${job.id}: ${settled.message}`);
+          jobDefect(job.id, `ledger settle ${job.id}: ${settled.message}`);
           await postSlackOpsAlert({
             kind: "payout_failed",
+            seed: seedJobIds.has(job.id),
             severity: "critical",
             title: "Scheduled payout — transfer sent but payout_transfers ledger write FAILED",
             message: `A Stripe transfer succeeded for job ${job.id} but its payout_transfers claim row could not be stamped paid with the transfer id. The transfer exists in Stripe but the ledger does not record it — reconcile manually.`,
@@ -1043,11 +1069,12 @@ serve(async (req) => {
             `[process-scheduled-payouts] CRITICAL: transfer sent but jobs.update ${zeroRow ? "matched ZERO rows (payment_status left the releasable set — chargeback or refund?)" : `failed after ${flip.attempts} attempts`} for job ${job.id}:`,
             flip.message,
           );
-          defects.record(
+          jobDefect(job.id,
             `job release flip ${job.id}: ${flip.message}`,
           );
           await postSlackOpsAlert({
             kind: "payout_failed",
+            seed: seedJobIds.has(job.id),
             severity: "critical",
             title: "Payout status flip failed — manual fix required",
             message: zeroRow
@@ -1082,7 +1109,7 @@ serve(async (req) => {
       } catch (e) {
         console.error(`Payout failed for job ${job.id}:`, e);
         results.push({ job_id: job.id, status: "transfer_failed", error: (e as Error).message });
-        defects.record(`transfer failed ${job.id}: ${(e as Error).message}`);
+        jobDefect(job.id, `transfer failed ${job.id}: ${(e as Error).message}`);
 
         // Record the FAILED attempt on the claim row. Nothing in this function
         // ever wrote `status='failed'` — the only writer was the
@@ -1097,7 +1124,7 @@ serve(async (req) => {
           console.error(
             `CRITICAL: [process-scheduled-payouts] transfer failed for job ${job.id} AND the claim row could not be marked failed (${failed.message}); the next run resumes it against the same idempotency key.`,
           );
-          defects.record(`claim fail-mark ${job.id}: ${failed.message}`);
+          jobDefect(job.id, `claim fail-mark ${job.id}: ${failed.message}`);
         }
 
         // Un-claim the onboarding fee if THIS job claimed it — no money moved,
@@ -1106,6 +1133,7 @@ serve(async (req) => {
 
         await postSlackOpsAlert({
           kind: "payout_failed",
+          seed: seedJobIds.has(job.id),
           severity: "critical",
           title: "Scheduled payout failed",
           message: `Failed to transfer *$${helperPayout.toFixed(2)}* to helpr for job ${job.id}.`,
@@ -1137,9 +1165,22 @@ serve(async (req) => {
     // otherwise falls back to timestamp proximity — which guessed wrong three
     // times in four. Without this key a payout cron is invisible to both
     // watchers built to watch it.
+    // Seed jobs' defects: reported in the body and to the digest, never paged
+    // and never counted (Q91). Only reachable on an `?include_seed=1` run.
+    if (seedDefects.length) {
+      await postSlackOpsAlert({
+        kind: "payout_failed",
+        severity: "critical",
+        seed: true,
+        title: `Scheduled payouts hit ${seedDefects.length} defect${seedDefects.length === 1 ? "" : "s"} on SEED jobs`,
+        message: "Every job named here is is_seed (an ?include_seed=1 run). Digest only, it does not page. Real jobs are counted in `defects` as usual.",
+        fields: { seed_defects: seedDefects.slice(0, 5).join(" | ").slice(0, 900) },
+      });
+    }
+
     return cronResult(
       "process-scheduled-payouts",
-      { success: true, processed, results },
+      { success: true, processed, results, seedDefects },
       defects.defects,
       corsHeaders,
     );

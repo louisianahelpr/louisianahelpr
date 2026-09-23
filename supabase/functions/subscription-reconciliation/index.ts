@@ -121,15 +121,17 @@ class Check {
   constructor(readonly name: string, readonly severity: Severity, readonly detail: string) {}
   add(hit: unknown) { this.hits.push(hit); }
   get count() { return this.hits.length; }
-  finding(): Finding | null {
-    if (!this.hits.length) return null;
+  /** The finding over the hits `keep` accepts (all of them by default). */
+  finding(keep: (hit: unknown) => boolean = () => true): Finding | null {
+    const hits = this.hits.filter(keep);
+    if (!hits.length) return null;
     return {
       check: this.name,
       severity: this.severity,
       detail: this.detail,
-      count: this.hits.length,
-      sample: this.hits.slice(0, MAX_IDS_PER_CHECK),
-      truncated: this.hits.length > MAX_IDS_PER_CHECK,
+      count: hits.length,
+      sample: hits.slice(0, MAX_IDS_PER_CHECK),
+      truncated: hits.length > MAX_IDS_PER_CHECK,
     };
   }
 }
@@ -145,6 +147,8 @@ interface ProfileRow {
   subscription_source: string | null;
   subscription_billing_cycle: string | null;
   subscription_cancel_at_period_end: boolean | null;
+  /** Fixture/E2E profile. Only a literal `true` makes a hit seed (Q91). */
+  is_seed?: boolean | null;
 }
 
 /** A repair queued during analysis and applied (or not) in one place at the end. */
@@ -305,7 +309,7 @@ serve(async (req) => {
     let profileQuery = admin
       .from("profiles")
       .select(
-        "user_id, email, subscription_tier, subscription_expires_at, stripe_customer_id, stripe_subscription_id, subscription_billing_cycle, subscription_cancel_at_period_end, subscription_source",
+        "user_id, email, subscription_tier, subscription_expires_at, stripe_customer_id, stripe_subscription_id, subscription_billing_cycle, subscription_cancel_at_period_end, subscription_source, is_seed",
       )
       .or("subscription_tier.not.is.null,stripe_subscription_id.not.is.null")
       .limit(SCAN_LIMIT);
@@ -657,8 +661,13 @@ serve(async (req) => {
     const repairFailures: string[] = [];
     let repairsSuppressed = false;
 
+    // The dry-run note says what mode ran, not that part of the check could
+    // not run — so it must not make a clean (or seed-only, Q91) dry run post
+    // "ran degraded" below. Kept in `notes` for the body.
+    let dryRunNote: string | null = null;
     if (dryRun) {
-      notes.push(`dry_run — ${repairs.length} repair(s) computed and NOT applied`);
+      dryRunNote = `dry_run — ${repairs.length} repair(s) computed and NOT applied`;
+      notes.push(dryRunNote);
     } else if (repairs.length > MAX_REPAIRS) {
       // See the header. This is the whole reason writing is acceptable here.
       repairsSuppressed = true;
@@ -685,8 +694,26 @@ serve(async (req) => {
       }
     }
 
+    // SEED FINDINGS DO NOT PAGE (docs/OPEN.md Q91, as money-reconciliation
+    // Q90). An `?include_seed=1` run grades fixture profiles, and their drift
+    // used to page #ops-alerts and fail the run like a real member's. A hit is
+    // SEED only when it names ONE profile (`user_id`) whose OWN is_seed is
+    // true. A hit about anything else — a subscription, a product, a price, a
+    // subscription id shared by several profiles — has no seed flag of its own,
+    // so it is REAL (unknown => page), whatever the profiles around it are.
+    // Seed hits go to `seed_findings` and the daily digest and are never a
+    // defect. ROUTING ONLY: repairs above were computed and applied exactly as
+    // before. On the default run no seed profile is scanned, so nothing changes.
+    const seedUserIds = new Set(profiles.filter((p) => p.is_seed === true).map((p) => p.user_id));
+    const isSeedHit = (hit: unknown): boolean => {
+      const id = (hit as { user_id?: unknown } | null)?.user_id;
+      return typeof id === "string" && seedUserIds.has(id);
+    };
     const findings = Object.values(checks)
-      .map((c) => c.finding())
+      .map((c) => c.finding((h) => !isSeedHit(h)))
+      .filter((f): f is Finding => f !== null);
+    const seedFindings = Object.values(checks)
+      .map((c) => c.finding(isSeedHit))
       .filter((f): f is Finding => f !== null);
 
     const summary = {
@@ -702,6 +729,9 @@ serve(async (req) => {
       repaired,
       repairs_suppressed: repairsSuppressed,
       findings,
+      // Drift on is_seed profiles (only possible with ?include_seed=1).
+      // Reported, sent to the digest, never paged and never a defect.
+      seed_findings: seedFindings,
       notes,
       seed_subscriptions_skipped: seedSkipped,
       scan_caps: caps,
@@ -716,6 +746,23 @@ serve(async (req) => {
         : findings.length
           ? "info"
           : null;
+
+    if (seedFindings.length) {
+      const seedFields: Record<string, string | number> = { scope: summary.scope };
+      for (const f of seedFindings.slice(0, 7)) {
+        seedFields[f.check] = `${f.count}${f.truncated ? "+" : ""} — ${f.sample
+          .map((h) => (h as { user_id?: string }).user_id ?? "?")
+          .join(", ")}`;
+      }
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: seedFindings.some((f) => f.severity === "critical") ? "critical" : "warning",
+        seed: true,
+        title: `Subscription reconciliation found ${seedFindings.length} discrepanc${seedFindings.length === 1 ? "y" : "ies"} on SEED profiles`,
+        message: "Every profile named here is is_seed (an ?include_seed=1 run). Digest only, it does not page. Real profiles are reported separately.",
+        fields: seedFields,
+      });
+    }
 
     if (worst) {
       const fields: Record<string, string | number> = {
@@ -737,13 +784,13 @@ serve(async (req) => {
           : "Entitlement state disagreed with Stripe. Small, explicable drift is corrected automatically; see `repaired` for what changed and `findings` for what did not.",
         fields,
       });
-    } else if (notes.length) {
+    } else if (notes.some((n) => n !== dryRunNote)) {
       await postSlackOpsAlert({
         kind: "money_at_risk",
         severity: "warning",
         title: "Subscription reconciliation ran degraded",
         message: "No drift found, but part of the check could not run — a clean result here is not trustworthy.",
-        fields: { notes: notes.join(" | "), scope: summary.scope },
+        fields: { notes: notes.filter((n) => n !== dryRunNote).join(" | "), scope: summary.scope },
       });
     } else {
       console.log(

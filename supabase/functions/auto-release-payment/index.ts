@@ -99,9 +99,30 @@ serve(async (req) => {
     // deliberate manual run against fixtures.
     const includeSeed = new URL(req.url).searchParams.get("include_seed") === "1";
 
+    // ── Seed subjects never page (docs/OPEN.md Q91) ──────────────────────────
+    // On an `?include_seed=1` run the job scans above hold fixtures, and every
+    // per-job alert and defect below used to page #ops-alerts exactly like a
+    // real failure (money-reconciliation had the same bug, Q90). A job is SEED
+    // only by its OWN `jobs.is_seed === true` — never by an associated row, and
+    // a missing flag is REAL (unknown => page). Seed jobs' alerts go out with
+    // postSlackOpsAlert `seed` (error_logs + daily digest, never Slack, never
+    // the ledger) and their defects are reported as `seedDefects`, not counted.
+    // ROUTING ONLY: nothing here changes which job is released, paid or skipped.
+    // On the default run no seed job is selected, so this set stays empty.
+    const seedJobIds = new Set<string>();
+    const noteSeed = (rows: Array<{ id: string; is_seed?: boolean | null }> | null | undefined) => {
+      for (const r of rows ?? []) if (r.is_seed === true) seedJobIds.add(r.id);
+    };
+    const seedDefects: string[] = [];
+    /** A defect about ONE job: counted, unless that job is a seed fixture. */
+    const jobDefect = (jobId: string, reason: string) => {
+      if (seedJobIds.has(jobId)) seedDefects.push(reason);
+      else defects.record(reason);
+    };
+
     let dueQuery = supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, is_seed")
       .in("status", ["in_progress", "revision_requested", "accepted"])
       .eq("payment_status", "escrow")
       // A requested revision STOPS the payout clock. The 24h window is keyed on
@@ -126,6 +147,7 @@ serve(async (req) => {
     const { data: jobs, error } = await dueQuery;
 
     if (error) throw error;
+    noteSeed(jobs);
 
     // ── Instant-release opt-in (owner, 2026-08-24) ──
     // Posters with profiles.auto_release_on_complete release on THIS pass
@@ -137,13 +159,14 @@ serve(async (req) => {
     // per-job guards below run for these rows too.
     let recentQuery = supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, is_seed")
       .eq("status", "in_progress")
       .eq("payment_status", "escrow")
       .is("poster_completed_at", null)
       .gt("helper_completed_at", cutoff);
     if (!includeSeed) recentQuery = recentQuery.eq("is_seed", false);
     const { data: recentDone, error: recentErr } = await recentQuery;
+    noteSeed(recentDone);
     if (recentErr) {
       // Fail open to the normal 24h path — instant is an acceleration, never
       // a dependency.
@@ -214,13 +237,14 @@ serve(async (req) => {
       // are what makes this query self-describing next to its two identical
       // siblings, and they are the discriminator the edge-test harness matches
       // on (it keys mock results by column list).
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, poster_completed_at, helper_completed_at, revision_completed_at, revision_acceptance_deadline, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, poster_completed_at, helper_completed_at, revision_completed_at, revision_acceptance_deadline, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, is_seed")
       .eq("status", "revision_requested")
       .eq("payment_status", "escrow")
       .not("revision_completed_at", "is", null)
       .lte("revision_acceptance_deadline", new Date().toISOString());
     if (!includeSeed) revisionQuery = revisionQuery.eq("is_seed", false);
     const { data: revisionDue, error: revisionErr } = await revisionQuery;
+    noteSeed(revisionDue);
     if (revisionErr) {
       // Fail open, exactly like the instant-release set above: a broken
       // revision sweep must never take the ordinary 24h releases down with it.
@@ -259,7 +283,7 @@ serve(async (req) => {
       .from("jobs")
       // `revision_deadline` is the discriminator against the two sibling
       // revision reads above — this is the only one keyed on it.
-      .select("id, title, revision_deadline, revision_note")
+      .select("id, title, revision_deadline, revision_note, is_seed")
       .eq("status", "revision_requested")
       .eq("payment_status", "escrow")
       .is("revision_completed_at", null)
@@ -267,6 +291,7 @@ serve(async (req) => {
       .lte("revision_deadline", new Date().toISOString());
     if (!includeSeed) undeliveredQuery = undeliveredQuery.eq("is_seed", false);
     const { data: undelivered, error: undeliveredErr } = await undeliveredQuery;
+    noteSeed(undelivered);
     if (undeliveredErr) {
       // Fail open like its two siblings: a broken dispute sweep must never
       // take the ordinary releases down with it.
@@ -299,7 +324,7 @@ serve(async (req) => {
           continue;
         }
         console.error(`[auto-release-payment] failed to open dispute for job ${j.id}:`, openErr);
-        defects.record(`open dispute for undelivered revision ${j.id}: ${openErr.message}`);
+        jobDefect(j.id, `open dispute for undelivered revision ${j.id}: ${openErr.message}`);
         continue;
       }
       revisionDisputesOpened++;
@@ -498,7 +523,7 @@ serve(async (req) => {
       // onboarding".
       let dueQuery2 = supabaseAdmin
         .from("jobs")
-        .select("id, title, helper_id, budget, urgent_fee, is_group_job, helpers_needed, payout_scheduled_at")
+        .select("id, title, helper_id, budget, urgent_fee, is_group_job, helpers_needed, payout_scheduled_at, is_seed")
         .eq("status", "completed")
         .eq("payment_status", "payout_pending")
         .lte("payout_scheduled_at", new Date().toISOString())
@@ -520,6 +545,7 @@ serve(async (req) => {
         .or("is_group_job.is.null,is_group_job.eq.false,helpers_needed.lte.1");
       if (!includeSeed) dueQuery2 = dueQuery2.eq("is_seed", false);
       const { data: dueJobs, error: dueJobsErr } = await dueQuery2;
+      noteSeed(dueJobs);
 
       // A dropped read here silently returns paid=0 with no signal, leaving
       // matured payouts stranded until someone notices the money never moved.
@@ -601,7 +627,7 @@ serve(async (req) => {
         });
         if (attemptErr) {
           console.error(`[auto-release-payment] could not record failed attempt for job ${job.id}:`, attemptErr);
-          defects.record(`record failed attempt ${job.id}: ${attemptErr.message}`);
+          jobDefect(job.id, `record failed attempt ${job.id}: ${attemptErr.message}`);
         }
       };
 
@@ -669,6 +695,8 @@ serve(async (req) => {
               await postSlackOpsAlert({
                 kind: "payout_failed",
                 severity: "critical",
+                // Q91: a seed fixture's give-up is digest-only (see seedJobIds).
+                seed: seedJobIds.has(job.id),
                 title: "Payout given up after repeated failures",
                 message:
                   `Job ${job.id} has failed ${attemptNumber} payout attempts and will no longer be retried automatically. ` +
@@ -716,7 +744,7 @@ serve(async (req) => {
     // for a reason of its own.
     for (const r of results) {
       if (r.status === "verify_failed" || r.status === "update_failed") {
-        defects.record(`${r.status} ${r.job_id}${r.error ? `: ${r.error}` : ""}`);
+        jobDefect(r.job_id, `${r.status} ${r.job_id}${r.error ? `: ${r.error}` : ""}`);
       }
     }
     // A matured payout that did not move is a defect and must page — for the
@@ -731,13 +759,26 @@ serve(async (req) => {
     //               page twice for one event.
     for (const p of payoutResults) {
       if ((p.status === "failed" || p.status === "errored") && !p.gave_up) {
-        defects.record(`payout ${p.status} ${p.job_id}: ${p.detail ?? ""}`);
+        jobDefect(p.job_id, `payout ${p.status} ${p.job_id}: ${p.detail ?? ""}`);
       }
+    }
+
+    // Seed jobs' defects: reported in the body and to the digest, never paged
+    // and never counted (Q91). Only reachable on an `?include_seed=1` run.
+    if (seedDefects.length) {
+      await postSlackOpsAlert({
+        kind: "payout_failed",
+        severity: "critical",
+        seed: true,
+        title: `Auto-release hit ${seedDefects.length} defect${seedDefects.length === 1 ? "" : "s"} on SEED jobs`,
+        message: "Every job named here is is_seed (an ?include_seed=1 run). Digest only, it does not page. Real jobs are counted in `defects` as usual.",
+        fields: { seed_defects: seedDefects.slice(0, 5).join(" | ").slice(0, 900) },
+      });
     }
 
     return cronResult(
       "auto-release-payment",
-      { success: true, released, results, paid, payoutResults, autoPayoutEnabled, revisionDisputesOpened },
+      { success: true, released, results, paid, payoutResults, autoPayoutEnabled, revisionDisputesOpened, seedDefects },
       defects.defects,
       corsHeaders,
     );

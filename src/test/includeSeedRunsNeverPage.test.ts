@@ -18,12 +18,14 @@
  *
  * The behavioural half (seed-only hits -> digest, 200, no defect; a real hit on
  * the same run still pages naming only the real job) is pinned in
- * src/test/edge/money-reconciliation.test.ts "seed findings (?include_seed=1)".
+ * src/test/edge/money-reconciliation.test.ts "seed findings (?include_seed=1)"
+ * and, for the other three, src/test/edge/includeSeedAlertRouting.test.ts.
  *
  * RED ON THE ORIGINAL: against origin/main 46413558e money-reconciliation has
  * no `seed:` in code and is not in KNOWN_UNROUTED.
  *
  * @mutate supabase/functions/money-reconciliation/index.ts | seed: true, | unrouted: true,
+ * @mutate supabase/functions/subscription-reconciliation/index.ts | seed: true, | unrouted: true,
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, existsSync } from "node:fs";
@@ -32,12 +34,12 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const FNS = join(process.cwd(), "supabase", "functions");
 
-/** Not yet routed. docs/OPEN.md Q91 tracks each; remove an entry when fixed. */
-const KNOWN_UNROUTED = new Set([
-  "auto-release-payment",
-  "process-scheduled-payouts",
-  "subscription-reconciliation",
-]);
+/**
+ * Not yet routed. EMPTY since docs/OPEN.md Q91 (2026-09-23) routed the last
+ * three (auto-release-payment, process-scheduled-payouts,
+ * subscription-reconciliation). Exact and shrink-only: never add to it.
+ */
+const KNOWN_UNROUTED = new Set<string>([]);
 
 const READS_INCLUDE_SEED = /searchParams\.get\(\s*["']include_seed["']\s*\)/;
 const ALERTS = /postSlackOpsAlert\(/;

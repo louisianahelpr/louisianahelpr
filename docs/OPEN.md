@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 40 done, 5 partly done (fixed, protection pending), 70 open. Source of truth for work.
+- **Queue (this file):** 41 done, 5 partly done (fixed, protection pending), 70 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 115 items — 40 done, 5 partly done (fixed, protection pending), 70 open.**
+**Queue: 116 items — 41 done, 5 partly done (fixed, protection pending), 70 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -713,10 +713,25 @@ sure someone hears it and closes it.
   when the timer fires…", fake timers + controllable
   `document.visibilityState`, 1 @mutate), proven red on the unfixed code (1
   read while hidden instead of 0), green on the fix.
-- [ ] **Q108 The sent-document link is cut off at 375 (seen during Q99).**
+- [x] **Q108 DONE: the sent-document link is no longer cut off at 375.**
   "View the License You Se..." on /profile?tab=credentials after a license is
-  sent (~/.lh-shots/q99/flow-375-2-sent-reloaded.png, review-log: defect).
-  Not caused by Q99; the copy or the row layout needs to fit.
+  sent. The button now wraps (`min-w-0 break-words` instead of `truncate`);
+  copy, icon, X and the 44px row are unchanged. Measured on prod data (helper
+  test account, license + COI sent, then withdrawn and objects deleted): 375
+  License label scrollWidth 171 > clientWidth 169 before, 169 <= 169 after
+  (COI 169/169 both); 1440 978/978 both; light and dark. The rejected state
+  uses the same JSX branch (code read; not screenshotted). Evidence ~/.lh-shots/q108/{before,after}-{375,1440}-{light,dark}.png.
+  Guard: src/test/truncatedActionLabel.test.ts (every a/button/Button/Link/
+  Radix Trigger in src/components/profile, TS AST: no truncate/text-ellipsis/
+  line-clamp on the control or a descendant without title/aria-label; exact
+  two-way KNOWN list), red on the old `truncate`.
+- [ ] **Q116 Two clipped labels inside controls in src/components/profile (found by the Q108 guard, 2026-09-23).**
+  LegalTab.tsx TabsTrigger `<span className="relative truncate">{TAB_LABELS[key]}</span>`
+  and profileLanding/SettingsSection.tsx button `line-clamp-2` on `{item.desc}`
+  have no title/aria-label. Not yet measured to clip on screen: measure at 320/375;
+  if they clip, let them wrap or give the full text, then drop them from KNOWN
+  in src/test/truncatedActionLabel.test.ts. Also: the guard covers only
+  src/components/profile; widening it to src/ is open.
 - [ ] **Q100 A funded open job fixture for the four poster-side forms (Q49
   follow-up).** EditJobDialog, CancellationDialog, ApplicantsPanel and
   DeclineApplicantSheet open only from a FUNDED open job of poster-e2e with a

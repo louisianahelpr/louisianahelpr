@@ -542,7 +542,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                 <button
                   type="button"
                   onClick={() => openDoc(url)}
-                  className="flex-1 text-left text-ds-13 text-primary underline truncate"
+                  className="flex-1 min-w-0 text-left text-ds-13 text-primary underline break-words"
                 >
                   View the {KIND_NOUN_TITLE[kind]} You Sent
                 </button>

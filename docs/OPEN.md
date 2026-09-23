@@ -7981,7 +7981,31 @@ sure someone hears it and closes it.
   Also: GUARD-BURNDOWN and vacuity.yml comments call the full sweep NIGHTLY,
   but its cron is `17 14 * * 0` (WEEKLY). Make it nightly, or correct every
   claim, and make check:counts / check:claude-md catch schedule claims.
-- [ ] **Q53 ROOT-CAUSE the 2026-09-22 database outage.** 457 pg_cron jobs never
+- [ ] **Q53 ROOT-CAUSE the 2026-09-22 database outage. EVIDENCE GATHERED 2026-09-23 ~05:40Z (Supabase logs + pg_stat_statements):**
+  - Timeline: 08:00-15:00Z, 22-42 "canceling statement due to statement timeout"
+    per hour plus connection/SSL resets; then at 15:00 "the database system is
+    shutting down" / "terminating connection due to administrator command".
+    pg_postmaster_start_time = 2026-09-22 15:23:42Z: a RESTART ended it.
+  - What timed out was NOT app SQL: 92 PostgREST schema-cache introspections,
+    47 `pg_timezone_names`, ~60 postgres_exporter metrics queries. Trivial
+    catalog reads starving means the INSTANCE was resource-starved, not one bad query.
+  - Load since the restart (14h, 1.46M statements, ~29/s, 30 of 60 connections
+    in use, pre-launch with no real users): realtime WAL polling (97k calls,
+    897s) + publication scans (186k); client polling of applications+jobs
+    (30k, 310s); storage.objects lookups (41k, 249s);
+    get_my_pending_direct_offers (32k); OUR OWN CI live check (column
+    privileges query, 29s EACH); sweep_silent_cron_failures (2.4s each).
+  - HYPOTHESIS (not proven; no CPU/memory graphs available through these
+    tools): the smallest compute tier + constant realtime/polling load +
+    prod-hitting sweeps + dozens of migration deploys on 09-22 (each forcing a
+    PostgREST schema reload, 92 of which timed out).
+  - TO DO: (a) monitor saturation BEFORE it tips over: statement-timeout rate
+    from postgres_logs, connection use as a % of max, and slow-query p95, into
+    the alert ledger; (b) cut the load: audit client polling (refetchInterval
+    etc.), realtime subscription count, the 29s CI privileges query, and the
+    2.4s cron sweep; (c) OWNER DECISION: compute size vs the free tier (a paid
+    upgrade is the owner's call; see memory free-tier-no-paid-upgrades).
+  Original item: ROOT-CAUSE the 2026-09-22 database outage. 457 pg_cron jobs never
   started (08:00-15:00Z "job startup timeout"); uptime reported "database: no
   answer in 10000ms"; profile loads timed out (the owner saw the error screen at
   15:10Z); "connection failed" bursts followed at 19:00Z. It was detected and
@@ -8005,3 +8029,13 @@ sure someone hears it and closes it.
   two sides drift. Some exist (moneyFigures.parity, tierPerks.parity,
   earlyAccess.parity, cancellationFee.parity). Find the pairs that have no
   test and add one. Report the matrix.
+- [ ] **Q55 Three real errors in the 09-22 postgres logs, unrelated to the outage:**
+  (a) `invalid input syntax for type uuid: "user-1"` x120: something sends a
+  fixture/placeholder id to prod (a test with a fake id, or a client
+  default); (b) "invalid column for filter customer_id" x12: a realtime
+  postgres_changes subscription whose filter the server rejects, so the
+  channel silently never delivers; (c) "permission denied for table jobs"
+  x14 at 15:00Z: a role reading jobs it no longer may (after the column
+  revokes?). Find each source, fix it, and add a check for the class
+  (realtime filters validated against the publication/columns; no
+  placeholder ids reach prod).

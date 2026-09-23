@@ -28,6 +28,13 @@
  *  4. SCOREBOARD. docs/SCOREBOARD.md's live section (CI runs, prod SQL,
  *     issues — carried forward verbatim between refreshes) is younger than
  *     MAX_EVIDENCE_HOURS (Q59).
+ *  5. REPORTS (Q165). Every docs/audit/**.md that is not a dated record
+ *     (RECORD_DIRS of scripts/check-stated-counts.mjs: morning/, lanes/,
+ *     inbox/, device-sweeps/ ...), not generated and not a LIVE_DOCS entry
+ *     must have been touched within MAX_REPORT_DAYS. On 2026-09-23, 29 such
+ *     reports were 9 days to 3 months old and no longer described the app.
+ *     Refresh = re-check its findings, carry the true ones into docs/OPEN.md,
+ *     `git mv` it to docs/archive/ with the one-line historical banner.
  *
  * Exit 1 on anything stale, listing each with the command that refreshes it.
  * Run nightly by .github/workflows/staleness-watch.yml, which files a
@@ -53,6 +60,45 @@ export const REFRESH = {
 };
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();
+
+export const MAX_REPORT_DAYS = 14;
+/**
+ * docs/audit/ files that are NOT reports: operating docs something reads
+ * today. Exact and two-way — each must exist and be linked to its consumer
+ * (the consumer names the doc, or the doc names a consumer that exists;
+ * src/test/stalenessWatch.test.ts), so an entry cannot outlive its use.
+ */
+export const LIVE_DOCS = {
+  "docs/audit/launch-2026-09/PROTOCOL.md": { consumer: "scripts/check-agent-refs.mjs", why: "the contract every lh-* lane agent reads" },
+  "docs/audit/launch-2026-09/WAVES.md": { consumer: "scripts/audit-coverage.mjs", why: "the fleet's wave schedule, parsed for the coverage report" },
+  "docs/audit/STATE_REVIEW_PROMPT.md": { consumer: "scripts/state-review.mjs", why: "the default --prompt of the state review" },
+  "docs/audit/launch-2026-09/deferred/README.md": { consumer: "docs/audit/launch-2026-09/deferred/Overlay.tsx.deferred", why: "the note on the code parked beside it" },
+  "docs/audit/OPEN_ITEMS.md": { consumer: "src/test/onlyOneOpenList.test.ts", why: "the retired pointer to docs/OPEN.md (Q16)" },
+};
+const ARCHIVE_HOW = "re-check its open findings against the source, carry the true ones into docs/OPEN.md, then `git mv` it to docs/archive/ with the banner 'historical, superseded by docs/OPEN.md' (Q165)";
+
+/** docs/audit/ markdown that counts as a report (see check 5). */
+export function listReports(files, recordDirs, exempt) {
+  return files.filter((f) => f.startsWith("docs/audit/") && f.endsWith(".md")
+    && !recordDirs.some((d) => f.startsWith(d)) && !exempt.has(f) && !(f in LIVE_DOCS));
+}
+
+export function checkReports(reports, now, lastTouched) {
+  const stale = [];
+  for (const f of reports) {
+    const at = lastTouched(f);
+    const days = at ? (now - at) / 864e5 : Infinity;
+    if (days > MAX_REPORT_DAYS) {
+      stale.push(`${f}: report last touched ${at ? at.toISOString().slice(0, 10) : "never"} (${Math.round(days)}d ago, limit ${MAX_REPORT_DAYS}d). Refresh: ${ARCHIVE_HOW}`);
+    }
+  }
+  return stale;
+}
+
+function lastTouchedFromGit(file) {
+  const iso = git("log", "-1", "--format=%cI", "--", file);
+  return iso ? new Date(iso) : null;
+}
 
 export function evidenceTimestamp(json) {
   if (!json || typeof json !== "object" || Array.isArray(json)) return null;
@@ -191,10 +237,20 @@ async function main() {
   const { liveAgeHours, SCOREBOARD } = await import("./scoreboard.mjs");
   stale.push(...checkScoreboardLive(readFileSync(SCOREBOARD, "utf8"), now, liveAgeHours));
 
+  // Reports (Q165). A shallow clone dates every file at its boundary commit,
+  // which would read as "touched today": refuse rather than report fresh.
+  if (git("rev-parse", "--is-shallow-repository") === "true") {
+    console.error("::error::shallow clone — report ages are unmeasurable (fetch-depth: 0 / git fetch --unshallow); refusing to report fresh.");
+    process.exit(2);
+  }
+  const { RECORD_DIRS } = await import("./check-stated-counts.mjs");
+  const reports = listReports(git("ls-files", "docs/audit").split("\n").filter(Boolean), RECORD_DIRS, exempt);
+  stale.push(...checkReports(reports, now, lastTouchedFromGit));
+
   if (process.argv.includes("--json")) {
     console.log(JSON.stringify({ evidence: evidence.map((e) => e.file), stale }, null, 2));
   }
-  console.log(`staleness: ${evidence.length} evidence file(s) found (${evidence.filter((e) => exempt.has(e.file)).length} proven per push or by workflow instead of by age), 1 ledger and the scoreboard live section checked.`);
+  console.log(`staleness: ${evidence.length} evidence file(s) found (${evidence.filter((e) => exempt.has(e.file)).length} proven per push or by workflow instead of by age), ${reports.length} docs/audit report(s), 1 ledger and the scoreboard live section checked.`);
   if (evidence.length === 0) {
     console.error("::error::found NO timestamped evidence — the scan is broken, refusing to report fresh.");
     process.exit(2);

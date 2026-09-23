@@ -1,4 +1,6 @@
 // @mutate scripts/check-staleness.mjs | if (hours > MAX_EVIDENCE_HOURS) { | if (hours > MAX_EVIDENCE_HOURS * 1000) {
+// @mutate scripts/check-staleness.mjs |     if (days > MAX_REPORT_DAYS) { |     if (days > MAX_REPORT_DAYS * 1000) {
+// @mutate scripts/check-staleness.mjs | && !recordDirs.some((d) => f.startsWith(d)) && !exempt.has(f) | && false
 /*
  * The staleness watch (scripts/check-staleness.mjs, run nightly by
  * staleness-watch.yml) must itself be able to fail — a freshness check that
@@ -6,7 +8,11 @@
  */
 import { describe, it, expect } from "vitest";
 // @ts-expect-error — plain .mjs script, no declaration file
-import { checkEvidence, checkLedger, checkWorkflowBound, evidenceTimestamp, listEvidence, MAX_EVIDENCE_HOURS, MAX_LEDGER_COMMITS, WORKFLOW_BOUND } from "../../scripts/check-staleness.mjs";
+import { checkEvidence, checkLedger, checkReports, checkWorkflowBound, evidenceTimestamp, listEvidence, listReports, LIVE_DOCS, MAX_EVIDENCE_HOURS, MAX_LEDGER_COMMITS, MAX_REPORT_DAYS, WORKFLOW_BOUND } from "../../scripts/check-staleness.mjs";
+// @ts-expect-error — plain .mjs script, no declaration file
+import { RECORD_DIRS } from "../../scripts/check-stated-counts.mjs";
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 
 const NOW = new Date("2026-09-23T12:00:00Z");
 const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 36e5);
@@ -66,5 +72,55 @@ describe("staleness watch — currency proven by something better than age", () 
   it("binds the overlay baseline to the Friday overlay cron, not any green ui-sweep run", () => {
     const overlay = (WORKFLOW_BOUND as { file: string; event?: string; weekdayUtc?: number }[]).find((b) => b.file.includes("overlay-sweep"));
     expect(overlay).toMatchObject({ event: "schedule", weekdayUtc: 5 });
+  });
+});
+
+describe("staleness watch — docs/audit reports (Q165)", () => {
+  const daysAgo = (d: number) => new Date(NOW.getTime() - d * 864e5);
+
+  it("is RED on a report untouched for longer than the limit, green inside it", () => {
+    const touched: Record<string, Date> = {
+      "docs/audit/old-report.md": daysAgo(MAX_REPORT_DAYS + 1),
+      "docs/audit/new-report.md": daysAgo(MAX_REPORT_DAYS - 1),
+    };
+    const stale = checkReports(Object.keys(touched), NOW, (f: string) => touched[f]) as string[];
+    expect(stale).toHaveLength(1);
+    expect(stale[0]).toContain("docs/audit/old-report.md");
+    expect(checkReports(["docs/audit/untracked.md"], NOW, () => null)).toHaveLength(1);
+  });
+
+  it("counts only reports: not dated records, generated files, live docs or anything outside docs/audit", () => {
+    const files = [
+      "docs/audit/old-report.md",
+      "docs/audit/launch-2026-09/NESTED.md",
+      "docs/audit/morning/2026-09-12.md",
+      "docs/audit/launch-2026-09/lanes/lh-x.md",
+      "docs/audit/launch-2026-09/SURFACE.md",
+      "docs/audit/launch-2026-09/PROTOCOL.md",
+      "docs/audit/data.json",
+      "docs/archive/old-report.md",
+    ];
+    const reports = listReports(files, RECORD_DIRS, new Set(["docs/audit/launch-2026-09/SURFACE.md"]));
+    expect(reports).toEqual(["docs/audit/old-report.md", "docs/audit/launch-2026-09/NESTED.md"]);
+  });
+
+  it("scans the real tree (the inventory is not empty)", () => {
+    const tracked = execFileSync("git", ["ls-files", "docs/audit"], { encoding: "utf8" }).split("\n").filter(Boolean);
+    const reports = listReports(tracked, RECORD_DIRS, new Set()) as string[];
+    expect(reports.length).toBeGreaterThan(3);
+    expect(reports.some((f) => f.startsWith("docs/archive/"))).toBe(false);
+  });
+
+  it("every LIVE_DOCS exemption exists and its named consumer still names it (two-way)", () => {
+    const entries = Object.entries(LIVE_DOCS as Record<string, { consumer: string; why: string }>);
+    expect(entries.length).toBeGreaterThan(0);
+    for (const [doc, { consumer, why }] of entries) {
+      expect(existsSync(doc), doc).toBe(true);
+      expect(why.length, doc).toBeGreaterThan(10);
+      const base = (p: string) => p.split("/").pop() as string;
+      expect(existsSync(consumer), consumer).toBe(true);
+      const linked = consumer !== doc && (readFileSync(consumer, "utf8").includes(base(doc)) || readFileSync(doc, "utf8").includes(base(consumer)));
+      expect(linked, `${doc} and its consumer ${consumer} no longer name each other`).toBe(true);
+    }
   });
 });

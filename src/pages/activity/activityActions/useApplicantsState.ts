@@ -1,10 +1,16 @@
 import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchRatingStats } from "@/lib/reviewStats";
+// Static on purpose (Q239): the signed-in shell already loads this module
+// (useNavUnreadCount), and a lazy import here could cost its own chunk round
+// before the block-list read even started.
+import { getBlockedUserIds } from "@/lib/userBlocks";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import type { Job, EnrichedApplication } from "@/components/activity/activityConstants";
+import { prefetchApplicantSignals } from "@/components/activity/postedJobs/useApplicantSignals";
 
 /**
  * Applicant loading + enrichment state for the Activity page, extracted
@@ -24,20 +30,36 @@ export function useApplicantsState(user: SupaUser | null) {
   const [loadingApplicants, setLoadingApplicants] = useState<Record<string, boolean>>({});
   const [applicantErrors, setApplicantErrors] = useState<Record<string, boolean>>({});
 
-  const fetchApplicants = async (jobId: string): Promise<EnrichedApplication[]> => {
-    const { data: apps, error: appsError } = await supabase.from("applications").select("*").eq("job_id", jobId);
+  const queryClient = useQueryClient();
+
+  // ONE network round per dependency level (Q239). This was a 4-round
+  // waterfall before the ranked list could render: applications, THEN the
+  // block list, THEN profiles/ratings/availability, THEN (once the list had
+  // rendered and useApplicantSignals mounted) the ranking signals. Now:
+  //   round 1: applications + the block list (independent of each other);
+  //   round 2: profiles, ratings, availability AND the ranking signals, which
+  //            are prefetched into React Query under useApplicantSignals' own
+  //            keys when `signalsJobId` is given (the Applicants panel), so
+  //            the hook reads a warm cache.
+  // Round 1 cannot go: every later read needs the applicant ids.
+  // Guard: applicantsPanelRounds.test.tsx (counts the rounds).
+  const fetchApplicants = async (jobId: string, signalsJobId?: string): Promise<EnrichedApplication[]> => {
+    const appsReq = supabase.from("applications").select("*").eq("job_id", jobId);
+    // Filter out applicants the current user has blocked (or who blocked them).
+    // Throws on a failed read (see userBlocks). Let it propagate: this runs
+    // inside the applicants loader, whose error path already renders a
+    // retryable state — better than listing an applicant the poster blocked.
+    const blockedReq = user ? getBlockedUserIds(user.id) : Promise.resolve(new Set<string>());
+    const [{ data: apps, error: appsError }, blockedSet] = await Promise.all([appsReq, blockedReq]);
     if (appsError) throw appsError;
     if (apps && apps.length > 0) {
-      // Filter out applicants the current user has blocked (or who blocked them)
-      const { getBlockedUserIds } = await import("@/lib/userBlocks");
-      // Throws on a failed read (see userBlocks). Let it propagate: this runs
-      // inside the applicants loader, whose error path already renders a
-      // retryable state — better than listing an applicant the poster blocked.
-      const blockedSet = user ? await getBlockedUserIds(user.id) : new Set<string>();
       const visibleApps = apps.filter((a) => !blockedSet.has(a.helper_id));
       if (visibleApps.length === 0) return [];
 
       const helperIds = visibleApps.map((a) => a.helper_id);
+      // Same round as the enrichment reads below; never awaited here (each
+      // query degrades to an empty signal on its own, see useApplicantSignals).
+      if (signalsJobId) prefetchApplicantSignals(queryClient, visibleApps.map((a) => a.helper_id), signalsJobId);
       const [profilesRes, reviewStatsMap, availabilityRes] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
         fetchRatingStats(helperIds),
@@ -104,7 +126,7 @@ export function useApplicantsState(user: SupaUser | null) {
     setApplicationsError(false);
     setApplications([]);
     try {
-      const enriched = await fetchApplicants(job.id);
+      const enriched = await fetchApplicants(job.id, job.id);
       setApplications(enriched);
     } catch {
       // A failed fetch must not read as "no applicants" — tell the truth.

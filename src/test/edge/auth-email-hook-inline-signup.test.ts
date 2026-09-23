@@ -27,7 +27,20 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
-import { resetEmailMocks, emailRenders, sendWithResend, SignupEmail, RecoveryEmail } from "./mocks/email";
+import {
+  resetEmailMocks,
+  emailRenders,
+  sendWithResend,
+  renderAsync,
+  Webhook,
+  SENDER_DOMAIN,
+  SignupEmail,
+  InviteEmail,
+  MagicLinkEmail,
+  RecoveryEmail,
+  EmailChangeEmail,
+  ReauthenticationEmail,
+} from "./mocks/email";
 import { blankNonCode } from "../helpers/blankNonCode";
 
 const ROOT = join(__dirname, "..", "..", "..");
@@ -64,6 +77,7 @@ describe("auth-email-hook: signup confirmation is rendered once and sent inline 
     resetEmailMocks();
     sendWithResend.mockReset();
     sendWithResend.mockImplementation(async () => ({ id: "resend-mock-id" }));
+    renderAsync.mockClear();
     resetEnv();
   });
 
@@ -118,7 +132,44 @@ describe("auth-email-hook: signup confirmation is rendered once and sent inline 
     expect(enqueues()).toHaveLength(1);
   });
 
+  // Every GoTrue email_action_type: which template, and inline vs queued.
+  const ROUTES: Array<[string, unknown, "inline" | "queued"]> = [
+    ["signup", SignupEmail, "inline"],
+    ["invite", InviteEmail, "queued"],
+    ["magiclink", MagicLinkEmail, "queued"],
+    ["recovery", RecoveryEmail, "queued"],
+    ["email_change", EmailChangeEmail, "queued"],
+    ["email_change_current", EmailChangeEmail, "queued"],
+    ["email_change_new", EmailChangeEmail, "queued"],
+    ["reauthentication", ReauthenticationEmail, "queued"],
+  ];
+  it.each(ROUTES)("%s renders its own template once and is %s", async (type, template, path) => {
+    const fn = await load();
+    const res = await hook(fn, type);
+    expect(res.status).toBe(200);
+    expect(emailRenders).toHaveLength(1);
+    expect((emailRenders[0] as { type?: unknown }).type).toBe(template);
+    expect(sendWithResend).toHaveBeenCalledTimes(path === "inline" ? 1 : 0);
+    expect(enqueues()).toHaveLength(path === "inline" ? 0 : 1);
+    if (path === "queued") {
+      expect((enqueues()[0].args as { payload: Record<string, unknown> }).payload.sender_domain).toBe(SENDER_DOMAIN);
+    }
+  });
+
+  it("the /preview endpoint still renders through renderAsync and sends nothing", async () => {
+    const fn = await load();
+    const res = await fn.fetch(
+      fn.request({ url: "https://x.supabase.co/functions/v1/auth-email-hook/preview", headers: { Authorization: "Bearer v1,whsec_dGVzdA==" }, body: { type: "signup" } }),
+    );
+    expect(res.status).toBe(200);
+    expect(renderAsync).toHaveBeenCalledTimes(1);
+    expect(sendWithResend).not.toHaveBeenCalled();
+    expect(enqueues()).toHaveLength(0);
+  });
+
   it("a bad signature is still refused before anything renders or sends", async () => {
+    // The standardwebhooks double refuses anything not signed "valid".
+    expect(() => new Webhook("s").verify("{}", { "webhook-signature": "forged" })).toThrow();
     const fn = await load();
     const res = await fn.fetch(
       fn.request({

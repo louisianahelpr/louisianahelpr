@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { type Job, type EnrichedApplication } from "../activityConstants";
 
@@ -10,6 +10,135 @@ import { type Job, type EnrichedApplication } from "../activityConstants";
 export interface DistanceBand {
   label: string;
   rank: number;
+}
+
+// ── Query definitions, shared with the applicants loader (Q239) ──────────
+// useApplicantsState.loadApplications starts these with
+// queryClient.prefetchQuery in the SAME network round as the applicant
+// profiles, instead of waiting for the list to render and this hook to mount
+// its queries a round later. Same keys, same fns: the hook below then reads a
+// warm cache. Keep the two in step by building both from these functions.
+
+function neighborCountQuery(helperId: string, jobId: string | undefined) {
+  return {
+    queryKey: ["neighbor-count", helperId, jobId],
+    queryFn: async (): Promise<number> => {
+      if (!jobId) return 0;
+      try {
+        const { data, error } = await supabase.rpc("get_neighbor_hire_count", {
+          p_helper_id: helperId,
+          p_job_id: jobId,
+        });
+        if (error) return 0;
+        return data ?? 0;
+      } catch {
+        return 0; // PGRST202 or network error — degrade gracefully
+      }
+    },
+    staleTime: 300_000, // 5 min — neighborhood data is slow-moving
+  };
+}
+
+function completedCountsQuery(helperIds: string[]) {
+  return {
+    queryKey: ["helper-completed-counts", helperIds],
+    queryFn: async (): Promise<Map<string, number>> => {
+      if (helperIds.length === 0) return new Map();
+      const { data, error } = await supabase.rpc("get_helper_completed_counts", {
+        p_user_ids: helperIds,
+      });
+      if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
+      const map = new Map<string, number>();
+      if (Array.isArray(data)) {
+        for (const row of data) {
+          map.set(row.user_id, Number(row.completed_jobs));
+        }
+      }
+      return map;
+    },
+    staleTime: 5 * 60 * 1000, // 5 min — completed counts are slow-moving
+  };
+}
+
+function repeatHireQuery(helperIds: string[]) {
+  return {
+    queryKey: ["helper-repeat-hire-percents", helperIds],
+    queryFn: async (): Promise<Map<string, number>> => {
+      if (helperIds.length === 0) return new Map();
+      const { data, error } = await supabase.rpc("get_helper_repeat_hire_percents", {
+        p_user_ids: helperIds,
+      });
+      if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
+      const map = new Map<string, number>();
+      if (Array.isArray(data)) {
+        for (const row of data) {
+          map.set(row.user_id, Number(row.repeat_hire_percent));
+        }
+      }
+      return map;
+    },
+    staleTime: 10 * 60 * 1000, // 10 min — repeat-hire % is slow-moving
+  };
+}
+
+function onTimeQuery(helperIds: string[]) {
+  return {
+    queryKey: ["helper-on-time-percents", helperIds],
+    queryFn: async (): Promise<Map<string, number>> => {
+      if (helperIds.length === 0) return new Map();
+      const { data, error } = await supabase.rpc("get_helper_on_time_percents", {
+        p_user_ids: helperIds,
+      });
+      if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
+      const map = new Map<string, number>();
+      if (Array.isArray(data)) {
+        for (const row of data) {
+          map.set(row.user_id, Number(row.on_time_percent));
+        }
+      }
+      return map;
+    },
+    staleTime: 10 * 60 * 1000, // 10 min — on-time % is slow-moving
+  };
+}
+
+function distanceBandQuery(helperIds: string[], jobId: string | undefined) {
+  return {
+    queryKey: ["helper-distance-bands", jobId, helperIds],
+    queryFn: async (): Promise<Map<string, DistanceBand>> => {
+      if (helperIds.length === 0 || !jobId) return new Map();
+      const { data, error } = await supabase.rpc("get_helper_distances_from_job", {
+        p_job_id: jobId,
+        p_user_ids: helperIds,
+      });
+      if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
+      const map = new Map<string, DistanceBand>();
+      if (Array.isArray(data)) {
+        for (const row of data) {
+          map.set(row.user_id, { label: String(row.band), rank: Number(row.band_rank) });
+        }
+      }
+      return map;
+    },
+    staleTime: 5 * 60 * 1000, // 5 min — proximity is stable for a given job
+  };
+}
+
+/**
+ * Start every ranking-signal query for these applicants now, under the exact
+ * keys useApplicantSignals will read (its helperIds are the deduped
+ * application helper ids, in order; neighbor counts are per application).
+ * Fire-and-forget: prefetchQuery never throws, and every queryFn already
+ * degrades to an empty signal on error.
+ */
+export function prefetchApplicantSignals(queryClient: QueryClient, applicationHelperIds: string[], jobId: string) {
+  const helperIds = [...new Set(applicationHelperIds)];
+  if (helperIds.length === 0) return;
+  for (const id of applicationHelperIds) void queryClient.prefetchQuery(neighborCountQuery(id, jobId));
+  void queryClient.prefetchQuery(completedCountsQuery(helperIds));
+  void queryClient.prefetchQuery(repeatHireQuery(helperIds));
+  void queryClient.prefetchQuery(onTimeQuery(helperIds));
+  void queryClient.prefetchQuery(distanceBandQuery(helperIds, jobId));
 }
 
 /**
@@ -36,21 +165,7 @@ export function useApplicantSignals(
   // fixes the radius at one mile.
   const neighborCountQueries = useQueries({
     queries: applications.map((app) => ({
-      queryKey: ["neighbor-count", app.helper_id, selectedJob?.id],
-      queryFn: async (): Promise<number> => {
-        if (!selectedJob?.id) return 0;
-        try {
-          const { data, error } = await supabase.rpc("get_neighbor_hire_count", {
-            p_helper_id: app.helper_id,
-            p_job_id: selectedJob.id,
-          });
-          if (error) return 0;
-          return data ?? 0;
-        } catch {
-          return 0; // PGRST202 or network error — degrade gracefully
-        }
-      },
-      staleTime: 300_000, // 5 min — neighborhood data is slow-moving
+      ...neighborCountQuery(app.helper_id, selectedJob?.id),
       // The server decides whether the job has usable coordinates, so this no
       // longer gates on them client-side. Counts below 2 come back as 0
       // (k-anonymity — one neighbour beside a known job location identifies a
@@ -81,22 +196,7 @@ export function useApplicantSignals(
   // Falls back to {} on PGRST202 (migration not yet deployed on prod)
   // or any other error so the panel is never blocked.
   const { data: completedCountsData, isPending: completedPending } = useQuery({
-    queryKey: ["helper-completed-counts", helperIds],
-    queryFn: async (): Promise<Map<string, number>> => {
-      if (helperIds.length === 0) return new Map();
-      const { data, error } = await supabase.rpc("get_helper_completed_counts", {
-        p_user_ids: helperIds,
-      });
-      if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
-      const map = new Map<string, number>();
-      if (Array.isArray(data)) {
-        for (const row of data) {
-          map.set(row.user_id, Number(row.completed_jobs));
-        }
-      }
-      return map;
-    },
-    staleTime: 5 * 60 * 1000, // 5 min — completed counts are slow-moving
+    ...completedCountsQuery(helperIds),
     enabled: applications.length > 0,
   });
   const completedCountsMap: Map<string, number> = completedCountsData ?? new Map();
@@ -107,22 +207,7 @@ export function useApplicantSignals(
   // stat isn't skewed by very sparse histories.
   // Falls back to an empty Map on PGRST202 or any other error.
   const { data: repeatHireData, isPending: repeatHirePending } = useQuery({
-    queryKey: ["helper-repeat-hire-percents", helperIds],
-    queryFn: async (): Promise<Map<string, number>> => {
-      if (helperIds.length === 0) return new Map();
-      const { data, error } = await supabase.rpc("get_helper_repeat_hire_percents", {
-        p_user_ids: helperIds,
-      });
-      if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
-      const map = new Map<string, number>();
-      if (Array.isArray(data)) {
-        for (const row of data) {
-          map.set(row.user_id, Number(row.repeat_hire_percent));
-        }
-      }
-      return map;
-    },
-    staleTime: 10 * 60 * 1000, // 10 min — repeat-hire % is slow-moving
+    ...repeatHireQuery(helperIds),
     enabled: applications.length > 0,
   });
   const repeatHireMap: Map<string, number> = repeatHireData ?? new Map();
@@ -132,22 +217,7 @@ export function useApplicantSignals(
   // Minimum 5 timed jobs required before a result is emitted.
   // Falls back to an empty Map on PGRST202 or any other error.
   const { data: onTimeData, isPending: onTimePending } = useQuery({
-    queryKey: ["helper-on-time-percents", helperIds],
-    queryFn: async (): Promise<Map<string, number>> => {
-      if (helperIds.length === 0) return new Map();
-      const { data, error } = await supabase.rpc("get_helper_on_time_percents", {
-        p_user_ids: helperIds,
-      });
-      if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
-      const map = new Map<string, number>();
-      if (Array.isArray(data)) {
-        for (const row of data) {
-          map.set(row.user_id, Number(row.on_time_percent));
-        }
-      }
-      return map;
-    },
-    staleTime: 10 * 60 * 1000, // 10 min — on-time % is slow-moving
+    ...onTimeQuery(helperIds),
     enabled: applications.length > 0,
   });
   const onTimeMap: Map<string, number> = onTimeData ?? new Map();
@@ -166,23 +236,7 @@ export function useApplicantSignals(
   // than being placed at a shared ZIP centroid, so an absent entry means
   // "unknown", never "far away".
   const { data: distanceData, isPending: distancePending } = useQuery({
-    queryKey: ["helper-distance-bands", selectedJob?.id, helperIds],
-    queryFn: async (): Promise<Map<string, DistanceBand>> => {
-      if (helperIds.length === 0 || !selectedJob?.id) return new Map();
-      const { data, error } = await supabase.rpc("get_helper_distances_from_job", {
-        p_job_id: selectedJob.id,
-        p_user_ids: helperIds,
-      });
-      if (error) return new Map(); // PGRST202 or any other error — degrade gracefully
-      const map = new Map<string, DistanceBand>();
-      if (Array.isArray(data)) {
-        for (const row of data) {
-          map.set(row.user_id, { label: String(row.band), rank: Number(row.band_rank) });
-        }
-      }
-      return map;
-    },
-    staleTime: 5 * 60 * 1000, // 5 min — proximity is stable for a given job
+    ...distanceBandQuery(helperIds, selectedJob?.id),
     enabled: helperIds.length > 0 && !!selectedJob?.id,
   });
   const distanceBandMap: Map<string, DistanceBand> = distanceData ?? new Map();

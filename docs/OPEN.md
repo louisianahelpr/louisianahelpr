@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 86 items — 18 done, 4 partly done (fixed, protection pending), 64 open.**
+**Queue: 87 items — 18 done, 4 partly done (fixed, protection pending), 65 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1621,3 +1621,10 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 | NB-018 | HIGH | analytics_events shows 0 permission_denied/permission_skipped_guest rows ever; push ask still unexercised in prod. |
 | PD-005 | HIGH | Sentry chunk still loads on every passive page load via useAuthReady's auth-ready breadcrumb, defeating the interaction gate. |
 | PD-020 | HIGH | Not re-measured this pass - /my-posts's fine-grained chunk splitting cost is unverified post-PD-018/019 fixes. |
+- [ ] **Q87 REVIEW-ONLY pass owed on 96ae77309 (create-payment PublicError).**
+  76 `throw new Error` became `throw new PublicError`; the catch returns
+  publicErrorMessage(err, fixed); the EF-5 detector exempts that call. Check that
+  no PublicError can carry raw Stripe/PostgREST detail (gift redeem passes
+  redeemErr.message only for P0001; some messages interpolate pi.status and
+  job.status), that nothing that should stay hidden became public, and that the
+  exemption can't be abused. lh-money-escrow or lh-appsec, REVIEW ONLY.

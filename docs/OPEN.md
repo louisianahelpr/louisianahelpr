@@ -7723,3 +7723,25 @@ sure someone hears it and closes it.
   matched a comment (FIXED d8f71e47d). Look for the same "toContain matches a
   comment" shape in other source-scanning guards. A shared code-only reader
   would close the class (ties to Q24).
+- [ ] **Q29 51 dead-lettered emails were ARCHIVED, not resent** (pgmq archive,
+  2026-09-22 16:25 UTC): 1 auth email (sign-in, signup confirmation or password
+  reset) and 50 app emails. Find the recipients. Resend to any real (non-seed)
+  user whose email still matters, and record what happened. Then make archiving
+  a DLQ without resending impossible to do silently: the Q1 ledger gets a line.
+- [ ] **Q30 A daily cron missed during an outage never catches up.**
+  ops-daily-digest (14:40 UTC) fell inside the 09-22 pg_cron outage
+  (14:00-15:00), so no digest ran from 09-21 14:40 until the next slot, 38h+.
+  Detect missed daily/weekly slots and run them once when the database is back.
+- [ ] **Q31 void-cancelled-payments (MONEY: releases card holds on cancelled
+  jobs):** 14 "cron-dead: last 3 runs failed" and 46 HTTP 5s timeouts in 24h.
+  Check whether it's healthy since the 30s timeout change. If not, customers'
+  card holds on cancelled jobs aren't being released. Verify with the count of
+  cancelled jobs whose payment intent is still requires_capture.
+- [ ] **Q32 10 open PRs are stranded, the oldest from 09-07.** They include
+  #1621 (lazy-load Sentry, 71 kB off cold start), #1639 (Sentry error
+  normalisation), #1607 (role-neutral copy) and several dependency bumps.
+  Land, rebase or close each. Nothing auto-merges green dependency PRs (see
+  memory dep-bumps-enable-auto-merge).
+- [ ] **Q33 A "connection failed" burst: 18 crons at 2026-09-22 19:00 UTC.**
+  Not a startup timeout. Confirm whether cron-dead / sweep_cron_startup_failures
+  alerted on it; if nothing did, it's a hole in the cron monitoring.

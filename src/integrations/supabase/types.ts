@@ -275,6 +275,54 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_catchup_policy: {
+        Row: {
+          catch_up: boolean
+          jobname: string
+          max_late: string
+          reason: string
+          updated_at: string
+        }
+        Insert: {
+          catch_up: boolean
+          jobname: string
+          max_late: string
+          reason: string
+          updated_at?: string
+        }
+        Update: {
+          catch_up?: boolean
+          jobname?: string
+          max_late?: string
+          reason?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cron_catchup_runs: {
+        Row: {
+          action: string
+          decided_at: string
+          detail: string | null
+          jobname: string
+          slot: string
+        }
+        Insert: {
+          action: string
+          decided_at?: string
+          detail?: string | null
+          jobname: string
+          slot: string
+        }
+        Update: {
+          action?: string
+          decided_at?: string
+          detail?: string | null
+          jobname?: string
+          slot?: string
+        }
+        Relationships: []
+      }
       cron_run_log: {
         Row: {
           body: Json
@@ -5081,6 +5129,13 @@ export type Database = {
         Args: { p_kind: string; p_path: string; p_user_id: string }
         Returns: boolean
       }
+      cron_catchup_last_slot: {
+        Args: { p_at: string; p_schedule: string }
+        Returns: {
+          period: string
+          slot: string
+        }[]
+      }
       cron_dispatch_health: {
         Args: never
         Returns: {
@@ -6173,6 +6228,7 @@ export type Database = {
         Returns: string
       }
       rpc_withdraw_dispute: { Args: { _job_id: string }; Returns: undefined }
+      run_missed_cron_catch_up: { Args: never; Returns: Json }
       save_weekly_availability: { Args: { p_slots: Json }; Returns: number }
       search_profiles_by_name: {
         Args: { query: string }

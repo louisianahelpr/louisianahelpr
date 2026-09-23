@@ -26,6 +26,7 @@
 // @mutate src/pages/postjob/EntryChoice.tsx |   if (!entryReady) return <EntryChoiceSkeleton />; |
 import { test, expect } from "@playwright/test";
 import { newUserContext, sessionFor, POSTER_ID, HELPER_ID, SUPABASE_URL, ANON } from "./harness";
+// @ts-expect-error -- plain Node ESM with no .d.mts (same as src/test/pressEveryControlRoutes.test.ts)
 import { deriveRouteSet } from "../../scripts/audit/press-every-control.mjs";
 import { SETTLE_INIT, settlePage } from "../../scripts/audit/measure-page-settle.mjs";
 import { PLACEHOLDER_SEL } from "../../scripts/audit/measure-loading-states.mjs";

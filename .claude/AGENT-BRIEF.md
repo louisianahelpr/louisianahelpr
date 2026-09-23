@@ -13,9 +13,14 @@ says more.
   NOT inside your worktree — worktrees are deleted when you finish.
 
 ## Checks you run (and don't)
-- Do NOT run repo-wide `npm run typecheck`, `npx vitest run` or `npm run gate` —
-  the lead serializes those (8 GB Mac). Use `node scripts/parsecheck.mjs <file>`
-  and targeted `npx vitest run <files>`.
+- Do NOT run repo-wide `npx vitest run` or `npm run gate` — the lead
+  serializes those (8 GB Mac). Use `node scripts/parsecheck.mjs <file>` and
+  targeted `npx vitest run <files>`.
+- DO run `npm run typecheck` once, right before you push (about a minute; it
+  takes the shared gate lock itself). parsecheck cannot see a missing tsconfig
+  include, an untyped .mjs import or a lib method: three lanes turned main's
+  typecheck red that way on 2026-09-23. New shared module imported by a test?
+  List it in tsconfig.app.json. New .mjs imported by TS? Give it a .d.mts.
 - Before pushing: `npm run inventories:refresh`, then `npm run check:generated`
   and `npm run check:counts` (a new test moves the generated burn-down score;
   skipping this turned main red on 2026-09-23).

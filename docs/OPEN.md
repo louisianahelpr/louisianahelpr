@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 15 done, 5 partly done (fixed, protection pending), 65 open. Source of truth for work.
+- **Queue (this file):** 16 done, 4 partly done (fixed, protection pending), 65 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 85 items — 15 done, 5 partly done (fixed, protection pending), 65 open.**
+**Queue: 85 items — 16 done, 4 partly done (fixed, protection pending), 65 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -276,7 +276,7 @@ sure someone hears it and closes it.
   matched a comment (FIXED d8f71e47d). Look for the same "toContain matches a
   comment" shape in other source-scanning guards. A shared code-only reader
   would close the class (ties to Q24).
-- [~] **Q29 DONE (measured 2026-09-23): all 51 archived DLQ messages were addressed to TEST accounts.** 50 tx to helpr-e2e-helper-0902 / helpr-seed-heavy-0912 @mailinator (is_seed), 1 auth to helpr-e2e-poster-0902 (is_seed). No real user lost an email. Follow-up moved to Q2: (a) why seed/mailinator mail dead-letters at all; (b) archiving a DLQ satisfies the ledger's depth check, so archiving a REAL user's email would close the alert silently. Make the DLQ verify rule require an audit row per non-seed recipient. Was: 51 dead-lettered emails were ARCHIVED, not resent (pgmq archive, PROTECTION NOT YET BUILT: an archived DLQ can still close its alert silently until Q2 (per-recipient DLQ verify) lands. Stays [~] until then.
+- [x] **Q29 DONE (measured 2026-09-23): all 51 archived DLQ messages were addressed to TEST accounts.** 50 tx to helpr-e2e-helper-0902 / helpr-seed-heavy-0912 @mailinator (is_seed), 1 auth to helpr-e2e-poster-0902 (is_seed). No real user lost an email. Follow-up moved to Q2: (a) why seed/mailinator mail dead-letters at all; (b) archiving a DLQ satisfies the ledger's depth check, so archiving a REAL user's email would close the alert silently. Make the DLQ verify rule require an audit row per non-seed recipient. Was: 51 dead-lettered emails were ARCHIVED, not resent (pgmq archive, PROTECTION BUILT 2026-09-23 (migration 20260923052520, live): ops_alert_condition('email-dlq-*') is cleared only when every dead letter to a NON-seed recipient, queued or ARCHIVED, has a later 'sent' email_send_log row to that recipient for that template; seed-only DLQs report as 'email-dlq-*-seed' to the digest. Proven in PGlite (~/.lh-pglite/pgl-q2-seed.mjs): real recipient archived with an empty queue -> still failing; earlier 'sent' only -> still failing; later 'sent' -> cleared. Guard: src/test/alertingDetectorsDeclareSeedPolicy.test.ts.
   2026-09-22 16:25 UTC): 1 auth email (sign-in, signup confirmation or password
   reset) and 50 app emails. Find the recipients. Resend to any real (non-seed)
   user whose email still matters, and record what happened. Then make archiving
@@ -456,6 +456,46 @@ sure someone hears it and closes it.
   support" x10 are mostly E2E and seed jobs (ties to Q2); nightly-red x5;
   detect_stuck_payments + ops-digest still failing; 24 manual error_logs items
   (cron-http timeouts from before the 30s change, email-dlq, dispute-unsettled).
+  WORKED 2026-09-23 05:40-06:15Z. Open items 36 -> 16 (live ledger, 06:10Z).
+  CLOSED with their own re-run (evidence in closed_evidence):
+  - 8 alert items from test data (Q2): did-you-finish, has-this-job-been-
+    finished, asked-support, job-auto-cancelled (probe notification to a
+    tokenless seed admin: no ops-alert row, no ledger row), stuck payment +
+    detect_stuck_payments (re-run: 14 flagged, all seed, 0 admin
+    notifications; ops_alert_verify closed it), job stalled + job stalled
+    with escrow held (all 11 escalated jobs are is_seed), new member joined
+    (probe account since deleted).
+  - subscription-reconciliation 500 x2: a seed profile's subscription was
+    reported paid_but_no_tier every day (the real-only scope dropped seed on
+    the DB side only). Dry-run re-run 05:55Z: clean, 0 findings.
+  - 11 cron-http timeout items: all before the 30s timeout change; 7-89 runs
+    each since 22:29Z with zero timeouts (sweep-cron-http-failures alive).
+  - ops-digest-undelivered: the 09-22 run died in the pg_cron startup-timeout
+    outage. Re-ran send_ops_daily_digest() 05:54Z (Slack 200 ok);
+    check_ops_digest_delivery() ok, closed by ops_alert_verify.
+  - void-cancelled-payments B2 went live at 06:10Z: all 9 cancelled+unpaid
+    seed jobs with a session are now 'abandoned' (0 left).
+  STILL OPEN, with owner:
+  - marketing-publish 500: Meta secrets missing (MORNING QUESTIONS 3).
+  - scheduled payout failed: test Stripe balance empty (MORNING QUESTIONS 2 /
+    Q3); links to /admin, no subject, so it cannot be seed-routed yet.
+  - Sentry not synced (MORNING QUESTIONS 1).
+  STILL OPEN, not mine to close yet:
+  - ban review needed (Strike Probe Poster, a probe): link
+    /admin?view=banreview names no subject; needs the subject in the link
+    (apply_consequence_ladder) — see Q2 follow-up.
+  - dispute-unsettled-seed (dispute 9756a585, seed, payout_pending — the
+    release is owner item Q10). New seed rows no longer reach the ledger.
+  - charge-recurring-visits DNS failure (09-22 06:15Z): re-ran 06:06Z; the
+    watcher (06:15Z) decides; close it then.
+  - nightly-red x7 and db-deploy: other lanes' red CI (main Vitest/Test red
+    from UI tests + create-payment.test.ts, 32 failures in run 35822129589;
+    db-deploy lint on 75d24ab1d; prod-audit messy-input/expanding-search
+    since 09-17; press-every-control since 09-13). Their workflows close them.
+  - push-tokens-empty: new today, Q82's own monitor.
+  - "subscription reconciliation ran degraded": raised by the fix's first
+    dry run, because ANY note made a clean run post "degraded"; seed skips no
+    longer go into notes (commit after 12b2b141d). Close on the next run.
 - [ ] **Q43 LOOK at the alert ledger's surfaces.** The new "Open Alerts" card
   on /admin?view=health has never been screenshotted, and the session-start
   hook's open-alert summary hasn't been re-run since deploy. Screenshot at
@@ -479,6 +519,10 @@ sure someone hears it and closes it.
   insert time, and every alerting detector must state how it treats is_seed.
   Add a guard that scans the test writers and the detectors. This is Q2's
   structural half.
+  DETECTOR HALF DONE 2026-09-23: src/test/alertingDetectorsDeclareSeedPolicy.test.ts
+  (every SQL/edge detector that alerts about jobs/payments references is_seed
+  in code or declares `seed-policy:`; red on origin/main 741e9d3a6 with 14).
+  OPEN: the fixture-writer half (is_seed set at insert time).
 - [ ] **Q47 Sessions work in their own worktree, not the shared checkout.** On
   2026-09-23 two sessions' commits made each other's trees lag, and an agent
   found itself in the shared checkout mid-task. Make the session-start hook

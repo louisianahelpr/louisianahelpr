@@ -439,6 +439,8 @@ serve(async (req) => {
     // sub_1UBzT2… on the seed profile "Audit Weblane", which HOLDS tier pro
     // (docs/OPEN.md Q42). With `?include_seed=1` they are graded normally.
     const seedOwned = new Set<string>();
+    /** Live subscriptions skipped because a seed profile holds them. */
+    const seedSkipped: string[] = [];
     if (!includeSeed) {
       const { data: seedRows, error: seedErr } = await admin
         .from("profiles")
@@ -482,7 +484,9 @@ serve(async (req) => {
 
       if (!profile && seedOwned.has(sub.id)) {
         // Out of scope, not missing: a seed profile owns it (see seedOwned).
-        notes.push(`subscription ${sub.id}: owned by a seed profile — out of scope (use ?include_seed=1)`);
+        // NOT a note: any note makes a clean run post "ran degraded" (below),
+        // which would turn every seed subscription into a daily warning.
+        seedSkipped.push(sub.id);
         continue;
       }
 
@@ -699,6 +703,7 @@ serve(async (req) => {
       repairs_suppressed: repairsSuppressed,
       findings,
       notes,
+      seed_subscriptions_skipped: seedSkipped,
       scan_caps: caps,
       run_at: new Date().toISOString(),
     };

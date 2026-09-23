@@ -7711,7 +7711,7 @@ sure someone hears it and closes it.
 - [ ] **Q21 Other `parseLocalDate(date_needed)` "time until job" math** may
   have the same device-timezone bug (not searched). Sweep src/, then extend the
   tz-sweep test to each site.
-- [ ] **Q22 Independent review of the href-class commits** (3c81624d0,
+- [x] **Q22 DONE: independent review (lh-authz-rls, verified live) found NO remaining or new XSS sink**; grants, constraints and every writer check out. Was: Independent review of the href-class commits (3c81624d0,
   dd4713c00, 724cb5a67, 5e7cc4832, migration 20260923042014). In progress
   (lh-authz-rls, review only).
 - [ ] **Q23 Admin DocumentsTab can't open portfolio STORAGE PATHS.** They need
@@ -7777,3 +7777,14 @@ sure someone hears it and closes it.
     ("lower the baseline"), and a meta-guard (derived by scanning for baseline
     and KNOWN_ files) requires each to have that two-way check, shown red with
     a planted stale entry.
+- [ ] **Q37 Portfolio photos from signup render BROKEN on the public profile.**
+  complete-signup stores portfolio_urls as bare storage paths
+  (index.ts:516,700); HelperWorkPhotos.tsx:45 uses them directly as <img src>,
+  which resolves against the app origin. Sign them at display time (ties to
+  Q23), with a check that every portfolio reader resolves paths. Found by the
+  Q22 review.
+- [ ] **Q38 No watch for NOT VALID constraints on user-written tables.** If a
+  VALIDATE ever fails, the migration only logs a WARNING, and every later
+  UPDATE of that row fails with an opaque check_violation. Add a live check
+  (pg_constraint.convalidated = false on public tables) to db-deploy post-apply
+  and to the drift detector.

@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 55 done, 7 partly done (fixed, protection pending), 76 open. Source of truth for work.
+- **Queue (this file):** 55 done, 7 partly done (fixed, protection pending), 78 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 139 items — 55 done, 7 partly done (fixed, protection pending), 77 open.**
+**Queue: 140 items — 55 done, 7 partly done (fixed, protection pending), 78 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -473,6 +473,7 @@ sure someone hears it and closes it.
 - [ ] **Q128 Triage press-every-control run 35837735324 (e96adc16d, red, 2026-09-23).** Classes seen: (1) 429 on Sentry `envelope/` counted as a control failure (earnings, signup, schedule, home_history) — our own telemetry rate limit, not a product defect; the harness must not blame the control, and 429s from our own reporter need their own look; (2) "Copy Mon to all" on /profile?tab=availability: no observable change for customer AND helper — real defect or harness blind spot, measure; (3) /jobs/:id "Done — <date>" timeline buttons NOT CLICKABLE (16s timeout, 3 rows) — something covers them or they are disabled-looking-enabled; (4) /admin?view=credentials "Open" no observable change; (5) apay-us.amazon.com 500 (third party); (6) admin Refund Poster not found on reload (transient DOM); (7) GoTrue refused test sessions mid-run and parts were cancelled on time budget (a cancelled run is a hidden red). Fix real defects with guards, reclassify harness noise with a guard that each class stays classified, and re-dispatch press.
 - [x] **Q138 DONE: a test importing an unlisted e2e file can no longer turn typecheck red unseen (2026-09-23).** tsconfig.app.json is composite, so every e2e file a src/test file imports must be listed; lanes run only targeted vitest, so TS6307 surfaced only in the Test workflow (twice tonight: e2eSkipsAreJustified, then fundedOpenJobPlan since 8f6256c2a). Listed e2e/prod-audit/fundedOpenJobPlan.ts. Guard: src/test/e2eImportsInAppTsconfig.test.ts (follows each import's e2e closure; red on the old tsconfig naming exactly that file; typecheck clean after).
 - [ ] **Q140 A boolean validator can return TRUE for a NULL argument (authz review of 20260923113829, 2026-09-23).** public.helper_credential_document_ok(p_user_id, p_type, p_path) is a chain of `IF <cond> THEN RETURN false` guards ending in `RETURN EXISTS(...)`; with p_type NULL every guard condition is NULL, plpgsql skips it, and the function returned TRUE live for another user's real document path (false with 'insurance'). Unreachable today (credential_type NOT NULL, member UPDATE revoked): a latent trap. Fix as a class: inventory every access/validity boolean function in public, call each live with NULL per argument, fix every offender (explicit NULL guard or STRICT, per caller), guard that calls the whole inventory with NULLs.
+- [ ] **Q141 Remove the unused 'bond' credential type (OWNER DECISION 2026-09-23: remove).** No screen or edge function mentions bond (grep of src/ and supabase/functions: 0 hits); it lives only in helper_credentials.credential_type (20260612140000), the credential-tier function (counts a verified bond like insurance), the Q130 trigger/CHECK (20260923113829), and one seed row (helper-e2e, rejected, no document) from scripts/audit/prod-seed.mjs + e2e/happy-path/seedData.ts. Remove it from the type CHECK, every function that names it, the seed scripts and fixtures; delete the seed row; closes Q134 (bond has no reviewer). Starts after the NULL-arg validator lane lands (same functions).
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes

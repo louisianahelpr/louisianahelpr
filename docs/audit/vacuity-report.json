@@ -1,10 +1,8 @@
 {
-  "generated": "2026-09-23T22:08:01.532Z",
+  "generated": "2026-09-23T22:17:15.865Z",
   "guards": 878,
-  "registered": 877,
-  "unregistered": [
-    "src/test/noGrepCountOnBundles.test.ts"
-  ],
+  "registered": 878,
+  "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/activity/appliedJobCard/helperDisputeCopy.test.tsx",
@@ -27,13 +25,9 @@
     "src/test/expiryFormatterClass.test.ts",
     "src/test/jobMatchPreferenceGate.test.ts",
     "src/test/jobsStateColumnGuard.test.ts",
-    "src/test/liveChecksCallNoRevokedFunction.test.ts",
     "src/test/messageToneInvariant.test.ts",
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
-    "src/test/noGrepCountOnBundles.test.ts",
-    "src/test/profileTabParserMatchesTabTitles.test.ts",
-    "src/test/q248HoverUnderlineRatchet.test.ts",
     "src/test/storageBucketLimits.test.ts",
     "src/test/unknownZipIsNeverSilent.test.ts"
   ],

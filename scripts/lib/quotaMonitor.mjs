@@ -35,13 +35,43 @@ export const WARN_AT = 0.8;
 
 const GB = 1024 ** 3;
 
+/**
+ * THE plan limits, one definition (docs/OPEN.md Q221). Plans measured
+ * 2026-09-23: Supabase PRO, Vercel FREE (Hobby). QUOTAS below,
+ * scripts/supabase-usage-check.mjs and scripts/lib/vercelUsage.mjs all read
+ * their numbers from here; src/test/planLimits.test.ts holds them to it both
+ * ways (every consumer reads a limit from here, every limit here has a
+ * consumer, no consumer hard-codes a number). `value: null` = the vendor
+ * publishes no fixed amount for this plan, so nothing is graded against it.
+ * Numbers were NOT re-read from the vendor pages on 2026-09-23 (egress-blocked
+ * from the cloud session), which each `source` says.
+ */
+export const PLANS = { supabase: "Pro", vercel: "Hobby", resend: "Free (assumed)", sentry: "Developer (assumed)" };
+
+export const PLAN_LIMITS = {
+  supabase_db_bytes: { value: 8 * GB, unit: "bytes", source: "Supabase Pro: 8 GB disk per project included (pricing page; not re-read 2026-09-23)." },
+  supabase_storage_bytes: { value: 100 * GB, unit: "bytes", source: "Supabase Pro: 100 GB file storage included (pricing page; not re-read 2026-09-23)." },
+  supabase_edge_invocations_month: { value: 2_000_000, unit: "invocations/month", source: "Supabase Pro: 2,000,000 edge function invocations/month included (pricing page; not re-read 2026-09-23)." },
+  supabase_egress_bytes_month: { value: 250 * GB, unit: "bytes/month", source: "Supabase Pro: 250 GB egress/month included (pricing page; not re-read 2026-09-23)." },
+  supabase_realtime_messages_month: { value: 5_000_000, unit: "messages/month", source: "Supabase Pro: 5,000,000 Realtime messages/month included (pricing page; not re-read 2026-09-23)." },
+  vercel_deploys_per_day: { value: 100, unit: "deployments/day", source: "Vercel Hobby: 100 deployments created per day (limits page; not re-read 2026-09-23). Hit for real on 2026-09-13 (\"Deployment rate limited — retry in 24 hours\")." },
+  vercel_edge_requests_month: { value: 1_000_000, unit: "requests/month", source: "Vercel Hobby: 1,000,000 Edge Requests/month included (limits page; not re-read 2026-09-23)." },
+  vercel_fast_data_transfer_gb_month: { value: 100, unit: "GB/month", source: "Vercel Hobby: 100 GB Fast Data Transfer/month included (the Hobby tables read \"100 GB\", decimal; not re-read 2026-09-23)." },
+  vercel_function_invocations_month: { value: 1_000_000, unit: "invocations/month", source: "Vercel Hobby: 1,000,000 function invocations/month included (the Vercel Functions pricing table, \"1 million included\" under Hobby, read 2026-09-14/15; not re-read 2026-09-23)." },
+  vercel_build_minutes_month: { value: null, unit: "CPU minutes/month", source: "Vercel Hobby: no build-minute allowance number sourced in this repo; measured and logged, never graded." },
+  resend_emails_month: { value: 3_000, unit: "emails/month", source: "Resend free plan: 3,000 emails/month (ASSUMED: the owner said only 'Resend has plan limits')." },
+  resend_emails_day: { value: 100, unit: "emails/day", source: "Resend free plan: 100 emails/day (ASSUMED as above)." },
+  sentry_errors_month: { value: 5_000, unit: "errors/month", source: "Sentry Developer plan: 5,000 errors/month (ASSUMED: the owner said only 'Sentry has plan limits')." },
+  vercel_deployment_storage_gb_month: { value: null, unit: "GB-months", source: "Vercel: no published deployment-storage allowance (\"your plan may include an allowance\", no number); measured and logged, never graded." },
+};
+
 /** @type {import("./quotaMonitor.d.mts").Quota[]} */
 export const QUOTAS = [
   {
     id: "supabase.db_size",
     service: "Supabase",
     name: "Database size",
-    limit: 8 * GB,
+    limit: PLAN_LIMITS.supabase_db_bytes.value,
     unit: "bytes",
     window: "now",
     read: "sql",
@@ -65,7 +95,7 @@ export const QUOTAS = [
     id: "supabase.storage",
     service: "Supabase",
     name: "File storage",
-    limit: 100 * GB,
+    limit: PLAN_LIMITS.supabase_storage_bytes.value,
     unit: "bytes",
     window: "now",
     read: "sql",
@@ -76,7 +106,7 @@ export const QUOTAS = [
     id: "supabase.edge_invocations",
     service: "Supabase",
     name: "Edge function invocations (last 24h x 30)",
-    limit: 2_000_000,
+    limit: PLAN_LIMITS.supabase_edge_invocations_month.value,
     unit: "invocations/month",
     window: "trailing 24h, projected to 30 days",
     read: "logs",
@@ -87,7 +117,7 @@ export const QUOTAS = [
     id: "supabase.egress",
     service: "Supabase",
     name: "Egress",
-    limit: 250 * GB,
+    limit: PLAN_LIMITS.supabase_egress_bytes_month.value,
     unit: "bytes/month",
     window: "billing cycle",
     read: null,
@@ -99,7 +129,7 @@ export const QUOTAS = [
     id: "supabase.realtime_messages",
     service: "Supabase",
     name: "Realtime messages",
-    limit: 5_000_000,
+    limit: PLAN_LIMITS.supabase_realtime_messages_month.value,
     unit: "messages/month",
     window: "billing cycle",
     read: null,
@@ -111,7 +141,7 @@ export const QUOTAS = [
     id: "vercel.deploys_per_day",
     service: "Vercel",
     name: "Deployments created (last 24h)",
-    limit: 100,
+    limit: PLAN_LIMITS.vercel_deploys_per_day.value,
     unit: "deployments/day",
     window: "trailing 24h",
     read: "github",
@@ -122,7 +152,7 @@ export const QUOTAS = [
     id: "resend.sends_month",
     service: "Resend",
     name: "Emails sent this calendar month",
-    limit: 3_000,
+    limit: PLAN_LIMITS.resend_emails_month.value,
     unit: "emails/month",
     window: "calendar month to date (UTC)",
     read: "sql",
@@ -133,7 +163,7 @@ export const QUOTAS = [
     id: "resend.sends_day",
     service: "Resend",
     name: "Emails sent (last 24h)",
-    limit: 100,
+    limit: PLAN_LIMITS.resend_emails_day.value,
     unit: "emails/day",
     window: "trailing 24h",
     read: "sql",
@@ -144,7 +174,7 @@ export const QUOTAS = [
     id: "sentry.errors_30d",
     service: "Sentry",
     name: "Error events accepted (last 30 days)",
-    limit: 5_000,
+    limit: PLAN_LIMITS.sentry_errors_month.value,
     unit: "errors/month",
     window: "trailing 30 days",
     read: "sentry",

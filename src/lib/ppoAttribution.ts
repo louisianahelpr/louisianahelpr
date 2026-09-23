@@ -138,7 +138,7 @@ export function recordPpoAttribution(search: string): PpoAttribution | null {
 
 /**
  * Read the persisted attribution. Use to tag downstream activation events
- * (signup_completed, first_job_posted, first_payout_received) so the admin
+ * (signup_completed, first_job_posted, first_payment_collected) so the admin
  * dashboard can compute conversion per arm.
  */
 export function getPpoAttribution(): PpoAttribution | null {

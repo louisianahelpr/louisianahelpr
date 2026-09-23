@@ -1,7 +1,9 @@
 name: Supabase usage
 
-# Owner-approved 2026-09-14. Weekly headroom check against the free-tier
-# ceilings: 500 MB database, 1 GB storage. Warns at 70% by opening an issue
+# Owner-approved 2026-09-14. Weekly headroom check against the plan's
+# ceilings. Prod is on Supabase PRO (measured 2026-09-23, docs/OPEN.md Q221);
+# the limits are PLAN_LIMITS in scripts/lib/quotaMonitor.mjs, the one
+# definition quota-monitor.yml also grades against. Warns at 70% by opening an issue
 # labelled `supabase-usage` (and posting to Slack if the webhook exists), so
 # the ceiling never arrives as a surprise.
 #
@@ -35,7 +37,8 @@ name: Supabase usage
 # ALSO IN THIS RUN (docs/OPEN.md "Vercel usage alert", owner "finish up"
 # 2026-09-14): the "Vercel usage headroom" step below asks Vercel's own
 # billing/charges API (api.vercel.com, OPTIONAL repo secret VERCEL_TOKEN) how
-# close the team is to five Pro plan limits, and pages #ops-alerts through
+# close the team is to its plan's limits (Vercel HOBBY since Q221, from the
+# same PLAN_LIMITS), and pages #ops-alerts through
 # the same SLACK_WEBHOOK_URL path at >=80%. scripts/lib/vercelUsage.mjs has
 # the metric table and every source-URL citation. No VERCEL_TOKEN -> the step
 # logs one skip line and stays green (OWNER ACTION printed in the log).
@@ -47,7 +50,7 @@ on:
   workflow_dispatch:
     inputs:
       warn_at_percent:
-        description: "Warn threshold (% of the free-tier limit)"
+        description: "Warn threshold (% of the plan limit)"
         required: false
         default: "70"
 
@@ -71,7 +74,7 @@ concurrency:
 
 jobs:
   usage:
-    name: Free-tier headroom
+    name: Plan headroom
     runs-on: ubuntu-latest
     # A few minutes for the headroom check + the orphan sweep's own 25-minute
     # step timeout (two owner reads 10 min apart; it stops starting deletes at 20).
@@ -104,10 +107,11 @@ jobs:
           set -euo pipefail
           # Same one-issue-per-condition shape as prod-errors.yml: the title is
           # the dedup key and the step that opens it closes it, so the open list
-          # is the live state rather than a history.
+          # is the live state rather than a history. The wording predates the
+          # PRO plan (Q221) and is kept: it is the key an open issue is found by.
           TITLE="supabase-usage: approaching a free-tier limit"
           gh label create supabase-usage --repo "$REPO" --color FBCA04 \
-            --description "Prod is near a Supabase free-tier ceiling" --force >/dev/null
+            --description "Prod is near a Supabase plan ceiling" --force >/dev/null
           EXISTING=$(gh issue list --repo "$REPO" --label supabase-usage --state open \
             --search "in:title \"${TITLE}\"" --json number,title \
             --jq ".[] | select(.title == \"${TITLE}\") | .number" | head -n1)
@@ -148,10 +152,10 @@ jobs:
             --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true
           set -euo pipefail
           if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
-            echo "::error::Prod is near a Supabase free-tier limit and there is no SLACK_WEBHOOK_URL repo secret. OWNER ACTION: add it (Settings -> Secrets and variables -> Actions). The supabase-usage issue was still opened."
+            echo "::error::Prod is near a Supabase plan limit and there is no SLACK_WEBHOOK_URL repo secret. OWNER ACTION: add it (Settings -> Secrets and variables -> Actions). The supabase-usage issue was still opened."
             exit 1
           fi
-          TEXT=":warning: Supabase free tier — ${SUMMARY}
+          TEXT=":warning: Supabase plan headroom — ${SUMMARY}
           ${RUN_URL}"
           curl -sS --fail-with-body -X POST -H 'content-type: application/json' \
             --data "$(jq -nc --arg t "$TEXT" '{text:$t}')" "$SLACK_WEBHOOK_URL"
@@ -232,7 +236,7 @@ jobs:
             --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true
           set -euo pipefail
           if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
-            echo "::error::Vercel usage is at or above the warn threshold of a Pro plan limit and there is no SLACK_WEBHOOK_URL repo secret. OWNER ACTION: add it (Settings -> Secrets and variables -> Actions)."
+            echo "::error::Vercel usage is at or above the warn threshold of a plan limit and there is no SLACK_WEBHOOK_URL repo secret. OWNER ACTION: add it (Settings -> Secrets and variables -> Actions)."
             exit 1
           fi
           TEXT=":warning: Vercel Pro usage — ${SUMMARY}

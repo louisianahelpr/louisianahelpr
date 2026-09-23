@@ -25,7 +25,6 @@ describe("AhaEvent constants", () => {
     expect(AhaEvent.SignupStarted).toBe("signup_started");
     expect(AhaEvent.SignupCompleted).toBe("signup_completed");
     expect(AhaEvent.EmailVerified).toBe("email_verified");
-    expect(AhaEvent.ProfileCompleted).toBe("profile_completed");
   });
 
   it("includes the documented aha-moment events", () => {
@@ -34,13 +33,11 @@ describe("AhaEvent constants", () => {
     expect(AhaEvent.FirstHelperHired).toBe("first_helper_hired");
     expect(AhaEvent.FirstJobCompleted).toBe("first_job_completed");
     expect(AhaEvent.FirstReviewLeft).toBe("first_review_left");
-    expect(AhaEvent.FirstPayoutReceived).toBe("first_payout_received");
+    expect(AhaEvent.JobCompleted).toBe("job_completed");
   });
 
-  it("includes friction events used by the error pipeline", () => {
-    expect(AhaEvent.ErrorShown).toBe("error_shown");
+  it("includes the friction event the permission prompts emit", () => {
     expect(AhaEvent.PermissionDenied).toBe("permission_denied");
-    expect(AhaEvent.AppCrashed).toBe("app_crashed");
   });
 });
 

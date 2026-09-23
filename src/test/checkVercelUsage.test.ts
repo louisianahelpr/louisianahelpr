@@ -2,8 +2,9 @@
  * docs/OPEN.md "Vercel usage alert" (owner: finish up, 2026-09-14).
  *
  * scripts/check-vercel-usage.mjs asks GET /v1/billing/charges (FOCUS v1.3
- * JSONL) for the team and compares five metrics against the Pro plan's
- * published included amounts (scripts/lib/vercelUsage.mjs has the citations).
+ * JSONL) for the team and compares five metrics against the monthly included
+ * amounts of the plan the team is on (HOBBY since Q221; the numbers are
+ * PLAN_LIMITS in scripts/lib/quotaMonitor.mjs, the one definition).
  * These tests exercise the pure logic directly: JSONL parsing, the
  * threshold maths, the no-token skip, a 401/5xx failing loudly without
  * paging, and an unrecognised ServiceName being ignored rather than erroring.
@@ -13,9 +14,12 @@
  * stubbed globally, per src/test/marketingDuplicateScan.test.ts.
  */
 // @mutate scripts/lib/vercelUsage.mjs | const warn = anyCritical(evals); | const warn = false;
+// @mutate scripts/lib/vercelUsage.mjs |   const scale = 30 / windowDays; |   const scale = 1;
+// @mutate scripts/lib/quotaMonitor.mjs | export const PLANS = { supabase: "Pro", vercel: "Hobby", | export const PLANS = { supabase: "Pro", vercel: "Pro",
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   METRICS,
+  PLAN,
   aggregateByMetric,
   anyCritical,
   buildReportMarkdown,
@@ -25,6 +29,7 @@ import {
   parseFocusJsonl,
   runVercelUsageCheck,
 } from "../../scripts/lib/vercelUsage.mjs";
+import { PLAN_LIMITS } from "../../scripts/lib/quotaMonitor.mjs";
 
 const FROM = "2026-09-07T00:00:00.000Z";
 const TO = "2026-09-14T00:00:00.000Z";
@@ -115,13 +120,31 @@ describe("evaluateMetrics — threshold maths", () => {
 
   it("a metric with no published limit is never critical, whatever it consumed", () => {
     const evals = evaluateMetrics(
-      { "Function Invocations": { consumed: 50_000_000, reportedUnits: [] } },
+      { "Build Minutes": { consumed: 50_000_000, reportedUnits: [] } },
       { thresholdPercent: 80 },
     );
-    const fi = evals.find((e) => e.name === "Function Invocations")!;
-    expect(fi.limit).toBeNull();
-    expect(fi.pct).toBeNull();
-    expect(fi.critical).toBe(false);
+    const bm = evals.find((e) => e.name === "Build Minutes")!;
+    expect(bm.limit).toBeNull();
+    expect(bm.pct).toBeNull();
+    expect(bm.critical).toBe(false);
+  });
+
+  it("grades against the HOBBY plan the team is on, from the shared PLAN_LIMITS (Q221)", () => {
+    expect(PLAN).toBe("Hobby");
+    const byName = Object.fromEntries(METRICS.map((m) => [m.name, m.limit]));
+    expect(byName["Edge Requests"]).toBe(PLAN_LIMITS.vercel_edge_requests_month.value);
+    expect(byName["Fast Data Transfer"]).toBe(PLAN_LIMITS.vercel_fast_data_transfer_gb_month.value);
+    expect(byName["Function Invocations"]).toBe(PLAN_LIMITS.vercel_function_invocations_month.value);
+    // Hobby's transfer allowance is 100 GB, not Pro's 1 TB.
+    expect(byName["Fast Data Transfer"]).toBe(100);
+  });
+
+  it("projects a 7-day window to a month before grading (monthly allowances)", () => {
+    // 200k Edge Requests in 7 days = ~857k/month = 85.7% of 1M -> critical.
+    const [er] = evaluateMetrics({ "Edge Requests": { consumed: 200_000, reportedUnits: [] } }, { thresholdPercent: 80, windowDays: 7 })
+      .filter((e) => e.name === "Edge Requests");
+    expect(er.pct).toBeCloseTo((200_000 * 30 / 7) / 1_000_000 * 100, 6);
+    expect(er.critical).toBe(true);
   });
 
   it("anyCritical / formatSummary reflect the worst metric", () => {
@@ -157,7 +180,9 @@ describe("evaluateMetrics — threshold maths", () => {
       expect(report).toContain(m.sourceUrl);
     }
     expect(report).toContain("Observability Plus");
-    expect(report).toContain("no published Pro quota");
+    expect(report).toContain("no published Hobby quota");
+    expect(report).toContain("## Vercel Hobby usage");
+    expect(report).not.toMatch(/\bPro\b/);
   });
 });
 

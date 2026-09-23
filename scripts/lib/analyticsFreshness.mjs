@@ -94,6 +94,29 @@ export const KEY_EVENTS = [
     ground: null,
   },
   {
+    event: "job_completed",
+    label: "completed",
+    windowDays: 7,
+    // Emitted by src/lib/jobCompletedEvent.ts when a create-payment release
+    // answers bothDone (Activity confirm, the tracker's Done after the poster
+    // approved, closing a dispute). Ground truth is only the completions that
+    // path makes: both parties stamped, no dispute, single-Helpr. The 24h
+    // auto-release sweep leaves poster_completed_at null, and dispute
+    // decisions/quick release set dispute_status, so neither counts (they
+    // complete with no client, so no event). dispute_status is NULL on a job
+    // never disputed (its 'open' default was dropped and backfilled,
+    // 20260823200000). jobs.completed_at is stamped by
+    // zz_jobs_stamp_completed_at (20260914201350) on entering completed.
+    ground: `SELECT count(*) FILTER (WHERE NOT j.is_seed AND NOT coalesce(cp.is_seed, false) AND NOT coalesce(hp.is_seed, false)) AS real,
+                    count(*) FILTER (WHERE j.is_seed OR cp.is_seed OR hp.is_seed) AS test
+               FROM public.jobs j
+               LEFT JOIN public.profiles cp ON cp.user_id = j.customer_id
+               LEFT JOIN public.profiles hp ON hp.user_id = j.helper_id
+              WHERE j.status = 'completed' AND j.completed_at > $SINCE
+                AND j.poster_completed_at IS NOT NULL AND j.helper_completed_at IS NOT NULL
+                AND j.dispute_status IS NULL AND NOT coalesce(j.is_group_job, false)`,
+  },
+  {
     event: "review_left",
     label: "reviewed",
     windowDays: 7,
@@ -112,8 +135,7 @@ export const KEY_EVENTS = [
  * KEY_EVENTS instead of staying unmonitored.
  */
 export const MISSING_MILESTONES = {
-  job_completed: "No completion event exists: AhaEvent.FirstJobCompleted is declared in src/lib/analytics.ts but no track( call emits it, and there is no per-job completed event. docs/OPEN.md Q72 status.",
-  first_helper_hired: "AhaEvent.FirstHelperHired is declared but never emitted; 'hired' is monitored through job_accepted instead.",
+  // Empty since Q222 (2026-09-23): job_completed is emitted and monitored.
 };
 
 /**
@@ -129,6 +151,8 @@ export const NOT_MONITORED = {
   first_job_application_sent: "first-time variant of job_applied",
   first_job_accepted: "first-time variant of job_accepted",
   first_review_left: "first-time variant of review_left",
+  first_job_completed: "first-time variant of job_completed",
+  first_helper_hired: "poster's first-time hire; the hire itself is monitored through job_accepted (the Helpr's acceptance)",
   first_five_star_review: "subset of review_left",
   first_payment_collected: "first-time variant; payment_made is the monitored payment event",
   payout_setup_started: "onboarding step, not a core-loop action",
@@ -218,8 +242,9 @@ export function evaluateFreshness(rows, events = KEY_EVENTS) {
     ...results.map(({ k, row, status }) =>
       `| \`${k.event}\` | ${k.label} | ${k.windowDays}d | ${cell(row?.events)} | ${cell(row?.test_events)} | ` +
       `${k.ground ? cell(row?.real_actions) : "no ground truth"} | ${k.ground ? cell(row?.test_actions) : "—"} | ${cell(row?.last_event_at)} | **${status.toUpperCase()}** |`),
-    "",
-    `Not monitored because no event exists: ${Object.keys(MISSING_MILESTONES).map((e) => `\`${e}\``).join(", ")} (see scripts/lib/analyticsFreshness.mjs).`,
+    ...(Object.keys(MISSING_MILESTONES).length
+      ? ["", `Not monitored because no event exists: ${Object.keys(MISSING_MILESTONES).map((e) => `\`${e}\``).join(", ")} (see scripts/lib/analyticsFreshness.mjs).`]
+      : []),
   ].join("\n");
   return { results, alerts, unreadable, summary, report };
 }

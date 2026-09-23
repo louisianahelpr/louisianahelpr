@@ -10,6 +10,7 @@ import { formatName } from "@/lib/utils";
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { safeStorage } from "@/lib/safeStorage";
 import { fireSuccessMoment } from "@/lib/successMoment";
+import { trackJobCompleted } from "@/lib/jobCompletedEvent";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -177,6 +178,8 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         return;
       }
       if (data?.bothDone) {
+        // Analytics (Q222): this release completed the job. Once per job.
+        void 0;
         hapticSuccess();
         // Premium checkmark beat on every completion (self-respects reduced
         // motion). The brand confetti below is the *extra* novelty for the

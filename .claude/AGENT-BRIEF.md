@@ -29,7 +29,14 @@ says more.
   it — not only on a synthetic fixture. A parser can silently read the wrong
   file (a `$fn$`-only parser read the old function body and stayed green).
 - Migration-reading guards must accept any dollar-quote tag and read the NEWEST
-  definition. Source-scanning guards must ignore comments.
+  definition. Source-scanning guards must ignore comments, using the shared
+  helpers in src/test/helpers/blankNonCode.ts (`blankComments`,
+  `blankSqlComments`), never a regex comment stripper: guardsDoNotDeleteSource
+  fails on one, and four new guards did it on 2026-09-23.
+- Before pushing ANY new or changed test, also run the repo-wide guards that
+  scan every test file; each turned main red at least once on 2026-09-23
+  because a lane ran only its own test:
+  `npx vitest run src/test/baselinesAreTwoWay.test.ts src/test/guardsDoNotDeleteSource.test.ts src/test/guardsReadTheNewestMigration.test.ts src/test/liveCheckScriptsFailClosed.test.ts src/test/fixtureSchemaContract.test.ts src/test/helprNotHelperInCopy.test.ts src/test/queueItemsNameTheirGuard.test.ts`
 
 ## Data and prod
 - Prod (`fncmgoasalhdgfwzhsqa`) is the only database. Read-only SQL is fine;

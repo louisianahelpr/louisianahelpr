@@ -384,6 +384,12 @@ const ProfilePage = () => {
         toast.error("Couldn't save setting — try again.");
       }
       // Missing column = migration not yet pushed; keep UI state, don't toast.
+    } else {
+      // The session carries the flag too, so the account's NEXT new device
+      // paints at the right size before its profile loads (Q200). Best-effort:
+      // App.tsx re-mirrors it whenever the loaded profile disagrees.
+      const { error: metaError } = await supabase.auth.updateUser({ data: { senior_mode: enabled } });
+      if (metaError) console.warn("[senior-mode] session hint not saved", metaError.message);
     }
   };
 

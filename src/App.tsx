@@ -48,7 +48,7 @@ import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
 import { useNativePushSetup } from "@/lib/nativePush";
 import { useDynamicTypeSync, OS_LARGE_TEXT_THRESHOLD } from "@/lib/accessibility";
-import { syncSeniorMode } from "@/lib/simpleMode";
+import { seniorModeMetadataPatch, sessionSeniorFlag, syncSeniorMode } from "@/lib/simpleMode";
 import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import RouteMemory from "@/components/RouteMemory";
@@ -518,14 +518,29 @@ const SessionManager = () => {
   // on the next launch. The third input lives in simpleMode.ts (it has to, it
   // runs before React), so the decision lives there too; see the trace in that
   // file's header.
-  const { profile } = useCurrentUser();
+  const { profile, user } = useCurrentUser();
   useEffect(() => {
     // null until the profile lands, so the cached account flag the first
     // paint used is not switched off and back on (Q169).
     const profileSenior = profile ? !!(profile as unknown as { senior_mode?: boolean }).senior_mode : null;
     const osLargeText = dynamicTypeScale >= OS_LARGE_TEXT_THRESHOLD;
-    syncSeniorMode({ profileSenior, osLargeText });
-  }, [profile, dynamicTypeScale]);
+    // Until the profile lands, the SESSION carries the account flag (Q200):
+    // a first sign-in on a new device has no per-device cache yet.
+    syncSeniorMode({ profileSenior, osLargeText, sessionSenior: sessionSeniorFlag(user) });
+  }, [profile, user, dynamicTypeScale]);
+  // Keep that session hint in step with the profile. Written only when they
+  // disagree (absent metadata counts as "off"), so an account that never used
+  // Senior Mode is never written to. Best-effort: a failure only means the
+  // next new device paints once at the default size, as it did before Q200.
+  useEffect(() => {
+    const profileSenior = profile ? !!(profile as unknown as { senior_mode?: boolean }).senior_mode : null;
+    const patch = seniorModeMetadataPatch(user, profileSenior);
+    if (!patch) return;
+    void import("@/integrations/supabase/client")
+      .then(({ supabase }) => supabase.auth.updateUser({ data: patch }))
+      .then((r) => { if (r.error) console.warn("[senior-mode] session hint not saved", r.error.message); })
+      .catch((e: unknown) => console.warn("[senior-mode] session hint not saved", e));
+  }, [profile, user]);
 
 
   return null;

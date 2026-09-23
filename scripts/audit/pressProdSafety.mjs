@@ -311,11 +311,41 @@ export const SESSION_END_RX = /\bsign ?out\b|\blog ?out\b|\bsign out everywhere\
  */
 export const STATE_TOGGLE_LABEL_RX = /\b(turn on|turn off|enable|disable|activate|pause|resume|go live)\b/i;
 const TOGGLE_ROLES = new Set(["switch", "checkbox", "menuitemcheckbox", "menuitemradio", "radio"]);
-export function isAdminStateToggle({ persona, meta = {}, label = "" }) {
-  if (persona !== "admin") return false;
+function isStateToggle({ meta = {}, label = "" }) {
   const role = String(meta.role ?? "").toLowerCase();
   const isToggle = TOGGLE_ROLES.has(role) || (meta.tag === "input" && /^(checkbox|radio)$/i.test(String(meta.type ?? "")));
   return isToggle || STATE_TOGGLE_LABEL_RX.test(label);
+}
+export function isAdminStateToggle({ persona, meta = {}, label = "" }) {
+  if (persona !== "admin") return false;
+  return isStateToggle({ meta, label });
+}
+/**
+ * AN ACCOUNT SETTING on a SHARED test account (docs/OPEN.md Q200): the same
+ * toggle class as above, pressed as poster / helper / incomplete. The account
+ * is test-owned, which is exactly why the old gate let it through (/profile is
+ * a SELF route) — but it is SHARED by every sweep and journey, so a flipped
+ * setting changes what every other run renders.
+ *
+ * Proven from edge_logs 2026-09-23: the Accessibility tab's Senior Mode switch
+ * (role="switch", label "Senior Mode") was pressed by shard 4 of
+ * press-every-control as the customer AND the helper — bare
+ * `PATCH /rest/v1/profiles?user_id=eq.<id>` (the toggle's own write, no
+ * select) at 05:55:47Z/05:56:52Z (run 35822080143, later cancelled) and
+ * 09:06:10Z/09:07:15Z (run 35837735324). The end-of-run "restore" is per
+ * shard, from a snapshot taken while other shards were still flipping it, so
+ * shard 2's 11:02Z restore wrote TRUE back: both accounts stayed in Senior
+ * Mode and every audit screenshot after that rendered enlarged.
+ *
+ * A toggle inside a <form> is a draft field (nothing persists until the
+ * submit, which is gated on its own), so it stays pressable. Anything else is
+ * pressable only on the run's OWN fixture record (a test-owned, non-shared id
+ * in the URL).
+ */
+export function isAccountSettingToggle({ persona, meta = {}, label = "" }) {
+  if (persona === "admin") return false;
+  if (meta.inForm) return false;
+  return isStateToggle({ meta, label });
 }
 /** Routes whose subject is the signed-in account (a mutation there touches only the test account's own rows). */
 export const SELF_ROUTE_RX = /^\/(profile|post-job|support|schedule|availability|settings|complete-profile|warnings|data-rights|my-posts|payment-success|gift-card|forgot-password|reset-password|signup|login)(\/|\?|$)/;
@@ -324,6 +354,7 @@ export const SKIP_DESTROY = "would destroy or lock the shared test account";
 export const SKIP_SESSION_END = "ends the session this sharded run is driving (a sign-out revokes the other shards too)";
 export const SKIP_STRIPE = "payment control — Stripe is not in TEST mode";
 export const SKIP_ADMIN = "admin action without a seed test target";
+export const SKIP_ACCOUNT_SETTING = "flips a setting on a SHARED test account (every other sweep renders with it)";
 export const SKIP_SHARED_SEED = "shared SEED fixture (test-owned, but other sweeps depend on it; the run's own fixture covers the action)";
 export const SKIP_NOT_OWNED_URL = "not test-owned (mutating control; target is not a test-account record)";
 export const SKIP_NOT_OWNED_ROW = "not test-owned (mutating control; no record id in the URL and the row names no test entity)";
@@ -344,6 +375,7 @@ export async function mutationGate({ label, meta, chainOwned, persona, routeUrl,
   }
   const rowOwned = rowNamesTestOwner(meta.rowText, owners) || !!chainOwned;
   if (persona === "admin") return urlOwned.owned || rowOwned ? null : SKIP_ADMIN;
+  if (isAccountSettingToggle({ persona, meta, label })) return urlOwned.owned && !urlOwned.shared ? null : SKIP_ACCOUNT_SETTING;
   if (urlOwned.shared) return SKIP_SHARED_SEED;
   if (urlOwned.owned) return null;
   if (isSharedSeed(meta.rowText || "")) return SKIP_SHARED_SEED;

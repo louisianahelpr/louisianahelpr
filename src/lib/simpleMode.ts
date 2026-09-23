@@ -176,21 +176,62 @@ function storedPreference(): boolean | null {
  * profile corrects it the moment it lands.
  */
 const PROFILE_FLAG_KEY = "helpr_profile_senior_mode";
-function hasStoredSession(): boolean {
+/**
+ * THE FIRST VISIT ON A DEVICE (Q200). The per-device cache above is empty the
+ * first time an account signs in here, so the first paint was small and grew
+ * when the profile landed. The account flag therefore also rides in the
+ * SESSION: `user_metadata.senior_mode`, mirrored from the profile by
+ * {@link seniorModeMetadataPatch} (App.tsx writes it whenever the loaded
+ * profile disagrees). The session is in localStorage before first paint on a
+ * boot, and arrives with the sign-in response (before the profile query even
+ * starts) on a fresh sign-in.
+ *
+ * It is a rendering hint and nothing else: the user can write their own
+ * metadata, and the worst they can do with it is enlarge their own text.
+ */
+export function sessionSeniorFlag(user: unknown): boolean | null {
+  const v = (user as { user_metadata?: { senior_mode?: unknown } } | null | undefined)?.user_metadata?.senior_mode;
+  return typeof v === "boolean" ? v : null;
+}
+/** Whether a session is stored, and its flag (null: never mirrored). */
+function storedSessionFlag(): { signedIn: boolean; flag: boolean | null } {
   try {
-    return Object.keys(localStorage).some((k) => /^sb-.+-auth-token$/.test(k));
+    const key = Object.keys(localStorage).find((k) => /^sb-.+-auth-token$/.test(k));
+    if (!key) return { signedIn: false, flag: null };
+    try {
+      return { signedIn: true, flag: sessionSeniorFlag(JSON.parse(localStorage.getItem(key) ?? "null")?.user) };
+    } catch {
+      return { signedIn: true, flag: null };
+    }
   } catch {
-    return false;
+    return { signedIn: false, flag: null };
   }
 }
 function cachedProfileFlag(): boolean {
   try {
-    return hasStoredSession() && safeStorage.getItem(PROFILE_FLAG_KEY) === "1";
+    const { signedIn, flag } = storedSessionFlag();
+    if (!signedIn) return false;
+    const device = safeStorage.getItem(PROFILE_FLAG_KEY);
+    if (device === "1") return true;
+    if (device === "0") return false;
+    return flag === true;
   } catch {
     return false;
   }
 }
 let profileSeniorMode = cachedProfileFlag();
+/** True once the live profile has been seen: the session hint no longer applies. */
+let profileSeen = false;
+
+/**
+ * The metadata write that keeps the session hint in step with the account
+ * flag, or null when it already agrees. Absent metadata reads as false, so an
+ * account that never turned Senior Mode on is never written to.
+ */
+export function seniorModeMetadataPatch(user: unknown, profileSenior: boolean | null): { senior_mode: boolean } | null {
+  if (profileSenior === null || !user) return null;
+  return (sessionSeniorFlag(user) ?? false) === profileSenior ? null : { senior_mode: profileSenior };
+}
 
 /**
  * Resolve the mode from all three inputs.
@@ -232,8 +273,18 @@ export function syncSeniorMode(input: {
   /** null = the profile has not loaded yet: keep the cached account flag. */
   profileSenior: boolean | null;
   osLargeText: boolean;
+  /**
+   * The signed-in session's `user_metadata.senior_mode` (Q200), or null. Used
+   * only until the profile lands, so a fresh sign-in on a new device is sized
+   * right before the profile query returns.
+   */
+  sessionSenior?: boolean | null;
 }): void {
+  if (input.profileSenior === null && !profileSeen && typeof input.sessionSenior === "boolean") {
+    profileSeniorMode = input.sessionSenior;
+  }
   if (input.profileSenior !== null) {
+    profileSeen = true;
     profileSeniorMode = input.profileSenior;
     try {
       safeStorage.setItem(PROFILE_FLAG_KEY, input.profileSenior ? "1" : "0");

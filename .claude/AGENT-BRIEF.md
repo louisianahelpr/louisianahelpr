@@ -63,6 +63,12 @@ says more.
   "next free", read right before you write it (and again after a rebase):
   parallel lanes guessed the same number three times on 2026-09-23.
 
+## Waiting (no orphan shells)
+Wait with ONE `run_in_background` command and let its notification wake you.
+Never re-issue a foreground `until`/`sleep` loop: a timed-out foreground call
+leaves its shell running (2026-09-23: five identical "until 14:42" loops piled
+up). Before your report, `ps` for your own wait loops and kill any still running.
+
 ## Your report
 State what you MEASURED (numbers, run ids, before/after), what you could not
 verify and why, and the red→green proof for each guard. "I don't know" beats a

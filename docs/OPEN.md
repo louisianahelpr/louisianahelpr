@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 32 done, 4 partly done (fixed, protection pending), 70 open. Source of truth for work.
+- **Queue (this file):** 32 done, 5 partly done (fixed, protection pending), 71 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 106 items — 32 done, 4 partly done (fixed, protection pending), 70 open.**
+**Queue: 108 items — 32 done, 5 partly done (fixed, protection pending), 71 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -496,6 +496,13 @@ sure someone hears it and closes it.
    (digest matches P85MCK558V), APNS_BUNDLE_ID (digest matches com.Helpr)
    and APNS_AUTH_KEY are all set in Supabase secrets. Whether the .p8 key
    itself is valid can't be checked without a real token to send to.
+6. **The "I Am Licensed" / "I Am Insured" switches (Q99).** Only our team can
+   set those two flags; a member's own write is undone by the database. Since
+   Q99 the switch only opens the attach area and turns on for real once a
+   document is sent. Pick one: (a) keep the switches as they are now;
+   (b) replace each switch with an "Add license" / "Add insurance" button that
+   goes straight to upload-for-review; (c) remove the switches and show the
+   attach areas all the time.
 - [ ] **Q41 Morning report: everything the design no longer uses (owner,
   2026-09-23: "we can likely delete it").** REPORT ONLY, no deletion; the owner
   decides. Inventory with evidence for each item (call-site counts,
@@ -649,19 +656,40 @@ sure someone hears it and closes it.
   `ensureMessyInputState`, restored in afterAll with a fresh session) and
   prod-seed.mjs now seeds it with one. CI re-dispatch of prod-audit NOT done
   (GitHub API rate-limited this session). Evidence ~/.lh-shots/q49/.
-- [ ] **Q99 "I Am Licensed" / "I Am Insured" switches do nothing on prod, and the
-  screen says they worked.** Measured 2026-09-23 08:38Z as helper-e2e:
-  pressing the switch on /profile?tab=credentials sends `PATCH profiles
-  {is_licensed:true}`, which returns 200 with one row, but `prevent_self_escalation`
-  (BEFORE UPDATE on profiles) resets `is_licensed`/`is_insured` for every
-  non-admin, so the column stays false. The switch still shows ON after a
-  reload (the persisted React Query cache is patched from the request, not
-  the row), so the Helpr believes it is on and sees the attach area that
-  depends on it. Not checked: whether the attach/upload path's
-  `license_status: "pending"` write survives the same trigger. Screenshots
-  ~/.lh-shots/q49/probe/cred-*.png (review-log: defect). Decide the intended
-  owner of the column, then fix the client or the trigger, with a guard red on
-  the switch-shows-on-while-DB-says-off state.
+- [~] **Q99 "I Am Licensed" / "I Am Insured" switches do nothing on prod, and the
+  screen says they worked.** FIXED 2026-09-23 except the owner decision
+  (MORNING QUESTIONS 6). Measured as helper-e2e: before, pressing the switch
+  sent `PATCH {is_licensed:true}` (200, row returned `is_licensed:false`) and
+  after a reload the switch was still ON over `is_licensed=false`
+  (~/.lh-shots/q99/before-*.png). Class, from the newest
+  prevent_self_escalation (20260915101102; 52 reset columns, identical to live
+  pg_get_functiondef): 4 non-admin client writes named a reset column, all in
+  CredentialsTab (switch: is_licensed/is_insured; send-for-review: the same;
+  withdraw: those plus *_status/*_rejection_reason) and Profile.tsx
+  handleIdUpload (idv_status). Upload path SURVIVES: tr_prevent_self_escalation
+  fires before trg_auto_pending_credentials (name order), which sets
+  is_<kind>=true and 'pending' from the url change (probe: url-only PATCH
+  returned is_licensed:true, pending; url:null returned false, none). Fix: the
+  switch writes nothing (it opens the attach area for the visit; a row-set flag
+  with no document refuses to switch off, with a toast); send and withdraw send
+  only the url and put the RETURNED row in the cache. After: 0 PATCHes on
+  press, switch OFF after reload = row; send/reload/withdraw/reload on the
+  fixed build matched the row each step; helper state restored and the probe
+  file deleted (~/.lh-shots/q99/after-*.png, flow-*.png, *-log.json).
+  Guard: src/test/profileProtectedColumnWrites.test.ts (list read from the
+  newest migration, exact two-way KNOWN_OFFENDERS, 3 @mutate all killed; red
+  with 4 offenders on the unfixed code, ~/.lh-shots/q99/guard-red-prefix.txt).
+  Remaining offender: Profile.tsx handleIdUpload (idv_status), which no UI
+  reaches (ProfileEditForm reads `_onIdUpload`); it goes with Q40.
+  Needs an lh-silent-failure REVIEW-ONLY pass.
+- [ ] **Q107 CredentialsTab saveBusinessName has no `.select()` (Q99 follow-up).**
+  `update({business_name})` checks only `error`, so a zero-row update shows
+  "Saved." and patches the cache from the request. Use the returned row the
+  way send/withdraw now do.
+- [ ] **Q108 The sent-document link is cut off at 375 (seen during Q99).**
+  "View the License You Se..." on /profile?tab=credentials after a license is
+  sent (~/.lh-shots/q99/flow-375-2-sent-reloaded.png, review-log: defect).
+  Not caused by Q99; the copy or the row layout needs to fit.
 - [ ] **Q100 A funded open job fixture for the four poster-side forms (Q49
   follow-up).** EditJobDialog, CancellationDialog, ApplicantsPanel and
   DeclineApplicantSheet open only from a FUNDED open job of poster-e2e with a

@@ -637,11 +637,10 @@ export const FORMS: FormSpec[] = [
   },
   {
     // The field renders only while "I Am Licensed"/"I Am Insured" is on, so
-    // the prepare flips the switch the way the helper does. The write it makes
-    // does not stick on prod — `prevent_self_escalation` resets
-    // profiles.is_licensed for every non-admin (measured 2026-09-23; filed in
-    // docs/OPEN.md) — so there is nothing to undo; the UI shows the field from
-    // its own cache patch, which is all the sweep needs.
+    // the prepare flips the switch the way the helper does. Since Q99 the
+    // switch writes nothing (profiles.is_licensed is server-owned:
+    // `prevent_self_escalation` resets it for every non-admin), so there is
+    // nothing to undo; the switch opens the field for this visit only.
     name: "credentials-business-name", url: "/profile?tab=credentials", as: "helper",
     prepare: async (page) => {
       const lic = page.locator("#lic-toggle");

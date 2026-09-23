@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isStorageObjectPath, safeDocumentUrl } from "@/lib/storagePath";
-import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import { unwrapMutationRow, mutationErrorMessage } from "@/lib/mutationResult";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -143,8 +143,24 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
   // warns on that switch ("Switch is changing from controlled to uncontrolled")
   // and, more practically, an uncontrolled toggle silently keeps its own state,
   // so a fast tap during load could disagree with the server.
-  const licensedOn = data.is_licensed ?? false;
-  const insuredOn = data.is_insured ?? false;
+  //
+  // The switch is ON when the ROW says so, or when the user has switched it on
+  // in this visit to reach the attach area (`intent`, never persisted). The
+  // row's `is_licensed` / `is_insured` are server-owned: the BEFORE UPDATE
+  // trigger `prevent_self_escalation()` puts them back for every non-admin
+  // (Q99, measured on prod 2026-09-23: `PATCH {is_licensed:true}` returned 200
+  // with `is_licensed:false`). They turn true only when a document is sent —
+  // `trg_auto_pending_credentials` stamps them with the 'pending' status. So
+  // switching on saves nothing, and after a reload the switch shows what the
+  // row holds, never a value the database refused.
+  const [intent, setIntent] = useState<Partial<Record<Kind, boolean>>>({});
+  const licensedOn = (data.is_licensed ?? false) || !!intent.license;
+  const insuredOn = (data.is_insured ?? false) || !!intent.insurance;
+
+  /** Put the row the database RETURNED into the cache — never the request. */
+  const setFromRow = (row: CredentialFields) => {
+    qc.setQueryData<CredentialFields>(queryKeys.credentials.byUser(userId), row);
+  };
 
   const patchCache = (patch: Partial<CredentialFields>) => {
     qc.setQueryData<CredentialFields>(queryKeys.credentials.byUser(userId), (prev) => ({
@@ -255,22 +271,22 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
       // ONE update carrying every attached document, so a helper who has both
       // lands in the admin queue as a single submission rather than two
       // staggered reviews.
+      // Only the document paths. `is_licensed` / `is_insured` and the status
+      // columns are server-owned (`prevent_self_escalation()` resets them for
+      // a member); `trg_auto_pending_credentials` sets `is_<kind> = true` and
+      // `<kind>_status = 'pending'` itself when the path changes — measured on
+      // prod 2026-09-23 with helper-e2e.
       const update: Partial<CredentialFields> = {};
       uploaded.forEach(({ kind, path }) => {
-        if (kind === "license") {
-          update.license_url = path;
-          update.is_licensed = true;
-        } else {
-          update.insurance_url = path;
-          update.is_insured = true;
-        }
+        if (kind === "license") update.license_url = path;
+        else update.insurance_url = path;
       });
-      // .select("user_id"): the file is already in storage by this point — this
-      // is the write that actually submits it for review. A zero-row update
-      // returns error === null and the card would show "pending review" for a
-      // document no admin would ever see in the queue.
-      unwrapMutation(
-        await supabase.from("profiles").update(update).eq("user_id", userId).select("user_id"),
+      // The file is already in storage by this point — this is the write that
+      // actually submits it for review. A zero-row update returns
+      // error === null, so the returned row is required, and it is what the
+      // card shows: the status the triggers stamped, not a local guess.
+      const saved = unwrapMutationRow<CredentialFields>(
+        await supabase.from("profiles").update(update).eq("user_id", userId).select(SELECT_COLS),
         {
           action: "submit your credentials",
           rejectedMessage: "Your documents uploaded, but they couldn't be submitted for review — please try again.",
@@ -278,18 +294,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
         },
       );
       linked = true;
-
-      // The status columns are admin/backend-only — `prevent_self_escalation()`
-      // pins them to their OLD values on any client write, and the DB's
-      // `trg_auto_pending_credentials` trigger is what actually stamps
-      // 'pending' once the url changes. Mirror the trigger locally so the card
-      // doesn't flash a stale state, then refetch the real row and let the
-      // server win.
-      patchCache({
-        ...update,
-        ...(update.license_url ? { license_status: "pending", license_rejection_reason: null } : {}),
-        ...(update.insurance_url ? { insurance_status: "pending", insurance_rejection_reason: null } : {}),
-      });
+      setFromRow(saved);
       draftKinds.forEach(discardDraft);
       void qc.invalidateQueries({ queryKey: queryKeys.credentials.byUser(userId) });
       hapticSuccess();
@@ -339,16 +344,18 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
    */
   const removeSentDoc = async (kind: Kind) => {
     setRemoving(true);
+    // Only the path. Clearing it makes `trg_auto_pending_credentials` set
+    // `is_<kind> = false` and `<kind>_status = 'none'`; the protected columns
+    // this used to send too were reset by `prevent_self_escalation()` anyway.
     const update: Partial<CredentialFields> =
-      kind === "license"
-        ? { license_url: null, is_licensed: false, license_status: "none", license_rejection_reason: null }
-        : { insurance_url: null, is_insured: false, insurance_status: "none", insurance_rejection_reason: null };
-    // .select("user_id"): withdrawing a credential that matches zero rows
-    // returns error === null, and the badge would disappear locally while the
-    // document stayed live on the profile.
+      kind === "license" ? { license_url: null } : { insurance_url: null };
+    // A withdrawal that matches zero rows returns error === null, and the badge
+    // would disappear locally while the document stayed live on the profile —
+    // so the row is required, and the card shows what it says.
+    let saved: CredentialFields;
     try {
-      unwrapMutation(
-        await supabase.from("profiles").update(update).eq("user_id", userId).select("user_id"),
+      saved = unwrapMutationRow<CredentialFields>(
+        await supabase.from("profiles").update(update).eq("user_id", userId).select(SELECT_COLS),
         {
           action: "withdraw this document",
           rejectedMessage: "We couldn't withdraw that document — please refresh and try again.",
@@ -362,7 +369,8 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
       return;
     }
     setRemoving(false);
-    patchCache(update);
+    setIntent((prev) => ({ ...prev, [kind]: false }));
+    setFromRow(saved);
     void qc.invalidateQueries({ queryKey: queryKeys.credentials.byUser(userId) });
   };
 
@@ -463,20 +471,15 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           <Switch
             id={toggleId}
             checked={on}
-            onCheckedChange={async (v) => {
-              // These used to call patchCache() and return — a CACHE-ONLY
-              // write, with no Supabase update on either branch. Flipping the
-              // switch showed "on", and because the React Query cache is
-              // persisted it still showed "on" after a hard reload, while
-              // `profiles.is_licensed` stayed false forever. A silent no-op on
-              // a TRUST control: the poster-facing badge is driven by this
-              // column, so a helper could believe they had declared a licence
-              // that no one would ever see. No toast, no error, nothing.
-              //
-              // Now writes first and patches the cache from the result, using
-              // the same unwrapMutation guard the two upload paths in this
-              // file already use — a zero-row update returns error === null,
-              // which is exactly how this would regress unnoticed again.
+            onCheckedChange={(v) => {
+              // History: first a CACHE-ONLY write (patchCache and return), then
+              // a real `PATCH {is_licensed}` — which returned 200 while
+              // `prevent_self_escalation()` put the column back, so the switch
+              // still showed ON after a reload over a row that said false (Q99,
+              // measured on prod 2026-09-23). The column is server-owned, so
+              // this handler writes nothing: switching ON only opens the attach
+              // area for this visit, and the row turns true when a document is
+              // SENT (`trg_auto_pending_credentials`).
               if (drafts[kind] && !v) discardDraft(kind);
               if (!v && url) {
                 // Something is already with the reviewers — confirm before
@@ -484,20 +487,15 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                 setPullBack(kind);
                 return;
               }
-              const patch = kind === "license" ? { is_licensed: v } : { is_insured: v };
-              try {
-                unwrapMutation(
-                  await supabase.from("profiles").update(patch).eq("user_id", userId).select("user_id"),
-                  {
-                    action: v ? "save that declaration" : "clear that declaration",
-                    rejectedMessage: "That didn't save — please try again.",
-                    context: { userId, kind },
-                  },
-                );
-                patchCache(patch);
-              } catch (err) {
-                toast.error(mutationErrorMessage(err, "That didn't save — please try again."));
+              const rowOn = (kind === "license" ? data.is_licensed : data.is_insured) ?? false;
+              if (!v && rowOn) {
+                // On in the row with no document behind it: only our team can
+                // set that, and a member's write to clear it is reset by the
+                // same trigger. Keep showing what the row holds.
+                toast.error("Our team set this, so it can't be switched off here. Contact support to change it.");
+                return;
               }
+              setIntent((prev) => ({ ...prev, [kind]: v }));
             }}
           />
         </div>

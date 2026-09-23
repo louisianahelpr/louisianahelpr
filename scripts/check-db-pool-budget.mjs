@@ -85,6 +85,12 @@ async function main() {
   if (!r || !isCount(r.max_conns) || r.max_conns === 0) die("the connection SQL returned no row — refusing to report clean");
 
   const dbPool = postgrest && typeof postgrest === "object" && !Array.isArray(postgrest) ? postgrest.db_pool : undefined;
+  // Every raw reading first, so a red run still records what prod is set to.
+  const poolerRaw = (Array.isArray(pooler) ? pooler : [pooler]).map((p) => ({
+    database_type: p?.database_type, pool_mode: p?.pool_mode, default_pool_size: p?.default_pool_size, max_client_conn: p?.max_client_conn,
+  }));
+  console.log(`read: sql ${JSON.stringify(r)}`);
+  console.log(`read: postgrest db_pool ${JSON.stringify(dbPool)}; pooler ${JSON.stringify(poolerRaw)}; auth db_max_pool_size ${JSON.stringify(auth?.db_max_pool_size)}`);
   if (!isCount(dbPool)) {
     die(`PostgREST db_pool is ${JSON.stringify(dbPool)}: unset means a server default the API does not state — refusing to report clean. Set it explicitly (Management API PATCH /postgrest).`);
   }

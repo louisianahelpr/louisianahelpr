@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 139 done, 22 partly done (fixed, protection pending), 134 open. Source of truth for work.
+- **Queue (this file):** 139 done, 24 partly done (fixed, protection pending), 133 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 295 items — 139 done, 22 partly done (fixed, protection pending), 134 open.**
+**Queue: 296 items — 139 done, 24 partly done (fixed, protection pending), 133 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1052,7 +1052,27 @@ sure someone hears it and closes it.
   2026-09-22; a full sweep runs for hours); every "nightly" claim corrected
   and the "weekly workflow called nightly" check lives in
   workflowFalseGreenShapes.test.ts.
-- [ ] **Q89 Q52 area 1 remainder: vacuity SURVIVED list (2026-09-23).** CI full
+- [~] **Q89 Q52 area 1 remainder: vacuity SURVIVED list (2026-09-23). SURVIVORS DONE 2026-09-23 (branch cloud/q77-q89-retry); only the 10 e2e inconclusives below remain.**
+  RESULT: CI full sweep 35822511272 (sha 9fd2e00, 1114 registrations, finished
+  08:44Z) reported 1078 killed, 2 SURVIVED, 34 inconclusive. Every survivor handled:
+  (1) emailDlqIsWatched, both registrations: EQUIVALENT MUTANTS once
+  20260923052520 (landed after that sha) superseded the 20260922155258 body. The
+  guard now reads function BODIES via latestFunctionDefs (comments blanked, newest
+  CREATE wins) and asserts the live body's seed-only digest rule; the registrations
+  target 20260923052520 plus a third proving a commented-out definition is not read.
+  3/3 killed. (2) everyScheduledWorkflowReportsItsResult ⟵ db-backup.yml: already
+  fixed by Q52; re-proved by hand: red with the mutation (1 of 4 failed), green
+  without. (3) e2e/happy-path/apply-dialog-fit.spec.ts ⟵ ApplyBody `min-w-0`:
+  EQUIVALENT (the opener-chip row is gone, so nothing in ApplyBody is wider than
+  the dialog). Reproduced locally: baseline 2 passed, old mutant 2 passed. The
+  registration now reinstates the original defect whole (min-w-0 dropped + a
+  non-wrapping opener row): 2 failed on the dialog scrollWidth assertion.
+  INCONCLUSIVE: all 24 unit ones re-run on current main, 24/24 killed. STILL OPEN:
+  the 10 e2e inconclusives (a11y-prod, journeys time-travel/trailing-icon-fields,
+  prod-audit activity-loading-reserve x3, activity-tabs-visible, admin-views,
+  expanding-search-geometry, messy-input) need the prod test-account secrets; re-run
+  them where PLAYWRIGHT_TEST_USER_* is set. Broken registrations found on the way: Q299.
+  WAS: CI full
   sweep 35822511272 was still in_progress at 07:50Z (log unreadable until it
   ends). Local non-Playwright sweep scored ~825 of 1093 registrations before it
   was stopped: SURVIVED = src/test/emailDlqIsWatched.test.ts (both
@@ -1466,12 +1486,25 @@ sure someone hears it and closes it.
   audit row (who, what, target, when, reason). Inventory the admin
   RPCs/edge functions from code, prove each logs one (live test on a seed
   target), and add a guard that fails when a new admin action has no audit write.
-- [ ] **Q77 Finished agents' worktrees pile up.** Every worktree-isolated agent
+- [~] **Q77 FIXED 2026-09-23 (branch cloud/q77-q89-retry), live effect on the Mac not yet measured. Finished agents' worktrees pile up.** Every worktree-isolated agent
   leaves a LOCKED worktree under .claude/worktrees/, and prune-git-hygiene
   never touches locked ones (by design, since running agents lock theirs). Add a
   safe rule: a worktree whose agent has finished (its branch is merged into
   origin/main or has no commits, no process has cwd there, and it's older
   than 2h) is unlocked and removed; anything unmerged is reported, never deleted.
+  DONE: rule in scripts/lib/worktreeHygiene.mjs, called by
+  scripts/prune-git-hygiene.mjs. A LOCKED worktree under <main>/.claude/worktrees/
+  is unlocked and removed (`git worktree remove`, never --force) when HEAD is in
+  origin/main (rev-list 0, or every commit upstream by patch-id via `git cherry`),
+  status is clean, no process cwd is inside (lsof; unknown = remove nothing), the
+  pid in its lock reason (if any) is not running, and it is older than 2h. Unmerged
+  or dirty ones are REPORTED in the hygiene output/log, never removed. Main is never
+  a candidate; locks elsewhere are still skipped. GUARD:
+  src/test/pruneAgentWorktrees.test.ts (fixture repo: bare origin + clone + 7 linked
+  worktrees; plan AND apply; 11 @mutate, all killed, incl. restoring the old
+  "skip every locked worktree" rule). TO TICK: the next session-start hygiene log
+  (~/.lh-hygiene/hygiene.log) on the owner's Mac shows the .claude/worktrees count
+  falling; the Claude Code lock-reason format (pid or not) was not observable here.
 - [x] **Q78 DONE 2026-09-23: morning reports 2026-09-21/22 committed as dated records; the gift-live Stripe checkout screenshot moved to ~/.lh-shots/gift-live/ (evidence, not repo content). Session-start hygiene (scripts/prune-git-hygiene.mjs via scripts/lib/staleUntracked.mjs) now reports untracked docs/ files older than 2 days (shown firing on a planted file). Guard: src/test/staleUntrackedDocs.test.ts. Was:** Untracked leftovers in the repo: docs/audit/gift-live/,
   docs/audit/morning/2026-09-21.md and 2026-09-22.md have sat untracked for
   days. Decide keep (commit as dated records) or scratch (delete), and add
@@ -2501,3 +2534,5 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q296 The press sweep's own Sentry events are rate-limited by Sentry (429 on envelope/, 6 presses in run 35837735324; found by Q128).** The press builds the app with the prod VITE_* env, so every sweep error reaches the PROD Sentry project and spends its quota until Sentry answers 429 — which also means a real user's event could be dropped in that window. Now listed in coverage.md ("Request failures that are not the app's", telemetry count, ::warning), no longer counted against the control. Decide: tag or drop sweep events (environment "press"/beforeSend on a test flag), or route them to a separate project. Guard to name when fixed: a test that the press build's Sentry env is not production.
 - [ ] **Q297 Vacuity registration broken on main: e2e/journeys/profile-tab-shell-parity.spec.ts:169 @mutate find-string `export const PROFILE_TAB_BODY_CLASS = "space-y-4";` is no longer in src/components/profile/ProfileTabBody.tsx (seen by the Q94/Q128/Q132 lane's vacuity run, 2026-09-23; 14a40c072 Q191 changed the section scale).** Update the find-string to the current declaration. Guard: scripts/vacuity/index.mjs itself (it reports the stale registration).
 - [ ] **Q298 Harden the Q94 route-probe close rule (lh-authz-rls review of 8e686d57c, 2026-09-23; review verdict PASS).** (a) ops_alert_condition: a user-error-screen item with no screen maps to ops_route_key(null/'') = '/', so any press pass on / would close it, contradicting its own comment; add `IF nullif(p_sample_ref->>'screen','') IS NULL THEN RETURN true; END IF;` before the probe check (0 such open items today). (b) record_route_probe_passes: bound p_routes (cardinality <= 1000, left(r,512)). Restate from the newest body (20260923182022), PGlite red on a screenless item closing via /. Guard: extend src/test/routeProbeCloseRule.test.ts.
+
+- [ ] **Q299 Seven more vacuity registrations broken on main (found by the Q77/Q89 lane, 2026-09-23; Q297 is the eighth).** Each one never mutates anything, so its guard is unproven and every scoped `npm run vacuity` fails on it. A missing find-string: src/lib/banStatus.test.ts:43 and src/test/lapsedSuspensionRouteGate.test.tsx:102 (`return until > now;` gone from src/lib/banStatus.ts), src/test/e2eViewportForkedControls.test.ts:60 (Start time locator gone from e2e/journeys/02-marketplace.spec.ts), src/test/pressNeverFlipsAdminSettings.test.ts:1 (press-every-control.mjs), src/test/realtimePublication.test.ts:121 (useActivityData.ts). An AMBIGUOUS one (matches 3 times): src/test/hotQueryLoad.test.ts:2 (useActivityBadgeCounts.ts) and src/test/wcagHeadingAndRegionSources.test.ts:3 (Footer.tsx `</h2>`). Also new on the same run: the class (d) self-referential flag on src/test/planLimits.test.ts. For each one, re-point it at the current code and prove it killed with a scoped vacuity run. Guard: scripts/vacuity/index.mjs (reports every stale or ambiguous registration).

@@ -2369,6 +2369,30 @@ export type Database = {
           },
         ]
       }
+      migration_deploy_ledger: {
+        Row: {
+          head_sha: string
+          recorded_at: string
+          run_attempt: number
+          run_id: number
+          version: string
+        }
+        Insert: {
+          head_sha: string
+          recorded_at?: string
+          run_attempt?: number
+          run_id: number
+          version: string
+        }
+        Update: {
+          head_sha?: string
+          recorded_at?: string
+          run_attempt?: number
+          run_id?: number
+          version?: string
+        }
+        Relationships: []
+      }
       notification_dedupe_suppressions: {
         Row: {
           id: number

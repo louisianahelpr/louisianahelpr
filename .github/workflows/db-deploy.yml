@@ -2,6 +2,9 @@ name: Supabase DB Deploy
 
 permissions:
   contents: read
+  # Q117: the provenance check looks up each receipt's run id to prove it is a
+  # db-deploy.yml run on main.
+  actions: read
 
 # Auto-deploys Supabase migrations to prod when changes land on main.
 # Closes the manual-handoff gap that caused the May-09 migration-pipeline
@@ -341,7 +344,20 @@ jobs:
           # --include-all also pushes any migration whose timestamp is
           # OLDER than the latest in prod (handles the back-dated-file
           # case that the May-09 backlog had).
-          supabase db push --linked --include-all --password "${{ secrets.SUPABASE_DB_PASSWORD }}"
+          # Output kept (Q117): the "Applying migration" lines it prints are the
+          # receipts the next step records.
+          set -o pipefail
+          supabase db push --linked --include-all --password "${{ secrets.SUPABASE_DB_PASSWORD }}" 2>&1 | tee /tmp/db-push.log
+
+      # Q117. A receipt per version THIS run applied, read from the CLI's own
+      # "Applying migration" lines (never a before/after diff, which would
+      # credit this run with whatever another writer applied meanwhile).
+      - name: Record deploy receipts
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-migration-provenance.mjs record /tmp/db-push.log
 
       - name: Verify post-deploy state
         if: steps.precheck.outputs.skip != 'true'
@@ -354,6 +370,18 @@ jobs:
           echo "::group::Remote migrations after push"
           supabase migration list --linked
           echo "::endgroup::"
+
+      # Q117. Every prod migration newer than the cutoff must carry a receipt
+      # from a db-deploy.yml run on main. Measured 2026-09-23: the Supabase
+      # GitHub integration applied all 24 migrations of the previous 24h
+      # before this job could, bypassing every gate above.
+      - name: Verify every prod migration was applied by db-deploy
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/check-migration-provenance.mjs check
 
       # The replay gate proves the MIGRATIONS leave no client-writable view;
       # this proves PROD does, right after the push. Prod's default privileges

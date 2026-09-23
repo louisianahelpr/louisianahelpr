@@ -30,6 +30,7 @@ on:
 permissions:
   issues: write
   contents: read
+  actions: read  # Q117: receipts' run ids are looked up
 
 concurrency:
   # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
@@ -239,6 +240,20 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-unvalidated-constraints.mjs
+
+      # Q117. Versions compare equal no matter WHO applied them. This proves
+      # each prod migration newer than the cutoff was applied by a db-deploy.yml
+      # run on main (its receipt in public.migration_deploy_ledger). Same
+      # continue-on-error + fail-at-the-end shape.
+      - name: Every prod migration was applied by db-deploy
+        id: migration_provenance
+        continue-on-error: true
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/check-migration-provenance.mjs check
 
       - name: Compute drift
         id: drift
@@ -463,6 +478,7 @@ jobs:
           ANON_TABLE_GRANTS: ${{ steps.anon_table_grants.outcome }}
           FUNCTION_BODY_DRIFT: ${{ steps.function_body_drift.outcome }}
           UNVALIDATED_CONSTRAINTS: ${{ steps.unvalidated_constraints.outcome }}
+          MIGRATION_PROVENANCE: ${{ steps.migration_provenance.outcome }}
         run: |
           set -euo pipefail
           if [ "${TYPES_FRESH:-success}" = "failure" ]; then
@@ -490,6 +506,10 @@ jobs:
           fi
           if [ "${UNVALIDATED_CONSTRAINTS:-success}" = "failure" ]; then
             echo "::error::A public constraint is NOT VALID (a row violates it; its next UPDATE will fail) — or the live read failed. See 'Every public constraint is validated' above."
+            failed=1
+          fi
+          if [ "${MIGRATION_PROVENANCE:-success}" = "failure" ]; then
+            echo "::error::A prod migration was applied outside db-deploy.yml (no receipt in public.migration_deploy_ledger), a receipt is forged, or the read failed. See 'Every prod migration was applied by db-deploy' above."
             failed=1
           fi
           if [ "${FUNCTION_BODY_DRIFT:-success}" = "failure" ]; then

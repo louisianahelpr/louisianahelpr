@@ -331,10 +331,40 @@ export function initSentry() {
   }
 }
 
+// Supabase PostgrestError / AuthError / StorageError are plain objects with a
+// `message` key, not Error instances. Handed to Sentry as-is, the event is
+// titled "Object captured as exception with keys: code, details, hint,
+// message" and its exception value never carries the real message, so
+// isBenignEvent cannot match BENIGN_MESSAGE_PATTERNS against it (a "Failed to
+// fetch" wrapped in a PostgrestError was reported instead of dropped) and a
+// real error (RLS 42501, PGRST202) arrives with an opaque title. 7 Sentry
+// issues in the 30 days to 2026-09-23 matched "Object captured as exception"
+// (Q32, PR #1639). The original object rides along as `cause`.
+function normalizeToError(err: unknown): unknown {
+  if (err instanceof Error) return err;
+  if (err && typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    let msg: string;
+    if (typeof o.message === "string" && o.message) {
+      msg = o.message;
+    } else {
+      try {
+        msg = JSON.stringify(err) ?? "captured object";
+      } catch {
+        msg = "captured object (not serialisable)"; // circular; the object is still attached as cause
+      }
+    }
+    const normalized = new Error(msg);
+    (normalized as Error & { cause?: unknown }).cause = err;
+    return normalized;
+  }
+  return err;
+}
+
 export function captureException(err: unknown, context?: Record<string, unknown>) {
   if (!initialized) return;
   try {
-    sentryCaptureException(err, context ? { extra: context } : undefined);
+    sentryCaptureException(normalizeToError(err), context ? { extra: context } : undefined);
   } catch { /* ignore */ }
 }
 

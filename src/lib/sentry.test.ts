@@ -341,6 +341,45 @@ describe("captureException", () => {
     initSentry();
     expect(() => captureException(new Error("x"))).not.toThrow();
   });
+
+  // Q32 / PR #1639: a Supabase PostgrestError is a plain object. Sentry titles
+  // it "Object captured as exception with keys: ..." and beforeSend's benign
+  // filter cannot see its message.
+  // @mutate src/lib/sentry.ts | sentryCaptureException(normalizeToError(err), | sentryCaptureException(err,
+  it("passes Error instances through unchanged", async () => {
+    const { initSentry, captureException } = await loadFresh();
+    initSentry();
+    const err = new Error("real error");
+    captureException(err);
+    expect(captureExceptionMock.mock.calls[0][0]).toBe(err);
+  });
+
+  it("normalizes a plain Supabase error object to an Error carrying its message and the original as cause", async () => {
+    const { initSentry, captureException } = await loadFresh();
+    initSentry();
+    const supabaseError = {
+      code: "",
+      details: "TypeError: Failed to fetch",
+      hint: "",
+      message: "TypeError: Failed to fetch (fncmgoasalhdgfwzhsqa.supabase.co)",
+    };
+    captureException(supabaseError);
+    const calledWith = captureExceptionMock.mock.calls[0][0] as unknown;
+    expect(calledWith).toBeInstanceOf(Error);
+    expect((calledWith as Error).message).toBe("TypeError: Failed to fetch (fncmgoasalhdgfwzhsqa.supabase.co)");
+    expect((calledWith as Error & { cause?: unknown }).cause).toBe(supabaseError);
+  });
+
+  it("normalizes a message-less object, even a circular one, without throwing", async () => {
+    const { initSentry, captureException } = await loadFresh();
+    initSentry();
+    const circular: Record<string, unknown> = { code: "42501" };
+    circular.self = circular;
+    captureException(circular);
+    const calledWith = captureExceptionMock.mock.calls[0][0] as Error & { cause?: unknown };
+    expect(calledWith).toBeInstanceOf(Error);
+    expect(calledWith.cause).toBe(circular);
+  });
 });
 
 describe("setSentryUser", () => {

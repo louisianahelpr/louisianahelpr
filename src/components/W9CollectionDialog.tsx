@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -32,7 +32,7 @@ interface Props {
 /**
  * Minimal W-9 e-sign — typed full legal name + a single "I agree" CTA.
  * Persists a row in `helper_w9_records` with the signature, the helper's
- * IP (best-effort lookup), and a timestamp. Full PDF generation lives in
+ * IP (stamped server-side from the request, Q319), and a timestamp. Full PDF generation lives in
  * a follow-up; this is the audit-trail starter so business posters can
  * show their finance team a record exists.
  *
@@ -43,19 +43,6 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
   const [name, setName] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [ip, setIp] = useState<string | null>(null);
-
-  // Best-effort IP lookup. Failures are silent — the audit-trail row is
-  // still valuable without an IP.
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    fetch("https://api.ipify.org?format=json")
-      .then((r) => r.json())
-      .then((j) => { if (!cancelled) setIp(j?.ip ?? null); })
-      .catch(() => { /* offline / blocked / not available */ });
-    return () => { cancelled = true; };
-  }, [open]);
 
   const submit = async () => {
     if (!name.trim() || !agreed) return;
@@ -66,7 +53,7 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
         job_id: jobId,
         business_id: businessId ?? null,
         typed_signature: name.trim(),
-        ip,
+        // ip is stamped server-side from the request (Q319).
       });
       if (error) throw error;
       hapticSuccess();
@@ -128,9 +115,6 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
               By typing my name and clicking <strong className="font-semibold">Sign</strong>, I agree that this typed signature is my legal signature for the W-9 (Request for Taxpayer Identification Number and Certification).
             </span>
           </label>
-          {ip && (
-            <p className="text-ds-10 text-muted-foreground font-mono">Recorded with IP {ip}</p>
-          )}
         </div>
         {/* The submit lives in the shared footer rather than trailing the form
             body. Every other dialog in the app closes with this row, and a

@@ -1,0 +1,13 @@
+import { readFileSync } from "node:fs"; import os from "node:os";
+const { PGlite } = await import(`${os.homedir()}/.lh-pglite/node_modules/@electric-sql/pglite/dist/index.js`);
+const db = new PGlite(); let f = 0; const ck = (n, ok, d = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${n} ${d}`); if (!ok) f++; };
+await db.exec(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF; IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF; END $$;
+CREATE TABLE public.helper_w9_records (id serial, helper_id uuid, job_id uuid, business_id uuid, typed_signature text, ip text, signed_at timestamptz default now());`);
+const m = readFileSync(process.cwd() + "/supabase/migrations/20260923233407_w9_signer_ip_from_request.sql", "utf8");
+if (process.env.NEW_MIGRATION !== "skip") for (let i = 0; i < 3; i++) await db.exec(m);
+const ins = async (hdr, clientIp) => { await db.exec(`SELECT set_config('request.headers', '${hdr}', false)`); return (await db.query(`INSERT INTO public.helper_w9_records (typed_signature, ip) VALUES ('x', ${clientIp ? `'${clientIp}'` : "NULL"}) RETURNING ip`)).rows[0].ip; };
+ck("xff first hop is stored", (await ins('{"x-forwarded-for":"203.0.113.9, 10.0.0.1"}', null)) === "203.0.113.9");
+ck("client-supplied ip is overwritten", (await ins('{"x-forwarded-for":"203.0.113.9"}', "1.2.3.4")) === "203.0.113.9");
+ck("cf-connecting-ip fallback", (await ins('{"cf-connecting-ip":"198.51.100.7"}', null)) === "198.51.100.7");
+ck("no request: ip NULL even if client sent one", (await ins('', "1.2.3.4")) === null);
+console.log(f ? `${f} FAILED` : "ALL PASS"); process.exit(f ? 1 : 0);

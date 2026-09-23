@@ -26,15 +26,24 @@
  * CHECK, and the sweep must dedupe on the backlog's identity rather than write
  * a fresh row every run (the 616-row loop of 2026-09-14).
  *
- * RED proof: see the two @mutate registrations below — dropping the auth queue
+ * RED proof: see the @mutate registrations below — dropping the auth queue
  * from the watched list fails "every DLQ ... is watched", and downgrading its
  * severity to 'error' fails "the auth DLQ is graded at a severity that pages".
+ * They target the NEWEST definition (20260923052520). Until 2026-09-23 (Q89)
+ * they targeted 20260922155258, which that migration superseded, and the guard
+ * read the newest file by raw `includes` — so both SURVIVED the vacuity sweep:
+ * a mutation of dead SQL is an equivalent mutant. The guard now reads function
+ * BODIES through latestFunctionDefs (comments blanked, any dollar tag, newest
+ * CREATE wins, a later DROP removes it), and the third registration proves a
+ * mention in a comment no longer counts as the definition.
  */
-// @mutate supabase/migrations/20260922155258_email_dlq_alerting.sql | 'dlq', 'auth_emails_dlq', | 'dlq', 'auth_emails_dlq_unwatched',
-// @mutate supabase/migrations/20260922155258_email_dlq_alerting.sql | 'severity', 'fatal', | 'severity', 'error',
+// @mutate supabase/migrations/20260923052520_seed_alerts_go_to_the_digest.sql |     jsonb_build_object('dlq', 'auth_emails_dlq', |     jsonb_build_object('dlq', 'auth_emails_dlq_unwatched',
+// @mutate supabase/migrations/20260923052520_seed_alerts_go_to_the_digest.sql | 'dlq', 'auth_emails_dlq',\n                       'severity', 'fatal', | 'dlq', 'auth_emails_dlq',\n                       'severity', 'error',
+// @mutate supabase/migrations/20260923052520_seed_alerts_go_to_the_digest.sql | CREATE OR REPLACE FUNCTION public.sweep_email_dlqs() | -- CREATE OR REPLACE FUNCTION public.sweep_email_dlqs()\nCREATE OR REPLACE FUNCTION public.sweep_email_dlqs_old()
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { latestFunctionDefs } from "./helpers/rpcErrorInventory";
 
 const ROOT = process.cwd();
 const MIGRATIONS = join(ROOT, "supabase", "migrations");
@@ -50,11 +59,11 @@ function migrationFiles(): { file: string; sql: string }[] {
     .map((file) => ({ file, sql: readFileSync(join(MIGRATIONS, file), "utf8") }));
 }
 
-/** The latest migration that defines a given function, i.e. the live body. */
-function latestDefining(needle: string): { file: string; sql: string } {
-  const hit = migrationFiles().filter((f) => f.sql.includes(needle)).pop();
-  if (!hit) throw new Error(`No migration defines ${needle}`);
-  return hit;
+/** The newest definition of a function: its body, comments blanked (the live one). */
+function latestDefining(fn: string): { file: string; sql: string } {
+  const def = latestFunctionDefs(MIGRATIONS).get(fn);
+  if (!def) throw new Error(`No migration defines public.${fn}()`);
+  return { file: def.file, sql: def.body };
 }
 
 /**
@@ -84,7 +93,14 @@ export function watchedDlqs(sql: string): Map<string, string> {
 
 describe("email dead-letter queues are watched", () => {
   const emailQueueSrc = readFileSync(join(FUNCTIONS, "process-email-queue", "index.ts"), "utf8");
-  const sweep = latestDefining("FUNCTION public.sweep_email_dlqs()");
+  const sweep = latestDefining("sweep_email_dlqs");
+
+  it("grades the LIVE body: the newest definition, which sends seed-only backlogs to the digest", () => {
+    // 20260923052520 replaced the 09-22 body; a guard grading the older one
+    // would pass on SQL the database no longer runs (Q89).
+    expect(sweep.file >= "20260923052520").toBe(true);
+    expect(sweep.sql).toMatch(/CASE WHEN v_seed_only THEN 'info' ELSE r\.severity END/);
+  });
 
   it("the inventory is read from the edge function, not from a list", () => {
     const inventory = dlqsTheAppCanWrite(emailQueueSrc);
@@ -120,7 +136,7 @@ describe("email dead-letter queues are watched", () => {
     // must be in the critical arm. (Until 09-23 this read the first
     // `NEW.severity = '…'` in the body, which the throttle rewrite made
     // 'warning' — red on main for 11h with the grade itself still 'fatal'.)
-    const trigger = latestDefining("FUNCTION public.notify_slack_on_error_log()");
+    const trigger = latestDefining("notify_slack_on_error_log");
     const windows = [...trigger.sql.matchAll(/WHEN\s+'([a-z]+)'\s+THEN\s+interval\s+'(\d+)\s+minutes'/g)].map(
       (m) => ({ severity: m[1], minutes: Number(m[2]) }),
     );

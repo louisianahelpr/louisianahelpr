@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 84 done, 11 partly done (fixed, protection pending), 83 open. Source of truth for work.
+- **Queue (this file):** 85 done, 11 partly done (fixed, protection pending), 82 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 178 items — 84 done, 11 partly done (fixed, protection pending), 83 open.**
+**Queue: 178 items — 85 done, 11 partly done (fixed, protection pending), 82 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -261,7 +261,7 @@ sure someone hears it and closes it.
   (lh-authz-rls, review only).
 - [ ] **Q23 Admin DocumentsTab can't open portfolio STORAGE PATHS.** They need
   signing at display time. 0 such rows exist on prod today.
-- [ ] **Q24 Shared test helper bug:** blankComments() (src/test/helpers/blankNonCode.ts)
+- [x] **Q24 DONE 2026-09-23: the shared comment scanner (src/test/helpers/blankNonCode.ts) recognises regex literals, so a lone `'` in a regex no longer swallows later comments; 61 guards using it pass; also moved src/test/fundedOpenJobPlan.test.ts job dates out of the present era (a pre-existing jobDayFixtureTimezone red). Guard: src/test/blankNonCodeRegexLiteral.test.ts (red on the old scanner). Was:** Shared test helper bug: blankComments() (src/test/helpers/blankNonCode.ts)
   loses track after a regex literal containing `'` (src/lib/chunkReload.ts:27),
   so guards built on it read later comments as code. Fix it, and add a fixture.
 - [x] **Q25 DONE (2026-09-23): a dispatch now diffs from the head SHA of the last SUCCESSFUL db-deploy run on main** (read through the Actions API; `actions: read` added to migration-lint.yml and to db-deploy's call of it), so it lints exactly what landed since the last good deploy, each file in full. No base found, or a base that is not an ancestor of HEAD, still falls back to linting ALL migrations, never none. The whole-history fallback is still red on settled history (check-migration-grants and check-trigger-timing, which judge files in isolation; documented in the step). GUARD: src/test/migrationLintRls.test.ts runs the workflow's own "Find changed migrations" shell in a scratch repo with a fake `gh` (last-good base -> only the new file; failed/empty/unknown/non-ancestor base -> lint all), 4 @mutate lines killed. Was: db-deploy on MANUAL dispatch lints all 756 migrations instead

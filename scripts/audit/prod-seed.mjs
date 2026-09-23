@@ -992,12 +992,14 @@ async function verify() {
   const anonHeaders = { apikey: ANON, Authorization: `Bearer ${ANON}` };
   const created = [sid("job:poster-open"), sid("job:helper-posts"), sid("job:pets"), sid("job:heavy-big"), sid("job:group"), ...Array.from({ length: 110 }, (_, i) => sid(`job:heavy-${i}`))];
   let leaked = 0;
+  let leakErr = "";
   for (let i = 0; i < created.length; i += 50) {
     const r = await fetch(`${BASE}/rest/v1/open_jobs_browse?id=${inList(created.slice(i, i + 50))}&select=id`, { headers: anonHeaders });
-    const data = r.ok ? await r.json() : [];
-    leaked += data.length;
+    // A failed read used to count as `[]` — zero leaked, row "ok" (Q52).
+    if (!r.ok) { leakErr = `anon read HTTP ${r.status} — NOT checked`; continue; }
+    leaked += (await r.json()).length;
   }
-  rows.push({ state: "seed-script jobs visible to anon browse", n: leaked, min: 0, ok: leaked === 0, source: "anon open_jobs_browse", err: "" });
+  rows.push({ state: "seed-script jobs visible to anon browse", n: leaked, min: 0, ok: !leakErr && leaked === 0, source: "anon open_jobs_browse", err: leakErr });
 
   const w = Math.max(...rows.map((r) => r.state.length));
   console.log(`\n${"state".padEnd(w)}  count  min  ok   source`);

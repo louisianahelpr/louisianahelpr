@@ -109,7 +109,7 @@ jobs:
         if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
-        run: npx playwright test e2e/mobile-viewports.spec.ts --reporter=list
+        run: npx playwright test e2e/mobile-viewports.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
 
       - name: Upload screenshots on failure
         if: failure()

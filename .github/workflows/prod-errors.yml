@@ -147,3 +147,25 @@ jobs:
           set -euo pipefail
           node scripts/ops-alert-ledger.mjs sync
           node scripts/ops-alert-ledger.mjs list | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # THIS WORKFLOW'S OWN RED HAS TO LAND SOMEWHERE (Q52, 2026-09-23). The
+  # prod-errors ISSUE above reports what real users hit; it says nothing when
+  # this workflow itself breaks (a failed Sentry read, a ledger sync error).
+  # everyScheduledWorkflowReportsItsResult.test.ts passed it only because a
+  # COMMENT above names nightly-issue-sync — the guard now reads `uses:` lines.
+  notify:
+    name: Report nightly result
+    needs: [check, ledger]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: prod-errors
+          status: ${{ (needs.check.result == 'success' && needs.ledger.result == 'success') && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

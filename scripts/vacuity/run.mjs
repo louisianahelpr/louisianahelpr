@@ -443,7 +443,7 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
    *
    * So: one solo run per guard, and the cost is accepted. The gate normally
    * mutates only the registrations changed since origin/main, where this is a
-   * handful of runs; the full sweep is nightly and has the wall clock.
+   * handful of runs; the full sweep is weekly and has the wall clock.
    */
   const guards = [...new Set(mutations.map((m) => m.guard))];
   const baselineRed = new Set();

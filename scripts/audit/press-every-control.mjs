@@ -688,6 +688,13 @@ async function main() {
     for (const l of r.log) console.log(`cleaned: ${l}`);
     for (const l of r.residue) console.log(`::warning title=clean-up residue::${l}`);
     writeFileSync(`${OUT}/cleanup.json`, JSON.stringify(r, null, 2));
+    // Q52 (2026-09-23): residue and un-minted personas were ::warning:: and the
+    // clean-up job stayed green having left rows on prod. Not cleaned is not green.
+    const notMinted = Object.keys(unavailable);
+    if (r.residue.length || notMinted.length) {
+      console.log(`FAIL: clean-up left ${r.residue.length} residue row(s); personas not minted: ${notMinted.join(", ") || "none"}`);
+      process.exitCode = 1;
+    }
     return;
   }
 
@@ -1605,8 +1612,13 @@ async function main() {
   if (sessionDeaths.length || sessionLostRows.length) {
     console.log(`SESSION DEATH: GoTrue refused a session ${sessionDeaths.length} time(s); ${sessionLostRows.length} row(s) not measured. This run did not fully measure the app — the press counts above are a floor, not a verdict.`);
   }
-  if (failedPresses > 0 || undocumented > 0 || sessionDeaths.length > 0) {
-    console.log(`FAIL: ${failedPresses} failed press(es), ${undocumented} control(s) unpressed without a documented reason, ${sessionDeaths.length} session death(s)`);
+  // Q52 (2026-09-23): two more ways this run used to report green having
+  // measured nothing. (1) An EMPTY inventory: found=0 printed coverage=100.0%.
+  // (2) UNCOVERED personas (not minted) were a ::warning:: — every control on
+  // their routes went unpressed and the run still exited 0.
+  const uncoveredPersonas = Object.keys(unavailable);
+  if (failedPresses > 0 || undocumented > 0 || sessionDeaths.length > 0 || totalFound === 0 || uncoveredPersonas.length > 0) {
+    console.log(`FAIL: ${failedPresses} failed press(es), ${undocumented} control(s) unpressed without a documented reason, ${sessionDeaths.length} session death(s), ${totalFound} control(s) found, ${uncoveredPersonas.length} persona(s) uncovered${uncoveredPersonas.length ? ` (${uncoveredPersonas.join(", ")})` : ""}`);
     process.exit(1);
   }
 }

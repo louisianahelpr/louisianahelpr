@@ -97,7 +97,12 @@ export default defineConfig({
   // Locally 1 worker: Playwright's default (half the cores = 4 browsers) swaps
   // the owner's 8 GB Mac when agent lanes run alongside. Override with --workers.
   workers: process.env.CI ? 2 : 1,
-  reporter: process.env.CI ? "list" : [["list"], ["html", { open: "never" }]],
+  // skipReporter: a skip is reported, and an unjustified one fails the run
+  // (e2e/skipAllowlist.ts, docs/OPEN.md Q52). A CLI `--reporter` REPLACES this
+  // list, so CI invocations name it explicitly too.
+  reporter: process.env.CI
+    ? [["list"], ["./e2e/reporters/skipReporter.ts"]]
+    : [["list"], ["html", { open: "never" }], ["./e2e/reporters/skipReporter.ts"]],
   use: {
     // Local build by default — never the deployed site (see the header).
     baseURL: process.env.PLAYWRIGHT_BASE_URL || HAPPY_PATH_BASE_URL,

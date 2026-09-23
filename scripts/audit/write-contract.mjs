@@ -494,6 +494,15 @@ export function fetchSnapshot() {
     const keys = JSON.stringify(Object.keys(parsed.rows?.[0] ?? parsed[0] ?? parsed)).slice(0, 200);
     throw new Error(`snapshot query returned no tables/functions (row keys: ${keys}, snapshot type: ${typeof snap})`);
   }
+  // FLOOR (Q52, 2026-09-23). `{tables:{}, functions:{}}` passed the shape test
+  // above and would have been written over the committed snapshot. public has
+  // dozens of tables and hundreds of functions; a near-empty catalog is a
+  // failed read, never the schema.
+  const nTables = Object.keys(snap.tables).length;
+  const nFunctions = Object.keys(snap.functions).length;
+  if (nTables < 20 || nFunctions < 50) {
+    throw new Error(`snapshot query returned only ${nTables} tables / ${nFunctions} functions — refusing to write a near-empty snapshot`);
+  }
   return sortDeep(snap);
 }
 

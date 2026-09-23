@@ -168,9 +168,10 @@ jobs:
           # close.
 
           if [ "$LINT_ALL" = "1" ]; then
-            FILES=$(ls supabase/migrations/*.sql 2>/dev/null || true)
+            FILES=$(ls supabase/migrations/*.sql)
           else
-            FILES=$(git diff --name-only --diff-filter=AM "$DIFF_BASE" HEAD -- 'supabase/migrations/*.sql' || true)
+            # No `|| true` (Q52): a failed diff is not "no migration changes".
+            FILES=$(git diff --name-only --diff-filter=AM "$DIFF_BASE" HEAD -- 'supabase/migrations/*.sql')
           fi
 
           if [ -z "$FILES" ]; then

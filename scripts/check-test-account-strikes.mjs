@@ -87,6 +87,13 @@ async function main() {
   const problems = findStrikes(profiles, strikes, violations);
   const missing = SHARED_TEST_ACCOUNTS.filter((e) => !profiles.some((p) => p.email?.toLowerCase() === e));
   console.log(`[test-account-strikes] ${profiles.length} shared accounts checked${missing.length ? ` (not on this project: ${missing.join(", ")})` : ""}.`);
+  // FLOOR (Q52, 2026-09-23). A missing account used to be a printed note and a
+  // PASS, so a read that returned 1 of 6 profiles graded the other 5 clean.
+  // All six exist on prod (measured 2026-09-23: profiles by email = 6), so a
+  // shortfall is a failed or wrong-project read — "could not check", exit 2.
+  if (missing.length) {
+    throw new Error(`${missing.length} of ${SHARED_TEST_ACCOUNTS.length} shared test accounts were not returned (${missing.join(", ")}) — their strikes were NOT checked`);
+  }
   if (problems.length === 0) {
     console.log("[test-account-strikes] OK: no strikes, no violations, every account active.");
     return;

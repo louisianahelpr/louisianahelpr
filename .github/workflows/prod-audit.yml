@@ -161,9 +161,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$GREP" ]; then
-            npx playwright test --project=prod-audit --workers=1 --reporter=list -g "$GREP"
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts -g "$GREP"
           else
-            npx playwright test --project=prod-audit --workers=1 --reporter=list
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
           fi
 
       - name: Keep failure screenshots, samples and traces
@@ -184,8 +184,10 @@ jobs:
       # leave user_strikes / user_violations behind; one more harness-made
       # violation suspends the account every prod workflow uses (2026-09-13).
       # always(): a red suite is exactly when a strike is most likely.
-      # Exit 1 = a strike on a shared account (fail the job); exit 2 = could not
-      # check (warn, so a missing key is visible without masking suite results).
+      # Exit 1 = a strike on a shared account; exit 2 = could not check. BOTH
+      # fail the job (Q52, 2026-09-23): "could not read prod" used to be a
+      # ::warning:: and the job stayed green having checked nothing. Failing this
+      # step does not mask the suite result — that step's outcome is its own.
       - name: Shared test accounts carry no strikes
         if: always()
         run: |
@@ -196,7 +198,7 @@ jobs:
           case "$code" in
             0) ;;
             1) echo "::error title=Strike on a shared test account::A harness left a strike/violation on a shared test account. Delete the test-owned rows and fix that harness's cleanup."; exit 1 ;;
-            2) echo "::warning title=Test-account strike check did not run::scripts/check-test-account-strikes.mjs could not read prod (missing key or REST error); see the log above." ;;
+            2) echo "::error title=Test-account strike check did not run::scripts/check-test-account-strikes.mjs could not read prod (missing key or REST error); see the log above. Not checked is not clean."; exit 2 ;;
             *) echo "::error::check-test-account-strikes.mjs exited $code"; exit "$code" ;;
           esac
 
@@ -211,8 +213,8 @@ jobs:
       # equivalent for this suite's marker, needing the key this step still has.
       # always(): a run that fails partway through is exactly when a leftover
       # is most likely. Exit 1 = a real problem (cap exceeded or a delete
-      # failed; fail the job); exit 2 = could not run (missing key or a REST
-      # error reading prod; warn, matching the strike check above).
+      # failed); exit 2 = could not run (missing key or a REST error reading
+      # prod). Both fail the job (Q52) — a sweep that never ran is not clean.
       - name: Remove leftover prod-audit jobs this run could not clean up itself
         if: always()
         run: |
@@ -223,7 +225,7 @@ jobs:
           case "$code" in
             0) ;;
             1) echo "::error title=prod-audit leftover cleanup failed::scripts/e2e/prod-audit-sweeper.mjs found a real problem (more than its 50-match cap, or a delete failed) — see the log above."; exit 1 ;;
-            2) echo "::warning title=prod-audit leftover cleanup did not run::scripts/e2e/prod-audit-sweeper.mjs could not read prod (missing key or REST error); see the log above." ;;
+            2) echo "::error title=prod-audit leftover cleanup did not run::scripts/e2e/prod-audit-sweeper.mjs could not read prod (missing key or REST error); see the log above."; exit 2 ;;
             *) echo "::error::prod-audit-sweeper.mjs exited $code"; exit "$code" ;;
           esac
 

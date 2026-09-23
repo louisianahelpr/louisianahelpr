@@ -121,7 +121,7 @@ jobs:
       - name: Run the prod sweep
         # The serial describe ignores --workers; kept on one line for
         # src/test/e2eSpecsReachableInCi.test.ts, which reads this file.
-        run: npx playwright test --project=${{ matrix.project }} --reporter=list
+        run: npx playwright test --project=${{ matrix.project }} --reporter=list,./e2e/reporters/skipReporter.ts
 
       - name: Keep the report and every screenshot
         if: always()

@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 20 done, 4 partly done (fixed, protection pending), 64 open. Source of truth for work.
+- **Queue (this file):** 20 done, 5 partly done (fixed, protection pending), 64 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 88 items — 20 done, 4 partly done (fixed, protection pending), 64 open.**
+**Queue: 89 items — 20 done, 5 partly done (fixed, protection pending), 64 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -583,29 +583,60 @@ sure someone hears it and closes it.
   prod-audit/visual suite: open the panel with a short list, dismiss a row,
   and assert that no single frame moves the panel edge more than ~40px, in
   Chromium and WebKit.
-- [ ] **Q52 FALSE-GREEN HUNT (owner, 2026-09-23: "nothing is a false positive
-  or going green if it's not truly green").** Tonight 4 checks were green
-  without checking anything: one parsed the old function body ($fn$-only),
-  one matched a comment, one counted only one failure kind, and the audit only
-  failed on critical. Attack the class in all four places a green can lie:
-  1. Tests: the full vacuity mutation sweep (dispatched 35822511272). Every
-     SURVIVED is a hollow test, so fix each.
-  2. Workflows: a guard that scans .github/workflows for green-when-broken
-     shapes: `|| true`, `continue-on-error: true` with no fail-at-the-end
-     step reading its outcome, "secret missing -> exit 0", `if: always()` on a
-     step that should gate, and `set -e` absent from multi-command run blocks.
-     Each is fixed or allowlisted with a reason (two-way list).
-  3. Live check scripts (scripts/check-*.mjs, scripts/audit/*): each must
-     exit non-zero when its read fails or its inventory is empty (a floor).
-     Scan them all and prove each with an injected empty read.
-  4. E2E/Playwright: a skipped test counts as green. Every
-     test.skip/fixme/conditional skip in prod-audit, journeys, press and
-     happy-path must be (a) reported in the run summary and (b) either
-     justified in a two-way list or turned into a failure. Tonight's
-     prod-audit skipped several (e.g. interruptions.spec.ts:204 double-apply).
-  Also: GUARD-BURNDOWN and vacuity.yml comments call the full sweep NIGHTLY,
-  but its cron is `17 14 * * 0` (WEEKLY). Make it nightly, or correct every
-  claim, and make check:counts / check:claude-md catch schedule claims.
+- [~] **Q52 FALSE-GREEN HUNT (owner, 2026-09-23: "nothing is a false positive
+  or going green if it's not truly green").** Areas 2-4 DONE with guards; area 1
+  PARTLY done (see Q89). GUARDS:
+  2. Workflows — src/test/workflowFalseGreenShapes.test.ts (SWALLOW `|| true`/
+     `|| echo`/`|| exit 0`, early `exit 0`, continue-on-error without an
+     `.outcome` read (and any `.conclusion` read of one), nightly-issue-sync
+     status that ignores a `needs` leg, a check piped without pipefail,
+     `set +e`, a custom shell without -e; two-way allowlists with reasons; 9
+     @mutate, all killed). FIXED: nightly-red-age read failure = "None open";
+     `git diff … || true` -> "nothing to lint/deploy" in migration-lint,
+     db-deploy, functions-deploy; deploy.yml console.log guard passed with no
+     bundle; db-smoke grep exit 2 swallowed; prod-audit exit 2 ("could not read
+     prod") was a warning; press-every-control missing key -> exit 0 and notify
+     ignored the cleanup job; e2e-real-backend status ignored the scheduled
+     `authenticated` leg; 4 e2e teardown token-mint failures exited 0.
+     ALLOWLISTED: 43 swallows, 15 early exits, 2 continue-on-error, 5 notify
+     needs, 4 set +e — each with its reason.
+     Also src/test/everyScheduledWorkflowReportsItsResult.test.ts matched a
+     COMMENT (vacuity SURVIVED): it now reads `uses:` lines, which exposed
+     nightly-red-age.yml and prod-errors.yml as never reporting their own red —
+     both now have a notify job.
+  3. Live check scripts — src/test/liveCheckScriptsFailClosed.test.ts (21
+     live-reading scripts inventoried from source; 11 run hermetically with a
+     failed and an empty read, 10 in a two-way NOT_HERMETIC list, 6 of those
+     pinned). 9 fixed (stripe webhook 0 endpoints passed; strikes 1-of-6
+     accounts passed; write-contract --refresh overwrote the snapshot with an
+     empty catalog; cross-account-authz / two-account-journey always exit 0;
+     prod-seed --verify, rail-overlap-probe, walk-every-control,
+     function-body-drift floors). press-every-control.mjs now fails on 0
+     controls found, UNCOVERED personas and clean-up residue.
+  4. E2E skips — e2e/reporters/skipReporter.ts prints SKIPPED: N + table in the
+     step summary and fails the run on any skip not justified in
+     e2e/skipAllowlist.ts; guard src/test/e2eSkipsAreJustified.test.ts (63
+     sites from source: 22 justified, 41 now FAIL the run incl. every
+     prod-audit GAP skip such as interruptions double-apply; every workflow
+     `playwright test --reporter=` line must name the reporter). EXPECT
+     prod-audit / journeys / a11y-prod to go RED where a fixture or credential
+     is missing — that is the point.
+  Cadence: the full vacuity sweep stays WEEKLY (owner cost decision
+  2026-09-22; a full sweep runs for hours); every "nightly" claim corrected
+  and the "weekly workflow called nightly" check lives in
+  workflowFalseGreenShapes.test.ts.
+- [ ] **Q89 Q52 area 1 remainder: vacuity SURVIVED list (2026-09-23).** CI full
+  sweep 35822511272 was still in_progress at 07:50Z (log unreadable until it
+  ends). Local non-Playwright sweep scored ~825 of 1093 registrations before it
+  was stopped: SURVIVED = src/test/emailDlqIsWatched.test.ts (both
+  registrations on 20260922155258_email_dlq_alerting.sql — the guard likely
+  reads an older or different definition; make it read the NEWEST definition)
+  and everyScheduledWorkflowReportsItsResult (FIXED in Q52). RED BEFORE ANY
+  MUTATION (inconclusive): src/test/edge/create-payment.test.ts ("admin only"
+  expectation), src/test/deadcodeRatchet.test.ts and baselinesAreTwoWay (both
+  green after the Q52 rebase), generatedInventoriesCurrent (burndown refresh).
+  TODO: read 35822511272's full log when it ends, finish the remaining ~270
+  unit registrations + the 56 Playwright ones, fix every SURVIVED, prove killed.
 - [ ] **Q53 ROOT-CAUSE the 2026-09-22 database outage. EVIDENCE GATHERED 2026-09-23 ~05:40Z (Supabase logs + pg_stat_statements):**
   - Timeline: 08:00-15:00Z, 22-42 "canceling statement due to statement timeout"
     per hour plus connection/SSL resets; then at 15:00 "the database system is
@@ -745,7 +776,7 @@ sure someone hears it and closes it.
   total, when it was last measured, and the link to the run:
   - Vitest (files and tests, last main run); lint and typecheck; `npm run gate` steps
   - Vacuity: guards proven / exempt / owed; mutations killed / survived
-    (weekly full sweep: should be nightly, see Q52)
+    (weekly full sweep — stays weekly on cost, owner 2026-09-22; see Q52)
   - press-every-control: controls found / pressed / failed; session deaths
   - prod-audit, e2e-journeys, e2e-real-backend, nightly-webkit, ui-sweep: specs passed / failed / SKIPPED
   - every scheduled and push workflow: last result, and red for how long

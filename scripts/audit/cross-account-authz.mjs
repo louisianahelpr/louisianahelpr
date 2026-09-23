@@ -69,6 +69,8 @@ const mine = await as(helper, `jobs?select=id&helper_id=eq.${HELPER}&limit=100`)
 const myJobIds = Array.isArray(mine.body) ? mine.body.map((j) => j.id) : [];
 
 let leaks = 0;
+// A failed read of her own jobs silently turned two probes into "skip".
+let brokenProbes = mine.status === 200 ? 0 : 1;
 for (const [name, rawPath, expect] of probes) {
   const path = rawPath.replace("__MYJOBS__", myJobIds.join(",") || "00000000-0000-0000-0000-000000000000");
   const r = await as(helper, path);
@@ -88,6 +90,7 @@ for (const [name, rawPath, expect] of probes) {
   // that the database leaked. Say so instead of counting it as a finding.
   if (r.status === 400 || r.status === 404) {
     console.log(`probe ${name.padEnd(44)} HTTP ${r.status} — probe is wrong, not the database: ${JSON.stringify(r.body).slice(0, 90)}`);
+    brokenProbes++;
     continue;
   }
   if (!ok) leaks++;
@@ -99,3 +102,13 @@ for (const [name, rawPath, expect] of probes) {
 const own = await as(helper, `profiles?select=user_id&user_id=eq.${HELPER}`);
 console.log(`\ncontrol — helper can read their OWN profile: HTTP ${own.status}, rows=${own.rows} ${own.rows === 1 ? "(good: the suite is not vacuous)" : "(!! the suite may be passing because nothing works)"}`);
 console.log(`\n${leaks === 0 ? "NO LEAKS" : leaks + " LEAK(S)"} across ${probes.length} probes`);
+// EXIT CODES (Q52, 2026-09-23). This printed its verdict and exited 0 in every
+// case — a leak, a probe the database rejected, and a control proving the
+// sessions read nothing all looked like success to anything that ran it.
+// 1 = a leak. 2 = could not judge: a probe is malformed (400/404) or the
+// control read failed, so "no leaks" would be a claim about nothing.
+if (leaks) process.exit(1);
+if (brokenProbes || own.status !== 200 || own.rows !== 1) {
+  console.error(`::error::cross-account-authz could not judge: ${brokenProbes} malformed probe(s), control HTTP ${own.status} rows=${own.rows}`);
+  process.exit(2);
+}

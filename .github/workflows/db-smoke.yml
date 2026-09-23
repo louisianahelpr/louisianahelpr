@@ -359,7 +359,9 @@ jobs:
           MATCHES=$(grep -rEn -i \
             --include='*.ts' --include='*.tsx' \
             "$PAT" \
-            src/ supabase/functions/ 2>/dev/null || true)
+            src/ supabase/functions/) || [ $? -eq 1 ]
+          # `|| [ $? -eq 1 ]`, not `|| true` (Q52): grep exits 1 for "no match",
+          # which is the pass, and 2 for "could not read", which must fail.
           if [ -n "$MATCHES" ]; then
             echo "::error::Hardcoded role-string comparison found — use has_role(uid, 'role'::app_role) instead"
             echo "$MATCHES"

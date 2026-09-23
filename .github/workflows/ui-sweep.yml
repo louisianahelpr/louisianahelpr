@@ -18,7 +18,7 @@ permissions:
 # 2026-09-13. It answered every Supabase call from a mock, which by the owner's
 # standing order is not verification. Its replacement is not a port: the
 # identical capture + gate already runs against PROD with the real accounts in
-# e2e/a11y-prod (sweepCore.ts is shared), NIGHTLY and in two engines rather
+# e2e/a11y-prod (sweepCore.ts is shared), Mon/Wed/Fri and in two engines rather
 # than weekly in one — see .github/workflows/a11y-webkit-prod.yml.
 #
 # OVERLAY SWEEP — why it is wired here, and why not dispatch-only

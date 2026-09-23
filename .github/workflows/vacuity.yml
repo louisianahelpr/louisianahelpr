@@ -24,7 +24,8 @@ name: Vacuity
 #
 # PER-PUSH SCOPE is deliberate: the mutation set is limited to guards whose
 # guard file or guarded file changed vs origin/main, which keeps this job at a
-# couple of seconds on a normal commit. The FULL set runs nightly below.
+# couple of seconds on a normal commit. The FULL set runs WEEKLY below
+# (Sundays 14:17 UTC — owner cost decision 2026-09-22; see the cron).
 #
 # Linux runner (memory `github-actions-macos-billing`): macos-15 minutes are a
 # 10x multiplier and this is pure Node.
@@ -71,7 +72,7 @@ on:
   workflow_dispatch:
     inputs:
       full:
-        description: "Run every registered mutation (the nightly set), not just what changed"
+        description: "Run every registered mutation (the weekly full set), not just what changed"
         type: boolean
         default: false
 
@@ -169,12 +170,12 @@ jobs:
 
       - name: Vacuity gate
         # Per push: ratchet + static scan + harness preflight + mutations for
-        # what changed. Nightly (schedule): every registered mutation.
+        # what changed. Weekly (schedule): every registered mutation.
         run: |
-          # The full set on the nightly schedule, or on demand. Waiting until
+          # The full set on the weekly schedule, or on demand. Waiting until
           # 14:17 to find out whether a change to this job's credentials or
           # scope actually works is how the e2e half stayed unproven for so
-          # long — a dispatch that cannot reproduce the nightly is not a
+          # long — a dispatch that cannot reproduce the weekly sweep is not a
           # reproduction.
           if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.full }}" = "true" ]; then
             npm run vacuity:all

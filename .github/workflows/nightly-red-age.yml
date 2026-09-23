@@ -93,7 +93,10 @@ jobs:
           for LABEL in nightly-red prod-down; do
             gh issue list --repo "${{ github.repository }}" --label "$LABEL" --state open \
               --json number,title,createdAt,labels,url --limit 100 \
-              >> /tmp/raw.json || echo '[]' >> /tmp/raw.json
+              >> /tmp/raw.json
+            # No `|| echo '[]'` (removed 2026-09-23, Q52): a failed read is not
+            # "zero open issues". This step IS the gate that reads the reds;
+            # when it cannot read them it must go red, never report "None open".
           done
           jq -s 'add | unique_by(.number)' /tmp/raw.json > /tmp/issues.json
           echo "open: $(jq 'length' /tmp/issues.json)"
@@ -142,3 +145,25 @@ jobs:
             exit 1
           fi
           echo "No nightly red older than ${MAX_AGE_HOURS}h."
+
+  # THE GATE REPORTS ITS OWN RED (Q52, 2026-09-23). everyScheduledWorkflow-
+  # ReportsItsResult.test.ts said this workflow reports "through the same
+  # action" — it did not; the guard matched the COMMENTS above that name
+  # nightly-issue-sync. A red here now opens `nightly-red: nightly-red-age`,
+  # which closes on the next green run like every other.
+  notify:
+    name: Report nightly result
+    needs: [age]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: nightly-red-age
+          status: ${{ needs.age.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

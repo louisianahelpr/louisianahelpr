@@ -78,4 +78,12 @@ writeFileSync(`${OUT}/findings.json`, JSON.stringify(findings, null, 2));
 await browser.close();
 const bad = findings.filter((f) => f.railOn && f.over.length);
 console.log(`\nROUTES WITH OVERLAP: ${bad.length}`);
-process.exit(bad.length ? 1 : 0);
+// FLOOR (Q52, 2026-09-23). Only routes with the rail OPEN are judged, so a run
+// whose session died (signed out → no rail) judged nothing and exited 0.
+const unmeasured = findings.filter((f) => !f.railOn).map((f) => f.route);
+if (bad.length) process.exit(1);
+if (!findings.length || unmeasured.length) {
+  console.error(`::error::rail never opened on ${unmeasured.length}/${findings.length} route(s): ${unmeasured.join(", ")} — overlap NOT measured there`);
+  process.exit(2);
+}
+process.exit(0);

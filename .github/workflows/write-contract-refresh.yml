@@ -1,6 +1,6 @@
 name: Write contract snapshot refresh
 
-# Nightly: re-pull the READ-ONLY prod schema facts that
+# Weekly (Saturdays, see the cron): re-pull the READ-ONLY prod schema facts that
 # scripts/audit/write-contract.mjs checks every client write against, and FAIL
 # if they drifted from the committed snapshot (or if any write now rejects).
 # The vitest guard (src/test/writeContract.test.ts) runs offline against the

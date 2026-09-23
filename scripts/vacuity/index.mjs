@@ -16,11 +16,11 @@
  *      wired, mock clauses actually recorded.
  *   4. MUTATE. For each registered mutation: break the guarded source, run
  *      ONLY that guard, and fail if the guard stayed green. Default scope is
- *      what changed vs origin/main; `--all` is the nightly full set.
+ *      what changed vs origin/main; `--all` is the full set (weekly in vacuity.yml).
  *
  * Usage:
  *   node scripts/vacuity/index.mjs              # per-push: ratchet+scan+preflight+changed mutations
- *   node scripts/vacuity/index.mjs --all        # nightly: every registered mutation
+ *   node scripts/vacuity/index.mjs --all        # weekly (vacuity.yml): every registered mutation
  *   node scripts/vacuity/index.mjs --report     # no gate, print the full vacuity report
  */
 import fs from "node:fs";

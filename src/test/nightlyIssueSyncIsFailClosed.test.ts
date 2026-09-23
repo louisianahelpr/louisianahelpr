@@ -99,4 +99,4 @@ describe("nightly-issue-sync reports are fail-closed", () => {
 });
 
 // The exact expression the money loop reported green with for fifteen days.
-// @mutate .github/workflows/e2e-real-backend.yml | status: ${{ (needs.anon-surface.result == 'success' && needs.prod-lifecycle.result == 'success') && 'success' \|\| 'failure' }} | status: ${{ contains(needs.*.result, 'failure') && 'failure' \|\| 'success' }}
+// @mutate .github/workflows/e2e-real-backend.yml | status: ${{ (needs.anon-surface.result == 'success' && needs.authenticated.result == 'success' && needs.prod-lifecycle.result == 'success') && 'success' \|\| 'failure' }} | status: ${{ contains(needs.*.result, 'failure') && 'failure' \|\| 'success' }}

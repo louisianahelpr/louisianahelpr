@@ -58,7 +58,7 @@ import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
  * constraint the rest of this file's shape imposes. `describe.serial` means a
  * kill in J2 SKIPS J3-J5, so the mutated half of a scoring funds nothing and
  * strands nothing; a mutation that only bit later would fund a real test-mode
- * escrow on every scoring, and `vacuity:all` runs nightly.
+ * escrow on every scoring, and `vacuity:all` runs weekly.
  *
  * So: the MIME allowlist on the post-job photo picker
  * (`useJobMediaUpload.handleImageSelect`). Dropping `image/png` from it makes

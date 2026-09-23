@@ -166,4 +166,7 @@ try {
   const failed = steps.filter((s) => !s.ok);
   console.log(`\n${steps.length - failed.length}/${steps.length} steps passed`);
   if (failed.length) { console.log("FAILED:"); failed.forEach((f) => console.log(`  - ${f.name} :: ${f.detail}`)); }
+  // EXIT CODE (Q52, 2026-09-23): this printed FAILED and exited 0. A failed
+  // step is 1; a run that recorded no step at all judged nothing and is 2.
+  process.exitCode = failed.length ? 1 : steps.length === 0 ? 2 : 0;
 }

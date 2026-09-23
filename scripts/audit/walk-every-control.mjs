@@ -518,3 +518,10 @@ for (const theme of THEMES) {
 await browser.close();
 writeFileSync(`${OUT}/results.json`, JSON.stringify(results, null, 2));
 console.log(`\nwrote ${OUT}/results.json — ${results.length} route/width/theme combos`);
+// EXIT CODE (Q52, 2026-09-23): an empty walk, or one whose harness threw on a
+// route, measured nothing there — it used to exit 0 like a clean walk.
+const harnessErrors = results.filter((r) => r.findings.some((f) => f.startsWith("HARNESS ERROR")));
+if (!results.length || harnessErrors.length) {
+  console.error(`::error::walk-every-control: ${results.length} combos walked, ${harnessErrors.length} with a HARNESS ERROR — not a complete walk`);
+  process.exit(2);
+}

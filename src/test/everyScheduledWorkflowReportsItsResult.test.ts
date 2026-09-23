@@ -67,7 +67,9 @@ describe("every scheduled workflow reports a red run", () => {
     const silent = scheduled.filter((f) => {
       if (f in NO_REPORT_NEEDED) return false;
       const src = readFileSync(join(DIR, f), "utf8");
-      return !src.includes("nightly-issue-sync");
+      // Q52: read the `uses:` line, never a comment — db-backup.yml names the
+      // action in a comment, so a bare includes() stayed green with the step gone.
+      return !/^\s*-?\s*uses:\s*\.\/\.github\/actions\/nightly-issue-sync\b/m.test(src);
     });
 
     expect(

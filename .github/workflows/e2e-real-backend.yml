@@ -236,7 +236,7 @@ jobs:
         # and a `\` continuation would hide the spec names from it — the guard
         # would then report these two as unreachable, which is the exact wrong
         # answer in the exact place it matters.
-        run: npx playwright test --project=chromium e2e/auth.spec.ts e2e/payment-lifecycle.spec.ts --reporter=list
+        run: npx playwright test --project=chromium e2e/auth.spec.ts e2e/payment-lifecycle.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
       - name: Four chromium specs that ran nowhere until 2026-09-21
         # post-and-apply, smoke, a11y and visual-audit/responsive were in
         # e2eSpecsReachableInCi's NOT_RUN_IN_CI list, so the reachability guard
@@ -263,7 +263,7 @@ jobs:
         # ONE line, for the same reason as the step above: the reachability
         # guard reads workflow files line by line, and a `\` continuation would
         # hide these spec names from it.
-        run: npx playwright test --project=chromium e2e/post-and-apply.spec.ts e2e/smoke.spec.ts e2e/a11y.spec.ts e2e/visual-audit/responsive.spec.ts e2e/visual-audit/desktop-fill.spec.ts --reporter=list
+        run: npx playwright test --project=chromium e2e/post-and-apply.spec.ts e2e/smoke.spec.ts e2e/a11y.spec.ts e2e/visual-audit/responsive.spec.ts e2e/visual-audit/desktop-fill.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
       - name: Upload report on failure
         if: failure()
         uses: actions/upload-artifact@v7
@@ -312,7 +312,7 @@ jobs:
           PLAYWRIGHT_POSTER_SESSION: ${{ secrets.PLAYWRIGHT_POSTER_SESSION }}
           PLAYWRIGHT_HELPER_SESSION: ${{ secrets.PLAYWRIGHT_HELPER_SESSION }}
           PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
-        run: npx playwright test --project=chromium e2e/two-role-lifecycle.spec.ts --reporter=list
+        run: npx playwright test --project=chromium e2e/two-role-lifecycle.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
 
   # ---------------------------------------------------------------------
   # Leg 4 — the full money loop against PRODUCTION, on a Stripe test key.
@@ -421,7 +421,7 @@ jobs:
           # sweep step above already refuses. See the spec's step 6b.
           PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
           PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
-        run: npx playwright test --project=chromium e2e/prod-lifecycle.spec.ts --reporter=list --trace=on
+        run: npx playwright test --project=chromium e2e/prod-lifecycle.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts --trace=on
 
       # The whole point of this job is the legs a mock cannot cover, and when
       # one of them breaks the log says "waitForURL timed out" — which names the
@@ -454,7 +454,7 @@ jobs:
           set -euo pipefail
           URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
           KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
-          TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::warning::could not mint a token for teardown — rows may be stranded for the next run's pre-sweep"; exit 0; }
+          TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a token for teardown (Q52: an unwind that did not run is not green) — rows may be stranded for the next run's pre-sweep"; exit 1; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
             node scripts/e2e/prod-lifecycle-sweeper.mjs
 
@@ -582,6 +582,10 @@ jobs:
           # explicitly `success` means a leg that did not run cannot close an
           # issue. `two-role` is deliberately absent: it is manual-only and is
           # `skipped` on every schedule, so requiring it would pin this red.
-          status: ${{ (needs.anon-surface.result == 'success' && needs.prod-lifecycle.result == 'success') && 'success' || 'failure' }}
+          # `authenticated` was ALSO absent until 2026-09-23 (Q52) although it
+          # runs on every schedule (success on run 35629812383): a red
+          # authenticated leg closed the nightly-red issue. Enforced by
+          # src/test/workflowFalseGreenShapes.test.ts (every `needs` is in status).
+          status: ${{ (needs.anon-surface.result == 'success' && needs.authenticated.result == 'success' && needs.prod-lifecycle.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

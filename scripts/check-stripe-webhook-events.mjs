@@ -140,8 +140,12 @@ if (onId) {
 
 // ------------------------------------------------------------------ live half
 
+// LH_STRIPE_API_BASE exists only so src/test/liveCheckScriptsFailClosed.test.ts
+// can point the live read at a stub that fails or returns nothing.
+const STRIPE_API = process.env.LH_STRIPE_API_BASE ?? "https://api.stripe.com";
+
 async function stripeGet(key, path) {
-  const res = await fetch(`https://api.stripe.com/v1/${path}`, {
+  const res = await fetch(`${STRIPE_API}/v1/${path}`, {
     headers: { Authorization: `Basic ${Buffer.from(`${key}:`).toString("base64")}` },
   });
   const body = await res.json();
@@ -186,6 +190,10 @@ async function liveHalf() {
 
 /** Grade a /v1/webhook_endpoints list — the same logic for live and fixture. */
 function gradeEndpoints(list) {
+  if (!Array.isArray(list?.data)) {
+    fail(`The webhook_endpoints response has no \`data\` array — refusing to grade a read that returned nothing.`);
+    return;
+  }
   const ours = list.data.filter((e) => e.url === WEBHOOK_URL);
   // A test key cannot return live objects; assert it anyway so a mis-scoped key
   // can never let this guard silently inspect live mode.
@@ -207,8 +215,16 @@ function gradeEndpoints(list) {
         `   Delete all but one in the Stripe dashboard (TEST mode), then re-run scripts/e2e/stripe-sandbox-on.sh to reset the signing secret.`,
     );
   } else if (enabled.length === 0) {
-    notes.push(
-      `No enabled test-mode endpoint on ${WEBHOOK_URL} — sandbox is off. Event drift not graded.`,
+    // FAIL, not a note (Q52, 2026-09-23). This used to push a note and report
+    // PASS, so an empty endpoint list — a mis-scoped key, a deleted endpoint, a
+    // read that came back with nothing — graded as "clean". Stripe stays in
+    // SANDBOX until launch (owner, 2026-09-12), so the sandbox endpoint MUST
+    // exist; when launch retires it, this check is retargeted to live mode on
+    // the launch checklist, not quietly passed.
+    fail(
+      `No enabled test-mode endpoint on ${WEBHOOK_URL} (${list.data.length} endpoint(s) listed in total). ` +
+        "Stripe is meant to be in sandbox until launch, so zero is a broken sandbox or a broken read, not a pass. " +
+        "Re-run scripts/e2e/stripe-sandbox-on.sh, or check the key's scope.",
     );
     return;
   }

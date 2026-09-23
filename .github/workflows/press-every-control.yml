@@ -130,14 +130,16 @@ jobs:
           umask 077
           printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_PUBLISHABLE_KEY=%s\n' "$VITE_SUPABASE_URL" "$VITE_SUPABASE_PUBLISHABLE_KEY" > .env
           if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
-            echo "::warning title=No SUPABASE_ACCESS_TOKEN::accounts without a PLAYWRIGHT_*_PASSWORD secret cannot be minted and will be reported UNCOVERED"
-            exit 0
+            # exit 1, not 0 (Q52): personas that cannot be minted go UNCOVERED,
+            # and a run that did not press them is not a green run.
+            echo "::error title=No SUPABASE_ACCESS_TOKEN::accounts without a PLAYWRIGHT_*_PASSWORD secret cannot be minted and would be UNCOVERED"
+            exit 1
           fi
           KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
             | jq -r '.[] | select(.name == "service_role") | .api_key')
           if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
-            echo "::warning title=service_role key not returned::the CLI listed no service_role key; magic-link minting is off for this run"
-            exit 0
+            echo "::error title=service_role key not returned::the CLI listed no service_role key; magic-link minting is off, so personas would be UNCOVERED"
+            exit 1
           fi
           echo "::add-mask::$KEY"
           printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY" >> .env
@@ -232,14 +234,16 @@ jobs:
           set -euo pipefail
           umask 077
           if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
-            echo "::warning title=press residue NOT swept::no SUPABASE_ACCESS_TOKEN, so no service-role key; the cancelled fixture jobs stay on prod."
-            exit 0
+            # exit 1, not 0 (Q52): this step also runs the proof-photo reference
+            # CHECK; skipping it green meant the check silently never ran.
+            echo "::error title=press residue NOT swept::no SUPABASE_ACCESS_TOKEN, so no service-role key; the cancelled fixture jobs stay on prod and the proof-photo check did not run."
+            exit 1
           fi
           KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
             | jq -r '.[] | select(.name == "service_role") | .api_key')
           if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
-            echo "::warning title=press residue NOT swept::the CLI listed no service_role key."
-            exit 0
+            echo "::error title=press residue NOT swept::the CLI listed no service_role key; the proof-photo check did not run."
+            exit 1
           fi
           echo "::add-mask::$KEY"
           # Exit 1 = a real problem (over the cap, or a delete failed): red, loudly.
@@ -270,7 +274,10 @@ jobs:
   # workflow and closes it on the next green run.
   notify:
     name: Report nightly result
-    needs: [press]
+    # cleanup is in `needs` and in `status` (Q52): it runs a CHECK
+    # (proof-photo-reference-check.mjs), and a red cleanup used to close the
+    # nightly-red issue as long as the presses themselves passed.
+    needs: [press, cleanup]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -281,6 +288,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: press-every-control
-          status: ${{ needs.press.result == 'success' && 'success' || 'failure' }}
+          status: ${{ (needs.press.result == 'success' && needs.cleanup.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

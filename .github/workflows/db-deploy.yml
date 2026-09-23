@@ -133,7 +133,8 @@ jobs:
           if [ "$EVENT_NAME" = "push" ] && [ -n "${BEFORE_SHA:-}" ] \
              && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ] \
              && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
-            FILES=$(git diff --name-only --diff-filter=AM "$BEFORE_SHA" HEAD -- 'supabase/migrations/*.sql' || true)
+            # No `|| true` (Q52): a failed diff must not read as "nothing to deploy".
+            FILES=$(git diff --name-only --diff-filter=AM "$BEFORE_SHA" HEAD -- 'supabase/migrations/*.sql')
             if [ -z "$FILES" ]; then
               echo "No migration files added or modified in ${BEFORE_SHA}..HEAD."
               exit 0

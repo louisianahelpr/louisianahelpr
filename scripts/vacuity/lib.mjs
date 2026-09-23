@@ -215,7 +215,7 @@ export function loadBaseline() {
  *
  * The cost is not theoretical — it is how a registration reached main unproven
  * the same day, removed from the grandfather list without ever having been
- * scored. The nightly full sweep would have caught it eventually, which means
+ * scored. The weekly full sweep would have caught it eventually, which means
  * "eventually" was doing all the work.
  *
  * So when HEAD already equals the base, fall back to the PREVIOUS COMMIT, which

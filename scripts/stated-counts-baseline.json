@@ -329,7 +329,6 @@
     "scripts/probes/claim-marketing-content.probe.mjs :: om what actually ships. 36 assertions",
     "scripts/probes/direct-offer-policy-scope.pglite.mjs :: and the UPDATE matches 0 rows",
     "scripts/vacuity/README.md :: Non-`src/test` guards (327 colocated specs",
-    "scripts/vacuity/README.md :: hing in scope; ~7s with 7 mutations",
     "scripts/vacuity/lib.mjs :: ec.ts` is 542 lines and 8 tests",
     "scripts/vacuity/run.mjs :: * * Playwright exits 0 when every test",
     "scripts/vacuity/run.mjs :: nothing proven\" for the 60 specs",

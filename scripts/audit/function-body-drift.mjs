@@ -262,6 +262,13 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     process.exit(2);
   }
   const expected = expectedFunctions();
+  // FLOOR (Q52, 2026-09-23). diffFunctions walks the EXPECTED side, so a
+  // migration parser that read nothing would compare nothing and print OK.
+  // The repo defines hundreds of public functions; under 50 is a broken parse.
+  if (expected.size < 50) {
+    console.error(`::error::function-body-drift parsed only ${expected.size} function signatures from supabase/migrations — refusing to report clean.`);
+    process.exit(2);
+  }
   const baseline = loadBaseline();
   const drift = diffFunctions(expected, live, baseline);
   console.log(`function-body-drift: ${expected.size} function signatures from migrations, ${live.length} live in public, ${Object.keys(baseline).length} baselined`);

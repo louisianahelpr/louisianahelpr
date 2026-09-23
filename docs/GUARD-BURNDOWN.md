@@ -25,9 +25,10 @@ executed and KILLED it. Checked 2026-09-21 rather than assumed:
 - `survivingMutations` in the baseline is **empty** — no guard is grandfathered
   as known-vacuous;
 - the per-push gate mutates only what a commit CHANGED. The thing that runs
-  every registration is the nightly full sweep (`vacuity.yml`, 14:17 UTC).
+  every registration is the WEEKLY full sweep (`vacuity.yml`, Sundays 14:17 UTC —
+  weekly by owner decision 2026-09-22, on Actions-minutes cost).
 
-**That nightly sweep had failed both times it ran**, which is how the one real
+**That full sweep had failed both times it ran**, which is how the one real
 gap surfaced: on 2026-09-21 it executed 369 registrations, killed 368, and
 `statGridFullTrackClassCheck` SURVIVED its own — a guard this chart was counting
 as proven. Fixed in `4da4b7fc1`. The 2026-09-20 run's other two survivors
@@ -43,16 +44,16 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 
 | scope | files | proven able to fail | exempt, with a reason | still owed |
 |---|---|---|---|---|
-| **`src/test/*.test.ts*`** | 264 | **264 — COMPLETE** | 0 | **0** |
+| **`src/test/*.test.ts*`** | 267 | **267 — COMPLETE** | 0 | **0** |
 | **`src/test/edge/` (money)** | 58 | **58 — COMPLETE** | 0 | **0** |
 | **colocated beside components** | 348 | **348 — COMPLETE** | 0 | **0** |
 | **Playwright `e2e/`** | 61 | **53 — COMPLETE** | 8 | **0** |
-| **total** | **731** | **723 (99%)** | **8** | **0** |
+| **total** | **734** | **726 (99%)** | **8** | **0** |
 
 `npm run vacuity` prints the same three numbers on every run:
 
 ```
-registration: 723/731 guards register a mutation (8 exempt with a reason, 0 grandfathered)
+registration: 726/734 guards register a mutation (8 exempt with a reason, 0 grandfathered)
 ```
 
 <!-- /generated:burndown-score -->
@@ -193,7 +194,7 @@ was made.
 **Row 1 is done: 191 of 191, and 25 of them were hollow — one in seven.**
 
 Only the first row is enforced today (`.github/workflows/vacuity.yml`, on every push
-and PR, plus a full mutation sweep nightly at 14:17 UTC). The ratchet's baseline may
+and PR, plus a full mutation sweep weekly, Sundays 14:17 UTC). The ratchet's baseline may
 only shrink, so row 1 cannot regress. **Rows 2–4 are invisible to it**: a hollow test
 there is not even listed as unproven.
 

@@ -177,7 +177,15 @@ jobs:
           # Some vendor chunks (supabase-js, jspdf, firebase) reference
           # `console.log` legitimately as a logger property or feature-detect,
           # so we exclude those known-safe vendor bundles from the check.
-          OFFENDERS=$(grep -lE "console\.log" dist/assets/*.js 2>/dev/null \
+          # FLOOR (Q52, 2026-09-23): the grep below cannot tell "no console.log"
+          # from "no bundle" — with no dist/assets/*.js it errored into an empty
+          # OFFENDERS and this guard reported clean. Prove there is a bundle first.
+          JS_COUNT=$(find dist/assets -maxdepth 1 -name '*.js' | wc -l)
+          if [ "$JS_COUNT" -lt 1 ]; then
+            echo "::error::no dist/assets/*.js to scan — the console.log guard would have passed on nothing"
+            exit 1
+          fi
+          OFFENDERS=$(grep -lE "console\.log" dist/assets/*.js \
             | grep -vE "/(supabase|jspdf|firebase|charts|motion|stripe)-" \
             | grep -vE "/index-[A-Za-z0-9_-]+\.js$" || true)
           if [ -n "$OFFENDERS" ]; then

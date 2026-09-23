@@ -7733,7 +7733,7 @@ sure someone hears it and closes it.
   matched a comment (FIXED d8f71e47d). Look for the same "toContain matches a
   comment" shape in other source-scanning guards. A shared code-only reader
   would close the class (ties to Q24).
-- [ ] **Q29 51 dead-lettered emails were ARCHIVED, not resent** (pgmq archive,
+- [x] **Q29 DONE (measured 2026-09-23): all 51 archived DLQ messages were addressed to TEST accounts.** 50 tx to helpr-e2e-helper-0902 / helpr-seed-heavy-0912 @mailinator (is_seed), 1 auth to helpr-e2e-poster-0902 (is_seed). No real user lost an email. Follow-up moved to Q2: (a) why seed/mailinator mail dead-letters at all; (b) archiving a DLQ satisfies the ledger's depth check, so archiving a REAL user's email would close the alert silently. Make the DLQ verify rule require an audit row per non-seed recipient. Was: 51 dead-lettered emails were ARCHIVED, not resent (pgmq archive,
   2026-09-22 16:25 UTC): 1 auth email (sign-in, signup confirmation or password
   reset) and 50 app emails. Find the recipients. Resend to any real (non-seed)
   user whose email still matters, and record what happened. Then make archiving

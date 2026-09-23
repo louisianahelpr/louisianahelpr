@@ -420,6 +420,41 @@ export async function snapshotProfile(s) {
   try { return (await prodSelect(s, `profiles?select=*&user_id=eq.${s.userId}`))[0] ?? null; } catch { return null; }
 }
 
+/** The columns to write back: every restorable column where `after` no longer equals `before`. */
+export function profileRestorePatch(before, after) {
+  const patch = {};
+  for (const k of Object.keys(before)) if (!PROFILE_SKIP.has(k) && JSON.stringify(before[k]) !== JSON.stringify(after[k])) patch[k] = before[k];
+  return patch;
+}
+
+/**
+ * ONE PROFILE SNAPSHOT PER RUN (docs/OPEN.md Q272). The shards of a sharded run
+ * press the SAME shared accounts at the same time, so a baseline one shard takes
+ * can already hold another shard's press, and its end-of-shard restore then
+ * writes that press back (run 35837735324: shard 2's 11:02Z "restored
+ * senior_mode, available_until" restored the FLIPPED value). A sharded shard
+ * therefore takes no baseline and restores nothing: the workflow's `snapshot`
+ * job records the profiles before any shard starts (PROFILE_SNAPSHOT_OUT) and
+ * its `cleanup` job, after every shard, restores from that file
+ * (PROFILE_SNAPSHOT). An unsharded run is the only presser, so it keeps its own.
+ */
+export function shardOwnsProfileRestore(shardSpec) {
+  const total = Number(String(shardSpec ?? "").split("/")[1] ?? 1);
+  return !(total > 1);
+}
+
+/** Every minted persona's profile row, keyed by persona. A row that could not be read is `null`. */
+export async function snapshotProfiles(sessions) {
+  const out = {};
+  for (const [p, s] of Object.entries(sessions)) out[p] = await snapshotProfile(s);
+  return out;
+}
+
+/** The baseline a shard hands to cleanup(): its own snapshot only when it owns the restore, else null (the run's cleanup job restores). */
+export async function shardProfileBaseline(sessions, shardSpec) {
+  return shardOwnsProfileRestore(shardSpec) ? snapshotProfiles(sessions) : null;
+}
+
 /**
  * `Prefer: return=representation` with no explicit `select=` is `RETURNING *`,
  * and `authenticated` has NO table-level SELECT on public.jobs — only 109 of
@@ -483,13 +518,17 @@ export async function cleanup({ sessions, since, profilesBefore }) {
         else if (r.removed) log.push(`${persona} ${table}: removed ${r.removed}`);
       } catch (e) { residue.push(`${persona} ${table}: ${e.message}`); }
     }
-    // Profile: write back every column a press changed.
+    // Profile: write back every column a press changed, from the baseline of
+    // whoever owns the restore (Q272). `profilesBefore` null = not this call's
+    // job (a shard of a sharded run); a baseline that lacks a persona this call
+    // can reach is residue, never a silent skip.
     const before = profilesBefore?.[persona];
+    if (profilesBefore && !before) residue.push(`${persona} profile: NOT restored (no baseline snapshot for this persona)`);
     if (before) {
       const after = await snapshotProfile(s);
+      if (!after) residue.push(`${persona} profile: NOT restored (could not read the current row)`);
       if (after) {
-        const patch = {};
-        for (const k of Object.keys(before)) if (!PROFILE_SKIP.has(k) && JSON.stringify(before[k]) !== JSON.stringify(after[k])) patch[k] = before[k];
+        const patch = profileRestorePatch(before, after);
         if (Object.keys(patch).length) {
           const r = await fetch(`${supabaseUrl()}/rest/v1/profiles?user_id=eq.${s.userId}`, { method: "PATCH", headers: headers(s, { Prefer: "return=representation" }), body: JSON.stringify(patch) });
           const rows = r.ok ? await r.json().catch(() => []) : [];

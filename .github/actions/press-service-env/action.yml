@@ -1,0 +1,43 @@
+name: "Press service-role .env"
+description: >
+  Writes .env for scripts/audit/press-every-control.mjs: the prod VITE_* pair
+  plus the service-role key, fetched through the Supabase CLI, masked, never
+  echoed. Sessions for accounts without a PLAYWRIGHT_*_PASSWORD secret (the
+  incomplete-profile account) are minted with it (scripts/test-signin-link.mjs).
+  One copy for the snapshot, press and cleanup jobs: the cleanup job had no
+  such step, so every run's clean-up failed "personas not minted: incomplete"
+  (run 35837735324, job 107152562721) and never reached the service-role sweep.
+  Fails when the key cannot be had (Q52): an unminted persona is not a green run.
+
+inputs:
+  supabase-access-token:
+    description: "SUPABASE_ACCESS_TOKEN secret"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: supabase/setup-cli@v3
+      with:
+        version: latest
+    - name: Write .env (service-role key for session minting; never printed)
+      shell: bash
+      env:
+        SUPABASE_ACCESS_TOKEN: ${{ inputs.supabase-access-token }}
+      run: |
+        set -euo pipefail
+        umask 077
+        printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_PUBLISHABLE_KEY=%s\n' "$VITE_SUPABASE_URL" "$VITE_SUPABASE_PUBLISHABLE_KEY" > .env
+        if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+          echo "::error title=No SUPABASE_ACCESS_TOKEN::accounts without a PLAYWRIGHT_*_PASSWORD secret cannot be minted and would be UNCOVERED"
+          exit 1
+        fi
+        KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
+          | jq -r '.[] | select(.name == "service_role") | .api_key')
+        if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
+          echo "::error title=service_role key not returned::the CLI listed no service_role key; magic-link minting is off, so personas would be UNCOVERED"
+          exit 1
+        fi
+        echo "::add-mask::$KEY"
+        printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY" >> .env
+        echo ".env written ($(wc -l < .env) lines)"

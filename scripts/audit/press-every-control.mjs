@@ -48,6 +48,8 @@
  *   PERSONAS=customer                       … to narrow (anon,customer,helper,admin,incomplete)
  *   SHARD=1/4                               … CI sharding over the route list
  *   CLEANUP_SINCE=<iso>                     … clean-up only (the workflow's final job)
+ *   PROFILE_SNAPSHOT_OUT=<file> … --snapshot-only  … snapshot the profiles only (the workflow's first job, Q272)
+ *   PROFILE_SNAPSHOT=<file>                 … with CLEANUP_SINCE: restore the profiles from that ONE run baseline
  *
  * Needs `.env` with VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY and
  * SUPABASE_SERVICE_ROLE_KEY (session minting only; nothing else reads it).
@@ -58,7 +60,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   cleanup, createPressJob, loadTestOwners, makeStripeProbe, mintAccounts, mutationGate, prodSelect,
-  remintSession, rowNamesTestOwner, sessionStillAlive, snapshotProfile, urlOwnership,
+  remintSession, rowNamesTestOwner, sessionStillAlive, shardProfileBaseline, snapshotProfiles, urlOwnership,
 } from "./pressProdSafety.mjs";
 import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
@@ -716,10 +718,36 @@ async function main() {
   const { sessions, unavailable } = await mintAccounts(PERSONAS.filter((p) => p !== "anon"));
   for (const [p, why] of Object.entries(unavailable)) console.log(`::warning title=persona ${p} not covered::${why}`);
 
+  // Snapshot only (Q272): the workflow's first job, before any shard presses.
+  // The ONE profile baseline the run's clean-up restores from. Launches no
+  // browser, so it carries no request-budget step (requestBudget.test.ts).
+  if (process.argv.includes("--snapshot-only") && !process.env.PROFILE_SNAPSHOT_OUT) {
+    console.log("FAIL: --snapshot-only needs PROFILE_SNAPSHOT_OUT=<file>");
+    process.exitCode = 1;
+    return;
+  }
+  if (process.env.PROFILE_SNAPSHOT_OUT) {
+    const snap = await snapshotProfiles(sessions);
+    mkdirSync(dirname(process.env.PROFILE_SNAPSHOT_OUT), { recursive: true });
+    writeFileSync(process.env.PROFILE_SNAPSHOT_OUT, JSON.stringify(snap, null, 2));
+    const missing = [...Object.keys(unavailable), ...Object.entries(snap).filter(([, row]) => !row).map(([p]) => p)];
+    console.log(`profile snapshot: ${Object.keys(snap).filter((p) => snap[p]).join(", ") || "none"} -> ${process.env.PROFILE_SNAPSHOT_OUT}`);
+    // Not snapshotted is not restorable: fail, so no shard presses without a baseline.
+    if (missing.length) { console.log(`FAIL: no profile baseline for: ${missing.join(", ")}`); process.exitCode = 1; }
+    return;
+  }
+
   // Clean-up only: the workflow's final job, after every shard.
   if (process.env.CLEANUP_SINCE) {
     const since = Date.parse(process.env.CLEANUP_SINCE);
-    const r = await cleanup({ sessions, since, profilesBefore: {} });
+    // The run's ONE baseline (Q272). Named but unreadable = every persona is
+    // residue (cleanup() says so); not named = no profile restore asked for.
+    let profilesBefore = null;
+    if (process.env.PROFILE_SNAPSHOT) {
+      try { profilesBefore = JSON.parse(readFileSync(process.env.PROFILE_SNAPSHOT, "utf8")); }
+      catch (e) { console.log(`::warning title=no profile baseline::${process.env.PROFILE_SNAPSHOT}: ${e.message}`); profilesBefore = {}; }
+    }
+    const r = await cleanup({ sessions, since, profilesBefore });
     for (const l of r.log) console.log(`cleaned: ${l}`);
     for (const l of r.residue) console.log(`::warning title=clean-up residue::${l}`);
     writeFileSync(`${OUT}/cleanup.json`, JSON.stringify(r, null, 2));
@@ -737,8 +765,9 @@ async function main() {
   const poster = sessions.customer ?? null;
   const helper = sessions.helper ?? null;
   const stripeMode = makeStripeProbe(poster, RUN_ID);
-  const profilesBefore = {};
-  for (const [p, s] of Object.entries(sessions)) profilesBefore[p] = await snapshotProfile(s);
+  // Q272: a shard of a sharded run takes no baseline (null) and restores
+  // nothing; the workflow's snapshot/cleanup jobs own that, once per run.
+  const profilesBefore = await shardProfileBaseline(sessions, process.env.SHARD);
 
   // ---- real ids ------------------------------------------------------------
   // The run's own fixture job (mutating presses land here), plus one

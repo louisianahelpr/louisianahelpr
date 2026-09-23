@@ -31,6 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { disputeEvidenceChannel, isAdminReopened } from "@/components/disputeEvidenceChannel";
 import { partitionEvidenceUrls } from "@/lib/evidenceUrl";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -204,6 +205,9 @@ export const DisputeTimelineDialog = ({
           if ((rpcErr as { code?: string }).code === "PGRST202") {
             throw new Error("Adding evidence here isn't available yet — try again in a few minutes.");
           }
+          // A refusal the server explains is not a defect: say what it said.
+          const known = rpcErrorMessage("rpc_add_dispute_evidence", rpcErr);
+          if (known) throw new Error(known);
           report(rpcErr, { tags: { source: "DisputeTimelineDialog.addEvidenceReopened" } });
           throw new Error("Couldn't attach your evidence — the dispute may have been decided. Refresh and try again.");
         }

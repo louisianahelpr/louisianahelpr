@@ -28,7 +28,7 @@
  * See src/test/beforePhotoCapture.test.tsx.
  */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement, ReactNode } from "react";
@@ -292,7 +292,7 @@ describe("item 10 — the before & after pictures are a button on the action row
       }
     });
 
-    it(`${site.name}: the button opens the gallery`, () => {
+    it(`${site.name}: the button opens the gallery`, async () => {
       site.render();
       expect(screen.queryByRole("dialog"), "the gallery is open before anyone tapped").toBeNull();
 
@@ -300,9 +300,11 @@ describe("item 10 — the before & after pictures are a button on the action row
 
       const dialog = screen.getByRole("dialog");
       expect(within(dialog).getByText("Photo Proof")).toBeInTheDocument();
-      // Every photo the job carries, before and after.
+      // Every photo the job carries, before and after. The gallery signs each
+      // one first (useProofPhotoUrls, since 65676a7ad), so the src arrives a
+      // tick after the dialog does — wait for it rather than read the placeholder.
       for (const url of [...BEFORE, ...AFTER]) {
-        expect(dialog.querySelector(`img[src="${url}"]`), url).not.toBeNull();
+        await waitFor(() => expect(dialog.querySelector(`img[src="${url}"]`), url).not.toBeNull());
       }
       expect(within(dialog).getByText("Before")).toBeInTheDocument();
       expect(within(dialog).getByText("After")).toBeInTheDocument();

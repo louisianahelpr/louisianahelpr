@@ -212,7 +212,7 @@ serve(async (req) => {
       giftSpentRevokedUnpaged: new Check(
         "gift_revoked_after_being_spent",
         "warning",
-        "A redeemed gift_cards row is payment_status='refunded' — the donation was reversed AFTER it had funded a job, so the platform absorbed that value from its own balance. Not an error (we deliberately never claw back from the helper), but it is a real loss and should be reconciled against Stripe.",
+        "A redeemed gift_cards row is payment_status='refunded' — the donation was reversed AFTER it had funded a job, so the platform absorbed that value from its own balance. Not an error (we deliberately never claw back from the Helpr), but it is a real loss and should be reconciled against Stripe.",
       ),
       cancellationFee: new Check(
         "cancellation_fee_mismatch",

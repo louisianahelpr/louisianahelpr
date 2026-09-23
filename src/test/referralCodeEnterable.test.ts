@@ -3,7 +3,7 @@
 //
 // @mutate src/pages/signup/SignupStep2.tsx | id="referralCode" | id="referralCodeGone"
 // @mutate src/pages/signup/SignupStep2.tsx | data-testid="referral-code-toggle" | data-testid="referral-code-toggle-gone"
-// @mutate src/pages/Signup.tsx | setReferralCode={setReferralCode} | inputCls={inputCls}
+// @mutate src/pages/Signup.tsx | setReferralCode={setReferralCode} | setReferralCode={() => {}}
 // @mutate src/pages/Signup.tsx | referralCode: referralCode.trim().toUpperCase() \|\| null, | referralCode: null,
 // @mutate src/pages/Signup.tsx | const [referralCode, setReferralCode] = useState( | const [referralCode] = useState(
 //

@@ -278,6 +278,13 @@ export const RPC_ERROR_COPY = {
     dispute_payment_being_cancelled: "This job's payment is being cancelled and refunded, so it can't be disputed. Refresh to see where it stands — if that looks wrong, contact support.",
     dispute_evidence_invalid_url: "A photo couldn't be attached to this dispute. Remove it and try again.",
   },
+  // DisputeTimelineDialog — adding evidence to a dispute an admin re-opened.
+  rpc_add_dispute_evidence: {
+    dispute_evidence_empty: "Attach between one and ten photos, then try again.",
+    dispute_evidence_invalid_url: "Only photos you uploaded to this dispute can be attached. Remove that photo and try again.",
+    dispute_evidence_limit: "This dispute already holds as much evidence as it can take, so no more photos can be added.",
+    dispute_evidence_not_allowed: "This dispute isn't taking new evidence any more — it may already have been decided. Refresh to see where it stands.",
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type MappedRpc = keyof typeof RPC_ERROR_COPY;

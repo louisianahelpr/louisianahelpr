@@ -112,13 +112,23 @@ describe("email dead-letter queues are watched", () => {
   });
 
   it("the auth DLQ is graded at a severity that actually pages", () => {
-    // `notify_slack_on_error_log()` posts a server-written row only for
-    // severity = 'fatal' or a source on its money/security allow-list. A
-    // severity outside that is counted, not posted — so grading the auth queue
-    // below it would be a watch that never wakes anybody.
+    // `notify_slack_on_error_log()` posts every server-written severity since
+    // 20260922222229, throttled one post per source per severity window
+    // (fatal 10m … info 720m), and posts fatal/error as CRITICAL. A locked-out
+    // human must page at the fastest cadence, as critical — so the auth queue
+    // is graded at the severity with the SHORTEST window, and that severity
+    // must be in the critical arm. (Until 09-23 this read the first
+    // `NEW.severity = '…'` in the body, which the throttle rewrite made
+    // 'warning' — red on main for 11h with the grade itself still 'fatal'.)
     const trigger = latestDefining("FUNCTION public.notify_slack_on_error_log()");
-    const pagingSeverity = /NEW\.severity\s*=\s*'([a-z]+)'/.exec(trigger.sql)?.[1];
+    const windows = [...trigger.sql.matchAll(/WHEN\s+'([a-z]+)'\s+THEN\s+interval\s+'(\d+)\s+minutes'/g)].map(
+      (m) => ({ severity: m[1], minutes: Number(m[2]) }),
+    );
+    expect(windows.length).toBeGreaterThanOrEqual(4);
+    const pagingSeverity = [...windows].sort((a, b) => a.minutes - b.minutes)[0].severity;
     expect(pagingSeverity).toBe("fatal");
+    const criticalArm = /WHEN\s+NEW\.severity\s+IN\s*\(([^)]*)\)\s+THEN\s+'critical'/.exec(trigger.sql)?.[1] ?? "";
+    expect(criticalArm).toContain(`'${pagingSeverity}'`);
     expect(watchedDlqs(sweep.sql).get("auth_emails_dlq")).toBe(pagingSeverity);
   });
 

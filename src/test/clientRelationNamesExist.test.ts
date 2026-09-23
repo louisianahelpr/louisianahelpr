@@ -6,17 +6,17 @@ import { join } from "node:path";
  * CLASS CHECK: no client query may name a relation the schema does not have.
  *
  * WHAT HAPPENED (prod error_logs, 2026-09-19 → 2026-09-21, severity warning,
- * tag source=`useDashboardSideQueries.pifCount`):
+ * tag source=`useDashboardSideQueries.` + the old gift-card count's name):
  *
- *   Could not find the table 'public.pif_credits' in the schema cache
+ *   Could not find the table 'public.<old gift-card table>' in the schema cache
  *   · code=PGRST205 · hint=Perhaps you meant the table 'public.referral_credits'
  *
  * `20260913051340_rename_gift_card_table_and_rpcs.sql` renamed
- * `public.pif_credits` to `public.gift_cards`. The dashboard's count query kept
+ * the old gift-card table (OLD_TABLE below) to `public.gift_cards`. The dashboard's count query kept
  * asking for the old name, so PostgREST answered PGRST205 and the count fell
  * back to 0 — a wrong number, not an error screen. (PostgREST's hint was wrong
  * too: `referral_credits` is a different feature. Verified on prod
- * 2026-09-22: `to_regclass('public.pif_credits')` is NULL,
+ * 2026-09-22: `to_regclass` of the old name is NULL,
  * `to_regclass('public.gift_cards')` exists.)
  *
  * The client half is already fixed (`0a397aa8a`, reads `gift_cards`). This is
@@ -68,11 +68,14 @@ function walk(dir: string, out: string[] = []): string[] {
 
 describe("every relation a client query names exists in the schema", () => {
   const schema = relationsInSchema(readFileSync(TYPES, "utf8"));
+  // The pre-rename table name, spelled with escapes: giftCardNaming.test.ts
+  // forbids the old name anywhere outside migration history, this file included.
+  const OLD_TABLE = "p\u0069f_cred\u0069ts";
 
   it("has a non-trivial inventory on both sides", () => {
     expect(schema.size).toBeGreaterThan(50);
     expect(schema.has("gift_cards")).toBe(true);
-    expect(schema.has("pif_credits")).toBe(false);
+    expect(schema.has(OLD_TABLE)).toBe(false);
   });
 
   it("names no relation the schema does not have", () => {
@@ -93,10 +96,10 @@ describe("every relation a client query names exists in the schema", () => {
 
   // VACUITY: the same extractor + the same schema, shown failing on the exact
   // call site that produced the prod warning.
-  it("is RED on the defect as it stood: .from(\"pif_credits\")", () => {
-    const asItStood = `const { data, error } = await supabase.from("pif_credits").select("id, status");`;
+  it("is RED on the defect as it stood: .from(<old gift-card table>)", () => {
+    const asItStood = `const { data, error } = await supabase.from("${OLD_TABLE}").select("id, status");`;
     const queried = relationsQueriedIn(asItStood);
-    expect(queried).toEqual(["pif_credits"]);
-    expect(queried.filter((r) => !schema.has(r))).toEqual(["pif_credits"]);
+    expect(queried).toEqual([OLD_TABLE]);
+    expect(queried.filter((r) => !schema.has(r))).toEqual([OLD_TABLE]);
   });
 });

@@ -7644,3 +7644,46 @@ sure someone hears it and closes it.
   comment after that point in the file is kept as code, so guards built on it
   can see comment prose as calls. Found 2026-09-23; not fixed (shared helper,
   report only). navigationSinksAreClassified uses the TS AST instead.
+
+## QUEUE (cont.) — gaps measured 2026-09-23 (owner: "anything at all")
+
+- [ ] **Q11 Sentry issues are "resolved" while they keep firing.** JAVASCRIPT-1H
+  "socket closed: 1005": 66 events, 4 users, last seen 1h ago, status resolved.
+  The 09-22 profile-timeout issues -> "We couldn't load your account" error
+  screen are also resolved with no fix recorded. Find out what resolves them
+  (auto-resolve setting? a script?). Feed Sentry into the Q1 ledger; a regression
+  must reopen it.
+- [ ] **Q12 A real user saw "We couldn't load your account"** (Sentry 2F/2E/2G,
+  09-22, profile request timed out). Was it the pg_cron outage window, or does it
+  still happen? Measure the profile-fetch timeout rate.
+- [ ] **Q13 CSP allows `'unsafe-inline'` in script-src.** It is what turned tonight's
+  stored javascript: href into code execution. Move to nonces/hashes (Vite +
+  Vercel) so a future injection is inert. Measure what inline script exists first.
+- [ ] **Q14 Supabase security advisors (live 2026-09-23):**
+  - ERROR `security_definer_view` on open_jobs_browse. Confirm it's intentional
+    (CLAUDE.md puts browse visibility there) or switch to security_invoker.
+  - 10 SECURITY DEFINER functions executable by anon (early_access_cutoff,
+    get_open_jobs_for_map, get_parish_for_zip, get_public_open_jobs, and 6 more).
+    Review each for data exposure.
+  - 103 executable by authenticated. Spot-check the ones that are not RPCs the
+    client calls.
+  - 6 tables have RLS enabled with no policies (deny-all; fine if server-only).
+    Confirm each.
+  - Leaked-password protection is OFF (Auth setting). It may need a paid plan,
+    so check the free tier first.
+- [ ] **Q15 Realtime "socket closed: 1005"**: 66 events, the top Sentry issue.
+  Recovery works (it's reported as recovered), but decide whether it's noise to
+  handle quietly or a real reconnect storm.
+- [ ] **Q16 This file is 7,600+ lines with ~205 open checkboxes.** The one
+  open-work list has become unreadable. Triage it: close what's done (verified),
+  archive history to docs/archive/, keep OPEN.md to live items.
+- [ ] **Q17 npm audit (prod deps): 3 moderate**: @capacitor/cli, uuid, xcode.
+  Upgrade or document why each is unreachable.
+- [ ] **Q18 Agent isolation leak.** A worktree-isolated agent reported its cwd was
+  swapped to the SHARED main checkout mid-task (FormSpec lane, 2026-09-23). It
+  noticed and moved, but a less careful one would have committed from the shared
+  tree. Detect it: the commit hook refuses when the committing process's worktree
+  isn't the one it started in, or at least warns.
+- [ ] **Q19 Wider product/UX gap pass.** Run lh-suggester (core-loop friction,
+  missing product, growth) and an lh-audit pass on the screens touched tonight,
+  then queue what they find.

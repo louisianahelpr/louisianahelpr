@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-23T20:55:46.409Z",
-  "guards": 854,
-  "registered": 853,
+  "generated": "2026-09-23T20:57:53.322Z",
+  "guards": 855,
+  "registered": 854,
   "unregistered": [
     "src/test/noGrepCountOnBundles.test.ts"
   ],

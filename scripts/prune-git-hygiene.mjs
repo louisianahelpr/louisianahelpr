@@ -15,12 +15,19 @@
  *   - it is not the MAIN worktree (first entry of `git worktree list --porcelain`,
  *     and also not the parent of the common git dir). A past bulk-remove loop wiped
  *     the main repo; this script can never pass the main path to `worktree remove`;
- *   - it is not locked;
+ *   - it is not locked — EXCEPT a locked worktree under <main>/.claude/worktrees/
+ *     (a finished worktree-isolated agent leaves one behind, Q77), which is
+ *     unlocked first when every other condition holds, and REPORTED (never
+ *     removed) when it holds unmerged commits or uncommitted work;
  *   - `git status --porcelain` is empty (tracked AND untracked);
- *   - `git rev-list --count origin/main..HEAD` is 0 (after `git fetch origin`);
+ *   - `git rev-list --count origin/main..HEAD` is 0, or `git cherry` shows every
+ *     commit already in origin/main by patch-id (after `git fetch origin`);
+ *   - for a locked agent worktree: the pid in its lock reason, if any, is not running;
  *   - no process has its cwd inside it (`lsof -a -d cwd -Fn`, prefix-matched);
  *   - it was last touched more than 2h ago (so an agent that just made it is not raced).
  * Removal is `git worktree remove <path>` WITHOUT --force; if git refuses, skip.
+ * The worktree rule lives in scripts/lib/worktreeHygiene.mjs (tested on a fixture
+ * repo by src/test/pruneAgentWorktrees.test.ts).
  *
  * A local BRANCH is deleted only if it is in `git branch --merged origin/main`, is not
  * main, is not checked out in ANY worktree, was created/moved more than 2h ago, and
@@ -31,12 +38,12 @@
 
 import { execFileSync } from "node:child_process";
 import {
-  existsSync, statSync, mkdirSync, writeFileSync, appendFileSync, openSync, closeSync, unlinkSync,
-  realpathSync,
+  statSync, mkdirSync, writeFileSync, appendFileSync, openSync, closeSync, unlinkSync, realpathSync,
 } from "node:fs";
-import { dirname, join, resolve, sep } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { staleUntracked } from "./lib/staleUntracked.mjs";
+import { planWorktreeCleanup, applyWorktreePlan, parseWorktrees } from "./lib/worktreeHygiene.mjs";
 
 const args = process.argv.slice(2);
 const AUTO = args.includes("--auto");
@@ -147,11 +154,7 @@ function main() {
     return;
   }
 
-  /* ── worktrees ─────────────────────────────────────────────────────────── */
-  const entries = parseWorktrees(git(["worktree", "list", "--porcelain"]));
-  const mainPath = entries[0]?.path;
-  const protectedPaths = new Set([mainPath, dirname(commonDir)].filter(Boolean).map(real));
-
+  /* ── worktrees (rule in scripts/lib/worktreeHygiene.mjs) ──────────────── */
   let cwds = [];
   try {
     cwds = execFileSync("lsof", ["-a", "-d", "cwd", "-Fn"], {
@@ -171,31 +174,17 @@ function main() {
       cwds = null;
     }
   }
-  const cwdInside = (p) => cwds === null || cwds.some((c) => c === p || c.startsWith(p + sep));
 
-  const removed = [];
-  const skipped = [];
-  for (const wt of entries) {
-    const p = real(wt.path);
-    if (protectedPaths.has(p) || wt === entries[0]) continue; // main: never a candidate, not even reported
-    if (outOfTime()) {
-      skipped.push([wt.path, "time box reached"]);
-      continue;
-    }
-    const reason = worktreeSkipReason(wt, p, cwdInside);
-    if (reason) {
-      skipped.push([wt.path, reason]);
-      continue;
-    }
-    if (!APPLY) {
-      removed.push(wt.path);
-      continue;
-    }
-    const r = tryGit(["worktree", "remove", wt.path]); // NO --force, ever
-    if (r.ok) removed.push(wt.path);
-    else skipped.push([wt.path, `git refused: ${r.out}`]);
+  const plan = planWorktreeCleanup(process.cwd(), { cwds, minAgeMs: MIN_AGE_MS, base: BASE, outOfTime });
+  const entries = plan.entries;
+  const skipped = plan.skip.map((s) => [s.path, s.reason]);
+  let removed = plan.remove.map((r) => r.path);
+  if (APPLY) {
+    const res = applyWorktreePlan(process.cwd(), plan);
+    removed = res.removed;
+    for (const r of res.refused) skipped.push([r.path, r.reason]);
   }
-  if (APPLY) tryGit(["worktree", "prune"]);
+  const unlocked = plan.remove.filter((r) => r.unlock && removed.includes(r.path)).length;
 
   /* ── branches ──────────────────────────────────────────────────────────── */
   const afterEntries = APPLY
@@ -251,7 +240,11 @@ function main() {
 
   const verb = APPLY ? "" : "would ";
   say("");
-  say(`${verb}remove ${removed.length} worktree(s):`);
+  if (plan.report.length) {
+    say(`FINISHED-AGENT worktrees holding UNMERGED work (${plan.report.length}) — NOT removed; land or discard by hand (Q77):`);
+    for (const r of plan.report) say(`  - ${r.path}${r.branch ? ` [${r.branch}]` : ""} — ${r.reason}`);
+  }
+  say(`${verb}remove ${removed.length} worktree(s)${unlocked ? ` (${unlocked} locked agent worktree(s) unlocked first)` : ""}:`);
   for (const p of removed) say(`  - ${p}`);
   say(`${verb}delete ${deleted.length} branch(es)${deleted.length ? ":" : ""}`);
   for (const b of deleted) say(`  - ${b}`);
@@ -262,60 +255,9 @@ function main() {
   say(
     `SUMMARY: ${APPLY ? "removed" : "would remove"} ${removed.length} worktrees, ` +
       `${APPLY ? "deleted" : "would delete"} ${deleted.length} branches, ` +
-      `skipped ${allSkipped.length} (${skipped.length} worktrees, ${branchSkipped.length} branches)`,
+      `skipped ${allSkipped.length} (${skipped.length} worktrees, ${branchSkipped.length} branches), ` +
+      `reported ${plan.report.length} unmerged agent worktrees`,
   );
-}
-
-function parseWorktrees(porcelain) {
-  const list = [];
-  let cur = null;
-  for (const line of porcelain.split("\n")) {
-    if (line.startsWith("worktree ")) {
-      cur = { path: line.slice(9), locked: false, prunable: false, branch: null, bare: false };
-      list.push(cur);
-    } else if (!cur) continue;
-    else if (line.startsWith("branch ")) cur.branch = line.slice(7).replace(/^refs\/heads\//, "");
-    else if (line === "locked" || line.startsWith("locked ")) cur.locked = true;
-    else if (line === "prunable" || line.startsWith("prunable ")) cur.prunable = true;
-    else if (line === "bare") cur.bare = true;
-  }
-  return list;
-}
-
-function worktreeSkipReason(wt, p, cwdInside) {
-  if (wt.bare) return "bare";
-  if (wt.locked) return "locked";
-  if (wt.prunable || !existsSync(wt.path)) return "directory missing (left to `git worktree prune`)";
-  const age = worktreeAgeMs(wt.path); // read BEFORE any git command touches the tree
-  const st = tryGit(["status", "--porcelain", "--untracked-files=all"], { cwd: wt.path });
-  if (!st.ok) return `git status failed: ${st.out}`;
-  if (st.out) return `uncommitted/untracked changes (${st.out.split("\n").length} path(s))`;
-  const ahead = tryGit(["rev-list", "--count", `${BASE}..HEAD`], { cwd: wt.path });
-  if (!ahead.ok) return `rev-list failed: ${ahead.out}`;
-  if (ahead.out !== "0") return `${ahead.out} commit(s) not in ${BASE}`;
-  if (cwdInside(p)) return "a running process has its cwd inside it";
-  if (age === null) return "cannot read its age";
-  if (age < MIN_AGE_MS) return `touched ${Math.round(age / 60_000)}m ago (< ${MIN_AGE_MS / 60_000}m)`;
-  return null;
-}
-
-/** Youngest of: the worktree's `.git` file, its admin dir's HEAD and index. */
-function worktreeAgeMs(path) {
-  const stamps = [];
-  const add = (f) => {
-    try {
-      stamps.push(statSync(f).mtimeMs);
-    } catch {
-      /* missing */
-    }
-  };
-  add(join(path, ".git"));
-  const gd = tryGit(["rev-parse", "--absolute-git-dir"], { cwd: path });
-  if (gd.ok) {
-    add(join(gd.out, "HEAD"));
-    add(join(gd.out, "index"));
-  }
-  return stamps.length ? Date.now() - Math.max(...stamps) : null;
 }
 
 /** Age of the branch's reflog (last creation/move); null if there is no reflog. */

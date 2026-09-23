@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
-import { createNotification, notifyJobParty } from "@/lib/notifications";
+import { notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -606,7 +606,6 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       // (see below) — there is deliberately no client-side re-implementation
       // of the consequence ladder.
       let actionTaken: string;
-      let priorCount: number;
 
       const { data: rpcData, error: rpcError } = await supabase.rpc("decline_job_offer", {
         p_application_id: app.id,
@@ -653,9 +652,8 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       } else {
         // RPC returns a Json blob (type is `Json` per generated types), so
         // narrow it to the record shape we know it emits before reading.
-        const rpcResult = (rpcData ?? {}) as { action?: string; prior_count?: number };
+        const rpcResult = (rpcData ?? {}) as { action?: string };
         actionTaken = rpcResult.action ?? "none";
-        priorCount = rpcResult.prior_count ?? 0;
       }
 
       // Consequence surfacing — the RPC's action, said in the ladder's real
@@ -698,18 +696,10 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         hapticMedium();
         toast("Offer declined");
       }
-      if (actionTaken !== "none") {
-        // Admin fan-out — a silent drop here means no admin sees the
-        // decline notification. Warn-report but continue (the DB action
-        // already committed, the user's toast still fires).
-        const { data: adminRoles, error: adminRolesErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-        if (adminRolesErr) {
-          report(adminRolesErr, { severity: "warning", tags: { source: "useOfferHandlers.declineAdminFanout" } });
-        }
-        for (const admin of adminRoles ?? []) {
-          await createNotification({ user_id: admin.user_id, title: "⚠️ Helpr declined job offer", message: `Helpr declined offer (${priorCount + 1} total). Action: ${actionTaken}.`, type: "warning", link: "/admin", job_id: app.job_id });
-        }
-      }
+      // No client admin fan-out (Q308): create-notification refuses a
+      // non-admin sending to an admin, so the old per-admin loop here never
+      // delivered. The rung an admin must act on (ban review) is paged by
+      // apply_job_denial_consequence inside decline_job_offer.
       refresh();
     }
     } finally {

@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { unwrapMutation } from "@/lib/mutationResult";
-import { createNotification, notifyJobParty } from "@/lib/notifications";
+import { notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { arrivalEstablished, arrivalGateMessage } from "@/lib/arrivalGate";
 import { toast } from "sonner";
@@ -401,16 +401,9 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       // Server-built copy (Q223): the rung is read from the user_violations
       // row report_helper_no_show just wrote, never from this client.
       await notifyJobParty({ user_id: helperId, job_id: job.id, template: "no_show_reported" });
-      // Admin fan-out — a silent drop here means no admin gets the
-      // no-show alert. Warn-report but continue (the poster's toast still
-      // fires and the DB state is already correct).
-      const { data: adminRoles, error: adminRolesErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-      if (adminRolesErr) {
-        report(adminRolesErr, { severity: "warning", tags: { source: "useLifecycleHandlers.noShowAdminFanout" } });
-      }
-      for (const admin of adminRoles ?? []) {
-        await createNotification({ user_id: admin.user_id, title: "🚫 No-show reported", message: `Helpr no-show for "${job.title}". ${legacyBanned ? "Auto-banned." : restricted ? "Restricted 7 days — ban review pending." : "Warning issued."}`, type: "warning", link: "/admin", job_id: job.id });
-      }
+      // No client admin fan-out (Q308): create-notification refuses a
+      // non-admin sending to an admin, so the old per-admin loop here never
+      // delivered. report_helper_no_show pages the ban review itself.
       // Success feedback, in the same shape confirmArrival/confirmWorking use.
       // This handler pulls the consequence ladder — a final warning, or a
       // 7-day restriction pending admin review on the second report — and said

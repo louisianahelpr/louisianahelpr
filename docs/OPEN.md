@@ -240,6 +240,62 @@ COULD not measure, and I read it as what it DID not measure. Same shape as
 matching '%DNS time%' and counting `DNS time: 0` as a DNS failure, the same
 day. Read the rows, not the summary line.
 
+## OPEN — messy-input has 21 unswept forms, and they must NOT be given gaps (2026-09-22)
+
+prod-audit went 36 failures -> 2 once the outage passed. One was mine and is
+fixed (the 320px search field). This is the other, and it is real coverage
+work rather than a bug.
+
+`messy-input.spec.ts` asserts: inventory − sweeps − explore credits − stated
+gaps = empty. Run 35798352756 reported 22 files with none of the three:
+`40 exercised, 44 gaps, 119 inventory, 51 explore credit files`.
+
+ONE of them is now a stated gap, honestly: `profile/DeleteAccountDialog.tsx`
+is opened only by a control `NEVER_PRESS` refuses (/delete (my )?account/),
+and the shared accounts are a sign-in dependency for the whole suite.
+
+THE OTHER 21 MUST NOT GET GAPS, and this is the part worth reading. I started
+to file them as "destructive dialogs the sweep must not open" — Ban, Refund,
+Remove, StatusOverride, DenyUser, FormalWarning, RestrictApplications — and
+that reason is FALSE. `harness.ts` runs a WRITE FIREWALL: every POST/PATCH/
+DELETE to Supabase is refused at the wire during the explore, precisely so an
+indiscriminate presser on prod "must not be able to cancel a job, ban a user
+or send an email by pressing the wrong Confirm". So those dialogs are safe to
+open. They are not refused; they are simply never reached.
+
+A gap entry for them would be a false statement, and this test exists to stop
+exactly that — it fails a gap that is actually exercised, and its whole design
+is "inventory minus what was checked must be empty".
+
+WHAT THEY ACTUALLY NEED, grouped:
+
+  user-facing typed input (highest value — a real person types here daily)
+    components/RichMessageInput.tsx        the message composer
+    components/messages/ChatView.tsx       the thread it lives in
+    components/SavedSearches.tsx           names a saved search
+    components/ReportDialog.tsx            reporting a user
+    activity/ActivityDialogs.tsx
+    activity/appliedJobCard/{ActiveJob,Disputed,PendingApplication}Section.tsx
+
+  admin, typed, reachable behind the firewall
+    admin/AdminReports.tsx, AdminUserNotes.tsx, AdminCredentialQueue.tsx
+    admin/adminDisputes/DisputeCard.tsx
+    admin/ReuploadIdDialog.tsx, admin/userDetail/UserAuditLog.tsx
+    admin/BanDialog.tsx, DenyUserDialog.tsx, FormalWarningDialog.tsx,
+    admin/RestrictApplicationsDialog.tsx
+    admin/adminJobs/{Refund,Remove,StatusOverride}Dialog.tsx
+
+Each needs a `FormSpec` in `e2e/prod-audit/messyInputForms.ts` — `{ name, url,
+as, prepare, covers }` — where `prepare` navigates from the URL to the form
+(open the thread, open the dialog). The shape is easy; the cost is that every
+`prepare` has to be validated against PROD with real seeded records, which is
+a prod run each time.
+
+NOT ATTEMPTED TONIGHT, deliberately. Writing 21 prepare steps blind and
+pushing them would most likely leave the nightly red on broken specs instead
+of on honest coverage — worse than the state it is in now, and harder to read.
+The message composer is the one to do first.
+
 ## OPEN — the three red nightlies, diagnosed 2026-09-22 (re-runs pending)
 
 Worked top-down at the owner's direction. All three now have a cause; none is

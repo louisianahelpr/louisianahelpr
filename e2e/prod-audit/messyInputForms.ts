@@ -229,6 +229,22 @@ export const GAPS: Record<string, string> = {
   "src/components/notificationPreferences/constants.tsx": "false positive — constants module",
   "src/components/activity/JobCardMetaRow.tsx": "false positive — displays a date, no control",
   "src/components/dashboard/JobCard.tsx": "false positive — displays a date, no control",
+  // Reached only through a control the explore is FORBIDDEN to press.
+  // `NEVER_PRESS` in harness.ts matches /delete (my )?account/, so the button
+  // that opens this dialog is refused before the dialog can exist. That is not
+  // a coverage decision to revisit: the shared test accounts are a sign-in
+  // dependency for this whole suite, and the write firewall does not help here
+  // because the refusal is at the press, not the request.
+  //
+  // NOTE FOR THE 21 OTHER UNACCOUNTED FILES (prod-audit run 35798352756): they
+  // are NOT this case and must not be given gaps. The explore's write firewall
+  // refuses every POST/PATCH/DELETE at the wire, so opening BanDialog,
+  // RefundJobDialog, RemoveJobDialog, StatusOverrideDialog and the rest is
+  // SAFE — they are simply never reached. They need sweeps or explore credit,
+  // and a gap entry for them would be a false statement that this very test
+  // exists to prevent. See docs/OPEN.md.
+  "src/components/profile/DeleteAccountDialog.tsx":
+    "opened only by a control NEVER_PRESS refuses (/delete (my )?account/) — the shared accounts are a sign-in dependency for the suite",
   // Non-text controls: no typed value to be messy. Checked by press-every-control (npm run audit:press).
   "src/components/dashboard/FilterSheet.tsx": "switch only — no typed input",
   "src/components/admin/AdminNotifications.tsx": "switches only",

@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 88 done, 11 partly done (fixed, protection pending), 87 open. Source of truth for work.
+- **Queue (this file):** 89 done, 11 partly done (fixed, protection pending), 86 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 186 items — 88 done, 11 partly done (fixed, protection pending), 87 open.**
+**Queue: 186 items — 89 done, 11 partly done (fixed, protection pending), 86 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -259,7 +259,7 @@ sure someone hears it and closes it.
 - [x] **Q22 DONE: independent review (lh-authz-rls, verified live) found NO remaining or new XSS sink**; grants, constraints and every writer check out. Was: Independent review of the href-class commits (3c81624d0, GUARD: src/test/navigationSinksAreClassified.test.ts + src/test/storagePathRenderIsAllowlisted.test.ts + migration 20260923042014 CHECKs.
   dd4713c00, 724cb5a67, 5e7cc4832, migration 20260923042014). In progress
   (lh-authz-rls, review only).
-- [ ] **Q23 Admin DocumentsTab can't open portfolio STORAGE PATHS.** They need
+- [x] **Q23 FOLDED INTO Q40 2026-09-23 (measured): the ONLY writer of bare storage paths into profiles.portfolio_urls is complete-signup's `portfolioFiles` (supabase/functions/complete-signup/index.ts:539,723), which no client sends and which Q40(b) removes; the profile editor (usePortfolio.ts / portfolioStorage.ts) stores public URLs, which DocumentsTab already opens. Live: 0 profiles have any portfolio_urls entry, 0 non-URL entries. NO-GUARD here: Q40's guard (the writer removed) closes the class. Was:** Admin DocumentsTab can't open portfolio STORAGE PATHS. They need
   signing at display time. 0 such rows exist on prod today.
 - [x] **Q24 DONE 2026-09-23: the shared comment scanner (src/test/helpers/blankNonCode.ts) recognises regex literals, so a lone `'` in a regex no longer swallows later comments; 61 guards using it pass; also moved src/test/fundedOpenJobPlan.test.ts job dates out of the present era (a pre-existing jobDayFixtureTimezone red). Guard: src/test/blankNonCodeRegexLiteral.test.ts (red on the old scanner). Was:** Shared test helper bug: blankComments() (src/test/helpers/blankNonCode.ts)
   loses track after a regex literal containing `'` (src/lib/chunkReload.ts:27),

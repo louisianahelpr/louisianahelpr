@@ -154,27 +154,6 @@ async function flush() {
   }
 }
 
-// Read user_id from the Supabase v2 session blob in localStorage.
-// The key is `sb-<projectRef>-auth-token` — scan for it instead of
-// hardcoding a project ref.
-function readUserIdFromLocalStorage(): string | null {
-  try {
-    if (typeof localStorage === "undefined") return null;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue;
-      const cached = localStorage.getItem(key);
-      if (!cached) continue;
-      try {
-        const parsed = JSON.parse(cached);
-        const id = parsed?.user?.id ?? parsed?.currentSession?.user?.id ?? null;
-        if (id) return id;
-      } catch { /* not JSON */ }
-    }
-  } catch { /* localStorage blocked */ }
-  return null;
-}
-
 // ── Public API ───────────────────────────────────────────────────────
 /**
  * A message for anything that can be thrown or returned as an error.
@@ -257,7 +236,12 @@ export function report(err: unknown, opts: ReportOptions = {}) {
   }
 
   queue.push({
-    user_id: readUserIdFromLocalStorage(),
+    // Always null: the server stamps the caller's id from the request's own
+    // token (stamp_error_log_origin, Q106). Sending an id read from
+    // localStorage made a guest with a stale stored session send a non-null
+    // id under the anon role, RLS refused the insert, and the whole batch
+    // was lost silently (Q110).
+    user_id: null,
     severity: opts.severity ?? "error",
     message,
     stack,

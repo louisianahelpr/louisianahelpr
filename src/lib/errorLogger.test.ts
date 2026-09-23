@@ -207,6 +207,23 @@ describe("report() applies the scrubbing to the row it persists", () => {
     expect(JSON.stringify(row)).not.toContain("abc123def456");
   });
 
+  it("never sends a user_id: the server stamps it from the token (Q110)", async () => {
+    atProd();
+    insertSpy.mockClear();
+    // A stored session that may be stale. Sending its id under the anon role
+    // made RLS refuse the whole batch.
+    localStorage.setItem("sb-test-auth-token", JSON.stringify({ user: { id: "00000000-0000-0000-0000-00000000dead" } }));
+    try {
+      report(new Error("stale session report"), { severity: "warning" });
+      await vi.waitFor(() => expect(insertSpy).toHaveBeenCalled(), { timeout: 3000 });
+      const rows = insertSpy.mock.calls[0][0] as Array<{ user_id: unknown }>;
+      expect(rows.length).toBeGreaterThan(0);
+      for (const r of rows) expect(r.user_id).toBeNull();
+    } finally {
+      localStorage.removeItem("sb-test-auth-token");
+    }
+  });
+
   it("still drops dev-environment errors before they ever reach the queue", async () => {
     Object.defineProperty(window, "location", {
       value: new URL("http://localhost:8080/dashboard"),
@@ -222,6 +239,7 @@ describe("report() applies the scrubbing to the row it persists", () => {
 // The scrubbers were provably correct and provably UNWIRED: every assertion
 // above calls them directly, so `report()` persisted raw bearer tokens with
 // all 21 green. These mutations break the CALL SITES, not the regexes.
+// @mutate src/lib/errorLogger.ts | user_id: null,\n | user_id: "00000000-0000-0000-0000-00000000dead",\n
 // @mutate src/lib/errorLogger.ts | const message = (redact(rawMessage) ?? "").slice(0, MESSAGE_MAX_CHARS); | const message = (rawMessage ?? "").slice(0, MESSAGE_MAX_CHARS);
 // @mutate src/lib/errorLogger.ts | context[k] = typeof v === "string" ? redact(v) : (v as Json); | context[k] = v as Json;
 // @mutate src/lib/errorLogger.ts | const url = sanitizeUrl(typeof window !== "undefined" ? window.location.href : null); | const url = typeof window !== "undefined" ? window.location.href : null;

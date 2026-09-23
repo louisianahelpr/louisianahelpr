@@ -105,7 +105,7 @@ jobs:
         run: node scripts/e2e/request-budget.mjs --label canary
       - name: Keep the trace and screenshots when the loop fails
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: core-loop-canary-results
           path: |

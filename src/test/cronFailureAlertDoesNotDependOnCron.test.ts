@@ -67,7 +67,8 @@ describe("a cron outage is not reported through a cron", () => {
   });
 
   it("reads the NEWEST definition, whatever its dollar-quote tag", () => {
-    const newest = bodies.filter((b) => b.sql.includes("FUNCTION public.sweep_cron_startup_failures(")).at(-1)!;
+    const defs = bodies.filter((b) => b.sql.includes("FUNCTION public.sweep_cron_startup_failures("));
+    const newest = defs[defs.length - 1];
     expect(fnBody(newest.sql, "sweep_cron_startup_failures"), `could not parse ${newest.file}`).toBeTruthy();
   });
 

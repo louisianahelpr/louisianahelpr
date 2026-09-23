@@ -159,7 +159,12 @@ async function savePushToken(token: string, platform: "ios" | "android") {
   // it — not only the case where it had to be buffered (see SIGNED_IN above).
   attachAuthListenerOnce();
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // A getUser() ERROR is not the "session still hydrating" case the buffer
+    // below exists for: report it, so a device whose auth keeps failing can't
+    // stop registering in silence (Q82 review). Still buffer — a later auth
+    // event may succeed.
+    if (userError) report(userError, { severity: "warning", tags: { source: "savePushToken.getUser" } });
     if (user) {
       await persistPushToken(user.id, token, platform);
       return;

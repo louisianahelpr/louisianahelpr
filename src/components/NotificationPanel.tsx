@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState, useMemo, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeWithRecovery, type RecoveringSubscription } from "@/lib/realtimeRecovery";
 import { useReducedMotion } from "@/lib/accessibility";
@@ -43,6 +42,7 @@ import {
 } from "@/components/notificationPanel/notificationStore";
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
 import { notificationDestination } from "@/components/notificationPanel/notificationDestination";
+import { useFramerMotion } from "@/components/notificationPanel/useFramerMotion";
 
 /* A load that never answers is a failed load. On a saturated database a
    request can sit open for minutes, and while it did the panel had no answer
@@ -95,6 +95,10 @@ const NotificationPanel = () => {
      `head: true` returns no rows, and the (user_id, read) index already exists
      for exactly this shape, so it costs a count and no payload. */
   const [open, setOpen] = useState(false);
+  /* framer-motion is fetched when the panel first opens, never on page load —
+     see useFramerMotion for the measured chain this breaks. `null` until the
+     chunk arrives; rows render as plain divs with the same box meanwhile. */
+  const framer = useFramerMotion(open);
   /* The bell itself. `PopoverTrigger asChild` composes its own ref with the
      child's, so passing this to <NotificationTrigger> costs nothing and gives
      `useScreenPanelBand` the element whose header bar decides where the
@@ -799,9 +803,11 @@ const NotificationPanel = () => {
                   {/* AnimatePresence with initial={false} — only NEW
                       notifications animate in (realtime arrivals slide
                       down + fade). The first render of the sheet stays
-                      static so the panel doesn't feel slow to open. */}
-                  <AnimatePresence initial={false}>
-                    {group.items.map((n) => {
+                      static so the panel doesn't feel slow to open.
+                      Before framer has loaded (see useFramerMotion) the
+                      same rows render as plain divs, unwrapped. */}
+                  {(() => {
+                    const rows = group.items.map((n) => {
                       /* A row only DRESSES as a control when a tap on it does
                          something (see `isActionable`). When it doesn't, every
                          part of the promise comes off together — the role, the
@@ -811,38 +817,30 @@ const NotificationPanel = () => {
                          padding and min-height so the list rhythm is
                          unchanged; only the affordance goes. */
                       const actionable = isActionable(n);
-                      return (
-                      <motion.div
-                        key={n.id}
-                        role={actionable ? "button" : undefined}
-                        tabIndex={actionable ? 0 : undefined}
-                        onClick={actionable ? () => handleClick(n) : undefined}
-                        onKeyDown={
-                          actionable
-                            ? (e: ReactKeyboardEvent) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  handleClick(n);
-                                }
+                      const rowProps = {
+                        role: actionable ? "button" : undefined,
+                        tabIndex: actionable ? 0 : undefined,
+                        onClick: actionable ? () => handleClick(n) : undefined,
+                        onKeyDown: actionable
+                          ? (e: ReactKeyboardEvent) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                handleClick(n);
                               }
-                            : undefined
-                        }
-                        layout={!reducedMotion}
-                        initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
-                        animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                        exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
-                        transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
+                            }
+                          : undefined,
                         // `min-h-[44px]`: the row is the primary tap target in
                         // this panel and must clear the HIG floor even when a
                         // notification is a single short line.
-                        className={`w-full text-left px-4 py-3 min-h-[44px] transition-colors${
+                        className: `w-full text-left px-4 py-3 min-h-[44px] transition-colors${
                           actionable ? " active:opacity-80 cursor-pointer" : ""
-                        }`}
-                        style={{
+                        }`,
+                        style: {
                           background: !n.read ? "hsl(var(--burnt-sienna) / 0.06)" : undefined,
                           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
-                        }}
-                      >
+                        },
+                      };
+                      const body = (
                         <div className="flex gap-3">
                           <div
                             className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
@@ -957,10 +955,31 @@ const NotificationPanel = () => {
                             </p>
                           </div>
                         </div>
-                      </motion.div>
                       );
-                    })}
-                  </AnimatePresence>
+                      return framer ? (
+                        <framer.motion.div
+                          key={n.id}
+                          {...rowProps}
+                          layout={!reducedMotion}
+                          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+                          animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+                          transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
+                        >
+                          {body}
+                        </framer.motion.div>
+                      ) : (
+                        <div key={n.id} {...rowProps}>
+                          {body}
+                        </div>
+                      );
+                    });
+                    return framer ? (
+                      <framer.AnimatePresence initial={false}>{rows}</framer.AnimatePresence>
+                    ) : (
+                      rows
+                    );
+                  })()}
                 </section>
               ))}
             </div>

@@ -483,41 +483,32 @@ same trust-the-comment mistake this file keeps recording.
 Owner asked whether website loading can be sped up. The largest single win is
 CLOSED below; these are what the same measurement turned up and nobody has done.
 
-Critical path today: **49 chunks, 391 kB gzip (1192 kB raw)** before React can
+Critical path today: **49 chunks, 353 kB gzip (1075 kB raw)** (was 391, then 393 when
+measured at framer-fix time; framer-motion removed 2026-09-22) before React can
 mount. Reproduce with `npm run build && npm run check:deferred-vendors` (it
 prints the total) or walk the graph yourself from `dist/index.html`.
 
-- **framer-motion, 38.1 kB gz** (`proxy-*.js`). ONE DOOR LEFT, and it is named.
-  Traced by BFS over the built graph rather than by listing importers — the
-  question is not who imports it, but the SHORTEST static chain from the entry:
-
-      before ae0629df8   index -> PageScaffold -> proxy
-      after  ae0629df8   index -> DashboardTitleBar -> NotificationPanel -> proxy
-
-  PageScaffold is done: it was a second implementation of the `ds-page-in`
-  keyframe (identical values, checked) and now uses the CSS. That alone only
-  moved 394 -> 393 kB gz, because it was not the only door.
-
-  `NotificationPanel` is the remaining one, and it is NOT a swap like
-  PageScaffold was. It uses `AnimatePresence` for EXIT animations on realtime
-  notification rows, and CSS cannot animate a removal. Two options, both
-  rejected tonight for stated reasons:
-
-    * Lazy-load NotificationPanel from DashboardTitleBar with
-      `NotificationTrigger` as the Suspense fallback. The bell renders
-      immediately — but it is NOT INTERACTIVE until the chunk arrives, so a tap
-      in that window does nothing. Trading a perf win for a dead visible
-      control is the wrong direction in a codebase with a rule about controls
-      that promise and do not deliver.
-    * Extract the animated list (NotificationPanel.tsx:799-963, ~160 lines,
-      many closed-over handlers) into its own `React.lazy` component so only
-      the OPEN panel pulls framer. This is the correct fix. It is also a real
-      refactor of a realtime surface and needs its own verification pass —
-      open the panel, receive a live notification, watch a row enter and exit.
-
-  Worth stating plainly: the popover content not rendering until open does NOT
-  help. The import is static, so the chunk is fetched either way. Only making
-  the IMPORT dynamic moves it.
+- [x] CLOSED 2026-09-22: **framer-motion is off the critical path** — 393 -> 353
+  kB gz, 51 -> 49 chunks (same machine, same tree, `check:deferred-vendors`).
+  The last door was `index -> DashboardTitleBar -> NotificationPanel -> proxy`
+  (+ `AnimatePresence-*`, 2.0 kB). NotificationPanel no longer imports framer
+  statically: `useFramerMotion(open)` (src/components/notificationPanel/) does
+  `import("./framerRows")` when the panel first opens, and until it resolves the
+  rows render as plain divs with the same classes/styles. Measured with the
+  facade chunk delayed 9 s: row boxes identical before and after it arrives
+  (375: tops 236/336/437, h 100.5; 1440: h 83.1/100.5/100.5). `framerRows.ts`
+  re-exports only `AnimatePresence`/`motion` on purpose — a bare
+  `import("framer-motion")` merged framer into one 58.8 kB gz chunk (no tree
+  shaking) vs 44 kB before; with the facade the framer chunks are byte-identical
+  to before. Class check: `scripts/check-deferred-vendors.mjs` now also lists
+  framer-motion, detected by each chunk's hidden sourcemap (rolldown renamed the
+  chunk to `es-*` in one build, so a name prefix would have been blind). Red on
+  the old NotificationPanel (2 chunks, 40.1 kB, chain printed), green after.
+- [ ] **Not yet eyeballed: a LIVE realtime row entering/exiting the open panel**
+  after this change (enter slide/fade, mark-read exit). Static open/close was
+  screenshotted before/after at 375 + 1440 and is identical. Framer is still
+  fetched after paint on /dashboard by other lazy consumers, so in practice
+  rows are motion rows by the time the panel opens.
 
 - **~39 critical-path chunks under 2 kB gz, carrying ~25 kB between them.**
   Read twice, hours apart: 36 chunks / 24 kB, then 39 / 25.5 kB — `dist/` is

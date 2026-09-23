@@ -7958,3 +7958,26 @@ sure someone hears it and closes it.
   prod-audit/visual suite: open the panel with a short list, dismiss a row,
   and assert that no single frame moves the panel edge more than ~40px, in
   Chromium and WebKit.
+- [ ] **Q52 FALSE-GREEN HUNT (owner, 2026-09-23: "nothing is a false positive
+  or going green if it's not truly green").** Tonight 4 checks were green
+  without checking anything: one parsed the old function body ($fn$-only),
+  one matched a comment, one counted only one failure kind, and the audit only
+  failed on critical. Attack the class in all four places a green can lie:
+  1. Tests: the full vacuity mutation sweep (dispatched 35822511272). Every
+     SURVIVED is a hollow test, so fix each.
+  2. Workflows: a guard that scans .github/workflows for green-when-broken
+     shapes: `|| true`, `continue-on-error: true` with no fail-at-the-end
+     step reading its outcome, "secret missing -> exit 0", `if: always()` on a
+     step that should gate, and `set -e` absent from multi-command run blocks.
+     Each is fixed or allowlisted with a reason (two-way list).
+  3. Live check scripts (scripts/check-*.mjs, scripts/audit/*): each must
+     exit non-zero when its read fails or its inventory is empty (a floor).
+     Scan them all and prove each with an injected empty read.
+  4. E2E/Playwright: a skipped test counts as green. Every
+     test.skip/fixme/conditional skip in prod-audit, journeys, press and
+     happy-path must be (a) reported in the run summary and (b) either
+     justified in a two-way list or turned into a failure. Tonight's
+     prod-audit skipped several (e.g. interruptions.spec.ts:204 double-apply).
+  Also: GUARD-BURNDOWN and vacuity.yml comments call the full sweep NIGHTLY,
+  but its cron is `17 14 * * 0` (WEEKLY). Make it nightly, or correct every
+  claim, and make check:counts / check:claude-md catch schedule claims.

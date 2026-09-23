@@ -243,6 +243,15 @@ test(stepTitle("sign-in", "drop"), async ({ browser, journey }) => {
   });
   await test.step("response lost after the server signed in: a retry still lands signed in", async () => {
     journey.allowReport(/sign.?in|auth|fetch|network|load failed/i, "deliberate: the sign-in response is dropped on the wire");
+    // The offline press can finish on its own once the network is back (run
+    // 35931277278 ended on /dashboard); start this step signed out again.
+    if (!/\/login/.test(page.url())) {
+      await ctx.clearCookies();
+      await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+      await page.goto("/login");
+      await page.locator("#email").fill(creds.email);
+      await page.locator("#password").fill(creds.password);
+    }
     await loseNextResponse(page, `${SUPABASE_URL}/auth/v1/token**`);
     await page.locator('button[type="submit"]').click();
     await expect(page.getByText(OFFLINE_COPY).first(), "a lost sign-in response left no message").toBeVisible({ timeout: 30_000 });
@@ -395,8 +404,12 @@ test(stepTitle("apply", "drop"), async ({ browser, request, journey }) => {
     journey.allowReport(/appl|fetch|network|failed/i, "deliberate: the apply response is dropped on the wire");
     await loseNextResponse(page, `${SUPABASE_URL}/rest/v1/rpc/apply_to_job**`);
     await apply.click();
-    await expect(apply, "the apply button never came back after a lost response (hang)").toBeEnabled({ timeout: 60_000 });
-    await apply.click();
+    // The dialog closes on press (optimistic apply); a failure on the wire
+    // answers with a "Couldn't send your application through" toast whose
+    // Retry is the user's way back (seen in run 35931277278's trace).
+    const retry = page.getByRole("button", { name: /^Retry$/ }).first();
+    await expect(retry, "a lost apply response left no Retry (hang or silent)").toBeVisible({ timeout: 60_000 });
+    await retry.click();
     await expectExactlyOnce(request, helper, q, "applications row");
     // Q269: the retry of an apply that DID land is told it worked, not
     // "already applied" straight after being told it failed.
@@ -513,6 +526,10 @@ test(stepTitle("pay-start", "drop"), async ({ browser, request, journey }) => {
   // (useJobSubmit), so the person ticks it again before retrying, as they must.
   const consent = page.getByRole("checkbox", { name: /reviewed all details/i });
   await expect(consent, "the checkout step never came back after a lost create-payment response (hang)").toBeVisible({ timeout: 60_000 });
+  // Read the box only once the attempt has settled: it is still ticked while
+  // "Processing…" shows and is cleared ~2s later (run 35931277278 read it
+  // ticked, skipped the tick, and then waited on a button that never re-armed).
+  await expect(page.getByRole("button", { name: /Processing/i }), "the pay attempt never settled after a lost create-payment response (hang)").toHaveCount(0, { timeout: 60_000 });
   if (!(await consent.isChecked())) await consent.click();
   await expect(submit, "the pay button never came back after a lost create-payment response (hang)").toBeEnabled({ timeout: 60_000 });
   await Promise.all([page.waitForURL(/checkout\.stripe\.com/, { timeout: 120_000 }), submit.click()]);

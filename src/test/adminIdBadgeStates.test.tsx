@@ -1,4 +1,4 @@
-// @mutate src/components/admin/adminUserHelpers.tsx | if (s === "pending" || s === "processing") { | if (false) {
+// @mutate src/components/admin/adminUserHelpers.tsx | if (s === "pending" \|\| s === "processing") { | if (false) {
 /*
  * CLASS CHECK: every Stripe Identity state gets its own honest admin badge.
  *

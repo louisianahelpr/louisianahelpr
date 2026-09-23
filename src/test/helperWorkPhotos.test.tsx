@@ -85,7 +85,7 @@ describe("HelperWorkPhotos", () => {
 // @mutate src/pages/UserProfile.tsx | <HelperWorkPhotos urls={profile.portfolio_urls ?? []} /> |
 // 2. The component's own empty contract: an empty portfolio must render
 //    NOTHING, not a bare "Recent Work" heading over an empty grid.
-// @mutate src/components/profile/HelperWorkPhotos.tsx | if (!urls \|\| urls.length === 0) return null; | if (!urls) return null;
+// @mutate src/components/profile/HelperWorkPhotos.tsx | if (shown.length === 0) return null; | if (false) return null;
 
 // complete-signup once wrote bare PRIVATE storage paths into portfolio_urls;
 // on the public profile those were broken images. Only displayable URLs render.

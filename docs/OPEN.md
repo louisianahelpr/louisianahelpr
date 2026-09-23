@@ -1787,7 +1787,7 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   (16 tests, incl. seed-vs-real parity of results, writes and Stripe calls;
   5 red on the unfixed code, every @mutate red). lh-silent-failure REVIEW ONLY
   still owed on the diff.
-- [ ] **Q93 Seed jobs still reach admins' in-app inbox from
+- [ ] **Q93 Seed jobs still reach admins' in-app inbox from DECISION (lead, 2026-09-23, after the review of a7f660642): (b) a failed repair WRITE on a seed profile KEEPS counting as a defect. It is the mechanism failing (the same write path real profiles use), not a finding about fixture data, so muting it could hide a real write breakage. TODO: include the seed flag in that defect's text so it reads as seed-context, not unexplained. (a) is still open: stop in-app admin notifications for seed jobs in process-scheduled-payouts.
   process-scheduled-payouts.** Q91 routed the Slack pages and defects, but
   the `admin_alert` notifications (pi_not_succeeded, "Scheduled payout
   failed") insert for every admin regardless of `jobs.is_seed`, so an

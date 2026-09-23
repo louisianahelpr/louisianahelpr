@@ -70,7 +70,11 @@ export const authPages = ["/dashboard", "/my-posts", "/my-jobs", "/post-job", "/
   // signed-in visitor gets the app shell on both. Without /legal in this list
   // it got the shell but none of the app's own navigation, stranding the user
   // on a page with no way back into the app except the browser's Back button.
-  "/legal"  // The six standalone settings sub-pages that used to be listed here left
+  "/legal",
+  // /terms, /privacy and /rules are the same Legal page on its other three
+  // routes (Q179): signed in they had no dock at all. Guard:
+  // src/test/dualSurfaceRoutesGetAppChrome.test.ts.
+  "/terms", "/privacy", "/rules"  // The six standalone settings sub-pages that used to be listed here left
   // with their routes on 2026-09-02 — they are Profile tabs now
   // (?tab=work_record, home_history, str_settings, auto_tip, wrapped,
   // analytics), and "/profile" above already covers every one of them.

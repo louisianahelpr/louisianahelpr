@@ -63,6 +63,13 @@ const AUTH_PREFIXES = [
   // visitors are unaffected: the rail is additionally gated on `!!user` in
   // useAppShellViewport, so it still never shows on the public surface.
   "/help", "/legal", "/support", "/subscription",
+  // /terms, /privacy and /rules render the SAME Legal page through the same
+  // PublicLayout (real routes since 8570fdbef, 2026-09-11) but were never
+  // named here, so signed in they got the app shell with NO rail, top bar or
+  // dock (Q179, measured at 1440 and 375). Guard:
+  // src/test/dualSurfaceRoutesGetAppChrome.test.ts derives the list from
+  // App.tsx, so the next PublicLayout route cannot be missed the same way.
+  "/terms", "/privacy", "/rules",
   // The six standalone settings sub-pages that used to be listed here left
   // with their routes on 2026-09-02 — they are Profile tabs now
   // (?tab=work_record, home_history, str_settings, auto_tip, wrapped,

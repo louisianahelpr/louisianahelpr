@@ -170,9 +170,15 @@ function milestoneSpec(milestone: CareerMilestone): BadgeSpec {
     label: milestone.label,
     icon: <MilestoneIcon name={milestone.icon} color={milestone.color} />,
     description: `Career milestone — ${milestone.description}.`,
+    // Alpha goes before the LAST paren. `.replace(")", …)` hits the FIRST
+    // one, which for a token colour — `hsl(var(--burnt-sienna))` — is var()'s
+    // own: `hsl(var(--burnt-sienna / 0.12))` is invalid, so the browser
+    // dropped the fill AND the border and "Neighborhood Pro" / "Elite Helpr"
+    // rendered as bare text beside their pill siblings (Q179, measured on
+    // /user/:id). Guard: src/test/colorAlphaNeverReplacesFirstParen.test.ts.
     style: {
-      background: milestone.color.replace(")", " / 0.12)"),
-      border: `0.5px solid ${milestone.color.replace(")", " / 0.28)")}`,
+      background: `${milestone.color.slice(0, -1)} / 0.12)`,
+      border: `0.5px solid ${milestone.color.slice(0, -1)} / 0.28)`,
       color: "hsl(var(--foreground))",
     },
   };

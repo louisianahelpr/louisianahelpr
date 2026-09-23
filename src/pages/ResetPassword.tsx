@@ -254,11 +254,16 @@ const ResetPassword = () => {
                   ? "This password-reset link has already been used. Request a new one if you still need to change your password."
                   : "To set a new password, use the reset link from your email — or request one below."}
             </p>
-            <Link to="/forgot-password">
-              <Button variant="outline" className="w-full rounded-ds-md">
+            {/* Button asChild, not <Link><Button>: a button inside an anchor
+                is two nested interactive elements, and the inline <a> took
+                the space-y-4 margin, so the link sat flush against the
+                paragraph above it (0px, Q179). Guard:
+                src/test/noButtonInsideLink.test.ts. */}
+            <Button asChild variant="outline" className="w-full rounded-ds-md">
+              <Link to="/forgot-password">
                 {linkError ? "Request a New Reset Link" : "Request a Reset Link"}
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">

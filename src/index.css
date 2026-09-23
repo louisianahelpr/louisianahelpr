@@ -1646,6 +1646,31 @@ html.web-desktop {
     padding-right: var(--desktop-sidebar-w);
   }
 
+  /* A FIXED SHELL ON A DOCUMENT-SCROLL ROUTE CLEARS THE RAIL ITSELF (Q179).
+     Signed in, PublicLayout renders AppShell on /help, /support, /legal,
+     /terms, /privacy and /rules, which stay in DOCUMENT_SCROLL_ROUTES (html
+     has no `app-shell`). So the frame rule at the top of this block never
+     matched them, and #root's padding above cannot reach a `position: fixed`
+     frame once <PageTransition> drops its `will-change: transform` and the
+     viewport becomes the containing block again. Measured at 1440 on /help:
+     the accordion chevrons and the "Contact Support" button sat UNDER the
+     rail (frame to x=1440, rail from x=1192).
+
+     The frame takes the inset itself and #root gives its padding up, so the
+     answer is 1192 whichever box contains the frame (the viewport, or a
+     PageTransition spanning #root's now unpadded width) — the same pairing
+     the VN-24 top-offset rule below uses. Guard:
+     src/test/rootRightInsetVsAppShellFrame.test.ts. */
+  html.web-desktop.desktop-rail.side-panel-open:not(.app-shell) #root:has(.app-shell-frame) {
+    padding-right: 0;
+  }
+  html.web-desktop.desktop-rail.side-panel-open:not(.app-shell) .app-shell-frame {
+    right: var(--desktop-sidebar-w);
+    max-width: none;
+    margin-inline: 0;
+    box-shadow: none;
+  }
+
   /* The CONTENT has to move with the panel, not after it.
      `side-panel-open` toggles instantly, so the inset above snapped to its new
      value in a single frame while the panel itself slid over 300ms — the page
@@ -1671,7 +1696,8 @@ html.web-desktop {
     html.shell-transitions.web-desktop.desktop-rail:not(.app-shell) #root {
       transition: padding-right 300ms cubic-bezier(0.32, 0.72, 0, 1);
     }
-    html.shell-transitions.web-desktop.app-shell.desktop-rail .app-shell-frame {
+    html.shell-transitions.web-desktop.app-shell.desktop-rail .app-shell-frame,
+    html.shell-transitions.web-desktop.desktop-rail:not(.app-shell) .app-shell-frame {
       transition: right 300ms cubic-bezier(0.32, 0.72, 0, 1);
     }
   }

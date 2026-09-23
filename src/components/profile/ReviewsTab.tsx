@@ -242,7 +242,11 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                   type="button"
                   className="inline-flex items-center gap-1.5 rounded-full px-3 h-7 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all"
                   style={{
-                    background: "hsla(0, 0%, 100%, 0.65)",
+                    // The card surface's OWN colour, not literal white: in dark
+                    // theme `hsla(0 0% 100% / .65)` painted a pale grey pill that
+                    // read as disabled (Q179). --card is pure white in light, so
+                    // light mode is unchanged. Guard: noLiteralWhiteSurfaces.test.ts.
+                    background: "hsl(var(--card) / 0.65)",
                     border: "1px solid hsl(var(--olivewood) / 0.18)",
                     color: "hsl(var(--olivewood))",
                   }}

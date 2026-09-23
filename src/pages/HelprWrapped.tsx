@@ -10,6 +10,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { shareNative } from "@/lib/nativeShare";
 import { report } from "@/lib/errorLogger";
 import { formatCategory, formatPrice, formatPriceFloor, wrappedSeasonLabel } from "@/lib/format";
+import { statValueSize } from "@/lib/statValueSize";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { jobLocalMidnightMs } from "../../supabase/functions/_shared/cancellationFee";
@@ -245,7 +246,7 @@ const StatCard = ({ label, value }: StatCardProps) => (
     }}
   >
     <p
-      className="text-ds-28 font-sans font-bold tabular-nums leading-none"
+      className={`${statValueSize(value)} font-sans font-bold leading-none max-w-full`}
       style={{ color: "hsl(var(--ink-deep))" }}
     >
       {value}

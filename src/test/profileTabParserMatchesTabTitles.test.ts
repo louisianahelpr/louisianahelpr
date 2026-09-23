@@ -18,6 +18,7 @@ const REPO = resolve(__dirname, "..", "..");
 describe("Q279 — Profile tab enumeration equals TAB_TITLES", () => {
   it("the shared parser returns exactly TAB_TITLES' keys", () => {
     const src = readFileSync(join(REPO, "src/pages/profile/types.ts"), "utf8");
+    expect(Object.keys(TAB_TITLES).length).toBeGreaterThan(15);
     expect(parseProfileTabKeys(src).sort()).toEqual(Object.keys(TAB_TITLES).sort());
   });
 
@@ -27,12 +28,12 @@ describe("Q279 — Profile tab enumeration equals TAB_TITLES", () => {
   });
 
   it("no script parses TAB_TITLES with its own regex", () => {
-    const offenders = readdirSync(join(REPO, "scripts"))
-      .filter((f) => f.endsWith(".mjs"))
-      .filter((f) => {
-        const s = readFileSync(join(REPO, "scripts", f), "utf8");
-        return s.includes("TAB_TITLES") && /matchAll\(\/\^\\s\*\(\\w\+\):/.test(s);
-      });
+    const scriptFiles = readdirSync(join(REPO, "scripts")).filter((f) => f.endsWith(".mjs"));
+    expect(scriptFiles.length).toBeGreaterThan(50);
+    const offenders = scriptFiles.filter((f) => {
+      const s = readFileSync(join(REPO, "scripts", f), "utf8");
+      return s.includes("TAB_TITLES") && /matchAll\(\/\^\\s\*\(\\w\+\):/.test(s);
+    });
     expect(offenders).toEqual([]);
   });
 });

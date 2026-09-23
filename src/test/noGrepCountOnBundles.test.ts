@@ -3,6 +3,8 @@
  * whether a declaration occurs once or fifty times and cannot tell a fixed
  * build from a broken one. No doc or script may prescribe `grep -c` against
  * dist/ output; count occurrences with `grep -o ... | wc -l`.
+ *
+ * @mutate .claude/AGENT-BRIEF.md | one agent at a time | one agent at a time; grep -c x dist/y
  */
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -33,6 +35,7 @@ describe("no grep -c against a one-line bundle (Q227)", () => {
   it("no doc or script prescribes it", () => {
     const files: string[] = FILES.map((f) => join(ROOT, f));
     for (const d of DIRS) walk(join(ROOT, d), files);
+    expect(files.length).toBeGreaterThan(50);
     const hits = files.flatMap((f) => {
       if (!existsSync(f)) return [];
       const text = readFileSync(f, "utf8");

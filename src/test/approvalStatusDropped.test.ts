@@ -23,7 +23,7 @@
  * @mutate supabase/migrations/20260923205943_drop_profiles_approval_status.sql |   ALTER TABLE public.profiles DROP COLUMN approval_status; |   SELECT 1;
  * @mutate src/integrations/supabase/types.ts |           application_count: number | approval_status: string\n          application_count: number
  * @mutate .github/workflows/db-smoke.yml | SET full_name = 'Smoke Tester', email_verified = true | SET full_name = 'Smoke Tester', approval_status = 'approved'
- * @mutate src/hooks/useCurrentUser.test.tsx | data: { user_id: "u1", full_name: "Lexi" }, | data: { user_id: "u1", full_name: "Lexi", approval_status: "approved" },
+ * @mutate src/hooks/useCurrentUser.test.tsx | it("hydrates profile + isAdmin when user is signed in and admin", async () => {\n    mocks.authReadyState.user = { id: "u1" };\n    mocks.authReadyState.isReady = true;\n    mocks.profileMaybeSingle.mockResolvedValue({\n      data: { user_id: "u1", full_name: "Lexi" }, | it("hydrates profile + isAdmin when user is signed in and admin", async () => {\n    mocks.authReadyState.user = { id: "u1" };\n    mocks.authReadyState.isReady = true;\n    mocks.profileMaybeSingle.mockResolvedValue({\n      data: { user_id: "u1", full_name: "Lexi", approval_status: "approved" },
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";

@@ -13,8 +13,8 @@ import { functionErrorMessage } from "@/lib/supabaseResult";
  * There are now TWO entry points: the Profile landing (the ordinary one) and
  * /account-banned (the only screen a suspended or banned user can reach, and
  * therefore the only place Apple's in-app-deletion requirement can be met for
- * them — `ProtectedRoute` runs the ban gate before its `allowUnapproved`
- * branch, so every protected route bounces them here).
+ * them — `ProtectedRoute` runs the ban gate on every protected route, so
+ * each one bounces them here).
  *
  * A second copy of this handler is not a hypothetical risk in this file's
  * history. In-app deletion was 100% broken for every user for a day because a

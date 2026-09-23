@@ -3,7 +3,7 @@
  *
  * AL-004. Apple requires in-app account deletion (App Store Review Guideline
  * 5.1.1(v)) and App Review may exercise the path. A banned user could not:
- * `ProtectedRoute` runs its ban gate BEFORE the `allowUnapproved` branch, so
+ * `ProtectedRoute` runs its ban gate on every protected route, so
  * /profile — the only screen carrying the delete control — redirected them
  * straight back to /account-banned. That screen offered Support, Rules and Sign Out and nothing else, so
  * their only route to deletion was emailing a human.

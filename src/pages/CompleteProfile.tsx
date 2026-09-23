@@ -350,8 +350,8 @@ const CompleteProfile = () => {
         // written and discarded on every submit. For an ADMIN the trigger
         // returns NEW untouched, so the one account it COULD reach was an
         // admin completing their own profile — demoting themselves to
-        // `pending` and locking themselves out of every non-allowPending
-        // route. A field the DB refuses to take from this caller does not
+        // `pending` and (while the approval gate existed) locking themselves
+        // out of most routes. A field the DB refuses to take from this caller does not
         // belong in this caller's payload.
         // Stamp the moment the user accepted the rules / terms / privacy.
         // Persisting this means the checklist won't ask again on refresh.
@@ -468,10 +468,9 @@ const CompleteProfile = () => {
       // is cleared. Only fired when actually needed, so the normal (already
       // approved) completion keeps its single-round-trip shape.
       //
-      // `denied` is deliberately excluded: complete-signup refuses a denied
-      // account (403 `denied_resubmission`, Q40 — the re-uploaded ID that path
-      // once took no longer exists), and a denied user is routed to
-      // /account-denied rather than here.
+      // There is no `denied` state any more (Q193); a banned account is
+      // refused by complete-signup (403 `account_locked`, Q197) and routed to
+      // /account-banned rather than here.
       let approvalRow: Record<string, unknown> | null = null;
       if (savedRow?.approval_status === "pending") {
         const { data: fnData, error: fnError } = await supabase.functions.invoke("complete-signup", {

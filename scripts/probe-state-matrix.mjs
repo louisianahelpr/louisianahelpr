@@ -77,11 +77,11 @@ async function mintSession(supabaseUrl, serviceKey) {
   // in useAuthReady.ts trusts whatever is in local storage without a network
   // round-trip, so a minimal `{ id }` user leaves `email_confirmed_at`
   // undefined for the WHOLE session — which trips ProtectedRoute's Stage 1
-  // "email unconfirmed" gate on any route that isn't `allowPending` (e.g.
+  // "email unconfirmed" gate on any protected route (e.g.
   // /post-job) even though the real account's email has long been confirmed.
   // Confirmed by cross-checking GoTrue admin/users against this exact bounce
   // on 2026-09-02 — see lh-state-matrix memory. audit-capture.mjs's routes
-  // are all allowPending or allowUnapproved, so this gap was invisible there.
+  // were all exempt from that gate at the time, so this gap was invisible there.
   // Ask GoTrue who this token belongs to — never look the user up by a
   // remembered id (see the TEST_USER_ID note above).
   const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {

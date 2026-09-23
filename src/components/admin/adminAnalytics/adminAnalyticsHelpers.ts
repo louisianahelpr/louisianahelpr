@@ -335,10 +335,10 @@ export const computeMetrics = (
     if (j.helper_id) helperJobCount[j.helper_id] = (helperJobCount[j.helper_id] || 0) + 1;
   });
 
-  // User growth (approved vs pending)
+  // Accounts that finished signup. There is no approval review (Q193): a row
+  // left `pending` is a signup whose complete-signup never ran, and `denied`
+  // no longer exists, so neither gets a count of its own (Q205c).
   const approvedUsers = profiles.filter(p => p.approval_status === "approved").length;
-  const pendingUsers = profiles.filter(p => p.approval_status === "pending").length;
-  const deniedUsers = profiles.filter(p => p.approval_status === "denied").length;
 
   return {
     helperPayoutsFromLedger,
@@ -383,7 +383,5 @@ export const computeMetrics = (
     subPieData,
     helperJobCount,
     approvedUsers,
-    pendingUsers,
-    deniedUsers,
   };
 };

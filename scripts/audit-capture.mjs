@@ -200,7 +200,7 @@ async function mintSession(supabaseUrl, serviceKey) {
   // getSession() without re-fetching, so `user.email_confirmed_at` came back
   // undefined; ProtectedRoute.tsx's email-unconfirmed gate then bounced to
   // /account-pending, which (profile IS approved) immediately re-navigated to
-  // /dashboard. Every non-`allowPending` protected route therefore rendered the
+  // /dashboard. Every email-gated protected route therefore rendered the
   // DASHBOARD, and the sweep filed that PNG under the route's own name.
   // Measured: /post-job and /gift-card both produced byte-comparable dashboard
   // captures. It reproduced on cold load, on reload and on pushState nav, so it

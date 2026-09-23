@@ -156,8 +156,7 @@ function tsSites(): Site[] {
 // account (their payout, subscription, verification, warning), or an operator
 // broadcast. Anything about a JOB or a counterpart belongs in KNOWN_GAP.
 const NO_SEED_SUBJECT: Record<string, string> = {
-  "ts:supabase/functions/admin-update-email/index.ts#1": "own sign-in email changed by an admin",
-  "ts:supabase/functions/admin-update-email/index.ts#2": "own email updated by an admin",
+  "ts:supabase/functions/admin-update-email/index.ts#1": "own email updated by an admin",
   "ts:supabase/functions/cash-out-credits/index.ts#1": "own referral-credit cash-out",
   "ts:supabase/functions/expire-subscriptions/index.ts#1": "own subscription expired",
   "ts:supabase/functions/instant-payout/index.ts#1": "own instant payout",

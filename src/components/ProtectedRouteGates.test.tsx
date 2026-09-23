@@ -52,7 +52,6 @@ type Case = {
 const renderAt = (
   path: string,
   { emailConfirmedAt = CONFIRMED, profile }: Case,
-  props: { allowPending?: boolean; allowUnapproved?: boolean } = {},
 ) => {
   useCurrentUserMock.mockReturnValue({
     user: { id: "u1", email_confirmed_at: emailConfirmedAt },
@@ -66,7 +65,7 @@ const renderAt = (
       <Routes>
         <Route
           path={path.split("?")[0]}
-          element={<ProtectedRoute {...props}><div>PROTECTED</div></ProtectedRoute>}
+          element={<ProtectedRoute><div>PROTECTED</div></ProtectedRoute>}
         />
         <Route path="/complete-profile" element={<div>COMPLETE_PROFILE</div>} />
         <Route path="/signup-pending" element={<div>VERIFY_EMAIL</div>} />
@@ -118,11 +117,10 @@ describe("ProtectedRoute gate order", () => {
     expect(screen.getByText("VERIFY_EMAIL")).toBeTruthy();
   });
 
-  it("allowPending does NOT exempt an incomplete profile from the form", () => {
+  it("/dashboard does NOT exempt an incomplete profile from the form", () => {
     renderAt(
       "/dashboard",
       { profile: { ...emptyProfile, approval_status: "pending", is_legacy_user: false } },
-      { allowPending: true },
     );
     expect(screen.getByText("COMPLETE_PROFILE")).toBeTruthy();
   });

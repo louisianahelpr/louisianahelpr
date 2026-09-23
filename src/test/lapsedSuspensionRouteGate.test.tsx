@@ -23,7 +23,7 @@ const currentUser: {
 } = {
   // Confirmed on the USER, where ProtectedRoute reads it. The copy on the
   // profile below never counted; this test passed only because the email gate
-  // used to be skipped for `allowUnapproved` (Q180 closed that).
+  // used to be skipped on this route (Q180 closed that).
   user: { id: "u1", email_confirmed_at: "2026-01-01T00:00:00Z" },
   profile: null,
   isLoading: false,
@@ -57,7 +57,7 @@ const renderGate = (profile: Record<string, unknown>) => {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute allowUnapproved>
+            <ProtectedRoute>
               <div>DASHBOARD</div>
             </ProtectedRoute>
           }

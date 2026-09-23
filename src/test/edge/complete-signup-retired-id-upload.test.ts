@@ -9,9 +9,9 @@
  * either. A stale or hand-rolled caller that still sends them must store
  * nothing, write neither column, and hand no path back.
  *
- * A DENIED account used to be re-approved by any call carrying `idBase64`;
- * with the ID upload gone, it is refused (403 denied_resubmission) and nothing
- * is written.
+ * (The DENIED-resubmission case that lived here is gone with the denied state
+ * itself, Q193/Q205c. A locked-out account refused before any upload is
+ * pinned in complete-signup-locked-out-before-upload.test.ts, Q197.)
  *
  * These execute the real function through the edge harness; the double's
  * bucket is a real key set, so "was anything stored?" is answered by the same
@@ -20,12 +20,9 @@
 //
 // Registered mutations - each turns this guard RED on its own:
 //   (1) writing the retired column again from the body;
-//   (2) storing a portfolio path again;
-//   (3) letting a denied account through the resubmission refusal.
+//   (2) storing a portfolio path again.
 // @mutate supabase/functions/complete-signup/index.ts | if (phone) updateData.phone = phone; | if (phone) updateData.phone = phone; if (body.idBase64) updateData.id_document_url = "x";
 // @mutate supabase/functions/complete-signup/index.ts | if (phone) updateData.phone = phone; | if (phone) updateData.phone = phone; if (Array.isArray(body.portfolioFiles)) updateData.portfolio_urls = ["u/p.png"];
-// @mutate supabase/functions/complete-signup/index.ts | if (isResubmission) { | if (isResubmission && !body.idBase64) {
-// @mutate supabase/functions/complete-signup/index.ts | .or("approval_status.is.null,approval_status.neq.denied") | .select("user_id")
 import { describe, it, expect, beforeEach, afterEach, type MockInstance } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -46,7 +43,7 @@ async function load(): Promise<EdgeHarness> {
 }
 
 /** A fresh, never-signed-in account inside the 30-minute completion window. */
-function seed(approvalStatus: "pending" | "denied") {
+function seed() {
   scenario.adminUsers = {
     [USER_ID]: {
       email: "retired-id@test.com",
@@ -56,7 +53,7 @@ function seed(approvalStatus: "pending" | "denied") {
     } as unknown as { email?: string; email_confirmed_at?: string | null },
   };
   scenario.reads.profiles = {
-    rows: [{ bio: null, approval_status: approvalStatus, full_name: "Dana R", location: "Baton Rouge", user_id: USER_ID }],
+    rows: [{ bio: null, approval_status: "pending", full_name: "Dana R", location: "Baton Rouge", user_id: USER_ID }],
   };
   scenario.writeSelectRows.profiles = [{ user_id: USER_ID }];
 }
@@ -88,7 +85,7 @@ describe("complete-signup — the retired ID / portfolio uploads (Q40)", () => {
   afterEach(() => capRead.mockRestore());
 
   it("stores nothing, writes neither column and returns no path", async () => {
-    seed("pending");
+    seed();
     const fn = await load();
     const res = await fn.fetch(fn.request({ body: retiredBody }));
     expect(res.status).toBe(200);
@@ -102,34 +99,9 @@ describe("complete-signup — the retired ID / portfolio uploads (Q40)", () => {
     expect(payload?.approval_status).toBe("approved");
     expect(payload).not.toHaveProperty("id_document_url");
     expect(payload).not.toHaveProperty("portfolio_urls");
-    // A denial landing mid-request must not be overwritten: not-denied is in
-    // the UPDATE's own WHERE, not only in the earlier read.
-    expect(update?.filters).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ op: "or", value: "approval_status.is.null,approval_status.neq.denied" }),
-      ]),
-    );
-
     const json = (await res.json()) as Record<string, unknown>;
     expect(json.success).toBe(true);
     expect(json).not.toHaveProperty("idDocumentUrl");
     expect(json).not.toHaveProperty("portfolioUrls");
-  });
-
-  it("a DENIED account sending an ID is refused, and nothing is written", async () => {
-    // Resubmission is the LOGGED-IN path (the unauthenticated one refuses a
-    // denied row earlier, before any of this), so: a JWT, no body userId.
-    seed("denied");
-    scenario.authUser = { id: USER_ID, email: "retired-id@test.com" };
-    const { userId: _drop, ...jwtBody } = retiredBody;
-    void _drop; // only the rest (no body userId) is sent
-    const fn = await load();
-    const res = await fn.fetch(
-      fn.request({ body: jwtBody, headers: { Authorization: "Bearer user-jwt" } }),
-    );
-    expect(res.status).toBe(403);
-    expect(((await res.json()) as { code?: string }).code).toBe("denied_resubmission");
-    expect(scenario.writes.some((w) => w.table === "profiles" && w.op === "update")).toBe(false);
-    expect([...scenario.storage.objects]).toEqual([]);
   });
 });

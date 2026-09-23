@@ -237,27 +237,26 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/login" element={<RouteErrorBoundary>{routeEl(<PageTransition><Login /></PageTransition>, <LoginRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/signup" element={<RouteErrorBoundary>{routeEl(<PageTransition><Signup /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/signup-pending" element={<RouteErrorBoundary>{routeEl(<PageTransition><SignupPending /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/complete-profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowUnapproved><CompleteProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/complete-profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><CompleteProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/account-banned" element={<RouteErrorBoundary>{routeEl(<PageTransition><AccountBanned /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/forgot-password" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForgotPassword /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/reset-password" element={<RouteErrorBoundary>{routeEl(<PageTransition><ResetPassword /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* Progressive activation: pending users can browse, save and apply
-          while they wait on review. Verification still gates the moments that
-          require it (accept, payout) inside the components. `denied`/banned
-          users are still redirected, and an unverified EMAIL is redirected to
+      {/* No approval review (Q193): every protected route is mounted the same
+          way, with no per-route gate props (Q205a). Verification still gates
+          the moments that require it (accept, payout) inside the components.
+          Banned users are redirected, and an unverified EMAIL is redirected to
           /signup-pending on every protected route (Q180, Q193) — see ProtectedRoute. */}
-      <Route path="/dashboard" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending fallback={<DashboardRouteSkeleton />}><Dashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
-      <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowUnapproved fallback={<ProfileRouteSkeleton />}><Profile /></ProtectedRoute>, <ProfileRouteSkeleton />)}</RouteErrorBoundary>} />
+      <Route path="/dashboard" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<DashboardRouteSkeleton />}><Dashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
+      <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ProfileRouteSkeleton />}><Profile /></ProtectedRoute>, <ProfileRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/my-jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending fallback={<ActivityRouteSkeleton tab="applied" />}><Activity defaultTab="applied" /></ProtectedRoute>, <ActivityRouteSkeleton tab="applied" />)}</RouteErrorBoundary>} />
-      <Route path="/my-posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending fallback={<ActivityRouteSkeleton tab="posted" />}><Activity defaultTab="posted" /></ProtectedRoute>, <ActivityRouteSkeleton tab="posted" />)}</RouteErrorBoundary>} />
+      <Route path="/my-jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ActivityRouteSkeleton tab="applied" />}><Activity defaultTab="applied" /></ProtectedRoute>, <ActivityRouteSkeleton tab="applied" />)}</RouteErrorBoundary>} />
+      <Route path="/my-posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ActivityRouteSkeleton tab="posted" />}><Activity defaultTab="posted" /></ProtectedRoute>, <ActivityRouteSkeleton tab="posted" />)}</RouteErrorBoundary>} />
       <Route path="/payment-success" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PaymentSuccess /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /support is linked from PolicyFooter (the card that closes the legal
-          policy tabs AND the Help Center), and the three account-gate screens (pending / denied /
-          banned), so it must resolve WITHOUT auth — a suspended or
+          policy tabs AND the Help Center), and the account-banned screen, so it must resolve WITHOUT auth — a suspended or
           not-yet-approved account has no other route to a human. NOT from
           <Footer>: the site footer carries no /support link.
           It used to redirect to /help — a
@@ -272,7 +271,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           renders the same form from the same shared copy (lib/supportTopics.ts).
           Two reasons it must stay on its own route: AccountBanned links here
           for the suspension appeal, and /profile is behind ProtectedRoute whose
-          ban check fires BEFORE allowUnapproved — a banned user would be thrown
+          ban check fires on every protected route — a banned user would be thrown
           back to /account-banned, losing the only appeal path. It also carries
           ?topic= / ?subject= prefill that the Profile tab does not read. */}
       <Route path="/support" element={<RouteErrorBoundary>{routeEl(<PageTransition><Support /></PageTransition>)}</RouteErrorBoundary>} />

@@ -29,7 +29,7 @@ const AccountBanned = () => {
   // Apple requires in-app account deletion (App Store Review Guideline
   // 5.1.1(v)) and App Review may exercise the path themselves. For a banned
   // user this was the one screen in the product where that was impossible:
-  // `ProtectedRoute` runs its ban gate BEFORE the `allowUnapproved` branch, so
+  // `ProtectedRoute` runs its ban gate on every protected route, so
   // every protected route — /profile included, which is where the delete
   // control lives — redirects straight back here. The only exits this screen offered were Support,
   // Rules and Sign Out. So a suspended user's only route to deletion was to
@@ -61,8 +61,8 @@ const AccountBanned = () => {
   // written for did not query the table.
   //
   // This is load-bearing for appeals, not decoration. The ban notification
-  // links to `/profile?tab=warnings`, but ProtectedRoute's ban gate runs before
-  // its `allowUnapproved` branch and bounces the user straight back here — so
+  // links to `/profile?tab=warnings`, but ProtectedRoute's ban gate runs on
+  // every protected route and bounces the user straight back here — so
   // before this query there was no route in the product by which a banned user
   // could learn what they were banned for.
   //

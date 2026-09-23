@@ -529,8 +529,8 @@ const ProfilePage = () => {
   // The whole delete flow — dialog state, the "DELETE" → "DELETE MY ACCOUNT"
   // phrase mapping, the invoke, the sign-out — lives in `useDeleteAccount`,
   // because /account-banned now offers the same flow. A banned user cannot
-  // reach this page at all (ProtectedRoute's ban gate runs before its
-  // `allowUnapproved` branch), and Apple requires in-app deletion for them
+  // reach this page at all (ProtectedRoute's ban gate runs on every
+  // protected route), and Apple requires in-app deletion for them
   // too, so there had to be a second entry point. Two entry points sharing one
   // hook; NOT two copies of the handler. The last time this file carried its
   // own copy of a delete-path guard, it drifted from the edge function's and

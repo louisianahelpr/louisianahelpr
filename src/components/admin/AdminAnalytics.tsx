@@ -185,8 +185,6 @@ const AdminAnalytics = () => {
     pendingPayoutTotal,
     subPieData,
     approvedUsers,
-    pendingUsers,
-    deniedUsers,
     totalFeesKnown,
     capturedJobsMissingFee,
     payoutLedgerUnavailable,
@@ -569,8 +567,6 @@ const AdminAnalytics = () => {
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <AdminCard title="User Status" contentClassName="space-y-2">
           <StatusRow icon={CheckCircle} label="Approved" count={approvedUsers} color="text-primary" />
-          <StatusRow icon={Clock} label="Pending Approval" count={pendingUsers} color={toneTextClasses.warning} />
-          <StatusRow icon={XCircle} label="Denied" count={deniedUsers} color="text-destructive" />
         </AdminCard>
 
         <AdminCard title="Job Completion Funnel" contentClassName="space-y-2">

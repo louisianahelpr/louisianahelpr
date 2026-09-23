@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 18 done, 4 partly done (fixed, protection pending), 64 open. Source of truth for work.
+- **Queue (this file):** 19 done, 4 partly done (fixed, protection pending), 64 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 87 items — 18 done, 4 partly done (fixed, protection pending), 65 open.**
+**Queue: 87 items — 19 done, 4 partly done (fixed, protection pending), 64 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1621,7 +1621,7 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 | NB-018 | HIGH | analytics_events shows 0 permission_denied/permission_skipped_guest rows ever; push ask still unexercised in prod. |
 | PD-005 | HIGH | Sentry chunk still loads on every passive page load via useAuthReady's auth-ready breadcrumb, defeating the interaction gate. |
 | PD-020 | HIGH | Not re-measured this pass - /my-posts's fine-grained chunk splitting cost is unverified post-PD-018/019 fixes. |
-- [ ] **Q87 REVIEW-ONLY pass owed on 96ae77309 (create-payment PublicError).**
+- [x] **Q87 DONE: reviewed (lh-money-escrow). No raw detail in any PublicError; the gift redeem P0001 path only carries 5 static sentences; nothing that should stay hidden became public. Fixed from the review: the EF-5 exemption now requires the REAL imported helper plus a LITERAL fallback (a same-named wrapper or publicErrorMessage(err, err.message) goes red), and the one non-admin message that showed Stripe's pi.status is now a fixed sentence.** GUARD: src/test/edge/error-leak-EF5.test.ts (abuse tests; red when the exemption is loosened) + src/test/edge/create-payment.test.ts. Was: REVIEW-ONLY pass owed on 96ae77309.
   76 `throw new Error` became `throw new PublicError`; the catch returns
   publicErrorMessage(err, fixed); the EF-5 detector exempts that call. Check that
   no PublicError can carry raw Stripe/PostgREST detail (gift redeem passes

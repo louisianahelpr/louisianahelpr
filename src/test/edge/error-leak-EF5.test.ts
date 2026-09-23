@@ -1,3 +1,4 @@
+// @mutate src/test/edge/error-leak-EF5.test.ts | if (literal && imported && x.arguments.length === 2) return; | if (true) return;
 /**
  * EF-5 (hole hunt 2026-09-15): the top-level catch of several handlers returned
  * the raw `err.message` / `String(err)` / raw upstream body to the caller,
@@ -101,7 +102,15 @@ function usesTainted(node: ts.Node, names: ReadonlySet<string>): boolean {
     // publicErrorMessage(err, fallback) (supabase/functions/_shared/publicError.ts)
     // returns err.message only for a PublicError — a sentence written for the
     // caller — and the fixed fallback for anything raw.
-    if (ts.isCallExpression(x) && x.expression.getText() === "publicErrorMessage") return;
+    // Only the REAL helper, with a LITERAL fallback: a same-named local wrapper
+    // or `publicErrorMessage(err, err.message)` must still count as a leak
+    // (review of 96ae77309).
+    if (ts.isCallExpression(x) && x.expression.getText() === "publicErrorMessage") {
+      const fallback = x.arguments[1];
+      const literal = !!fallback && (ts.isStringLiteral(fallback) || ts.isNoSubstitutionTemplateLiteral(fallback));
+      const imported = /import\s*\{[^}]*\bpublicErrorMessage\b[^}]*\}\s*from\s*["'](?:\.\.\/)+_shared\/publicError\.ts["']/.test(x.getSourceFile().text);
+      if (literal && imported && x.arguments.length === 2) return;
+    }
     // `x.message` reads `x`, not `message`.
     if (ts.isPropertyAccessExpression(x)) return scan(x.expression);
     if (ts.isIdentifier(x) && names.has(x.text)) {
@@ -336,3 +345,33 @@ describe("EF-5 · handlers do not echo raw internal error text", () => {
 //   × no edge function echoes a caught error into its Response body, beyond the known eight
 //   AssertionError: EF-5 is a CLASS, not six handlers. …
 // @mutate supabase/functions/instant-job-match/index.ts | JSON.stringify({ error: "Could not run the job match right now." }) | JSON.stringify({ error: (error as Error).message })
+
+describe("the publicErrorMessage exemption cannot be abused", () => {
+  const sites = (code: string) => {
+    const sf = ts.createSourceFile("x.ts", code, ts.ScriptTarget.Latest, true);
+    let hit = false;
+    const visit = (n: ts.Node): void => {
+      if (ts.isCatchClause(n) && n.variableDeclaration && ts.isIdentifier(n.variableDeclaration.name)) {
+        const names = new Set([n.variableDeclaration.name.text]);
+        const find = (m: ts.Node): void => {
+          if (ts.isNewExpression(m) && m.expression.getText() === "Response" && m.arguments?.[0] && usesTainted(m.arguments[0], names)) hit = true;
+          ts.forEachChild(m, find);
+        };
+        find(n.block);
+      }
+      ts.forEachChild(n, visit);
+    };
+    visit(sf);
+    return hit;
+  };
+  const IMPORT = 'import { publicErrorMessage } from "../_shared/publicError.ts";\n';
+  it("the real helper with a literal fallback is safe", () => {
+    expect(sites(IMPORT + 'try {} catch (err) { return new Response(JSON.stringify({ error: publicErrorMessage(err, "fixed") })); }')).toBe(false);
+  });
+  it("is RED on a tainted fallback", () => {
+    expect(sites(IMPORT + 'try {} catch (err) { return new Response(JSON.stringify({ error: publicErrorMessage(err, err.message) })); }')).toBe(true);
+  });
+  it("is RED on a same-named local wrapper (not imported from _shared)", () => {
+    expect(sites('const publicErrorMessage = (e: any, f: string) => e.message;\ntry {} catch (err) { return new Response(JSON.stringify({ error: publicErrorMessage(err, "fixed") })); }')).toBe(true);
+  });
+});

@@ -840,7 +840,9 @@ serve(async (req) => {
           if (paymentIntentId) {
             const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
             if (pi.status !== "succeeded") {
-              throw new PublicError(`Payment not captured (status: ${pi.status}). Cannot release payout.`);
+              // pi.status is Stripe text; the release caller is a poster/Helpr, not an admin.
+              console.error("[create-payment] release: PI not captured", { status: pi.status });
+              throw new PublicError("Payment not captured yet, so the payout can't be released. Refresh and try again in a moment.");
             }
           }
 

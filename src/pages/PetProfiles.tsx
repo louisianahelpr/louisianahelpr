@@ -111,6 +111,11 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
     queryClient.invalidateQueries({ queryKey: ["pet_profiles", userId] });
   };
 
+  // The empty state owns the "Add a Pet" CTA while it is on screen. Q247: the
+  // title-row action rendered beside it at lg, so a desktop user with no pets
+  // saw two identical buttons. One expression gates all three surfaces.
+  const showEmpty = !isLoading && !isError && pets?.length === 0;
+
   // Mobile add: open the shared popup form.
   const openAddMobile = () => {
     setEditingPet(null);
@@ -170,14 +175,18 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
         title="My Pets"
         onBack={onBack}
         rightSlot={
-          <Button
-            variant="primary"
-            size="sm"
-            className="hidden lg:inline-flex"
-            onClick={openAddDesktop}
-          >
-            <Plus className="w-4 h-4 mr-1" /> Add a Pet
-          </Button>
+          // Not while the empty state shows (Q247): its card carries its own
+          // "Add a Pet", and a second identical one beside it read as a bug.
+          showEmpty ? undefined : (
+            <Button
+              variant="primary"
+              size="sm"
+              className="hidden lg:inline-flex"
+              onClick={openAddDesktop}
+            >
+              <Plus className="w-4 h-4 mr-1" /> Add a Pet
+            </Button>
+          )
         }
       />
         {/* ─── Mobile (default): stacked list ─────────────────────────── */}
@@ -199,7 +208,7 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
             />
           )}
 
-          {!isLoading && !isError && pets?.length === 0 && (
+          {showEmpty && (
             <EmptyState
               variant="inline"
               icon={PawPrint}
@@ -275,7 +284,7 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
                 </div>
               )}
 
-              {!isLoading && !isError && pets?.length === 0 && (
+              {showEmpty && (
                 <div className="p-4">
                   {/* `bare`, not `inline`: this rail IS the liquid-glass card
                       (the wrapper above), so an `inline` EmptyState painted a

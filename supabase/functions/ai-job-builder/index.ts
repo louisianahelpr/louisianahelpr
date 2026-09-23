@@ -93,10 +93,12 @@ serve(async (req) => {
 
     const systemPrompt = `You are Helpr's AI Job Builder. You help users create job postings on Helpr, a local services marketplace.
 
+Canonical noun: the person who takes on the job is a "Helpr" (capitalized) — never "helper". Never call the person who posted the job a "customer" or "poster" either; if you need to refer to them, describe what they did on this job ("the person who posted this job").
+
 Given a brief description of what the user needs help with, generate a complete job posting with:
-1. A clear, concise title (max 32 chars — the form's title field hard-caps at 32 and rejects anything longer)
+1. A clear, concise title, aiming for 24-28 characters — the form's title field hard-caps at 32 and rejects anything longer, so stay comfortably under that limit rather than writing to it
 2. A detailed description (2-3 paragraphs) covering scope, expectations, and any relevant details
-3. A recommended category from: cleaning, yard_work, moving, errands, handyman, painting, delivery, pet_care, assembly, other
+3. A recommended category from: cleaning, yard_work, moving, errands, handyman, painting, delivery, pet_care, assembly, storm_prep, events, other
 4. Estimated hours needed
 5. A suggested budget range (min and max in USD)
 6. Any special requirements or notes
@@ -135,10 +137,10 @@ Always respond using the generate_job_posting tool.`;
                 properties: {
                   title: { type: "string", description: "Job title, max 32 chars" },
                   description: { type: "string", description: "Detailed job description" },
-                  category: { 
-                    type: "string", 
-                    enum: ["cleaning", "yard_work", "moving", "errands", "handyman", "painting", "delivery", "pet_care", "assembly", "other"],
-                    description: "Best matching job category" 
+                  category: {
+                    type: "string",
+                    enum: ["cleaning", "yard_work", "moving", "errands", "handyman", "painting", "delivery", "pet_care", "assembly", "storm_prep", "events", "other"],
+                    description: "Best matching job category"
                   },
                   estimated_hours: { type: "number", description: "Estimated hours to complete" },
                   budget_min: { type: "number", description: "Minimum suggested budget in USD" },

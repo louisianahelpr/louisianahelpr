@@ -148,7 +148,7 @@ jobs:
       actions: write
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: loading-states-${{ github.run_id }}
           path: ${{ runner.temp }}/measured/docs/audit/loading-states

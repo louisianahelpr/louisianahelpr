@@ -653,7 +653,7 @@ sure someone hears it and closes it.
   docs/audit/morning/2026-09-21.md and 2026-09-22.md have sat untracked for
   days. Decide keep (commit as dated records) or scratch (delete), and add
   a staleness rule so untracked files older than N days in docs/ are flagged.
-- [ ] **Q79 Stale REMOTE branches.** origin holds old branches (e.g.
+- [ ] **Q79 Stale REMOTE branches. MEASURED 2026-09-23 06:10Z: 63 remote branches; 26 fully merged (safe to delete); 34 carry patches NOT on main by patch-id (git cherry)**, incl. sec-hardening (17 files, +4259), role-neutral-copy (60 files), feat/apple-iap (booby-trapped per memory: rebuild, never merge), wip/race2-terminal (+3439), fix-refund-double-pay (9 files), fix-jobs-completion-columns, 7 holes-* audit branches (single docs files), 9 wip/* agent branches, 5 dependabot. Full list: ~/.remote-unlanded.txt (regenerate: git cherry per branch). Each needs a verdict: landed differently (close), still needed (land), or abandoned (report to the owner before deleting). origin holds old branches (e.g.
   fix-iap-cashout-errorleak, rpc-error-map); hygiene cleans local only. List
   every remote branch with ahead/behind counts vs main. A branch fully merged
   can be deleted; one with unlanded commits is REPORTED to the owner (it may

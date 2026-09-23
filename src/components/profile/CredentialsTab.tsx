@@ -162,13 +162,6 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
     qc.setQueryData<CredentialFields>(queryKeys.credentials.byUser(userId), row);
   };
 
-  const patchCache = (patch: Partial<CredentialFields>) => {
-    qc.setQueryData<CredentialFields>(queryKeys.credentials.byUser(userId), (prev) => ({
-      ...(prev ?? EMPTY),
-      ...patch,
-    }));
-  };
-
   const fieldsFor = (kind: Kind) =>
     kind === "license"
       ? { on: licensedOn, url: data.license_url, status: data.license_status, reason: data.license_rejection_reason }
@@ -410,24 +403,30 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
     if (!nameDirty || nameTooLong || savingName) return;
     setSavingName(true);
     const next = trimmedName === "" ? null : trimmedName;
-    const { error } = await supabase
-      .from("profiles")
-      .update({ business_name: next })
-      .eq("user_id", userId);
-    setSavingName(false);
-    if (error) {
+    // A rename that matches zero rows (stale id, RLS) returns error === null,
+    // and "Saved." would show for a write that never happened — so the row is
+    // required, same as the rest of this file since 2a1964cc5.
+    let saved: CredentialFields;
+    try {
+      saved = unwrapMutationRow<CredentialFields>(
+        await supabase.from("profiles").update({ business_name: next }).eq("user_id", userId).select(SELECT_COLS),
+        {
+          action: "save your business name",
+          rejectedMessage: "We couldn't save your business name — please try again.",
+          context: { userId },
+        },
+      );
+    } catch (err) {
+      setSavingName(false);
       hapticError();
-      toast.error("We couldn't save your business name — please try again.");
+      toast.error(mutationErrorMessage(err, "We couldn't save your business name — please try again."));
       return;
     }
+    setSavingName(false);
     // Mirror the DB trigger locally so the badge doesn't sit there looking
     // verified for a beat after the server already sent it back to review,
-    // then refetch and let the server win.
-    patchCache({
-      business_name: next,
-      ...(licVerified ? { license_status: "pending" } : {}),
-      ...(insVerified ? { insurance_status: "pending" } : {}),
-    });
+    // then let the server row win.
+    setFromRow(saved);
     setNameDraft(null);
     void qc.invalidateQueries({ queryKey: queryKeys.credentials.byUser(userId) });
     hapticSuccess();

@@ -4,10 +4,73 @@
 // @mutate src/hooks/useActivityBadgeCounts.ts | let store = stores.get(userId); | let store = undefined as BadgeStore \| undefined;
 // @mutate src/hooks/useActivityBadgeCounts.ts | const BADGE_REFRESH_DEBOUNCE_MS = 400; | const BADGE_REFRESH_DEBOUNCE_MS = 0;
 // @mutate src/components/admin/AdminBroadcasts.tsx | refetchInterval: 15_000, | refetchInterval: 2_000,
-import { describe, expect, it } from "vitest";
+// @mutate src/hooks/useActivityBadgeCounts.ts |       if (isHidden()) {\n        dirtyWhileHidden = true;\n        return;\n      }\n      loadCounts(); |       loadCounts();
+import { describe, expect, it, vi, afterEach } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import ts from "typescript";
+import { renderHook, cleanup, act } from "@testing-library/react";
+import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
+
+/*
+ * Behavioural rig for the visibility-at-fire-time test below. Mirrors the
+ * chainable-builder pattern already used in
+ * cancelledThreadClosesBeforeTheTap.test.tsx: `.then()` resolves synchronously
+ * so the test does not need to flush microtasks, and the realtime channel's
+ * `.on(...)` handlers are captured so the test can fire a wake-up itself
+ * instead of needing a live socket.
+ */
+const rig = vi.hoisted(() => ({
+  applicationsReads: 0,
+  offerReads: 0,
+  jobsHandler: null as (() => void) | null,
+}));
+
+vi.mock("@/integrations/supabase/client", () => {
+  const applicationsBuilder: Record<string, unknown> = {};
+  Object.assign(applicationsBuilder, {
+    select: () => applicationsBuilder,
+    eq: () => applicationsBuilder,
+    is: () => applicationsBuilder,
+    then: (resolve: (r: { count: number; error: null }) => unknown) => {
+      rig.applicationsReads++;
+      return resolve({ count: 0, error: null });
+    },
+  });
+  return {
+    supabase: {
+      from: () => applicationsBuilder,
+      rpc: () => ({
+        then: (resolve: (r: { data: unknown[]; error: null }) => unknown) => {
+          rig.offerReads++;
+          return resolve({ data: [], error: null });
+        },
+      }),
+      channel: () => {
+        const chan = {
+          on: (_event: string, cfg: { table?: string }, handler: () => void) => {
+            if (cfg.table === "jobs") rig.jobsHandler = handler;
+            return chan;
+          },
+        };
+        return chan;
+      },
+    },
+  };
+});
+vi.mock("@/lib/realtimeRecovery", () => ({
+  subscribeWithRecovery: (factory: (name: string) => unknown) => {
+    factory("test-badge-channel");
+    return { close: vi.fn() };
+  },
+}));
+vi.mock("@/lib/safeStorage", () => ({
+  safeStorage: { getItem: () => null, setItem: () => {} },
+}));
+
+function setVisibility(state: "visible" | "hidden") {
+  Object.defineProperty(document, "visibilityState", { value: state, configurable: true });
+}
 
 /**
  * CLASS CHECK (docs/OPEN.md Q53): client code must not multiply database load.
@@ -193,5 +256,62 @@ describe("hot-query load (Q53)", () => {
       });
       expect(debounce).toBeGreaterThanOrEqual(200);
     });
+
+    /*
+     * BEHAVIOURAL, not source-text: a wake-up can start the 400 ms timer
+     * while the page is visible, then the tab is hidden before the timer
+     * fires. The source-text test above only pins that scheduleLoad checks
+     * isHidden() at SCHEDULE time — it says nothing about the timer callback
+     * itself, which is exactly where Q109 found the gap (loadCounts() ran
+     * unconditionally when the timer fired, even while hidden).
+     */
+    it("re-checks visibility when the timer fires, not just when it was scheduled (Q109)", () => {
+      vi.useFakeTimers();
+      setVisibility("visible");
+      rig.applicationsReads = 0;
+      rig.offerReads = 0;
+      rig.jobsHandler = null;
+
+      const { unmount } = renderHook(() => useActivityBadgeCounts("q109-test-user"));
+      // Mount fires one immediate loadCounts() (openStore's own initial read) —
+      // not the case under test. Drain it before touching the counters below.
+      expect(rig.jobsHandler, "the jobs postgres_changes handler was never captured").toBeTruthy();
+      rig.applicationsReads = 0;
+      rig.offerReads = 0;
+
+      // A realtime wake-up arrives while the page is visible — starts the
+      // 400 ms debounce timer via scheduleLoad(), same as a live jobs UPDATE.
+      act(() => rig.jobsHandler!());
+      // The tab is hidden before the timer fires.
+      setVisibility("hidden");
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+
+      expect(
+        rig.applicationsReads,
+        "the debounce timer fired loadCounts() while the page was hidden — it must re-check " +
+          "isHidden() at fire time and defer, the same way scheduleLoad() does when the wake-up arrives",
+      ).toBe(0);
+      expect(rig.offerReads).toBe(0);
+
+      // Now the page becomes visible again — the deferred wake-up must run.
+      setVisibility("visible");
+      act(() => {
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+
+      expect(rig.applicationsReads).toBe(1);
+      expect(rig.offerReads).toBe(1);
+
+      unmount();
+      vi.useRealTimers();
+    });
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.clearAllMocks();
   });
 });

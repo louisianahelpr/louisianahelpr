@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 33 done, 5 partly done (fixed, protection pending), 73 open. Source of truth for work.
+- **Queue (this file):** 34 done, 5 partly done (fixed, protection pending), 70 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 111 items — 33 done, 5 partly done (fixed, protection pending), 73 open.**
+**Queue: 109 items — 34 done, 5 partly done (fixed, protection pending), 70 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -685,10 +685,31 @@ sure someone hears it and closes it.
   Remaining offender: Profile.tsx handleIdUpload (idv_status), which no UI
   reaches (ProfileEditForm reads `_onIdUpload`); it goes with Q40.
   Needs an lh-silent-failure REVIEW-ONLY pass.
-- [ ] **Q107 CredentialsTab saveBusinessName has no `.select()` (Q99 follow-up).**
-  `update({business_name})` checks only `error`, so a zero-row update shows
-  "Saved." and patches the cache from the request. Use the returned row the
-  way send/withdraw now do.
+- [x] **Q107 CredentialsTab saveBusinessName has no `.select()` (Q99 follow-up).**
+  `update({business_name})` checked only `error`, so a zero-row update showed
+  "Saved." and patched the cache from the request. Fixed: chains
+  `.select(SELECT_COLS)` and unwraps through `unwrapMutationRow`
+  (src/lib/mutationResult.ts), same pattern the rest of the file uses since
+  2a1964cc5; the local cache patch now mirrors the RETURNED row via
+  `setFromRow`, not the request. Guard:
+  src/test/businessNameSaveObservesRowCount.test.ts (source-scan, 1 @mutate),
+  proven red on the unfixed code (missing `.select()` on the business_name
+  write), green on the fix. `patchCache` became dead code as a direct result
+  of this fix (its only caller was the code this replaced) and the
+  `no-unused-vars` pre-commit lint blocked the commit on it, so it was
+  removed rather than left; the one remaining mention is a historical
+  comment, unaffected.
+- [x] **Q109 useActivityBadgeCounts' debounce timer didn't re-check visibility
+  at fire time.** `scheduleLoad()` checked `isHidden()` only when a wake-up
+  arrived; if the 400 ms timer started while visible and the tab was hidden
+  before it fired, `loadCounts()` still ran both reads while hidden —
+  contradicting the file's own comment ("nobody can see a badge on a hidden
+  page"). Fixed: the timer callback re-checks `isHidden()` and defers to
+  `onVisibility` the same way the schedule-time path does. Guard:
+  src/test/hotQueryLoad.test.ts's new behavioural test ("re-checks visibility
+  when the timer fires…", fake timers + controllable
+  `document.visibilityState`, 1 @mutate), proven red on the unfixed code (1
+  read while hidden instead of 0), green on the fix.
 - [ ] **Q108 The sent-document link is cut off at 375 (seen during Q99).**
   "View the License You Se..." on /profile?tab=credentials after a license is
   sent (~/.lh-shots/q99/flow-375-2-sent-reloaded.png, review-log: defect).

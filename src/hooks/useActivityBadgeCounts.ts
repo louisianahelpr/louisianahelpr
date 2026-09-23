@@ -167,6 +167,15 @@ function openStore(userId: string): BadgeStore {
     if (timer) return;
     timer = setTimeout(() => {
       timer = null;
+      // Re-check: a wake-up can start this timer while the page is still
+      // visible, then the tab gets hidden before it fires. Without this
+      // check loadCounts() would run two reads while hidden, contradicting
+      // "nobody can see a badge on a hidden page" — defer to visibility the
+      // same way the schedule-time path above does.
+      if (isHidden()) {
+        dirtyWhileHidden = true;
+        return;
+      }
       loadCounts();
     }, BADGE_REFRESH_DEBOUNCE_MS);
   };

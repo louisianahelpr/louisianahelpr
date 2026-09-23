@@ -89,6 +89,9 @@ describe("the backup restore drill exists and has teeth", () => {
     expect(read(".github/workflows/db-backup.yml")).toMatch(/-C out roles\.sql schema\.sql data\.sql cron\.sql/);
     // ensure_rls is commented out of every CLI schema dump.
     expect(script).toMatch(/CREATE EVENT TRIGGER ensure_rls/);
+    // Drill 2026-09-23: storage RLS policies are in no CLI dump (36 on prod).
+    expect(script).toMatch(/storage RLS policies did not restore[^\n]*\n\s+FAIL=1/);
+    expect(read(".github/workflows/db-backup.yml")).toMatch(/cron\.sql storage-policies\.sql/);
   });
 
   it("every known-benign restore error carries a reason", () => {

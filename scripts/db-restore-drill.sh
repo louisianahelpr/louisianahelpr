@@ -65,6 +65,8 @@ echo "--- data.sql INSERT targets by schema ---"
   | sed -E 's/^INSERT INTO //; s/"//g' | sort -u > "$OUT/data-targets.txt"
 cut -d. -f1 "$OUT/data-targets.txt" | sort | uniq -c
 echo "non-public targets: $(grep -v '^public\.' "$OUT/data-targets.txt" | tr '\n' ' ')"
+echo "storage policies inside schema.sql: $( { grep -cE '^CREATE POLICY .* ON "storage"\.' "$DIR/schema.sql" || [ $? -eq 1 ]; } )"
+echo "event triggers inside schema.sql (uncommented): $( { grep -cE '^CREATE EVENT TRIGGER' "$DIR/schema.sql" || [ $? -eq 1 ]; } )"
 
 T0=$(date +%s)
 step roles -f "$DIR/roles.sql"
@@ -141,6 +143,21 @@ else
   : > "$OUT/cron.err"
   FAIL=1
 fi
+# STEP 5 — storage RLS policies (db-backup.yml exports them as
+# storage-policies.sql; schema.sql is `public` only). storage.objects is owned
+# by the storage admin, so locally this runs as supabase_admin; on a hosted
+# project the dashboard SQL editor's role can create them.
+EXPECT_SPOL=0
+if [ -s "$DIR/storage-policies.sql" ]; then
+  EXPECT_SPOL=$( { grep -c '^CREATE POLICY ' "$DIR/storage-policies.sql" || [ $? -eq 1 ]; } )
+  PSQL=(psql "${TARGET/postgres:postgres@/supabase_admin:postgres@}" -X -q -v ON_ERROR_STOP=0)
+  step spol -f "$DIR/storage-policies.sql"
+  PSQL=("${PSQL_TARGET_SAVED[@]}")
+else
+  echo "::error::backup has no storage-policies.sql — a restore would leave every private bucket unreadable"
+  : > "$OUT/spol.err"
+  FAIL=1
+fi
 T1=$(date +%s)
 RESTORE_SECS=$((T1 - T0))
 echo "restore wall time: ${RESTORE_SECS}s"
@@ -152,7 +169,7 @@ echo "restore wall time: ${RESTORE_SECS}s"
 # this exists to notice.
 : > "$OUT/errors-unexpected.txt"
 : > "$OUT/errors-known.txt"
-for f in roles acl schema pgmq evt venue data cron; do
+for f in roles acl schema pgmq evt venue data cron spol; do
   # grep exits 1 on no match, which is a legitimate "no errors".
   { grep -E '(ERROR|FATAL):' "$OUT/$f.err" || [ $? -eq 1 ]; } | while IFS= read -r line; do
     matched=""
@@ -246,6 +263,13 @@ EXPECT_ANON=$( { grep -cE '^GRANT ALL ON FUNCTION .* TO "anon";' "$DIR/schema.sq
 echo "functions the dump grants to anon: ${EXPECT_ANON:-0}; anon-executable after restore: $ANON_EXEC"
 if [ "$ANON_EXEC" = "n/a" ] || [ "$ANON_EXEC" -gt "${EXPECT_ANON:-0}" ]; then
   echo "::error::restored copy lets anon EXECUTE $ANON_EXEC public functions; the backup grants anon only ${EXPECT_ANON:-0} (default-privileges trap, runbook step 1b)"
+  FAIL=1
+fi
+
+SPOL=$(gap "select count(*) from pg_policies where schemaname='storage'")
+echo "storage policies in the backup: $EXPECT_SPOL; on the restored copy: $SPOL"
+if [ "$SPOL" = "n/a" ] || [ "$SPOL" -lt "$EXPECT_SPOL" ] || [ "$EXPECT_SPOL" -eq 0 ]; then
+  echo "::error::storage RLS policies did not restore ($SPOL of $EXPECT_SPOL) — private buckets would be unreadable"
   FAIL=1
 fi
 

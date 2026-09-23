@@ -33,11 +33,13 @@ permissions:
 # destructive check against the EXACT set `supabase db push --dry-run` says
 # it will apply. That last one has no diff-base fallback and no bypass.
 #
-# Why destructive DDL gets its own gate, above and beyond the lint: this
-# project is on the Supabase free tier and has NO restorable backup. That is
-# the owner's stated, accepted constraint, not a defect — but it means a
-# `DROP TABLE` that reaches prod is permanent. The gate is the compensating
-# control for the missing restore path, so it FAILS rather than warns, and
+# Why destructive DDL gets its own gate, above and beyond the lint: there is
+# no point-in-time recovery (measured 2026-09-23: pitr_enabled false). The
+# restore paths that exist, the platform's daily backup (in-place, whole
+# project) and db-backup.yml's artifact (docs/runbooks/restore-from-backup.md),
+# both roll EVERYTHING back up to a day, so a `DROP TABLE` that reaches prod
+# costs every write since the last backup even when it is recoverable. The
+# gate is the compensating control, so it FAILS rather than warns, and
 # its escape hatch is three lines of acknowledgement written into the
 # migration where a reader sees them.
 #

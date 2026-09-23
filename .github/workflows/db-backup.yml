@@ -1,12 +1,17 @@
 # Nightly logical backup of the production database.
 #
-# WHY THIS EXISTS. Supabase's free tier has no automatic backups and no
-# point-in-time recovery. Until this workflow, a dropped table, a bad migration
-# or an account problem would have lost every profile, job, application,
-# message and escrow record with no way back — and the app is live with real
-# users and real Stripe Connect accounts attached. The owner is staying on the
-# free tier (a deliberate cost decision), so recovery has to be something we
-# run ourselves.
+# WHY THIS EXISTS. It was written when the project was on the free tier (no
+# platform backups). Measured 2026-09-23: the org reports plan "pro" and
+# `supabase backups list` shows 7 days of daily PHYSICAL backups, pitr_enabled
+# false. Those restore the whole project IN PLACE from the dashboard; this
+# workflow is the only copy this repo controls, the only one kept 90 days, and
+# the only one that can be restored somewhere else (a new project, a laptop).
+# A dropped table, a bad migration or an account problem must never be able
+# to take every profile, job and escrow record with it.
+#
+# PROVEN RESTORABLE weekly by db-restore-drill.yml (docs/OPEN.md Q45), which
+# restores the newest artifact into a throwaway stack and compares it with
+# prod. Runbook: docs/runbooks/restore-from-backup.md.
 #
 # TWO THINGS THIS FILE TAKES SERIOUSLY, because a backup job that "works" is
 # the easiest thing in the world to ship and the hardest to notice failing:
@@ -37,27 +42,19 @@
 #                             you lose it the backups are unreadable, and if
 #                             you lose GitHub you need it elsewhere anyway.
 #
-# TO RESTORE — READ docs/DB_RESTORE_RUNBOOK.md FIRST. The four commands below
-# are the happy path and they are NOT sufficient on their own: they produce a
-# database that boots, serves traffic, and is wrong in four specific ways the
-# runbook enumerates. The worst is that every `public` function comes back
-# ANON-EXECUTABLE — Supabase's default privileges re-grant `anon` EXECUTE on
-# each CREATE FUNCTION, and pg_dump's `REVOKE ... FROM PUBLIC` does not undo
-# that (same trap as the ACL work in CLAUDE.md). 197 of 247 revocations are
-# lost silently unless you re-apply them. The runbook has the check query.
+# TO RESTORE: follow docs/runbooks/restore-from-backup.md. Do NOT just psql the
+# three files in: the drill measured (2026-09-23) that a plain load comes back
+# with 306 of 306 public functions anon-executable (prod: 17), no cron
+# schedules and no ensure_rls trigger, and schema.sql (public only) carries
+# no storage policies.
+# scripts/db-restore-drill.sh is the runbook as code; it is what the weekly
+# drill runs, so it is the procedure that is known to work.
 #
-#   gh run download <run-id> -n db-backup-<date>
-#   gpg --decrypt --batch --passphrase "$BACKUP_PASSPHRASE" \
-#       backup.tar.gz.gpg > backup.tar.gz
-#   tar xzf backup.tar.gz
-#   psql "$TARGET_DB_URL" -f roles.sql -f schema.sql -f data.sql
-# Restore into a NEW project first and diff it before pointing anything at it.
-#
-# ALSO NOT IN THIS BACKUP (full list + verification queries in the runbook):
-# storage FILES (33 objects / 19 MB — avatars, ID documents, dispute proof
-# photos; the object ROWS restore and point at nothing), the 42 storage RLS
-# policies, the supabase_realtime publication and its 10 tables, 7 event
-# triggers, the 644-row migration ledger, and vault/edge-function secrets.
+# NOT IN THIS BACKUP (measured 2026-09-23; details in the runbook): storage
+# FILES (152 objects, ~10 MB, incl. ID documents and dispute proof photos; the
+# object ROWS restore and point at nothing), vault secret values (4), the
+# edge-function secrets, the migration ledger, and anything held only by
+# Stripe or Resend.
 
 name: DB backup (nightly)
 
@@ -131,12 +128,25 @@ jobs:
           mkdir -p out
           # Three separate dumps, because a restore needs them applied in this
           # order and a single --data-only file cannot recreate the schema.
-          supabase db dump --linked --role-only -f out/roles.sql
-          supabase db dump --linked             -f out/schema.sql
-          supabase db dump --linked --data-only -f out/data.sql
+          # Retried: the 2026-09-22 run died on a transient pooler error
+          # ("EAUTHQUERY ... auth_query secret check timed out") and the next
+          # good backup was 36 h after the previous one. Three attempts, a
+          # minute apart; the third failure still fails the job.
+          dump() {
+            local i
+            for i in 1 2 3; do
+              if supabase db dump --linked "$@"; then return 0; fi
+              echo "::warning::supabase db dump $* failed (attempt $i of 3)"
+              [ "$i" -lt 3 ] && sleep 60
+            done
+            return 1
+          }
+          dump --role-only -f out/roles.sql
+          dump             -f out/schema.sql
+          dump --data-only -f out/data.sql
           ls -l out/
 
-      - name: Export the pg_cron schedules
+      - name: Export the pg_cron schedules and storage policies
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
@@ -163,6 +173,24 @@ jobs:
           # or failed read; the equality catches a partial one.
           if [ "$N" -lt 20 ] || [ "$GOT" -ne "$N" ]; then
             echo "::error::cron export incomplete ($GOT of $N statements; expected at least 20)"
+            exit 1
+          fi
+
+          # Storage RLS policies, same reason: schema.sql is `public` only, so
+          # the policies guarding the private buckets (id-documents,
+          # proof-photos, user-documents ...) are in no dump — 36 on prod on
+          # 2026-09-23. A restored project would serve none of those files.
+          PQ="select coalesce(string_agg(format('CREATE POLICY %I ON %I.%I AS %s FOR %s TO %s%s%s;', policyname, schemaname, tablename, permissive, cmd, (select string_agg(quote_ident(r), ', ') from unnest(roles) r), coalesce(' USING (' || qual || ')', ''), coalesce(' WITH CHECK (' || with_check || ')', '')), E'\n' order by tablename, policyname), '') as sql, count(*) as n from pg_policies where schemaname = 'storage'"
+          RES=$(curl -sS --fail-with-body -X POST \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" -H 'Content-Type: application/json' \
+            --data "$(jq -n --arg q "$PQ" '{query: $q}')")
+          N=$(printf '%s' "$RES" | jq -r '.[0].n')
+          printf '%s' "$RES" | jq -r '.[0].sql' > out/storage-policies.sql
+          GOT=$( { grep -c '^CREATE POLICY ' out/storage-policies.sql || [ $? -eq 1 ]; } )
+          echo "storage policies: $N; statements written: $GOT"
+          if [ "$N" -lt 10 ] || [ "$GOT" -ne "$N" ]; then
+            echo "::error::storage policy export incomplete ($GOT of $N statements; expected at least 10)"
             exit 1
           fi
 
@@ -243,7 +271,7 @@ jobs:
         run: |
           set -euo pipefail
           STAMP=$(date -u +%Y-%m-%d)
-          tar czf "backup-$STAMP.tar.gz" -C out roles.sql schema.sql data.sql cron.sql
+          tar czf "backup-$STAMP.tar.gz" -C out roles.sql schema.sql data.sql cron.sql storage-policies.sql
           gpg --batch --yes --symmetric --cipher-algo AES256 \
               --passphrase "$BACKUP_PASSPHRASE" \
               -o "backup-$STAMP.tar.gz.gpg" "backup-$STAMP.tar.gz"
@@ -268,6 +296,7 @@ jobs:
           grep -qx "roles.sql"  listing.txt
           grep -qx "schema.sql" listing.txt
           grep -qx "cron.sql"   listing.txt
+          grep -qx "storage-policies.sql" listing.txt
           rm -f roundtrip.tar.gz listing.txt
 
       - uses: actions/upload-artifact@v5

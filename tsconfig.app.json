@@ -54,6 +54,7 @@
     "supabase/functions/_shared/businessSeatTiers.ts",
     "supabase/functions/_shared/disputePayoutStamp.ts",
     "supabase/functions/_shared/marketing/secretGap.ts",
+    "supabase/functions/_shared/notification-templates.ts",
     "supabase/functions/_shared/proTiers.ts",
     "supabase/functions/_shared/tierNames.ts",
     "supabase/functions/_shared/tierPerks.ts",

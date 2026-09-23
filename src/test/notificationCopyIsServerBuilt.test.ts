@@ -56,6 +56,7 @@ const MIGRATIONS = join(REPO, "supabase", "migrations");
  * scope-aware — a false positive is listed here, with its reason, rather than
  * weakening the rule for everyone).
  */
+// @two-way src/test/notificationCopyIsServerBuilt.test.ts:EDGE_EXEMPT entries the scan no longer flags
 const EDGE_EXEMPT: Record<string, string> = {
   "supabase/functions/create-notification/index.ts :: title ← title":
     "admin-only free-text branch (has_role gate); every non-admin path is template-built — behaviour pinned in src/test/edge/create-notification.test.ts",
@@ -190,6 +191,7 @@ function edgeOffenders(): Map<string, string> {
  * notification, each ATTRIBUTED to the person who wrote it and bound to the
  * state change the function itself performs (not a free-standing message).
  */
+// @two-way src/test/notificationCopyIsServerBuilt.test.ts:SQL_EXEMPT entries the scan no longer flags
 const SQL_EXEMPT: Record<string, string> = {
   helper_abort_job:
     "quotes the assigned Helpr's own reason, prefixed 'Your Helpr had to stop work on …:', written only by the abort transition it performs",

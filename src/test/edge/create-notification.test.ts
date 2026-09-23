@@ -137,7 +137,8 @@ describe("create-notification — server-built copy only (Q223)", () => {
     resetEnv();
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => new Response(JSON.stringify({ success: true }), { status: 200 })),
+      // Default Response status is 200: send-notification-email "sent".
+      vi.fn(async () => new Response(JSON.stringify({ success: true }))),
     );
     scenario.rpc.has_role = false;
     scenario.rpc.notification_crosses_seed_boundary = false;

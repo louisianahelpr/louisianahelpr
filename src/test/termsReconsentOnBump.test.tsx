@@ -29,6 +29,7 @@
  * @mutate src/components/TermsReconsentDialog.tsx | privacy_version: LATEST_PRIVACY_VERSION, | privacy_version: LATEST_TERMS_VERSION,
  * @mutate src/components/TermsReconsentDialog.tsx | const isStale = loaded && acceptedVersion !== LATEST_TERMS_VERSION; | const isStale = false;
  */
+import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { readFileSync } from "node:fs";
@@ -123,7 +124,7 @@ describe("Terms re-acceptance after the 2026-09-23 Terms change (Q210(d))", () =
 
   it("an account that accepted Jun 2026 is prompted, and I Agree pins the new version", async () => {
     acceptedVersion = "Jun 2026";
-    render(<TermsReconsentDialog />);
+    render(<MemoryRouter><TermsReconsentDialog /></MemoryRouter>);
     expect(await screen.findByText(TITLE)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "I Agree" }));
     await waitFor(() => expect(updates.length).toBe(1));
@@ -132,13 +133,20 @@ describe("Terms re-acceptance after the 2026-09-23 Terms change (Q210(d))", () =
 
   it("an account that never recorded a version is prompted", async () => {
     acceptedVersion = "";
-    render(<TermsReconsentDialog />);
+    render(<MemoryRouter><TermsReconsentDialog /></MemoryRouter>);
     expect(await screen.findByText(TITLE)).toBeTruthy();
   });
 
   it("an account already on the new version is not prompted", async () => {
     acceptedVersion = LATEST_TERMS_VERSION;
-    render(<TermsReconsentDialog />);
+    render(<MemoryRouter><TermsReconsentDialog /></MemoryRouter>);
+    await new Promise((r) => setTimeout(r, 30));
+    expect(screen.queryByText(TITLE)).toBeNull();
+  });
+
+  it.each(["/legal", "/terms", "/privacy"])("a stale account is not prompted on %s, the page the dialog links to", async (path) => {
+    acceptedVersion = "Jun 2026";
+    render(<MemoryRouter initialEntries={[path]}><TermsReconsentDialog /></MemoryRouter>);
     await new Promise((r) => setTimeout(r, 30));
     expect(screen.queryByText(TITLE)).toBeNull();
   });

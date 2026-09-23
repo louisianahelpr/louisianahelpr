@@ -10,6 +10,7 @@
 // re-consent event the Cowork audit flagged as missing.
 
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogBody, DialogContent, DialogHero, DialogFooter, DialogPrimaryAction } from "@/components/ui/dialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -21,7 +22,13 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 
+// The dialog's own Terms/Privacy links open these in a new tab, and the dialog
+// is mounted app-wide, so without this it covers the very page it asks the
+// user to read.
+export const RECONSENT_EXEMPT_PATHS = ["/legal", "/terms", "/privacy"];
+
 export function TermsReconsentDialog() {
+  const { pathname } = useLocation();
   const { user, profile, refresh } = useCurrentUser();
   const qc = useQueryClient();
   const [acceptedVersion, setAcceptedVersion] = useState<string | null>(null);
@@ -79,7 +86,7 @@ export function TermsReconsentDialog() {
   }, [isEligible, userId]);
 
   const isStale = loaded && acceptedVersion !== LATEST_TERMS_VERSION;
-  const open = !!isEligible && !!isStale;
+  const open = !!isEligible && !!isStale && !RECONSENT_EXEMPT_PATHS.includes(pathname);
 
   const handleAccept = async () => {
     if (!userId) return;

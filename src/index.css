@@ -3321,6 +3321,7 @@ button,
   body,
   #root,
   main,
+  [data-admin-scroll],
   [data-app-shell],
   [data-app-shell-scroll] {
     height: auto !important;
@@ -3335,6 +3336,7 @@ button,
      for print too, but we want it to use the full printable width so
      paragraphs aren't squeezed into a half-page column on letter paper. */
   main > div,
+  [data-admin-scroll] > div,
   [data-app-shell-content] > div {
     max-width: none !important;
     width: 100% !important;

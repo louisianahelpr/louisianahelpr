@@ -571,7 +571,12 @@ const Admin = () => {
               needs its own — hence the split rather than a plain delete. */}
           {!isWebDesktop && <AdminTopBar />}
 
-          <main
+          {/* A <div>, not a <main>: App.tsx already wraps every route in
+              <main id="main-content">, and a second one nested inside it
+              failed axe's landmark-main-is-top-level / -no-duplicate-main /
+              -unique on all 26 admin screens (Q211). This is only the admin
+              scroll container. Guarded by src/test/oneMainLandmark.test.ts. */}
+          <div data-admin-scroll
             className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 pb-[calc(2rem_+_var(--safe-area-bottom,0px))]"
           >
             {/* Mounted once, inside admin only: the shortcut should not exist
@@ -587,7 +592,7 @@ const Admin = () => {
             <Suspense fallback={<div className="flex items-center justify-center py-12"><HelprSpinner size={32} /></div>}>
               {renderContent()}
             </Suspense>
-          </main>
+          </div>
         </div>
 
         {/* Same split as the top bar. On the desktop website the GLOBAL side

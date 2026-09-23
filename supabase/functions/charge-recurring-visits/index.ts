@@ -1,3 +1,7 @@
+// seed-policy: pages for seed/E2E jobs too, on purpose. Every alert here is money
+// that moved (or failed to move) in Stripe while the DB says otherwise: a platform
+// failure whoever owns the job. Seed-only noise is routed in the detectors, not
+// here (docs/OPEN.md Q2).
 // Daily cron: fund the next recurring visits by charging the poster's saved card.
 //
 // THIS IS THE HALF RECURRING NEVER HAD. The old `spawn-recurring-jobs` copied a

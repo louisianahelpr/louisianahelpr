@@ -516,6 +516,56 @@ serve(async (req) => {
       }
     }
 
+    // ── Part B2: CANCELLED jobs whose checkout was never paid ──────────────
+    //
+    // Part B only looks at status='open'. A poster (or an E2E spec's cleanup)
+    // who cancels a job AFTER opening checkout leaves it cancelled + 'unpaid'
+    // with a LIVE Checkout Session: nothing expired the session, so the
+    // cancelled job could still be paid for for up to 24h, and nothing moved
+    // it out of 'unpaid', so detect_stuck_payments reported it as a stuck
+    // payment every day (36+14 open ops alerts on 2026-09-23, every one an
+    // "[E2E DO NOT ACCEPT]" job — docs/OPEN.md Q2). Here the session is
+    // expired if still open, and the job marked 'abandoned' once Stripe says
+    // it is unpaid. A session Stripe reports PAID is left alone: that is a real
+    // paid-but-unsettled checkout, and detect_stuck_payments pages for it
+    // after its 2h grace for cancelled jobs.
+    //
+    // seed-policy: seed and real alike — this is cleanup, not an alert.
+    const { data: cancelledUnpaid, error: cuErr } = await supabaseAdmin
+      .from("jobs")
+      .select("id, stripe_session_id")
+      .eq("status", "cancelled")
+      .eq("payment_status", "unpaid")
+      .not("stripe_session_id", "is", null)
+      .limit(200);
+    if (cuErr) {
+      console.error("[void-cancelled-payments] cancelled-unpaid lookup failed:", cuErr.message);
+      defects.record(`cancelled-unpaid lookup: ${cuErr.message}`);
+    }
+    let expiredSessions = 0;
+    for (const job of (cancelledUnpaid || [])) {
+      try {
+        let session = await stripe.checkout.sessions.retrieve(job.stripe_session_id!);
+        if (session.status === "open") {
+          session = await stripe.checkout.sessions.expire(job.stripe_session_id!);
+          expiredSessions++;
+        }
+        if (session.payment_status === "unpaid" && session.status !== "complete") {
+          if (await markAbandoned(job, "cancelled, checkout never paid")) abandonedCount++;
+        } else {
+          console.warn(`[void-cancelled-payments] cancelled job ${job.id}: session ${session.status}/${session.payment_status} — not abandoning; a paid checkout on a cancelled job is detect_stuck_payments' to report.`);
+        }
+      } catch (e) {
+        const missing = (e as any)?.statusCode === 404 || (e as any)?.code === "resource_missing";
+        if (missing) {
+          if (await markAbandoned(job, "cancelled, session 404")) abandonedCount++;
+        } else {
+          console.error(`[void-cancelled-payments] cancelled-unpaid Stripe error for job ${job.id}:`, (e as Error).message);
+          defects.record(`cancelled-unpaid ${job.id}: ${(e as Error).message}`);
+        }
+      }
+    }
+
     const jobs = cancelledJobs;
 
     let voided = 0;

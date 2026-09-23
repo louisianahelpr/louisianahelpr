@@ -181,6 +181,45 @@ export function adminPushEventKey(p: { title: string; link?: string | null; thre
   return `admin-push:${p.title.trim().toLowerCase().slice(0, 80)}|${ref.slice(0, 160)}`
 }
 
+/**
+ * notifications.type values addressed to an admin AS AN OPERATOR. Only these
+ * are mirrored to #ops-alerts when the admin has no push token.
+ *
+ * WHY (docs/OPEN.md Q2, measured 2026-09-23): the mirror keyed on "the
+ * recipient holds the admin role", not on what the notification IS. The
+ * owner's own account is an admin AND a party to jobs, so its ordinary user
+ * mail — "Did you finish this job?", "We've asked support to step in", "Job
+ * auto-cancelled", a chat message from "Perry P." — posted to #ops-alerts as
+ * critical pages. `admin_alert` is the operator type (20260903025724);
+ * `system_alert` is operator-only in practice (every non-admin recipient on
+ * prod is a seed fixture). Operator alerts filed under a user type
+ * ('warning' "Job disputed" / "Transfer failed") each have their own Slack
+ * path (the dispute_filed trigger, transferFailed.ts), so leaving them out
+ * drops nothing. src/test/adminPushMirror.test.ts pins this.
+ */
+export const OPERATOR_NOTIFICATION_TYPES = ['admin_alert', 'system_alert'] as const
+
+/** True when an admin's notification of this type is an operator alert. */
+export function isOperatorNotification(type: string | null | undefined): boolean {
+  return (OPERATOR_NOTIFICATION_TYPES as readonly string[]).includes(String(type ?? ''))
+}
+
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+
+/**
+ * The job or user an admin notification's link points at, so the mirror can
+ * ask whether that subject is seed/E2E data. Reads `job=<uuid>`,
+ * `/jobs/<uuid>` and `user=<uuid>`; null when the link names neither.
+ */
+export function alertSubjectFromLink(link: string | null | undefined): { jobId?: string; userId?: string } | null {
+  if (!link) return null
+  const l = link.toLowerCase()
+  const job = new RegExp(`(?:[?&]job(?:_id)?=|/jobs?/)(${UUID})`).exec(l)?.[1]
+  const user = new RegExp(`[?&]user(?:_id)?=(${UUID})`).exec(l)?.[1]
+  if (!job && !user) return null
+  return { ...(job ? { jobId: job } : {}), ...(user ? { userId: user } : {}) }
+}
+
 /** UTC midnight of `now`, as an ISO string: the start of a once-per-day window. */
 export function utcDayStartIso(now: Date = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString()

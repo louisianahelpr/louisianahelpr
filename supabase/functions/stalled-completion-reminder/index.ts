@@ -37,6 +37,11 @@
 // working at all: all eleven rows in the trap on prod are `is_seed = true`.
 // Do not "restore consistency" with the other two sweeps here.
 //
+// seed-policy: swept, nudged and queued like real jobs (above); only the OPS
+// ALERT differs — a seed job's Slack escalation goes to the daily digest
+// (postSlackOpsAlert `seed`), and the admin notification names the job so the
+// push->Slack mirror can do the same (docs/OPEN.md Q2, 2026-09-23).
+//
 // Auth: CRON_SECRET or service-role bearer. Schedule: daily at 14:00 UTC
 // (9am CDT / 8am CST) — see the migration. A daily run is deliberate: the
 // anchor is the end of a calendar day, so a finer cron would only buy the
@@ -70,6 +75,7 @@ type StalledJob = StalledEvidence & {
   title: string;
   customer_id: string | null;
   helper_id: string | null;
+  is_seed: boolean | null;
 };
 
 Deno.serve(async (req) => {
@@ -168,7 +174,7 @@ Deno.serve(async (req) => {
       supabase
         .from("jobs")
         .select(
-          "id, title, status, customer_id, helper_id, date_needed, start_time, estimated_hours, helper_completed_at, poster_completed_at",
+          "id, title, status, customer_id, helper_id, date_needed, start_time, estimated_hours, helper_completed_at, poster_completed_at, is_seed",
           countOpt,
         )
         .order("id", { ascending: true })
@@ -246,7 +252,12 @@ Deno.serve(async (req) => {
               // Reviewed" is the action this alert is asking for. It used to
               // be `/admin?job=<id>`, which Admin.tsx never reads (it reads
               // `?view=` only), so the alert landed on the dashboard home.
-              `/admin?view=stalled`,
+              // The `&job=` names the SUBJECT (2026-09-23, Q2): the admin
+              // Slack mirror keys its once-a-day dedupe on title + link, so
+              // without it every stalled job that day was ONE post (a real
+              // job's page could be swallowed by a seed job's), and the
+              // mirror could not tell a seed job's alert from a real one.
+              `/admin?view=stalled&job=${job.id}`,
               "admin_alert",
             );
           }
@@ -271,6 +282,9 @@ Deno.serve(async (req) => {
             message: `Job ${job.id} — in_progress, ${Math.round(hours)}h past its scheduled end, neither completion stamp set. Escrow still held. Needs a human decision; nothing moves automatically.`,
             fields: { job_id: job.id },
             oncePerDayKey: `stalled-completion-escalation:${job.id}`,
+            // Seed jobs are still swept and queued (owner, 2026-09-19); their
+            // ops alert goes to the daily digest instead of paging.
+            seed: job.is_seed === true,
           });
         }
         counts[stage] += 1;

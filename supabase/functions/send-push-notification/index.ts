@@ -72,7 +72,12 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { signEs256Jwt, signRs256Jwt } from '../_shared/jwt.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
-import { adminPushEventKey, adminPushSeverity } from '../_shared/alertPolicy.ts'
+import {
+  adminPushEventKey,
+  adminPushSeverity,
+  alertSubjectFromLink,
+  isOperatorNotification,
+} from '../_shared/alertPolicy.ts'
 import { logPush } from '../_shared/notificationLog.ts'
 import { inferCategoryFromLink, type PushCategory } from './category.ts'
 
@@ -527,39 +532,62 @@ Deno.serve(async (req) => {
     // So the alert escalates to the ops channel instead of evaporating. Only
     // on this branch — the role lookup costs nothing on the hot path because
     // the hot path has tokens and returns above.
-    try {
-      const { data: adminRole } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('user_id', payload.user_id)
-        .eq('role', 'admin')
-        .maybeSingle()
+    //
+    // ONLY OPERATOR ALERTS. An admin is also a user: the owner's own account
+    // posts and works jobs, so "Did you finish this job?" addressed to them as
+    // a job party is user mail, not an ops page. It used to be mirrored
+    // anyway — the role was the only test — and 20+ user-facing notifications
+    // reached #ops-alerts as critical (docs/OPEN.md Q2). `payload.thread_id`
+    // is notifications.type (fan_out_push_on_notification sets it).
+    if (isOperatorNotification(payload.thread_id)) {
+      try {
+        const { data: adminRole } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('user_id', payload.user_id)
+          .eq('role', 'admin')
+          .maybeSingle()
 
-      if (adminRole) {
-        // Not awaited on a latency path elsewhere in this codebase, but here
-        // the request is otherwise finished and the whole point is delivery,
-        // so it is worth the round-trip. postSlackOpsAlert never throws.
-        //
-        // Posted as the alert itself (its own title), not as "undeliverable":
-        // no admin has a push token today, so that framing was on every
-        // message. Critical unless the title is a known informational one.
-        // `oncePerDayKey` is title + link (the link carries the job/dispute
-        // id), so the per-admin fan-out of ONE event posts once, while two
-        // different events still post separately.
-        await postSlackOpsAlert({
-          kind: 'custom',
-          severity: adminPushSeverity(payload.title),
-          title: payload.title,
-          message: payload.body,
-          fields: {
-            deep_link: payload.link ?? '(none)',
-          },
-          oncePerDayKey: adminPushEventKey(payload),
-        })
+        if (adminRole) {
+          // seed-policy: an operator alert about a seed/E2E job or account goes
+          // to the daily digest, not the channel (postSlackOpsAlert `seed`).
+          // Decided from the subject the link names; a link naming no subject,
+          // or a lookup that fails, is treated as REAL (fail loud, not quiet).
+          const subject = alertSubjectFromLink(payload.link)
+          let seed = false
+          if (subject?.jobId) {
+            const { data: j } = await supabase.from('jobs').select('is_seed').eq('id', subject.jobId).maybeSingle()
+            seed = j?.is_seed === true
+          } else if (subject?.userId) {
+            const { data: p } = await supabase.from('profiles').select('is_seed').eq('user_id', subject.userId).maybeSingle()
+            seed = p?.is_seed === true
+          }
+          // Not awaited on a latency path elsewhere in this codebase, but here
+          // the request is otherwise finished and the whole point is delivery,
+          // so it is worth the round-trip. postSlackOpsAlert never throws.
+          //
+          // Posted as the alert itself (its own title), not as "undeliverable":
+          // no admin has a push token today, so that framing was on every
+          // message. Critical unless the title is a known informational one.
+          // `oncePerDayKey` is title + link (the link carries the job/dispute
+          // id), so the per-admin fan-out of ONE event posts once, while two
+          // different events still post separately.
+          await postSlackOpsAlert({
+            kind: 'custom',
+            severity: adminPushSeverity(payload.title),
+            title: payload.title,
+            message: payload.body,
+            fields: {
+              deep_link: payload.link ?? '(none)',
+            },
+            oncePerDayKey: adminPushEventKey(payload),
+            seed,
+          })
+        }
+      } catch (e) {
+        // Never let the fallback's own failure change this function's outcome.
+        console.error('[send-push-notification] admin Slack fallback failed:', e)
       }
-    } catch (e) {
-      // Never let the fallback's own failure change this function's outcome.
-      console.error('[send-push-notification] admin Slack fallback failed:', e)
     }
 
     await logOutcome('skipped', 'no_registered_devices')

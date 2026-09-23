@@ -253,7 +253,7 @@ describe("stalled-completion-reminder", () => {
     // The Stuck Jobs queue, not `/admin?job=<id>`: Admin.tsx routes on `?view=`
     // alone, so the old link opened the dashboard home. `src/test/adminDeepLinkContract.test.ts`
     // is the class guard that keeps every edge-emitted admin link resolvable.
-    expect(adminAlert!.link).toBe("/admin?view=stalled");
+    expect(adminAlert!.link).toBe(`/admin?view=stalled&job=${(scenario.reads.jobs!.rows![0] as { id: string }).id}`);
     expect(adminAlert!.message).toMatch(/Nothing moves automatically/i);
     // Both parties are told a person is looking, and that the money is parked.
     for (const who of [POSTED_BY, WORKED_BY]) {

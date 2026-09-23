@@ -64,7 +64,7 @@ import { join, resolve } from "node:path";
  * by the component THAT view mounts) means `/admin?view=people&job=x` passes
  * while opening nothing. See the "not yet honoured" note at the foot.
  *
- * @mutate supabase/functions/stalled-completion-reminder/index.ts | `/admin?view=stalled` | `/admin?job=${job.id}`
+ * @mutate supabase/functions/stalled-completion-reminder/index.ts | `/admin?view=stalled&job=${job.id}` | `/admin?job=${job.id}`
  * @mutate src/components/admin/AdminJobs.tsx | const target = searchParams.get("job"); | const target = searchParams.get("jobIdParamRemoved");
  */
 
@@ -418,7 +418,7 @@ describe("admin deep links emitted by edge functions", () => {
     expect(links.length).toBeGreaterThanOrEqual(30);
     const raws = links.map((l) => l.raw);
     // Emitted links are present…
-    expect(raws).toContain("/admin?view=stalled");
+    expect(raws).toContain("/admin?view=stalled&job={}");
     expect(raws.some((r) => r.startsWith("/admin?view=jobs&job="))).toBe(true);
     // …and prose about /admin in a comment is NOT (send-push-notification's
     // category.ts documents "/admin 627 · /dashboard 619" in a block comment).

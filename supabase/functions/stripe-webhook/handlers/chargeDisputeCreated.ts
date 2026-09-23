@@ -1,3 +1,9 @@
+// seed-policy: pages for seed/E2E jobs too, on purpose. Every alert here is money
+// that moved (or failed to move) in Stripe while the DB says otherwise, or a Stripe
+// event that could not be settled: a platform failure whoever owns the job. The
+// nightly money journeys on seed jobs are how this path is proven, so their failures
+// are real signal (2026-09-22: "transfer failed" on seed jobs = the empty test
+// balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";

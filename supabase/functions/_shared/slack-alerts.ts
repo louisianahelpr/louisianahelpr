@@ -60,6 +60,16 @@ export interface SlackAlertInput {
    * and only the earliest row of the day posts.
    */
   oncePerDayKey?: string
+  /**
+   * The alert is about seed/E2E data (jobs.is_seed / profiles.is_seed). Tests
+   * run against prod by design, so their jobs stall, abandon checkouts and fail
+   * payouts like real ones. A seed alert is written to error_logs tagged
+   * `seed: true` under source 'ops-alert-seed' and goes to the DAILY DIGEST: it
+   * never posts and is not an open ledger item (public.error_log_is_seed, SQL
+   * migration 20260923052520). Nothing is dropped; it just does not page.
+   * Pass it only from a fact about the subject, never as a volume control.
+   */
+  seed?: boolean
 }
 
 type ErrorLogRow = { id: string }
@@ -111,6 +121,31 @@ async function recordAlertRow(
   } catch (err) {
     console.warn('[postSlackOpsAlert] alert row insert failed:', err instanceof Error ? err.message : err)
     return null
+  }
+}
+
+/** error_logs row for a seed alert: digest-only (public.error_log_is_seed). */
+async function recordSeedAlertRow(input: SlackAlertInput, severity: SlackAlertSeverity): Promise<void> {
+  const rest = restConfig()
+  if (!rest) {
+    console.warn(`[postSlackOpsAlert] cannot record seed alert row (no SUPABASE_URL/SECRET_KEY): ${input.title}`)
+    return
+  }
+  try {
+    const res = await fetch(`${rest.url}/rest/v1/error_logs`, {
+      method: 'POST',
+      headers: { apikey: rest.key, Authorization: `Bearer ${rest.key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        severity: 'info',
+        message: `${input.title} — ${input.message}`.slice(0, 1000),
+        tags: { source: 'ops-alert-seed', kind: input.kind, seed: true, would_have_been: severity },
+        context: { fields: input.fields ?? {}, link: input.link ?? null },
+      }),
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) console.warn('[postSlackOpsAlert] seed alert row insert non-OK', res.status, await res.text())
+  } catch (err) {
+    console.warn('[postSlackOpsAlert] seed alert row insert failed:', err instanceof Error ? err.message : err)
   }
 }
 
@@ -232,6 +267,14 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
   let heldKey: { rowId: string; key: string } | null = null
   try {
     const policySeverity = effectiveSeverity(input.kind, input.severity)
+
+    // Seed/E2E subject: the digest, not the channel (see SlackAlertInput.seed).
+    // Recorded as 'info' so trg_error_logs_slack could never page it even if
+    // the seed tag were lost; the tag keeps it out of Slack and the ledger.
+    if (input.seed) {
+      await recordSeedAlertRow(input, policySeverity)
+      return
+    }
 
     // Every call is an occurrence in the ops alert ledger (docs/OPEN.md Q1),
     // including the ones the hourly cap or the once-per-day key keep out of

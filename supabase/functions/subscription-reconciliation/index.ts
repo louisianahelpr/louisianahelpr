@@ -431,6 +431,30 @@ serve(async (req) => {
     /** Profiles matched to a live subscription during pass 2b. */
     const matchedUserIds = new Set<string>();
 
+    // Subscriptions/customers owned by SEED profiles. Without this the default
+    // scope (real profiles only) was one-sided: seed profiles were left out of
+    // the DB side, but their Stripe subscriptions were still on the Stripe
+    // side, found no profile, and were reported as "paid_but_no_tier" —
+    // a critical, every day. Measured 2026-09-23: the only finding was
+    // sub_1UBzT2… on the seed profile "Audit Weblane", which HOLDS tier pro
+    // (docs/OPEN.md Q42). With `?include_seed=1` they are graded normally.
+    const seedOwned = new Set<string>();
+    if (!includeSeed) {
+      const { data: seedRows, error: seedErr } = await admin
+        .from("profiles")
+        .select("stripe_subscription_id, stripe_customer_id")
+        .eq("is_seed", true)
+        .or("stripe_subscription_id.not.is.null,stripe_customer_id.not.is.null")
+        .limit(SCAN_LIMIT);
+      // A failed read must not turn every seed subscription into a finding —
+      // nor hide a real one. Fail the run loudly instead.
+      if (seedErr) throw new Error(`seed profiles read failed: ${seedErr.message}`);
+      for (const r of (seedRows ?? []) as { stripe_subscription_id: string | null; stripe_customer_id: string | null }[]) {
+        if (r.stripe_subscription_id) seedOwned.add(r.stripe_subscription_id);
+        if (r.stripe_customer_id) seedOwned.add(r.stripe_customer_id);
+      }
+    }
+
     // ── 2b. Stripe → DB ──────────────────────────────────────────────────────
     for (const sub of tierSubs) {
       const productId = sub.items?.data?.[0]?.price?.product as string;
@@ -453,6 +477,12 @@ serve(async (req) => {
         } else if (candidates.length > 1) {
           notes.push(`subscription ${sub.id}: ${candidates.length} profiles share ${email} — not matched`);
         }
+      }
+
+      if (!profile && (seedOwned.has(sub.id) || (customerId !== null && seedOwned.has(customerId)))) {
+        // Out of scope, not missing: a seed profile owns it (see seedOwned).
+        notes.push(`subscription ${sub.id}: owned by a seed profile — out of scope (use ?include_seed=1)`);
+        continue;
       }
 
       if (!profile) {

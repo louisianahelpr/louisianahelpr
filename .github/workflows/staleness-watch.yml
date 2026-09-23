@@ -1,0 +1,48 @@
+name: Staleness watch
+
+# Nothing the monitoring relies on may be out of date (owner, 2026-09-23).
+# scripts/check-staleness.mjs finds every timestamped evidence file and the
+# audit ledger by scanning the repo, and fails on anything past its limit.
+# A red run opens a `nightly-red: staleness-watch` issue (session-start reads
+# it; "Nightly reds nobody read" escalates it) and closes on the next green.
+
+on:
+  schedule:
+    - cron: "20 11 * * *"   # 06:20 Central, before the owner's morning
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  staleness:
+    name: Nothing stale
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the ledger check counts commits since the last stamp
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Check evidence age and ledger freshness
+        run: node scripts/check-staleness.mjs
+
+  notify:
+    name: Report nightly result
+    needs: [staleness]
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: staleness-watch
+          status: ${{ needs.staleness.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

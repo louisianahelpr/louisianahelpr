@@ -7930,3 +7930,17 @@ sure someone hears it and closes it.
   found itself in the shared checkout mid-task. Make the session-start hook
   create or enter a per-session worktree (or warn loudly), and treat the main
   checkout as read-only for sessions.
+- [ ] **Q48 Messages search: the close ✕ overlaps where the magnifier returns**
+  (prod-audit run 35817028797 on 3c81624d0): by 28px at 320 and 26px at 375.
+  Pressing ✕ to dismiss puts the next tap on the re-open control. Found by
+  e2e/prod-audit/expanding-search-geometry.spec.ts:559. Fix the geometry,
+  re-run that spec, and screenshot at 320/375 before and after.
+- [ ] **Q49 7 of the 21 new messy-input FormSpecs fail on prod** (same run;
+  they were written without a local run because the credentials are CI-only):
+  report-user-dialog (the dialog never opened: "no text-like field"),
+  activity-dispute-dialog, active-job-section, disputed-section ("no disputed
+  job between the shared poster/helper accounts on prod right now"),
+  pending-application-section, admin-reports-message, admin-credential-reject
+  (15-20s locator timeouts). Fix each against the real screens. Where state is
+  missing, the spec's fixture setup creates it (is_seed, cleaned up), so the
+  coverage test goes green. Re-dispatch prod-audit to prove it.

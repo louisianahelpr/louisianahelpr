@@ -2,6 +2,7 @@ import { FileText } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import { TabsContent } from "@/components/ui/tabs";
 import type { Profile } from "../adminUserHelpers";
+import { isStorageObjectPath, safeDocumentUrl } from "@/lib/storagePath";
 
 interface DocumentsTabProps {
   viewProfile: Profile;
@@ -37,6 +38,12 @@ export function DocumentsTab({ viewProfile, idDocSignedUrl }: DocumentsTabProps)
                   </div>
                 </div>
               )
+            ) : !isStorageObjectPath(viewProfile.id_document_url) && !safeDocumentUrl(viewProfile.id_document_url) ? (
+              // Not a storage path and not an https:/raster data: URL — refused
+              // by safeDocumentUrl, so it will never load. Say so, not "Loading…".
+              <div className="p-4 text-center">
+                <p className="text-ds-11 text-muted-foreground">This document's link isn't one that can be opened safely.</p>
+              </div>
             ) : (
               <div className="p-4 text-center">
                 <p className="text-ds-11 text-muted-foreground">Loading document…</p>

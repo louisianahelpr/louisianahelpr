@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { isStorageObjectPath } from "@/lib/storagePath";
+import { isStorageObjectPath, safeDocumentUrl } from "@/lib/storagePath";
 import { report } from "@/lib/errorLogger";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
@@ -482,9 +482,12 @@ function ExpiryField({
 function SignedOpenLink({ path }: { path: string }) {
   const [busy, setBusy] = useState(false);
   const open = async () => {
-    // A value that is already a URL opens as-is; only a storage path is signed.
+    // A value that is already a URL opens as-is ONLY if it is an https: or
+    // raster data: URL (safeDocumentUrl); only a storage path is signed.
     if (!isStorageObjectPath(path)) {
-      window.open(path, "_blank", "noopener");
+      const safe = safeDocumentUrl(path);
+      if (safe) window.open(safe, "_blank", "noopener");
+      else toast.error("This document link isn't one we can open.");
       return;
     }
     setBusy(true);
@@ -521,9 +524,12 @@ function DocPreview({ path }: { path: string }) {
     let cancelled = false;
     setError(false);
     setSignedUrl(null);
-    // A value that is already a URL needs no ticket — show it as-is.
+    // A value that is already a URL needs no ticket — shown as-is only when
+    // safeDocumentUrl passes it; anything else is the error state.
     if (!isStorageObjectPath(path)) {
-      setSignedUrl(path);
+      const safe = safeDocumentUrl(path);
+      if (safe) setSignedUrl(safe);
+      else setError(true);
       return;
     }
     supabase.storage

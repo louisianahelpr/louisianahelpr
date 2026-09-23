@@ -8,7 +8,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
-import { isStorageObjectPath } from "@/lib/storagePath";
+import { isStorageObjectPath, safeDocumentUrl } from "@/lib/storagePath";
 import type { Profile } from "../adminUserHelpers";
 
 interface OpenProfileDeps {
@@ -78,10 +78,11 @@ export const makeOpenProfile = (deps: OpenProfileDeps) => {
     // Only a storage PATH is signable. 52 prod seed profiles hold a
     // `data:image/png;base64,…` fixture here; signing it POSTed the data URL
     // to /object/sign and got a 400 (issue #1582), leaving the Documents tab
-    // on "Loading document…" forever. A value that is already a URL is shown
-    // as-is — it needs no ticket.
+    // on "Loading document…" forever. A value that is already a URL needs no
+    // ticket, but is shown only if safeDocumentUrl passes it (https: or a
+    // raster data: image) — the column is user-writable.
     if (profile.id_document_url && !isStorageObjectPath(profile.id_document_url)) {
-      setIdDocSignedUrl(profile.id_document_url);
+      setIdDocSignedUrl(safeDocumentUrl(profile.id_document_url));
     } else if (isStorageObjectPath(profile.id_document_url)) {
       const { data: signedData, error: signedError } = await supabase.storage
         .from("id-documents")

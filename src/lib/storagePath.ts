@@ -28,3 +28,37 @@ export function isStorageObjectPath(value: string | null | undefined): value is 
   if (v.startsWith("//")) return false;
   return true;
 }
+
+/**
+ * A stored value that is NOT a storage path, made safe to hand to the DOM as
+ * an href / src / window.open target — or null.
+ *
+ * "Not a storage path" is not "safe to render". `profiles.id_document_url` and
+ * `helper_credentials.license_url` / `insurance_url` are client-writable on the
+ * caller's own row with no shape CHECK, so a user can store
+ * `javascript:fetch(…document.cookie)`. React 18 renders a `javascript:` href
+ * (warning only) and the CSP allows 'unsafe-inline', so an admin clicking
+ * "Open" on that document ran the script in the admin session (review of
+ * 12285cc92, 2026-09-23). Only two shapes pass: `https:` and a raster
+ * `data:image/…` (the seed fixtures). Everything else — `javascript:`,
+ * `vbscript:`, `data:text/html`, `data:image/svg+xml`, `http:`, `blob:`,
+ * `file:`, protocol-relative — is refused.
+ *
+ * `src/test/storagePathRenderIsAllowlisted.test.ts` requires every
+ * `!isStorageObjectPath(…)` branch that renders or opens the value to go
+ * through this.
+ */
+export function safeDocumentUrl(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null;
+  const v = value.trim();
+  if (/^https:\/\/[^\s]+$/i.test(v)) {
+    try {
+      return new URL(v).protocol === "https:" ? v : null;
+    } catch {
+      // Unparseable as a URL: refusing it IS the answer, not a swallowed error.
+      return null;
+    }
+  }
+  if (/^data:image\/(png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(v)) return v;
+  return null;
+}

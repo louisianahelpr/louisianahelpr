@@ -5,6 +5,28 @@ import NotificationPreferences from "@/components/NotificationPreferences";
 
 let PREFS_ROW: Record<string, unknown> = { user_id: "u1", push_enabled: true, quiet_start: null, quiet_end: null };
 
+/**
+ * The screen under test reads auth through `useAuthReady`, not a one-shot
+ * `supabase.auth.getUser()`.
+ *
+ * That changed on 2026-09-22 and it was a real fix: sampling auth once on
+ * mount with an empty dep array meant a `null` returned while a token refresh
+ * was in flight became PERMANENT, and every switch here stayed
+ * `disabled={!loaded}` forever with no error and no spinner. Measured on prod
+ * by the press sweep: 38 controls found on /profile?tab=notifications, 26
+ * failed, each a `<button disabled role="switch">` that never became
+ * clickable inside 16 seconds.
+ *
+ * `useAuthReady` subscribes to Supabase auth and needs `onAuthStateChange` and
+ * `getSession`, which the client mock below does not provide — so without this
+ * the hook never reports ready, `loaded` stays false and no switch renders.
+ * The subject of this file is the preferences screen, not the auth bootstrap,
+ * so the hook is stubbed at a resolved, signed-in state.
+ */
+vi.mock("@/hooks/useAuthReady", () => ({
+  useAuthReady: () => ({ user: { id: "u1" }, isReady: true }),
+}));
+
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: { getUser: async () => ({ data: { user: { id: "u1" } } }) },

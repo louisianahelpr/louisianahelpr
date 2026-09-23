@@ -186,6 +186,7 @@ const NotificationPreferences = () => {
   // exposes `isReady` so callers can tell "no user" from "not yet", and it
   // normalises the corrupt-session case in one place.
   const { user: authUser, isReady: authReady } = useAuthReady();
+  const authUserId = authUser?.id ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -248,9 +249,20 @@ const NotificationPreferences = () => {
       setLoaded(true);
     })();
     return () => { cancelled = true; };
-    // authReady/authUser are REAL dependencies — the whole point of the fix is
-    // that this re-runs when auth settles instead of sampling it once.
-  }, [authReady, authUser]);
+    // DEPEND ON THE ID, NOT THE OBJECT.
+    //
+    // `authReady` and the user are real dependencies — the whole point is that
+    // this re-runs when auth settles instead of sampling once. But depending on
+    // `authUser` itself makes the effect re-run on every render where the hook
+    // hands back a new object with the same contents, and this effect SETS
+    // STATE, so that is an infinite loop: effect -> setState -> render -> new
+    // identity -> effect.
+    //
+    // Caught by `notificationMasterSwitch.test.tsx` hanging rather than
+    // failing, once its stub returned a fresh `{ user, isReady }` each call.
+    // A stub is allowed to do that; a component must not depend on it not to.
+    // The id is a primitive and is what every query below actually uses.
+  }, [authReady, authUserId]);
 
   // Both writers below send the WHOLE prefs object, so both have to drop
   // `email_enabled` while the column is still deploying (see

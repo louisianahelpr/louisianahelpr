@@ -121,12 +121,51 @@ describe("auth is never sampled once and treated as final", () => {
     ).toEqual([]);
   });
 
+  it("no effect depends on useAuthReady's USER OBJECT — only on its id", () => {
+    /**
+     * The other half of the same fix, and it cost a hang rather than a failure.
+     *
+     * `useAuthReady()` hands back `{ user, isReady }`. An effect that SETS
+     * STATE and lists `authUser` in its deps re-runs on every render where
+     * that object's identity changes — effect -> setState -> render -> new
+     * identity -> effect, forever. `notificationMasterSwitch.test.tsx` did not
+     * fail when this landed; it HUNG, which is worse, because a hang reads as
+     * an environment problem (this 8GB Mac really does flake vitest under
+     * memory pressure) and sends you looking in the wrong place. I spent a
+     * pkill and two reruns on that before reading the dep array.
+     *
+     * A stub is entitled to return a fresh object each call. A component must
+     * not depend on it not to. The id is a primitive and is what every query
+     * actually uses.
+     */
+    const offenders: string[] = [];
+    for (const file of files) {
+      const code = codeOf(readFileSync(file, "utf8"));
+      if (!code.includes("useAuthReady()")) continue;
+      // Any dependency array naming the destructured user object directly.
+      for (const m of code.matchAll(/\}, \[([^\]]*)\]\)/g)) {
+        const deps = m[1];
+        if (/\bauthUser\b(?!Id)/.test(deps)) {
+          offenders.push(file.replace(root + "/", ""));
+          break;
+        }
+      }
+    }
+    expect(
+      offenders,
+      "These list useAuthReady's user OBJECT in an effect's dependencies. If the " +
+        "effect sets state, that is an infinite render loop the moment the hook " +
+        "returns a new object with the same contents. Depend on `user?.id`:\n  " +
+        offenders.join("\n  "),
+    ).toEqual([]);
+  });
+
   it("NotificationPreferences specifically depends on the resolved auth state", () => {
     // The screen the owner's sweep caught. Pinned by name because its failure
     // is silent — disabled controls look like a design choice, not a bug.
     const code = codeOf(readFileSync(join(SRC, "components/NotificationPreferences.tsx"), "utf8"));
     expect(code, "must read the shared auth snapshot").toContain("useAuthReady()");
-    expect(code, "must re-run when auth settles").toMatch(/\}, \[authReady, authUser\]\)/);
+    expect(code, "must re-run when auth settles").toMatch(/\}, \[authReady, authUserId\]\)/);
     // And it must still mark itself loaded on the genuinely-signed-out path,
     // or the tab presents itself as mid-load forever for a guest instead.
     expect(code).toMatch(/if \(!user\) \{[\s\S]*?setLoaded\(true\)/);

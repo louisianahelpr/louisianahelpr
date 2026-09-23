@@ -207,6 +207,11 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
   // shown service fee and total on their fallbacks while `create-payment`
   // charges from the real ones.
   const { user: authUser, isReady: authReady } = useAuthReady();
+  // The ID, not the object: this effect sets state, and depending on a
+  // hook-returned object re-runs it on every render where the identity changes
+  // — effect -> setState -> render -> new identity -> effect. See the longer
+  // note in NotificationPreferences.tsx.
+  const authUserId = authUser?.id ?? null;
 
   useEffect(() => {
     if (!authReady) return;
@@ -245,7 +250,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
           }
         });
     });
-  }, [authReady, authUser]);
+  }, [authReady, authUserId]);
 
   // One-tap rebook: load from query params
   useEffect(() => {

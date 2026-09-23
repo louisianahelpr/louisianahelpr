@@ -27,6 +27,11 @@ const BroadcastBanner = () => {
   const [userId, setUserId] = useState<string | null>(null);
 
   const { user: authUser, isReady: authReady } = useAuthReady();
+  // The ID, not the object: this effect sets state, and depending on a
+  // hook-returned object re-runs it on every render where the identity changes
+  // — effect -> setState -> render -> new identity -> effect. See the longer
+  // note in NotificationPreferences.tsx.
+  const authUserId = authUser?.id ?? null;
 
   useEffect(() => {
     const load = async () => {
@@ -62,7 +67,7 @@ const BroadcastBanner = () => {
       setBroadcasts(active.filter(b => !dismissedIds.has(b.id)));
     };
     load();
-  }, [authReady, authUser]);
+  }, [authReady, authUserId]);
 
   const dismiss = async (broadcastId: string) => {
     setBroadcasts(prev => prev.filter(b => b.id !== broadcastId));

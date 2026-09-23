@@ -28,7 +28,7 @@
  * files had neither.
  *
  * @mutate supabase/migrations/20260923052520_seed_alerts_go_to_the_digest.sql | coalesce(j.is_seed OR sp.is_seed, false) AS seed | false AS seed
- * @mutate supabase/functions/release-payout/index.ts | // seed-policy: | // seed policy -
+ * @mutate supabase/functions/execute-dispute-split/index.ts | // seed-policy: | // seed policy -
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";

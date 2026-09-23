@@ -193,6 +193,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/unsettledDispute.ts";`,
   );
 
+  // Dispute payout stamp (Q153): `_shared/disputePayoutStamp.ts` has ZERO
+  // imports (it takes the client as a parameter), so the generated file points
+  // at the REAL module. Its never-overwrite predicate is the behaviour under
+  // test; a mock would put it outside the tests that pin it.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/disputePayoutStamp\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/disputePayoutStamp.ts";`,
+  );
+
   // Captured-escrow resolver: `_shared/capturedEscrow.ts` has ZERO imports (it
   // is structurally typed over the PaymentIntent), so the generated file points
   // at the REAL module — same reasoning as payoutClaim above. It is the single

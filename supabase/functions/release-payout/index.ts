@@ -4,6 +4,9 @@
 // nightly money journeys on seed jobs are how this path is proven, so their failures
 // are real signal (2026-09-22: "transfer failed" on seed jobs = the empty test
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
+// The ONE exception is the Q153 dispute-stamp alert, which is about what a dispute
+// screen displays, not about money, so it passes `seed:` and a seed job's goes to
+// the digest.
 // release-payout: actually move money from the platform Stripe balance to
 // a helper's Connect account. Today auto-release-payment marks jobs as
 // "payout_pending" and tells the helper "you'll be paid in 24h" — but
@@ -44,6 +47,7 @@ import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 // stranded payout that made a retry non-optional.
 import { flipJobToReleased } from "../_shared/releaseFlip.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
+import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -118,7 +122,7 @@ serve(async (req) => {
   const { data: job, error: jobErr } = await supabaseAdmin
     .from("jobs")
     .select(
-      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, dispute_status, disputed_at, is_group_job, helpers_needed, stripe_payment_intent_id, stripe_session_id, helper_fee_percent",
+      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, dispute_status, disputed_at, is_group_job, helpers_needed, stripe_payment_intent_id, stripe_session_id, helper_fee_percent, is_seed",
     )
     .eq("id", body.job_id)
     .single();
@@ -297,7 +301,7 @@ serve(async (req) => {
   // Only 'failed' (money never left) is safely re-payable automatically.
   const { data: ledgerRowsRaw, error: existingErr } = await supabaseAdmin
     .from("payout_transfers")
-    .select("id, stripe_transfer_id, status, created_at")
+    .select("id, stripe_transfer_id, status, created_at, amount_cents")
     .eq("job_id", job.id);
   if (existingErr) {
     console.error(`[release-payout] duplicate-transfer check failed for job ${job.id}:`, existingErr);
@@ -373,6 +377,26 @@ serve(async (req) => {
       console.log(
         `[release-payout] job ${job.id} already had transfer ${existing.stripe_transfer_id}; completed the missing status flip`,
       );
+      // Q153: the run that died before this heal may also have died before it
+      // stamped the job's closed dispute. Finish that too — but only when the
+      // ledger is unambiguous (exactly one paid row with a transfer id and an
+      // amount), since the figure is taken from it rather than recomputed.
+      const paidRows = (ledgerRowsRaw ?? []).filter(
+        (r: { status?: string; stripe_transfer_id?: string | null; amount_cents?: number | null }) =>
+          r.status === "paid" && !!r.stripe_transfer_id && typeof r.amount_cents === "number" && r.amount_cents > 0,
+      ) as Array<{ stripe_transfer_id: string; amount_cents: number }>;
+      if (paidRows.length === 1) {
+        const healStamp = await stampDisputePayout(supabaseAdmin, {
+          jobId: job.id,
+          transferId: paidRows[0].stripe_transfer_id,
+          helperCents: paidRows[0].amount_cents,
+        });
+        if (healStamp.outcome === "error") {
+          console.error(
+            `[release-payout] heal of job ${job.id}: dispute row could not be stamped: ${healStamp.message}`,
+          );
+        }
+      }
       return jsonResponse({
         success: true,
         job_id: job.id,
@@ -1028,6 +1052,49 @@ serve(async (req) => {
     platform_fee_amount: platformFeeDollars,
     helper_fee_percent: helperFeePercent,
   });
+  // Q153 — AFTER the flip, never in front of it (the flip is the critical
+  // write; this one only corrects what the dispute screens display), and run
+  // whether or not the flip landed, because the transfer went out either way.
+  // A dispute that was closed (decided + executed) before this payout ran
+  // — auto-resolve-disputes, or a manual settle — had no transfer recorded on
+  // it, because the money moves HERE and this function never wrote the
+  // disputes row. Stamp the transfer that settled it, only where nothing is
+  // recorded (never over an existing stamp). Non-fatal: the money is out and
+  // payout_transfers says so; a failed stamp is alerted, not returned as 500.
+  const disputeStamp = await stampDisputePayout(supabaseAdmin, {
+    jobId: job.id,
+    transferId: transfer.id,
+    helperCents: payoutCents,
+  });
+  if (disputeStamp.outcome === "error") {
+    console.error(
+      `[release-payout] transfer ${transfer.id} paid job ${job.id} but its dispute row could not be stamped: ${disputeStamp.message}`,
+    );
+    await postSlackOpsAlert({
+      // Not payout_failed (always critical): the payout succeeded and is in
+      // the ledger; only the dispute's display record is behind.
+      kind: "custom",
+      severity: "warning",
+      // The one alert in this file that is NOT about money (see the header's
+      // seed-policy): a seed job's display gap goes to the digest, not Slack.
+      seed: job.is_seed === true,
+      title: "Payout sent but the dispute record does not show it",
+      message:
+        "A payout settled a job whose dispute was already closed, but the disputes row could not be stamped with the transfer. The money moved and payout_transfers records it; the dispute screens will read $0.00 until execution_transfer_id / execution_helper_cents are set.",
+      fields: {
+        "Job ID": job.id,
+        "Transfer ID": transfer.id,
+        "Dispute ID": disputeStamp.disputeId ?? "(unread)",
+        "DB error": disputeStamp.message.slice(0, 200),
+      },
+      link: "https://www.louisianahelpr.com/admin?view=disputes",
+    });
+  } else if (disputeStamp.outcome === "raced") {
+    console.warn(
+      `[release-payout] dispute ${disputeStamp.disputeId} was stamped by another writer first; its stamp was kept`,
+    );
+  }
+
   if (!flip.ok) {
     const zeroRow = flip.zeroRow;
     console.error(
@@ -1078,6 +1145,7 @@ serve(async (req) => {
     amount_cents: payoutCents,
     platform_fee_cents: platformFeeCents,
     initiated_by: initiatedBy,
+    dispute_stamp: disputeStamp.outcome,
   });
 });
 

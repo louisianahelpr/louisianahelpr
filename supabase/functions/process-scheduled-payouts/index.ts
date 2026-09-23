@@ -15,6 +15,7 @@ import { checkUnrecordedTransfers, claimPayout, failClaim, settleClaim } from ".
 import { flipJobToReleased, type FlipResult } from "../_shared/releaseFlip.ts";
 import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
+import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 
 
 serve(async (req) => {
@@ -1060,6 +1061,32 @@ serve(async (req) => {
         const flip: FlipResult = allRosterPaid
           ? await flipJobToReleased(supabaseAdmin, job.id, releaseFields)
           : { ok: true };
+        // Q153: a closed dispute (decided + executed) whose transfer is sent
+        // here must say so on its row. Normally unreachable — the job query
+        // excludes disputed_at IS NOT NULL — but that marker has been cleared
+        // by paths that never set it (see the holds comment above), and on
+        // that job this cron IS the payer and the dispute would read $0.00. Stamp the transfer where nothing
+        // is recorded (never over a stamp). Single-helper jobs only: a group
+        // job's one dispute row cannot hold N transfers. Non-fatal, and AFTER the
+        // flip so it never delays the critical write.
+        if (!job.is_group_job) {
+          const disputeStamp = await stampDisputePayout(supabaseAdmin, {
+            jobId: job.id,
+            transferId: transfer.id,
+            helperCents: payoutCents, // exactly the transfer amount above
+          });
+          if (disputeStamp.outcome === "error") {
+            console.error(
+              `[process-scheduled-payouts] transfer ${transfer.id} paid job ${job.id} but its dispute row could not be stamped: ${disputeStamp.message}`,
+            );
+            jobDefect(job.id, `dispute stamp ${job.id}: ${disputeStamp.message}`);
+          } else if (disputeStamp.outcome === "raced") {
+            console.warn(
+              `[process-scheduled-payouts] dispute ${disputeStamp.disputeId} was stamped by another writer first; its stamp was kept`,
+            );
+          }
+        }
+
         if (!flip.ok) {
           const zeroRow = flip.zeroRow;
           // The Stripe transfer already succeeded — throwing here would wrongly

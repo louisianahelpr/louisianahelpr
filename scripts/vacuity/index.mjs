@@ -22,13 +22,14 @@
  *   node scripts/vacuity/index.mjs              # per-push: ratchet+scan+preflight+changed mutations
  *   node scripts/vacuity/index.mjs --all        # weekly (vacuity.yml): every registered mutation
  *   node scripts/vacuity/index.mjs --report     # no gate, print the full vacuity report
+ *   node scripts/vacuity/index.mjs --only a,b   # mutate exactly these guard files' registrations
  */
 import fs from "node:fs";
 import path from "node:path";
 import { REPO, guardFiles, untrackedGuardFiles, parseDirectives, loadBaseline, BASELINE_PATH, changedFiles, c } from "./lib.mjs";
 import { scanAll } from "./scan.mjs";
 import { preflight } from "./preflight.mjs";
-import { collectMutations, runMutations } from "./run.mjs";
+import { collectMutations, runMutations, selectOnly } from "./run.mjs";
 
 const argv = process.argv.slice(2);
 const has = (f) => argv.includes(f);
@@ -165,8 +166,22 @@ for (const e of errors) fail(`registration — ${e}`);
     );
 }
 
+/*
+ * --only <guard>[,<guard>…]: mutate exactly these guard files' registrations
+ * (Q52/Q89, 2026-09-23). The weekly sweep left 10 e2e registrations
+ * inconclusive, and re-proving them needs the test-account credentials that
+ * only this workflow holds; the per-push scope is empty on a dispatch and the
+ * full set takes hours. A name that matches no registered guard is a failure,
+ * not an empty green run.
+ */
+const onlyIdx = argv.indexOf("--only");
+const ONLY = onlyIdx >= 0 ? String(argv[onlyIdx + 1] ?? "").split(",").map((s) => s.trim()).filter(Boolean) : null;
 let scoped = mutations;
-if (!ALL && !REPORT_ONLY) {
+if (ONLY) {
+  const sel = selectOnly(mutations, ONLY);
+  for (const e of sel.errors) fail(e);
+  scoped = sel.scoped;
+} else if (!ALL && !REPORT_ONLY) {
   const changed = changedFiles();
   scoped = changed
     ? mutations.filter((m) => changed.has(m.guard) || changed.has(m.target))
@@ -174,7 +189,7 @@ if (!ALL && !REPORT_ONLY) {
 }
 
 if (!NO_MUTATE && !REPORT_ONLY && scoped.length) {
-  console.log(`\n${c.bold("mutating")} ${scoped.length} registration(s)${ALL ? " (full set)" : " (changed since origin/main)"}…`);
+  console.log(`\n${c.bold("mutating")} ${scoped.length} registration(s)${ONLY ? ` (--only ${ONLY.join(", ")})` : ALL ? " (full set)" : " (changed since origin/main)"}…`);
   const results = runMutations(scoped, {
     onResult: (r) => {
       const tag =

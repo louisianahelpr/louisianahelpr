@@ -392,6 +392,19 @@ function runGuard(guard, { rebuild = false } = {}) {
 }
 
 /** Collect every registered mutation, plus every registration error. */
+/**
+ * `--only <guard>[,<guard>...]` (index.mjs): exactly these guard files'
+ * registrations. A named guard with no registration, or an empty list, is an
+ * error: a filter that matched nothing must never read as a clean run.
+ */
+export function selectOnly(mutations, only) {
+  const errors = [];
+  if (!only.length) errors.push("--only was given no guard file");
+  for (const g of only)
+    if (!mutations.some((m) => m.guard === g)) errors.push(`--only names ${g}, which registers no @mutate line`);
+  return { scoped: mutations.filter((m) => only.includes(m.guard)), errors };
+}
+
 export function collectMutations(guards = guardFiles()) {
   const mutations = [];
   const errors = [];

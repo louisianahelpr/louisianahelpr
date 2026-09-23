@@ -13,6 +13,9 @@
  *
  * @mutate scripts/vacuity/scan.mjs | res.classA = res.inventoryDriven && res.floors.length === 0; | res.classA = false;
  * @mutate scripts/vacuity/run.mjs | verdict = r.green ? "SURVIVED" : "killed"; | verdict = "killed";
+ * @mutate scripts/vacuity/run.mjs | if (!only.length) errors.push("--only was given no guard file"); | ;
+ * @mutate scripts/vacuity/run.mjs | errors.push(`--only names ${g}, which registers no @mutate line`); | ;
+ * @mutate scripts/vacuity/run.mjs | scoped: mutations.filter((m) => only.includes(m.guard)), | scoped: mutations,
  */
 import { beforeAll, describe, it, expect } from "vitest";
 import { mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
@@ -219,6 +222,21 @@ describe("the vacuity gate can itself fail", () => {
  * list without ever being scored — the nightly would have caught it, which
  * means "eventually" was doing all the work.
  */
+describe("--only: a dispatch re-proves exactly the named guards (Q52/Q89)", () => {
+  it("selects only the named guards' registrations and errors on a name that matches nothing", async () => {
+    const { selectOnly } = (await import(/* @vite-ignore */ url("run.mjs"))) as {
+      selectOnly: (m: Array<{ guard: string }>, only: string[]) => { scoped: Array<{ guard: string }>; errors: string[] };
+    };
+    const ms = [{ guard: "e2e/a.spec.ts" }, { guard: "e2e/a.spec.ts" }, { guard: "src/test/b.test.ts" }];
+    const hit = selectOnly(ms, ["e2e/a.spec.ts"]);
+    expect(hit.scoped).toHaveLength(2);
+    expect(hit.errors).toEqual([]);
+    // A typo must be red, never an empty green run.
+    expect(selectOnly(ms, ["e2e/typo.spec.ts"]).errors).toEqual(["--only names e2e/typo.spec.ts, which registers no @mutate line"]);
+    expect(selectOnly(ms, []).errors).toEqual(["--only was given no guard file"]);
+  });
+});
+
 describe("the diff base is not the commit it is comparing", () => {
   const LIB = readFileSync(resolve(__dirname, "..", "..", "scripts", "vacuity", "lib.mjs"), "utf8");
 

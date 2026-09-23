@@ -7,7 +7,7 @@ import type { CategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { categoryPricing, getSmartPrice } from "@/lib/pricingGuide";
 import { formatPrice, formatPriceExact } from "@/lib/format";
-import { MAX_JOB_BUDGET_DOLLARS, URGENT_FEE_FLOOR_DOLLARS, formatDollarsWhole } from "@/lib/moneyLimits";
+import { MAX_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS, URGENT_FEE_FLOOR_DOLLARS, formatDollarsWhole } from "@/lib/moneyLimits";
 
 /**
  * PRICING_MODE_REMOVED — 2026-08-19.
@@ -172,6 +172,9 @@ export function BudgetSection({
   const urgentFeeNum = parseFloat(urgentFee) || 0;
   const showUrgentMinWarning =
     isUrgent && urgentFee.trim() !== "" && urgentFeeNum < URGENT_FEE_FLOOR_DOLLARS;
+  // The bonus cap ($250, Q210(c)) is the shared constant create-payment and the
+  // jobs_urgent_fee_ceiling CHECK use; said here before submit refuses it.
+  const showUrgentMaxWarning = isUrgent && urgentFeeNum > MAX_URGENT_FEE_DOLLARS;
 
   return (
     <SectionCard
@@ -385,7 +388,7 @@ export function BudgetSection({
             <p className="text-ds-11 text-muted-foreground">
               ⚡ For jobs that need doing right away. Nearby Helprs are notified the moment you post, and your bonus goes straight to the Helpr who takes it — no platform fee applied. (To reach more Helprs over time, Boost the post after publishing instead.)
             </p>
-            <Label className="text-ds-11">Urgent Bonus ($5 Minimum)</Label>
+            <Label className="text-ds-11">Urgent Bonus ({formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum, {formatDollarsWhole(MAX_URGENT_FEE_DOLLARS)} maximum)</Label>
             <div className="flex flex-wrap gap-2">
               {["5", "10", "15", "20"].map((amt) => (
                 <button
@@ -424,6 +427,7 @@ export function BudgetSection({
                   type="number"
                   inputMode="decimal"
                   min="5"
+                  max={MAX_URGENT_FEE_DOLLARS}
                   step="1"
                   value={urgentFee}
                   onChange={(e) => setUrgentFee(e.target.value)}
@@ -442,6 +446,20 @@ export function BudgetSection({
               >
                 <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
                   Urgent bonus must be at least $5
+                </p>
+              </div>
+            )}
+            {showUrgentMaxWarning && (
+              <div
+                className="flex items-center gap-2 rounded-ds-md px-3 py-2 border"
+                style={{
+                  background: "hsl(var(--amber-tint) / 0.10)",
+                  borderColor: "hsl(var(--amber-tint) / 0.30)",
+                }}
+                role="status"
+              >
+                <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                  The most an urgent bonus can be is {formatDollarsWhole(MAX_URGENT_FEE_DOLLARS)}.
                 </p>
               </div>
             )}

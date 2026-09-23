@@ -264,7 +264,7 @@ async function ensureOwnedAccount(key, spec) {
     date_of_birth: "1990-01-01",
     // Pre-accept the current Terms (src/lib/consent.ts LATEST_TERMS_VERSION) so
     // TermsReconsentDialog does not cover every screen the sweep opens.
-    terms_version_accepted: "Jun 2026",
+    terms_version_accepted: "Sep 2026",
     terms_accepted_at: new Date().toISOString(),
     location: "Lafayette, LA",
     avatar_url: PIXEL,

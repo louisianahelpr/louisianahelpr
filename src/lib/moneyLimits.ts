@@ -18,11 +18,11 @@
 
 /** Job budget limits (whole dollars): MIN_JOB_BUDGET_DOLLARS,
  *  MAX_JOB_BUDGET_DOLLARS ($1,000 since 2026-09-23, Q202) and
- *  MAX_URGENT_FEE_DOLLARS (= the budget ceiling). They live in
+ *  MAX_URGENT_FEE_DOLLARS ($250 since 2026-09-23, Q210(c)). They live in
  *  supabase/functions/_shared/jobBudgetLimits.ts so the client, create-payment
  *  and the DB CHECKs (jobs_budget_range, jobs_urgent_fee_ceiling,
  *  validate_job_budget) share ONE number; jobBudgetCapIsOneConstant.test.ts
- *  fails when any of them disagrees. The form is not the enforcement point:
+ *  and urgentBonusCap.test.ts fail when any of them disagrees. The form is not the enforcement point:
  *  the jobs INSERT goes through PostgREST with the poster's own token. */
 export {
   MIN_JOB_BUDGET_DOLLARS,

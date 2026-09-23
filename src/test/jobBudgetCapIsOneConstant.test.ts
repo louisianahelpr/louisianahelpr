@@ -26,7 +26,6 @@
  * @mutate supabase/functions/_shared/jobBudgetLimits.ts | export const MAX_JOB_BUDGET_DOLLARS = 1000; | export const MAX_JOB_BUDGET_DOLLARS = 5000;
  * @mutate supabase/migrations/20260923154148_job_budget_cap_1000.sql | ADD CONSTRAINT jobs_budget_range CHECK (budget >= 10 AND budget <= 1000); | ADD CONSTRAINT jobs_budget_range CHECK (budget >= 10 AND budget <= 5000);
  * @mutate supabase/migrations/20260923154148_job_budget_cap_1000.sql | IF NEW.budget IS NOT NULL AND NEW.budget > 1000 THEN | IF NEW.budget IS NOT NULL AND NEW.budget > 5000 THEN
- * @mutate supabase/migrations/20260923154148_job_budget_cap_1000.sql | CHECK (urgent_fee IS NULL OR (urgent_fee >= 0 AND urgent_fee <= 1000));\n  END IF; | CHECK (urgent_fee IS NULL OR (urgent_fee >= 0 AND urgent_fee <= 5000));\n  END IF;
  * @mutate supabase/functions/create-payment/index.ts | if (jobBudgetOutOfRange(job.budget)) { | if (false) {
  * @mutate src/components/postjob/BudgetSection.tsx | The most a job can be is {formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}. | The most a job can be is $5,000.
  * @mutate src/pages/postjob/useJobDerived.ts | && parseFloat(budget) <= MAX_JOB_BUDGET_DOLLARS); | );
@@ -59,10 +58,11 @@ function newestConstraint(name: string): { file: string; check: string } {
 const numbers = (text: string, re: RegExp) => [...text.matchAll(re)].map((m) => Number(m[1]));
 
 describe("job price cap — one constant shared by client, server and DB (Q202)", () => {
-  it("is $1,000 in the shared module, and the urgent ceiling follows it", () => {
+  it("is $1,000 in the shared module (the urgent bonus has its own $250 cap, Q210(c))", () => {
     expect(shared.MAX_JOB_BUDGET_DOLLARS).toBe(1000);
     expect(shared.MIN_JOB_BUDGET_DOLLARS).toBe(10);
-    expect(shared.MAX_URGENT_FEE_DOLLARS).toBe(shared.MAX_JOB_BUDGET_DOLLARS);
+    // The urgent ceiling is no longer the budget ceiling: urgentBonusCap.test.tsx.
+    expect(shared.MAX_URGENT_FEE_DOLLARS).toBeLessThan(shared.MAX_JOB_BUDGET_DOLLARS);
     expect(shared.jobBudgetOutOfRange(1000)).toBe(false);
     expect(shared.jobBudgetOutOfRange(1000.01)).toBe(true);
     expect(shared.jobBudgetOutOfRange(9.99)).toBe(true);

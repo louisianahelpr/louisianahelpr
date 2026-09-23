@@ -1,6 +1,7 @@
 import { safeStorage } from "@/lib/safeStorage";
 import type { Job } from "./types";
 import { isPastDue } from "@/lib/jobDate";
+import { MAX_JOB_BUDGET_DOLLARS, formatDollarsWhole } from "@/lib/moneyLimits";
 
 const RESOLVED_FLAGS_KEY = "admin_resolved_job_flags";
 
@@ -101,8 +102,11 @@ export function detectFlags(job: Job): string[] {
   const title = (job.title || "").toLowerCase();
   const combined = `${title} ${desc}`;
 
-  // Unreasonably high budget for the category
-  if (job.budget > 5000) flags.push("Very high budget ($" + job.budget + ")");
+  // Above the shared price cap ($1,000 since Q202): a new job cannot be posted
+  // there (jobs_budget_range), so this flags a row that predates the cap.
+  if (job.budget > MAX_JOB_BUDGET_DOLLARS) {
+    flags.push(`Budget above the ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)} cap ($${job.budget})`);
+  }
 
   // Suspiciously low budget with long hours
   if (job.budget <= 10 && (job.estimated_hours || 0) >= 4) flags.push("Very low pay for estimated hours");

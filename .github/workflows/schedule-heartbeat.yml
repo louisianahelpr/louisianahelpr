@@ -146,6 +146,36 @@ jobs:
             fi
           done
 
+          # Q293: privacy-journey.yml is a weekly cron gated to the first 7
+          # days of the month (so it is effectively MONTHLY), and it shares
+          # the `prod-load` concurrency group — GitHub keeps one PENDING run
+          # per group, so a third run entering that group cancels the
+          # waiting privacy-journey run at the WORKFLOW level. No job runs,
+          # not even its own `notify`, so nightly-issue-sync never fires and
+          # the generic WATCHED loop above (which only reads
+          # `runs?event=schedule` created_at, not conclusion) sees a run
+          # happened and stays green — a whole month can be missed silently.
+          # privacy-journey's own green DUE run instead records the month it
+          # ran in the body of the standing `privacy-journey-marker` issue
+          # (see its notify job); read that record directly here.
+          TODAY_DAY=$(date -u +%-d)
+          CURRENT_MONTH=$(date -u +%Y-%m)
+          if [ "$TODAY_DAY" -ge 8 ]; then
+            MARKER=$(gh issue list --repo "$REPO" --label "privacy-journey-marker" --state open \
+              --search 'in:title "privacy-journey-marker"' --json body \
+              --jq '.[0].body // ""' 2>/dev/null || echo "")
+            if echo "$MARKER" | grep -q "Last successful monthly run: $CURRENT_MONTH"; then
+              echo "| \`privacy-journey.yml\` | active | recorded $CURRENT_MONTH | ✅ |" >> /tmp/rows.md
+              echo "✅ privacy-journey — recorded green run for $CURRENT_MONTH"
+            else
+              STALE_COUNT=$((STALE_COUNT + 1))
+              echo "| \`privacy-journey.yml\` | active | no record for $CURRENT_MONTH | 🔴 monthly privacy journey missed |" >> /tmp/rows.md
+              echo "::error::privacy-journey has no recorded green run for $CURRENT_MONTH (day $TODAY_DAY, due by day 7) — check the privacy-journey-marker issue and whether a run was cancelled in the prod-load concurrency group."
+            fi
+          else
+            echo "| \`privacy-journey.yml\` | active | _not yet due_ | ⏳ before day 8 |" >> /tmp/rows.md
+          fi
+
           echo "stale=$STALE_COUNT" >> $GITHUB_OUTPUT
 
           {

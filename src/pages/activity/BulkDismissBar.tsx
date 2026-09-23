@@ -24,12 +24,11 @@ export function BulkDismissBar({
       role="toolbar"
       aria-label="Bulk dismiss action bar"
       data-rail-inset
-      className="fixed inset-x-0 z-40 px-4"
-      // Sit above the bottom-nav dock — same safe-area math the rest of
-      // the app uses for dock-adjacent floating UI.
-      style={{
-        bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
-      }}
+      // Sit above the bottom-nav dock on the shared `safe-nav` token
+      // (tailwind.config.ts: --safe-area-bottom + --bottom-nav-h + 1rem), the
+      // same clearance every other dock-adjacent surface reads (Q214). It was
+      // a hand-typed env() + 80px that ignored --bottom-nav-h.
+      className="fixed inset-x-0 bottom-safe-nav z-40 px-4"
     >
       <div
         className="mx-auto max-w-xl flex items-center justify-between gap-3 px-4 py-3 rounded-ds-md"

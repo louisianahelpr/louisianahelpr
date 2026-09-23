@@ -170,14 +170,19 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
         title="My Pets"
         onBack={onBack}
         rightSlot={
-          <Button
-            variant="primary"
-            size="sm"
-            className="hidden lg:inline-flex"
-            onClick={openAddDesktop}
-          >
-            <Plus className="w-4 h-4 mr-1" /> Add a Pet
-          </Button>
+          // Not while the empty state is up (Q247): its own "Add a Pet" CTA
+          // is the one action, so a second identical title-row button sat
+          // right above it at lg.
+          pets?.length === 0 ? undefined : (
+            <Button
+              variant="primary"
+              size="sm"
+              className="hidden lg:inline-flex"
+              onClick={openAddDesktop}
+            >
+              <Plus className="w-4 h-4 mr-1" /> Add a Pet
+            </Button>
+          )
         }
       />
         {/* ─── Mobile (default): stacked list ─────────────────────────── */}

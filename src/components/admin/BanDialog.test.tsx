@@ -14,11 +14,13 @@ const updateMock = vi.fn();
 const eqMock = vi.fn();
 const selectMock = vi.fn();
 const getUserMock = vi.fn();
+const invokeMock = vi.fn();
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: { getUser: () => getUserMock() },
     from: (...args: unknown[]) => fromMock(...args),
+    functions: { invoke: (...args: unknown[]) => invokeMock(...args) },
   },
 }));
 
@@ -79,6 +81,8 @@ describe("BanDialog", () => {
     createNotificationMock.mockReset();
     logAdminActionMock.mockReset();
     requireBiometricMock.mockReset();
+    invokeMock.mockReset();
+    invokeMock.mockResolvedValue({ data: { success: true }, error: null });
     // Default PASS, so every existing case behaves exactly as it did.
     requireBiometricMock.mockResolvedValue(true);
 
@@ -133,9 +137,39 @@ describe("BanDialog", () => {
     // First insert: user_violations row
     expect(insertMock).toHaveBeenCalled();
     expect(fromMock).toHaveBeenCalledWith("user_violations");
-    // Then update: profiles.ban_status='final_warning'
-    expect(fromMock).toHaveBeenCalledWith("profiles");
+    // Then profiles.ban_status='final_warning' — through the admin-user-actions
+    // edge function (Q304: authenticated holds no UPDATE on the column), never
+    // a direct profiles write.
+    expect(invokeMock).toHaveBeenCalledWith("admin-user-actions", {
+      body: { action: "set_ban_status", userId: sampleProfile.user_id, banStatus: "final_warning" },
+    });
+    expect(fromMock).not.toHaveBeenCalledWith("profiles");
     expect(logAdminActionMock).toHaveBeenCalled();
+  });
+
+  it("a temp ban sends the same end date to the profile as to the ban row", async () => {
+    const onSuccess = vi.fn();
+    render(<BanDialog profile={sampleProfile} onClose={vi.fn()} onSuccess={onSuccess} />);
+    fireEvent.click(screen.getByText(/Temp Ban/));
+    fireEvent.click(screen.getByRole("button", { name: /Ban for 7 days/ }));
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    const banRow = insertMock.mock.calls.map((c) => c[0]).find((r) => r.ban_type === "temporary");
+    const body = invokeMock.mock.calls[0][1].body;
+    expect(body).toMatchObject({ action: "set_ban_status", userId: sampleProfile.user_id, banStatus: "temp_banned" });
+    expect(body.suspendedUntil).toBe(banRow.expires_at);
+  });
+
+  it("a ban the server matched no profile for is reported, not closed on", async () => {
+    invokeMock.mockResolvedValue({
+      data: null,
+      error: { message: "non-2xx", context: new Response(JSON.stringify({ error: "User not found", rejected: true }), { status: 404 }) },
+    });
+    const onSuccess = vi.fn();
+    render(<BanDialog profile={sampleProfile} onClose={vi.fn()} onSuccess={onSuccess} />);
+    fireEvent.click(screen.getByText(/Perm Ban/));
+    fireEvent.click(screen.getByRole("button", { name: /Permanently Ban/ }));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/permanent ban wasn't applied/i)));
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 
   it("refuses a self-targeted action — no write, explicit toast", async () => {
@@ -151,6 +185,7 @@ describe("BanDialog", () => {
     await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/your own account/i)));
     expect(insertMock).not.toHaveBeenCalled();
     expect(updateMock).not.toHaveBeenCalled();
+    expect(invokeMock).not.toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();
   });
 
@@ -191,6 +226,7 @@ describe("BanDialog", () => {
     expect(fromMock).not.toHaveBeenCalled();
     expect(insertMock).not.toHaveBeenCalled();
     expect(updateMock).not.toHaveBeenCalled();
+    expect(invokeMock).not.toHaveBeenCalled();
     expect(createNotificationMock).not.toHaveBeenCalled();
     expect(logAdminActionMock).not.toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();

@@ -38,10 +38,10 @@ import { blankComments } from "./helpers/blankNonCode";
  * `.eq("status", "pending")` race), add it to ALLOWLIST / DELETE_ALLOWLIST
  * with the reason.
  *
- * Proven able to fail 2026-09-21 on a real moderation-ladder write: dropping
- * `.select("user_id")` from BanDialog's `profiles.ban_status = 'final_warning'`
- * update — the write the app actually reads to lock the account — is caught
- * (1 failed, naming the file and line). Reverted.
+ * Proven able to fail 2026-09-21 on a real moderation-ladder write (BanDialog's
+ * `profiles.ban_status` update, since moved server-side by Q304), and again
+ * 2026-09-23 on unbanUser's `user_bans.is_active = false` write: dropping its
+ * `.select("id")` is caught (1 failed, naming the file and line). Reverted.
  *
  * NOT killable by removing a `.select()` from every write: a computed-key
  * payload (`.update({ [field]: … })`, JobConfirmation.tsx) carries no literal
@@ -51,7 +51,7 @@ import { blankComments } from "./helpers/blankNonCode";
  * The inventory floor below is what stops the whole file passing vacuously if
  * the scanner ever stops matching PostgREST chains at all.
  *
- * @mutate src/components/admin/BanDialog.tsx | .update({ ban_status: "final_warning" })\n            .eq("user_id", profile.user_id)\n            .select("user_id") | .update({ ban_status: "final_warning" })\n            .eq("user_id", profile.user_id)
+ * @mutate src/components/admin/adminusers/useAdminUserActions.ts | .eq("user_id", profile.user_id).eq("is_active", true)\n      .select("id"); | .eq("user_id", profile.user_id).eq("is_active", true);
  */
 
 const repoRoot = resolve(__dirname, "../..");
@@ -550,11 +550,11 @@ describe("high-risk mutations can observe their own row count", () => {
       "the update/delete scanner matched (almost) no risk write in all of src/ — " +
         "the member regexes, argListOpen or fromTable stopped matching real PostgREST chains, " +
         "so every assertion above is passing over an empty list.",
-    ).toBeGreaterThanOrEqual(34);
+    ).toBeGreaterThanOrEqual(29); // 34 -> 29 (2026-09-23, Q304): the five admin profiles.ban_status writes moved to the admin-user-actions edge function.
 
     // Both verbs must still be reachable: a delete-side rot is invisible if
     // only the update total is floored.
-    expect(riskWrites.filter((h) => h.kind === "update").length).toBeGreaterThanOrEqual(25);
+    expect(riskWrites.filter((h) => h.kind === "update").length).toBeGreaterThanOrEqual(20); // 25 -> 20, Q304 (see above)
     expect(riskWrites.filter((h) => h.kind === "delete").length).toBeGreaterThanOrEqual(7);
   });
 

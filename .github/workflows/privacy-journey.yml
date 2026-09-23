@@ -177,3 +177,40 @@ jobs:
           status: ${{ needs.gate.result == 'success' && needs.privacy-journey.result == 'success' && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Q293: a scheduled run of THIS workflow can be cancelled at the
+      # workflow level (a third run entering the shared `prod-load`
+      # concurrency group cancels the waiting one) before any job — not even
+      # this `notify` job — ever starts, so nightly-issue-sync above never
+      # runs and no nightly-red issue is filed for the missed month. A
+      # green DUE run records the calendar month it ran in the body of a
+      # standing `privacy-journey-marker` issue; schedule-heartbeat.yml reads
+      # that marker directly (not the Actions run history, which a
+      # workflow-level cancellation never touches) and alarms if the current
+      # month has no such record after day 8.
+      - name: Record the month of a green run (Q293)
+        if: needs.gate.result == 'success' && needs.privacy-journey.result == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          MONTH=$(date -u +%Y-%m)
+          LABEL="privacy-journey-marker"
+          gh label create "$LABEL" --repo "$REPO" --color 0E8A16 \
+            --description "Machine-read marker: last calendar month the privacy journey went green (Q293)" \
+            >/dev/null 2>&1 || true
+          EXISTING=$(gh issue list --repo "$REPO" --label "$LABEL" --state open \
+            --search "in:title \"$LABEL\"" --json number,title \
+            --jq ".[] | select(.title == \"$LABEL\") | .number" | head -n1)
+          BODY="Last successful monthly run: $MONTH
+
+          This issue is a machine-read marker, not a defect report — schedule-heartbeat.yml
+          reads its body to alarm if a due month (day 8 or later) has no green run
+          recorded here. Do not close it by hand; CI keeps it open and edits the body
+          on every green DUE run."
+          if [ -n "$EXISTING" ]; then
+            gh issue edit "$EXISTING" --repo "$REPO" --body "$BODY" >/dev/null
+          else
+            gh issue create --repo "$REPO" --title "$LABEL" --label "$LABEL" --body "$BODY" >/dev/null
+          fi

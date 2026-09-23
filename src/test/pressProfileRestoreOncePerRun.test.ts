@@ -3,6 +3,8 @@
 // @mutate .github/workflows/press-every-control.yml |     needs: [snapshot]\n |     needs: []\n
 // @mutate .github/workflows/press-every-control.yml |           PROFILE_SNAPSHOT: ${{ needs.snapshot.result == 'success' && 'profile-baseline/profile-snapshot.json' \|\| '' }} |           PROFILE_SNAPSHOT_X: ''
 // @mutate scripts/audit/pressProdSafety.mjs |     if (profilesBefore && !before) residue.push | if (false) residue.push
+// @mutate scripts/audit/pressProdSafety.mjs | "is_seed", "approval_status", "terms_version_accepted", | "is_seed",
+// @mutate scripts/audit/pressProdSafety.mjs |         for (const [k, v] of Object.entries(patch)) { |         for (const [k, v] of [[Object.keys(patch).join(), patch]]) {
 /*
  * CLASS GUARD (docs/OPEN.md Q272): the press sweep's profile restore can never
  * write back a value the run did not start from.
@@ -37,7 +39,7 @@ const shardOwnsProfileRestore = safety.shardOwnsProfileRestore as (shard?: strin
 const cleanup = safety.cleanup as (a: { sessions: Record<string, Session>; since: number; profilesBefore: Record<string, Row | null> | null }) => Promise<{ log: string[]; residue: string[] }>;
 
 /** A one-table PostgREST: profiles rows by user_id; every other table is empty. Records every profile PATCH. */
-function fakeProd(rows: Record<string, Row>) {
+function fakeProd(rows: Record<string, Row>, refuse: string[] = []) {
   const patches: Row[] = [];
   const fetchStub = vi.fn(async (url: string, init: { method?: string; body?: string } = {}) => {
     const u = new URL(url);
@@ -49,6 +51,7 @@ function fakeProd(rows: Record<string, Row>) {
     if (table === "profiles" && method === "PATCH") {
       const patch = JSON.parse(init.body ?? "{}") as Row;
       patches.push(patch);
+      if (Object.keys(patch).some((k) => refuse.includes(k))) return new Response('{"code":"42501"}', { status: 400 });
       rows[uid] = { ...rows[uid], ...patch };
       return json([{ ...rows[uid] }]);
     }
@@ -99,6 +102,21 @@ describe("Q272: the press sweep restores profiles from ONE baseline per run", ()
     // Exactly one direct snapshotProfiles call: the PROFILE_SNAPSHOT_OUT branch.
     expect(src.match(/snapshotProfiles\(/g)?.length ?? 0).toBe(1);
     expect(src).toMatch(/if \(process\.env\.PROFILE_SNAPSHOT_OUT\) \{\s*const snap = await snapshotProfiles\(sessions\)/);
+  });
+
+  it("never rolls back server-owned records, and one refused column cannot sink the rest (run 35905268411)", async () => {
+    const U = "u3";
+    // The server refuses approval_status from a member, as prod did (HTTP 400 on all four shards).
+    const prod = fakeProd({ [U]: { user_id: U, senior_mode: true, approval_status: "approved", terms_version_accepted: "2026-09-23", bio: "changed" } }, ["approval_status", "bio"]);
+    const baseline = { customer: { user_id: U, senior_mode: false, approval_status: "pending", terms_version_accepted: "2026-09-01", bio: "seed" } };
+    const r = await cleanup({ sessions: { customer: { userId: U, accessToken: "t" } }, since: Date.now(), profilesBefore: baseline });
+    const written = prod.patches.flatMap((p) => Object.keys(p));
+    expect(written).not.toContain("approval_status");
+    expect(written).not.toContain("terms_version_accepted");
+    expect(prod.rows[U].senior_mode).toBe(false);
+    expect(r.log.join("\n")).toMatch(/customer profile: restored senior_mode/);
+    // A column the server refuses is residue by NAME, and did not stop senior_mode.
+    expect(r.residue.join("\n")).toMatch(/could NOT restore bio \(HTTP 400/);
   });
 
   it("a baseline that lacks a reachable persona is residue, never a silent skip", async () => {

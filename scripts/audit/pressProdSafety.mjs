@@ -414,7 +414,15 @@ export const CLEANUP_TABLES = [
 ];
 
 /** Profile columns a press can change through Settings and that the account may write back. Timestamps and server-managed columns stay. */
-const PROFILE_SKIP = new Set(["id", "user_id", "created_at", "updated_at", "last_seen_at", "last_active_at", "rating", "review_count", "jobs_completed", "is_seed"]);
+//
+// approval_status and terms_version_accepted (Q272, run 35905268411): every
+// shard's restore tried to write them back and the whole PATCH was refused
+// ("restored approval_status, terms_version_accepted FAILED (HTTP 400, 0
+// rows)", all four shards, all four accounts), so NOTHING was restored. Both
+// are records the server or the member owns, never a press's side effect to
+// undo: the admin approval state (retired as a gate, Q193/Q205) and the legal
+// record of which terms version was accepted (un-accepting it is wrong).
+const PROFILE_SKIP = new Set(["id", "user_id", "created_at", "updated_at", "last_seen_at", "last_active_at", "rating", "review_count", "jobs_completed", "is_seed", "approval_status", "terms_version_accepted", "terms_accepted_at", "accepted_terms_at"]);
 
 export async function snapshotProfile(s) {
   try { return (await prodSelect(s, `profiles?select=*&user_id=eq.${s.userId}`))[0] ?? null; } catch { return null; }
@@ -529,11 +537,16 @@ export async function cleanup({ sessions, since, profilesBefore }) {
       if (!after) residue.push(`${persona} profile: NOT restored (could not read the current row)`);
       if (after) {
         const patch = profileRestorePatch(before, after);
-        if (Object.keys(patch).length) {
-          const r = await fetch(`${supabaseUrl()}/rest/v1/profiles?user_id=eq.${s.userId}`, { method: "PATCH", headers: headers(s, { Prefer: "return=representation" }), body: JSON.stringify(patch) });
+        // One column per PATCH: a single refused column used to sink the
+        // whole restore (run 35905268411), and the residue could not say which.
+        const restored = [];
+        for (const [k, v] of Object.entries(patch)) {
+          const r = await fetch(`${supabaseUrl()}/rest/v1/profiles?user_id=eq.${s.userId}&select=user_id`, { method: "PATCH", headers: headers(s, { Prefer: "return=representation" }), body: JSON.stringify({ [k]: v }) });
           const rows = r.ok ? await r.json().catch(() => []) : [];
-          (r.ok && rows.length === 1 ? log : residue).push(`${persona} profile: restored ${Object.keys(patch).join(", ")}${r.ok && rows.length === 1 ? "" : ` FAILED (HTTP ${r.status}, ${rows.length} rows)`}`);
+          if (r.ok && rows.length === 1) restored.push(k);
+          else residue.push(`${persona} profile: could NOT restore ${k} (HTTP ${r.status}, ${rows.length} rows${r.ok ? "" : `: ${(await r.text().catch(() => "")).slice(0, 120)}`})`);
         }
+        if (restored.length) log.push(`${persona} profile: restored ${restored.join(", ")}`);
       }
     }
   }

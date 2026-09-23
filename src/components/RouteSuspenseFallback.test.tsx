@@ -6,6 +6,7 @@
 // for screen readers), or throw and surface the route error boundary
 // instead of the placeholder.
 
+// @mutate src/components/RouteSuspenseFallback.tsx | <span className="sr-only">Loading…</span>\n  </div> | <span className="sr-only">Loading…</span>\n    <div aria-hidden="true" className="h-6 rounded-ds-sm motion-safe:animate-pulse" />\n  </div>
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 

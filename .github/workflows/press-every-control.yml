@@ -91,9 +91,18 @@ jobs:
   press:
     name: Press every control (shard ${{ matrix.shard }}/4, 375, prod)
     runs-on: ubuntu-latest
+    # timeout-minutes is PER JOB and its clock starts when the shard starts on
+    # a runner, not while it waits for a max-parallel slot. So with two waves
+    # each shard still gets its full 150 (the last run's shards took 137 min),
+    # and the run's wall time roughly doubles (~4.6h, up to 2 x 150 min).
     timeout-minutes: 150
     strategy:
       fail-fast: false
+      # Q317 (2026-09-23): four shards at once, beside other prod suites, took
+      # prod to 56/60 Postgres connections and pg_cron's jobs were refused
+      # ("remaining connection slots are reserved", 14 failures at 19:00Z).
+      # Two at a time. Guarded by src/test/pressMaxParallel.test.ts.
+      max-parallel: 2
       matrix:
         shard: [1, 2, 3, 4]
 
@@ -205,6 +214,9 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read # read this run's own start time (CLEANUP_SINCE)
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -215,6 +227,7 @@ jobs:
       - name: Sweep
         env:
           OUT: test-results/press-every-control-cleanup
+          GH_TOKEN: ${{ github.token }}
           PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
           PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
           PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
@@ -222,9 +235,17 @@ jobs:
           PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
           PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
         run: |
-          # Everything created since this run started (three hours covers the
-          # longest shard); the marker-titled fixture jobs regardless of age.
-          CLEANUP_SINCE=$(date -u -d '-3 hours' +%Y-%m-%dT%H:%M:%SZ) node scripts/audit/press-every-control.mjs
+          # Everything created since this run started; the marker-titled
+          # fixture jobs regardless of age. Q317: with max-parallel 2 the shards
+          # run in two waves (up to 2 x 150 min), so a fixed "-3 hours" would
+          # miss the first wave's rows. Read the run's own start time; if that
+          # read fails, fall back to 6 hours (>= two full waves plus setup).
+          if ! SINCE=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .run_started_at) || [ -z "$SINCE" ]; then
+            echo "::warning title=press clean-up window::could not read run_started_at; sweeping the last 6 hours"
+            SINCE=$(date -u -d '-6 hours' +%Y-%m-%dT%H:%M:%SZ)
+          fi
+          echo "CLEANUP_SINCE=$SINCE"
+          CLEANUP_SINCE="$SINCE" node scripts/audit/press-every-control.mjs
 
       # The poster's own teardown CANNOT remove a fixture job it had to cancel:
       # `cancelled` is terminal in enforce_job_status_transition (never a SOURCE

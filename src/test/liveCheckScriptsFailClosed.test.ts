@@ -222,6 +222,13 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "Stripe 500", env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub", LH_STRIPE_API_BASE: "@HTTP@/fail" }, says: /could not read the Stripe TEST balance: Stripe GET \/v1\/balance 500/ },
     { label: "Stripe []", env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub", LH_STRIPE_API_BASE: "@HTTP@/empty" }, says: /did not return a balance object — refusing to report clean/ },
   ],
+  // Q317 (quota-monitor.yml db_pool_budget job): live SQL + /postgrest +
+  // /config/database/pooler through the Management API (LH_SUPABASE_API_BASE).
+  "scripts/check-db-pool-budget.mjs": [
+    { label: "no credentials", says: /could not read the pool config: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
+    { label: "Management API 500", env: MGMT("fail"), says: /could not read the pool config: Management API \/database\/query 500/ },
+    { label: "Management API []", env: MGMT("empty"), says: /the connection SQL returned no row — refusing to report clean/ },
+  ],
   "scripts/check-analytics-freshness.mjs": [
     { label: "no credentials", says: /could not read analytics_events: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
     { label: "Management API 500", env: MGMT("fail"), says: /could not read analytics_events: Management API SQL 500/ },

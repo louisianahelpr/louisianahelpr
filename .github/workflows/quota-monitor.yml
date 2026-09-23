@@ -104,9 +104,27 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-stripe-balance.mjs
 
+  db_pool_budget:
+    # Q317: PostgREST + pooler + Auth pools + other backends + a pg_cron
+    # reserve must fit in max_connections minus the superuser slots, or cron
+    # jobs are refused under load (14 refusals, 2026-09-23 19:00Z).
+    name: Postgres connection budget (Q317)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Add up the pools against the usable connections
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-db-pool-budget.mjs
+
   notify:
     name: Report nightly result
-    needs: [quota, analytics, stripe_balance]
+    needs: [quota, analytics, stripe_balance, db_pool_budget]
     if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -117,6 +135,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: quota-monitor
-          status: ${{ (needs.quota.result == 'success' && needs.analytics.result == 'success' && needs.stripe_balance.result == 'success') && 'success' || 'failure' }}
+          status: ${{ (needs.quota.result == 'success' && needs.analytics.result == 'success' && needs.stripe_balance.result == 'success' && needs.db_pool_budget.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

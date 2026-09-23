@@ -1905,6 +1905,15 @@ html.no-bottom-nav {
   --bottom-nav-h: 0px;
 }
 
+/* Q303: StrikeBanner is z-[59] so it stays above the fixed page chrome, which
+   also put it above every modal backdrop (dialog/sheet overlays are z-50): on
+   /account-banned the red "Account suspended" strip sat un-dimmed across the
+   Delete Account dialog. While a Radix modal holds the scroll lock (it sets
+   `data-scroll-locked` on <body>), drop the banner under the overlay. */
+body[data-scroll-locked] .strike-banner {
+  z-index: 49;
+}
+
 /* ── PAGE-SHELL RHYTHM (Q176, owner 2026-09-23) ─────────────────────────────
    "Too much space above and below for phone width … make the page shells for
    public and authed all consistent." ONE phone gap, read by every shell:

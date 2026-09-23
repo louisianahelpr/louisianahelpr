@@ -2069,6 +2069,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] Switch Stripe to live (stripe-sandbox-off.sh) — Switch Stripe to live (stripe-sandbox-off.sh) (archive L5630)
 - [ ] At the same moment: confirm the LIVE webhook endpoint on /functions/v1/stripe-webhook is still enabled and resend any live events it failed while the sandbox key was in place (Q163: since Q156 those are answered 400, so Stripe may have disabled it).
 - [ ] At the same moment: retarget the Stripe webhook-endpoint check (scripts/check-stripe-webhook*, now fail-closed on 0 endpoints; Q52 area 3) and money-reconciliation's Stripe reads to the LIVE key/account, and confirm both run green against live. The sandbox green does not carry over.
+- [ ] Upgrade Vercel to Pro before launch (owner 2026-09-23: not before it's needed). Vercel's Hobby plan is for non-commercial use; once on Pro, optionally switch production back to deploy-on-every-push (vercel.json git.deploymentEnabled + prod-deploy.yml, Q271) and update src/test/prodDeployDebounce.test.ts in the same commit
 - [ ] Hide seed/demo jobs publicly (seed_jobs_hidden_publicly()) — Hide seed/demo jobs publicly (seed_jobs_hidden_publicly()) (archive L5631)
 
 ### Routine consolidation (2026-09-12)

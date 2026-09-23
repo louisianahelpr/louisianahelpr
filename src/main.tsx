@@ -6,7 +6,7 @@ import { installGlobalErrorHandlers, report } from "./lib/errorLogger";
 import { USER_ERROR_SCREEN } from "./lib/currentScreen";
 import { initShakeToReport } from "./lib/shakeToReport";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
-import { handleVitePreloadError } from "./lib/chunkReload";
+import { backgroundImport, handleVitePreloadError } from "./lib/chunkReload";
 import { initSimpleMode } from "./lib/simpleMode";
 import { applyToastPolicy } from "./lib/toastPolicy";
 import { applyPrePaintShellClasses } from "./lib/prePaintShellClasses";
@@ -244,14 +244,20 @@ void hydrateStorage();
   // cache itself. This stays as the BACKSTOP for the sign-outs that never call
   // it: token expiry, a sign-out in another tab, and a `scope: "global"`
   // sign-out issued from another device.
+  //
+  // Both boot loaders go through backgroundImport (Q328): they run on the
+  // FIRST interaction, which can happen offline, and a raw import() failing
+  // there was read as a stale deploy once the network returned — the page
+  // hard-reloaded and took the open thread and its typed message with it
+  // (slow-network run 35931277278). Nothing on screen waits on these modules.
   const registerSessionTeardown = () => {
     void (async () => {
       try {
         const [{ supabase }, { queryClient }, { removePersistedClient }] =
           await Promise.all([
-            import("./integrations/supabase/client"),
-            import("./lib/queryClient"),
-            import("./lib/queryPersister"),
+            backgroundImport(() => import("./integrations/supabase/client"), "boot-teardown-client"),
+            backgroundImport(() => import("./lib/queryClient"), "boot-teardown-queryClient"),
+            backgroundImport(() => import("./lib/queryPersister"), "boot-teardown-persister"),
           ]);
         supabase.auth.onAuthStateChange((event) => {
           // A TOAST IS SESSION STATE, AND NOTHING WAS CLEARING IT.
@@ -273,7 +279,7 @@ void hydrateStorage();
           // on a timer, and wiping toasts on it would snatch a message out from
           // under someone mid-read.
           if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
-            void import("sonner").then((m) => m.toast.dismiss()).catch(() => {
+            void backgroundImport(() => import("sonner"), "sonner").then((m) => m.toast.dismiss()).catch(() => {
               // The toaster chunk may never have loaded on this session; there
               // is nothing on screen to dismiss in that case.
             });
@@ -285,6 +291,10 @@ void hydrateStorage();
       } catch (err) {
         // Loudly. A dropped error here is the leak.
         console.error("[boot] sign-out cache teardown not registered", err);
+        // No retry: the browser caches a failed module fetch for the life of
+        // the document, so re-importing fails without a request (measured
+        // Q328, 2026-09-23). backgroundImport already reported it to
+        // error_logs; signOutWithPushCleanup() still wipes the cache itself.
       }
     })();
   };
@@ -297,9 +307,9 @@ void hydrateStorage();
           { initPostHog, identifyUser, resetUser },
           { supabase },
         ] = await Promise.all([
-          import("./lib/sentry"),
-          import("./lib/posthog"),
-          import("./integrations/supabase/client"),
+          backgroundImport(() => import("./lib/sentry"), "sentry"),
+          backgroundImport(() => import("./lib/posthog"), "posthog"),
+          backgroundImport(() => import("./integrations/supabase/client"), "boot-analytics-client"),
         ]);
 
         initSentry();

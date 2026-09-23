@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 65 done, 11 partly done (fixed, protection pending), 78 open. Source of truth for work.
+- **Queue (this file):** 65 done, 11 partly done (fixed, protection pending), 79 open. Source of truth for work.
 - **Audit bus:** 165 open, 8 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 154 items — 65 done, 11 partly done (fixed, protection pending), 78 open.**
+**Queue: 155 items — 65 done, 11 partly done (fixed, protection pending), 79 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -490,6 +490,7 @@ sure someone hears it and closes it.
 - [ ] **Q153 A dispute settled by a manual release-payout still says it moved no money (found by Q148, 2026-09-23).** After Q148, dispute 9756a585 still has execution_transfer_id / execution_helper_cents NULL although tr_3UCwOtKp2H4b7tEC1UMtZPxp paid 3520c, because release-payout never writes the disputes row. Measure what DisputeTimelineDialog (reads the execution_* figures) and the admin dispute views show for 9756a585, then make release-payout stamp execution_transfer_id + execution_helper_cents when it pays a job whose dispute is executed with nothing recorded (or read them from payout_transfers). Guard: an edge test that pays such a job and expects the dispute row stamped.
 - [ ] **Q152 LAST STEP: cut the TestFlight build (`bundle exec fastlane ios beta`) only after every other queue item is done (owner, 2026-09-23: "wait on test flight until everything in Que is done").** Claude runs it from main; then the owner installs it, signs in, and taps Enable -> Allow on the notifications pill (MORNING QUESTIONS 5 / Q82), and push_tokens gets its first real device row.
 - [x] **Q155 DONE 2026-09-23: conflict markers can no longer reach main unnoticed.** A rebase stopped on a conflict in generated docs; a follow-up `git commit -a` recorded the conflicted files and the --no-verify push put `<<<<<<<`/`>>>>>>>` into docs/OPEN.md, docs/SCOREBOARD.md and docs/audit/vacuity-report.json (invalid JSON) at 88ee54f74; repaired in 6dc6a5e0b. Guard: src/test/noConflictMarkers.test.ts (every tracked text file, floor 1500; red on a planted marker naming docs/OPEN.md).
+- [ ] **Q156 One Stripe webhook failed signature at 2026-09-23 12:43:27Z and was DROPPED (ops ledger 798c5104, critical).** Measured: function_logs show 1 SIGNATURE VERIFICATION FAILED in 24h (sandbox key, 1 secret tried whsec_ja…(38), body 3524 bytes, header t=1790167406 = 12:43:26Z); the function returns 200 so Stripe never retries. Stripe sandbox shows 114 deliveries to stripe-webhook in 24h, 1 failed; a second destination (upbeat-voyage) targets stripe-idv-webhook with 0 deliveries. No repo test forges a signature; no CI run started 12:38-12:44; stripe-webhook was redeployed 5 times 12:40-12:47 by the Supabase GitHub integration (Q121). TODO: identify the event (Stripe API events + delivery attempts around 12:43:26 in test mode), say whether it was a real Stripe delivery (and which destination/secret) or not, replay it if it was real and its effect is missing, and decide whether signature failures should return non-2xx so Stripe retries instead of being lost (guard + alert either way).
 - [ ] **Q40 Legacy upload paths the product no longer has:** (a) "upload your ID to us" (b) complete-signup `portfolioFiles` (no client sends it). **A legacy "upload your ID to us" path still exists, but the product has none.**
   Owner, 2026-09-23: users only verify email to sign up; Stripe Identity
   collects the ID. Yet src/pages/Profile.tsx (~line 467) writes

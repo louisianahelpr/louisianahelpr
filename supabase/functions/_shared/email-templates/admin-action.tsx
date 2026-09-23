@@ -32,7 +32,7 @@ import { SUPPORT_EMAIL } from '../resend.ts'
 export type Run = string | { b: string } | { accent: string }
 
 /** A paragraph: a bare string, or runs when part of it needs emphasis. */
-export type Line = string | Run[]
+type Line = string | Run[]
 
 const renderLine = (line: Line): React.ReactNode => {
   if (typeof line === 'string') return line

@@ -5,7 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Queue (this file):** 226 done, 27 partly done (fixed, protection pending), 102 open. Source of truth for work.
-- **Audit bus:** 80 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Audit bus:** 78 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
 - **nightly-red issues:** 8 open — `gh issue list -l nightly-red`. _(2026-09-23T06:08Z)_
@@ -1791,6 +1791,21 @@ sure someone hears it and closes it.
    to keep W-9s for 4 years. Options: (a) keep them for 4 years after signing,
    then delete them automatically; (b) delete them as soon as the account is
    deleted. I recommend (a).
+
+19. **Delete the Broadcasts feature's code? (S-004, 2026-09-24).** You removed
+   Broadcasts on 2026-09-01, but the code is still there: the Dashboard runs two
+   database reads for the banner on every load (both tables hold 0 rows), and
+   Admin still has a Broadcasts screen that can create banners. My automatic
+   permission check stopped me deleting a whole feature without you. Options:
+   (a) delete the banner, the admin screen and its menu item now, and drop the
+   two tables in a later migration; (b) keep it. I recommend (a).
+
+20. **Paging for Activity lists (PD-002, 2026-09-24).** Posted Jobs and Applied
+   Jobs load every row at once. The largest account today has 202 posted jobs
+   (a test account); real accounts are far smaller. Capping the list would hide
+   old jobs, so the fix is a "Show older" button (a visible change). Options:
+   (a) add "Show older" after 50 per section; (b) leave it until an account
+   gets big. I recommend (b) for now; it is not a launch risk.
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

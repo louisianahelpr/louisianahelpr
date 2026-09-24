@@ -1,5 +1,5 @@
 /**
- * CJ-009: schedule-heartbeat.yml watched 11 of the 35 workflows that carry a
+ * CJ-009 (measured 2026-09-24): schedule-heartbeat.yml watched 11 of the 35 workflows that carry a
  * cron, and nothing watched the heartbeat itself. Its WATCHED list must equal
  * the set of cron workflows (minus itself), both ways, and staleness-watch.yml
  * must check the heartbeat's own state and last scheduled run.

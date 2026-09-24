@@ -21,7 +21,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
-import { REPO, guardFiles, parseDirectives, gitIsClean, c } from "./lib.mjs";
+import { REPO, guardFiles, parseDirectives, gitIsClean, c, applyMutation } from "./lib.mjs";
 
 /**
  * Vitest's CLI entry, RESOLVED rather than guessed.
@@ -568,7 +568,7 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
     const original = fs.readFileSync(abs);
     live.set(abs, original);
     let verdict, why = "";
-    const mutated = Buffer.from(original.toString("utf8").replace(m.find, m.replace));
+    const mutated = Buffer.from(applyMutation(original.toString("utf8"), m.find, m.replace));
     try {
       fs.writeFileSync(abs, mutated);
       const r = runGuard(m.guard, { rebuild: isPlaywrightGuard(m.guard) && needsRebuild(m.target) });

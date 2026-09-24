@@ -277,3 +277,14 @@ export const c = {
   dim: (s) => `\x1b[2m${s}\x1b[0m`,
   bold: (s) => `\x1b[1m${s}\x1b[0m`,
 };
+
+/**
+ * Apply one @mutate: the FIRST occurrence of `find`, replaced by `replace`
+ * LITERALLY. A string second argument to String#replace expands `$$`, `$&`,
+ * `` $` `` and `$'`, so `$${fee}` used to land as `${fee}` and the mutation
+ * that ran was not the one written (ME-017's guard "survived" a mutation it
+ * never saw). The function form inserts the text as-is.
+ */
+export function applyMutation(source, find, replace) {
+  return source.replace(find, () => replace);
+}

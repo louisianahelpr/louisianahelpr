@@ -1057,15 +1057,28 @@ test.describe("full money loop against production", () => {
     expect(proofRow.proof_after_urls ?? [], "no after-photo url on the job").toHaveLength(1);
     const beforeUrl = (proofRow.proof_before_urls ?? [])[0];
     const afterUrl = (proofRow.proof_after_urls ?? [])[0];
-    expect(beforeUrl, "the before url does not address the uploaded object").toContain(beforePath);
-    expect(afterUrl, "the after url does not address the uploaded object").toContain(afterPath);
+    /* The row stores the storage PATH, never a signed URL (65676a7ad: a stored
+       signed URL carries a JWT `exp` and 400s forever after). A full URL here
+       is that regression. */
+    expect(beforeUrl, "the row must store the before photo's storage path").toBe(beforePath);
+    expect(afterUrl, "the row must store the after photo's storage path").toBe(afterPath);
 
-    /* The link the poster and the dispute timeline actually render. A signed
-       URL is fetched WITHOUT credentials on purpose — that is how an <img> tag
-       fetches it — and the byte length is compared to what was uploaded, so a
-       0-byte object or an error page rendered as an image cannot pass. */
-    for (const [name, url] of [["before", beforeUrl], ["after", afterUrl]] as const) {
-      const fetched = await request.get(url);
+    /* The link the poster and the dispute timeline actually render: minted at
+       display time as the POSTER (useProofPhotoUrls → createSignedUrl, ten
+       minutes), exactly as the app does. It is fetched WITHOUT credentials on
+       purpose — that is how an <img> tag fetches it — and the byte length is
+       compared to what was uploaded, so a 0-byte object or an error page
+       rendered as an image cannot pass. Fetching the stored value itself
+       resolved the bare path against the web app and measured index.html
+       (34846 bytes vs 70, e2e-real-backend 2026-09-24). */
+    for (const [name, path] of [["before", beforeUrl], ["after", afterUrl]] as const) {
+      const signed = await request.post(`${SUPABASE_URL}/storage/v1/object/sign/proof-photos/${path}`, {
+        headers: rest(poster),
+        data: { expiresIn: 600 },
+      });
+      expect(signed.ok(), `the poster could not sign the ${name} photo: ${signed.status()} ${await signed.text()}`).toBe(true);
+      const { signedURL } = (await signed.json()) as { signedURL: string };
+      const fetched = await request.get(`${SUPABASE_URL}/storage/v1${signedURL}`);
       expect(fetched.ok(), `the ${name} photo's signed url returned ${fetched.status()}`).toBe(true);
       expect(
         (await fetched.body()).length,

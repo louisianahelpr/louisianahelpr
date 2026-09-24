@@ -5,7 +5,7 @@
  * caller. The server refusals (admin-delete-user, removeAdmin) stay as
  * defence in depth.
  *
- * @mutate src/components/admin/userDetail/ActionsTab.tsx |             title={isSelf ? "You can't delete your own account from here — ask another admin." : undefined}\n            onClick={() => setDeleteProfile(viewProfile)} |             onClick={() => setDeleteProfile(viewProfile)}
+ * @mutate src/components/admin/userDetail/ActionsTab.tsx |             disabled={isSelf}\n            title={isSelf ? "You can't delete your own account from here — ask another admin." : undefined} |             title={isSelf ? "You can't delete your own account from here — ask another admin." : undefined}
  * @mutate src/components/admin/AdminSettings.tsx |                   disabled={removing === admin.role_id \|\| admin.user_id === selfId} |                   disabled={removing === admin.role_id}
  */
 import { describe, it, expect } from "vitest";
@@ -18,7 +18,7 @@ const read = (p: string) => readFileSync(resolve(__dirname, "../..", p), "utf8")
 const CONTROLS: [string, string, RegExp][] = [
   ["src/components/admin/userDetail/ActionsTab.tsx", "setDeleteProfile(viewProfile)", /disabled=\{isSelf\}/],
   ["src/components/admin/userDetail/ActionsTab.tsx", "setBanProfile(viewProfile)", /disabled=\{isSelf\}/],
-  ["src/components/admin/AdminSettings.tsx", "setConfirmRemove(admin)", /admin\.user_id === selfId/],
+  ["src/components/admin/AdminSettings.tsx", "setConfirmRemove(admin)", /disabled=\{[^}]*admin\.user_id === selfId/],
 ];
 
 describe("admin destructive controls are disabled on the admin's own row (DH-005)", () => {

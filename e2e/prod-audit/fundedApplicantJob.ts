@@ -73,14 +73,22 @@ export async function retireApplicantFixtures(api: APIRequestContext, poster: Se
     if (r.payment_status === "escrow" || r.payment_status === "cancelling") out.push(await retireFundedJob(api, poster, r.id));
     else {
       // Never paid: nothing to refund; cancel it as its poster so it cannot linger as a draft.
-      const c = await json<unknown[]>(
-        await api.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${r.id}&select=id`, {
-          headers: headers(poster, { Prefer: "return=representation" }),
-          data: { status: "cancelled" },
+      // Through poster_cancel_job, the RPC the Cancel button calls: a direct
+      // status PATCH is refused (42501, "Jobs may only be cancelled through a
+      // cancellation RPC"), which is what turned prod-audit red on 2026-09-24.
+      await json<unknown>(
+        await api.post(`${SUPABASE_URL}/rest/v1/rpc/poster_cancel_job`, {
+          headers: headers(poster),
+          data: { p_job_id: r.id, p_reason: "prod-audit fixture teardown" },
         }),
         `cancel unpaid applicant fixture ${r.id}`,
       );
-      if (c.length !== 1) throw new Error(`applicant fixture: cancelling unpaid ${r.id} matched ${c.length} rows`);
+      // The RPC's answer is a claim; the cancelled row is the fact.
+      const c = await json<Array<{ status: string }>>(
+        await api.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${r.id}&select=status`, { headers: headers(poster) }),
+        `read back unpaid applicant fixture ${r.id}`,
+      );
+      if (c[0]?.status !== "cancelled") throw new Error(`applicant fixture: unpaid ${r.id} is ${c[0]?.status ?? "missing"} after poster_cancel_job`);
       out.push(`cancelled unpaid ${r.id}`);
     }
   }

@@ -177,9 +177,9 @@ describe("AdminUserDetailDialog", () => {
     await waitFor(() => expect(banBtn).toBeDisabled());
     fireEvent.click(banBtn);
     expect(props.setBanProfile).not.toHaveBeenCalled();
-    // Every other destructive control stays available — this guard is about
-    // the ban path, not a blanket lockout of the admin's own row.
-    expect(screen.getByRole("button", { name: /Delete Account/ })).toBeEnabled();
+    // DH-005: Delete Account is refused server-side for your own row too
+    // (admin-delete-user 400), so it is not offered either.
+    expect(screen.getByRole("button", { name: /Delete Account/ })).toBeDisabled();
   });
 
   it("wires the edit-email pencil to setEditEmailProfile", () => {

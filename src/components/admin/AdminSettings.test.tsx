@@ -213,12 +213,14 @@ describe("AdminSettings — removing admin", () => {
     expect(await screen.findByRole("button", { name: /Remove admin/i })).toBeInTheDocument();
   });
 
-  it("the self-removal guard runs BEFORE the prompt — a refused action never raises an OS sheet", async () => {
+  it("the admin's own row offers no Remove at all — a refused action never raises a confirm or an OS sheet (DH-005)", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: ADMIN_USER_ID } } });
-    const remove = await reachTheRemoveButton();
-    fireEvent.click(remove);
+    render(<AdminSettings />);
+    const trash = await screen.findByRole("button", { name: /Remove admin/i });
+    await waitFor(() => expect(trash).toBeDisabled());
+    fireEvent.click(trash);
+    expect(screen.queryByRole("button", { name: /^Remove Admin$/ })).toBeNull();
 
-    await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/remove yourself/i)));
     expect(requireBiometricMock).not.toHaveBeenCalled();
     expect(roleDeleteMock).not.toHaveBeenCalled();
   });

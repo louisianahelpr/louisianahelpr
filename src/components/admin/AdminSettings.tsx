@@ -71,6 +71,12 @@ const AdminSettings = () => {
   const [adding, setAdding] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<{ user_id: string; role_id: string; name: string } | null>(null);
+  // DH-005: the caller's own row gets no Remove button (the server and
+  // removeAdmin still refuse self-removal; this stops the confirm being offered).
+  const [selfId, setSelfId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setSelfId(data.user?.id ?? null));
+  }, []);
 
   useEffect(() => {
     loadSettings();
@@ -658,7 +664,8 @@ const AdminSettings = () => {
                   variant="ghost"
                   size="icon"
                   className="text-destructive hover:bg-destructive/10 shrink-0"
-                  disabled={removing === admin.role_id}
+                  disabled={removing === admin.role_id || admin.user_id === selfId}
+                  title={admin.user_id === selfId ? "You can't remove yourself — ask another admin." : undefined}
                   onClick={() => setConfirmRemove(admin)}
                   aria-label="Remove admin"
                 >

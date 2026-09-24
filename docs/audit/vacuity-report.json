@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-24T01:00:17.389Z",
-  "guards": 891,
-  "registered": 891,
+  "generated": "2026-09-24T01:10:06.541Z",
+  "guards": 892,
+  "registered": 892,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -29,7 +29,8 @@
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
     "src/test/storageBucketLimits.test.ts",
-    "src/test/unknownZipIsNeverSilent.test.ts"
+    "src/test/unknownZipIsNeverSilent.test.ts",
+    "src/test/userIdForeignKeys.test.ts"
   ],
   "classD_selfReferential": [
     {

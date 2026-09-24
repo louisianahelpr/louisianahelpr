@@ -1594,3 +1594,7 @@
 {"kind":"status","id":"PD-012","ts":"2026-09-24T07:22:15.959Z","status":"fixed","by":"lead","note":"nav unread query bounded to newest 1000 (.limit); guard navUnreadIsBounded 1/1 killed"}
 {"kind":"status","id":"A-008","ts":"2026-09-24T07:22:15.989Z","status":"fixed","by":"lead","note":"{{name}} htmlEscape'd before substitution; guard marketingBlastNameEscaped 1/1 killed"}
 {"kind":"status","id":"NB-009","ts":"2026-09-24T07:22:16.021Z","status":"fixed","by":"lead","note":"splash net armed in lib/splashSafetyNet.ts, main.tsx first import; guard splashSafetyNetArmsFirst 1/1"}
+{"kind":"status","id":"ST-011","ts":"2026-09-24T07:22:36.918Z","status":"fixed","by":"lead","note":"live: pg_get_functiondef has both ST-011 markers, migration 20260924071011 recorded; PGlite proof 3 FAIL on old body → PASS"}
+{"kind":"status","id":"NB-002","ts":"2026-09-24T07:24:09.719Z","status":"fixed","by":"lead","note":"deployed body of send-push-notification (v2484, 07:00Z) carries the NB-002 aps.badge code (strings of /functions/…/body)"}
+{"kind":"status","id":"S-003","ts":"2026-09-24T07:24:09.751Z","status":"fixed","by":"lead","note":"deployed subscription-reconciliation (v1020) references PRO_ONE_TIME_AMOUNT_CENTS; one-time Prices now reconciled"}
+{"kind":"status","id":"NB-007","ts":"2026-09-24T07:24:09.782Z","status":"fixed","by":"lead","note":"ac893512d client code; web via prod-deploy, native via end-of-run TestFlight (Q152)"}

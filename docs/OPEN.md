@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 234 done, 28 partly done (fixed, protection pending), 110 open. Source of truth for work.
+- **Queue (this file):** 235 done, 28 partly done (fixed, protection pending), 110 open. Source of truth for work.
 - **Audit bus:** 37 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 372 items — 234 done, 28 partly done (fixed, protection pending), 110 open.**
+**Queue: 373 items — 235 done, 28 partly done (fixed, protection pending), 110 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -2935,3 +2935,4 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q373** (MEDIUM, owner MQ25 2026-09-24; SC-015): archive the Crew/Team/Enterprise products and prices in LIVE Stripe via the API, then read them back.
 - [ ] **Q374** (LAUNCH CHECKLIST, owner MQ21/24 2026-09-24, "you decide"): before launch, the owner's CPA answers (1) whether to add a Louisiana registration in Stripe Tax, (2) which job categories are taxable, and (3) whether the service fee is taxable. No code change until then.
 - [ ] **Q375** (OWNER TO-DO, MQ26 2026-09-24): the owner makes a fresh Sign in with Apple web secret (tools/apple-jwt.html + the .p8) and pastes it into Supabase > Auth > Apple; the lead records today + 6 months for the expiry monitor. VERCEL_TOKEN expiry is still unknown.
+- [x] **Q376** (alert, ledger 998885c7 + 66fa774b, 2026-09-24): cron-dead "sweep-pending-broadcast-fan-outs is expected to run but does not exist in cron.job" and the "1 cron(s) need attention" page it sent at 18:53Z. Root cause: 20260924174847_drop_broadcasts_feature unscheduled the cron but left its cron_work_expectations row (measured live: the only expectation with no cron.job entry). DONE 2026-09-24: migration 20260924221523_retire_broadcast_cron_expectation deletes the row. GUARD: src/test/cronLivenessCoverage.test.ts "a cron a migration unschedules has its expectation retired too" (red without the migration; @mutate proven by vacuity --only).

@@ -24,6 +24,7 @@
  * anywhere in the repo — it was created outside migrations — which is exactly
  * why the second, live guard exists.)
  */
+// @mutate supabase/migrations/20260924221523_retire_broadcast_cron_expectation.sql | WHERE jobname IN ('sweep-pending-broadcast-fan-outs') | WHERE jobname IN ('no-such-job')
 // @mutate supabase/migrations/20260914192035_alert_followups_support_cron_coverage_client_origin.sql | ('extend-boosts-hourly',   interval '3 hours'),\n    ('prune-cron-run-details', interval '30 hours') | ('extend-boosts-hourly',   interval '3 hours')
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -78,6 +79,45 @@ export function livenessExpectations(files: { file: string; sql: string }[]): Se
   return out;
 }
 
+/**
+ * Jobs a migration unschedules and no later migration reschedules, paired with
+ * whether their expectation row is still standing when the migrations finish.
+ * Order-aware across and within files: an INSERT of an expectation re-arms it,
+ * a `DELETE FROM public.cron_work_expectations WHERE jobname IN (...)` or
+ * `= '...'` retires it.
+ *
+ * The other direction of the test above. On 2026-09-24
+ * 20260924174847_drop_broadcasts_feature.sql unscheduled
+ * `sweep-pending-broadcast-fan-outs` and left its expectation, so
+ * sweep_dead_crons filed it as 'unscheduled' and paged "1 cron(s) need
+ * attention" (ledger 998885c7 / 66fa774b).
+ */
+export function retiredJobsStillExpected(files: { file: string; sql: string }[]): string[] {
+  const expected = new Set<string>();
+  const unscheduled = new Set<string>();
+  const live = scheduledJobs(files);
+  const stmt =
+    /INSERT\s+INTO\s+public\.cron_work_expectations\s*\(([^)]*)\)\s*VALUES([\s\S]*?);|DELETE\s+FROM\s+(?:public\.)?cron_work_expectations\s+WHERE\s+jobname\s*(?:IN\s*\(([^)]*)\)|=\s*'([a-z0-9-]+)')|cron\.unschedule\s*\(\s*'([a-z0-9-]+)'/gi;
+  for (const { sql } of files) {
+    for (const m of sql.matchAll(stmt)) {
+      if (m[1] !== undefined) {
+        const cols = m[1].split(",").map((c) => c.trim().toLowerCase());
+        if (!cols.includes("expected_max_gap")) continue;
+        for (const row of m[2].matchAll(/\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g)) {
+          const name = /^\s*'([a-z0-9-]+)'/i.exec(row[1])?.[1];
+          if (name) expected.add(name);
+        }
+      } else if (m[3] !== undefined || m[4] !== undefined) {
+        const names = m[4] !== undefined ? [m[4]] : [...m[3].matchAll(/'([a-z0-9-]+)'/g)].map((x) => x[1]);
+        for (const n of names) expected.delete(n);
+      } else if (m[5] !== undefined) {
+        unscheduled.add(m[5]);
+      }
+    }
+  }
+  return [...unscheduled].filter((n) => !live.has(n) && expected.has(n)).sort();
+}
+
 describe("cron liveness coverage", () => {
   const files = migrations();
 
@@ -94,6 +134,15 @@ describe("cron liveness coverage", () => {
       .filter(([name]) => !expectations.has(name))
       .map(([name, file]) => `${name} (scheduled in ${file})`);
     expect(uncovered).toEqual([]);
+  });
+
+  it("a cron a migration unschedules has its expectation retired too", () => {
+    // Inventory floor: on 2026-09-24 the migrations retire two crons for good.
+    const retired = [...new Set(files.flatMap((f) => [...f.sql.matchAll(/cron\.unschedule\s*\(\s*'([a-z0-9-]+)'/gi)].map((m) => m[1])))]
+      .filter((n) => !scheduledJobs(files).has(n));
+    expect(retired.length).toBeGreaterThan(1);
+    expect(retired).toContain("sweep-pending-broadcast-fan-outs");
+    expect(retiredJobsStillExpected(files)).toEqual([]);
   });
 
   it("the two 2026-09-14 gaps are covered, with tolerances matching their schedules", () => {

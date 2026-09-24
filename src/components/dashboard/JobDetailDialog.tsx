@@ -18,6 +18,7 @@ import { JobPrice } from "./JobPrice";
 import { useJobDetailData } from "./jobDetailDialog/useJobDetailData";
 import { JobStatTiles } from "./jobDetailDialog/JobStatTiles";
 import { JobDetailFooter } from "./jobDetailDialog/JobDetailFooter";
+import { askQuestionCounterpart } from "./jobDetailDialog/askQuestionCounterpart";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -171,7 +172,9 @@ const JobDetailDialog = ({
     // calling it here raced the navigation: the feed's close handler clears
     // ?job= with setSearchParams(..., { replace: true }), which acts on the
     // CURRENT location and so replaced the entry we had just pushed.
-    navigate(`/messages?userId=${job.customer_id}&jobId=${job.id}`);
+    // DH-002: the poster messages their Helpr, never themselves.
+    const counterpart = askQuestionCounterpart(job, viewerUserId);
+    if (counterpart) navigate(`/messages?userId=${counterpart}&jobId=${job.id}`);
   };
 
   // Corner actions — Save · Share · Report, in the SAME row as the dialog's

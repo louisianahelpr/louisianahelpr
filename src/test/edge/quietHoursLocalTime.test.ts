@@ -97,7 +97,7 @@ describe("CLASS: no edge function decides by a UTC hour-of-day", () => {
 
   it("no getUTCHours()/getHours() in any edge function source", () => {
     const files = walk(FUNCTIONS);
-    // Inventory floor: the walk really read the functions tree (73+ functions).
+    // Inventory floor: the walk really read the functions tree (not a count claim).
     expect(files.length).toBeGreaterThan(100);
     const offenders: string[] = [];
     for (const f of files) {

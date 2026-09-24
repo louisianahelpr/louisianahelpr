@@ -51,9 +51,20 @@ describe("JobDetailFooter Message button (VN-2)", () => {
     expect(messageButton()).toBeNull();
   });
 
-  it("shows for the poster", () => {
-    renderFooter("poster", null);
+  it("shows for the poster once a Helpr is hired", () => {
+    renderFooter("poster", null, makeJob({ helper_id: "helper" }));
     expect(messageButton()).not.toBeNull();
+  });
+
+  it("shows for the poster once a Helpr is offered", () => {
+    renderFooter("poster", null, makeJob({ offered_to_helper_id: "helper" }));
+    expect(messageButton()).not.toBeNull();
+  });
+
+  // DH-002: with nobody hired or offered, the only thread would be with themselves.
+  it("is hidden from the poster when there is nobody to message", () => {
+    renderFooter("poster", null);
+    expect(messageButton()).toBeNull();
   });
 
   it("shows for the offered helper, even though they applied", () => {
@@ -69,4 +80,7 @@ describe("JobDetailFooter Message button (VN-2)", () => {
 
 // The original VN-2 gate, restored: `|| viewerAppPosition != null` let any
 // applicant message the poster from the job detail footer.
-// @mutate src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx | viewerUserId === (job as { helper_id?: string \| null }).helper_id) && ( | viewerUserId === (job as { helper_id?: string \| null }).helper_id \|\| viewerAppPosition != null) && (
+// @mutate src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx | viewerUserId === (job as { helper_id?: string \| null }).helper_id) && | viewerUserId === (job as { helper_id?: string \| null }).helper_id \|\| viewerAppPosition != null) &&
+// DH-002: without the counterpart gate the poster gets a thread with themselves.
+// @mutate src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx | askQuestionCounterpart(job, viewerUserId) != null && ( | (
+// @mutate src/components/dashboard/jobDetailDialog/askQuestionCounterpart.ts | ? job.helper_id ?? job.offered_to_helper_id ?? null | ? job.customer_id

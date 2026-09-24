@@ -3,6 +3,7 @@ import { Bookmark, MessageSquare, ChevronRight, ShieldCheck, Check } from "lucid
 import { IconActionButton } from "../IconActionButton";
 import type { EnrichedJob } from "../types";
 import { signupUrlFor, rememberPendingSave } from "@/lib/jobIntent";
+import { askQuestionCounterpart } from "./askQuestionCounterpart";
 
 interface JobDetailFooterProps {
   job: EnrichedJob;
@@ -109,7 +110,10 @@ export const JobDetailFooter = ({
       {viewerUserId != null &&
       (viewerUserId === job.customer_id ||
         viewerUserId === (job as { offered_to_helper_id?: string | null }).offered_to_helper_id ||
-        viewerUserId === (job as { helper_id?: string | null }).helper_id) && (
+        viewerUserId === (job as { helper_id?: string | null }).helper_id) &&
+      // DH-002: a poster with nobody hired or offered has no one to ask —
+      // the thread would be with themselves.
+      askQuestionCounterpart(job, viewerUserId) != null && (
       <IconActionButton
         ariaLabel="Ask a question"
         onClick={onAskQuestion}

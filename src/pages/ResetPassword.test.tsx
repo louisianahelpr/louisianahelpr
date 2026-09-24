@@ -8,8 +8,8 @@
  * revokes every other session (signOut scope "others") and says so honestly
  * when that fails.
  *
- * @mutate src/pages/ResetPassword.tsx | const { error: othersErr } = await supabase.auth.signOut({ scope: "others" }); | const othersErr = null;
- * @mutate src/pages/ResetPassword.tsx | setOthersSignedOut(!othersErr); | setOthersSignedOut(true);
+ * @mutate src/pages/ResetPassword.tsx | setOthersSignedOut(await signOutOtherDevices()); | setOthersSignedOut(true);
+ * @mutate src/lib/authSignOut.ts | return !error; | return true;
  *
  * OA-014: a `#type=recovery` fragment alone no longer unlocks the form; it
  * waits for a real session and calls the link dead if none arrives.

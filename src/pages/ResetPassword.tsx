@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Check, X, Circle, Eye, EyeOff } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
+import { signOutOtherDevices } from "@/lib/authSignOut";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { describeWeakPassword, isWeakPasswordError, resetPasswordError } from "@/lib/authErrors";
 import {
@@ -214,8 +215,7 @@ const ResetPassword = () => {
       // every other session here; if that fails, the copy says so instead.
       // The recovery token is spent, so drop it from the URL (history, logs,
       // a shoulder-surfed address bar).
-      const { error: othersErr } = await supabase.auth.signOut({ scope: "others" });
-      setOthersSignedOut(!othersErr);
+      setOthersSignedOut(await signOutOtherDevices());
       window.history.replaceState(null, "", window.location.pathname);
       setSubmitError(null);
       setDone(true);

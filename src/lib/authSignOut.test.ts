@@ -131,8 +131,8 @@ describe("signOutWithPushCleanup", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     localStorage.setItem(TOKEN_KEY, JSON.stringify({ access_token: "x" }));
     signOut.mockResolvedValueOnce({ error: { name: "AuthApiError", message: "network" } as never });
-    const { signOutWithPushCleanup } = await import("./authSignOut");
-    await signOutWithPushCleanup({ scope: "others" });
+    const { signOutOtherDevices } = await import("./authSignOut");
+    await signOutOtherDevices();
     expect(localStorage.getItem(TOKEN_KEY)).not.toBeNull();
     localStorage.removeItem(TOKEN_KEY);
     spy.mockRestore();
@@ -152,3 +152,24 @@ describe("signOutWithPushCleanup", () => {
 // fast-paths off it, and the post-sign-out navigate("/") feeds the user
 // straight back in still signed in — "i had to click log out twice".
 // @mutate src/lib/authSignOut.ts | clearPersistedAuthToken(); | void 0;
+
+// "others" keeps THIS device signed in, so nothing of this device is torn down.
+// @mutate src/lib/authSignOut.ts | const { error } = await supabase.auth.signOut({ scope: "others" }); | const { error } = await signOutWithPushCleanup();
+describe("signOutOtherDevices", () => {
+  it("revokes other sessions and leaves this device's push token, route and cache alone", async () => {
+    const { signOutOtherDevices } = await import("./authSignOut");
+    expect(await signOutOtherDevices()).toBe(true);
+    expect(signOut).toHaveBeenCalledWith({ scope: "others" });
+    expect(unregisterPushOnSignOut).not.toHaveBeenCalled();
+    expect(clearRememberedRoute).not.toHaveBeenCalled();
+    expect(clear).not.toHaveBeenCalled();
+    expect(removePersistedClient).not.toHaveBeenCalled();
+  });
+  it("reports failure on an error or a throw", async () => {
+    const { signOutOtherDevices } = await import("./authSignOut");
+    signOut.mockResolvedValueOnce({ error: { message: "x" } } as never);
+    expect(await signOutOtherDevices()).toBe(false);
+    signOut.mockRejectedValueOnce(new Error("lock"));
+    expect(await signOutOtherDevices()).toBe(false);
+  });
+});

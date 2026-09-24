@@ -5,7 +5,10 @@ import { queryClient } from "@/lib/queryClient";
 import { removePersistedClient } from "@/lib/queryPersister";
 import { clearPersistedAuthToken } from "@/lib/persistedAuthToken";
 
-type SignOutOptions = { scope?: "global" | "local" | "others" };
+// "others" is deliberately absent: everything below tears down THIS device
+// (push token, remembered route, caches). Ending only the other sessions is
+// signOutOtherDevices(), which touches none of it.
+type SignOutOptions = { scope?: "global" | "local" };
 
 /**
  * Sign out AND clear this account's push tokens first, so a signed-out
@@ -70,8 +73,7 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   // So sign-out is made terminal on the client. `clearPersistedAuthToken()`
   // already exists as this floor (`useDeleteAccount` reaches for it for the
   // same reason); it belongs HERE, under all ~12 call sites, not at one of
-  // them. Not for `scope: "others"`, which must deliberately keep this
-  // device's session.
+  // them.
   let result: Awaited<ReturnType<typeof supabase.auth.signOut>>;
   try {
     result = await supabase.auth.signOut(options);
@@ -81,7 +83,7 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   }
   // `result?.` because a rejecting/undefined-returning stub must not become a
   // second failure inside the failure handler.
-  if (result?.error && options?.scope !== "others") {
+  if (result?.error) {
     // Loud, never dropped: this is the branch where the SDK did not do it.
     console.error("[signOut] auth.signOut() failed — clearing the persisted session by hand", result.error);
     clearPersistedAuthToken();
@@ -124,4 +126,20 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   }
 
   return result;
+}
+
+/**
+ * End every OTHER session of this account and keep this one: this device's
+ * push token, cache and remembered route stay, because this device stays
+ * signed in (ResetPassword after a password change, OA-006). Returns whether
+ * the revoke succeeded; a throw (navigator-lock timeout) counts as failure.
+ */
+export async function signOutOtherDevices(): Promise<boolean> {
+  try {
+    const { error } = await supabase.auth.signOut({ scope: "others" });
+    return !error;
+  } catch (err) {
+    console.error("[signOut] revoking other sessions threw", err);
+    return false;
+  }
 }

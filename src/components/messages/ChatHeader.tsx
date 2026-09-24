@@ -181,7 +181,8 @@ export function ChatHeader({
             >
               {activeConvo.otherUserName}
             </span>
-            <OnlineIndicator isOnline={isOtherOnline} />
+            {/* Q262: a deleted account has no presence to show. */}
+            {!otherDeleted && <OnlineIndicator isOnline={isOtherOnline} />}
             {activeConvo.isMuted && (() => {
               const remaining = snoozeRemainingLabel(activeConvo.muteUntil ?? null);
               return (

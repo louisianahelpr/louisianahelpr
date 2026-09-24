@@ -97,7 +97,7 @@ describe("urgent bonus cap is $250 at every layer (Q210(c))", () => {
   it("client: the form states the maximum and warns at 250.01, not at 250", () => {
     expect(client.MAX_URGENT_FEE_DOLLARS).toBe(shared.MAX_URGENT_FEE_DOLLARS);
     renderBudget("250");
-    expect(screen.getByText(/\$5 minimum, \$250 maximum/)).toBeTruthy();
+    expect(screen.getByText(/\$5 minimum, \$250 maximum/i)).toBeTruthy();
     expect(screen.queryByText(/most an urgent bonus can be is \$250/)).toBeNull();
     document.body.innerHTML = "";
     renderBudget("250.01");

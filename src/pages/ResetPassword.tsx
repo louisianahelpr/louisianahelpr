@@ -142,7 +142,11 @@ const ResetPassword = () => {
     // already-used link, and a bare visit with no token at all.
     //   * Supabase appends `error=access_denied` +
     //     `error_description=Email link is invalid or has expired` on an
-    //     expired/used link — we surface those directly.
+    //     expired OR used link — ONE description for both, so GoTrue does not
+    //     let us tell them apart and the /expired/ test below always wins
+    //     (OA-016). The "used" branch only fires if GoTrue ever sends a
+    //     description without "expired"; the expired copy already says links
+    //     are single-use and time-limited, so the user loses nothing.
     //   * A truly empty hash means the user hit /reset-password without
     //     following a link at all → the "please use your email" copy.
     const err = hashParams.get("error");

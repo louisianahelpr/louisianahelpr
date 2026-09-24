@@ -291,7 +291,16 @@ const Signup = () => {
 
 
   const completeProfile = async (userId: string) => {
-    const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
+    // The photo is optional: a failed read must not stop the profile write,
+    // which runs after the account already exists (CC-006).
+    let avatarBase64: string | null = null;
+    if (avatarFile) {
+      try {
+        avatarBase64 = await fileToBase64(avatarFile);
+      } catch {
+        toast.error("We couldn't read your photo. You can add one later from your profile.");
+      }
+    }
     const avatarExt = avatarFile ? avatarFile.name.split(".").pop() : null;
     // Reuse the already-resolved value from the live effect above rather
     // than re-querying — it tracks zipCode exactly, so it's always current

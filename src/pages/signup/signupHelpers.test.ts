@@ -8,6 +8,7 @@ import {
   PASSWORD_MIN_LENGTH,
   unmetPasswordRules,
   passwordProblem,
+  fileToBase64,
 } from "./signupHelpers";
 
 describe("formatPhone", () => {
@@ -281,3 +282,32 @@ describe("passwordProblem", () => {
 // only with CoworkQA2026x, which scores 3 on variety alone — the cap was a
 // no-op for it and deleting the line left the file 30/30 green.)
 // @mutate src/pages/signup/signupHelpers.ts | if (unmetPasswordRules(password).length > 0) score = Math.min(score, 3); |
+
+describe("fileToBase64 (CC-006)", () => {
+  it("rejects, never hangs, when the read is aborted", async () => {
+    const Real = globalThis.FileReader;
+    // Fires only the abort terminal event, as a browser does for an aborted read.
+    class AbortingReader {
+      onload: (() => void) | null = null;
+      onerror: ((e: unknown) => void) | null = null;
+      onabort: (() => void) | null = null;
+      readAsDataURL() {
+        setTimeout(() => this.onabort?.(), 0);
+      }
+    }
+    globalThis.FileReader = AbortingReader as unknown as typeof FileReader;
+    try {
+      const outcome = await Promise.race([
+        fileToBase64(new File(["abcd"], "a.png")).then(() => "resolved", () => "rejected"),
+        new Promise((r) => setTimeout(() => r("hung"), 1000)),
+      ]);
+      expect(outcome).toBe("rejected");
+    } finally {
+      globalThis.FileReader = Real;
+    }
+  });
+
+  it("still resolves an ordinary file", async () => {
+    await expect(fileToBase64(new File(["abcd"], "a.png"))).resolves.toBe("YWJjZA==");
+  });
+});

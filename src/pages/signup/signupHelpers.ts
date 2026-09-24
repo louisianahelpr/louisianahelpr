@@ -73,6 +73,9 @@ export function fileToBase64(file: File): Promise<string> {
     reader.onload = () =>
       resolve((reader.result as string).split(",")[1]);
     reader.onerror = reject;
+    // FileReader has three terminal events; without onabort an aborted read
+    // settles nothing and signup hangs after the account exists (CC-006).
+    reader.onabort = () => reject(new Error("File read aborted"));
     reader.readAsDataURL(file);
   });
 }

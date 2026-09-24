@@ -114,10 +114,14 @@
 
 	  Scope: the manager is started on "I'm On My Way" and stopped on arrival.
 	  Outside that window the app holds no background location claim.
+
+	  NB-003: no `remote-notification` mode. Nothing implements
+	  didReceiveRemoteNotification:fetchCompletionHandler: (not AppDelegate, not
+	  Capacitor), so the claim was inert. Add the handler first if a silent push
+	  is ever sent. Guard: src/test/backgroundModesHaveAHandler.test.ts.
 	-->
 	<key>UIBackgroundModes</key>
 	<array>
-			<string>remote-notification</string>
 			<string>location</string>
 		</array>
 	

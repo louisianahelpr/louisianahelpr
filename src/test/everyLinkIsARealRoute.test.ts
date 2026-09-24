@@ -142,7 +142,7 @@ describe("every in-app address opens a real page", () => {
     );
     expect(claimed.length).toBeGreaterThan(5);
     const bad = claimed
-      .map((p) => p.replace(/\/\*$/, "/"))
+      .map((p) => (p.endsWith("/*") ? p.slice(0, -1) : p)) // "/jobs/*" claims "/jobs/<anything>"
       .filter((p) => p !== "/" && !served(p))
       .map((p) => `AASA :: ${p}`);
     const sitemap = readFileSync(join(REPO, "public/sitemap.xml"), "utf8");

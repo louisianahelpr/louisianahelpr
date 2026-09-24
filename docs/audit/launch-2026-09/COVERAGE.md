@@ -4,10 +4,10 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: node scripts/audit-coverage.mjs -->
 
-Generated from findings.jsonl as of its newest entry: 2026-09-24T04:51:31.923Z
+Generated from findings.jsonl as of its newest entry: 2026-09-24T04:56:53.249Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 143 open (3 open launch blockers), 222 fixed, 0 wontfix, 19 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
+- **Findings:** 138 open (3 open launch blockers), 227 fixed, 0 wontfix, 19 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
 - **Surface:** 1035 auditable surfaces (449 navigable, 586 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
@@ -27,17 +27,17 @@ lane report on disk — treat it as incomplete, not as covered.
 | 2 | `lh-webkit-differ` | REPORTED | 0 | – | 1 |
 | 3 | `lh-cron-jobs` | REPORTED | 7 | – | 4 |
 | 3 | `lh-money-escrow` | REPORTED | 12 | – | 12 |
-| 3 | `lh-native-bridge` | REPORTED | 18 | **2** | 2 |
+| 3 | `lh-native-bridge` | REPORTED | 16 | **2** | 4 |
 | 4 | `lh-build-release` | REPORTED | 6 | – | 9 |
 | 4 | `lh-onboarding-auth` | REPORTED | 9 | – | 7 |
 | 4 | `lh-state-matrix` | REPORTED | 0 | – | 3 |
 | 5 | `lh-account-lifecycle` | REPORTED | 7 | – | 5 |
-| 5 | `lh-e2e-journeys` | REPORTED | 1 | – | 10 |
+| 5 | `lh-e2e-journeys` | REPORTED | 0 | – | 11 |
 | 5 | `lh-trust-safety` | REPORTED | 6 | – | 6 |
 | 5 | `lh-verification-credentials` | REPORTED | 3 | – | 6 |
-| 6 | `lh-admin-moderation` | REPORTED | 5 | – | 6 |
+| 6 | `lh-admin-moderation` | REPORTED | 4 | – | 7 |
 | 6 | `lh-concurrency-cache` | REPORTED | 3 | – | 3 |
-| 6 | `lh-notifications` | REPORTED | 3 | – | 7 |
+| 6 | `lh-notifications` | REPORTED | 2 | – | 8 |
 | 7 | `lh-input-boundary` | REPORTED | 1 | – | 2 |
 | 7 | `lh-scheduling-time` | REPORTED | 4 | – | 4 |
 | 7 | `lh-subscriptions-credits` | REPORTED | 2 | – | 9 |

@@ -21,7 +21,7 @@ Allow: /
 # content="noindex, follow">`, set server-side by api/share.ts for exactly
 # this route (see index.html's comment on the tag), which stops indexing
 # WITHOUT stopping the fetch. /jobs is now the signed-in Jobs tab and IS
-# listed below; its job pages share the prefix, so `Allow: /jobs/` keeps them
+# listed below; its job pages share the prefix, so the Allow line for /jobs/ keeps them
 # fetchable (RFC 9309: the longest matching rule wins).
 Disallow: /admin
 Disallow: /home

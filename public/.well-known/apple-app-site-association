@@ -59,8 +59,8 @@
             "/": "/home",
             "comment": "The single biggest miss in the census: 485 rows of /home?quickApply=<id> plus 133 bare /home — 618 rows, 38% of every notification sent. Apple ignores the query, so this one entry covers both."
           },
-          { "/": "/posts", "comment": "Poster side of Activity — ?job=, ?filter= and bare (152 rows)." },
-          { "/": "/jobs", "comment": "Helper side of Activity — ?job=, ?filter= and bare (51 rows)." },
+          { "/": "/posts", "comment": "Posts tab — ?job=, ?filter= and bare (152 rows)." },
+          { "/": "/jobs", "comment": "Jobs tab — ?job=, ?filter= and bare (51 rows)." },
           { "/": "/profile", "comment": "Profile and its 18 ?tab= deep links (11 rows)." },
           { "/": "/messages", "comment": "Messages inbox, and the ?jobId=/?userId= thread deep links (119 rows)." },
           { "/": "/jobs/*", "comment": "Job detail (canonical) — 28 rows plus every shared /jobs/:id?ref=share link." },

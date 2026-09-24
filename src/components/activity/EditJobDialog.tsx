@@ -27,6 +27,7 @@ import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { categories, type Job } from "./activityConstants";
 import { todayLocalISO } from "@/lib/dateUtils";
 import { computeJobExpiresAt } from "@/lib/jobExpiry";
+import { isLaborTaxable } from "@/lib/salesTax";
 
 interface EditJobDialogProps {
   job: Job | null;
@@ -156,6 +157,11 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
 
   const hasHelper = !!job.helper_id;
   const locked = hasHelper;
+  // ME-010: sales tax was charged at checkout from the category, so a paid job
+  // cannot cross between taxed and untaxed categories (the server refuses it:
+  // trg_funded_category_tax_class). Same funded test as the money lock.
+  const funded = (job.payment_status ?? "unpaid") !== "unpaid" || !!job.stripe_session_id;
+  const crossesTaxClass = (value: string) => funded && isLaborTaxable(value) !== isLaborTaxable(job.category);
 
   return (
     <>
@@ -196,9 +202,14 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               <Select value={category} onValueChange={setCategory} disabled={hasHelper}>
                 <SelectTrigger aria-label="Category"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {categories.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  {categories.map((c) => <SelectItem key={c.value} value={c.value} disabled={crossesTaxClass(c.value)}>{c.label}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {funded && !hasHelper && (
+                <p className="text-ds-12 text-muted-foreground" data-testid="category-tax-lock-hint">
+                  Sales tax was set by this category when you paid, so some categories are unavailable.
+                </p>
+              )}
             </div>
           </section>
 

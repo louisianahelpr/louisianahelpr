@@ -16,7 +16,7 @@
  *
  * On failure it prints the hash to add. Editing any inline script in
  * index.html / public/*.html therefore means updating the hash in vercel.json
- * AND index.html's meta CSP (and public/_headers); src/test/cspScriptSrc.test.ts
+ * AND index.html's meta CSP; src/test/cspScriptSrc.test.ts
  * catches the same drift from source, without a build.
  *
  * Usage: node scripts/check-csp-inline-scripts.mjs [distDir]

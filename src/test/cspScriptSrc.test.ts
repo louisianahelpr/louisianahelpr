@@ -4,7 +4,7 @@
  * On 2026-09-23 a stored `javascript:` href executed in an admin session. The
  * sink was fixed (3c81624d0, dd4713c00); what let it RUN was 'unsafe-inline'
  * in script-src. This keeps it out of every CSP the app ships (vercel.json
- * header, index.html's Capacitor meta, public/_headers) and proves the inline
+ * header, index.html's Capacitor meta) and proves the inline
  * scripts the app DOES rely on (storage probe, boot watchdog, pre-paint theme,
  * async-CSS swap, offline retry) still run: each one's exact sha256 must be
  * listed, or the browser silently blocks it.
@@ -23,7 +23,7 @@
 // @mutate vite.config.ts | if(k.sheet)on(); | if(k.sheet){on()}
 // @mutate index.html | script-src 'self' 'sha256-NByp | script-src 'self' 'unsafe-eval' 'sha256-NByp
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   FORBIDDEN_SCRIPT_SRC,
@@ -44,8 +44,6 @@ const walk = (d: string): string[] =>
 const vercelPolicy = vercelCsp(JSON.parse(read("vercel.json")));
 const indexHtml = read("index.html");
 const metaPolicy = metaCsp(indexHtml);
-const headersFile = read("public/_headers");
-const headersPolicy = /Content-Security-Policy:\s*(.+)/.exec(headersFile)?.[1] ?? null;
 
 // Every HTML page the build ships: index.html + everything public/ copies over.
 const pages = ["index.html", ...walk("public").filter((f) => f.endsWith(".html"))];
@@ -54,16 +52,20 @@ const pages = ["index.html", ...walk("public").filter((f) => f.endsWith(".html")
 const swap = /const ASYNC_CSS_SWAP =\s*'([^']*)'/.exec(read("vite.config.ts"))?.[1] ?? null;
 
 describe("CSP script-src (Q13)", () => {
+  // A-004: Vercel never reads public/_headers (a Netlify/Cloudflare file), so a
+  // CSP there is inert and drifts; a hardening edit made in it changes nothing.
+  it("no inert header file ships beside vercel.json (A-004)", () => {
+    expect(existsSync("public/_headers")).toBe(false);
+  });
+
   it("every shipped policy exists", () => {
     expect(vercelPolicy).toBeTruthy();
     expect(metaPolicy).toBeTruthy();
-    expect(headersPolicy).toBeTruthy();
   });
 
   it.each([
     ["vercel.json", () => vercelPolicy],
     ["index.html <meta>", () => metaPolicy],
-    ["public/_headers", () => headersPolicy],
   ] as const)("%s script-src has no 'unsafe-inline' / 'unsafe-eval' / 'unsafe-hashes' / 'strict-dynamic'", (_n, get) => {
     const tokens = scriptSrcTokens(get() ?? "");
     expect(tokens.length).toBeGreaterThan(0);
@@ -90,9 +92,9 @@ describe("CSP script-src (Q13)", () => {
     expect(missing).toEqual([]);
   });
 
-  it("index.html's inline scripts and the async-CSS swap are hash-allowed by the Capacitor meta CSP and public/_headers", () => {
+  it("index.html's inline scripts and the async-CSS swap are hash-allowed by the Capacitor meta CSP and vercel.json", () => {
     const bodies = [...inlineExecutableScripts(indexHtml).map((s) => s.body), swap ?? ""];
-    for (const policy of [metaPolicy, headersPolicy, vercelPolicy]) {
+    for (const policy of [metaPolicy, vercelPolicy]) {
       const tokens = scriptSrcTokens(policy ?? "");
       expect(bodies.map(sha256Source).filter((h) => !tokens.includes(h))).toEqual([]);
     }

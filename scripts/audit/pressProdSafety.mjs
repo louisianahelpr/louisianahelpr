@@ -401,7 +401,18 @@ export function rowNamesTestOwner(text, owners) {
 // ---------------------------------------------------------------------------
 // Clean-up
 // ---------------------------------------------------------------------------
-/** (table, owner column) pairs a press can insert into as the signed-in account; deleted by created_at ≥ run start. */
+/**
+ * A row scripts/audit/prod-seed.mjs owns. Its sid() writes UUID VERSION 5; every
+ * row a press can create takes its table's gen_random_uuid() default (version 4,
+ * all ten CLEANUP_TABLES, checked live 2026-09-24). "Created since the run
+ * started" is NOT "created by this run": prod-audit re-seeds before it audits,
+ * and at 12:53:16Z on 2026-09-24 press run 35976390920's cleanup deleted the
+ * poster's two seed Saved Helprs minutes after that re-seed, so shell-spacing
+ * measured an empty tab. Cleanup never deletes a seed row.
+ */
+export const isSeedRowId = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-/i.test(String(id ?? ""));
+
+/** (table, owner column) pairs a press can insert into as the signed-in account; deleted by created_at ≥ run start, seed rows excepted. */
 export const CLEANUP_TABLES = [
   ["applications", "helper_id"],
   ["saved_jobs", "user_id"],
@@ -480,7 +491,11 @@ export async function cleanup({ sessions, since, profilesBefore }) {
         } catch (e) { residue.push(`${persona} message-attachments: ${e.message}`); }
       }
       try {
-        const r = await del(s, `${table}?${col}=eq.${s.userId}&created_at=gte.${encodeURIComponent(sinceIso)}`);
+        const since = await prodSelect(s, `${table}?select=id&${col}=eq.${s.userId}&created_at=gte.${encodeURIComponent(sinceIso)}`);
+        const ids = since.map((row) => row.id).filter((id) => !isSeedRowId(id));
+        if (since.length > ids.length) log.push(`${persona} ${table}: kept ${since.length - ids.length} seed row(s)`);
+        if (!ids.length) continue;
+        const r = await del(s, `${table}?id=in.(${ids.join(",")})&${col}=eq.${s.userId}`);
         if (!r.ok) residue.push(`${persona} ${table}: HTTP ${r.status} ${r.body}`);
         else if (r.removed) log.push(`${persona} ${table}: removed ${r.removed}`);
       } catch (e) { residue.push(`${persona} ${table}: ${e.message}`); }

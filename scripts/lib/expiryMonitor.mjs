@@ -375,7 +375,7 @@ async function readMeta(read, env, fetchFn) {
   }
 }
 
-async function readAppleSignin(env, fetchFn) {
+async function readAppleSignin(read, env, fetchFn) {
   if (!env.SUPABASE_ACCESS_TOKEN || !env.SUPABASE_PROJECT_REF) return { expiresAt: null, detail: "unreadable here: SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_REF not set" };
   try {
     const r = await getJson(fetchFn, `https://api.supabase.com/v1/projects/${env.SUPABASE_PROJECT_REF}/config/auth`, { headers: { authorization: `Bearer ${env.SUPABASE_ACCESS_TOKEN}` } });
@@ -383,7 +383,10 @@ async function readAppleSignin(env, fetchFn) {
     if (!r.json?.external_apple_enabled) return { noExpiry: true, detail: "Apple provider is disabled in Supabase Auth (measured) — nothing to expire" };
     const exp = jwtExp(r.json.external_apple_secret);
     if (exp) return { expiresAt: exp, detail: "exp of external_apple_secret" };
-    return { expiresAt: null, detail: `unreadable here: external_apple_secret is ${r.json.external_apple_secret ? "not a JWT with exp (masked?)" : "empty"} — record the date manually` };
+    // The Management API returns a 64-hex hash here, never the JWT (measured
+    // 2026-09-24), so the exp can only come from the date the owner recorded.
+    if (read.date) return { expiresAt: read.date, source: "manual", detail: `Apple provider enabled; owner recorded expiry on ${read.recorded ?? "?"} (the API masks the secret)` };
+    return { expiresAt: null, detail: `unreadable: Apple provider is enabled but the Management API masks external_apple_secret (${r.json.external_apple_secret ? "a hash, not the JWT" : "empty"}) — record the secret's expiry as read.date in scripts/audit/expiry-inventory.json` };
   } catch (e) {
     return { expiresAt: null, detail: `unreadable here: ${errMsg(e)}` };
   }
@@ -402,7 +405,7 @@ export async function readItem(item, { env = process.env, root = process.cwd(), 
       case "asc-api": return await readAsc(r, env, fetchFn);
       case "vercel-token": return await readVercel(r, env, fetchFn);
       case "meta-debug-token": return await readMeta(r, env, fetchFn);
-      case "supabase-auth-apple": return await readAppleSignin(env, fetchFn);
+      case "supabase-auth-apple": return await readAppleSignin(r, env, fetchFn);
       case "no-expiry": return { noExpiry: true, source: item.sourceOfTruth, detail: `${r.reason} (vendor documentation, not measured)` };
       case "manual":
         if (r.date === "never") return { noExpiry: true, source: "manual", detail: `owner recorded "never" on ${r.recorded ?? "?"}` };

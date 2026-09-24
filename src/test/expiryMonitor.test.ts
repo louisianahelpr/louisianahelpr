@@ -24,6 +24,7 @@
 // @mutate scripts/lib/expiryMonitor.mjs | const SB_STATUS = { OK: "PASS", DUE: "FAIL", EXPIRED: "FAIL", NO_EXPIRY: "INFO", UNREADABLE: "UNKNOWN" }; | const SB_STATUS = { OK: "PASS", DUE: "PASS", EXPIRED: "FAIL", NO_EXPIRY: "INFO", UNREADABLE: "PASS" };
 // @mutate scripts/audit/expiry-inventory.json |     "CRON_SECRET": "self-generated shared secret",\n |
 // @mutate scripts/audit/expiry-inventory.json | "APP_URL": "config, not a credential", | "APP_URL": "config, not a credential", "LH_NEVER_REFERENCED": "stale",
+// @mutate scripts/lib/expiryMonitor.mjs | if (read.date) return { expiresAt: read.date, | if (false) return { expiresAt: read.date,
 // @mutate scripts/audit/expiry-inventory.json | "read": { "method": "tls", "host": "louisianahelpr.com" } | "read": { "method": "tls", "host": "old.louisianahelpr.com" }
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
@@ -36,6 +37,7 @@ import {
   inventoryDiff,
   jwtExp,
   loadInventory,
+  readItem,
   readTls,
   scoreboardRows,
   referencedHosts,
@@ -139,6 +141,30 @@ describe("(b) an unreadable item is reported, never skipped", () => {
     const r = await readTls("www.louisianahelpr.com", { connect: fake });
     expect(r.expiresAt).toBeNull();
     expect(r.detail).toMatch(/not trusted by the public roots/);
+  });
+});
+
+describe("Sign in with Apple: the API masks the secret, so its date is recorded", () => {
+  // Measured 2026-09-24: GET /config/auth returns a 64-hex hash for
+  // external_apple_secret, never the JWT, so its exp is unreadable by API.
+  const masked = (async () => new Response(JSON.stringify({ external_apple_enabled: true, external_apple_secret: "f".repeat(64) }), { status: 200 })) as unknown as typeof fetch;
+  const env = { SUPABASE_ACCESS_TOKEN: "t", SUPABASE_PROJECT_REF: "r" };
+  const item = (date: string | null): InventoryItem => ({
+    id: "apple", label: "apple", env: [], hosts: [], sourceOfTruth: "fixture", ciReadable: false,
+    read: { method: "supabase-auth-apple", date, recorded: date ? "2026-09-24" : null },
+  } as unknown as InventoryItem);
+  it("a masked secret with no recorded date is UNREADABLE", async () => {
+    const r = await readItem(item(null), { env, fetchFn: masked });
+    expect(r.expiresAt).toBeNull();
+    expect(r.detail).toMatch(/masks external_apple_secret/);
+  });
+  it("a masked secret uses the owner's recorded date", async () => {
+    const r = await readItem(item("2027-01-01T00:00:00Z"), { env, fetchFn: masked });
+    expect(r.expiresAt).toBe("2027-01-01T00:00:00Z");
+  });
+  it("the live inventory does not claim CI can read it", () => {
+    const apple = loadInventory(ROOT).items.find((i: InventoryItem) => i.id === "apple-signin-web-secret");
+    expect(apple?.ciReadable).toBe(false);
   });
 });
 

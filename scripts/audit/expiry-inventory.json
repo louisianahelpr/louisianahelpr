@@ -143,9 +143,9 @@
       "env": [],
       "hosts": [],
       "literal": { "file": "src/lib/socialAuth.ts", "text": "com.Helpr.signin" },
-      "sourceOfTruth": "Supabase Management API GET /v1/projects/{ref}/config/auth external_apple_secret (a JWT Apple caps at 6 months)",
-      "read": { "method": "supabase-auth-apple" },
-      "ciReadable": true
+      "sourceOfTruth": "the JWT's exp, set when it was generated with tools/apple-jwt.html (Apple caps it at 6 months). The Management API only says whether the provider is enabled: it returns a 64-hex hash for external_apple_secret, not the JWT (measured 2026-09-24)",
+      "read": { "method": "supabase-auth-apple", "date": null, "recorded": null },
+      "ciReadable": false
     },
     {
       "id": "vercel-token",

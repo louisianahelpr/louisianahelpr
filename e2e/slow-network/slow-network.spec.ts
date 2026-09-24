@@ -117,13 +117,19 @@ async function waitShowsProgress(page: Page, label: string, start: () => Promise
     }
     if (!firstProgress) {
       const what = await page.evaluate(progressOnScreen).catch(() => null);
-      if (what) firstProgress = { ms: Date.now() - t0, what };
+      if (what) {
+        firstProgress = { ms: Date.now() - t0, what };
+        // What the user saw, not just that a selector matched (LOOK AT IT).
+        const shot = await page.screenshot().catch(() => null);
+        if (shot) await test.info().attach(`progress-${label}`, { body: shot, contentType: "image/png" });
+      }
     }
     await page.waitForTimeout(150);
   }
   await kicked;
   const line = `${label}: done=${doneMs < 0 ? `NO (>${HANG_MS}ms)` : `${doneMs}ms`} progress=${firstProgress ? `${firstProgress.ms}ms ${firstProgress.what}` : "never"}`;
   test.info().annotations.push({ type: "wait", description: line });
+  console.log(`[wait] ${line}`);
   expect(doneMs, `${label}: hung silently — no outcome within ${HANG_MS}ms on 3G (${line})`).toBeGreaterThanOrEqual(0);
   if (opts.coldLoad) {
     expect(doneMs, `${label}: cold load took over ${COLD_LOAD_BUDGET_MS}ms on 3G (${line})`).toBeLessThanOrEqual(COLD_LOAD_BUDGET_MS);

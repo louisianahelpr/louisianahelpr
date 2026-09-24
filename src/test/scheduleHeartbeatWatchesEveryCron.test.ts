@@ -6,7 +6,7 @@
  *
  * @mutate .github/workflows/schedule-heartbeat.yml | uptime.yml:1 | uptime-gone.yml:1
  * @mutate .github/workflows/schedule-heartbeat.yml |           vacuity.yml:8 | #
- * @mutate .github/workflows/staleness-watch.yml | [ "$AGE" -le 2 ] || { echo | true || { echo
+ * @mutate .github/workflows/staleness-watch.yml | "$AGE" -le 2 ] | "$AGE" -le 999 ]
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

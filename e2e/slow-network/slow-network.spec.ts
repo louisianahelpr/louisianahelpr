@@ -120,7 +120,12 @@ async function waitShowsProgress(page: Page, label: string, start: () => Promise
       if (what) {
         firstProgress = { ms: Date.now() - t0, what };
         // What the user saw, not just that a selector matched (LOOK AT IT).
-        const shot = await page.screenshot().catch(() => null);
+        // Written to the output dir too: a buffer attachment reaches only the
+        // HTML report, and the uploaded artifact is test-results (run 35940421547
+        // detected Apply progress but shipped no picture of it).
+        const shot = await page
+          .screenshot({ path: test.info().outputPath(`progress-${label.replace(/[^A-Za-z0-9]+/g, "-")}.png`) })
+          .catch(() => null);
         if (shot) await test.info().attach(`progress-${label}`, { body: shot, contentType: "image/png" });
       }
     }
@@ -337,6 +342,11 @@ test(stepTitle("post", "drop"), async ({ browser, request, journey }) => {
     await loseNextResponse(page, `${SUPABASE_URL}/rest/v1/jobs**`);
     await submit.click();
     await expect(submit, "the post button never came back after a lost response (hang)").toBeEnabled({ timeout: 60_000 });
+    // Q270: the lost response is a rejected fetch while navigator.onLine is
+    // true, so requireOnline() never sees it. It must read as connection
+    // trouble, never the browser's raw text.
+    await expect(page.getByText(/Connection trouble/i).first(), "Q270: a dropped post showed no connection copy").toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/Failed to fetch|Load failed|NetworkError|TypeError/i), "Q270: raw fetch error shown to the user").toHaveCount(0);
     await submit.click();
     await expectExactlyOnce(request, poster, q, "jobs row");
   });

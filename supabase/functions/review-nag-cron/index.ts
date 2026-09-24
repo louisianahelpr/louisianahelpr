@@ -55,6 +55,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
+import { forEachBounded, SWEEP_CONCURRENCY } from "../_shared/forEachBounded.ts";
 
 /**
  * Width of each nag window, in hours. MUST be >= the cron period, or jobs fall
@@ -196,7 +197,7 @@ serve(async (req) => {
     let email_failures = 0;
     const results: Array<{ job_id: string; recipient: string; window: string; email: string }> = [];
 
-    for (const job of jobs) {
+    await forEachBounded(jobs, SWEEP_CONCURRENCY, async (job) => {
       const completionTime = new Date(
         job.poster_completed_at ?? job.helper_completed_at ?? 0,
       ).getTime();
@@ -206,7 +207,7 @@ serve(async (req) => {
         hoursSince >= FIRST_NAG_AT_HOURS && hoursSince < FIRST_NAG_AT_HOURS + WINDOW_HOURS;
       const inSecondWindow =
         hoursSince >= SECOND_NAG_AT_HOURS && hoursSince < SECOND_NAG_AT_HOURS + WINDOW_HOURS;
-      if (!inFirstWindow && !inSecondWindow) continue;
+      if (!inFirstWindow && !inSecondWindow) return;
 
       const windowLabel = inFirstWindow ? "24h" : "72h";
 
@@ -221,7 +222,7 @@ serve(async (req) => {
       if (reviewsErr) {
         console.error("[review-nag-cron] reviews read failed:", reviewsErr);
         defects.record(`reviews read for job ${job.id}: ${reviewsErr.message}; skipped`);
-        continue;
+        return;
       }
       const reviewedBy = new Set((existingReviews ?? []).map((r) => r.reviewer_id));
 
@@ -333,7 +334,7 @@ serve(async (req) => {
 
         results.push({ job_id: job.id, recipient: party.user_id, window: windowLabel, email: emailOutcome });
       }
-    }
+    });
 
     return cronResult(
       "review-nag-cron",

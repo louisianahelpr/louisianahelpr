@@ -51,6 +51,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
+import { forEachBounded, SWEEP_CONCURRENCY } from "../_shared/forEachBounded.ts";
 import {
   hoursPastScheduledEnd,
   stalledCompletionStage,
@@ -212,11 +213,11 @@ Deno.serve(async (req) => {
     }
 
     const counts = { first: 0, second: 0, escalate: 0, errors: 0 };
-    for (const job of scan.rows) {
+    await forEachBounded(scan.rows, SWEEP_CONCURRENCY, async (job) => {
       const stage = stalledCompletionStage(job, ledgers.get(job.id) ?? null, now);
-      if (!stage) continue;
+      if (!stage) return;
       try {
-        if (!(await claim(job.id, stage))) continue;
+        if (!(await claim(job.id, stage))) return;
         const postedLink = `/my-posts?job=${job.id}`;
         const workingLink = `/my-jobs?job=${job.id}`;
 
@@ -305,7 +306,7 @@ Deno.serve(async (req) => {
         counts.errors += 1;
         defects.record(`${stage} ${job.id}: ${(e as Error).message ?? String(e)}`);
       }
-    }
+    });
 
     return cronResult(
       "stalled-completion-reminder",

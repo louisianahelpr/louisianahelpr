@@ -29,7 +29,7 @@ function timeToMinutes(t: string): number {
 }
 
 // Minutes since local midnight of `now` in `timeZone`.
-export function localMinutes(now: Date, timeZone: string = QUIET_HOURS_TIME_ZONE): number {
+function localMinutes(now: Date, timeZone: string = QUIET_HOURS_TIME_ZONE): number {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
     hour: '2-digit',

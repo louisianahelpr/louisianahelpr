@@ -11,6 +11,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+// @two-way src/test/sentryLoadSitesAreGated.test.ts:expect(sites).toEqual(ALLOWED);
 const ALLOWED = ["src/lib/errorLogger.ts", "src/main.tsx"];
 
 function walk(dir: string): string[] {

@@ -129,6 +129,12 @@ jobs:
           fi
           echo "✅ Edge functions are responding"
 
+      - name: Boot-probe EVERY deployed function (EF-028)
+        # health-check alone was 1 function of every one deployed. A CORS
+        # preflight to each supabase/functions dir: no body, no auth, no side
+        # effect; any 5xx (boot error, worker crash) or no response fails.
+        run: node scripts/probes/edge-boot-sweep.mjs
+
   # A RED RUN HAS TO LAND SOMEWHERE. Added 2026-09-23 after edge-function-smoke — along
   # with 13 other scheduled workflows — was found failing with nobody told.
   # The drift detector had been red for THREE CONSECUTIVE DAYS (09-20, 09-21,

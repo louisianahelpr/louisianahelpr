@@ -225,6 +225,30 @@ serve(async (req) => {
         // auto-creating at all. Raised for decision; see the audit report.
         if (conn.auto_create_cleaning) {
           const checkoutDateStr = checkoutDate.toISOString().slice(0, 10);
+
+          // ST-007: claim the event BEFORE creating the job. The cron and the
+          // host's "Sync now" can run one connection at once; both pass the
+          // read above, and only the UNIQUE (connection_id, event_uid) index
+          // decides who owns the event. Job first meant both created one.
+          const { data: claim, error: claimError } = await supabase
+            .from('str_processed_events')
+            .insert({
+              connection_id:  conn.id,
+              event_uid:      event.uid,
+              checkout_date:  checkoutDateStr,
+              job_id:         null,
+            })
+            .select('id')
+            .single();
+          if (claimError) {
+            // 23505: a concurrent run claimed it first and owns the job.
+            if (claimError.code !== '23505') {
+              console.error('Failed to claim processed event:', claimError);
+              defects.record(`${conn.id}: processed-event claim failed for ${event.uid}: ${claimError.message}`);
+            }
+            continue;
+          }
+
           const propName = conn.property_name ?? 'property';
           const notes    = conn.cleaning_notes
             ? conn.cleaning_notes
@@ -250,22 +274,26 @@ serve(async (req) => {
           if (jobError) {
             console.error('Failed to create STR cleaning job:', jobError);
             defects.record(`${conn.id}: cleaning job insert failed: ${jobError.message}`);
+            // Release the claim so the next run retries this checkout.
+            const { error: releaseError } = await supabase
+              .from('str_processed_events')
+              .delete()
+              .eq('id', claim.id);
+            if (releaseError) {
+              defects.record(`${conn.id}: claim release failed for ${event.uid}: ${releaseError.message}`);
+            }
             continue;
           }
 
-          // Record the event so we never create a second job for it
-          const { error: peError } = await supabase.from('str_processed_events').insert({
-            connection_id:  conn.id,
-            event_uid:      event.uid,
-            checkout_date:  checkoutDateStr,
-            job_id:         job?.id ?? null,
-          });
+          // Link the claim to its job. The claim already blocks a second job;
+          // a failed link only loses the pointer, so it is a defect, not a dup.
+          const { error: peError } = await supabase
+            .from('str_processed_events')
+            .update({ job_id: job.id })
+            .eq('id', claim.id);
           if (peError) {
-            console.error('Failed to record processed event:', peError);
-            // Real defect, not cosmetic: str_processed_events IS the dedup
-            // guard, so a job created without its row gets created again on the
-            // next run — a duplicate cleaning job the host pays for.
-            defects.record(`${conn.id}: processed-event insert failed for ${event.uid}: ${peError.message}`);
+            console.error('Failed to link processed event to job:', peError);
+            defects.record(`${conn.id}: processed-event link failed for ${event.uid}: ${peError.message}`);
           }
 
           jobsCreated++;

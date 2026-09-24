@@ -395,7 +395,7 @@ serve(async (req) => {
           severity: "critical",
           title: "Instant payout sent but the record was not completed",
           message:
-            "A real Stripe instant payout succeeded but its instant_payouts row could not be marked completed. While that row stays 'pending' the partial unique index blocks every further instant payout for this helper — the feature is dead for them until it is cleared. The reaper (reap_stranded_instant_payouts) will release the lock within the hour, but the row's true outcome must be reconciled by hand.",
+            "A real Stripe instant payout succeeded but its instant_payouts row could not be marked completed. While that row stays 'pending' the partial unique index blocks every further instant payout for this helper — the feature is dead for them until it is cleared. The reaper (reap_stranded_instant_payouts) will release the lock within about 90 minutes (hourly at :34, once the row is 30 minutes old), but the row's true outcome must be reconciled by hand.",
           fields: {
             "Instant payout ID": String(record.id),
             "Helper ID": user.id,
@@ -478,7 +478,7 @@ serve(async (req) => {
           severity: "critical",
           title: "Instant payout failed AND its record could not be marked failed",
           message:
-            "An instant payout failed and the instant_payouts row could not be moved off 'pending'. The partial unique index means this helper cannot start another instant payout until the row is cleared. The reaper (reap_stranded_instant_payouts) releases it within the hour; the underlying Stripe failure still needs a look.",
+            "An instant payout failed and the instant_payouts row could not be moved off 'pending'. The partial unique index means this helper cannot start another instant payout until the row is cleared. The reaper (reap_stranded_instant_payouts) releases it within about 90 minutes (hourly at :34, once the row is 30 minutes old); the underlying Stripe failure still needs a look.",
           fields: {
             "Instant payout ID": String(record.id),
             "Helper ID": user.id,

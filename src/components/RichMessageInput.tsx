@@ -315,8 +315,13 @@ export const RichMessageInput = ({
     // send), the clear-on-empty effect never fires; never lock sending for good.
     setTimeout(() => { sendingRef.current = false; }, 1500);
     hapticLight();
-    onSend(text.trim());
+    const settled = onSend(text.trim());
     setText("");
+    // An async parent (ChatComposer) tells us when the send is decided. Release
+    // then: a send REFUSED at once (offline, content scan) restores the draft,
+    // and a retry inside the 1500ms backstop was silently eaten (Q268, live
+    // slow-network run 35936336468: Enter 150ms after an offline refusal did nothing).
+    if (settled) void settled.finally(() => { sendingRef.current = false; });
   };
 
   const handleSend = async () => {

@@ -29,6 +29,8 @@ type UseApplyFlowArgs = {
   allJobs: EnrichedJob[];
 };
 
+const APPLY_PENDING_TOAST_ID = "apply-pending";
+
 export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -450,9 +452,13 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     // set it true here so a fast double-tap can't enqueue twice.
     setApplyLoading(true);
     applyInFlight.current = true;
+    // The dialog is gone this frame and the outcome toast waits on two round
+    // trips (rate check, apply_to_job): 1.07s of blank screen on 3G in live
+    // slow-network run 35936336468 (Q324). Say it is sending until it settles.
+    toast.loading("Sending your application…", { id: APPLY_PENDING_TOAST_ID });
     applyMutation.mutate(
       { jobId, helperId: user.id, message, files },
-      { onSettled: () => { applyInFlight.current = false; setApplyLoading(false); } },
+      { onSettled: () => { applyInFlight.current = false; setApplyLoading(false); toast.dismiss(APPLY_PENDING_TOAST_ID); } },
     );
   }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, applyMutation]);
 

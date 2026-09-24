@@ -35,7 +35,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 vi.mock("sonner", () => ({
-  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), warning: vi.fn() }),
+  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), warning: vi.fn(), loading: vi.fn(), dismiss: vi.fn() }),
 }));
 vi.mock("@/lib/toast", () => ({ errorToast: vi.fn() }));
 vi.mock("@/hooks/useNotificationPermissionPrompt", () => ({ recordJobActionForPermissionPrompt: vi.fn() }));
@@ -96,6 +96,21 @@ describe("useApplyFlow in-flight guard", () => {
     act(() => { result.current.handleApplyConfirm("job-2"); });
     await waitFor(() => expect(rpcMock).toHaveBeenCalledTimes(2));
   });
+
+  it("says it is sending while the apply is in flight, and stops saying so once it settles (Q324)", async () => {
+    const { toast } = await import("sonner");
+    vi.mocked(toast.loading).mockClear();
+    vi.mocked(toast.dismiss).mockClear();
+    const { result } = setup();
+    act(() => { result.current.handleApplyConfirm("job-1"); });
+    // The dialog has already closed: without this the screen is blank until the
+    // server answers (1.07s on 3G, live slow-network run 35936336468).
+    expect(toast.loading).toHaveBeenCalledWith("Sending your application…", { id: "apply-pending" });
+    expect(toast.dismiss).not.toHaveBeenCalledWith("apply-pending");
+    await waitFor(() => expect(rpcMock).toHaveBeenCalledTimes(1));
+    await act(async () => { resolveRpc?.(); });
+    await waitFor(() => expect(toast.dismiss).toHaveBeenCalledWith("apply-pending"));
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -126,4 +141,7 @@ describe("useApplyFlow in-flight guard", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // @mutate src/pages/dashboard/useApplyFlow.ts | if (!user \|\| !jobId \|\| applyLoading \|\| applyInFlight.current) return; | if (!user \|\| !jobId \|\| applyLoading) return;
-// @mutate src/pages/dashboard/useApplyFlow.ts | { onSettled: () => { applyInFlight.current = false; setApplyLoading(false); } }, | { onSettled: () => { setApplyLoading(false); } },
+// @mutate src/pages/dashboard/useApplyFlow.ts | { onSettled: () => { applyInFlight.current = false; setApplyLoading(false); toast.dismiss(APPLY_PENDING_TOAST_ID); } }, | { onSettled: () => { setApplyLoading(false); toast.dismiss(APPLY_PENDING_TOAST_ID); } },
+// Q324: the dialog closes at once, so this toast is the only sign the apply is on its way.
+// @mutate src/pages/dashboard/useApplyFlow.ts | toast.loading("Sending your application…", { id: APPLY_PENDING_TOAST_ID }); | void 0;
+// @mutate src/pages/dashboard/useApplyFlow.ts | setApplyLoading(false); toast.dismiss(APPLY_PENDING_TOAST_ID); } }, | setApplyLoading(false); } },

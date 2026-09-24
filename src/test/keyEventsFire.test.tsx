@@ -143,7 +143,7 @@ vi.mock("@/hooks/useStripeConnectCheck", () => ({
 
 // ── Non-network UI side effects ─────────────────────────────────────────────
 vi.mock("sonner", () => ({
-  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), warning: vi.fn(), info: vi.fn() }),
+  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), warning: vi.fn(), info: vi.fn(), loading: vi.fn(), dismiss: vi.fn() }),
   Toaster: () => null,
 }));
 vi.mock("@/lib/haptics", () => ({

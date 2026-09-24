@@ -6,14 +6,16 @@
 // only proves the SECOND tap is refused passes with every release of
 // `sendingRef` deleted — and a latch that engages and never releases is not a
 // double-send guard, it is a permanent mute on the conversation after one
-// message. That exact defect shipped in PostedJobActions. There are two
+// message. That exact defect shipped in PostedJobActions. There are three
 // releases here and they cover different worlds:
 //   * the effect, `if (!text && !stagedFile)` — the normal path, where the
 //     parent clears the draft after a successful send;
 //   * the 1500ms backstop — the failure path, where the parent RESTORES the
 //     draft so the user can retry, so the text never goes empty and the
-//     effect never fires.
-// Delete either and a real user is stuck; the tests below break on each.
+//     effect never fires;
+//   * the settled promise — an async parent (ChatComposer) that refused the
+//     send at once, where waiting out the backstop ate the user's retry (Q268).
+// Delete any one and a real user is stuck; the tests below break on each.
 import { useState } from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
@@ -102,7 +104,32 @@ describe("RichMessageInput same-frame double send", () => {
       vi.useRealTimers();
     }
   });
+
+  it("RELEASES when an async parent refuses the send, so an immediate retry goes through (Q268)", async () => {
+    vi.useFakeTimers();
+    try {
+      // ChatComposer's shape: onSend resolves once the send is decided. Refused
+      // at once (offline), it restores the draft, so neither the cleared-draft
+      // effect nor the 1500ms backstop has released the latch yet. Measured
+      // live: a retry 150ms after an offline refusal was silently eaten.
+      const onSend = vi.fn(async () => {});
+      render(wrap(<RichMessageInput onSend={onSend} value="hello there" onChange={() => {}} jobId="j1" senderId="u1" />));
+      const send = screen.getByRole("button", { name: "Send message" });
+
+      await act(async () => { fireEvent.click(send); });
+      expect(onSend).toHaveBeenCalledTimes(1);
+
+      await act(async () => { vi.advanceTimersByTime(150); });
+      await act(async () => { fireEvent.click(send); });
+      expect(onSend).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
+
+// Release #3 — an async parent's verdict. Deleted, a refused send mutes the retry for 1.5s.
+// @mutate src/components/RichMessageInput.tsx | if (settled) void settled.finally(() => { sendingRef.current = false; }); | void settled;
 
 // Engage: the ref is the only thing that can see the second tap, because both
 // taps read the same `text` closure before React re-renders.

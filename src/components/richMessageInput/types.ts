@@ -24,7 +24,9 @@ export interface RichMessageInputProps {
     /** Set by the share-location path so the app-generated share (and only
      *  it) can skip the content scan — user-typed "📍" prefixes don't. */
     opts?: { isLocationShare?: boolean },
-  ) => void;
+    /** A promise means "the send is decided when this settles": the in-flight
+     *  guard releases then instead of waiting out its 1500ms backstop. */
+  ) => void | Promise<unknown>;
   onTyping?: () => void;
   disabled?: boolean;
   /** Optional controlled value — when provided, parent owns the text state. */

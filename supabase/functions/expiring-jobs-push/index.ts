@@ -60,6 +60,10 @@ Deno.serve(async (req) => {
       .select("id, title, customer_id, expires_at, category")
       .eq("status", "open")
       .is("helper_id", null)
+      // AL-010: a deleted poster leaves customer_id NULL; the notification
+      // insert then fails NOT NULL, the job is never marked, and every run
+      // retries it forever. There is nobody to tell, so never fetch it.
+      .not("customer_id", "is", null)
       .is("expiring_notif_sent", null)
       .gt("expires_at", now.toISOString())
       .lte("expires_at", in24h.toISOString());

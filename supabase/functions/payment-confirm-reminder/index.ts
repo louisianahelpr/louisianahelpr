@@ -170,6 +170,9 @@ Deno.serve(async (req) => {
         .order("id", { ascending: true })
         .in("status", ["in_progress", "revision_requested"])
         .eq("payment_status", "escrow")
+        // AL-010: an ownerless job (poster deleted) has no one to remind, and
+        // its NOT NULL insert failure would retry it on every run.
+        .not("customer_id", "is", null)
         .is("payment_confirm_notif_sent", null)
         .is("poster_completed_at", null)
         .not("helper_completed_at", "is", null)

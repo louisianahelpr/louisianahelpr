@@ -32,6 +32,7 @@ describe("every iOS background mode has native code behind it (NB-003)", () => {
   it("each declared mode is known and serviced", () => {
     const declared = modes();
     // Inventory floor: en-route tracking needs `location`.
+    expect(declared.length).toBeGreaterThan(0);
     expect(declared).toContain("location");
     for (const m of declared) {
       expect(HANDLER[m], `no handler rule for background mode "${m}"`).toBeDefined();

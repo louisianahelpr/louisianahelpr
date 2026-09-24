@@ -51,6 +51,9 @@ type Report = {
   reporter_exists?: boolean;
   reported_exists?: boolean;
   reported_job_exists?: boolean;
+  /** Q366: the person behind the subject — `reported_id` for a user report,
+   *  the application's helper for an application report, null otherwise. */
+  subject_user_id?: string | null;
   /** Q368: the reported person/job or the reporter is a seed row. */
   is_test?: boolean;
   assigned_to_name?: string;
@@ -117,18 +120,40 @@ const AdminReports = () => {
       // queue could not tell WHAT had been reported, and the two states the
       // fallback exists to distinguish — gone vs. unreadable — were both wrong
       // for every job report.
-      const isUserSubject = (r: Report) => r.reported_type !== "job";
+      const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application";
+      // Q366: an 'application' report holds an APPLICATION id. The person is
+      // its helper and the context is its job; both are read from the row.
+      const appIds = [...new Set(reportRows.filter(r => r.reported_type === "application").map(r => r.reported_id))];
+      const appHelper = new Map<string, string>();
+      const appJob = new Map<string, string>();
+      if (appIds.length > 0) {
+        const { data: appRows, error: appsError } = await supabase
+          .from("applications")
+          .select("id, helper_id, job_id")
+          .in("id", appIds);
+        if (appsError) report(appsError, { severity: "warning", tags: { source: "AdminReports.hydrateApplications" } });
+        for (const a of appRows || []) {
+          if (a.helper_id) appHelper.set(a.id, a.helper_id);
+          if (a.job_id) appJob.set(a.id, a.job_id);
+        }
+      }
+      const subjectUserOf = (r: Report): string | null =>
+        r.reported_type === "application" ? appHelper.get(r.reported_id) ?? null
+          : isUserSubject(r) ? r.reported_id : null;
       const userIds = [
         ...new Set(reportRows.flatMap(r => [
           r.reporter_id,
-          isUserSubject(r) ? r.reported_id : null,
+          subjectUserOf(r),
           r.assigned_to,
         ].filter(Boolean) as string[])),
       ];
       // Hydrated separately because it is a different table, and kept OUT of
       // `nameMap` so `reported_exists` still means "is a messageable user" —
       // a job report has no person to message, and that button must stay off.
-      const jobIds = [...new Set(reportRows.filter(r => !isUserSubject(r)).map(r => r.reported_id).filter(Boolean) as string[])];
+      const jobIds = [...new Set([
+        ...reportRows.filter(r => r.reported_type === "job").map(r => r.reported_id),
+        ...appJob.values(),
+      ].filter(Boolean))];
       const jobTitles = new Map<string, string>();
       const seedIds = new Set<string>();
       if (jobIds.length > 0) {
@@ -182,8 +207,15 @@ const AdminReports = () => {
         // same two-state honesty as `nameFor`: the row is genuinely gone (a
         // cancelled job the admin can no longer read) rather than mislabelled
         // as a person who never existed.
-        const subjectFor = (r: Report) =>
-          isUserSubject(r) ? nameFor(r.reported_id) : (jobTitles.get(r.reported_id) ?? "Deleted job");
+        const subjectFor = (r: Report) => {
+          if (r.reported_type === "application") {
+            const helper = appHelper.get(r.reported_id);
+            if (!helper) return "Deleted application";
+            const title = jobTitles.get(appJob.get(r.reported_id) ?? "");
+            return title ? `${nameFor(helper)} · application on "${title}"` : `${nameFor(helper)} · application`;
+          }
+          return isUserSubject(r) ? nameFor(r.reported_id) : (jobTitles.get(r.reported_id) ?? "Deleted job");
+        };
 
         return reportRows.map(r => ({
           ...r,
@@ -192,11 +224,15 @@ const AdminReports = () => {
           // Deleted actors cannot receive a message — the notification would
           // be written against a user_id with nothing behind it.
           reporter_exists: r.reporter_id !== null && nameMap.has(r.reporter_id),
-          reported_exists: nameMap.has(r.reported_id),
+          reported_exists: (() => { const u = subjectUserOf(r); return u !== null && nameMap.has(u); })(),
+          subject_user_id: subjectUserOf(r),
           // A job subject that still exists is one the admin can open.
-          reported_job_exists: !isUserSubject(r) && jobTitles.has(r.reported_id),
+          reported_job_exists: r.reported_type === "job" && jobTitles.has(r.reported_id),
           assigned_to_name: r.assigned_to ? nameMap.get(r.assigned_to) : undefined,
-          is_test: seedIds.has(r.reported_id) || (r.reporter_id !== null && seedIds.has(r.reporter_id)),
+          is_test: seedIds.has(r.reported_id)
+            || (r.reporter_id !== null && seedIds.has(r.reporter_id))
+            || (r.reported_type === "application"
+              && (seedIds.has(appHelper.get(r.reported_id) ?? "") || seedIds.has(appJob.get(r.reported_id) ?? ""))),
         }));
       }
       return reportRows;
@@ -377,7 +413,7 @@ const AdminReports = () => {
 
   const typeIcon = (type: string) => {
     if (type === "user") return <User className="w-4 h-4" />;
-    if (type === "job") return <Briefcase className="w-4 h-4" />;
+    if (type === "job" || type === "application") return <Briefcase className="w-4 h-4" />;
     if (type === "review") return <Clock className="w-4 h-4" />;
     return <MessageSquare className="w-4 h-4" />;
   };
@@ -440,7 +476,7 @@ const AdminReports = () => {
                   <div>
                     <p className="text-ds-13 font-semibold text-foreground">
                       <button
-                        onClick={() => navigate(`/user/${report.reported_id}`)}
+                        onClick={() => navigate(`/user/${report.subject_user_id ?? report.reported_id}`)}
                         className="hover:text-primary underline-offset-2 hover:underline transition-colors"
                       >
                         {report.reported_name}
@@ -533,7 +569,7 @@ const AdminReports = () => {
                     variant="outline"
                     disabled={report.reported_exists === false}
                     title={report.reported_exists === false ? "This account no longer exists" : undefined}
-                    onClick={() => navigate(`/user/${report.reported_id}`)}
+                    onClick={() => navigate(`/user/${report.subject_user_id ?? report.reported_id}`)}
                   >
                     <ExternalLink className="w-3.5 h-3.5 mr-1" /> View Profile
                   </Button>
@@ -569,7 +605,7 @@ const AdminReports = () => {
                       variant="outline"
                       disabled={report.reported_exists === false}
                       title={report.reported_exists === false ? "This account no longer exists" : undefined}
-                      onClick={() => { setMessageTarget({ userId: report.reported_id, name: report.reported_name || "User" }); setMessageText(""); }}
+                      onClick={() => { setMessageTarget({ userId: report.subject_user_id ?? report.reported_id, name: report.reported_name || "User" }); setMessageText(""); }}
                     >
                       <Send className="w-3.5 h-3.5 mr-1" /> Message {report.reported_exists === false ? "Reported" : (report.reported_name?.split(" ")[0] || "Reported")}
                     </Button>

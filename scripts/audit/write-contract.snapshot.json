@@ -13556,7 +13556,7 @@
   },
   "reports": {
    "checks": [
-    "CHECK ((reported_type = ANY (ARRAY['job'::text, 'message'::text, 'user'::text, 'support'::text, 'review'::text])))",
+    "CHECK ((reported_type = ANY (ARRAY['job'::text, 'message'::text, 'user'::text, 'support'::text, 'review'::text, 'application'::text])))",
     "CHECK ((status = ANY (ARRAY['pending'::text, 'new'::text, 'investigating'::text, 'reviewed'::text, 'resolved'::text, 'dismissed'::text])))"
    ],
    "columnGrants": {},

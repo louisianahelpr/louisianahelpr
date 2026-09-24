@@ -34,6 +34,7 @@ export function RevisionStep({
   tracker,
   messageChip,
   reportChip,
+  sosChip,
   revisionAccepted,
   onRevisionAcceptedChange,
   resolving,
@@ -116,7 +117,7 @@ export function RevisionStep({
            Report a Problem · …middle… · Before/After Photo · [green primary]
          The ends are also what the overflow control may never take — see
          `allocateJobStepRow`. */
-      actions={[reportChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="revision" />]}
+      actions={[sosChip, reportChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="revision" />]}
     />
   );
 }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { CheckCircle2, XCircle, AlertTriangle, MessageCircle, Image, HelpCircle } from "lucide-react";
 import { JobStepCard } from "@/components/activity/JobStepCard";
 import { JobActionChip } from "../../JobActionRow";
-import { SosShareButton } from "@/components/SosShareButton";
+import { SosShareButton, sosOffered } from "@/components/SosShareButton";
 import { PhotoProofDialog } from "@/components/PhotoProof";
 import { Dialog, DialogContent, DialogFooter, DialogHero, DialogSecondaryAction } from "@/components/ui/dialog";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
@@ -120,10 +120,8 @@ export function InProgressStep(ctx: PosterStepCtx) {
     !job.helper_arrived_at &&
     !recentNearMiss &&
     hasJobStarted(job.date_needed, job.start_time);
-  // SOS is gated on the helper actually BEING on site, and it ENDS when the job
-  // does — a safety control that outlives the situation is noise.
-  const jobIsOver = !!job.poster_completed_at || !!job.helper_completed_at;
-  const showSos = !!job.helper_arrived_at && !jobIsOver;
+  // SOS: the shared both-sides rule (on site, until the job is done).
+  const showSos = sosOffered(job);
   const showApprove = !!job.helper_completed_at;
   // The chip and the box it explains share ONE predicate (`posterStalledNotice`
   // reads the rung itself), so the card can never offer an explanation of a

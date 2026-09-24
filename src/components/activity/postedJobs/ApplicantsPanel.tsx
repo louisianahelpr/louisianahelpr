@@ -3,7 +3,9 @@ import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, Eye, MapPin, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
+import { ArrowUp, Ban, Eye, Flag, MapPin, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
+import ReportDialog from "@/components/ReportDialog";
+import { BlockUserDialog } from "@/components/BlockUserDialog";
 import AppPage from "@/components/AppPage";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import CredentialBadge from "@/components/CredentialBadge";
@@ -101,6 +103,12 @@ export function ApplicantsPanel({
   const [declineNote, setDeclineNote] = useState("");
   const [declineReason, setDeclineReason] = useState<string | null>(null);
   const [declineSending, setDeclineSending] = useState(false);
+  // Q366 (owner MQ12, TS-006): Report and Block on every applicant card. The
+  // report is typed against the APPLICATION (reported_type 'application');
+  // blocking closes their pending application server-side
+  // (block_user_and_settle) and RLS then hides it, so the list is re-read.
+  const [reportApp, setReportApp] = useState<EnrichedApplication | null>(null);
+  const [blockApp, setBlockApp] = useState<EnrichedApplication | null>(null);
 
   const handleDeclineConfirm = useCallback(async () => {
     if (!declineTarget || !selectedJob) return;
@@ -668,8 +676,10 @@ export function ApplicantsPanel({
                           </div>
                         )}
 
-                        {/* Row 4: private poster note — localStorage only, never sent to server */}
-                        <div className="pt-1.5">
+                        {/* Row 4: private poster note — localStorage only, never sent to server —
+                            and, on the right, Report / Block (Q366). */}
+                        <div className="pt-1.5 flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
                           {noteEditing === app.id ? (
                             <div className="flex gap-2 items-start">
                               <textarea
@@ -713,6 +723,29 @@ export function ApplicantsPanel({
                               <Plus className="w-3 h-3" /> Add Private Note
                             </button>
                           )}
+                          </div>
+                          {noteEditing !== app.id && (
+                            <div className="flex items-center gap-3 shrink-0">
+                              <button
+                                type="button"
+                                aria-label={`Report ${helperName}'s application`}
+                                onClick={() => { hapticLight(); setReportApp(app); }}
+                                className="text-ds-11 flex items-center gap-1"
+                                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                              >
+                                <Flag className="w-3 h-3" /> Report
+                              </button>
+                              <button
+                                type="button"
+                                aria-label={`Block ${helperName}`}
+                                onClick={() => { hapticLight(); setBlockApp(app); }}
+                                className="text-ds-11 flex items-center gap-1"
+                                style={{ color: "hsl(var(--danger-ink))" }}
+                              >
+                                <Ban className="w-3 h-3" /> Block
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -742,6 +775,25 @@ export function ApplicantsPanel({
         }}
         onConfirm={handleDeclineConfirm}
       />
+
+      {reportApp && (
+        <ReportDialog
+          open
+          onClose={() => setReportApp(null)}
+          reportedType="application"
+          reportedId={reportApp.id}
+        />
+      )}
+      {blockApp && (
+        <BlockUserDialog
+          open
+          onClose={() => setBlockApp(null)}
+          blockedUserId={blockApp.helper_id}
+          blockedUserName={formatName(blockApp.profiles?.full_name) || "this person"}
+          onBlocked={() => onLoadApplications(selectedJob)}
+          onReportAndBlock={() => { setReportApp(blockApp); }}
+        />
+      )}
 
     </>,
     document.body,

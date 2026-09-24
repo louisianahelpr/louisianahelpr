@@ -368,10 +368,12 @@ const CASES: Array<{
   {
     // The fixture carries both proof photos, so the capture chip is absent —
     // the row is legitimately three. Its companion above pins the other side.
-    name: "Jobs · Arrived (Start Working + Message · Report a Problem)",
+    // Q366: SOS is in the Helpr's row from arrival to completion, as on the
+    // poster's card, so the ceiling counts it.
+    name: "Jobs · Arrived (Start Working + SOS · Message · Report a Problem)",
     render: active(makeJob({ ...VERIFIED, poster_confirmed_working_at: null }), "arrived"),
-    minControls: 3,
-    maxControls: 3,
+    minControls: 4,
+    maxControls: 4,
     primary: ["Start Working"],
   },
   {
@@ -388,8 +390,8 @@ const CASES: Array<{
        narrower here and nowhere else. */
     name: "Jobs · Arrived, unverified arrival (Start Working alone — no retry chip)",
     render: active(makeJob({ poster_confirmed_working_at: null }), "arrived"),
-    minControls: 3,
-    maxControls: 3,
+    minControls: 4,
+    maxControls: 4,
     primary: ["Start Working"],
   },
   {
@@ -409,8 +411,8 @@ const CASES: Array<{
        three: After Photo · Message · Report a Problem + the disabled primary. */
     name: "Jobs · Working, after photo still owed (After Photo chip IN the row, disabled Mark Job Complete)",
     render: active(makeJob({ ...VERIFIED, proof_after_urls: [] }), "working"),
-    minControls: 4,
-    maxControls: 4,
+    minControls: 5,
+    maxControls: 5,
     primary: ["Mark Job Complete"],
   },
   {

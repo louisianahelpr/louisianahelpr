@@ -26,6 +26,7 @@ export function OnSiteStep({
   tracker,
   messageChip,
   reportChip,
+  sosChip,
   abortedNotice,
   payout,
 }: HelperStepProps & {
@@ -57,7 +58,7 @@ export function OnSiteStep({
            Report a Problem · …middle… · Before/After Photo · [green primary]
          The ends are also what the overflow control may never take — see
          `allocateJobStepRow`. */
-      actions={[reportChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="on_site" />]}
+      actions={[sosChip, reportChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="on_site" />]}
       escape={abortedNotice}
     />
   );

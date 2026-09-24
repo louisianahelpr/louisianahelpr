@@ -52,7 +52,7 @@ import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
  * any number of reasons per context without an orphan.
  */
 
-type ReportedType = "job" | "message" | "user" | "review";
+type ReportedType = "job" | "message" | "user" | "review" | "application";
 
 interface Reason {
   label: string;
@@ -60,8 +60,8 @@ interface Reason {
 }
 
 /**
- * REASONS ARE PER-CONTEXT. This dialog is the single report surface for four
- * different things (job / message / user / review — see the call-site map in
+ * REASONS ARE PER-CONTEXT. This dialog is the single report surface for five
+ * different things (job / message / user / review / application — see the call-site map in
  * the props doc below), and the old shared list asked every reporter about a
  * "Fake profile" even when they were reporting a job listing or a single chat
  * message. Each context now offers only reasons that can actually be true of
@@ -97,6 +97,15 @@ const REASONS: Record<ReportedType, readonly Reason[]> = {
     { label: "Payment requested off Helpr", Icon: Banknote },
     { label: "Something else", Icon: MoreHorizontal },
   ],
+  // Q366 (TS-006): an application is the first place a scam reaches a poster.
+  application: [
+    { label: "Spam or scam", Icon: AlertTriangle },
+    { label: "Fake profile or impersonation", Icon: BadgeAlert },
+    { label: "Payment requested off Helpr", Icon: Banknote },
+    { label: "Harassment or abuse", Icon: UserX },
+    { label: "Inappropriate content", Icon: EyeOff },
+    { label: "Something else", Icon: MoreHorizontal },
+  ],
   review: [
     { label: "Fake or dishonest review", Icon: Star },
     { label: "Harassment or abuse", Icon: UserX },
@@ -117,6 +126,7 @@ const REPORTED_NOUN: Record<ReportedType, string> = {
   message: "Message",
   user: "User",
   review: "Review",
+  application: "Application",
 };
 
 /**
@@ -130,6 +140,7 @@ const REPORTED_NOUN_INLINE: Record<ReportedType, string> = {
   message: "message",
   user: "account",
   review: "review",
+  application: "application",
 };
 
 /**
@@ -142,6 +153,7 @@ const REASON_PROMPT: Record<ReportedType, string> = {
   message: "What's wrong with this message?",
   user: "What's wrong with this account?",
   review: "What's wrong with this review?",
+  application: "What's wrong with this application?",
 };
 
 const MIN_LENGTH = 10;
@@ -153,11 +165,12 @@ interface ReportDialogProps {
   open: boolean;
   onClose: () => void;
   /**
-   * Which of the four report contexts this is. Call sites, 2026-08-31:
+   * Which of the five report contexts this is. Call sites, 2026-09-24:
    *   job     — Dashboard, Activity, PostedJobActions (the job feed's "Report")
    *   message — Messages (a single chat message's action sheet)
    *   user    — UserProfile, Messages (report the person, not the thread)
    *   review  — userProfile/ReviewsSection, reviewPanel/ReviewList
+   *   application — postedJobs/ApplicantsPanel (the applicant card, Q366)
    *
    * "profile" USED to be in this union and was never passed by any call site;
    * it is also not in the `reports_reported_type_check` CHECK constraint, so
@@ -572,8 +585,9 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                       and appears in the admin queue (AdminReports.tsx), where
                       an admin can assign it to themselves and move it to
                       investigating / resolved / dismissed;
-                    • `auto_escalate_reports_tg` fires, and ONLY for
-                      reported_type='user': at 3+ unresolved reports on that
+                    • `auto_escalate_reports_tg` fires for reported_type
+                      'user' and 'application' (counted against the applicant,
+                      20260924182505): at 3+ unresolved reports on that
                       account in 90 days it notifies every admin (throttled to
                       once per 7 days);
                     • nothing notifies the reported party, and nothing

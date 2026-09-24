@@ -181,6 +181,7 @@ const renderRevision = (job: Job) =>
       tracker={<div data-testid="tracker" />}
       messageChip={<button type="button" key="m">Message</button>}
       reportChip={<button type="button" key="r">Report a Problem</button>}
+      sosChip={null}
       exitChip={null}
       abortedNotice={null}
       revisionAccepted

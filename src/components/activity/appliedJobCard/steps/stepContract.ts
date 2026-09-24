@@ -27,6 +27,10 @@ export interface HelperStepProps {
    *  "Cancel Job" is gone; null where Cancel Job still exists, on a disputed
    *  job, or once the job is done. */
   reportChip: ReactNode;
+  /** SOS "share my location" (Q366, TS-007): the Helpr is the party at a
+   *  stranger's address. Same rule as the poster's card (`sosOffered`); null
+   *  outside it. */
+  sosChip: ReactNode;
   /** Rendered after an abort has been taken; replaces the exit. */
   abortedNotice: ReactNode;
 }

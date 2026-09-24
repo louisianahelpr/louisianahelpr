@@ -107,6 +107,20 @@ async function readCurrentPosition(jobId: string): Promise<{ lat: number; lng: n
  * than kept behind a flag: a control in this row that can be drawn two ways is
  * how the row ends up with two kinds of object in it.
  */
+/**
+ * WHEN SOS IS OFFERED — one rule for BOTH sides of the job (Q366, TS-007).
+ * Gated on the Helpr actually BEING on site, and it ENDS when the job does: a
+ * safety control that outlives the situation is noise. The poster's card and
+ * the Helpr's card both read this, so they cannot disagree about the moment.
+ */
+export function sosOffered(job: {
+  helper_arrived_at?: string | null;
+  helper_completed_at?: string | null;
+  poster_completed_at?: string | null;
+}): boolean {
+  return !!job.helper_arrived_at && !job.helper_completed_at && !job.poster_completed_at;
+}
+
 export function SosShareButton({ jobId }: { jobId: string }) {
   const [open, setOpen] = useState(false);
   const [locating, setLocating] = useState(false);

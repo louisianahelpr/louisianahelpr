@@ -25,6 +25,7 @@ export function WorkingStep({
   tracker,
   messageChip,
   reportChip,
+  sosChip,
   abortedNotice,
   payout,
 }: HelperStepProps & {
@@ -56,7 +57,7 @@ export function WorkingStep({
            Report a Problem · …middle… · Before/After Photo · [green primary]
          The ends are also what the overflow control may never take — see
          `allocateJobStepRow`. */
-      actions={[reportChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="working" />]}
+      actions={[sosChip, reportChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="working" />]}
       escape={abortedNotice}
     />
   );

@@ -14,6 +14,7 @@ import { hasRequiredProof } from "@/lib/photoProofPolicy";
 import { report } from "@/lib/errorLogger";
 import { deriveCurrentStatusIdx, STATUS_IDX, type TrackingData } from "@/components/JobTracking";
 import { HelperTrackerPanel } from "./HelperTrackerPanel";
+import { SosShareButton, sosOffered } from "@/components/SosShareButton";
 import { deriveHelperStep, type HelperStepProps } from "./steps/stepContract";
 import { EnRouteStep } from "./steps/EnRouteStep";
 import { OnSiteStep } from "./steps/OnSiteStep";
@@ -300,6 +301,7 @@ export function ActiveJobSection({
         }}
       />
     ) : null,
+    sosChip: sosOffered(job) ? <SosShareButton key="sos" jobId={job.id} /> : null,
     abortedNotice: aborted ? (
       <p className="font-sans text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         {aborted === "disputed"

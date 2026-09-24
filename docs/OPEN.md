@@ -2423,10 +2423,10 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 | ME-006 | HIGH | OPEN: tip fee still deducted from helper's payout; Terms '100% to Helpr' claim still false. Owner-approved gross-up fix unshipped. |
 | DH-001 | HIGH | Poster's own share link still routes into apply flow with no owner branch (JobDetail.tsx). |
 | NB-013 | HIGH | /reset-password + /account-pending still safely excluded from AASA; setSession() precondition still not implemented. |
-| N-003 | HIGH | Quiet Hours still enforced in UTC vs a local-time UI; unaffected today only because 0 prefs rows have quiet_start set (re-check after N-001 backfill). |
+| N-003 | HIGH | FIXED 2026-09-23 (1d35ff035): quiet hours evaluated in America/Chicago (no per-user tz column exists) via send-push-notification/quietHours.ts. Guard src/test/edge/quietHoursLocalTime.test.ts (CLASS: no getUTCHours/getHours in any edge fn), proven red. |
 | DR-004 | HIGH | Open / not fully reached: storage objects + edge-function secrets still outside the DB backup's scope; not re-measured live this pass. |
 | EJ-001 | HIGH | Toast copy for signup rate-limit fixed; underlying email-rate-limit cap on signups not verified as raised. |
-| AM-001 | HIGH | AM-001 open: past-deadline disputes with missing/unsucceeded PI still silently left with no admin reminder |
+| AM-001 | HIGH | FIXED 2026-09-23 (8f637a349): no-PI / PI-not-succeeded disputes send the deduped UNSETTLEABLE admin reminder + claim_skipped. Guard src/test/edge/auto-resolve-disputes.test.ts (CLASS: 20 skip states, none silent), proven red. |
 | OA-002 | HIGH | Create Account button still double-tappable during the phone-validation round-trip |
 | TS-006 | HIGH | No report/block control on applicant/bid rows — still open, not reached in full depth |
 | TS-007 | HIGH | SOS button still poster-only, no helper-side safety control or 911 path |

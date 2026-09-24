@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 227 done, 27 partly done (fixed, protection pending), 103 open. Source of truth for work.
+- **Queue (this file):** 227 done, 27 partly done (fixed, protection pending), 104 open. Source of truth for work.
 - **Audit bus:** 37 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 357 items — 227 done, 27 partly done (fixed, protection pending), 103 open.**
+**Queue: 358 items — 227 done, 27 partly done (fixed, protection pending), 104 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -2892,3 +2892,4 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [x] **Q358 (DONE 2026-09-24: all 33 go through `_shared/insertNotifications.ts`, which logs a refusal; bare inserts 33 → 0, guard is now a zero check proven 3/3 by vacuity) 33 bare `await supabase.from("notifications").insert(...)` calls in edge functions discard the error (measured 2026-09-24; AM-002 class).** A failed insert means a user or admin is silently never told (payouts, refunds, cancellations). The chargeback sites are fixed; `src/test/edgeNotificationInsertsChecked.test.ts` holds the rest at an exact baseline of 33, and each fix lowers it in the same commit. Mechanical: capture `{ error }` and log it (or better, one shared `_shared` helper). Biggest file: create-payment (13).
 - [ ] **Q359 Google sign-in into an existing email account has never run (OA-018, measured 2026-09-24: 0 prod users with more than one identity; Google has produced 0 identities).** Needs a real Google account: sign up with email, sign out, then "Continue with Google" with the same address, and confirm it lands in the same account (same user id, jobs intact). Owner device step, or add a Google test account to the e2e secrets.
 - [ ] **Q360 A charged-back or failed-payment job still looks healthy on both parties' job cards (ME-009 remainder, 2026-09-24).** The Helpr is now told by notification (933babe5e), but AppliedJobCard/PostedJobCard steps key on `jobs.status`, not `payment_status`, so a `chargeback`/`failed` job renders like an escrowed one, and ApplyEarningsBreakdown still says "Held securely". Needs a status line on the card for those payment states, screenshots at 375/1440 before and after, and a guard that every non-admin card maps chargeback/failed to visible copy.
+- [ ] **Q361** (LOW, from ST-008, 2026-09-24): 22 manual probes under `scripts/probes/` insert `jobs` rows with no `start_time`, `is_flexible_schedule` or `is_seed`; since `jobs_start_time_required` they fail on insert if re-run. None runs in CI (only `edge-boot-sweep.mjs` does, measured by grep of `.github/`). Fix each when it is next used, or add `start_time` in one sweep.

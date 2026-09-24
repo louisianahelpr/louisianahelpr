@@ -48,7 +48,7 @@ const SOURCES = walk(join(ROOT, "src"));
 
 // Every interpolated `receiver_id.eq.${...}` in app source, by file:expr.
 // Each id here is provably a live user; anything else must use threadPairFilter.
-// @two-way src/test/messagesReceiverNullable.test.ts:KNOWN_EQ lists no site that no longer exists
+// @two-way src/test/messagesReceiverNullable.test.ts:KNOWN_EQ lists a site that no longer exists
 const KNOWN_EQ: Record<string, string> = {
   "src/lib/deletedCounterparty.ts:other": "the non-null branch of threadPairFilter itself",
   "src/lib/deletedCounterparty.ts:me": "the signed-in viewer",
@@ -59,7 +59,7 @@ const KNOWN_EQ: Record<string, string> = {
 
 // Every `otherUserId ?? ""` / `|| ""`: allowed only where the "" feeds a falsy
 // early return, never a comparison.
-// @two-way src/test/messagesReceiverNullable.test.ts:KNOWN_COALESCE lists no site that no longer exists
+// @two-way src/test/messagesReceiverNullable.test.ts:KNOWN_COALESCE lists a site that no longer exists
 const KNOWN_COALESCE: Record<string, string> = {
   "src/lib/recipientGate.ts": "the effect returns on !otherUserId before any use",
   "src/pages/Messages.tsx": "useChatPresence returns on a falsy otherUserId",
@@ -130,7 +130,7 @@ describe("messages.receiver_id may be a deleted account (Q262)", () => {
     }
     expect(found.size).toBeGreaterThanOrEqual(1);
     expect([...found].filter((k) => !(k in KNOWN_COALESCE))).toEqual([]);
-    expect(Object.keys(KNOWN_COALESCE).filter((k) => !found.has(k))).toEqual([]);
+    expect(Object.keys(KNOWN_COALESCE).filter((k) => !found.has(k)), "KNOWN_COALESCE lists a site that no longer exists: remove it").toEqual([]);
   });
 
   it("a thread with nobody to receive is read-only: the composer shows the notice and the send path refuses", () => {

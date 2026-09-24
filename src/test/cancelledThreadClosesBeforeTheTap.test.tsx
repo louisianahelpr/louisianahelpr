@@ -161,10 +161,15 @@ const ROOT = path.resolve(__dirname, "../..");
    back to that same status. A transition added to the trigger that the client
    cannot read fails here. */
 function triggerAnnouncements(): { status: string; content: string }[] {
-  const sql = fs.readFileSync(
-    path.join(ROOT, "supabase/migrations/20260720130000_fix_job_status_trigger_null_sender.sql"),
-    "utf8",
-  );
+  // The NEWEST migration that defines the trigger function (guardsReadTheNewestMigration).
+  const dir = path.join(ROOT, "supabase/migrations");
+  const newest = fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .filter((f) => /FUNCTION\s+public\.insert_job_status_system_message\s*\(/i.test(fs.readFileSync(path.join(dir, f), "utf8")))
+    .pop();
+  const sql = newest ? fs.readFileSync(path.join(dir, newest), "utf8") : "";
   const body = sql.match(/v_content := CASE NEW\.status::text([\s\S]*?)END;/)?.[1] ?? "";
   return [...body.matchAll(/WHEN\s+'([a-z_]+)'\s+THEN\s+'([^']+)'/g)].map((m) => ({
     status: m[1],

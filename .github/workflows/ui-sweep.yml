@@ -144,7 +144,9 @@ jobs:
   sweep:
     name: Screen sweep (phone-light, assertions on)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 60, not 30: the Friday overlay sweep took ~22 min phone-light alone (run 2026-09-18);
+    # Q256 doubles the scheduled variants.
+    timeout-minutes: 60
 
     env:
       # Same publishable Vite vars the other workflows bake in. The sweep mocks
@@ -200,7 +202,9 @@ jobs:
           # push/pull_request keep their existing defaults ('empty' unless a
           # dispatch input says otherwise).
           SWEEPS: ${{ github.event.inputs.sweeps || (github.event.schedule == '0 5 * * 3' && 'error') || (github.event.schedule == '0 5 * * 5' && 'overlay') || 'empty' }}
-          VARIANTS: ${{ github.event.inputs.variants || 'phone-light' }}
+          # Q256: the weekly scheduled sweeps cover dark mode too; push/PR stay
+          # phone-light (the cheap per-change check). A dispatch input still wins.
+          VARIANTS: ${{ github.event.inputs.variants || (github.event_name == 'schedule' && 'phone-light,phone-dark') || 'phone-light' }}
         run: |
           set -euo pipefail
           case "$SWEEPS" in

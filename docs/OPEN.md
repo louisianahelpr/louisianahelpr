@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 346 items — 211 done, 25 partly done (fixed, protection pending), 110 open.**
+**Queue: 347 items — 211 done, 26 partly done (fixed, protection pending), 110 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1237,6 +1237,7 @@ sure someone hears it and closes it.
   Settings -> Actions -> General -> Workflow permissions -> "Read and write" +
   "Allow GitHub Actions to create and approve pull requests". Then wire the
   refresh workflows to open an auto-merging PR with the regenerated files.
+  **2026-09-24 re-measured:** no bot PR has merged. #1722 (scoreboard) sat with auto-merge on for 5 h: its pull_request runs are parked 'action_required' (github.token), and the default dispatch list (test.yml vitest.yml) produced only 1 of main's 3 required checks — and that one (Vitest) was cancelled on its 10-min limit (Q350), Test failed on a then-main lint error. FIXED: default now adds e2e-happy-path.yml + mobile-viewports.yml; guard src/test/refreshPrDispatchCoversRequiredChecks.test.ts (hosting workflow derived from required job names; vacuity 1/1 killed). Still TICK when the first bot PR auto-merges.
 3. **Let GitHub Actions commit the nightly re-measurements (Q57).** One
    setting: Settings -> Actions -> General -> Workflow permissions -> "Read
    and write permissions" + tick "Allow GitHub Actions to create and approve
@@ -2722,3 +2723,4 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q348 any signed-in user can call are_users_blocked(x, y) for two third parties (low; Q345 item 5).** proacl grants authenticated; it cannot simply be revoked because three RLS policies call it as the invoking role (applications "Helpers can create applications", applications "Job owners can view applications for their jobs", jobs "Customers can create jobs"; pg_policies 2026-09-24), plus enforce_block_on_message_insert / enforce_application_job_state / can_send_message_to_in_job. The client wrapper src/lib/userBlocks.ts areUsersBlocked has 0 callers (grep src + supabase/functions). Fix direction: inside the function, answer only when auth.uid() is one of the pair or is_server_context() (else false/raise), after proving every caller passes the caller as one argument; or drop the dead wrapper. Guard to name when fixed: are_users_blocked refuses a third-party pair (PGlite).
 
 - [ ] **Q349 One real account's avatar object is stored `Cache-Control: no-cache` and nothing I read wrote it (2026-09-24, Q329 remainder).** storage.objects avatars/7f65ef12-…/avatar.jpg (real, non-seed, not the owner; signed up 2026-05-03), written 2026-09-20 21:52Z with owner_id NULL (service-role). complete-signup is the only edge uploader and runs at signup, not months later; scripts/audit/prod-seed.mjs touches only the helper test account. Find the writer (storage API logs for that minute), then decide with the owner whether to rewrite the object's metadata. Not touched: real user data.
+- [~] **Q350 The required 'Vitest unit tests' check (vitest.yml) could not pass: 10-min job limit on a ~8-10 min suite (2026-09-24).** Measured: 36 of its last 40 runs cancelled with 'exceeded the maximum execution time of 10m0s', 2 failed, 0 passed — a hidden red on a required check. test.yml's job ran 10.0/13.2 of 15 min. FIXED ddd9c5413+: both limits 25 min. Guard: src/test/fullSuiteJobTimeoutHeadroom.test.ts (every workflow job running the full suite; vacuity 2/2 killed). TICK when a vitest.yml run on main completes green.

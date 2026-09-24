@@ -24,8 +24,9 @@ const RESTATES_FIX = "20260915101102";
 // Every LATER migration that redefines enforce_application_job_state from its
 // live body also restates the FOR SHARE fix, so each one has to be excluded as
 // well or "pre-fix" quietly stops meaning pre-fix and the first assertion below
-// goes hollow. 20260921190002 added the self-application guard C3.
-const RESTATES_APP_JOB_STATE_FIX = [RESTATES_FIX, "20260921190002"];
+// goes hollow. 20260921190002 added the self-application guard C3;
+// 20260924020956 (Q341) added the block refusal.
+const RESTATES_APP_JOB_STATE_FIX = [RESTATES_FIX, "20260921190002", "20260924020956"];
 const FIXTURES = resolve(__dirname, "fixtures/raceClass");
 const OFFER_HANDLERS = "src/pages/activity/activityActions/useOfferHandlers.ts";
 
@@ -245,7 +246,8 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
       // 20260923075415 (Q88: fee tier follows commitment) restates the whole
       // function WITH the done-stamp guard, so the pre-guard baseline must
       // exclude it too — same as RESTATES_FIX above.
-      block: latestDefinition("block_user_and_settle", [COMPLETION_FIX, "20260923075415", "20260923232809"]),
+      // 20260923232809 (Q301) and 20260924023843 (Q345) restate it the same way.
+      block: latestDefinition("block_user_and_settle", [COMPLETION_FIX, "20260923075415", "20260923232809", "20260924023843"]),
       // Also exclude the arrival migration (20260915044137): it legitimately
       // made report_helper_no_show read helper_completed_at for a STRONGER
       // no-show guard (refuses if arrived OR completed). The pre-guard baseline

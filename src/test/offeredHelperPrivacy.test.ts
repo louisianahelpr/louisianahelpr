@@ -196,6 +196,9 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:get_my_pending_direct_offers": "own-row-only",
     "function:get_jobs_for_my_applications": "returns-guarded",
     "view:open_jobs_browse": "returns-guarded",
+    // Q345: filters on the column to decline a pending offer between the pair;
+    // returns only counts (closed_offers), never the offeree.
+    "function:block_user_and_settle": "no-return",
     "function:can_message_in_job": "no-return",
     "function:can_send_message_to_in_job": "no-return",
     "function:enforce_application_job_state": "no-return",

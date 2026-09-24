@@ -30,6 +30,7 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
+import { jobLocalDateISO } from "../helpers/jobLocalDate";
 
 const CRON_SECRET = "cron-secret";
 
@@ -221,7 +222,7 @@ describe("money-reconciliation edge function", () => {
         id: "job-d", status: "cancelled", payment_status: "cancelled",
         helper_confirmed_at: new Date(Date.now() - 6 * 86_400_000).toISOString(),
         platform_fee_amount: 0, poster_completed_at: null, helper_completed_at: null,
-        date_needed: new Date(Date.now() - 5 * 86_400_000).toISOString().slice(0, 10), start_time: null,
+        date_needed: jobLocalDateISO(-5), start_time: null,
         ...extra,
       }] };
       scenario.reads.payout_transfers = { rows: [] };

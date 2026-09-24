@@ -256,7 +256,7 @@ void hydrateStorage();
         const [{ supabase }, { queryClient }, { removePersistedClient }] =
           await Promise.all([
             backgroundImport(() => import("./integrations/supabase/client"), "boot-teardown-client"),
-            backgroundImport(() => import("./lib/queryClient"), "boot-teardown-queryClient"),
+            backgroundImport(() => import("./lib/queryClient"), "boot-teardown-query-client"),
             backgroundImport(() => import("./lib/queryPersister"), "boot-teardown-persister"),
           ]);
         supabase.auth.onAuthStateChange((event) => {

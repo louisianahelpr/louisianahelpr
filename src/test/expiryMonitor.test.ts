@@ -24,6 +24,7 @@
 // @mutate scripts/lib/expiryMonitor.mjs | const SB_STATUS = { OK: "PASS", DUE: "FAIL", EXPIRED: "FAIL", NO_EXPIRY: "INFO", UNREADABLE: "UNKNOWN" }; | const SB_STATUS = { OK: "PASS", DUE: "PASS", EXPIRED: "FAIL", NO_EXPIRY: "INFO", UNREADABLE: "PASS" };
 // @mutate scripts/audit/expiry-inventory.json |     "CRON_SECRET": "self-generated shared secret",\n |
 // @mutate scripts/audit/expiry-inventory.json | "APP_URL": "config, not a credential", | "APP_URL": "config, not a credential", "LH_NEVER_REFERENCED": "stale",
+// @mutate scripts/lib/expiryMonitor.mjs | if (r.status === 404 && read.date) return | if (false) return
 // @mutate scripts/lib/expiryMonitor.mjs | if (read.date) return { expiresAt: read.date, | if (false) return { expiresAt: read.date,
 // @mutate scripts/audit/expiry-inventory.json | "read": { "method": "tls", "host": "louisianahelpr.com" } | "read": { "method": "tls", "host": "old.louisianahelpr.com" }
 import { describe, it, expect } from "vitest";
@@ -161,6 +162,13 @@ describe("Sign in with Apple: the API masks the secret, so its date is recorded"
   it("a masked secret uses the owner's recorded date", async () => {
     const r = await readItem(item("2027-01-01T00:00:00Z"), { env, fetchFn: masked });
     expect(r.expiresAt).toBe("2027-01-01T00:00:00Z");
+  });
+  it("Vercel's 404 for VERCEL_TOKEN falls back to the owner's recorded date", async () => {
+    const notFound = (async () => new Response(JSON.stringify({ error: { code: "not_found", message: "Token not found." } }), { status: 404 })) as unknown as typeof fetch;
+    const v = (date: string | null) => ({ id: "v", label: "v", env: ["VERCEL_TOKEN"], hosts: [], sourceOfTruth: "fixture", ciReadable: false,
+      read: { method: "vercel-token", env: "VERCEL_TOKEN", date, recorded: date ? "2026-09-24" : null } } as unknown as InventoryItem);
+    expect((await readItem(v(null), { env: { VERCEL_TOKEN: "x" }, fetchFn: notFound })).detail).toMatch(/404 \(not_found/);
+    expect((await readItem(v("2027-03-01T00:00:00Z"), { env: { VERCEL_TOKEN: "x" }, fetchFn: notFound })).expiresAt).toBe("2027-03-01T00:00:00Z");
   });
   it("the live inventory does not claim CI can read it", () => {
     const apple = loadInventory(ROOT).items.find((i: InventoryItem) => i.id === "apple-signin-web-secret");

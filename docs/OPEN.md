@@ -1851,6 +1851,10 @@ sure someone hears it and closes it.
     monitor warns 30 days ahead, or (b) make a fresh one now (you need the .p8
     key from the Apple developer site) and paste it into Supabase > Auth >
     Apple, and I will record today + 6 months.
+    Same kind of question for the Vercel token GitHub uses to deploy (the
+    VERCEL_TOKEN secret): Vercel will not tell the monitor its expiry. What
+    does Vercel > Account Settings > Tokens show as its expiration ("No
+    Expiration" is a fine answer)?
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

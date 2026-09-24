@@ -152,9 +152,9 @@
       "label": "Vercel API token (usage check)",
       "env": ["VERCEL_TOKEN"],
       "hosts": [],
-      "sourceOfTruth": "Vercel API GET /v5/user/tokens/current expiresAt",
-      "read": { "method": "vercel-token", "env": "VERCEL_TOKEN" },
-      "ciReadable": true
+      "sourceOfTruth": "Vercel dashboard > Account Settings > Tokens (expiration chosen at creation). GET /v5/user/tokens/current answers 404 Token not found for this token (measured 2026-09-24), so the owner records it; if it lapses, prod-deploy.yml goes red within 20 minutes",
+      "read": { "method": "vercel-token", "env": "VERCEL_TOKEN", "date": null, "recorded": null },
+      "ciReadable": false
     },
     {
       "id": "meta-page-token",

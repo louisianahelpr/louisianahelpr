@@ -351,6 +351,9 @@ async function readVercel(read, env, fetchFn) {
     const url = "https://api.vercel.com/v5/user/tokens/current";
     const init = { headers: { authorization: `Bearer ${env[read.env]}` } };
     const r = await getJson(fetchFn, url, init);
+    // Measured 2026-09-24: the VERCEL_TOKEN that deploys prod answers 404
+    // "Token not found" for its own metadata, so its expiry is the owner's.
+    if (r.status === 404 && read.date) return { expiresAt: read.date === "never" ? null : read.date, noExpiry: read.date === "never", source: "manual", detail: `Vercel cannot look this token up (404); owner recorded on ${read.recorded ?? "?"}` };
     if (r.status !== 200) return { expiresAt: null, detail: `unreadable here: Vercel answered ${r.status}${r.json?.error?.code ? ` (${r.json.error.code}: ${String(r.json.error.message ?? "").slice(0, 120)})` : ""}` };
     const t = r.json?.token;
     if (t && t.expiresAt == null && "expiresAt" in t) return { noExpiry: true, detail: `Vercel reports no expiresAt for token "${t.name ?? t.id}" (measured)` };

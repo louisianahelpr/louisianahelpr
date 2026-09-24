@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 227 done, 27 partly done (fixed, protection pending), 102 open. Source of truth for work.
+- **Queue (this file):** 227 done, 27 partly done (fixed, protection pending), 103 open. Source of truth for work.
 - **Audit bus:** 37 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 356 items — 227 done, 27 partly done (fixed, protection pending), 102 open.**
+**Queue: 357 items — 227 done, 27 partly done (fixed, protection pending), 103 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -2891,3 +2891,4 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [x] **Q357 recurrence_days and parent_job_id are still client-writable on jobs (noticed in Q356).** MEASURED 2026-09-24: `node scripts/probes/direct-patch-hire.prod.mjs` doors G (poster PATCHes recurrence_days on a hired job) and H (poster sets parent_job_id) both landed (200). Fix: trigger `enforce_series_columns_client_lock` (migration 20260924053706, PGlite 3x); guard src/test/jobSeriesColumnsLocked.test.ts 3/3 killed. PENDING: re-run the probe after db-deploy and see G/H refused. authenticated holds INSERT/UPDATE on both (information_schema.column_privileges, 2026-09-24). A poster could add recurrence_days to a job whose hired helper confirmed, making charge-recurring-visits book that helper for more visits than they agreed to (the helper can release dates); a client could point parent_job_id at another series. Neither was probed. Guard to name when fixed: recurrence_days/parent_job_id not client-writable after hire, with a live PATCH probe. **VERIFIED LIVE 2026-09-24T06:1xZ**: db-deploy applied 20260924053706; `node scripts/probes/direct-patch-hire.prod.mjs` G (recurrence_days after hire) and H (parent_job_id) now `refused` (were BYPASS 200), controls E/F still hire via RPC, 0 jobs left after cleanup.
 - [x] **Q358 (DONE 2026-09-24: all 33 go through `_shared/insertNotifications.ts`, which logs a refusal; bare inserts 33 → 0, guard is now a zero check proven 3/3 by vacuity) 33 bare `await supabase.from("notifications").insert(...)` calls in edge functions discard the error (measured 2026-09-24; AM-002 class).** A failed insert means a user or admin is silently never told (payouts, refunds, cancellations). The chargeback sites are fixed; `src/test/edgeNotificationInsertsChecked.test.ts` holds the rest at an exact baseline of 33, and each fix lowers it in the same commit. Mechanical: capture `{ error }` and log it (or better, one shared `_shared` helper). Biggest file: create-payment (13).
 - [ ] **Q359 Google sign-in into an existing email account has never run (OA-018, measured 2026-09-24: 0 prod users with more than one identity; Google has produced 0 identities).** Needs a real Google account: sign up with email, sign out, then "Continue with Google" with the same address, and confirm it lands in the same account (same user id, jobs intact). Owner device step, or add a Google test account to the e2e secrets.
+- [ ] **Q360 A charged-back or failed-payment job still looks healthy on both parties' job cards (ME-009 remainder, 2026-09-24).** The Helpr is now told by notification (933babe5e), but AppliedJobCard/PostedJobCard steps key on `jobs.status`, not `payment_status`, so a `chargeback`/`failed` job renders like an escrowed one, and ApplyEarningsBreakdown still says "Held securely". Needs a status line on the card for those payment states, screenshots at 375/1440 before and after, and a guard that every non-admin card maps chargeback/failed to visible copy.

@@ -145,5 +145,5 @@ describe("the latch RELEASES, so a refused write can be retried", () => {
 // @mutate src/components/ReportDialog.tsx | if (submitInFlight.current) return; | if (false) return;
 // @mutate src/components/admin/RestrictApplicationsDialog.tsx | if (inFlight.current) return; | if (false) return;
 // RELEASE — delete these and one refused write kills the control for good.
-// @mutate src/components/ReportDialog.tsx | toast.error("We couldn't send your report — please try again.");\n      submitInFlight.current = false; | toast.error("We couldn't send your report — please try again.");
+// @mutate src/components/ReportDialog.tsx | submitInFlight.current = false; // release after a refused insert | // (release removed)
 // @mutate src/components/admin/RestrictApplicationsDialog.tsx | } finally {\n      inFlight.current = false;\n      setSaving(false);\n    } | } finally {\n      setSaving(false);\n    }

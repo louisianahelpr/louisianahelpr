@@ -244,7 +244,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
     if (error || !data) {
       hapticError();
       toast.error(reportSubmitError(error, "We couldn't send your report — please try again."));
-      submitInFlight.current = false;
+      submitInFlight.current = false; // release after a refused insert
       setSubmitting(false);
       return;
     }

@@ -1727,9 +1727,11 @@ sure someone hears it and closes it.
    exists (0 rows in auth.users and profiles, measured 04:40Z). It is still
    'investigating', so the alert stays open. It's your record, so I didn't
    touch it. Dismiss it on /admin?view=reports and the next hourly sync closes
-   the alert. Also still yours: Q317 (the fatal cron alert). The fix is to set
-   PostgREST db_pool=14 and the pooler pool size to 14, and it needs the
-   Supabase access token.
+   the alert. (Q317, the fatal cron alert, is no longer yours: with the owner's OK the lead
+   set PostgREST db_pool=14 and pooler default_pool_size=14 at 2026-09-24 ~04:36Z via the
+   Management API, re-read 14/14, and quota-monitor's connection-budget job then went green
+   (run 35956432434). Cron had 0 'connection failed' runs from 23:30Z to 04:59Z. The alert
+   closes once a heavy prod suite runs clean.)
 
 ## CARRIED — still open from the sections archived 2026-09-23
 
@@ -2692,7 +2694,7 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   - (b) press matrix max-parallel 2;
   - (c) bigger compute (paid).
   Guard idea, once a fix lands: fail when db_saturation_samples.conn_pct ≥ 90% during a prod suite.
-  PARTLY DONE 2026-09-23: repo half landed (2d7d38693, f1c965242): press matrix max-parallel 2 (guard src/test/pressMaxParallel.test.ts); pool budget check scripts/check-db-pool-budget.mjs (guard src/test/dbPoolBudget.test.ts), nightly in quota-monitor.yml, RED today on 'PostgREST db_pool is null' as designed. OPEN: set PostgREST db_pool=14 and pooler default_pool_size=14 (budget 57 usable - 10 cron - 9 other - 10 Auth = 28). The agent was blocked from reading the CLI token (the owner must do it), then re-run a heavy suite and see 0 cron 'connection failed'.
+  POOL SET 2026-09-24 ~04:36Z (lead, owner OK'd it): PostgREST db_pool=14, pooler default_pool_size=14 (Management API, re-read 14/14); quota-monitor 'Postgres connection budget' job green in run 35956432434. Tick after a heavy prod suite runs with 0 cron 'connection failed'. PARTLY DONE 2026-09-23: repo half landed (2d7d38693, f1c965242): press matrix max-parallel 2 (guard src/test/pressMaxParallel.test.ts); pool budget check scripts/check-db-pool-budget.mjs (guard src/test/dbPoolBudget.test.ts), nightly in quota-monitor.yml, RED today on 'PostgREST db_pool is null' as designed. OPEN: set PostgREST db_pool=14 and pooler default_pool_size=14 (budget 57 usable - 10 cron - 9 other - 10 Auth = 28). The agent was blocked from reading the CLI token (the owner must do it), then re-run a heavy suite and see 0 cron 'connection failed'.
 - [x] **Q318 press max-parallel 2 makes the 03:17 press run last until about 08:00, overlapping db-drift-detect (05:17) and db-backup (07:17) in the prod-load concurrency group (Q317 agent, 2026-09-23).** GitHub keeps only one pending run per group, so on press days the 07:17 backup cancels the pending 05:17 drift-detect, a hidden red "cancelled". src/test/prodWorkflowSpacing.test.ts spaces cron start times only; it does not model run duration. Fix: move the press cron or the two DB jobs, and teach the spacing guard the run length.
   DONE 2026-09-23 (671b9a5f5): src/test/prodWorkflowSpacing.test.ts rule 5 models the worst-case run length (timeout × matrix waves over the job graph) and fails on overlap. It was red with 17 overlaps on the old schedule; 11 crons were moved so drift-detect runs at 13:17 and backup at 15:17. Note: the prod-load group is now fully booked (84 of 84 weekly slots); see Q322.
 - [x] **Q319 W-9 signature IP capture is blocked by CSP (owed-shots lane, 2026-09-23).** W9CollectionDialog fetches api.ipify.org, but connect-src in index.html and vercel.json omits it. The console shows a CSP violation, so "Recorded with IP" never appears and no IP is stored with the signature. Seen on the dev server; prod not yet checked. Fix: capture the IP server-side in the edge function or RPC (preferred), or allow the host in the CSP.

@@ -66,17 +66,17 @@ function tablesWithoutUserFk(): string[] {
       if (m) has.delete(m[1]);
     }
   }
-  lastScanned = has.size;
+  scanned = [...has.keys()];
   return [...has].filter(([, v]) => !v).map(([t]) => t).sort();
 }
-let lastScanned = 0;
+let scanned: string[] = [];
 
 describe("every user_id table has a foreign key or a stated reason (Q282)", () => {
   const missing = tablesWithoutUserFk();
   // Inventory, EXACT (Q339): the scanner must still see every public table
   // with a user_id uuid column. Live information_schema agreed on 2026-09-24.
   it("scans the whole user_id inventory", () => {
-    expect(lastScanned).toBe(34);
+    expect(scanned.length).toBe(34);
   });
   it("no user_id table without a FK is missing from KNOWN_NO_FK", () => {
     expect(missing.filter((t) => !(t in KNOWN_NO_FK))).toEqual([]);

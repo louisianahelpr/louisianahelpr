@@ -39,6 +39,19 @@ export function awardBlockFromError(err: unknown): AwardBlockReason | null {
   return (REASONS.find((r) => msg.includes(r)) as AwardBlockReason | undefined) ?? null;
 }
 
+/**
+ * The funding gate's refusal (trigger `enforce_job_funded_before_award`,
+ * 23514): the job's escrow is not funded, e.g. it was refunded after the offer.
+ * No retry by the helper can clear it, so it must not be shown as "try again"
+ * (Q320).
+ */
+export const UNFUNDED_AWARD_COPY =
+  "This job isn't funded right now, so it can't be accepted yet. The poster needs to complete checkout first.";
+export function isUnfundedAwardRefusal(err: unknown): boolean {
+  const e = err as { code?: unknown; message?: unknown } | null;
+  return String(e?.code ?? "") === "23514" && /not funded/i.test(String(e?.message ?? ""));
+}
+
 /** The subset of `stripe-connect { action: "status" }` this gate reads. */
 export interface AwardGateStatus {
   connected?: boolean;

@@ -9,7 +9,7 @@ import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { fireSuccessMoment } from "@/lib/successMoment";
 import type { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import type { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
-import { awardBlockFromError, posterAwardBlockMessage, type AwardBlockReason } from "@/lib/awardGate";
+import { awardBlockFromError, isUnfundedAwardRefusal, posterAwardBlockMessage, UNFUNDED_AWARD_COPY, type AwardBlockReason } from "@/lib/awardGate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { postedActivityBucket } from "@/pages/activity/activityFilters";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
@@ -409,6 +409,11 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         setAwardBlockReason(blocked);
         return;
       }
+      if (isUnfundedAwardRefusal(error)) {
+        toast.error(UNFUNDED_AWARD_COPY);
+        await refresh();
+        return;
+      }
       report(error, { tags: { source: "useOfferHandlers.respondToDirectOffer" } });
       toast.error("Couldn't record your response — please try again.");
       return;
@@ -499,6 +504,13 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         if (blocked) {
           setPendingAcceptApp(app);
           setAwardBlockReason(blocked);
+          return;
+        }
+        // Unfunded escrow: a retry can never work, so say why and re-read
+        // rather than leave Accept Job sitting there to bounce again (Q320).
+        if (isUnfundedAwardRefusal(confirmError)) {
+          toast.error(UNFUNDED_AWARD_COPY);
+          await refresh();
           return;
         }
         toast.error("Couldn't accept the job — please try again.");

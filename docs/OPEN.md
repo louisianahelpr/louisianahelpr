@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 336 items — 198 done, 32 partly done (fixed, protection pending), 106 open.**
+**Queue: 336 items — 199 done, 32 partly done (fixed, protection pending), 105 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -2694,4 +2694,5 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q337 A helper-wins $0-closed dispute job shows status 'completed' beside a "Cancelled" payment badge (Q235 review LOW, 2026-09-24).** Evidence: src/lib/statusLabels.ts:118 maps payment_status 'cancelled' to "Cancelled" regardless of job status. Needs a screenshot on a seeded job, then copy for "closed with no payment".
 - [x] **Q338 src/test/urgentBonusCap.test.tsx is red on main (measured at 2c33a0fad, 2026-09-24, in a clean detached worktree).** "client: the form states the maximum..." cannot find the text "$5 minimum, $250 maximum". Makes vacuity INCONCLUSIVE for that file. Needs the form copy or the test reconciled with the $250 cap decision.
   2026-09-24: caused by my Title Case fix to the Urgent Bonus label (612927ec4); src/test/urgentBonusCap.test.tsx matcher now case-insensitive; vitest related on the 3 changed files 185/185.
-- [ ] **Q339 src/test/userIdForeignKeys.test.ts has no inventory floor, so scripts/vacuity/index.mjs fails on it (measured 2026-09-24).** Add the floor (exact) so the file's inventory cannot silently empty.
+- [x] **Q339 src/test/userIdForeignKeys.test.ts has no inventory floor, so scripts/vacuity/index.mjs fails on it (measured 2026-09-24).** Add the floor (exact) so the file's inventory cannot silently empty.
+  2026-09-24: src/test/userIdForeignKeys.test.ts pins the scanned inventory EXACT at 34, equal to live information_schema (public base tables with user_id uuid).

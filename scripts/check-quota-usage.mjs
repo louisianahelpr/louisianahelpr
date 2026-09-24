@@ -219,13 +219,23 @@ async function readSentryReplays() {
       throw new Error(`Sentry stats_v2 (replay) answered without groups/intervals — refusing to report clean: ${JSON.stringify(body).slice(0, 160)}`);
     }
     const by = { accepted: 0, rate_limited: 0 };
+    // Per day, both outcomes: the 30-day window keeps a fixed source red for
+    // weeks, so the note says whether replays are STILL arriving (last 7 days,
+    // newest day with any) — the number a source fix has to move.
+    const perDay = body.intervals.map(() => 0);
     for (const g of body.groups) {
       const o = g?.by?.outcome === "rate_limited" ? "rate_limited" : "accepted";
       by[o] += num(g?.totals?.["sum(quantity)"] ?? 0);
+      const s = g?.series?.["sum(quantity)"];
+      if (Array.isArray(s)) s.forEach((v, i) => { if (i < perDay.length) perDay[i] += num(v ?? 0); });
     }
+    const last7 = perDay.slice(-7).reduce((a, b) => a + b, 0);
+    let newest = -1;
+    perDay.forEach((v, i) => { if (v > 0) newest = i; });
+    const newestDay = newest >= 0 ? String(body.intervals[newest]).slice(0, 10) : "none in 30d";
     readings[id] = {
       value: by.accepted + by.rate_limited,
-      note: `org stats_v2 category=replay: ${by.accepted} accepted, ${by.rate_limited} dropped by quota (rate_limited)`,
+      note: `org stats_v2 category=replay: ${by.accepted} accepted, ${by.rate_limited} dropped by quota (rate_limited); last 7 days ${last7}, newest day with any ${newestDay}`,
     };
   } catch (e) {
     fail([id], `could not read Sentry replays: ${e?.message ?? e}`);

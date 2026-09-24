@@ -422,17 +422,11 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 ? "After your next job, tap the heart on the Helpr's profile — they'll land here for one-tap rebooking."
                 : "Try a different search term — your saved list is intact."
             }
+            // No action on the never-saved state (owner, 2026-09-24: "Remove
+            // post a job from this"). The body already says how a Helpr gets
+            // here; only a search that matches nothing offers a way back.
             action={
-              helpers.length === 0 ? (
-                <BarkPillButton onClick={() => navigate("/post-job")}>
-                  {/* "Post a Job", title case — the same label the desktop
-                      rail, the dashboard CTA and this screen's own error
-                      state ("Post a Job Instead") use. The lowercase "job"
-                      here was the only place the app called it something
-                      else. */}
-                  Post a Job
-                </BarkPillButton>
-              ) : (
+              helpers.length === 0 ? undefined : (
                 <BarkPillButton onClick={() => setSearch("")}>
                   Clear search
                 </BarkPillButton>

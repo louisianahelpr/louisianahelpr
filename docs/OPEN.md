@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 337 items — 201 done, 32 partly done (fixed, protection pending), 104 open.**
+**Queue: 338 items — 201 done, 32 partly done (fixed, protection pending), 105 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -2699,4 +2699,5 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   2026-09-24: caused by my Title Case fix to the Urgent Bonus label (612927ec4); src/test/urgentBonusCap.test.tsx matcher now case-insensitive; vitest related on the 3 changed files 185/185.
 - [x] **Q339 src/test/userIdForeignKeys.test.ts has no inventory floor, so scripts/vacuity/index.mjs fails on it (measured 2026-09-24).** Add the floor (exact) so the file's inventory cannot silently empty.
 - [ ] **Q340 messages: anon + authenticated hold column-level INSERT on every messages column; only RLS keeps anon out (lh-authz-rls follow-up from Q262, predates it).** Revoke the column grants FROM PUBLIC, anon and restate authenticated to the columns the client writes; verify in information_schema.column_privileges.
+- [ ] **Q341 A blocked applicant is counted but never shown, and the apply path ignores blocks (found timing Q239 on prod, 2026-09-24).** poster-e2e job 3c2028d5 "Pick up and deliver a washer": the card says "Applicants are waiting", the button "Applicants (1)", the nav badge 1, but the panel says "Still no applications". The one applicant (76b07824) BLOCKED the poster on 2026-09-11 and applied on 2026-09-22 anyway. Layers: (a) apply RPC/RLS accepts an application across a block in either direction; (b) useActivityData applicantCounts/pendingApplicantCounts and useActivityBadgeCounts count blocked applicants while useApplicantsState hides them, so the job sits under "Needs you" demanding a decision the poster cannot make. Live: 1 pending application on an open job across a block (all of prod). Guard to name when fixed: counts and list share one blocked-filter (inventory of applicant counters) + apply refuses across a block.
   2026-09-24: src/test/userIdForeignKeys.test.ts pins the scanned inventory EXACT at 34, equal to live information_schema (public base tables with user_id uuid).

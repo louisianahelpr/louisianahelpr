@@ -23,7 +23,10 @@ const latest = defining[defining.length - 1];
 const sql = readFileSync(`${dir}/${latest}`, "utf8");
 
 describe("public job text is contact-scanned (IB-002)", () => {
-  it("found the trigger's latest definition", () => expect(latest).toBeTruthy());
+  it("found the trigger's latest definition", () => {
+    expect(defining.length).toBeGreaterThan(0);
+    expect(latest).toBeTruthy();
+  });
   const cols = (sql.match(/UPDATE OF ([\w,\s]+?) ON public\.jobs/i)?.[1] ?? "").split(",").map((s) => s.trim());
   it.each(PUBLIC_JOB_TEXT)("%s re-scans on update and is checked in the function", (col) => {
     expect(cols).toContain(col);

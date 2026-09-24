@@ -26,7 +26,9 @@ const LOAD = /^(?!\s*(?:\/\/|\*)).*import\(\s*["'](?:@\/lib\/sentry|\.\.?\/(?:li
 
 describe("Sentry loads only behind interaction or an error (PD-005)", () => {
   it("the load sites are exactly the allowed ones", () => {
-    const sites = walk("src").filter((f) => f !== "src/lib/sentry.ts" && LOAD.test(readFileSync(f, "utf8"))).sort();
+    const all = walk("src");
+    expect(all.length).toBeGreaterThan(500);
+    const sites = all.filter((f) => f !== "src/lib/sentry.ts" && LOAD.test(readFileSync(f, "utf8"))).sort();
     expect(sites).toEqual(ALLOWED);
   });
 });

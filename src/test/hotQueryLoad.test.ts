@@ -4,7 +4,6 @@
 // @mutate src/hooks/useActivityBadgeCounts.ts | let store = stores.get(userId); | let store = undefined as BadgeStore \| undefined;
 // @mutate src/components/mobileNav/useNavUnreadCount.ts | let store = stores.get(userId); | let store = undefined as UnreadStore \| undefined;
 // @mutate src/hooks/useActivityBadgeCounts.ts | const BADGE_REFRESH_DEBOUNCE_MS = 400; | const BADGE_REFRESH_DEBOUNCE_MS = 0;
-// @mutate src/components/admin/AdminBroadcasts.tsx | refetchInterval: 15_000, | refetchInterval: 2_000,
 // @mutate src/hooks/useActivityBadgeCounts.ts |       if (isHidden()) {\n        dirtyWhileHidden = true;\n        return;\n      }\n      loadCounts(); |       loadCounts();
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -175,7 +174,6 @@ function pollers(): Poller[] {
  */
 // @two-way src/test/hotQueryLoad.test.ts:expect(seen).toEqual(
 const KNOWN_NETWORK_POLLERS: Record<string, { ms: number; why: string }> = {
-  "components/admin/AdminBroadcasts.tsx refetchInterval": { ms: 15_000, why: "admin console only; React Query pauses it while the tab is hidden" },
   "pages/SignupPending.tsx setInterval": { ms: 5_000, why: "email-verification gate screen; stops on navigate, below the floor on purpose (the user is waiting on it)" },
   "pages/CompleteProfile.tsx setInterval": { ms: 2_500, why: "profile-row retry while a brand-new profile is being created; stops as soon as it exists" },
 };
@@ -188,7 +186,7 @@ describe("hot-query load (Q53)", () => {
 
   it("every network poller is inventoried, exactly, with its period", () => {
     const found = pollers().filter((p) => p.network);
-    expect(found.length).toBeGreaterThan(2);
+    expect(found.length).toBeGreaterThan(1);
     const seen: Record<string, number | null> = {};
     for (const p of found) seen[`${p.file} ${p.kind}`] = p.ms;
     expect(seen).toEqual(Object.fromEntries(Object.entries(KNOWN_NETWORK_POLLERS).map(([k, v]) => [k, v.ms])));

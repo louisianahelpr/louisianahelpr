@@ -129,7 +129,7 @@ const PROFILE_ROUTES = ['/profile', ...PROFILE_TABS.map((t) => `/profile?tab=${t
 // links to home, so sweeping them silently graded the dashboard under five
 // extra names and reported them as covered.
 const ADMIN_VIEWS = [
-  'analytics', 'people', 'jobs', 'settings', 'disputes', 'broadcasts', 'notifications', 'notiflogs',
+  'analytics', 'people', 'jobs', 'settings', 'disputes', 'notifications', 'notiflogs',
   'reports', 'support', 'referrals', 'subscriptions', 'fraud', 'audit', 'health', 'export', 'payouts',
   'tiers', 'marketing', 'idvreview', 'credentials', 'exceptions', 'banreview',
 ];

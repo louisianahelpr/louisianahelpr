@@ -375,7 +375,7 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
 // loud, whereas a view missing from here is silent — the failure mode this list
 // exists to prevent.
 export const ADMIN_VIEWS = [
-  "analytics", "people", "jobs", "settings", "disputes", "broadcasts",
+  "analytics", "people", "jobs", "settings", "disputes",
   "notifications", "notiflogs", "reports", "support", "referrals",
   "subscriptions", "fraud", "audit", "health", "export", "payouts",
   // parishtax and geography were DELETED (owner: Stripe handles tax; geography

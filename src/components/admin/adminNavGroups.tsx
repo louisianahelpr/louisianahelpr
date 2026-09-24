@@ -18,7 +18,6 @@ import {
   Headphones,
   LayoutDashboard,
   Mail,
-  Megaphone,
   Scale,
   ScrollText,
   Settings,
@@ -111,7 +110,6 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
   {
     title: "Engagement",
     items: [
-      { id: "broadcasts", label: "Broadcasts", icon: Megaphone },
       { id: "notifications", label: "Notifications", icon: BellRing },
       { id: "notiflogs", label: "Notification Logs", icon: ClipboardCheck },
       { id: "marketing", label: "Marketing", icon: Mail },

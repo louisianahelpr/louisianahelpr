@@ -634,6 +634,7 @@ sure someone hears it and closes it.
    goes straight to upload-for-review; (c) remove the switches and show the
    attach areas all the time.
 8. **Should marketing auto-publish be ON? (Q42/Q166)** You did not turn it on.
+   **ANSWERED 2026-09-24 (owner pop-up): (a) turn it OFF until the Meta secrets exist. Work item Q365.**
    Measured from the API gateway's edge_logs: press-every-control run
    35837735324 PATCHed `marketing_settings` at 10:50:07Z on 2026-09-23 as
    admin@louisianahelpr.com (referer 127.0.0.1:4173, the CI runner), and every
@@ -1708,6 +1709,7 @@ sure someone hears it and closes it.
    Want it (encrypted) in the backup, or kept in your password manager?
 
 9. **Things the app no longer uses (Q41): approve group (a), decide group (b).**
+   **ANSWERED 2026-09-24 (owner pop-up): approve ALL of group (a). Group (b) still undecided. Work item Q364.**
    Full list with the evidence for each: docs/audit/dead-code-report-2026-09-23.md.
    (a) **Safe to delete, nothing anyone sees changes** (about 1,200 lines): the
    second "recent reviews" wall you removed from public profiles (VN-15), three
@@ -1735,6 +1737,7 @@ sure someone hears it and closes it.
    closes once a heavy prod suite runs clean.)
 
 11. **Tips: confirm your 2026-09-02 decision before I ship it (ME-006, CC-003).**
+   **ANSWERED 2026-09-24 (owner pop-up): (a) the poster pays the card fee on top, and the tip minimum rises to $3. Work item Q362.**
    The Terms say "100% of tips go to the Helpr", but today the card fee (2.9% + 30c)
    comes out of the tip, so a $5 tip pays the Helpr $4.55. On 2026-09-02 you decided
    the POSTER pays the card fee on top, so the Helpr gets the whole tip and we keep
@@ -1745,17 +1748,20 @@ sure someone hears it and closes it.
    The urgent bonus (CC-003) has the same question: Post Job says it "goes straight
    to the Helpr", but 2.9% comes off it ($20 pays about $19.42).
 12. **Safety buttons on bids and active jobs (TS-006, TS-007, 2026-09-24).**
+   **ANSWERED 2026-09-24 (owner pop-up, re-asked because there are no bids, only applications): add Report + Block on every APPLICATION card AND the Helpr SOS button on an active job. Work item Q366.**
    Today a bid/application has no Report or Block button (you must open the
    person's profile first), and a Helpr on an active job has no safety/SOS button
    at all (only the poster has one). Want me to add Report + Block on every
    bid card, and the same SOS button for the Helpr on an active job? Yes/no is enough.
 13. **Backups for photos and settings (DR-004, 2026-09-24).** A database restore
+   **ANSWERED 2026-09-23 by MQ7(c): back up uploaded files EXCEPT id-documents, encrypted (Q147).**
    brings back the rows but not the 24 uploaded files (~19 MB: photos, IDs,
    documents) or the edge-function secrets. Options: (a) a nightly GitHub job
    copies the files to a private GitHub artifact (free, 90-day keep), or (b) leave
    as-is until launch. I recommend (a).
 
 14. **What to call a person whose account was deleted (AL-011, 2026-09-24).** The
+   **ANSWERED 2026-09-24 (owner pop-up): (a) users see "Former member", admin sees "Deleted account", everywhere. Work item Q369.**
    app uses 16 different labels for the same thing: "A neighbor", "Helpr",
    "Former Helpr", "Deleted user", "Unknown", "No name" and more. Admin can't tell
    a deleted account from a missing name. Options: (a) users see "Former member"
@@ -1763,6 +1769,7 @@ sure someone hears it and closes it.
    recommend (a). It changes copy on about 15 screens.
 
 15. **Tax forms (W-9) after a Helpr deletes their account (CS-003, 2026-09-24).**
+   **ANSWERED 2026-09-24 (owner pop-up): keep 4 years after signing, then delete automatically. Work item Q370.**
    Deleting an account leaves the Helpr's W-9 record (typed legal name, signing IP)
    in place forever. The IRS expects a business to keep W-9s for about 4 years, so
    deleting them at once may be wrong too. Options: (a) keep them 4 years after
@@ -1770,6 +1777,7 @@ sure someone hears it and closes it.
    forever. I recommend (a), but it is a legal call. No W-9s exist in prod yet.
 
 16. **Opening the profile of someone you blocked (TS-011, 2026-09-24).** The Block
+   **ANSWERED 2026-09-24 (owner pop-up): (a) show "You blocked this person" + Unblock, and hide their details. Work item Q367.**
    screen promises "You won't see their … profile", but /user/<their id> still
    shows the full profile. (Saved Helprs now hides them. Messages, applications
    and offers were already refused by the server.) Options: (a) the profile page
@@ -1778,6 +1786,7 @@ sure someone hears it and closes it.
    recommend (a).
 
 17. **Test rows in the admin queues (AM-012, 2026-09-24).** The admin home page
+   **ANSWERED 2026-09-24 (owner pop-up): (a) keep them in the lists with a "Test" tag; home shows "0 (+2 test)". Work item Q368.**
    and the sidebar badges leave out test (seed) rows, but the Disputes, Users and
    Reports lists show them. So home can say "0 disputes" while the Disputes list
    holds 2 with live Refund / Release buttons. The automated admin tests need to
@@ -1786,6 +1795,7 @@ sure someone hears it and closes it.
    (the admin tests would need another way in). I recommend (a).
 
 18. **W-9 forms after a Helpr deletes their account (CS-003, 2026-09-24).** When
+   **ANSWERED 2026-09-24: same as MQ15, keep 4 years then delete (Q370).**
    a Helpr signs a W-9 (typed name and the IP address they signed from), deleting
    their account leaves it in place forever. Today there are 0 of them. The
    privacy policy says tax records the law requires are kept, and the IRS says
@@ -1794,6 +1804,7 @@ sure someone hears it and closes it.
    deleted. I recommend (a).
 
 19. **Delete the Broadcasts feature's code? (S-004, 2026-09-24).** You removed
+   **ANSWERED 2026-09-24 (owner pop-up): (a) delete the banner, the admin screen and its menu item now; drop the two tables in a later migration. Work item Q363.**
    Broadcasts on 2026-09-01, but the code is still there: the Dashboard runs two
    database reads for the banner on every load (both tables hold 0 rows), and
    Admin still has a Broadcasts screen that can create banners. My automatic
@@ -1802,6 +1813,7 @@ sure someone hears it and closes it.
    two tables in a later migration; (b) keep it. I recommend (a).
 
 20. **Paging for Activity lists (PD-002, 2026-09-24).** Posted Jobs and Applied
+   **ANSWERED 2026-09-24 (owner pop-up): (a) add "Show older" after 50 per section NOW. Work item Q372.**
    Jobs load every row at once. The largest account today has 202 posted jobs
    (a test account); real accounts are far smaller. Capping the list would hide
    old jobs, so the fix is a "Show older" button (a visible change). Options:
@@ -1809,6 +1821,7 @@ sure someone hears it and closes it.
    gets big. I recommend (b) for now; it is not a launch risk.
 
 21. **Louisiana sales tax is $0 on every job (ME-043, 2026-09-02, still true).**
+   **ANSWERED 2026-09-24 (owner: "you decide"): lead's decision is to change nothing in code before a CPA answer. The launch checklist carries a CPA review of a Louisiana Stripe Tax registration + taxable categories + service-fee taxability (with MQ24). Work item Q374.**
    Stripe Tax computed $0.00 on an assembly job billed to a Baton Rouge address,
    although the code marks assembly and handyman as taxable. Stripe only charges
    tax in a state where the account has a tax registration, so this is a Stripe
@@ -1817,6 +1830,7 @@ sure someone hears it and closes it.
    accountant which job types are taxable; (b) collect no sales tax. I cannot
    choose this for you; it is a legal and tax call.
 22. **What to call someone who deleted their account (AL-011a, 2026-09-24).**
+   **ANSWERED 2026-09-24: same as MQ14 (Q369).**
    The app uses 16 different words for the same thing: "A neighbor" and "a
    neighbor", "Helpr", "Former Helpr", "Name not on file", and in admin
    "Unknown", "User", "Unnamed", "No name", "Deleted user", "Deleted account".
@@ -1824,10 +1838,12 @@ sure someone hears it and closes it.
    referrals showed a raw ID). Pick one word for users and one for admin, e.g.
    users see "a former member", admin sees "Deleted account"?
 23. **Old signup rows in the admin Audit Log (AM-004, 2026-09-24).** New
+   **ANSWERED 2026-09-24 (owner pop-up): KEEP the 742 rows. Nothing to do.**
    signups and deletions no longer write "role granted/revoked" rows to the
    Audit Log. 742 old rows of that kind are still there (about 44% of the
    log). Should I delete them? It is audit history, so I left them.
 24. **Is the service fee taxable in Louisiana? (ME-019, 2026-09-24).** Today
+   **ANSWERED 2026-09-24: folded into Q374 (the CPA review on the launch checklist).**
    checkout charges sales tax on the job itself (for taxable categories) but
    NOT on the poster's service fee; the code says "non-taxable until the LA
    Department of Revenue clarifies". In April both were taxed. If the answer is
@@ -1835,6 +1851,7 @@ sure someone hears it and closes it.
    collect. This needs your CPA, not code: when they answer, I switch one line
    (create-payment/index.ts:631) and add a check.
 25. **Archive three old Stripe products? (SC-015, 2026-09-24).** Your LIVE
+   **ANSWERED 2026-09-24 (owner pop-up): the lead archives them via the API. Work item Q373.**
    Stripe account had (audit read 2026-09-07; I cannot re-read live Stripe
    from here) Crew, Team and Enterprise seat plans ($20/$30/$40 a
    month, plus yearly) from the business plans that were removed in August.
@@ -1844,6 +1861,7 @@ sure someone hears it and closes it.
    you click it?
 
 26. **When was the "Sign in with Apple" website secret made? (expiry monitor, 2026-09-24).**
+   **ANSWERED 2026-09-24 (owner pop-up): (b) the owner makes a fresh secret now; the lead records today + 6 months. VERCEL_TOKEN expiry still unknown. Work item Q375 (owner to-do).**
     Apple sign-in on the website uses a secret that Apple lets live at most 6
     months; when it runs out, "Sign in with Apple" on the website stops working
     with no warning. Supabase only shows a scrambled copy of it, so the monitor
@@ -1857,6 +1875,7 @@ sure someone hears it and closes it.
     does Vercel > Account Settings > Tokens show as its expiration ("No
     Expiration" is a fine answer)?
 27. **The landing page shifts slightly on the CI computer (2026-09-24).** The
+   **ANSWERED 2026-09-24 (owner pop-up): YES, change only how the hero font LOADS. Font, colour and copy stay locked; take before/after screenshots. Work item Q371.**
    page-settle check measured a layout shift of 0.0315 at desktop width on the
    Linux test machine (limit 0.02); on this Mac it is 0.0006. The moving piece
    is hero text about 0.2 s after load, most likely the headline font swapping
@@ -2902,3 +2921,17 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q359 Google sign-in into an existing email account has never run (OA-018, measured 2026-09-24: 0 prod users with more than one identity; Google has produced 0 identities).** Needs a real Google account: sign up with email, sign out, then "Continue with Google" with the same address, and confirm it lands in the same account (same user id, jobs intact). Owner device step, or add a Google test account to the e2e secrets.
 - [ ] **Q360 A charged-back or failed-payment job still looks healthy on both parties' job cards (ME-009 remainder, 2026-09-24).** The Helpr is now told by notification (933babe5e), but AppliedJobCard/PostedJobCard steps key on `jobs.status`, not `payment_status`, so a `chargeback`/`failed` job renders like an escrowed one, and ApplyEarningsBreakdown still says "Held securely". Needs a status line on the card for those payment states, screenshots at 375/1440 before and after, and a guard that every non-admin card maps chargeback/failed to visible copy.
 - [ ] **Q361** (LOW, from ST-008, 2026-09-24): 22 manual probes under `scripts/probes/` insert `jobs` rows with no `start_time`, `is_flexible_schedule` or `is_seed`; since `jobs_start_time_required` they fail on insert if re-run. None runs in CI (only `edge-boot-sweep.mjs` does, measured by grep of `.github/`). Fix each when it is next used, or add `start_time` in one sweep.
+- [ ] **Q362** (HIGH, money, owner MQ11 2026-09-24; ME-006, CC-003): the poster pays the card fee ON TOP of a tip so the Helpr gets 100%; tip minimum rises to $3. The urgent bonus (CC-003) gets the same treatment. Layers: client tip picker, create-tip/create-payment edge fns, Terms copy. Needs an lh-money-escrow REVIEW-ONLY pass before commit.
+- [~] **Q363 CLIENT DONE 2026-09-24** (owner MQ19; S-004): BroadcastBanner (2 reads per Dashboard load) and AdminBroadcasts + its menu item and view are deleted. Guard src/test/broadcastsRemoved.test.ts (2 @mutate). STILL TO DO: drop broadcasts + broadcast_dismissals and sweep_pending_broadcast_fan_outs in a later migration.
+- [ ] **Q364** (LOW, owner MQ9(a) 2026-09-24; Q41): delete dead-code group (a) from docs/audit/dead-code-report-2026-09-23.md; lower scripts/deadcode-baseline.json in the same commit. Group (b) is still undecided.
+- [x] **Q365 DONE 2026-09-24 17:29Z** (owner MQ8): marketing_settings.auto_publish_enabled set false via SQL, read back false (Instagram on, Facebook off unchanged). The press sweep can no longer flip it (Q166 guard).
+- [ ] **Q366** (HIGH, owner MQ12 2026-09-24; TS-006, TS-007): Report + Block on every application card (report typed against the application), and the SOS button for the Helpr on an active job.
+- [ ] **Q367** (MEDIUM, owner MQ16 2026-09-24; TS-011): /user/<id> of someone you blocked shows "You blocked this person" + Unblock and hides their details.
+- [ ] **Q368** (MEDIUM, owner MQ17 2026-09-24; AM-012): admin Disputes/Users/Reports lists keep seed rows with a "Test" tag; admin home shows "0 (+N test)".
+- [ ] **Q369** (MEDIUM, owner MQ14/22 2026-09-24; AL-011): one label for a deleted account: users see "Former member", admin sees "Deleted account", on every surface (about 15 screens). Guard: no other deleted-person label in src/.
+- [ ] **Q370** (MEDIUM, owner MQ15/18 2026-09-24; CS-003): W-9 records survive account deletion for 4 years after signing, then a cron deletes them.
+- [ ] **Q371** (LOW, owner MQ27 2026-09-24): landing CLS 0.0315 on Linux CI (limit 0.02). Change only how the hero font LOADS (preload or size-matched fallback); font, colour and copy stay LOCKED. Needs before/after screenshots.
+- [ ] **Q372** (LOW, owner MQ20 2026-09-24; PD-002): Activity Posted/Applied Jobs show 50 per section, then a "Show older" button.
+- [ ] **Q373** (MEDIUM, owner MQ25 2026-09-24; SC-015): archive the Crew/Team/Enterprise products and prices in LIVE Stripe via the API, then read them back.
+- [ ] **Q374** (LAUNCH CHECKLIST, owner MQ21/24 2026-09-24, "you decide"): before launch, the owner's CPA answers (1) whether to add a Louisiana registration in Stripe Tax, (2) which job categories are taxable, and (3) whether the service fee is taxable. No code change until then.
+- [ ] **Q375** (OWNER TO-DO, MQ26 2026-09-24): the owner makes a fresh Sign in with Apple web secret (tools/apple-jwt.html + the .p8) and pastes it into Supabase > Auth > Apple; the lead records today + 6 months for the expiry monitor. VERCEL_TOKEN expiry is still unknown.

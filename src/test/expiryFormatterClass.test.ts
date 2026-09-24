@@ -29,7 +29,6 @@ const ROOT = join(__dirname, "..");
 const NOT_A_LISTING: Record<string, string> = {
   "lib/dateUtils.ts": "the formatter itself",
   "pages/giftCards/CreditCard.tsx": "gift-card credit expiry date, not a listing countdown",
-  "components/admin/AdminBroadcasts.tsx": "admin broadcast expiry badge",
   "integrations/supabase/types.ts": "generated types",
 };
 

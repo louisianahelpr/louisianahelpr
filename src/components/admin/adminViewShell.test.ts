@@ -94,7 +94,7 @@ describe("Admin views share one shell", () => {
   // shell — which is exactly how the Profile-tab test managed to stay green
   // through seven off-shell tabs.
   const ADOPTED = [
-    "AdminAuditLog", "AdminBroadcasts", "AdminCredentialQueue", "AdminExceptionQueue",
+    "AdminAuditLog", "AdminCredentialQueue", "AdminExceptionQueue",
     "AdminExport", "AdminFraudDashboard", "AdminHealth", "AdminHelperTiers",
     "AdminIDVReview", "AdminMarketing", "AdminNotificationLogs", "AdminNotifications",
     "AdminPayoutBatches", "AdminReferrals", "AdminReports", "AdminSubscriptions",

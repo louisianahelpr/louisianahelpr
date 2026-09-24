@@ -9,7 +9,7 @@ import type { CSSProperties } from "react";
  * adopts `AdminCard` — you get a white tile inside a white tile, which is the
  * exact "double-carded" defect the IDV queue shipped before this pass. The
  * card can't simply be dropped when a list is empty, because it carries the
- * header action that CREATES the missing thing (New Broadcast, Refresh).
+ * header action that CREATES the missing thing (Refresh).
  *
  * So the outer AdminCard stays and the inner surface goes flat, via the
  * `surfaceStyle` escape hatch EmptyState documents for exactly this ("only for

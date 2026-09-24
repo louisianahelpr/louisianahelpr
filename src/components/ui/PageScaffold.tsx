@@ -47,8 +47,7 @@ interface PageScaffoldProps {
   titleCard?: ReactNode;
   /** Body of the bottom panel — the card that bleeds beneath the dock. */
   children: ReactNode;
-  /** Banners rendered above the title card (Dashboard's broadcast banner
-   *  + push-permission prompt). */
+  /** Banners rendered above the title card. */
   aboveTitle?: ReactNode;
   /** Nudges/banners rendered between the title card and the panel. */
   beforePanel?: ReactNode;

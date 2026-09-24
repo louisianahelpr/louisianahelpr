@@ -23,7 +23,6 @@ import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 import { Map, MapPinned } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import BroadcastBanner from "@/components/BroadcastBanner";
 import GiftCardTeaser from "@/components/dashboard/GiftCardTeaser";
 import { DashboardBannedScreen } from "@/components/dashboard/DashboardBlockedScreen";
 
@@ -520,7 +519,6 @@ const Dashboard = () => {
         )
       }
       titleCardClassName={TITLE_BAR_PADDING}
-      aboveTitle={<BroadcastBanner />}
       beforePanel={
         <>
           {/* The "Your Helprs" quick-rebook strip used to render here,

@@ -24,7 +24,6 @@ const AdminJobs = lazy(() => import("@/components/admin/AdminJobs"));
 const AdminSettings = lazy(() => import("@/components/admin/AdminSettings"));
 const AdminAnalytics = lazy(() => import("@/components/admin/AdminAnalytics"));
 const AdminDisputes = lazy(() => import("@/components/admin/AdminDisputes"));
-const AdminBroadcasts = lazy(() => import("@/components/admin/AdminBroadcasts"));
 const AdminNotifications = lazy(() => import("@/components/admin/AdminNotifications"));
 const AdminReports = lazy(() => import("@/components/admin/AdminReports"));
 const AdminSupport = lazy(() => import("@/components/admin/AdminSupport"));
@@ -46,7 +45,7 @@ const AdminBanReview = lazy(() => import("@/components/admin/AdminBanReview"));
 const AdminSocialPosts = lazy(() => import("@/components/admin/AdminSocialPosts"));
 const AdminStalledJobs = lazy(() => import("@/components/admin/AdminStalledJobs"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "idvreview" | "credentials" | "exceptions" | "banreview" | "stalled";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "idvreview" | "credentials" | "exceptions" | "banreview" | "stalled";
 
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
@@ -67,7 +66,7 @@ const navGroups = adminNavGroups;
  *  rather than stacking an empty <h1> on the dashboard. */
 const VIEW_LABELS: Record<View, string> = {
     home: "Dashboard", analytics: "Analytics", people: "Users",
-    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
+    jobs: "Jobs", settings: "Settings", disputes: "Disputes",
     notifications: "Notifications", notiflogs: "Notification Logs",
     reports: "Reports", support: "Support",
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
@@ -509,7 +508,6 @@ const Admin = () => {
       case "jobs": return <AdminJobs />;
       case "settings": return <AdminSettings />;
       case "disputes": return <AdminDisputes />;
-      case "broadcasts": return <AdminBroadcasts />;
       case "notifications": return <AdminNotifications />;
       case "notiflogs": return <AdminNotificationLogs initialSearch={notifLogsInitialSearch} />;
       case "reports": return <AdminReports />;

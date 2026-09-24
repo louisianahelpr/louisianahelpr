@@ -80,6 +80,11 @@ export interface StripeMock {
   };
   /** instant-payout: the helper's instant_available balance and the payout. */
   balance: { retrieve: ReturnType<typeof vi.fn> };
+  /** charge-recurring-visits: tax quote, then the committed transaction (ME-014). */
+  tax: {
+    calculations: { create: ReturnType<typeof vi.fn> };
+    transactions: { createFromCalculation: ReturnType<typeof vi.fn> };
+  };
   payouts: { create: ReturnType<typeof vi.fn> };
   charges: {
     retrieve: ReturnType<typeof vi.fn>;
@@ -163,6 +168,10 @@ export const stripeMock: StripeMock = {
   balance: {
     retrieve: vi.fn(),
   },
+  tax: {
+    calculations: { create: vi.fn() },
+    transactions: { createFromCalculation: vi.fn() },
+  },
   payouts: {
     create: vi.fn(),
   },
@@ -204,6 +213,8 @@ export function resetStripeMock() {
     stripeMock.transfers,
     stripeMock.accounts,
     stripeMock.balance,
+    stripeMock.tax.calculations,
+    stripeMock.tax.transactions,
     stripeMock.payouts,
     stripeMock.charges,
     stripeMock.subscriptions,

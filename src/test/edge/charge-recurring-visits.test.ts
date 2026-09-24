@@ -56,6 +56,10 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts | if (blocked === true) { | if (false) {
 //   Q347: an unknown block answer books anyway.
 // @mutate supabase/functions/charge-recurring-visits/index.ts | if (blockErr) { | if (false) {
+//   ME-014: tax charged on a visit never reaches Stripe Tax's filing reports.
+// @mutate supabase/functions/charge-recurring-visits/index.ts |         if (taxCalculationId && taxCents > 0) { |         if (false) {
+//   ME-014: the fee floor ignores the tax on the same charge.
+// @mutate supabase/functions/charge-recurring-visits/index.ts | posterServiceFeeCents(budgetCents, feePercent, taxCents); | posterServiceFeeCents(budgetCents, feePercent, 0);
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -906,5 +910,27 @@ describe("charge-recurring-visits edge function", () => {
     expect(b.funded).toBe(1);
     expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
     expect(insertedVisits()).toHaveLength(0);
+  });
+
+  it("ME-014: a taxable visit commits its tax calculation, and the fee floor covers the tax", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ category: "assembly", budget: 2 })] } });
+    stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_1", tax_amount_exclusive: 20 });
+    stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_1" });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+    expect(b.funded).toBe(1);
+    expect(stripeMock.tax.transactions.createFromCalculation).toHaveBeenCalledTimes(1);
+    const [args, opts] = stripeMock.tax.transactions.createFromCalculation.mock.calls[0];
+    expect(args).toEqual({ calculation: "taxcalc_1", reference: "pi_day1" });
+    expect(opts.idempotencyKey).toBe("recurring-visit-tax:pi_day1");
+
+    // $2 labor + $0.20 tax: the Stripe-cost floor binds, and is computed on $2.20.
+    const { posterServiceFeeCents, posterFeePercentForTier } = await import("../../../supabase/functions/_shared/posterFees.ts");
+    const pct = posterFeePercentForTier(null, null);
+    const [charge] = stripeMock.paymentIntents.create.mock.calls[0];
+    expect(posterServiceFeeCents(200, pct, 20)).not.toBe(posterServiceFeeCents(200, pct, 0));
+    expect(charge.amount).toBe(200 + 20 + posterServiceFeeCents(200, pct, 20));
   });
 });

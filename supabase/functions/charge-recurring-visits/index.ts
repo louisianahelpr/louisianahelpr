@@ -550,7 +550,6 @@ serve(async (req) => {
         // No urgent tip and no onboarding fee on a recurring visit: urgency is a
         // property of a one-off post, and onboarding is charged once per account
         // and was already paid on the first visit.
-        const feeCents = posterServiceFeeCents(budgetCents, feePercent, 0);
 
         // Sales tax. Louisiana is an enumerated-services state, so only the
         // `assembly` and `handyman` labor lines are taxable — every other
@@ -571,6 +570,10 @@ serve(async (req) => {
         // checkout quote, with the same labor tax_code, so the recurring visit
         // and the first visit are computed from identical inputs.
         let taxCents = 0;
+        // ME-014: kept so the calculation can be committed as a Stripe Tax
+        // transaction once the visit exists (off-session PaymentIntents get no
+        // automatic_tax, so nothing else ever reports this tax).
+        let taxCalculationId: string | null = null;
         if (isLaborTaxable(parent.category as string)) {
           try {
             const calc = await stripe.tax.calculations.create({
@@ -591,6 +594,7 @@ serve(async (req) => {
               },
             });
             taxCents = calc.tax_amount_exclusive ?? 0;
+            taxCalculationId = calc.id ?? null;
           } catch (e) {
             // Still fail closed, but now only for the narrow taxable case —
             // charging untaxed would leave us owing Louisiana money we never
@@ -604,6 +608,9 @@ serve(async (req) => {
           }
         }
 
+        // ME-014: the fee's Stripe-cost floor must cover the WHOLE charge,
+        // tax included (posterFees.ts), so it is computed after the tax.
+        const feeCents = posterServiceFeeCents(budgetCents, feePercent, taxCents);
         const totalCents = budgetCents + feeCents + taxCents;
 
         // The HELPER's commission, which is a different number in a different
@@ -991,6 +998,22 @@ serve(async (req) => {
             `series ${parent.id} ${visitDate}: visit insert failed after charge ${intent.id} (${childErr?.message ?? "no row returned"})`,
           );
           continue;
+        }
+
+        // ME-014: the charge stands and the visit exists, so the tax collected
+        // on it is owed. Commit it to Stripe Tax's filing reports. Idempotent on
+        // the intent; a failure is a defect (calculations expire ~90 days).
+        if (taxCalculationId && taxCents > 0) {
+          try {
+            await stripe.tax.transactions.createFromCalculation(
+              { calculation: taxCalculationId, reference: intent.id },
+              { idempotencyKey: `recurring-visit-tax:${intent.id}` },
+            );
+          } catch (e) {
+            fail(
+              `series ${parent.id} ${visitDate}: tax transaction not recorded for ${intent.id} (calculation ${taxCalculationId}): ${e instanceof Error ? e.message : String(e)}`,
+            );
+          }
         }
 
         // The helper needs an application row for the same reason a direct

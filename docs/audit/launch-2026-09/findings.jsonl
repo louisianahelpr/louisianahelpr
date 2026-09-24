@@ -1532,3 +1532,4 @@
 {"kind":"status","id":"GD-010","ts":"2026-09-24T05:13:05.954Z","status":"fixed","by":"lead","note":"3 comments now cite the INSERT policy; live reporter_id is_nullable=YES; guard reportsGuestGateReason 1/1 killed"}
 {"kind":"status","id":"CC-004","ts":"2026-09-24T05:13:05.984Z","status":"fixed","by":"lead","note":"idbAsyncStorage get/set/del absorb errors; queryPersister.idbBlocked.test.ts drives a rejecting idb-keyval, 3/3 killed"}
 {"kind":"status","id":"A-004","ts":"2026-09-24T05:17:20.936Z","status":"fixed","by":"lead","note":"public/_headers deleted; cspScriptSrc now guards that no such inert file ships (red with the file present, green after)"}
+{"kind":"status","id":"ME-007","ts":"2026-09-24T05:20:49.700Z","status":"fixed","by":"lead","note":"TipDialog now sends a per-opening crypto.randomUUID tipAttemptId (server accepts canonical UUID only); guard tipCallsCarryAttemptId 1/1 killed"}

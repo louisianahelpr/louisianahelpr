@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-24T05:17:23.806Z",
-  "guards": 929,
-  "registered": 929,
+  "generated": "2026-09-24T05:20:52.589Z",
+  "guards": 931,
+  "registered": 931,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -203,6 +203,7 @@
     {
       "module": "src/components/HelperAvailability.tsx",
       "tests": [
+        "src/components/HelperAvailability.invertedRange.test.tsx",
         "src/components/HelperAvailability.presets.test.tsx"
       ],
       "parents": [

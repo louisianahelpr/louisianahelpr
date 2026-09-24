@@ -5,7 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Queue (this file):** 225 done, 27 partly done (fixed, protection pending), 102 open. Source of truth for work.
-- **Audit bus:** 116 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Audit bus:** 115 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
 - **nightly-red issues:** 8 open — `gh issue list -l nightly-red`. _(2026-09-23T06:08Z)_
@@ -1739,6 +1739,8 @@ sure someone hears it and closes it.
    the Helpr $4.55. Pick one: (a) we absorb the card fee so the Terms stay true
    (costs us about 45c on a $5 tip), or (b) change the Terms to say "minus card
    processing". I'll make whichever change you pick, with a test.
+   The same choice covers the urgent bonus (CC-003): Post Job says the bonus "goes
+   straight to the Helpr", but 2.9% comes off it too ($20 pays about $19.42).
 12. **Safety buttons on bids and active jobs (TS-006, TS-007, 2026-09-24).**
    Today a bid/application has no Report or Block button (you must open the
    person's profile first), and a Helpr on an active job has no safety/SOS button

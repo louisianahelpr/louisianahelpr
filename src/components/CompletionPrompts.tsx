@@ -156,6 +156,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     setSaving(false);
     if (error) {
       if (error.code === "23505") { setStep("tip"); }
+      else if (error.code === "23514" && error.message) { hapticError(); toast.error(error.message); } // server contact-leak refusal (TS-010)
       else { hapticError(); toast.error("We couldn't submit your review — please try again."); }
     } else {
       hapticSuccess();

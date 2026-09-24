@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 220 done, 27 partly done (fixed, protection pending), 103 open. Source of truth for work.
+- **Queue (this file):** 221 done, 27 partly done (fixed, protection pending), 102 open. Source of truth for work.
 - **Audit bus:** 160 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 350 items — 220 done, 27 partly done (fixed, protection pending), 103 open.**
+**Queue: 350 items — 221 done, 27 partly done (fixed, protection pending), 102 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1316,7 +1316,7 @@ sure someone hears it and closes it.
   pay) with a test-account pool against prod at a quiet hour, stepping up
   until p95 or errors break. Record the ceiling and what gives first, and set
   alert thresholds below it. Owner decision after: tier, or optimisation.
-- [ ] **Q61 Hourly canary on the core loop.** STATUS 2026-09-23 (landed from cloud/q61-hourly-canary): e2e/canary/core-loop.spec.ts on the real backend (sign in, browse, open a job, apply on an is_seed fixture, message, start a TEST-mode checkout, clean up), hourly .github/workflows/core-loop-canary.yml at :47 with a request budget and a skip when shared test accounts are busy; guard src/test/coreLoopCanary.test.ts. Tick after the first scheduled run is green. Full journeys run nightly, so a
+- [x] **Q61 Hourly canary on the core loop.** DONE 2026-09-24 (lead): 3 scheduled core-loop-canary.yml runs green with the spec really run, not skipped (35917656874, 35932431197 and 35943928851; busy=false and '1 passed' read from the logs). STATUS 2026-09-23 (landed from cloud/q61-hourly-canary): e2e/canary/core-loop.spec.ts on the real backend (sign in, browse, open a job, apply on an is_seed fixture, message, start a TEST-mode checkout, clean up), hourly .github/workflows/core-loop-canary.yml at :47 with a request budget and a skip when shared test accounts are busy; guard src/test/coreLoopCanary.test.ts. Tick after the first scheduled run is green. Full journeys run nightly, so a
   broken core loop can go 20+ hours unseen. An hourly lightweight synthetic
   run on prod (sign in -> browse -> open a job -> apply -> message ->
   test-mode checkout start, then clean up) that pages through the ledger on

@@ -173,14 +173,14 @@ describe("useDashboardFilters — Nearby radius (BD-001)", () => {
 
   describe("when the viewer's location is unavailable", () => {
     it("leaves a usable feed rather than an empty one", () => {
-      geo.state = { status: "error", message: "Location permission denied" };
+      geo.state = { status: "error", message: "Location access is off. Turn it on in Settings to use your location." };
       const { result } = setup();
       act(() => result.current.setLocationFilter("nearby:1"));
       expect(result.current.filteredJobs).toHaveLength(ALL.length);
     });
 
     it("reports nearbyUnavailable so the UI cannot claim a filter ran", () => {
-      geo.state = { status: "error", message: "Location permission denied" };
+      geo.state = { status: "error", message: "Location access is off. Turn it on in Settings to use your location." };
       const { result } = setup();
       act(() => result.current.setLocationFilter("nearby:1"));
       expect(result.current.nearbyUnavailable).toBe(true);
@@ -193,7 +193,7 @@ describe("useDashboardFilters — Nearby radius (BD-001)", () => {
     });
 
     it("does not report nearbyUnavailable when no radius is selected", () => {
-      geo.state = { status: "error", message: "Location permission denied" };
+      geo.state = { status: "error", message: "Location access is off. Turn it on in Settings to use your location." };
       const { result } = setup();
       expect(result.current.nearbyUnavailable).toBe(false);
     });

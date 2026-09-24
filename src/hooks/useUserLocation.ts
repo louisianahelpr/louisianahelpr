@@ -233,7 +233,7 @@ export function useUserLocation(enabled: boolean): GeoState {
       } catch (err) {
         const msg = String((err as { message?: string })?.message ?? "");
         failWith(
-          /denied|permission/i.test(msg) ? "Location permission denied" : "Couldn't get your location",
+          /denied|permission/i.test(msg) ? "Location access is off. Turn it on in Settings to use your location." : "Couldn't get your location",
         );
       }
     };
@@ -248,7 +248,7 @@ export function useUserLocation(enabled: boolean): GeoState {
           },
           (err) => {
             failWith(
-              err.code === err.PERMISSION_DENIED ? "Location permission denied" : "Couldn't get your location",
+              err.code === err.PERMISSION_DENIED ? "Location access is off. Turn it on in Settings to use your location." : "Couldn't get your location",
             );
             resolve();
           },

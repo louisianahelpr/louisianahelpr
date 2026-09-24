@@ -240,7 +240,7 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
         code === 1 /* PERMISSION_DENIED */ || /denied|permission/i.test(msg);
       toast.error(
         denied
-          ? "Location permission denied — type the address instead."
+          ? "Location access is off — turn it on in Settings, or type the address instead."
           : "Couldn't get your location — try again or type it in.",
       );
       return;

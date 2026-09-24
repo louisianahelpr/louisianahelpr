@@ -375,7 +375,7 @@ describe("BrowseMap my-location button", () => {
   });
 
   it("falls back to the Louisiana view and says why when location is refused", async () => {
-    geoState.value = { status: "error", message: "Location permission denied" };
+    geoState.value = { status: "error", message: "Location access is off. Turn it on in Settings to use your location." };
     const { BrowseMap } = await import("./BrowseMap");
     render(<BrowseMap />);
 
@@ -384,7 +384,7 @@ describe("BrowseMap my-location button", () => {
     map.setRegionAnimated.mockClear();
     fireEvent.click(btn);
 
-    await waitFor(() => expect(toastError).toHaveBeenCalledWith("Location permission denied"));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith("Location access is off. Turn it on in Settings to use your location."));
     const calls = map.setRegionAnimated.mock.calls;
     const region = calls[calls.length - 1]?.[0];
     // The statewide frame — a span of degrees, not the tenth-of-a-degree box a

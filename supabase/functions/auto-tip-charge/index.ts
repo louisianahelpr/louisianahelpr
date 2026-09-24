@@ -30,6 +30,15 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 
+/** ME-011: a charge whose outcome is unknown (lost response, Stripe 5xx). */
+class AmbiguousCharge extends Error {}
+
+/** Stripe answered and refused: no charge was made. */
+function isDefiniteRefusal(err: unknown): boolean {
+  const type = (err as { type?: string } | null)?.type;
+  return type === "StripeCardError" || type === "StripeInvalidRequestError";
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -401,7 +410,7 @@ serve(async (req) => {
 
         const feeCents = stripeProcessingCostCents(tipCents);
 
-        const intent = await stripe.paymentIntents.create(
+        const createIntent = () => stripe.paymentIntents.create(
           {
             amount: tipCents,
             currency: "usd",
@@ -435,6 +444,24 @@ serve(async (req) => {
             idempotencyKey: `auto-tip:${tipRow.id}`,
           },
         );
+
+        // ME-011: only a card or request error proves no charge happened. A
+        // lost response or a Stripe 5xx can follow a charge that went through,
+        // and treating it as a decline told a charged poster "your tip didn't
+        // go through". Retry once on the same idempotency key (Stripe replays
+        // the original outcome); still unknown -> AmbiguousCharge below.
+        let intent: Awaited<ReturnType<typeof createIntent>>;
+        try {
+          intent = await createIntent();
+        } catch (firstErr) {
+          if (isDefiniteRefusal(firstErr)) throw firstErr;
+          try {
+            intent = await createIntent();
+          } catch (retryErr) {
+            if (isDefiniteRefusal(retryErr)) throw retryErr;
+            throw new AmbiguousCharge(retryErr instanceof Error ? retryErr.message : String(retryErr));
+          }
+        }
 
         if (intent.status === "succeeded") {
           // THE MONEY HAS ALREADY MOVED. This is the one write in the function
@@ -491,6 +518,22 @@ serve(async (req) => {
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
+        if (err instanceof AmbiguousCharge) {
+          // The poster may have been charged. Do not tell them it failed and do
+          // not mark it failed; leave the row 'pending' with the reason and turn
+          // the run red so someone checks Stripe for auto-tip:<tips.id>.
+          await settleTip(
+            { failure_reason: `ambiguous: ${message}`.slice(0, 200) },
+            "tip ambiguous-outcome write",
+            "the charge outcome is unknown and the row carries no reason",
+          );
+          defects.record(
+            `auto-tip ${jobId}: charge outcome UNKNOWN after retry (${message.slice(0, 120)}) — check Stripe for idempotency key auto-tip:${tipRow.id} before telling the poster anything`,
+          );
+          results.failed++;
+          log("charge outcome unknown", { jobId, error: message });
+          continue;
+        }
         // Card declines land here (authentication_required, card_declined…).
         await giveUp(message.slice(0, 200), true);
         results.failed++;

@@ -49,6 +49,7 @@
  * This script can never mint a session for a real user. Do not "temporarily"
  * widen the allowlist — add the account to the seed set instead.
  */
+import { acceptCurrentTerms } from "./lib/acceptCurrentTerms.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -286,6 +287,9 @@ async function main() {
   // present; the service key works too but would mask an anon-key misconfig.
   const anonKey = env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || serviceKey;
   const session = await exchangeForSession(actionLink, resolvedUserId, supabaseUrl, anonKey);
+  if (!args.includes("--keep-consent")) {
+    await acceptCurrentTerms(supabaseUrl, anonKey, session.access_token, resolvedUserId);
+  }
   const value = JSON.stringify(session);
 
   if (wantJson) {

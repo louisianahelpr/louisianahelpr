@@ -26,6 +26,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, rmSync } from "node:fs";
 import { readLiveCache, sessionAlive, writeCache } from "../../e2e/liveSession.ts";
 import { resolve } from "node:path";
+import { acceptCurrentTerms } from "../lib/acceptCurrentTerms.mjs";
 import { removeJobMediaRest, removeMessageAttachmentsRest } from "../lib/jobMediaRest.mjs";
 
 export const PRESS_MARKER = "[PRESS DO NOT ACCEPT]";
@@ -73,6 +74,7 @@ export async function prodSession(role) {
   }
   if (!session?.access_token || !session?.user?.id) throw new Error(`no usable session for the ${role}`);
   if (!(await sessionAlive(supabaseUrl(), anonKey(), session.access_token))) throw new Error(`a freshly obtained session for the ${role} is refused by /auth/v1/user`);
+  await acceptCurrentTerms(supabaseUrl(), anonKey(), session.access_token, session.user.id); // TERMS-CONSENT at mint
   writeCache(file, session);
   return wrapSession(session);
 }

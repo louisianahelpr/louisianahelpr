@@ -57,7 +57,12 @@ export const getPublicReturnUrl = (): string => {
   const isCapacitorOrigin = !window.location.protocol.startsWith("http");
   if (!isCapacitorOrigin) return window.location.href;
 
-  return `${getPublicSiteUrl()}${window.location.pathname}${window.location.search}`;
+  // NB-001: every caller hands this to Stripe Connect, which opens in the
+  // in-app sheet. Tag it like buildRedirectUrl tags Checkout returns, so the
+  // page Stripe lands on bounces back into the app (nativeReturnBounce.ts).
+  const url = new URL(`${getPublicSiteUrl()}${window.location.pathname}${window.location.search}`);
+  url.searchParams.set("native", "1"); // NB-001 native return tag
+  return url.toString();
 };
 
 /**

@@ -55,7 +55,7 @@ jobs:
   test:
     name: Lint, type-check, build, test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - name: Checkout

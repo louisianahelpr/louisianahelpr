@@ -362,7 +362,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
       request, `jobs?id=eq.${created.keptJobId}&select=customer_id,description,location,status`);
     expect(kept, "the applied-to job was deleted (it must outlive its poster)").toBeTruthy();
     expect(kept.customer_id, "kept job still names its deleted poster").toBeNull();
-    expect(kept.description).toBe("[removed at account deletion]");
+    expect(kept.description).toBe("This job's details were removed when the poster closed their account."); // AL-012
     expect(kept.location, "kept job still carries the poster's address").toBeNull();
     expect(kept.status, "kept job's status was not preserved").toBe("open");
     const [rep] = await srGet<{ reporter_id: string | null }[]>(request, `reports?id=eq.${created.reportId}&select=reporter_id`);

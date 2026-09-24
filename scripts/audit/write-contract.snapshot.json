@@ -489,16 +489,6 @@
     "authenticated": false,
     "nargdefaults": 2,
     "nargs": 3
-   },
-   {
-    "anon": false,
-    "args": [
-     "p_user_id",
-     "p_max_attempts"
-    ],
-    "authenticated": false,
-    "nargdefaults": 1,
-    "nargs": 2
    }
   ],
   "claim_marketing_content": [

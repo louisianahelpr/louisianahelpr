@@ -53,6 +53,14 @@ interface Route {
    * wider.
    */
   contentSelector?: string;
+  /**
+   * Answer SELECTs from the seed so the route renders POPULATED. The feed
+   * grid only exists when there are jobs; with the default empty mock /browse
+   * shows its empty state, and the grid selector found nothing (e2e-real-backend
+   * red, issue 1742, 2026-09-24). Before Q169 the page sat on its loading
+   * skeleton, which carries the same grid class, so the empty mock went unseen.
+   */
+  seed?: boolean;
 }
 
 const ROUTES: Route[] = [
@@ -64,7 +72,7 @@ const ROUTES: Route[] = [
   // screen. Nobody saw it because nothing ran this spec (see the note below).
   { path: "/help", auth: "anon" },
   { path: "/legal", auth: "anon" },
-  { path: "/browse", auth: "anon", contentSelector: "div[class*='md:grid-cols-2']" },
+  { path: "/browse", auth: "anon", contentSelector: "div[class*='md:grid-cols-2']", seed: true },
   // /data-rights is not listed: since 2026-08-18 it is a redirect into
   // /profile?tab=legal, so as an anon route it only ever measured the login
   // page. /profile in the authed block below carries the same content
@@ -118,7 +126,7 @@ test.describe("desktop content fills the viewport", () => {
   for (const route of ROUTES) {
     if (route.exempt) continue;
     test(`${route.path} — content ≥ ${MIN_FILL_PCT}% of ${DESKTOP_WIDTH}px viewport`, async ({ page, context }) => {
-      await installSupabaseMocks(page);
+      await installSupabaseMocks(page, route.seed ? { seed: true } : {});
       if (route.auth === "authed") {
         await seedAuthedSession(context, FAKE_CUSTOMER, "");
       }

@@ -444,7 +444,7 @@ describe("setSentryUser", () => {
 // Exceeded"). An automated browser (navigator.webdriver) records no replay in a
 // PROD build; a person's browser still does. Errors still report, tagged.
 // @mutate src/lib/sentry.ts |     const recordReplays = import.meta.env.PROD && !automated; |     const recordReplays = import.meta.env.PROD;
-// @mutate src/lib/sentry.ts |     return typeof navigator !== "undefined" && navigator.webdriver === true; |     return false;
+// @mutate src/lib/automatedBrowser.ts |     return typeof navigator !== "undefined" && navigator.webdriver === true; |     return false;
 // @mutate src/lib/sentry.ts |     if (recordReplays) { |     if (import.meta.env.PROD) {
 describe("Session Replay in automated browsers (Q275)", () => {
   async function initProd(webdriver: boolean) {

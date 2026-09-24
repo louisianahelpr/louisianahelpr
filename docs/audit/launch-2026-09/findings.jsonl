@@ -1591,3 +1591,6 @@
 {"kind":"status","id":"CC-005","ts":"2026-09-24T07:12:29.854Z","status":"fixed","by":"lead","note":"retryDelay jittered 0.5x-1.5x (src/lib/queryClient.ts); guard in queryClient.test.ts, vacuity 2/2"}
 {"kind":"status","id":"NB-020","ts":"2026-09-24T07:12:29.884Z","status":"fixed","by":"lead","note":"window.HELPR_BUILD = __APP_COMMIT__@__APP_BUILT_AT__ (vite define); guard helprBuildIsInjected.test.ts 1/1. Live bundle value to confirm after deploy."}
 {"kind":"status","id":"OA-016","ts":"2026-09-24T07:12:29.914Z","status":"fixed","by":"lead","note":"Comment corrected: GoTrue sends one description for expired and used, so the screen cannot tell them apart; expired copy covers both. No behaviour change (dead used-branch left in place; report, not task)."}
+{"kind":"status","id":"PD-012","ts":"2026-09-24T07:22:15.959Z","status":"fixed","by":"lead","note":"nav unread query bounded to newest 1000 (.limit); guard navUnreadIsBounded 1/1 killed"}
+{"kind":"status","id":"A-008","ts":"2026-09-24T07:22:15.989Z","status":"fixed","by":"lead","note":"{{name}} htmlEscape'd before substitution; guard marketingBlastNameEscaped 1/1 killed"}
+{"kind":"status","id":"NB-009","ts":"2026-09-24T07:22:16.021Z","status":"fixed","by":"lead","note":"splash net armed in lib/splashSafetyNet.ts, main.tsx first import; guard splashSafetyNetArmsFirst 1/1"}

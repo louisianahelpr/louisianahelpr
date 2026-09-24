@@ -7,6 +7,7 @@
  *
  * @mutate scripts/check-db-pool-budget.mjs | if (demand > usable) die( | if (false) die(
  * @mutate scripts/check-db-pool-budget.mjs | const cronReserve = Math.max(CRON_RESERVE_FLOOR, r.cron_peak_minute); | const cronReserve = 0;
+ * @mutate scripts/check-db-pool-budget.mjs | export const POSTGREST_LISTENER = 1; | export const POSTGREST_LISTENER = 0;
  * @mutate scripts/check-db-pool-budget.mjs | const poolerTotal = poolSizes.reduce((a, b) => a + b, 0); | const poolerTotal = 0;
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -53,22 +54,28 @@ function run(dbPool: number | null, pools: number[]): Promise<{ code: number; ou
 
 describe("Q317: the pool budget is graded", () => {
   it("pools that overflow the 57 usable slots are red", async () => {
-    // fixture arithmetic (SQL_ROW, measured 2026-09-23): 30 + 20 + 8 other + 10 cron = 68 > 57
+    // fixture arithmetic (SQL_ROW, measured 2026-09-23): 30 + 1 LISTEN + 20 + 8 other + 10 cron = 69 > 57
     const r = await run(30, [20]);
     expect(r.code).not.toBe(0);
-    expect(r.out).toMatch(/pools may hold 68 connections but only 57 are usable/);
+    expect(r.out).toMatch(/pools may hold 69 connections but only 57 are usable/);
   });
-  it("a cron reserve is part of the demand: 20 + 20 + 8 + 10 = 58 > 57 is red", async () => {
+  it("a cron reserve is part of the demand: 20 + 1 + 20 + 8 + 10 = 59 > 57 is red", async () => {
     const r = await run(20, [20]);
     expect(r.code).not.toBe(0);
-    expect(r.out).toMatch(/= 58/);
+    expect(r.out).toMatch(/= 59/);
   });
   it("pools that fit are green, with the arithmetic printed", async () => {
-    // 15 + 15 + 8 + 10 = 48 <= 57
+    // 15 + 1 + 15 + 8 + 10 = 49 <= 57
     const r = await run(15, [15]);
     expect(r.out).toMatch(/usable {2}= max_connections 60 - superuser_reserved 3 - reserved 0 = 57/);
-    expect(r.out).toMatch(/OK: 9 connection\(s\) of headroom/);
+    expect(r.out).toMatch(/OK: 8 connection\(s\) of headroom/);
     expect(r.code).toBe(0);
+  });
+  it("PostgREST's LISTEN connection is counted: 18 + 1 + 20 + 8 + 10 = 57 fits, 19 does not", async () => {
+    expect((await run(18, [20])).code).toBe(0);
+    const r = await run(19, [20]);
+    expect(r.code).not.toBe(0);
+    expect(r.out).toMatch(/its LISTEN 1/);
   });
   it("an unset PostgREST db_pool is red, never assumed", async () => {
     const r = await run(null, [15]);

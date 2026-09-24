@@ -12,7 +12,7 @@
  * not fit in what non-superusers can open:
  *
  *   usable  = max_connections - superuser_reserved_connections - reserved_connections   (live SQL)
- *   demand  = PostgREST db_pool                       (Management API /postgrest)
+ *   demand  = PostgREST db_pool + 1 LISTEN connection (Management API /postgrest)
  *           + pooler default_pool_size, every pool    (Management API /config/database/pooler)
  *           + Auth db_max_pool_size, when exposed     (Management API /config/auth)
  *           + other client backends right now         (live SQL: realtime, exporters, ...;
@@ -31,6 +31,11 @@ const env = process.env;
 const SUPA = env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com";
 const REF = env.SUPABASE_PROJECT_REF;
 const TOKEN = env.SUPABASE_ACCESS_TOKEN;
+/**
+ * PostgREST holds db_pool connections PLUS one for LISTEN (schema reload):
+ * measured 2026-09-24 13:55Z, 15 'PostgREST 14.5' backends with db_pool 14.
+ */
+export const POSTGREST_LISTENER = 1;
 /** Measured 2026-09-23: 10 cron jobs started in the 14:00Z minute. */
 export const CRON_RESERVE_FLOOR = 10;
 
@@ -109,11 +114,11 @@ async function main() {
 
   const usable = r.max_conns - r.su_reserved - r.reserved;
   const cronReserve = Math.max(CRON_RESERVE_FLOOR, r.cron_peak_minute);
-  const demand = dbPool + poolerTotal + authPool + r.other_conns + cronReserve;
+  const demand = dbPool + POSTGREST_LISTENER + poolerTotal + authPool + r.other_conns + cronReserve;
 
   console.log(`usable  = max_connections ${r.max_conns} - superuser_reserved ${r.su_reserved} - reserved ${r.reserved} = ${usable}`);
   console.log(
-    `demand  = PostgREST db_pool ${dbPool} + pooler ${poolSizes.join("+")} + Auth ${authPool} + other backends now ${r.other_conns} + cron reserve ${cronReserve} (peak minute ${r.cron_peak_minute}) = ${demand}`,
+    `demand  = PostgREST db_pool ${dbPool} + its LISTEN ${POSTGREST_LISTENER} + pooler ${poolSizes.join("+")} + Auth ${authPool} + other backends now ${r.other_conns} + cron reserve ${cronReserve} (peak minute ${r.cron_peak_minute}) = ${demand}`,
   );
   if (demand > usable) die(`pools may hold ${demand} connections but only ${usable} are usable: pg_cron will be refused under load (Q317)`);
   console.log(`OK: ${usable - demand} connection(s) of headroom`);

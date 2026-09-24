@@ -568,6 +568,32 @@ Deno.serve(async (req) => {
   const iosTokens = tokens.filter((t) => t.platform === 'ios')
   const androidTokens = tokens.filter((t) => t.platform === 'android')
 
+  // NB-002: the app-icon badge only changed while the app ran, so a closed app
+  // kept whatever count its last session left. Every iOS push now carries the
+  // recipient's unread count, counted like the in-app badge (useNavUnreadCount:
+  // unread, not system, sender not blocked either way). Locally-archived
+  // threads are client-only, so this can read higher until the app next opens
+  // and re-sets it. A failed count sends no badge rather than a wrong one.
+  if (iosTokens.length > 0 && typeof payload.badge !== 'number') {
+    const { data: blocks, error: blockErr } = await supabase
+      .from('user_blocks')
+      .select('blocker_id, blocked_id')
+      .or(`blocker_id.eq.${payload.user_id},blocked_id.eq.${payload.user_id}`)
+    if (!blockErr) {
+      const blocked = (blocks ?? []).map((b: { blocker_id: string; blocked_id: string }) =>
+        b.blocker_id === payload.user_id ? b.blocked_id : b.blocker_id)
+      let unread = supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('receiver_id', payload.user_id)
+        .eq('read', false)
+        .not('is_system', 'is', true)
+      if (blocked.length > 0) unread = unread.not('sender_id', 'in', `(${blocked.join(',')})`)
+      const { count, error: countErr } = await unread
+      if (!countErr && typeof count === 'number') payload.badge = count // NB-002 server badge
+    }
+  }
+
   let sent = 0
   let failed = 0
   // Dead registrations carry their REJECTION with them, not just their id: the

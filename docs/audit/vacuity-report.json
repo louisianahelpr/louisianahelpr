@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-24T18:01:24.235Z",
-  "guards": 1005,
-  "registered": 1005,
+  "generated": "2026-09-24T18:17:14.254Z",
+  "guards": 1007,
+  "registered": 1007,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -337,6 +337,16 @@
       ],
       "parents": [
         "src/components/profile/EarningsTab.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/activity/ActivitySectionedView.tsx",
+      "tests": [
+        "src/pages/activity/PagedActivityList.test.tsx"
+      ],
+      "parents": [
+        "src/components/activity/AppliedJobsTab.tsx",
+        "src/components/activity/PostedJobsTab.tsx"
       ]
     },
     {

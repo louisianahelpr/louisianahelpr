@@ -80,12 +80,12 @@ const AdminDisputes = () => {
     const [openRes, decidedRes, unsettledRes] = await Promise.all([
       supabase
         .from("jobs")
-        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount")
+        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, is_seed")
         .eq("status", "disputed")
         .order("disputed_at", { ascending: false }),
       supabase
         .from("jobs")
-        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, dispute_resolved_at, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount")
+        .select("id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, dispute_resolved_at, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, is_seed")
         .not("dispute_resolved_at", "is", null)
         .order("dispute_resolved_at", { ascending: false })
         .limit(50),
@@ -150,7 +150,7 @@ const AdminDisputes = () => {
       const { data: strandedJobs, error: strandedErr } = await supabase
         .from("jobs")
         .select(
-          "id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount",
+          "id, title, budget, status, customer_id, helper_id, stripe_payment_intent_id, stripe_session_id, dispute_reason, dispute_evidence_urls, disputed_at, disputed_by, urgent_fee, helper_fee_percent, platform_fee_amount, is_group_job, helpers_needed, payment_status, customer_fee_amount, sales_tax_amount, is_seed",
         )
         .in("id", strandedIds);
       if (strandedErr) {

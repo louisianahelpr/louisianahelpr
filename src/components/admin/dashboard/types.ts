@@ -13,7 +13,16 @@ export interface Stats {
   revenueSeries: number[];
   completedJobsSeries: number[];
   activeJobsSeries: number[];
+  // Q368 (owner, 2026-09-24): seed rows the counts above exclude, shown
+  // beside them as "0 (+N test)" so home agrees with the queues, which list them.
+  testActiveJobs: number;
+  testDisputedJobs: number;
+  testActiveSubscriptions: number;
 }
+
+/** "3" or "3 (+2 test)". */
+export const withTestCount = (real: number, test: number): string =>
+  test > 0 ? `${real.toLocaleString()} (+${test.toLocaleString()} test)` : real.toLocaleString();
 
 export type DateRange = "7d" | "30d" | "90d" | "custom";
 

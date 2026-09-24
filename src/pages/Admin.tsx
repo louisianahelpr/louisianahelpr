@@ -139,6 +139,7 @@ const Admin = () => {
     completedJobsInRange: 0, completedJobsPrev: 0,
     feesThisQuarter: 0,
     newUsersSeries: [], revenueSeries: [], completedJobsSeries: [], activeJobsSeries: [],
+    testActiveJobs: 0, testDisputedJobs: 0, testActiveSubscriptions: 0,
   });
   // Dashboard date-range selector (persisted across renders only — no need
   // for a localStorage key; the choice is ephemeral session UI).
@@ -243,6 +244,7 @@ const Admin = () => {
       completedInRangeRows, completedPrevRows,
       activeJobsInRangeRows,
       quarterRes,
+      testActiveRes, testDisputesRes, testSubsRes,
     ] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_seed", false),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").neq("reported_type", "support"),
@@ -278,10 +280,14 @@ const Admin = () => {
         .in("payment_status", ["escrow", "payout_pending", "released"])
         .neq("status", "cancelled")
         .gte("updated_at", quarterStart).eq("is_seed", false),
+      // Q368: the seed rows the three counts above leave out, for "(+N test)".
+      supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]).eq("is_seed", true),
+      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed").eq("is_seed", true),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null).eq("is_seed", true),
     ]);
 
     // Surface any failed query instead of silently rendering a misleading
-    // "0" / healthy-looking fallback — a single bad query among the 17
+    // "0" / healthy-looking fallback — a single bad query among the 20
     // above must not be indistinguishable from a genuinely healthy
     // platform. The other, successful queries still render normally.
     const namedResults: [string, { error: PostgrestError | null }][] = [
@@ -292,6 +298,7 @@ const Admin = () => {
       ["revInRange", revInRangeRows], ["revPrev", revPrevRows],
       ["completedInRange", completedInRangeRows], ["completedPrev", completedPrevRows],
       ["activeJobsInRange", activeJobsInRangeRows], ["quarter", quarterRes],
+      ["testActive", testActiveRes], ["testDisputes", testDisputesRes], ["testSubs", testSubsRes],
     ];
     const failed = namedResults.filter(([, res]) => res.error);
     if (failed.length > 0) {
@@ -377,6 +384,9 @@ const Admin = () => {
       revenueSeries,
       completedJobsSeries,
       activeJobsSeries,
+      testActiveJobs: testActiveRes.count || 0,
+      testDisputedJobs: testDisputesRes.count || 0,
+      testActiveSubscriptions: testSubsRes.count || 0,
     });
     setStatsLoading(false);
   };

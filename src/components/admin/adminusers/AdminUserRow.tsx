@@ -9,6 +9,7 @@ import { memo } from "react";
 import { formatName } from "@/lib/utils";
 import UserAvatar from "@/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
+import { TestTag } from "@/components/admin/TestTag";
 import {
   Star, Clock, MailIcon, ShieldCheck,
   Briefcase, MapPin, CreditCard, Flag,
@@ -118,6 +119,7 @@ const AdminUserRowBase = ({
           <div className="flex items-center gap-1.5 flex-wrap">
             <p title={formatName(p.full_name, "—")} className="font-semibold text-foreground text-ds-13 truncate">{formatName(p.full_name, "—")}</p>
             {statusBadge(p)}
+            {p.is_seed && <TestTag />}
             <NotesIndicator userId={p.user_id} notesSummary={notesSummary} />
           </div>
           {/* Wait-time countdown — shown for awaiting-email-verification (the

@@ -2,7 +2,7 @@ import {
   Users, Briefcase, DollarSign, ShieldAlert, AlertTriangle,
   CheckCircle2, Crown, TrendingUp, X,
 } from "lucide-react";
-import type { Stats, DateRange } from "./types";
+import { withTestCount, type Stats, type DateRange } from "./types";
 import { cn } from "@/lib/utils";
 import { KpiCard, computeTrend } from "./KpiCard";
 import { PriorityAlert } from "./PriorityAlert";
@@ -142,7 +142,7 @@ export const DashboardHome = ({
         />
         <KpiCard
           label="Active Jobs"
-          value={v(stats.activeJobs.toLocaleString())}
+          value={v(withTestCount(stats.activeJobs, stats.testActiveJobs))}
           icon={Briefcase}
           accent="primary"
           sparkline={stats.activeJobsSeries}
@@ -169,7 +169,7 @@ export const DashboardHome = ({
         />
         <KpiCard
           label="Pending Disputes"
-          value={v(stats.disputedJobs)}
+          value={v(withTestCount(stats.disputedJobs, stats.testDisputedJobs))}
           icon={ShieldAlert}
           accent="destructive"
           onClick={() => onNavigate("disputes")}
@@ -219,7 +219,7 @@ export const DashboardHome = ({
             accent="primary"
             onClick={() => onNavigate("analytics")}
           />
-          <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />
+          <KpiCard label="Active Subscriptions" value={v(withTestCount(stats.activeSubscriptions, stats.testActiveSubscriptions))} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />
           <KpiCard
             label={`Completed Jobs (${rangeLabel})`}
             value={v(stats.completedJobsInRange)}

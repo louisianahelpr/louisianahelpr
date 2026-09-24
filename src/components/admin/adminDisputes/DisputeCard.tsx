@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { CheckCircle2, XCircle, AlertTriangle, Scale, RefreshCw } from "lucide-react";
 import { slaBadge } from "./adminDisputesHelpers";
+import { TestTag } from "@/components/admin/TestTag";
 import type { DisputedJob, DisputeRecord, FilterTab } from "./types";
 import { formatShortDate } from "@/lib/format";
 import { hasPerk } from "@/lib/subscriptionTiers";
@@ -116,6 +117,7 @@ export const DisputeCard = ({
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold text-foreground">{job.title}</h3>
+            {job.is_seed && <TestTag />}
             {filter === "open" && slaBadge(job.disputed_at)}
             {record?.decided_at && !unsettled && (
               <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-primary/15 text-primary font-semibold uppercase tracking-wide">

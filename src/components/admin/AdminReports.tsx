@@ -1,4 +1,5 @@
 import { logAdminAction } from "@/lib/adminAudit";
+import { TestTag } from "@/components/admin/TestTag";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -50,6 +51,8 @@ type Report = {
   reporter_exists?: boolean;
   reported_exists?: boolean;
   reported_job_exists?: boolean;
+  /** Q368: the reported person/job or the reporter is a seed row. */
+  is_test?: boolean;
   assigned_to_name?: string;
 };
 
@@ -127,15 +130,19 @@ const AdminReports = () => {
       // a job report has no person to message, and that button must stay off.
       const jobIds = [...new Set(reportRows.filter(r => !isUserSubject(r)).map(r => r.reported_id).filter(Boolean) as string[])];
       const jobTitles = new Map<string, string>();
+      const seedIds = new Set<string>();
       if (jobIds.length > 0) {
         const { data: jobRows, error: jobsError } = await supabase
           .from("jobs")
-          .select("id, title")
+          .select("id, title, is_seed")
           .in("id", jobIds);
         // Same rule as the profile read below: never drop the error, never let
         // a failed lookup blank the queue.
         if (jobsError) report(jobsError, { severity: "warning", tags: { source: "AdminReports.hydrateJobTitles" } });
-        for (const j of jobRows || []) jobTitles.set(j.id, j.title);
+        for (const j of jobRows || []) {
+          jobTitles.set(j.id, j.title);
+          if (j.is_seed) seedIds.add(j.id);
+        }
       }
       if (userIds.length > 0) {
       // Secondary name-hydration read. Don't drop the error: on failure every
@@ -144,10 +151,11 @@ const AdminReports = () => {
       // — a missing display name must not blank the whole surface.
         const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
-          .select("user_id, full_name")
+          .select("user_id, full_name, is_seed")
           .in("user_id", userIds);
       if (profilesError) report(profilesError, { severity: "warning", tags: { source: "AdminReports.hydrateNames" } });
         const nameMap = new Map((profiles || []).map(p => [p.user_id, formatName(p.full_name, "Unknown")]));
+        for (const p of profiles || []) if (p.is_seed) seedIds.add(p.user_id);
 
         // "Unknown" used to cover two very different situations, and an admin
         // could not tell them apart on the card:
@@ -188,6 +196,7 @@ const AdminReports = () => {
           // A job subject that still exists is one the admin can open.
           reported_job_exists: !isUserSubject(r) && jobTitles.has(r.reported_id),
           assigned_to_name: r.assigned_to ? nameMap.get(r.assigned_to) : undefined,
+          is_test: seedIds.has(r.reported_id) || (r.reporter_id !== null && seedIds.has(r.reporter_id)),
         }));
       }
       return reportRows;
@@ -437,6 +446,7 @@ const AdminReports = () => {
                         {report.reported_name}
                       </button>
                       <span className="text-muted-foreground font-normal"> — {report.reason}</span>
+                      {report.is_test && <> <TestTag /></>}
                     </p>
                     <p className="text-ds-11 text-muted-foreground">
                       Reported by{" "}

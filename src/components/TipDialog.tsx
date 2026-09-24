@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import {
@@ -29,6 +29,13 @@ const SUGGESTED_AMOUNTS = [5, 10, 20];
 export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) {
   const [amount, setAmount] = useState<number | undefined>(undefined);
   const [sending, setSending] = useState(false);
+  // ME-007: one id per opening of the prompt. The server salts the Stripe
+  // idempotency key with it, so a retry while open collapses onto one
+  // session and a deliberate second tip after reopening gets its own.
+  const tipAttemptIdRef = useRef<string>(crypto.randomUUID());
+  useEffect(() => {
+    if (open) tipAttemptIdRef.current = crypto.randomUUID();
+  }, [open]);
 
   const handleSend = async (rawTip: number) => {
     if (isNaN(rawTip) || rawTip <= 0) {
@@ -57,7 +64,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-payment", {
-        body: { action: "tip", jobId, amount: tipAmount, native: isNativePlatform },
+        body: { action: "tip", jobId, amount: tipAmount, tipAttemptId: tipAttemptIdRef.current, native: isNativePlatform },
       });
       // A non-2xx makes the SDK throw a FunctionsHttpError whose message is the
       // useless "Edge Function returned a non-2xx status code" — while the real

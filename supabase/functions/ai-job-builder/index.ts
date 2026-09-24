@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { sanitizeJob } from "./sanitize.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -88,6 +89,13 @@ serve(async (req) => {
       );
     }
 
+    // jobContext is client input interpolated into OUR system turn (A-002):
+    // a plain string, one line, bounded, or nothing.
+    const rawLocation = (jobContext as { location?: unknown } | null | undefined)?.location;
+    const location = typeof rawLocation === "string"
+      ? rawLocation.replace(/[\r\n]+/g, " ").trim().slice(0, 80)
+      : "";
+
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
@@ -107,7 +115,7 @@ Given a brief description of what the user needs help with, generate a complete 
 5. A suggested budget range (min and max in USD)
 6. Any special requirements or notes
 
-${jobContext ? `Additional context: Location is ${jobContext.location || 'not specified'}` : ''}
+${location ? `Additional context: Location is ${location}` : ''}
 
 Always respond using the generate_job_posting tool.`;
 
@@ -188,18 +196,14 @@ Always respond using the generate_job_posting tool.`;
     // Extract tool call result
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (toolCall?.function?.arguments) {
-      const jobData = JSON.parse(toolCall.function.arguments);
-      // Defensive, not decorative: reproduced live with gemini-3.6-flash
-      // generating a 33-char title against this exact "max 32 chars"
-      // instruction — a natural-language char-count instruction is a request,
-      // not a constraint the model reliably honors. FormStep's #title input
-      // hard-caps at maxLength=32 and shows a "Shorten this to 32 characters"
-      // error, so an overlong AI title loaded the form already invalid, with
-      // no indication of WHY to someone who never typed the title themselves.
-      // Truncating here (not just fixing the prompt) means the form always
-      // opens valid regardless of what the model does on any given call.
-      if (typeof jobData.title === "string" && jobData.title.length > 32) {
-        jobData.title = jobData.title.slice(0, 32).trimEnd();
+      // Whitelisted, type-checked and bounded (A-002); this also keeps the
+      // title within FormStep's 32-char cap, which gemini-3.6-flash was
+      // observed to overrun despite the prompt.
+      const jobData = sanitizeJob(JSON.parse(toolCall.function.arguments));
+      if (!jobData) {
+        return new Response(JSON.stringify({ error: "Failed to generate job posting" }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       return new Response(JSON.stringify(jobData), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

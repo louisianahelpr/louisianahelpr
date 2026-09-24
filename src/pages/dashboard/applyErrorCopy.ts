@@ -81,6 +81,9 @@ const EXACT: Record<string, string> = {
   job_date_has_passed: "The date for this job has already passed.",
   job_expired: "This posting has expired.",
   job_not_available: "This job is no longer available.",
+  // C10 (Q341): helper and poster are blocked, in either direction. Worded so
+  // it does not say who blocked whom — same line either way.
+  applicant_blocked: "This job isn't available to you.",
   // enforce_ban_gate. Deliberately vague about WHY: the reason belongs in the
   // email and the account screen, not in a toast on a job card.
   account_restricted:

@@ -25,27 +25,19 @@ export function useApplicantsState(user: SupaUser | null) {
   const [applicantErrors, setApplicantErrors] = useState<Record<string, boolean>>({});
 
   const fetchApplicants = async (jobId: string): Promise<EnrichedApplication[]> => {
-    // The block list does not depend on the applications, so it is asked for
-    // at the same time instead of after them (Q239: the panel was a 3-hop
-    // waterfall — applications, then the userBlocks chunk + read, then
-    // profiles). Awaited only when there are applicants, as before.
-    const blockedPromise: Promise<Set<string>> = user
-      ? import("@/lib/userBlocks").then(({ getBlockedUserIds }) => getBlockedUserIds(user.id))
-      : Promise.resolve(new Set<string>());
-    // Not awaited on the zero-applicant path; this keeps that rejection handled.
-    blockedPromise.catch(() => undefined);
+    // NO client-side block filter (Q341). The poster's SELECT policy on
+    // `applications` ("Job owners can view applications for their jobs",
+    // 20260924020956) already excludes any applicant the poster is blocked
+    // with, in either direction — so this list, "Applicants (N)", the "Needs
+    // you" bucket and the nav badge all read ONE definition and cannot
+    // disagree. This used to also fetch user_blocks (via a lazy import of
+    // lib/userBlocks, which alone cost a chunk round trip — Q239) and filter
+    // here, while the counters did not: the panel said "Still no
+    // applications" under a card saying "Applicants (1)".
     const { data: apps, error: appsError } = await supabase.from("applications").select("*").eq("job_id", jobId);
     if (appsError) throw appsError;
     if (apps && apps.length > 0) {
-      // Filter out applicants the current user has blocked (or who blocked them).
-      // Throws on a failed read (see userBlocks). Let it propagate: this runs
-      // inside the applicants loader, whose error path already renders a
-      // retryable state — better than listing an applicant the poster blocked.
-      const blockedSet = await blockedPromise;
-      const visibleApps = apps.filter((a) => !blockedSet.has(a.helper_id));
-      if (visibleApps.length === 0) return [];
-
-      const helperIds = visibleApps.map((a) => a.helper_id);
+      const helperIds = apps.map((a) => a.helper_id);
       const [profilesRes, reviewStatsMap, availabilityRes] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
         fetchRatingStats(helperIds),
@@ -70,7 +62,7 @@ export function useApplicantsState(user: SupaUser | null) {
           availabilityMap.set(row.user_id, row.available_until);
         }
       }
-      const enriched = visibleApps.map((app) => {
+      const enriched = apps.map((app) => {
         const prof = profilesRes.data?.find((p) => p.user_id === app.helper_id) || null;
         const stats = reviewStatsMap.get(app.helper_id);
         const available_until = availabilityMap.get(app.helper_id) ?? null;

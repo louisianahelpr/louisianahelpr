@@ -42,11 +42,8 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
   // helper and this poster. Drives the "Worked with you N times"
   // badge that surfaces emotional re-booking trust.
   const [repeatJobs, setRepeatJobs] = useState<number>(0);
-  // Cancellation rate of the poster — surfaced inline on the poster
-  // card when they have ≥5 jobs of history so a single cancelled job
-  // doesn't slap on a 100% rate. Null while loading or when below the
-  // sample-size floor.
-  const [posterCancelRate, setPosterCancelRate] = useState<number | null>(null);
+  // (The poster cancellation rate — four count:exact queries on jobs — went
+  // with its display in 257646efc; PD-008 removed the orphaned fetch.)
 
   // (The viewerSubscriptionTier query lived here for the Helper Pro fee
   // upsell in FeeBreakdown — removed with that upsell, so the per-open
@@ -127,45 +124,6 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
     return () => { cancelled = true; };
   }, [guest, job?.id]);
 
-  // Fetch the poster's cancellation rate — shows next to their name on
-  // the poster card. Combined poster-side + worked-side rate, capped at
-  // a ≥5 sample size so a fresh poster doesn't read "100%" off one
-  // cancelled job. Mirrors the math in UserProfile so the inline
-  // number matches the profile page if the helpr taps through.
-  useEffect(() => {
-    // Narrowed HERE, not inside the async body: the existing guard already
-    // covered the null case, but reading `job.customer_id` again inside the
-    // closure re-widens it. A null customer_id means the poster deleted their
-    // account and the job was anonymised (20260901033011).
-    const customerId = job?.customer_id;
-    if (guest || !customerId) return;
-    let cancelled = false;
-    (async () => {
-      const [postedTotalRes, postedCancelRes, workedTotalRes, workedCancelRes] = await Promise.all([
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", customerId),
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", customerId).eq("status", "cancelled"),
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", customerId),
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", customerId).eq("status", "cancelled"),
-      ]);
-      if (cancelled) return;
-      // Don't silently swallow a failed count query — a dropped error would
-      // skew the rate (a failed `cancelled` count reads as 0 → an
-      // artificially clean rate). On any error, report and show no rate.
-      const firstError = [postedTotalRes, postedCancelRes, workedTotalRes, workedCancelRes]
-        .find((res) => res.error)?.error;
-      if (firstError) {
-        report(firstError, { tags: { source: "JobDetailDialog.posterCancelRate" } });
-        setPosterCancelRate(null);
-        return;
-      }
-      const total = (postedTotalRes.count ?? 0) + (workedTotalRes.count ?? 0);
-      const cancelledCount = (postedCancelRes.count ?? 0) + (workedCancelRes.count ?? 0);
-      if (total >= 5) setPosterCancelRate((cancelledCount / total) * 100);
-      else setPosterCancelRate(null);
-    })();
-    return () => { cancelled = true; };
-  }, [guest, job?.customer_id]);
-
   // Fetch how many completed jobs the current helper has done for this
   // poster. Drives the repeat-customer badge in the poster card —
   // emotional rebooking signal when the relationship has history.
@@ -222,7 +180,6 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
     viewerAppPosition,
     viewerUserId,
     repeatJobs,
-    posterCancelRate,
     viewerTier,
     distMilesForDriving,
     drivingLabel,

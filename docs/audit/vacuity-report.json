@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-24T02:44:08.991Z",
+  "generated": "2026-09-24T02:44:40.272Z",
   "guards": 900,
   "registered": 900,
   "unregistered": [],
@@ -21,7 +21,6 @@
     "src/test/adminEndpointAuthz.test.ts",
     "src/test/banEvasionSurface.test.ts",
     "src/test/blockedStorageBoot.test.ts",
-    "src/test/checkoutNoHelperPayLine.test.ts",
     "src/test/e2eNoSupabaseMocks.test.ts",
     "src/test/expiryFormatterClass.test.ts",
     "src/test/jobMatchPreferenceGate.test.ts",

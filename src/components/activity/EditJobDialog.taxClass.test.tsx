@@ -56,6 +56,7 @@ describe("a paid job cannot cross the sales-tax line by category (ME-010)", () =
     const sql = readFileSync(resolve(__dirname, "../../../supabase/migrations/20260924082243_funded_category_tax_class_lock.sql"), "utf8");
     const arr = sql.match(/taxable CONSTANT text\[\] := ARRAY\[([^\]]*)\]/)?.[1] ?? "";
     const list = [...arr.matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
+    expect(list.length).toBeGreaterThan(1); // assembly + handyman on 2026-09-24
     expect(list).toEqual([...TAXABLE_CATEGORIES].sort());
   });
 });

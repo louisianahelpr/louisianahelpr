@@ -123,3 +123,25 @@ describe("a cron outage is not reported through a cron", () => {
 // Proof this is able to fail — 'error' is exactly the routing that left the
 // 2026-09-22 outage unreported for nine hours.
 // @mutate supabase/migrations/20260923050055_cron_fleet_failures_any_kind.sql |    AND d.status = 'failed'; |    AND d.status = 'never';
+
+// CJ-004: a job that raises its OWN error once, between successes, sat under
+// both rules above ('erroring' needs 3 in a row, the fleet sweep needs 3 in 20
+// minutes). 2026-09-22 09:00 sweep-cron-http-failures hit a statement timeout
+// and nothing paged. Proof: node src/test/pglite/cronRaisedVerdict.pglite.mjs
+// (BEFORE=1 is red).
+describe("a single raised error pages (CJ-004)", () => {
+  it("sweep_dead_crons grades one failed run in 24h as 'raised'", () => {
+    const body = latestBody("sweep_dead_crons")!;
+    expect(body, "sweep_dead_crons must be defined").toBeTruthy();
+    expect(body).toMatch(/WHEN l\.raised_msg IS NOT NULL THEN 'raised'/);
+    const pick = /AS raised_msg/.test(body) ? body.slice(0, body.indexOf("AS raised_msg")) : "";
+    const sub = pick.slice(pick.lastIndexOf("(SELECT"));
+    expect(sub, "one run, not a count: the raised check must LIMIT 1").toMatch(/LIMIT 1\)\s*$/);
+    expect(sub).toMatch(/interval '24 hours'/);
+    // Infra failures belong to sweep_cron_startup_failures' burst floor; paging
+    // each lost connection here would be the noise that floor exists to stop.
+    expect(sub).toMatch(/NOT ILIKE '%connection failed%'/);
+    expect(sub).toMatch(/NOT ILIKE '%startup timeout%'/);
+  });
+});
+// @mutate supabase/migrations/20260924082754_cron_raised_verdict.sql |               WHEN l.raised_msg IS NOT NULL THEN 'raised' |               WHEN false THEN 'raised'

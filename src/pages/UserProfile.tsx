@@ -43,6 +43,9 @@ import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { hasInAppHistory } from "@/lib/inAppHistory";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { unwrap } from "@/lib/supabaseResult";
+import { unblockUser } from "@/lib/userBlocks";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -52,6 +55,40 @@ const UserProfile = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user: currentAuthUser } = useCurrentUser();
   const currentUserId = currentAuthUser?.id ?? null;
+
+  // Q367 (owner, 2026-09-24): the profile of someone YOU blocked shows "You
+  // blocked this person" and an Unblock button, and none of their details.
+  // Blocker side only — a person who blocked you still sees nothing new here.
+  const queryClient = useQueryClient();
+  const blockedByMeKey = ["user-profile-blocked-by-me", currentUserId, userId] as const;
+  const { data: blockedByMe, isLoading: blockLoading, isError: blockError, refetch: refetchBlock } = useQuery({
+    queryKey: blockedByMeKey,
+    enabled: !!currentUserId && !!userId && currentUserId !== userId,
+    queryFn: async () => {
+      const rows = unwrap(
+        await supabase
+          .from("user_blocks")
+          .select("id")
+          .eq("blocker_id", currentUserId!)
+          .eq("blocked_id", userId!)
+          .limit(1),
+      );
+      return (rows ?? []).length > 0;
+    },
+  });
+  const [unblocking, setUnblocking] = useState(false);
+  const handleUnblock = async () => {
+    if (!currentUserId || !userId) return;
+    setUnblocking(true);
+    const ok = await unblockUser(currentUserId, userId);
+    setUnblocking(false);
+    if (!ok) {
+      toast.error("Couldn't unblock this person. Please try again.");
+      return;
+    }
+    toast.success("Unblocked");
+    await queryClient.invalidateQueries({ queryKey: blockedByMeKey });
+  };
 
   const [showReviews, setShowReviews] = useState(searchParams.get("tab") === "reviews");
 
@@ -210,7 +247,37 @@ const UserProfile = () => {
     <div className="min-h-screen bg-premium-page pb-safe-nav">{inner}</div>
   );
 
-  if (loading) {
+  // Fail closed: while the block check loads or errors, show the loading /
+  // error state rather than briefly painting the details of someone blocked.
+  const blockCheckPending = !!currentUserId && !!userId && currentUserId !== userId && (blockLoading || blockError);
+  if (blockedByMe || (blockCheckPending && blockError)) {
+    return wrap(
+      <>
+        <PageHeader eyebrow={headerEyebrow} title="Profile" meta={headerMeta} />
+        <div className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8">
+          <div className="flex">
+            {blockedByMe ? (
+              <EmptyState
+                variant="inline"
+                icon={Ban}
+                title="You blocked this person"
+                body="Their profile is hidden, and they can't message you or apply to your jobs. Unblock them to see it again."
+                action={
+                  <BarkPillButton onClick={handleUnblock} disabled={unblocking}>
+                    {unblocking ? "Unblocking…" : "Unblock"}
+                  </BarkPillButton>
+                }
+              />
+            ) : (
+              <ErrorState variant="inline" onRetry={() => refetchBlock()} />
+            )}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (loading || blockCheckPending) {
     return wrap(
       <>
         <PageHeader

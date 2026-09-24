@@ -255,6 +255,29 @@ Deno.serve(async (req) => {
       );
     }
 
+    /**
+     * A past-deadline dispute the sweep cannot settle and that waiting will
+     * never fix: tell the admins (deduped daily per job by remindAdmins) and
+     * report it in `claim_skipped`. Shared by every branch that leaves escrow
+     * held for a person, so none of them can go silent again (AM-001).
+     */
+    async function remindUnsettleable(
+      job: { id: string; title: string | null },
+      verdict: string,
+      why: string,
+    ): Promise<void> {
+      claimSkipped.push({ job_id: job.id, verdict });
+      const { ok: adminsOk, ids: adminIds } = await loadAdminIds(supabase, `auto-resolve-disputes.${verdict}`);
+      if (!adminsOk) defects.record(`admin lookup failed for unsettleable dispute job ${job.id} (${verdict})`);
+      await remindAdmins(
+        adminIds,
+        UNSETTLEABLE_TITLE,
+        `"${job.title}" is past its 72h dispute deadline but can't be auto-settled: ${why}. The escrow is still held — it needs an admin decision.`,
+        `/admin?view=disputes&job=${job.id}`,
+        `unsettleable dispute reminder job ${job.id} (${verdict})`,
+      );
+    }
+
     for (const job of expiredDisputes || []) {
       const disputeStatus = job.dispute_status || "open";
 
@@ -393,14 +416,23 @@ Deno.serve(async (req) => {
           defects.record(`session retrieve ${job.id}: ${e instanceof Error ? e.message : String(e)}`);
         }
       }
+      // AM-001: "leaving for admin" used to be a console.error and a
+      // `continue` — no admin was ever told, so an escrow with no verifiable
+      // charge sat frozen past its deadline with both parties staring at a
+      // "disputed" job. These two cases can never clear by waiting, so they
+      // take the SAME path as the payout-hold and unsettleable-claim branches:
+      // a deduped daily UNSETTLEABLE_TITLE reminder to every admin, plus a row
+      // in the run's `claim_skipped` report.
       if (!paymentIntentId) {
         console.error(`[auto-resolve-disputes] no payment intent for job ${job.id} — cannot auto-release, leaving for admin`);
+        await remindUnsettleable(job, "no_payment_intent", "it has no Stripe payment on record");
         continue;
       }
       try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
         if (pi.status !== "succeeded") {
           console.error(`[auto-resolve-disputes] PI ${paymentIntentId} for job ${job.id} status "${pi.status}" — not auto-releasing`);
+          await remindUnsettleable(job, `pi_${pi.status}`, `its Stripe payment is "${pi.status}", not succeeded`);
           continue;
         }
       } catch (e) {
@@ -870,7 +902,9 @@ Deno.serve(async (req) => {
     }
 
     // "No payment intent" and "PI not succeeded" are deliberately NOT defects —
-    // both leave the dispute for an admin, which is the designed behaviour.
+    // both leave the dispute for an admin, which is the designed behaviour, and
+    // both TELL the admins via remindUnsettleable (AM-001) and appear in
+    // `claim_skipped`, so "left for an admin" is true rather than a log line.
     return cronResult(
       "auto-resolve-disputes",
       {

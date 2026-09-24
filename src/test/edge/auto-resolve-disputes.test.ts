@@ -34,6 +34,9 @@
  * answers a cheerful 200 with `stuck_splits: []`. Red: 3 failed, 51 passed.
  */
 // @mutate supabase/functions/auto-resolve-disputes/index.ts | if (!startedAt) return true; | if (!startedAt) return false;
+// AM-001 (proven red 2026-09-23): the two "leave it for an admin" branches must tell one.
+// @mutate supabase/functions/auto-resolve-disputes/index.ts | await remindUnsettleable(job, "no_payment_intent", "it has no Stripe payment on record"); |
+// @mutate supabase/functions/auto-resolve-disputes/index.ts | await remindUnsettleable(job, `pi_${pi.status}`, `its Stripe payment is "${pi.status}", not succeeded`); |
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -953,6 +956,93 @@ describe("auto-resolve-disputes", () => {
       const h = await load();
       await h.fetch(cronReq());
       expect(releaseCalls()).toHaveLength(2);
+    });
+
+    // ── AM-001: no past-deadline dispute is left in escrow SILENTLY ─────────
+    //
+    // The "no payment intent" and "PI not succeeded" branches logged a
+    // console.error and `continue`d: escrow held, no admin reminder, no defect,
+    // the run answered 200. On prod two is_seed disputes sat 10-11 days past
+    // their deadline through ~40 ticks with nobody told.
+    //
+    // The CLASS invariant, over every skip state this sweep has: a dispute the
+    // run did not resolve must be (a) a defect, (b) an admin reminder, or (c) a
+    // claim_skipped verdict naming ANOTHER actor already moving the money
+    // (held_by_* / joined / not_disputed). Anything else is the silent skip.
+    const OTHER_ACTOR = /^(held_by_|joined$|not_disputed$)/;
+    type Skip = [name: string, setup: () => void];
+    const skipStates: Skip[] = [
+      ["escalated", () => seedExpiredDispute(scenario, { dispute_status: "escalated" })],
+      ["payout_pending", () => seedExpiredDispute(scenario, { payment_status: "payout_pending" })],
+      ["helper-filed", () => seedExpiredDispute(scenario, { disputed_by: "helper-1" })],
+      ["no PI, no session", () => seedExpiredDispute(scenario, { stripe_payment_intent_id: null, stripe_session_id: null })],
+      ["no PI, session without one", () => {
+        seedExpiredDispute(scenario, { stripe_payment_intent_id: null });
+        stripeMock.checkout.sessions.retrieve.mockResolvedValue({ id: "cs_1", payment_intent: null });
+      }],
+      ...(["requires_payment_method", "requires_capture", "processing", "canceled"] as const).map(
+        (status): Skip => [`PI ${status}`, () => {
+          seedExpiredDispute(scenario);
+          stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", status });
+        }],
+      ),
+      ["PI retrieve throws", () => {
+        seedExpiredDispute(scenario);
+        stripeMock.paymentIntents.retrieve.mockRejectedValue(new Error("stripe down"));
+      }],
+      ...["held_by_refund", "held_by_release", "held_by_split", "joined", "not_disputed", "not_settleable", "split_pending", "stuck_release"].map(
+        (verdict): Skip => [`claim ${verdict}`, () => {
+          seedExpiredDispute(scenario);
+          scenario.rpc.claim_dispute_settlement = { verdict };
+        }],
+      ),
+      ["claim rpc error", () => {
+        seedExpiredDispute(scenario);
+        scenario.rpcErrors = { claim_dispute_settlement: { message: "x", code: "PGRST202" } };
+      }],
+      ["refund ledger row", () => {
+        seedExpiredDispute(scenario);
+        scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "t" };
+        scenario.reads.payment_refunds = { rows: [{ id: "r1" }] };
+      }],
+    ];
+
+    it("inventories the skip states (floor)", () => {
+      expect(skipStates.length).toBeGreaterThan(18);
+    });
+
+    it.each(skipStates)("skip state '%s' is never silent", async (_name, setup) => {
+      setup();
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      if (body.resolved === 1) return;
+      const defect = res.status !== 200;
+      const told = writesTo("notifications", "insert").length > 0;
+      const otherActor = ((body.claim_skipped ?? []) as Array<{ verdict: string }>).some((s) =>
+        OTHER_ACTOR.test(s.verdict),
+      );
+      expect({ defect, told, otherActor }).not.toEqual({ defect: false, told: false, otherActor: false });
+    });
+
+    it.each([
+      ["no payment intent", { stripe_payment_intent_id: null, stripe_session_id: null }, null, "no_payment_intent"],
+      ["PI not succeeded", {}, "requires_payment_method", "pi_requires_payment_method"],
+    ] as const)("%s: admins get the unsettleable reminder and the run reports it", async (_n, overrides, piStatus, verdict) => {
+      seedExpiredDispute(scenario, overrides);
+      if (piStatus) stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", status: piStatus });
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      expect(claimCalls()).toHaveLength(0);
+      expect(writesTo("jobs")).toHaveLength(0);
+      const notes = unsettleableNotes() as Array<{ title: string; user_id?: string; link?: string; message?: string }>;
+      expect(notes.map((n) => n.user_id).sort()).toEqual([ADMIN_A, ADMIN_B]);
+      expect(notes[0].link).toBe(`/admin?view=disputes&job=${JOB_ID}`);
+      expect(String(notes[0].message)).toContain("escrow is still held");
+      expect(body.claim_skipped).toEqual([{ job_id: JOB_ID, verdict }]);
+      // Left for a person by design — not a defect, so no 500 every tick.
+      expect(res.status).toBe(200);
     });
 
     it("never claims a helper-filed dispute it only escalates (no money step)", async () => {

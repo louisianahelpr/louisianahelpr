@@ -21,7 +21,7 @@
  * @mutate src/components/messages/chatView/ChatComposer.tsx | if (activeConvo.otherUserId === null) { | if (false) {
  * @mutate src/pages/messages/messagesData/sendHandlers.ts | if (receiverId === null) { | if (false) {
  * @mutate supabase/migrations/20260924013306_messages_receiver_set_null.sql | REFERENCES auth.users(id) ON DELETE SET NULL; | REFERENCES auth.users(id) ON DELETE CASCADE;
- * @mutate src/pages/messages/useMessagesData.ts | .or(threadPairFilter(userId, activeConvo.otherUserId)) | .or(`and(sender_id.eq.${userId},receiver_id.eq.${activeConvo.otherUserId})`)
+ * @mutate src/pages/messages/useMessagesData.ts | .or(threadPairFilter(resolvedUserId, convo.otherUserId)) | .or(`and(sender_id.eq.${resolvedUserId},receiver_id.eq.${convo.otherUserId})`)
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";

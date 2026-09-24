@@ -1,5 +1,5 @@
 import { QueryClient, dehydrate, onlineManager } from "@tanstack/react-query";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { queryClient } from "./queryClient";
 
@@ -127,3 +127,19 @@ describe("networkMode semantics while offline", () => {
 });
 
 // @mutate src/lib/queryClient.ts | networkMode: "always", | networkMode: "online",
+
+describe("retryDelay is jittered (CC-005)", () => {
+  it("two devices failing the same query do not retry in the same instant", () => {
+    const delay = queryClient.getDefaultOptions().queries?.retryDelay as (n: number, e: unknown) => number;
+    const spy = vi.spyOn(Math, "random");
+    spy.mockReturnValue(0);
+    const low = delay(0, new Error("x"));
+    spy.mockReturnValue(0.999);
+    const high = delay(0, new Error("x"));
+    spy.mockRestore();
+    expect(high - low).toBeGreaterThan(200);
+    expect(high).toBeLessThanOrEqual(1000);
+  });
+});
+
+// @mutate src/lib/queryClient.ts | * (0.5 + Math.random()), // CC-005 jitter | * 1, // CC-005 jitter

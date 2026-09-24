@@ -80,7 +80,10 @@ export const queryClient = new QueryClient({
       // single transient blip still self-heals without the user seeing an
       // error — while capping the "we are still trying" window at roughly one
       // extra round trip instead of three seconds plus two.
-      retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 2000),
+      // Jittered (CC-005): a deterministic delay makes every device in the
+      // field retry a Supabase blip in the same instant. 0.5x-1.5x of the
+      // base keeps the mean where it was.
+      retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 2000) * (0.5 + Math.random()), // CC-005 jitter
       // Re-enable: in a live marketplace, returning to the app should
       // surface jobs that may have been claimed/cancelled while away.
       refetchOnWindowFocus: true,

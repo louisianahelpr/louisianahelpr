@@ -12,6 +12,7 @@ const src = readFileSync(join(__dirname, "../components/postjob/CheckoutStep.tsx
 
 describe("checkout Payment Breakdown has no Helpr-pay line", () => {
   it("reads the real breakdown", () => {
+    expect(src.length).toBeGreaterThan(10_000);
     expect(src).toContain("Job Budget");
   });
   it("never says what the Helpr receives or earns", () => {

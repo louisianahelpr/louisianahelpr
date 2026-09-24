@@ -310,6 +310,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/seedBoundary.ts";`,
   );
 
+  // Bounded pool: `_shared/forEachBounded.ts` has ZERO imports, so the
+  // generated file runs the daily sweeps through the REAL pool.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/forEachBounded\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/forEachBounded.ts";`,
+  );
+
   // Tier display names: `_shared/tierNames.ts` has ZERO imports and is a plain
   // lookup table, so the generated file points at the REAL module. It is what
   // stops a lapse notification telling a member "Your pro pass ended" with the

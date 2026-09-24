@@ -547,7 +547,8 @@ describe("stripe-webhook edge function", () => {
       };
       scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
       await fn.fetch(webhookRequest(fn, "{}"));
-      const notices = scenario.writes.filter((w) => w.table === "notifications" && w.op === "insert");
+      const notices = scenario.writes.filter((w) => w.table === "notifications" && w.op === "insert"
+        && (w.payload as Record<string, unknown>).user_id === "admin-1");
       expect(notices).toHaveLength(1);
       expect((notices[0].payload as Record<string, unknown>).title).toMatch(/escrow/i);
       expect((notices[0].payload as Record<string, unknown>).title).not.toMatch(/payout/i);
@@ -843,10 +844,13 @@ describe("stripe-webhook edge function", () => {
     const jobUpdates = () => scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
     const payloadOf = (w: { payload: unknown }) => w.payload as Record<string, unknown>;
     const alerts = () => slackAlerts as Array<{ severity?: string; title: string; message: string; oncePerDayKey?: string }>;
+    // Admin notices only: the Helpr's own (ME-009) are asserted in
+    // chargebackHeldPayoutNotice.test.ts.
     const notices = () =>
       scenario.writes
         .filter((w) => w.table === "notifications" && w.op === "insert")
-        .map((w) => w.payload as { title: string; message: string });
+        .map((w) => w.payload as { user_id: string; title: string; message: string })
+        .filter((n) => n.user_id !== "h");
 
     describe("B1: an open or escalated internal dispute is a hold on dismissal", () => {
       it("a job still in status 'disputed' (legacy stripe_chargeback overwrite) keeps disputed_at and pages", async () => {

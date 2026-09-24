@@ -196,7 +196,7 @@ async function existingRepay(stripe: Stripe, row: ClawbackRow, disputeId: string
   ) ?? null;
 }
 
-async function notifyPayee(supabase: Db, userId: string, jobId: string, title: string, message: string, disputeId: string) {
+export async function notifyPayee(supabase: Db, userId: string, jobId: string, title: string, message: string, disputeId: string) {
   const { error } = await supabase.from("notifications").insert({
     user_id: userId,
     title,

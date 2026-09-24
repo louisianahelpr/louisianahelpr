@@ -17,7 +17,7 @@ import {
   holdReasons,
 } from "./_chargebackHold.ts";
 import { revokeGiftCardForRefund } from "./_giftCardRefund.ts";
-import { clawBackReleasedPayout, type ClawbackResult } from "./_chargebackClawback.ts";
+import { clawBackReleasedPayout, notifyPayee, type ClawbackResult } from "./_chargebackClawback.ts";
 
 export async function handleChargeDisputeCreated(
   event: Stripe.Event,
@@ -257,6 +257,7 @@ async function applyCardDispute(
       // Zero rows means the job left the payable set: no block, markers only.
       // payment_status alone here; the markers are their own conditional write.
       let blockUpdateErr: { message: string } | null = null;
+      let blockedNow = false;
       if (shouldBlockPayout) {
         const { data: blocked, error: blockErr } = await supabase
           .from("jobs")
@@ -265,7 +266,10 @@ async function applyCardDispute(
           .in("payment_status", ["payout_pending", "escrow"])
           .select("id");
         blockUpdateErr = blockErr;
-        if (!blockErr && blocked && blocked.length > 0) changed = true;
+        if (!blockErr && blocked && blocked.length > 0) {
+          changed = true;
+          blockedNow = true;
+        }
         if (!blockErr && (!blocked || blocked.length === 0)) {
           logStep("Chargeback block skipped — payment_status left the payable set since read", {
             jobId: chargebackJob.id,
@@ -348,6 +352,19 @@ async function applyCardDispute(
           disputeId: dispute.id,
         },
       );
+      // ME-009: a payout that had not gone out yet used to be blocked in
+      // silence — only admins were told, and the Helpr saw a healthy job. The
+      // block above is a compare-and-set that matches once per chargeback, so
+      // this notice fires once. A released job's Helpr is told by the clawback.
+      if (blockedNow && chargebackJob.helper_id) {
+        await notifyPayee(
+          supabase, chargebackJob.helper_id, String(chargebackJob.id),
+          "Payout on hold: card dispute",
+          `The card used to pay for "${chargebackJob.title ?? "a job"}" is being disputed with the bank, so your payout for this job is on hold while it is reviewed. Nothing is needed from you now. Questions? Contact support.`,
+          dispute.id,
+        );
+      }
+
       if (!markersPlaced) {
         keptHold = `dispute_status=${chargebackJob.dispute_status ?? "null"}, disputed_at=${chargebackJob.disputed_at ?? "null"}`;
       }

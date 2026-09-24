@@ -136,6 +136,14 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
     );
 
   const handleSave = async () => {
+    // ST-002: an end before its start (9 PM to 5 PM) showed the day as
+    // available while the browse filter could match no job on it. The DB
+    // refuses it too (helper_availability_range_forward).
+    const inverted = slots.find((s) => s.is_available && s.start_time.slice(0, 5) >= s.end_time.slice(0, 5));
+    if (inverted) {
+      toast.error(`${DAYS[inverted.day_of_week]}: the end time has to be after the start time.`);
+      return;
+    }
     setSaving(true);
     try {
       const inserts: HelperAvailabilityInsert[] = slots.map((s) => ({

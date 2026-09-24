@@ -25,7 +25,7 @@
  *
  * @mutate src/lib/consent.ts | export const LATEST_TERMS_VERSION = "Sep 2026"; | export const LATEST_TERMS_VERSION = "Jun 2026";
  * @mutate supabase/functions/_shared/legalVersions.ts | export const LEGAL_TERMS_VERSION = "Sep 2026"; | export const LEGAL_TERMS_VERSION = "Jun 2026";
- * @mutate scripts/audit/prod-seed.mjs | terms_version_accepted: "Sep 2026", | terms_version_accepted: "Jun 2026",
+ * @mutate scripts/audit/prod-seed.mjs | terms_version_accepted: latestConsentVersions().terms, | terms_version_accepted: "Jun 2026",
  * @mutate src/components/TermsReconsentDialog.tsx | privacy_version: LATEST_PRIVACY_VERSION, | privacy_version: LATEST_TERMS_VERSION,
  * @mutate src/components/TermsReconsentDialog.tsx | Terms of Service\n            </a>\n            . | Terms of Service\n            </a> and Privacy Policy.
  * @mutate src/components/TermsReconsentDialog.tsx | await supabase.from("legal_acceptances").insert({ | await Promise.resolve({ error: null }) && ({
@@ -110,16 +110,14 @@ describe("Terms re-acceptance after the 2026-09-23 Terms change (Q210(d))", () =
     }
   });
 
-  it("seed scripts pin the current version, so seeded accounts are not stuck behind the gate", () => {
+  // Since Q378 the seeders READ the version from src/lib/consent.ts instead of
+  // repeating it; src/test/noLiteralConsentVersionInSeeders.test.ts forbids a
+  // literal anywhere in e2e/ or scripts/.
+  it("seed scripts take the current version from the app, so seeded accounts are not stuck behind the gate", () => {
     const files = ["scripts/audit/prod-seed.mjs", "scripts/create-app-review-demo-account.mjs"];
-    let seen = 0;
     for (const f of files) {
-      for (const m of blankComments(read(f)).matchAll(/terms_version_accepted:\s*"([^"]*)"/g)) {
-        seen++;
-        expect(m[1], f).toBe(LATEST_TERMS_VERSION);
-      }
+      expect(blankComments(read(f)), f).toMatch(/terms_version_accepted: latestConsentVersions\(\)\.terms,/);
     }
-    expect(seen).toBeGreaterThan(1);
   });
 
   it("the version is past Jun 2026, the one every account accepted before the change", () => {

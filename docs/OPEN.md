@@ -1784,6 +1784,14 @@ sure someone hears it and closes it.
    on each card, and home shows "0 (+2 test)"; (b) hide them from the lists too
    (the admin tests would need another way in). I recommend (a).
 
+18. **W-9 forms after a Helpr deletes their account (CS-003, 2026-09-24).** When
+   a Helpr signs a W-9 (typed name and the IP address they signed from), deleting
+   their account leaves it in place forever. Today there are 0 of them. The
+   privacy policy says tax records the law requires are kept, and the IRS says
+   to keep W-9s for 4 years. Options: (a) keep them for 4 years after signing,
+   then delete them automatically; (b) delete them as soon as the account is
+   deleted. I recommend (a).
+
 ## CARRIED — still open from the sections archived 2026-09-23
 
 Every unchecked box and every section marked OPEN / STILL OPEN / HEADS-UP /

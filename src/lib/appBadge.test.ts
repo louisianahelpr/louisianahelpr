@@ -143,7 +143,7 @@ describe("setAppIconBadge — cold-start permission-prompt guard", () => {
  * badge on every foreground; reassertAppIconBadge puts the last unread count
  * back, and appLifecycle must call it after clearing banners.
  *
- * @mutate src/lib/appBadge.ts |   lastRequested = Math.max(0, Math.floor(count) || 0); |   void count;
+ * @mutate src/lib/appBadge.ts |   lastRequested = Math.max(0, Math.floor(count) \|\| 0); |   void count;
  * @mutate src/lib/appLifecycle.ts |   await reassertAppIconBadge(); // NB-006 restore badge |   // removed
  */
 describe("reassertAppIconBadge — foreground banner clear does not zero the icon (NB-006)", () => {

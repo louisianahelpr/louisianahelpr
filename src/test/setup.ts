@@ -67,3 +67,24 @@ if (process.env.LH_VACUITY_TRACE) {
     }
   });
 }
+
+// Q259: React's dev-only render-phase warnings are bugs, not noise — a
+// setState during another component's render, or an input flipping between
+// uncontrolled and controlled. Production strips them, so a test is the only
+// place they can be caught. Any test that triggers one fails.
+const RENDER_BUG_WARNINGS = [
+  /Cannot update a component .* while rendering a different component/,
+  /is changing an? (un)?controlled .* to be (un)?controlled/,
+  /changing the (default )?value state of an? (un)?controlled/i,
+  /is changing from (un)?controlled to (un)?controlled/, // Radix Select/Checkbox
+];
+for (const level of ["error", "warn"] as const) {
+  const orig = console[level].bind(console);
+  console[level] = (...args: unknown[]) => {
+    const text = args.map((a) => (typeof a === "string" ? a : String(a))).join(" ");
+    if (RENDER_BUG_WARNINGS.some((re) => re.test(text))) {
+      throw new Error(`React render-phase warning (Q259): ${text.slice(0, 300)}`);
+    }
+    orig(...args);
+  };
+}

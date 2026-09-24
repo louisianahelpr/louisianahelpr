@@ -1,3 +1,6 @@
+/**
+ * @mutate .github/workflows/ui-sweep.yml | (github.event_name == 'schedule' && 'phone-light,phone-dark') | (github.event_name == 'schedule' && 'phone-light')
+ */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 

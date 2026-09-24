@@ -5,7 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Queue (this file):** 220 done, 27 partly done (fixed, protection pending), 103 open. Source of truth for work.
-- **Audit bus:** 162 open, 5 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Audit bus:** 161 open, 4 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
 - **nightly-red issues:** 8 open — `gh issue list -l nightly-red`. _(2026-09-23T06:08Z)_
@@ -2394,13 +2394,13 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 | ID | Sev | Current status (2026-09-23) |
 |---|---|---|
 | NB-004 | HIGH ⚑ | push_tokens still 0 rows live; APNs fix is in code but no device has ever registered (see NB-018). |
-| OA-001 | HIGH ⚑ | Signup still non-atomic: complete-signup failure strands account with no consent/approval and no recovery sweep |
+| OA-001 | HIGH ⚑ | FIXED 2026-09-24: complete-signup is time-bounded and a failure after signUp routes to Check Your Email; first sign-in recovers profile + consent. Guard signupCompletionFailureNotDeadEnd.test.ts, proven red. |
 | OBS-001 | HIGH ⚑ | 0 of 3 admins have a push token; admin safety alerts still fan into the void |
-| CC-006 | HIGH ⚑ | Open: fileToBase64 in signup still hangs forever on an aborted FileReader (no onabort/timeout). |
+| CC-006 | HIGH ⚑ | FIXED 2026-09-24 (0ed5f317a): onabort rejects; Signup toasts and continues. Guard signupHelpers.test.ts, proven red. |
 | BR-005 | HIGH ⚑ | Not independently reverified — GoTrue email rate limit is a dashboard-only config value, no SQL/CLI read available this session. |
-| NB-017 | HIGH ⚑ | Same listenersAttached/cancelled code pattern as filed; device repro not re-run (static check only). |
-| OA-009 | HIGH ⚑ | Consent (legal_acceptances / terms_version_accepted) still lost if complete-signup fails; no reconciliation |
-| BD-008 | HIGH ⚑ | Header job count still overstates vs list when a Nearby radius filter is active (documented known gap, unresolved). |
+| NB-017 | HIGH ⚑ | The `cancelled` race is gone from code since the Q82 fix; still needs a device/sim repro of a cold-launch helpr:// link (gated on the Q152 TestFlight build). |
+| OA-009 | HIGH ⚑ | FIXED 2026-09-24 (4d0c79b99): the non-dismissible re-consent gate captures pin + legal_acceptances event before any use (test proves both); the one live pin-without-event row was made by the press firewall, now fixed. |
+| BD-008 | HIGH ⚑ | FIXED (fa95a3ab0, 2026-09-07): header falls back to the rendered count under client-only filters. Guard dashboardCountNeverOverstates.test.ts (78c388d5a), proven red. |
 | ME-006 | HIGH | OPEN: tip fee still deducted from helper's payout; Terms '100% to Helpr' claim still false. Owner-approved gross-up fix unshipped. |
 | DH-001 | HIGH | Poster's own share link still routes into apply flow with no owner branch (JobDetail.tsx). |
 | NB-013 | HIGH | /reset-password + /account-pending still safely excluded from AASA; setSession() precondition still not implemented. |

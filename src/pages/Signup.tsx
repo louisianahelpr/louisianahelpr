@@ -9,6 +9,7 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
+import { withTimeout } from "@/pages/completeProfile/constants";
 import AuthShell from "@/components/auth/AuthShell";
 import { rememberJobIntent, rememberSignupRedirect, postAuthDestination } from "@/lib/jobIntent";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -441,7 +442,25 @@ const Signup = () => {
       // Complete profile with uploads (no ID — Stripe handles identity).
       // This call also records the referral and the legal consent — see the
       // body it sends above.
-      const result = await completeProfile(userId);
+      // OA-001: from here on the account EXISTS. A failed or hung completion
+      // used to end on "Couldn't create your account — try again?", and trying
+      // again cannot work: signUp on a now-registered email takes the
+      // enumeration redirect to /login. So a completion failure goes to the
+      // same "Check your email" screen as success. First sign-in then lands on
+      // /complete-profile (the profile gate) behind the non-dismissible
+      // re-consent gate, which records the consent this call would have.
+      let result: Awaited<ReturnType<typeof completeProfile>>;
+      try {
+        result = await withTimeout(completeProfile(userId), "Finishing your account");
+      } catch (completionErr) {
+        hapticError();
+        report(completionErr, { tags: { source: "Signup.completeProfile" } });
+        toast.error(
+          `${userFacingError(completionErr, "We couldn't finish setting up your profile.")} Your account is created: confirm your email, then sign in to finish.`,
+        );
+        navigate("/signup-pending", { state: { email } });
+        return;
+      }
 
       // A previous avatar object the function's sweep could NOT confirm is
       // gone. `complete-signup` has returned this field all along — "returned

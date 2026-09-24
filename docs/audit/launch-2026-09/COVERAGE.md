@@ -4,10 +4,10 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: node scripts/audit-coverage.mjs -->
 
-Generated from findings.jsonl as of its newest entry: 2026-09-24T05:43:34.326Z
+Generated from findings.jsonl as of its newest entry: 2026-09-24T06:00:10.269Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 99 open (3 open launch blockers), 262 fixed, 1 wontfix, 22 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
+- **Findings:** 94 open (3 open launch blockers), 267 fixed, 1 wontfix, 22 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
 - **Surface:** 1036 auditable surfaces (449 navigable, 587 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
@@ -20,7 +20,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 1 | `lh-route-walker` | REPORTED | 0 | – | 2 |
 | 1 | `lh-schema-integrity` | REPORTED | 3 | – | 11 |
 | 1 | `lh-silent-failure` | REPORTED | 0 | – | 9 |
-| 2 | `lh-appsec` | REPORTED | 3 | – | 5 |
+| 2 | `lh-appsec` | REPORTED | 2 | – | 6 |
 | 2 | `lh-authz-rls` | REPORTED | 0 | – | 9 |
 | 2 | `lh-design-holes` | REPORTED | 3 | – | 5 |
 | 2 | `lh-edge-functions` | REPORTED | 1 | – | 14 |
@@ -29,9 +29,9 @@ lane report on disk — treat it as incomplete, not as covered.
 | 3 | `lh-money-escrow` | REPORTED | 11 | – | 13 |
 | 3 | `lh-native-bridge` | REPORTED | 13 | **2** | 7 |
 | 4 | `lh-build-release` | REPORTED | 4 | – | 11 |
-| 4 | `lh-onboarding-auth` | REPORTED | 7 | – | 9 |
+| 4 | `lh-onboarding-auth` | REPORTED | 5 | – | 11 |
 | 4 | `lh-state-matrix` | REPORTED | 0 | – | 3 |
-| 5 | `lh-account-lifecycle` | REPORTED | 5 | – | 6 |
+| 5 | `lh-account-lifecycle` | REPORTED | 3 | – | 8 |
 | 5 | `lh-e2e-journeys` | REPORTED | 0 | – | 11 |
 | 5 | `lh-trust-safety` | REPORTED | 5 | – | 7 |
 | 5 | `lh-verification-credentials` | REPORTED | 0 | – | 9 |

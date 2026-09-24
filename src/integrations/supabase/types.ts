@@ -6182,6 +6182,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      ops_alert_fingerprint: {
+        Args: {
+          p_job?: string
+          p_source: string
+          p_source_kind: string
+          p_title: string
+        }
+        Returns: string
+      }
       ops_alert_fold_pending: { Args: never; Returns: number }
       ops_alert_mark_fixed: {
         Args: { p_id: string; p_note: string }

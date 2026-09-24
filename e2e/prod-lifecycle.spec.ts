@@ -1,6 +1,7 @@
 import { test, expect, type APIRequestContext, type Page, type Locator } from "./prodTest";
 import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { openCardFields } from "./stripeCheckoutCard";
 import { join } from "node:path";
 
 // The full authenticated money loop, against PRODUCTION, on a Stripe TEST key.
@@ -691,10 +692,7 @@ test.describe("full money loop against production", () => {
       const cardNumber = page.locator("#cardNumber");
       const methodRadio = page.getByRole("radio").first();
       await expect(cardNumber.or(methodRadio)).toBeVisible({ timeout: 60_000 });
-      if (!(await cardNumber.isVisible().catch(() => false))) {
-        await methodRadio.click({ force: true });
-      }
-      await cardNumber.waitFor({ state: "visible", timeout: 30_000 });
+      await openCardFields(page);
       await page.locator("#cardNumber").fill(TEST_CARD.number);
       await page.locator("#cardExpiry").fill(TEST_CARD.expiry);
       await page.locator("#cardCvc").fill(TEST_CARD.cvc);

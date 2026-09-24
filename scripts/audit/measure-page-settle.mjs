@@ -58,7 +58,9 @@ export const SETTLE_INIT = (placeholderSel) => {
       for (const e of list.getEntries()) {
         if (e.hadRecentInput) continue;
         const srcs = (e.sources || []).map((s) => {
-          const n = s.node;
+          // A text node names its parent element, so a font-swap shift says
+          // WHICH text moved (a bare "#text" could not; 2026-09-24).
+          const n = s.node && s.node.nodeType !== 1 ? s.node.parentElement : s.node;
           if (!n || n.nodeType !== 1) return "#text";
           const cls = (n.getAttribute("class") || "").split(/\s+/).slice(0, 3).join(".");
           return `${n.tagName.toLowerCase()}${n.id ? "#" + n.id : ""}${cls ? "." + cls : ""} ${Math.round(s.previousRect.y)}→${Math.round(s.currentRect.y)} h${Math.round(s.previousRect.height)}→${Math.round(s.currentRect.height)}`;

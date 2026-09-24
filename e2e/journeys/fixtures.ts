@@ -12,6 +12,7 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { readLiveCache, sessionAlive, writeCache } from "../liveSession";
+import { openCardFields } from "../stripeCheckoutCard";
 import { detectStuckOrBlank, findErrorScreen, readScreenText } from "../errorScreens";
 import { deviceProfile, type Rotation } from "./scenarios";
 
@@ -470,8 +471,7 @@ export async function payOnStripeCheckout(page: Page) {
     await page.waitForTimeout(2_000);
   }
   await expect(paymentField, "Stripe Checkout never rendered a payment field").toBeVisible({ timeout: 30_000 });
-  if (!(await cardNumber.isVisible().catch(() => false))) await methodRadio.click({ force: true });
-  await cardNumber.waitFor({ state: "visible", timeout: 30_000 });
+  await openCardFields(page);
   await cardNumber.fill(TEST_CARD.number);
   await page.locator("#cardExpiry").fill(TEST_CARD.expiry);
   await page.locator("#cardCvc").fill(TEST_CARD.cvc);

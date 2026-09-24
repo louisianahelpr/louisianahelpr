@@ -23,6 +23,7 @@
  */
 import type { APIRequestContext, Browser } from "@playwright/test";
 import { ANON, SUPABASE_URL, type Session } from "../journeys/fixtures";
+import { openCardFields } from "../stripeCheckoutCard";
 import {
   DISPUTE_FIXTURE_TITLE,
   FUNDED_FIXTURE_TITLE,
@@ -125,8 +126,7 @@ async function payCheckout(browser: Browser, url: string): Promise<void> {
     const card = page.locator("#cardNumber");
     const radio = page.getByRole("radio").first();
     await card.or(radio).first().waitFor({ state: "visible", timeout: 60_000 });
-    if (!(await card.isVisible().catch(() => false))) await radio.click({ force: true });
-    await card.waitFor({ state: "visible", timeout: 30_000 });
+    await openCardFields(page);
     await card.fill("4242 4242 4242 4242");
     await page.locator("#cardExpiry").fill("12 / 34");
     await page.locator("#cardCvc").fill("123");

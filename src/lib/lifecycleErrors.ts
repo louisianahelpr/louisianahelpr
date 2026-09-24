@@ -36,7 +36,7 @@ const LIFECYCLE_REASONS: Record<string, string> = {
     "You can report a no-show once the job's payment is secured. This one isn't funded yet.",
   job_not_started:
     "It's not the scheduled start time yet — you can report a no-show once it passes.",
-  already_reported: "A no-show has already been reported for this job.",
+  already_reported: "You have already reported this Helpr as a no-show for this job.",
   no_helper_assigned: "No Helpr has been assigned to this job yet.",
   not_authorized: "Only the person who posted this job can do that.",
   job_not_found: "We couldn't find that job.",

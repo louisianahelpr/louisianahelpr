@@ -6,7 +6,7 @@
  * test accounts five times each and dead-lettered them (msgs 51/52,
  * 2026-09-23), which filed the email-dlq-transactional alert (ledger 2b794ca3).
  */
-// @mutate supabase/functions/_shared/reservedRecipient.ts | example\.(?:com|net|org) | example\.(?:net|org)
+// @mutate supabase/functions/_shared/reservedRecipient.ts | return list.length > 0 && list.every( | return list.length > 0 && list.some(
 // @mutate supabase/functions/process-email-queue/index.ts |       if (isReservedRecipient(payload.to)) { |       if (false) {
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

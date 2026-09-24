@@ -17,10 +17,10 @@ import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
-import { JobStepRowSlot } from "@/components/activity/jobStepRow";
+import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 // The row's own done-state surface, so the poster's "already confirmed" box
 // matches the Tipped / Reviewed boxes rather than inventing a fourth grey.
-import { jobActionChipStyle, JobStepPrimaryButton } from "@/components/activity/JobActionRow";
+import { jobActionChipStyle, JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 
 /**
  * THE HELPER'S DAY-OF ANSWER, in one place.
@@ -466,7 +466,7 @@ export function JobConfirmation({
        button — straight into a row of stacked 11px chips, so "I'm Still On"
        was a different object from the Message and Directions beside it. It is
        the easiest drift in the app to miss, because nothing under
-       src/components/activity draws it. It goes through
+       src/components/job-card draws it. It goes through
        `JobStepPrimaryButton` now, exactly like every other primary in that
        slot; the `done` tone carries the owner's other rule (the box stays,
        disabled, once it has been tapped) without a greyed-out green.

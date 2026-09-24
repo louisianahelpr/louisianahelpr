@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Check, MapPin } from "lucide-react";
 import { useParishForZip, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
-import { categoryColors } from "@/components/activity/activityConstants";
+import { categoryColors } from "@/components/job-card/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";

@@ -21,7 +21,7 @@
  * 2026-09-21 (1 failed, 1 passed — exactly that split).
  *
  * Not mount-wiring-blind: the assertions are over the RENDERED tree, and
- * ConversationList's only mount is src/pages/Messages.tsx:393.
+ * ConversationList's only mount is src/pages/messages/Messages.tsx:393.
  *
  * @mutate src/components/messages/ConversationList.tsx | titleCard={isWebDesktop ? undefined : headerEl} | titleCard={headerEl}
  */

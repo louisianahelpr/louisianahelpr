@@ -857,7 +857,7 @@ test.describe("My Posts — card density + header", () => {
 
     // The four buckets replaced Active / All / Completed / Cancelled — they
     // sort by whose move it is rather than by the job's own lifecycle. See
-    // ActivityBucket in src/pages/activity/activityFilters.ts for why.
+    // ActivityBucket in src/components/job-card/activityFilters.ts for why.
     //
     // "all" is gone from the chip set and deliberately NOT asserted here: it
     // still resolves as a filter VALUE so notification deep links keep working,

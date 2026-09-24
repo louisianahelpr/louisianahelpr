@@ -155,7 +155,7 @@ describe("the retired ID-upload path stays gone (Q40)", () => {
   it("walks the real tree (not vacuous)", () => {
     expect(files.length).toBeGreaterThan(800);
     expect(files.some((f) => f.file === "supabase/functions/complete-signup/index.ts")).toBe(true);
-    expect(files.some((f) => f.file === "src/pages/Profile.tsx")).toBe(true);
+    expect(files.some((f) => f.file === "src/pages/profile/Profile.tsx")).toBe(true);
   });
 
   it("no reader or writer of the retired path, beyond the exact known list", () => {
@@ -217,9 +217,9 @@ describe("the retired ID-upload path stays gone (Q40)", () => {
       'await supabase.storage.from("id-documents").upload(path, file);',
       "await supabase.from(\"profiles\").update({ id_document_url: path, idv_status: \"pending\" });",
     ].join("\n");
-    expect(retiredHits([{ file: "src/pages/Profile.tsx", text: planted }])).toEqual([
-      "src/pages/Profile.tsx :: profiles.id_document_url",
-      "src/pages/Profile.tsx :: the id-documents bucket",
+    expect(retiredHits([{ file: "src/pages/profile/Profile.tsx", text: planted }])).toEqual([
+      "src/pages/profile/Profile.tsx :: profiles.id_document_url",
+      "src/pages/profile/Profile.tsx :: the id-documents bucket",
     ]);
     expect(retiredHits([{ file: "src/x.ts", text: "// id_document_url, \"id-documents\"" }])).toEqual([]);
   });

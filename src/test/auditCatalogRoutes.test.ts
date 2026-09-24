@@ -405,7 +405,7 @@ describe("audit catalog matches the real route table", () => {
 
   it("ADMIN_SCREENS covers every view in the Admin page's View union", () => {
     const adminSrc = readFileSync(
-      resolve(repoRoot, "src/pages/Admin.tsx"),
+      resolve(repoRoot, "src/pages/admin/Admin.tsx"),
       "utf8",
     );
     const union = /type View =\s*([^;]+);/.exec(adminSrc);

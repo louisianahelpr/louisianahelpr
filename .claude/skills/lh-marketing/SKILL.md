@@ -172,7 +172,7 @@ things that constrain what the analyst can say:
 
 The one genuinely useful thing in the map for marketing: **`job_posted` and
 `first_job_posted` both carry `category` and `parish` in their properties**
-(`src/pages/postjob/useJobSubmit.ts`). That is real demand data, sliced exactly
+(`src/pages/post-job/useJobSubmit.ts`). That is real demand data, sliced exactly
 the way the calendar plans — which parish, which category, when. Nothing else in
 the map is parish-aware.
 

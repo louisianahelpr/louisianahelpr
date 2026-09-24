@@ -90,7 +90,7 @@ reproduced here, all UAs get the same 200.
    underlying pages still serve 200 + generic tags if fetched directly (that
    residual is SW-001/SW-002, still open). A complete fix needs server-side
    per-route noindex, which is outside what a static `robots.txt` edit can do.
-2. **`src/pages/Index.tsx`** — removed the fabricated `BreadcrumbList` JSON-LD
+2. **`src/pages/info/Index.tsx`** — removed the fabricated `BreadcrumbList` JSON-LD
    and its now-unused definition. `webAppSchema` and `faqSchema` (both
    accurate) are untouched.
 3. **`scripts/generate-sitemap.mjs`** — added `parseExtraLegalTabPaths()`,
@@ -152,7 +152,7 @@ reproduced here, all UAs get the same 200.
 ## Files touched
 
 - `public/robots.txt`
-- `src/pages/Index.tsx`
+- `src/pages/info/Index.tsx`
 - `scripts/generate-sitemap.mjs`
 - `public/sitemap.xml` (generated)
 - `docs/audit/launch-2026-09/findings.jsonl` (bus appends)

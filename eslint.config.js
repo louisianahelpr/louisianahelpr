@@ -168,13 +168,13 @@ const SILENT_CATCH_LEGACY = [
   "src/lib/sentry.ts",
   "src/lib/simpleMode.ts",
   "src/lib/threadMutes.ts",
-  "src/pages/activity/ActivitySectionedView.tsx",
-  "src/pages/activity/useBulkDismiss.ts",
-  "src/pages/CompleteProfile.tsx",
-  "src/pages/Dashboard.tsx",
-  "src/pages/dashboard/useDashboardSideQueries.ts",
-  "src/pages/postjob/useJobSubmit.ts",
-  "src/pages/postjob/usePostJobForm.ts",
+  "src/components/job-card/ActivitySectionedView.tsx",
+  "src/pages/posts/useBulkDismiss.ts",
+  "src/pages/auth/CompleteProfile.tsx",
+  "src/pages/home/Dashboard.tsx",
+  "src/pages/home/useDashboardSideQueries.ts",
+  "src/pages/post-job/useJobSubmit.ts",
+  "src/pages/post-job/usePostJobForm.ts",
 ];
 
 const DS_TYPE_CLASS_RULE = {
@@ -230,7 +230,7 @@ const DS_TYPE_INLINE_RULE = {
 const DS_TYPE_INLINE_LEGACY = [
   "src/components/DisputeTimelineDialog.tsx",
   "src/components/ReferralSection.tsx",
-  "src/components/activity/EditJobDialog.tsx",
+  "src/pages/posts/EditJobDialog.tsx",
   "src/components/admin/AdminAnalyticsCharts.tsx",
   "src/components/business/SpendDashboardTab.tsx",
   "src/components/profile/EarningsBreakdownCharts.tsx",
@@ -239,7 +239,6 @@ const DS_TYPE_INLINE_LEGACY = [
   "src/components/profile/subscriptionTab/CancelSurveyDialog.tsx",
   "src/components/wallet/PayoutCelebration.tsx",
   "src/lib/accessibility.test.tsx",
-  "src/pages/SubscriptionPage.tsx",
 ];
 
 /* Files carrying a pre-existing bare `opacity-*`, exempt from
@@ -286,7 +285,7 @@ const OPACITY_STATE_LEGACY = [
   "src/components/ui/calendar.tsx",
   "src/components/ui/dropdown-menu.tsx",
   "src/components/ui/select.tsx",
-  "src/pages/userProfile/ReviewsSection.tsx",
+  "src/pages/user/ReviewsSection.tsx",
 ];
 
 export default tseslint.config(

@@ -41,7 +41,7 @@
  *
  * @mutate src/components/messages/ConversationList.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(true); | const [tabsOpenPhone, setTabsOpenPhone] = useState(false);
  * @mutate src/components/messages/ConversationList.tsx | aria-expanded={tabsOpen} | data-expanded={tabsOpen}
- * @mutate src/pages/activity/ActivityHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(true); | const [tabsOpenPhone, setTabsOpenPhone] = useState(false);
+ * @mutate src/components/job-card/ActivityHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(true); | const [tabsOpenPhone, setTabsOpenPhone] = useState(false);
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -52,7 +52,7 @@ import { resolve } from "node:path";
  * loudly rather than letting it pass over a file that no longer exists.
  */
 const SCREENS = {
-  "My Posts / My Jobs": "src/pages/activity/ActivityHeader.tsx",
+  "My Posts / My Jobs": "src/components/job-card/ActivityHeader.tsx",
   Messages: "src/components/messages/ConversationList.tsx",
 } as const;
 

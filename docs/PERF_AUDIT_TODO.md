@@ -71,7 +71,7 @@ enable:
 5. If smoke-test passes, commit + push the package.json change.
 
 **Risk:** any Supabase call that fires during landing render needs to be
-gated behind `typeof window !== "undefined"` first. Audit `src/pages/Index.tsx`
+gated behind `typeof window !== "undefined"` first. Audit `src/pages/info/Index.tsx`
 + children before enabling.
 
 ### 2. Move first-paint Supabase calls behind `requestIdleCallback`

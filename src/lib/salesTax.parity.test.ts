@@ -16,7 +16,7 @@ import {
   salesTaxCents as edgeSalesTaxCents,
   TAXABLE_CATEGORIES as edgeTaxableCategories,
 } from "../../supabase/functions/_shared/salesTax";
-import { categoryLabels } from "@/components/activity/activityConstants";
+import { categoryLabels } from "@/components/job-card/activityConstants";
 
 const ALL_CATEGORIES = Object.keys(categoryLabels);
 

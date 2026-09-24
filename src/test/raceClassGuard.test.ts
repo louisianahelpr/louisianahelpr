@@ -12,7 +12,7 @@ import * as guard from "../../scripts/check-race-class.mjs";
  * code: the pre-fix SQL is the repo's own migration set with the fix migration
  * left out (the latest definition of enforce_application_job_state then comes
  * from 20260907063128), and the pre-fix client is `git show
- * d0471d07f^:src/pages/activity/activityActions/useOfferHandlers.ts`, frozen
+ * d0471d07f^:src/components/job-card/activityActions/useOfferHandlers.ts`, frozen
  * in fixtures/raceClass/ so this runs in a shallow CI checkout.
  */
 
@@ -28,7 +28,7 @@ const RESTATES_FIX = "20260915101102";
 // 20260924020956 (Q341) added the block refusal.
 const RESTATES_APP_JOB_STATE_FIX = [RESTATES_FIX, "20260921190002", "20260924020956"];
 const FIXTURES = resolve(__dirname, "fixtures/raceClass");
-const OFFER_HANDLERS = "src/pages/activity/activityActions/useOfferHandlers.ts";
+const OFFER_HANDLERS = "src/components/job-card/activityActions/useOfferHandlers.ts";
 
 type Hit = { key: string; file: string; line?: number };
 

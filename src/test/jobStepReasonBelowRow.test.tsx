@@ -47,17 +47,17 @@
  * read the FIRST `[data-job-step-note]`, so a host above the row is exactly the
  * pre-2026-09-19 layout and must turn this file red.
  *
- * @mutate src/components/activity/JobStepCard.tsx | {notice}\n        {/* WHO, directly above | {notice}\n        <div ref={setNoteHost} data-job-step-note="" className="space-y-1.5 text-center empty:hidden" />\n        {/* WHO, directly above
- * @mutate src/components/activity/JobStepCard.tsx | className="space-y-1.5 text-center empty:hidden" | className="space-y-1.5 empty:hidden"
- * @mutate src/components/activity/JobStepCard.tsx | {noteFilled ? null : footnote} | {footnote}
+ * @mutate src/components/job-card/JobStepCard.tsx | {notice}\n        {/* WHO, directly above | {notice}\n        <div ref={setNoteHost} data-job-step-note="" className="space-y-1.5 text-center empty:hidden" />\n        {/* WHO, directly above
+ * @mutate src/components/job-card/JobStepCard.tsx | className="space-y-1.5 text-center empty:hidden" | className="space-y-1.5 empty:hidden"
+ * @mutate src/components/job-card/JobStepCard.tsx | {noteFilled ? null : footnote} | {footnote}
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
-import type { AppliedApp, Job } from "@/components/activity/activityConstants";
-import type { PosterStepCtx } from "@/components/activity/postedJobCard/steps/posterStepContract";
+import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
+import type { PosterStepCtx } from "@/pages/posts/postedJobCard/steps/posterStepContract";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -94,10 +94,10 @@ function makeSupabase() {
 }
 vi.mock("@/integrations/supabase/client", () => makeSupabase());
 
-import { JobStepCard } from "@/components/activity/JobStepCard";
-import { JobStepRowSlot } from "@/components/activity/jobStepRow";
-import { InProgressStep } from "@/components/activity/postedJobCard/steps/InProgressStep";
-import { ConfirmedSection } from "@/components/activity/appliedJobCard/ConfirmedSection";
+import { JobStepCard } from "@/components/job-card/JobStepCard";
+import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
+import { InProgressStep } from "@/pages/posts/postedJobCard/steps/InProgressStep";
+import { ConfirmedSection } from "@/pages/jobs/appliedJobCard/ConfirmedSection";
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});

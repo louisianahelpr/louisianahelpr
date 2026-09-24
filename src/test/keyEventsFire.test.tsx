@@ -158,19 +158,19 @@ vi.mock("@/lib/pushPermissionNudge", () => ({ usePushPermissionNudge: () => vi.f
 vi.mock("@/hooks/useNotificationPermissionPrompt", () => ({ recordJobActionForPermissionPrompt: vi.fn() }));
 vi.mock("@/lib/inAppReview", () => ({ maybeRequestInAppReview: vi.fn() }));
 vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: vi.fn(async () => undefined) }));
-vi.mock("@/pages/postjob/firstPostConfetti", () => ({ maybeFireFirstPostConfetti: vi.fn() }));
+vi.mock("@/pages/post-job/firstPostConfetti", () => ({ maybeFireFirstPostConfetti: vi.fn() }));
 
 import { KEY_EVENTS } from "../../scripts/lib/analyticsFreshness.mjs";
 import { __resetJobCompletedForTests } from "@/lib/jobCompletedEvent";
-import Signup from "@/pages/Signup";
-import PaymentSuccess from "@/pages/PaymentSuccess";
+import Signup from "@/pages/auth/Signup";
+import PaymentSuccess from "@/pages/post-job/PaymentSuccess";
 import { ReviewForm } from "@/components/reviewPanel/ReviewForm";
-import { useJobSubmit, type UseJobSubmitParams } from "@/pages/postjob/useJobSubmit";
-import { useApplyFlow } from "@/pages/dashboard/useApplyFlow";
+import { useJobSubmit, type UseJobSubmitParams } from "@/pages/post-job/useJobSubmit";
+import { useApplyFlow } from "@/pages/home/useApplyFlow";
 import { createSendHandlers } from "@/pages/messages/messagesData/sendHandlers";
 import type { Conversation } from "@/components/messages/types";
-import { useActivityActions } from "@/pages/activity/useActivityActions";
-import type { Application, Job } from "@/components/activity/activityConstants";
+import { useActivityActions } from "@/components/job-card/useActivityActions";
+import type { Application, Job } from "@/components/job-card/activityConstants";
 
 // ── Analytics boundary helpers ──────────────────────────────────────────────
 
@@ -457,12 +457,12 @@ describe("inventory", () => {
 
 // Shown able to fail: each line deletes one event's emit site; its test above
 // goes red (the event never reaches analytics_events).
-// @mutate src/pages/Signup.tsx | track(AhaEvent.SignupCompleted, { | void ({
-// @mutate src/pages/postjob/useJobSubmit.ts | track(AhaEvent.JobPosted, { | void ({
-// @mutate src/pages/dashboard/useApplyFlow.ts | track(AhaEvent.JobApplied, { job_id: vars.jobId }); | void 0;
-// @mutate src/pages/activity/activityActions/useOfferHandlers.ts | track(AhaEvent.JobAccepted, { job_id: app.job_id, ...ppoProps }); | void 0;
-// @mutate src/pages/PaymentSuccess.tsx | track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps }); | void 0;
-// @mutate src/pages/activity/activityActions/useLifecycleHandlers.ts | trackJobCompleted(jobId, data, "activity", user?.id); | void 0;
+// @mutate src/pages/auth/Signup.tsx | track(AhaEvent.SignupCompleted, { | void ({
+// @mutate src/pages/post-job/useJobSubmit.ts | track(AhaEvent.JobPosted, { | void ({
+// @mutate src/pages/home/useApplyFlow.ts | track(AhaEvent.JobApplied, { job_id: vars.jobId }); | void 0;
+// @mutate src/components/job-card/activityActions/useOfferHandlers.ts | track(AhaEvent.JobAccepted, { job_id: app.job_id, ...ppoProps }); | void 0;
+// @mutate src/pages/post-job/PaymentSuccess.tsx | track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps }); | void 0;
+// @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts | trackJobCompleted(jobId, data, "activity", user?.id); | void 0;
 // @mutate src/lib/jobCompletedEvent.ts | if (emitted.has(jobId)) return false; | void 0;
 // @mutate src/components/reviewPanel/ReviewForm.tsx | track(AhaEvent.ReviewLeft, { job_id: jobId, rating }); | void 0;
 // @mutate src/pages/messages/messagesData/sendHandlers.ts | if (!alreadyLanded) track("message_sent" | if (false) track("message_sent"

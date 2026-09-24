@@ -8,7 +8,7 @@
  *   • `src/components/profile/SupportInline.tsx` — the signed-in Profile
  *     tab. Renders the topics in a <Select> (its items also carry a lucide
  *     icon, attached there because this module stays JSX-free).
- *   • `src/pages/Support.tsx` — the public `/support` page, reachable
+ *   • `src/pages/info/Support.tsx` — the public `/support` page, reachable
  *     signed-OUT. Renders the same topics in the same <Select>.
  *
  * `reportLabel` is the prefix written onto the ticket (`reports.reason` for

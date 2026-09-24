@@ -345,7 +345,7 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
             measured 351x767 at (21, 85) in a 393x852 viewport — 89% of the
             width, 90% of the height, inset under the title card. Same class of
             bug as the "Add a Pet" sheet (see the note in
-            src/pages/petProfiles/PetForm.tsx), same fix: leave the transformed
+            src/pages/profile/petProfiles/PetForm.tsx), same fix: leave the transformed
             subtree by construction instead of hoping no ancestor ever gains a
             filter or a transform.
             A plain portal, not the shared <Dialog>: this file is on

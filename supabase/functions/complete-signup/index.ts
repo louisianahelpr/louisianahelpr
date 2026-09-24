@@ -754,7 +754,7 @@ serve(async (req) => {
     // Terms + Privacy + Platform Rules checkbox, so a successful completion
     // IS the acceptance event — write it to the legal_acceptances audit
     // trail (the table existed but nothing populated it). Versions match
-    // the LAST_UPDATED stamps in src/pages/legal/legalSections.ts; bump
+    // the LAST_UPDATED stamps in src/pages/info/legal/legalSections.ts; bump
     // both places together on a material policy change. Non-fatal: a failed
     // consent write is logged loudly but must not strand a finished signup.
     //

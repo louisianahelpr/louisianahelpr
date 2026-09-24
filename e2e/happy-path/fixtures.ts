@@ -306,7 +306,7 @@ export async function installSupabaseMocks(
     }
 
     // 4. Edge functions (e.g. complete-signup) — always 200 with an empty
-    //    success body. The post-signup code paths in src/pages/Signup.tsx
+    //    success body. The post-signup code paths in src/pages/auth/Signup.tsx
     //    treat a missing `result.error` as success.
     if (url.pathname.startsWith("/functions/v1/")) {
       return route.fulfill(buildFulfill({ status: 200, body: { success: true } }));

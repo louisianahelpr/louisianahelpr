@@ -49,7 +49,7 @@ const ROTATION = /\banimate-spin\b|\banimate-\[spin[_\s]|animation:[^;"'`]*\bspi
 /**
  * ELEMENT-level, not file-level, and the difference is the whole guard.
  *
- * A file-level scan flagged src/pages/WorkRecord.tsx, which imports HelprMark
+ * A file-level scan flagged src/pages/profile/WorkRecord.tsx, which imports HelprMark
  * and — three hundred lines away, on an unrelated control — spins a `Loader2`.
  * That is a lucide icon: a radially SYMMETRIC shape, exactly the thing that is
  * allowed to rotate. Banning rotation in any file that happens to mention the
@@ -109,7 +109,7 @@ describe("the brand mark is never rotated", () => {
     // WorkRecord.tsx is the real case: it holds the mark AND spins a Loader2.
     // If this ever reports a hit, the guard has gone back to file-level and
     // will start convicting correct code.
-    expect(markElementsWithRotation("src/pages/WorkRecord.tsx")).toEqual([]);
+    expect(markElementsWithRotation("src/pages/profile/WorkRecord.tsx")).toEqual([]);
   });
 
   it("no element rendering the mark applies a rotation", () => {

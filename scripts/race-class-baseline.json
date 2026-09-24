@@ -28,9 +28,9 @@
     "client:src/components/JobConfirmation.tsx::opaque:{ [field]: new Date().toISOStr": "Computed-key day-of confirmation stamp; field set is helper_dayof/poster confirmations. Not yet re-audited under this class.",
     "client:src/components/JobTracking.tsx::opaque:patch": "stampJob(patch) helper for poster tracker stamps; payload typed TablesUpdate<\"jobs\">. Not yet re-audited under this class.",
     "client:src/components/PhotoProof.tsx::opaque:updateField": "Payload is proof_before_urls / proof_after_urls only (not lifecycle); opaque to the parser because it is a variable.",
-    "client:src/components/activity/CompletionChoiceSheet.tsx::status": "Legacy revision_requested write kept for pre-RPC read paths. Not yet re-audited under this class.",
-    "client:src/components/activity/EditJobDialog.tsx::opaque:updateData": "Poster edit of job details (title, schedule, expires_at); lifecycle columns not in the object. Opaque because it is a variable.",
-    "client:src/components/activity/appliedJobCard/DisputedSection.tsx::opaque:patch": "Payload is dispute_helper_response (+ dispute_status), not job status; opaque because it is a variable.",
+    "client:src/pages/posts/CompletionChoiceSheet.tsx::status": "Legacy revision_requested write kept for pre-RPC read paths. Not yet re-audited under this class.",
+    "client:src/pages/posts/EditJobDialog.tsx::opaque:updateData": "Poster edit of job details (title, schedule, expires_at); lifecycle columns not in the object. Opaque because it is a variable.",
+    "client:src/pages/jobs/appliedJobCard/DisputedSection.tsx::opaque:patch": "Payload is dispute_helper_response (+ dispute_status), not job status; opaque because it is a variable.",
     "client:src/components/admin/AdminDisputes.tsx::status": "Admin-only dispute close; admin is the arbiter of that job's status. Not yet re-audited under this class.",
     "client:src/components/admin/AdminJobs.tsx::status": "Admin-only removal (status cancelled); intended to win over any concurrent state. Not yet re-audited under this class."
   },

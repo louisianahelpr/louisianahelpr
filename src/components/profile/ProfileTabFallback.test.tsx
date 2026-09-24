@@ -87,7 +87,7 @@ describe("ProfileTabFallback — the ruling, asserted", () => {
     // and three stat tiles — because the boot branch special-cased exactly one
     // tab. Read from the source, because this branch runs before any query
     // resolves and no render test reaches it.
-    const src = readFileSync(resolve(__dirname, "../../pages/Profile.tsx"), "utf8")
+    const src = readFileSync(resolve(__dirname, "../../pages/profile/Profile.tsx"), "utf8")
       .replace(/\/\*[\s\S]*?\*\//g, " ")
       .replace(/\/\/[^\n]*/g, " ");
     const branch = src.slice(src.indexOf("if (loading) {"), src.indexOf("const displayName"));

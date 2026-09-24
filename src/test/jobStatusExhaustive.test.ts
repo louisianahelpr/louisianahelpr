@@ -104,7 +104,7 @@ describe("every job status has a rendering path", () => {
   it("the deprecated statusBadge map still covers the whole enum", () => {
     // LIVE DEFECT, reported not fixed (activityConstants.ts is in another lane).
     //
-    // `statusBadge` (src/components/activity/activityConstants.ts:81) is typed
+    // `statusBadge` (src/components/job-card/activityConstants.ts:81) is typed
     // `Record<string, string>`, and its own doc comment says it is kept only
     // "because the activity-constants test asserts every job_status enum value
     // has a row here". It does not: `pending_approval` has no row, and because
@@ -116,7 +116,7 @@ describe("every job status has a rendering path", () => {
     // THE FIX IS A TYPE, NOT A KEY: change the annotation to
     // `Record<JobStatus, string>` and the compiler enumerates the union for you
     // forever. Adding just the missing key leaves the next one to a reviewer.
-    const src = repoFile("src/components/activity/activityConstants.ts");
+    const src = repoFile("src/components/job-card/activityConstants.ts");
     const block = src.slice(src.indexOf("export const statusBadge"));
     const covered = JOB_STATUSES.filter((s) =>
       new RegExp(`\\b${s}\\s*:`).test(block.slice(0, block.indexOf("};"))),
@@ -134,7 +134,7 @@ describe("every job status has a rendering path", () => {
     // The rule behind the finding above. `Record<string, T>` is what turns an
     // exhaustive map into a lookup that can silently miss.
     const offenders: string[] = [];
-    for (const file of ["src/lib/statusColors.ts", "src/lib/statusLabels.ts", "src/components/activity/activityConstants.ts"]) {
+    for (const file of ["src/lib/statusColors.ts", "src/lib/statusLabels.ts", "src/components/job-card/activityConstants.ts"]) {
       const src = repoFile(file);
       for (const m of src.matchAll(
         /export const (\w*[Ss]tatus\w*)\s*:\s*Record<\s*string\s*,/g,
@@ -161,7 +161,7 @@ describe("every job status has a rendering path", () => {
  */
 const NEEDS_EXHAUSTIVE_GUARD: Array<{ site: string; missing: string; note: string }> = [
   {
-    site: "src/pages/activity/activityFilters.ts:252",
+    site: "src/components/job-card/activityFilters.ts:252",
     missing: "open, accepted, in_progress, revision_requested, pending_approval",
     note:
       "bucketPostedJob's switch handles completed/cancelled/disputed and buckets everything " +
@@ -170,7 +170,7 @@ const NEEDS_EXHAUSTIVE_GUARD: Array<{ site: string; missing: string; note: strin
       "decided it should. Give the switch a case per status and end it with assertNever.",
   },
   {
-    site: "src/components/activity/activityConstants.ts:81",
+    site: "src/components/job-card/activityConstants.ts:81",
     missing: "pending_approval",
     note: "statusBadge: Record<string, string> — retype as Record<JobStatus, string>. LIVE.",
   },
@@ -192,7 +192,7 @@ const NEEDS_EXHAUSTIVE_GUARD: Array<{ site: string; missing: string; note: strin
       "src/test/alarmColourInvariant.test.ts, which reports a live two-alarm-dot defect here.",
   },
   {
-    site: "src/components/activity/appliedJobCard/appliedJobCardHelpers.ts:33",
+    site: "src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts:33",
     missing: "pending_approval",
     note:
       "deriveAppliedJobCardState builds seven booleans from job.status and never references " +
@@ -200,7 +200,7 @@ const NEEDS_EXHAUSTIVE_GUARD: Array<{ site: string; missing: string; note: strin
       "This is the empty-bordered-box shape exactly.",
   },
   {
-    site: "src/components/activity/PostedJobCard.tsx:97",
+    site: "src/pages/posts/PostedJobCard.tsx:97",
     missing: "cancelled, pending_approval",
     note: "showsTracker falls through to false for both; correct for cancelled, undocumented for pending_approval.",
   },
@@ -240,7 +240,7 @@ describe("the assertNever rollout list stays honest", () => {
    *
    * This used to be `src.slice(i, i + 900)` — a fixed window — and that is a
    * guard that silently stops working as code grows. `derivePosterWait` and
-   * `deriveHelperWait` (src/components/activity/jobStatusLine.ts) both run
+   * `deriveHelperWait` (src/components/job-card/jobStatusLine.ts) both run
    * past 900 characters, so their `default: return assertNever(...)` sat
    * OUTSIDE the window and the guard reported two false offenders against
    * switches that were correctly guarded all along.
@@ -312,4 +312,4 @@ describe("the assertNever rollout list stays honest", () => {
 // code; a window that reached further would have been satisfied by the
 // neighbouring switch's assertNever and waved this mutation through. It is
 // killed by the brace-matched body, and by nothing else.
-// @mutate src/components/activity/jobStatusLine.ts | // A new `job_status` enum member is a BUILD error here, not a blank strip.\n      return assertNever(job.status); | return "confirmed";
+// @mutate src/components/job-card/jobStatusLine.ts | // A new `job_status` enum member is a BUILD error here, not a blank strip.\n      return assertNever(job.status); | return "confirmed";

@@ -1,11 +1,11 @@
 // A referral code must be TYPEABLE, not only linkable — and whatever ends up
 // in the field must reach complete-signup's body.
 //
-// @mutate src/pages/signup/SignupStep2.tsx | id="referralCode" | id="referralCodeGone"
-// @mutate src/pages/signup/SignupStep2.tsx | data-testid="referral-code-toggle" | data-testid="referral-code-toggle-gone"
-// @mutate src/pages/Signup.tsx | setReferralCode={setReferralCode} | setReferralCode={() => {}}
-// @mutate src/pages/Signup.tsx | referralCode: referralCode.trim().toUpperCase() \|\| null, | referralCode: null,
-// @mutate src/pages/Signup.tsx | const [referralCode, setReferralCode] = useState( | const [referralCode] = useState(
+// @mutate src/pages/auth/signup/SignupStep2.tsx | id="referralCode" | id="referralCodeGone"
+// @mutate src/pages/auth/signup/SignupStep2.tsx | data-testid="referral-code-toggle" | data-testid="referral-code-toggle-gone"
+// @mutate src/pages/auth/Signup.tsx | setReferralCode={setReferralCode} | setReferralCode={() => {}}
+// @mutate src/pages/auth/Signup.tsx | referralCode: referralCode.trim().toUpperCase() \|\| null, | referralCode: null,
+// @mutate src/pages/auth/Signup.tsx | const [referralCode, setReferralCode] = useState( | const [referralCode] = useState(
 //
 // Until 2026-09-22 the only door was `?ref=<code>`:
 //
@@ -86,8 +86,8 @@ const codeOnly = (src: string): string => {
   return out.join("");
 };
 
-const STEP2 = codeOnly(read("src/pages/signup/SignupStep2.tsx"));
-const SIGNUP = codeOnly(read("src/pages/Signup.tsx"));
+const STEP2 = codeOnly(read("src/pages/auth/signup/SignupStep2.tsx"));
+const SIGNUP = codeOnly(read("src/pages/auth/Signup.tsx"));
 
 describe("a referral code can be typed, not only deep-linked", () => {
   it("SignupStep2 renders a referral-code input", () => {
@@ -108,7 +108,7 @@ describe("a referral code can be typed, not only deep-linked", () => {
     // Collapsed by default, so it costs nothing to the majority with no code —
     // but there has to be something to press.
     expect(STEP2).toContain('data-testid="referral-code-toggle"');
-    expect(read("src/pages/signup/SignupStep2.tsx")).toContain("Have a referral code?");
+    expect(read("src/pages/auth/signup/SignupStep2.tsx")).toContain("Have a referral code?");
   });
 
   it("Signup hands BOTH the value and the setter to the step", () => {

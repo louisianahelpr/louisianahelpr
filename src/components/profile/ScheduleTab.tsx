@@ -16,8 +16,8 @@ import { report } from "@/lib/errorLogger";
 import type { ReadableJobRow } from "@/lib/jobColumns";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { StatusBadge } from "@/components/StatusBadge";
-import { categoryColors } from "@/components/activity/activityConstants";
-import { JobCardShell } from "@/components/activity/JobCardShell";
+import { categoryColors } from "@/components/job-card/activityConstants";
+import { JobCardShell } from "@/components/job-card/JobCardShell";
 import { todayLocalISO, formatJobDate } from "@/lib/dateUtils";
 import { getCity } from "@/lib/locationUtils";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
@@ -26,7 +26,7 @@ import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { inProgressBadgeTarget } from "@/components/dashboard/DashboardInProgressBadge";
-import { bucketPostedJob } from "@/pages/activity/activityFilters";
+import { bucketPostedJob } from "@/components/job-card/activityFilters";
 import { exportJobRowToCalendar } from "@/lib/calendarExport";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
@@ -54,7 +54,7 @@ type Job = ReadableJobRow;
  * whole point of a calendar — and sending a completed job to the active list
  * would land the user on a screen their job isn't on. So terminal statuses
  * are mapped to the My Jobs filter key that actually holds them (each one
- * verified against `filteredAppliedApps` in `pages/activity/activityFilters`),
+ * verified against `filteredAppliedApps` in `components/job-card/activityFilters`),
  * and everything still-running goes through the shared router untouched.
  */
 const TERMINAL_ASSIGNED_FILTER: Record<string, string> = {

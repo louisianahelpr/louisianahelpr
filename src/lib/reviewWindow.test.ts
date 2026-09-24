@@ -5,8 +5,8 @@
  *
  * @mutate src/lib/reviewWindow.ts | if (job.has_active_dispute && !job.dispute_resolved_at) return false; | if (false) return false;
  * @mutate src/lib/reviewWindow.ts | export const REVIEW_WINDOW_DAYS = 30; | export const REVIEW_WINDOW_DAYS = 3000;
- * @mutate src/components/activity/postedJobCard/steps/CompletedStep.tsx | (!!hasReviewed \|\| reviewWindowOpen(job)) | true
- * @mutate src/components/activity/AppliedJobCard.tsx | (helperReviewedJobIds.has(app.job_id) \|\| reviewWindowOpen(job)) | true
+ * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx | (!!hasReviewed \|\| reviewWindowOpen(job)) | true
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | (helperReviewedJobIds.has(app.job_id) \|\| reviewWindowOpen(job)) | true
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -50,8 +50,8 @@ describe("reviewWindowOpen mirrors the reviews INSERT policy (DH-003)", () => {
 
   it("both chip gates use it", () => {
     for (const f of [
-      "src/components/activity/postedJobCard/steps/CompletedStep.tsx",
-      "src/components/activity/AppliedJobCard.tsx",
+      "src/pages/posts/postedJobCard/steps/CompletedStep.tsx",
+      "src/pages/jobs/AppliedJobCard.tsx",
     ]) {
       expect(readFileSync(f, "utf8")).toMatch(/reviewWindowOpen\(job\)/);
     }

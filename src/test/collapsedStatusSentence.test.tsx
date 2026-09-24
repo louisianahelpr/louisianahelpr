@@ -48,17 +48,17 @@
  *   4. Un-gating the strip on an expanded card puts it directly above the full
  *      tracker saying the same thing twice.
  *
- * @mutate src/components/activity/jobStatusLine.ts | on_the_way: { detail: "Your Helpr is on the way", eyebrow: BUCKET_LABEL.waiting, tone: "them" }, | on_the_way: { detail: "Your Helpr is on the way" },
- * @mutate src/components/activity/jobStatusLine.ts | confirm_arrival: { detail: "Confirm they arrived", eyebrow: BUCKET_LABEL.needs_you, tone: "you" }, | confirm_arrival: { detail: "Confirm they have arrived at the job and started work", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
- * @mutate src/components/activity/JobStatusStrip.tsx | className="px-4 py-2 flex items-center gap-1.5 flex-wrap" | className="px-4 py-2 flex items-center gap-1.5 flex-nowrap"
- * @mutate src/components/activity/PostedJobCard.tsx | {!isExpanded && (\n              <JobStatusStrip | {(true) && (\n              <JobStatusStrip
+ * @mutate src/components/job-card/jobStatusLine.ts | on_the_way: { detail: "Your Helpr is on the way", eyebrow: BUCKET_LABEL.waiting, tone: "them" }, | on_the_way: { detail: "Your Helpr is on the way" },
+ * @mutate src/components/job-card/jobStatusLine.ts | confirm_arrival: { detail: "Confirm they arrived", eyebrow: BUCKET_LABEL.needs_you, tone: "you" }, | confirm_arrival: { detail: "Confirm they have arrived at the job and started work", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
+ * @mutate src/components/job-card/JobStatusStrip.tsx | className="px-4 py-2 flex items-center gap-1.5 flex-wrap" | className="px-4 py-2 flex items-center gap-1.5 flex-nowrap"
+ * @mutate src/pages/posts/PostedJobCard.tsx | {!isExpanded && (\n              <JobStatusStrip | {(true) && (\n              <JobStatusStrip
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
-import type { AppliedApp, Job } from "@/components/activity/activityConstants";
+import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
@@ -88,10 +88,10 @@ vi.mock("@/components/JobConfirmation", () => ({
   helperDayOfConfirmation: () => true,
 }));
 vi.mock("@/components/GroupJobHelpers", () => ({ GroupJobHelpers: () => null }));
-vi.mock("@/components/activity/SeriesStrip", () => ({ SeriesStrip: () => null }));
-vi.mock("@/components/activity/JobCountdown", () => ({ JobCountdown: () => null }));
-vi.mock("@/components/activity/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
-vi.mock("@/components/activity/useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
+vi.mock("@/pages/posts/SeriesStrip", () => ({ SeriesStrip: () => null }));
+vi.mock("@/components/job-card/JobCountdown", () => ({ JobCountdown: () => null }));
+vi.mock("@/pages/jobs/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
+vi.mock("@/components/job-card/useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null }) }));
 vi.mock("@/hooks/useFundExistingJob", () => ({ useFundExistingJob: () => ({ fundJob: vi.fn(), fundingJobId: null }) }));
 
@@ -127,10 +127,10 @@ import {
   posterStatusLine,
   type HelperWait,
   type PosterWait,
-} from "@/components/activity/jobStatusLine";
-import { JobStatusStrip } from "@/components/activity/JobStatusStrip";
-import { AppliedJobCard } from "@/components/activity/AppliedJobCard";
-import { PostedJobCard } from "@/components/activity/PostedJobCard";
+} from "@/components/job-card/jobStatusLine";
+import { JobStatusStrip } from "@/components/job-card/JobStatusStrip";
+import { AppliedJobCard } from "@/pages/jobs/AppliedJobCard";
+import { PostedJobCard } from "@/pages/posts/PostedJobCard";
 import { glyphPx } from "./jobStepRowCases";
 import { Constants } from "@/integrations/supabase/types";
 

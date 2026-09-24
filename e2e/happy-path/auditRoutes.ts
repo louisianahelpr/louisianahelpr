@@ -108,7 +108,7 @@ export function distinctScreens(rows: ScreenSpec[]): ScreenSpec[] {
  */
 export function catalogLandingFor(url: string): string | undefined {
   // Every signed-in visitor to a job detail is forwarded to the dashboard
-  // (src/pages/JobDetail.tsx), so this cannot be a per-row literal.
+  // (src/pages/jobs/JobDetail.tsx), so this cannot be a per-row literal.
   if (url.startsWith("/jobs/")) return "/dashboard";
   const row = [...ANON_SCREENS, ...AUTHED_SCREENS, ...ADMIN_SCREENS].find((s) => s.url === url);
   return row?.redirectsTo;
@@ -200,7 +200,7 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // The GUEST job preview — the page a shared `/jobs/{id}?ref=share` link opens.
   //
   // Added 2026-08-17. This is the only way JobDetail is ever rendered:
-  // src/pages/JobDetail.tsx:79 returns `<Navigate to="/dashboard?quickApply=…">`
+  // src/pages/jobs/JobDetail.tsx:79 returns `<Navigate to="/dashboard?quickApply=…">`
   // for any signed-in user, so the seven `/jobs/*` entries in AUTHED_SCREENS all
   // land on the dashboard and JobDetail itself had ZERO coverage in either
   // sweep, despite the catalog claiming six job-status variants. Verified from
@@ -233,7 +233,7 @@ export const ANON_SCREENS: ScreenSpec[] = [
 
 
 // Authenticated surfaces. EVERY protected route in src/App.tsx + EVERY one
-// of the 18 Profile tabs (see Tab union in src/pages/Profile.tsx). Each of
+// of the 18 Profile tabs (see Tab union in src/pages/profile/Profile.tsx). Each of
 // these is captured under BOTH the customer and helper roles, since the
 // same route renders different content per role (earnings/schedule/
 // availability/credentials are helper-rich; payment/subscription/saved-
@@ -364,7 +364,7 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
 // This list used to hold ONE entry, `/admin`, under a comment reading "captured
 // once (admin is a single role-elevated customer)". That conflated one admin
 // PERSONA with one admin SCREEN. `/admin` is a `?view=`-switched shell over 27
-// distinct views (the `View` union in src/pages/Admin.tsx), so the sweep was
+// distinct views (the `View` union in src/pages/admin/Admin.tsx), so the sweep was
 // rendering `home` and reporting the whole admin surface clean while 26 views —
 // payouts, disputes, fraud, parish tax, IDV, exports — were never loaded at
 // all. Every admin defect found to date was found by hand, which is exactly

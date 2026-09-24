@@ -109,7 +109,7 @@ describe("loading states: no placeholder lies about size or shape", () => {
 describe("loading states: the Profile tab placeholder fills the screen", () => {
   const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
   const FALLBACK = resolve(REPO, "src/components/profile/ProfileTabFallback.tsx");
-  const PROFILE = resolve(REPO, "src/pages/Profile.tsx");
+  const PROFILE = resolve(REPO, "src/pages/profile/Profile.tsx");
 
   // @mutate src/components/profile/ProfileTabFallback.tsx | <ProfileTabHeader title={TAB_TITLES[tab]} onBack={onBack} /> | <span />
   it("paints the tab's REAL header, so the h1 does not arrive late", () => {
@@ -129,7 +129,7 @@ describe("loading states: the Profile tab placeholder fills the screen", () => {
     expect(src, "and applied as a min-height, so short tabs collapse empty space").toMatch(/minHeight/);
   });
 
-  // @mutate src/pages/Profile.tsx | {tab === "landing" ? (\n              <ProfilePageSkeleton /> | {false ? (\n              <ProfilePageSkeleton />
+  // @mutate src/pages/profile/Profile.tsx | {tab === "landing" ? (\n              <ProfilePageSkeleton /> | {false ? (\n              <ProfilePageSkeleton />
   it("boots into the TAB's placeholder, never the landing's", () => {
     // A cold deep link into ?tab=gift_card used to paint an avatar hero and
     // three stat tiles, because the boot branch special-cased one tab.

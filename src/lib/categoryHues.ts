@@ -3,7 +3,7 @@
  *
  * WHY THIS FILE EXISTS
  * The app had TWO independent category palettes that had silently drifted:
- *   1. `categoryColors` in `@/components/activity/activityConstants` —
+ *   1. `categoryColors` in `@/components/job-card/activityConstants` —
  *      Tailwind arbitrary-value classes (badge / title / dot) used by every
  *      job card, category chip, filter chip and detail dialog.
  *   2. `categoryColors` in `@/components/browseMap/mapMarkers` — a separate

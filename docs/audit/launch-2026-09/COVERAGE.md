@@ -80,7 +80,7 @@ each naming the lane accountable for it.
 | Multi-step flows — probable | 15 | `lh-e2e-journeys` | COVERED |
 | Back/next navigation only | 40 | `lh-e2e-journeys` · `lh-state-matrix` | COVERED |
 | Forms (submittable) | 41 | `lh-input-boundary` | COVERED |
-| Admin components (components/admin + pages/Admin*) | 105 | `lh-admin-moderation` | COVERED |
+| Admin components (components/admin + pages/admin/Admin*) | 105 | `lh-admin-moderation` | COVERED |
 | Email templates | 19 | `lh-email-delivery` | COVERED |
 | Notification types (defined in notification_type_pref_map) | 18 | `lh-notifications` | COVERED |
 

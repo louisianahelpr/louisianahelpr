@@ -90,8 +90,8 @@ const readsParishHook = (file: string) =>
 // SignupStep2 is presentational and receives the flag as a prop, so it renders
 // on `zipUnknown`; the two that own their own state render on `unknownZip`.
 const SURFACES: Array<[label: string, path: string, flag: string]> = [
-  ["email signup (SignupStep2)", "src/pages/signup/SignupStep2.tsx", "zipUnknown"],
-  ["social sign-in (CompleteProfile)", "src/pages/CompleteProfile.tsx", "unknownZip"],
+  ["email signup (SignupStep2)", "src/pages/auth/signup/SignupStep2.tsx", "zipUnknown"],
+  ["social sign-in (CompleteProfile)", "src/pages/auth/CompleteProfile.tsx", "unknownZip"],
   ["profile edit (ProfileEditForm)", "src/components/profile/ProfileEditForm.tsx", "unknownZip"],
 ];
 
@@ -122,9 +122,9 @@ describe("every ZIP field warns on an unresolvable ZIP", () => {
       expect(readsParishHook(path), path).toBe(true);
     }
     // SignupStep2 is presentational — Signup.tsx owns the state and passes it.
-    expect(readsParishHook("src/pages/Signup.tsx")).toBe(true);
+    expect(readsParishHook("src/pages/auth/Signup.tsx")).toBe(true);
     const wired = find(
-      parse("src/pages/Signup.tsx"),
+      parse("src/pages/auth/Signup.tsx"),
       (n) =>
         ts.isJsxAttribute(n) &&
         n.name.getText() === "zipUnknown" &&

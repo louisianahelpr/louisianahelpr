@@ -1,0 +1,84 @@
+import { type TrackingData } from "@/components/JobTracking";
+import type { GroupHelperLite } from "@/hooks/useActivityData";
+import { type Job, type EnrichedApplication } from "../../../components/job-card/activityConstants";
+
+export interface PostedJobCardProps {
+  /** The job + its embedded data — one row of the posted feed. */
+  job: Job;
+  /**
+   * True when a `?job=` deep link named THIS card. Scrolls it into view and
+   * pulses its ring once (useHighlightPulse) — the same treatment the helper's
+   * applied cards have always had. Without it a "someone applied to your job"
+   * notification dropped the poster on a list with the target card unmarked
+   * and, at five cards, usually off-screen.
+   */
+  highlight?: boolean;
+  applicantCounts: Record<string, number>;
+  /**
+   * Applications STILL AWAITING A DECISION, per job id — NOT the total.
+   *
+   * The collapsed card's status strip needs the same number the Activity tab's
+   * own bucketing uses (`postedActivityBucket`'s `pendingApplicantCount`),
+   * because the two must agree about whether an open job is waiting on the
+   * poster or on the world. `applicantCounts` above is the TOTAL, which is the
+   * right number for the "Applicants (3)" button and the wrong one here: a job
+   * whose every applicant was declined is not asking the poster for anything.
+   *
+   * Optional, and absent means zero — a card handed no counts says "No
+   * applicants yet" rather than inventing a queue.
+   */
+  pendingApplicantCounts?: Record<string, number>;
+  expandedJobIds: Set<string>;
+  toggleExpandedJobId: (id: string) => void;
+  helperNames: Record<string, string>;
+  /** Helper avatar URL by helper id, for the expanded card's Helpr tile
+   *  (VN-22). Optional: absent, the tile falls back to the monogram. */
+  helperAvatars?: Record<string, string | null>;
+  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
+  userId: string;
+  /** Job-lifecycle handlers, owned by the parent ActivityTab. */
+  onBoost: (jobId: string) => void;
+  onEdit: (job: Job) => void;
+  onCancel: (job: Job) => void;
+  onComplete: (jobId: string) => void;
+  completingJobId: string | null;
+  onNoShow: (jobId: string) => void;
+  onTip: (jobId: string, helperName: string) => void;
+  onReview: (job: Job) => void;
+  onDispute: (job: Job) => void;
+  /** Opens the "Report" dialog (ReportDialog, reportedType="job") for a
+   *  Done-tab job — a distinct escape hatch from Dispute (a payment
+   *  disagreement) for a conduct/safety concern, once the job is over. */
+  onReport: (job: Job) => void;
+  /** Open the read-only timeline + follow-up evidence uploader for a
+   *  job that's already in dispute. */
+  onViewDispute: (job: Job) => void;
+  onConfirmArrival: (jobId: string) => void;
+  /** Non-null (=== job.id) while the confirmArrival DB write is in-flight. */
+  confirmingArrivalJobId: string | null;
+  onConfirmWorking: (jobId: string) => void;
+  /** Non-null (=== job.id) while the confirmWorking DB write is in-flight. */
+  confirmingWorkingJobId: string | null;
+  onLoadApplications: (job: Job) => void;
+  /** Inline applicant data for the expanded open-job card. */
+  onLoadInlineApplicants: (jobId: string) => void;
+  inlineApplicants: Record<string, EnrichedApplication[]>;
+  loadingApplicants: Record<string, boolean>;
+  /** Per-job applicant fetch error, for inline retry. */
+  applicantErrors: Record<string, boolean>;
+  /** Pre-fetched latest tracking row for this job, threaded down to
+      <JobTracking> so the card doesn't fire its own SELECT on mount.
+      `null` = pre-fetched and no row exists yet; `undefined` = not
+      pre-fetched (the child falls back to its own per-mount query). */
+  initialTracking?: TrackingData | null;
+  /** Pre-fetched group-helper rows for this job (only relevant for active
+      group jobs), threaded into <GroupJobHelpers> to skip its own 2-query
+      waterfall on mount. */
+  initialGroupHelpers?: GroupHelperLite[];
+  /** Refetch the posted-jobs feed after an inline mutation (dispute
+      resolve/escalate) instead of a full-page reload. */
+  onActionComplete: () => void;
+  /* viewCount / jobAnalytics used to live here. Reach is no longer rendered
+     on the card at all — it moved into the Applicants panel, which receives
+     jobAnalytics directly from PostedJobsTab. */
+}

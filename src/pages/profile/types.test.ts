@@ -52,7 +52,7 @@ describe("TAB_TITLES.wrapped", () => {
     // What matters is that the screen READS the registry: the moment it goes
     // back to building its own `Your ${SEASON.title}`, the two can disagree
     // again without any test noticing — which is exactly what happened.
-    const src = readFileSync(resolve(__dirname, "../HelprWrapped.tsx"), "utf8");
+    const src = readFileSync(resolve(__dirname, "HelprWrapped.tsx"), "utf8");
     const rebuilt = [...src.matchAll(/(?:title=\{|usePageTitle\()`Your \$\{SEASON\.title\}/g)];
     expect(
       rebuilt.map((m) => m[0]),

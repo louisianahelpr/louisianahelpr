@@ -59,8 +59,8 @@ import { join, resolve } from "node:path";
 // span. Neither is a comment change and neither can be satisfied by the
 // presence of a shared class NAME — the guard reads the resolved tokens off
 // every rendered control and compares them to each other.
-// @mutate src/components/activity/JobActionRow.tsx | className={JOB_ROW_CONTROL_SHAPE} | className="w-full h-auto"
-// @mutate src/components/activity/appliedJobCard/DirectionsButton.tsx | <span className={JOB_ROW_LABEL_CLASS}>Directions</span> | Directions
+// @mutate src/components/job-card/JobActionRow.tsx | className={JOB_ROW_CONTROL_SHAPE} | className="w-full h-auto"
+// @mutate src/pages/jobs/appliedJobCard/DirectionsButton.tsx | <span className={JOB_ROW_LABEL_CLASS}>Directions</span> | Directions
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -106,16 +106,16 @@ function makeSupabase() {
 }
 vi.mock("@/integrations/supabase/client", () => makeSupabase());
 
-import type { AppliedApp, Job } from "@/components/activity/activityConstants";
-import type { PosterStepCtx } from "@/components/activity/postedJobCard/steps/posterStepContract";
-import { ActiveJobSection } from "@/components/activity/appliedJobCard/ActiveJobSection";
-import { ConfirmedSection } from "@/components/activity/appliedJobCard/ConfirmedSection";
-import { DisputedSection } from "@/components/activity/appliedJobCard/DisputedSection";
-import { InProgressStep } from "@/components/activity/postedJobCard/steps/InProgressStep";
-import { ScheduledStep } from "@/components/activity/postedJobCard/steps/ScheduledStep";
-import { OpenStep } from "@/components/activity/postedJobCard/steps/OpenStep";
-import { CompletedStep } from "@/components/activity/postedJobCard/steps/CompletedStep";
-import { DisputedStep } from "@/components/activity/postedJobCard/steps/DisputedStep";
+import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
+import type { PosterStepCtx } from "@/pages/posts/postedJobCard/steps/posterStepContract";
+import { ActiveJobSection } from "@/pages/jobs/appliedJobCard/ActiveJobSection";
+import { ConfirmedSection } from "@/pages/jobs/appliedJobCard/ConfirmedSection";
+import { DisputedSection } from "@/pages/jobs/appliedJobCard/DisputedSection";
+import { InProgressStep } from "@/pages/posts/postedJobCard/steps/InProgressStep";
+import { ScheduledStep } from "@/pages/posts/postedJobCard/steps/ScheduledStep";
+import { OpenStep } from "@/pages/posts/postedJobCard/steps/OpenStep";
+import { CompletedStep } from "@/pages/posts/postedJobCard/steps/CompletedStep";
+import { DisputedStep } from "@/pages/posts/postedJobCard/steps/DisputedStep";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 beforeAll(() => {
@@ -304,7 +304,7 @@ const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minC
   {
     // THE PRIMARY THAT COMES FROM A FOURTH FILE: JobConfirmation portals its
     // "I'm Still On" into this row. It is the easiest one to miss and the
-    // easiest to let drift, because nothing in src/components/activity draws it.
+    // easiest to let drift, because nothing in the job-card, posts or jobs folders draws it.
     name: "Jobs · Confirmed, day-of confirmation owed — I'm Still On (portalled from JobConfirmation)",
     render: () =>
       wrap(
@@ -517,7 +517,7 @@ function walk(dir: string, out: string[] = []): string[] {
 function rowComponentsFromSource(): Set<string> {
   const found = new Set<string>();
   const files = [
-    ...walk(join(ROOT, "src/components/activity")),
+    ...["src/components/job-card", "src/pages/posts", "src/pages/jobs"].flatMap((d) => walk(join(ROOT, d))),
     join(ROOT, "src/components/JobTracking.tsx"),
     join(ROOT, "src/components/JobConfirmation.tsx"),
   ];

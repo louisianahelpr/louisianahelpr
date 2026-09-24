@@ -1,11 +1,10 @@
 {
-  "generated": "2026-09-24T18:17:14.254Z",
-  "guards": 1007,
-  "registered": 1007,
+  "generated": "2026-09-24T21:27:20.238Z",
+  "guards": 1010,
+  "registered": 1010,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/components/activity/appliedJobCard/helperDisputeCopy.test.tsx",
     "src/components/admin/adminStalledJobsWiring.test.tsx",
     "src/components/analytics/analyticsContrast.test.ts",
     "src/lib/earlyAccess.parity.test.ts",
@@ -17,6 +16,7 @@
     "src/lib/toastPolicy.consequential.test.ts",
     "src/lib/voiceNoteLimitMatchesBucket.test.ts",
     "src/lib/workRecordDocument.test.ts",
+    "src/pages/jobs/appliedJobCard/helperDisputeCopy.test.tsx",
     "src/pages/profile/types.test.ts",
     "src/test/adminEndpointAuthz.test.ts",
     "src/test/banEvasionSurface.test.ts",
@@ -47,38 +47,6 @@
     }
   ],
   "classB_mountWiring": [
-    {
-      "module": "src/components/activity/AppliedJobCard.tsx",
-      "tests": [
-        "src/test/collapsedJobCardIsASummary.test.tsx",
-        "src/test/collapsedStatusSentence.test.tsx",
-        "src/test/descriptionGroupsWithMeta.test.tsx",
-        "src/test/enRouteAddressVisible.test.tsx",
-        "src/test/jobCardPersonTileAboveRow.test.tsx",
-        "src/pages/activity/activityBadgeListAgreement.test.tsx",
-        "src/components/activity/AppliedJobCard.locationTapExpands.test.tsx",
-        "src/components/activity/AppliedJobCard.posterTile.test.tsx",
-        "src/components/activity/photoProofChip.test.tsx"
-      ],
-      "parents": [
-        "src/components/activity/AppliedJobsTab.tsx"
-      ]
-    },
-    {
-      "module": "src/components/activity/PostedJobCard.tsx",
-      "tests": [
-        "src/test/collapsedJobCardIsASummary.test.tsx",
-        "src/test/collapsedStatusSentence.test.tsx",
-        "src/test/descriptionGroupsWithMeta.test.tsx",
-        "src/test/jobCardPersonTileAboveRow.test.tsx",
-        "src/components/activity/PostedJobCard.contestedTracker.test.tsx",
-        "src/components/activity/PostedJobCard.helprTile.test.tsx",
-        "src/components/activity/PostedJobCard.owesConfirmationBadge.test.tsx"
-      ],
-      "parents": [
-        "src/components/activity/PostedJobsTab.tsx"
-      ]
-    },
     {
       "module": "src/components/admin/AdminUserDetailDialog.tsx",
       "tests": [
@@ -162,7 +130,7 @@
         "src/test/failedListLoadShowsError.test.tsx"
       ],
       "parents": [
-        "src/pages/Dashboard.tsx"
+        "src/pages/home/Dashboard.tsx"
       ]
     },
     {
@@ -221,12 +189,32 @@
       ]
     },
     {
+      "module": "src/components/job-card/ActivitySectionedView.tsx",
+      "tests": [
+        "src/components/job-card/PagedActivityList.test.tsx"
+      ],
+      "parents": [
+        "src/pages/posts/PostedJobsTab.tsx",
+        "src/pages/jobs/AppliedJobsTab.tsx"
+      ]
+    },
+    {
+      "module": "src/components/job-card/JobListPage.tsx",
+      "tests": [
+        "src/test/desktopScreenNameIsSrOnly.test.tsx"
+      ],
+      "parents": [
+        "src/pages/posts/PostsPage.tsx",
+        "src/pages/jobs/JobsPage.tsx"
+      ]
+    },
+    {
       "module": "src/components/landing/HeroSection.tsx",
       "tests": [
         "src/test/twoFontTypeSystem.test.tsx"
       ],
       "parents": [
-        "src/pages/Index.tsx"
+        "src/pages/info/Index.tsx"
       ]
     },
     {
@@ -237,7 +225,7 @@
         "src/components/messages/ChatView.layout.test.tsx"
       ],
       "parents": [
-        "src/pages/Messages.tsx"
+        "src/pages/messages/Messages.tsx"
       ]
     },
     {
@@ -254,7 +242,7 @@
         "src/test/searchDismissAndOverlay.test.tsx"
       ],
       "parents": [
-        "src/pages/Messages.tsx"
+        "src/pages/messages/Messages.tsx"
       ]
     },
     {
@@ -290,7 +278,7 @@
         "src/test/helperWorkPhotos.test.tsx"
       ],
       "parents": [
-        "src/pages/UserProfile.tsx"
+        "src/pages/user/UserProfile.tsx"
       ]
     },
     {
@@ -340,86 +328,108 @@
       ]
     },
     {
-      "module": "src/pages/activity/ActivitySectionedView.tsx",
+      "module": "src/pages/home/QuickApplyHandler.tsx",
       "tests": [
-        "src/pages/activity/PagedActivityList.test.tsx"
+        "src/pages/home/QuickApplyHandler.test.tsx"
       ],
       "parents": [
-        "src/components/activity/AppliedJobsTab.tsx",
-        "src/components/activity/PostedJobsTab.tsx"
+        "src/pages/home/Dashboard.tsx"
       ]
     },
     {
-      "module": "src/pages/dashboard/QuickApplyHandler.tsx",
+      "module": "src/pages/jobs/AppliedJobCard.tsx",
       "tests": [
-        "src/pages/dashboard/QuickApplyHandler.test.tsx"
+        "src/test/collapsedJobCardIsASummary.test.tsx",
+        "src/test/collapsedStatusSentence.test.tsx",
+        "src/test/descriptionGroupsWithMeta.test.tsx",
+        "src/test/enRouteAddressVisible.test.tsx",
+        "src/test/jobCardPersonTileAboveRow.test.tsx",
+        "src/pages/jobs/AppliedJobCard.locationTapExpands.test.tsx",
+        "src/pages/jobs/AppliedJobCard.posterTile.test.tsx",
+        "src/components/job-card/activityBadgeListAgreement.test.tsx",
+        "src/components/job-card/photoProofChip.test.tsx"
       ],
       "parents": [
-        "src/pages/Dashboard.tsx"
+        "src/pages/jobs/AppliedJobsTab.tsx"
       ]
     },
     {
-      "module": "src/pages/giftCards/CreditCard.tsx",
+      "module": "src/pages/post-job/EntryChoice.tsx",
       "tests": [
-        "src/pages/giftCards/departedDonorName.test.tsx",
-        "src/pages/giftCards/giftCardSpendGate.test.tsx"
+        "src/pages/post-job/unpaidDraftsAreReachable.test.tsx"
       ],
       "parents": [
-        "src/pages/GiftCard.tsx"
+        "src/pages/post-job/PostJob.tsx"
       ]
     },
     {
-      "module": "src/pages/giftCards/RecipientPicker.tsx",
-      "tests": [
-        "src/pages/giftCards/RecipientPicker.test.tsx"
-      ],
-      "parents": [
-        "src/pages/GiftCard.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/postjob/EntryChoice.tsx",
-      "tests": [
-        "src/pages/postjob/unpaidDraftsAreReachable.test.tsx"
-      ],
-      "parents": [
-        "src/pages/PostJob.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/postjob/FormStep.tsx",
+      "module": "src/pages/post-job/FormStep.tsx",
       "tests": [
         "src/test/flexibleScheduleUnlocksSubmit.test.tsx"
       ],
       "parents": [
-        "src/pages/PostJob.tsx"
+        "src/pages/post-job/PostJob.tsx"
       ]
     },
     {
-      "module": "src/pages/userProfile/AtAGlanceCard.tsx",
+      "module": "src/pages/posts/PostedJobCard.tsx",
       "tests": [
-        "src/pages/userProfile/AtAGlanceCard.test.tsx"
+        "src/test/collapsedJobCardIsASummary.test.tsx",
+        "src/test/collapsedStatusSentence.test.tsx",
+        "src/test/descriptionGroupsWithMeta.test.tsx",
+        "src/test/jobCardPersonTileAboveRow.test.tsx",
+        "src/pages/posts/PostedJobCard.contestedTracker.test.tsx",
+        "src/pages/posts/PostedJobCard.helprTile.test.tsx",
+        "src/pages/posts/PostedJobCard.owesConfirmationBadge.test.tsx"
       ],
       "parents": [
-        "src/pages/UserProfile.tsx"
+        "src/pages/posts/PostedJobsTab.tsx"
       ]
     },
     {
-      "module": "src/pages/userProfile/RecognitionRow.tsx",
+      "module": "src/pages/profile/giftCards/CreditCard.tsx",
       "tests": [
-        "src/pages/userProfile/RecognitionRow.test.tsx"
+        "src/pages/profile/giftCards/departedDonorName.test.tsx",
+        "src/pages/profile/giftCards/giftCardSpendGate.test.tsx"
       ],
       "parents": [
-        "src/pages/UserProfile.tsx"
+        "src/pages/profile/GiftCard.tsx"
       ]
     },
     {
-      "module": "src/pages/userProfile/ReviewsSection.tsx",
+      "module": "src/pages/profile/giftCards/RecipientPicker.tsx",
+      "tests": [
+        "src/pages/profile/giftCards/RecipientPicker.test.tsx"
+      ],
+      "parents": [
+        "src/pages/profile/GiftCard.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/user/AtAGlanceCard.tsx",
+      "tests": [
+        "src/pages/user/AtAGlanceCard.test.tsx"
+      ],
+      "parents": [
+        "src/pages/user/UserProfile.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/user/RecognitionRow.tsx",
+      "tests": [
+        "src/pages/user/RecognitionRow.test.tsx"
+      ],
+      "parents": [
+        "src/pages/user/UserProfile.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/user/ReviewsSection.tsx",
       "tests": [
         "src/test/reviewCardOneDesign.test.tsx"
       ],
       "parents": [
-        "src/pages/UserProfile.tsx"
+        "src/pages/user/UserProfile.tsx"
       ]
     }
   ],

@@ -241,7 +241,7 @@ interface PublicJob {
 }
 
 /**
- * `open_jobs_browse` is the RLS-public masked view `src/pages/JobDetail.tsx`
+ * `open_jobs_browse` is the RLS-public masked view `src/pages/jobs/JobDetail.tsx`
  * already reads for guests. The column list is intentionally the minimum this
  * card needs — see the privacy note at the top of the file.
  */
@@ -330,7 +330,7 @@ function formatBudget(job: PublicJob): string {
  * parties indefinitely and shown to people who never open the link. A
  * structured line is both safer and reads better on a card.
  *
- * (Note for whoever owns src/pages/JobDetail.tsx: `usePageMeta` there does put
+ * (Note for whoever owns src/pages/jobs/JobDetail.tsx: `usePageMeta` there does put
  * the raw description into og:description. Today that reaches nobody, because
  * crawlers don't run the SPA — but it does reach a JS-executing crawler like
  * Googlebot. Worth a look; it is outside this lane.)

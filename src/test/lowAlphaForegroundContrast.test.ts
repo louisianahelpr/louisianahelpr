@@ -73,20 +73,20 @@ const ACCEPTED = new Map<string, number>([
   ["src/components/analytics/AnalyticsUpgradePanel.tsx --bark/0.6", 1], // 2.47:1 — TrendingUp, beside its own heading
   ["src/components/postjob/detailsSection/VideoScope.tsx --bark/0.5", 1], // 2.08:1 — Video glyph above its label
   ["src/components/reviewPanel/ReviewForm.tsx --burnt-sienna/0.7", 1], //  2.87:1 — ImagePlus inside a labelled button
-  ["src/pages/CompleteProfile.tsx --burnt-sienna/0.7", 1], //             2.87:1 — Circle bullet, aria-hidden, decorative
+  ["src/pages/auth/CompleteProfile.tsx --burnt-sienna/0.7", 1], //             2.87:1 — Circle bullet, aria-hidden, decorative
   ["src/components/messages/ChatHeader.tsx --olivewood/0.65", 1], //      4.24:1 — ChevronRight affordance
   ["src/components/dashboard/jobDetailDialog/JobStatTiles.tsx --burnt-sienna/0.7", 1], // 2.87:1 — tile icon
   // Reclassified 2026-09-20 — each was on the "21 failing text declarations"
   // list, and each turned out to be a glyph, not a word.
-  ["src/pages/HelprWrapped.tsx --burnt-sienna/0.75", 1], //               3.11:1 — <Gift className="w-10 h-10">, ornament above its own <h2>
+  ["src/pages/profile/HelprWrapped.tsx --burnt-sienna/0.75", 1], //               3.11:1 — <Gift className="w-10 h-10">, ornament above its own <h2>
   ["src/components/landing/HeroSection.tsx --olivewood/0.55", 1], //      3.23:1 — <ChevronDown>, aria-hidden scroll hint that fades out by 160px
-  ["src/pages/giftCards/RecipientPicker.tsx --olivewood/0.6", 1], //      3.70:1 — <Search> inside the field, pointer-events-none; the placeholder says it
+  ["src/pages/profile/giftCards/RecipientPicker.tsx --olivewood/0.6", 1], //      3.70:1 — <Search> inside the field, pointer-events-none; the placeholder says it
   ["src/components/PushNotificationPrompt.tsx --bark/0.85", 1], //        3.97:1 — <Bell className="w-3.5 h-3.5"> beside its own label
   ["src/components/ui/sonner.tsx --olivewood/0.65", 1], //                4.24:1 — sonner's close is an <svg aria-hidden stroke="currentColor">, button labelled "Close toast"
 
   // (b) painted on a dark ground the static scan cannot see
   ["src/components/messages/ConversationList.tsx --parchment/0.85", 1], // "1.00:1" — near-white on bark
-  ["src/pages/activity/BulkDismissBar.tsx --parchment/0.85", 1], //       "1.00:1" — near-white on bark
+  ["src/pages/posts/BulkDismissBar.tsx --parchment/0.85", 1], //       "1.00:1" — near-white on bark
 
   // (c) a different WCAG threshold applies, and is met
   //

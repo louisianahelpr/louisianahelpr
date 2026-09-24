@@ -46,7 +46,7 @@ function guardsNamed(text: string): string[] {
   }
   for (const m of text.matchAll(BARE)) {
     const name = m[1];
-    for (const dir of ["src/test", "scripts", "src/lib", "src/components", "e2e"]) {
+    for (const dir of ["src/test", "scripts", "src/lib", "src/components", "src/pages", "e2e"]) {
       try {
         const hit = execFind(dir, name);
         if (hit) { found.add(hit); break; }

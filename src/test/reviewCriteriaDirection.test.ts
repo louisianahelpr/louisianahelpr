@@ -108,7 +108,7 @@ describe("both ReviewForm mounts declare their direction", () => {
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
     const src = readFileSync(
-      join(process.cwd(), "src/components/activity/ActivityDialogs.tsx"),
+      join(process.cwd(), "src/components/job-card/ActivityDialogs.tsx"),
       "utf8",
     );
     // Both mounts, and each one named — a form whose tags depend on direction

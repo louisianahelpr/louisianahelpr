@@ -1,0 +1,598 @@
+import { useMemo } from "react";
+import { isPastDue, jobDateMs, todayMs } from "@/lib/jobDate";
+import { useExpiryClock } from "@/lib/useExpiryClock";
+import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
+import {
+  BUCKET_ORDER,
+  BUCKET_LABEL,
+  BUCKET_SHORT_LABEL,
+  type ActivityBucket,
+} from "@/lib/activityBuckets";
+
+/**
+ * activityFilters — status-filter definitions and the memoized list/count
+ * derivations for the Activity page.
+ *
+ * The filter keys are no longer job_status enum values, so they no longer
+ * borrow `jobStatusLabel` / `jobStatusColorClasses`: the four are derived
+ * buckets about WHOSE MOVE IT IS (see ActivityBucket below), and a bucket that
+ * spans several statuses has no single enum colour to paint itself with. The
+ * legacy enum keys still work as filter VALUES for deep links — they just have
+ * no chip of their own any more.
+ */
+
+export interface StatusFilter {
+  key: string;
+  label: string;
+  /** The narrow-phone stand-in for `label` — see BUCKET_SHORT_LABEL. */
+  shortLabel?: string;
+  color: string;
+}
+
+// Neutral palette for broad-bucket filters (All, Active).
+const ALL_FILTER_COLOR = "bg-[hsl(var(--olivewood)/0.08)] text-[hsl(var(--olivewood))] border-[hsl(var(--olivewood)/0.18)]";
+
+// Granular sub-status filters (Open, Accepted, In Progress, etc.) are
+// intentionally omitted — those statuses are surfaced as colored banners
+// on each job card, so the filter sheet stays at the high-level bucket level.
+/**
+ * THE FIVE BUCKETS AND THEIR TWO VOCABULARIES LIVE IN A LEAF MODULE.
+ *
+ * They moved to `src/lib/activityBuckets.ts` (which imports nothing) so the
+ * browser checks can read the same inventory this file renders instead of
+ * restating it — the reason `src/lib/searchFieldFloor.ts` exists too. Every
+ * name is re-exported here, so nothing that imports them from this module has
+ * to change and there is still exactly one definition.
+ */
+export type { ActivityBucket } from "@/lib/activityBuckets";
+export {  BUCKET_LABEL,  } from "@/lib/activityBuckets";
+
+/**
+ * ORDER: Needs you · Waiting · Scheduled · Done · Cancelled (owner, 2026-09-19).
+ *
+ * It runs the job's own story: something is asked of you, then you are waiting
+ * on somebody else, then it is agreed and upcoming, then it is over, then it
+ * never happened. The two UNRESOLVED buckets sit together, then the settled
+ * one, then the two terminal ones.
+ *
+ * Supersedes Needs you · Scheduled · Waiting · Done · Cancelled (owner,
+ * 2026-08-30), which ranked by how much attention each deserved and put
+ * Scheduled second because a commitment outranks a wait.
+ *
+ * WHY THE SWAP IS SAFE NOW, AND WAS NOT BEFORE: the objection to demoting
+ * Scheduled was that it also held jobs happening TODAY and jobs already
+ * underway — putting a job that starts in an hour below a bucket that by
+ * definition needs nothing from you. `bucketFor` no longer files those under
+ * Scheduled at all (see `jobIsLive`); Scheduled is now purely "agreed and still
+ * ahead of you", which genuinely is the calmer of the two.
+ */
+const BUCKET_FILTERS: StatusFilter[] = BUCKET_ORDER.map((key) => ({
+  key,
+  label: BUCKET_LABEL[key],
+  shortLabel: BUCKET_SHORT_LABEL[key],
+  color: ALL_FILTER_COLOR,
+}));
+
+export const POSTED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
+export const APPLIED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
+
+/**
+ * Which bucket a job I POSTED belongs in.
+ *
+ * `applicantCount` is what separates an open job with people waiting on a
+ * reply (my move) from one nobody has answered yet (nothing to do). Without it
+ * every open job would read as "waiting", which is the opposite of true for the
+ * ones with a queue.
+ */
+/**
+ * Is there a submission sitting on the poster's approval RIGHT NOW?
+ *
+ * `helper_completed_at` is NOT cleared when the poster sends work back for a
+ * revision — it is kept deliberately, as a record of what happened (see the
+ * note in JobTracking.tsx, which makes the same allowance in the progress
+ * tracker). So the raw stamp answers "has this helpr ever submitted", not "is
+ * a submission waiting on me".
+ *
+ * Reading it as the latter is what made a job stick in "Needs you" forever
+ * after a revision round-trip: the poster asks for changes, the helpr goes
+ * back to work, the job returns to in_progress — and the stale stamp still
+ * out-ranked the `in_progress → scheduled` line below it. Any later write that
+ * arrived without the field flipped the card to Scheduled and the next one
+ * flipped it back, which is the bucket "jumping" the owner reported.
+ *
+ * A submission counts only if it is NEWER than the last revision request.
+ * Unparseable timestamps compare false and fall through to the old behaviour
+ * (treat as outstanding), which is the safe side: it asks for a look rather
+ * than hiding work.
+ */
+/**
+ * Is this job's day gone with the job still unresolved?
+ *
+ * "Scheduled" is a promise about the FUTURE. A job dated 27 August, still
+ * `in_progress` on the 31st, is not scheduled — it is the single thing on the
+ * screen most needing someone to act, and filing it under Scheduled is the app
+ * telling the reader it is fine. Twelve prod jobs were sitting exactly there
+ * (owner, 2026-08-31: "These jobs were posted for Aug 27 still marked under
+ * scheduled?").
+ *
+ * Deliberately NOT its own sixth bucket. The five are "whose move is it", and
+ * an overdue job's answer is the same as every other Needs You row: yours.
+ * A sixth chip would also split a poster's attention across two tabs on the one
+ * day they can least afford it, and would not fit the chip row at 320px.
+ *
+ * DAY granularity, not minute: a job dated today is never overdue, however late
+ * in the day it is read. `jobs.date_needed` is a bare `date` and the day is the
+ * only promise the poster made; flipping a card to "Needs you" at 9:05am
+ * because a 9:00 start had not been stamped yet would cry wolf on every job.
+ * `isPastDue` resolves both midnights in the PLATFORM's zone (America/Chicago),
+ * which is what stops a reader in another timezone seeing a different verdict —
+ * see the note in `@/lib/jobDate`.
+ *
+ * Terminal states are checked BEFORE this in both bucketers: a job that
+ * completed or was cancelled has nothing left to chase, whatever its date.
+ */
+export function jobIsOverdue(j: { status?: string | null; date_needed?: string | null }): boolean {
+  if (j.status === "completed" || j.status === "cancelled") return false;
+  return isPastDue(j.date_needed);
+}
+
+
+/**
+ * Is this job's day HERE — today, or already underway?
+ *
+ * The owner's 2026-09-19 reorder moved Scheduled below Waiting, and the one
+ * real objection was that Scheduled held today's work as well as next week's.
+ * A job starting in an hour is not a calm commitment, it is the thing most
+ * likely to need you — so it belongs in Needs You, and Scheduled keeps its
+ * plain meaning of "agreed, and still ahead of you".
+ *
+ * Day-grained and resolved in the PLATFORM's zone, exactly like `jobIsOverdue`
+ * above — `todayMs()` is America/Chicago midnight. The two rules are adjacent
+ * on purpose: together they say a job's day is either ahead of you (Scheduled),
+ * here (Needs You), or behind you (Needs You). There is no fourth answer, and
+ * nothing falls between them.
+ */
+function jobIsLive(j: { status?: string | null; date_needed?: string | null }): boolean {
+  if (j.status === "completed" || j.status === "cancelled") return false;
+  // THE DAY, not the status. An earlier draft also treated any `in_progress`
+  // job as live whatever its date, which re-broke the bucket-jumping bug the
+  // owner reported on 2026-08-28 ("My post jumps a lot between needs you and
+  // scheduled"): a job sitting `in_progress` with a revision back in the
+  // helper's hands would have been dragged into Needs You even though nothing
+  // was on the poster's desk. `jobIsOverdue` above already catches a job whose
+  // day has gone, so status adds nothing here that the calendar does not say.
+  const ms = jobDateMs(j.date_needed);
+  return ms !== null && ms === todayMs();
+}
+
+/**
+ * The poster asked for changes and the helper has not resubmitted.
+ *
+ * The exact inverse of the tail of {@link submissionAwaitingPoster}, kept
+ * separate because it answers a different question: not "is a submission
+ * waiting on me" but "is the ball demonstrably in the other court". Today's
+ * live rule must not override that — a job can be happening today and still be
+ * entirely somebody else's move.
+ */
+export function workIsBackWithHelper(j: {
+  helper_completed_at?: string | null;
+  revision_requested_at?: string | null;
+}): boolean {
+  if (!j.revision_requested_at) return false;
+  const sentBack = Date.parse(j.revision_requested_at);
+  if (Number.isNaN(sentBack)) return false;
+  const submitted = j.helper_completed_at ? Date.parse(j.helper_completed_at) : NaN;
+  // No resubmission, or one that predates the send-back, means it is still out.
+  return Number.isNaN(submitted) || submitted <= sentBack;
+}
+
+/** Same comparison as the feed: expired once `expires_at <= now`. */
+export function listingHasExpired(expiresAt: string | null | undefined, now: Date = new Date()): boolean {
+  if (!expiresAt) return false;
+  const t = Date.parse(expiresAt);
+  return !Number.isNaN(t) && t <= now.getTime();
+}
+
+export function submissionAwaitingPoster(j: {
+  helper_completed_at?: string | null;
+  poster_completed_at?: string | null;
+  revision_requested_at?: string | null;
+}): boolean {
+  if (!j.helper_completed_at || j.poster_completed_at) return false;
+  if (!j.revision_requested_at) return true;
+  const submitted = Date.parse(j.helper_completed_at);
+  const sentBack = Date.parse(j.revision_requested_at);
+  if (Number.isNaN(submitted) || Number.isNaN(sentBack)) return true;
+  return submitted > sentBack;
+}
+
+export function postedActivityBucket(
+  j: {
+    status: string;
+    helper_id?: string | null;
+    helper_confirmed_at?: string | null;
+    helper_completed_at?: string | null;
+    poster_completed_at?: string | null;
+    revision_requested_at?: string | null;
+    direct_offer_status?: string | null;
+    date_needed?: string | null;
+    expires_at?: string | null;
+  },
+  /** Applications still AWAITING a decision — not every application ever filed. */
+  pendingApplicantCount = 0,
+  now: Date = new Date(),
+): ActivityBucket {
+  if (j.status === "cancelled") return "cancelled";
+  if (j.status === "completed") return "done";
+  // Work submitted and not yet approved, a revision I asked for, or an open
+  // dispute — all three are a decision sitting with me.
+  if (j.status === "revision_requested" || j.status === "disputed") return "needs_you";
+  if (submissionAwaitingPoster(j)) return "needs_you";
+  // The day came and went and the job never resolved. Whatever the status
+  // underneath — nobody applied, nobody confirmed, nobody finished — the next
+  // move is the poster's: chase the helpr, close it out, or re-post it. See
+  // jobIsOverdue for why this is not a bucket of its own.
+  if (jobIsOverdue(j)) return "needs_you";
+  // Today, or already underway. Scheduled is a promise about a day still
+  // AHEAD of you; once that day arrives the job is the most live thing on the
+  // screen and the reorder (owner, 2026-09-19) puts Scheduled below Waiting,
+  // so leaving it here would rank a job starting in an hour under one that
+  // needs nothing at all. An UNCONFIRMED booking stays Waiting even today —
+  // the move is still the helpr's, and the day arriving does not change whose.
+  if (
+    jobIsLive(j) &&
+    // An UNCONFIRMED booking stays Waiting even today — the move is still the
+    // helpr's, and the day arriving does not change whose it is.
+    (j.status !== "accepted" || j.helper_confirmed_at) &&
+    !workIsBackWithHelper(j)
+  ) {
+    return "needs_you";
+  }
+  if (j.status === "in_progress") return "scheduled";
+  if (j.status === "accepted") {
+    // Booked and confirmed is scheduled; booked and unconfirmed is me waiting
+    // on the helpr to say yes.
+    return j.helper_confirmed_at ? "scheduled" : "waiting";
+  }
+  if (j.status === "open") {
+    if (pendingApplicantCount > 0) return "needs_you";
+    // The listing has closed: from `expires_at <= now()` the job is gone from
+    // every helper's feed (useDashboardData, get_open_jobs_for_map), so there
+    // is nothing left to wait for. Minute-grained on purpose, unlike the
+    // day-grained overdue rule above — this is the instant the server hides
+    // it, not a promise about a day. It used to sit here until CT midnight
+    // (or the hourly auto-expire-jobs cancel). Owner, 2026-09-12: leave
+    // Waiting immediately.
+    if (listingHasExpired(j.expires_at, now)) return "needs_you";
+    return "waiting";
+  }
+  return "waiting";
+}
+
+/** Which bucket a job I APPLIED to belongs in. */
+export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
+  const jobStatus = app.job?.status;
+  // NO JOB ROW = THE JOB IS GONE, NOT "still waiting on a decision".
+  // `get_jobs_for_my_applications` returns a job to a helper only when
+  // customer_id = me, helper_id = me, status = 'open', or they are on the
+  // group roster. A job CANCELLED BEFORE ANYONE WAS HIRED matches none of
+  // those, so the row simply never arrives and `app.job` is null — which used
+  // to fall all the way through to the "Applied, awaiting their decision"
+  // default at the bottom of this function and park the application in Waiting
+  // forever.
+  //
+  // The card already knew better: with no job it renders "Job no longer
+  // available — this job has closed, so its details aren't available any
+  // more." So the list and the card were saying different things about the
+  // same row, and the count on the Waiting tab was the one that was wrong.
+  // Measured in prod: 15 such applications across 10 helpers, against 3
+  // genuinely pending.
+  //
+  // Since Q274 (20260923205811) a job's cancel DOES close its pending
+  // applications as 'rejected', but stamps closed_reason='job_cancelled' so no
+  // reader tells the applicant a poster turned them down. A job that merely
+  // closed to someone else is still read here, from the missing job row.
+  if (!app.job) return "cancelled";
+  if (app.status === "rejected" || jobStatus === "cancelled") return "cancelled";
+  if (jobStatus === "completed") return "done";
+  // An offer held for me, or a revision the poster asked for — my move, and the
+  // offer is the one that expires if I do nothing.
+  if (needsHelperResponse(app)) return "needs_you";
+  if (jobStatus === "revision_requested") return "needs_you";
+  // An open dispute carries a required action for the helper (Respond to
+  // Dispute) — their move, not a quiet scheduled state.
+  if (jobStatus === "disputed") return "needs_you";
+  if (jobStatus === "in_progress") {
+    // Work submitted, sitting on the poster's approval — waiting on the
+    // other party by definition, not "scheduled". Stays WAITING even when the
+    // day has passed: the helpr has done everything asked of them, and moving
+    // it to "Needs you" would ask them for a second thing they cannot give.
+    if (app.job?.helper_completed_at && !app.job?.poster_completed_at) return "waiting";
+    // Underway, day gone, nothing submitted — the helpr's move. Mirrors the
+    // poster side so the same job never reads "Scheduled" to one party and
+    // overdue to the other.
+    if (jobIsOverdue({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
+    // TODAY IS LIVE — the helper's half of the owner's 2026-09-19 reorder.
+    // Scheduled now sits BELOW Waiting, so a job happening today cannot be
+    // filed in the calmer of the two on either side of the marketplace. The
+    // submitted-and-awaiting-approval case above returns first and stays
+    // Waiting, so this only catches work that is genuinely still the helpr's.
+    if (jobIsLive({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
+    return "scheduled";
+  }
+  if (app.status === "accepted") {
+    // A booking whose day has passed and which never even started.
+    if (jobIsOverdue({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
+    // The day is here and they accepted it — today is theirs to turn up for.
+    if (jobIsLive({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
+    return "scheduled";
+  }
+  // Applied, awaiting their decision.
+  return "waiting";
+}
+
+/**
+ * Section bucket — used by the grouped "All" view to fold every status
+ * into Active / Completed / Cancelled. Each list/card on the screen
+ * goes through one of these three buckets exactly once.
+ */
+export type Bucket = "active" | "completed" | "cancelled";
+
+/** Classify a posted job into Active / Completed / Cancelled. */
+export function bucketPostedJob(job: { status: string }): Bucket {
+  switch (job.status) {
+    case "completed": return "completed";
+    case "cancelled":
+    case "disputed":  return "cancelled";
+    default:          return "active"; // open / accepted / in_progress / revision_requested / direct_offer holders
+  }
+}
+
+/**
+ * Is this card waiting on the helper right now?
+ *
+ * Two states qualify, and they are the two where the job is being HELD for
+ * this helper and lapses if they do nothing:
+ *   - a pending direct offer from a poster, and
+ *   - an accepted application the helper has not yet confirmed.
+ *
+ * `helper_confirmed_at` is the discriminator for the second: an application
+ * can read `accepted` while the helper still has to say yes.
+ */
+function needsHelperResponse(app: {
+  status: string;
+  job?: { status?: string; direct_offer_status?: string | null; helper_confirmed_at?: string | null } | null;
+}): boolean {
+  if (app.job?.direct_offer_status === "pending") return true;
+  return (
+    app.status === "accepted" &&
+    (app.job?.status === "accepted" || app.job?.status === "open") &&
+    !app.job?.helper_confirmed_at
+  );
+}
+
+export function bucketAppliedApp(app: { status: string; job?: { status: string } | null }): Bucket {
+  const jobStatus = app.job?.status;
+  // Same rule as appliedActivityBucket above, for the grouped "All" view: a
+  // missing job row means the job is gone, so the application belongs under
+  // Cancelled rather than defaulting to Active at the bottom of this function.
+  if (!app.job) return "cancelled";
+  if (jobStatus === "completed") return "completed";
+  if (jobStatus === "cancelled") return "cancelled";
+  if (app.status === "rejected") return "cancelled";
+  return "active";
+}
+
+/**
+ * A job whose checkout never landed — so it is NOT a post, and never was.
+ *
+ * Owner, 2026-09-21: "waiting should not show needs you or finish paying to
+ * post it. waiting means they are waiting for peole to apply and the poster to
+ * seelct the helpr. a job can never be posted if it was enver paid for." And on
+ * where it belongs instead: "It would be in post a job, drafts. The job can
+ * never be posted anywhere or move forward until it's paid."
+ *
+ * The three payment states are one fact to everyone who reads the row — the
+ * money never landed — and all four browse feeds already filter them out, so no
+ * Helpr can see the job. My Posts was the one surface that showed it anyway,
+ * and showed it as a healthy card in Waiting: a job nobody could apply to,
+ * filed under "waiting for applicants". Which of the three it carries is
+ * bookkeeping about how the checkout ended (`unpaid` = never completed,
+ * `abandoned` = walked away, `failed` = card declined), not a difference any
+ * reader cares about. Kept in step with `unfundedNoticeCause`.
+ *
+ * FILTERED AT THE SOURCE, not per bucket. The list and the tab counts both walk
+ * `postedJobs`, so a rule applied to one and not the other is how a tab reads
+ * "Waiting 1" over an empty list — the same one-fact-two-columns shape this
+ * repo has paid for before.
+ */
+export function jobIsUnfundedDraft(j: { status?: string | null; payment_status?: string | null }): boolean {
+  const moneyNeverLanded =
+    j.payment_status === "unpaid" || j.payment_status === "abandoned" || j.payment_status === "failed";
+  return moneyNeverLanded && j.status === "open";
+}
+
+export interface UseActivityFiltersArgs {
+  postedJobs: Job[];
+  appliedApps: AppliedApp[];
+  statusFilter: string;
+  searchQuery: string;
+  userId: string | undefined;
+  /** Applications STILL AWAITING A DECISION, per posted job id — decides
+   *  whether an OPEN job is waiting for applicants or waiting on the poster to
+   *  read the ones it has. Deliberately not the total: a job whose every
+   *  applicant was declined is not asking the poster for anything. */
+  pendingApplicantCounts?: Record<string, number>;
+}
+
+export function useActivityFilters({
+  postedJobs: allPostedJobs,
+  appliedApps,
+  statusFilter,
+  searchQuery,
+  userId,
+  pendingApplicantCounts,
+}: UseActivityFiltersArgs) {
+  /* Unfunded rows leave here and nowhere else — see `jobIsUnfundedDraft`. They
+     belong to Post a Job's drafts, not to any bucket on this page. */
+  const postedJobs = useMemo(() => allPostedJobs.filter((j) => !jobIsUnfundedDraft(j)), [allPostedJobs]);
+  const searchLower = searchQuery.toLowerCase().trim();
+  // Re-bucket at the instant an open listing expires: it leaves Waiting then,
+  // not on the next unrelated re-render.
+  const now = useExpiryClock(postedJobs.map((j) => (j.status === "open" ? j.expires_at : null)));
+
+  const filteredPostedJobs = useMemo(() =>
+    postedJobs.filter((j) => {
+      // Status filter — "all" disables the status gate; the page renders
+      // groups instead. Search still applies in both modes.
+      let statusMatch: boolean;
+      // The five buckets come first. The legacy keys below them are NOT dead:
+      // notification deep links still arrive as `?filter=completed` and the
+      // like, and a link that lands on an empty list because its key stopped
+      // being understood is worse than a tab set with more keys than chips.
+      if (
+        statusFilter === "needs_you" ||
+        statusFilter === "waiting" ||
+        statusFilter === "scheduled" ||
+        statusFilter === "done" ||
+        statusFilter === "cancelled"
+      ) {
+        statusMatch =
+          postedActivityBucket(j, pendingApplicantCounts?.[j.id] ?? 0, now) === statusFilter;
+      }
+      else if (statusFilter === "all") statusMatch = true;
+      else if (statusFilter === "active") statusMatch = bucketPostedJob(j) === "active";
+      else if (statusFilter === "direct_offer") statusMatch = !!j.offered_to_helper_id && j.direct_offer_status === "pending";
+      else if (statusFilter === "offered") statusMatch = j.status === "accepted" && !j.helper_confirmed_at;
+      else if (statusFilter === "accepted") statusMatch = j.status === "accepted" && !!j.helper_confirmed_at;
+      else statusMatch = j.status === statusFilter && !(statusFilter === "open" && j.direct_offer_status === "pending");
+      if (!statusMatch) return false;
+      // Search filter
+      if (searchLower) {
+        // `location` is null once the poster deletes their account and the job
+        // is anonymised (20260901033011). This runs inside a filter callback,
+        // so an unguarded null here throws and takes out the WHOLE list, not
+        // one row — the same shape as the unparseable date that once emptied
+        // /my-posts. A job with no address simply never matches a text search,
+        // which is the truthful answer rather than a swallowed one.
+        return j.title.toLowerCase().includes(searchLower) || j.description.toLowerCase().includes(searchLower) || (j.location?.toLowerCase().includes(searchLower) ?? false);
+      }
+      return true;
+    })
+      // Overdue floats to the top — the one visual treatment an overdue job
+      // gets from this layer.
+      //
+      // A STABLE partition, not a re-sort (same shape as the applied-side lift
+      // below): within each group the incoming order is untouched, so this only
+      // ever pulls the jobs whose day has already gone past the ones still to
+      // come. Needs You can hold both a fresh application and a job that is
+      // four days late, and the late one is not something to scroll for.
+      .sort((a, b) => Number(jobIsOverdue(b)) - Number(jobIsOverdue(a))),
+    [postedJobs, statusFilter, searchLower, pendingApplicantCounts, now]);
+
+  const filteredAppliedApps = useMemo(() => {
+    const query = searchLower;
+    return appliedApps.filter((a) => {
+      let statusMatch = false;
+      if (
+        statusFilter === "needs_you" ||
+        statusFilter === "waiting" ||
+        statusFilter === "scheduled" ||
+        statusFilter === "done" ||
+        statusFilter === "cancelled"
+      ) {
+        statusMatch = appliedActivityBucket(a) === statusFilter;
+      }
+      else if (statusFilter === "all") statusMatch = bucketAppliedApp(a) !== "cancelled";
+      else if (statusFilter === "active") statusMatch = bucketAppliedApp(a) === "active";
+      else if (statusFilter === "direct_offer") statusMatch = !!a.job?.offered_to_helper_id && a.job?.offered_to_helper_id === userId && a.job?.direct_offer_status === "pending";
+      else if (statusFilter === "pending") statusMatch = a.status === "pending" && a.job?.status !== "cancelled";
+      else if (statusFilter === "offered") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !a.job?.helper_confirmed_at;
+      else if (statusFilter === "accepted") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !!a.job?.helper_confirmed_at;
+      else if (statusFilter === "in_progress") statusMatch = a.status === "accepted" && a.job?.status === "in_progress";
+      else if (statusFilter === "disputed") statusMatch = a.status === "accepted" && a.job?.status === "disputed";
+      else if (statusFilter === "revision") statusMatch = a.status === "accepted" && a.job?.status === "revision_requested";
+      else if (statusFilter === "completed") statusMatch = a.status === "accepted" && a.job?.status === "completed";
+      else if (statusFilter === "not_selected") statusMatch = a.status === "rejected" || a.job?.status === "cancelled";
+      if (!statusMatch) return false;
+      if (query && a.job) {
+        // Same null-location guard as the search predicate above, same reason:
+        // this is a filter callback, so a throw here empties the applications
+        // list instead of dropping one card.
+        return a.job.title.toLowerCase().includes(query) || a.job.description.toLowerCase().includes(query) || (a.job.location?.toLowerCase().includes(query) ?? false);
+      }
+      return true;
+    })
+      // Anything waiting on the HELPER floats to the top of the list.
+      //
+      // Owner: "Offered to you should always be shown first — I don't want them
+      // to miss an offer." A direct offer and an unconfirmed booking are the
+      // only two states where a job is being held for this helper and will be
+      // given away if they do nothing. Everything else — applications out for
+      // review, work already booked, jobs in progress — can wait its turn,
+      // because nothing expires while the helper reads it.
+      //
+      // A STABLE partition, not a re-sort: within each group the existing
+      // order is preserved untouched, so this only ever lifts the time-critical
+      // cards past the ones that aren't.
+      //
+      // Overdue is the tie-break, never the lead: an offer expires if it is
+      // missed, a late job does not get any later for being read second.
+      .sort((a, b) =>
+        Number(needsHelperResponse(b)) - Number(needsHelperResponse(a)) ||
+        Number(jobIsOverdue({ status: b.job?.status, date_needed: b.job?.date_needed })) -
+          Number(jobIsOverdue({ status: a.job?.status, date_needed: a.job?.date_needed })));
+    // Dep list intentionally matches the pre-refactor Activity.tsx exactly
+    // (userId omitted) to preserve identical memo behavior — userId comes
+    // from a stable session and the page only renders past `loading`.
+  }, [appliedApps, statusFilter, searchLower]);
+
+  const appliedCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: 0, active: 0, pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0, needs_you: 0, waiting: 0, scheduled: 0, done: 0, cancelled: 0 };
+    appliedApps.forEach((a) => {
+      const bucket = bucketAppliedApp(a);
+      // The four tab counts. Tallied on their own line, never inside the
+      // `else if` chain below — an app belongs to exactly one bucket AND to one
+      // legacy status, and folding them together would let whichever branch
+      // matched first swallow the row from the other tally.
+      counts[appliedActivityBucket(a)]++;
+      // "all" excludes not-selected (rejected / cancelled) — mirrors filteredAppliedApps.
+      if (bucket !== "cancelled") counts.all++;
+      // Counted separately from the chain below, not inside it: "active" is a
+      // BUCKET that overlaps several of the single-status counters, so it must
+      // not consume an `else if` branch and steal rows from them.
+      if (bucket === "active") counts.active++;
+      if (a.job?.offered_to_helper_id === userId && a.job?.direct_offer_status === "pending") counts.direct_offer++;
+      if (a.status === "pending" && a.job?.status !== "cancelled") counts.pending++;
+      else if (a.status === "accepted" && a.job?.status === "accepted" && !a.job?.helper_confirmed_at) counts.offered++;
+      else if (a.status === "accepted" && a.job?.status === "accepted" && !!a.job?.helper_confirmed_at) counts.accepted++;
+      else if (a.status === "accepted" && a.job?.status === "in_progress") counts.in_progress++;
+      else if (a.status === "accepted" && a.job?.status === "disputed") counts.disputed++;
+      else if (a.status === "accepted" && a.job?.status === "revision_requested") counts.revision++;
+      else if (a.status === "accepted" && a.job?.status === "completed") counts.completed++;
+      else if (a.status === "rejected" || a.job?.status === "cancelled") counts.not_selected++;
+    });
+    return counts;
+  }, [appliedApps]);
+
+  const postedCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: postedJobs.length, active: 0, open: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0, needs_you: 0, waiting: 0, scheduled: 0, done: 0 };
+    postedJobs.forEach((j) => {
+      // See the note in appliedCounts — bucket tallies stay out of the chain.
+      counts[postedActivityBucket(j, pendingApplicantCounts?.[j.id] ?? 0, now)]++;
+      if (bucketPostedJob(j) === "active") counts.active++;
+      if (j.offered_to_helper_id && j.direct_offer_status === "pending") counts.direct_offer++;
+      if (j.status === "accepted" && !j.helper_confirmed_at) counts.offered++;
+      else if (j.status === "accepted" && !!j.helper_confirmed_at) counts.accepted++;
+      // `j.status === "cancelled"` is skipped here — the bucket tally above
+      // already counted it under the SAME "cancelled" key (the new
+      // ActivityBucket literally shares its name with the legacy status
+      // string), so falling through to this generic per-status tally too
+      // would double-count every cancelled job.
+      else if (j.status !== "cancelled") counts[j.status] = (counts[j.status] || 0) + 1;
+    });
+    return counts;
+  }, [postedJobs, pendingApplicantCounts, now]);
+
+  return { filteredPostedJobs, filteredAppliedApps, appliedCounts, postedCounts };
+}

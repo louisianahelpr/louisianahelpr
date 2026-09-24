@@ -182,4 +182,4 @@ test.describe("customer post-job happy path", () => {
 // screen: ProtectedRoute can pass, the heading can render, and the page is
 // still a dead end if "Start fresh" does not advance the step. Neutering
 // `startFresh` must red test 2.
-// @mutate src/pages/postjob/useJobEntry.ts | const startFresh = () => { | const startFresh = () => { return;
+// @mutate src/pages/post-job/useJobEntry.ts | const startFresh = () => { | const startFresh = () => { return;

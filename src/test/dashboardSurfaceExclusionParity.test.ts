@@ -16,7 +16,7 @@
 // HOW THIS ONE DOES THAT. Nothing here is a hand-kept list of rules:
 //   1. The INVENTORY of exclusion rules is parsed out of the
 //      `ViewerFeedExclusions` interface in
-//      src/pages/dashboard/viewerFeedExclusions.ts. Add a field there and it
+//      src/pages/home/viewerFeedExclusions.ts. Add a field there and it
 //      appears here on the next run, un-evidenced, and this file goes red
 //      naming the surfaces that have not been taught about it.
 //   2. The INVENTORY of surfaces is derived from the WORLD, not declared:
@@ -35,7 +35,7 @@
 //
 // @mutate src/hooks/useDashboardJobsCount.ts | query = query.not("id", "in", `(${dismissedJobIds.join(",")})`); | void dismissedJobIds;
 // @mutate src/components/BrowseMap.tsx | return filtered.filter((j) => !isJobExcludedForViewer(j, exclusions)); | return filtered;
-// @mutate src/pages/dashboard/viewerFeedExclusions.ts | if (x.dismissedJobIds.has(job.id)) return true; | if (false) return true;
+// @mutate src/pages/home/viewerFeedExclusions.ts | if (x.dismissedJobIds.has(job.id)) return true; | if (false) return true;
 
 import { describe, it, expect, vi } from "vitest";
 import { createElement } from "react";
@@ -47,7 +47,7 @@ import {
   EMPTY_VIEWER_FEED_EXCLUSIONS,
   isJobExcludedForViewer,
   type ViewerFeedExclusions,
-} from "@/pages/dashboard/viewerFeedExclusions";
+} from "@/pages/home/viewerFeedExclusions";
 import { useDashboardJobsCount } from "@/hooks/useDashboardJobsCount";
 
 // ── A PostgREST-shaped stub that really narrows ────────────────────────────
@@ -120,8 +120,8 @@ const REPO = path.resolve(__dirname, "../..");
 const read = (rel: string) => fs.readFileSync(path.join(REPO, rel), "utf8");
 const exists = (rel: string) => fs.existsSync(path.join(REPO, rel));
 
-const REGISTRY = "src/pages/dashboard/viewerFeedExclusions.ts";
-const DASHBOARD_ENTRY = "src/pages/Dashboard.tsx";
+const REGISTRY = "src/pages/home/viewerFeedExclusions.ts";
+const DASHBOARD_ENTRY = "src/pages/home/Dashboard.tsx";
 
 /**
  * The two things a /dashboard surface can read the open-job board from —
@@ -171,11 +171,13 @@ function resolveImport(spec: string, fromRel: string): string | null {
  * Another PAGE is another screen, not part of this one. `/browse`
  * (DashboardGuest) and `/jobs/:id` (JobDetail) each read the same view and
  * each answer for themselves; walking into them would make this guard about
- * the whole app. Dashboard's OWN subtree (src/pages/dashboard/**) is not a
- * page boundary and is still walked.
+ * the whole app. A page is a file App.tsx routes to; Dashboard's OWN pieces in
+ * src/pages/home/ are not a page boundary and are still walked.
  */
-const isOtherPage = (rel: string) =>
-  rel !== DASHBOARD_ENTRY && /^src\/pages\/[^/]+\.tsx$/.test(rel);
+const ROUTED_PAGES = new Set(
+  [...read("src/App.tsx").matchAll(/import\(\s*["']\.\/(pages\/[^"']+)["']\s*\)/g)].map((m) => `src/${m[1]}.tsx`),
+);
+const isOtherPage = (rel: string) => rel !== DASHBOARD_ENTRY && ROUTED_PAGES.has(rel);
 
 /** Every non-test module reachable from /dashboard, this screen only. */
 function dashboardImportGraph(): string[] {

@@ -18,7 +18,7 @@
  * the check must distinguish them — it does that by tracking whether the last
  * unclosed `<` belongs to an open tag.
  */
-// @mutate src/components/activity/AppliedJobCard.tsx | {/* ── BEHIND THE EXPAND | /* ── BEHIND THE EXPAND
+// @mutate src/pages/jobs/AppliedJobCard.tsx | {/* ── BEHIND THE EXPAND | /* ── BEHIND THE EXPAND
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";

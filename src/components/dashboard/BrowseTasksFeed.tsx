@@ -26,8 +26,8 @@ import { toast } from "sonner";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
-import type { ViewerFeedExclusions } from "@/pages/dashboard/viewerFeedExclusions";
-import { partitionBrowseFeed } from "@/pages/dashboard/browseFeedSections";
+import type { ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
+import { partitionBrowseFeed } from "@/pages/home/browseFeedSections";
 
 // Lazy-load BrowseMap so the map chunk (and the MapKit JS script it pulls
 // from Apple's CDN) only loads when an authenticated user toggles to map
@@ -258,7 +258,7 @@ interface BrowseTasksFeedProps {
    * feed. It used to, and that was the 2026-09-19 "map shows 7 jobs. list
    * shows 4": dismissing three jobs culled them here, one layer below the
    * header count and the map, which both still counted them.
-   * See src/pages/dashboard/viewerFeedExclusions.ts.
+   * See src/pages/home/viewerFeedExclusions.ts.
    */
   exclusions?: ViewerFeedExclusions;
 }
@@ -378,7 +378,7 @@ export function BrowseTasksFeed({
     // where every surface reads them. Re-adding either here would not
     // reinforce anything; it would re-open the same divergence.
     // ONE partition of `filters.filteredJobs` — see
-    // src/pages/dashboard/browseFeedSections.ts. The band and the rest are
+    // src/pages/home/browseFeedSections.ts. The band and the rest are
     // both drawn from that one list, so no row can be subtracted here on the
     // grounds that a section below renders it while that section is switched
     // off. Two bugs came out of doing this as a subtraction plus a separately

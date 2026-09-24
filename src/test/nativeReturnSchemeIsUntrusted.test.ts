@@ -5,7 +5,7 @@
  * that the page it lands on only reads: so PaymentSuccess must never write,
  * and neither file may claim the scheme is exclusive again.
  *
- * @mutate src/pages/PaymentSuccess.tsx | export default PaymentSuccess; | void supabase.rpc("x");\nexport default PaymentSuccess;
+ * @mutate src/pages/post-job/PaymentSuccess.tsx | export default PaymentSuccess; | void supabase.rpc("x");\nexport default PaymentSuccess;
  * @mutate src/lib/deepLinkRoute.ts | The scheme is NOT exclusive | The scheme is only deliverable to us
  */
 import { readFileSync } from "node:fs";
@@ -16,7 +16,7 @@ const EXCLUSIVE_CLAIM = /only deliverable to|trust boundary the allowlist/i;
 
 describe("the native return scheme is treated as untrusted (NB-014)", () => {
   it("PaymentSuccess performs no writes", () => {
-    const src = readFileSync("src/pages/PaymentSuccess.tsx", "utf8");
+    const src = readFileSync("src/pages/post-job/PaymentSuccess.tsx", "utf8");
     expect(src.length).toBeGreaterThan(1000);
     expect(src.split("\n").filter((l) => WRITE.test(l))).toEqual([]);
   });

@@ -9,7 +9,7 @@
  * THE CLASS BEHIND IT: two components rendered a public review, and they had
  * drifted into two different designs for the same three facts.
  * `components/profile/PublicReviewWall` drew the job category as a
- * rounded-full chip; `pages/userProfile/ReviewsSection` — the one actually
+ * rounded-full chip; `pages/user/ReviewsSection` — the one actually
  * mounted on `/user/:id` — printed the very same value as
  * `For: {jobTitle}` in plain muted text with the reviewer's name jammed in
  * beside the stars. Nothing could have caught that, because no check had ever
@@ -36,9 +36,9 @@ import { render, screen, cleanup, within } from "@testing-library/react";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
-import { ReviewsSection } from "@/pages/userProfile/ReviewsSection";
+import { ReviewsSection } from "@/pages/user/ReviewsSection";
 import { splitReviewTags } from "@/components/profile/reviewCard";
-import type { ProfileReview } from "@/pages/userProfile/types";
+import type { ProfileReview } from "@/pages/user/types";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
@@ -92,7 +92,7 @@ describe("ONE review-card design (owner, 2026-09-19)", () => {
       RENDERERS.map((f) => f.file).sort(),
       "no review-card renderers found — the detector, not the app, is broken",
     ).toEqual(
-      ["src/pages/userProfile/ReviewsSection.tsx"],
+      ["src/pages/user/ReviewsSection.tsx"],
     );
     expect(RENDERERS.length).toBeGreaterThan(0);
   });
@@ -259,8 +259,8 @@ describe("the /user/:id review card, top-down", () => {
 /* ── The wiring, so the card above is the card a visitor gets ─────────────── */
 
 describe("the card is actually mounted on /user/:id with a category", () => {
-  const page = readFileSync(join(SRC, "pages", "UserProfile.tsx"), "utf8");
-  const hook = readFileSync(join(SRC, "pages", "userProfile", "useUserProfileData.ts"), "utf8");
+  const page = readFileSync(join(SRC, "pages", "user", "UserProfile.tsx"), "utf8");
+  const hook = readFileSync(join(SRC, "pages", "user", "useUserProfileData.ts"), "utf8");
 
   it("UserProfile mounts ReviewsSection and feeds it the hook's reviews", () => {
     expect(page).toMatch(/<ReviewsSection\b/);
@@ -318,5 +318,5 @@ describe("splitReviewTags", () => {
   });
 });
 
-// @mutate src/pages/userProfile/ReviewsSection.tsx | <ReviewCategoryChip category={r.jobCategory} /> | <p className="text-muted-foreground text-ds-11">For: {r.jobTitle}</p>
+// @mutate src/pages/user/ReviewsSection.tsx | <ReviewCategoryChip category={r.jobCategory} /> | <p className="text-muted-foreground text-ds-11">For: {r.jobTitle}</p>
 // @mutate src/components/profile/reviewCard.tsx | while (cut > 0 && ALL_QUICK_TAGS.includes(parts[cut - 1])) cut -= 1; |

@@ -23,7 +23,7 @@
  *
  * ── WHERE THE RULE LIVES NOW ──────────────────────────────────────────────
  * It moved out of JobTracking's render on 2026-09-19, into
- * `src/components/activity/jobRailTone.ts`, because the owner's collapsed-rail
+ * `src/components/job-card/jobRailTone.ts`, because the owner's collapsed-rail
  * ruling added a SECOND rail painting the same dots at 16px and a second copy
  * of a colour rule is the drift this file exists to catch. Both rails call
  * `railStepPaint`; this file reads the one definition.
@@ -43,16 +43,16 @@
  * asserts they are NOT green, so a future "make the rail one colour" cannot
  * quietly flatten them here.
  *
- * @mutate src/components/activity/jobRailTone.ts |     fill: "hsl(var(--bark))",\n    ring: "hsl(var(--bark) / 0.30)", |     fill: "hsl(var(--success-ink))",\n    ring: "hsl(var(--bark) / 0.30)",
+ * @mutate src/components/job-card/jobRailTone.ts |     fill: "hsl(var(--bark))",\n    ring: "hsl(var(--bark) / 0.30)", |     fill: "hsl(var(--success-ink))",\n    ring: "hsl(var(--bark) / 0.30)",
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { railStepTone } from "@/components/activity/jobRailTone";
+import { railStepTone } from "@/components/job-card/jobRailTone";
 
 const ROOT = resolve(__dirname, "../..");
 const CSS = readFileSync(resolve(ROOT, "src/index.css"), "utf8");
-const RULE = readFileSync(resolve(ROOT, "src/components/activity/jobRailTone.ts"), "utf8");
+const RULE = readFileSync(resolve(ROOT, "src/components/job-card/jobRailTone.ts"), "utf8");
 /** Comments stripped — the module NAMES `--success-ink` in prose, recording
  *  what the green used to be, and a guard that read prose as code would fail
  *  on its own history note. Declarations only. */

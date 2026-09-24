@@ -16,7 +16,7 @@ import { resolve } from "node:path";
  * working, the addresses just get more precise.
  *
  * The exposure is real, not theoretical. The live post path still writes the
- * full street to `jobs.location` (`src/pages/postjob/jobSubmitHelpers.ts`),
+ * full street to `jobs.location` (`src/pages/post-job/jobSubmitHelpers.ts`),
  * so the data is there to leak; it is latent only because current rows
  * happen to carry no street numbers. A single job posted with a house number
  * would publish that address to every logged-out visitor.

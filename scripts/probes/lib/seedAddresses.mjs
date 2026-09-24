@@ -16,7 +16,7 @@
 
 /**
  * The same predicate `hasStreetAddress()` uses in
- * `src/components/activity/appliedJobCard/JobAddressLine.tsx`: a digit in the
+ * `src/pages/jobs/appliedJobCard/JobAddressLine.tsx`: a digit in the
  * first comma-segment, and at least one comma.
  *
  * Transcribed rather than imported — this is plain ESM run by node, and the

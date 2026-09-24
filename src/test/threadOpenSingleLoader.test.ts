@@ -138,7 +138,7 @@ describe("every way of opening a message thread goes through openConvo", () => {
   });
 
   it("the Messages page feeds jobId/userId into the hook's deep-link path", () => {
-    const page = fs.readFileSync(path.join(SRC, "pages/Messages.tsx"), "utf8");
+    const page = fs.readFileSync(path.join(SRC, "pages/messages/Messages.tsx"), "utf8");
     expect(page).toMatch(/deepLinkJobId\s*=\s*searchParams\.get\("jobId"\)/);
     expect(page).toMatch(/deepLinkUserId\s*=\s*searchParams\.get\("userId"\)/);
     expect(page).toMatch(/useMessagesData\(\{[\s\S]*deepLinkJobId,[\s\S]*deepLinkUserId,/);

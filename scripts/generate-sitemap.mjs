@@ -47,7 +47,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const APP_TSX = path.join(repoRoot, "src", "App.tsx");
 const SITEMAP = path.join(repoRoot, "public", "sitemap.xml");
-const LEGAL_SECTIONS = path.join(repoRoot, "src", "pages", "legal", "legalSections.ts");
+const LEGAL_SECTIONS = path.join(repoRoot, "src", "pages", "info", "legal", "legalSections.ts");
 
 /** Canonical origin — must match src/lib/sitemap.test.ts. */
 const ORIGIN = "https://www.louisianahelpr.com";

@@ -235,7 +235,7 @@ export function avatarObjectNameFromUrl(url: string | null | undefined, userId: 
  * `id-documents`, which is private and reachable only through a signed URL an
  * admin mints. Against no exposure to close, deleting a superseded ID scan
  * destroys review history (the client path in
- * `src/pages/completeProfile/uploadProfileFiles.ts` timestamps its ID keys
+ * `src/pages/auth/completeProfile/uploadProfileFiles.ts` timestamps its ID keys
  * precisely so they accumulate — "an ID is evidence with a review history, not
  * a photo being replaced"). The two paths disagree about that, which is worth
  * settling, but settling it by deleting evidence from inside a key-hardening

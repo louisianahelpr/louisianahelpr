@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHero, DialogBody } from "@/components/ui/d
 import {
   Repeat, Rocket, Zap, Bookmark, Flag, Star,
 } from "lucide-react";
-import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
+import { categoryLabels, categoryColors } from "@/components/job-card/activityConstants";
 import { formatCategory } from "@/lib/format";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { OptimizedImage } from "@/components/ui/optimized-image";

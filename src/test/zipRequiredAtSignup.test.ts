@@ -1,6 +1,6 @@
 // ZIP is required at BOTH entry points, or it is required at neither.
 //
-// @mutate src/pages/Signup.tsx |       if (!zip) errors.zipCode = "Add your ZIP code"; |       if (false) { /* nothing */ } // if (!zip) errors.zipCode = "Add your ZIP code";
+// @mutate src/pages/auth/Signup.tsx |       if (!zip) errors.zipCode = "Add your ZIP code"; |       if (false) { /* nothing */ } // if (!zip) errors.zipCode = "Add your ZIP code";
 //
 // Owner decision 2026-09-05. It was optional on the reasoning that a second
 // required field on the highest-traffic form is a friction cost worth weighing
@@ -66,9 +66,9 @@ const codeOnly = (src: string): string => {
   return out.join("");
 };
 
-const SIGNUP = codeOnly(read("src/pages/Signup.tsx"));
-const STEP2 = codeOnly(read("src/pages/signup/SignupStep2.tsx"));
-const COMPLETE = codeOnly(read("src/pages/CompleteProfile.tsx"));
+const SIGNUP = codeOnly(read("src/pages/auth/Signup.tsx"));
+const STEP2 = codeOnly(read("src/pages/auth/signup/SignupStep2.tsx"));
+const COMPLETE = codeOnly(read("src/pages/auth/CompleteProfile.tsx"));
 
 describe("email signup (SignupStep2)", () => {
   it("rejects a missing ZIP", () => {

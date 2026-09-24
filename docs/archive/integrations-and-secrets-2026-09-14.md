@@ -89,7 +89,7 @@ Every REMOVE in the tables below, with the clicks to do it. Do them in this orde
 | SLACK_OPS_CHANNEL | Supabase | `slack-ops-alert` default channel (#ops-alerts) | KEEP |
 | APNS_AUTH_KEY, APNS_KEY_ID, APNS_TEAM_ID, APNS_BUNDLE_ID | Supabase | `send-push-notification` | KEEP |
 | APPLE_MAPKIT_KEY_ID, APPLE_MAPKIT_PRIVATE_KEY, APPLE_MAPKIT_TEAM_ID | Supabase | `mapkit-token` → `src/hooks/useMapKitJs.ts` | KEEP |
-| GEMINI_API_KEY | Supabase | `ai-job-builder` ← `AiJobBuilder.tsx` ← `src/pages/postjob/EntryChoice.tsx` | KEEP |
+| GEMINI_API_KEY | Supabase | `ai-job-builder` ← `AiJobBuilder.tsx` ← `src/pages/post-job/EntryChoice.tsx` | KEEP |
 | APPLE_TEAM_ID | Supabase | `helpr-pass-wallet` only (unconfigured scaffold, no client caller) | **REMOVE** |
 
 **Read by code but not set** (FYI, not removals): `LOVABLE_API_KEY` (dead Slack transport 2), `META_APP_ID/APP_SECRET/IG_USER_ID/PAGE_ACCESS_TOKEN/PAGE_ID` (auto-poster not configured), `PASS_CERT_PEM/KEY_PEM/WWDR_PEM/TYPE_IDENTIFIER` (wallet), `CHECKR_WEBHOOK_SECRET`, `CERTIFICIAL_WEBHOOK_SECRET`, `FCM_PROJECT_ID/FCM_SERVICE_ACCOUNT` (Android push; there is no `android/` dir), and optional settings `APNS_USE_SANDBOX`, `APP_URL`, `EMAIL_UNSUBSCRIBE_SECRET`, `HELPR_POSTAL_ADDRESS`, `MARKETING_CLAIM_LIMIT`, `SUPPORT_INBOX_EMAIL`. Report-only dead code: the Lovable gateway branch in `supabase/functions/_shared/slack-alerts.ts`.

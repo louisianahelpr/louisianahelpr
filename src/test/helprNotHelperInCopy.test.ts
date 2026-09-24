@@ -114,4 +114,4 @@ describe("user-visible copy says Helpr, never helper", () => {
 });
 
 // Shown able to fail 2026-09-21 on a real, user-visible empty-state string.
-// @mutate src/components/activity/PostedJobsTab.tsx | ID-verified Louisiana Helprs nearby. | ID-verified Louisiana helpers nearby.
+// @mutate src/pages/posts/PostedJobsTab.tsx | ID-verified Louisiana Helprs nearby. | ID-verified Louisiana helpers nearby.

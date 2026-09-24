@@ -17,7 +17,7 @@
 // migration's contents would break replay).
 //
 // SHOWN ABLE TO FAIL: the registration below plants the retired short name
-// back into a real scanned file (src/pages/GiftCard.tsx) and this guard must
+// back into a real scanned file (src/pages/profile/GiftCard.tsx) and this guard must
 // go red on it. The replacement starts a NEW line with the name so the
 // directive text itself stays clean: written inline, the three letters here
 // would be preceded by a literal backslash-n, which the SHORT pattern's
@@ -25,7 +25,7 @@
 // reason this file's fixtures use unicode escapes. The LONG form cannot be
 // registered at all (it has no lookbehind, so any spelling of it in this file
 // would make the guard permanently red); the regex unit test above covers it.
-// @mutate src/pages/GiftCard.tsx | * GiftCard — /gift-card | * GiftCard — /gift-card\nPIF was the retired name.
+// @mutate src/pages/profile/GiftCard.tsx | * GiftCard — /gift-card | * GiftCard — /gift-card\nPIF was the retired name.
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, sep } from "node:path";

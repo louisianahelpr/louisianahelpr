@@ -143,7 +143,7 @@ and one write.
 
 **Cost:** small — one input, one derivation, no new dependency.
 **What it displaces:** nothing. It is additive.
-**Territory:** `src/pages/signup/*` belongs to `lane-onboarding-auth`; relayed.
+**Territory:** `src/pages/auth/signup/*` belongs to `lane-onboarding-auth`; relayed.
 
 One caveat worth stating: `louisiana_zip_parishes` holds **252 ZIPs** against
 roughly 500 Louisiana ZCTAs. A user in an unmapped ZIP still gets NULL. Worth
@@ -445,13 +445,13 @@ Source (worktree at `origin/main` `b170609a`): `src/lib/subscriptionTiers.ts`,
 `src/lib/proTiers.ts`, `supabase/functions/_shared/proTiers.ts`,
 `src/components/profile/SubscriptionTab.tsx`,
 `src/components/profile/subscriptionTab/tierConfig.tsx`,
-`src/pages/Signup.tsx`, `src/pages/signup/SignupStep2.tsx`,
-`src/components/ProtectedRoute.tsx`, `src/pages/PostJob.tsx` entry via
-`src/pages/postjob/jobSubmitHelpers.ts`, `src/lib/jobExpiry.ts`,
+`src/pages/auth/Signup.tsx`, `src/pages/auth/signup/SignupStep2.tsx`,
+`src/components/ProtectedRoute.tsx`, `src/pages/post-job/PostJob.tsx` entry via
+`src/pages/post-job/jobSubmitHelpers.ts`, `src/lib/jobExpiry.ts`,
 `src/lib/offerResponseWindow.ts`, `src/lib/louisianaCities.ts`,
 `src/lib/parishLookup.ts`, `src/lib/parishCentroids.ts`,
 `src/components/postjob/CityAutocomplete.tsx`,
-`src/components/admin/AdminSettings.tsx`, `src/pages/Dashboard.tsx`,
+`src/components/admin/AdminSettings.tsx`, `src/pages/home/Dashboard.tsx`,
 `src/components/BroadcastBanner.tsx`, `docs/LAUNCH_CHECKLIST.md`, and the
 long-tail surface census (LOC + route reachability + edge-function ownership for
 20 features) produced by a read-only sub-agent over the same worktree.

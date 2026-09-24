@@ -69,7 +69,7 @@ honest tally, each figure derived from source, not asserted:
 | Rendering routes | 33 | `grep -oE 'path="[^"]+"' src/App.tsx` = 47 total, minus 14 redirects |
 | Redirect-only routes | 14 | `grep -c "Navigate to=" src/App.tsx` |
 | Profile tabs | 17 | `Tab` union, `src/pages/profile/types.ts:5` |
-| Admin views | 24 | `type View`, `src/pages/Admin.tsx:45` |
+| Admin views | 24 | `type View`, `src/pages/admin/Admin.tsx:45` |
 | Activity tabs | 2 | `activityConstants.ts` (× 4 status filters each = 8 more states) |
 | **Navigable subtotal** | **90** | |
 | Overlay roots (dialog / sheet / drawer / popover / dropdown / hovercard) | **78** | `grep -roE "<(Dialog\|AlertDialog\|Sheet\|Drawer\|Popover\|DropdownMenu\|HoverCard)\s+open=" src --exclude-dir=ui` |
@@ -117,7 +117,7 @@ SKILL.md §1 states these. Here is what each means *for this audit specifically*
 
 1. **Spider before grading.** §5 and §6 below are the enumeration. Re-derive
    them from source at the start (`src/App.tsx`, `src/pages/profile/types.ts`,
-   `src/pages/Admin.tsx`, `ls supabase/functions`) and **fix this file** if the
+   `src/pages/admin/Admin.tsx`, `ls supabase/functions`) and **fix this file** if the
    counts have drifted. Several existing docs are stale precisely because nobody
    did this.
 2. **Never trust code over pixel.** Every visual dimension is verified with a
@@ -193,7 +193,7 @@ node scripts/test-signin-link.mjs helper --session --json   # localStorage blob
 ### MANDATORY — dismiss the onboarding tour in the SAME init script
 
 `OnboardingTour` (`src/components/OnboardingTour.tsx`, mounted by
-`src/pages/Dashboard.tsx`) opens on `/dashboard` — where every signed-in pass
+`src/pages/home/Dashboard.tsx`) opens on `/dashboard` — where every signed-in pass
 starts — 1.5s after load, in **every fresh browser context**: new Playwright
 context, incognito window, cleared simulator, and *each of the three origins*
 in the two-origin trick below. It is a Radix dialog that **blurs the page
@@ -411,7 +411,7 @@ catalog**. Fix the catalog as part of this audit.
 
 ### A4 — Admin views (24)
 
-Source: `type View` in `src/pages/Admin.tsx:45`. `/admin?view=<key>`:
+Source: `type View` in `src/pages/admin/Admin.tsx:45`. `/admin?view=<key>`:
 
 `home` · `analytics` · `people` · `jobs` · `settings` · `disputes` ·
 `broadcasts` · `notifications` · `notiflogs` · `reports` · `support` ·

@@ -24,22 +24,22 @@
  * photo chip in the middle fails this file the day it is written — the failure
  * mode a hand-maintained list has is that nobody adds to it.
  *
- * @mutate src/components/activity/appliedJobCard/steps/WorkingStep.tsx | actions={[reportChip, sosChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="working" />]} | actions={[<HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="working" />, sosChip, messageChip, reportChip]}
- * @mutate src/components/activity/appliedJobCard/steps/OnSiteStep.tsx | actions={[reportChip, sosChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="on_site" />]} | actions={[sosChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="on_site" />, reportChip]}
- * @mutate src/components/activity/jobStepRow.tsx | const trail = [chips[chips.length - 1]]; | const trail = [];
- * @mutate src/components/activity/jobStepRow.tsx | return { lead: [], overflow: chips.filter((_, i) => i !== soloIndex), trail: [chips[soloIndex]] }; | return { lead: [chips[0]], overflow: chips.slice(1), trail: [] };
- * @mutate src/components/activity/appliedJobCard/steps/WorkingStep.tsx | soloChipKey="message" | soloChipKey="report"
+ * @mutate src/pages/jobs/appliedJobCard/steps/WorkingStep.tsx | actions={[reportChip, sosChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="working" />]} | actions={[<HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="working" />, sosChip, messageChip, reportChip]}
+ * @mutate src/pages/jobs/appliedJobCard/steps/OnSiteStep.tsx | actions={[reportChip, sosChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="on_site" />]} | actions={[sosChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="on_site" />, reportChip]}
+ * @mutate src/components/job-card/jobStepRow.tsx | const trail = [chips[chips.length - 1]]; | const trail = [];
+ * @mutate src/components/job-card/jobStepRow.tsx | return { lead: [], overflow: chips.filter((_, i) => i !== soloIndex), trail: [chips[soloIndex]] }; | return { lead: [chips[0]], overflow: chips.slice(1), trail: [] };
+ * @mutate src/pages/jobs/appliedJobCard/steps/WorkingStep.tsx | soloChipKey="message" | soloChipKey="report"
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { partitionJobStepRowChips, allocateJobStepRow, shouldTightenJobStepRow } from "@/components/activity/jobStepRow";
+import { partitionJobStepRowChips, allocateJobStepRow, shouldTightenJobStepRow } from "@/components/job-card/jobStepRow";
 
 const ROOT = resolve(__dirname, "../..");
 const STEP_DIRS = [
-  "src/components/activity/appliedJobCard/steps",
-  "src/components/activity/postedJobCard/steps",
-  "src/components/activity/appliedJobCard",
+  "src/pages/jobs/appliedJobCard/steps",
+  "src/pages/posts/postedJobCard/steps",
+  "src/pages/jobs/appliedJobCard",
 ];
 
 /** Every source file in either step tree that builds an `actions` array. */
@@ -191,7 +191,7 @@ describe("overflow never takes a pinned end", () => {
   });
 
   it.each(["OnSiteStep", "WorkingStep", "RevisionStep"])("the Helpr's %s names Message as its phone-width chip", (step) => {
-    const src = readFileSync(resolve(__dirname, "..", "components", "activity", "appliedJobCard", "steps", `${step}.tsx`), "utf8");
+    const src = readFileSync(resolve(__dirname, "..", "pages", "jobs", "appliedJobCard", "steps", `${step}.tsx`), "utf8");
     expect(src).toContain('soloChipKey="message"');
   });
 

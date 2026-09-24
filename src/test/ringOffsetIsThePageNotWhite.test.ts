@@ -59,7 +59,7 @@ const PINS_OFFSET_COLOUR =
 
 /**
  * THE HAND-BACK LEDGER — real violations in files this lane does not own
- * (`src/components/activity`, `src/components/postjob`, `src/pages`, and
+ * (`src/components/job-card`, `src/components/postjob`, `src/pages`, and
  * `NotificationPanel`/`ReportDialog`). Listed so the rule can land today and
  * they can be routed, not so they can be forgotten.
  *
@@ -76,13 +76,13 @@ const LEDGER = [
   "src/components/NotificationPanel.tsx",
   "src/components/ReportDialog.tsx",
   "src/components/TimePickerWheel.tsx",
-  "src/components/activity/AppliedJobsTab.tsx",
-  "src/components/activity/postedJobs/DeclineApplicantSheet.tsx",
+  "src/pages/jobs/AppliedJobsTab.tsx",
+  "src/pages/posts/postedJobs/DeclineApplicantSheet.tsx",
   "src/components/postjob/detailsSection/CategoryPicker.tsx",
   "src/components/postjob/detailsSection/CredentialTierSelector.tsx",
   "src/components/postjob/detailsSection/PhotoUpload.tsx",
-  "src/pages/AutoTip.tsx",
-  "src/pages/petProfiles/PetForm.tsx",
+  "src/pages/profile/AutoTip.tsx",
+  "src/pages/profile/petProfiles/PetForm.tsx",
 ];
 
 function walk(dir: string, out: string[] = []): string[] {

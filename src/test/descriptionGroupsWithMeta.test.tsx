@@ -35,16 +35,16 @@
  * class-name match: `pt-1` and `pt-3` become 4 and 12 and are compared as
  * numbers.
  *
- * @mutate src/components/activity/PostedJobCard.tsx | <div className="px-4 pt-1 pb-2.5 space-y-2" data-job-card-body=""> | <div className="px-4 pt-2.5 pb-2.5 space-y-2" data-job-card-body="">
- * @mutate src/components/activity/PostedJobCard.tsx | <div className="pt-3" data-job-card-tracker-gap=""> | <div className="pt-0" data-job-card-tracker-gap="">
- * @mutate src/components/activity/AppliedJobCard.tsx | className={`px-4 pt-1 space-y-2 ${ | className={`px-4 pt-4 space-y-2 ${
+ * @mutate src/pages/posts/PostedJobCard.tsx | <div className="px-4 pt-1 pb-2.5 space-y-2" data-job-card-body=""> | <div className="px-4 pt-2.5 pb-2.5 space-y-2" data-job-card-body="">
+ * @mutate src/pages/posts/PostedJobCard.tsx | <div className="pt-3" data-job-card-tracker-gap=""> | <div className="pt-0" data-job-card-tracker-gap="">
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | className={`px-4 pt-1 space-y-2 ${ | className={`px-4 pt-4 space-y-2 ${
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
-import type { AppliedApp, Job } from "@/components/activity/activityConstants";
+import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -64,10 +64,10 @@ vi.mock("@/components/JobTracking", async (importOriginal) => ({
 }));
 vi.mock("@/components/JobConfirmation", () => ({ JobConfirmation: () => null, helperDayOfConfirmation: () => true }));
 vi.mock("@/components/GroupJobHelpers", () => ({ GroupJobHelpers: () => null }));
-vi.mock("@/components/activity/SeriesStrip", () => ({ SeriesStrip: () => null }));
-vi.mock("@/components/activity/JobCountdown", () => ({ JobCountdown: () => null }));
-vi.mock("@/components/activity/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
-vi.mock("@/components/activity/useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
+vi.mock("@/pages/posts/SeriesStrip", () => ({ SeriesStrip: () => null }));
+vi.mock("@/components/job-card/JobCountdown", () => ({ JobCountdown: () => null }));
+vi.mock("@/pages/jobs/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
+vi.mock("@/components/job-card/useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null }) }));
 vi.mock("@/hooks/useFundExistingJob", () => ({ useFundExistingJob: () => ({ fundJob: vi.fn(), fundingJobId: null }) }));
 
@@ -92,8 +92,8 @@ function makeSupabase() {
 }
 vi.mock("@/integrations/supabase/client", () => makeSupabase());
 
-import { AppliedJobCard } from "@/components/activity/AppliedJobCard";
-import { PostedJobCard } from "@/components/activity/PostedJobCard";
+import { AppliedJobCard } from "@/pages/jobs/AppliedJobCard";
+import { PostedJobCard } from "@/pages/posts/PostedJobCard";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 beforeAll(() => {

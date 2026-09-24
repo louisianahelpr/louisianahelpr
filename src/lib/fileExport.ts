@@ -78,7 +78,7 @@ const NATIVE_SHARE_MAX_BYTES = 3 * 1024 * 1024;
  * hits the same wall because manifest.webmanifest declares
  * `display: standalone`, and standalone WebKit has no print UI either.
  *
- * The derivation is lifted from `src/pages/WorkRecord.tsx`, which found and
+ * The derivation is lifted from `src/pages/profile/WorkRecord.tsx`, which found and
  * documented this first; it should be deduped into this module the next time
  * that file is touched (it is owned by another lane right now).
  */

@@ -34,12 +34,12 @@
  * function that starts rounding differently, fails this.
  */
 // Shown able to fail: take the rounding back out and the first case names it.
-// @mutate src/pages/GiftCard.tsx | Math.round(rawAmount * 100) / 100 | rawAmount
+// @mutate src/pages/profile/GiftCard.tsx | Math.round(rawAmount * 100) / 100 | rawAmount
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const PAGE = readFileSync(join(process.cwd(), "src/pages/GiftCard.tsx"), "utf8");
+const PAGE = readFileSync(join(process.cwd(), "src/pages/profile/GiftCard.tsx"), "utf8");
 const EDGE = readFileSync(join(process.cwd(), "supabase/functions/create-gift-card-checkout/index.ts"), "utf8");
 
 describe("the gift amount is whole cents before it leaves the client", () => {

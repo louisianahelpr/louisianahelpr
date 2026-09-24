@@ -5,13 +5,13 @@
  * tap during validation passed. The step-2 submit must take the in-flight
  * guard before its first await.
  *
- * @mutate src/pages/Signup.tsx | if (submittingRef.current) return; | void submittingRef;
- * @mutate src/pages/Signup.tsx | submittingRef.current = false; | void 0;
+ * @mutate src/pages/auth/Signup.tsx | if (submittingRef.current) return; | void submittingRef;
+ * @mutate src/pages/auth/Signup.tsx | submittingRef.current = false; | void 0;
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const src = readFileSync("src/pages/Signup.tsx", "utf8");
+const src = readFileSync("src/pages/auth/Signup.tsx", "utf8");
 
 describe("signup Create Account is single-flight (OA-002)", () => {
   const handler = src.slice(src.indexOf("onContinue={async () => {"), src.indexOf("createAccountAndFinish();", src.indexOf("onContinue={async () => {")));

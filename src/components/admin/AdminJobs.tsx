@@ -47,7 +47,7 @@ import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
  *    notification sits unread.
  *
  * `?job=<id>` is the one shape that is always right and stays right — the
- * deep-link effect in src/pages/Activity.tsx resolves the live bucket at open
+ * deep-link effect in src/components/job-card/JobListPage.tsx resolves the live bucket at open
  * time. It is what every other producer in the app was swept onto in
  * 20260831232514_notification_links_land_on_the_right_spot.sql; these two call
  * sites were the last ones still writing a bare surface.

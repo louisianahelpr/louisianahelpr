@@ -204,8 +204,8 @@ describe("no-show ladder — NO_SHOW_LADDER_SENTENCE ↔ report_helper_no_show (
     // Two surfaces render it today (the legal page and the report-no-show
     // confirm). A third that retypes it is the drift this test exists to stop.
     for (const file of [
-      "src/pages/legal/CommunitySection.tsx",
-      "src/components/activity/ActivityDialogs.tsx",
+      "src/pages/info/legal/CommunitySection.tsx",
+      "src/components/job-card/ActivityDialogs.tsx",
     ]) {
       expect(
         repoFile(file),
@@ -219,7 +219,7 @@ describe("no-show ladder — NO_SHOW_LADDER_SENTENCE ↔ report_helper_no_show (
     // These strings are user-facing copy written in TS, keyed off the RPC's
     // action strings. A rename in SQL that isn't mirrored here shows the user
     // the WRONG consequence, silently.
-    const handlers = repoFile("src/pages/activity/activityActions/useLifecycleHandlers.ts");
+    const handlers = repoFile("src/components/job-card/activityActions/useLifecycleHandlers.ts");
     expect(
       handlers,
       "useLifecycleHandlers no longer branches on 'pending_ban_review' — the second " +
@@ -250,7 +250,7 @@ describe("the strike ladder is stated ONCE", () => {
    * Four surfaces state a strike ladder in full, and only ONE of them reads the
    * module:
    *
-   *   src/pages/legal/CommunitySection.tsx:259-261  — hand-typed "Cancellation
+   *   src/pages/info/legal/CommunitySection.tsx:259-261  — hand-typed "Cancellation
    *       strikes (posters)" bullets, in a file that DOES import
    *       RELIABILITY_LADDER_RUNGS for a different section three screens up.
    *   src/components/CancellationDialog.tsx:346-358 — hand-typed "Strike System"
@@ -267,7 +267,7 @@ describe("the strike ladder is stated ONCE", () => {
   const RESTATERS = [
     "src/components/CancellationDialog.tsx",
     "src/components/profile/WarningsTab.tsx",
-    "src/pages/legal/CommunitySection.tsx",
+    "src/pages/info/legal/CommunitySection.tsx",
   ];
 
   it("no surface restates the rungs instead of reading RELIABILITY_LADDER_RUNGS", () => {
@@ -382,7 +382,7 @@ describe("the strike ladder is stated ONCE", () => {
     for (const [name, file] of [
       ["CancellationDialog", "src/components/CancellationDialog.tsx"],
       ["WarningsTab", "src/components/profile/WarningsTab.tsx"],
-      ["CommunitySection", "src/pages/legal/CommunitySection.tsx"],
+      ["CommunitySection", "src/pages/info/legal/CommunitySection.tsx"],
     ] as const) {
       expect(
         repoFile(file),
@@ -433,12 +433,12 @@ describe("review-turnaround promises come from reviewSla", () => {
    * is alive in three OTHER places, each with its own hand-typed number:
    *
    *   "usually within 24 hours"        src/components/IDVPromptDialog.tsx (manual ID review)
-   *   "manually within 24 hours"       src/pages/legal/TermsSection.tsx   (manual ID review)
+   *   "manually within 24 hours"       src/pages/info/legal/TermsSection.tsx   (manual ID review)
    *   "we review within one business day"
    *                                    src/components/profile/CredentialsTab.tsx
    * against REVIEW_SLA = "under 2 hours". FIXED SINCE: a fourth,
    * "reviews all reports within 24 hours" in
-   * src/pages/helpCenter/helpCenterContent.ts, was removed outright rather than
+   * src/pages/info/helpCenter/helpCenterContent.ts, was removed outright rather than
    * renumbered — nothing in the product measured, tracked or escalated an
    * unread report, so no number would have been true (see the "delivered by
    * nothing" test below, now inverted to hold that removal in place). Three
@@ -459,12 +459,12 @@ describe("review-turnaround promises come from reviewSla", () => {
     const KNOWN: Record<string, string> = {
       "src/components/IDVPromptDialog.tsx":
         "manual ID review — 'usually within 24 hours'; REVIEW_SLA says 'under 2 hours'",
-      "src/pages/legal/TermsSection.tsx":
+      "src/pages/info/legal/TermsSection.tsx":
         "manual ID review — 'within 24 hours'; the SAME fact as IDVPromptDialog, retyped, " +
         "and this one is binding copy in a legal document",
       "src/components/profile/CredentialsTab.tsx":
         "credential re-upload — 'within one business day'; a third, different number",
-      // src/pages/helpCenter/helpCenterContent.ts was the fourth entry. Its
+      // src/pages/info/helpCenter/helpCenterContent.ts was the fourth entry. Its
       // "reviews all reports within 24 hours" is GONE, not renumbered, so the
       // file correctly dropped out of `hits` and the `stale` assertion below
       // started failing — which is the inventory doing its job. Shrinking KNOWN
@@ -670,7 +670,7 @@ describe("money the UI names is the money the backend moves", () => {
     // Either Dashboard states the duration (and it must equal the constant), or
     // it derives it (and there is nothing left to compare) — a third state,
     // "states it in a shape this test cannot read", must fail loudly.
-    const dash = stripComments(repoFile("src/pages/Dashboard.tsx"));
+    const dash = stripComments(repoFile("src/pages/home/Dashboard.tsx"));
     const boostLine = dash.split("\n").find((l) => /boost/i.test(l) && /\d+ hours/.test(l));
     const derives = /BOOST_DURATION_HOURS/.test(dash);
     expect(
@@ -703,7 +703,7 @@ describe("consequences the app states must be delivered by something", () => {
   it("the dispute-velocity threshold the app quotes is the one the backend enforces", () => {
     // COPY: "3+ disputes in 30 days flags your account for review."
     //   src/components/DisputeDialog.tsx  (BOTH the helper and poster lists)
-    //   src/pages/legal/CommunitySection.tsx  (independently retyped)
+    //   src/pages/info/legal/CommunitySection.tsx  (independently retyped)
     //
     // WAS A FINDING, now delivered. The history is worth keeping because the
     // shape recurs: `public.check_dispute_velocity(uuid)` (20260325045032)
@@ -764,7 +764,7 @@ describe("consequences the app states must be delivered by something", () => {
     const sentence = new RegExp(`${threshold}\\+ disputes in ${windowDays} days`);
     for (const surface of [
       "src/components/DisputeDialog.tsx",
-      "src/pages/legal/CommunitySection.tsx",
+      "src/pages/info/legal/CommunitySection.tsx",
     ]) {
       expect(
         repoFile(surface),
@@ -889,7 +889,7 @@ describe("consequences the app states must be delivered by something", () => {
   });
 
   it("the GPS proximity radius the legal page states is the radius mark_helper_arrival enforces", () => {
-    // COPY: src/pages/legal/CommunitySection.tsx —
+    // COPY: src/pages/info/legal/CommunitySection.tsx —
     //   "GPS proximity check-in: Within 500 ft of the job location."
     //
     // BACKEND CHECKED: public.mark_helper_arrival, migration 20260915044137
@@ -908,7 +908,7 @@ describe("consequences the app states must be delivered by something", () => {
         "definition moved to a later migration and this guard is blind",
     ).toBeDefined();
     expect(
-      repoFile("src/pages/legal/CommunitySection.tsx"),
+      repoFile("src/pages/info/legal/CommunitySection.tsx"),
       `the legal page must state the ${enforced} ft radius mark_helper_arrival actually ` +
         `enforces (20260915044137). There is no shared constant between the two — if the ` +
         `SQL moves, only this test stands between the change and a false statement in a ` +

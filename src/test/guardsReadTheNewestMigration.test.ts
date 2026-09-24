@@ -135,7 +135,7 @@ function staleGuards(): Stale[] {
 // @two-way src/test/guardsReadTheNewestMigration.test.ts:GRANDFATHERED.filter((f) => !live.has(f))
 const GRANDFATHERED: readonly string[] = [
   "src/lib/cancellationFee.parity.test.ts",
-  "src/pages/dashboard/applyErrorCopy.test.ts",
+  "src/pages/home/applyErrorCopy.test.ts",
   "src/lib/smartSort.test.ts",
   "src/test/consequenceCopyParity.test.ts",
   "src/test/groupJobRosterLifecycle.test.ts",

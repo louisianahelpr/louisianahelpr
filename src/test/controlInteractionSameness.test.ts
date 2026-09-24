@@ -338,7 +338,7 @@ function violations(rule: RuleName): string[] {
 //
 // Five other lanes own files this lane may not edit (src/components/dashboard,
 // src/components/profile, src/components/messages, src/components/postjob,
-// src/components/activity, src/pages/userProfile). Their overrides are REAL
+// src/components/job-card, src/pages/user). Their overrides are REAL
 // violations of the rule above; they are listed so the rule can land now and
 // they can be handed to the owning lane, not so they can be forgotten.
 //

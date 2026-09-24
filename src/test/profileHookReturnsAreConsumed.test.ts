@@ -8,14 +8,14 @@
  * non-test file in src/ other than the hook itself, or sit in the exact
  * KNOWN_UNCONSUMED list below (reported, not removed: dead code is a report).
  *
- * @mutate src/pages/userProfile/useUserProfileData.ts |     data,\n    isError, |     data,\n    q250Planted: null,\n    isError,
+ * @mutate src/pages/user/useUserProfileData.ts |     data,\n    isError, |     data,\n    q250Planted: null,\n    isError,
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const ROOT = join(__dirname, "..", "..");
-const HOOK = "src/pages/userProfile/useUserProfileData.ts";
+const HOOK = "src/pages/user/useUserProfileData.ts";
 
 // @two-way src/test/profileHookReturnsAreConsumed.test.ts:expect(unconsumed.sort()).toEqual
 const KNOWN_UNCONSUMED = ["postedCancelledCount", "statSamples"];

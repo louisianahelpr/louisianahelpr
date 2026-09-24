@@ -50,7 +50,7 @@ const SQL_PATH = path.join(HERE, "write-contract.sql");
 /** file (relative to repo root) → reason it runs signed-out. */
 export const ANON_CALL_SITES = {
   "src/lib/parishLookup.ts": "ZIP→parish lookup runs on the signup form, before the account exists",
-  "src/pages/DashboardGuest.tsx": "the guest dashboard is the signed-out browse surface",
+  "src/pages/home/DashboardGuest.tsx": "the guest dashboard is the signed-out browse surface",
 };
 
 // ---------------------------------------------------------------------------

@@ -151,8 +151,8 @@ if (existsSync("src/pages/profile/types.ts")) {
 // ── enumerate: post-job entry paths ────────────────────────────────────────
 // Keyed off the numbered section comments in EntryChoice so a NEW option
 // cannot be added without this list noticing it is unowned.
-if (existsSync("src/pages/postjob/EntryChoice.tsx")) {
-  const src = readFileSync("src/pages/postjob/EntryChoice.tsx", "utf8");
+if (existsSync("src/pages/post-job/EntryChoice.tsx")) {
+  const src = readFileSync("src/pages/post-job/EntryChoice.tsx", "utf8");
   // Trailing punctuation is NOT part of the name: the section comments read
   // "3 — REPOST A RECENT TASK (collapsed by default)" and "6 — OFFER TO A
   // SAVED HELPR. The direct-offer flow's...". Capturing greedily gave

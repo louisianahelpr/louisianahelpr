@@ -2,7 +2,7 @@
 
 ## Scope as assigned
 
-1. **NEW today:** the six post-a-job entry paths in `src/pages/postjob/EntryChoice.tsx`
+1. **NEW today:** the six post-a-job entry paths in `src/pages/post-job/EntryChoice.tsx`
    (Start Fresh, Pick Up Your Draft, Repost a Recent Job, Use a Template, AI Job
    Builder, Offer to a Saved Helpr) — every one pre-fills the money-taking form.
 2. **NEW today:** `?tab=profile` (Edit Profile) and `?tab=accessibility`.

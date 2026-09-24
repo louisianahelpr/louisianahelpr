@@ -186,7 +186,7 @@ describe("Legal & policies — the same documents the signed-out page shows", ()
      service" card per document plus deep links — which sent a signed-in user
      back out to the public /legal page, the exact bounce banned on
      2026-08-30. It now renders the policy text itself, from the same
-     components pages/Legal.tsx mounts.
+     components pages/info/Legal.tsx mounts.
 
      These assertions are about CONTENT, not about the render succeeding: the
      old suite passed while the screen showed link cards, because it only ever
@@ -224,7 +224,7 @@ describe("Legal & policies — the same documents the signed-out page shows", ()
 });
 
 // The tab states no policy of its own: it MOUNTS the same elements
-// pages/Legal.tsx does. Point the Privacy panel at a different document and the
+// pages/info/Legal.tsx does. Point the Privacy panel at a different document and the
 // export, the GDPR footnote and "Information we collect" all go with it — which
 // is exactly the drift (two wordings of one clause) this file exists to stop.
 // @mutate src/components/profile/LegalTab.tsx | privacy: <PrivacyContent />, | privacy: <CommunityContent />,

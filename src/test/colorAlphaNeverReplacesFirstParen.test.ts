@@ -19,7 +19,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
-// @mutate src/pages/userProfile/RecognitionRow.tsx | background: `${milestone.color.slice(0, -1)} / 0.12)`, | background: milestone.color.replace(")", " / 0.12)"),
+// @mutate src/pages/user/RecognitionRow.tsx | background: `${milestone.color.slice(0, -1)} / 0.12)`, | background: milestone.color.replace(")", " / 0.12)"),
 
 const ROOT = resolve(__dirname, "..", "..");
 const FILES = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })

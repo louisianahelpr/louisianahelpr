@@ -65,12 +65,12 @@ import { join, resolve } from "node:path";
 //   3. The shell marking the row with the old `data-compact` attribute, which
 //      is what the deleted stylesheet rule hung off. Part 3 must go red.
 // @mutate src/index.css |   flex: 0 1 var(--job-row-chip, 44px);\n} |   flex: 0 1 var(--job-row-chip, 44px);\n}\n[data-job-step-row][data-tight="true"] > :not([data-job-step-primary]) span {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  clip: rect(0, 0, 0, 0);\n}
-// @mutate src/components/activity/jobStepRow.tsx | const chipPx = chipControlFloorPx(chipNeed); | const chipPx = ROW_CONTROL_MIN_PX;
-// @mutate src/components/activity/JobStepCard.tsx | data-tight={layout.tight ? "true" : "false"} | data-compact={layout.tight ? "true" : "false"}
+// @mutate src/components/job-card/jobStepRow.tsx | const chipPx = chipControlFloorPx(chipNeed); | const chipPx = ROW_CONTROL_MIN_PX;
+// @mutate src/components/job-card/JobStepCard.tsx | data-tight={layout.tight ? "true" : "false"} | data-compact={layout.tight ? "true" : "false"}
 //   4. Severing the note portal — the question the visual pass asked when it
 //      found `[data-job-step-note]` 0×0 on every card it opened. Part 4 must
 //      go red: four states fill it today, and the guard must notice if none do.
-// @mutate src/components/activity/jobStepRow.tsx | const host = slot === "primary" ? ctx.primaryHost : ctx.noteHost; | const host = slot === "primary" ? ctx.primaryHost : null;
+// @mutate src/components/job-card/jobStepRow.tsx | const host = slot === "primary" ? ctx.primaryHost : ctx.noteHost; | const host = slot === "primary" ? ctx.primaryHost : null;
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -129,7 +129,7 @@ import {
   chipControlFloorPx,
   JOB_STEP_ROW_GAP_PX,
   LABELLED_CHIP_MIN_PX,
-} from "@/components/activity/jobStepRow";
+} from "@/components/job-card/jobStepRow";
 
 const ROOT = resolve(__dirname, "../..");
 
@@ -223,7 +223,7 @@ describe("no stylesheet rule can hide a job step row control's label", () => {
   it("the shell marks the row TIGHT, and the icon-only attribute is gone from the tree", () => {
     // `data-compact` is the attribute the deleted rule hung off. If it comes
     // back in the shell, the rule has somewhere to land again.
-    const shell = readFileSync(join(ROOT, "src/components/activity/JobStepCard.tsx"), "utf8");
+    const shell = readFileSync(join(ROOT, "src/components/job-card/JobStepCard.tsx"), "utf8");
     expect(shell, "the shell no longer marks its row tight").toMatch(/data-tight=\{/);
     expect(
       /data-compact/.test(shell),

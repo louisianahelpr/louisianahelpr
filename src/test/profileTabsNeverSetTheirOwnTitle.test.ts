@@ -5,7 +5,7 @@
  * last on its own deps), which is how eight tabs read "X — Helpr" or bare
  * "Analytics". Inventory: every module ProfileTabPanels lazy-imports.
  *
- * @mutate src/pages/HelperAnalytics.tsx | // Advanced Analytics, the Pro/Elite perk | // usePageTitle("Analytics"); Advanced Analytics, the Pro/Elite perk
+ * @mutate src/pages/profile/HelperAnalytics.tsx | // Advanced Analytics, the Pro/Elite perk | // usePageTitle("Analytics"); Advanced Analytics, the Pro/Elite perk
  */
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

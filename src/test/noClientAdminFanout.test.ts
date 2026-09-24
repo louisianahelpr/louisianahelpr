@@ -9,7 +9,7 @@
  * Class check: no non-test file under src/ both reads admins from user_roles
  * and calls createNotification.
  *
- * @mutate src/pages/activity/activityActions/useOfferHandlers.ts | import { notifyJobParty } from "@/lib/notifications"; | import { notifyJobParty, createNotification } from "@/lib/notifications";\nconst _q308 = () => supabase.from("user_roles").select("user_id").eq("role", "admin").then(() => createNotification({} as never));
+ * @mutate src/components/job-card/activityActions/useOfferHandlers.ts | import { notifyJobParty } from "@/lib/notifications"; | import { notifyJobParty, createNotification } from "@/lib/notifications";\nconst _q308 = () => supabase.from("user_roles").select("user_id").eq("role", "admin").then(() => createNotification({} as never));
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";

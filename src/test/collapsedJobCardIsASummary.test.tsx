@@ -56,18 +56,18 @@
  * one changed nothing it rendered. That is the mutation doing its job: a case
  * per section now exists, and each has a mutation that reaches it.
  *
- * @mutate src/components/activity/AppliedJobCard.tsx | {isConfirmed && isExpanded && ( | {isConfirmed && (
- * @mutate src/components/activity/AppliedJobCard.tsx | {isActive && isExpanded && ( | {isActive && (
- * @mutate src/components/activity/AppliedJobCard.tsx | {isDisputed && isExpanded && ( | {isDisputed && (
- * @mutate src/components/activity/AppliedJobCard.tsx | {!isMinimalCard && !isExpanded && <JobStatusStrip line={helperStatusLine(app)} />} | {false && <JobStatusStrip line={helperStatusLine(app)} />}
- * @mutate src/components/activity/PostedJobCard.tsx | {!isExpanded && (\n              <JobStatusStrip | {false && (\n              <JobStatusStrip
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | {isConfirmed && isExpanded && ( | {isConfirmed && (
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | {isActive && isExpanded && ( | {isActive && (
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | {isDisputed && isExpanded && ( | {isDisputed && (
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | {!isMinimalCard && !isExpanded && <JobStatusStrip line={helperStatusLine(app)} />} | {false && <JobStatusStrip line={helperStatusLine(app)} />}
+ * @mutate src/pages/posts/PostedJobCard.tsx | {!isExpanded && (\n              <JobStatusStrip | {false && (\n              <JobStatusStrip
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
-import type { AppliedApp, Job } from "@/components/activity/activityConstants";
+import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -94,10 +94,10 @@ vi.mock("@/components/JobConfirmation", () => ({
   helperDayOfConfirmation: () => true,
 }));
 vi.mock("@/components/GroupJobHelpers", () => ({ GroupJobHelpers: () => null }));
-vi.mock("@/components/activity/SeriesStrip", () => ({ SeriesStrip: () => null }));
-vi.mock("@/components/activity/JobCountdown", () => ({ JobCountdown: () => null }));
-vi.mock("@/components/activity/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
-vi.mock("@/components/activity/useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
+vi.mock("@/pages/posts/SeriesStrip", () => ({ SeriesStrip: () => null }));
+vi.mock("@/components/job-card/JobCountdown", () => ({ JobCountdown: () => null }));
+vi.mock("@/pages/jobs/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
+vi.mock("@/components/job-card/useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null }) }));
 vi.mock("@/hooks/useFundExistingJob", () => ({ useFundExistingJob: () => ({ fundJob: vi.fn(), fundingJobId: null }) }));
 
@@ -122,8 +122,8 @@ function makeSupabase() {
 }
 vi.mock("@/integrations/supabase/client", () => makeSupabase());
 
-import { AppliedJobCard } from "@/components/activity/AppliedJobCard";
-import { PostedJobCard } from "@/components/activity/PostedJobCard";
+import { AppliedJobCard } from "@/pages/jobs/AppliedJobCard";
+import { PostedJobCard } from "@/pages/posts/PostedJobCard";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 beforeAll(() => {

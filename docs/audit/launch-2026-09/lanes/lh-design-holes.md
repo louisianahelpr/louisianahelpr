@@ -114,7 +114,7 @@ so the population only grows.
 ### DH-004 — Retry on something that can never succeed
 
 `useApplyFlow.ts:289-291` states the rule outright: permanent refusals get **no
-Retry** (`src/pages/dashboard/useApplyFlow.ts:289-291`), because "re-running the same invalid submit just re-fails". But
+Retry** (`src/pages/home/useApplyFlow.ts:289-291`), because "re-running the same invalid submit just re-fails". But
 `APPLY_RPC_MESSAGES` holds only the four `apply_to_job` strings, and
 `instant_book_claim` raises seven codes live — `authentication_required`,
 `job_not_found`, `cannot_claim_own_job`, `not_instant_book`, `job_not_open`,
@@ -211,7 +211,7 @@ a new consumer inherits the hole by default.
   `get_ranked_open_jobs=true`, `get_open_jobs_for_map=true`,
   `get_public_open_jobs=false`, a live `pg_get_functiondef` probe on `fncmgoasalhdgfwzhsqa`). Owner's call, confirmed in dispatch. Not a hole.
 - **Self-review, self-block, self-endorsement, self-referral, self-gift.** Each
-  has a real upstream filter, verified at `src/components/activity/ActivityDialogs.tsx:130` (`revieweeId` is always the counterparty);
+  has a real upstream filter, verified at `src/components/job-card/ActivityDialogs.tsx:130` (`revieweeId` is always the counterparty);
   `UserProfile.tsx:447` hides Block/Report behind `!isOwnProfile`;
   `canEndorse={!isOwnProfile && ...}`; `search_profiles` carries
   `WHERE p.user_id <> _uid`; the gift card recipient picker disables the CTA with an

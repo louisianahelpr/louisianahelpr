@@ -35,7 +35,7 @@ import { Button } from "@/components/ui/button";
 import { BellRing, MapPin, MapPinOff, Loader2 } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
-import { isJobExcludedForViewer, type ViewerFeedExclusions } from "@/pages/dashboard/viewerFeedExclusions";
+import { isJobExcludedForViewer, type ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
 import {
   LA_BOUNDS,
   MAP_DOCK_CLEARANCE,

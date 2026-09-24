@@ -121,7 +121,7 @@ const PINNED: Record<string, string> = {
   //      an admin decides a money split from — sign at display time via
   //      useProofPhotoUrls. Converting (3) without (4) would have filed
   //      disputes whose evidence the deciding admin could not see.
-  // components/activity/CompletionChoiceSheet.tsx was here. FIXED 2026-09-22:
+  // pages/posts/CompletionChoiceSheet.tsx was here. FIXED 2026-09-22:
   // it writes the storage PATH into job_revisions.photos and the one component
   // that renders them (activity/HelperRevisionCard.tsx) signs at display time
   // via useProofPhotoUrls. Nothing had been written through it in prod, and

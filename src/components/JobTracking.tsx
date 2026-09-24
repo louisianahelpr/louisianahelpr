@@ -20,13 +20,13 @@ import { trackJobCompleted } from "@/lib/jobCompletedEvent";
 import { BEFORE_PHOTO_GATE_REASON, lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
-import { railStepPaint } from "@/components/activity/jobRailTone";
+import { railStepPaint } from "@/components/job-card/jobRailTone";
 import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
-import { JobStepRowSlot, useInJobStepRow } from "@/components/activity/jobStepRow";
+import { JobStepRowSlot, useInJobStepRow } from "@/components/job-card/jobStepRow";
 /* `JobActionChip` was imported here for the "Try My Location Again" chip
    only; that control is gone (owner, 2026-09-19) and this component draws no
    chips of its own again — just its one primary. */
-import { JobStepPrimaryButton } from "@/components/activity/JobActionRow";
+import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 
 // Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
 // pulled in when a tracking card between On the Way and Done is visible.
@@ -666,7 +666,7 @@ export function JobTracking({
      this tile in five days): "the helpr or posted by should be right above the
      buttons". It is no longer anywhere near the tracker, so a slot here would
      be a prop nobody passes. Both cards now publish the tile through
-     `JobCardPersonContext` (src/components/activity/jobCardPerson.tsx) and the
+     `JobCardPersonContext` (src/components/job-card/jobCardPerson.tsx) and the
      step shell renders it directly above the action row. This component is
      back to owning only the position. */
   /**
@@ -1953,7 +1953,7 @@ export function JobTracking({
               // so and carried a second test to notice when the copy went
               // stale. A second, denser rail on the collapsed card then made
               // that a third copy, so the rule moved to `railStepPaint`
-              // (src/components/activity/jobRailTone.ts) and both rails read
+              // (src/components/job-card/jobRailTone.ts) and both rails read
               // it. The compact rail is gone again (the owner replaced the
               // dots with a sentence the same day), so this is the ONE rail —
               // but the rule stays extracted and the guard stays imported:

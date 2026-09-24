@@ -174,7 +174,7 @@ const MESSAGES_HEADER_PADDING = "!py-1.5 lg:!py-2";
  * 2026-09-19 complaint (the phone's filter was the undiscoverable one) does
  * not come back. The chevron is an opt-in fold, not a closed drawer.
  *
- * ActivityHeader (src/pages/activity/ActivityHeader.tsx) is the SOURCE OF
+ * ActivityHeader (src/components/job-card/ActivityHeader.tsx) is the SOURCE OF
  * TRUTH for this affordance's behaviour — read the long docblock at its
  * `tabsOpenPhone` before changing anything here. Do not ship it
  * closed-by-default on either screen: that shipped once on Activity and cost

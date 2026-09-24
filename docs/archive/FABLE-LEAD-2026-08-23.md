@@ -426,7 +426,7 @@ none is lost; ✅ = fixed and verified, ⏳ = open.
 - ✅ Legal tab bar spacing / search left — FIXED (`2805ee382`).
 - ✅ Public profile layout (name/location right of avatar) — FIXED
   (`372981c68`, `0ffe99fb1`). Reviews-tab blank state also fixed
-  (`src/pages/UserProfile.tsx` — real empty state instead of 3 blank tabs).
+  (`src/pages/user/UserProfile.tsx` — real empty state instead of 3 blank tabs).
 - ✅ Job card: Verified badge removed, countdown moved to meta line — FIXED
   (`d4c2f769b`). Done-stage Review/Tip gating is correct-by-design (unlocks
   at Approve, which is the escrow release); an explainer was added

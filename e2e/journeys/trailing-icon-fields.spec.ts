@@ -150,4 +150,4 @@ test(incompleteTitle, async ({ browser, journey }) => {
 // digits at ≤430. Last name is the field the guest leg always renders a ✓ on
 // ("Thibodeaux-Broussard" is valid the moment it is typed), so the mutation is
 // reachable without depending on a parish lookup for the ZIP.
-// @mutate src/pages/signup/SignupStep2.tsx | lastNameValid && !fieldErrors.lastName ? " pr-8" : "" | lastNameValid && !fieldErrors.lastName ? " pr-16" : ""
+// @mutate src/pages/auth/signup/SignupStep2.tsx | lastNameValid && !fieldErrors.lastName ? " pr-8" : "" | lastNameValid && !fieldErrors.lastName ? " pr-16" : ""

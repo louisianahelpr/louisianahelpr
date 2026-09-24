@@ -361,9 +361,9 @@ async function openApplicantsPanel(page: Page): Promise<void> {
 }
 
 export const FORMS: FormSpec[] = [
-  { name: "login", url: "/login", as: null, covers: ["src/pages/Login.tsx"] },
-  { name: "forgot-password", url: "/forgot-password", as: null, covers: ["src/pages/ForgotPassword.tsx"] },
-  { name: "signup-step1", url: "/signup", as: null, covers: ["src/pages/signup/SignupStep1.tsx"] },
+  { name: "login", url: "/login", as: null, covers: ["src/pages/auth/Login.tsx"] },
+  { name: "forgot-password", url: "/forgot-password", as: null, covers: ["src/pages/auth/ForgotPassword.tsx"] },
+  { name: "signup-step1", url: "/signup", as: null, covers: ["src/pages/auth/signup/SignupStep1.tsx"] },
   {
     name: "signup-step2", url: "/signup", as: null,
     prepare: async (page) => {
@@ -392,10 +392,10 @@ export const FORMS: FormSpec[] = [
           "so a new required control was added to SignupStep1",
       ).toBeVisible({ timeout: 15_000 });
     },
-    covers: ["src/pages/signup/SignupStep2.tsx"],
+    covers: ["src/pages/auth/signup/SignupStep2.tsx"],
   },
-  { name: "support", url: "/support", as: null, covers: ["src/pages/Support.tsx", "src/lib/supportTopics.ts"] },
-  { name: "legal-search", url: "/legal", as: null, prepare: openSearch, covers: ["src/pages/Legal.tsx"] },
+  { name: "support", url: "/support", as: null, covers: ["src/pages/info/Support.tsx", "src/lib/supportTopics.ts"] },
+  { name: "legal-search", url: "/legal", as: null, prepare: openSearch, covers: ["src/pages/info/Legal.tsx"] },
   {
     // SIGNED IN, not signed out. /reset-password renders its two password
     // fields on three conditions (ResetPassword.tsx): a `#type=recovery` hash,
@@ -414,7 +414,7 @@ export const FORMS: FormSpec[] = [
     // submit would change a SHARED test account's password out from under
     // every other lane. A plain session renders the identical form with no
     // such edge.
-    name: "reset-password", url: "/reset-password", as: "poster", covers: ["src/pages/ResetPassword.tsx"],
+    name: "reset-password", url: "/reset-password", as: "poster", covers: ["src/pages/auth/ResetPassword.tsx"],
   },
   {
     name: "post-job", url: "/post-job", as: "poster",
@@ -423,11 +423,11 @@ export const FORMS: FormSpec[] = [
   },
   { name: "dashboard-search", url: "/dashboard", as: "helper", prepare: openSearch, covers: ["src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx"] },
   { name: "messages-list", url: "/messages", as: "helper", prepare: openSearch, covers: ["src/components/messages/ConversationList.tsx"] },
-  { name: "my-posts-search", url: "/my-posts", as: "poster", prepare: openSearch, covers: ["src/pages/activity/ActivityHeader.tsx"] },
-  { name: "complete-profile", url: "/complete-profile", as: "incomplete", covers: ["src/pages/CompleteProfile.tsx", "src/components/postjob/CityAutocomplete.tsx"] },
+  { name: "my-posts-search", url: "/my-posts", as: "poster", prepare: openSearch, covers: ["src/components/job-card/ActivityHeader.tsx"] },
+  { name: "complete-profile", url: "/complete-profile", as: "incomplete", covers: ["src/pages/auth/CompleteProfile.tsx", "src/components/postjob/CityAutocomplete.tsx"] },
   { name: "profile-edit", url: "/profile?tab=profile", as: "helper", covers: ["src/components/profile/ProfileEditForm.tsx", "src/components/profile/profileEditForm/PhotoNameSection.tsx"] },
   { name: "profile-support", url: "/profile?tab=support", as: "helper", covers: ["src/components/profile/SupportInline.tsx"] },
-  { name: "gift-card", url: "/profile?tab=gift_card", as: "poster", covers: ["src/pages/GiftCard.tsx"] },
+  { name: "gift-card", url: "/profile?tab=gift_card", as: "poster", covers: ["src/pages/profile/GiftCard.tsx"] },
   {
     // Auto-tip opens on "Off", and the amount and cap fields only exist while
     // a mode is chosen (`mode !== "off"` in AutoTip.tsx) — correct product
@@ -440,18 +440,18 @@ export const FORMS: FormSpec[] = [
       await page.getByRole("radio", { name: /^percent$/i }).first().click().catch(() => {});
       await page.locator("#auto-tip-custom").waitFor({ timeout: 5_000 }).catch(() => {});
     },
-    covers: ["src/pages/AutoTip.tsx"],
+    covers: ["src/pages/profile/AutoTip.tsx"],
   },
   { name: "saved-helpers", url: "/profile?tab=saved_helpers", as: "poster", prepare: openSearch, covers: ["src/components/profile/SavedHelpersTab.tsx"] },
   {
     name: "pets", url: "/profile?tab=pets", as: "poster",
     prepare: async (page) => { await pressIfPresent(page, /add (a |another )?pet/i); },
-    covers: ["src/pages/petProfiles/PetForm.tsx"],
+    covers: ["src/pages/profile/petProfiles/PetForm.tsx"],
   },
   {
     name: "str-settings", url: "/profile?tab=str_settings", as: "poster",
     prepare: async (page) => { await pressIfPresent(page, /add (a )?calendar/i); },
-    covers: ["src/pages/strSettings/AddCalendarForm.tsx"],
+    covers: ["src/pages/profile/strSettings/AddCalendarForm.tsx"],
   },
   // Every admin entry opens the gate first — see `recoverAdminGate`. The four
   // below reach their field on a healthy gate and would have reported "the
@@ -492,9 +492,9 @@ export const FORMS: FormSpec[] = [
   // named ActivityDialogs.tsx, which only mounts it and is not in the form
   // inventory at all — a `covers` entry the coverage test could never check.
   { name: "activity-dispute-dialog", url: "/my-jobs", as: "helper", prepare: openDisputeDialog, covers: ["src/components/DisputeDialog.tsx"] },
-  { name: "active-job-section", url: "/my-jobs", as: "helper", prepare: openActiveJobSection, covers: ["src/components/activity/appliedJobCard/ActiveJobSection.tsx"] },
-  { name: "disputed-section", url: "/my-jobs", as: "helper", prepare: openDisputedSectionResponse, covers: ["src/components/activity/appliedJobCard/DisputedSection.tsx"] },
-  { name: "pending-application-section", url: "/my-jobs", as: "helper", prepare: openPendingApplicationEdit, covers: ["src/components/activity/appliedJobCard/PendingApplicationSection.tsx"] },
+  { name: "active-job-section", url: "/my-jobs", as: "helper", prepare: openActiveJobSection, covers: ["src/pages/jobs/appliedJobCard/ActiveJobSection.tsx"] },
+  { name: "disputed-section", url: "/my-jobs", as: "helper", prepare: openDisputedSectionResponse, covers: ["src/pages/jobs/appliedJobCard/DisputedSection.tsx"] },
+  { name: "pending-application-section", url: "/my-jobs", as: "helper", prepare: openPendingApplicationEdit, covers: ["src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx"] },
   {
     name: "admin-reports-message", url: "/admin?view=reports", as: "admin",
     // "Message <name>" renders only on a report that is still open — New or
@@ -595,7 +595,7 @@ export const FORMS: FormSpec[] = [
       await page.getByRole("button", { name: /^other$/i }).or(page.getByRole("radio", { name: /^other$/i })).first().click();
       await page.getByRole("textbox", { name: /withdraw reason — other/i }).waitFor({ timeout: 10_000 });
     },
-    covers: ["src/components/activity/AppliedJobsTab.tsx"],
+    covers: ["src/pages/jobs/AppliedJobsTab.tsx"],
   },
   {
     name: "block-user-dialog", url: "/dashboard", as: "poster",
@@ -622,7 +622,7 @@ export const FORMS: FormSpec[] = [
       await add.click();
       await page.getByRole("textbox", { name: /write a public response/i }).waitFor({ timeout: 10_000 });
     },
-    covers: ["src/pages/userProfile/ReviewsSection.tsx"],
+    covers: ["src/pages/user/ReviewsSection.tsx"],
   },
   {
     name: "saved-helper-note", url: "/profile?tab=saved_helpers", as: "poster",
@@ -696,7 +696,7 @@ export const FORMS: FormSpec[] = [
       await page.getByRole("button", { name: /^edit job$/i }).first().click();
       await page.getByRole("textbox", { name: /^job title$/i }).waitFor({ timeout: 15_000 });
     },
-    covers: ["src/components/activity/EditJobDialog.tsx"],
+    covers: ["src/pages/posts/EditJobDialog.tsx"],
   },
   {
     name: "cancel-job", url: "/my-posts", as: "poster",
@@ -716,7 +716,7 @@ export const FORMS: FormSpec[] = [
       await page.getByRole("button", { name: /add private note/i }).first().click();
       await page.getByRole("textbox", { name: /^private note$/i }).waitFor({ timeout: 15_000 });
     },
-    covers: ["src/components/activity/postedJobs/ApplicantsPanel.tsx"],
+    covers: ["src/pages/posts/postedJobs/ApplicantsPanel.tsx"],
   },
   {
     name: "decline-applicant", url: "/my-posts", as: "poster",
@@ -725,7 +725,7 @@ export const FORMS: FormSpec[] = [
       await page.getByRole("button", { name: /^decline /i }).first().click();
       await page.locator("#decline-note").waitFor({ timeout: 15_000 });
     },
-    covers: ["src/components/activity/postedJobs/DeclineApplicantSheet.tsx"],
+    covers: ["src/pages/posts/postedJobs/DeclineApplicantSheet.tsx"],
   },
 ];
 
@@ -737,7 +737,7 @@ export const GAPS: Record<string, string> = {
   "src/lib/offerResponseWindow.ts": "false positive — option list for a Select, rendered by DirectOfferBanner",
   "src/components/admin/marketing/marketingTypes.ts": "false positive — type/constant module",
   "src/components/notificationPreferences/constants.tsx": "false positive — constants module",
-  "src/components/activity/JobCardMetaRow.tsx": "false positive — displays a date, no control",
+  "src/components/job-card/JobCardMetaRow.tsx": "false positive — displays a date, no control",
   "src/components/dashboard/JobCard.tsx": "false positive — displays a date, no control",
   "src/hooks/useComboboxKeyboard.ts": "false positive — a keyboard hook; the scanner matched `<input type=\"search\">` in a comment, it renders nothing",
   "src/components/postjob/CheckoutStep.tsx": "checkboxes only (save-card, confirm-details) — the 'input×1' is a comment naming the raw `<input type=\"checkbox\">` it replaced; no typed text",
@@ -770,11 +770,11 @@ export const GAPS: Record<string, string> = {
   "src/components/TimePickerWheel.tsx": "wheel picker — constrained options",
   "src/components/DatePickerField.tsx": "calendar/wheel picker — no typed date (DOB bound asserted in the targeted tests)",
   "src/components/profile/ScheduleTab.tsx": "calendar only",
-  "src/pages/HomeHistory.tsx": "date picker only",
-  "src/pages/WorkRecord.tsx": "date picker only",
+  "src/pages/profile/HomeHistory.tsx": "date picker only",
+  "src/pages/profile/WorkRecord.tsx": "date picker only",
   "src/components/admin/adminJobs/JobDetailDialog.tsx": "calendar display only",
   "src/components/EarningsExport.tsx": "selects + date pickers, constrained",
-  "src/pages/postjob/DirectOfferBanner.tsx": "select only",
+  "src/pages/post-job/DirectOfferBanner.tsx": "select only",
   "src/components/TimeRangeField.tsx": "time input, constrained by the browser",
   "src/components/profile/AvatarCropDialog.tsx": "file input / zoom slider — no typed text",
   "src/components/PhotoProof.tsx": "file input only",
@@ -787,7 +787,7 @@ export const GAPS: Record<string, string> = {
   "src/components/feedback/NpsPrompt.tsx": "appears on a 30-day cadence after a completed job; not reachable on demand",
   "src/components/ResponseDeadlineDialog.tsx": "select only (response window)",
   "src/components/CompletionPrompts.tsx": "yes/no prompts, no typed text",
-  "src/components/activity/CompletionChoiceSheet.tsx": "choice sheet, no typed text",
+  "src/pages/posts/CompletionChoiceSheet.tsx": "choice sheet, no typed text",
   // Admin queues that only real events fill (prod-seed.mjs 'Not produced, by design').
   "src/components/admin/AdminExceptionQueue.tsx": "verification_exceptions queue — no seed row (prod-seed: admin work queue, no honest seed value)",
   "src/components/admin/AdminPayoutBatches.tsx": "payout batches — real Stripe transfers only; no seed batch",

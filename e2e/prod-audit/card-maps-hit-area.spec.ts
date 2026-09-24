@@ -8,7 +8,7 @@
  * "open this job", and a maps link — a control whose activation LEAVES THE APP
  * — may not own a meaningful share of that card's tap area on any surface. It
  * is a class and not a one-off because the address is drawn by one shared
- * component (`src/components/activity/JobCardMetaRow.tsx`) whose location slot
+ * component (`src/components/job-card/JobCardMetaRow.tsx`) whose location slot
  * can be either a link or a press-to-map button, decided per call site by the
  * `locationPressToMap` prop. Every future consumer of that row inherits the
  * defect by default, and two of them (`PostedJobCard`, `AppliedJobCard`)
@@ -21,7 +21,7 @@
  * defect was NOT "the address is a link" on its own but "the address is a link
  * that `basis-full` stretched across 89% of the card", and no amount of
  * reading classes finds the 89%. jsdom computes no layout;
- * `src/components/activity/AppliedJobCard.locationTapExpands.test.tsx` pins the
+ * `src/pages/jobs/AppliedJobCard.locationTapExpands.test.tsx` pins the
  * markup half, this file pins the geometry.
  *
  * ── MEASURED, before → after (prod Supabase, local build of this checkout,
@@ -52,7 +52,7 @@
 // SHOWN ABLE TO FAIL: dropping the prop restores the original defect verbatim
 // — the location slot goes back to being the full-width anchor, and /my-jobs
 // measures 15% again at 375.
-// @mutate src/components/activity/AppliedJobCard.tsx | locationPressToMap | locationPressToMap={false}
+// @mutate src/pages/jobs/AppliedJobCard.tsx | locationPressToMap | locationPressToMap={false}
 
 import { mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -202,8 +202,8 @@ async function authedContext(browser: Browser, vw: number, baseURL: string | und
 
 /** Route → which account sees cards there → which source file draws them. */
 const SURFACES: { name: string; url: string; as: "poster" | "helper"; drawnBy: string }[] = [
-  { name: "my-jobs", url: "/my-jobs", as: "helper", drawnBy: "components/activity/AppliedJobCard.tsx" },
-  { name: "my-posts", url: "/my-posts", as: "poster", drawnBy: "components/activity/PostedJobCard.tsx" },
+  { name: "my-jobs", url: "/my-jobs", as: "helper", drawnBy: "pages/jobs/AppliedJobCard.tsx" },
+  { name: "my-posts", url: "/my-posts", as: "poster", drawnBy: "pages/posts/PostedJobCard.tsx" },
 ];
 
 test("every file that draws the shared meta row is on a route this spec measures", () => {

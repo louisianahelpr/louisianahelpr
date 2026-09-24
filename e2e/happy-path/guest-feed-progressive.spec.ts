@@ -76,4 +76,4 @@ test("guest job cards render while poster enrichment is still in flight", async 
 // wait is bounded by ARRIVAL_CAP_MS (src/hooks/useArrivalGate.ts), so a hung
 // enrichment call costs at most that long. Raise the cap past the spec's 5s
 // hold and the job title cannot appear inside its 3s budget.
-// @mutate src/pages/DashboardGuest.tsx | useArrivalGate(!isLoading, enrichmentSettled) | useArrivalGate(!isLoading, enrichmentSettled, 60_000)
+// @mutate src/pages/home/DashboardGuest.tsx | useArrivalGate(!isLoading, enrichmentSettled) | useArrivalGate(!isLoading, enrichmentSettled, 60_000)

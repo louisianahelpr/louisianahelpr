@@ -18,7 +18,7 @@
  *
  * @mutate supabase/functions/_shared/accountPurge.ts | steps.push({ step: "avatar_pointer", ok: false, | steps.push({ step: "avatar_ptr", ok: false,
  * @mutate supabase/functions/_shared/purgeBuckets.ts |   "user-documents",\n |
- * @mutate src/pages/legal/DataExportCard.tsx |         reviews: reviewsRes.data,\n |
+ * @mutate src/pages/info/legal/DataExportCard.tsx |         reviews: reviewsRes.data,\n |
  * @mutate scripts/lib/privacyJourney.mjs |   if (subject.isSeed !== true) throw | if (false) throw
  * @mutate scripts/lib/privacyJourney.mjs |   if (m[1] !== subject.runTag) throw | if (false) throw
  * @mutate scripts/lib/privacyJourney.mjs | created < subject.runStartedAt - 5 * 60_000) | false)
@@ -65,7 +65,7 @@ describe("privacy journey covers every purge step (Q70)", () => {
   });
 
   it("export sections: DataExportCard's payload keys == EXPORT_SECTIONS", () => {
-    const card = blankComments(read("src/pages/legal/DataExportCard.tsx"));
+    const card = blankComments(read("src/pages/info/legal/DataExportCard.tsx"));
     const payload = /const payload = \{([\s\S]*?)\};/.exec(card)?.[1] ?? "";
     const keys = [...payload.matchAll(/^\s*(\w+):/gm)].map((m) => m[1]).sort();
     expect(keys.length).toBeGreaterThan(3);

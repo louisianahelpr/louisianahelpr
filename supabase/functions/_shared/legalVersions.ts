@@ -1,4 +1,4 @@
-// Legal document versions — mirrored to `src/pages/legal/legalSections.ts`
+// Legal document versions — mirrored to `src/pages/info/legal/legalSections.ts`
 // (the front-end LAST_UPDATED map that renders in each PolicyFooter). The
 // edge runtime (Deno) can't import from the src/ tree at build time, so
 // these constants exist twice by necessity — the parity test
@@ -6,7 +6,7 @@
 // files at test time and asserting they agree.
 //
 // When you materially change a policy, bump BOTH sides in the same PR:
-//   1. src/pages/legal/legalSections.ts → LAST_UPDATED[key]
+//   1. src/pages/info/legal/legalSections.ts → LAST_UPDATED[key]
 //   2. this file → the matching constant
 // A bumped version here also drives the re-consent flow: users whose
 // `legal_acceptances.terms_version` (or privacy_version) is older than

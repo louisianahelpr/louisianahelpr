@@ -10,7 +10,7 @@
  */
 import {
   categoryLabels, categoryColors,
-} from "@/components/activity/activityConstants";
+} from "@/components/job-card/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { hapticLight } from "@/lib/haptics";
 

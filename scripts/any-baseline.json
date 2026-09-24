@@ -1,7 +1,7 @@
 {
   "_": "`any` ratchet, enforced by src/test/anyRatchet.test.ts. Per-file AnyKeyword counts in non-test src/ (node scripts/any-baseline.mjs). Exact both ways: when you remove an `any`, regenerate with `node scripts/any-baseline.mjs --write` in the same commit; never raise an entry.",
   "files": {
-    "src/components/activity/EditJobDialog.tsx": 1,
+    "src/pages/posts/EditJobDialog.tsx": 1,
     "src/components/admin/AdminJobs.tsx": 1,
     "src/components/dashboard/SwipeableJobCard.tsx": 1,
     "src/components/JobTracking.tsx": 1,
@@ -19,8 +19,8 @@
     "src/lib/archivedConversations.ts": 8,
     "src/lib/lazyWithPreload.ts": 2,
     "src/lib/posthog.ts": 3,
-    "src/pages/DashboardGuest.tsx": 1,
+    "src/pages/home/DashboardGuest.tsx": 1,
     "src/pages/messages/messagesData/loadConversations.ts": 1,
-    "src/pages/userProfile/useUserProfileData.ts": 21
+    "src/pages/user/useUserProfileData.ts": 21
   }
 }

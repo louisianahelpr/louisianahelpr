@@ -5,7 +5,7 @@
  * admin ever reaching it: the console routes by a `?view=` id that has to
  * exist in THREE places — `adminNavGroups` (the rail and the command palette),
  * `VIEW_LABELS` (the h1 and the "is this a real view?" coercion) and the
- * `renderContent` switch in `src/pages/Admin.tsx`. Miss the third and
+ * `renderContent` switch in `src/pages/admin/Admin.tsx`. Miss the third and
  * `isRealView` silently coerces the deep link to the dashboard: the rail row
  * exists, tapping it looks like nothing happened, and no unit test notices.
  *
@@ -65,7 +65,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "admin-1" }, profile: { user_id: "admin-1", full_name: "Admin" } }),
 }));
 
-import Admin from "@/pages/Admin";
+import Admin from "@/pages/admin/Admin";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
@@ -140,7 +140,7 @@ describe("/admin?view=stalled actually renders the stuck-job queue", () => {
 });
 
 describe("admin rail registry — every id is a view that renders", () => {
-  const adminSource = readFileSync(resolve(ROOT, "src/pages/Admin.tsx"), "utf8");
+  const adminSource = readFileSync(resolve(ROOT, "src/pages/admin/Admin.tsx"), "utf8");
   const ids = adminNavGroups.flatMap((g) => g.items.map((i) => i.id));
 
   it("has a VIEW_LABELS entry for every rail row", () => {
@@ -163,4 +163,4 @@ describe("admin rail registry — every id is a view that renders", () => {
 // Rename the switch case and the rail row still exists, the h1 still renders
 // from VIEW_LABELS, and /admin?view=stalled quietly shows the dashboard —
 // exactly the dead-button shape both halves of this file police.
-// @mutate src/pages/Admin.tsx | case "stalled": return <AdminStalledJobs />; | case "stalled_gone": return <AdminStalledJobs />;
+// @mutate src/pages/admin/Admin.tsx | case "stalled": return <AdminStalledJobs />; | case "stalled_gone": return <AdminStalledJobs />;

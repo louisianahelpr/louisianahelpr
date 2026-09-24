@@ -41,7 +41,7 @@ describe("floating bottom bars clear the dock with the shared token (Q214/Q314)"
   });
 
   it("no bottom/padding-bottom offset reads env(safe-area-inset-bottom) directly", () => {
-    // @mutate src/pages/activity/BulkDismissBar.tsx | className="fixed inset-x-0 bottom-safe-nav z-40 px-4" | className="fixed inset-x-0 z-40 px-4" style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)" }}
+    // @mutate src/pages/posts/BulkDismissBar.tsx | className="fixed inset-x-0 bottom-safe-nav z-40 px-4" | className="fixed inset-x-0 z-40 px-4" style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)" }}
     const bad = offsets
       .filter((o) => o.value.includes("env(safe-area-inset-bottom"))
       .map((o) => `${o.file}: ${o.value}`);
@@ -49,12 +49,12 @@ describe("floating bottom bars clear the dock with the shared token (Q214/Q314)"
   });
 
   it("BulkDismissBar sits on the safe-nav token", () => {
-    const code = blankComments(readSource("src/pages/activity/BulkDismissBar.tsx") ?? "");
+    const code = blankComments(readSource("src/pages/posts/BulkDismissBar.tsx") ?? "");
     expect(code).toMatch(/className="[^"]*\bfixed\b[^"]*\bbottom-safe-nav\b/);
   });
 
   it("FormStep's submit clearance sits on the pb-safe-nav token (Q314)", () => {
-    const code = blankComments(readSource("src/pages/postjob/FormStep.tsx") ?? "");
+    const code = blankComments(readSource("src/pages/post-job/FormStep.tsx") ?? "");
     expect(code).toMatch(/className="[^"]*\bpb-safe-nav\b/);
   });
 

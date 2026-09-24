@@ -1,10 +1,10 @@
 [
   "e2e/happy-path/zz-runtime-probe.spec.ts",
-  "src/components/activity/locationPressHintCentred.test.ts",
+  "src/components/job-card/locationPressHintCentred.test.ts",
   "src/components/profile/ProfileTabFallback.test.tsx",
   "src/components/profile/profileTabShell.test.ts",
   "src/lib/escrowTiming.copyParity.test.ts",
-  "src/pages/userProfile/singleReviewList.test.ts",
+  "src/pages/user/singleReviewList.test.ts",
   "src/test/activityTabLabelsFitAPhone.test.ts",
   "src/test/consequenceCopyParity.test.ts",
   "src/test/controlInteractionSameness.test.ts",

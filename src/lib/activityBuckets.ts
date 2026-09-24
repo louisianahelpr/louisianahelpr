@@ -78,7 +78,7 @@ export const BUCKET_ORDER: ActivityBucket[] = [
  * job card's status line uses it as its eyebrow — "whose move is it" is the
  * question both the tab and the card answer, and answering it twice in two
  * vocabularies is how "Needs you" on a tab ends up over "Waiting on them" on a
- * card inside it. See `src/components/activity/jobStatusLine.ts`.
+ * card inside it. See `src/components/job-card/jobStatusLine.ts`.
  */
 export const BUCKET_LABEL: Record<ActivityBucket, string> = {
   needs_you: "Needs You",

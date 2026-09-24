@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { JobTracking, shouldShowTrackingMap, trackingProofCaption } from "./JobTracking";
 import { arrivalMapLabel, arrivalStateLabel } from "@/lib/arrivalGate";
-import { JobStepRowContext } from "./activity/jobStepRow";
+import { JobStepRowContext } from "./job-card/jobStepRow";
 
 /**
  * VN-20 (owner, 2026-09-14): "Location confirmed does not need to show on the

@@ -1,0 +1,679 @@
+import { supabase } from "@/integrations/supabase/client";
+import { notifyJobParty } from "@/lib/notifications";
+import { report } from "@/lib/errorLogger";
+import { toast } from "sonner";
+import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { track, AhaEvent } from "@/lib/analytics";
+import { ppoTrackingProps } from "@/lib/ppoAttribution";
+import { fireSuccessMoment } from "@/lib/successMoment";
+import type { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
+import type { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
+import { awardBlockFromError, isUnfundedAwardRefusal, posterAwardBlockMessage, UNFUNDED_AWARD_COPY, type AwardBlockReason } from "@/lib/awardGate";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { postedActivityBucket } from "@/components/job-card/activityFilters";
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import type { User as SupaUser } from "@supabase/supabase-js";
+import type {
+  Job,
+  Application,
+  EnrichedApplication,
+} from "@/components/job-card/activityConstants";
+import type { OptimisticJobCache } from "./types";
+
+/**
+ * Dependencies for the offer/acceptance-phase handlers, extracted verbatim
+ * from useActivityActions. All state setters, cache helpers and gate checks
+ * used by the accept/decline flow are passed in so the handlers behave
+ * identically to their in-hook originals.
+ */
+export interface OfferHandlersDeps extends OptimisticJobCache {
+  user: SupaUser | null;
+  refresh: () => void | Promise<unknown>;
+  setStatusFilter: (filter: string) => void;
+  /**
+   * The acceptance gate: payout-ready AND Stripe-identity-verified, from one
+   * live Stripe read. Replaces the previous pair of gates (a Connect status
+   * probe plus an `idv_status = 'verified'` check) — see src/lib/awardGate.ts
+   * for why two gates disagreeing about the word "verified" was the problem.
+   */
+  checkHelperAwardEligibility: ReturnType<typeof useStripeConnectCheck>["checkHelperAwardEligibility"];
+  triggerPushNudge: ReturnType<typeof usePushPermissionNudge>;
+  selectedJob: Job | null;
+  setSelectedJob: (job: Job | null) => void;
+  setApplications: React.Dispatch<React.SetStateAction<EnrichedApplication[]>>;
+  setInlineApplicants: React.Dispatch<React.SetStateAction<Record<string, EnrichedApplication[]>>>;
+  deadlineDialogApp: EnrichedApplication | null;
+  setDeadlineDialogApp: (app: EnrichedApplication | null) => void;
+  setPendingAcceptApp: (app: Application | null) => void;
+  setAwardBlockReason: (reason: AwardBlockReason | null) => void;
+  setW9Context: (ctx: { jobId: string; businessId: string | null } | null) => void;
+  setW9DialogOpen: (open: boolean) => void;
+  setRespondingHelperAppId: Dispatch<SetStateAction<string | null>>;
+  /**
+   * Synchronous in-flight guard for handleHelperResponse (accept/decline an
+   * offer). Lives in the calling hook because this factory is re-created every
+   * render; `respondingHelperAppId` is state, so two taps in one frame both
+   * read null.
+   */
+  respondingInFlight: MutableRefObject<Set<string>>;
+}
+
+export function createOfferHandlers(deps: OfferHandlersDeps) {
+  const {
+    user,
+    refresh,
+    setStatusFilter,
+    checkHelperAwardEligibility,
+    triggerPushNudge,
+    optimisticallyPatchJob,
+    rollbackActivity,
+    selectedJob,
+    setSelectedJob,
+    setApplications,
+    setInlineApplicants,
+    deadlineDialogApp,
+    setDeadlineDialogApp,
+    setPendingAcceptApp,
+    setAwardBlockReason,
+    setW9Context,
+    setW9DialogOpen,
+    setRespondingHelperAppId,
+    respondingInFlight,
+  } = deps;
+
+  const acceptApplication = async (app: EnrichedApplication) => {
+    hapticMedium();
+    setDeadlineDialogApp(app);
+  };
+
+  /**
+   * Poster declines a pending applicant. Marks the application as "rejected"
+   * and, when `note` is provided, sends an in-app notification to the helper
+   * so they know why.
+   */
+  const declineApplication = async (
+    app: EnrichedApplication,
+    note: string,
+    // Unused since Q223: the server reads the job title itself.
+    _jobTitle: string,
+  ) => {
+    hapticMedium();
+    // `.eq("status", "pending")` makes the decline conditional. Without it, a
+    // poster with the applicant list open in two tabs could accept in one and
+    // decline in the other, leaving the job `accepted` with helper_id set while
+    // that same application read `rejected` — two views of one deal disagreeing.
+    // A zero-row result now means "already resolved elsewhere", not a failure.
+    // The reason rides ALONG WITH the status flip, not in a second
+    // notification afterwards. notify_on_application() reads
+    // NEW.decline_reason in the same statement and folds it into the ONE
+    // notification it writes — this used to be a separate createNotification
+    // call, which is why declining produced two notifications, one of them
+    // with `link: null` (nothing to tap).
+    const declineNote = note.trim();
+    const declineUpdate = async (withReason: boolean) =>
+      supabase
+        .from("applications")
+        .update(
+          (withReason && declineNote
+            ? { status: "rejected", decline_reason: declineNote }
+            : { status: "rejected" }) as never,
+        )
+        .eq("id", app.id)
+        .eq("status", "pending");
+
+    let { error } = await declineUpdate(true);
+    // applications.decline_reason ships in migration 20260831203052. Between
+    // merge and `supabase db push` the column isn't there yet, so retry
+    // without it and keep the legacy client-side notification for that window
+    // only — otherwise the poster's reason would silently vanish.
+    let columnMissing = false;
+    if (
+      error &&
+      (String(error.code) === "PGRST204" ||
+        String(error.code) === "42703" ||
+        /decline_reason/i.test(String(error.message ?? "")))
+    ) {
+      columnMissing = true;
+      ({ error } = await declineUpdate(false));
+    }
+    if (error) {
+      hapticError();
+      toast.error("Couldn't decline that applicant — please try again.");
+      return;
+    }
+    hapticSuccess();
+    toast("Applicant declined");
+    // Optimistically update the in-memory applications list so the card
+    // flips to "Declined" without waiting on a full refresh.
+    setApplications((prev) =>
+      prev.map((a) => (a.id === app.id ? { ...a, status: "rejected" as const } : a)),
+    );
+    setInlineApplicants((prev) => {
+      const updated: typeof prev = {};
+      for (const [jobId, apps] of Object.entries(prev)) {
+        updated[jobId] = apps.map((a) =>
+          a.id === app.id ? { ...a, status: "rejected" as const } : a,
+        );
+      }
+      return updated;
+    });
+    // Deploy-lag fallback ONLY. On a database that already has
+    // decline_reason, notify_on_application() has just written the single
+    // notification (with the reason and a working link) and this is skipped —
+    // sending here too is exactly the duplicate this change removes.
+    if (columnMissing && declineNote) {
+      // Server-built copy (Q223): it reads the stored decline_reason and the
+      // poster's first name itself.
+      await notifyJobParty({ user_id: app.helper_id, job_id: app.job_id, template: "application_declined" });
+    }
+  };
+
+  /**
+   * Confirms the offer from ResponseDeadlineDialog. Every failure path THROWS
+   * an Error carrying the human-readable reason (after rolling back the
+   * optimistic patch) — the dialog catches it and renders the message inline,
+   * keeping itself open with Send re-enabled. It used to only fire a toast,
+   * which is transient and sat BEHIND the open dialog, so a server award-gate
+   * refusal looked like the button doing nothing (a poster tapped Send four
+   * times against jobs_award_gate with zero visible response).
+   */
+  const confirmAcceptWithDeadline = async (deadlineHours: number, initialMessage?: string) => {
+    if (!deadlineDialogApp || !selectedJob || !user) {
+      // This used to `return` silently — the dialog stayed open and Send just
+      // did nothing. Report the impossible state and tell the user something.
+      report(new Error("confirmAcceptWithDeadline called without app/job/user"), {
+        tags: { source: "useOfferHandlers.confirmAcceptWithDeadline" },
+        context: {
+          hasApp: !!deadlineDialogApp,
+          hasJob: !!selectedJob,
+          hasUser: !!user,
+        },
+      });
+      throw new Error("Couldn't prepare this offer — please close and try again.");
+    }
+    const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
+    // Optimistic: move the posted job into the "Awaiting Response" bucket
+    // (status accepted, no helper_confirmed_at) right away so the card jumps
+    // instead of waiting on the RPC + refetch. Rolled back on any error path.
+    // A group job stays 'open' while it is only partially staffed — only the
+    // accept that fills the last slot closes it — so don't optimistically show
+    // it as accepted. The refetch below settles the real roster state.
+    const isGroupJobOptimistic = !!(selectedJob as { is_group_job?: boolean }).is_group_job;
+    const snapshot = optimisticallyPatchJob(selectedJob.id, {
+      ...(isGroupJobOptimistic ? {} : { status: "accepted" as const }),
+      helper_id: deadlineDialogApp.helper_id,
+      response_deadline: deadline,
+    });
+    // Group jobs take a different RPC. accept_application requires the job to
+    // be 'open' and immediately flips it to 'accepted', so on a job needing N
+    // helpers only the FIRST accept could ever succeed and the roster was never
+    // populated. accept_group_application (migration 20260804122000) instead
+    // counts the roster inside the job's row lock, inserts the slot, and holds
+    // the job 'open' until the final slot is filled.
+    const isGroupJob = !!(selectedJob as { is_group_job?: boolean }).is_group_job;
+    const { error } = isGroupJob
+      ? await supabase.rpc("accept_group_application", {
+          p_application_id: deadlineDialogApp.id,
+          p_deadline: deadline,
+          p_offer_message: initialMessage ?? undefined,
+        })
+      : await supabase.rpc("accept_application", {
+          p_application_id: deadlineDialogApp.id,
+          p_deadline: deadline,
+          p_offer_message: initialMessage ?? undefined,
+        });
+
+    if (error) {
+      // No direct-UPDATE fallback, on purpose. There used to be one for a
+      // not-yet-deployed RPC (PGRST202) that wrote jobs.status='accepted' and
+      // jobs.helper_id straight from the client: a hire with none of the RPC's
+      // checks (an application exists, nobody is blocked, the row lock). The
+      // hire RPCs are the only way to hire (trg_hire_columns_rpc_only,
+      // 20260924042503, Q346), so the database refuses that write anyway.
+      rollbackActivity(snapshot);
+      hapticError();
+      // The server-side acceptance gate (trigger jobs_award_gate) refusing
+      // THIS applicant. The poster can do nothing about someone else's Stripe
+      // account, so name the situation plainly rather than offering them a
+      // fix that isn't theirs to make. The applicant card also carries this
+      // as a "Can't be hired yet" chip, so reaching here should be rare.
+      const blocked = awardBlockFromError(error);
+      if (blocked) {
+        throw new Error(
+          posterAwardBlockMessage(
+            blocked,
+            deadlineDialogApp.profiles?.full_name ?? undefined,
+          ),
+        );
+      }
+      throw new Error(
+        (isGroupJob
+          ? rpcErrorMessage("accept_group_application", error)
+          : rpcErrorMessage("accept_application", error)) ??
+          "Couldn't send the offer — please try again.",
+      );
+    }
+    // `?job=`, not `?filter=offered`: `offered` is a legacy filter key with no
+    // chip in the five-bucket strip, so the helper landed on a filtered list
+    // with nothing selected — 33 such rows in prod. The applications row was
+    // just set to `accepted` above, so `?job=` resolves against it and Activity
+    // both selects the live bucket ("Needs you", since the offer is being held
+    // for them) and pulses the card.
+    // Server-built copy (Q223): the deadline comes from jobs.response_deadline.
+    await notifyJobParty({ user_id: deadlineDialogApp.helper_id, job_id: selectedJob.id, template: "job_offer" });
+    // Success moment — the poster just hired an applicant. hapticSuccess is
+    // a result haptic (fires even under Reduce Motion); the overlay itself
+    // self-respects reduced motion (static check, no draw-in).
+    hapticSuccess();
+    fireSuccessMoment({ label: "Applicant hired" });
+    // First-hire aha (Q222): the poster's jobs that now have a Helpr picked.
+    // <= 1 covers the job this offer just assigned (same shape as the
+    // FirstJobAccepted count below). Analytics must never break the flow.
+    void (async () => {
+      try {
+        const { count, error: hiredErr } = await supabase
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("customer_id", user.id)
+          .not("helper_id", "is", null);
+        if (!hiredErr && (count ?? 0) <= 1) track(AhaEvent.FirstHelperHired, { job_id: selectedJob.id });
+      } catch { /* analytics must never break the flow */ }
+    })();
+    setDeadlineDialogApp(null);
+    setSelectedJob(null);
+    setApplications([]);
+    setInlineApplicants(prev => { const copy = { ...prev }; delete copy[selectedJob.id]; return copy; });
+    await refresh();
+    // The poster's OWN view after hiring. Same defect as the links above:
+    // "offered" is a legacy key with no chip, so this left the strip with
+    // nothing selected on the one screen the poster was just sent to. Ask the
+    // single source of truth for the bucket the job is actually in now
+    // (accepted + unconfirmed → "Waiting", or "Needs you" if its day has
+    // already passed) instead of naming one.
+    setStatusFilter(
+      postedActivityBucket({
+        status: "accepted",
+        helper_id: deadlineDialogApp.helper_id,
+        helper_confirmed_at: null,
+        date_needed: selectedJob.date_needed,
+      }),
+    );
+  };
+
+  /**
+   * A direct offer has no `applications` row — the poster stamps the offer on
+   * the JOB and useActivityData fabricates a card row with `id =
+   * "direct-<jobId>"`. Every application-keyed RPC below would receive that
+   * string where a uuid is expected and fail with 22P02, so this path is
+   * routed to the job-keyed `respond_to_direct_offer` RPC instead.
+   */
+  const isSyntheticDirectOffer = (app: Application) => app.id.startsWith("direct-");
+
+  const respondToDirectOffer = async (app: Application, accept: boolean) => {
+    if (accept) {
+      // The same gate as an application accept — a helper Stripe can't pay, or
+      // hasn't finished identifying, must not be able to take a job, whichever
+      // door they came through.
+      const gate = await checkHelperAwardEligibility();
+      if (gate.indeterminate) {
+        // "We couldn't ask" is not "you're not verified". Saying the second
+        // when we only know the first is what used to trap a verified helper.
+        hapticError();
+        toast.error("Couldn't check your verification status — please try again.");
+        return;
+      }
+      if (!gate.ok && gate.reason) {
+        setPendingAcceptApp(app);
+        setAwardBlockReason(gate.reason);
+        return;
+      }
+    }
+
+    // Shipped by migration 20260820000000.
+    const { error } = await supabase.rpc("respond_to_direct_offer", {
+      p_job_id: app.job_id,
+      p_accept: accept,
+    });
+
+    if (error) {
+      hapticError();
+      const code = String((error as { code?: string }).code ?? "");
+      if (code === "PGRST202") {
+        // Merge landed, migration hasn't deployed yet (db-deploy.yml runs on
+        // the merge commit). Say so instead of blaming the user's tap.
+        toast.error("Offer responses are updating right now — try again in a minute.");
+        return;
+      }
+      // The RPC's guards, in the helper's language. Each one means the offer
+      // moved out from under this card, so re-read rather than leave the same
+      // two buttons sitting there to fail again.
+      const guard = rpcErrorMessage("respond_to_direct_offer", error);
+      if (guard) {
+        toast.error(guard);
+        await refresh();
+        return;
+      }
+      const blocked = awardBlockFromError(error);
+      if (blocked) {
+        setPendingAcceptApp(app);
+        setAwardBlockReason(blocked);
+        return;
+      }
+      if (isUnfundedAwardRefusal(error)) {
+        toast.error(UNFUNDED_AWARD_COPY);
+        await refresh();
+        return;
+      }
+      report(error, { tags: { source: "useOfferHandlers.respondToDirectOffer" } });
+      toast.error("Couldn't record your response — please try again.");
+      return;
+    }
+
+    hapticSuccess();
+    if (accept) {
+      fireSuccessMoment({ label: "Job accepted" });
+      await refresh();
+      setStatusFilter("accepted");
+    } else {
+      await refresh();
+    }
+  };
+
+  const handleHelperResponse = async (app: Application, accept: boolean) => {
+    // Same-frame double tap: both calls share one render's closure, so only
+    // the ref sees the first. Cleared in `finally` below.
+    if (!user || respondingInFlight.current.has(app.id)) return;
+    respondingInFlight.current.add(app.id);
+    setRespondingHelperAppId(app.id);
+    try {
+    if (isSyntheticDirectOffer(app)) {
+      await respondToDirectOffer(app, accept);
+      return;
+    }
+    if (accept) {
+      // The acceptance gate: payout-ready AND identity verified by Stripe.
+      // A blocked accept has to carry its own way out — never a refusal with
+      // nowhere to go — so the failure opens AwardGateDialog, which names the
+      // missing half and links into the right Stripe flow for it.
+      const gate = await checkHelperAwardEligibility();
+      if (gate.indeterminate) {
+        // On a dropped check `ok` is false but we know nothing. That used to
+        // read as "not verified" and trapped an already-verified helper in the
+        // IDV dialog with no way out. Say what actually happened.
+        hapticError();
+        toast.error("Couldn't check your verification status — please try again.");
+        return;
+      }
+      if (!gate.ok && gate.reason) {
+        setPendingAcceptApp(app);
+        setAwardBlockReason(gate.reason);
+        return;
+      }
+
+      // Optimistic: move this applied job from the "Awaiting Response"
+      // bucket into "Accepted" instantly (helper_confirmed_at set, deadline
+      // cleared) so the card transitions on tap, not after the refetch.
+      const confirmedAt = new Date().toISOString();
+      const snapshot = optimisticallyPatchJob(app.job_id, {
+        helper_confirmed_at: confirmedAt,
+        response_deadline: null,
+      });
+      // Make the confirm CONDITIONAL so it can't race the expiry cron or
+      // double-fire. Previously it re-checked nothing, so a helper could
+      // confirm an offer that had already lapsed (or confirm twice).
+      //   - `helper_confirmed_at is null` → blocks a second confirm.
+      //   - deadline null OR still in the future → blocks confirming a lapsed
+      //     offer. The null branch matters: not every offer carries a deadline,
+      //     and a bare `.gt()` would silently exclude those legitimate rows.
+      //   - `status = 'accepted'` → blocks confirming a job the poster cancelled
+      //     in the same instant. Proven on prod 2026-09-13 (5 of 20 races):
+      //     without it this UPDATE queued behind poster_cancel_job's row lock,
+      //     re-checked only `helper_confirmed_at IS NULL` on the cancelled row,
+      //     and stamped it — so the cancel RPC said "$0, no fee" while the
+      //     payout cron, reading helper_confirmed_at, would have charged 25%.
+      //     The trigger trg_confirm_on_live_job is the guarantee; this
+      //     predicate turns that refusal into the zero-row "no longer
+      //     available" path below instead of an error toast.
+      // `.select("id")` lets us tell "updated nothing" from "errored".
+      const { data: confirmedRows, error: confirmError } = await supabase
+        .from("jobs")
+        .update({ helper_confirmed_at: confirmedAt, response_deadline: null })
+        .eq("id", app.job_id)
+        .eq("status", "accepted")
+        .is("helper_confirmed_at", null)
+        .or(`response_deadline.is.null,response_deadline.gt.${confirmedAt}`)
+        .select("id");
+      if (confirmError) {
+        rollbackActivity(snapshot);
+        hapticError();
+        // The server gate can still refuse here even though we checked above —
+        // the Stripe state may have moved between the check and the write, and
+        // the trigger is the authority. Show the same explained blocked state
+        // rather than a generic failure the helper can't act on.
+        const blocked = awardBlockFromError(confirmError);
+        if (blocked) {
+          setPendingAcceptApp(app);
+          setAwardBlockReason(blocked);
+          return;
+        }
+        // Unfunded escrow: a retry can never work, so say why and re-read
+        // rather than leave Accept Job sitting there to bounce again (Q320).
+        if (isUnfundedAwardRefusal(confirmError)) {
+          toast.error(UNFUNDED_AWARD_COPY);
+          await refresh();
+          return;
+        }
+        toast.error("Couldn't accept the job — please try again.");
+        return;
+      }
+      if (!confirmedRows || confirmedRows.length === 0) {
+        // Zero rows = the offer lapsed or was already confirmed elsewhere.
+        // Roll the optimistic patch back rather than leaving the card showing
+        // an acceptance that never happened.
+        rollbackActivity(snapshot);
+        hapticError();
+        toast.error("This offer is no longer available — it may have expired.");
+        // Same reasoning as the decline path below: re-read rather than leave
+        // the card offering an action that just bounced.
+        await refresh();
+        return;
+      }
+      // Helper-side reject of the losing applicants. The direct UPDATE this
+      // used to issue was RLS-filtered to zero rows (applications.UPDATE only
+      // permits the customer), so other applicants got stuck in "pending"
+      // forever. Goes through a SECURITY DEFINER RPC that re-validates the
+      // caller is the accepted helper. PGRST202 fallback covers the window
+      // between merge and the manual `supabase db push` to prod.
+      const { error: rejectErr } = await supabase.rpc("reject_other_applications_on_accept", {
+        p_job_id: app.job_id,
+        p_accepted_application_id: app.id,
+      });
+      if (rejectErr && rejectErr.code !== "PGRST202") {
+        console.warn("Failed to auto-reject other applications", rejectErr);
+      }
+
+      // W-9 collection — if the business poster set requires_w9 = true,
+      // the helper signs immediately at acceptance. The column may not
+      // exist yet (PGRST204) on prod between merge and `supabase db push`;
+      // in that case we skip silently.
+      try {
+        // `requires_w9` is a new column not in the generated types yet, so
+        // the builder is cast to a minimal shape returning the row we read.
+        // The cast MUST include `error`. Omitting it made a genuine read failure
+        // indistinguishable from `requires_w9: false`, so the W-9 signature
+        // dialog was silently skipped on a business job that legally requires
+        // one — a compliance gap that looked identical to the happy path.
+        const { data: jobMeta, error: jobMetaError } = await (supabase.from("jobs") as unknown as {
+          select: (cols: string) => {
+            eq: (col: string, val: string) => {
+              maybeSingle: () => Promise<{
+                data: { requires_w9?: boolean | null; business_id?: string | null } | null;
+                error: { code?: string; message: string } | null;
+              }>;
+            };
+          };
+        })
+          .select("requires_w9, business_id")
+          .eq("id", app.job_id)
+          .maybeSingle();
+        // Rethrow into the catch below so a real failure is REPORTED rather
+        // than silently treated as "no W-9 needed". PGRST204/42703 (column not
+        // on prod yet) is still handled there as the intended graceful skip.
+        if (jobMetaError) throw jobMetaError;
+        if (jobMeta && jobMeta.requires_w9) {
+          setW9Context({ jobId: app.job_id, businessId: jobMeta.business_id ?? null });
+          setW9DialogOpen(true);
+        }
+      } catch (err) {
+        // requires_w9 column missing on pre-migration prod → skip is the
+        // intended graceful degrade. Any other unexpected error still gets
+        // reported so we can see it in monitoring rather than dropping it
+        // into the same silent bucket.
+        const code = (err as { code?: string })?.code;
+        if (code !== "PGRST204" && code !== "42703") {
+          report(err, { tags: { source: "useOfferHandlers.w9Fetch" }, context: { job_id: app.job_id } });
+        }
+      }
+
+      hapticSuccess();
+      // Funnel: helper accepted an offer — closes the "applied → hired" gap
+      // in the helper funnel that previously had zero instrumentation.
+      const ppoProps = ppoTrackingProps();
+      track(AhaEvent.JobAccepted, { job_id: app.job_id, ...ppoProps });
+      // First-acceptance aha — count prior confirmed acceptances by this
+      // helper (helper_confirmed_at != null). ≤ 1 covers the row we just
+      // wrote since the count read may race the just-written update.
+      try {
+        const { count } = await supabase
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("helper_id", user.id)
+          .not("helper_confirmed_at", "is", null);
+        if ((count ?? 0) <= 1) {
+          track(AhaEvent.FirstJobAccepted, { job_id: app.job_id, ...ppoProps });
+          // First-acceptance push nudge — best moment to ask a helper to
+          // turn on notifications: they now care about new-job pings and
+          // customer messages on this job. The hook self-suppresses if
+          // permission is already granted or the user dismissed recently.
+          void triggerPushNudge("helper-first-accept");
+        }
+      } catch { /* analytics must never break the flow */ }
+      await refresh();
+      setStatusFilter("accepted");
+    } else {
+      // Decline — atomic via the decline_job_offer RPC: the violation
+      // insert, ladder escalation (apply_job_denial_consequence, migration
+      // 20260824243000), app rejection and job reopen all run in one
+      // transaction. If the RPC isn't deployed yet the decline fails CLOSED
+      // (see below) — there is deliberately no client-side re-implementation
+      // of the consequence ladder.
+      let actionTaken: string;
+
+      const { data: rpcData, error: rpcError } = await supabase.rpc("decline_job_offer", {
+        p_application_id: app.id,
+      });
+
+      if (rpcError) {
+        const msg = String(rpcError?.message ?? "");
+        const rpcMissing =
+          String(rpcError?.code ?? "") === "PGRST202" ||
+          /could not find the function|does not exist|schema cache/i.test(msg);
+        if (!rpcMissing) {
+          hapticError();
+          const guard = rpcErrorMessage("decline_job_offer", rpcError);
+          if (guard) {
+            // offer_not_active: the RPC's guard is `jobs.helper_id = auth.uid()`. This card is
+            // shown whenever the APPLICATION says accepted, which is a
+            // different fact — the two can disagree (a reopened job, a poster
+            // who reassigned, a partially-staffed group roster), and when they
+            // do the helper taps a button the server was always going to
+            // refuse. The old copy just said "no longer active" and left the
+            // card sitting there with the same two dead buttons.
+            //
+            // Refresh so the card re-renders from the truth instead of
+            // repeating the failure.
+            toast.error(guard);
+            await refresh();
+            return;
+          }
+          toast.error("Couldn't record your response — please try again.");
+          return;
+        }
+        // RPC missing (the merge → db-deploy window). The old fallback
+        // re-implemented the RETIRED 5-strike ladder client-side (warning at
+        // the 3rd, permanent at the 5th, no temp ban at all), so a helper who
+        // declined during a deploy window was graded against rules the
+        // backend no longer has. The consequence ladder is moderation logic —
+        // it runs in one place, in the RPC's transaction, or not at all.
+        // Fail closed like the group-accept fallback: record nothing locally
+        // and ask for a retry once the migration lands.
+        report(rpcError, { tags: { source: "useOfferHandlers.declineRpcMissing" } });
+        hapticError();
+        toast.error("We couldn't record this right now — try again shortly.");
+        return;
+      } else {
+        // RPC returns a Json blob (type is `Json` per generated types), so
+        // narrow it to the record shape we know it emits before reading.
+        const rpcResult = (rpcData ?? {}) as { action?: string };
+        actionTaken = rpcResult.action ?? "none";
+      }
+
+      // Consequence surfacing — the RPC's action, said in the ladder's real
+      // terms. The RPC already inserts the helper's in-app notification for a
+      // warning, so no client createNotification here (it used to double up —
+      // two notifications for one strike, quoting the retired 5-strike math).
+      if (actionTaken === "warning") {
+        // Action "warning" is the SECOND strike: the final warning.
+        toast.warning("This is your final warning — one more strike suspends your account for 7 days.");
+      } else if (actionTaken === "temp_ban") {
+        hapticError();
+        // Third strike: 7-day suspension. The toast states it, but the banned
+        // screen is the real surface — same hard document load as the
+        // permanent path below, so no suspended session stays live in memory
+        // (/account-banned reads ban_status/auto_suspended_until and renders
+        // the temporary variant with the return date).
+        toast.warning("Third strike — your account is suspended for 7 days.");
+        window.location.assign("/account-banned");
+      } else if (actionTaken === "pending_ban_review" || actionTaken === "permanent_ban") {
+        hapticError();
+        // Fourth strike. As of 20260829010000 this comes back as
+        // `pending_ban_review` — a REVERSIBLE 7-day restriction while an admin
+        // decides, matching the message and cancellation ladders. The retired
+        // "permanent_ban" string is still handled because there is a window
+        // between this code shipping and the migration landing on prod.
+        //
+        // Same reasoning as CancellationDialog either way: this is not a toast.
+        // Send them to the banned screen, which reads ban_status off the
+        // profile and states the rule, the reason and the support path — and
+        // does not auto-dismiss.
+        //
+        // window.location, not useNavigate: createOfferHandlers is a plain
+        // factory function, not a React hook, so hooks cannot be called here.
+        // A full document load is also the RIGHT behaviour for a ban — it tears
+        // down all cached authed state rather than leaving a banned session
+        // live in memory behind the screen.
+        window.location.assign("/account-banned");
+      }
+      if (actionTaken === "none") {
+        hapticMedium();
+        toast("Offer declined");
+      }
+      // No client admin fan-out (Q308): create-notification refuses a
+      // non-admin sending to an admin, so the old per-admin loop here never
+      // delivered. The rung an admin must act on (ban review) is paged by
+      // apply_job_denial_consequence inside decline_job_offer.
+      refresh();
+    }
+    } finally {
+      respondingInFlight.current.delete(app.id);
+      setRespondingHelperAppId((cur) => (cur === app.id ? null : cur));
+    }
+  };
+
+  return {
+    acceptApplication,
+    declineApplication,
+    confirmAcceptWithDeadline,
+    handleHelperResponse,
+  };
+}

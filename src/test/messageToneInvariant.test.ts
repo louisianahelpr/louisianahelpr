@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
-import { jobActionChipStyle } from "@/components/activity/JobActionRow";
+import { jobActionChipStyle } from "@/components/job-card/JobActionRow";
 
 /**
  * ONE MESSAGE, ONE COLOUR — enforced, not asserted.
@@ -34,7 +34,7 @@ import { jobActionChipStyle } from "@/components/activity/JobActionRow";
  * `messageChips >= 6` floor below is what stops the same assertion passing over
  * an empty list once the chip or the label is renamed.
  *
- * @mutate src/components/activity/appliedJobCard/ActiveJobSection.tsx | tone="message" | tone="info"
+ * @mutate src/pages/jobs/appliedJobCard/ActiveJobSection.tsx | tone="message" | tone="info"
  */
 
 const ROOT = resolve(__dirname, "../..");
@@ -97,7 +97,7 @@ describe("Message wears exactly one tone, everywhere", () => {
       // Controls that draw their own <Button> and take the style directly
       // (ShareJobButton / SosShareButton / DirectionsButton do this). None of
       // them is Message, so none of them may borrow its tone.
-      if (/jobActionChipStyle\(\s*"message"\s*\)/.test(source) && rel !== "src/components/activity/JobActionRow.tsx") {
+      if (/jobActionChipStyle\(\s*"message"\s*\)/.test(source) && rel !== "src/components/job-card/JobActionRow.tsx") {
         offenders.push(`${rel}: reads jobActionChipStyle("message") outside a Message chip`);
       }
     }

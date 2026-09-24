@@ -137,7 +137,7 @@ construction. Liveness (`expected_max_gap` vs `cron.job_run_details`) is the onl
 
 | function | verdict | evidence |
 |---|---|---|
-| `instant-job-match` | **correctly event-driven, not a cron.** My dispatch brief listed it as scheduled; that is wrong | invoked from `src/pages/postjob/useJobSubmit.ts` and `supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts`; absent from `cron.job` by design |
+| `instant-job-match` | **correctly event-driven, not a cron.** My dispatch brief listed it as scheduled; that is wrong | invoked from `src/pages/post-job/useJobSubmit.ts` and `supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts`; absent from `cron.job` by design |
 | `spawn-recurring-jobs` | **deliberately disabled and superseded** | migration `20260821020000_disable_spawn_recurring_jobs_cron.sql`, replaced by `20260823170000_schedule_charge_recurring_visits.sql` |
 | `cleanup_observability_tables` | **unscheduled — CJ-002** | 0 matching rows in `cron.job` |
 | `cleanup_stripe_webhook_events` | **unscheduled — CJ-002** | 0 matching rows in `cron.job` |

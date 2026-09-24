@@ -5,7 +5,7 @@ import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { formatName } from "@/lib/utils";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import type { Job, AppliedApp } from "@/components/activity/activityConstants";
+import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
 import type { TrackingData } from "@/components/JobTracking";
 import { queryKeys } from "@/lib/queryKeys";
 import { checkDrift } from "@/lib/checkDrift";

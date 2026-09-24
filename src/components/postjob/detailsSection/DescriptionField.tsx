@@ -19,7 +19,7 @@ export function DescriptionField({
   // Checklist/placeholder helpers only — the inline "Use <category>
   // template" link that used to sit in the label row is gone. Templates are
   // offered from the post-a-job entry screen ("Use a template", see
-  // pages/postjob/EntryChoice.tsx); repeating the offer inside the field was
+  // pages/post-job/EntryChoice.tsx); repeating the offer inside the field was
   // a second, competing entry point for the same feature.
   const tpl = categoryTemplates[category];
   const descTrimmed = description.trim();

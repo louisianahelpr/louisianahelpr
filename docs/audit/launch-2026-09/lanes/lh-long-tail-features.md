@@ -55,7 +55,7 @@ rendering was driven directly with Playwright instead — screenshots saved to
   public profile (`/user/<id>`, rendered live, screenshot
   `/tmp/lt-shots/userprofile-1440.png`); no `report_card`/`ReportCard` string
   remains outside one harmless historical comment
-  (`src/pages/petProfiles/PetForm.tsx:613`). `job_pets` / `care_relationships`
+  (`src/pages/profile/petProfiles/PetForm.tsx:613`). `job_pets` / `care_relationships`
   / `get_job_pets` remain live and reachable (pet-care sheet on job detail,
   pet picker on post-a-job) — pet profiles themselves were correctly left
   alone by the removal.

@@ -24,7 +24,7 @@ import { ApplicationCardSkeleton } from "./ApplicationCardSkeleton";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { MessageThreadSkeleton } from "./MessageThreadSkeleton";
 import { JOB_CARD_FRAME } from "@/components/job/cardGeometry";
-import { JOB_CARD_SHELL_FRAME } from "@/components/activity/JobCardShell";
+import { JOB_CARD_SHELL_FRAME } from "@/components/job-card/JobCardShell";
 import { CONVERSATION_ROW_FRAME } from "@/components/messages/ConversationRow";
 
 const cases = [

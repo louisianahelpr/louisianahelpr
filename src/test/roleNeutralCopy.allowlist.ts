@@ -34,7 +34,7 @@ export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
       "admin-only screens. Operators triage by which side of a job a party is on, and the queue labels, CSV headers and refund buttons are their vocabulary; no ordinary user reads them.",
   },
   {
-    file: "src/pages/legal/",
+    file: "src/pages/info/legal/",
     reason:
       "legal pages. Terms, Community Guidelines and Privacy define the contractual parties to a job and their fees; a contract needs the defined term, not a description.",
   },
@@ -45,7 +45,7 @@ export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
       "not copy — a needle matched against STORED notification bodies. Postgres triggers write them (migrations 20260905021859, 20260908155425 and earlier) and every row already in the table says 'cancelled by the poster', so dropping the legacy phrasing would silently remove the quick-action pill from all of them. Reword the trigger in a migration first, then this.",
   },
   {
-    file: "src/pages/helpCenter/helpCenterContent.ts",
+    file: "src/pages/info/helpCenter/helpCenterContent.ts",
     text: 'There\'s no separate "poster" or "Helpr" mode',
     reason:
       "the help-center answer that exists to DENY the role distinction. It has to name the two roles in order to say neither is a mode you are in.",

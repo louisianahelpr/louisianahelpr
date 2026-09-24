@@ -40,20 +40,20 @@
  * tree, and the reviewed set below must equal it EXACTLY — a new expanding
  * search fails here until someone reviews it, and a deleted one fails too.
  *
- * @mutate src/pages/activity/ActivityHeader.tsx | if (wasOpenRef.current && !searchOpen) searchTriggerRef.current?.focus(); | if (false) searchTriggerRef.current?.focus();
- * @mutate src/pages/activity/ActivityHeader.tsx | if (e.key === "Escape") { e.preventDefault(); closeSearch(); } | if (e.key === "EscapeNope") { e.preventDefault(); closeSearch(); }
+ * @mutate src/components/job-card/ActivityHeader.tsx | if (wasOpenRef.current && !searchOpen) searchTriggerRef.current?.focus(); | if (false) searchTriggerRef.current?.focus();
+ * @mutate src/components/job-card/ActivityHeader.tsx | if (e.key === "Escape") { e.preventDefault(); closeSearch(); } | if (e.key === "EscapeNope") { e.preventDefault(); closeSearch(); }
  * @mutate src/components/messages/ConversationList.tsx | if (wasSearchOpenRef.current && !searchOpen) searchTriggerRef.current?.focus(); | if (false) searchTriggerRef.current?.focus();
  * @mutate src/components/profile/SavedHelpersTab.tsx | searchTriggerRef.current?.focus(); | void 0;
  * @mutate src/components/dashboard/DashboardTitleBar.tsx | ?.querySelector<HTMLElement>("[data-search-trigger]") | ?.querySelector<HTMLElement>("[data-no-such-trigger]")
  * @mutate src/components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx | data-search-trigger | data-search-trigger-renamed
  * @mutate src/components/ui/ScreenHeaderRow.tsx | data-search-trigger-slot | data-search-trigger-slot-renamed
  * @mutate src/components/ui/ScreenHeaderRow.tsx | className="shrink-0 pointer-events-none" | className="shrink-0"
- * @mutate src/pages/activity/ActivityHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | 
+ * @mutate src/components/job-card/ActivityHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | 
  * @mutate src/components/messages/ConversationList.tsx | triggerWidth: "44px", | 
  * @mutate src/components/profile/SavedHelpersTab.tsx | <SearchTriggerSlot /> | <span />
- * NO @mutate FOR pages/Legal.tsx. There was one — deleting the page's
+ * NO @mutate FOR pages/info/Legal.tsx. There was one — deleting the page's
  * `{searchOpen && <SearchTriggerSlot width="40px" />}` — and it had always
- * SURVIVED, because this file lists `pages/Legal.tsx` under NOT_EXERCISED with
+ * SURVIVED, because this file lists `pages/info/Legal.tsx` under NOT_EXERCISED with
  * a written reason. The registration claimed coverage the same file explicitly
  * disclaims two hundred lines below. It went unnoticed because vacuity only
  * mutates registrations whose target changed since origin/main, and nothing had
@@ -61,8 +61,8 @@
  * edited (2026-09-20). A registration that cannot fail is worse than none: it
  * reports coverage that does not exist. /legal's slot is carried by the browser
  * pass — see NOT_EXERCISED below.
- * @mutate src/pages/Dashboard.tsx | className="ml-auto" | className=""
- * @mutate src/pages/Dashboard.tsx | data-feed-strip | data-feed-strip-renamed
+ * @mutate src/pages/home/Dashboard.tsx | className="ml-auto" | className=""
+ * @mutate src/pages/home/Dashboard.tsx | data-feed-strip | data-feed-strip-renamed
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -111,7 +111,7 @@ vi.mock("@/lib/haptics", () => ({
   hapticMedium: vi.fn(), hapticSelection: vi.fn(), hapticWarning: vi.fn(), hapticHeavy: vi.fn(),
 }));
 
-import { ActivityHeader } from "@/pages/activity/ActivityHeader";
+import { ActivityHeader } from "@/components/job-card/ActivityHeader";
 import { ConversationList } from "@/components/messages/ConversationList";
 import type { Conversation } from "@/components/messages/types";
 import { blankComments } from "./helpers/blankNonCode";
@@ -163,10 +163,10 @@ function deriveExpandingSearchFiles(): string[] {
  *     BrowseTasksActions.tsx                          the Browse trigger
  *   components/messages/ConversationList.tsx          Messages inbox
  *   components/profile/SavedHelpersTab.tsx            Profile ▸ Saved Helprs
- *   pages/Activity.tsx                                owns My Posts / My Jobs state
- *   pages/Dashboard.tsx                               desktop Browse strip — OPEN, see below
- *   pages/Legal.tsx                                   policy search
- *   pages/activity/ActivityHeader.tsx                 My Posts / My Jobs field
+ *   components/job-card/JobListPage.tsx                                owns My Posts / My Jobs state
+ *   pages/home/Dashboard.tsx                               desktop Browse strip — OPEN, see below
+ *   pages/info/Legal.tsx                                   policy search
+ *   components/job-card/ActivityHeader.tsx                 My Posts / My Jobs field
  *
  * The admin tables (AdminUsers, AdminSubscriptions, AdminReferrals,
  * AdminNotificationLogs, AdminSettings) are deliberately absent: their fields
@@ -181,10 +181,10 @@ const REVIEWED_EXPANDING_SEARCHES = [
   "components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx",
   "components/messages/ConversationList.tsx",
   "components/profile/SavedHelpersTab.tsx",
-  "pages/Activity.tsx",
-  "pages/Dashboard.tsx",
-  "pages/Legal.tsx",
-  "pages/activity/ActivityHeader.tsx",
+  "components/job-card/JobListPage.tsx",
+  "pages/home/Dashboard.tsx",
+  "pages/info/Legal.tsx",
+  "components/job-card/ActivityHeader.tsx",
 ].sort();
 
 // The exact gate useIsWebDesktop reads (min-width: 900px, non-native).
@@ -585,7 +585,7 @@ const EXERCISED = [
   "components/dashboard/DashboardTitleBar.tsx",
   "components/messages/ConversationList.tsx",
   "components/profile/SavedHelpersTab.tsx",
-  "pages/activity/ActivityHeader.tsx",
+  "components/job-card/ActivityHeader.tsx",
 ];
 const NOT_EXERCISED: Record<string, string> = {
   "components/dashboard/BrowseTasksToolbar.tsx":
@@ -594,11 +594,11 @@ const NOT_EXERCISED: Record<string, string> = {
     "the field DashboardTitleBar swaps in; its dismiss is covered by the title-row hand-back above and by e2e/journeys/01-browse.spec.ts",
   "components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx":
     "trigger only — asserted by source for the data-search-trigger marker above",
-  "pages/Activity.tsx":
+  "components/job-card/JobListPage.tsx":
     "owns the state ActivityHeader renders; the transitions are exercised through the header",
-  "pages/Dashboard.tsx":
+  "pages/home/Dashboard.tsx":
     "the desktop feed strip — pinned by its own describe block below, from source, because the page is 900 lines behind a dozen data hooks and the fact under test is structural",
-  "pages/Legal.tsx":
+  "pages/info/Legal.tsx":
     "document-scroll marketing page: the field replaces nothing. The old reason added 'the tab group holds its own width' — it did not, and that was the bug: at 320 the tabs and the field were both flex-1 at 107px, the three tab labels overlapped, and the field sat under the typable floor. Fixed 2026-09-20 by stepping the tab group aside below 500px while the field is open. The 320/375 the browser pass owed is now paid: e2e/prod-audit/expanding-search-geometry.spec.ts runs /legal at 320, 375 and 1440 against the shared MIN_TYPABLE_FIELD_PX, with no per-surface pin",
 };
 
@@ -646,7 +646,7 @@ describe("coverage", () => {
  * belongs.
  */
 describe("desktop Browse strip — opening search unmounts nothing but the field", () => {
-  const dashboard = () => stripComments(readFileSync(path.join(SRC, "pages/Dashboard.tsx"), "utf8"));
+  const dashboard = () => stripComments(readFileSync(path.join(SRC, "pages/home/Dashboard.tsx"), "utf8"));
 
   it("the feed strip is findable, so the assertions below are about something", () => {
     const src = dashboard();
@@ -758,9 +758,9 @@ const NO_SLOT_NEEDED: Record<string, string> = {
     "the FIELD, not a row: it carries the magnifier inside its left edge and the ✕ inside its right. The slot belongs to whichever row renders it (BrowseTasksActions on desktop; the phone brand row unmounts its whole cluster instead, so nothing of it is near the ✕)",
   "components/dashboard/DashboardTitleBar.tsx":
     "the phone brand row gives the WHOLE bar to the field, so the entire cluster — magnifier included — is unmounted and none of it is adjacent to the ✕. Measured at 375: the magnifier returns third from the right, clear of the ✕ by 50px",
-  "pages/Activity.tsx":
+  "components/job-card/JobListPage.tsx":
     "owns the state ActivityHeader renders; it holds no row of its own",
-  "pages/Dashboard.tsx":
+  "pages/home/Dashboard.tsx":
     "renders the strip whose slot BrowseTasksActions supplies — pinned by the describe block above",
 };
 

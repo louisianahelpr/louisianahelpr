@@ -78,8 +78,8 @@ describe("the consequential call sites still use it", () => {
     ["src/components/profile/SecurityTab.tsx", "Reset link sent to"],
     ["src/components/profile/SecurityTab.tsx", "to confirm your new address"],
     ["src/components/profile/SubscriptionTab.tsx", "Membership status refreshed."],
-    ["src/components/activity/postedJobCard/PostedJobActions.tsx", "Dispute resolved — payment released"],
-    ["src/components/activity/appliedJobCard/DisputedSection.tsx", "the payment is off hold"],
+    ["src/pages/posts/postedJobCard/PostedJobActions.tsx", "Dispute resolved — payment released"],
+    ["src/pages/jobs/appliedJobCard/DisputedSection.tsx", "the payment is off hold"],
     ["src/components/admin/AdminDisputes.tsx", "Dispute settled"],
   ];
 

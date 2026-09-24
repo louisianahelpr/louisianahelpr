@@ -4,7 +4,7 @@ import { statValueSize } from "./statValueSize";
 
 // Q179: a word in a stat tile overflowed at the numeral display size.
 // @mutate src/lib/statValueSize.ts | : "text-ds-16 text-balance [overflow-wrap:break-word]"; | : "text-ds-28 tabular-nums";
-// @mutate src/pages/HelprWrapped.tsx | className={`${statValueSize(value)} font-sans | className={`text-ds-28 font-sans
+// @mutate src/pages/profile/HelprWrapped.tsx | className={`${statValueSize(value)} font-sans | className={`text-ds-28 font-sans
 
 describe("statValueSize (Q179)", () => {
   it("keeps numerals at the display size", () => {
@@ -19,7 +19,7 @@ describe("statValueSize (Q179)", () => {
   });
 
   it("Wrapped's stat tile sizes its value through it", () => {
-    const src = readFileSync("src/pages/HelprWrapped.tsx", "utf8");
+    const src = readFileSync("src/pages/profile/HelprWrapped.tsx", "utf8");
     expect(src).toMatch(/className=\{`\$\{statValueSize\(value\)\} font-sans/);
     expect(src).not.toMatch(/text-ds-28 font-sans font-bold tabular-nums/);
   });

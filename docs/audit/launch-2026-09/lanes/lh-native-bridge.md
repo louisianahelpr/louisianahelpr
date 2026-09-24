@@ -122,7 +122,7 @@ Full records, with repro and evidence, in `findings.jsonl` (`audit-bus.mjs show 
    boot, `capacitor://localhost/`, no fragment), so the tokens would reach
    `ResetPassword.tsx:79`, set `ready=true`, and leave `updateUser({password})` failing with
    "Auth session missing" *after* the user has typed a new password. Verified by
-   `grep -n "setSession\|verifyOtp" src/pages/ResetPassword.tsx src/pages/AccountPending.tsx`
+   `grep -n "setSession\|verifyOtp" src/pages/auth/ResetPassword.tsx src/pages/AccountPending.tsx`
    → zero matches in either file; `ResetPassword.tsx:79` reads `window.location.hash` and does
    nothing else with it. The exclusions in AASA are correct and should stay.
 

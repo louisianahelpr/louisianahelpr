@@ -52,7 +52,7 @@ next metadata sync rather than land alone. Named per-finding in the table.
 
 | ID | Sev | What | Whose fix |
 |---|---|---|---|
-| **CS-001** | MEDIUM | **Sentry Session Replay records 10% of all prod sessions and 100% of error sessions with `blockAllMedia: false`** (images captured; text masked) — and **no legal page mentions session replay or screen recording at all**. `sentry.ts:217-218,260-261`; `grep -rniE 'session replay\|screen record\|recording' src/pages/legal/` → zero | Owner — legal copy + an App Store Connect label answer |
+| **CS-001** | MEDIUM | **Sentry Session Replay records 10% of all prod sessions and 100% of error sessions with `blockAllMedia: false`** (images captured; text masked) — and **no legal page mentions session replay or screen recording at all**. `sentry.ts:217-218,260-261`; `grep -rniE 'session replay\|screen record\|recording' src/pages/info/legal/` → zero | Owner — legal copy + an App Store Connect label answer |
 | **CS-002** | MEDIUM | Privacy policy omits two real processors: **Apple MapKit JS** (gets typed address text + lat/lng) and **Resend** (gets every email address + notification bodies). `PrivacySection.tsx:103-118` names only Supabase, Stripe, Apple/Google, PostHog, Sentry | Owner — legal copy |
 | **CS-003** | MEDIUM | **`helper_w9_records` survives account deletion.** Live prod: no FK to `auth.users` (only `job_id`), `purge_user_data()` never references it, columns include `typed_signature` (legal name) + `ip`. **0 rows today**, so no live exposure — but the path is open | `lh-account-lifecycle` / `lh-schema-integrity` — needs a deletion migration |
 | **CS-004** | MEDIUM | `PrivacyInfo.xcprivacy` declares **ProductInteraction and CrashData as `Linked: false`**, but PostHog `identifyUser(id, {email})` (`main.tsx:212,218`) and Sentry `setUser({id, email})` (`sentry.ts:348`) both attach identity | Owner — manifest + ASC labels |
@@ -158,7 +158,7 @@ row counts for `helper_w9_records` (0), `broadcast_messages` (0), `gift_cards` (
 
 Source: `ios/App/App/Info.plist`, `AppDelegate.swift`, `PrivacyInfo.xcprivacy`,
 `App.xcodeproj/project.pbxproj`, `CapApp-SPM/Package.swift`, all 16 plugin iOS
-sources, all 13 transitive SPM checkouts, `src/pages/legal/*`, `src/App.tsx`,
+sources, all 13 transitive SPM checkouts, `src/pages/info/legal/*`, `src/App.tsx`,
 `src/lib/{sentry,posthog,analytics,socialAuth,nativePush,biometricGate}.ts`,
 `src/hooks/usePermissionRationale.ts`, `src/components/auth/SocialAuthButtons.tsx`,
 `src/components/profile/LegalTab.tsx`, `profileLanding/SettingsSection.tsx`,

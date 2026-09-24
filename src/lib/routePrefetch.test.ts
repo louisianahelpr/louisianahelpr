@@ -27,18 +27,19 @@
 import { describe, it, expect, vi } from "vitest";
 
 const PAGES: [string, string][] = [
-  ["@/pages/Dashboard", "Dashboard"],
-  ["@/pages/Profile", "Profile"],
-  ["@/pages/PostJob", "PostJob"],
-  ["@/pages/Activity", "Activity"],
-  ["@/pages/Messages", "Messages"],
-  ["@/pages/Support", "Support"],
-  ["@/pages/Login", "Login"],
-  ["@/pages/Signup", "Signup"],
-  ["@/pages/UserProfile", "UserProfile"],
-  ["@/pages/DashboardGuest", "DashboardGuest"],
-  ["@/pages/Legal", "Legal"],
-  ["@/pages/HelpCenter", "HelpCenter"],
+  ["@/pages/home/Dashboard", "Dashboard"],
+  ["@/pages/profile/Profile", "Profile"],
+  ["@/pages/post-job/PostJob", "PostJob"],
+  ["@/pages/posts/PostsPage", "PostsPage"],
+  ["@/pages/jobs/JobsPage", "JobsPage"],
+  ["@/pages/messages/Messages", "Messages"],
+  ["@/pages/info/Support", "Support"],
+  ["@/pages/auth/Login", "Login"],
+  ["@/pages/auth/Signup", "Signup"],
+  ["@/pages/user/UserProfile", "UserProfile"],
+  ["@/pages/home/DashboardGuest", "DashboardGuest"],
+  ["@/pages/info/Legal", "Legal"],
+  ["@/pages/info/HelpCenter", "HelpCenter"],
 ];
 
 const loaded: string[] = [];

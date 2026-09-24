@@ -55,11 +55,11 @@ for (const file of files) {
 describe("a header action never duplicates the empty state's CTA (Q247)", () => {
   it("finds the header/empty-state pairs, /pets included", () => {
     expect(files.length).toBeGreaterThan(300);
-    expect(pairs.map((p) => p.file)).toContain("src/pages/PetProfiles.tsx");
+    expect(pairs.map((p) => p.file)).toContain("src/pages/profile/PetProfiles.tsx");
   });
 
   it("every shared-label header slot is conditional", () => {
-    // @mutate src/pages/PetProfiles.tsx | pets?.length === 0 ? undefined : ( | (
+    // @mutate src/pages/profile/PetProfiles.tsx | pets?.length === 0 ? undefined : ( | (
     const bad = pairs
       .filter((p) => !/\?|&&/.test(p.slot.replace(/\?\./g, "")))
       .map((p) => `${p.file}: header repeats "${p.shared.join(", ")}" unconditionally`);

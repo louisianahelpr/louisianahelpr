@@ -116,8 +116,8 @@ all 31 non-internal triggers on `public.jobs` · `cron.job` (44 rows) ·
 `src/components/CancellationDialog.tsx` · `src/components/HelperAvailability.tsx` ·
 `src/components/HelperAvailabilityDisplay.tsx` · `src/components/TimeRangeField.tsx` ·
 `src/components/profile/ScheduleTab.tsx` · `src/hooks/useDashboardFilters.ts` ·
-`src/hooks/useDashboardData.ts` · `src/pages/dashboard/dashboardTypes.ts` ·
-`src/components/activity/postedJobCard/PostedJobActions.tsx`
+`src/hooks/useDashboardData.ts` · `src/pages/home/dashboardTypes.ts` ·
+`src/pages/posts/postedJobCard/PostedJobActions.tsx`
 
 **Scripts I ran (artifacts):** `scratchpad/dst.mjs` (10 dates × DST),
 `scratchpad/tzshift.mjs` (3 TZ values), an inline `tsx` run of the real

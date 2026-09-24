@@ -10,13 +10,13 @@ import { fireSuccessMoment } from "@/lib/successMoment";
 import type { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import type { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { awardBlockFromError, posterAwardBlockMessage, type AwardBlockReason } from "@/lib/awardGate";
-import { postedActivityBucket } from "@/pages/activity/activityFilters";
+import { postedActivityBucket } from "@/components/job-card/activityFilters";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type {
   Job,
   Application,
   EnrichedApplication,
-} from "@/components/activity/activityConstants";
+} from "@/components/job-card/activityConstants";
 import type { OptimisticJobCache } from "./types";
 
 /**

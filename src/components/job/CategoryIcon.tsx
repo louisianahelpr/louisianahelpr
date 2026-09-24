@@ -18,7 +18,7 @@
  */
 import type { LucideProps } from "lucide-react";
 
-import { categoryLabels } from "@/components/activity/activityConstants";
+import { categoryLabels } from "@/components/job-card/activityConstants";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 
 /**

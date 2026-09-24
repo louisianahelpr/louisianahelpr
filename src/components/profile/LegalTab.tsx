@@ -3,15 +3,15 @@ import { useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TermsContent } from "@/pages/legal/TermsSection";
-import { CommunityContent } from "@/pages/legal/CommunitySection";
-import { PrivacyContent } from "@/pages/legal/PrivacySection";
+import { TermsContent } from "@/pages/info/legal/TermsSection";
+import { CommunityContent } from "@/pages/info/legal/CommunitySection";
+import { PrivacyContent } from "@/pages/info/legal/PrivacySection";
 import {
   type TabKey,
   VALID_TABS,
   TAB_LABELS,
   TAB_ICONS,
-} from "@/pages/legal/legalSections";
+} from "@/pages/info/legal/legalSections";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
 // THIS TAB STATES NO POLICY OF ITS OWN. It composes the three policy
@@ -21,7 +21,7 @@ import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 // windows, strike ladders and dispute steps — a second, hand-maintained wording
 // of copy that /legal already owned. That is why it imported TIER_PERKS,
 // moneyLimits and the shared PolicySection primitives; none of that belongs
-// here now. If a policy needs to change, it changes in src/pages/legal/ and
+// here now. If a policy needs to change, it changes in src/pages/info/legal/ and
 // this tab needs no edit at all.
 
 /**
@@ -76,14 +76,14 @@ import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
  * redirection back to public pages once they are signed in", 2026-08-30).
  *
  * Both halves now come from one place: `VALID_TABS` / `TAB_LABELS` /
- * `TAB_ICONS` (pages/legal/legalSections) fix the band's order, names and
+ * `TAB_ICONS` (pages/info/legal/legalSections) fix the band's order, names and
  * glyphs, and `TermsContent` / `CommunityContent` / `PrivacyContent` are the
- * exact elements `pages/Legal.tsx` mounts. The two surfaces cannot drift into
+ * exact elements `pages/info/Legal.tsx` mounts. The two surfaces cannot drift into
  * a different order, a different name, or — the one that matters — a
  * different wording of a clause someone has agreed to.
  *
  * STILL NO POLICY OF ITS OWN. This file states nothing; it composes. If a
- * clause changes it changes in src/pages/legal/ and this file needs no edit.
+ * clause changes it changes in src/pages/info/legal/ and this file needs no edit.
  */
 const POLICY_CONTENT: Record<TabKey, ReactNode> = {
   terms: <TermsContent />,
@@ -218,7 +218,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             the logged out screens yet it looks nothing like it".
 
             SHARED, NOT COPIED. `TermsContent` / `CommunityContent` /
-            `PrivacyContent` are the very elements `pages/Legal.tsx` mounts,
+            `PrivacyContent` are the very elements `pages/info/Legal.tsx` mounts,
             so there is exactly one wording of every clause in the codebase. A
             second copy of legal text is a compliance hazard before it is a
             drift hazard: the signed-in and signed-out readers would be

@@ -1503,7 +1503,7 @@ project: `e2e/prod-audit/card-maps-hit-area.spec.ts` (elementFromPoint over a
 grid on every card, at 375 and 1440, with the meta-row consumer list derived
 from `src/`) and `e2e/prod-audit/activity-loading-reserve.spec.ts` (placeholder
 row box vs real row box, list response held on the wire). Plus
-`src/components/activity/AppliedJobCard.locationTapExpands.test.tsx` for the
+`src/pages/jobs/AppliedJobCard.locationTapExpands.test.tsx` for the
 markup half. Reverted on a real build, the two loading assertions read
 `220px vs 151px (69 > 8)` and `first-row offset 107px (> 72)`.
 
@@ -1558,7 +1558,7 @@ assertion in that spec is a prediction, not a measurement.
 
 ## CLOSED — the applied Suspense fallback said `space-y-2.5` (fixed 2026-09-22, cad3843b1)
 
-`src/pages/Activity.tsx`, the `tab === "applied"` branch: the in-page Suspense
+`src/components/job-card/JobListPage.tsx`, the `tab === "applied"` branch: the in-page Suspense
 fallback wraps its `ApplicationCardSkeleton`s in `space-y-2.5` (10px) while
 `AppliedJobsTab` and the grouped view both use `space-y-3` (12px). 2px per row,
 inside the 8px `ROW_BUDGET` by design, so it is not a visible step on its own —
@@ -1616,7 +1616,7 @@ The call sites, all with a 365-day TTL except the last:
 - ~~`src/components/PhotoProof.tsx:106` → `jobs.proof_before_urls` / `proof_after_urls`~~ **FIXED 2026-09-22**
 - `src/components/DisputeDialog.tsx:144` → dispute evidence via the file-dispute RPC
 - `src/components/DisputeTimelineDialog.tsx:168` → `disputes.evidence_urls`, `jobs.dispute_evidence_urls`
-- `src/components/activity/CompletionChoiceSheet.tsx:127` → `job_revisions` photos + the `jobs` row
+- `src/pages/posts/CompletionChoiceSheet.tsx:127` → `job_revisions` photos + the `jobs` row
 - `src/components/profile/SupportInline.tsx:174` → 30-day token pasted into `reports.description` (the file says so and accepts it)
 
 `disputes.evidence_urls` and `jobs.dispute_evidence_urls` are empty today only
@@ -1798,7 +1798,7 @@ Measured 2026-09-21, one full run on the real backend:
 - Screenshot inspected (recorded in the review log): the Waiting tab holds two
   seed jobs and shows `Needs You 17`. The new job is in Needs You.
 - Root cause, read from the app not guessed: `bucketFor`
-  (`src/pages/activity/activityFilters.ts:242`) sends ANY non-terminal job whose
+  (`src/components/job-card/activityFilters.ts:242`) sends ANY non-terminal job whose
   `date_needed` is today to `needs_you`. The journey posts `slotAhead(100)` —
   now + 100 minutes in America/Chicago — which is today except in the last ~100
   minutes of the Chicago day. Confirmed live: the posted row carried
@@ -2259,7 +2259,7 @@ text; 2 meet a different WCAG threshold). Three items that lane could NOT close:
   (needs an open panel on a job with reach), and `HelprWrapped`'s undercount
   warning (needs a partial query failure).
 
-- **`src/components/activity/appliedJobCard/ConfirmedSection.test.tsx` failed
+- **`src/pages/jobs/appliedJobCard/ConfirmedSection.test.tsx` failed
   2 of 5 on main** while this lane ran. Reproduced identically at `2127dfbd2`
   in a clean detached worktree, so it predated this lane — and the nightly-reds
   lane landed the cause and the fix meanwhile (`cd55ef0e5`, a job-day fixture
@@ -2340,7 +2340,7 @@ on the one surface no lane owned that night.
 76px of the field is the magnifier (`pl-9`) and the ✕ (`pr-10`), so 107px left
 ~31px of typing area.
 
-THE FIX (`src/pages/Legal.tsx`): the Terms/Rules/Privacy group steps aside
+THE FIX (`src/pages/info/Legal.tsx`): the Terms/Rules/Privacy group steps aside
 below 500px while the field is open, and the field carries
 `minWidth: MIN_TYPABLE_FIELD_PX` inline — the app's own constant, imported, not
 a literal restated on the row. Same BEHAVIOUR as ScreenHeaderRow's
@@ -2672,7 +2672,7 @@ as "the change that looks smallest and is the most dangerous"
 (Supabase MCP was unauthenticated) and human review before landing. Landing a
 half-built escrow-gate/RLS rework unattended is the escrow-hole risk the standing
 orders warn against, so this run delivers the inventory + spec and leaves the
-flag off. The gate tripwire (`src/pages/postjob/groupJobsGate.test.ts`) was
+flag off. The gate tripwire (`src/pages/post-job/groupJobsGate.test.ts`) was
 deliberately NOT disarmed: no per-member-lifecycle column was added, because
 adding it without the full (b) rework would let the next person flip the flag past
 a green tripwire onto a broken completion path.
@@ -2683,14 +2683,14 @@ a green tripwire onto a broken completion path.
 - `src/components/postjob/LogisticsSection.tsx:50` — the "Group" segment option;
   `:56-58` segment-count layout; `:340` mode selection; `:359` the helpers-needed
   stepper. All behind `GROUP_JOBS_ENABLED`.
-- `src/pages/postjob/jobSubmitHelpers.ts:193` `is_group_job: GROUP_JOBS_ENABLED && isGroupJob`,
+- `src/pages/post-job/jobSubmitHelpers.ts:193` `is_group_job: GROUP_JOBS_ENABLED && isGroupJob`,
   `:194` `helpers_needed: … ? parseInt(helpersNeeded) || 2 : 1`.
 - Server refusal that must be DROPPED when turning on:
   `reject_new_group_jobs` trigger on `public.jobs`
   (`20260902035641_...:216-241`) — blocks any user-authenticated INSERT/UPDATE
   that makes a job a group job. Its own COMMENT says: "DROP this trigger in the
   migration that ships per-member lifecycle state on group_job_helpers."
-- Gate test `src/pages/postjob/groupJobsGate.test.ts` — four tripwires; flipping
+- Gate test `src/pages/post-job/groupJobsGate.test.ts` — four tripwires; flipping
   the flag makes tripwire 1 require a migration that adds `helper_completed_at`
   to `group_job_helpers`, and re-checks the money-path refusals.
 
@@ -3014,7 +3014,7 @@ tripped a check. Three classes, in order of how many:
 
 - [x] **Map entries done 2026-09-14: VN-9, VN-10, VN-11** — Fixed and Confirmed in the tracker with committed screenshots (`docs/audit/visual-notes-2026-09-14/`), driven against prod from a local preview build because prod deploys are blocked. VN-10 needed two commits: the second BrowseMap (the desktop split map in Dashboard.tsx) had its own copy of the handler and stayed a dead tap after the first fix — both now share `openJobFromPin`. Side-finding filed below: the Browse header over-counts the rendered list.
 
-- [x] CLOSED 2026-09-14. Owner decisions 2026-09-14 (pop-up), visual-notes follow-ups: (1) server refuses disputes on a completed job (open_dispute_as; migration, money review before merge); (2) Mark Job Complete confirm popup reads "Mark This Job Complete?" with a "Mark Complete" button; (3) JobConfirmation "Can't make it? See what happens" link reads "Cancel Job"; (4) done is final — NO help/support link on done cards, and Help Center must not tell users to contact Support about a done job. PROOF: (1) c4ebb5d83, migration `20260915025607_block_disputes_on_completed_jobs`, db-deploy run 34924689542 success; prod `schema_migrations` has 20260915025607; live `open_dispute_as` prosrc contains the guard (raise at char 2151, after the party check at 1552, before the existing-dispute branch at 2338); proacl unchanged `{postgres=X/postgres,service_role=X/postgres}`, rpc_open_dispute unchanged `{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}`. helper-e2e (437de07d, the job's Helpr) called `rpc_open_dispute` on completed seed job 5eed0a10-0000-4000-8000-000000000010 → HTTP 400 P0001 `job_already_completed`; before/after identical (job xmin 2192761, status completed/released, 0 disputes, 3 job notifications, 25 admin dispute notifications, 0 fraud flags, 0 disputes created in the last 15 min), nothing to clean up. PGlite probe `scripts/probes/dispute-on-completed-job.probe.mjs`: hole reproduced on the live shape, green after 3 applies, 6 broken copies caught. Guard test `src/components/disputeFiling.test.ts` red without the migration. Money review (lh-money-escrow): diff correct; the pre-existing table-write bypass it found is the next line. (2) b831aa934, (3) 68f758f7c, both pinned by `src/components/confirmPopupCopy.test.ts` (red on the old strings); e2e 02-marketplace clicks "Mark Complete". (4) 11c1edd94: Help Center dispute answer says a job marked done is final and Report a Problem is available while the job is in progress, no Support mention, no link (`src/pages/HelpCenter.test.tsx`, red on the old copy). Done cards already carry no help/support link (grep of activity cards). Gate: typecheck green; full vitest 424 files / 4475 passed.
+- [x] CLOSED 2026-09-14. Owner decisions 2026-09-14 (pop-up), visual-notes follow-ups: (1) server refuses disputes on a completed job (open_dispute_as; migration, money review before merge); (2) Mark Job Complete confirm popup reads "Mark This Job Complete?" with a "Mark Complete" button; (3) JobConfirmation "Can't make it? See what happens" link reads "Cancel Job"; (4) done is final — NO help/support link on done cards, and Help Center must not tell users to contact Support about a done job. PROOF: (1) c4ebb5d83, migration `20260915025607_block_disputes_on_completed_jobs`, db-deploy run 34924689542 success; prod `schema_migrations` has 20260915025607; live `open_dispute_as` prosrc contains the guard (raise at char 2151, after the party check at 1552, before the existing-dispute branch at 2338); proacl unchanged `{postgres=X/postgres,service_role=X/postgres}`, rpc_open_dispute unchanged `{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}`. helper-e2e (437de07d, the job's Helpr) called `rpc_open_dispute` on completed seed job 5eed0a10-0000-4000-8000-000000000010 → HTTP 400 P0001 `job_already_completed`; before/after identical (job xmin 2192761, status completed/released, 0 disputes, 3 job notifications, 25 admin dispute notifications, 0 fraud flags, 0 disputes created in the last 15 min), nothing to clean up. PGlite probe `scripts/probes/dispute-on-completed-job.probe.mjs`: hole reproduced on the live shape, green after 3 applies, 6 broken copies caught. Guard test `src/components/disputeFiling.test.ts` red without the migration. Money review (lh-money-escrow): diff correct; the pre-existing table-write bypass it found is the next line. (2) b831aa934, (3) 68f758f7c, both pinned by `src/components/confirmPopupCopy.test.ts` (red on the old strings); e2e 02-marketplace clicks "Mark Complete". (4) 11c1edd94: Help Center dispute answer says a job marked done is final and Report a Problem is available while the job is in progress, no Support mention, no link (`src/pages/info/HelpCenter.test.tsx`, red on the old copy). Done cards already carry no help/support link (grep of activity cards). Gate: typecheck green; full vitest 424 files / 4475 passed.
 - [x] CLOSED 2026-09-14. Done is final, the TABLE door (money review of 20260915025607). Migration `20260915033734_dispute_markers_server_owned` (commit 9d6443208, db-deploy run 34928544962 green): a non-SECURITY-DEFINER BEFORE INSERT OR UPDATE trigger on jobs. A direct client write (current_user authenticated/anon, not admin) may not move status into/out of 'disputed' or change disputed_at / disputed_by / dispute_deadline / dispute_resolved_at / dispute_status (one exception: the assigned Helpr answering an open dispute they did not file, -> 'helper_responded'); on INSERT those markers are cleared. SECURITY DEFINER RPCs, service_role and cron are untouched. Found beyond the original item and closed in the same trigger: helper re-pointing disputed_by / de-escalating so auto-resolve pays them, either party moving status out of 'disputed', dispute_deadline pushes, and the INSERT door (a job created already carrying disputed_at; found by both reviewers). Dead `DisputeDialog.tsx` PGRST202 fallback removed. PROOF: `scripts/probes/dispute-table-door.probe.mjs` (live-shaped PGlite: red on the live shape, green applied 3x, 14 broken copies caught, skip + loud paths); CI class guard `src/test/disputeMarkersServerOwned.test.ts` (red on the original fallback payload). PROD, seed account poster-e2e (Perry Poster, non-admin) on its completed seed job 5f20df1e-9037-4502-9d4b-90b98deadb4a: PATCH disputed_at -> 403 42501 "jobs.disputed_at is set by the dispute RPCs, not by the client"; PATCH status=disputed -> 403 42501; row before and after identical (xmin 2193058, status completed, payment_status released, all markers NULL, updated_at unchanged). Live trigger function md5(prosrc) b1f276e3... equals the migration file; the dispute RPCs' md5s equal the probe fixture's, so the in-progress/abort/escalate/withdraw/decide paths proven green in the probe are the deployed ones. Reviewed by lh-money-escrow and lh-authz-rls (no blockers after fixes). ADDED 2026-09-15 (broader class guard for this whole column class, beyond the source-side disputeMarkersServerOwned test): `src/test/jobsStateColumnGuard.test.ts` enumerates EVERY client-writable jobs money/state column from the live whitelists (types.ts inventory) and fails if one has no transition guard — shown red on a fake `payment_status` added to the helper allow-list; and `scripts/check-jobs-dynamic-writers.mjs` (live pg_proc, wired into db-drift-detect) fails if any client-callable SECURITY DEFINER function writes jobs from a caller-supplied column list or JSON patch (the trust the current_user guard rests on) — shown red via --inject-fake. Re-verified the round-5 helper attack (dispute_status escalated->open) refused on prod against the live guard, rolled back. dispute-races migration 20260915034822 replayed after 20260915033734 in PGlite: open/withdraw/escalate/decide/supersede all still work for their callers.
 - [x] CLOSED 2026-09-15 — this is the same finding as the CRITICAL open_jobs_browse entry near the top of this file (migration 20260915041247, sha 59c8a9d91): `REVOKE ALL` on the view, `GRANT SELECT` kept; live class check `scripts/check-updatable-views.mjs` in db-drift-detect; verified live rolled-back (anon DELETE / stranger UPDATE both 42501, reads still work, ACL now anon=r/authenticated=r); no exploitation found. (found by lh-authz-rls reviewing 20260915033734, 2026-09-14).
 - [ ] Dispute follow-ups still open after the table-door fix (reported, not changed): (1) either party can still rewrite `jobs.dispute_reason` / `dispute_evidence_urls` / `dispute_helper_response` at any time, and `AdminDisputes.tsx:151` reads `jobs.dispute_reason` (the pinned copy is `disputes.reason`), so the text an admin decides on is editable (no money moves); (2) the disputes opener can still append evidence on a completed job via the "disputes opener update while open" policy; (3) cancelled jobs are refused by the status matrix only after the disputes INSERT with raw text; (4) `ActiveJobSection.tsx:164` maps only not_abortable, so job_already_completed from a racing helper abort shows a generic toast; (5) `supabase/functions/auto-resolve-disputes/index.ts:531-535` comment says status / dispute_status / dispute_resolved_at are writable by a party to the job; no longer true since 20260915033734 (logic keyed on payment_status is still right).
@@ -3074,7 +3074,7 @@ that wrapper string byte-for-byte. (The "panel ~x36" in the note is that
 wrapper's own border box; it paints nothing, so there was no edge to fill to.)
 
 **The gap the owner sees is the container gutter** — `px-5 lg:px-8 xl:px-12`,
-48px at xl — shared character-for-character by `src/pages/Profile.tsx`,
+48px at xl — shared character-for-character by `src/pages/profile/Profile.tsx`,
 `src/components/ui/PageScaffold.tsx` and `src/components/AppPage.tsx`.
 - [ ] OWNER: decide whether that gutter narrows, and to what at each breakpoint
       (375 is 20px and was approved on 2026-09-11 as matching Dashboard, so the
@@ -3113,7 +3113,7 @@ are pinned on the map, which is how VN-10 surfaced.
 
 ## Failed list loads rendered "nothing here" + storage audit (2026-09-14)
 - [x] CLOSED: bell panel said "Nothing new yet." for a poster with 313 unread during the outage. The error card was reachable only from a resolved `{ error }`: a rejected query, an errored session read (auth down → treated as signed out) and a pending/hung load (postgrest retries in flight) all fell through to the empty state. Fix: one `failLoad` path, a 15 s bound on every read, and a `listLoaded` store flag, so there is a loading row until the first successful load. Guard `src/components/NotificationPanel.failedLoad.test.tsx` was red 4/6, now green 6/6. Prod proof at 375 (poster-e2e, local preview, `rest/v1/notifications` aborted): "Loading notifications…" while retries ran, then the error card with Try again, no empty state, overflow 0 (review-logged).
-- [x] CLOSED: My Posts / My Jobs error card required BOTH tabs empty, so a poster's posts hid a failed My Jobs read behind "No applications yet". The check now uses the active tab's count. Guard `src/pages/activity/ActivityEmptyState.loadError.test.tsx` was red 2/3, now green 3/3.
+- [x] CLOSED: My Posts / My Jobs error card required BOTH tabs empty, so a poster's posts hid a failed My Jobs read behind "No applications yet". The check now uses the active tab's count. Guard `src/components/job-card/ActivityEmptyState.loadError.test.tsx` was red 2/3, now green 3/3.
 - [x] Messages list and Browse feed already routed failures to ErrorState. Pinned by `src/test/failedListLoadShowsError.test.tsx`; both tests go red when the view's `loadError` guard is inverted.
 - [x] Storage audit, report only: `docs/archive/storage-audit-2026-09-14.md`. 10 buckets hold 95 objects, 20.3 MB. 32 orphans, 10.3 MB. `scripts/supabase-usage-check.mjs` now measures bucket bytes weekly through the Storage API (paced, 400-call cap) instead of reporting it unmeasured.
 - [x] CLOSED (owner approved "Delete + fix the leaks"): 31 of the 32 orphans deleted on prod through the Storage API, each re-verified orphaned on two reads 10 min apart plus a per-object owner re-read. Log: `docs/audit/storage-orphans-deleted-2026-09-14.log`. Storage went from 95 objects / 21,330,730 bytes to 64 / 10,503,472 (−10,827,258 bytes). The 32nd, `proof-photos/76b07824…/e2e-proof-test.jpg` (784 B), sits under a LIVE user's folder, so its owner exists and it was kept. Post-cleanup dry run with the weekly rules: 0 orphans.
@@ -3195,7 +3195,7 @@ The "31 crons are not running" roll-up was the 09-13 10:03 → 09-14 17:40 UTC o
   - Before landing: read-only on prod 2026-09-14 — 0 jobs in `payment_status='cancelling'`, 0 cancelled + escrow, 1 decided-unexecuted dispute (`c7a12050` on is_seed job `bb2c3732`, in_progress/escrow — the shape the re-file guard exists for).
   - **TODO (coordinator, needs prod):** land in order (migration first, then edge), then run `settle-dispute-race.prod.mjs`, `dispute-open-race.prod.mjs`, `admin-release-vs-refund.prod.mjs --mode=all` (minted PIs) — the latter now includes the same-action token pair and an induced transfer failure. `scripts/ci/race-runner.mjs` race 3 (two connections) not run either.
   - OPEN (LOW): the SQL watchers (`sweep_dead_crons`, `check_ops_digest_delivery`, and now the stale-claim page) post to `slack-ops-alert` with vault `service_role_key`, and a 401 is async — confirm once in `net._http_response` that these posts answer 200.
-- [x] CLOSED 2026-09-14: `src/pages/activity/activityActions/useLifecycleHandlers.ts` keyed the completion moment off `bothDone` alone, so a duplicate release (`alreadyReleased: true, bothDone: true`, or `alreadyConfirmed: true`) replayed the confetti + success-moment + tip prompt for a completion that already fired them on the original call. Fix: `if (data?.alreadyReleased || data?.alreadyConfirmed) { await refresh(); return; }` before the `bothDone` branch, field names confirmed against the `alreadyDone` early-return in `supabase/functions/create-payment/index.ts`. Checked the other handlers in the same file that celebrate or prompt (`resolveRevision`, `confirmArrival`, `confirmWorking`, `handleNoShow`) — none of them read an idempotent "already" response from the server, so none share this defect class. Guard: `src/pages/activity/activityActions/useLifecycleHandlers.duplicateRelease.test.tsx`, red against the pre-fix code (reproduces the exact `alreadyReleased` shape from the original bug report), green after; a control case proves a fresh (non-duplicate) completion still celebrates and still prompts.
+- [x] CLOSED 2026-09-14: `src/components/job-card/activityActions/useLifecycleHandlers.ts` keyed the completion moment off `bothDone` alone, so a duplicate release (`alreadyReleased: true, bothDone: true`, or `alreadyConfirmed: true`) replayed the confetti + success-moment + tip prompt for a completion that already fired them on the original call. Fix: `if (data?.alreadyReleased || data?.alreadyConfirmed) { await refresh(); return; }` before the `bothDone` branch, field names confirmed against the `alreadyDone` early-return in `supabase/functions/create-payment/index.ts`. Checked the other handlers in the same file that celebrate or prompt (`resolveRevision`, `confirmArrival`, `confirmWorking`, `handleNoShow`) — none of them read an idempotent "already" response from the server, so none share this defect class. Guard: `src/components/job-card/activityActions/useLifecycleHandlers.duplicateRelease.test.tsx`, red against the pre-fix code (reproduces the exact `alreadyReleased` shape from the original bug report), green after; a control case proves a fresh (non-duplicate) completion still celebrates and still prompts.
 - [x] CLOSED 2026-09-14: pre-push a11y-prod sweep red on `/my-jobs` (helper, phone-light): axe `aria-command-name` serious, 2 nodes `.tracking-helper-pin` (a clickable map pin with no accessible name). Root cause: Leaflet gives every marker `role="button"` by default (`keyboard: true`), but only copies the `alt` option onto the icon DOM node `if (icon.tagName === 'IMG')` — a `divIcon` marker is a `<div>`, so the existing `<Marker alt="...">` was a no-op that read like a fix and changed nothing (an unlabelled focusable button stayed in the tab order). Fix: `withAccessibleName()` in `src/components/TrackingMap.tsx` stamps `aria-label` directly onto the marker's DOM node via a wrapped `createIcon`, applied to both the helper pin ("Your Helpr's current location") and destination pin ("The job location"). No visual change. Guard: `src/test/mapMarkerAccessibleName.test.ts` derives its inventory of command-role marker constructs from source across every `*map*` file (`git ls-files src`) — Leaflet `divIcon(...)` calls and manual `setAttribute("role","button"|"link")` — and asserts each has an accessible name; canary tests reproduce the exact original bug shape and prove the checker flags it (also independently confirmed red against the pre-fix `TrackingMap.tsx` blob). `src/components/browseMap/mapMarkers.ts` (BrowseMap's pins/clusters) already did this correctly — checked, not touched.
 - [x] AUDITED 2026-09-14 — the 21 edge `jobs` lifecycle writes baselined "not yet re-audited": **11 SAFE, 8 FIXED, 2 DEFERRED** (`docs/archive/lifecycle-writes-audit-2026-09-14.md`). Fixed: auto-release-payment (dispute/revision filed mid-run was overwritten to completed/payout_pending — now `.eq("status", job.status)`), auto-resolve-disputes (escalated or withdrawn dispute auto-paid — now status + dispute_status CAS), create-payment escrow stamp (gift-card funding written back to unpaid — payment_status CAS), `request_revision` / `resolve_revision` (double-tap + stamp on a disputed job — status CAS, `already*` replies), `cancel_escrow` claim + final flip (overwrote a dispute opened mid-refund — status + `cancelling` CAS), `charge.dispute.created` (overwrote a settled payout to chargeback — payment_status CAS + marker-only fallback). SAFE ones moved to a new `safe` list in the baseline with reasons; `check-race-class.mjs` still fails on any new unguarded write. Guard shown red on the pre-fix excerpts (`src/test/fixtures/raceClass/edgeLifecycleWrites.prefix.ts.txt`).
 - OPEN: the 2026-09-14 lifecycle-writes fixes have NO prod race proof yet (prod owned by another agent). Seven probes listed at the end of `docs/archive/lifecycle-writes-audit-2026-09-14.md` (auto-release vs dispute, auto-resolve vs escalate/withdraw, gift vs card funding, revision double-taps, cancel_escrow vs dispute, chargeback vs settled payout).
@@ -4957,7 +4957,7 @@ Two supporting facts, so this is not a guess:
 - [x] **DONE — ZIP shows its valid check on Complete Profile, signup AND Edit Profile.**
       Original: **Complete Profile: ZIP shows no check mark when filled.** Owner, 2026-09-12,
       pointing at `#zipCode` holding "70528": the neighbouring fields show the
-      valid ✓, ZIP does not. `src/pages/CompleteProfile.tsx:771`.
+      valid ✓, ZIP does not. `src/pages/auth/CompleteProfile.tsx:771`.
 
 - [x] **DONE — a position/zoom step before every profile photo save.**
       Original: **Profile photo upload has no crop/position step — it cuts heads off.**
@@ -5586,7 +5586,7 @@ was proposed.
 - [ ] **No end-to-end user-journey suite** (owner: "interactive and click through everything as a regular user would"). Only the money loop and two-role lifecycle exist. Build journeys for every flow on the real backend with the test accounts; Stripe steps need sandbox ON. Queued after press-every-control.
 - [x] **Write contract: client writes checked against prod's schema.** `scripts/audit/write-contract.mjs` inventories every `.insert/.update/.upsert/.delete/.rpc` in `src/` (224 on 2026-09-12: 75 rpc, 83 update, 38 insert, 10 upsert, 18 delete, 0 unresolved) and checks each against `write-contract.snapshot.json` (read-only pull from prod): columns exist, NOT NULL sent, enum/check values, table + column grants, RLS policy per role and op, rpc existence/signature/EXECUTE. Guard: `src/test/writeContract.test.ts` (each check shown able to fail). Nightly `write-contract-refresh.yml` re-pulls and fails on drift. Still unchecked: 13 payloads built from non-literal objects (known keys checked, NOT NULL not asserted); anon role only for call sites listed in `ANON_CALL_SITES`; RLS `WITH CHECK` expressions are not evaluated.
 - [x] **FIXED 1cdd3b786 — `saved_jobs` / `thread_pins` upsert failed on an existing row.** Verified live in `pg_policies`: INSERT/SELECT/DELETE policies, no UPDATE. PGlite repro: a fresh upsert works, but hitting the conflict raises an RLS error — exactly the "already saved" case the upsert was written for. Fixed with `ignoreDuplicates: true`; the write contract now passes.
-- [ ] **`instant_book_claim` RPC called but dropped from prod** (`src/pages/dashboard/useApplyFlow.ts:244`). Verified live: `to_regprocedure('public.instant_book_claim(uuid)')` is null; dropped by `20260904034410_drop_dead_features_instant_book_skills_reminders_dup_disputes`. The call swallows PGRST202, so nothing visibly breaks, but the `isInstantBook` branch is dead code for a removed feature. Owner call: delete the branch (and any remaining instant-book UI). Baselined in `scripts/audit/write-contract.baseline.json`; remove the entry when fixed (the guard fails on stale entries).
+- [ ] **`instant_book_claim` RPC called but dropped from prod** (`src/pages/home/useApplyFlow.ts:244`). Verified live: `to_regprocedure('public.instant_book_claim(uuid)')` is null; dropped by `20260904034410_drop_dead_features_instant_book_skills_reminders_dup_disputes`. The call swallows PGRST202, so nothing visibly breaks, but the `isInstantBook` branch is dead code for a removed feature. Owner call: delete the branch (and any remaining instant-book UI). Baselined in `scripts/audit/write-contract.baseline.json`; remove the entry when fixed (the guard fails on stale entries).
 
 ### Queued — start only after several running audit agents finish (owner, 2026-09-12: "don't launch any more, wait")
 
@@ -7368,7 +7368,7 @@ geography gate**. A guard that enshrines a wrong belief is worse than no guard.
 - Map 7 / list 4: `dismissedJobIds` was applied only inside `BrowseTasksFeed`; the
   map and the header count never knew the feature existed. 8 open − 1 applied = 7
   pins; 7 − 3 dismissed = 4 cards. The LIST was right. One shared registry
-  (`src/pages/dashboard/viewerFeedExclusions.ts`) now feeds list, count and map.
+  (`src/pages/home/viewerFeedExclusions.ts`) now feeds list, count and map.
   Distance/radius was ruled OUT — `get_open_jobs_for_map` has no distance predicate.
 - Search dismiss contract: one activation → closed, query cleared, **focus handed
   back to the trigger**. Focus return was broken on EVERY expanding search — the

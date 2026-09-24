@@ -123,7 +123,7 @@ if (PROFILE_TABS.length < 10) {
 }
 const PROFILE_ROUTES = ['/profile', ...PROFILE_TABS.map((t) => `/profile?tab=${t}`)];
 
-// Mirror of `type View` in src/pages/Admin.tsx — re-derive from that union when
+// Mirror of `type View` in src/pages/admin/Admin.tsx — re-derive from that union when
 // it changes. This list had drifted: parishtax, idv, geography, business_verify
 // and business_accounts are all DELETED views. /admin coerces their dead deep
 // links to home, so sweeping them silently graded the dashboard under five
@@ -242,7 +242,7 @@ async function mintSession(supabaseUrl, serviceKey) {
  *  2. ALWAYS suppress the onboarding tour.
  *
  * (2) is not optional. `OnboardingTour` (src/components/OnboardingTour.tsx,
- * mounted by src/pages/Dashboard.tsx) opens on /dashboard 1.5s after load in
+ * mounted by src/pages/home/Dashboard.tsx) opens on /dashboard 1.5s after load in
  * every fresh browser context — and every context here is fresh. It is a Radix
  * dialog that blurs the page behind it and intercepts clicks, so without this
  * the /dashboard captures are screenshots of the TOUR over a blurred

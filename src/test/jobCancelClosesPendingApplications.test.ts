@@ -1,15 +1,15 @@
 // @mutate supabase/migrations/20260923205811_close_pending_applications_on_job_cancel.sql | WHEN (NEW.status = 'cancelled' AND OLD.status IS DISTINCT FROM NEW.status) | WHEN (NEW.status = 'completed' AND OLD.status IS DISTINCT FROM NEW.status)
 // @mutate supabase/migrations/20260923205811_close_pending_applications_on_job_cancel.sql | SET status = 'rejected',\n         closed_reason = 'job_cancelled'\n   WHERE job_id = NEW.id | SET status = 'rejected'\n   WHERE job_id = NEW.id
 // @mutate supabase/migrations/20260923205811_close_pending_applications_on_job_cancel.sql | IF NEW.closed_reason = 'job_cancelled' THEN | IF false THEN
-// @mutate src/components/activity/jobStatusLine.ts | if (app.status === "rejected" && app.closed_reason !== "job_cancelled") return "not_selected"; | if (app.status === "rejected") return "not_selected";
-// @mutate src/components/activity/AppliedJobCard.tsx | {app.closed_reason === "job_cancelled" | {app.closed_reason === "never"
-// @mutate src/components/activity/postedJobs/ApplicantsPanel.tsx | {app.status === "rejected" && app.closed_reason !== "job_cancelled" && ( | {app.status === "rejected" && (
+// @mutate src/components/job-card/jobStatusLine.ts | if (app.status === "rejected" && app.closed_reason !== "job_cancelled") return "not_selected"; | if (app.status === "rejected") return "not_selected";
+// @mutate src/pages/jobs/AppliedJobCard.tsx | {app.closed_reason === "job_cancelled" | {app.closed_reason === "never"
+// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {app.status === "rejected" && app.closed_reason !== "job_cancelled" && ( | {app.status === "rejected" && (
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
-import { deriveHelperWait } from "@/components/activity/jobStatusLine";
-import type { AppliedApp } from "@/components/activity/activityConstants";
+import { deriveHelperWait } from "@/components/job-card/jobStatusLine";
+import type { AppliedApp } from "@/components/job-card/activityConstants";
 
 /**
  * Q274: cancelling a job must close its PENDING applications, and must not
@@ -101,9 +101,9 @@ describe("Q274: a cancelled job closes its pending applications, truthfully", ()
   });
 
   it("the applied card and the poster's Applicants panel read the marker before saying Not selected / Declined", () => {
-    const card = src("src/components/activity/AppliedJobCard.tsx");
+    const card = src("src/pages/jobs/AppliedJobCard.tsx");
     expect(card).toMatch(/app\.closed_reason === "job_cancelled"\s*\?\s*"Job cancelled"/);
-    const panel = src("src/components/activity/postedJobs/ApplicantsPanel.tsx");
+    const panel = src("src/pages/posts/postedJobs/ApplicantsPanel.tsx");
     expect(panel).toMatch(/app\.status === "rejected" && app\.closed_reason !== "job_cancelled" && \(/);
   });
 });

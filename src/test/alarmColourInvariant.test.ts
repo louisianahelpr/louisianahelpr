@@ -5,13 +5,13 @@ import { execFileSync } from "node:child_process";
 import { Constants } from "@/integrations/supabase/types";
 import { JOB_STATUS_COLORS, FALLBACK_STATUS_COLOR } from "@/lib/statusColors";
 import { deriveCurrentStatusIdx, STATUS_IDX } from "@/components/JobTracking";
-import { railStepTone, type RailTone } from "@/components/activity/jobRailTone";
+import { railStepTone, type RailTone } from "@/components/job-card/jobRailTone";
 import { blankComments } from "./helpers/blankNonCode";
 
 // PROVEN ABLE TO FAIL 2026-09-20. Flattening the cursor's amber into the
 // completed green — the owner's "shouldn't be 2 different green" defect,
 // exactly — turns this file red at "the current step must be the single accent".
-// @mutate src/components/activity/jobRailTone.ts | if (isCurrent) return allDone ? "green" : "amber"; | if (isCurrent) return "green";
+// @mutate src/components/job-card/jobRailTone.ts | if (isCurrent) return allDone ? "green" : "amber"; | if (isCurrent) return "green";
 
 /**
  * ONE ALARM COLOUR, ONE MEANING.
@@ -156,7 +156,7 @@ describe("status colour comes from statusColors.ts", () => {
  * completed green changed from `--success-ink` to `--bark` and this
  * transcription still described the old one.
  *
- * The rule now lives in `src/components/activity/jobRailTone.ts` and BOTH
+ * The rule now lives in `src/components/job-card/jobRailTone.ts` and BOTH
  * rails call it — the full labelled one and the 16px collapsed one the owner
  * asked for the same day. So this file asserts over the real function, and
  * "the compact rail uses the same colour vocabulary as the expanded one" needs
@@ -203,11 +203,11 @@ describe("the progress rail's colour rule", () => {
        must be added here, and `src/test/collapsedStatusSentence.test.tsx`
        asserts no compact rail comes back to either card. */
     expect(
-      existsSync(resolve(ROOT, "src/components/activity/JobStepRailCompact.tsx")),
+      existsSync(resolve(ROOT, "src/components/job-card/JobStepRailCompact.tsx")),
       "JobStepRailCompact.tsx is back. It is a second rail painting these dots — add it to the " +
         "assertion above, or the 'two different green' defect has a new place to live.",
     ).toBe(false);
-    const RULE = repoFile("src/components/activity/jobRailTone.ts");
+    const RULE = repoFile("src/components/job-card/jobRailTone.ts");
     expect(RULE, "the alarm tone no longer paints --destructive").toMatch(/hsl\(var\(--destructive\)\)/);
     expect(RULE, "the current-step tone no longer paints --amber-solid").toMatch(/hsl\(var\(--amber-solid\)\)/);
   });

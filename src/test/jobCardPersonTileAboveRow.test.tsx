@@ -30,11 +30,11 @@
  * gate that rode on the tracker would have printed the poster's name on every
  * collapsed Jobs card. Both sides are checked collapsed here.
  *
- * @mutate src/components/activity/JobStepCard.tsx | {personTile}\n        <div\n          ref={rowRef} | <div\n          ref={rowRef}
- * @mutate src/components/activity/jobCardPerson.tsx | return present ? tile : null; | return null;
- * @mutate src/components/activity/PostedJobCard.tsx | {!stepCarriesTile && helperTile} | {helperTile}
- * @mutate src/components/activity/AppliedJobCard.tsx | const bodyCarriesTile = !stepCarriesTile && posterTile !== null; | const bodyCarriesTile = posterTile !== null;
- * @mutate src/components/activity/AppliedJobCard.tsx | const posterTile =\n    isExpanded && posterId && app.posterName ? ( | const posterTile =\n    posterId && app.posterName ? (
+ * @mutate src/components/job-card/JobStepCard.tsx | {personTile}\n        <div\n          ref={rowRef} | <div\n          ref={rowRef}
+ * @mutate src/components/job-card/jobCardPerson.tsx | return present ? tile : null; | return null;
+ * @mutate src/pages/posts/PostedJobCard.tsx | {!stepCarriesTile && helperTile} | {helperTile}
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | const bodyCarriesTile = !stepCarriesTile && posterTile !== null; | const bodyCarriesTile = posterTile !== null;
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | const posterTile =\n    isExpanded && posterId && app.posterName ? ( | const posterTile =\n    posterId && app.posterName ? (
  *
  * A NOTE ON WHAT THE MUTATIONS PROVE, because the two cards are NOT symmetric
  * here and one of them says so out loud. Dropping `isExpanded` from the tile on
@@ -52,7 +52,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
-import type { AppliedApp, Job } from "@/components/activity/activityConstants";
+import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -88,13 +88,13 @@ vi.mock("@/components/JobConfirmation", () => ({
   helperDayOfConfirmation: () => true,
 }));
 vi.mock("@/components/GroupJobHelpers", () => ({ GroupJobHelpers: () => null }));
-vi.mock("@/components/activity/SeriesStrip", () => ({ SeriesStrip: () => null }));
-vi.mock("@/components/activity/JobCountdown", () => ({ JobCountdown: () => null }));
-vi.mock("@/components/activity/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
-vi.mock("@/components/activity/JobCardMetaRow", () => ({ JobCardMetaRow: () => <div data-testid="meta" /> }));
-vi.mock("@/components/activity/postedJobCard/PostedJobApplicants", () => ({ PostedJobApplicants: () => null }));
+vi.mock("@/pages/posts/SeriesStrip", () => ({ SeriesStrip: () => null }));
+vi.mock("@/components/job-card/JobCountdown", () => ({ JobCountdown: () => null }));
+vi.mock("@/pages/jobs/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
+vi.mock("@/components/job-card/JobCardMetaRow", () => ({ JobCardMetaRow: () => <div data-testid="meta" /> }));
+vi.mock("@/pages/posts/postedJobCard/PostedJobApplicants", () => ({ PostedJobApplicants: () => null }));
 vi.mock("@/hooks/useFundExistingJob", () => ({ useFundExistingJob: () => ({ fundJob: vi.fn(), fundingJobId: null }) }));
-vi.mock("@/components/activity/useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
+vi.mock("@/components/job-card/useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null }) }));
 
 function makeSupabase() {
@@ -118,8 +118,8 @@ function makeSupabase() {
 }
 vi.mock("@/integrations/supabase/client", () => makeSupabase());
 
-import { PostedJobCard } from "@/components/activity/PostedJobCard";
-import { AppliedJobCard } from "@/components/activity/AppliedJobCard";
+import { PostedJobCard } from "@/pages/posts/PostedJobCard";
+import { AppliedJobCard } from "@/pages/jobs/AppliedJobCard";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 beforeAll(() => {

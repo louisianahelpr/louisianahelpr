@@ -78,7 +78,7 @@ async function closeFilterSheet(page: Page) {
 // an <h1> reading "Browse Jobs" is visible, because a guest who cannot see the
 // page heading cannot tell the marketplace rendered at all. Retitling the
 // PublicHeaderPage reds it.
-// @mutate src/pages/DashboardGuest.tsx | title="Browse Jobs"\n      width="public" | title="Find Work"\n      width="public"
+// @mutate src/pages/home/DashboardGuest.tsx | title="Browse Jobs"\n      width="public" | title="Find Work"\n      width="public"
 
 test(guestTitle, async ({ browser, request, journey }) => {
   test.skip(filteredOut(guestTitle), "SCENARIO pins another scenario");

@@ -22,14 +22,14 @@
  */
 // @mutate src/components/dashboard/JobCard.tsx | : "group relative h-full rounded-2xl | : "motion-safe:animate-fade-in group relative h-full rounded-2xl
 // @mutate src/hooks/useArrivalGate.ts | const ready = latched \|\| (primaryReady && (secondaryReady \|\| capped)); | const ready = latched \|\| primaryReady;
-// @mutate src/pages/DashboardGuest.tsx | {!feedReady ? ( | {isLoading ? (
-// @mutate src/pages/postjob/EntryChoice.tsx | unpaidDrafts !== null && recentPosted !== null && form.openJobCount !== null | true
+// @mutate src/pages/home/DashboardGuest.tsx | {!feedReady ? ( | {isLoading ? (
+// @mutate src/pages/post-job/EntryChoice.tsx | unpaidDrafts !== null && recentPosted !== null && form.openJobCount !== null | true
 // @mutate src/components/NotificationPreferences.tsx |   if (!loaded) return <ProfileTabBodyReserve />;\n |
 // @mutate src/components/profile/EarningsTab.tsx | view === "earnings" && !earningsReady && | view === "earnings" && loading &&
 // @mutate src/components/profile/ReviewsTab.tsx | {!loading && reviewCount > 0 && avgRating != null && ( | {reviewCount > 0 && avgRating != null && (
-// @mutate src/pages/Dashboard.tsx |         titleCard={isWebDesktop ? undefined : <DashboardTitleBar | titleCard={<DashboardTitleBar
+// @mutate src/pages/home/Dashboard.tsx |         titleCard={isWebDesktop ? undefined : <DashboardTitleBar | titleCard={<DashboardTitleBar
 // @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | invisible font-sans leading-none tabular-nums text-ds-17 | invisible h-9 w-16
-// @mutate src/pages/DashboardGuest.tsx | const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS; | const FEED_GRID_CLASS = "grid grid-cols-1 gap-3";
+// @mutate src/pages/home/DashboardGuest.tsx | const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS; | const FEED_GRID_CLASS = "grid grid-cols-1 gap-3";
 // @mutate src/components/profile/SecurityTab.tsx | useArrivalGate(!sessionsLoading, !factorLoading) | useArrivalGate(true, true)
 // @mutate src/components/SaveHelperButton.tsx | variant === "icon" ? "h-10 w-10 shrink-0 " : "" | ""
 // @mutate src/components/GuestBrowseSkeleton.tsx | 0.25rem) + var(--public-nav-h))" }} /> | 1.5rem) + 3rem)" }} />
@@ -96,7 +96,7 @@ describe("lists arrive in one wave (Q169)", () => {
   });
 
   it("the guest browse feed renders its skeleton off the arrival gate", () => {
-    const page = read("pages/DashboardGuest.tsx");
+    const page = read("pages/home/DashboardGuest.tsx");
     expect(page).toMatch(/const feedReady = useArrivalGate\(!isLoading, enrichmentSettled\)/);
     expect(page).toMatch(/\{!feedReady \? \(/);
     expect(page).not.toMatch(/\{isLoading \? \(/);
@@ -105,7 +105,7 @@ describe("lists arrive in one wave (Q169)", () => {
 
 describe("each measured page waits in ONE placeholder and lands once (Q169)", () => {
   it("post-job's entry column holds until its three data rows settle", () => {
-    const src = read("pages/postjob/EntryChoice.tsx");
+    const src = read("pages/post-job/EntryChoice.tsx");
     expect(src).toMatch(/unpaidDrafts !== null && recentPosted !== null && form\.openJobCount !== null/);
     expect(src).toMatch(/if \(!entryReady\) return <EntryChoiceSkeleton \/>;/);
   });
@@ -142,7 +142,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
   });
 
   it("the desktop dashboard loads in the loaded page's frame (no title card at desktop)", () => {
-    const src = read("pages/Dashboard.tsx");
+    const src = read("pages/home/Dashboard.tsx");
     expect(src.match(/titleCard=\{isWebDesktop \? undefined : /g)?.length).toBe(1);
     expect(src).toMatch(/data-testid="dashboard-desktop-loading"/);
   });
@@ -157,7 +157,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     const skel = read("components/GuestBrowseSkeleton.tsx");
     expect(skel).toMatch(/<PageHeader title="Browse Jobs"/);
     expect(skel).toMatch(/\$\{GUEST_FEED_GRID_CLASS\} \$\{GUEST_FEED_RESERVE_CLASS\}/);
-    expect(read("pages/DashboardGuest.tsx")).toMatch(/const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS;/);
+    expect(read("pages/home/DashboardGuest.tsx")).toMatch(/const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS;/);
   });
 
   it("/browse's chunk skeleton restates the public shell's geometry VERBATIM (nav spacer, nav box, body gutter)", () => {

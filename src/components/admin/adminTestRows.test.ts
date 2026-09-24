@@ -6,7 +6,7 @@
  * wired to money buttons, with nothing saying why the numbers differed.
  */
 // @mutate src/components/admin/dashboard/types.ts | test > 0 ? | test < 0 ?
-// @mutate src/pages/Admin.tsx | .eq("status", "disputed").eq("is_seed", true), | .eq("status", "disputed").eq("is_seed", false),
+// @mutate src/pages/admin/Admin.tsx | .eq("status", "disputed").eq("is_seed", true), | .eq("status", "disputed").eq("is_seed", false),
 // @mutate src/components/admin/dashboard/DashboardHome.tsx | value={v(withTestCount(stats.disputedJobs, stats.testDisputedJobs))} | value={v(stats.disputedJobs)}
 // @mutate src/components/admin/adminDisputes/DisputeCard.tsx | {job.is_seed && <TestTag />} | {null}
 // @mutate src/components/admin/adminusers/AdminUserRow.tsx | {p.is_seed && <TestTag />} | {null}
@@ -28,7 +28,7 @@ describe("admin keeps test rows visible and says so", () => {
   });
 
   it("home reads the seed side of the disputes, active-jobs and subscriptions counts", () => {
-    const admin = read("src/pages/Admin.tsx");
+    const admin = read("src/pages/admin/Admin.tsx");
     expect(admin).toContain('.eq("status", "disputed").eq("is_seed", true),');
     expect(admin).toContain('.in("status", ["open", "accepted", "in_progress"]).eq("is_seed", true),');
     expect(admin).toContain('.not("subscription_tier", "is", null).eq("is_seed", true),');

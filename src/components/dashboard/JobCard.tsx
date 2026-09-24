@@ -5,8 +5,8 @@ import {
 import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
 
-import { categoryColors } from "@/components/activity/activityConstants";
-import { JobHelprsChip } from "@/components/activity/JobCardMetaRow";
+import { categoryColors } from "@/components/job-card/activityConstants";
+import { JobHelprsChip } from "@/components/job-card/JobCardMetaRow";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { useExpiryClock } from "@/lib/useExpiryClock";

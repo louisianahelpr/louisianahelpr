@@ -52,7 +52,7 @@ The stage list is derived from `STATUSES` + `PRE_STATUSES` in
 → job_confirmed/Confirmed → on_the_way → arrived → working → done) plus the
 terminal states the Activity tabs expose (`completed`, `cancelled`,
 `revision_requested`, `disputed`). Buckets are the five in
-`src/pages/activity/activityFilters.ts`.
+`src/components/job-card/activityFilters.ts`.
 
 ### Side 1 — jobs the account POSTED (`/my-posts`), helper = Hallie Helper
 
@@ -120,7 +120,7 @@ terminal states the Activity tabs expose (`completed`, `cancelled`,
    48 applications were read back from prod and passed through
    `postedActivityBucket()` / `appliedActivityBucket()` (and the synthetic
    direct-offer shape `fetchAppliedActivity` builds) imported from
-   `src/pages/activity/activityFilters.ts`. Every row landed in the bucket in
+   `src/components/job-card/activityFilters.ts`. Every row landed in the bucket in
    the tables above; every job reported `msgs=3`.
 2. **Tracker step run through `deriveCurrentStatusIdx()`** from
    `src/components/JobTracking.tsx`. Steps 0–6 each appear exactly once per side

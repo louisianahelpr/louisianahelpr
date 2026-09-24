@@ -18,7 +18,7 @@ import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 
-// @mutate src/pages/ResetPassword.tsx | <Button asChild variant="outline" className="w-full rounded-ds-md"> | <Button asChild variant="outline" className="w-full rounded-ds-md"><Link to="/x"><Button>x</Button></Link>
+// @mutate src/pages/auth/ResetPassword.tsx | <Button asChild variant="outline" className="w-full rounded-ds-md"> | <Button asChild variant="outline" className="w-full rounded-ds-md"><Link to="/x"><Button>x</Button></Link>
 
 const ROOT = resolve(__dirname, "..", "..");
 const FILES = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })

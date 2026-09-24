@@ -212,7 +212,7 @@ serve(async (req) => {
             "Dispute ID": settlement.dispute?.id ?? "—",
             "Execution status": settlement.dispute?.execution_status ?? "null",
           },
-          // `?view=` is the ONLY query param /admin routes on (src/pages/Admin.tsx
+          // `?view=` is the ONLY query param /admin routes on (src/pages/admin/Admin.tsx
           // resolves `searchParams.get("view")` against VIEW_LABELS). This link
           // read `?tab=<name>` for as long as it has existed, which Admin.tsx
           // never looked at — every one of these alerts opened the dashboard home.

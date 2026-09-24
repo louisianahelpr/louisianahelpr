@@ -130,15 +130,15 @@ const EXPECTED: Array<{ file: string; kind: "escrow" | "dispute" | "remind"; cou
   { file: "src/components/DisputeDialog.tsx", kind: "dispute", count: 2 },
   // The poster's dispute copy moved into its own step component when the card
   // was split onto the shared JobStepCard shell (2026-09-11).
-  { file: "src/components/activity/postedJobCard/steps/DisputedStep.tsx", kind: "dispute", count: 1 },
+  { file: "src/pages/posts/postedJobCard/steps/DisputedStep.tsx", kind: "dispute", count: 1 },
   // The Help Center's remaining literal is the 72h DISPUTE window, not the
   // escrow clock. Its escrow answer used to be here under kind "escrow" with
   // the numbers 24/24 hand-typed; it now interpolates COPY_AUTO_RELEASE_HOURS
   // and PAYOUT_HOLD_HOURS, so it produces no literal at all and the
   // derivation test below is what guards it.
-  { file: "src/pages/helpCenter/helpCenterContent.ts", kind: "dispute", count: 1 },
-  { file: "src/pages/legal/CommunitySection.tsx", kind: "dispute", count: 1 },
-  { file: "src/pages/legal/CommunitySection.tsx", kind: "remind", count: 1 },
+  { file: "src/pages/info/helpCenter/helpCenterContent.ts", kind: "dispute", count: 1 },
+  { file: "src/pages/info/legal/CommunitySection.tsx", kind: "dispute", count: 1 },
+  { file: "src/pages/info/legal/CommunitySection.tsx", kind: "remind", count: 1 },
 ];
 
 describe("escrow/dispute/revision windows — copy must not restate the clock", () => {
@@ -198,7 +198,7 @@ describe("escrow/dispute/revision windows — copy must not restate the clock", 
     // (index.ts:302-303, 315-316). Both sentences were true; the guard could
     // only express one of the two true shapes, and "make the test pass" would
     // have meant putting a third number in front of users.
-    const help = repoFile("src/pages/helpCenter/helpCenterContent.ts");
+    const help = repoFile("src/pages/info/helpCenter/helpCenterContent.ts");
     expect(
       help,
       "helpCenterContent.ts no longer imports escrowTiming — its auto-release answer " +
@@ -340,7 +340,7 @@ describe("escrow/dispute/revision windows — copy must not restate the clock", 
         // quotes the false cadence verbatim, and grading a file's own changelog
         // as if it were shipping copy is how a guard starts failing for reasons
         // that have nothing to do with the user.
-        stripComments(repoFile("src/pages/legal/CommunitySection.tsx")),
+        stripComments(repoFile("src/pages/info/legal/CommunitySection.tsx")),
       ),
       "CommunitySection describes a recurring reminder cadence. There isn't one — " +
         "payment-confirm-reminder sends exactly one notification per job.",
@@ -362,16 +362,16 @@ describe("escrow/dispute/revision windows — copy must not restate the clock", 
     const IMPORTS_ESCROW_TIMING =
       /(?:^|\n)\s*import\s[\s\S]*?from\s+["'][^"']*_shared\/escrowTiming["']/;
     for (const file of [
-      "src/pages/legal/CommunitySection.tsx",
-      "src/pages/legal/TermsSection.tsx",
-      "src/pages/PaymentSuccess.tsx",
+      "src/pages/info/legal/CommunitySection.tsx",
+      "src/pages/info/legal/TermsSection.tsx",
+      "src/pages/post-job/PaymentSuccess.tsx",
       // The helper card's auto-release copy moved into its per-step component
       // when the card was split (2026-09-11); the container no longer prints a
       // number, the step that shows it does.
-      "src/components/activity/appliedJobCard/steps/SubmittedStep.tsx",
+      "src/pages/jobs/appliedJobCard/steps/SubmittedStep.tsx",
       // Same split: the poster's auto-release countdown lives in the step that
       // shows it, and the container imports no copy constants at all.
-      "src/components/activity/postedJobCard/steps/InProgressStep.tsx",
+      "src/pages/posts/postedJobCard/steps/InProgressStep.tsx",
     ]) {
       expect(
         repoFile(file),
@@ -385,7 +385,7 @@ describe("escrow/dispute/revision windows — copy must not restate the clock", 
     // actually changed. Kept as its own case so a failure names the Help Center
     // rather than being lost in a five-file loop.
     expect(
-      repoFile("src/pages/helpCenter/helpCenterContent.ts"),
+      repoFile("src/pages/info/helpCenter/helpCenterContent.ts"),
       "helpCenterContent.ts mentions escrowTiming but does not import it — the escrow " +
         "answer is hardcoded again",
     ).toMatch(/(?:^|\n)\s*import\s[\s\S]*?from\s+["'][^"']*_shared\/escrowTiming["']/);

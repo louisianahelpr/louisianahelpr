@@ -263,7 +263,7 @@ describe("the record does not contradict the app about the same person", () => {
     // instead. Ten live prod profiles were in exactly that state on
     // 2026-09-06: verified badge in the app, "Not verified" on the document
     // they hand a landlord.
-    const page = src("../pages/WorkRecord.tsx");
+    const page = src("../pages/profile/WorkRecord.tsx");
     expect(page).toMatch(/isIdentityVerified\(/);
     expect(page).toMatch(/idvStatus:\s*profileRow\.idv_status/);
     // The three places the verdict is rendered (badge, footer sentence, PDF
@@ -279,7 +279,7 @@ describe("the record does not contradict the app about the same person", () => {
     // as "$105" to a reader holding the matching bank statement.
     expect(formatPriceExact(105.6)).toBe("105.60");
     expect(formatPriceFloor(105.6)).toBe("105");
-    for (const file of ["./workRecordDocument.ts", "../pages/WorkRecord.tsx"] as const) {
+    for (const file of ["./workRecordDocument.ts", "../pages/profile/WorkRecord.tsx"] as const) {
       const text = src(file);
       expect(text).toMatch(/formatPriceExact\(\s*(input|data)\.totalEarnings\s*\)/);
       expect(text).not.toMatch(/formatPriceFloor\(\s*(input|data)\.totalEarnings\s*\)/);
@@ -290,7 +290,7 @@ describe("the record does not contradict the app about the same person", () => {
     // The screen tile and the PDF row have drifted before (the "after platform
     // fee" caption). Whatever the choice, it has to be the same on both.
     const usesExact = (text: string) => /formatPriceExact\(\s*(input|data)\.totalEarnings\s*\)/.test(text);
-    expect(usesExact(src("./workRecordDocument.ts"))).toBe(usesExact(src("../pages/WorkRecord.tsx")));
+    expect(usesExact(src("./workRecordDocument.ts"))).toBe(usesExact(src("../pages/profile/WorkRecord.tsx")));
   });
 });
 

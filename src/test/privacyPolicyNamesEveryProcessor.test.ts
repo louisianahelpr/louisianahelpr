@@ -6,8 +6,8 @@
  * fails here until it is either disclosed or listed as carrying no personal
  * data. Inventory: every https host in src and supabase/functions.
  *
- * @mutate src/pages/legal/PrivacySection.tsx | <strong className="text-foreground">Resend</strong> | <strong className="text-foreground">Mailer</strong>
- * @mutate src/pages/legal/PrivacySection.tsx | <strong className="text-foreground">Google Gemini</strong> | <strong className="text-foreground">An AI model</strong>
+ * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Resend</strong> | <strong className="text-foreground">Mailer</strong>
+ * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Google Gemini</strong> | <strong className="text-foreground">An AI model</strong>
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -53,7 +53,7 @@ const NOT_PROCESSORS = [
 const files = [...walk("src"), ...walk("supabase/functions")];
 const hosts = new Set<string>();
 for (const f of files) for (const m of readFileSync(f, "utf8").matchAll(/https:\/\/([a-z0-9.-]+\.[a-z]{2,})/g)) hosts.add(m[1]);
-const policy = readFileSync("src/pages/legal/PrivacySection.tsx", "utf8");
+const policy = readFileSync("src/pages/info/legal/PrivacySection.tsx", "utf8");
 
 describe("the privacy policy names every data processor (CS-002)", () => {
   it("the inventory is real", () => {

@@ -6,9 +6,9 @@
  * `=== null` branch, or an `if (x)`) on its line or the three before it.
  * Inventory: every non-test .ts/.tsx file under src.
  *
- * @mutate src/components/activity/postedJobCard/steps/InProgressStep.tsx | navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages") | navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)
- * @mutate src/components/activity/appliedJobCard/DisputedSection.tsx | navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages") | navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)
- * @mutate src/components/activity/postedJobCard/steps/CompletedStep.tsx | !!job.helper_id && | true &&
+ * @mutate src/pages/posts/postedJobCard/steps/InProgressStep.tsx | navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages") | navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)
+ * @mutate src/pages/jobs/appliedJobCard/DisputedSection.tsx | navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages") | navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)
+ * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx | !!job.helper_id && | true &&
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -46,7 +46,7 @@ describe("message deep links never carry a NULL counterparty (AL-009)", () => {
   });
 
   it("the poster's Review chip needs a helper to review", () => {
-    const src = readFileSync("src/components/activity/postedJobCard/steps/CompletedStep.tsx", "utf8");
+    const src = readFileSync("src/pages/posts/postedJobCard/steps/CompletedStep.tsx", "utf8");
     expect(src).toMatch(/const canReview =\s*!!job\.helper_id &&/);
   });
 });

@@ -130,7 +130,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 describe("the breached-password gate is actually wired into signup", () => {
-  const signup = readFileSync(resolve(process.cwd(), "src/pages/Signup.tsx"), "utf8");
+  const signup = readFileSync(resolve(process.cwd(), "src/pages/auth/Signup.tsx"), "utf8");
 
   it("Signup.tsx calls checkPasswordPwned on the submitted password", () => {
     expect(signup).toContain('import { checkPasswordPwned } from "@/lib/hibpCheck"');
@@ -160,4 +160,4 @@ describe("the breached-password gate is actually wired into signup", () => {
 });
 
 // @mutate src/lib/hibpCheck.ts | if (s === suffix) return parseInt(count, 10) \|\| 0; | if (s === suffix) return 0;
-// @mutate src/pages/Signup.tsx | if (pwnedCount !== null && pwnedCount > 0) { | if (pwnedCount !== null && pwnedCount < 0) {
+// @mutate src/pages/auth/Signup.tsx | if (pwnedCount !== null && pwnedCount > 0) { | if (pwnedCount !== null && pwnedCount < 0) {

@@ -118,16 +118,16 @@ export function parseProfileTabs(src = readFileSync(resolve(REPO, "src/pages/pro
   return [...m[1].matchAll(/"([a-z_]+)"/g)].map((x) => x[1]);
 }
 
-/** The admin `View` union, parsed from src/pages/Admin.tsx so a new view is walked. */
-export function parseAdminViews(src = readFileSync(resolve(REPO, "src/pages/Admin.tsx"), "utf8")) {
+/** The admin `View` union, parsed from src/pages/admin/Admin.tsx so a new view is walked. */
+export function parseAdminViews(src = readFileSync(resolve(REPO, "src/pages/admin/Admin.tsx"), "utf8")) {
   const m = /type View\s*=\s*([^;]+);/.exec(src);
-  if (!m) throw new Error("Could not find `type View` in src/pages/Admin.tsx");
+  if (!m) throw new Error("Could not find `type View` in src/pages/admin/Admin.tsx");
   return [...m[1].matchAll(/"([a-z_]+)"/g)].map((x) => x[1]).filter((v) => v !== "home");
 }
 
 /** The Legal tabs, from the page's own union. */
 export function parseLegalTabs() {
-  const file = resolve(REPO, "src/pages/Legal.tsx");
+  const file = resolve(REPO, "src/pages/info/Legal.tsx");
   if (!existsSync(file)) return ["terms", "privacy", "community"];
   const src = readFileSync(file, "utf8");
   const m = /type\s+(?:Legal)?Tab\s*=\s*([^;]+);/.exec(src);

@@ -60,7 +60,7 @@ import {
  */
 
 // Guard-proof lines: each plants a defect the journey must catch.
-// @mutate src/pages/legal/DataExportCard.tsx |         jobs: jobsRes.data,\n |         jobs: [],\n
+// @mutate src/pages/info/legal/DataExportCard.tsx |         jobs: jobsRes.data,\n |         jobs: [],\n
 
 function readServiceEnv(): { url: string; key: string } | null {
   let key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
@@ -392,7 +392,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
  * So /complete-profile itself must offer deletion (Apple 5.1.1(v), GDPR Art.
  * 17), through the same hook and dialog as every other entry point.
  */
-// @mutate src/pages/CompleteProfile.tsx | onClick={deleteAccount.requestDelete} | onClick={() => {}}
+// @mutate src/pages/auth/CompleteProfile.tsx | onClick={deleteAccount.requestDelete} | onClick={() => {}}
 const INCOMPLETE_TAG = `${RUN_TAG.slice(0, 13)}inc`;
 const INCOMPLETE_EMAIL = disposableEmail(INCOMPLETE_TAG);
 

@@ -61,7 +61,7 @@ still expose the raw `location` column**, granted to `anon`:
 The live post flow writes the **full street address** into `jobs.location`:
 `buildJobInsertPayload()` →
 `location: \`${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}\``
-(`src/pages/postjob/jobSubmitHelpers.ts:156`; `buildJobInsertPayload` is the
+(`src/pages/post-job/jobSubmitHelpers.ts:156`; `buildJobInsertPayload` is the
 live insert builder, called from `usePostJobForm.ts:689`). So any open job
 posted with a street address is readable, unmasked, by a logged-out client via
 `GET /rest/v1/open_jobs_safe?select=location` or

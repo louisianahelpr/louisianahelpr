@@ -184,7 +184,7 @@ a shared module already owns:
   `helper_fee_percent`, the urgent bonus and the group split
 - `src/components/admin/useAdminUserSummaries.ts:117` omits **both** the urgent
   bonus and the group split — overstates a group helper by N×
-- `src/pages/postjob/jobSubmitHelpers.ts:143` computes the poster fee **without
+- `src/pages/post-job/jobSubmitHelpers.ts:143` computes the poster fee **without
   the Stripe floor** and writes it into `platform_fee_percent` — the column
   every payout path reads as the *helper's* commission
 - `EarningsForecastCard.tsx:44`, `JobPrice.tsx:53`,

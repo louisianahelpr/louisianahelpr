@@ -262,7 +262,7 @@ serve(async (req) => {
       //     helper" ReviewForm), and
       //   * the helper reviews the poster from a My Jobs card
       //     (AppliedJobsTab -> onHelperReview -> the sibling ReviewForm).
-      // Both routes parse `?job=` (src/pages/Activity.tsx) and open on the
+      // Both routes parse `?job=` (src/components/job-card/JobListPage.tsx) and open on the
       // right bucket for that job.
       for (const party of [
         { user_id: job.customer_id, reviewing: "your Helpr", surface: "/my-posts" },

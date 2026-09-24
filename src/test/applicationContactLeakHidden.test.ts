@@ -21,9 +21,9 @@ const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 const codeOnly = (s: string) =>
   blankComments(s);
 
-const PANEL = codeOnly(read("src/components/activity/postedJobs/ApplicantsPanel.tsx"));
-const OFFER = codeOnly(read("src/components/activity/appliedJobCard/OfferedActions.tsx"));
-const APPLICANTS_QUERY = read("src/pages/activity/activityActions/useApplicantsState.ts");
+const PANEL = codeOnly(read("src/pages/posts/postedJobs/ApplicantsPanel.tsx"));
+const OFFER = codeOnly(read("src/pages/jobs/appliedJobCard/OfferedActions.tsx"));
+const APPLICANTS_QUERY = read("src/components/job-card/activityActions/useApplicantsState.ts");
 const ACTIVITY_QUERY = read("src/hooks/useActivityData.ts");
 
 /**
@@ -50,7 +50,7 @@ function guardedRange(src: string, opener: string, rawRender: string, where: str
   return src.slice(start, raw);
 }
 
-// @mutate src/components/activity/postedJobs/ApplicantsPanel.tsx | app.flagged_hidden ? ( | false ? (
+// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | app.flagged_hidden ? ( | false ? (
 describe("helper's note -> poster (ApplicantsPanel)", () => {
   it("does not render the raw note when it is flagged", () => {
     expect(PANEL).toContain("app.flagged_hidden");
@@ -81,7 +81,7 @@ describe("the column actually reaches the client", () => {
   });
 
   it("the Application type carries the flag", () => {
-    const t = read("src/components/activity/activityConstants.ts");
+    const t = read("src/components/job-card/activityConstants.ts");
     expect(t).toMatch(/flagged_hidden\?:\s*boolean\s*\|\s*null/);
   });
 });

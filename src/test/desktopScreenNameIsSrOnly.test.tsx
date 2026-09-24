@@ -9,7 +9,7 @@
  * and the right rail already name the page.
  *
  * WHY /my-jobs AND /my-posts DIVERGED — they don't, by route. Both are
- * `src/pages/Activity.tsx` (`defaultTab="posted"` / `"applied"`), rendering
+ * `src/components/job-card/JobListPage.tsx` (`defaultTab="posted"` / `"applied"`), rendering
  * ONE expression:
  *
  *     titleSrOnly={isWebDesktop && !isTrulyEmpty}
@@ -30,7 +30,7 @@
  *
  * Registered mutation: painting the name on desktop again (all four desktop
  * cases red, all four phone cases still green).
- * @mutate src/pages/Activity.tsx | titleSrOnly={isWebDesktop} | titleSrOnly={false}
+ * @mutate src/components/job-card/JobListPage.tsx | titleSrOnly={isWebDesktop} | titleSrOnly={false}
  */
 import { describe, expect, it, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
@@ -53,17 +53,17 @@ vi.mock("@/lib/pushPermissionNudge", () => ({ usePushPermissionNudge: () => vi.f
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "user-1" }, loading: false }),
 }));
-vi.mock("@/pages/activity/useActivityActions", () => ({
+vi.mock("@/components/job-card/useActivityActions", () => ({
   useActivityActions: () => ({ expandedJobIds: new Set<string>(), inlineApplicants: {}, applicantErrors: {} }),
 }));
-vi.mock("@/components/activity/ActivityDialogs", () => ({ ActivityDialogs: () => null }));
+vi.mock("@/components/job-card/ActivityDialogs", () => ({ ActivityDialogs: () => null }));
 // The two tab bodies are lazy chunks; their contents are irrelevant here and
 // their real prop surfaces are enormous. Stub them so the NON-empty case
 // renders synchronously and the assertion is about the header row only.
-vi.mock("@/components/activity/PostedJobsTab", () => ({
+vi.mock("@/pages/posts/PostedJobsTab", () => ({
   PostedJobsTab: () => <div data-testid="posted-tab" />,
 }));
-vi.mock("@/components/activity/AppliedJobsTab", () => ({
+vi.mock("@/pages/jobs/AppliedJobsTab", () => ({
   AppliedJobsTab: () => <div data-testid="applied-tab" />,
 }));
 
@@ -89,7 +89,7 @@ vi.mock("@/hooks/useActivityData", () => ({
   }),
 }));
 
-import Activity from "@/pages/Activity";
+import Activity from "@/components/job-card/JobListPage";
 import { ConversationList } from "@/components/messages/ConversationList";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 

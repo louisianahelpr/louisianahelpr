@@ -26,7 +26,7 @@ import { join, relative, resolve } from "node:path";
  *      is the exact shape of the reported defect: N discrete things printed
  *      as one sentence, which is also what a screen reader was handed.
  *
- * THE INVENTORY IS THE APP'S OWN: every `.tsx` in src/pages/userProfile/,
+ * THE INVENTORY IS THE APP'S OWN: every `.tsx` in src/pages/user/,
  * with a floor so an empty scan fails loudly rather than passing.
  *
  * COMMENTS ARE STRIPPED BEFORE SCANNING. ProfileHeaderCard.tsx's comment
@@ -35,7 +35,7 @@ import { join, relative, resolve } from "node:path";
  */
 
 const ROOT = resolve(__dirname, "../..");
-const DIR = resolve(ROOT, "src/pages/userProfile");
+const DIR = resolve(ROOT, "src/pages/user");
 
 const stripComments = (src: string): string =>
   src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1 ");
@@ -50,12 +50,12 @@ const CAPTION = /uppercase tracking-wider text-ds-10/;
 /** A pill BOX spelled inline: a pill radius in the same class string as padding. */
 const INLINE_PILL_BOX = /["'`][^"'`]*\brounded-(?:ds-pill|full)\b[^"'`]*\bp[xy]?-[\d.]+[^"'`]*["'`]/g;
 
-// @mutate src/pages/userProfile/ProfileHeaderCard.tsx | {skills.map((skill) => ( | {[skills.join(", ")].map((skill) => (
-// @mutate src/pages/userProfile/ProfileBadge.tsx | `${PROFILE_BADGE_PILL_BOX} whitespace-nowrap ` + | "inline-flex items-center gap-1 rounded-ds-pill px-2 py-1 text-ds-11 font-sans font-semibold leading-none whitespace-nowrap " +
+// @mutate src/pages/user/ProfileHeaderCard.tsx | {skills.map((skill) => ( | {[skills.join(", ")].map((skill) => (
+// @mutate src/pages/user/ProfileBadge.tsx | `${PROFILE_BADGE_PILL_BOX} whitespace-nowrap ` + | "inline-flex items-center gap-1 rounded-ds-pill px-2 py-1 text-ds-11 font-sans font-semibold leading-none whitespace-nowrap " +
 
 describe("public profile — one pill recipe, no group rendered as prose", () => {
   it("the scan has a real inventory to judge (floor — an empty scan is a failure)", () => {
-    expect(files.length, "no .tsx files were scanned in src/pages/userProfile/").toBeGreaterThan(5);
+    expect(files.length, "no .tsx files were scanned in src/pages/user/").toBeGreaterThan(5);
     const captioned = files.filter((f) => CAPTION.test(f.src));
     expect(
       captioned.map((f) => f.name),

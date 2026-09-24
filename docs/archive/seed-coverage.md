@@ -29,7 +29,7 @@ precise mapping a static scan can make; follow the hook to its page.
 | `admin_audit_log` | **yes (new)** / yes | 8 / 8 | components/admin/AdminAuditLog, components/admin/userDetail/UserAuditLog |
 | `admin_user_notes` | **yes (new)** / yes | 4 / 4 | components/admin/AdminUserNotes, components/admin/useAdminUserSummaries |
 | `analytics_events` | no — write-only (event capture); no screen reads it | — | _(write-only, 1 call site)_ |
-| `applications` | yes (already) / yes | 10 / 55 | components/admin/adminHealth/useHealthData, components/admin/useAdminUserSummaries, components/dashboard/jobDetailDialog/useJobDetailData, components/dashboard/prefetchJobDialog, components/profile/LegalTab, hooks/useActivityBadgeCounts, hooks/useActivityData, hooks/useDashboardData, pages/HomeHistory, pages/activity/activityActions/useApplicantsState, pages/dashboard/useApplyFlow, pages/userProfile/useUserProfileData |
+| `applications` | yes (already) / yes | 10 / 55 | components/admin/adminHealth/useHealthData, components/admin/useAdminUserSummaries, components/dashboard/jobDetailDialog/useJobDetailData, components/dashboard/prefetchJobDialog, components/profile/LegalTab, hooks/useActivityBadgeCounts, hooks/useActivityData, hooks/useDashboardData, pages/profile/HomeHistory, components/job-card/activityActions/useApplicantsState, pages/home/useApplyFlow, pages/user/useUserProfileData |
 | `broadcast_dismissals` | no — per-viewer dismiss state; seeding it would hide the seeded broadcast | — | components/BroadcastBanner |
 | `broadcast_messages` | **yes (new)** / yes | 3 / 3 | components/BroadcastBanner, components/admin/AdminBroadcasts |
 | `cron_run_log` | no — admin System Health only; operational telemetry, not user-visible content | — | components/admin/adminHealth/useCronHealth |
@@ -40,45 +40,45 @@ precise mapping a static scan can make; follow the hook to its page.
 | `error_logs` | no — admin System Health; seeding errors would make the health screen report a fault that is not there | — | components/admin/adminHealth/useCronHealth |
 | `favorite_helpers` | **yes (new)** / yes | 4 / 4 | components/SaveHelperButton |
 | `fraud_flags` | **yes (new)** / yes | 6 / 6 | components/admin/AdminFraudDashboard, components/admin/adminHealth/useHealthData |
-| `group_job_helpers` | **yes (new)** / yes | 2 / 2 | components/GroupJobHelpers, hooks/useActivityData, hooks/useProfileTabData, pages/HomeHistory |
+| `group_job_helpers` | **yes (new)** / yes | 2 / 2 | components/GroupJobHelpers, hooks/useActivityData, hooks/useProfileTabData, pages/profile/HomeHistory |
 | `helper_availability` | **yes (new)** / yes | 7 / 7 | components/HelperAvailability, components/HelperAvailabilityDisplay, components/profile/AvailabilityTab, components/profile/ScheduleTab, hooks/useDashboardData |
-| `helper_credentials` | **yes (new)** / yes | 6 / 6 | pages/userProfile/useUserProfileData |
+| `helper_credentials` | **yes (new)** / yes | 6 / 6 | pages/user/useUserProfileData |
 | `helper_shadowbans` | no — write-only (admin action); no screen reads it | — | _(write-only, 1 call site)_ |
 | `helper_verifications` | **yes (new)** / yes | 2 / 2 | components/admin/UserVerificationHistory |
 | `helper_w9_records` | no — write-only (W-9 submit); no screen reads it | — | _(write-only, 1 call site)_ |
 | `job_pets` | no — write-only from the post-job form; screens read pets via get_job_pets | — | _(write-only, 1 call site)_ |
-| `job_revisions` | **yes (new)** / yes | 2 / 2 | components/activity/HelperRevisionCard |
-| `job_tracking` | **yes (new)** / yes | 2 / 2 | components/JobTracking, hooks/useActivityData, pages/activity/activityActions/useLifecycleHandlers |
-| `jobs` | yes (already) / yes | 25 / 197 | components/BlockUserDialog, components/CancellationDialog, components/CompletionPrompts, components/HelperPortfolio, components/JobConfirmation, components/JobTracking, components/PaymentTab, components/activity/CompletionChoiceSheet, components/activity/SeriesStrip, components/admin/AdminAnalytics, components/admin/AdminDisputes, components/admin/AdminExport, components/admin/AdminJobs, components/admin/AdminReports, components/admin/adminHealth/useConfigChecks, components/admin/adminHealth/useHealthData, components/admin/adminusers/useOpenProfile, components/admin/useAdminUserSummaries, components/dashboard/jobDetailDialog/useJobDetailData, components/dashboard/prefetchJobDialog, components/profile/HelperScheduleStrip, components/profile/LegalTab, hooks/useActivityData, hooks/useProfileTabData, hooks/useRecentPostedJobs, lib/nps, lib/supabaseResult, pages/Admin, pages/HelprWrapped, pages/HomeHistory, pages/PaymentSuccess, pages/WorkRecord, pages/activity/activityActions/useLifecycleHandlers, pages/activity/activityActions/useOfferHandlers, pages/dashboard/QuickApplyHandler, pages/dashboard/useDashboardSideQueries, pages/messages/messagesData/loadConversations, pages/messages/useMessagesData, pages/postjob/useJobFormEffects, pages/postjob/useJobSubmit, pages/userProfile/useUserProfileData |
+| `job_revisions` | **yes (new)** / yes | 2 / 2 | pages/jobs/HelperRevisionCard |
+| `job_tracking` | **yes (new)** / yes | 2 / 2 | components/JobTracking, hooks/useActivityData, components/job-card/activityActions/useLifecycleHandlers |
+| `jobs` | yes (already) / yes | 25 / 197 | components/BlockUserDialog, components/CancellationDialog, components/CompletionPrompts, components/HelperPortfolio, components/JobConfirmation, components/JobTracking, components/PaymentTab, pages/posts/CompletionChoiceSheet, pages/posts/SeriesStrip, components/admin/AdminAnalytics, components/admin/AdminDisputes, components/admin/AdminExport, components/admin/AdminJobs, components/admin/AdminReports, components/admin/adminHealth/useConfigChecks, components/admin/adminHealth/useHealthData, components/admin/adminusers/useOpenProfile, components/admin/useAdminUserSummaries, components/dashboard/jobDetailDialog/useJobDetailData, components/dashboard/prefetchJobDialog, components/profile/HelperScheduleStrip, components/profile/LegalTab, hooks/useActivityData, hooks/useProfileTabData, hooks/useRecentPostedJobs, lib/nps, lib/supabaseResult, pages/admin/Admin, pages/profile/HelprWrapped, pages/profile/HomeHistory, pages/post-job/PaymentSuccess, pages/profile/WorkRecord, components/job-card/activityActions/useLifecycleHandlers, components/job-card/activityActions/useOfferHandlers, pages/home/QuickApplyHandler, pages/home/useDashboardSideQueries, pages/messages/messagesData/loadConversations, pages/messages/useMessagesData, pages/post-job/useJobFormEffects, pages/post-job/useJobSubmit, pages/user/useUserProfileData |
 | `legal_acceptances` | no — write-only (consent record); no screen reads it | — | _(write-only, 2 call sites)_ |
 | `login_history` | **yes (new)** / yes | 5 / 5 | components/admin/useAdminUserSummaries, components/profile/SecurityTab |
 | `message_reactions` | **yes (new)** / yes | 7 / 7 | components/messages/useMessageReactions |
-| `messages` | yes (already) / yes | 38 / 258 | components/DesktopSidebarNav, components/mobileNav/useNavUnreadCount, pages/messages/messagesData/loadConversations, pages/messages/useMessagesData, pages/userProfile/useUserProfileData |
+| `messages` | yes (already) / yes | 38 / 258 | components/DesktopSidebarNav, components/mobileNav/useNavUnreadCount, pages/messages/messagesData/loadConversations, pages/messages/useMessagesData, pages/user/useUserProfileData |
 | `notification_logs` | **yes (new)** / yes | 3 / 3 | components/admin/AdminNotificationLogs |
 | `notification_preferences` | **yes (new)** / yes | 2 / 2 | components/NotificationPreferences, components/admin/AdminNotifications |
 | `notifications` | yes (already) / yes | 9 / 129 | components/NotificationPanel, components/admin/userDetail/UserAuditLog |
 | `nps_responses` | no — read only to decide whether to prompt; a seeded answer would suppress the NPS prompt | — | lib/nps |
-| `open_jobs_browse` | **yes (new)** / yes | 4 / 115 | hooks/useDashboardData, hooks/useDashboardJobsCount, pages/DashboardGuest, pages/JobDetail, pages/dashboard/QuickApplyHandler |
+| `open_jobs_browse` | **yes (new)** / yes | 4 / 115 | hooks/useDashboardData, hooks/useDashboardJobsCount, pages/home/DashboardGuest, pages/jobs/JobDetail, pages/home/QuickApplyHandler |
 | `payout_transfers` | **yes (new)** / yes | 7 / 68 | components/PaymentTab, components/admin/AdminAnalytics, components/admin/AdminPayoutBatches, components/admin/adminHealth/useConfigChecks, components/profile/earningsTab/useEarningsData |
-| `pet_profiles` | **yes (new)** / yes | 2 / 2 | components/postjob/PetPicker, pages/PetProfiles |
-| `gift_cards` | **yes (new)** / yes | 2 / 3 | pages/GiftCard, pages/dashboard/useDashboardSideQueries, pages/postjob/usePifCredit |
+| `pet_profiles` | **yes (new)** / yes | 2 / 2 | components/postjob/PetPicker, pages/profile/PetProfiles |
+| `gift_cards` | **yes (new)** / yes | 2 / 3 | pages/profile/GiftCard, pages/home/useDashboardSideQueries, pages/post-job/usePifCredit |
 | `platform_settings` | **yes (new)** / yes | 1 / 1 | components/admin/AdminSettings, components/admin/adminHealth/useConfigChecks |
-| `profiles` | yes (already) / yes | 10 / 55 | components/GroupJobHelpers, components/StrikeBanner, components/TermsReconsentDialog, components/activity/appliedJobCard/ActiveJobSection, components/admin/AdminAnalytics, components/admin/AdminAuditLog, components/admin/AdminBanReview, components/admin/AdminDisputes, components/admin/AdminExceptionQueue, components/admin/AdminExport, components/admin/AdminFraudDashboard, components/admin/AdminIDVReview, components/admin/AdminJobs, components/admin/AdminPayoutBatches, components/admin/AdminReferrals, components/admin/AdminReports, components/admin/AdminSettings, components/admin/AdminSubscriptions, components/admin/AdminSupport, components/admin/AdminUserNotes, components/admin/AdminUsers, components/admin/AutoRestrictedRail, components/admin/UserVerificationHistory, components/admin/adminHealth/useHealthData, components/admin/adminusers/useOpenProfile, components/admin/userDetail/UserAuditLog, components/profile/AvailabilityTab, components/profile/CredentialsTab, components/profile/LegalTab, hooks/useActivityData, hooks/useCurrentUser, hooks/useDashboardData, hooks/useProfile, hooks/useReferralData, lib/onboardingTourCompletion, lib/validateResult, pages/Admin, pages/CompleteProfile, pages/GiftCard, pages/HelprWrapped, pages/HomeHistory, pages/Signup, pages/WorkRecord, pages/activity/activityActions/useApplicantsState, pages/activity/activityActions/useLifecycleHandlers, pages/activity/activityActions/useOfferHandlers, pages/postjob/useJobFormEffects, pages/postjob/useJobSubmit, pages/userProfile/useUserProfileData |
+| `profiles` | yes (already) / yes | 10 / 55 | components/GroupJobHelpers, components/StrikeBanner, components/TermsReconsentDialog, pages/jobs/appliedJobCard/ActiveJobSection, components/admin/AdminAnalytics, components/admin/AdminAuditLog, components/admin/AdminBanReview, components/admin/AdminDisputes, components/admin/AdminExceptionQueue, components/admin/AdminExport, components/admin/AdminFraudDashboard, components/admin/AdminIDVReview, components/admin/AdminJobs, components/admin/AdminPayoutBatches, components/admin/AdminReferrals, components/admin/AdminReports, components/admin/AdminSettings, components/admin/AdminSubscriptions, components/admin/AdminSupport, components/admin/AdminUserNotes, components/admin/AdminUsers, components/admin/AutoRestrictedRail, components/admin/UserVerificationHistory, components/admin/adminHealth/useHealthData, components/admin/adminusers/useOpenProfile, components/admin/userDetail/UserAuditLog, components/profile/AvailabilityTab, components/profile/CredentialsTab, components/profile/LegalTab, hooks/useActivityData, hooks/useCurrentUser, hooks/useDashboardData, hooks/useProfile, hooks/useReferralData, lib/onboardingTourCompletion, lib/validateResult, pages/admin/Admin, pages/auth/CompleteProfile, pages/profile/GiftCard, pages/profile/HelprWrapped, pages/profile/HomeHistory, pages/auth/Signup, pages/profile/WorkRecord, components/job-card/activityActions/useApplicantsState, components/job-card/activityActions/useLifecycleHandlers, components/job-card/activityActions/useOfferHandlers, pages/post-job/useJobFormEffects, pages/post-job/useJobSubmit, pages/user/useUserProfileData |
 | `push_tokens` | no — presence check only (NotificationPreferences, Health); a seeded token would claim a device the browser does not have | — | components/NotificationPreferences, components/admin/adminHealth/useHealthData |
 | `referral_codes` | **yes (new)** / yes | 2 / 2 | components/admin/AdminReferrals, hooks/useReferralData |
 | `referral_credits` | **yes (new)** / yes | 3 / 3 | components/admin/AdminReferrals, hooks/useReferralData |
 | `referrals` | **yes (new)** / yes | 3 / 3 | components/admin/AdminReferrals, hooks/useReferralData |
-| `reports` | **yes (new)** / yes | 7 / 7 | components/admin/AdminReports, components/admin/AdminSupport, components/admin/useAdminUserSummaries, pages/Admin |
-| `reviews` | yes (already) / yes | 7 / 57 | components/CompletionPrompts, components/admin/adminusers/useOpenProfile, components/admin/useAdminUserSummaries, components/profile/HelperStreakBadge, components/profile/LegalTab, components/profile/PublicReviewWall, components/reviewPanel/ReviewForm, components/reviewPanel/ReviewList, hooks/useActivityData, hooks/useProfileTabData, lib/reviewStats, pages/HelprWrapped, pages/WorkRecord, pages/userProfile/useUserProfileData |
-| `saved_jobs` | **yes (new)** / yes | 3 / 3 | pages/dashboard/useDashboardSideQueries |
+| `reports` | **yes (new)** / yes | 7 / 7 | components/admin/AdminReports, components/admin/AdminSupport, components/admin/useAdminUserSummaries, pages/admin/Admin |
+| `reviews` | yes (already) / yes | 7 / 57 | components/CompletionPrompts, components/admin/adminusers/useOpenProfile, components/admin/useAdminUserSummaries, components/profile/HelperStreakBadge, components/profile/LegalTab, components/profile/PublicReviewWall, components/reviewPanel/ReviewForm, components/reviewPanel/ReviewList, hooks/useActivityData, hooks/useProfileTabData, lib/reviewStats, pages/profile/HelprWrapped, pages/profile/WorkRecord, pages/user/useUserProfileData |
+| `saved_jobs` | **yes (new)** / yes | 3 / 3 | pages/home/useDashboardSideQueries |
 | `saved_searches` | **yes (new)** / yes | 3 / 3 | components/SavedSearches |
-| `str_calendar_connections` | **yes (new)** / yes | 2 / 2 | pages/StrSettings |
+| `str_calendar_connections` | **yes (new)** / yes | 2 / 2 | pages/profile/StrSettings |
 | `thread_archives` | **yes (new)** / yes | 1 / 1 | lib/archivedConversations |
 | `thread_pins` | **yes (new)** / yes | 2 / 2 | lib/pinnedConversations |
 | `tips` | **yes (new)** / yes | 4 / 34 | components/admin/AdminAnalytics, hooks/useActivityData, hooks/useProfileTabData |
-| `user_bans` | **yes (new)** / yes | 3 / 3 | components/admin/adminusers/useAdminUserActions, components/admin/adminusers/useOpenProfile, pages/AccountBanned |
+| `user_bans` | **yes (new)** / yes | 3 / 3 | components/admin/adminusers/useAdminUserActions, components/admin/adminusers/useOpenProfile, pages/auth/AccountBanned |
 | `user_blocks` | **yes (new)** / yes | 1 / 1 | hooks/useDashboardData, lib/userBlocks |
-| `user_roles` | no — special-cased in fixtures.ts (empty unless a spec adds `mockTable("user_roles", [{ role: "admin" }])`); seeding it would turn every seeded session into an admin | — | components/admin/AdminAnalytics, components/admin/AdminExport, components/admin/AdminSettings, components/admin/adminHealth/useHealthData, hooks/useCurrentUser, pages/activity/activityActions/useLifecycleHandlers, pages/activity/activityActions/useOfferHandlers |
+| `user_roles` | no — special-cased in fixtures.ts (empty unless a spec adds `mockTable("user_roles", [{ role: "admin" }])`); seeding it would turn every seeded session into an admin | — | components/admin/AdminAnalytics, components/admin/AdminExport, components/admin/AdminSettings, components/admin/adminHealth/useHealthData, hooks/useCurrentUser, components/job-card/activityActions/useLifecycleHandlers, components/job-card/activityActions/useOfferHandlers |
 | `user_violations` | **yes (new)** / yes | 7 / 7 | components/admin/AdminBanReview, components/admin/AutoRestrictedRail, components/admin/adminusers/useOpenProfile, components/admin/useAdminUserSummaries, components/admin/userDetail/UserAuditLog, hooks/useActivityData, hooks/useProfileTabData |
 | `verification_exceptions` | **yes (new)** / yes | 3 / 3 | components/admin/AdminExceptionQueue |
 
@@ -86,8 +86,8 @@ precise mapping a static scan can make; follow the hook to its page.
 
 | RPC | Answered from seed | Called by |
 |---|---|---|
-| `accept_application` | no — mutation, not a screen read (mock answers `null`) | pages/activity/activityActions/useOfferHandlers |
-| `accept_group_application` | no — mutation, not a screen read (mock answers `null`) | pages/activity/activityActions/useOfferHandlers |
+| `accept_application` | no — mutation, not a screen read (mock answers `null`) | components/job-card/activityActions/useOfferHandlers |
+| `accept_group_application` | no — mutation, not a screen read (mock answers `null`) | components/job-card/activityActions/useOfferHandlers |
 | `admin_delete_review` | no — mutation, not a screen read (mock answers `null`) | components/admin/AdminReports |
 | `admin_reverse_violation` | no — mutation, not a screen read (mock answers `null`) | components/admin/userDetail/UserAuditLog |
 | `admin_support_queue` | **yes (new)** | components/admin/AdminSupport |
@@ -97,50 +97,50 @@ precise mapping a static scan can make; follow the hook to its page.
 | `block_user_and_settle` | no — mutation, not a screen read (mock answers `null`) | lib/userBlocks |
 | `clear_available_now` | no — mutation, not a screen read (mock answers `null`) | components/profile/AvailabilityTab |
 | `clear_thread_mute` | no — mutation, not a screen read (mock answers `null`) | lib/threadMutes |
-| `decline_job_offer` | no — mutation, not a screen read (mock answers `null`) | pages/activity/activityActions/useOfferHandlers |
+| `decline_job_offer` | no — mutation, not a screen read (mock answers `null`) | components/job-card/activityActions/useOfferHandlers |
 | `get_category_price_stats` | **yes (new)** | hooks/useCategoryPriceStats |
 | `get_fill_rate_stats` | **yes (new)** | components/admin/adminHealth/useFillRate |
 | `get_helper_analytics` | **yes (new)** | hooks/useHelperAnalytics |
 | `get_helper_earnings_export` | **yes (new)** | components/EarningsExport |
 | `get_helper_tiers` | **yes (new)** | components/admin/AdminHelperTiers |
-| `get_job_pets` | **yes (new)** | components/activity/JobPetCareSheet |
+| `get_job_pets` | **yes (new)** | pages/jobs/JobPetCareSheet |
 | `get_jobs_for_my_applications` | yes (already) | hooks/useActivityData |
 | `get_muted_threads` | **yes (new)** | lib/threadMutes |
 | `get_my_pending_direct_offers` | **yes (new)** | hooks/useActivityBadgeCounts, hooks/useActivityData |
-| `get_my_reply_latency` | **yes (new)** | pages/userProfile/useUserProfileData |
-| `get_my_saved_helpers` | **yes (new)** | components/profile/savedHelpersTab/useSavedHelpers, pages/postjob/OfferToSavedHelpr |
+| `get_my_reply_latency` | **yes (new)** | pages/user/useUserProfileData |
+| `get_my_saved_helpers` | **yes (new)** | components/profile/savedHelpersTab/useSavedHelpers, pages/post-job/OfferToSavedHelpr |
 | `get_open_jobs_for_map` | **yes (new)** | components/BrowseMap |
 | `get_parish_activity` | **yes (new)** | hooks/useHelprActivity |
 | `get_parish_for_zip` | no — returns a parish name for a ZIP typed into a form; `null` = unknown ZIP, the form's own fallback | lib/parishLookup |
 | `get_payout_batch_job_ids` | **yes (new)** | components/admin/AdminPayoutBatches |
 | `get_payout_batches` | **yes (new)** | components/admin/AdminPayoutBatches |
 | `get_pending_credentials` | **yes (new)** | components/admin/AdminCredentialQueue |
-| `get_public_platform_settings` | **yes (new)** | hooks/useDashboardData, hooks/useOnboardingFee, lib/minSupportedBuild, lib/supabaseResult, pages/postjob/useJobFormEffects |
-| `get_public_profile_reviews` | **yes (new)** | components/profile/PublicReviewWall, pages/userProfile/useUserProfileData |
-| `get_public_profile_stats` | **yes (new)** | lib/reviewStats, pages/userProfile/useUserProfileData |
+| `get_public_platform_settings` | **yes (new)** | hooks/useDashboardData, hooks/useOnboardingFee, lib/minSupportedBuild, lib/supabaseResult, pages/post-job/useJobFormEffects |
+| `get_public_profile_reviews` | **yes (new)** | components/profile/PublicReviewWall, pages/user/useUserProfileData |
+| `get_public_profile_stats` | **yes (new)** | lib/reviewStats, pages/user/useUserProfileData |
 | `get_ranked_open_jobs` | **yes (new)** | _(no client caller)_ |
-| `get_safe_profiles` | **yes (new)** | components/profile/PublicReviewWall, components/reviewPanel/ReviewList, hooks/useActivityData, hooks/useDashboardData, hooks/useProfileTabData, pages/DashboardGuest, pages/activity/activityActions/useApplicantsState, pages/messages/messagesData/loadConversations, pages/postjob/useJobFormEffects, pages/userProfile/useUserProfileData |
-| `get_user_credential_tier` | **yes (new)** | hooks/useViewerCredentialTier, pages/userProfile/useUserProfileData |
-| `get_user_last_active` | **yes (new)** | pages/messages/messagesData/loadConversations, pages/userProfile/useUserProfileData |
-| `get_user_repeat_hire_percent` | **yes (new)** | pages/userProfile/useUserProfileData |
-| `helper_abort_job` | no — mutation, not a screen read (mock answers `null`) | components/activity/appliedJobCard/ActiveJobSection |
-| `helper_cancel_booking` | no — mutation, not a screen read (mock answers `null`) | components/activity/appliedJobCard/ConfirmedSection |
+| `get_safe_profiles` | **yes (new)** | components/profile/PublicReviewWall, components/reviewPanel/ReviewList, hooks/useActivityData, hooks/useDashboardData, hooks/useProfileTabData, pages/home/DashboardGuest, components/job-card/activityActions/useApplicantsState, pages/messages/messagesData/loadConversations, pages/post-job/useJobFormEffects, pages/user/useUserProfileData |
+| `get_user_credential_tier` | **yes (new)** | hooks/useViewerCredentialTier, pages/user/useUserProfileData |
+| `get_user_last_active` | **yes (new)** | pages/messages/messagesData/loadConversations, pages/user/useUserProfileData |
+| `get_user_repeat_hire_percent` | **yes (new)** | pages/user/useUserProfileData |
+| `helper_abort_job` | no — mutation, not a screen read (mock answers `null`) | pages/jobs/appliedJobCard/ActiveJobSection |
+| `helper_cancel_booking` | no — mutation, not a screen read (mock answers `null`) | pages/jobs/appliedJobCard/ConfirmedSection |
 | `helper_mark_on_the_way` | no — mutation, not a screen read (mock answers `null`) | components/JobTracking |
-| `instant_book_claim` | no — mutation, not a screen read (mock answers `null`) | pages/dashboard/useApplyFlow |
+| `instant_book_claim` | no — mutation, not a screen read (mock answers `null`) | pages/home/useApplyFlow |
 | `mark_helper_arrival` | no — mutation, not a screen read (mock answers `null`) | components/JobTracking |
 | `poster_cancel_job` | no — mutation, not a screen read (mock answers `null`) | components/CancellationDialog |
-| `process_referral` | no — mutation, not a screen read (mock answers `null`) | pages/Signup |
-| `record_profile_view` | no — mutation, not a screen read (mock answers `null`) | pages/userProfile/useUserProfileData |
-| `reject_other_applications_on_accept` | no — mutation, not a screen read (mock answers `null`) | pages/activity/activityActions/useOfferHandlers |
-| `report_helper_no_show` | no — mutation, not a screen read (mock answers `null`) | pages/activity/activityActions/useLifecycleHandlers |
-| `respond_to_review` | no — mutation, not a screen read (mock answers `null`) | pages/UserProfile |
+| `process_referral` | no — mutation, not a screen read (mock answers `null`) | pages/auth/Signup |
+| `record_profile_view` | no — mutation, not a screen read (mock answers `null`) | pages/user/useUserProfileData |
+| `reject_other_applications_on_accept` | no — mutation, not a screen read (mock answers `null`) | components/job-card/activityActions/useOfferHandlers |
+| `report_helper_no_show` | no — mutation, not a screen read (mock answers `null`) | components/job-card/activityActions/useLifecycleHandlers |
+| `respond_to_review` | no — mutation, not a screen read (mock answers `null`) | pages/user/UserProfile |
 | `review_credential` | no — mutation, not a screen read (mock answers `null`) | components/admin/AdminCredentialQueue |
 | `rpc_check_application_rate` | **yes (new)** | lib/applyRateLimit |
 | `rpc_decide_dispute` | no — mutation, not a screen read (mock answers `null`) | components/admin/AdminDisputes |
 | `rpc_open_dispute` | no — mutation, not a screen read (mock answers `null`) | components/DisputeDialog |
 | `rpc_record_application_attempt` | no — mutation, not a screen read (mock answers `null`) | lib/applyRateLimit |
-| `rpc_withdraw_dispute` | no — mutation, not a screen read (mock answers `null`) | components/activity/appliedJobCard/DisputedSection, components/activity/postedJobCard/PostedJobActions |
-| `search_profiles_by_name` | **yes (new)** | pages/giftCards/RecipientPicker |
+| `rpc_withdraw_dispute` | no — mutation, not a screen read (mock answers `null`) | pages/jobs/appliedJobCard/DisputedSection, pages/posts/postedJobCard/PostedJobActions |
+| `search_profiles_by_name` | **yes (new)** | pages/profile/giftCards/RecipientPicker |
 | `set_available_now` | no — mutation, not a screen read (mock answers `null`) | components/profile/AvailabilityTab |
 | `set_thread_snooze` | no — mutation, not a screen read (mock answers `null`) | lib/threadMutes |
 | `toggle_thread_mute` | no — mutation, not a screen read (mock answers `null`) | lib/threadMutes |

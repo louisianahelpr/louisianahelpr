@@ -1,0 +1,227 @@
+import { JobConfirmation, helperDayOfConfirmation } from "@/components/JobConfirmation";
+import { jobDayStart } from "@/lib/jobDate";
+import { JobTracking, type TrackingData } from "@/components/JobTracking";
+import type { AppliedApp, Job } from "../../../components/job-card/activityConstants";
+
+/* `CardExpandedContext` WAS HERE and is GONE.
+ *
+ * It existed for exactly one consumer: the poster's PersonTile, which this
+ * panel handed to <JobTracking>'s `personTile` slot for three days (owner,
+ * 2026-09-16) and which needed its own expand gate because THIS card mounts
+ * its tracker on a collapsed card while the poster's does not.
+ *
+ * Owner, 2026-09-19: "the helpr or posted by should be right above the
+ * buttons." The tile no longer goes anywhere near the tracker, so the slot,
+ * the tile built here, and this context all go with it. The V6 rule it
+ * protected is unchanged and now lives in AppliedJobCard, which gates the tile
+ * on its own `isExpanded` before publishing it through `JobCardPersonContext`
+ * (src/components/job-card/jobCardPerson.tsx) — one gate, in the one file that
+ * knows the answer, for both cards. */
+
+/**
+ * ONE BOX, NOT TWO — the helper's live tracker with the day-of confirmation
+ * merged into it.
+ *
+ * Owner, 2026-08-30: "Bottom box needs to be merged in the live tracker. They
+ * should confirm before they can mark on the way."
+ *
+ * The card used to stack two glass panels that were the same thing said twice:
+ *
+ *   1. the tracker — the step rail (Offered / Accepted / Confirmed / On the Way
+ *      / Arrived) with a full-width green "On the Way" button under it, and
+ *   2. a detached card below it — "Still on for this one?", the date a third
+ *      time, two status chips ("You: Pending" / "Poster: Confirmed"), and a
+ *      SECOND full-width green button, "I'm Still On".
+ *
+ * "Confirmed" is a STEP IN THE RAIL, and the day-of tap is how that step gets
+ * completed — so it belongs at that step, not in a second card underneath
+ * restating it in different words. Two full-width green primaries in one card
+ * was the visible symptom; the reachable-in-the-wrong-order buttons were the
+ * actual bug.
+ *
+ * The You/Poster chips are DELETED rather than relocated (owner: "remove you
+ * posted confirmed etc."). The rail already carries that fact — "Confirmed" as
+ * the current step IS "you haven't confirmed yet", and the button under it is
+ * what clears it.
+ *
+ * ── The gate ──────────────────────────────────────────────────────────────
+ * `helper_mark_on_the_way` (migration 20260829061546) raises
+ * `helper_not_confirmed` when `helper_confirmed_at IS NULL`, so the server has
+ * a floor here and the UI used to offer a button the server would reject —
+ * landing on a generic "Couldn't mark you on the way" toast that told the
+ * helper nothing about what to do.
+ *
+ * The floor is not the rule, though. `helper_confirmed_at` is stamped at ACCEPT
+ * time, possibly days early, so it is always non-null on a scheduled job and
+ * gates nothing the helper can see. The owner's rule is the DAY-OF answer —
+ * exactly the thing the second box was asking for — so the gate is
+ * {@link helperDayOfConfirmation}: the helper's own day-before stamp, or an
+ * accept that itself happened inside the 24h window.
+ *
+ * It is still THE HELPER'S OWN confirmation and nothing else. The poster's
+ * `poster_confirmed_at` does NOT gate this, deliberately and for the same
+ * reason JobTracking stopped gating on `bothConfirmed`: a poster who never
+ * confirms must not be able to trap a helper on a job the server would start
+ * happily. Client is stricter than the server floor, never stricter than the
+ * owner's rule, and never dependent on the other party.
+ */
+export function HelperTrackerPanel({
+  app,
+  job,
+  userId,
+  initialTracking,
+  onCantMakeIt,
+  readOnly = false,
+}: {
+  app: AppliedApp;
+  job: Job;
+  userId: string;
+  initialTracking?: TrackingData | null;
+  /** Hands off to the caller's real cancel flow from inside the commit popup.
+   *  Omitted where the caller has none (a job already underway). */
+  onCantMakeIt?: () => void;
+  /** Rail only: no step control, no day-of confirmation, no position watch.
+   *  For a job frozen by a dispute (owner, 2026-09-14, VN-23: "disputes should
+   *  still show the tracker"). Nothing on the rail may move while an admin or
+   *  the poster holds the job, so the tracker shows where it stopped and offers
+   *  no next step — the same read-only rail the poster's card mounts. */
+  readOnly?: boolean;
+}) {
+  const dayOfConfirmed = helperDayOfConfirmation({
+    helperConfirmedAt: job.helper_confirmed_at,
+    helperDayofConfirmedAt: job.helper_dayof_confirmed_at,
+    dateNeeded: job.date_needed,
+  });
+
+  /* Midnight of the job's day in the JOB's zone (America/Chicago), through the
+     SAME helper JobConfirmation measures its window with. This used
+     `parseLocalDate` — the VIEWER's zone — so on any device not set to Central
+     the gate below and the "I'm Still On" window it mirrors ended at different
+     instants. On a UTC device (CI) the gate dropped at 19:00 Central on the job
+     day while JobConfirmation kept offering "I'm Still On" until midnight, and
+     with the start inside the tracker's 2h unlock the card rendered TWO
+     primaries, "I'm On My Way" and "I'm Still On" (nightly-red, 2026-09-23
+     04:18Z). West of Central the opposite: the gate outlived the control that
+     releases it, leaving no primary at all. Guard:
+     src/pages/jobs/helperTrackerPrimarySweep.tz.test.tsx. */
+  const hoursUntilJob =
+    (jobDayStart(job.date_needed).getTime() - Date.now()) / 3_600_000;
+
+  /**
+   * Is the Confirmed step still the helper's to complete?
+   *
+   * Scoped tightly so this can never take controls away from a job that has
+   * moved on:
+   *  - only a job still sitting at `accepted`/`open` (an `open` job is a
+   *    part-staffed group booking — see deriveAppliedJobCardState),
+   *  - only before any on-the-way / arrival stamp exists,
+   *  - only while JobConfirmation would still offer the tap. `hoursUntilJob`
+   *    is measured from MIDNIGHT of the job date, so -24 is "the job day is
+   *    over": past it the confirmation is moot, the tracker takes over again,
+   *    and a stale job can never dead-end with no controls at all. This bound
+   *    and JobConfirmation's helper window are the same number ON PURPOSE — the
+   *    gate may only hold while the control that releases it exists.
+   */
+  const gateActive =
+    !readOnly &&
+    (job.status === "accepted" || job.status === "open") &&
+    !job.helper_on_the_way_at &&
+    !job.helper_arrived_at &&
+    !dayOfConfirmed &&
+    hoursUntilJob > -24;
+
+  const confirmation = (
+    <JobConfirmation
+      variant="inline"
+      jobId={app.job_id}
+      isOwner={false}
+      isHelper={true}
+      posterConfirmedAt={job.poster_confirmed_at}
+      helperConfirmedAt={job.helper_confirmed_at}
+      helperDayofConfirmedAt={job.helper_dayof_confirmed_at}
+      dateNeeded={job.date_needed}
+      jobStatus={job.status}
+      helperOnTheWayAt={job.helper_on_the_way_at}
+      onCantMakeIt={onCantMakeIt}
+    />
+  );
+
+  return (
+    /* FLAT, like the poster card (owner-approved 2026-09-14). This panel is
+       always rendered inside the Helpr's JobCardShell (via ConfirmedSection /
+       ActiveJobSection), which is already the glass card, so the panel wears
+       no box of its own and JobTracking renders `embedded`. It used to keep a
+       `rounded-2xl liquid-glass p-3` wrapper: a bordered box inside the card.
+       Guard: src/test/noNestedTrackerCard.test.ts (cross-file job-card walk). */
+    <div className="space-y-2">
+      {/* `isHelper={!gateActive}`: while the Confirmed step is outstanding this
+          panel owns the helper's controls, so the tracker draws the rail only
+          and cannot offer "I'm On My Way" out of order. The two side effects
+          behind that flag are inert here — the position watcher only runs on an
+          `on_the_way` tracking row, and the "work has started" notify only on a
+          helper tap — both of which are strictly after this state. */}
+      <JobTracking
+        embedded
+        jobId={app.job_id}
+        helperId={userId}
+        isHelper={!gateActive && !readOnly}
+        isOwner={false}
+        jobDateNeeded={job.date_needed}
+        jobStartTime={job.start_time}
+        jobStatus={job.status}
+        // The Done CTA (then "Request My Payout", now "Mark Job Complete") rendered ENABLED while the button
+        // below it sat DISABLED reading "Upload before & after photos first" —
+        // same rule, and the one that LOOKED pressable was the one that failed
+        // on tap. Hand it what this card already knows so the two agree before
+        // the tap rather than after.
+        proofBeforeUrls={job.proof_before_urls || []}
+        proofAfterUrls={job.proof_after_urls || []}
+        // The poster's per-job photo answer, so the tracker's Done CTA and the
+        // card's payout button read ONE rule. Without it the tracker kept
+        // demanding photos the server had stopped requiring.
+        requirePhotoProof={(job as { require_photo_proof?: boolean | null }).require_photo_proof ?? true}
+        helperConfirmedAt={job.helper_confirmed_at}
+        helperDayofConfirmedAt={job.helper_dayof_confirmed_at}
+        posterConfirmedAt={job.poster_confirmed_at}
+        initialTracking={initialTracking}
+        jobLatitude={job.latitude}
+        jobLongitude={job.longitude}
+        helperOnTheWayAt={job.helper_on_the_way_at}
+        helperArrivedAt={job.helper_arrived_at}
+        helperArrivalVerifiedAt={job.helper_arrival_verified_at}
+        helperArrivalNearMissAt={(job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at}
+        posterConfirmedArrivalAt={job.poster_confirmed_arrival_at}
+        helperCompletedAt={job.helper_completed_at}
+        posterCompletedAt={job.poster_completed_at}
+      />
+
+      {gateActive ? (
+        /* The ONE primary while the step is open: "I'm Still On". It portals
+           into the step card's single action row (owner, 2026-09-14, VN-21 —
+           one row, primary first, the chips beside it), with its "Confirm by …"
+           deadline on the line above that row.
+
+           The disabled "I'm On My Way" preview that used to sit under it, with
+           "Confirm you're still on to unlock this" above, is GONE with the
+           stacked layout: in a single row it was a second primary-shaped
+           button next to the real one, which is the two-primaries shape the
+           shell refuses. Nothing is lost — "I'm On My Way" takes the same slot
+           the moment the confirmation lands, and the rail above still shows
+           Confirmed as the current step. */
+        confirmation
+      ) : (
+        /* Confirmed, or past the point of asking: the tracker's own next-step
+           control is live above. `confirmation` renders the "Confirmation opens
+           in …" clock when the job is still more than a day out, and nothing at
+           all once the answer is in.
+
+           Belt and braces on the stamps: JobTracking is offering a primary in
+           this branch, so anything that could ALSO render one has to be
+           impossible. JobConfirmation already self-hides on `helperOnTheWayAt`;
+           `helperArrivedAt` is checked here too so no ordering of the two
+           stamps can put two glossy CTAs on one card. */
+        !readOnly && !job.helper_on_the_way_at && !job.helper_arrived_at && confirmation
+      )}
+    </div>
+  );
+}

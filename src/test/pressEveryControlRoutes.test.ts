@@ -67,9 +67,9 @@ describe("press-every-control route derivation", () => {
     expect(rows.filter((r) => r.base === "/jobs/:id").map((r) => r.url)).toEqual(["/jobs/J1", "/jobs/J2", "/jobs/J3"]);
   });
 
-  it("derives the admin views from src/pages/Admin.tsx, not a hand-kept list", () => {
+  it("derives the admin views from src/pages/admin/Admin.tsx, not a hand-kept list", () => {
     const views = parseAdminViews();
-    const src = readFileSync(resolve(repoRoot, "src/pages/Admin.tsx"), "utf8");
+    const src = readFileSync(resolve(repoRoot, "src/pages/admin/Admin.tsx"), "utf8");
     const independent = [...(/type View\s*=\s*([^;]+);/.exec(src)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]).filter((v) => v !== "home");
     expect(views).toEqual(independent);
     expect(views).toContain("people");

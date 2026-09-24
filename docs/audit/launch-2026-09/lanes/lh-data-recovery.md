@@ -182,7 +182,7 @@ human sees it, and no backup behind it.
   (`payment_status = 'unpaid'`) plus `helper_id IS NULL`, and runs per-row with
   an FK-violation handler that *retains* the job. Default-retain is the right
   direction for a destructive predicate. Not a finding.
-- **`cleanupOrphanJob`** (`src/pages/postjob/useJobSubmit.ts:46`) deletes one just-created job whose payment setup failed; line 46 reads
+- **`cleanupOrphanJob`** (`src/pages/post-job/useJobSubmit.ts:46`) deletes one just-created job whose payment setup failed; line 46 reads
   `const { data, error } = await supabase.from("jobs").delete().eq("id", jobId).select("id");`
   — scoped to a single id, with `.select("id")` and a zero-row `report()` at
   lines 51-57. Correct.
@@ -267,7 +267,7 @@ scan across all `public` functions, `pg_get_functiondef(purge_user_data)`,
 
 **Files read:** `.github/workflows/db-deploy.yml`, `migration-lint.yml`,
 `docs/qa/CRASH_RECOVERY.md`, `supabase/functions/_shared/accountPurge.ts`,
-`_shared/storageKeys.ts`, `src/pages/postjob/useJobSubmit.ts`,
+`_shared/storageKeys.ts`, `src/pages/post-job/useJobSubmit.ts`,
 `docs/audit/launch-2026-09/PROTOCOL.md`, findings `SI-006` / `SI-007` / `SI-010`.
 
 ### UNVERIFIED — could not reach, and why

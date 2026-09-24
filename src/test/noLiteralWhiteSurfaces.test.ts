@@ -37,8 +37,8 @@ const BASELINE: Record<string, number> = {
   "src/components/postjob/MaterialsPanel.tsx": 1,
   "src/components/profile/ScheduleTab.tsx": 2,
   "src/components/profile/TwoFactorCard.tsx": 1,
-  "src/pages/HelprWrapped.tsx": 1,
-  "src/pages/postjob/CheckoutStepIndicator.tsx": 1,
+  "src/pages/profile/HelprWrapped.tsx": 1,
+  "src/pages/post-job/CheckoutStepIndicator.tsx": 1,
 };
 
 describe("literal-white inline surfaces are ratcheted (Q179)", () => {

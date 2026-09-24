@@ -12,15 +12,15 @@
  *    instead of treating the application id as a person.
  */
 // @mutate src/components/SosShareButton.tsx | return !!job.helper_arrived_at && !job.helper_completed_at && !job.poster_completed_at; | return !!job.helper_arrived_at;
-// @mutate src/components/activity/appliedJobCard/ActiveJobSection.tsx | sosChip: sosOffered(job) ? <SosShareButton key="sos" jobId={job.id} /> : null, | sosChip: null,
-// @mutate src/components/activity/appliedJobCard/steps/OnSiteStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
-// @mutate src/components/activity/appliedJobCard/steps/WorkingStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
-// @mutate src/components/activity/appliedJobCard/steps/RevisionStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
-// @mutate src/components/activity/postedJobCard/steps/InProgressStep.tsx | const showSos = sosOffered(job); | const showSos = !!job.helper_arrived_at;
+// @mutate src/pages/jobs/appliedJobCard/ActiveJobSection.tsx | sosChip: sosOffered(job) ? <SosShareButton key="sos" jobId={job.id} /> : null, | sosChip: null,
+// @mutate src/pages/jobs/appliedJobCard/steps/OnSiteStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
+// @mutate src/pages/jobs/appliedJobCard/steps/WorkingStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
+// @mutate src/pages/jobs/appliedJobCard/steps/RevisionStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
+// @mutate src/pages/posts/postedJobCard/steps/InProgressStep.tsx | const showSos = sosOffered(job); | const showSos = !!job.helper_arrived_at;
 // @mutate src/components/ReportDialog.tsx | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application"; | type ReportedType = "job" \| "message" \| "user" \| "review";
-// @mutate src/components/activity/postedJobs/ApplicantsPanel.tsx | reportedType="application" | reportedType="user"
-// @mutate src/components/activity/postedJobs/ApplicantsPanel.tsx | blockedUserId={blockApp.helper_id} | blockedUserId={blockApp.id}
-// @mutate src/components/activity/postedJobs/ApplicantsPanel.tsx | onClick={() => { hapticLight(); setBlockApp(app); }} | onClick={() => { hapticLight(); }}
+// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | reportedType="application" | reportedType="user"
+// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | blockedUserId={blockApp.helper_id} | blockedUserId={blockApp.id}
+// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | onClick={() => { hapticLight(); setBlockApp(app); }} | onClick={() => { hapticLight(); }}
 // @mutate supabase/migrations/20260924182505_report_against_application.sql | 'review'::text, 'application'::text])); | 'review'::text]));
 // @mutate supabase/migrations/20260924182505_report_against_application.sql | SELECT a.helper_id INTO v_subject FROM public.applications a WHERE a.id = NEW.reported_id; | v_subject := NEW.reported_id;
 // @mutate src/components/admin/AdminReports.tsx | r.reported_type === "application" ? appHelper.get(r.reported_id) ?? null | r.reported_type === "application" ? r.reported_id
@@ -42,8 +42,8 @@ describe("Q366: SOS for the Helpr on site", () => {
   });
 
   it("both cards read the same gate", () => {
-    expect(read("src/components/activity/postedJobCard/steps/InProgressStep.tsx")).toContain("const showSos = sosOffered(job);");
-    expect(read("src/components/activity/appliedJobCard/ActiveJobSection.tsx"))
+    expect(read("src/pages/posts/postedJobCard/steps/InProgressStep.tsx")).toContain("const showSos = sosOffered(job);");
+    expect(read("src/pages/jobs/appliedJobCard/ActiveJobSection.tsx"))
       .toContain('sosChip: sosOffered(job) ? <SosShareButton key="sos" jobId={job.id} /> : null,');
   });
 
@@ -53,7 +53,7 @@ describe("Q366: SOS for the Helpr on site", () => {
   });
 
   it.each(HELPER_ON_SITE_STEPS)("the Helpr's %s puts SOS right after Report a Problem (owner 2026-09-19: Report stays leftmost)", (step) => {
-    expect(read(`src/components/activity/appliedJobCard/steps/${step}.tsx`)).toContain("actions={[reportChip, sosChip,");
+    expect(read(`src/pages/jobs/appliedJobCard/steps/${step}.tsx`)).toContain("actions={[reportChip, sosChip,");
   });
 });
 
@@ -65,7 +65,7 @@ describe("Q366: report or block an applicant", () => {
   });
 
   it("each applicant row reports the application and blocks the applicant", () => {
-    const src = read("src/components/activity/postedJobs/ApplicantsPanel.tsx");
+    const src = read("src/pages/posts/postedJobs/ApplicantsPanel.tsx");
     expect(src).toContain("onClick={() => { hapticLight(); setReportApp(app); }}");
     expect(src).toContain("onClick={() => { hapticLight(); setBlockApp(app); }}");
     expect(src).toContain('reportedType="application"');

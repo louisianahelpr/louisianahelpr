@@ -25,7 +25,7 @@
 // @mutate vite.config.ts | resolveDependencies: (_filename, deps) => deps, | resolveDependencies: () => [],
 // @mutate src/boot/routePreload.ts | if (!before.has(link)) link.setAttribute(PAGE_PRELOAD_ATTR, ""); | void link;
 // @mutate index.html |           if (t.hasAttribute("data-lh-page-preload")) return;\n | 
-// @mutate src/boot/routePreload.ts | guest: [() => import("@/pages/Index")], | guest: [],
+// @mutate src/boot/routePreload.ts | guest: [() => import("@/pages/info/Index")], | guest: [],
 // @mutate src/App.tsx | const DashboardRouteSkeleton = skeletonOnDemand(() => import("@/components/DashboardRouteSkeleton")); | import DashboardRouteSkeleton from "@/components/DashboardRouteSkeleton";
 // @mutate src/App.tsx | const [Animated] = useState(() => AnimatedPageTransition); | const Animated = lazy(() => import("@/components/PageTransition"));
 // @mutate src/entry.ts | .then(({ prefetchLikelyNextRoutes }) => prefetchLikelyNextRoutes(hasToken(), window.location.pathname)) | .then(() => undefined)
@@ -152,9 +152,11 @@ describe("the page's own chunk is started by the entry, beside the app", () => {
 
   it.each(PUBLIC_ROUTES)("%s: the entry preloads the SAME page module App.tsx lazy-loads (%s)", (path, page) => {
     const app = code("src/App.tsx");
-    expect(app).toContain(`import("./pages/${page}")`);
+    // Pages sit in their tab's folder (pages/info/Index, pages/home/DashboardGuest).
+    const lazy = new RegExp(`import\\("\\./(pages/[\\w-]+/${page})"\\)`).exec(app);
+    expect(lazy, `App.tsx lazy-loads no pages/<tab>/${page}`).not.toBeNull();
     const guest = ENTRY_ROUTE_CHUNKS[path]?.guest ?? [];
-    expect(guest.map((f) => f.toString()).join("\n")).toContain(`pages/${page}`);
+    expect(guest.map((f) => f.toString()).join("\n")).toContain(lazy![1]);
   });
 
   it("dynamic imports get their preload lists (vite.config.ts resolveDependencies is not emptied)", () => {

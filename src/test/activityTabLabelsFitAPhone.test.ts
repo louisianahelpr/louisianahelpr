@@ -5,7 +5,7 @@ import {
   POSTED_STATUS_FILTERS,
   APPLIED_STATUS_FILTERS,
   BUCKET_LABEL,
-} from "@/pages/activity/activityFilters";
+} from "@/components/job-card/activityFilters";
 import { SHORT_LABEL_BELOW_PX } from "@/components/ui/UnderlineTabs";
 import { NARROW_TITLE_ASIDE_PX } from "@/components/ui/ScreenHeaderRow";
 import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
@@ -84,14 +84,14 @@ import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
 // a mutation that edits the CLASS LITERAL cannot make that leg red, because
 // the `@mutate` directive below restates the class in a file Tailwind scans,
 // which keeps the rule alive on its own. The directives are content too.
-// @mutate src/pages/activity/ActivityHeader.tsx | shortLabel: inlineFilters ? undefined : f.shortLabel, | shortLabel: undefined,
+// @mutate src/components/job-card/ActivityHeader.tsx | shortLabel: inlineFilters ? undefined : f.shortLabel, | shortLabel: undefined,
 // @mutate src/lib/shortLabelBreakpoint.ts | export const SHORT_LABEL_BELOW_PX = 390; | export const SHORT_LABEL_BELOW_PX = 290;
-// @mutate src/pages/activity/ActivityHeader.tsx | tight={!inlineFilters} | tight={false}
-// @mutate src/pages/activity/ActivityHeader.tsx | narrowTitleStepsAside: true, | narrowTitleStepsAside: false,
-// @mutate src/pages/activity/ActivityHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | triggerWidth: inlineFilters ? "28px" : "88px",
-// @mutate src/pages/Activity.tsx | activeStatusFilters={activeStatusFilters} | activeStatusFilters={[]}
-// @mutate src/pages/activity/ActivityHeader.tsx | style={tabFadeStyle} | style={undefined}
-// @mutate src/pages/activity/ActivityHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(true); | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter);
+// @mutate src/components/job-card/ActivityHeader.tsx | tight={!inlineFilters} | tight={false}
+// @mutate src/components/job-card/ActivityHeader.tsx | narrowTitleStepsAside: true, | narrowTitleStepsAside: false,
+// @mutate src/components/job-card/ActivityHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | triggerWidth: inlineFilters ? "28px" : "88px",
+// @mutate src/components/job-card/JobListPage.tsx | activeStatusFilters={activeStatusFilters} | activeStatusFilters={[]}
+// @mutate src/components/job-card/ActivityHeader.tsx | style={tabFadeStyle} | style={undefined}
+// @mutate src/components/job-card/ActivityHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(true); | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter);
 
 const ROOT = resolve(__dirname, "../..");
 const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
@@ -99,10 +99,10 @@ const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
 const stripComments = (t: string) =>
   t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
-const HEADER = stripComments(read("src/pages/activity/ActivityHeader.tsx"));
+const HEADER = stripComments(read("src/components/job-card/ActivityHeader.tsx"));
 const TABS = stripComments(read("src/components/ui/UnderlineTabs.tsx"));
 const ROW = stripComments(read("src/components/ui/ScreenHeaderRow.tsx"));
-const PAGE = stripComments(read("src/pages/Activity.tsx"));
+const PAGE = stripComments(read("src/components/job-card/JobListPage.tsx"));
 const TAILWIND = stripComments(read("tailwind.config.ts"));
 
 // ── THE PHONE WIDTHS THIS ROW HAS TO SURVIVE ────────────────────────────────

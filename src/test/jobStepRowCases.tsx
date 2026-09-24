@@ -22,16 +22,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import type { AppliedApp, Job } from "@/components/activity/activityConstants";
-import type { PosterStepCtx } from "@/components/activity/postedJobCard/steps/posterStepContract";
-import { ActiveJobSection } from "@/components/activity/appliedJobCard/ActiveJobSection";
-import { ConfirmedSection } from "@/components/activity/appliedJobCard/ConfirmedSection";
-import { DisputedSection } from "@/components/activity/appliedJobCard/DisputedSection";
-import { InProgressStep } from "@/components/activity/postedJobCard/steps/InProgressStep";
-import { ScheduledStep } from "@/components/activity/postedJobCard/steps/ScheduledStep";
-import { OpenStep } from "@/components/activity/postedJobCard/steps/OpenStep";
-import { CompletedStep } from "@/components/activity/postedJobCard/steps/CompletedStep";
-import { DisputedStep } from "@/components/activity/postedJobCard/steps/DisputedStep";
+import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
+import type { PosterStepCtx } from "@/pages/posts/postedJobCard/steps/posterStepContract";
+import { ActiveJobSection } from "@/pages/jobs/appliedJobCard/ActiveJobSection";
+import { ConfirmedSection } from "@/pages/jobs/appliedJobCard/ConfirmedSection";
+import { DisputedSection } from "@/pages/jobs/appliedJobCard/DisputedSection";
+import { InProgressStep } from "@/pages/posts/postedJobCard/steps/InProgressStep";
+import { ScheduledStep } from "@/pages/posts/postedJobCard/steps/ScheduledStep";
+import { OpenStep } from "@/pages/posts/postedJobCard/steps/OpenStep";
+import { CompletedStep } from "@/pages/posts/postedJobCard/steps/CompletedStep";
+import { DisputedStep } from "@/pages/posts/postedJobCard/steps/DisputedStep";
 import { jobLocalDateISO } from "./helpers/jobLocalDate";
 /* THIS MODULE IMPORTS NOTHING FROM `jobStepRow` ON PURPOSE. It is the
    INVENTORY and the stated character model — the thing the allocator is
@@ -502,7 +502,7 @@ function walk(dir: string, out: string[] = []): string[] {
  * goes unchecked.
  */
 export function stepFilesFromSource(): { helper: string[]; poster: string[] } {
-  const files = walk(join(ROOT, "src/components/activity"));
+  const files = ["src/components/job-card", "src/pages/posts", "src/pages/jobs"].flatMap((d) => walk(join(ROOT, d)));
   const helper: string[] = [];
   const poster: string[] = [];
   for (const f of files) {

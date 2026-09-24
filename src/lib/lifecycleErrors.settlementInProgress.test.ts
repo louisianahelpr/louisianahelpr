@@ -42,4 +42,4 @@ describe("dispute_settlement_in_progress is a designed refusal", () => {
 // designed-refusal list itself, and the derived call-site inventory that must
 // route the refusal through it rather than paging Sentry for a working lock.
 // @mutate src/lib/lifecycleErrors.ts | const EXPECTED_REFUSALS = ["dispute_settlement_in_progress"] as const; | const EXPECTED_REFUSALS = [] as const;
-// @mutate src/components/activity/appliedJobCard/DisputedSection.tsx | const expected = isExpectedLifecycleRefusal(error); | const expected = false;
+// @mutate src/pages/jobs/appliedJobCard/DisputedSection.tsx | const expected = isExpectedLifecycleRefusal(error); | const expected = false;

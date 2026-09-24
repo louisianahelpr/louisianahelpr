@@ -1,6 +1,6 @@
 // PROVEN ABLE TO FAIL: rendering the raw signal string (e.g. `{visibleSignals.join(" · ")}`)
 // with no aria-hidden star / sr-only "stars" turns this red.
-// @mutate src/components/activity/postedJobs/ApplicantsPanel.tsx | {visibleSignals.map((s, i) => (\n                                  <Fragment key={i}>\n                                    {i > 0 && " · "}\n                                    {renderTrustSignal(s)}\n                                  </Fragment>\n                                ))} | {visibleSignals.join(" · ")}
+// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {visibleSignals.map((s, i) => (\n                                  <Fragment key={i}>\n                                    {i > 0 && " · "}\n                                    {renderTrustSignal(s)}\n                                  </Fragment>\n                                ))} | {visibleSignals.join(" · ")}
 
 /**
  * Q248(d): the applicant trust-signal row can contain a rating string like
@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const SCORING_FILE = resolve(__dirname, "../lib/applicantScoring.ts");
-const PANEL_FILE = resolve(__dirname, "../components/activity/postedJobs/ApplicantsPanel.tsx");
+const PANEL_FILE = resolve(__dirname, "../pages/posts/postedJobs/ApplicantsPanel.tsx");
 
 describe("Q248(d): applicant rating star has an accessible name", () => {
   it("applicantScoring.ts still produces the raw '★' rating signal (sanity: this guard is testing the right source)", () => {

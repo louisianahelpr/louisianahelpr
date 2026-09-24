@@ -111,7 +111,7 @@ const CLASSIFIED: Record<string, string> = {
   "components/admin/adminDisputes/DisputeCard.tsx::src ?? undefined": `${PROOF_SIGNED}; input is partitionEvidenceUrls().trusted`,
   "components/PhotoProof.tsx::beforeSrcs[i] ?? undefined": PROOF_SIGNED,
   "components/PhotoProof.tsx::afterSrcs[i] ?? undefined": PROOF_SIGNED,
-  "components/activity/HelperRevisionCard.tsx::url": PROOF_SIGNED,
+  "pages/jobs/HelperRevisionCard.tsx::url": PROOF_SIGNED,
   "components/admin/AdminCredentialQueue.tsx::signedUrl": "SignedOpenLink state: safeDocumentUrl(path) or createSignedUrl output, nothing else is ever set",
   "components/admin/AdminCredentialQueue.tsx::safe": "const safe = safeDocumentUrl(path) on the line above",
   "components/admin/AdminCredentialQueue.tsx::data.signedUrl": STORAGE_SIGNED,
@@ -119,14 +119,14 @@ const CLASSIFIED: Record<string, string> = {
   "components/profile/CredentialsTab.tsx::signed.signedUrl": STORAGE_SIGNED,
   "components/messages/MessageBubble.tsx::url": "isSafeHttpsUrl(url) (new URL(url).protocol === 'https:') returns inert text first",
   // --- app-built URLs, no stored value in the scheme position ---
-  "components/activity/JobCardMetaRow.tsx::mapHref": MAPS,
-  "components/activity/appliedJobCard/DirectionsButton.tsx::href": MAPS,
+  "components/job-card/JobCardMetaRow.tsx::mapHref": MAPS,
+  "pages/jobs/appliedJobCard/DirectionsButton.tsx::href": MAPS,
   "components/ReferralSection.tsx::href": "`sms:?&body=${encodeURIComponent(...)}` built on the line above",
   "components/admin/AdminIDVReview.tsx::stripeSessionUrl(r.idv_session_id)": "fixed https://dashboard.stripe.com/... prefix + session id",
   "components/dashboard/FilterSheet.tsx::signupHref": "signupUrlFor(): \"/signup\" or `/signup?redirect=${encodeURIComponent(safeInternalRedirect(...))}`",
   "components/postjob/MaterialsPanel.tsx::item.searchUrl": "src/lib/materialsGuide.ts static https://www.amazon.com/... literals",
-  "pages/strSettings/AddCalendarForm.tsx::helpUrl": "PLATFORM_HELP static literal map (pages/strSettings/types)",
-  "pages/legal/PrivacySection.tsx::`#${DATA_EXPORT_ANCHOR}`": "in-page #anchor built from a constant",
+  "pages/profile/strSettings/AddCalendarForm.tsx::helpUrl": "PLATFORM_HELP static literal map (pages/profile/strSettings/types)",
+  "pages/info/legal/PrivacySection.tsx::`#${DATA_EXPORT_ANCHOR}`": "in-page #anchor built from a constant",
   "hooks/usePageMeta.ts::meta.canonical": "<link rel=canonical> href set from page-level static meta, not a navigation",
   "lib/calendarExport.ts::objectUrl": OBJECT_URL,
   "lib/nativeShare.ts::objectUrl": OBJECT_URL,
@@ -143,8 +143,8 @@ const CLASSIFIED: Record<string, string> = {
   "components/profile/BackgroundCheckCard.tsx::data.url": STRIPE_EDGE_URL,
   "components/profile/SubscriptionTab.tsx::data.url": STRIPE_EDGE_URL,
   "hooks/useFundExistingJob.ts::url": STRIPE_EDGE_URL,
-  "pages/GiftCard.tsx::data.url": STRIPE_EDGE_URL,
-  "pages/postjob/useJobSubmit.ts::paymentUrl": STRIPE_EDGE_URL,
+  "pages/profile/GiftCard.tsx::data.url": STRIPE_EDGE_URL,
+  "pages/post-job/useJobSubmit.ts::paymentUrl": STRIPE_EDGE_URL,
 };
 
 function unclassifiedSinks(files: { rel: string; source: string }[]) {

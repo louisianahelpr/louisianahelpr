@@ -211,7 +211,7 @@ describe("the checks can fail (the original bug, pinned)", () => {
   });
 
   it("a call site that matches codes inline instead of reading the shared copy is reported", () => {
-    const file = "src/components/activity/appliedJobCard/ActiveJobSection.tsx";
+    const file = "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx";
     const sites = new Map([["helper_abort_job", [{ file, line: 3 }]]]);
     expect(findUnwired(sites, COPY, () => ORIGINAL_ACTIVE_JOB_SECTION)).toEqual([
       `${file}:3 calls helper_abort_job 1x but reads its copy 0x`,

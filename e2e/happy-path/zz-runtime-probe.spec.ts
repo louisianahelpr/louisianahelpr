@@ -225,10 +225,10 @@ function enumerateChannelSites(): ChannelSite[] {
  * Key = `<file>::<table>::<event>`.
  */
 const DOCUMENTED_UNFILTERED = new Set([
-  // Admin dashboard — deliberately platform-wide (src/pages/Admin.tsx:369-372).
-  "src/pages/Admin.tsx::jobs::*",
-  "src/pages/Admin.tsx::profiles::*",
-  "src/pages/Admin.tsx::reports::*",
+  // Admin dashboard — deliberately platform-wide (src/pages/admin/Admin.tsx:369-372).
+  "src/pages/admin/Admin.tsx::jobs::*",
+  "src/pages/admin/Admin.tsx::profiles::*",
+  "src/pages/admin/Admin.tsx::reports::*",
   // Admin notification-log viewer — deliberately platform-wide
   // (src/components/admin/AdminNotificationLogs.tsx:155-161).
   "src/components/admin/AdminNotificationLogs.tsx::notification_logs::INSERT",

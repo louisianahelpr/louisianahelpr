@@ -10,7 +10,7 @@
  */
 // @mutate src/components/GroupJobHelpers.tsx | : FORMER_MEMBER_LABEL, | : "Former Helpr",
 // @mutate src/components/admin/AdminJobs.tsx | setPosterName(ADMIN_DELETED_ACCOUNT_LABEL) | setPosterName("Deleted user")
-// @mutate src/components/activity/postedJobCard/steps/CompletedStep.tsx | \|\| "Helpr" : FORMER_MEMBER_LABEL; | \|\| "Helpr" : "Helpr";
+// @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx | \|\| "Helpr" : FORMER_MEMBER_LABEL; | \|\| "Helpr" : "Helpr";
 // @mutate src/pages/messages/messagesData/loadConversations.ts | otherDeleted ? FORMER_MEMBER_LABEL : | otherDeleted ? "Deleted account" :
 // @mutate src/lib/deletedPerson.ts | = "Former member"; | = "Former Helpr";
 import { describe, expect, it } from "vitest";
@@ -59,12 +59,12 @@ describe("one label for a deleted person", () => {
       "hooks/useActivityData.ts",
       "hooks/useProfileTabData.ts",
       "components/reviewPanel/ReviewList.tsx",
-      "pages/userProfile/useUserProfileData.ts",
-      "pages/giftCards/CreditCard.tsx",
+      "pages/user/useUserProfileData.ts",
+      "pages/profile/giftCards/CreditCard.tsx",
       "pages/messages/messagesData/loadConversations.ts",
-      "components/activity/postedJobCard/steps/CompletedStep.tsx",
-      "components/activity/postedJobCard/steps/InProgressStep.tsx",
-      "components/activity/postedJobCard/steps/DisputedStep.tsx",
+      "pages/posts/postedJobCard/steps/CompletedStep.tsx",
+      "pages/posts/postedJobCard/steps/InProgressStep.tsx",
+      "pages/posts/postedJobCard/steps/DisputedStep.tsx",
     ];
     const admins = [
       "components/admin/AdminReferrals.tsx",
@@ -78,7 +78,7 @@ describe("one label for a deleted person", () => {
   });
 
   it("a completed job's missing Helpr is a former member, not 'Helpr'", () => {
-    expect(read("components/activity/postedJobCard/steps/CompletedStep.tsx")).toContain(
+    expect(read("pages/posts/postedJobCard/steps/CompletedStep.tsx")).toContain(
       '|| "Helpr" : FORMER_MEMBER_LABEL;',
     );
   });

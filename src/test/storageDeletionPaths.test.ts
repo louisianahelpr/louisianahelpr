@@ -274,4 +274,4 @@ describe("attachment path from attachment_url", () => {
 // leaves every avatar, ID document, credential scan and proof photo in storage
 // forever) passed 12/12, because the import line satisfied the removal regex.
 // @mutate supabase/functions/admin-delete-user/index.ts | const purge = await purgeAccount(supabaseAdmin, userId); | const purge = { failures: [] };
-// @mutate src/pages/Messages.tsx | await removeMessageAttachment(messages.find((m) => m.id === messageId)?.attachment_url, messageId); | 0;
+// @mutate src/pages/messages/Messages.tsx | await removeMessageAttachment(messages.find((m) => m.id === messageId)?.attachment_url, messageId); | 0;

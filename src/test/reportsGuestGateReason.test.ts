@@ -10,7 +10,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const FILES = ["src/pages/Support.tsx", "supabase/functions/contact-support/index.ts", "src/components/profile/SupportInline.tsx"];
+const FILES = ["src/pages/info/Support.tsx", "supabase/functions/contact-support/index.ts", "src/components/profile/SupportInline.tsx"];
 const STALE = /reporter_id[^\n]{0,40}NOT NULL|NOT NULL[^\n]{0,40}reporter_id/;
 
 describe("guest report gate cites the policy, not a NOT NULL (GD-010)", () => {

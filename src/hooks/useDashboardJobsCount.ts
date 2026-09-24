@@ -71,7 +71,7 @@ export interface DashboardJobsCountFilters {
    * the list had three dismissed jobs culled out from under a header and a
    * map that still counted them. Purely client-side state, so it can only
    * arrive here by being threaded down. See
-   * `src/pages/dashboard/viewerFeedExclusions.ts`.
+   * `src/pages/home/viewerFeedExclusions.ts`.
    */
   dismissedJobIds: string[];
   /**

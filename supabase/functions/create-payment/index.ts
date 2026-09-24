@@ -46,7 +46,7 @@ const FUNDING_CLOSED_JOB_STATUSES = new Set(["completed", "cancelled"]);
  *
  * Every Activity notification this function writes carries the job id and lets
  * the page resolve the bucket at OPEN time (the deep-link effect in
- * src/pages/Activity.tsx). A fixed `?filter=` can never be right from the
+ * src/components/job-card/JobListPage.tsx). A fixed `?filter=` can never be right from the
  * producer side, for two independent reasons:
  *
  *  - The bucket a job belongs to is a question about its LIVE state ("whose
@@ -1644,7 +1644,7 @@ serve(async (req) => {
               "Roster size": String(dpRosterSize),
               "Helpers needed": String(job.helpers_needed ?? 1),
             },
-            // `?view=` is the ONLY query param /admin routes on (src/pages/Admin.tsx
+            // `?view=` is the ONLY query param /admin routes on (src/pages/admin/Admin.tsx
             // resolves `searchParams.get("view")` against VIEW_LABELS). This link
             // read `?tab=disputes` for as long as it has existed, which Admin.tsx
             // never looked at — every one of these alerts opened the dashboard home.

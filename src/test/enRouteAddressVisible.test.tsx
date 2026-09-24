@@ -44,16 +44,16 @@
  * the address line. Now the meta row IS the address line, so it renders for
  * real and the mutations below are what stop this passing vacuously.
  *
- * @mutate src/components/activity/AppliedJobCard.tsx | showFullAddress={isOffered \|\| isConfirmed \|\| isActive \|\| isDisputed} | showFullAddress={false}
- * @mutate src/components/activity/AppliedJobCard.tsx | showFullAddress={isOffered \|\| isConfirmed \|\| isActive \|\| isDisputed} | showFullAddress
- * @mutate src/components/activity/JobCardMetaRow.tsx | const fullAddress = showFullAddress && hasStreetAddress(location); | const fullAddress = false;
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | showFullAddress={isOffered \|\| isConfirmed \|\| isActive \|\| isDisputed} | showFullAddress={false}
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | showFullAddress={isOffered \|\| isConfirmed \|\| isActive \|\| isDisputed} | showFullAddress
+ * @mutate src/components/job-card/JobCardMetaRow.tsx | const fullAddress = showFullAddress && hasStreetAddress(location); | const fullAddress = false;
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import type { AppliedApp, Job } from "@/components/activity/activityConstants";
+import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 
 // The tracker is mocked — this file is about the card, not about what
 // JobTracking draws — but it renders a marker so no assertion below can pass
@@ -75,8 +75,8 @@ vi.mock("@/components/JobConfirmation", () => ({
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: vi.fn() } }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn() } }));
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticLight: vi.fn(), hapticWarning: vi.fn() }));
-vi.mock("@/components/activity/JobCountdown", () => ({ JobCountdown: () => null }));
-vi.mock("@/components/activity/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
+vi.mock("@/components/job-card/JobCountdown", () => ({ JobCountdown: () => null }));
+vi.mock("@/pages/jobs/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
 vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => null, PhotoProofDialog: () => null }));
 /* THE META ROW IS NO LONGER STUBBED. It used to be, so that nothing here could
    pass on the row's city instead of the address line's street. The address
@@ -85,10 +85,10 @@ vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => null, PhotoPr
    the mutation register above: the two `showFullAddress` mutations flip the
    card's own gate in both directions, and the third makes the row print a city
    whatever it is handed. */
-vi.mock("@/components/activity/useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
+vi.mock("@/components/job-card/useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null }) }));
 
-import { AppliedJobCard } from "@/components/activity/AppliedJobCard";
+import { AppliedJobCard } from "@/pages/jobs/AppliedJobCard";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const ADDRESS = "1103 Center St, New Iberia, LA 70560";

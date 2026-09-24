@@ -40,7 +40,7 @@ import {
   postedDetailInputs,
   appliedDetailInputs,
 } from "./useActivityData";
-import type { Job, AppliedApp } from "@/components/activity/activityConstants";
+import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
 
 /** Every table read the mock actually saw, in issue order. */
 let issued: string[] = [];

@@ -19,7 +19,7 @@
  *      pressing "Delete Forever" believing it clears their suspension is the
  *      exact trust defect RetentionSummary was written to prevent.
  *
- * @mutate src/pages/AccountBanned.tsx | : "This suspension — it applies again if you sign up with this email before it ends", | : "Your data will be removed.",
+ * @mutate src/pages/auth/AccountBanned.tsx | : "This suspension — it applies again if you sign up with this email before it ends", | : "Your data will be removed.",
  * @mutate src/hooks/useDeleteAccount.ts | if (error) throw error; | if (error) void error;
  */
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
@@ -63,7 +63,7 @@ vi.mock("react-router-dom", async () => {
 });
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
-import AccountBanned from "@/pages/AccountBanned";
+import AccountBanned from "@/pages/auth/AccountBanned";
 
 beforeAll(() => {
   // jsdom lacks a few pointer APIs Radix dialogs touch.

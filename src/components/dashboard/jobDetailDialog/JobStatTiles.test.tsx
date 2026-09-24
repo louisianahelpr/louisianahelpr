@@ -133,7 +133,7 @@ describe("JobStatTiles is mounted with a job that carries the flexible flag", ()
     // fails on the query rather than on a screenshot weeks later.
     const feeds = [
       "src/hooks/useDashboardData.ts",
-      "src/pages/DashboardGuest.tsx",
+      "src/pages/home/DashboardGuest.tsx",
       "src/components/browseMap/fetchJobForPin.ts",
     ];
     expect(feeds.length).toBeGreaterThan(2);

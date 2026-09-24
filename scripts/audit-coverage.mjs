@@ -109,7 +109,7 @@ const SURFACE_OWNERS = [
   ["Multi-step flows — probable",        ["lh-e2e-journeys"]],
   ["Back/next navigation only", ["lh-e2e-journeys", "lh-state-matrix"]],
   ["Forms (submittable)",                ["lh-input-boundary"]],
-  ["Admin components (components/admin + pages/Admin*)", ["lh-admin-moderation"]],
+  ["Admin components (components/admin + pages/admin/Admin*)", ["lh-admin-moderation"]],
   ["Email templates",                    ["lh-email-delivery"]],
   ["Notification types (defined in notification_type_pref_map)", ["lh-notifications"]],
 ];

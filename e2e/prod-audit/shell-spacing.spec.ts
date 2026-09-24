@@ -76,8 +76,8 @@ const NOT_A_TITLE_ROW = new Set(["landing", "not-found", "payment-success"]);
  * element — were folded into the 12px rhythm (owner: tighter everywhere). A
  * page that needs an exception again lists its EXACT value here, with why.
  */
-// @mutate src/pages/Legal.tsx | className="sticky z-30 -mx-5 px-5 py-2 -my-2" | className="sticky z-30 -mx-5 px-5 py-2"
-// @mutate src/pages/HelprWrapped.tsx | <div className="pb-2 flex flex-col items-center"> | <div className="py-2 flex flex-col items-center">
+// @mutate src/pages/info/Legal.tsx | className="sticky z-30 -mx-5 px-5 py-2 -my-2" | className="sticky z-30 -mx-5 px-5 py-2"
+// @mutate src/pages/profile/HelprWrapped.tsx | <div className="pb-2 flex flex-col items-center"> | <div className="py-2 flex flex-col items-center">
 const TITLE_TO_CONTENT_EXCEPTIONS: Record<string, { px: number; why: string }> = {};
 
 let poster: Session;
@@ -292,7 +292,7 @@ const NO_SECTION_STACK = new Set([
 // Shown able to fail on the original (every Profile tab back on its 16px, a
 // page back on its 24px) and on the token:
 // @mutate src/components/profile/ProfileTabBody.tsx | export const PROFILE_TAB_BODY_CLASS = "space-y-section"; | export const PROFILE_TAB_BODY_CLASS = "space-y-4";
-// @mutate src/pages/HelpCenter.tsx | <div className="mx-auto page-measure space-y-section"> | <div className="mx-auto page-measure space-y-6">
+// @mutate src/pages/info/HelpCenter.tsx | <div className="mx-auto page-measure space-y-section"> | <div className="mx-auto page-measure space-y-6">
 // @mutate src/index.css | --section-gap: 0.75rem; | --section-gap: 1rem;
 test("every page's sections sit --section-gap apart at every phone width", async ({ browser }, info) => {
   test.setTimeout(40 * 60_000);

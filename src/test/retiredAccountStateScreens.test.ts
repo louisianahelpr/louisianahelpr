@@ -13,7 +13,7 @@
  *
  *   1. ROUTES/LINKS/REDIRECTS: no code (comments blanked, string bodies kept)
  *      under src/, supabase/functions/, scripts/ or e2e/ names either path.
- *   2. THE PAGES: no src/pages/AccountPending.tsx / AccountDenied.tsx.
+ *   2. THE PAGES: no AccountPending.tsx / AccountDenied.tsx anywhere under src/pages.
  *   3. PUBLIC FILES: robots.txt and the AASA claim list do not name them.
  *   4. THE EMAIL LANDING: Signup's emailRedirectTo and both resend paths use
  *      the one helper that points at /signup-pending.
@@ -35,7 +35,7 @@
  *
  * @mutate src/components/ProtectedRoute.tsx | return <Navigate to="/signup-pending" replace />; | return <Navigate to="/account-pending" replace />;
  * @mutate src/lib/authRedirects.ts | => `${getPublicOrigin()}/signup-pending`; | => `${getPublicOrigin()}/account-pending`;
- * @mutate src/pages/Signup.tsx | emailRedirectTo: getSignupConfirmRedirect(), | emailRedirectTo: `${window.location.origin}/signup-pending`,
+ * @mutate src/pages/auth/Signup.tsx | emailRedirectTo: getSignupConfirmRedirect(), | emailRedirectTo: `${window.location.origin}/signup-pending`,
  * @mutate supabase/functions/stripe-idv-webhook/index.ts | idv_failure_reason: "Identity matched a previously removed account.", | idv_failure_reason: "Identity matched a previously removed account.", approval_status: "denied",
  *   (Q288: the mutation that re-admitted 'denied' to 20260923153703's CHECK
  *   is retired; 20260923205943 drops the column, so that CHECK no longer
@@ -93,9 +93,11 @@ describe("Q193: the pending and denied account screens stay deleted", () => {
   });
 
   it("the two pages are gone and AccountBanned is kept", () => {
-    expect(existsSync(join(REPO, "src/pages/AccountPending.tsx"))).toBe(false);
-    expect(existsSync(join(REPO, "src/pages/AccountDenied.tsx"))).toBe(false);
-    expect(existsSync(join(REPO, "src/pages/AccountBanned.tsx"))).toBe(true);
+    // Any folder under src/pages: a file named for either screen is the screen back.
+    const pageFiles = (readdirSync(join(REPO, "src/pages"), { recursive: true }) as string[]).map((p) => p.split(/[\\/]/).pop());
+    expect(pageFiles.length).toBeGreaterThan(50);
+    expect(pageFiles.filter((n) => /^Account(Pending|Denied)\.tsx$/.test(n ?? ""))).toEqual([]);
+    expect(existsSync(join(REPO, "src/pages/auth/AccountBanned.tsx"))).toBe(true);
     expect(code("src/App.tsx")).toMatch(/<Route\s+path="\/account-banned"/);
   });
 
@@ -119,9 +121,9 @@ describe("Q193: the pending and denied account screens stay deleted", () => {
     expect(code("src/lib/authRedirects.ts")).toMatch(
       /export const getSignupConfirmRedirect = \(\): string => `\$\{getPublicOrigin\(\)\}\/signup-pending`;/,
     );
-    const signup = code("src/pages/Signup.tsx");
+    const signup = code("src/pages/auth/Signup.tsx");
     expect(signup).toMatch(/emailRedirectTo:\s*getSignupConfirmRedirect\(\)/);
-    const pending = code("src/pages/SignupPending.tsx");
+    const pending = code("src/pages/auth/SignupPending.tsx");
     expect(pending).toMatch(/emailRedirectTo:\s*getSignupConfirmRedirect\(\)/);
     // Every signup-confirmation emailRedirectTo in the client (any file that
     // calls auth.signUp or auth.resend) goes through the helper, so a third
@@ -131,7 +133,7 @@ describe("Q193: the pending and denied account screens stay deleted", () => {
     const senders = files.filter(
       (x) => x.startsWith("src/") && !/\.test\.tsx?$/.test(x) && /\.auth\s*\.\s*(signUp|resend)\s*\(/.test(code(x)),
     );
-    expect(senders).toEqual(expect.arrayContaining(["src/pages/Signup.tsx", "src/pages/SignupPending.tsx"]));
+    expect(senders).toEqual(expect.arrayContaining(["src/pages/auth/Signup.tsx", "src/pages/auth/SignupPending.tsx"]));
     for (const f of senders) {
       code(f).split("\n").forEach((line, i) => {
         if (/emailRedirectTo:/.test(line) && !/getSignupConfirmRedirect\(\)/.test(line)) stray.push(`${f}:${i + 1}`);

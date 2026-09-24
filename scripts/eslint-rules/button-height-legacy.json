@@ -10,7 +10,7 @@
   "src/components/SavedSearches.tsx",
   "src/components/SectionBoundary.tsx",
   "src/components/TipDialog.tsx",
-  "src/components/activity/PostedJobsTab.tsx",
+  "src/pages/posts/PostedJobsTab.tsx",
   "src/components/admin/AdminUserNotes.tsx",
   "src/components/admin/AutoRestrictedRail.tsx",
   "src/components/admin/adminJobs/JobDetailDialog.tsx",
@@ -28,10 +28,10 @@
   "src/components/profile/SupportInline.tsx",
   "src/components/profile/earningsTab/WalletCard.tsx",
   "src/components/ui/BarkPillButton.tsx",
-  "src/pages/CompleteProfile.tsx",
-  "src/pages/DashboardGuest.tsx",
-  "src/pages/Support.tsx",
-  "src/pages/UserProfile.tsx",
-  "src/pages/legal/LegalChrome.tsx",
-  "src/pages/postjob/DirectOfferBanner.tsx"
+  "src/pages/auth/CompleteProfile.tsx",
+  "src/pages/home/DashboardGuest.tsx",
+  "src/pages/info/Support.tsx",
+  "src/pages/user/UserProfile.tsx",
+  "src/pages/info/legal/LegalChrome.tsx",
+  "src/pages/post-job/DirectOfferBanner.tsx"
 ]

@@ -441,7 +441,7 @@ the surface is live rather than a corpse.
 
 The orchestrator asked me to check every destructive admin control for the shape
 `AdminBroadcasts.tsx:165` has. I swept every `.update()` / `.delete()` call site
-under `src/components/admin/**` and `src/pages/Admin.tsx` for a missing
+under `src/components/admin/**` and `src/pages/admin/Admin.tsx` for a missing
 `.select()`, independently of the delegated sweep that first found it.
 
 Three candidates came back. **Two are not database writes at all** —
@@ -505,8 +505,8 @@ matters:
 So AM-002's chargeback alert does reach Slack. The SQL watchers do not.
 
 **The admin surface is 24 views, not 9 and not 30.** `SURFACE.md` says 24 and it
-is right; my brief said "9 `?view=` variants" and the blocker note said 30 — source `src/pages/Admin.tsx:63-75`.
-`VIEW_LABELS` in `src/pages/Admin.tsx:63-75` is the authoritative list and is
+is right; my brief said "9 `?view=` variants" and the blocker note said 30 — source `src/pages/admin/Admin.tsx:63-75`.
+`VIEW_LABELS` in `src/pages/admin/Admin.tsx:63-75` is the authoritative list and is
 self-maintaining — `isRealView()` derives from it, so a stale deep link to a
 deleted view (`parishtax`, `geography`) coerces to home rather than
 half-rendering.

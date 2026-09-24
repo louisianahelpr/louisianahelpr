@@ -10,7 +10,7 @@
  *
  * Nothing in the app was broken. `DirectionsButton` hands `job.location` to
  * `mapsSearchUrl()`; the post-a-job form writes
- * `"<street>, <city>, <state> <zip>"` (src/pages/postjob/jobSubmitHelpers.ts);
+ * `"<street>, <city>, <state> <zip>"` (src/pages/post-job/jobSubmitHelpers.ts);
  * `user_may_see_job_address` had already released the full column to the
  * viewer, and `JobAddressLine` prints it on the card. The row the owner tapped
  * simply had no street in it. On 2026-09-19, live:

@@ -34,7 +34,7 @@ type Write = {
 // Shown able to fail on the LIVE inventory, not only the synthetic cases: turn
 // the one allowed client dispute write into a de-escalation and the AST-derived
 // scan reds.
-// @mutate src/components/activity/appliedJobCard/DisputedSection.tsx | dispute_status: "helper_responded" | dispute_status: "open"
+// @mutate src/pages/jobs/appliedJobCard/DisputedSection.tsx | dispute_status: "helper_responded" | dispute_status: "open"
 
 /** Columns no client may write, whatever the value. */
 const MARKERS = ["disputed_at", "disputed_by", "dispute_deadline", "dispute_resolved_at"] as const;
@@ -46,7 +46,7 @@ const MARKERS = ["disputed_at", "disputed_by", "dispute_deadline", "dispute_reso
 const OPEN_JOB_WRITES: Record<string, string> = {
   "src/components/JobConfirmation.tsx": "`{ [field]: now }` where field is poster_confirmed_at | helper_dayof_confirmed_at",
   "src/components/JobTracking.tsx": "stampJob(patch): { status: 'in_progress' } and { helper_on_the_way_at }",
-  "src/pages/postjob/useJobSubmit.ts": "job INSERT payloads; on INSERT trg_dispute_markers_server_owned clears every marker for a client",
+  "src/pages/post-job/useJobSubmit.ts": "job INSERT payloads; on INSERT trg_dispute_markers_server_owned clears every marker for a client",
 };
 
 const isAdmin = (file: string) => file.startsWith("src/components/admin/");
@@ -78,7 +78,7 @@ describe("dispute markers are server-owned: no client write to jobs sets one", (
   it("inventories the jobs writes", () => {
     // Floor: an extractor regression that finds nothing must not pass vacuously.
     expect(jobWrites.length).toBeGreaterThan(10);
-    expect(jobWrites.some((w) => w.file === "src/components/activity/appliedJobCard/DisputedSection.tsx")).toBe(true);
+    expect(jobWrites.some((w) => w.file === "src/pages/jobs/appliedJobCard/DisputedSection.tsx")).toBe(true);
   });
 
   it("no non-admin jobs write touches a dispute marker", () => {

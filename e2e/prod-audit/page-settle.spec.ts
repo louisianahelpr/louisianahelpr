@@ -23,7 +23,7 @@
  * Proven red: before the Q169 fixes, /post-job at 375 measured CLS 0.3188 and
  * /browse at 375 0.0416, both outside KNOWN.
  */
-// @mutate src/pages/postjob/EntryChoice.tsx |   if (!entryReady) return <EntryChoiceSkeleton />; |
+// @mutate src/pages/post-job/EntryChoice.tsx |   if (!entryReady) return <EntryChoiceSkeleton />; |
 import { test, expect } from "../prodTest";
 import { newUserContext, sessionFor, POSTER_ID, HELPER_ID, SUPABASE_URL, ANON } from "./harness";
 // @ts-expect-error -- plain Node ESM with no .d.mts (same as src/test/pressEveryControlRoutes.test.ts)

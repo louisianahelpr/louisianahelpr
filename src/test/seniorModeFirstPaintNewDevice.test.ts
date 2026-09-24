@@ -3,8 +3,8 @@
 // @mutate src/lib/simpleMode.ts |   return (sessionSeniorFlag(user) ?? false) === profileSenior ? null : { senior_mode: profileSenior }; |   return null;
 // @mutate src/App.tsx | sessionSenior: sessionSeniorFlag(user) | sessionSenior: null
 // @mutate src/App.tsx |     const patch = seniorModeMetadataPatch(user, profileSenior); |     const patch = null as { senior_mode: boolean } \| null;
-// @mutate src/pages/Profile.tsx | updateUser({ data: { senior_mode: enabled } }) | getUser()
-// @mutate src/pages/Profile.tsx | await refreshCurrentUser(); // Q200: before the hint | // Q200: before the hint
+// @mutate src/pages/profile/Profile.tsx | updateUser({ data: { senior_mode: enabled } }) | getUser()
+// @mutate src/pages/profile/Profile.tsx | await refreshCurrentUser(); // Q200: before the hint | // Q200: before the hint
 /*
  * Senior Mode from the ACCOUNT is right at first paint on a NEW DEVICE (Q200).
  *
@@ -99,7 +99,7 @@ describe("Senior Mode from the account on a device's FIRST signed-in visit (Q200
 
 describe("Q200 review: the toggle's session write cannot be reverted by a stale profile", () => {
   it("refreshes the cached profile before writing the session hint", () => {
-    const src = blankComments(readFileSync(resolve(__dirname, "..", "pages", "Profile.tsx"), "utf8"));
+    const src = blankComments(readFileSync(resolve(__dirname, "..", "pages", "profile", "Profile.tsx"), "utf8"));
     const start = src.indexOf("const handleToggleSeniorMode");
     expect(start).toBeGreaterThan(0);
     const body = src.slice(start, src.indexOf("const handleSave", start));

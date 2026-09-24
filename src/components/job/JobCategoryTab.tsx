@@ -1,4 +1,4 @@
-import { categoryColors, categoryLabels } from "@/components/activity/activityConstants";
+import { categoryColors, categoryLabels } from "@/components/job-card/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { formatCategory } from "@/lib/format";
 import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";

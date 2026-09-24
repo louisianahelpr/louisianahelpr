@@ -33,7 +33,7 @@ describe("public job text is contact-scanned (IB-002)", () => {
     expect(sql).toContain(`public.contact_leak_reason(NEW.${col})`);
   });
   it("every public text field is present on the post-job form's insert", () => {
-    const submit = readFileSync("src/pages/postjob/useJobSubmit.ts", "utf8");
+    const submit = readFileSync("src/pages/post-job/useJobSubmit.ts", "utf8");
     for (const c of PUBLIC_JOB_TEXT) expect(submit).toMatch(new RegExp(`\\b${c}\\b`));
   });
 });

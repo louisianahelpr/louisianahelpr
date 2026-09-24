@@ -4,7 +4,7 @@
  * Owner, 2026-09-19: "When i click directions, it gives directions to the town
  * but not the actual address."
  *
- * Nothing in the app was broken. `src/pages/postjob/jobSubmitHelpers.ts` writes
+ * Nothing in the app was broken. `src/pages/post-job/jobSubmitHelpers.ts` writes
  * `"<street>, <city>, <state> <zip>"`; `DirectionsButton` hands that string to
  * `mapsSearchUrl()` (deliberately the ADDRESS, never the coordinates of
  * somebody's front door); `user_may_see_job_address` had already released the
@@ -34,7 +34,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { hasStreetAddress } from "@/components/activity/appliedJobCard/JobAddressLine";
+import { hasStreetAddress } from "@/pages/jobs/appliedJobCard/JobAddressLine";
 // @ts-expect-error — plain .mjs script, no type declarations. Same convention as
 // src/test/writeContract.test.ts importing scripts/audit/write-contract.mjs. Kept
 // on ONE line because the directive must sit on the line TypeScript reports, and a

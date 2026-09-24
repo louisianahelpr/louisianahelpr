@@ -73,7 +73,7 @@ interface UseDashboardFiltersOptions {
    * which meant `filteredJobs` — the set the header falls back to counting,
    * and the set the map is supposed to agree with — still contained them.
    * Owner, 2026-09-19: "map shows 7 jobs. list shows 4."
-   * See `src/pages/dashboard/viewerFeedExclusions.ts`.
+   * See `src/pages/home/viewerFeedExclusions.ts`.
    */
   dismissedJobIds?: ReadonlySet<string>;
   /**

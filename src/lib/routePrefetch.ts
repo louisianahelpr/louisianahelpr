@@ -8,22 +8,22 @@ import { beginSpeculativePrefetch } from "@/lib/chunkReload";
  * are silent no-ops.
  */
 const prefetchers: Record<string, () => Promise<unknown>> = {
-  "/dashboard": () => import("@/pages/Dashboard"),
-  "/profile": () => import("@/pages/Profile"),
-  "/post-job": () => import("@/pages/PostJob"),
-  "/my-posts": () => import("@/pages/Activity"),
-  "/my-jobs": () => import("@/pages/Activity"),
-  "/messages": () => import("@/pages/Messages"),
+  "/dashboard": () => import("@/pages/home/Dashboard"),
+  "/profile": () => import("@/pages/profile/Profile"),
+  "/post-job": () => import("@/pages/post-job/PostJob"),
+  "/my-posts": () => import("@/pages/posts/PostsPage"),
+  "/my-jobs": () => import("@/pages/jobs/JobsPage"),
+  "/messages": () => import("@/pages/messages/Messages"),
   // /support is its own public page now (it used to redirect into the
   // Profile tab system, so this key pointed at the Profile chunk — which
   // meant hovering the link warmed a chunk the route never renders).
-  "/support": () => import("@/pages/Support"),
+  "/support": () => import("@/pages/info/Support"),
 
   
-  "/login": () => import("@/pages/Login"),
-  "/signup": () => import("@/pages/Signup"),
-  "/user": () => import("@/pages/UserProfile"),
-  "/browse": () => import("@/pages/DashboardGuest"),
+  "/login": () => import("@/pages/auth/Login"),
+  "/signup": () => import("@/pages/auth/Signup"),
+  "/user": () => import("@/pages/user/UserProfile"),
+  "/browse": () => import("@/pages/home/DashboardGuest"),
 
   // THE FOOTER'S OWN DESTINATIONS. Every other nav surface in the app —
   // Navbar, MobileNav, the desktop rail — prefetches what it links to; the
@@ -39,11 +39,11 @@ const prefetchers: Record<string, () => Promise<unknown>> = {
   // not resolve any of them from a lone `/legal` key. `warmed` is keyed on the
   // matched key rather than the module, so the first of them to be warmed
   // still costs one fetch and the rest resolve from the module cache.
-  "/legal": () => import("@/pages/Legal"),
-  "/terms": () => import("@/pages/Legal"),
-  "/rules": () => import("@/pages/Legal"),
-  "/privacy": () => import("@/pages/Legal"),
-  "/help": () => import("@/pages/HelpCenter"),
+  "/legal": () => import("@/pages/info/Legal"),
+  "/terms": () => import("@/pages/info/Legal"),
+  "/rules": () => import("@/pages/info/Legal"),
+  "/privacy": () => import("@/pages/info/Legal"),
+  "/help": () => import("@/pages/info/HelpCenter"),
 };
 
 const warmed = new Set<string>();

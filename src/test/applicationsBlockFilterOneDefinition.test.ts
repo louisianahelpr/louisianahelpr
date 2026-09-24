@@ -107,7 +107,9 @@ describe("Q341: applicant list and counters share ONE blocked filter", () => {
     expect(readers.length).toBeGreaterThan(10);
     expect(readers.map((f) => f.rel).sort()).toEqual(
       [
-        "src/components/activity/AppliedJobsTab.tsx",
+        "src/pages/jobs/AppliedJobsTab.tsx",
+        // Admin reads the one application a report names (Q366), not a list.
+        "src/components/admin/AdminReports.tsx",
         "src/components/admin/adminHealth/useHealthData.ts",
         "src/components/admin/useAdminUserSummaries.ts",
         "src/components/dashboard/jobDetailDialog/useJobDetailData.ts",
@@ -115,12 +117,12 @@ describe("Q341: applicant list and counters share ONE blocked filter", () => {
         "src/hooks/useActivityBadgeCounts.ts",
         "src/hooks/useActivityData.ts",
         "src/hooks/useDashboardData.ts",
-        "src/pages/HomeHistory.tsx",
-        "src/pages/activity/activityActions/useApplicantsState.ts",
-        "src/pages/activity/activityActions/useOfferHandlers.ts",
-        "src/pages/dashboard/useApplyFlow.ts",
-        "src/pages/legal/DataExportCard.tsx",
-        "src/pages/userProfile/useUserProfileData.ts",
+        "src/pages/profile/HomeHistory.tsx",
+        "src/components/job-card/activityActions/useApplicantsState.ts",
+        "src/components/job-card/activityActions/useOfferHandlers.ts",
+        "src/pages/home/useApplyFlow.ts",
+        "src/pages/info/legal/DataExportCard.tsx",
+        "src/pages/user/useUserProfileData.ts",
       ].sort(),
     );
   });
@@ -129,4 +131,4 @@ describe("Q341: applicant list and counters share ONE blocked filter", () => {
 // The block filter dropped from the poster policy.
 // @mutate supabase/migrations/20260924020956_applications_refuse_and_hide_across_block.sql | AND NOT public.are_users_blocked(applications.helper_id, (SELECT auth.uid())) | AND true
 // A client-side block filter re-added to the applicant list.
-// @mutate src/pages/activity/activityActions/useApplicantsState.ts | const { data: apps, error: appsError } = await supabase.from("applications") | await supabase.from("user_blocks").select("*");\n    const { data: apps, error: appsError } = await supabase.from("applications")
+// @mutate src/components/job-card/activityActions/useApplicantsState.ts | const { data: apps, error: appsError } = await supabase.from("applications") | await supabase.from("user_blocks").select("*");\n    const { data: apps, error: appsError } = await supabase.from("applications")

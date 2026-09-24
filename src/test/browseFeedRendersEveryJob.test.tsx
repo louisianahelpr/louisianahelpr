@@ -39,8 +39,8 @@
 //                        a list that is NOT viewer-culled, so it could paint
 //                        a job the list had legitimately removed).
 //
-// @mutate src/pages/dashboard/browseFeedSections.ts | const inBand = bandIds.has(j.id); | const inBand = false;
-// @mutate src/pages/dashboard/browseFeedSections.ts | if (!showRecommendedBand) return { band: [], rest: filteredJobs.slice() }; | if (!showRecommendedBand) return { band: [], rest: filteredJobs.filter((_, i) => i > 0) };
+// @mutate src/pages/home/browseFeedSections.ts | const inBand = bandIds.has(j.id); | const inBand = false;
+// @mutate src/pages/home/browseFeedSections.ts | if (!showRecommendedBand) return { band: [], rest: filteredJobs.slice() }; | if (!showRecommendedBand) return { band: [], rest: filteredJobs.filter((_, i) => i > 0) };
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";

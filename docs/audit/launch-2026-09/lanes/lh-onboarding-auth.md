@@ -193,17 +193,17 @@ resulting `auth.users` / `profiles` state.
 `plutil -p` over the app's NSUserDefaults plist — this is how OA-004 became an
 observation rather than an inference.
 
-**Source read in full:** `src/pages/Signup.tsx`, `signup/SignupStep1.tsx`,
+**Source read in full:** `src/pages/auth/Signup.tsx`, `signup/SignupStep1.tsx`,
 `signup/SignupStep2.tsx`, `signup/signupHelpers.ts`,
 `supabase/functions/complete-signup/index.ts` (746 lines),
-`supabase/functions/_shared/rate-limit.ts`, `src/pages/ResetPassword.tsx`,
-`src/pages/ForgotPassword.tsx`, `src/lib/authErrors.ts`,
+`supabase/functions/_shared/rate-limit.ts`, `src/pages/auth/ResetPassword.tsx`,
+`src/pages/auth/ForgotPassword.tsx`, `src/lib/authErrors.ts`,
 `src/lib/userFacingError.ts`, `src/lib/errorLogger.ts`,
 `src/lib/biometricGate.ts`, `src/lib/authSignOut.ts`, `src/lib/nativePush.ts`,
 `src/lib/socialAuth.ts`, `src/components/auth/SocialAuthButtons.tsx`,
 `src/components/AppLockGate.tsx`, `src/lib/appLock.ts`,
 `src/hooks/useAuthReady.ts`, `src/components/ProtectedRoute.tsx`,
-`src/pages/CompleteProfile.tsx`, `src/pages/SignupPending.tsx`,
+`src/pages/auth/CompleteProfile.tsx`, `src/pages/auth/SignupPending.tsx`,
 `src/pages/AccountPending.tsx`, `src/components/profile/SecurityTab.tsx`,
 `src/integrations/supabase/client.ts`,
 `src/integrations/supabase/keychainStorageAdapter.ts`,

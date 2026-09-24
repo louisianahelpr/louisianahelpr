@@ -87,7 +87,7 @@ amount, review text and rating.
 
 ### The six post-a-job ENTRY paths — all six, not the form alone
 
-`src/pages/postjob/EntryChoice.tsx` ships six ways into the job form and its own
+`src/pages/post-job/EntryChoice.tsx` ships six ways into the job form and its own
 docblock still describes three (and numbers two different sections "5"). Not one
 was named by any lane, while every one of them PRE-FILLS the form that takes the
 poster's money.

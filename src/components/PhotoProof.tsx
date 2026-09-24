@@ -17,7 +17,7 @@ import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mut
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative, pickerFailure } from "@/lib/nativeCamera";
-import { JOB_ACTION_CHIP_CLASS, JOB_ROW_LABEL_CLASS, jobActionChipStyle } from "@/components/activity/JobActionRow";
+import { JOB_ACTION_CHIP_CLASS, JOB_ROW_LABEL_CLASS, jobActionChipStyle } from "@/components/job-card/JobActionRow";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
 
 type PhotoProofProps = {

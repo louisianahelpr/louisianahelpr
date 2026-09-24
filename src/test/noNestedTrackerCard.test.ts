@@ -508,9 +508,9 @@ describe("no bordered card nested inside another (JobTracking / JobConfirmation)
 // Poster side, THE HOISTED-CONST SHAPE. Before 2026-09-21 this one SURVIVED:
 // the panel lives in `const trackerBlock` and the same-file ancestor walk
 // stopped at the declaration, never reaching <JobCardShell> 380 lines below.
-// @mutate src/components/activity/PostedJobCard.tsx | <JobTracking embedded includePostingSteps | <JobTracking includePostingSteps
+// @mutate src/pages/posts/PostedJobCard.tsx | <JobTracking embedded includePostingSteps | <JobTracking includePostingSteps
 // Poster side, literally inside <JobCardShell> — the plain ancestor walk.
-// @mutate src/components/activity/PostedJobCard.tsx | <JobConfirmation embedded jobId={job.id} isOwner={true} | <JobConfirmation jobId={job.id} isOwner={true}
+// @mutate src/pages/posts/PostedJobCard.tsx | <JobConfirmation embedded jobId={job.id} isOwner={true} | <JobConfirmation jobId={job.id} isOwner={true}
 // Helpr side, CROSS-FILE: HelperTrackerPanel is flat and its glass ancestor is
 // three files away, so only the render-graph reachability check sees this.
-// @mutate src/components/activity/appliedJobCard/HelperTrackerPanel.tsx | <JobTracking\n        embedded\n | <JobTracking\n
+// @mutate src/pages/jobs/appliedJobCard/HelperTrackerPanel.tsx | <JobTracking\n        embedded\n | <JobTracking\n

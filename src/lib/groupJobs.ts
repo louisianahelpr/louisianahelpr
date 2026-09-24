@@ -84,7 +84,7 @@
  *
  * ── TURNING IT BACK ON ──────────────────────────────────────────────────────
  *
- * `src/pages/postjob/groupJobsGate.test.ts` links this flag to the schema
+ * `src/pages/post-job/groupJobsGate.test.ts` links this flag to the schema
  * change that unblocks (b): flipping it to `true` without per-member lifecycle
  * columns on `group_job_helpers` fails that test. (d) has no such tripwire —
  * it needs a deliberate decision about the review model.

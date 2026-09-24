@@ -31,7 +31,7 @@ import { resolve } from "node:path";
 
 const ROOT = resolve(__dirname, "../../..");
 const PANELS = resolve(ROOT, "src/pages/profile/ProfileTabPanels.tsx");
-const PROFILE = resolve(ROOT, "src/pages/Profile.tsx");
+const PROFILE = resolve(ROOT, "src/pages/profile/Profile.tsx");
 const APPPAGE = resolve(ROOT, "src/components/AppPage.tsx");
 
 /**
@@ -291,4 +291,4 @@ describe("Profile and AppPage share one tab-scroll wrapper", () => {
 
 // Proof this guard can fail: drop the width that pays the wrapper's padding
 // back (VN-37). The box then only SHIFTS sideways and the two shells diverge.
-// @mutate src/pages/Profile.tsx | page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 | page-measure h-full overflow-y-auto px-3 -mx-3
+// @mutate src/pages/profile/Profile.tsx | page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 | page-measure h-full overflow-y-auto px-3 -mx-3

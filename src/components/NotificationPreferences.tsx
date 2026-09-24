@@ -1005,7 +1005,7 @@ const NotificationPreferences = () => {
             So this says what the screen actually does, and nothing more. The
             auth clause is accurate and worth keeping: password resets and
             sign-in mail come from Supabase Auth (`resetPasswordForEmail`,
-            `src/pages/ForgotPassword.tsx:61`), never through
+            `src/pages/auth/ForgotPassword.tsx:61`), never through
             `notification_preferences`, so no switch on this screen can stop
             them and no switch on this screen claims to. */}
         <Lock className="w-3 h-3 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />

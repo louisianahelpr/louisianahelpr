@@ -28,7 +28,7 @@ const ROOT = join(__dirname, "..");
 /** Files that mention expiry for something that is NOT a job listing. */
 const NOT_A_LISTING: Record<string, string> = {
   "lib/dateUtils.ts": "the formatter itself",
-  "pages/giftCards/CreditCard.tsx": "gift-card credit expiry date, not a listing countdown",
+  "pages/profile/giftCards/CreditCard.tsx": "gift-card credit expiry date, not a listing countdown",
   "integrations/supabase/types.ts": "generated types",
 };
 
@@ -78,7 +78,7 @@ describe("listing expiry is rendered only through formatTimeLeft", () => {
   it("inventory sees the known expiry surfaces", () => {
     const rels = files.map((f) => f.rel);
     for (const known of [
-      "components/activity/JobCardMetaRow.tsx",
+      "components/job-card/JobCardMetaRow.tsx",
       "components/dashboard/JobCard.tsx",
       "components/dashboard/jobDetailDialog/JobStatTiles.tsx",
     ]) {

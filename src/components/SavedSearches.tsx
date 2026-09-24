@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { toast } from "sonner";
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
-import { categoryLabels } from "@/components/activity/activityConstants";
+import { categoryLabels } from "@/components/job-card/activityConstants";
 
 interface SavedSearch {
   id: string;

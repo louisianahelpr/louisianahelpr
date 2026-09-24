@@ -125,13 +125,13 @@ describe("the three fixed sites do not drift back", () => {
   const site = (rel: string) => readFileSync(new URL(rel, import.meta.url), "utf8");
 
   it("quotes the post-a-job CTA total exactly", () => {
-    const src = site("../pages/postjob/FormStep.tsx");
+    const src = site("../pages/post-job/FormStep.tsx");
     expect(src).toMatch(/formatPriceExact\(form\.totalCharge\)/);
     expect(src).not.toMatch(/formatPrice\(form\.totalCharge\)/);
   });
 
   it("states the payment-success escrow amount exactly", () => {
-    const src = site("../pages/PaymentSuccess.tsx");
+    const src = site("../pages/post-job/PaymentSuccess.tsx");
     expect(src).toMatch(/formatPriceExact\(escrowAmount\)/);
     expect(src).not.toMatch(/formatPrice\(escrowAmount\)/);
   });

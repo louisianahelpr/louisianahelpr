@@ -434,7 +434,7 @@ title by design and is not a gap.
 
 ## 4. Activity tabs (2)
 
-Source of truth: `type Tab` in `src/components/activity/activityConstants.ts`.
+Source of truth: `type Tab` in `src/components/job-card/activityConstants.ts`.
 Each tab additionally has status filters and per-status card states — force
 them; a tab seen in one status is not a walked tab.
 
@@ -610,7 +610,7 @@ callers is covered by a harness test but not by a real deploy-window run.
 
 ## 6. Admin views (25)
 
-Source of truth: `type View` in `src/pages/Admin.tsx:46`. Each is a distinct
+Source of truth: `type View` in `src/pages/admin/Admin.tsx:46`. Each is a distinct
 screen reached as `/admin?view=<key>`. `/admin` being walked does NOT cover
 them. Reached by minting a session and elevating the seeded account via
 `user_roles`.
@@ -764,7 +764,7 @@ Changing the number here without changing the module would desync this ledger
 from the source it names one paragraph above. The state itself is dead:
 `businesses` / `business_members` were dropped by `20260828011811` and return
 PGRST205 on prod; the only writer (`initialStatus` in
-`src/pages/postjob/jobSubmitHelpers.ts`) had zero call sites and is deleted; the
+`src/pages/post-job/jobSubmitHelpers.ts`) had zero call sites and is deleted; the
 enum label is kept deliberately so a stray row can never render a blank card.
 The two-row data repair
 (`supabase/migrations/20260831232522_retire_business_approval_residue.sql`) is
@@ -891,7 +891,7 @@ located and counted.
 > `grep -rn "SectionEyebrow" src/` returns zero hits. The helper card's heading
 > survives as `<h4 id="job-desc-…" className="sr-only">Job description</h4>`
 > inside a `<section aria-labelledby>`
-> (`src/components/activity/AppliedJobCard.tsx`), so it paints nothing.
+> (`src/pages/jobs/AppliedJobCard.tsx`), so it paints nothing.
 > **The asymmetry this finding rests on — "one labelled and one not" — is
 > therefore false as stated: both cards are now visually unlabelled, by
 > decision.**

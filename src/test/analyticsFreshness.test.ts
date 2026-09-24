@@ -3,7 +3,7 @@
 // @mutate scripts/lib/analyticsFreshness.mjs |   first_job_completed: "first-time variant of job_completed", |
 // @mutate src/lib/jobCompletedEvent.ts |   track(AhaEvent.JobCompleted, { job_id: jobId, source }); |
 // @mutate src/lib/analytics.ts |   JobCompleted: "job_completed", |   JobCompleted: "job_completed", NeverSent: "never_sent",
-// @mutate src/pages/activity/activityActions/useOfferHandlers.ts |         if (!hiredErr && (count ?? 0) <= 1) track(AhaEvent.FirstHelperHired, { job_id: selectedJob.id }); |
+// @mutate src/components/job-card/activityActions/useOfferHandlers.ts |         if (!hiredErr && (count ?? 0) <= 1) track(AhaEvent.FirstHelperHired, { job_id: selectedJob.id }); |
 // @mutate scripts/lib/analyticsFreshness.mjs |   nps_submitted: "survey plumbing", |
 // @mutate scripts/check-analytics-freshness.mjs |     process.exit(1); |     process.exit(0);
 // @mutate .github/workflows/quota-monitor.yml |         run: node scripts/check-analytics-freshness.mjs |         run: echo skipped

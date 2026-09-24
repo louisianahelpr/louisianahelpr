@@ -174,10 +174,10 @@ function pollers(): Poller[] {
  */
 // @two-way src/test/hotQueryLoad.test.ts:expect(seen).toEqual(
 const KNOWN_NETWORK_POLLERS: Record<string, { ms: number; why: string }> = {
-  "pages/SignupPending.tsx setInterval": { ms: 5_000, why: "email-verification gate screen; stops on navigate, below the floor on purpose (the user is waiting on it)" },
-  "pages/CompleteProfile.tsx setInterval": { ms: 2_500, why: "profile-row retry while a brand-new profile is being created; stops as soon as it exists" },
+  "pages/auth/SignupPending.tsx setInterval": { ms: 5_000, why: "email-verification gate screen; stops on navigate, below the floor on purpose (the user is waiting on it)" },
+  "pages/auth/CompleteProfile.tsx setInterval": { ms: 2_500, why: "profile-row retry while a brand-new profile is being created; stops as soon as it exists" },
 };
-const BELOW_FLOOR_ALLOWED = new Set(["pages/SignupPending.tsx setInterval", "pages/CompleteProfile.tsx setInterval"]);
+const BELOW_FLOOR_ALLOWED = new Set(["pages/auth/SignupPending.tsx setInterval", "pages/auth/CompleteProfile.tsx setInterval"]);
 
 describe("hot-query load (Q53)", () => {
   it("scans a real source tree", () => {

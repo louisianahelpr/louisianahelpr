@@ -226,7 +226,7 @@ const HAND_ROLLED_BY_DESIGN: Record<string, string> = {
   // have had that failure. Nothing about the two-shell requirement forced a
   // hand-rolled modal: one body, rendered into a `<DialogContent>` or into the
   // inline card, is one component and the exemption is gone.
-  "src/components/activity/postedJobs/ApplicantsPanel.tsx":
+  "src/pages/posts/postedJobs/ApplicantsPanel.tsx":
     "Full-screen push panel, not a card over a page — nothing behind it is " +
     "inert and there is no backdrop, which is why it carries role=region " +
     "rather than dialog. Wrapping it in the shell would promise a focus trap " +
@@ -358,7 +358,7 @@ describe("one footer convention", () => {
     "src/components/admin/AdminSettings.tsx": "settings save inline per row",
     "src/components/messages/MuteSheet.tsx": "each row IS the action; picking one closes",
     "src/components/messages/MessageActionSheet.tsx": "each row IS the action",
-    "src/components/activity/CompletionChoiceSheet.tsx": "each choice IS the action",
+    "src/pages/posts/CompletionChoiceSheet.tsx": "each choice IS the action",
     "src/components/profile/HelperScheduleStrip.tsx": "read-only schedule peek",
 
     // ── Added 2026-08-31, after the lexer fix below stopped this test

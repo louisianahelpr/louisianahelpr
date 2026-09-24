@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
 import { shareNative } from "@/lib/nativeShare";
 import { isNativePlatform } from "@/lib/nativeInit";
-import { JOB_ROW_LABEL_CLASS } from "@/components/activity/JobActionRow";
+import { JOB_ROW_LABEL_CLASS } from "@/components/job-card/JobActionRow";
 
 interface ShareJobButtonProps {
   /** The job being shared — only the title/budget/category/id/city are referenced. */
@@ -106,7 +106,7 @@ interface ShareJobButtonProps {
  * The URL points at the public `/jobs/:id` preview route. Guests who tap
  * get a read-only job preview (apply gated to /signup); signed-in
  * recipients are redirected into the dashboard apply flow. See
- * `src/pages/JobDetail.tsx`.
+ * `src/pages/jobs/JobDetail.tsx`.
  */
 export function ShareJobButton({
   job,

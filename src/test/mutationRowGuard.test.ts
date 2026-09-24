@@ -190,7 +190,7 @@ const RISK_TABLES = [
  */
 // @two-way src/test/mutationRowGuard.test.ts:const staleAllow =
 const ALLOWLIST: Record<string, string> = {
-  "src/pages/activity/activityActions/useOfferHandlers.ts":
+  "src/components/job-card/activityActions/useOfferHandlers.ts":
     "declineApplication is deliberately conditional on .eq(\"status\", \"pending\") — a zero-row " +
     "result means the application was already resolved in another tab, which is the intended race outcome.",
   // 16 more entries REMOVED 2026-09-22 by the two-way check below — each

@@ -276,7 +276,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
   //     photo viewer was rendering inside the job card that opened it.
   //
   // Same class of bug as the "Add a Pet" sheet (see the note in
-  // src/pages/petProfiles/PetForm.tsx), same fix: leave the transformed
+  // src/pages/profile/petProfiles/PetForm.tsx), same fix: leave the transformed
   // subtree by construction rather than relying on no ancestor ever gaining a
   // transform, a filter, or a `will-change`.
   //

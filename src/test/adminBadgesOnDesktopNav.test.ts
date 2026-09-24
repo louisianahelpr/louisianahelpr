@@ -5,7 +5,7 @@
  * adminBadgeStore and DesktopSidebarNav renders them (screenshot 2026-09-24:
  * Jobs 4, Referrals 2 at 1440).
  *
- * @mutate src/pages/Admin.tsx | publishAdminBadges(next); | void next;
+ * @mutate src/pages/admin/Admin.tsx | publishAdminBadges(next); | void next;
  * @mutate src/components/DesktopSidebarNav.tsx | {!!adminBadges[id] && ( | {false && (
  * @mutate src/components/admin/adminBadgeStore.ts | listeners.forEach((l) => l()); | void listeners;
  */
@@ -29,7 +29,7 @@ describe("admin queue badges reach the desktop nav (AM-011)", () => {
     const ids = adminNavGroups.flatMap((g) => g.items.map((i) => i.id));
     expect(ids.length).toBeGreaterThan(20);
     expect(ids).toEqual(expect.arrayContaining(["disputes", "reports", "support"]));
-    expect(readFileSync("src/pages/Admin.tsx", "utf8")).toMatch(/publishAdminBadges\(next\);/);
+    expect(readFileSync("src/pages/admin/Admin.tsx", "utf8")).toMatch(/publishAdminBadges\(next\);/);
     const nav = readFileSync("src/components/DesktopSidebarNav.tsx", "utf8");
     expect(nav).toMatch(/const adminBadges = useAdminBadges\(\);/);
     expect(nav).toMatch(/\{!!adminBadges\[id\] && \(/);

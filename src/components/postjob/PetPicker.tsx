@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { PawPrint, Plus, Check } from "lucide-react";
 
-import { fetchPetProfiles, petProfilesQueryKey } from "@/pages/petProfiles/petProfilesQuery";
+import { fetchPetProfiles, petProfilesQueryKey } from "@/pages/profile/petProfiles/petProfilesQuery";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 import { hapticLight } from "@/lib/haptics";

@@ -28,7 +28,7 @@
  * @mutate supabase/migrations/20260923154148_job_budget_cap_1000.sql | IF NEW.budget IS NOT NULL AND NEW.budget > 1000 THEN | IF NEW.budget IS NOT NULL AND NEW.budget > 5000 THEN
  * @mutate supabase/functions/create-payment/index.ts | if (jobBudgetOutOfRange(job.budget)) { | if (false) {
  * @mutate src/components/postjob/BudgetSection.tsx | The most a job can be is {formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}. | The most a job can be is $5,000.
- * @mutate src/pages/postjob/useJobDerived.ts | && parseFloat(budget) <= MAX_JOB_BUDGET_DOLLARS); | );
+ * @mutate src/pages/post-job/useJobDerived.ts | && parseFloat(budget) <= MAX_JOB_BUDGET_DOLLARS); | );
  * @mutate scripts/audit/prod-seed.mjs | budget: [10, 45, 180, 450, 750, 999, 1000][i % 7], | budget: [10, 45, 180, 450, 750, 999, 5000][i % 7],
  */
 import { describe, it, expect } from "vitest";
@@ -117,7 +117,7 @@ describe("job price cap — one constant shared by client, server and DB (Q202)"
     expect(src).toMatch(/The most a job can be is \{formatDollarsWhole\(MAX_JOB_BUDGET_DOLLARS\)\}/);
     expect(src).toMatch(/>\s*MAX_JOB_BUDGET_DOLLARS/);
     // …and the step does not read "Done" on a budget submit will refuse.
-    const derived = blankComments(read("src/pages/postjob/useJobDerived.ts"));
+    const derived = blankComments(read("src/pages/post-job/useJobDerived.ts"));
     expect(derived).toMatch(/budgetComplete = [^;]*<= MAX_JOB_BUDGET_DOLLARS/);
   });
 

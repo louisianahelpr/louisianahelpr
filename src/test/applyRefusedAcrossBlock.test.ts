@@ -28,7 +28,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
-import { resolveApplyErrorCopy } from "@/pages/dashboard/applyErrorCopy";
+import { resolveApplyErrorCopy } from "@/pages/home/applyErrorCopy";
 
 const MIG_DIR = join(process.cwd(), "supabase/migrations");
 

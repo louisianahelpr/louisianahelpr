@@ -15,7 +15,7 @@
  *      action-dispatch function (an admin branch of create-payment), or the
  *      whole function when it has no dispatch.
  *   3. Client. Every write the admin surface (`src/components/admin/**`,
- *      `src/pages/Admin*.tsx`) makes — `.from(t).insert/update/upsert/delete`,
+ *      `src/pages/admin/Admin*.tsx`) makes — `.from(t).insert/update/upsert/delete`,
  *      `.rpc(n)` of a WRITING SQL function, `functions.invoke(f)` — is audited:
  *      either at the server (the RPC / edge unit from 1-2 writes the row) or by
  *      `logAdminAction(…)` in the same named handler.
@@ -244,9 +244,7 @@ function adminClientFiles(): string[] {
     }
   };
   rec(join(REPO, "src", "components", "admin"));
-  for (const f of readdirSync(join(REPO, "src", "pages"))) {
-    if (/^Admin.*\.tsx?$/.test(f) && !/\.test\./.test(f)) out.push(join(REPO, "src", "pages", f));
-  }
+  rec(join(REPO, "src", "pages", "admin"));
   return out.sort();
 }
 

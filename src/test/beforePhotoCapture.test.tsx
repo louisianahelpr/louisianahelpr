@@ -77,7 +77,7 @@ import type { ReactElement } from "react";
 // (Re-anchored 2026-09-19: the chip moved to the END of the actions array
 // when the owner pinned the row's two ends, so it no longer carries a
 // trailing comma.)
-// @mutate src/components/activity/appliedJobCard/steps/OnSiteStep.tsx | <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="on_site" />] | null]
+// @mutate src/pages/jobs/appliedJobCard/steps/OnSiteStep.tsx | <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="on_site" />] | null]
 // @mutate src/components/JobTracking.tsx | !hasRequiredProof({ require_photo_proof: requirePhotoProof ?? true }, proofBeforeUrls, proofAfterUrls); | false;
 // The third takes the BEFORE-photo half of the gate off Start Working — the
 // owner's 2026-09-19 rule, and the half that only became safe to enforce once
@@ -125,8 +125,8 @@ function makeSupabase() {
 }
 vi.mock("@/integrations/supabase/client", () => makeSupabase());
 
-import type { AppliedApp, Job } from "@/components/activity/activityConstants";
-import { ActiveJobSection } from "@/components/activity/appliedJobCard/ActiveJobSection";
+import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
+import { ActiveJobSection } from "@/pages/jobs/appliedJobCard/ActiveJobSection";
 import { requiredProof } from "@/lib/photoProofPolicy";
 import { BEFORE_PHOTO_GATE_REASON } from "@/lib/lifecycleErrors";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";

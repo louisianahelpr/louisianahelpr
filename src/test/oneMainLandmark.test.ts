@@ -21,7 +21,7 @@ import { blankComments } from "./helpers/blankNonCode";
  * opener, `role="main"` / `role: "main"` and `as="main"` counts as an owner.
  */
 
-// @mutate src/pages/Admin.tsx | <div data-admin-scroll | <main data-admin-scroll
+// @mutate src/pages/admin/Admin.tsx | <div data-admin-scroll | <main data-admin-scroll
 // @mutate src/App.tsx | <main\n            id="main-content" | <div\n            id="main-content"
 
 const SRC = join(__dirname, "..");

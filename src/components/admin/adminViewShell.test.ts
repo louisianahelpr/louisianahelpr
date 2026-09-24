@@ -29,7 +29,7 @@ const ROOT = resolve(__dirname, "../../..");
 
 /** The components /admin renders as views, read out of the router itself. */
 function adminViews(): string[] {
-  const src = readFileSync(resolve(ROOT, "src/pages/Admin.tsx"), "utf8");
+  const src = readFileSync(resolve(ROOT, "src/pages/admin/Admin.tsx"), "utf8");
   const i = src.indexOf("const renderContent");
   const block = src.slice(i, src.indexOf("\n  };", i));
   return [...new Set([...block.matchAll(/return <(Admin\w+)/g)].map((m) => m[1]))].sort();

@@ -326,7 +326,7 @@ marked test email; this is standing authorization, so don't stop to ask.
 
 **MANDATORY SETUP STEP — dismiss the onboarding tour, or you audit the tour
 instead of the app.** `OnboardingTour` (`src/components/OnboardingTour.tsx`,
-mounted by `src/pages/Dashboard.tsx`) opens on `/dashboard` — the screen every
+mounted by `src/pages/home/Dashboard.tsx`) opens on `/dashboard` — the screen every
 signed-in pass starts on — **1.5s after load, in every fresh browser context**:
 a new Playwright context, an incognito window, a simulator with cleared
 storage, a second origin used for a second persona. (That 1.5s also makes it
@@ -1212,7 +1212,7 @@ on the way to their first success.
   meets Apple's current anti-steering rules. A misclassified charge path is an
   App-Store-gating (release-blocking) finding.
 - **Admin console — drive EVERY `?view=`, always in scope, every pass.** `/admin`
-  has 27 sub-views (`src/pages/Admin.tsx` `View` type + `viewLabels`): home,
+  has 27 sub-views (`src/pages/admin/Admin.tsx` `View` type + `viewLabels`): home,
   analytics, people, jobs, settings, disputes, broadcasts, notifications,
   notiflogs, reports, support, referrals, subscriptions, fraud, audit, health,
   export, payouts, parishtax, tiers, idv, geography, marketing, credentials,

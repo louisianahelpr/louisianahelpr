@@ -44,7 +44,7 @@
 // stays 0 while max stays positive — which is precisely the reported state.
 // Note this spec carries its own vacuity guard ("if the tab fits, 'it scrolls'
 // is unprovable here"), so it cannot silently stop measuring.
-// @mutate src/pages/Profile.tsx | page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 | page-measure w-[calc(100%+1.5rem)] h-full px-3 -mx-3
+// @mutate src/pages/profile/Profile.tsx | page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 | page-measure w-[calc(100%+1.5rem)] h-full px-3 -mx-3
 import { test, expect, type Page } from "../prodTest";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";

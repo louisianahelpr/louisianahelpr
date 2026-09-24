@@ -7,7 +7,7 @@ import { HELPER_QUICK_TAGS, POSTER_QUICK_TAGS } from "@/components/reviewPanel/t
  *
  * Why this file exists: the app grew two public review cards with two
  * different treatments of the same three facts. `PublicReviewWall` rendered
- * the job CATEGORY as a proper rounded-full chip; `pages/userProfile/
+ * the job CATEGORY as a proper rounded-full chip; `pages/user/
  * ReviewsSection` — the one a visitor actually sees on `/user/:id` — printed
  * the same value as `For: {jobTitle}` in plain muted text, with the reviewer's
  * name crammed beside the stars. Owner, 2026-09-19, looking at `/user/:id`:

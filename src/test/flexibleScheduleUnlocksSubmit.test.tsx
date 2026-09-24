@@ -17,10 +17,10 @@ vi.mock("@/hooks/useMapKitJs", async (importOriginal) => ({
   useMapKitJs: () => "missing-token" as const,
 }));
 
-import { useJobDerived } from "@/pages/postjob/useJobDerived";
-import { FormStep } from "@/pages/postjob/FormStep";
-import { buildJobInsertPayload } from "@/pages/postjob/jobSubmitHelpers";
-import type { usePostJobForm } from "@/pages/postjob/usePostJobForm";
+import { useJobDerived } from "@/pages/post-job/useJobDerived";
+import { FormStep } from "@/pages/post-job/FormStep";
+import { buildJobInsertPayload } from "@/pages/post-job/jobSubmitHelpers";
+import type { usePostJobForm } from "@/pages/post-job/usePostJobForm";
 
 /**
  * "THEY ALSO NEED TIMES UNLESS THEY WERE CHECKED OFF AS FLEXIBLE" (owner,
@@ -57,7 +57,7 @@ import type { usePostJobForm } from "@/pages/postjob/usePostJobForm";
  */
 
 const REPO = process.cwd();
-const FORM_STEP_SRC = readFileSync(join(REPO, "src/pages/postjob/FormStep.tsx"), "utf8");
+const FORM_STEP_SRC = readFileSync(join(REPO, "src/pages/post-job/FormStep.tsx"), "utf8");
 
 /**
  * Every contextual label FormStep can put on the submit button, read out of its
@@ -273,6 +273,6 @@ describe("Flexible Schedule is a SUBSTITUTE for a start time, end to end", () =>
 });
 
 // The three edits that make Flexible a substitute, each proven load-bearing.
-// @mutate src/pages/postjob/useJobDerived.ts | (startTime \|\| isFlexibleSchedule) | startTime
-// @mutate src/pages/postjob/FormStep.tsx | !form.startTime && !form.isFlexibleSchedule | !form.startTime
+// @mutate src/pages/post-job/useJobDerived.ts | (startTime \|\| isFlexibleSchedule) | startTime
+// @mutate src/pages/post-job/FormStep.tsx | !form.startTime && !form.isFlexibleSchedule | !form.startTime
 // @mutate src/components/postjob/LogisticsSection.tsx | {!isFlexibleSchedule && <span | {true && <span

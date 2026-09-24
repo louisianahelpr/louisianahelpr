@@ -31,7 +31,7 @@ import { SEED_JOBS, SEED_MESSAGES, CUSTOMER_ID, HELPER_ID } from "./seedData";
  * entirely rather than closing the thread.
  *
  * The contract is now: `?chat=1` is present ⟺ a thread is really open, both
- * directions, enforced in src/pages/Messages.tsx. Each case below is one of
+ * directions, enforced in src/pages/messages/Messages.tsx. Each case below is one of
  * the paths that broke it.
  */
 
@@ -107,7 +107,7 @@ test.describe("Messages — the bottom nav can never strand the user", () => {
     // the assertion above reads — but React Router commits that location in a
     // transition, a render or more later. Pop the history entry inside that
     // window and the app never observes the flag going true, so the falling-edge
-    // effect in src/pages/Messages.tsx (`wasFlagged && !threadFlagInUrl`) never
+    // effect in src/pages/messages/Messages.tsx (`wasFlagged && !threadFlagInUrl`) never
     // fires, `activeConvo` is never cleared, and the thread stays on screen for
     // good. That is the flake: not slow, STUCK — hence 14 polls across the full
     // 5s and no recovery. The nav going hidden is the app's own acknowledgement
@@ -413,4 +413,4 @@ test.describe("Messages thread — system events read as ONE kind of thing", () 
 // one, the falling-edge close, every fit/a11y/tap-target assertion. Only the
 // "stale ?chat=1 heals itself" case goes red — which is the point. A spec that
 // merely opened and closed a thread would never see this.
-// @mutate src/pages/Messages.tsx | if (!activeConvo && flagged) { | if (false) {
+// @mutate src/pages/messages/Messages.tsx | if (!activeConvo && flagged) { | if (false) {

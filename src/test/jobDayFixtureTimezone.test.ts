@@ -34,7 +34,7 @@
  * first, because the fixes and this header quote the broken spelling in prose.
  * The fix is `jobLocalDateISO` (src/test/helpers/jobLocalDate.ts).
  *
- * @mutate src/pages/activity/activityBadgeListAgreement.test.tsx | date_needed: jobLocalDateISO(6), | date_needed: new Date(Date.now() + 6 * 86_400_000).toISOString().slice(0, 10),
+ * @mutate src/components/job-card/activityBadgeListAgreement.test.tsx | date_needed: jobLocalDateISO(6), | date_needed: new Date(Date.now() + 6 * 86_400_000).toISOString().slice(0, 10),
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";

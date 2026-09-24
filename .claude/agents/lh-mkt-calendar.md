@@ -142,7 +142,7 @@ caption downstream inherits the error.
 ## Use the demand data that actually exists
 
 `analytics_events` carries `job_posted` and `first_job_posted`, and **both write
-`category` and `parish` into their properties** (`src/pages/postjob/
+`category` and `parish` into their properties** (`src/pages/post-job/
 useJobSubmit.ts`). That is the only parish-aware signal in the system, and it
 says which categories real people actually post, where. Ask the analyst for it
 rather than planning off intuition.

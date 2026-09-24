@@ -28,7 +28,7 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
-import { resolveApplyErrorCopy } from "@/pages/dashboard/applyErrorCopy";
+import { resolveApplyErrorCopy } from "@/pages/home/applyErrorCopy";
 
 const MIGRATIONS = resolve(__dirname, "..", "..", "supabase", "migrations");
 
@@ -134,4 +134,4 @@ describe("every apply-path refusal has copy", () => {
 // applied to the live database, or a code raised by a function the trigger
 // CALLS rather than raising itself, is outside its inventory —
 // rpcErrorCopyCoverage.test.ts follows that transitive chain for RPCs.
-// @mutate src/pages/dashboard/applyErrorCopy.ts | job_expired: "This posting has expired.", |
+// @mutate src/pages/home/applyErrorCopy.ts | job_expired: "This posting has expired.", |

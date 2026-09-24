@@ -110,7 +110,7 @@ Plus these **string-literal events fired outside the map** (verified by grepping
 `permission_skipped_guest` (`src/lib/nativePush.ts`),
 `application_withdraw_reason` (`src/lib/applicationWithdrawAnalytics.ts`),
 `post_job_entry_choice` and `sample_job_template_selected`
-(`src/pages/postjob/*`).
+(`src/pages/post-job/*`).
 
 **Verify this list before you use it.** Grep `AhaEvent = {` in
 `src/lib/analytics.ts` and `track("` across `src/`. The map moves, and a table
@@ -121,7 +121,7 @@ world, then diff it against this table.**
 
 **The one genuinely marketing-shaped signal:** `job_posted` and
 `first_job_posted` both write **`category` and `parish`** into `properties`
-(`src/pages/postjob/useJobSubmit.ts`), alongside `budget_cents` and `is_urgent`.
+(`src/pages/post-job/useJobSubmit.ts`), alongside `budget_cents` and `is_urgent`.
 That is real demand data sliced exactly the way the calendar plans. Nothing else
 in the map is parish-aware. Hand it to `lh-mkt-calendar` as a *ranking* of
 categories and parishes against each other.

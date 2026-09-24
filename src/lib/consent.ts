@@ -8,7 +8,7 @@
 // When a policy is materially updated, bump ALL of:
 //   1. supabase/functions/_shared/legalVersions.ts (edge)
 //   2. this file (client)
-//   3. src/pages/legal/legalSections.ts LAST_UPDATED[key] (rendered date)
+//   3. src/pages/info/legal/legalSections.ts LAST_UPDATED[key] (rendered date)
 // The parity test at legalVersions.parity.test.ts guards drift.
 
 export const LATEST_TERMS_VERSION = "Sep 2026";

@@ -4,14 +4,14 @@ import path from "node:path";
 
 // Legal document versions live in TWO places that Deno + Vite can't share
 // at build time:
-//   1. src/pages/legal/legalSections.ts       (LAST_UPDATED map — frontend)
+//   1. src/pages/info/legal/legalSections.ts       (LAST_UPDATED map — frontend)
 //   2. supabase/functions/_shared/legalVersions.ts  (Deno — edge functions)
 //
 // This test loads both files as text and asserts the version strings agree.
 // Bumping a policy is a deliberate two-place edit; drift here is a bug.
 
 const REPO_ROOT = path.resolve(__dirname, "../..");
-const FRONTEND_PATH = path.join(REPO_ROOT, "src/pages/legal/legalSections.ts");
+const FRONTEND_PATH = path.join(REPO_ROOT, "src/pages/info/legal/legalSections.ts");
 const EDGE_PATH = path.join(REPO_ROOT, "supabase/functions/_shared/legalVersions.ts");
 
 function extract(source: string, pattern: RegExp): string {

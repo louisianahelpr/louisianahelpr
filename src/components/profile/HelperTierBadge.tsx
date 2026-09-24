@@ -46,7 +46,7 @@ interface TierMeta {
 // Tier 3 reads "Top Rated", NOT "Elite": "Elite" names the paid
 // membership tier, and both chips can land side by side on one profile.
 // The internal key/threshold name stays `elite`.
-// Exported so the public profile (src/pages/userProfile/RecognitionRow.tsx)
+// Exported so the public profile (src/pages/user/RecognitionRow.tsx)
 // can draw this rung at the page's one shared badge size with the SAME label,
 // description and colour — one source, no second table.
 export const TIER_META: Record<Exclude<HelperTier, 0>, TierMeta> = {

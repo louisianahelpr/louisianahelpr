@@ -6,15 +6,15 @@
  *
  * Source-read: Signup's funnel needs the whole auth stack to render.
  *
- * @mutate src/pages/Signup.tsx | result = await withTimeout(completeProfile(userId), "Finishing your account"); | result = await completeProfile(userId);
- * @mutate src/pages/Signup.tsx | Your account is created: confirm your email, then sign in to finish.`,\n        );\n        navigate("/signup-pending", { state: { email } }); | Your account is created: confirm your email, then sign in to finish.`,\n        );\n        throw completionErr;
+ * @mutate src/pages/auth/Signup.tsx | result = await withTimeout(completeProfile(userId), "Finishing your account"); | result = await completeProfile(userId);
+ * @mutate src/pages/auth/Signup.tsx | Your account is created: confirm your email, then sign in to finish.`,\n        );\n        navigate("/signup-pending", { state: { email } }); | Your account is created: confirm your email, then sign in to finish.`,\n        );\n        throw completionErr;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 
-const src = blankComments(readFileSync(resolve(__dirname, "../pages/Signup.tsx"), "utf8"));
+const src = blankComments(readFileSync(resolve(__dirname, "../pages/auth/Signup.tsx"), "utf8"));
 
 describe("signup completion failure is not a dead end (OA-001)", () => {
   it("the complete-signup call is time-bounded", () => {

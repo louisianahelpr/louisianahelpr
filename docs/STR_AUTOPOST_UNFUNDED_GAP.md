@@ -58,7 +58,7 @@ if (job.stripe_session_id && job.payment_status && job.payment_status !== "unpai
 
 An unfunded job **passes** that guard. So
 `invoke("create-payment", { action: "escrow", jobId })` — the identical call the
-post-a-job flow already makes at `src/pages/postjob/useJobSubmit.ts:556` — would
+post-a-job flow already makes at `src/pages/post-job/useJobSubmit.ts:556` — would
 fund an auto-created STR job today, unchanged.
 
 What does not exist is any UI that calls it for a job that already exists. Every
@@ -112,7 +112,7 @@ that keeps the feature as pitched.
 - `src/hooks/useFundExistingJob.ts` — invokes `create-payment` with
   `{ action: 'escrow', jobId }`, the same call `useJobSubmit` makes, and opens
   the returned Checkout URL through `openExternalUrl`.
-- `src/components/activity/postedJobCard/UnfundedJobNotice.tsx` — "Not posted
+- `src/pages/posts/postedJobCard/UnfundedJobNotice.tsx` — "Not posted
   yet · no Helpr can see it until it's funded" with a **Fund & publish** button,
   shown on the poster's own card above the applicants row.
 - `useDashboardData` now selects `is_auto_created`, which the posted feed had

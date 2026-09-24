@@ -59,13 +59,13 @@ import { join, resolve } from "node:path";
 //      primary on prod. The guard must go red on the disputed rows at 320.
 //   2. 12px is the width that shipped; dropping the tap floor to it makes the
 //      allocator hand out slivers again.
-// @mutate src/components/activity/jobStepRow.tsx | if (chips > capacity) { | if (false) {
-// @mutate src/components/activity/jobStepRow.tsx | export const ROW_CONTROL_MIN_PX = 44; | export const ROW_CONTROL_MIN_PX = 12;
+// @mutate src/components/job-card/jobStepRow.tsx | if (chips > capacity) { | if (false) {
+// @mutate src/components/job-card/jobStepRow.tsx | export const ROW_CONTROL_MIN_PX = 44; | export const ROW_CONTROL_MIN_PX = 12;
 //   3. Sizing the tight rung's chips to the bare tap floor instead of to their
 //      own labels IS the shipped icon-only row — 44px chips whose labels were
 //      then clipped away. The guard must go red on the disputed rows at 414
 //      and below.
-// @mutate src/components/activity/jobStepRow.tsx | const chipPx = chipControlFloorPx(chipNeed); | const chipPx = ROW_CONTROL_MIN_PX;
+// @mutate src/components/job-card/jobStepRow.tsx | const chipPx = chipControlFloorPx(chipNeed); | const chipPx = ROW_CONTROL_MIN_PX;
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -127,7 +127,7 @@ import {
   ROW_CONTROL_MIN_PX,
   JOB_STEP_ROW_GAP_PX,
   LABELLED_CHIP_MIN_PX,
-} from "@/components/activity/jobStepRow";
+} from "@/components/job-card/jobStepRow";
 
 const ROOT = resolve(__dirname, "../..");
 

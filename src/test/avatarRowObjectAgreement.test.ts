@@ -500,7 +500,7 @@ describe("profiles.avatar_url ⇄ avatars bucket agreement (class check)", () =>
 
   it("inventory is live: finds the app, edge, seed and journey writers", () => {
     const files = new Set(writes.map((w) => w.src.file));
-    for (const f of ["src/pages/Profile.tsx", "src/pages/CompleteProfile.tsx", "supabase/functions/complete-signup/index.ts", "scripts/audit/prod-seed.mjs"]) {
+    for (const f of ["src/pages/profile/Profile.tsx", "src/pages/auth/CompleteProfile.tsx", "supabase/functions/complete-signup/index.ts", "scripts/audit/prod-seed.mjs"]) {
       expect(files, `the writer inventory lost ${f} — the matcher is broken`).toContain(f);
     }
   });
@@ -543,7 +543,7 @@ describe("profiles.avatar_url ⇄ avatars bucket agreement (class check)", () =>
   });
 
   it("A3. uploadProfileFiles gives its save callback only NULL or the row-writer's URL (what F1 trusts)", () => {
-    const src = SOURCES.find((s) => s.file === "src/pages/completeProfile/uploadProfileFiles.ts");
+    const src = SOURCES.find((s) => s.file === "src/pages/auth/completeProfile/uploadProfileFiles.ts");
     expect(src, "uploadProfileFiles.ts is missing").toBeTruthy();
     let fn: Fn | undefined;
     visitAll(src!, (n) => {

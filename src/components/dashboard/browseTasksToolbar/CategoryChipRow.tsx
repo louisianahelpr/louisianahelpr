@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { categoryLabels, chipStyles } from "@/components/dashboard/JobFilters";
-import { categoryColors } from "@/components/activity/activityConstants";
+import { categoryColors } from "@/components/job-card/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { hapticLight } from "@/lib/haptics";
 

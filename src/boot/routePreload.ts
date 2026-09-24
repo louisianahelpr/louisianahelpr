@@ -54,44 +54,44 @@ const protectedRoute = () => import("@/components/ProtectedRoute");
 /** Path -> the chunks that route cannot paint without. Exported for tests. */
 export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unknown>>; signedIn: Array<() => Promise<unknown>> }> = {
   "/": {
-    guest: [() => import("@/pages/Index")],
-    signedIn: [() => import("@/pages/Dashboard"), protectedRoute],
+    guest: [() => import("@/pages/info/Index")],
+    signedIn: [() => import("@/pages/home/Dashboard"), protectedRoute],
   },
   "/browse": {
-    guest: [() => import("@/pages/DashboardGuest")],
-    signedIn: [() => import("@/pages/Dashboard"), protectedRoute],
+    guest: [() => import("@/pages/home/DashboardGuest")],
+    signedIn: [() => import("@/pages/home/Dashboard"), protectedRoute],
   },
   "/login": {
-    guest: [() => import("@/pages/Login")],
-    signedIn: [() => import("@/pages/Login")],
+    guest: [() => import("@/pages/auth/Login")],
+    signedIn: [() => import("@/pages/auth/Login")],
   },
   "/signup": {
-    guest: [() => import("@/pages/Signup")],
-    signedIn: [() => import("@/pages/Signup")],
+    guest: [() => import("@/pages/auth/Signup")],
+    signedIn: [() => import("@/pages/auth/Signup")],
   },
   "/dashboard": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/pages/Dashboard"), protectedRoute],
+    signedIn: [() => import("@/pages/home/Dashboard"), protectedRoute],
   },
   "/messages": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/pages/Messages"), protectedRoute],
+    signedIn: [() => import("@/pages/messages/Messages"), protectedRoute],
   },
   "/my-jobs": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/pages/Activity"), protectedRoute],
+    signedIn: [() => import("@/pages/jobs/JobsPage"), protectedRoute],
   },
   "/my-posts": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/pages/Activity"), protectedRoute],
+    signedIn: [() => import("@/pages/posts/PostsPage"), protectedRoute],
   },
   "/post-job": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/pages/PostJob"), protectedRoute],
+    signedIn: [() => import("@/pages/post-job/PostJob"), protectedRoute],
   },
   "/profile": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/pages/Profile"), protectedRoute],
+    signedIn: [() => import("@/pages/profile/Profile"), protectedRoute],
   },
 };
 

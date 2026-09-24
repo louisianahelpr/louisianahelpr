@@ -31,8 +31,8 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 
 // Shown able to fail on the original defect (the page gaps this fix removed)
 // and on the scale itself:
-// @mutate src/pages/GiftCard.tsx | <aside className="space-y-section"> | <aside className="space-y-6">
-// @mutate src/pages/WorkRecord.tsx | <div className="space-y-section"> | <div className="space-y-5">
+// @mutate src/pages/profile/GiftCard.tsx | <aside className="space-y-section"> | <aside className="space-y-6">
+// @mutate src/pages/profile/WorkRecord.tsx | <div className="space-y-section"> | <div className="space-y-5">
 // @mutate src/components/profile/ProfileTabBody.tsx | export const PROFILE_TAB_BODY_CLASS = "space-y-section"; | export const PROFILE_TAB_BODY_CLASS = "space-y-4";
 // @mutate src/index.css | --section-gap: 0.75rem; | --section-gap: 1.25rem;
 // @mutate tailwind.config.ts | section: "var(--section-gap)", | section: "1.25rem",
@@ -80,25 +80,26 @@ function sectionSizedIn(rel: string): string[] {
 const ALLOWED: Record<string, { n: number; why: string }> = {
   // Horizontal gaps inside a row, not a vertical rhythm.
   "src/components/NotificationPreferences.tsx": { n: 6, why: "gap between the per-channel toggle columns of a row (horizontal)" },
-  "src/pages/HelpCenter.tsx": { n: 1, why: "gap between an FAQ question and its chevron (horizontal)" },
+  "src/pages/info/HelpCenter.tsx": { n: 1, why: "gap between an FAQ question and its chevron (horizontal)" },
   "src/components/profile/ScheduleTab.tsx": { n: 1, why: "min-[1024px]:gap-6 — the desktop two-column gap between calendar and list, not the phone stack" },
   // AuthShell card forms: one form rhythm shared by every auth card, inside the card.
-  "src/pages/Login.tsx": { n: 8, why: "AuthShell card form rhythm + the lg two-panel split" },
-  "src/pages/signup/SignupStep1.tsx": { n: 7, why: "AuthShell card form rhythm + the lg two-panel split" },
-  "src/pages/signup/SignupStep2.tsx": { n: 1, why: "AuthShell card form rhythm" },
-  "src/pages/Signup.tsx": { n: 1, why: "AuthShell card form rhythm" },
-  "src/pages/ForgotPassword.tsx": { n: 1, why: "AuthShell card form rhythm" },
-  "src/pages/ResetPassword.tsx": { n: 1, why: "AuthShell card form rhythm" },
-  "src/pages/SignupPending.tsx": { n: 1, why: "AuthShell card rhythm" },
-  "src/pages/AccountBanned.tsx": { n: 1, why: "AuthShell card rhythm" },
-  "src/pages/CompleteProfile.tsx": { n: 1, why: "the profile-completion card's own field rhythm" },
+  "src/pages/auth/Login.tsx": { n: 8, why: "AuthShell card form rhythm + the lg two-panel split" },
+  "src/pages/auth/signup/SignupStep1.tsx": { n: 7, why: "AuthShell card form rhythm + the lg two-panel split" },
+  "src/pages/auth/signup/SignupStep2.tsx": { n: 1, why: "AuthShell card form rhythm" },
+  "src/pages/auth/Signup.tsx": { n: 1, why: "AuthShell card form rhythm" },
+  "src/pages/auth/ForgotPassword.tsx": { n: 1, why: "AuthShell card form rhythm" },
+  "src/pages/auth/ResetPassword.tsx": { n: 1, why: "AuthShell card form rhythm" },
+  "src/pages/auth/SignupPending.tsx": { n: 1, why: "AuthShell card rhythm" },
+  "src/pages/auth/AccountBanned.tsx": { n: 1, why: "AuthShell card rhythm" },
+  "src/pages/auth/CompleteProfile.tsx": { n: 1, why: "the profile-completion card's own field rhythm" },
   // Centred compositions with no title row (NOT_A_TITLE_ROW in shell-spacing.spec).
-  "src/pages/NotFound.tsx": { n: 1, why: "centred 404 composition" },
-  "src/pages/PaymentSuccess.tsx": { n: 1, why: "centred payment-return composition" },
+  "src/pages/info/NotFound.tsx": { n: 1, why: "centred 404 composition" },
+  "src/pages/post-job/PaymentSuccess.tsx": { n: 1, why: "centred payment-return composition" },
+  "src/pages/posts/EditJobDialog.tsx": { n: 1, why: "space-y-5 between a dialog's own form fields, not a page section" },
   // Field rhythm INSIDE one padded card, not gaps between a page's sections.
-  "src/pages/petProfiles/PetDetail.tsx": { n: 1, why: "inside the pet detail card" },
-  "src/pages/petProfiles/PetForm.tsx": { n: 2, why: "inside the pet form card" },
-  "src/pages/Support.tsx": { n: 1, why: "inside the contact form card" },
+  "src/pages/profile/petProfiles/PetDetail.tsx": { n: 1, why: "inside the pet detail card" },
+  "src/pages/profile/petProfiles/PetForm.tsx": { n: 2, why: "inside the pet form card" },
+  "src/pages/info/Support.tsx": { n: 1, why: "inside the contact form card" },
 };
 
 describe("one in-page section scale (Q191)", () => {

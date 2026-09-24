@@ -13,7 +13,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
  * error state:
  *
  *   notifications  → src/components/NotificationPanel.failedLoad.test.tsx
- *   My Posts/Jobs  → src/pages/activity/ActivityEmptyState.loadError.test.tsx
+ *   My Posts/Jobs  → src/components/job-card/ActivityEmptyState.loadError.test.tsx
  *   messages list  → below (hook: rejected fetch → loadError; view: ErrorState)
  *   browse feed    → below (view: loadError + no jobs → ErrorState)
  *

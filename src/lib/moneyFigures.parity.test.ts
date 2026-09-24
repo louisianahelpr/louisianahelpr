@@ -37,14 +37,14 @@ describe("poster service fee (%) — tier-derived, not a flat rate", () => {
   // platform_settings.customer_fee_percent (DB, admin-editable via
   // AdminSettings.tsx) is now only a FALLBACK, used when a poster's profile /
   // tier can't be read:
-  //   src/pages/postjob/useJobFormEffects.ts     → `row.customer_fee_percent ?? 10` (fallback)
+  //   src/pages/post-job/useJobFormEffects.ts     → `row.customer_fee_percent ?? 10` (fallback)
   //   supabase/functions/create-payment/index.ts → global percent only when posterProfile is null
   //
   // User copy that previously restated a flat "10%" must now describe the tiered
   // model (fixed in #107):
-  //   src/pages/legal/TermsSection.tsx
+  //   src/pages/info/legal/TermsSection.tsx
   //   src/components/profile/LegalTab.tsx
-  //   src/pages/helpCenter/helpCenterContent.ts
+  //   src/pages/info/helpCenter/helpCenterContent.ts
 
   it("resolves the poster fee from their tier via the shared ladder", () => {
     expect(posterFeePercentForTier("free")).toBe(12);
@@ -83,7 +83,7 @@ describe("urgent-job bonus — floor & presets", () => {
   //   src/components/postjob/BudgetSection.tsx:103  → warn when `urgentFeeNum < 5`
   //   src/components/postjob/BudgetSection.tsx:412  → presets ["5","10","15","20"]
   //   src/components/postjob/BudgetSection.tsx:447  → <input min="5">
-  //   src/pages/postjob/usePostJobForm.ts:84        → default urgentFee "5"
+  //   src/pages/post-job/usePostJobForm.ts:84        → default urgentFee "5"
   //
   // These now import from the single source `moneyLimits.ts` — a change to
   // the floor/presets there flows through every consumer (BudgetSection,
@@ -116,8 +116,8 @@ describe("Form 1099-K threshold — one number for the whole product", () => {
   // said $20,000 / 200 transactions. All four now import from moneyLimits:
   //   src/components/profile/EarningsTab.tsx              (banner gate + tax note)
   //   src/components/profile/earningsTab/ThresholdBanner.tsx (headline + body)
-  //   src/pages/legal/TermsSection.tsx
-  //   src/pages/legal/CommunitySection.tsx
+  //   src/pages/info/legal/TermsSection.tsx
+  //   src/pages/info/legal/CommunitySection.tsx
 
   it("is the restored federal $20,000 / 200-transaction pair", () => {
     expect(FORM_1099K_GROSS_THRESHOLD_DOLLARS).toBe(20000);

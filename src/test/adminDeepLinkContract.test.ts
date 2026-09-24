@@ -7,7 +7,7 @@ import { join, resolve } from "node:path";
  *
  * The bug this exists for: `stalled-completion-reminder` and
  * `arrival-confirm-reminder` both told every admin to open `/admin?job=<id>`.
- * `src/pages/Admin.tsx` routes on `?view=` and nothing else, so `?job=` was
+ * `src/pages/admin/Admin.tsx` routes on `?view=` and nothing else, so `?job=` was
  * read by nobody, the console fell through to `home`, and the alert about a
  * specific stuck job opened the dashboard. Twelve `/admin?tab=payouts` /
  * `?tab=disputes` Slack links from the money functions were dead the same way
@@ -24,7 +24,7 @@ import { join, resolve } from "node:path";
  *              code comment is not mistaken for a link (and the scanner asserts
  *              it ended in code state, so a desync fails loudly instead of
  *              quietly finding nothing).
- *   HANDLED  — `src/pages/Admin.tsx`: the real `type View` union, the real
+ *   HANDLED  — `src/pages/admin/Admin.tsx`: the real `type View` union, the real
  *              `VIEW_LABELS` keys and the params `Admin.tsx` itself reads,
  *              plus every param any `src/components/admin/**` component calls
  *              `searchParams.get()` for.
@@ -69,7 +69,7 @@ import { join, resolve } from "node:path";
  */
 
 const REPO = resolve(__dirname, "..", "..");
-const ADMIN_PAGE = join(REPO, "src/pages/Admin.tsx");
+const ADMIN_PAGE = join(REPO, "src/pages/admin/Admin.tsx");
 const EDGE_ROOT = join(REPO, "supabase/functions");
 
 /* ------------------------------------------------------------------ */
@@ -296,7 +296,7 @@ function paramsReadBy(src: string): Set<string> {
 interface AdminConsole {
   views: Set<string>;
   labelled: Set<string>;
-  /** Params `src/pages/Admin.tsx` itself routes on. */
+  /** Params `src/pages/admin/Admin.tsx` itself routes on. */
   topLevelParams: Set<string>;
   /** Every param ANY admin-console component reads, derived by walking them. */
   consoleParams: Set<string>;
@@ -309,7 +309,7 @@ function parseAdminConsole(): AdminConsole {
 
   // The real `type View` union.
   const unionMatch = src.match(/type\s+View\s*=\s*([^;]+);/);
-  if (!unionMatch) throw new Error("could not find `type View` in src/pages/Admin.tsx");
+  if (!unionMatch) throw new Error("could not find `type View` in src/pages/admin/Admin.tsx");
   const views = new Set(
     [...unionMatch[1].matchAll(/["']([A-Za-z0-9_-]+)["']/g)].map((m) => m[1]),
   );
@@ -317,7 +317,7 @@ function parseAdminConsole(): AdminConsole {
   // The real VIEW_LABELS keys — Admin.tsx's own "is this a real view?" oracle,
   // parsed separately from the union so a drift between them fails too.
   const labelsMatch = src.match(/VIEW_LABELS\s*:\s*Record<View,\s*string>\s*=\s*\{([\s\S]*?)\n\s*\};/);
-  if (!labelsMatch) throw new Error("could not find VIEW_LABELS in src/pages/Admin.tsx");
+  if (!labelsMatch) throw new Error("could not find VIEW_LABELS in src/pages/admin/Admin.tsx");
   const labelled = new Set(
     [...labelsMatch[1].matchAll(/(?:^|[,{]\s*)\n?\s*([A-Za-z0-9_]+)\s*:/g)].map((m) => m[1]),
   );
@@ -330,7 +330,7 @@ function parseAdminConsole(): AdminConsole {
   // and every link still carrying it goes red.
   const consoleParams = new Set(topLevelParams);
   const paramSource = new Map<string, string>();
-  for (const p of topLevelParams) paramSource.set(p, "src/pages/Admin.tsx");
+  for (const p of topLevelParams) paramSource.set(p, "src/pages/admin/Admin.tsx");
   for (const file of walk(join(REPO, "src/components/admin"))) {
     if (/\.test\.tsx?$/.test(file)) continue;
     for (const p of paramsReadBy(readFileSync(file, "utf8"))) {
@@ -398,7 +398,7 @@ describe("admin deep links emitted by edge functions", () => {
   const console_ = parseAdminConsole();
   const { links, scanned } = collectEmittedAdminLinks();
 
-  it("parsed a real admin console out of src/pages/Admin.tsx", () => {
+  it("parsed a real admin console out of src/pages/admin/Admin.tsx", () => {
     // Anti-vacuity: if either parser silently returns nothing, the contract
     // below passes without checking anything. Pin the shape of the world.
     expect(console_.views.size).toBeGreaterThanOrEqual(20);

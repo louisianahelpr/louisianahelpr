@@ -75,7 +75,7 @@ import { ZONE, fillJobDetails, fillLogistics, fillBudget, slotAhead } from "./po
  * a card. A type quietly dropped from that Set would refuse a large share of
  * what people attach, with nothing in CI to say so.
  */
-// @mutate src/pages/postjob/useJobMediaUpload.ts | new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]) | new Set(["image/jpeg", "image/webp", "image/gif"])
+// @mutate src/pages/post-job/useJobMediaUpload.ts | new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]) | new Set(["image/jpeg", "image/webp", "image/gif"])
 
 const rotation = rotationFor(1);
 const RUN = `${Date.now().toString(36).slice(-6)}`;
@@ -137,7 +137,7 @@ const SLOT = slotAhead(100);
 /**
  * Is this run's job happening TODAY in the job's own zone?
  *
- * The same question `jobIsLive` (src/pages/activity/activityFilters.ts) asks,
+ * The same question `jobIsLive` (src/components/job-card/activityFilters.ts) asks,
  * computed from this spec's own slot and the clock rather than read out of the
  * app — so the tab a job is expected on moves with the calendar instead of
  * being a literal that goes stale at midnight. Called, not captured: a run

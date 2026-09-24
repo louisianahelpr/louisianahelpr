@@ -13,7 +13,7 @@ import {
 import { shareNative } from "@/lib/nativeShare";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { report } from "@/lib/errorLogger";
-import { JOB_ACTION_CHIP_CLASS, JOB_ROW_LABEL_CLASS } from "@/components/activity/JobActionRow";
+import { JOB_ACTION_CHIP_CLASS, JOB_ROW_LABEL_CLASS } from "@/components/job-card/JobActionRow";
 
 /**
  * The SOS "share my location" control and its confirmation sheet.

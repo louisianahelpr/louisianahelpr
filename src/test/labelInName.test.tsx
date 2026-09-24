@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { render, screen, cleanup } from "@testing-library/react";
 import { Wrench } from "lucide-react";
-import { JobActionChip } from "@/components/activity/JobActionRow";
+import { JobActionChip } from "@/components/job-card/JobActionRow";
 
 /**
  * `aria-label` MUST NOT REPLACE A VISIBLE LABEL — WCAG 2.5.3 Label in Name.
@@ -60,7 +60,7 @@ describe("a component taking BOTH a visible label and an ariaLabel", () => {
         `"Hire Again". A voice-control user can only say words that are IN the accessible ` +
         `name (WCAG 2.5.3), and the only words they can SEE are the visible ones. ` +
         `Compose — do not substitute. See composeAccessibleName in ` +
-        `src/components/activity/JobActionRow.tsx.`,
+        `src/components/job-card/JobActionRow.tsx.`,
     ).toBe(true);
     // …and the context must survive too: dropping it would trade one user group
     // for the other.
@@ -142,7 +142,7 @@ describe("no element's aria-label overwrites its own visible text", () => {
           `REPLACES the words on screen (WCAG 2.5.3): a voice-control user can only say ` +
           `what is in the name, and the only words they can see are the visible ones. ` +
           `Compose them — copy composeAccessibleName from ` +
-          `src/components/activity/JobActionRow.tsx — or, if ariaLabel names a GROUP rather ` +
+          `src/components/job-card/JobActionRow.tsx — or, if ariaLabel names a GROUP rather ` +
           `than the labelled control, add the file to GROUP_LABEL with that reason.`,
       );
     }
@@ -216,7 +216,7 @@ describe("no element's aria-label overwrites its own visible text", () => {
   it("the composing helper is still the shared pattern, not a one-off", () => {
     // If composeAccessibleName is deleted or inlined, every JobActionChip call
     // site silently reverts to substitution — and there are dozens.
-    const src = readFileSync(resolve(ROOT, "src/components/activity/JobActionRow.tsx"), "utf8");
+    const src = readFileSync(resolve(ROOT, "src/components/job-card/JobActionRow.tsx"), "utf8");
     expect(
       src,
       "composeAccessibleName is gone from JobActionRow.tsx — every chip with an ariaLabel " +
@@ -236,4 +236,4 @@ describe("no element's aria-label overwrites its own visible text", () => {
 // "Hire this Helpr again": a voice-control user can say none of the words they
 // can see (WCAG 2.5.3). Killed by the RUNTIME accessible-name assertion at the
 // top of this file, not by any class-name or source pin.
-// @mutate src/components/activity/JobActionRow.tsx | data-job-action-chip=""\n      aria-label={composeAccessibleName(label, ariaLabel)} | data-job-action-chip=""\n      aria-label={ariaLabel}
+// @mutate src/components/job-card/JobActionRow.tsx | data-job-action-chip=""\n      aria-label={composeAccessibleName(label, ariaLabel)} | data-job-action-chip=""\n      aria-label={ariaLabel}

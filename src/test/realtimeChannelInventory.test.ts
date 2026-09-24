@@ -31,7 +31,7 @@
  *
  * @mutate src/lib/userRealtimeBus.ts | table: "messages", filter: `receiver_id=eq.${userId}` } | table: "messages" }
  * @mutate src/pages/messages/useMessagesRealtime.ts | const sub = subscribeWithRecovery( | void supabase.channel("dup").on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${userId}` }, () => {}); const sub = subscribeWithRecovery(
- * @mutate src/pages/Admin.tsx | table: 'jobs', filter: 'is_seed=eq.false' | table: 'jobs'
+ * @mutate src/pages/admin/Admin.tsx | table: 'jobs', filter: 'is_seed=eq.false' | table: 'jobs'
  * @mutate src/hooks/useActivityData.ts | .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `helper_id=eq.${userId}` }, invalidate) | .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `helper_id=eq.${userId}` }, invalidate).on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, invalidate)
  */
 import { describe, it, expect } from "vitest";
@@ -143,8 +143,8 @@ const CHANNEL_INVENTORY = [
   "lib/userRealtimeBus.ts | user-realtime-${userId} | jobs * | customer_id=eq.${userId}",
   "lib/userRealtimeBus.ts | user-realtime-${userId} | messages * | receiver_id=eq.${userId}",
   "lib/userRealtimeBus.ts | user-realtime-${userId} | notifications INSERT | user_id=eq.${userId}",
-  "pages/Admin.tsx | admin-realtime | jobs * | is_seed=eq.false",
-  "pages/Admin.tsx | admin-realtime | reports * | (none)",
+  "pages/admin/Admin.tsx | admin-realtime | jobs * | is_seed=eq.false",
+  "pages/admin/Admin.tsx | admin-realtime | reports * | (none)",
   "pages/messages/useMessagesRealtime.ts | messages-realtime-${userId} | messages DELETE | (none)",
   "pages/messages/useMessagesRealtime.ts | messages-realtime-${userId} | messages INSERT | sender_id=eq.${userId}",
   "pages/messages/useMessagesRealtime.ts | messages-realtime-${userId} | messages UPDATE | sender_id=eq.${userId}",
@@ -159,7 +159,7 @@ const CHANNEL_INVENTORY = [
  * admin session. `reports` has no is_seed column and is low volume.
  */
 // @two-way src/test/realtimeChannelInventory.test.ts:the admin exemption still applies to something
-const ADMIN_EXEMPT = new Set(["pages/Admin.tsx | admin-realtime | jobs * | is_seed=eq.false", "pages/Admin.tsx | admin-realtime | reports * | (none)"]);
+const ADMIN_EXEMPT = new Set(["pages/admin/Admin.tsx | admin-realtime | jobs * | is_seed=eq.false", "pages/admin/Admin.tsx | admin-realtime | reports * | (none)"]);
 
 /**
  * Overlapping subscriptions that are NOT yet shared, each with why. EMPTY since

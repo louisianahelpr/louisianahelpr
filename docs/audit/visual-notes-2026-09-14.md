@@ -111,7 +111,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - What the owner sees: "id verified does not need to show here. only in their profile"
 - Where it lives: src/components/dashboard/JobPosterCard.tsx:223 (`{posterIdVerified && <IdVerifiedPill />}`), rendered by src/components/dashboard/JobDetailDialog.tsx:817
 - Likely cause: JobPosterCard's trust row includes the IdVerifiedPill when `posterIdVerified`; also counts toward `showTrustRow` at :81, so removing it may drop the whole row/divider when no tier or repeat jobs (unverified)
-- Shared with: IdVerifiedPill is also used on the profile (src/pages/userProfile/RecognitionRow.tsx) — that one stays
+- Shared with: IdVerifiedPill is also used on the profile (src/pages/user/RecognitionRow.tsx) — that one stays
 - Size: small
 - Screenshot: pasted in chat (not saved)
 
@@ -219,7 +219,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Public profile — /user/:id (someone else's profile)
 - Viewport / theme: not specified
 - What the owner sees: "remove their availability from the profile" — owner confirmed via pop-up: public profile section only
-- Where it lives: src/pages/UserProfile.tsx:773-774 (`<HelperAvailabilityDisplay helperId={userId!} />`), component src/components/HelperAvailabilityDisplay.tsx
+- Where it lives: src/pages/user/UserProfile.tsx:773-774 (`<HelperAvailabilityDisplay helperId={userId!} />`), component src/components/HelperAvailabilityDisplay.tsx
 - Likely cause: section rendered unconditionally in the profile body; removal is a straight cut (unverified)
 - Shared with: own Profile keeps its Availability tab (src/components/profile/AvailabilityTab.tsx, row at useProfileLandingDerived.tsx:156) — the hours still drive "Jobs During My Hours" filter, so only the public display goes
 - Size: small
@@ -229,7 +229,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Public profile — /user/:id, recognition/badge row
 - Viewport / theme: not specified
 - What the owner sees: "not sure why it says id verified and verification in progress. its either done or its not, nothing is in progress here?"
-- Where it lives: src/pages/userProfile/RecognitionRow.tsx:440-450 (ID verified pill) and :457-470 (amber "Verification in progress" chip, shown when `hasSubmittedCredentials`); data from src/pages/userProfile/useUserProfileData.ts:870-874 (`has_pending_credentials`) and :898-910 (helper_credentials count query)
+- Where it lives: src/pages/user/RecognitionRow.tsx:440-450 (ID verified pill) and :457-470 (amber "Verification in progress" chip, shown when `hasSubmittedCredentials`); data from src/pages/user/useUserProfileData.ts:870-874 (`has_pending_credentials`) and :898-910 (helper_credentials count query)
 - Likely cause: two different things share the word "verification" — "ID verified" is Stripe identity; "in progress" means a CREDENTIAL (license/insurance) is pending review. Shown side by side they read as a contradiction. OWNER DECISION: delete the "Verification in progress" chip from the profile entirely (the pending-credential query at useUserProfileData.ts:898-910 and `has_pending_credentials` then have no reader — report, don't remove, per dead-code rule). Possibly also the pending flag stays true for a credential that's already been handled (check helper_credentials status for that user) (unverified)
 - Shared with: RecognitionRow only (profile); DashboardStatusBanners.tsx:61 and IDVPromptDialog.tsx:199 use "Verification in progress" for a different (account) meaning — not part of this note
 - Size: small
@@ -239,7 +239,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Public profile — /user/:id, badge row (First Job, Rising Star, Trusted Helpr, Neighborhood Pro, Community Pillar, Elite Helpr, Licensed Pro, Master Helpr)
 - Viewport / theme: n/a
 - What the owner asks: "in order to get the badges is it correctly tracked"
-- Where it lives: rules src/lib/careerLadder.ts:17-100 (`CAREER_MILESTONES`, `getEarnedMilestones`); inputs src/pages/UserProfile.tsx:536-542; stats src/pages/userProfile/useUserProfileData.ts:537-547 from RPC in supabase/migrations/20260901002325_public_profile_stats_for_strangers.sql:224-225
+- Where it lives: rules src/lib/careerLadder.ts:17-100 (`CAREER_MILESTONES`, `getEarnedMilestones`); inputs src/pages/user/UserProfile.tsx:536-542; stats src/pages/user/useUserProfileData.ts:537-547 from RPC in supabase/migrations/20260901002325_public_profile_stats_for_strangers.sql:224-225
 - Likely problems found reading code (unverified live — must check `pg_get_functiondef` on prod before believing):
   1. Job counts include jobs they POSTED. `completedJobs` uses `completed_jobs_total` (= every completed job they were on, posted or worked, :225), not `completed_jobs_as_helper` (:224). So someone who only posts 5 jobs gets "Rising Star · 5 jobs completed" / "First Job · Completed your first job". The client fallback (:524) does the same (posted + worked).
   2. "Community Pillar" says "3+ repeat posters" but the rule checks `repeatHirePercent >= 20` (a percentage, not a count) — description and rule disagree (careerLadder.ts:53-57).
@@ -254,7 +254,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Public profile — /user/:id after tapping the "5.0 · 1 review" tile (e.g. Hallie H., /user/437de07d-…)
 - Viewport / theme: 1440, light
 - What the owner sees: "these reviews need to be discussed for better design"
-- Where it lives: src/pages/UserProfile.tsx:673 (`RatingBreakdown`), :704-718 (`PublicReviewWall` — compact card with CLEANING chip), :722+ (`ReviewsSection` — full card with "For: Cleaning", date, ⋯ menu), src/pages/userProfile/ReviewsSection.tsx
+- Where it lives: src/pages/user/UserProfile.tsx:673 (`RatingBreakdown`), :704-718 (`PublicReviewWall` — compact card with CLEANING chip), :722+ (`ReviewsSection` — full card with "For: Cleaning", date, ⋯ menu), src/pages/user/ReviewsSection.tsx
 - Likely cause: expanding reviews mounts TWO lists of the same reviews — the "recent reviews" wall and the full filterable list — so with 1 review the identical quote appears twice in two different card styles, one after the other (unverified). The `[SWEEP]` prefix in the text is test seed data, not a UI bug
 - Shared with: RatingBreakdown / PublicReviewWall / ReviewsSection are profile-only; an earlier owner note (2026-08-25, "opens 3 blank tabs") trimmed the empty case — the populated case still stacks them
 - Size: large (design discussion — owner wants to talk it through first)
@@ -264,7 +264,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Public profile — /user/:id, stats row under the header (5.0 · 1 review / 4 Jobs posted / 16 Jobs completed / 55% Cancelled)
 - Viewport / theme: 1440, light (check 375 — 5 tiles must wrap cleanly)
 - What the owner sees: "you've worked together however many times can be a 5th box next to review, jobs posted, completed etc. order in most important to least"
-- Where it lives: tiles src/pages/userProfile/AtAGlanceCard.tsx:200-250 (`cells.push` rating → posted → worked → cancelled) rendered from src/pages/UserProfile.tsx:564; the line to move is src/pages/userProfile/ProfileHeaderCard.tsx:370-385 (`mutualJobsCount`)
+- Where it lives: tiles src/pages/user/AtAGlanceCard.tsx:200-250 (`cells.push` rating → posted → worked → cancelled) rendered from src/pages/user/UserProfile.tsx:564; the line to move is src/pages/user/ProfileHeaderCard.tsx:370-385 (`mutualJobsCount`)
 - Likely cause: the card is hard-capped at four tiles by an earlier owner ruling (comment at AtAGlanceCard.tsx:236-250, 2026-09-11: "exactly four… nothing else") — this note changes that ruling to five. Order not specified; a sensible proposal to confirm: Rating · Worked together · Jobs completed · Jobs posted · Cancelled (unverified)
 - Shared with: AtAGlanceCard profile-only; "worked together" only shows to a viewer who has shared jobs, so the tile must hide when 0 (as today)
 - Size: small–medium
@@ -274,7 +274,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Public profile — /user/:id, VERIFIED and AS A HELPR badge rows (ID verified, Trusted Helpr, Rising Star, First Job)
 - Viewport / theme: 1440, light
 - What the owner sees: "the badges also need to be smaller"
-- Where it lives: src/pages/userProfile/ProfileBadge.tsx:44-49 (`PROFILE_BADGE_PILL` px-2.5 py-1.5 text-ds-12; `ICON_CLASS` w-3.5), used by every chip in src/pages/userProfile/RecognitionRow.tsx
+- Where it lives: src/pages/user/ProfileBadge.tsx:44-49 (`PROFILE_BADGE_PILL` px-2.5 py-1.5 text-ds-12; `ICON_CLASS` w-3.5), used by every chip in src/pages/user/RecognitionRow.tsx
 - Likely cause: one shared pill size for all badges; in the screenshot the AS A HELPR chips render taller with larger icons than the VERIFIED ones, so milestone icons may not be getting ICON_CLASS applied (unverified). Keep the 44px tap target (the `after:h-11` overlay) when shrinking the visible pill
 - Shared with: ProfileBadge / RecognitionRow (public profile; check own Profile landing if it reuses them)
 - Size: small
@@ -284,9 +284,9 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Jobs (Activity → jobs I'm working) — hired job card in the confirmed / scheduled / on-the-way / arrived steps
 - Viewport / theme: not specified
 - What the owner sees: "i don't like the wording can't finish when they have confirmed"
-- Where it lives: src/components/activity/appliedJobCard/ActiveJobSection.tsx:246-253 (exit chip label "Can't Finish", aria "Can't finish this job?…"); confirm dialog :336 ("Can't Finish This Job?") and :342 ("I Can't Finish"); after-state copy :279-280 ("You've told the poster you can't finish…")
+- Where it lives: src/pages/jobs/appliedJobCard/ActiveJobSection.tsx:246-253 (exit chip label "Can't Finish", aria "Can't finish this job?…"); confirm dialog :336 ("Can't Finish This Job?") and :342 ("I Can't Finish"); after-state copy :279-280 ("You've told the poster you can't finish…")
 - Likely cause: the exit is only offered BEFORE work starts (scheduled → arrived, per comment :104-115), but the copy talks about "finishing" a job that hasn't begun. Wording to be picked with the owner — e.g. "Can't Make It" / "Cancel My Spot" (unverified)
-- Shared with: step contract src/components/activity/appliedJobCard/steps/stepContract.ts:22-24 and WorkingStep.tsx:9 comments refer to it; all copy lives in ActiveJobSection
+- Shared with: step contract src/pages/jobs/appliedJobCard/steps/stepContract.ts:22-24 and WorkingStep.tsx:9 comments refer to it; all copy lives in ActiveJobSection
 - Size: small (copy only; wording needs owner pick)
 - Screenshot: none
 
@@ -294,7 +294,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: My Jobs — /my-jobs, Needs You tab, hired job card in the Working step (e.g. "Touch up hallway and stairwell", Perry P., $154)
 - Viewport / theme: 1440, light
 - What the owner sees: "report a problem should not be under the message tab but on the side of message"
-- Where it lives: src/components/activity/appliedJobCard/ActiveJobSection.tsx:255-275 (`escape: <DisputeLink label="Report a Problem">`, underlined link); placed by src/components/activity/appliedJobCard/steps/WorkingStep.tsx:41 (`actions={[messageChip]}` with the escape link rendered below the row)
+- Where it lives: src/pages/jobs/appliedJobCard/ActiveJobSection.tsx:255-275 (`escape: <DisputeLink label="Report a Problem">`, underlined link); placed by src/pages/jobs/appliedJobCard/steps/WorkingStep.tsx:41 (`actions={[messageChip]}` with the escape link rendered below the row)
 - Likely cause: deliberate — comment at :256-259 says it's a quiet link "below the row, never in it: a dispute freezes escrow and is not a peer of Message". Owner now wants it in the action row next to Message, the same way "Can't Finish" sits beside Directions/Message in the earlier steps (visible in the card above). Needs a chip styled like the Can't Finish danger chip (unverified)
 - Shared with: stepContract.ts:22-24 (exitChip / escape slots); every helper step that shows `escape` (Working and later); poster-side DisputeLink uses are separate
 - Size: small
@@ -314,10 +314,10 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: My Jobs (/my-jobs) and Posts cards — every step card (e.g. Working: big "Request My Payout" bar, "Add Photo" bar, then a "Message" row, then "Report a Problem" link; Confirmed: "I'm On My Way" bar, then Directions · Message · Can't Finish row; Revision: "I'll Fix It" + Message)
 - Viewport / theme: 1440, light (must also work at 375)
 - What the owner sees: "i don't think i like the multiple rows of buttons for jobs and posts. can all the buttons be on 1 row like i'll fix it, message etc"
-- Where it lives: shared shell src/components/activity/JobStepCard.tsx:32-112 — slots `ask` → `notice` → `primary` (full width) → `actions` (chip row) → `escape` stacked vertically; used by ~15 files incl. src/components/activity/appliedJobCard/steps/*.tsx (WorkingStep, OnSiteStep, EnRouteStep, RevisionStep…) and the poster-side cards; "I'll Fix It" in RevisionStep.tsx / HelperRevisionCard.tsx
+- Where it lives: shared shell src/components/job-card/JobStepCard.tsx:32-112 — slots `ask` → `notice` → `primary` (full width) → `actions` (chip row) → `escape` stacked vertically; used by ~15 files incl. src/pages/jobs/appliedJobCard/steps/*.tsx (WorkingStep, OnSiteStep, EnRouteStep, RevisionStep…) and the poster-side cards; "I'll Fix It" in RevisionStep.tsx / HelperRevisionCard.tsx
 - Likely cause: the shell's documented contract is one full-width primary + a separate chip row + a separate escape line, each its own row by design (enforced by singlePrimaryCta.test.tsx, JobStepCard.tsx:39). One row means changing that contract for every step: primary + chips side by side, which at 375 needs a rule for 3–4 buttons (unverified)
 - Owner follow-up: "also all buttons should be with the live tracker box" — read as: every button (the one row) sits INSIDE the white tracker box, like "I'm On My Way" / "Request My Payout" do now, instead of Directions · Message · Can't Finish and the Add Photo / Message boxes hanging below it (confirm)
-- Owner follow-up (poster side): "confirm they're working, no show, message etc — all of these buttons need to be on 1 line not multiple" — src/components/activity/postedJobCard/steps/InProgressStep.tsx:160 ("Confirm They're Working" full-width primary) and :170 ("No-Show" chip) + Message chip. Confirms the one-row rule applies to Posts cards as well as Jobs cards
+- Owner follow-up (poster side): "confirm they're working, no show, message etc — all of these buttons need to be on 1 line not multiple" — src/pages/posts/postedJobCard/steps/InProgressStep.tsx:160 ("Confirm They're Working" full-width primary) and :170 ("No-Show" chip) + Message chip. Confirms the one-row rule applies to Posts cards as well as Jobs cards
 - Shared with: every JobStepCard user (helper and poster steps); also ties in VN-18 (Can't Finish chip) and VN-19 (Report a Problem into the row)
 - Size: large (shared shell, all steps, both sides; design talk first)
 - Screenshot: /my-jobs screenshot from VN-19 (not saved)
@@ -326,7 +326,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Posts — posted job card with a hired Helpr, expanded
 - Viewport / theme: not specified
 - What the owner sees: "the profile for who's working the job should be shown when the job is expanded under the job description, not in that little area"
-- Where it lives: tiny inline name row src/components/activity/PostedJobCard.tsx:157-171 (4px-dot avatar + name link, hidden when expanded with the tracker); when expanded the Helpr's name/avatar moves into the tracker header (JobTracking via :525 `helperName`); description block :367-372
+- Where it lives: tiny inline name row src/pages/posts/PostedJobCard.tsx:157-171 (4px-dot avatar + name link, hidden when expanded with the tracker); when expanded the Helpr's name/avatar moves into the tracker header (JobTracking via :525 `helperName`); description block :367-372
 - Likely cause: an earlier owner ruling put the Helpr "in the tracker" (comment :146-155), so expanded cards show them only as a small identity in the tracker header. Owner now wants a proper profile block (avatar, name, rating, link) right under the description when expanded (unverified)
 - Owner follow-up (with /my-posts screenshot): "the person working the job should show when it's expanded, not like that" — i.e. REMOVE the small "H Hallie H." line from the collapsed card (PostedJobCard.tsx:157-171); the Helpr only appears, as a proper profile block, once expanded
 - Shared with: helper-side AppliedJobCard shows the POSTER the same small way ("P Perry P." row) — confirm whether that side should match; JobTracking header used by both
@@ -337,7 +337,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: My Jobs (/my-jobs) — Helpr's card for a disputed job (check Posts side too)
 - Viewport / theme: not specified
 - What the owner sees: "disputes should still show the tracker"
-- Where it lives: src/components/activity/appliedJobCard/DisputedSection.tsx:106-115 — dispute banner is put in the JobStepCard `header` slot where the tracker normally goes ("A disputed job has left the step rail"); mounted from src/components/activity/AppliedJobCard.tsx:493
+- Where it lives: src/pages/jobs/appliedJobCard/DisputedSection.tsx:106-115 — dispute banner is put in the JobStepCard `header` slot where the tracker normally goes ("A disputed job has left the step rail"); mounted from src/pages/jobs/AppliedJobCard.tsx:493
 - Likely cause: helper side swaps the tracker OUT for the dispute banner on disputed jobs. Poster side (PostedJobCard.tsx:105-117 `showsTracker`) already includes `disputed`, so the two sides disagree. Fix direction: tracker stays as the header, dispute banner goes below it (unverified)
 - Shared with: JobTracking (both sides); DisputedSection helper-only
 - Size: small–medium
@@ -347,7 +347,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: /support (e.g. from Report a Problem: ?topic=report&subject=Dispute on …), signed in
 - Viewport / theme: 1440, light
 - What the owner sees: "remove the large space above contact support, it should follow the same shell as the others"
-- Where it lives: src/pages/Support.tsx:281 (`<PublicHeaderPage title="Contact Support" bottomPaddingClassName="pb-8">`); shell src/components/marketing/PublicHeaderPage.tsx (PublicLayout + PageHeader)
+- Where it lives: src/pages/info/Support.tsx:281 (`<PublicHeaderPage title="Contact Support" bottomPaddingClassName="pb-8">`); shell src/components/marketing/PublicHeaderPage.tsx (PublicLayout + PageHeader)
 - Likely cause: Support is built on the MARKETING/public page shell (PublicLayout) even for signed-in users, so it gets the public layout's top offset instead of the signed-in page spacing (AppPage / PageHeader, 24px title rule) that Posts/Jobs/Messages use (unverified)
 - Owner follow-up (2026-09-14, /help screenshot): Help Center has the SAME large empty band above its title — "remove that large spacing". Confirms the fix belongs in the shared shell (all PublicHeaderPage pages when signed in), not just Support
 - Shared with: PublicHeaderPage is used by 4 pages in src/pages (legal/marketing-style pages) — fixing only Support vs changing the shell affects those
@@ -368,7 +368,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Posts — /my-posts, Needs You tab, tip strip above the cards (also check Jobs if it shows there)
 - Viewport / theme: 1440 (1920 screenshot), light
 - What the owner sees: "tap a card needs to be centered better"
-- Where it lives: src/components/activity/PostedJobsTab.tsx:118-150 (strip: `flex items-start gap-2 … px-3 py-2`, pin icon `mt-0.5`, text `flex-1` left-aligned, dismiss button `-m-2.5`)
+- Where it lives: src/pages/posts/PostedJobsTab.tsx:118-150 (strip: `flex items-start gap-2 … px-3 py-2`, pin icon `mt-0.5`, text `flex-1` left-aligned, dismiss button `-m-2.5`)
 - Likely cause: content is `items-start` + left-aligned text across a ~1540px strip, and the X's negative margin/padding offsets it, so the icon, one line of text and the X don't sit on the same vertical centre and the text hugs the left (unverified). Confirm whether owner means vertical centring in the strip or centring the text horizontally
 - Shared with: tip strip is local to PostedJobsTab
 - Size: small
@@ -378,7 +378,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Posts — /my-posts (every card's meta row: "Lafayette", "Baton Rouge"…); same row on Jobs cards
 - Viewport / theme: 1440, light
 - What the owner sees: "remove the grey background from the location"
-- Where it lives: src/components/activity/JobCardMetaRow.tsx:302 (location button: `rounded-ds-sm border border-[hsl(var(--olivewood)/0.22)] bg-[hsl(var(--olivewood)/0.06)]` + hover/active fills)
+- Where it lives: src/components/job-card/JobCardMetaRow.tsx:302 (location button: `rounded-ds-sm border border-[hsl(var(--olivewood)/0.22)] bg-[hsl(var(--olivewood)/0.06)]` + hover/active fills)
 - Likely cause: the location is styled as a tappable chip (press-and-hold for directions) with its own tinted fill and border, so it reads as a grey box next to plain date/time text (unverified). Remove the resting fill/border; keep the 44px hit area (`py-2 -my-2`) and the press feedback
 - Shared with: JobCardMetaRow — PostedJobCard, AppliedJobCard (Jobs), dashboard JobCard (browse feed), ScheduleTab; check each still wants the chip look removed
 - Size: small
@@ -388,7 +388,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Posts and Jobs cards for completed jobs (Done tab)
 - Viewport / theme: not specified
 - What the owner sees: "they can't report a job once it's done" — owner confirmed via pop-up: RULE, remove the option (not a missing-option bug)
-- Where it lives: src/components/jobs/DisputeLink.tsx:11-17, 49+ (`shouldShowDisputeLink` — shows on `completed` for up to 7 days, both sides); Helpr card src/components/activity/AppliedJobCard.tsx:559-563 and :571-576 (issue #113: link kept even after reviewing); poster card src/components/activity/postedJobCard/steps/CompletedStep.tsx:42 (`canDispute`)
+- Where it lives: src/components/jobs/DisputeLink.tsx:11-17, 49+ (`shouldShowDisputeLink` — shows on `completed` for up to 7 days, both sides); Helpr card src/pages/jobs/AppliedJobCard.tsx:559-563 and :571-576 (issue #113: link kept even after reviewing); poster card src/pages/posts/postedJobCard/steps/CompletedStep.tsx:42 (`canDispute`)
 - Likely cause: a deliberate 7-day post-completion dispute window (issue #113). Owner rule: no report/dispute once done. NOTE for whoever fixes: this removes the only in-app path to contest a finished job (payout already released) — the backend dispute RPC may still accept it; say where users go instead (Support) (unverified)
 - Shared with: DisputeLink used on both card types; revision_requested case on poster side is separate (not "done")
 - Size: small (UI) — flag money/dispute rules before changing
@@ -398,7 +398,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Posts — /my-posts Done tab (poster's completed job cards); check Jobs Done tab for the review-only equivalent
 - Viewport / theme: not specified
 - What the owner sees: "if they have a tip or review still needing to be done on a done job, leave it expanded until tip and review are both done, when they're done then collapse"
-- Where it lives: tip/review state src/components/activity/PostedJobCard.tsx:630-670 (`completedJobMeta[job.id]` tipped / reviewed; collapsed summary strips "Tipped & Reviewed" / "— review still open"); expand state `isExpanded` in PostedJobCard / JobCardShell; Helpr side AppliedJobCard.tsx `isFullyDone` (~:567-585)
+- Where it lives: tip/review state src/pages/posts/PostedJobCard.tsx:630-670 (`completedJobMeta[job.id]` tipped / reviewed; collapsed summary strips "Tipped & Reviewed" / "— review still open"); expand state `isExpanded` in PostedJobCard / JobCardShell; Helpr side AppliedJobCard.tsx `isFullyDone` (~:567-585)
 - Likely cause: expansion is purely user-toggled; nothing opens a completed card by default when tip or review is outstanding, and nothing collapses it once both are done (unverified). Needs: default expanded when !(tipped && reviewed); auto-collapse when the second one lands
 - Shared with: JobCardShell (shared expand/collapse for both card types)
 - Size: small–medium
@@ -418,7 +418,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Posts — /my-posts?filter=done after tapping the search icon (same header on Jobs /my-jobs)
 - Viewport / theme: 1440 (1920 screenshot), light
 - What the owner sees: "search does not need to open that large. also the chevron on the right is useless here"
-- Where it lives: src/pages/activity/ActivityHeader.tsx:163-200 (open search: `relative flex-1 min-w-0` wrapper, input `w-full`, replaces the status tabs); chevron button :222-231 (`setTabsOpen`, aria "Hide status filters" / "Filter by status", ChevronDown rotated)
+- Where it lives: src/components/job-card/ActivityHeader.tsx:163-200 (open search: `relative flex-1 min-w-0` wrapper, input `w-full`, replaces the status tabs); chevron button :222-231 (`setTabsOpen`, aria "Hide status filters" / "Filter by status", ChevronDown rotated)
 - Likely cause: when search opens it swaps out the tab row and the field grows `flex-1` across the whole ~1500px header; the chevron is the "show status tabs" toggle that only makes sense when search hides the tabs — on desktop there's room for both, so it reads as a dead up-arrow in a box (unverified). Direction: cap the field width and keep the tabs visible so the chevron can go
 - Shared with: ActivityHeader serves both Posts and Jobs; same width issue as VN-5 (browse search bar)
 - Size: small
@@ -428,7 +428,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Jobs — /my-jobs (Needs You tab, hired cards with trackers, photo asks, payout button)
 - Viewport / theme: 1440 (1920 screenshot), light
 - What the owner sees: "this page jumps about 10 times before it settles"
-- Where it lives: page src/pages/Activity.tsx (route skeleton App.tsx:185 `ActivityRouteSkeleton` → in-page skeletons :423-444, :576, :638 `ApplicationCardSkeleton`); cards src/components/activity/AppliedJobCard.tsx; per-card tracker src/components/JobTracking.tsx:527-570 (`tracking` state seeded from `initialTracking`, updated after mount); photo ask appliedJobCard/steps/HelperPhotoAsk.tsx; header ActivityHeader.tsx
+- Where it lives: page src/components/job-card/JobListPage.tsx (route skeleton App.tsx:185 `ActivityRouteSkeleton` → in-page skeletons :423-444, :576, :638 `ApplicationCardSkeleton`); cards src/pages/jobs/AppliedJobCard.tsx; per-card tracker src/components/JobTracking.tsx:527-570 (`tracking` state seeded from `initialTracking`, updated after mount); photo ask appliedJobCard/steps/HelperPhotoAsk.tsx; header ActivityHeader.tsx
 - Likely cause: several separate loads finish one after another and each changes height — route skeleton → page skeleton → card list (skeleton heights don't match real tracker cards) → each card's tracker/status line fills in → photo-ask and payout blocks appear → tab counts in the header update and may reorder/regroup the Needs You list; every step reflows the page (unverified — needs a recorded layout-shift trace to count the real steps)
 - Shared with: Posts (/my-posts) uses the same Activity page and JobTracking; same class of problem as VN-3 (Earnings)
 - Size: medium–large
@@ -438,7 +438,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Jobs — /my-jobs, hired job in On the Way → Arrived (card above "Touch up hallway and stairwell"; toast bottom-right, "Try My Location Again" button)
 - Viewport / theme: 1440, light
 - What the owner sees: "it showed in the map I'm over 2000 miles away, which I am, so it shouldn't let me move forward until my location is actually showing near the site AND the poster says I've arrived"
-- Where it lives: arrival tap + toast src/components/JobTracking.tsx:1005-1013 ("Marked arrived, but you're about Nft from the job site…" / "…couldn't get your location…"); rule src/lib/arrivalGate.ts:1-64 (`arrivalState`: claimed / verified (server 500ft, `mark_helper_arrival` RPC) / confirmed (poster tap); `arrivalEstablished` = verified OR confirmed); lifecycle src/pages/activity/activityActions/useLifecycleHandlers.ts
+- Where it lives: arrival tap + toast src/components/JobTracking.tsx:1005-1013 ("Marked arrived, but you're about Nft from the job site…" / "…couldn't get your location…"); rule src/lib/arrivalGate.ts:1-64 (`arrivalState`: claimed / verified (server 500ft, `mark_helper_arrival` RPC) / confirmed (poster tap); `arrivalEstablished` = verified OR confirmed); lifecycle src/components/job-card/activityActions/useLifecycleHandlers.ts
 - Likely cause: by design the tap always writes `helper_arrived_at` ("claimed") even when far away or with no GPS fix — the tracker then moves to Arrived and only wrap-up/payout is gated, and it's gated on GPS **OR** poster vouch. Owner's new rule: (1) don't advance to Arrived at all unless the helper is actually near the site, and (2) require GPS **AND** the poster's "Confirm They Arrived". Changes `arrivalEstablished` from OR to AND and blocks the claimed write — money/trust gate, needs review (note the documented recourse path for helpers with no GPS fix goes away) (unverified live)
 - Shared with: payout CTA (completeJob), tracker Done step, Arrived caption (VN-20), poster's Confirm They Arrived button; server RPC mark_helper_arrival
 - Size: medium–large (gate logic + RPC; not visual)
@@ -448,7 +448,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Jobs — /my-jobs, Helpr card in Working step (e.g. "Touch up hallway and stairwell"): big bar under the tracker
 - Viewport / theme: 1440, light
 - What the owner sees: "change request my payout for a done job to something else, like job completed or something idk. also don't let them click it's completed until photos are uploaded"
-- Where it lives: label src/components/JobTracking.tsx:73 (steps array `{ key: "done", action: "Request My Payout" }`) — rendered at ~:2080-2130 with `disabledReason`; photo gate `needsProof` :2089-2092 (hasRequiredProof on proof_before/after_urls, `require_photo_proof` default true), wired from src/components/activity/appliedJobCard/HelperTrackerPanel.tsx:142-152. A second payout button exists: src/components/activity/appliedJobCard/steps/PayoutPrimary.tsx:32 ("I'm Done — Request Payout", renders nothing until photos)
+- Where it lives: label src/components/JobTracking.tsx:73 (steps array `{ key: "done", action: "Request My Payout" }`) — rendered at ~:2080-2130 with `disabledReason`; photo gate `needsProof` :2089-2092 (hasRequiredProof on proof_before/after_urls, `require_photo_proof` default true), wired from src/pages/jobs/appliedJobCard/HelperTrackerPanel.tsx:142-152. A second payout button exists: src/pages/jobs/appliedJobCard/steps/PayoutPrimary.tsx:32 ("I'm Done — Request Payout", renders nothing until photos)
 - Likely cause: (1) wording names the money, not the event — owner wants e.g. "Job Completed" / "Mark Job Done" (pick with owner). (2) Photo gate: in the screenshot the bar is already greyed with "Before & after photos are required" above it, so it is probably already disabled until photos exist — verify it can't be clicked; if a poster turned photos off (`require_photo_proof=false`) the gate lifts, which owner may not want. Also two differently-worded payout CTAs for the same action (tracker vs PayoutPrimary) should become one (unverified)
 - Shared with: JobTracking steps array (label used for both tracker CTA and step), PayoutPrimary (OnSiteStep / WorkingStep); ties VN-21 (one row) and VN-33 (arrival gate also blocks this button)
 - Size: small (copy) + verify gate
@@ -478,7 +478,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Profile tab pages — /profile?tab=reviews (and "other pages" — likely every /profile?tab=… page)
 - Viewport / theme: 1440 (1920 screenshot), light
 - What the owner sees: "reviews and other pages still have that small gap to the left and right of content. content should fill that space"
-- Where it lives: src/pages/Profile.tsx:683 (`page-measure w-[calc(100%+1.5rem)] … px-3 -mx-3` scroll wrapper) around src/pages/profile/ProfileTabPanels.tsx:360 (reviews panel); page-measure src/index.css:1815; header width ladder src/components/PageHeader.tsx:64-108
+- Where it lives: src/pages/profile/Profile.tsx:683 (`page-measure w-[calc(100%+1.5rem)] … px-3 -mx-3` scroll wrapper) around src/pages/profile/ProfileTabPanels.tsx:360 (reviews panel); page-measure src/index.css:1815; header width ladder src/components/PageHeader.tsx:64-108
 - Likely cause: the scroll wrapper is widened by 1.5rem then padded back with `px-3 -mx-3` (to keep card shadows from clipping), so the white card stops ~12px short of the faint page panel on each side — visible in the screenshot as a lighter band either side of the card (panel ~x36→1636, card ~x48→1623) (unverified; measure `.app-shell-frame` vs card edges per CLAUDE.md)
 - Shared with: every Profile tab page using that wrapper; same "fill the space" rule as the rail/fit rules — check Activity/Messages too
 - Size: small–medium
@@ -517,8 +517,8 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Public profile — /user/:id
 - What the owner asks: "do their skills and services and recent work ever show anywhere on their profile???"
 - Answer from code (unverified live): YES, but only when filled in, and easy to miss.
-  - Skills & services: one comma-joined text line inside the header card, under the badge row — src/pages/userProfile/ProfileHeaderCard.tsx:161-164, :345-360 (hidden when `profile.skills` is empty)
-  - Recent Work: photo section near the bottom, after Availability — src/pages/UserProfile.tsx:776-778 → src/components/profile/HelperWorkPhotos.tsx:26 (returns nothing when `portfolio_urls` is empty)
+  - Skills & services: one comma-joined text line inside the header card, under the badge row — src/pages/user/ProfileHeaderCard.tsx:161-164, :345-360 (hidden when `profile.skills` is empty)
+  - Recent Work: photo section near the bottom, after Availability — src/pages/user/UserProfile.tsx:776-778 → src/components/profile/HelperWorkPhotos.tsx:26 (returns nothing when `portfolio_urls` is empty)
   - A second "Portfolio" section (job photos) only for Pro+ subscribers — UserProfile.tsx:780-781 (`HelperPortfolio`)
   - Data: `get_safe_profiles` RPC does return `skills` and `portfolio_urls` (migration 20260907062224:52)
 - Hallie H.'s profile (VN-15 screenshot) shows neither — either her skills/photos are empty, or they're rendering below the fold; check her row
@@ -561,7 +561,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Gift cards — /gift-card (send a gift card form)
 - Viewport / theme: not specified
 - What the owner sees: "remove card design option on gift cards"
-- Where it lives: src/pages/GiftCard.tsx:539-~580 (Card design radio group, `gift-design-label`, `setDesignId`); state :105-111 (`designId`, `design` from `occasion.designs`); designs src/pages/giftCards/giftCardDesigns.ts; occasion picker :450-484 resets design; preview :533 (`design={design}`)
+- Where it lives: src/pages/profile/GiftCard.tsx:539-~580 (Card design radio group, `gift-design-label`, `setDesignId`); state :105-111 (`designId`, `design` from `occasion.designs`); designs src/pages/profile/giftCards/giftCardDesigns.ts; occasion picker :450-484 resets design; preview :533 (`design={design}`)
 - Likely cause: each occasion offers several designs and the form shows a picker. Remove the picker only — keep sending a design: default to the occasion's first design (`occasion.designs[0]`), because `design_id` is still sent to checkout (:303) and used by supabase/functions/create-gift-card-checkout and stripe-webhook checkoutSessionCompleted (email/card render) (unverified)
 - Shared with: gift card checkout + webhook read design_id — don't drop the field; occasion picker stays unless owner says otherwise
 - Size: small
@@ -595,7 +595,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Profile → Notifications — /profile?tab=notifications
 - Viewport / theme: 1440 (1920 screenshot), light
 - What the owner sees: "this page doesn't scroll" — list cuts off at the bottom (a "Send a Test…" row and a button are half visible under Promotions)
-- Where it lives: panel src/pages/profile/ProfileTabPanels.tsx:342-350 (`<NotificationPreferences />`); scroll container src/pages/Profile.tsx:683 (`page-measure … h-full overflow-y-auto`); page shell vs DOCUMENT_SCROLL_ROUTES in src/hooks/useAppShellViewport.ts (Profile tab pages are document-scroll per CLAUDE.md)
+- Where it lives: panel src/pages/profile/ProfileTabPanels.tsx:342-350 (`<NotificationPreferences />`); scroll container src/pages/profile/Profile.tsx:683 (`page-measure … h-full overflow-y-auto`); page shell vs DOCUMENT_SCROLL_ROUTES in src/hooks/useAppShellViewport.ts (Profile tab pages are document-scroll per CLAUDE.md)
 - Likely cause: Profile is locked to the fixed viewport (AppShell 100dvh) and the tab content relies on Profile.tsx:683's inner `overflow-y-auto h-full`; if `h-full` has no bounded parent height on this tab (or the app-shell class stays on <html> for ?tab=… routes), the content overflows under the frame with no scrollbar — so the page can't scroll to the last rows. Other short tabs (Reviews) don't show it because they fit (unverified — check with the wheel + scrollHeight on the container)
 - Stronger lead: src/components/NotificationPreferences.tsx:541 still has a leftover inner scroller (`flex-1 min-h-0 overflow-y-auto overscroll-contain`, comment :536-540 "rows scroll between pinned header/footer") inside a card that was changed to scroll with the page (:416-425, `overflow-hidden`). A half-removed inner-scroll design — the inner region + `overscroll-contain` can swallow the wheel so the page never scrolls
 - Shared with: every long Profile tab (Membership, Referrals scrolled in screenshots, so compare what differs); NotificationPreferences component
@@ -606,7 +606,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Profile → Legal — /profile?tab=legal (bottom of page)
 - Viewport / theme: 1440, light
 - What the owner sees: "remove download your data, and contact support listed twice"
-- Where it lives: src/components/profile/LegalTab.tsx:38-~180 — "Download your data" card (:146, JSON export) and the GDPR/CCPA line with a second "contact support" link (:181); first "Questions? Contact support" row comes from src/pages/legal/LegalChrome.tsx:104
+- Where it lives: src/components/profile/LegalTab.tsx:38-~180 — "Download your data" card (:146, JSON export) and the GDPR/CCPA line with a second "contact support" link (:181); first "Questions? Contact support" row comes from src/pages/info/legal/LegalChrome.tsx:104
 - Likely cause: the data-export card was merged into Legal from the old /data-rights page (comment :41-50), bringing its own "contact support" sentence under a legal page that already ends with "Questions? Contact support". WARNING before removing the export: the comment says the Privacy Policy promises this export in writing, /data-rights redirects here, and the App Store privacy listing points at it — removing it breaks those promises (GDPR Art. 20 / CCPA). Owner should decide where it moves (e.g. Account settings) rather than delete it; the duplicate support link can simply go (unverified)
 - Owner follow-up: "same for rules and privacy" — the Rules and Privacy pages have the same duplicate "contact support" (and whatever else repeats at the bottom); fix all three together
 - Shared with: LegalChrome (public legal pages), /data-rights redirect in App.tsx, Privacy Policy copy
@@ -637,7 +637,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Job tracker on Jobs/Posts cards for a job posted with "Flexible" schedule
 - What the owner asks: "how is flexible schedule done on the tracker??"
 - Answer from code (unverified live): it ISN'T handled specially. The tracker never reads `is_flexible_schedule` — src/components/JobTracking.tsx has no reference to it. It only uses `date_needed` + `start_time`:
-  - Flexible jobs save `start_time = null` (src/pages/postjob/jobSubmitHelpers.ts:163-165) but still carry a date
+  - Flexible jobs save `start_time = null` (src/pages/post-job/jobSubmitHelpers.ts:163-165) but still carry a date
   - "I'm On My Way" lock (JobTracking.tsx:1995-1999): with no start time it unlocks at midnight of `date_needed` in the job's timezone — so the Helpr can't start early even though the poster said "flexible", and nothing says when on that day
   - Day-of confirmation step (deriveCurrentStatusIdx ~:220-235) measures its 24h grace from the date alone
   - No step for the poster and Helpr to agree on an actual time; cards just show "Flexible time" (JobCardMetaRow flexibleLabel)
@@ -660,7 +660,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 ### VN-52: Where is the Group job option? (OWNER QUESTION — code read only)
 - Screen / route: Post a Job — /post-job, Logistics step, "Job type" control (One-Time / Recurring)
 - What the owner asks: "also where is the group option?"
-- Answer from code: it's switched OFF. `GROUP_JOBS_ENABLED = false` in src/lib/groupJobs.ts:79, so LogisticsSection.tsx:328-377 only offers One-Time and Recurring; old drafts with Group are coerced to One-Time (comment :329-333, jobSubmitHelpers). A test pins it off: src/pages/postjob/groupJobsGate.test.ts:36. Withdrawn 2026-09-01 on purpose (groupJobs.ts comment above :79): prod never had a real group job, and the live control would have hit five known breakages (per-member lifecycle on group_job_helpers, payment split, review model…). Re-enabling needs those fixed; the test fails if the flag flips without the schema change
+- Answer from code: it's switched OFF. `GROUP_JOBS_ENABLED = false` in src/lib/groupJobs.ts:79, so LogisticsSection.tsx:328-377 only offers One-Time and Recurring; old drafts with Group are coerced to One-Time (comment :329-333, jobSubmitHelpers). A test pins it off: src/pages/post-job/groupJobsGate.test.ts:36. Withdrawn 2026-09-01 on purpose (groupJobs.ts comment above :79): prod never had a real group job, and the live control would have hit five known breakages (per-member lifecycle on group_job_helpers, payment split, review model…). Re-enabling needs those fixed; the test fails if the flag flips without the schema change
 - Decision needed: turn Group back on (needs the split-payment/commitment work finished and the gate test changed) or leave it hidden
 - Size: n/a (question) / large if re-enabled (money split)
 - Screenshot: none
@@ -669,7 +669,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Post a Job — /post-job, Logistics step, category Pet Care (pet picker); pets saved at /profile?tab=pets
 - Viewport / theme: not specified
 - What the owner sees: "for pet care jobs, the option to choose the dogs from the pet page does not show the dogs I have saved"
-- Where it lives: src/components/postjob/PetPicker.tsx:49-61 (query `["pet_profiles_for_post", user.id]`, `staleTime` 5 min, `.from("pet_profiles").select(...).order("name")` — no owner filter); pets page src/pages/PetProfiles.tsx:59-66 (`["pet_profiles", userId]`, `.eq("owner_id", userId)`) and its invalidations :100, :116; mounted from src/components/postjob/LogisticsSection.tsx:436-437
+- Where it lives: src/components/postjob/PetPicker.tsx:49-61 (query `["pet_profiles_for_post", user.id]`, `staleTime` 5 min, `.from("pet_profiles").select(...).order("name")` — no owner filter); pets page src/pages/profile/PetProfiles.tsx:59-66 (`["pet_profiles", userId]`, `.eq("owner_id", userId)`) and its invalidations :100, :116; mounted from src/components/postjob/LogisticsSection.tsx:436-437
 - Likely causes (unverified live):
   1. Cache: the picker uses a DIFFERENT query key than the pets page, and adding/deleting a pet only invalidates `["pet_profiles", …]`. If the picker loaded (empty) in the last 5 minutes — e.g. owner opened Post a Job, tapped "Add a pet", saved dogs, came back — it keeps showing the stale empty list
   2. RLS: the picker has no `owner_id` filter and relies on the `pet_profiles` SELECT policy; if that policy only allows owner via a different id (profile id vs auth uid) or is scoped for the job's Helpr (JobPetCareSheet), the picker's unfiltered read can return nothing — check `pg_policies` for pet_profiles
@@ -682,7 +682,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Public profile /user/:id header (business name line), CredentialBadge wherever it renders
 - Viewport / theme: n/a
 - What the owner sees: "if they do have a business it should show their business name only after admin approves"
-- Where it lives: server gate supabase/migrations/20260907062224_public_profile_identity_verdict_matches_the_hire_gate.sql:90-96 (`get_safe_profiles` emits business_name only when license OR insurance is `verified`); client src/pages/userProfile/ProfileHeaderCard.tsx:158-244; src/components/CredentialBadge.tsx:65 (same rule); admin approval src/components/admin/AdminCredentialQueue.tsx:270-276
+- Where it lives: server gate supabase/migrations/20260907062224_public_profile_identity_verdict_matches_the_hire_gate.sql:90-96 (`get_safe_profiles` emits business_name only when license OR insurance is `verified`); client src/pages/user/ProfileHeaderCard.tsx:158-244; src/components/CredentialBadge.tsx:65 (same rule); admin approval src/components/admin/AdminCredentialQueue.tsx:270-276
 - Likely cause: code already appears to do this (name tied to an admin-verified license/insurance, not a separate business approval). Needs a LIVE check (`pg_get_functiondef('get_safe_profiles')`) plus a profile with a pending credential and a business name. Open question: owner may mean a separate "business approved" step rather than license/insurance approval (unverified live)
 - Shared with: get_safe_profiles consumers (Messages, applicants, profile)
 - Size: small (verify) / medium (if a separate business approval is wanted)
@@ -692,7 +692,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screen / route: Jobs — /my-jobs, Helpr card once offered or hired (Scheduled / Needs You)
 - Viewport / theme: not specified
 - What the owner sees: "they need to be able to actually see the full address when the offer is sent to the helpr. not just in the map"
-- Where it lives: card meta row prints city only (src/components/activity/JobCardMetaRow.tsx getCity); the full `location` already reaches the offered/hired Helpr via get_jobs_for_my_applications → user_may_see_job_address (verified live 2026-09-14)
-- Fix: src/components/activity/appliedJobCard/JobAddressLine.tsx rendered in AppliedJobCard for offered/confirmed/active/disputed; prints nothing for a masked city-only location
+- Where it lives: card meta row prints city only (src/components/job-card/JobCardMetaRow.tsx getCity); the full `location` already reaches the offered/hired Helpr via get_jobs_for_my_applications → user_may_see_job_address (verified live 2026-09-14)
+- Fix: src/pages/jobs/appliedJobCard/JobAddressLine.tsx rendered in AppliedJobCard for offered/confirmed/active/disputed; prints nothing for a masked city-only location
 - Size: small
 

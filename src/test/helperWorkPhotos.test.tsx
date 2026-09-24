@@ -23,7 +23,7 @@ import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
  * module rather than its text, so neither a comment naming the component nor
  * a bare `import` of it can satisfy it: only a real JSX element can.
  */
-const USER_PROFILE = "src/pages/UserProfile.tsx";
+const USER_PROFILE = "src/pages/user/UserProfile.tsx";
 
 /** Component names `rel` actually RENDERS as JSX (imports and comments excluded). */
 function renderedComponents(rel: string): Set<string> {
@@ -82,7 +82,7 @@ describe("HelperWorkPhotos", () => {
 // Shown able to fail 2026-09-21.
 // 1. The MOUNT — the regression this guard was written for and could not see
 //    before today (deleting this line left it 2/2 green).
-// @mutate src/pages/UserProfile.tsx | <HelperWorkPhotos urls={profile.portfolio_urls ?? []} /> |
+// @mutate src/pages/user/UserProfile.tsx | <HelperWorkPhotos urls={profile.portfolio_urls ?? []} /> |
 // 2. The component's own empty contract: an empty portfolio must render
 //    NOTHING, not a bare "Recent Work" heading over an empty grid.
 // @mutate src/components/profile/HelperWorkPhotos.tsx | if (shown.length === 0) return null; | if (false) return null;

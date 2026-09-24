@@ -14,7 +14,7 @@ import {
 import {
   categoryLabels as activityLabels,
   categories as activityCategories,
-} from "@/components/activity/activityConstants";
+} from "@/components/job-card/activityConstants";
 import { categoryLabels as mapLabels } from "@/components/browseMap/config";
 import { categoryLabels as adminLabels } from "@/components/admin/adminJobs/types";
 import { categories as postJobCategories } from "@/components/postjob/detailsSection/detailsSectionConstants";

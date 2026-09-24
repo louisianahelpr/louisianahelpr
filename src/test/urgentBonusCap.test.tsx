@@ -32,7 +32,7 @@
  * @mutate supabase/migrations/20260923192217_urgent_bonus_cap_250.sql | CHECK (urgent_fee IS NULL OR (urgent_fee >= 0 AND urgent_fee <= 250)) NOT VALID; | CHECK (urgent_fee IS NULL OR (urgent_fee >= 0 AND urgent_fee <= 1000)) NOT VALID;
  * @mutate supabase/migrations/20260923192217_urgent_bonus_cap_250.sql |   ALTER TABLE public.jobs VALIDATE CONSTRAINT jobs_urgent_fee_ceiling; |   NULL;
  * @mutate supabase/functions/create-payment/index.ts | if (urgentFeeOverCap(job.is_urgent, job.urgent_fee)) { | if (false) {
- * @mutate src/pages/postjob/useJobSubmit.ts | if (isUrgent && parseFloat(urgentFee) > MAX_URGENT_FEE_DOLLARS) { | if (false) {
+ * @mutate src/pages/post-job/useJobSubmit.ts | if (isUrgent && parseFloat(urgentFee) > MAX_URGENT_FEE_DOLLARS) { | if (false) {
  * @mutate src/components/postjob/BudgetSection.tsx | const showUrgentMaxWarning = isUrgent && urgentFeeNum > MAX_URGENT_FEE_DOLLARS; | const showUrgentMaxWarning = false;
  * @mutate e2e/happy-path/seedDataHeavy.ts | urgent_fee: i % 5 === 0 ? 250 : null, | urgent_fee: i % 5 === 0 ? 1000 : null,
  */
@@ -105,7 +105,7 @@ describe("urgent bonus cap is $250 at every layer (Q210(c))", () => {
   });
 
   it("client: the submit validator refuses a bonus above the constant", () => {
-    const src = blankComments(read("src/pages/postjob/useJobSubmit.ts"));
+    const src = blankComments(read("src/pages/post-job/useJobSubmit.ts"));
     expect(src).toMatch(
       /if \(isUrgent && parseFloat\(urgentFee\) > MAX_URGENT_FEE_DOLLARS\) \{ toast\.error\([^;]*\); scrollToField\("custom-urgent-fee"\); return; \}/,
     );

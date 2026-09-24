@@ -14,7 +14,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import { EMPTY_VIEWER_FEED_EXCLUSIONS, type ViewerFeedExclusions } from "@/pages/dashboard/viewerFeedExclusions";
+import { EMPTY_VIEWER_FEED_EXCLUSIONS, type ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
 
 import JobCard from "./dashboard/JobCard";
 import { mapJobToEnrichedJob } from "./browseMap/mapJobToEnrichedJob";

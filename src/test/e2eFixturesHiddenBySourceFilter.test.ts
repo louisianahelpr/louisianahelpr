@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { jobIsUnfundedDraft } from "@/pages/activity/activityFilters";
+import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { UNPAID_DRAFT_PAYMENT_STATES } from "@/hooks/useUnpaidJobDrafts";
 
 /**
@@ -35,7 +35,7 @@ import { UNPAID_DRAFT_PAYMENT_STATES } from "@/hooks/useUnpaidJobDrafts";
 // Break the product rule this guard reads and the second case fails: a job the
 // insert lock forces to open+unpaid is no longer recognised as hidden, which is
 // the exact reading that decides whether an e2e fixture is safe on My Posts.
-// @mutate src/pages/activity/activityFilters.ts | return moneyNeverLanded && j.status === "open"; | return false;
+// @mutate src/components/job-card/activityFilters.ts | return moneyNeverLanded && j.status === "open"; | return false;
 
 const REPO = join(__dirname, "..", "..");
 

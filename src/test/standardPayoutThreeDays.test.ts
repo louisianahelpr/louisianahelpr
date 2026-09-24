@@ -123,10 +123,10 @@ describe("standard pay: 3 days after the job is done (Q202)", () => {
 
   it("the client sites that state the standard timing interpolate the shared phrase", () => {
     const sites = [
-      "src/components/activity/appliedJobCard/steps/SubmittedStep.tsx",
+      "src/pages/jobs/appliedJobCard/steps/SubmittedStep.tsx",
       "src/components/profile/earningsTab/EarningsSummaryCard.tsx",
-      "src/pages/helpCenter/helpCenterContent.ts",
-      "src/pages/legal/TermsSection.tsx",
+      "src/pages/info/helpCenter/helpCenterContent.ts",
+      "src/pages/info/legal/TermsSection.tsx",
     ];
     for (const s of sites) {
       const src = blankComments(readFileSync(join(ROOT, s), "utf8"));

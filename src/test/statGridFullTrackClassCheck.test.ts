@@ -129,7 +129,7 @@ function conditionalPush(src: string, ident: string): boolean {
  */
 // @two-way src/test/statGridFullTrackClassCheck.test.ts:is no longer an offender — delete its KNOWN_UNFIXED entry
 const KNOWN_UNFIXED = [
-  "src/pages/HelprWrapped.tsx: grid-cols-2 ← statCards (9 conditional pushes; odd count strands the last card)",
+  "src/pages/profile/HelprWrapped.tsx: grid-cols-2 ← statCards (9 conditional pushes; odd count strands the last card)",
 ];
 
 /**
@@ -156,8 +156,8 @@ function scan(): Site[] {
   return sites;
 }
 
-// @mutate src/pages/userProfile/AtAGlanceCard.tsx | const cells: Cell[] = [ | const cells: Cell[] = []; if (postedJobsCount > 0) cells.push({ key: "x", icon: Star, value: "1", label: "y" }); const cellsLiteral: Cell[] = [
-// @mutate src/pages/userProfile/AtAGlanceCard.tsx | className="grid grid-cols-2 auto-rows-fr gap-2 sm:grid-cols-4" | className="grid grid-cols-2 auto-rows-fr gap-2 sm:grid-cols-4" onCopy={() => cells.push(cells[0])}
+// @mutate src/pages/user/AtAGlanceCard.tsx | const cells: Cell[] = [ | const cells: Cell[] = []; if (postedJobsCount > 0) cells.push({ key: "x", icon: Star, value: "1", label: "y" }); const cellsLiteral: Cell[] = [
+// @mutate src/pages/user/AtAGlanceCard.tsx | className="grid grid-cols-2 auto-rows-fr gap-2 sm:grid-cols-4" | className="grid grid-cols-2 auto-rows-fr gap-2 sm:grid-cols-4" onCopy={() => cells.push(cells[0])}
 
 describe("fixed-track grids are never fed a conditionally-built array", () => {
   const sites = scan();
@@ -173,7 +173,7 @@ describe("fixed-track grids are never fed a conditionally-built array", () => {
   it("finds the profile stat grid — the site the owner reported", () => {
     // Pins the scanner to a known-real site so a regex that silently stops
     // matching cannot turn this whole file green.
-    const atAGlance = sites.filter((s) => s.file.endsWith("userProfile/AtAGlanceCard.tsx"));
+    const atAGlance = sites.filter((s) => s.file.endsWith("pages/user/AtAGlanceCard.tsx"));
     expect(atAGlance.length, "AtAGlanceCard's stat grid is no longer detected by the scanner").toBeGreaterThan(0);
     expect(atAGlance.some((s) => s.ident === "cells")).toBe(true);
   });
@@ -190,7 +190,7 @@ describe("fixed-track grids are never fed a conditionally-built array", () => {
     const unexpected = offenders.filter((o) => !knownFiles.has(o.split(":")[0]));
     expect(
       unexpected,
-      "a fixed column track fed by an array whose membership depends on a value — a zero leaves a hole in the track. Declare the array literally and vary the cell's CONTENT (a 0, a \"New\"), not its existence; see src/pages/userProfile/AtAGlanceCard.tsx",
+      "a fixed column track fed by an array whose membership depends on a value — a zero leaves a hole in the track. Declare the array literally and vary the cell's CONTENT (a 0, a \"New\"), not its existence; see src/pages/user/AtAGlanceCard.tsx",
     ).toEqual([]);
 
     // The ratchet: every KNOWN entry must still BE an offender. One that got
@@ -206,7 +206,7 @@ describe("fixed-track grids are never fed a conditionally-built array", () => {
     // The thing the class check exists for. If AtAGlanceCard ever reappears
     // as an offender, this fails whether or not someone allowlists it.
     const offenders = sites.filter((s) => s.conditional).map((s) => s.file);
-    expect(offenders).not.toContain("src/pages/userProfile/AtAGlanceCard.tsx");
+    expect(offenders).not.toContain("src/pages/user/AtAGlanceCard.tsx");
     expect(KNOWN_UNFIXED.join("\n")).not.toContain("AtAGlanceCard");
   });
 });

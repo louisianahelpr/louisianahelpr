@@ -5,7 +5,7 @@
  * and /admin has no Broadcasts view. Migration 20260924174847 drops both tables,
  * the fan-out functions and the cron that ran them.
  */
-// @mutate src/pages/Dashboard.tsx | import GiftCardTeaser from "@/components/dashboard/GiftCardTeaser"; | import GiftCardTeaser from "@/components/dashboard/GiftCardTeaser"; void supabase.from("broadcasts").select("id");
+// @mutate src/pages/home/Dashboard.tsx | import GiftCardTeaser from "@/components/dashboard/GiftCardTeaser"; | import GiftCardTeaser from "@/components/dashboard/GiftCardTeaser"; void supabase.from("broadcasts").select("id");
 // @mutate src/components/admin/adminNavGroups.tsx | { id: "notifications", label: "Notifications", icon: BellRing }, | { id: "broadcasts", label: "Broadcasts", icon: BellRing }, { id: "notifications", label: "Notifications", icon: BellRing },
 // @mutate supabase/migrations/20260924174847_drop_broadcasts_feature.sql | DROP TABLE IF EXISTS public.broadcast_messages; | SELECT 1;
 // @mutate supabase/migrations/20260924174847_drop_broadcasts_feature.sql | PERFORM cron.unschedule('sweep-pending-broadcast-fan-outs'); | PERFORM 1;

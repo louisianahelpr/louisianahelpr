@@ -53,8 +53,8 @@ const KNOWN_EQ: Record<string, string> = {
   "src/lib/deletedCounterparty.ts:other": "the non-null branch of threadPairFilter itself",
   "src/lib/deletedCounterparty.ts:me": "the signed-in viewer",
   "src/pages/messages/messagesData/loadConversations.ts:uid": "the signed-in viewer's own inbox",
-  "src/pages/userProfile/useUserProfileData.ts:userId": "a profile page's subject, a live user",
-  "src/pages/userProfile/useUserProfileData.ts:currentUserId": "the signed-in viewer",
+  "src/pages/user/useUserProfileData.ts:userId": "a profile page's subject, a live user",
+  "src/pages/user/useUserProfileData.ts:currentUserId": "the signed-in viewer",
 };
 
 // Every `otherUserId ?? ""` / `|| ""`: allowed only where the "" feeds a falsy
@@ -62,7 +62,7 @@ const KNOWN_EQ: Record<string, string> = {
 // @two-way src/test/messagesReceiverNullable.test.ts:KNOWN_COALESCE lists a site that no longer exists
 const KNOWN_COALESCE: Record<string, string> = {
   "src/lib/recipientGate.ts": "the effect returns on !otherUserId before any use",
-  "src/pages/Messages.tsx": "useChatPresence returns on a falsy otherUserId",
+  "src/pages/messages/Messages.tsx": "useChatPresence returns on a falsy otherUserId",
 };
 
 describe("messages.receiver_id may be a deleted account (Q262)", () => {

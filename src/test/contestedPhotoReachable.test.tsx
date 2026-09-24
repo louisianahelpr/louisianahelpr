@@ -34,17 +34,17 @@
  * would have been green throughout. What is asserted is the CONTROL: a capture
  * chip the Helpr can press, in the state where the requirement is unmet.
  *
- * @mutate src/components/activity/appliedJobCard/steps/RevisionStep.tsx | <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="revision" /> | null
- * @mutate src/components/activity/appliedJobCard/steps/HelperPhotoAsk.tsx | if (step === "revision") { | if (step === "__never__") {
- * @mutate src/components/activity/postedJobCard/steps/DisputedStep.tsx | audience="poster" | audience="helper"
+ * @mutate src/pages/jobs/appliedJobCard/steps/RevisionStep.tsx | <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="revision" /> | null
+ * @mutate src/pages/jobs/appliedJobCard/steps/HelperPhotoAsk.tsx | if (step === "revision") { | if (step === "__never__") {
+ * @mutate src/pages/posts/postedJobCard/steps/DisputedStep.tsx | audience="poster" | audience="helper"
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
-import type { AppliedApp, Job } from "@/components/activity/activityConstants";
-import type { PosterStepCtx } from "@/components/activity/postedJobCard/steps/posterStepContract";
+import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
+import type { PosterStepCtx } from "@/pages/posts/postedJobCard/steps/posterStepContract";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -84,10 +84,10 @@ function makeSupabase() {
 }
 vi.mock("@/integrations/supabase/client", () => makeSupabase());
 
-import { RevisionStep } from "@/components/activity/appliedJobCard/steps/RevisionStep";
-import { DisputedSection } from "@/components/activity/appliedJobCard/DisputedSection";
-import { DisputedStep } from "@/components/activity/postedJobCard/steps/DisputedStep";
-import { InProgressStep } from "@/components/activity/postedJobCard/steps/InProgressStep";
+import { RevisionStep } from "@/pages/jobs/appliedJobCard/steps/RevisionStep";
+import { DisputedSection } from "@/pages/jobs/appliedJobCard/DisputedSection";
+import { DisputedStep } from "@/pages/posts/postedJobCard/steps/DisputedStep";
+import { InProgressStep } from "@/pages/posts/postedJobCard/steps/InProgressStep";
 import { POSTER_PROOF_MISSING_NOTE } from "@/components/PhotoProof";
 import { requiredProof } from "@/lib/photoProofPolicy";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";

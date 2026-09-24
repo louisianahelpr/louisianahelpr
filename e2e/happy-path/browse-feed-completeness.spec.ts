@@ -96,4 +96,4 @@ test("every open job the API returns is rendered somewhere", async ({ page, cont
 // did not render them. Forcing `inBand` true empties `rest` entirely, so only
 // the recommended band survives and the remaining open jobs the API returned
 // are rendered nowhere — which is the defect, and what `missing` catches.
-// @mutate src/pages/dashboard/browseFeedSections.ts | const inBand = bandIds.has(j.id); | const inBand = true;
+// @mutate src/pages/home/browseFeedSections.ts | const inBand = bandIds.has(j.id); | const inBand = true;

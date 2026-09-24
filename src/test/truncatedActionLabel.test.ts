@@ -71,7 +71,7 @@ const KNOWN: Record<string, string> = {
   "src/components/DesktopSidebarNav.tsx:button:{label}": UNMEASURED,
   "src/components/SavedSearches.tsx:button:{[ s.query && `“${s.query}”`, s.category && `Category: ${cat": UNMEASURED,
   "src/components/TimeRangeField.tsx:button:{display}": UNMEASURED,
-  "src/components/activity/JobCardMetaRow.tsx:a:{city}": UNMEASURED,
+  "src/components/job-card/JobCardMetaRow.tsx:a:{city}": UNMEASURED,
   "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx:button:{q}": UNMEASURED,
   "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:Button:Apply Now": UNMEASURED,
   "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:Button:{guestCtaLabel}": UNMEASURED,
@@ -83,12 +83,12 @@ const KNOWN: Record<string, string> = {
   'src/components/postjob/AddressAutocomplete.tsx:button:{s.displayLines[0] ?? ""}': UNMEASURED,
   "src/components/postjob/AddressAutocomplete.tsx:button:{s.displayLines[1]}": UNMEASURED,
   'src/components/postjob/PetPicker.tsx:button:{[p.breed, p.species].filter(Boolean).join(" · ")}': UNMEASURED,
-  "src/pages/activity/ActivitySectionedView.tsx:button:{sectionLabels[key]}": UNMEASURED,
-  "src/pages/petProfiles/PetCard.tsx:button:{SPECIES_OPTIONS.find((s) => s.value === pet.species)?.label": UNMEASURED,
-  'src/pages/petProfiles/PetRailRow.tsx:button:{speciesLabel}{pet.breed ? ` · ${pet.breed}` : ""}{pet.age_y': UNMEASURED,
-  'src/pages/postjob/EntryChoice.tsx:button:{fundingJobId === draft.id ? "Opening checkout…" : "Finish P': UNMEASURED,
-  "src/pages/postjob/EntryChoice.tsx:button:“{draft.title}” isn’t posted yet — nobody can see it until i": UNMEASURED,
-  "src/pages/postjob/FormStep.tsx:Button:{submitLabel}": UNMEASURED,
+  "src/components/job-card/ActivitySectionedView.tsx:button:{sectionLabels[key]}": UNMEASURED,
+  "src/pages/profile/petProfiles/PetCard.tsx:button:{SPECIES_OPTIONS.find((s) => s.value === pet.species)?.label": UNMEASURED,
+  'src/pages/profile/petProfiles/PetRailRow.tsx:button:{speciesLabel}{pet.breed ? ` · ${pet.breed}` : ""}{pet.age_y': UNMEASURED,
+  'src/pages/post-job/EntryChoice.tsx:button:{fundingJobId === draft.id ? "Opening checkout…" : "Finish P': UNMEASURED,
+  "src/pages/post-job/EntryChoice.tsx:button:“{draft.title}” isn’t posted yet — nobody can see it until i": UNMEASURED,
+  "src/pages/post-job/FormStep.tsx:Button:{submitLabel}": UNMEASURED,
 };
 
 function walk(dir: string): string[] {

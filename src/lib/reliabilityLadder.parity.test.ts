@@ -488,7 +488,7 @@ describe("cancellation ladder — apply_cancellation_violation_consequence (SQL)
     // 3rd strike while the ladder has only ever applied a reversible 7-day
     // restriction pending review — a sentence a restricted poster would quote
     // back at us.
-    const legal = repoFile("src/pages/legal/CommunitySection.tsx");
+    const legal = repoFile("src/pages/info/legal/CommunitySection.tsx");
     const section = legal.slice(
       legal.indexOf("Cancellation strikes (posters)"),
       legal.indexOf("Job-denial strikes (Helprs)"),

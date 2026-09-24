@@ -126,7 +126,7 @@ none of them existed on that account, and none was captured.
 **2026-08-31, same day, on `pending_approval` specifically: stop trying to
 reach it.** The state was retired — `businesses` / `business_members` were
 dropped by `20260828011811` (PGRST205 on prod), and its only writer
-(`initialStatus` in `src/pages/postjob/jobSubmitHelpers.ts`) had zero call
+(`initialStatus` in `src/pages/post-job/jobSubmitHelpers.ts`) had zero call
 sites and is deleted. It cannot be produced by any account, seeded or
 otherwise, so option 1 below ("seed a staging account") cannot cover it and a
 session that tries will burn the time discovering that. Prod still carries two

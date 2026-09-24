@@ -77,7 +77,7 @@ export const CONDITIONAL_PURGE_STEPS = ["input"];
 /** purgeBuckets.ts IDENTITY_BUCKETS (the ones accountPurge.ts erases): every one is listed at <uid>/ after deletion and must be empty. */
 export const IDENTITY_BUCKETS = ["avatars", "user-documents", "application-attachments"];
 
-/** Top-level sections of the "Download My Data" JSON (src/pages/legal/DataExportCard.tsx). */
+/** Top-level sections of the "Download My Data" JSON (src/pages/info/legal/DataExportCard.tsx). */
 export const EXPORT_SECTIONS = ["exported_at", "profile", "jobs", "applications", "reviews"];
 
 /**

@@ -377,7 +377,7 @@ export function BudgetSection({
             {/* mb-0: <Label> bakes in `mb-2 block` for stacked form fields, which
                 in a centred row makes the label box 8px taller at the bottom and
                 pushes the text 4px ABOVE the switch's centre line. The W-9 row in
-                pages/postjob/FormStep.tsx sidesteps this by using a plain <p>; we
+                pages/post-job/FormStep.tsx sidesteps this by using a plain <p>; we
                 keep the real <Label> for the htmlFor association and drop the margin. */}
             <Label htmlFor="urgent" className="mb-0 cursor-pointer">Mark as Urgent</Label>
           </div>

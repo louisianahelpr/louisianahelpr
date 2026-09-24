@@ -55,15 +55,15 @@ export const SURFACES: Surface[] = [
     note: "Profile support tab: message, suggestion, issue report (+screenshot), other" },
   { file: "supabase/functions/contact-support/index.ts", kind: "write", target: "reports", channel: "reports-table",
     note: "/support signed in: the admin-queue row" },
-  { file: "src/pages/Support.tsx", kind: "invoke", target: "contact-support", channel: "contact-support",
+  { file: "src/pages/info/Support.tsx", kind: "invoke", target: "contact-support", channel: "contact-support",
     note: "/support, signed in or guest" },
   { file: "src/main.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
     note: "shake-to-report opens /support?topic=report" },
-  { file: "src/components/activity/appliedJobCard/DisputedSection.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
+  { file: "src/pages/jobs/appliedJobCard/DisputedSection.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
     note: "a disputed job's contact-support link (helper side)" },
-  { file: "src/components/activity/postedJobCard/steps/DisputedStep.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
+  { file: "src/pages/posts/postedJobCard/steps/DisputedStep.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
     note: "a disputed job's contact-support link (poster side)" },
-  { file: "src/pages/AccountBanned.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
+  { file: "src/pages/auth/AccountBanned.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
     note: "suspension appeal opens /support?topic=message" },
   { file: "src/lib/nps.ts", kind: "write", target: "nps_responses", channel: "not-a-report",
     note: "NPS is a 1-5 survey with an optional comment, not a problem report; read on /admin analytics" },
@@ -188,7 +188,7 @@ describe("every user-reported problem reaches the ops alert ledger (Q64)", () =>
 
   it("support-redirect: every /support?topic= entry lands on the page that invokes contact-support", () => {
     const supportPage = SURFACES.find((s) => s.channel === "contact-support");
-    expect(supportPage?.file).toBe("src/pages/Support.tsx");
+    expect(supportPage?.file).toBe("src/pages/info/Support.tsx");
     const app = readFileSync(join(ROOT, "src/App.tsx"), "utf8");
     expect(app).toMatch(/path="\/support"/);
   });

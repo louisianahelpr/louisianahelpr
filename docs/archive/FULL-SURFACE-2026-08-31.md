@@ -107,7 +107,7 @@ Supabase `error`" rule. Same pattern fixed on the admin weekly digest in
 
 **F-LEGAL-01 · 🔴 No unsubscribe on any automated email** — commit `44631bdc`
 
-`src/pages/signup/SignupStep1.tsx:371` tells users in writing that *"every
+`src/pages/auth/signup/SignupStep1.tsx:371` tells users in writing that *"every
 marketing email carries an unsubscribe link (required by CAN-SPAM regardless)"*.
 That was false. No automated email carried one, no `List-Unsubscribe` header
 existed, and `email_unsubscribe_tokens` was dropped in

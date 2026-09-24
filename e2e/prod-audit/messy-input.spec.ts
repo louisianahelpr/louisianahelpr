@@ -41,7 +41,7 @@
  * The gate runs this spec with MESSY_INPUT_SCOPE pinned to that one rule (see
  * the knob below, and scripts/vacuity/run.mjs specGateEnv).
  */
-// @mutate src/pages/Login.tsx | if (!emailValid) { | if (false) {
+// @mutate src/pages/auth/Login.tsx | if (!emailValid) { | if (false) {
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Browser, BrowserContext, Locator, Page } from "@playwright/test";

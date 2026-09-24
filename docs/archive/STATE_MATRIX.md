@@ -92,7 +92,7 @@ which is the failure mode this file exists to prevent. What changed is the
   that was supposed to gate the status, went with them.
 - No code path can write it. The only writer was
   `buildJobInsertPayload({ initialStatus: 'pending_approval' })` in
-  `src/pages/postjob/jobSubmitHelpers.ts`; that parameter had zero call sites
+  `src/pages/post-job/jobSubmitHelpers.ts`; that parameter had zero call sites
   and has been deleted. The rewritten jobs INSERT policy also requires
   `business_id IS NULL`, so the old trigger's guard can never be satisfied.
 - The enum label is **deliberately kept**. Dropping an enum label is a heavy,
@@ -144,7 +144,7 @@ status it is listed under.
 
 ### R2 — The helper card is a derived state machine, not a product
 
-`deriveAppliedJobCardState` (`src/components/activity/appliedJobCard/appliedJobCardHelpers.ts`)
+`deriveAppliedJobCardState` (`src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts`)
 maps `(application_status × job_status × direct_offer_status ×
 offered_to_helper_id × helperReviewedJobIds)` onto about ten mutually exclusive
 sections. 3 × 8 = 24 raw tuples collapse to those sections, plus two edge

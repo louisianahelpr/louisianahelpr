@@ -15,8 +15,8 @@ Lexi — followed up on your "go through all pages and update" with a systematic
 ### Auth flow refresh — complete
 Built a shared `src/components/auth/AuthShell.tsx` so all auth/status pages share the same parchment + mesh background, italic Bodoni "Helpr·LA" wordmark, and editorial eyebrow + headline pattern. All these pages have been rewritten on top of it:
 
-- **Login** (`src/pages/Login.tsx`) — liquid-glass card, Bark CTA, "Glad you're back." display H1, italic eyebrow.
-- **Signup** (`src/pages/Signup.tsx`) — wrapped in AuthShell, liquid-glass surface, italic step-counter eyebrow + Bodoni step headlines. Step content untouched (kept all field validation, file upload, business signup logic intact).
+- **Login** (`src/pages/auth/Login.tsx`) — liquid-glass card, Bark CTA, "Glad you're back." display H1, italic eyebrow.
+- **Signup** (`src/pages/auth/Signup.tsx`) — wrapped in AuthShell, liquid-glass surface, italic step-counter eyebrow + Bodoni step headlines. Step content untouched (kept all field validation, file upload, business signup logic intact).
 - **ForgotPassword** — full rewrite. "We'll send you a link." display headline + Burnt-Sienna mailbox icon for the success state.
 - **ResetPassword** — same treatment.
 - **SignupPending** — full rewrite as AuthShell. Three numbered "what happens next" steps with Bark icons.

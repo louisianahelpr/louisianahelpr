@@ -340,7 +340,7 @@ const EXCUSED_INLINE: Record<string, string> = {
   "components/profile/SecurityTab.tsx": "one line of the session-history list; reported as SecurityTab.sessions",
   "components/profile/profileEditForm/PhotoNameSection.tsx": "a field hint under the avatar picker",
   "components/reviewPanel/ReviewList.tsx": "one line under the review summary; reported as ReviewPanel.load",
-  "pages/dashboard/QuickApplyHandler.tsx": "a toast (failWith), not a rendered screen",
+  "pages/home/QuickApplyHandler.tsx": "a toast (failWith), not a rendered screen",
 };
 
 const tsxFiles = walk(SRC).filter((f) => f.endsWith(".tsx"));

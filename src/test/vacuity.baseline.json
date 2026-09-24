@@ -13,7 +13,7 @@
   "unregistered": [],
   "noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/components/activity/appliedJobCard/helperDisputeCopy.test.tsx",
+    "src/pages/jobs/appliedJobCard/helperDisputeCopy.test.tsx",
     "src/components/admin/adminStalledJobsWiring.test.tsx",
     "src/components/analytics/analyticsContrast.test.ts",
     "src/lib/earlyAccess.parity.test.ts",

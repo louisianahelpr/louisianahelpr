@@ -19,7 +19,7 @@ import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useLongPress } from "@/hooks/useLongPress";
 import { NavQuickMenu, NavQuickMenuItem } from "@/components/mobileNav/NavQuickMenu";
 import { useRecentConversationsPreview } from "@/components/mobileNav/useRecentConversationsPreview";
-import { POSTED_STATUS_FILTERS } from "@/pages/activity/activityFilters";
+import { POSTED_STATUS_FILTERS } from "@/components/job-card/activityFilters";
 import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { transformedImageUrl } from "@/lib/imageUrl";
 import {
@@ -373,7 +373,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // state, and when the two desynced (a remount, a native resume restoring
   // `/messages?chat=1` from RouteMemory) this hid the dock over the INBOX —
   // no nav, no back button, no way out of Messages at all. The invariant is
-  // enforced in src/pages/Messages.tsx; see the contract on CHAT_OPEN_PATH in
+  // enforced in src/pages/messages/Messages.tsx; see the contract on CHAT_OPEN_PATH in
   // src/pages/messages/constants.ts before changing either side of it.
   const params = new URLSearchParams(location.search);
   if (location.pathname === "/messages" && params.has("chat")) return null;

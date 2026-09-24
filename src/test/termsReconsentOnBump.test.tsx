@@ -94,7 +94,7 @@ describe("Terms re-acceptance after the 2026-09-23 Terms change (Q210(d))", () =
 
   it("the three copies of the Terms version agree", () => {
     const edge = /export const LEGAL_TERMS_VERSION = "([^"]+)";/.exec(read("supabase/functions/_shared/legalVersions.ts"))?.[1];
-    const block = /LAST_UPDATED:\s*Record<TabKey,\s*string>\s*=\s*\{([\s\S]*?)\}/.exec(read("src/pages/legal/legalSections.ts"))?.[1] ?? "";
+    const block = /LAST_UPDATED:\s*Record<TabKey,\s*string>\s*=\s*\{([\s\S]*?)\}/.exec(read("src/pages/info/legal/legalSections.ts"))?.[1] ?? "";
     const page = /terms:\s*"([^"]+)"/.exec(block)?.[1];
     expect(edge).toBe(LATEST_TERMS_VERSION);
     expect(page).toBe(LATEST_TERMS_VERSION);
@@ -103,7 +103,7 @@ describe("Terms re-acceptance after the 2026-09-23 Terms change (Q210(d))", () =
   it("acceptances record the Privacy version, not the Terms version (Q289)", () => {
     const edge = /export const LEGAL_PRIVACY_VERSION = "([^"]+)";/.exec(read("supabase/functions/_shared/legalVersions.ts"))?.[1];
     expect(LATEST_PRIVACY_VERSION).toBe(edge);
-    for (const f of ["src/components/TermsReconsentDialog.tsx", "src/pages/CompleteProfile.tsx"]) {
+    for (const f of ["src/components/TermsReconsentDialog.tsx", "src/pages/auth/CompleteProfile.tsx"]) {
       const src = blankComments(read(f));
       expect(src, f).toMatch(/privacy_version: LATEST_PRIVACY_VERSION,/);
       expect(src, f).not.toMatch(/privacy_version: LATEST_TERMS_VERSION/);

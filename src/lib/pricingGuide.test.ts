@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from "vitest";
 import { categoryPricing, getSmartPrice } from "./pricingGuide";
-import { categoryLabels } from "@/components/activity/activityConstants";
+import { categoryLabels } from "@/components/job-card/activityConstants";
 
 describe("categoryPricing data validation", () => {
   it("includes a price entry for every category in categoryLabels", () => {

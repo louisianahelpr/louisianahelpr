@@ -77,7 +77,7 @@ no `?? ""` then `.includes()`, no unguarded `Map.get`, no null reaching a `uuid[
 parameter, no `.filter()` predicate that would empty a whole list.
 
 Two source comments are now factually wrong, which is the residue that outlives the fix:
-- `src/pages/Support.tsx:54` — "RLS + NOT NULL uuid `reporter_id`"
+- `src/pages/info/Support.tsx:54` — "RLS + NOT NULL uuid `reporter_id`"
 - `supabase/functions/contact-support/index.ts:7-8` — "`reporter_id` / `reported_id` are
   NOT NULL uuids". The `reported_id` half is still true; the `reporter_id` half is not.
 

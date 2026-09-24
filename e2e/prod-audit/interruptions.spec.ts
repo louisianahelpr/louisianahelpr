@@ -54,7 +54,7 @@
  * skip below now fires only if a test's own withdrawal failed, and the skip
  * reporter counts that as a failure.
  */
-// @mutate src/pages/postjob/useJobSubmit.ts | if (submittingRef.current \|\| saving) return null; | if (saving) return null;
+// @mutate src/pages/post-job/useJobSubmit.ts | if (submittingRef.current \|\| saving) return null; | if (saving) return null;
 import type { APIRequestContext, BrowserContext, Page } from "@playwright/test";
 import { test as base, expect } from "../prodTest";
 import { isoDayIn, pickCalendarDay } from "../calendarPicker";

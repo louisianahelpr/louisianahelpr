@@ -78,7 +78,7 @@
  *    existed and refused — see CHECK 3, which is the half aimed at that, and
  *    which is best-effort by construction.
  */
-// @mutate src/components/activity/postedJobCard/steps/posterStepContract.ts | ? "Confirm Arrival" : "Confirm They Arrived", | ? "Confirm Arrival" : "Confirm Arrival",
+// @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | ? "Confirm Arrival" : "Confirm They Arrived", | ? "Confirm Arrival" : "Confirm Arrival",
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";

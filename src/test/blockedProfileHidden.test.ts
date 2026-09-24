@@ -8,15 +8,15 @@
  * (me → them), the blocked state returns BEFORE any profile detail renders,
  * and a pending or failed block check shows loading/error, never the details.
  */
-// @mutate src/pages/UserProfile.tsx | if (blockedByMe \|\| (blockCheckPending && blockError)) { | if (false) {
-// @mutate src/pages/UserProfile.tsx | if (loading \|\| blockCheckPending) { | if (loading) {
-// @mutate src/pages/UserProfile.tsx | .eq("blocker_id", currentUserId!) | .eq("blocked_id", currentUserId!)
-// @mutate src/pages/UserProfile.tsx | const ok = await unblockUser(currentUserId, userId); | const ok = true;
+// @mutate src/pages/user/UserProfile.tsx | if (blockedByMe \|\| (blockCheckPending && blockError)) { | if (false) {
+// @mutate src/pages/user/UserProfile.tsx | if (loading \|\| blockCheckPending) { | if (loading) {
+// @mutate src/pages/user/UserProfile.tsx | .eq("blocker_id", currentUserId!) | .eq("blocked_id", currentUserId!)
+// @mutate src/pages/user/UserProfile.tsx | const ok = await unblockUser(currentUserId, userId); | const ok = true;
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const src = readFileSync(join(__dirname, "..", "pages", "UserProfile.tsx"), "utf8");
+const src = readFileSync(join(__dirname, "..", "pages", "user", "UserProfile.tsx"), "utf8");
 
 describe("a profile you blocked is hidden behind an Unblock screen", () => {
   it("reads the block from the blocker side: me → them", () => {

@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { Star } from "lucide-react";
-import { categoryColors } from "@/components/activity/activityConstants";
+import { categoryColors } from "@/components/job-card/activityConstants";
 import { getCity } from "@/lib/locationUtils";
 import { computeNet } from "@/components/dashboard/JobPrice";
 import { formatPrice, formatPriceFloor } from "@/lib/format";

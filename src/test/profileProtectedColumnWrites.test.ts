@@ -23,7 +23,7 @@
  *               payload the resolver cannot follow is UNRESOLVED and fails
  *               unless listed in KNOWN_UNRESOLVED (see PAYLOAD RESOLUTION).
  *
- * The admin surface (src/components/admin/**, src/pages/Admin*) is exempt
+ * The admin surface (src/components/admin/**, src/pages/admin/Admin*) is exempt
  * because the trigger's first line returns NEW unchanged for
  * `has_role(auth.uid(), 'admin')` — those writes land.
  *
@@ -32,7 +32,7 @@
  *
  * @mutate src/components/profile/CredentialsTab.tsx | if (kind === "license") update.license_url = path; | if (kind === "license") { update.license_url = path; update.is_licensed = true; }
  * @mutate src/components/profile/CredentialsTab.tsx | setIntent((prev) => ({ ...prev, [kind]: true })); | void supabase.from("profiles").update({ is_insured: true }).eq("user_id", userId);
- * @mutate src/pages/Profile.tsx | .update({ avatar_url: publicUrl }) | .update({ avatar_url: publicUrl, idv_status: "pending" })
+ * @mutate src/pages/profile/Profile.tsx | .update({ avatar_url: publicUrl }) | .update({ avatar_url: publicUrl, idv_status: "pending" })
  * @mutate src/components/profile/CredentialsTab.tsx | kind === "license" ? { license_url: null } : { insurance_url: null }; | kind === "license" ? { license_url: null } : { ...EMPTY, insurance_url: null };
  *
  * The last one is the Q112 hole: `EMPTY` (protected keys) is a module const

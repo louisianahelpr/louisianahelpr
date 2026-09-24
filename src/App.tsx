@@ -127,36 +127,37 @@ const TermsReconsentDialog = lazy(() =>
 );
 
 // Lazy load all pages including landing
-const Index = lazyWithPreload(() => import("./pages/Index"));
+const Index = lazyWithPreload(() => import("./pages/info/Index"));
 
 // Lazy load all other pages
-const Login = lazyWithPreload(() => import("./pages/Login"));
-const Signup = lazyWithPreload(() => import("./pages/Signup"));
-const SignupPending = lazyWithPreload(() => import("./pages/SignupPending"));
-const CompleteProfile = lazyWithPreload(() => import("./pages/CompleteProfile"));
-const AccountBanned = lazyWithPreload(() => import("./pages/AccountBanned"));
-const ForgotPassword = lazyWithPreload(() => import("./pages/ForgotPassword"));
-const ResetPassword = lazyWithPreload(() => import("./pages/ResetPassword"));
-const Dashboard = lazyWithPreload(() => import("./pages/Dashboard"));
-const Profile = lazyWithPreload(() => import("./pages/Profile"));
+const Login = lazyWithPreload(() => import("./pages/auth/Login"));
+const Signup = lazyWithPreload(() => import("./pages/auth/Signup"));
+const SignupPending = lazyWithPreload(() => import("./pages/auth/SignupPending"));
+const CompleteProfile = lazyWithPreload(() => import("./pages/auth/CompleteProfile"));
+const AccountBanned = lazyWithPreload(() => import("./pages/auth/AccountBanned"));
+const ForgotPassword = lazyWithPreload(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword = lazyWithPreload(() => import("./pages/auth/ResetPassword"));
+const Dashboard = lazyWithPreload(() => import("./pages/home/Dashboard"));
+const Profile = lazyWithPreload(() => import("./pages/profile/Profile"));
 // Lazy: it reads useAuthReady, which pulls the Supabase client.
-const PostJob = lazyWithPreload(() => import("./pages/PostJob"));
-const PaymentSuccess = lazyWithPreload(() => import("./pages/PaymentSuccess"));
-const UserProfile = lazyWithPreload(() => import("./pages/UserProfile"));
-const Admin = lazyWithPreload(() => import("./pages/Admin"));
-const Activity = lazyWithPreload(() => import("./pages/Activity"));
-const Messages = lazyWithPreload(() => import("./pages/Messages"));
+const PostJob = lazyWithPreload(() => import("./pages/post-job/PostJob"));
+const PaymentSuccess = lazyWithPreload(() => import("./pages/post-job/PaymentSuccess"));
+const UserProfile = lazyWithPreload(() => import("./pages/user/UserProfile"));
+const Admin = lazyWithPreload(() => import("./pages/admin/Admin"));
+const PostsPage = lazyWithPreload(() => import("./pages/posts/PostsPage"));
+const JobsPage = lazyWithPreload(() => import("./pages/jobs/JobsPage"));
+const Messages = lazyWithPreload(() => import("./pages/messages/Messages"));
 
-const Legal = lazyWithPreload(() => import("./pages/Legal"));
-const NotFound = lazyWithPreload(() => import("./pages/NotFound"));
-const JobDetail = lazyWithPreload(() => import("./pages/JobDetail"));
-const DashboardGuest = lazyWithPreload(() => import("./pages/DashboardGuest"));
+const Legal = lazyWithPreload(() => import("./pages/info/Legal"));
+const NotFound = lazyWithPreload(() => import("./pages/info/NotFound"));
+const JobDetail = lazyWithPreload(() => import("./pages/jobs/JobDetail"));
+const DashboardGuest = lazyWithPreload(() => import("./pages/home/DashboardGuest"));
 
 // The seven pages that used to be lazy-imported here are now Profile tabs and
 // are lazy-imported by ProfileTabPanels instead: PetProfiles, WorkRecord,
 // HomeHistory, HelprWrapped, StrSettings, HelperAnalytics, AutoTip.
-const HelpCenter = lazyWithPreload(() => import("./pages/HelpCenter"));
-const Support = lazyWithPreload(() => import("./pages/Support"));
+const HelpCenter = lazyWithPreload(() => import("./pages/info/HelpCenter"));
+const Support = lazyWithPreload(() => import("./pages/info/Support"));
 
 // Lazy load less-critical global components
 
@@ -249,8 +250,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/dashboard" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<DashboardRouteSkeleton />}><Dashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ProfileRouteSkeleton />}><Profile /></ProtectedRoute>, <ProfileRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/my-jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ActivityRouteSkeleton tab="applied" />}><Activity defaultTab="applied" /></ProtectedRoute>, <ActivityRouteSkeleton tab="applied" />)}</RouteErrorBoundary>} />
-      <Route path="/my-posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ActivityRouteSkeleton tab="posted" />}><Activity defaultTab="posted" /></ProtectedRoute>, <ActivityRouteSkeleton tab="posted" />)}</RouteErrorBoundary>} />
+      <Route path="/my-jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ActivityRouteSkeleton tab="applied" />}><JobsPage /></ProtectedRoute>, <ActivityRouteSkeleton tab="applied" />)}</RouteErrorBoundary>} />
+      <Route path="/my-posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ActivityRouteSkeleton tab="posted" />}><PostsPage /></ProtectedRoute>, <ActivityRouteSkeleton tab="posted" />)}</RouteErrorBoundary>} />
       <Route path="/payment-success" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PaymentSuccess /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />

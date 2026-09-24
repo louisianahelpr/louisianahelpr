@@ -478,8 +478,8 @@ to exercise `fileToBase64` and `signOut()` directly.
 `lib/realtimeRecovery.ts` · `lib/safeStorage.ts` · `lib/socialAuth.ts` ·
 `integrations/supabase/client.ts` · `integrations/supabase/keychainStorageAdapter.ts` ·
 `main.tsx` · `hooks/useDraftJob.ts` · `hooks/useDashboardData.ts` ·
-`pages/dashboard/useApplyFlow.ts` · `pages/dashboard/useSaveJob.ts` ·
-`pages/Signup.tsx` · `pages/signup/SignupStep2.tsx` · `components/DatePickerField.tsx` ·
+`pages/home/useApplyFlow.ts` · `pages/home/useSaveJob.ts` ·
+`pages/auth/Signup.tsx` · `pages/auth/signup/SignupStep2.tsx` · `components/DatePickerField.tsx` ·
 `components/DateWheelPicker.tsx` · all 6 `useMutation` sites · all 93 `staleTime`
 and 46 `gcTime` sites (enumerated; sampled for freshness-critical surfaces).
 

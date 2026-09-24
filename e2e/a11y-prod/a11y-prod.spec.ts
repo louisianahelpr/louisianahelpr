@@ -52,7 +52,7 @@
 // specGateEnv) because the unscoped sweep is 149 tests and does not finish
 // inside the runner's 900s budget; the axe assertion is the same at one screen
 // as at 148.
-// @mutate src/pages/Login.tsx | aria-label={showPassword ? "Hide password" : "Show password"} |
+// @mutate src/pages/auth/Login.tsx | aria-label={showPassword ? "Hide password" : "Show password"} |
 
 import { test, type Browser, type BrowserContext } from "../prodTest";
 import { ADMIN_SCREENS, ANON_SCREENS, AUTHED_SCREENS, type ScreenSpec } from "../happy-path/auditRoutes";

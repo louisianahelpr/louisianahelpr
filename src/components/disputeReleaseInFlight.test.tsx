@@ -60,7 +60,7 @@ vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn(), notifyJobPa
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null }) }));
 vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => null, PhotoProofDialog: () => null, PhotoProofRequirementNote: () => null }));
 
-import { PostedJobActions } from "./activity/postedJobCard/PostedJobActions";
+import { PostedJobActions } from "../pages/posts/postedJobCard/PostedJobActions";
 import AdminDisputes from "./admin/AdminDisputes";
 
 function doubleClick(button: HTMLElement) {
@@ -195,7 +195,7 @@ describe("dispute release — same-frame double click sends one request", () => 
 
 // THE POSTER'S GUARD. React state alone loses this race: both taps in one frame
 // read `disputeActing === false` and both release the full escrow.
-// @mutate src/components/activity/postedJobCard/PostedJobActions.tsx | if (disputeInFlight.current) return; | if (false) return;
+// @mutate src/pages/posts/postedJobCard/PostedJobActions.tsx | if (disputeInFlight.current) return; | if (false) return;
 // THE ADMIN'S GUARD, which additionally has to hold across the awaited
 // biometric prompt — `setResolving` only runs after it.
 // @mutate src/components/admin/AdminDisputes.tsx | if (resolveInFlight.current) return; | if (false) return;

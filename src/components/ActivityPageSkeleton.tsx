@@ -4,7 +4,7 @@ import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCa
 import { LoadingHeading } from "@/components/ui/LoadingHeading";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { ACTIVITY_HEADER_PADDING } from "@/pages/activity/ActivityHeader";
+import { ACTIVITY_HEADER_PADDING } from "@/components/job-card/ActivityHeader";
 
 /**
  * ONE loading silhouette for My Jobs / My Posts, shared by the route fallback

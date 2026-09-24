@@ -4,7 +4,7 @@ import {
   JOB_CARD_SHELL_RAIL,
   JOB_CARD_SHELL_TAB_SLOT,
   JOB_CARD_TITLE_PAD_WITH_TAB,
-} from "@/components/activity/JobCardShell";
+} from "@/components/job-card/JobCardShell";
 import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";
 
 /**

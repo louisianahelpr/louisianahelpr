@@ -135,7 +135,7 @@ so you can judge whether the gap belongs.
 
 **Updated 2026-08-31 — do not look for `SectionEyebrow`; it no longer exists.**
 This section used to read "`SectionEyebrow` exists in
-`src/components/activity/appliedJobCard/` precisely because these blocks need
+`src/pages/jobs/appliedJobCard/` precisely because these blocks need
 naming." That component has been deleted: `grep -rn "SectionEyebrow" src/`
 returns zero hits, and `.text-display-eyebrow` in `src/index.css` is
 `display: none` under the 2026-07-25 decision recorded there ("all eyebrows

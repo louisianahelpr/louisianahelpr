@@ -87,7 +87,7 @@ const NON_RENDERING: Record<string, string> = {
  * here MUST use a shell — that is the point of the file.
  */
 const NO_SHELL_BY_DESIGN: Record<string, string> = {
-  "Messages.tsx": "delegates entirely to ConversationList / ChatView, each of which owns a shell",
+  "messages/Messages.tsx": "delegates entirely to ConversationList / ChatView, each of which owns a shell",
 };
 
 /**
@@ -177,7 +177,7 @@ function nativeAppShellRoutes(): string[] {
  * keeps `<Profile` from also matching `<ProfileRouteSkeleton`.
  */
 function routePathsForPage(file: string): string[] {
-  const component = file.replace(/\.tsx$/, "");
+  const component = file.replace(/^.*\//, "").replace(/\.tsx$/, "");
   const mounted = new RegExp(`<${component}[\\s/>]`);
   return APP_TSX.split("\n")
     .filter((line) => line.includes("<Route path=") && mounted.test(line))
@@ -192,13 +192,26 @@ function routePathsForPage(file: string): string[] {
 const DOC_SCROLL_WRAPPER = /min-h-screen[^"'`]*bg-premium-page|bg-premium-page[^"'`]*min-h-screen/;
 
 /** Page files imported by App.tsx — i.e. the ones a user can actually reach. */
+/** Every page-folder .tsx (not tests), as a path under src/pages: "posts/PostsPage.tsx". */
+function allPageFiles(): string[] {
+  const out: string[] = [];
+  const rec = (rel: string) => {
+    for (const e of readdirSync(join(PAGES_DIR, rel), { withFileTypes: true })) {
+      const p = rel ? `${rel}/${e.name}` : e.name;
+      if (e.isDirectory()) rec(p);
+      else if (e.name.endsWith(".tsx") && !e.name.includes(".test.")) out.push(p);
+    }
+  };
+  rec("");
+  return out.sort();
+}
+
 function routedPageFiles(): string[] {
-  return readdirSync(PAGES_DIR)
-    .filter((f) => f.endsWith(".tsx") && !f.includes(".test."))
+  return allPageFiles()
     .filter((f) => {
       const name = f.replace(/\.tsx$/, "");
-      // Matches both `import X from "./pages/Name"` and the lazy form
-      // `lazyWithPreload(() => import("./pages/Name"))`.
+      // Matches both `import X from "./pages/tab/Name"` and the lazy form
+      // `lazyWithPreload(() => import("./pages/tab/Name"))`.
       return new RegExp(`pages/${name}["']`).test(APP_TSX);
     });
 }
@@ -569,13 +582,14 @@ function pageReport(file: string, doc = documentScrollRoutes()): PageReport {
   return { file, routes, returns: returns.length, shells, failures, unreadable: false };
 }
 
-// @mutate src/pages/Profile.tsx | <AppShell\n      scrollable={false} | <div\n      data-was-appshell={false}
-// @mutate src/pages/Support.tsx | <PublicHeaderPage | <div
-// @mutate src/pages/PostJob.tsx | <AppPage | <main
-// @mutate src/pages/UserProfile.tsx | min-h-screen bg-premium-page pb-safe-nav | bg-premium-page pb-safe-nav
+// @mutate src/pages/profile/Profile.tsx | <AppShell\n      scrollable={false} | <div\n      data-was-appshell={false}
+// @mutate src/pages/info/Support.tsx | <PublicHeaderPage | <div
+// @mutate src/pages/post-job/PostJob.tsx | <AppPage | <main
+// @mutate src/pages/user/UserProfile.tsx | min-h-screen bg-premium-page pb-safe-nav | bg-premium-page pb-safe-nav
 // @mutate src/components/dashboard/DashboardBlockedScreen.tsx | <AppShell reserveBottomNav={false} className="bg-premium-page"> | <div className="bg-premium-page">
 // @mutate src/hooks/useAppShellViewport.ts | const DOCUMENT_SCROLL_ROUTES = [\n | const DOCUMENT_SCROLL_ROUTES = [\n  "/profile",\n
 // @mutate src/hooks/useAppShellViewport.ts | const DOCUMENT_SCROLL_ROUTES = [\n | const DOCUMENT_SCROLL_ROUTES = [\n] as string[];\nconst _EMPTIED = [\n
+// @mutate src/pages/post-job/PostJob.tsx | import { RedirectingOverlay } from "./RedirectingOverlay"; | const RedirectingOverlay = (_: Record<string, unknown>) => null;
 
 describe("shell consistency", () => {
   /**
@@ -719,12 +733,27 @@ describe("shell consistency", () => {
   });
 
   it("no page file is left behind, importing a shell but routed by nothing", () => {
-    const all = readdirSync(PAGES_DIR).filter(
-      (f) => f.endsWith(".tsx") && !f.includes(".test."),
-    );
+    const all = allPageFiles();
     const routed = new Set(routedPageFiles());
+    // A tab folder also holds the pieces its page is built from (a panel, an
+    // overlay). Those render a shell on purpose and are reached through the page
+    // that imports them, so "reachable" is: routed, or imported by other source.
+    const imported = new Set<string>();
+    const walkSrc = (d: string) => {
+      for (const e of readdirSync(d, { withFileTypes: true })) {
+        const p = join(d, e.name);
+        if (e.isDirectory()) walkSrc(p);
+        else if (/\.tsx?$/.test(e.name) && !/\.(test|spec)\.tsx?$/.test(e.name)) {
+          for (const m of readFileSync(p, "utf8").matchAll(/(?:from\s+|import\(\s*)["']([^"']+)["']/g)) {
+            const r = resolveSpec(p, m[1]);
+            if (r && r !== p) imported.add(r);
+          }
+        }
+      }
+    };
+    walkSrc(SRC_DIR);
     const orphans = all.filter((f) => {
-      if (routed.has(f)) return false;
+      if (routed.has(f) || imported.has(join(PAGES_DIR, f))) return false;
       const src = readFileSync(join(PAGES_DIR, f), "utf8");
       // Only flag files that LOOK like pages — one that renders a shell is
       // claiming to be a screen, so an auditor will read it as live. A literal
@@ -763,7 +792,7 @@ describe("shell consistency", () => {
     // exemption nothing uses is an exemption nobody re-reads.
     const wrong: string[] = [];
     let used = 0;
-    for (const file of readdirSync(PAGES_DIR).filter((f) => f.endsWith(".tsx") && !f.includes(".test."))) {
+    for (const file of allPageFiles()) {
       const src = parseFile(join(PAGES_DIR, file));
       for (const [name, from] of Object.entries(NON_RENDERING)) {
         const spec = specifierFor(src, name);

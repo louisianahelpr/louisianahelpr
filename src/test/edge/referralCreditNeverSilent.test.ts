@@ -108,7 +108,7 @@ function clientSourceFiles(dir = SRC): string[] {
 
 /**
  * Remove // and block comments. Without this the sweep below matches the
- * long comment in `src/pages/Signup.tsx` that exists precisely to explain
+ * long comment in `src/pages/auth/Signup.tsx` that exists precisely to explain
  * why the client call was REMOVED — a guard that fires on its own fix.
  */
 function stripComments(text: string): string {

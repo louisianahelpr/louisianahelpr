@@ -1,0 +1,450 @@
+import { supabase } from "@/integrations/supabase/client";
+import { confirmConsequential } from "@/lib/toastPolicy";
+import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { unwrapMutation } from "@/lib/mutationResult";
+import { notifyJobParty } from "@/lib/notifications";
+import { report } from "@/lib/errorLogger";
+import { arrivalEstablished, arrivalGateMessage } from "@/lib/arrivalGate";
+import { toast } from "sonner";
+import { formatName } from "@/lib/utils";
+import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { safeStorage } from "@/lib/safeStorage";
+import { fireSuccessMoment } from "@/lib/successMoment";
+import { trackJobCompleted } from "@/lib/jobCompletedEvent";
+import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import type { User as SupaUser } from "@supabase/supabase-js";
+import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
+import type { OptimisticJobCache } from "./types";
+
+/**
+ * Dependencies for the in-progress → completion → review lifecycle handlers,
+ * extracted verbatim from useActivityActions. Cache helpers, per-action state
+ * setters and the parent data (postedJobs/appliedApps/helperNames/…) are
+ * passed in so every handler behaves identically to its in-hook original.
+ */
+export interface LifecycleHandlersDeps extends OptimisticJobCache {
+  user: SupaUser | null;
+  postedJobs: Job[];
+  appliedApps: AppliedApp[];
+  refresh: () => void | Promise<unknown>;
+  setStatusFilter: (filter: string) => void;
+  helperNames: Record<string, string>;
+  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
+  setCompletingJobId: Dispatch<SetStateAction<string | null>>;
+  setReportingNoShow: (v: boolean) => void;
+  setNoShowJobId: (id: string | null) => void;
+  setCancelDialogJob: (job: Job | null) => void;
+  setCompletionPromptJob: (v: { job: Job; revieweeId: string; revieweeName: string } | null) => void;
+  setReviewTarget: (v: { id: string; name: string } | null) => void;
+  setReviewJob: (job: Job | null) => void;
+  setConfirmingArrivalJobId: (id: string | null) => void;
+  setConfirmingWorkingJobId: (id: string | null) => void;
+  /**
+   * Synchronous in-flight guard for completeJob (release payment). Lives in
+   * the calling hook because this factory is re-created every render;
+   * `completingJobId` is state, so two taps in one frame both read null.
+   */
+  completeInFlight: MutableRefObject<Set<string>>;
+}
+
+export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
+  const {
+    user,
+    postedJobs,
+    appliedApps,
+    refresh,
+    setStatusFilter,
+    helperNames,
+    completedJobMeta,
+    optimisticallyPatchJob,
+    rollbackActivity,
+    setCompletingJobId,
+    setReportingNoShow,
+    setNoShowJobId,
+    setCancelDialogJob,
+    setCompletionPromptJob,
+    setReviewTarget,
+    setReviewJob,
+    setConfirmingArrivalJobId,
+    setConfirmingWorkingJobId,
+    completeInFlight,
+  } = deps;
+
+  const tryCancelJob = async (job: Job) => {
+    const { data: tracking, error: trackingErr } = await supabase.from("job_tracking").select("status").eq("job_id", job.id).order("created_at", { ascending: false }).limit(1);
+    // Fail CLOSED: if we can't read the tracking status we cannot prove the
+    // Helpr isn't already en route/working, so block the cancel rather than
+    // silently letting a false-negative through (the guard is the only thing
+    // stopping a poster cancelling a job the Helpr has already started).
+    if (trackingErr) {
+      report(trackingErr, { tags: { area: "activity", op: "tryCancelJob.trackingRead" }, context: { jobId: job.id } });
+      hapticError();
+      toast.error("We couldn't check this job's status. Please try again in a moment.", { duration: 5000 });
+      return;
+    }
+    const trackingStatus = tracking?.[0]?.status;
+    if (trackingStatus && ["on_the_way", "arrived", "working", "done"].includes(trackingStatus)) {
+      hapticError();
+      toast.error("This job can't be cancelled — the Helpr is already on the way or working.", { duration: 5000 });
+      return;
+    }
+    setCancelDialogJob(job);
+  };
+
+  const completeJob = async (jobId: string) => {
+    // Same-frame double tap: both calls share one render's closure, so only
+    // the ref sees the first. Cleared in `finally` below.
+    if (completeInFlight.current.has(jobId)) return;
+    completeInFlight.current.add(jobId);
+    setCompletingJobId(jobId);
+    try {
+      const isHelper = appliedApps.some(a => a.job_id === jobId && a.helper_id === user?.id);
+      if (isHelper) {
+        const job = appliedApps.find(a => a.job_id === jobId)?.job;
+        if (job) {
+          // ARRIVAL, not a second proximity check.
+          //
+          // This used to re-run a live 500ft GPS check at wrap-up time, with a
+          // fallback that read `job_checkins` — a table nothing in the app has
+          // ever written (0 rows in prod). So the fallback could never fire,
+          // and a helper who had walked back to their van, or was inside a
+          // metal building, was hard-blocked from the write that gets them
+          // paid — and pointed at a "Check In with Photo" control that does
+          // not exist anywhere in the codebase.
+          //
+          // Stepping away at the END of a job is normal and is not evidence of
+          // fraud. What matters is that they WERE there, which the arrival
+          // ladder records at the moment it was true: server-verified GPS AND
+          // the poster's "Confirm They Arrived" — both, since VN-33 (owner,
+          // 2026-09-14; see arrivalGate.ts). The same rule is enforced by
+          // enforce_helper_completion_gates and create-payment's release, so
+          // this is the message, not the gate.
+          const { data: arrivalRow, error: arrivalErr } = await supabase
+            .from("jobs")
+            .select("helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, helper_arrival_near_miss_at")
+            .eq("id", jobId)
+            .single();
+          // Fails CLOSED (read error → can't prove arrival → block), but never
+          // silently: surface it so a transient failure that's wrongly
+          // blocking a legit completion is traceable.
+          if (arrivalErr) {
+            report(arrivalErr, { tags: { area: "activity", op: "completeJob.arrivalRead" }, context: { jobId } });
+          }
+          if (!arrivalEstablished(arrivalRow)) {
+            hapticError();
+            toast.error(arrivalGateMessage(arrivalRow), { duration: 8000 });
+            return;
+          }
+
+          // ONE shared proof rule (photoProofPolicy): before & after photos
+          // on every job — the same predicate the payout CTA and the
+          // tracker's Done step enforce. This re-check used to require only
+          // after-photos on $50+ jobs, a third variant of the rule that let
+          // a completion slip through a gate the buttons claimed to hold.
+          {
+            const { data: jobData, error: proofErr } = await supabase
+              .from("jobs")
+              .select("proof_before_urls, proof_after_urls")
+              .eq("id", jobId)
+              .single();
+            // Fails CLOSED (read error → treated as missing proof → block the
+            // completion), but report it so the failure isn't invisible.
+            if (proofErr) {
+              report(proofErr, { tags: { area: "activity", op: "completeJob.proofRead" }, context: { jobId } });
+            }
+            if (!hasRequiredProof(job, jobData?.proof_before_urls, jobData?.proof_after_urls)) {
+              hapticError();
+              toast.error(requiredProof(job).reason, { duration: 6000 });
+              return;
+            }
+          }
+        }
+      }
+      const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      // Idempotent replay guard: a duplicate release (double tap, retry after
+      // a lost response, a second device) answers with `alreadyReleased` or
+      // `alreadyConfirmed` — see the `alreadyDone` early-return in
+      // supabase/functions/create-payment/index.ts's release action, whose
+      // response also sets `bothDone: true` when `alreadyReleased` so old
+      // clients (checking bothDone alone) still see success. Checking those
+      // fields FIRST, before the bothDone branch, stops this call from
+      // replaying the confetti / success-moment / tip prompt for a
+      // completion that already fired them on the ORIGINAL call.
+      if (data?.alreadyReleased || data?.alreadyConfirmed) {
+        await refresh();
+        return;
+      }
+      if (data?.bothDone) {
+        // Analytics (Q222): this release completed the job. Once per job.
+        trackJobCompleted(jobId, data, "activity", user?.id);
+        hapticSuccess();
+        // Premium checkmark beat on every completion (self-respects reduced
+        // motion). The brand confetti below is the *extra* novelty for the
+        // first 3 completions only — the two layers don't conflict (centered
+        // check vs. raining particles), so this isn't a double-fire.
+        fireSuccessMoment({ label: "Job completed" });
+        // Brand-tinted confetti for the first 3 completed jobs — fades to
+        // silent after to avoid noise on regulars.
+        const { maybeCelebrate } = await import("@/lib/celebrate");
+        void maybeCelebrate("first_complete", { particleCount: 120 });
+        await refresh();
+        setStatusFilter("completed");
+
+        // Tip-after-completion prompt — only for the poster (customer) side.
+        // Gate on per-job relationship: the poster is the one who isn't the
+        // helper on this job. Also suppress if a tip was already recorded
+        // for this job (e.g. tipped earlier via the Tip button on the card).
+        const isPoster = !isHelper;
+        const alreadyTipped = completedJobMeta[jobId]?.tipped === true;
+        if (isPoster && !alreadyTipped) {
+          const postedJob = postedJobs.find((j) => j.id === jobId);
+          if (postedJob?.helper_id) {
+            const helperName = helperNames[postedJob.helper_id] || "your Helpr";
+            hapticLight();
+            setCompletionPromptJob({
+              job: postedJob,
+              revieweeId: postedJob.helper_id,
+              revieweeName: helperName,
+            });
+          }
+        }
+
+        // Home-autopilot reminder write removed 2026-09-04 — cut, not
+        // fixed. `home_maintenance_reminders` had exactly one writer (this
+        // block) and zero readers anywhere in src/ or supabase/functions/:
+        // nothing was ever going to notify a poster their re-booking
+        // window had arrived. The table is dropped (migration
+        // 20260904034410). If a real re-booking-reminder feature gets
+        // built later, it needs a reader (a sweep + notification) written
+        // alongside the write, not a write that has been accumulating
+        // silent rows on its own since before this comment.
+      } else {
+        hapticMedium();
+        await refresh();
+        // One-time Instant Release offer (owner, 2026-08-24): the toggle
+        // lives on the Auto-Tip page where nobody stumbles onto it — the
+        // moment adoption actually happens is right after a poster's second
+        // smooth approval. Offered once, tracked locally; every guard fails
+        // toward silence (a missed offer costs nothing, a nagging one does).
+        try {
+          const OFFER_KEY = "helpr_instant_release_offered";
+          if (user?.id && !safeStorage.getItem(OFFER_KEY)) {
+            const [{ count }, { data: prof }] = await Promise.all([
+              supabase.from("jobs").select("id", { count: "exact", head: true })
+                .eq("customer_id", user.id).eq("status", "completed"),
+              supabase.from("profiles").select("auto_release_on_complete")
+                .eq("user_id", user.id).maybeSingle(),
+            ]);
+            if ((count ?? 0) >= 2 && !prof?.auto_release_on_complete) {
+              safeStorage.setItem(OFFER_KEY, new Date().toISOString());
+              toast("Enjoying smooth jobs?", {
+                description:
+                  "Turn on Instant Release and payment goes out the moment your Helpr marks done with photo proof — no 24-hour wait.",
+                duration: 10_000,
+                action: { label: "Turn It On", onClick: () => { window.location.href = "/profile?tab=auto_tip"; } },
+              });
+            }
+          }
+        } catch {
+          // Non-fatal — the perk offer is a nice-to-have.
+        }
+      }
+    } catch {
+      hapticError();
+      toast.error("We couldn't mark this job complete — please try again.");
+    } finally {
+      completeInFlight.current.delete(jobId);
+      setCompletingJobId((cur) => (cur === jobId ? null : cur));
+    }
+  };
+
+  const resolveRevision = async (jobId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "resolve_revision", jobId } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      hapticSuccess();
+      toast("Revision marked as fixed");
+      refresh();
+    } catch { hapticError(); toast.error("We couldn't resolve that revision — please try again."); }
+  };
+
+
+  const confirmArrival = async (jobId: string) => {
+    setConfirmingArrivalJobId(jobId);
+    try {
+      // Optimistic: mark arrival confirmed on the card right away.
+      const arrivedAt = new Date().toISOString();
+      const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_arrival_at: arrivedAt });
+      try {
+        unwrapMutation(
+          await supabase.from("jobs").update({ poster_confirmed_arrival_at: arrivedAt }).eq("id", jobId).select("id"),
+          {
+            action: "confirm arrival",
+            rejectedMessage: "We couldn't confirm arrival — this job may have already been cancelled. Pull to refresh.",
+            context: { jobId },
+          },
+        );
+      } catch (err) {
+        rollbackActivity(snapshot);
+        hapticError();
+        toast.error(lifecycleErrorMessage(err) ?? "We couldn't confirm arrival just now — please try again.");
+        return;
+      }
+      const job = postedJobs.find(j => j.id === jobId);
+      if (job?.helper_id) {
+        // Server-built copy (Q223).
+        await notifyJobParty({ user_id: job.helper_id, job_id: job.id, template: "arrival_confirmed" });
+      }
+      hapticSuccess();
+      toast.success("Arrival confirmed!");
+      refresh();
+    } finally {
+      setConfirmingArrivalJobId(null);
+    }
+  };
+
+  const confirmWorking = async (jobId: string) => {
+    setConfirmingWorkingJobId(jobId);
+    try {
+      // Optimistic: mark "helpr working" confirmed on the card right away.
+      const workingAt = new Date().toISOString();
+      const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_working_at: workingAt });
+      try {
+        unwrapMutation(
+          await supabase.from("jobs").update({ poster_confirmed_working_at: workingAt }).eq("id", jobId).select("id"),
+          {
+            action: "confirm the Helpr is working",
+            rejectedMessage: "We couldn't confirm that — this job may have already been cancelled. Pull to refresh.",
+            context: { jobId },
+          },
+        );
+      } catch (err) {
+        rollbackActivity(snapshot);
+        hapticError();
+        toast.error(lifecycleErrorMessage(err) ?? "We couldn't confirm that just now — please try again.");
+        return;
+      }
+      const job = postedJobs.find(j => j.id === jobId);
+      if (job?.helper_id) {
+        // Server-built copy (Q223).
+        await notifyJobParty({ user_id: job.helper_id, job_id: job.id, template: "work_confirmed" });
+      }
+      hapticSuccess();
+      toast.success("Work confirmed!");
+      refresh();
+    } finally {
+      setConfirmingWorkingJobId(null);
+    }
+  };
+
+  const handleNoShow = async (jobId: string) => {
+    if (!user) return;
+    setReportingNoShow(true);
+    try {
+      const job = postedJobs.find((j) => j.id === jobId);
+      if (!job?.helper_id) {
+        // A BARE RETURN HERE LOOKED LIKE SUCCESS. The `finally` below closes
+        // the confirm dialog either way, so "Confirm No-Show" dismissed the
+        // sheet and did nothing at all — no write, no toast, no clue. The
+        // usual cause is a stale list (the helper was unassigned, or this card
+        // is from a previous fetch), which a refresh fixes, so say that.
+        hapticError();
+        toast.error("We couldn't find the Helpr on this job — pull to refresh and try again.");
+        return;
+      }
+      const helperId = job.helper_id;
+
+      // Atomic via the report_helper_no_show RPC (migration 20260518140000,
+      // latest 20260831183302): it locks the job row FOR UPDATE, re-checks the
+      // caller is the poster, records the violation, runs the shared
+      // consequence ladder, and reopens the job in ONE transaction — so the
+      // consequence can never be left half-applied. There is
+      // deliberately no client-side multi-step fallback: a browser cannot roll
+      // back writes already committed, so the only correct path is the
+      // server-side transaction. On ANY RPC error we fail closed (no partial
+      // side effects) rather than re-implementing the escalation client-side.
+      const { data: rpcData, error: rpcError } = await supabase.rpc("report_helper_no_show", {
+        p_job_id: jobId,
+      });
+      if (rpcError) {
+        report(rpcError, { tags: { area: "activity", op: "handleNoShow.rpc" }, context: { jobId, helperId } });
+        hapticError();
+        // The RPC's preconditions (funded job, start time passed, one report
+        // per job) are things the poster can act on, so say which one stopped
+        // them. "Please try again" was actively wrong advice for a guard that
+        // will keep refusing until the start time passes.
+        toast.error(
+          rpcErrorMessage("report_helper_no_show", rpcError) ?? "Couldn't report the no-show — please try again.",
+        );
+        return;
+      }
+      // RPC returns a Json blob (typed as `Json` in the generated types);
+      // narrow to the shape the RPC emits before reading fields.
+      const actionTaken = ((rpcData ?? {}) as { action?: string }).action ?? "warning";
+
+      // Which rung did the RPC actually reach? Migration 20260831183302 moved
+      // the top rung: a second no-show (from a DIFFERENT poster) is now a
+      // REVERSIBLE 7-day restriction plus admin review — the same terminal rung
+      // every other ladder uses — not an automatic permanent ban.
+      //
+      // "permanent_ban" is still handled, and deliberately: between this bundle
+      // shipping and db-deploy.yml applying that migration, the old RPC can
+      // still return it. Describing a real, irreversible ban as "under review"
+      // would be the worse lie, so each string says exactly what happened.
+      const restricted = actionTaken === "pending_ban_review";
+      const legacyBanned = actionTaken === "permanent_ban";
+      // Notifications (best-effort) — shared by every path.
+      // Server-built copy (Q223): the rung is read from the user_violations
+      // row report_helper_no_show just wrote, never from this client.
+      await notifyJobParty({ user_id: helperId, job_id: job.id, template: "no_show_reported" });
+      // No client admin fan-out (Q308): create-notification refuses a
+      // non-admin sending to an admin, so the old per-admin loop here never
+      // delivered. report_helper_no_show pages the ban review itself.
+      // Success feedback, in the same shape confirmArrival/confirmWorking use.
+      // This handler pulls the consequence ladder — a final warning, or a
+      // 7-day restriction pending admin review on the second report — and said
+      // nothing when it landed, so the loudest action on the card was also the
+      // only silent one. The message names which rung the RPC actually reached
+      // rather than a generic "done".
+      hapticSuccess();
+      confirmConsequential(
+        legacyBanned
+          ? "No-show reported — this Helpr has been banned for repeated no-shows."
+          : restricted
+            ? "No-show reported — the Helpr is restricted for 7 days while an admin reviews it, and your job is open again."
+            : "No-show reported — the Helpr has been warned and your job is open again.",
+      );
+      refresh();
+    } catch { hapticError(); toast.error("We couldn't report the no-show just now — please try again."); }
+    finally { setReportingNoShow(false); setNoShowJobId(null); }
+  };
+
+  const openReviewForPosted = async (job: Job) => {
+    if (!job.helper_id) return;
+    // The helper's NAME comes from `helperNames`, which useActivityData
+    // already loaded through the safe-profiles RPC for every assigned helper
+    // on this tab. This used to call fetchProfile(job.helper_id) — a direct
+    // `profiles` read — and RLS returns ZERO rows for another user's profile
+    // (reproduced live 2026-09-07 as the poster: `profiles?user_id=eq.<helper>`
+    // → `[]`), so every poster's review opened as "Rate Helpr." while the Tip
+    // dialog beside it said "Send a tip to Hallie H." The fallback stays for a
+    // helper the map genuinely does not know.
+    const name = helperNames[job.helper_id] || formatName(null, "Helpr");
+    setReviewTarget({ id: job.helper_id, name });
+    setReviewJob(job);
+  };
+
+  return {
+    tryCancelJob,
+    completeJob,
+    resolveRevision,
+    confirmArrival,
+    confirmWorking,
+    handleNoShow,
+    openReviewForPosted,
+  };
+}

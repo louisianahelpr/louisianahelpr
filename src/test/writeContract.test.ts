@@ -4,7 +4,7 @@ import { join } from "node:path";
 // defect class this guard exists for. The second disables the engine's
 // unknown-column check, which is what the "each check can fail" block below
 // pins.
-// @mutate src/pages/dashboard/useSaveJob.ts | .upsert({ user_id: userId, job_id: jobId } | .upsert({ user_id: userId, jobb_id: jobId }
+// @mutate src/pages/home/useSaveJob.ts | .upsert({ user_id: userId, job_id: jobId } | .upsert({ user_id: userId, jobb_id: jobId }
 // @mutate scripts/audit/write-contract.sql | cg.privilege_type in ('INSERT', 'UPDATE', 'SELECT') | cg.privilege_type in ('INSERT', 'UPDATE')
 // @mutate scripts/audit/write-contract.mjs | if (!col) { reject("unknown_column" | if (!col) { if (false) reject("unknown_column"
 import { describe, it, expect } from "vitest";

@@ -286,7 +286,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
      *
      * This is the same fixture the countdown leg below is UNCOVERED for, and
      * it is asserted here rather than left implicit, because the rule is what
-     * takes that leg away. `jobIsUnfundedDraft` (src/pages/activity/
+     * takes that leg away. `jobIsUnfundedDraft` (src/components/job-card/
      * activityFilters.ts) drops payment_status unpaid/abandoned/failed on an
      * OPEN job out of `postedJobs` at the source — list AND tab counts — and
      * `useUnpaidJobDrafts` is the route back to paying for it. Every job this

@@ -1,6 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { Check, Sparkles } from "lucide-react";
-import { categoryColors } from "@/components/activity/activityConstants";
+import { categoryColors } from "@/components/job-card/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { categories } from "./detailsSectionConstants";
 

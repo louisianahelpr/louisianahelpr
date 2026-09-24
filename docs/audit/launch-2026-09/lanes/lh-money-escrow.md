@@ -433,9 +433,9 @@ highest-trust first:
 7. **ME-015, ME-013, ME-011, ME-014, ME-008, ME-009, ME-010, ME-004, ME-012, ME-017.**
 
 **Territory note:** every fix above is inside this lane's files (`supabase/functions/*` money
-paths, `src/components/TipDialog.tsx`, `src/pages/postjob/*`, `src/components/activity/*`). None
+paths, `src/components/TipDialog.tsx`, `src/pages/post-job/*`, `src/components/activity/*`). None
 touches `src/index.css`, `AppShell.tsx`, `App.tsx`, or `src/components/ui/*`. **ME-006 touches
-`src/pages/legal/TermsSection.tsx`**, which is legal copy — I will not change a binding fee
+`src/pages/info/legal/TermsSection.tsx`**, which is legal copy — I will not change a binding fee
 disclosure without the owner's chosen wording, regardless of plan-mode status.
 
 Per PROTOCOL §1, anything touching money gets `lh-silent-failure` and `lh-authz-rls` run
@@ -488,7 +488,7 @@ grep -rn "createFromCalculation\|tax\.transactions" supabase/ src/
 
 # ME-006 timeline: fee 2026-07-04, contradicting Terms sentence 2026-08-19
 git log -1 --format='%h %ad %s' --date=short -L 816,816:supabase/functions/create-payment/index.ts
-git log -1 --format='%h %ad %s' --date=short -L 132,132:src/pages/legal/TermsSection.tsx
+git log -1 --format='%h %ad %s' --date=short -L 132,132:src/pages/info/legal/TermsSection.tsx
 ```
 
 Live Stripe objects (read-only, account `acct_1RQbAfKp2H4b7tEC`): PaymentIntent

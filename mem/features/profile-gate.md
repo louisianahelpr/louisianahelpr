@@ -19,7 +19,7 @@ type: feature
 
 Plus runtime acceptance of platform rules / terms / privacy on `/complete-profile`.
 
-**UI**: `src/pages/CompleteProfile.tsx` shows a live checklist card (green check / red X) above the form. Submit button is disabled until every item is satisfied; label flips between "Complete all items above" and "Enter app".
+**UI**: `src/pages/auth/CompleteProfile.tsx` shows a live checklist card (green check / red X) above the form. Submit button is disabled until every item is satisfied; label flips between "Complete all items above" and "Enter app".
 
 **Fresh data**: The gate consumes `useCurrentUser` which uses React Query (30s staleTime) plus a realtime postgres_changes subscription on the user's own `profiles` row, so uploading an ID or saving the bio opens the gate without a manual reload.
 

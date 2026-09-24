@@ -83,7 +83,7 @@
       "node scripts/check-surface-owners.mjs",
       "node scripts/check-dead-links.mjs"
     ],
-    "src/pages/postjob/EntryChoice.tsx": [
+    "src/pages/post-job/EntryChoice.tsx": [
       "node scripts/check-surface-owners.mjs"
     ],
     "src/pages/profile/types.ts": [

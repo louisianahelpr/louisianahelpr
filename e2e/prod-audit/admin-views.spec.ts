@@ -2,7 +2,7 @@
  * Every /admin?view=* renders on PROD, as the admin-e2e account, at 375,
  * without ANY error screen: no route or app crash, no "couldn't load" data
  * failure, no "couldn't verify your access" gate. The view list is parsed from
- * the `View` union in src/pages/Admin.tsx, so a new view is checked the day it
+ * the `View` union in src/pages/admin/Admin.tsx, so a new view is checked the day it
  * is added.
  *
  * Origin (2026-09-12): the mocked visual sweep captured "This page hit a
@@ -23,9 +23,9 @@ import { findErrorScreen, readScreenText } from "../errorScreens";
 import { isStorageSignPath } from "../readRpc";
 import { isConsentAcceptance, newUserContext, sessionFor, settle, SUPABASE_URL } from "./harness";
 
-function adminViews(src = readFileSync(join(process.cwd(), "src/pages/Admin.tsx"), "utf8")): string[] {
+function adminViews(src = readFileSync(join(process.cwd(), "src/pages/admin/Admin.tsx"), "utf8")): string[] {
   const m = /type View\s*=\s*([^;]+);/.exec(src);
-  if (!m) throw new Error("Could not find `type View` in src/pages/Admin.tsx");
+  if (!m) throw new Error("Could not find `type View` in src/pages/admin/Admin.tsx");
   return [...m[1].matchAll(/"([a-z_]+)"/g)].map((x) => x[1]);
 }
 
@@ -74,7 +74,7 @@ function adminRpcNames(): string[] {
     }
   };
   walk(join(process.cwd(), "src/components/admin"));
-  files.push(join(process.cwd(), "src/pages/Admin.tsx"));
+  files.push(join(process.cwd(), "src/pages/admin/Admin.tsx"));
   const names = new Set<string>();
   for (const f of files) {
     const src = readFileSync(f, "utf8");

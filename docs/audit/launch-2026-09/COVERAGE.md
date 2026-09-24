@@ -4,10 +4,10 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: node scripts/audit-coverage.mjs -->
 
-Generated from findings.jsonl as of its newest entry: 2026-09-24T08:44:55.427Z
+Generated from findings.jsonl as of its newest entry: 2026-09-24T08:59:41.672Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 39 open (3 open launch blockers), 322 fixed, 1 wontfix, 22 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
+- **Findings:** 38 open (3 open launch blockers), 323 fixed, 1 wontfix, 22 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
 - **Surface:** 1038 auditable surfaces (450 navigable, 588 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
@@ -26,7 +26,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 2 | `lh-edge-functions` | REPORTED | 0 | – | 15 |
 | 2 | `lh-webkit-differ` | REPORTED | 0 | – | 1 |
 | 3 | `lh-cron-jobs` | REPORTED | 4 | – | 7 |
-| 3 | `lh-money-escrow` | REPORTED | 7 | – | 17 |
+| 3 | `lh-money-escrow` | REPORTED | 6 | – | 18 |
 | 3 | `lh-native-bridge` | REPORTED | 2 | **2** | 18 |
 | 4 | `lh-build-release` | REPORTED | 1 | – | 14 |
 | 4 | `lh-onboarding-auth` | REPORTED | 3 | – | 13 |

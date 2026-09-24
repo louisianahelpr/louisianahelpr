@@ -62,7 +62,6 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
     setLightboxIndex(null);
     setViewerAppPosition(null);
     setViewerUserId(null);
-    setPosterCancelRate(null);
     setDescExpanded(false);
   }, [job?.id]);
 

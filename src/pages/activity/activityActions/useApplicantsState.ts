@@ -1,10 +1,12 @@
 import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchRatingStats } from "@/lib/reviewStats";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import type { Job, EnrichedApplication } from "@/components/activity/activityConstants";
+import { applicantSignalHelperIds, prefetchApplicantSignals } from "@/components/activity/postedJobs/useApplicantSignals";
 
 /**
  * Applicant loading + enrichment state for the Activity page, extracted
@@ -16,6 +18,7 @@ import type { Job, EnrichedApplication } from "@/components/activity/activityCon
  * (declineApplication, confirmAcceptWithDeadline) can patch the same lists.
  */
 export function useApplicantsState(user: SupaUser | null) {
+  const queryClient = useQueryClient();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<EnrichedApplication[]>([]);
   const [applicationsLoading, setApplicationsLoading] = useState(false);
@@ -38,6 +41,11 @@ export function useApplicantsState(user: SupaUser | null) {
     if (appsError) throw appsError;
     if (apps && apps.length > 0) {
       const helperIds = apps.map((a) => a.helper_id);
+      // The panel's ranking signals (5 RPCs) need only the helper ids, so they
+      // start NOW, in parallel with the profiles read below — not after this
+      // function returns and the panel mounts, which made them a fourth
+      // round trip on every open (Q239, 2.52s tap-to-rows at 3G).
+      prefetchApplicantSignals(queryClient, applicantSignalHelperIds(apps), jobId);
       const [profilesRes, reviewStatsMap, availabilityRes] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
         fetchRatingStats(helperIds),

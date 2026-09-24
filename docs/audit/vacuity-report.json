@@ -1,11 +1,8 @@
 {
-  "generated": "2026-09-24T04:20:04.331Z",
-  "guards": 910,
-  "registered": 908,
-  "unregistered": [
-    "src/test/dashboardCountNeverOverstates.test.ts",
-    "src/test/uiSweepScheduledDark.test.ts"
-  ],
+  "generated": "2026-09-24T04:34:16.488Z",
+  "guards": 911,
+  "registered": 911,
+  "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/activity/appliedJobCard/helperDisputeCopy.test.tsx",

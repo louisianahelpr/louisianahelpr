@@ -550,11 +550,11 @@ describe("high-risk mutations can observe their own row count", () => {
       "the update/delete scanner matched (almost) no risk write in all of src/ — " +
         "the member regexes, argListOpen or fromTable stopped matching real PostgREST chains, " +
         "so every assertion above is passing over an empty list.",
-    ).toBeGreaterThanOrEqual(29); // 34 -> 29 (2026-09-23, Q304): the five admin profiles.ban_status writes moved to the admin-user-actions edge function.
+    ).toBeGreaterThanOrEqual(27); // 34 -> 29 (2026-09-23, Q304): the five admin profiles.ban_status writes moved to the admin-user-actions edge function. 29 -> 27 (2026-09-24, Q346): the dormant direct-hire fallback in useOfferHandlers (jobs + applications UPDATE) was removed.
 
     // Both verbs must still be reachable: a delete-side rot is invisible if
     // only the update total is floored.
-    expect(riskWrites.filter((h) => h.kind === "update").length).toBeGreaterThanOrEqual(20); // 25 -> 20, Q304 (see above)
+    expect(riskWrites.filter((h) => h.kind === "update").length).toBeGreaterThanOrEqual(18); // 25 -> 20, Q304; 20 -> 18, Q346 (see above)
     expect(riskWrites.filter((h) => h.kind === "delete").length).toBeGreaterThanOrEqual(7);
   });
 

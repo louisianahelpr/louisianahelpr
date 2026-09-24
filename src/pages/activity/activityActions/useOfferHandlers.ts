@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { unwrapMutation } from "@/lib/mutationResult";
 import { notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
@@ -225,83 +224,34 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         });
 
     if (error) {
-      const msg = String(error?.message ?? "");
-      // If the RPC isn't deployed yet (migration not applied to this
-      // environment), fall back to a status-guarded direct update so the
-      // accept flow still works. `UPDATE jobs ... WHERE status = 'open'`
-      // is atomic per row, so a second concurrent accept matches zero
-      // rows and is rejected — double-booking is still prevented, just
-      // without the RPC's explicit lock. This branch goes dormant the
-      // moment the migration lands and the RPC starts succeeding.
-      const rpcMissing =
-        String(error?.code ?? "") === "PGRST202" ||
-        /could not find the function|does not exist|schema cache/i.test(msg);
-      // The legacy fallback below is single-helper only: it sets
-      // status='accepted' outright, which on a group job would close the
-      // posting after ONE slot and strand the remaining helpers. Never run it
-      // for a group job — surface the error instead and wait for the migration.
-      if (rpcMissing && isGroupJob) {
-        rollbackActivity(snapshot);
-        hapticError();
-        throw new Error("Group job acceptance isn't available yet — please try again shortly.");
-      }
-      if (rpcMissing) {
-        const { data: jobRows, error: jobErr } = await supabase
-          .from("jobs")
-          .update({ status: "accepted", helper_id: deadlineDialogApp.helper_id, response_deadline: deadline })
-          .eq("id", selectedJob.id)
-          .eq("status", "open")
-          .select("id");
-        if (jobErr || !jobRows || jobRows.length === 0) {
-          rollbackActivity(snapshot);
-          hapticError();
-          throw new Error("This job is no longer open — it may already be assigned.");
-        }
-        // .select("id"): the job row is already flipped to `accepted` by this
-        // point. If this second write silently matches nothing the applicant
-        // keeps seeing "pending" for a job that is theirs — so treat a zero-row
-        // result exactly like an error and roll the whole thing back.
-        try {
-          unwrapMutation(
-            await supabase
-              .from("applications")
-              .update({ status: "accepted", ...(initialMessage ? { offer_message: initialMessage } : {}) })
-              .eq("id", deadlineDialogApp.id)
-              .select("id"),
-            {
-              action: "send this offer",
-              context: { applicationId: deadlineDialogApp.id, jobId: selectedJob.id },
-            },
-          );
-        } catch {
-          rollbackActivity(snapshot);
-          hapticError();
-          throw new Error("Couldn't send the offer — please try again.");
-        }
-      } else {
-        rollbackActivity(snapshot);
-        hapticError();
-        // The server-side acceptance gate (trigger jobs_award_gate) refusing
-        // THIS applicant. The poster can do nothing about someone else's Stripe
-        // account, so name the situation plainly rather than offering them a
-        // fix that isn't theirs to make. The applicant card also carries this
-        // as a "Can't be hired yet" chip, so reaching here should be rare.
-        const blocked = awardBlockFromError(error);
-        if (blocked) {
-          throw new Error(
-            posterAwardBlockMessage(
-              blocked,
-              deadlineDialogApp.profiles?.full_name ?? undefined,
-            ),
-          );
-        }
+      // No direct-UPDATE fallback, on purpose. There used to be one for a
+      // not-yet-deployed RPC (PGRST202) that wrote jobs.status='accepted' and
+      // jobs.helper_id straight from the client: a hire with none of the RPC's
+      // checks (an application exists, nobody is blocked, the row lock). The
+      // hire RPCs are the only way to hire (trg_hire_columns_rpc_only,
+      // 20260924042503, Q346), so the database refuses that write anyway.
+      rollbackActivity(snapshot);
+      hapticError();
+      // The server-side acceptance gate (trigger jobs_award_gate) refusing
+      // THIS applicant. The poster can do nothing about someone else's Stripe
+      // account, so name the situation plainly rather than offering them a
+      // fix that isn't theirs to make. The applicant card also carries this
+      // as a "Can't be hired yet" chip, so reaching here should be rare.
+      const blocked = awardBlockFromError(error);
+      if (blocked) {
         throw new Error(
-          (isGroupJob
-            ? rpcErrorMessage("accept_group_application", error)
-            : rpcErrorMessage("accept_application", error)) ??
-            "Couldn't send the offer — please try again.",
+          posterAwardBlockMessage(
+            blocked,
+            deadlineDialogApp.profiles?.full_name ?? undefined,
+          ),
         );
       }
+      throw new Error(
+        (isGroupJob
+          ? rpcErrorMessage("accept_group_application", error)
+          : rpcErrorMessage("accept_application", error)) ??
+          "Couldn't send the offer — please try again.",
+      );
     }
     // `?job=`, not `?filter=offered`: `offered` is a legacy filter key with no
     // chip in the five-bucket strip, so the helper landed on a filtered list

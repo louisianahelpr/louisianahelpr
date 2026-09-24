@@ -28,7 +28,6 @@ import { join } from "node:path";
 const KNOWN_NO_FK: Record<string, string> = {
   admin_user_notes: "purge deletes; FK pending Q331",
   analytics_events: "purge anonymises (nullable); FK SET NULL pending Q331",
-  broadcast_dismissals: "purge deletes; FK pending Q331",
   email_tracking: "purge deletes; FK pending Q331",
   error_logs: "purge anonymises (nullable); FK SET NULL pending Q331",
   fraud_flags: "purge deletes; FK pending Q331",
@@ -76,7 +75,7 @@ describe("every user_id table has a foreign key or a stated reason (Q282)", () =
   // Inventory, EXACT (Q339): the scanner must still see every public table
   // with a user_id uuid column. Live information_schema agreed on 2026-09-24.
   it("scans the whole user_id inventory", () => {
-    expect(scanned.length).toBe(34);
+    expect(scanned.length).toBe(33);
   });
   it("no user_id table without a FK is missing from KNOWN_NO_FK", () => {
     expect(missing.filter((t) => !(t in KNOWN_NO_FK))).toEqual([]);

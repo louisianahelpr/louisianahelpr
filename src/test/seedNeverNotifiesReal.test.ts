@@ -231,8 +231,6 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   "ts:supabase/functions/weekly-helper-report/index.ts#1": "own weekly stats",
   "ts:src/components/admin/adminusers/useAdminUserActions.ts#1": "own ban lifted (admin actor, never seed)",
   "sql:review_credential#1": "own credential reviewed",
-  "sql:fan_out_broadcast_to_notifications#1": "admin broadcast",
-  "sql:sweep_pending_broadcast_fan_outs#1": "admin broadcast",
   "sql:sweep_expired_auto_bans#1": "own restriction lifted",
   "sql:apply_consequence_ladder#1": "own warning",
   "sql:auto_restrict_repeat_violators#2": "own account suspended (30 days)",

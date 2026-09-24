@@ -83,8 +83,6 @@ export function sqlAudits(fn: SqlFn): boolean {
 const SQL_EXEMPT: Readonly<Record<string, string>> = {
   prevent_self_escalation:
     "BEFORE trigger on user_roles that REFUSES a non-admin role write; the admin grant it lets through is audited by admin-user-actions grant_admin / audit_role_changes.",
-  fan_out_broadcast_to_notifications:
-    "No caller in source: sweep_pending_broadcast_fan_outs inlines the fan-out, and EXECUTE is revoked from authenticated (20260518150000). The broadcast itself is audited where the admin creates it (AdminBroadcasts.create).",
 };
 
 // ── 2. Edge functions ───────────────────────────────────────────────────────

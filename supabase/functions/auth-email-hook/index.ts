@@ -10,6 +10,20 @@ import { EmailChangeEmail } from '../_shared/email-templates/email-change.tsx'
 import { ReauthenticationEmail } from '../_shared/email-templates/reauthentication.tsx'
 import { getAppUrl } from '../_shared/appUrl.ts'
 import { FROM_DEFAULT, SENDER_DOMAIN } from '../_shared/resend.ts'
+import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
+
+// ED-002: every failure branch here blocks a signup confirmation, password
+// reset or magic link. One user sees an error; a SYSTEMIC failure (secret
+// rotated, enqueue_email broken) blocks every one of them with no page, so
+// each branch alerts, once per day per cause. postSlackOpsAlert never throws.
+const alertAuthEmail = (cause: string, severity: 'critical' | 'warning', message: string) =>
+  postSlackOpsAlert({
+    kind: 'custom',
+    severity,
+    oncePerDayKey: `auth-email-hook:${cause}`,
+    title: `Auth email hook: ${cause}`,
+    message,
+  })
 
 // Supabase Auth "Send Email Hook" handler.
 //
@@ -135,6 +149,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   const hookSecret = Deno.env.get('SEND_EMAIL_HOOK_SECRET')
   if (!hookSecret) {
     console.error('SEND_EMAIL_HOOK_SECRET not configured — set it in Supabase function secrets')
+    await alertAuthEmail('secret missing', 'critical', 'SEND_EMAIL_HOOK_SECRET is not set: every signup confirmation and password reset fails.')
     return new Response(
       JSON.stringify({ error: 'Server configuration error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -164,6 +179,7 @@ async function handleWebhook(req: Request): Promise<Response> {
     payload = wh.verify(rawBody, headers)
   } catch (error) {
     console.error('Webhook signature verification failed', { error: error instanceof Error ? error.message : String(error) })
+    await alertAuthEmail('bad signature', 'warning', 'A call failed signature verification. One is noise; many mean SEND_EMAIL_HOOK_SECRET no longer matches the Auth hook setting.')
     return new Response(JSON.stringify({ error: 'Invalid signature' }), {
       status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -175,6 +191,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   const emailData = payload?.email_data
   if (!user?.email || !emailData?.email_action_type) {
     console.error('Webhook payload missing user.email or email_data.email_action_type', { payload })
+    await alertAuthEmail('payload shape', 'warning', 'Auth sent a payload with no user.email or email_action_type; that email was not sent.')
     return new Response(JSON.stringify({ error: 'Invalid webhook payload shape' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -184,6 +201,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   const EmailTemplate = EMAIL_TEMPLATES[emailType]
   if (!EmailTemplate) {
     console.error('Unknown email_action_type', { emailType })
+    await alertAuthEmail('unknown email type', 'warning', `Auth asked for email type "${emailType}", which has no template; that email was not sent.`)
     return new Response(JSON.stringify({ error: `Unknown email type: ${emailType}` }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -245,6 +263,7 @@ async function handleWebhook(req: Request): Promise<Response> {
 
   if (enqueueError) {
     console.error('Failed to enqueue auth email', { error: enqueueError, emailType })
+    await alertAuthEmail('enqueue failed', 'critical', `enqueue_email failed for a ${emailType} email: ${enqueueError.message ?? 'unknown error'}`)
     await supabase.from('email_send_log').insert({
       message_id: messageId,
       template_name: emailType,
@@ -278,6 +297,7 @@ Deno.serve(async (req) => {
     return await handleWebhook(req)
   } catch (error) {
     console.error('Webhook handler error:', error)
+    await alertAuthEmail('handler error', 'warning', error instanceof Error ? error.message : String(error))
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

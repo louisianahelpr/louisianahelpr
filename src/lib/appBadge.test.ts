@@ -137,3 +137,30 @@ describe("setAppIconBadge — cold-start permission-prompt guard", () => {
 });
 
 // @mutate src/lib/appBadge.ts | if (display !== "granted") return; | if (display === "__never__") return;
+
+/**
+ * NB-006: the push plugin's removeAllDeliveredNotifications zeroes the icon
+ * badge on every foreground; reassertAppIconBadge puts the last unread count
+ * back, and appLifecycle must call it after clearing banners.
+ *
+ * @mutate src/lib/appBadge.ts |   lastRequested = Math.max(0, Math.floor(count) || 0); |   void count;
+ * @mutate src/lib/appLifecycle.ts |   await reassertAppIconBadge(); // NB-006 restore badge |   // removed
+ */
+describe("reassertAppIconBadge — foreground banner clear does not zero the icon (NB-006)", () => {
+  it("re-sets the last requested count", async () => {
+    const { setAppIconBadge, reassertAppIconBadge } = await loadModule();
+    await setAppIconBadge(3);
+    badgeMock.set.mockClear();
+    await reassertAppIconBadge();
+    expect(badgeMock.set).toHaveBeenCalledWith({ count: 3 });
+  });
+
+  it("appLifecycle restores the badge right after removeAllDeliveredNotifications", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("src/lib/appLifecycle.ts", "utf8");
+    const clear = src.indexOf("removeAllDeliveredNotifications()");
+    const restore = src.indexOf("await reassertAppIconBadge(); // NB-006 restore badge");
+    expect(clear).toBeGreaterThan(0);
+    expect(restore).toBeGreaterThan(clear);
+  });
+});

@@ -22,6 +22,7 @@ import { useEffect } from "react";
 import { focusManager, onlineManager } from "@tanstack/react-query";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { report } from "@/lib/errorLogger";
+import { reassertAppIconBadge } from "@/lib/appBadge";
 
 let attached = false;
 let networkAttached = false;
@@ -33,6 +34,8 @@ async function clearDeliveredNotifications() {
   } catch {
     /* best-effort — never break foreground on a badge cleanup failure */
   }
+  // The plugin also zeroes the icon badge; put the unread count back (NB-006).
+  await reassertAppIconBadge(); // NB-006 restore badge
 }
 
 export function useAppLifecycle() {
@@ -48,9 +51,9 @@ export function useAppLifecycle() {
           focusManager.setFocused(isActive);
           if (isActive) {
             // Clear stacked notification banners from the Notification
-            // Center, but leave the numeric icon badge alone — MobileNav
-            // owns it and keeps it pinned to the live unread count (so the
-            // badge reflects unread messages, not just "app was opened").
+            // Center. The plugin zeroes the icon badge as a side effect, so
+            // clearDeliveredNotifications restores the live unread count
+            // MobileNav last set (NB-006).
             void clearDeliveredNotifications();
           }
         });

@@ -16,7 +16,12 @@
  */
 import { isNativePlatform } from "@/lib/nativeInit";
 
+// The last count asked for, so a native call that zeroes the icon behind our
+// back can be undone (see reassertAppIconBadge).
+let lastRequested = 0;
+
 export async function setAppIconBadge(count: number): Promise<void> {
+  lastRequested = Math.max(0, Math.floor(count) || 0);
   if (!isNativePlatform) return;
   try {
     const { Badge } = await import("@capawesome/capacitor-badge");
@@ -60,4 +65,14 @@ export async function setAppIconBadge(count: number): Promise<void> {
 
 export async function clearAppIconBadge(): Promise<void> {
   return setAppIconBadge(0);
+}
+
+/**
+ * NB-006: PushNotifications.removeAllDeliveredNotifications() also sets
+ * applicationIconBadgeNumber = 0 (PushNotificationsPlugin.swift:167), and the
+ * unread effect only re-runs when the count changes, so every foreground left
+ * the icon at 0 over real unread messages. Call this after clearing banners.
+ */
+export async function reassertAppIconBadge(): Promise<void> {
+  return setAppIconBadge(lastRequested);
 }

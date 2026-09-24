@@ -4,8 +4,8 @@
 -- ops ledger. Cap it per reporter: 10 in an hour, 30 in a day. Measured peak on
 -- prod (2026-09-24) is 2 per reporter per hour, so no real use comes near it.
 --
--- Client inserts only: a service-role / SQL insert (auth.uid() IS NULL) is not
--- a user flooding the queue. The advisory lock serialises one reporter's
+-- Client inserts only: a service-role / SQL insert (is_server_context(), not a
+-- bare NULL uid, which anon has too) is not a user flooding the queue. The advisory lock serialises one reporter's
 -- concurrent inserts, so a burst cannot all count the same N-1 and pass.
 -- The client maps 'report_rate_limited' to copy (src/lib/reportErrors.ts).
 
@@ -22,7 +22,7 @@ DECLARE
   v_hour int;
   v_day  int;
 BEGIN
-  IF auth.uid() IS NULL THEN
+  IF public.is_server_context() THEN
     RETURN NEW;
   END IF;
   PERFORM pg_advisory_xact_lock(hashtext('reports_rate_limit:' || NEW.reporter_id::text));

@@ -17,6 +17,10 @@ import { resolve } from "node:path";
 import { latestConsentVersions } from "../../scripts/lib/acceptCurrentTerms.mjs";
 import { LATEST_TERMS_VERSION, LATEST_PRIVACY_VERSION } from "@/lib/consent";
 
+const MINT_PATHS: [string, RegExp][] = [
+  ["scripts/audit/pressProdSafety.mjs", /await acceptCurrentTerms\(supabaseUrl\(\), anonKey\(\), session\.access_token, session\.user\.id\)/],
+  ["scripts/test-signin-link.mjs", /await acceptCurrentTerms\(supabaseUrl, anonKey, session\.access_token, resolvedUserId\)/],
+];
 const read = (p: string) => readFileSync(resolve(__dirname, "../..", p), "utf8");
 
 describe("sweep session mint accepts the current Terms", () => {
@@ -24,10 +28,11 @@ describe("sweep session mint accepts the current Terms", () => {
     expect(latestConsentVersions(read("src/lib/consent.ts"))).toEqual({ terms: LATEST_TERMS_VERSION, privacy: LATEST_PRIVACY_VERSION });
   });
 
-  it.each([
-    ["scripts/audit/pressProdSafety.mjs", /await acceptCurrentTerms\(supabaseUrl\(\), anonKey\(\), session\.access_token, session\.user\.id\)/],
-    ["scripts/test-signin-link.mjs", /await acceptCurrentTerms\(supabaseUrl, anonKey, session\.access_token, resolvedUserId\)/],
-  ])("%s calls it on every fresh session", (file, call) => {
+  it("covers both mint paths", () => {
+    expect(MINT_PATHS.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it.each(MINT_PATHS)("%s calls it on every fresh session", (file, call) => {
     expect(read(file)).toMatch(call);
   });
 });

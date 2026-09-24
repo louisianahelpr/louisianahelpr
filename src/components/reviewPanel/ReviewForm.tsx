@@ -19,7 +19,7 @@ import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { track, AhaEvent } from "@/lib/analytics";
 import { TipDialog } from "@/components/TipDialog";
 import { isNativePlatform } from "@/lib/nativeInit";
-import { pickImagesNative } from "@/lib/nativeCamera";
+import { pickImagesNative, pickerFailure } from "@/lib/nativeCamera";
 import { report } from "@/lib/errorLogger";
 import { StarRow } from "./StarRow";
 import { quickTagsFor, safeImageSrc, type ReviewFormProps } from "./types";
@@ -73,8 +73,9 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
       const picked = await pickImagesNative(MAX_PHOTOS - photoFiles.length);
       addPhotoFiles(picked);
     } catch (err) {
-      report(err, { tags: { source: "ReviewForm.handleNativePhotoPick" } });
-      toast.error("Couldn't open your photos. Please try again.");
+      const failure = pickerFailure(err, "photos");
+      if (failure?.isError) report(err, { tags: { source: "ReviewForm.handleNativePhotoPick" } });
+      if (failure) toast.error(failure.copy);
     }
   };
 

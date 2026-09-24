@@ -10,7 +10,7 @@ import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { isNativePlatform } from "@/lib/nativeInit";
-import { pickImagesNative, takePhotoNative } from "@/lib/nativeCamera";
+import { pickImagesNative, pickerFailure, takePhotoNative } from "@/lib/nativeCamera";
 import { report } from "@/lib/errorLogger";
 import { assertWritable } from "@/hooks/useImpersonation";
 import {
@@ -187,8 +187,9 @@ export const RichMessageInput = ({
         const file = await takePhotoNative();
         if (file) stageFile(file);
       } catch (err) {
-        report(err, { tags: { source: "RichMessageInput.pickFromCamera" } });
-        toast.error("Couldn't open the camera. Please try again.");
+        const failure = pickerFailure(err, "camera");
+        if (failure?.isError) report(err, { tags: { source: "RichMessageInput.pickFromCamera" } });
+        if (failure) toast.error(failure.copy);
       }
       return;
     }
@@ -202,8 +203,9 @@ export const RichMessageInput = ({
         const picked = await pickImagesNative(1);
         if (picked[0]) stageFile(picked[0]);
       } catch (err) {
-        report(err, { tags: { source: "RichMessageInput.pickFromLibrary" } });
-        toast.error("Couldn't open your photos. Please try again.");
+        const failure = pickerFailure(err, "photos");
+        if (failure?.isError) report(err, { tags: { source: "RichMessageInput.pickFromLibrary" } });
+        if (failure) toast.error(failure.copy);
       }
       return;
     }

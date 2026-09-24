@@ -16,7 +16,7 @@ import { report } from "@/lib/errorLogger";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
-import { pickImagesNative } from "@/lib/nativeCamera";
+import { pickImagesNative, pickerFailure } from "@/lib/nativeCamera";
 import { JOB_ACTION_CHIP_CLASS, JOB_ROW_LABEL_CLASS, jobActionChipStyle } from "@/components/activity/JobActionRow";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
 
@@ -74,8 +74,9 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip 
       const picked = await pickImagesNative(5 - files.length);
       addFiles(picked);
     } catch (err) {
-      report(err, { tags: { source: "PhotoProof.handleNativeAdd" } });
-      toast.error("Couldn't open your photos. Please try again.");
+      const failure = pickerFailure(err, "photos");
+      if (failure?.isError) report(err, { tags: { source: "PhotoProof.handleNativeAdd" } });
+      if (failure) toast.error(failure.copy);
     }
   };
 

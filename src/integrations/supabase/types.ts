@@ -3735,8 +3735,10 @@ export type Database = {
           id: string
           reason: string
           redeemed: boolean
+          redeemed_at: string | null
           referral_code_id: string | null
           referred_user_id: string | null
+          stripe_transfer_id: string | null
           user_id: string
         }
         Insert: {
@@ -3745,8 +3747,10 @@ export type Database = {
           id?: string
           reason: string
           redeemed?: boolean
+          redeemed_at?: string | null
           referral_code_id?: string | null
           referred_user_id?: string | null
+          stripe_transfer_id?: string | null
           user_id: string
         }
         Update: {
@@ -3755,8 +3759,10 @@ export type Database = {
           id?: string
           reason?: string
           redeemed?: boolean
+          redeemed_at?: string | null
           referral_code_id?: string | null
           referred_user_id?: string | null
+          stripe_transfer_id?: string | null
           user_id?: string
         }
         Relationships: [

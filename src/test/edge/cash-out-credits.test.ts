@@ -19,6 +19,9 @@
 //   Reverting the key to the legacy SET hash is the double-pay: a retry that
 //   claims a different set gets a different key and Stripe sends a SECOND transfer.
 // @mutate supabase/functions/cash-out-credits/index.ts | `cashout-${attemptId}` | `cashout-${await sha256Hex(creditIds.slice().sort().join(","))}`
+//   ME-013: dropping the ledger stamp or the transfer metadata makes a cash-out unreconcilable.
+// @mutate supabase/functions/cash-out-credits/index.ts | .update({ redeemed_at: new Date().toISOString(), stripe_transfer_id: transfer.id }) | .update({ redeemed_at: new Date().toISOString() })
+// @mutate supabase/functions/cash-out-credits/index.ts |             type: "referral_cashout", |             kind: "x",
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -96,5 +99,20 @@ describe("HM-1 · idempotency key binds to the client attempt id, not the credit
     // Not the junk value, and not a bare prefix — the legacy set-hash shape.
     expect(opts.idempotencyKey).not.toBe("cashout-not-a-uuid");
     expect(opts.idempotencyKey).toMatch(/^cashout-[0-9a-f]{64}$/);
+  });
+});
+
+describe("ME-013 · a cash-out is reconcilable", () => {
+  it("stamps each claimed credit with the transfer id and time, and tags the transfer", async () => {
+    stageClaim([{ id: "cA", amount: 5 }, { id: "cB", amount: 5 }]);
+    const res = await post({ attemptId: ATTEMPT });
+    expect(res.status).toBe(200);
+    const params = stripeMock.transfers.create.mock.calls[0][0] as { metadata?: Record<string, string> };
+    expect(params.metadata).toMatchObject({ type: "referral_cashout", user_id: USER.id, credit_count: "2" });
+    const stamp = scenario.writes.find(
+      (w) => w.table === "referral_credits" && (w.payload as { stripe_transfer_id?: string }).stripe_transfer_id,
+    );
+    expect(stamp?.payload).toMatchObject({ stripe_transfer_id: "tr_ok" });
+    expect(typeof (stamp?.payload as { redeemed_at?: string }).redeemed_at).toBe("string");
   });
 });

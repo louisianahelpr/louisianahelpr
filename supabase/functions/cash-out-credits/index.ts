@@ -219,6 +219,13 @@ serve(async (req) => {
           currency: "usd",
           destination: profile.stripe_account_id,
           description: `Helpr referral credit cash-out ($${totalAmount.toFixed(2)})`,
+          // ME-013: without these the transfer could not be tied back to a
+          // user or to the credits it paid.
+          metadata: {
+            type: "referral_cashout",
+            user_id: userId,
+            credit_count: String(creditIds.length),
+          },
         },
         { idempotencyKey }
       );
@@ -228,6 +235,20 @@ serve(async (req) => {
       // payout — log critically so ops can manually reset the row(s).
       await rollbackClaim("transfer-failed");
       throw transferError;
+    }
+
+    // ME-013: the ledger half. redeemed=true alone recorded neither the
+    // transfer nor the time. The money has moved, so a failed stamp must not
+    // fail the request; it is logged with the transfer id so it can be filled.
+    const { data: stamped, error: stampErr } = await supabase
+      .from("referral_credits")
+      .update({ redeemed_at: new Date().toISOString(), stripe_transfer_id: transfer.id })
+      .in("id", creditIds)
+      .select("id");
+    if (stampErr || !stamped || stamped.length !== creditIds.length) {
+      console.error(
+        `CRITICAL: [cash-out-credits] transfer ${transfer.id} SENT but ${stampErr ? `the ledger stamp failed: ${stampErr.message}` : `stamped ${stamped?.length ?? 0} of ${creditIds.length} credits`} (user ${userId}, credits ${creditIds.join(",")})`,
+      );
     }
 
     // Notify user. The transfer already succeeded, so a failed notification

@@ -1,3 +1,6 @@
+// FIRST import, on purpose: arms the splash safety net before any module with a
+// top-level await evaluates (NB-009).
+import "./lib/splashSafetyNet";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
@@ -215,7 +218,7 @@ applyToastPolicy();
 // on the frame after pixels are on screen. The splash background
 // (#F1F2F4, capacitor.config.ts) matches index.html's #boot-loader and the
 // app's page ground, so the handoff is seamless rather than a flash.
-// Web = no-op. A 1.5s safety net in nativeInit.ts force-hides regardless.
+// Web = no-op. A 1.5s safety net in lib/splashSafetyNet.ts force-hides regardless.
 requestAnimationFrame(() =>
   requestAnimationFrame(() => {
     void hideSplash();

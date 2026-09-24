@@ -102,16 +102,8 @@ export async function hideSplash() {
   } catch { /* ignore */ }
 }
 
-// Safety net: if something hangs in initNative(), force-hide the splash
-// after 1.5s so the app can never be stuck on a green screen. Tightened
-// from 4s — a brief blank flash is far better than 4 seconds of stuck
-// splash if React fails to mount in time. Fires once at module import on
-// native only.
-if (isNativePlatform) {
-  setTimeout(() => {
-    SplashScreen.hide({ fadeOutDuration: 200 }).catch(() => {});
-  }, 1500);
-}
+// The 1.5s splash safety net lives in ./splashSafetyNet.ts, imported first by
+// main.tsx so it arms before the Supabase client's top-level await (NB-009).
 
 /**
  * Set status bar style for the current screen. Call from a useEffect in

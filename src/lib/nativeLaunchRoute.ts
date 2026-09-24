@@ -33,9 +33,9 @@ const PRESERVE_PATHS = [
   "/messages",
   "/profile",
   "/post-job",
-  "/dashboard",
-  "/my-jobs",
-  "/my-posts",
+  "/home",
+  "/jobs",
+  "/posts",
   "/support",
   "/user/",
   "/payment-success",
@@ -75,17 +75,17 @@ export async function resolveNativeLaunchRoute(
     // backgrounded and reloaded on resume, which re-runs our JS from `/` with
     // the native process still very much alive (hence no splash screen). To
     // this function that is indistinguishable from a cold launch, so it used
-    // to send the user to /dashboard every time they glanced at a
+    // to send the user to /home every time they glanced at a
     // notification. See lastRoute.ts for the freshness window that keeps a
     // genuine next-morning cold start landing on the dashboard.
     const restored = readRestorableRoute();
     if (restored) return restored;
 
-    // Otherwise /dashboard. ProtectedRoute will re-route to
+    // Otherwise /home. ProtectedRoute will re-route to
     // /signup-pending (unverified email), /account-banned, or
     // /complete-profile if the profile state requires it. Admins can
     // still reach /admin via the in-app nav.
-    return "/dashboard";
+    return "/home";
   } catch {
     return "/browse";
   }

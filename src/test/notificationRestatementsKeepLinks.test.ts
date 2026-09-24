@@ -5,7 +5,7 @@
  * FOUND 2026-09-23. The first Q139 branch restated 16 notification functions
  * from their newest CREATE FUNCTION text to add job_id. But 20260831232514 and
  * 20260901021929 had changed eight of them IN PLACE (pg_get_functiondef +
- * regexp_replace + EXECUTE): the bare '/my-posts' and the fixed '?filter='
+ * regexp_replace + EXECUTE): the bare '/posts' and the fixed '?filter='
  * links had become '/my-…?job=' || <id>. The newest TEXT never showed that, so
  * the restatement would have reverted 14 direct links on prod. A review against
  * live pg_get_functiondef caught it; nothing in the repo could.
@@ -28,8 +28,8 @@
  * (origin/cloud/q139-notification-subjects, 20260923162545) in place of
  * 20260923205635: (a) 8 functions, (b) the same 8 (14 links).
  *
- * @mutate supabase/migrations/20260923205635_notification_producers_carry_their_subject.sql | '/my-jobs?job=' \|\| rec.id::text, false, rec.id); | '/my-jobs?filter=offered', false, rec.id);
- * @mutate supabase/migrations/20260923205635_notification_producers_carry_their_subject.sql | '/my-posts?job=' \|\| v_locked.id::text, | '/my-posts',
+ * @mutate supabase/migrations/20260923205635_notification_producers_carry_their_subject.sql | '/jobs?job=' \|\| rec.id::text, false, rec.id); | '/jobs?filter=offered', false, rec.id);
+ * @mutate supabase/migrations/20260923205635_notification_producers_carry_their_subject.sql | '/posts?job=' \|\| v_locked.id::text, | '/posts',
  * @mutate supabase/migrations/20260923205635_notification_producers_carry_their_subject.sql | '/admin?view=fraud&user=' \|\| p_reviewee_id, | '/admin?view=fraud&usr=' \|\| p_reviewee_id,
  * @mutate src/test/helpers/effectiveFunctionDefs.ts | const next = pgRegexpReplace(cur.stmt, r.pattern, r.replacement, r.flags); | const next = cur.stmt;
  */
@@ -210,7 +210,7 @@ describe("Q139: a restated notification producer keeps the links the database wr
     // The replay reproduces a rewrite the newest text does not show.
     const before = effectiveDefs(MIGRATIONS, { before: Q139 }).get("notify_poster_on_status_change")!;
     expect(before.file).toBe("20260829061546_helper_mark_on_the_way_atomic.sql");
-    expect(before.stmt).toContain("'/my-posts?job=' || NEW.id::text");
+    expect(before.stmt).toContain("'/posts?job=' || NEW.id::text");
     expect(before.stmt).not.toContain("?filter=scheduled");
   });
 

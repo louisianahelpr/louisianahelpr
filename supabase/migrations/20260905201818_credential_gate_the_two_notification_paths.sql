@@ -64,7 +64,7 @@ BEGIN
 
   v_title := 'New job in your parish';
   v_message := 'A new ' || COALESCE(NEW.category::text, 'job') || ' job just posted in ' || NEW.parish || ' Parish: "' || NEW.title || '"';
-  v_link := '/dashboard?job=' || NEW.id::text;
+  v_link := '/home?job=' || NEW.id::text;
 
   FOR helper_record IN
     WITH candidates AS (
@@ -249,7 +249,7 @@ BEGIN
             ELSE format('$%s to $%s', budget_lo, budget_hi)
           END
         ),
-        '/dashboard',
+        '/home',
         false
       );
       total_sent := total_sent + 1;

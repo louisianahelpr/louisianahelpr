@@ -3,12 +3,12 @@
  * page name.
  *
  * Owner decision, 2026-09-19, from the browser-verification pass: at 1440,
- * /dashboard, /my-posts and /messages all render their h1 `sr-only`, and
- * /my-jobs was the only one still painting "My Jobs" in 20px Bodoni — so
+ * /home, /posts and /messages all render their h1 `sr-only`, and
+ * /jobs was the only one still painting "My Jobs" in 20px Bodoni — so
  * moving Posts → Jobs → Messages made a title appear and vanish. The app bar
  * and the right rail already name the page.
  *
- * WHY /my-jobs AND /my-posts DIVERGED — they don't, by route. Both are
+ * WHY /jobs AND /posts DIVERGED — they don't, by route. Both are
  * `src/components/job-card/JobListPage.tsx` (`defaultTab="posted"` / `"applied"`), rendering
  * ONE expression:
  *
@@ -126,7 +126,7 @@ function renderActivity(tab: "posted" | "applied") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[tab === "posted" ? "/my-posts" : "/my-jobs"]}>
+      <MemoryRouter initialEntries={[tab === "posted" ? "/posts" : "/jobs"]}>
         <Activity defaultTab={tab} />
       </MemoryRouter>
     </QueryClientProvider>,

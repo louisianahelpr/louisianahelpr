@@ -1,5 +1,5 @@
 /*
- * CLASS GUARD, third of three — the two SQL surfaces that feed /dashboard must
+ * CLASS GUARD, third of three — the two SQL surfaces that feed /home must
  * cull the same jobs.
  *
  * THE OWNER HAS REPORTED THIS CLASS THREE TIMES:

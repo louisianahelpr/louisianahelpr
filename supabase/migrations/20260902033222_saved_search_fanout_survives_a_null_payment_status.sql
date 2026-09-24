@@ -97,8 +97,8 @@
 -- addressed mail to a single named recipient. Three facts settle it:
 --
 --   1. The notification does not link to a browse surface. Its link is
---      '/my-jobs?filter=direct_offer' (20260831203052) — the offered helper's
---      own offer inbox, not '/dashboard?job=<uuid>'.
+--      '/jobs?filter=direct_offer' (20260831203052) — the offered helper's
+--      own offer inbox, not '/home?job=<uuid>'.
 --   2. That inbox is served by `get_my_pending_direct_offers()`
 --      (src/hooks/useActivityData.ts:314), whose WHERE clause is exactly
 --      `offered_to_helper_id = auth.uid() AND direct_offer_status = 'pending'`

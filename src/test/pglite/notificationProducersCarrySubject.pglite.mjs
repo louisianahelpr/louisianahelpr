@@ -186,7 +186,7 @@ const linksBefore = await linksByFunction();
 check("previous state: all 16 producers defined", linksBefore.size === FNS.length, `${linksBefore.size}`);
 check(
   "previous state: the in-place rewrites landed (notify_poster_on_status_change links ?job=, no fixed ?filter=)",
-  (linksBefore.get("notify_poster_on_status_change") ?? []).filter((l) => l === "'/my-posts?job=' || NEW.id::text").length === 2 &&
+  (linksBefore.get("notify_poster_on_status_change") ?? []).filter((l) => l === "'/posts?job=' || NEW.id::text").length === 2 &&
     !(linksBefore.get("notify_poster_on_status_change") ?? []).some((l) => l.includes("?filter=")),
   JSON.stringify(linksBefore.get("notify_poster_on_status_change")),
 );

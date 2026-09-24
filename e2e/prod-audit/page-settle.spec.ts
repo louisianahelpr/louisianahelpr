@@ -47,7 +47,7 @@ for (const width of WIDTHS) {
     const routes = (deriveRouteSet({ seedJobId: "test", helperId: HELPER_ID, customerId: POSTER_ID, adminViews: [] }) as RouteRow[])
       .filter((r) => !r.redirect && !r.personas.every((p) => p === "admin"))
       // /jobs/:id needs a real job and redirects every signed-in viewer; it is
-      // covered through /my-posts and /dashboard, where it lands.
+      // covered through /posts and /home, where it lands.
       .filter((r) => !r.url.startsWith("/jobs/"));
     // Floor: the inventory is read from App.tsx and Profile's Tab union. Far
     // fewer than this means the parser broke, not that the app shrank.

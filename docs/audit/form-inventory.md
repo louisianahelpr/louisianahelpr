@@ -63,7 +63,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/profile/DeleteAccountDialog.tsx` | input×1 | text |  |  |
 
-## /complete-profile, /dashboard
+## /complete-profile, /home
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
@@ -75,54 +75,33 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/profile/AvatarCropDialog.tsx` | input×1 | range |  | Zoom |
 
-## /dashboard
-
-| File | Controls | input types | maxLength | hints |
-|---|---|---|---|---|
-| `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | apply-message · save-default-pitch |
-| `src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx` | input×1 | search |  | Search jobs · Search jobs… · Recent searches |
-
-## /dashboard, /browse
-
-| File | Controls | input types | maxLength | hints |
-|---|---|---|---|---|
-| `src/components/dashboard/FilterSheet.tsx` | checkbox/switch/radio×1 |  |  | Close filters |
-| `src/components/SavedSearches.tsx` | input×1 | text | 60 | Saved searches · search-name · e.g. Lawn care under $200 · Save filter set · Delete saved search |
-
-## /dashboard, /user/:userId, /messages
-
-| File | Controls | input types | maxLength | hints |
-|---|---|---|---|---|
-| `src/components/ReportDialog.tsx` | textarea×1 |  |  | Report description · Start with when it happened… |
-
 ## /forgot-password
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/pages/auth/ForgotPassword.tsx` | input×1 | email |  | Close · email · fp-email-error |
 
-## /legal, /terms, /privacy, /rules
+## /home
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/pages/info/Legal.tsx` | input×1 | text |  | Search all policies · Search · Close search |
+| `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | apply-message · save-default-pitch |
+| `src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx` | input×1 | search |  | Search jobs · Search jobs… · Recent searches |
 
-## /login
-
-| File | Controls | input types | maxLength | hints |
-|---|---|---|---|---|
-| `src/pages/auth/Login.tsx` | input×3 | text, email | 6 | mfa-login-code · email · login-email-error · password · login-password-error |
-
-## /messages
+## /home, /browse
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/messages/ChatView.tsx` | textarea×1 |  |  | Dismiss safety reminder |
-| `src/components/messages/ConversationList.tsx` | input×1 | search |  | Search conversations · Search conversations… · Close search · Conversation list options · Pinned · Bulk hide action bar · Cancel selection |
-| `src/components/RichMessageInput.tsx` | input×5 | file, text |  | Remove attachment · Discard voice note · Stop recording · Send voice note · Add photo, file, or location · Type a message · Send message |
-| `src/lib/nativeCamera.ts` | input×1 | file |  |  |
+| `src/components/dashboard/FilterSheet.tsx` | checkbox/switch/radio×1 |  |  | Close filters |
+| `src/components/SavedSearches.tsx` | input×1 | text | 60 | Saved searches · search-name · e.g. Lawn care under $200 · Save filter set · Delete saved search |
 
-## /my-jobs, /my-posts
+## /home, /user/:userId, /messages
+
+| File | Controls | input types | maxLength | hints |
+|---|---|---|---|---|
+| `src/components/ReportDialog.tsx` | textarea×1 |  |  | Report description · Start with when it happened… |
+
+## /jobs, /posts
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
@@ -144,6 +123,27 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/pages/posts/EditJobDialog.tsx` | input×3, textarea×2, select×1, checkbox/switch/radio×1, date/calendar×1 | text, date |  | Job title · Description · Category · category-tax-lock-hint · Location · edit-date-needed · Special requirements · edit-require-photo-proof |
 | `src/pages/posts/postedJobs/ApplicantsPanel.tsx` | textarea×1 |  |  | Post reach · Private note |
 | `src/pages/posts/postedJobs/DeclineApplicantSheet.tsx` | textarea×1 |  |  | Decline reason · decline-note |
+
+## /legal, /terms, /privacy, /rules
+
+| File | Controls | input types | maxLength | hints |
+|---|---|---|---|---|
+| `src/pages/info/Legal.tsx` | input×1 | text |  | Search all policies · Search · Close search |
+
+## /login
+
+| File | Controls | input types | maxLength | hints |
+|---|---|---|---|---|
+| `src/pages/auth/Login.tsx` | input×3 | text, email | 6 | mfa-login-code · email · login-email-error · password · login-password-error |
+
+## /messages
+
+| File | Controls | input types | maxLength | hints |
+|---|---|---|---|---|
+| `src/components/messages/ChatView.tsx` | textarea×1 |  |  | Dismiss safety reminder |
+| `src/components/messages/ConversationList.tsx` | input×1 | search |  | Search conversations · Search conversations… · Close search · Conversation list options · Pinned · Bulk hide action bar · Cancel selection |
+| `src/components/RichMessageInput.tsx` | input×5 | file, text |  | Remove attachment · Discard voice note · Stop recording · Send voice note · Add photo, file, or location · Type a message · Send message |
+| `src/lib/nativeCamera.ts` | input×1 | file |  |  |
 
 ## /post-job
 

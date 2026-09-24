@@ -125,7 +125,7 @@ because "the webpage" and "the app" are the same React tree.
 **Split by ROUTE, not by surface.** Each lane owns whole routes end to end —
 the page, its sub-components, and its copy:
 
-- **Lane A — the money loop:** `/post-job`, `/my-posts`, `/my-jobs`,
+- **Lane A — the money loop:** `/post-job`, `/posts`, `/jobs`,
   `/messages`, `/payment-success`, job cards, escrow/dispute/payout surfaces.
 - **Lane B — identity & account:** `/profile` + every `?tab=`, `/user/:id`,
   auth screens, `/subscription`, membership.

@@ -114,7 +114,7 @@
 --        becomes `'escrow'` when checkout completes — and every browse surface
 --        requires `payment_status IN ('escrow','payout_pending','released')`
 --        (the F-1 funded gate). So the alert was sent at the one moment the
---        job was guaranteed invisible: the helper taps `/dashboard?job=<id>`
+--        job was guaranteed invisible: the helper taps `/home?job=<id>`
 --        and finds nothing. Worse, the alert fired even for a checkout that
 --        was then abandoned — a job that never existed for anyone.
 --
@@ -643,7 +643,7 @@ BEGIN
 
   v_is_urgent := COALESCE(NEW.is_urgent, false);
   v_title := 'New job matches your saved search';
-  v_link  := '/dashboard?job=' || NEW.id::text;
+  v_link  := '/home?job=' || NEW.id::text;
 
   -- One row per matching helper. matched_search_ids collects every saved
   -- search that fired for that helper so we can update their throttle

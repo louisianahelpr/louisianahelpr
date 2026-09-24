@@ -9,8 +9,8 @@
  * got the alert, try again in a few minutes." Measured on prod 2026-09-22: the
  * helper's row `link = '/jobs/5eed0b10-0000-4000-8000-000000000005'` names a
  * job id with NO row in public.jobs, and 138 of 1,744 notifications were in
- * the same state (/messages?jobId= 80, /my-posts?job= 47, /dashboard?job= 4,
- * /jobs/ 4, /my-jobs?job= 3).
+ * the same state (/messages?jobId= 80, /posts?job= 47, /home?job= 4,
+ * /jobs/ 4, /jobs?job= 3).
  *
  * The layer: notifications.job_id is ON DELETE SET NULL, and a row with no
  * job_id falls back to its `link` string (notificationDestination.ts). Nothing

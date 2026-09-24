@@ -13,7 +13,7 @@
  * (PageScaffold.tsx PANEL_CLASS) exists purely as a stylesheet hook that an
  * `!important` rule can use to beat those inline styles. So the only way the
  * curve comes back is a `.page-panel` rule in the global stylesheet — which is
- * exactly what this guards. It covers Home (/dashboard), My Posts, My Jobs,
+ * exactly what this guards. It covers Home (/home), My Posts, My Jobs,
  * both Messages panes and the guest dashboard in one assertion, because all
  * six render through the single PageScaffold that owns the class.
  *

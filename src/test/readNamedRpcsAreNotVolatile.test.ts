@@ -9,7 +9,7 @@
  * explore's write firewall (`e2e/prod-audit/harness.ts`) therefore refused the
  * app's READS along with its writes, and seven screens rendered their own
  * "we couldn't load this" states and were filed as production defects:
- * /my-jobs, the three helper-side job details, /profile?tab=saved_helpers,
+ * /jobs, the three helper-side job details, /profile?tab=saved_helpers,
  * /profile?tab=earnings and /admin?view=payouts. A screen stuck in its error
  * state also has no controls left to press, so the explore was not exploring
  * them at all.

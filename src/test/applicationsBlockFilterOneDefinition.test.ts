@@ -5,7 +5,7 @@
  * WHAT WAS BROKEN (prod, 2026-09-24): an applicant who had blocked the poster
  * was hidden by the applicant panel (a client-side user_blocks filter in
  * useApplicantsState) but counted by useActivityData's applicantCounts and
- * pendingApplicantCounts and by useActivityBadgeCounts' posts badge. /my-posts
+ * pendingApplicantCounts and by useActivityBadgeCounts' posts badge. /posts
  * said "Applicants (1)" and the panel said "Still no applications".
  *
  * THE ONE DEFINITION is the poster's SELECT policy on `applications`

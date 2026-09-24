@@ -32,9 +32,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     //
     // The identifiers below are a CONTRACT with category.ts — both sides must
     // agree on the spelling, and the categories there are the whole set:
-    //   JOB_APPLY    → a job you could take   (/dashboard, /activity)
+    //   JOB_APPLY    → a job you could take   (/home)
     //   MESSAGE      → an incoming chat       (/messages)
-    //   JOB_ACCEPTED → a job you are on       (/my-posts, /my-jobs, /jobs/:id)
+    //   JOB_ACCEPTED → a job you are on       (/posts, /jobs, /jobs/:id)
     //
     // ── WHY EVERY ACTION IS `.foreground`, AND WHY THERE IS NO TEXT INPUT ────
     //

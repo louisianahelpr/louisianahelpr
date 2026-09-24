@@ -1,8 +1,8 @@
 /**
  * A successful password change used to be SILENT: `:101` toasted on failure,
  * `:104-107` rendered nothing on success and just `setTimeout`-ed 800ms into
- * /dashboard. Measured 2026-09-01 in Chrome: 400ms after submit the form was
- * still on screen, untouched, and the URL was already /dashboard.
+ * /home. Measured 2026-09-01 in Chrome: 400ms after submit the form was
+ * still on screen, untouched, and the URL was already /home.
  *
  * OA-006: the panel promises other devices must re-authenticate; the page now
  * revokes every other session (signOut scope "others") and says so honestly
@@ -127,13 +127,13 @@ describe("a successful password change leaves visible evidence", () => {
     act(() => { vi.advanceTimersByTime(900); });
     expect(navigateMock).not.toHaveBeenCalled();
     act(() => { vi.advanceTimersByTime(1500); });
-    expect(navigateMock).toHaveBeenCalledWith("/dashboard", { replace: true });
+    expect(navigateMock).toHaveBeenCalledWith("/home", { replace: true });
   });
 
   it("offers a control so nobody has to wait out the timer", async () => {
     await submitNewPassword();
     fireEvent.click(await screen.findByRole("button", { name: /Go to Dashboard/i }));
-    expect(navigateMock).toHaveBeenCalledWith("/dashboard", { replace: true });
+    expect(navigateMock).toHaveBeenCalledWith("/home", { replace: true });
   });
 
   it("a FAILED change still shows the error and keeps the form", async () => {

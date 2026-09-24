@@ -225,7 +225,7 @@ OPEN:
     `/jobs/<id> #0`       -14px  path is `div#root > nav > …` — the fixed
                                  BOTTOM NAV, compared against page content
 
-  Only `/my-jobs #1` (-52px) and `anon /browse #0` (-9px) are standalone
+  Only `/jobs #1` (-52px) and `anon /browse #0` (-9px) are standalone
   clusters with no nesting, and -9px is not worth anyone's afternoon.
 
   So the real item is a HARNESS defect: `measure-loading-states.mjs` emits
@@ -390,7 +390,7 @@ Classified every one from the run log rather than sampling:
 
     75  /jobs/9076d322 (helper 39 + customer 36)  `400 POST <uuid>/…`
     53  /profile?tab=notifications (27 + 26)      disabled switches
-    16  /dashboard helper                         same 400s
+    16  /home helper                         same 400s
     ~9  /jobs/7d315f44                            nav tabs NOT CLICKABLE
     rest spread thin, same three shapes
 
@@ -545,7 +545,7 @@ prints the total) or walk the graph yourself from `dist/index.html`.
 - [ ] **Not yet eyeballed: a LIVE realtime row entering/exiting the open panel**
   after this change (enter slide/fade, mark-read exit). Static open/close was
   screenshotted before/after at 375 + 1440 and is identical. Framer is still
-  fetched after paint on /dashboard by other lazy consumers, so in practice
+  fetched after paint on /home by other lazy consumers, so in practice
   rows are motion rows by the time the panel opens.
 
 - **~39 critical-path chunks under 2 kB gz, carrying ~25 kB between them.**
@@ -1189,7 +1189,7 @@ rewrites a poster self-insert to `status := 'open'`, `payment_status :=
 Fixed in `d54312a0d`. The stored `expires_at` is still asserted on all three
 dates (both DST mornings) — that is where the zone arithmetic lives — and a NEW
 assertion proves the rule that took the leg away: the job is a "Finish Paying"
-draft in Post a Job, and `/my-posts?job=<id>` shows nothing. The countdown chip
+draft in Post a Job, and `/posts?job=<id>` shows nothing. The countdown chip
 under a moved clock is now a fifth `UNCOVERED:` leg, a ::warning:: every run.
 Check for the class: `src/test/e2eFixturesHiddenBySourceFilter.test.ts`, shown
 red on the real pre-fix file.
@@ -1337,7 +1337,7 @@ union six, and one of them cross-engine:
    same leg, so this is WebKit-vs-Checkout, exactly the class nightly-webkit
    exists for. It also cascades: `test.describe.serial` means the "3 did not
    run" are J3/J4/J5 — so the webkit money chain past `post` is still dark.
-6. **`notifications.spec.ts:118`** — `page.goto("/my-posts?job=dfecbd90-…")`
+6. **`notifications.spec.ts:118`** — `page.goto("/posts?job=dfecbd90-…")`
    was **interrupted by the app navigating itself** to
    `/profile?tab=warnings&_v=1790058631340`. Read that as a product finding,
    not a test one: a forced warnings redirect eats a notification deep link,
@@ -1421,7 +1421,7 @@ start of every run. So every `recordReview` made after one run is destroyed by
 the next one.
 
 - Measured 2026-09-20: five screenshots recorded across a session
-  (/admin?view=stalled, /post-job logistics, /my-jobs, saved_helpers,
+  (/admin?view=stalled, /post-job logistics, /jobs, saved_helpers,
   earnings, the gift-card 10.555 failure), then one more `npx playwright test`
   and `npm run review:report` said **"the review log is EMPTY — nothing was
   recorded as looked at"**. The evidence that someone looked is exactly what
@@ -1464,7 +1464,7 @@ registration in that tree — including ones that are green on their own.
   reported 0/4 and four `inconclusive`, and `src/test/vacuityGate.test.ts`
   passes 5/5 here.
 
-## DONE 2026-09-21 — the /my-jobs card was a map link, and its placeholder was 69px too tall (owner, two reports)
+## DONE 2026-09-21 — the /jobs card was a map link, and its placeholder was 69px too tall (owner, two reports)
 
 Owner, verbatim: "any time i click in this job card, it opens apple maps. ths
 is not correct." and "check into jobs exhaustivly bc it stills jumps really
@@ -1481,7 +1481,7 @@ Chromium, this checkout's local build, 375 unless noted):
   Maps. Fixed by `locationPressToMap` on the applied card — the prop My Posts
   has carried since 2026-09-14, whose own note said "opt-in per card so My Jobs
   is untouched". Card height 139px → 151px, which is My Posts' number exactly.
-- **The jump, and CLS could not see it.** Measured CLS on /my-jobs was
+- **The jump, and CLS could not see it.** Measured CLS on /jobs was
   **0.0000 across ZERO layout-shift entries** while every card moved up to
   195px — the Layout Instability API only scores elements that existed in the
   previous frame and MOVED, and a skeleton→content swap removes one subtree and
@@ -1507,10 +1507,10 @@ row box vs real row box, list response held on the wire). Plus
 markup half. Reverted on a real build, the two loading assertions read
 `220px vs 151px (69 > 8)` and `first-row offset 107px (> 72)`.
 
-## DONE — /my-posts' placeholder card is a different component and 45px short (2026-09-21, fixed the same night)
+## DONE — /posts' placeholder card is a different component and 45px short (2026-09-21, fixed the same night)
 
 Found while checking the sibling tab for the same defect, as the owner asked.
-/my-jobs is fixed above; /my-posts is not, and it is not the same file.
+/jobs is fixed above; /posts is not, and it is not the same file.
 
 - The posted tab's placeholder is `ActivityCardSkeleton`
   (`src/components/SkeletonLoaders.tsx`) — a hand-drawn `rounded-ds-md p-4
@@ -1524,36 +1524,36 @@ Found while checking the sibling tab for the same defect, as the owner asked.
   remaining 64px is a section heading.
 - `e2e/prod-audit/activity-loading-reserve.spec.ts` PINS the 106px
   (`POSTED_ROW_PIN`) rather than exempting it: the surface can be fixed, never
-  made worse. The fix is the one /my-jobs took — import the shell's geometry
+  made worse. The fix is the one /jobs took — import the shell's geometry
   instead of redrawing it — and it touches a component shared with Activity's
-  posted Suspense fallback, so it was not bundled into the owner's /my-jobs
+  posted Suspense fallback, so it was not bundled into the owner's /jobs
   report.
 
 **FIXED.** `ActivityCardSkeleton` is now
-`CollapsedActivityCardSkeleton` — the same shell-derived drawing /my-jobs took,
+`CollapsedActivityCardSkeleton` — the same shell-derived drawing /jobs took,
 because `PostedJobCard` and `AppliedJobCard` are the same `JobCardShell` at the
 same 151px. Both of its call sites (`ActivityPageSkeleton`, and Activity's
 posted Suspense fallback, which also moved `space-y-2.5` → `space-y-3`) were
 checked first; there are only those two, and both stand in front of the same
 list. `POSTED_ROW_PIN` is gone from
-`e2e/prod-audit/activity-loading-reserve.spec.ts`, so /my-posts is held to the
+`e2e/prod-audit/activity-loading-reserve.spec.ts`, so /posts is held to the
 same 8px `ROW_BUDGET` as every other surface. Red-first proof in
 `src/components/ui/skeletons/skeletons.test.tsx`: the posted placeholder was
 asserted to wear `JOB_CARD_SHELL_FRAME` and failed with
 `'rounded-ds-md skeleton-glass p-4 space-y-3'` vs
 `'relative rounded-2xl liquid-glass overflow-hidden'`.
 
-## OPEN — /my-posts' new row height is not yet measured in a browser (2026-09-21)
+## OPEN — /posts' new row height is not yet measured in a browser (2026-09-21)
 
 The fix above was made with the browser lock held by another lane's journey
 run, so the placeholder's new box was never measured on a real build. The
-expected numbers are /my-jobs' own, since it is now the same component:
+expected numbers are /jobs' own, since it is now the same component:
 placeholder **150px** against a real **151px**, pitch 162 vs 163. Confirm with
 
     PLAYWRIGHT_WEB_SERVER=1 npx playwright test --project=prod-audit \
       activity-loading-reserve
 
-and record the number beside the old 106px. Until that runs, the /my-posts
+and record the number beside the old 106px. Until that runs, the /posts
 assertion in that spec is a prediction, not a measurement.
 
 ## CLOSED — the applied Suspense fallback said `space-y-2.5` (fixed 2026-09-22, cad3843b1)
@@ -1563,7 +1563,7 @@ fallback wraps its `ApplicationCardSkeleton`s in `space-y-2.5` (10px) while
 `AppliedJobsTab` and the grouped view both use `space-y-3` (12px). 2px per row,
 inside the 8px `ROW_BUDGET` by design, so it is not a visible step on its own —
 but it is the same error `ActivityPageSkeleton` and the posted branch were both
-fixed for, and it is the only copy left. Belongs to the /my-jobs surface, which
+fixed for, and it is the only copy left. Belongs to the /jobs surface, which
 is why this lane reported it instead of changing it.
 
 ## PARTLY DONE — 44 signed URLs in prod are stored with an `exp`, and they all die in Sept 2027 (2026-09-21)
@@ -1641,7 +1641,7 @@ the pin makes the file green again (4 passed).
 ## DONE — job photos rendered as broken boxes on every local preview (2026-09-21)
 
 Owner, twice in one night on two surfaces: a job card shows an empty box with
-the literal alt text `Photo 1` instead of the photo (helper `/my-jobs`
+the literal alt text `Photo 1` instead of the photo (helper `/jobs`
 Scheduled cards at 1280, an offered card at 1440).
 
 Not the bucket, not a stale token. `jobs.photos` holds plain public
@@ -1671,10 +1671,10 @@ through untouched on `localhost`, `127.0.0.1`, `0.0.0.0`, `::1` and `*.local`.
 Red-first proof in `src/lib/imageUrl.test.ts` (three failures, including
 `expected '/_vercel/image?url=…' to be 'https://…/photo.jpg'`).
 
-## OPEN — `docs/audit/loading-states/measurements.json` is stale for /my-jobs (2026-09-21)
+## OPEN — `docs/audit/loading-states/measurements.json` is stale for /jobs (2026-09-21)
 
 `scripts/check-loading-state-shape.mjs` reads committed evidence, and that
-evidence still records the pre-fix `customer /my-jobs #1 … row 206px → 154px`,
+evidence still records the pre-fix `customer /jobs #1 … row 206px → 154px`,
 with the matching `baseline.json` entry. The check is therefore still green on
 a surface that is fixed, and the baseline cannot shrink until the evidence is
 re-generated. `scripts/audit/measure-loading-states.mjs` needs the browser lock
@@ -1685,11 +1685,11 @@ assertion.
 
 ## HEADS-UP — three duplicate reads on every Activity page load (2026-09-21)
 
-Noticed while measuring the /my-jobs waterfall; reported, not touched.
+Noticed while measuring the /jobs waterfall; reported, not touched.
 `useActivityBadgeCounts` is mounted by BOTH `DesktopSidebarNav` and
 `MobileNav`, and it issues raw `supabase.rpc(...)` / `.select(...)` calls
 rather than going through React Query, so nothing de-duplicates them. Measured
-on /my-jobs: `rpc/get_my_pending_direct_offers` fired **3x** (two from the nav
+on /jobs: `rpc/get_my_pending_direct_offers` fired **3x** (two from the nav
 pair, one from `useActivityData`) and the `HEAD applications?…` count **2x**,
 plus `avatars/…/avatar.jpg` twice. They go out in parallel at ~+150ms so they
 do not lengthen the critical path measurably, but they are three prod round
@@ -1910,7 +1910,7 @@ a good spec.
 ## HEADS-UP — the explore now reaches four screens it never reached (2026-09-20)
 
 `e2e/prod-audit/harness.ts`'s write firewall used to refuse read RPCs, so
-/my-jobs, /profile?tab=saved_helpers, /profile?tab=earnings and
+/jobs, /profile?tab=saved_helpers, /profile?tab=earnings and
 /admin?view=payouts sat in their own error states with no controls to press.
 They are explored for real now, so their `credits/*.json` files grow. If
 `messy-input.spec.ts`'s coverage test (":624") starts reporting **"listed as a
@@ -2139,7 +2139,7 @@ measures composited contrast.
 - **`01-browse` still owns no fixture — the blocker is named, the decision is the owner's.** A poster token cannot create a funded row: `enforce_poster_jobs_money_lock` (read live 2026-09-20) raises `42501` on any `payment_status` write where `auth.uid() = jobs.customer_id`, so `escrow` is reachable only through the Stripe-sandbox checkout leg (as `02-marketplace.spec.ts` drives it) or through an admin/service token, which fakes money and fires `trg_notify_helpers_funded_update` + `trg_notify_saved_searches_funded_update` at real helpers. **Landed instead (`0173ae6be`):** the journey now reads the floor from `open_jobs_browse` as anon (`Prefer: count=exact`) BEFORE driving the browser — 0 rows fails in one line with an `announceUncovered` note saying this is prod data and not a browse-component bug; >0 rows makes any empty feed a proven CLIENT defect, quoting the count it should have rendered. That is a diagnosis, not a guarantee. **Owner decision:** (a) 01-browse posts + funds its own job on Stripe test mode each run and refunds it (real charge, ~90 s, couples discovery to payments), or (b) a durable `is_seed` funded row nobody cleans up. Note today all **8** browsable rows are `is_seed` — when the seed flag flips at launch the guest marketplace goes dark unless real funded jobs exist by then.
 - **Verification owed:** one clean `e2e-journeys` dispatch on main (pass = 0 failed in both `journeys` and `journeys-webkit`; the issue closes itself). Run `35562635341` was cancelled while *pending* by the `prod-load` concurrency group — zero jobs started. A `cancelled` prod-load run is never a result.
 - "Not Now" on the push rationale still toasts an error when permission was **already** denied. `requestPush()` returns a bare boolean, so it cannot tell a user's decline from an OS denial (`src/lib/pushPermissionNudge.ts:148`) — fix the signal, not the predicate. **STILL OPEN as a product item, but it is no longer a red press (2026-09-21).** On run `35660182220` it failed two presses per bell-bearing route × three personas — `"Notifications › Turn on push notifications › Not Now"` and `"› Turn On Notifications"`, both *"Notifications are off. Turn them on in your browser settings."* — and that toast is TRUE: a Playwright context grants no notification permission, so `Notification.permission` is `"denied"` before the sweep starts and `pushDeclineNeedsSettingsHint` only exempts the undecided `"prompt"` state. The classifier now excuses that toast **only** when all three hold — exact copy (asserted against `NotificationPanel.tsx` itself), press inside the push-permission prompt, and `Notification.permission === "denied"` read from the live page — and lists every excused toast in `coverage.md` under *"Error toasts not counted as defects"*. **Granting the permission instead was rejected:** `showPushRow = pushSupported && !pushEnabled` with `pushEnabled = getPushPermission() === "granted"`, so a granted context deletes the row and both dialog buttons — three pressed controls become zero found, and the app's only ungated entry point to enabling push leaves the inventory. Guard `src/test/pressPermissionRefusal.test.ts`, 2/2 vacuity mutations killed.
-- **`"Notifications" — error boundary / error copy rendered` (customer, `/dashboard` + `/jobs/:id`) was a FALSE POSITIVE, and it is already fixed.** Not a `NotificationPanel` crash: `/Something went wrong/i` in `e2e/errorScreens.ts` matched the overdue-job sweep's own notification body — *"… Message your Helpr, or report a problem if something went wrong."* Customer-only because poster-e2e is the account that owns those overdue jobs. Counted read-only on prod 2026-09-21: of poster-e2e's **388** notification rows, **8** match the old pattern and **0** match the anchored one `320dfba24` shipped, and no other pattern in the list matches any row. Regression guard added (`src/test/errorScreenPatternsVsAppProse.test.ts`, the prose taken verbatim from prod, 1/1 mutation killed) — `320dfba24` had shipped without one. Expect this finding to disappear on the next dispatch; it needs no product change.
+- **`"Notifications" — error boundary / error copy rendered` (customer, `/home` + `/jobs/:id`) was a FALSE POSITIVE, and it is already fixed.** Not a `NotificationPanel` crash: `/Something went wrong/i` in `e2e/errorScreens.ts` matched the overdue-job sweep's own notification body — *"… Message your Helpr, or report a problem if something went wrong."* Customer-only because poster-e2e is the account that owns those overdue jobs. Counted read-only on prod 2026-09-21: of poster-e2e's **388** notification rows, **8** match the old pattern and **0** match the anchored one `320dfba24` shipped, and no other pattern in the list matches any row. Regression guard added (`src/test/errorScreenPatternsVsAppProse.test.ts`, the prose taken verbatim from prod, 1/1 mutation killed) — `320dfba24` had shipped without one. Expect this finding to disappear on the next dispatch; it needs no product change.
 
 ### Landed in this pass — e7e7b4b0d
 - `scripts/e2e/sweepSummary.mjs` + `src/test/sweepSummary.test.ts`: the lifecycle sweeper said *"OK — all stranded rows unwound."* over rows it had just deferred. Prod holds **5** `[E2E DO NOT ACCEPT]` jobs in escrow, oldest 2026-09-15 — "settles forward" is not happening. Now named, aged, and warned past 48 h (warning, not an exit code: the sweeper is not allowed to unwind them).
@@ -2242,14 +2242,14 @@ text; 2 meet a different WCAG threshold). Three items that lane could NOT close:
 - [ ] **The inventory scanner cannot see Tailwind's slash-opacity syntax.** It
   matches `color: "hsl(var(--x) / N)"` and `text-[hsl(var(--x)/N)]` only, so
   `text-muted-foreground/70` and friends are invisible to it. Proof, found by
-  the in-page scan on `/dashboard`'s job dialog: **"Save as my default pitch"
+  the in-page scan on `/home`'s job dialog: **"Save as my default pitch"
   measures 3.08:1 light / 4.07:1 dark** and is in NO inventory. Widen the
   regexes, then re-baseline.
 - [ ] **Three live AA failures the in-page scan surfaced outside this lane's
   list**, all measured on prod data at 375 and 1440: the job dialog's "Save as
   my default pitch" (above); `/messages` "Keep chats & payments on Helpr —
   going off-platform…" at **3.95:1 dark** (full `rgb(212,103,53)` on its own
-  sienna-tinted panel); and `/my-posts`' count badge "2" at **1.27:1 dark**
+  sienna-tinted panel); and `/posts`' count badge "2" at **1.27:1 dark**
   (`rgb(20,22,26)` on `rgb(45,42,35)`).
 - [ ] **Four of the changed sites were never photographed in their own state**
   and are verified by token maths only: `ui/calendar`'s weekday header (the
@@ -2288,7 +2288,7 @@ tab's REAL header (owner's pop-up ruling: "skeleton fills the screen, grows
 below"); short tabs settle flat because the reserve is empty canvas, not drawn
 bones. Profile's boot branch stopped painting the LANDING skeleton for 23 of
 24 tabs, and its container stopped sitting 12px low. One `JobCardSkeleton`
-instead of two. `/user/:id` and `/my-jobs` placeholders now import their real
+instead of two. `/user/:id` and `/jobs` placeholders now import their real
 card's geometry. `src/test/loadingStateShape.test.ts` gained four registered
 `@mutate` assertions; `npm run vacuity` 11/11 killed, 0 survivors.
 
@@ -2307,7 +2307,7 @@ card's geometry. `src/test/loadingStateShape.test.ts` gained four registered
   tab body. The owner's report named the TABS, so this was measured and left
   alone. If the landing is supposed to line up with its own tabs, it is a
   one-line change and a screenshot.
-- **`/my-jobs` applied-card pitch is unverified against a populated list.**
+- **`/jobs` applied-card pitch is unverified against a populated list.**
   Both shared test accounts have zero live applications tonight (poster: none;
   helper: all Cancelled), so the loaded frame is the empty state on both. The
   placeholder's SHAPE is now correct by construction (it imports
@@ -2403,8 +2403,8 @@ an owner call, not a lane call.
 
   · Activity (fixed 2026-09-20): the phone tab row was collapsed behind a
     chevron whenever the live filter was the DEFAULT one — i.e. on arrival.
-    Nothing to do with the list being empty; /my-jobs hid its tabs with rows
-    in the bucket and /my-posts hid them without.
+    Nothing to do with the list being empty; /jobs hid its tabs with rows
+    in the bucket and /posts hid them without.
   · Messages (still open): `ConversationList.tsx` gates the Active/All tabs,
     the Select button and the search trigger on
     `hasThreads = !loading && !loadError && conversations.length > 0`. An
@@ -2427,7 +2427,7 @@ during load and render the tabs in BOTH outcomes, which costs a fixed 41px
 above an empty inbox and no jump in either direction.
 
 NOT GUARDED YET. `e2e/prod-audit/activity-tabs-visible.spec.ts` asserts the
-visible-without-interaction claim for /my-posts and /my-jobs only; extending
+visible-without-interaction claim for /posts and /jobs only; extending
 its `ROUTES` to /messages is the whole change once the owner has picked.
 
 ## Seed-fixture realism — address done (96bc774bc), three follow-ups OPEN (2026-09-19)
@@ -2467,7 +2467,7 @@ Authed-session reuse method: memory handoff-2026-09-15-visual-batch-v1-v6 (test-
 - [x] **V5** — verified ALREADY RESOLVED (no change): helper My-Jobs action buttons all Montserrat, 44px; 11px chips vs 14px primary is deliberate hierarchy, not drift. The JobActionRow unification (post-dates the owner's note) fixed it.
 - [x] **V6** (1cf78482e) helper card shows the poster as a PersonTile under the description (owner: "same as the poster side" = VN-22). Dropped the tiny inline poster name from the meta; poster now a shared PersonTile ("Posted by", avatar, profile link) when expanded — nothing in the collapsed card, matching the poster card's Helpr tile. AppliedJobCard.tsx.
 - V7 IGNORED (another session owns the rounded panel-bottom).
-- NOTE the a11y button-wrap prerequisite (Start Working/Mark Complete rendering ~61.5px vs 44px) was NOT hit by these pushes (V2/V3 reordered the row without touching those labels; changed-route a11y sweep was bypassed with LH_SKIP_CHANGED_CHECK as this Mac lacks prod Playwright). Still worth a dedicated look if a future /my-jobs push runs the a11y-prod sweep.
+- NOTE the a11y button-wrap prerequisite (Start Working/Mark Complete rendering ~61.5px vs 44px) was NOT hit by these pushes (V2/V3 reordered the row without touching those labels; changed-route a11y sweep was bypassed with LH_SKIP_CHANGED_CHECK as this Mac lacks prod Playwright). Still worth a dedicated look if a future /jobs push runs the a11y-prod sweep.
 
 ## DONE 2026-09-15 PM — B4 saved-helper availability nudge now opt-in (owner decision: gate behind a preference)
 - Owner got a "Hallie updated availability" nudge (had saved Hallie); never wants these. Decision (pop-up): gate behind a preference, default OFF.
@@ -3000,11 +3000,11 @@ tripped a check. Three classes, in order of how many:
 ### The 2026-09-15 re-runs, root-caused (a11y-webkit-prod 34925526605, nightly-webkit 34924529210, e2e-journeys 34927100318)
 - [x] **a11y-webkit-prod's zz gate: prod WAS slow, and the app threw away the answer it did get.** Both engines captured the ProtectedRoute card in the SAME 16s window (webkit 47 customer-activity @ /activity 03:43:19-37, chromium 83 helper-profile-reviews @ /profile?tab=reviews 03:43:19-35) on different accounts. Prod-side proof, since the Supabase API logs need a token this session cannot reach: `cron_run_log` start lag over 278 pg_cron starts since 09-13 is p50 0.18s / p95 0.56s / p99 0.61s, with exactly TWO outliers — 09-13 06:23:05 and **09-15 03:43:04.6** — so the scheduler itself was starved in that window. The timeout is NOT too tight: as helper-e2e/poster-e2e on prod just now, the same `profiles?select=*&user_id=eq.…` read is p50 150-200ms, max 2.0s (20 samples each), against a 6s per-attempt budget. The retry is NOT missing either (one client retry, 500ms). What WAS broken is in the app: `withTimeout` stops waiting but cannot cancel, so the in-flight read was abandoned. Measured on prod data (local preview, WebKit, /activity, first read answers at +8.3s, later reads hang): **error card at +12.9s** — the real row had arrived at +8.3s, inside the ~12.5s budget, and was discarded. `useCurrentUser` now carries a timed-out read into the retry and takes whichever answers first (2s reuse window, so an unrelated later refetch can never be handed a pre-edit row). Re-measured: **no card, /activity renders (h1 "My Posts")**. Guards: three new cases in `src/hooks/useCurrentUser.test.tsx`, the key one red on the old code (`expected true to be false`). Screenshots reviewed + review-logged (before/after).
 - [x] **nightly-webkit group 3 (stale-deploy /browse, /profile "warm, guard NOT armed"): a real app defect, and it is NOT f5bf06ec8.** Reproduced deterministically on the preview build in WebKit with an in-page MutationObserver: `vite:preloadError` → `recoverFromChunkError()` starts the reload → main.tsx calls preventDefault() → Vite resolves the import with `undefined` → React.lazy throws a plain TypeError ("undefined is not an object (evaluating 'e._result.default')") → RouteErrorBoundary painted **"This page hit a problem." at +15ms** and reported it, then pagehide at +37ms. So the error card (and a false error_logs/Sentry row) flashes before every automatic stale-deploy recovery — the exact flash `recovering` exists to prevent — and the spec's poll caught it, then read a blank body mid-reload. f5bf06ec8 only bounds the purge steps and refunds an offline attempt; it cannot make the card appear. Fix: `chunkReload` exposes `isRecoveryReloadInFlight()`, and RouteErrorBoundary renders its quiet reloading state (and reports nothing) while a reload is on its way. Guard `src/components/RouteErrorBoundary.recoveryInFlight.test.tsx` (2 cases incl. a control that still shows the card + reports), red on the old component.
-- [x] **nightly-webkit group 1 (activity-card-density + device-pass-measure @1440 timing out ~36s): the harness was rendering a screen no device has.** `happy-path-webkit` is the iPhone 13 profile (deviceScaleFactor 3) and `setViewportSize({width:1440})` changes only CSS px, so those variants composited **4320x2700** pixels. CI's Linux WebKit paints in software and the cost follows pixels: the run's traces show one painted frame every 3.2-6.7s at 1440@3x on /my-posts and /my-jobs against 1.1-1.6s at 375@3x, so each click's stability check (two frames) took 7-10s. 1440 variants now use `desktopScaleFor()` (deviceScaleFactor 2 — desktop Safari/iPad, and what a 1440 screen really is); probed: 1440 now backs 2880x1800, 375 still 3x. Local WebKit after: 41 passed (activity-card-density + device-pass-measure).
+- [x] **nightly-webkit group 1 (activity-card-density + device-pass-measure @1440 timing out ~36s): the harness was rendering a screen no device has.** `happy-path-webkit` is the iPhone 13 profile (deviceScaleFactor 3) and `setViewportSize({width:1440})` changes only CSS px, so those variants composited **4320x2700** pixels. CI's Linux WebKit paints in software and the cost follows pixels: the run's traces show one painted frame every 3.2-6.7s at 1440@3x on /posts and /jobs against 1.1-1.6s at 375@3x, so each click's stability check (two frames) took 7-10s. 1440 variants now use `desktopScaleFor()` (deviceScaleFactor 2 — desktop Safari/iPad, and what a 1440 screen really is); probed: 1440 now backs 2880x1800, 375 still 3x. Local WebKit after: 41 passed (activity-card-density + device-pass-measure).
 - [x] **nightly-webkit group 2 (nav-hide-on-scroll, 5 tests) is a measurement bug, not a dock bug.** The run's own trace shows the app DID hide the dock after the second scroll step (`aria-hidden="true"`, `inert`, inline `translateY(calc(var(--safe-area-bottom,0px) + 130px))`), while `getComputedStyle().transform` still read 0 — the 0.28s transition only advances on a rendering update, and the screencast painted no frame for 1.6s around that read. The spec now polls the painted offset (`expectDock`) instead of sampling once after a fixed wait; a dock that never hides still fails at the timeout. Local WebKit: 6/6.
 - [x] **nightly-webkit group 4 (zz-recurring-picker):** same rendering-update cause. @1440 it was the 3x pixel cost (fixed by `desktopScaleFor`); @375 the flake was a mid-transition colour read (`rgba(0,0,0,0) | rgba(0,0,0,0) | rgba(255,255,255,0.55)` — two settled chips, one still unselected), now polled to a settled single fill.
 - [x] **e2e-journeys, 4 groups, all verified against live behaviour.** (a) 01-browse "switch to the map and back": picking a Feed view CLOSES the filter sheet — verified on prod through the local preview (dialog gone <100ms after the Map tap) — so `if (visible) click(close)` raced a detaching button and burned 20s; a shared `closeFilterSheet()` waits for the sheet to go, and Clear All is now reached by reopening it. (b) 03-account availability: **prod really did hold 0 weekly rows for helper-e2e** (live REST), left behind by an older DELETE-then-POST restore in this very spec; restored on prod through the app's own `save_weekly_availability` RPC (0 → 7 rows, RPC returned 7), and the spec now seeds an empty week instead of failing on it, restores atomically through the RPC, and accepts the RPC on the *second* save wait too (that one was still table-only). (c) keyboard-focus DOB wheel: the inventory selector matched the wheel's 127 `<button role="option" tabindex="-1">` options — elements the a2 step asserts are OUT of the tab order — so it walked 130 stops, timed out on `nth(47)` of a list the wheel had re-rendered, and (once handles fixed that) ended with the picker closed. It now takes real keyboard stops only: 4.6s local, was 5.0m in CI. (d) 02-marketplace do-the-job "completion never recorded": every button had been pressed and the failure shot shows the **Location rationale dialog still open** — `updateStatus("done")` asks for location on its way out and "Not Now" is deliberately not remembered (`usePermissionRationale` marks a kind confirmed only on yes), so the spec now answers it there as it does at Start Working. 02-marketplace webkit also hit **Stripe's own "Something went wrong" page** (their words: network / expired link / provider unreachable) and then waited 60s for a card field; `payOnStripeCheckout` now reloads the session once and, if Stripe errors again, names Stripe instead of our form.
-- [ ] REPORT (not changed): Activity is the app's most expensive screen to composite — 15 `backdrop-filter` layers on /my-posts (a `liquid-glass` panel plus one per card, nested) against 5 on /dashboard, which is why only Activity crossed the timeout. On a GPU it is invisible; on software rendering it is ~3x /dashboard. Worth an owner decision (dropping the per-card backdrop inside an already-frosted panel changes nothing visible on a real device but is a visual change, so it is not being made here).
+- [ ] REPORT (not changed): Activity is the app's most expensive screen to composite — 15 `backdrop-filter` layers on /posts (a `liquid-glass` panel plus one per card, nested) against 5 on /home, which is why only Activity crossed the timeout. On a GPU it is invisible; on software rendering it is ~3x /home. Worth an owner decision (dropping the per-card backdrop inside an already-frosted panel changes nothing visible on a real device but is a visual change, so it is not being made here).
 - [ ] REPORT (not changed): ErrorBoundary and SectionBoundary still render their error copy while a recovery reload is in flight (they only skip the report). Same class as the RouteErrorBoundary fix above; they are not what any red run caught.
 - [ ] REPORT (not changed): running the whole 02-marketplace chain locally (WebKit, prod backend) stopped at Stripe's Pay button staying DISABLED with Google's address-autocomplete dropdown open over the billing fields — a local-only manifestation of the same third-party form CI pays on routinely (the chain's teardown cancelled its job: 7b9b56bc, cancelled/cancelled). The do-the-job location-dialog fix is therefore proven from the CI artifact, not from a local pass of that step.
 - [ ] REPORT (not changed): stale-deploy's cold-load case can race its own start page — once chunks are blocked, a deferred prefetch on /terms can trigger ITS recovery reload and interrupt the spec's `goto` ("Navigation to /signup is interrupted by another navigation to /terms?_v=…"). Seen once in 42 local tests, never in CI.
@@ -3022,7 +3022,7 @@ tripped a check. Three classes, in order of how many:
 - [ ] Visual-notes 2026-09-14 side-findings (lane D/VN-45/VN-54, reported not changed): profile "Worked together" counts every shared job, not completed ones (Hallie shows 44 vs 16 completed); disputed Helpr card still shows the "Add a before photo" ask; App.tsx comments claim /support /help /legal skip PageTransition (they don't); /help and /support missing from NATIVE_APP_SHELL_ROUTES; served HTML has two <link rel="manifest">; /favicon.ico is PNG data. VN-45: the 2 orphan referral_credits rows on the owner account were deleted with owner OK; money tiles vs referral count still read different sources. VN-54 verified live (business_name only when license/insurance admin-verified), owner confirmed — closed.
 - [ ] **QUEUED (branch `fix-completion-columns-v2`, not yet landed — supersedes `fix-jobs-completion-columns`): completion columns server-owned (H-001, H-002, 2026-09-15 authz hole hunt).** H-001: the assigned Helpr passed every completion gate then PATCHed a BACKDATED `helper_completed_at`, making the job instantly due for `auto-release-payment` and erasing the poster's 24h window. H-002: a poster PATCHed `status='completed'` directly (status on neither poster-lock list; `enforce_job_status_transition` allows in_progress→completed), stranding the escrow outside every sweep. Fix, mirroring the live dispute-marker trigger: (1) `rpc_helper_mark_done(_job_id)` SECURITY DEFINER runs the same gates+write server-side, stamps `helper_completed_at=now()` once, returns `poster_completed_at` (grants: FROM PUBLIC, anon; EXECUTE authenticated); JobTracking's Done calls it (PGRST202 fallback to the legacy direct stamp for the merge→deploy window). (2) `enforce_job_completion_server_owned` BEFORE INSERT/UPDATE trigger `zz_jobs_completion_server_owned`: a non-admin client (`current_user` authenticated/anon) may not push status→completed nor change `helper_completed_at` at all; the RPC runs as postgres and passes. Migration `20260915073143`. Closes the KNOWN_OPEN `poster:helper_completed_at` / `offered:helper_completed_at` pairs in `src/test/jobsStateColumnGuard.test.ts` (red-first proven). Proof: `scripts/probes/job-completion-columns-v2.probe.mjs` (PGlite, holes red on the live shape, green after 3 applies, 10 broken copies caught). Lead to run the rolled-back prod probes (helper PATCH helper_completed_at → 42501; poster PATCH status=completed → 42501; RPC works for the assigned helper) and land.
 - [ ] Done is final, the TABLE door (money review of 20260915025607, 2026-09-14; pre-existing, not changed): the migration closes the RPC path only. Read from live definitions (not executed): the jobs policy "Customers can update their own jobs" has no WITH CHECK, `authenticated` holds column UPDATE on status/disputed_at/dispute_status/disputed_by, no poster-side trigger locks them (`enforce_poster_jobs_money_lock`, `prevent_job_field_escalation` do not list them), and `enforce_job_status_transition` allows ('completed','disputed'). A poster PATCH of `disputed_at` on a completed `payout_pending` job stalls `process-scheduled-payouts` (pays only `disputed_at IS NULL`) with no admin-queue entry; adding `status: 'disputed'` also escapes `auto-resolve-disputes` (needs payment_status='escrow'). `DisputeDialog.tsx:166-186` (RPC-not-deployed fallback) is that exact direct write (dead code, reported). Fix direction: BEFORE UPDATE trigger refusing non-admin changes to those columns unless a txn-local flag set by open_dispute_as is on (the `app.sanctioned_cancel` pattern); prove with a rolled-back non-admin poster probe. Also minor, same review: disputes opener can still append evidence via the "disputes opener update while open" policy on a completed job (no money); cancelled jobs are refused by the matrix only after the INSERT with raw text; a helper abort racing poster completion now raises job_already_completed but `ActiveJobSection.tsx:164` only maps not_abortable (generic toast). **Mapped, with its class, on branch `rpc-error-map` (2026-09-14, not yet merged):** abort now says "This job was just marked complete, so it can't be cancelled.", closes the dialog and invalidates the activity query. Class guard `src/test/rpcErrorCopyCoverage.test.ts`: every `.rpc("X")` in src/ (TS AST) × X's latest migration definition plus every function it calls → 69 (rpc, code) pairs over 19 RPCs; each must have copy in `RPC_ERROR_COPY` (`src/lib/lifecycleErrors.ts`, read through `rpcErrorMessage`/`rpcErrorCode` at every call site) or a reasoned UNREACHABLE entry. Red before the fix: 23 codes with no copy + ActiveJobSection unwired; green after. The rest of the table-door item above stays open.
-- [ ] **VN-33 arrival gate SHIPPED c6f025b66 (2026-09-14) — owner rule "both required: nearby by GPS AND poster confirms, no fallback". Lead still to screenshot; OWNER QUESTIONS below.** Migration `20260915044137_arrival_requires_gps_and_poster` (db-deploy run 34933204654 success; `schema_migrations` has it; live `mark_helper_arrival` md5 6d1b9df8…, ACL unchanged `{postgres,authenticated,service_role}`; `enforce_helper_completion_gates` is `verified IS NULL OR confirmed IS NULL` with no 2026-08-28 grandfather; triggers `trg_job_tracking_arrival_gate`, `zz_jobs_arrival_integrity`, `trg_helper_completion_gates … OF helper_completed_at, status` live; create-payment redeployed, run 34933204477). What it enforces: arrival RPC refuses far/no-fix and writes nothing; `helper_arrived_at` off the helper whitelist; Helpr completion (trigger AND create-payment release, one shared rule `_shared/arrivalRule.ts`) needs both stamps; Helpr can't write status=completed; tracker Arrived/Working/Done need the stamps and the job's own Helpr; poster can't write the arrival stamps or confirm before an arrival; a re-awarded job starts with no arrival; no-show refused once the Helpr arrived. **Prod proof (seed job 5eed0a10-…-0006 "Grocery run and pharmacy pickup", Hallie helper-e2e 437de07d):** state before = in_progress, on the way, no arrival stamps, jobs xmin 2054802. `mark_helper_arrival` from Seattle (47.6062,-122.3321) → 400 23514 `arrival_too_far` details `distance_ft=11081180` (~2,099 mi); with no location → 400 `arrival_location_required`; helper PATCH `helper_arrived_at` → 403 42501; helper PATCH job_tracking status arrived/working → 400 `tracker_requires_arrival`. After: xmin 2054802, helper_arrived_at/verified/confirmed all null, tracking row unchanged (on_the_way @2026-09-09). Nothing completed or released on prod. Completion gate proven by the live definition (above). PGlite `scripts/probes/arrival-gate.probe.mjs`: 11 holes reproduce on the live shape, green after 3 applies, 14 broken copies caught. Tests red on the old OR rule (`arrivalGate.test.ts`, `JobTracking.test.tsx`); guards in `jobsGuardRpcParity.test.ts`. Reviews: lh-money-escrow + lh-verification-credentials (2 rounds; all verification findings fixed and re-proven). Screens for the lead: /my-jobs Helpr card On the Way → tap I've Arrived far away (amber "You're about N mi from the job — get closer to mark arrived", button "Try My Location Again"); Arrived step with GPS verified, poster not yet ("Awaiting poster" caption now also on a verified arrival; Start Working disabled with the both-needed reason; map pin "Location confirmed"); Done step blocked reason; /my-posts poster card Confirm They Arrived → helper card unlocks; 375 + 1440.
+- [ ] **VN-33 arrival gate SHIPPED c6f025b66 (2026-09-14) — owner rule "both required: nearby by GPS AND poster confirms, no fallback". Lead still to screenshot; OWNER QUESTIONS below.** Migration `20260915044137_arrival_requires_gps_and_poster` (db-deploy run 34933204654 success; `schema_migrations` has it; live `mark_helper_arrival` md5 6d1b9df8…, ACL unchanged `{postgres,authenticated,service_role}`; `enforce_helper_completion_gates` is `verified IS NULL OR confirmed IS NULL` with no 2026-08-28 grandfather; triggers `trg_job_tracking_arrival_gate`, `zz_jobs_arrival_integrity`, `trg_helper_completion_gates … OF helper_completed_at, status` live; create-payment redeployed, run 34933204477). What it enforces: arrival RPC refuses far/no-fix and writes nothing; `helper_arrived_at` off the helper whitelist; Helpr completion (trigger AND create-payment release, one shared rule `_shared/arrivalRule.ts`) needs both stamps; Helpr can't write status=completed; tracker Arrived/Working/Done need the stamps and the job's own Helpr; poster can't write the arrival stamps or confirm before an arrival; a re-awarded job starts with no arrival; no-show refused once the Helpr arrived. **Prod proof (seed job 5eed0a10-…-0006 "Grocery run and pharmacy pickup", Hallie helper-e2e 437de07d):** state before = in_progress, on the way, no arrival stamps, jobs xmin 2054802. `mark_helper_arrival` from Seattle (47.6062,-122.3321) → 400 23514 `arrival_too_far` details `distance_ft=11081180` (~2,099 mi); with no location → 400 `arrival_location_required`; helper PATCH `helper_arrived_at` → 403 42501; helper PATCH job_tracking status arrived/working → 400 `tracker_requires_arrival`. After: xmin 2054802, helper_arrived_at/verified/confirmed all null, tracking row unchanged (on_the_way @2026-09-09). Nothing completed or released on prod. Completion gate proven by the live definition (above). PGlite `scripts/probes/arrival-gate.probe.mjs`: 11 holes reproduce on the live shape, green after 3 applies, 14 broken copies caught. Tests red on the old OR rule (`arrivalGate.test.ts`, `JobTracking.test.tsx`); guards in `jobsGuardRpcParity.test.ts`. Reviews: lh-money-escrow + lh-verification-credentials (2 rounds; all verification findings fixed and re-proven). Screens for the lead: /jobs Helpr card On the Way → tap I've Arrived far away (amber "You're about N mi from the job — get closer to mark arrived", button "Try My Location Again"); Arrived step with GPS verified, poster not yet ("Awaiting poster" caption now also on a verified arrival; Start Working disabled with the both-needed reason; map pin "Location confirmed"); Done step blocked reason; /posts poster card Confirm They Arrived → helper card unlocks; 375 + 1440.
   - **OWNER QUESTION — auto-release when the poster never confirms arrival.** `auto-release-payment` keys only on `helper_completed_at`/`poster_completed_at` (24h) and never reads arrival. Under the new rule a Helpr who is GPS-verified and did the work cannot mark complete until the poster taps Confirm They Arrived, so the 24h clock never starts; exits today are the poster releasing or a dispute (admin). Also the poster's arrival notice rides the `transit_updates` preference and never asks them to confirm (money review). Decide: nudge/escalate, auto-confirm after N hours of verified presence, or leave as is.
   - **OWNER QUESTION — bad map pin.** Job coordinates are one Nominatim result (`src/lib/geocode.ts`, no precision check); a pin >500 ft from the real door means a Helpr who is there can never mark arrived, and the poster sees No-Show instead of Confirm Arrival. Jobs with NO coordinates still accept any fix (0 non-seed live). Decide the fallback, if any.
   - Owner should know: the GPS half checks coordinates the phone SENDS; an assigned Helpr can send the job's own coordinates from anywhere. The poster's tap is the half that can't be faked.
@@ -3061,8 +3061,8 @@ VN-46 (Notifications wouldn't scroll) shipped and is ticked in the tracker.
 measured, and reverted — the fix was wrong, and the measurement says why.
 
 Measured on prod at 1440, `.app-shell-frame` 0→1192, before any change:
-- `/dashboard` `.page-panel` **48 → 1144**
-- `/my-posts` `.page-panel` **48 → 1144**
+- `/home` `.page-panel` **48 → 1144**
+- `/posts` `.page-panel` **48 → 1144**
 - `/messages` `.page-panel` **48 → 1144**
 - `/profile?tab=reviews` first card **48 → 1144**
 
@@ -3196,7 +3196,7 @@ The "31 crons are not running" roll-up was the 09-13 10:03 → 09-14 17:40 UTC o
   - **TODO (coordinator, needs prod):** land in order (migration first, then edge), then run `settle-dispute-race.prod.mjs`, `dispute-open-race.prod.mjs`, `admin-release-vs-refund.prod.mjs --mode=all` (minted PIs) — the latter now includes the same-action token pair and an induced transfer failure. `scripts/ci/race-runner.mjs` race 3 (two connections) not run either.
   - OPEN (LOW): the SQL watchers (`sweep_dead_crons`, `check_ops_digest_delivery`, and now the stale-claim page) post to `slack-ops-alert` with vault `service_role_key`, and a 401 is async — confirm once in `net._http_response` that these posts answer 200.
 - [x] CLOSED 2026-09-14: `src/components/job-card/activityActions/useLifecycleHandlers.ts` keyed the completion moment off `bothDone` alone, so a duplicate release (`alreadyReleased: true, bothDone: true`, or `alreadyConfirmed: true`) replayed the confetti + success-moment + tip prompt for a completion that already fired them on the original call. Fix: `if (data?.alreadyReleased || data?.alreadyConfirmed) { await refresh(); return; }` before the `bothDone` branch, field names confirmed against the `alreadyDone` early-return in `supabase/functions/create-payment/index.ts`. Checked the other handlers in the same file that celebrate or prompt (`resolveRevision`, `confirmArrival`, `confirmWorking`, `handleNoShow`) — none of them read an idempotent "already" response from the server, so none share this defect class. Guard: `src/components/job-card/activityActions/useLifecycleHandlers.duplicateRelease.test.tsx`, red against the pre-fix code (reproduces the exact `alreadyReleased` shape from the original bug report), green after; a control case proves a fresh (non-duplicate) completion still celebrates and still prompts.
-- [x] CLOSED 2026-09-14: pre-push a11y-prod sweep red on `/my-jobs` (helper, phone-light): axe `aria-command-name` serious, 2 nodes `.tracking-helper-pin` (a clickable map pin with no accessible name). Root cause: Leaflet gives every marker `role="button"` by default (`keyboard: true`), but only copies the `alt` option onto the icon DOM node `if (icon.tagName === 'IMG')` — a `divIcon` marker is a `<div>`, so the existing `<Marker alt="...">` was a no-op that read like a fix and changed nothing (an unlabelled focusable button stayed in the tab order). Fix: `withAccessibleName()` in `src/components/TrackingMap.tsx` stamps `aria-label` directly onto the marker's DOM node via a wrapped `createIcon`, applied to both the helper pin ("Your Helpr's current location") and destination pin ("The job location"). No visual change. Guard: `src/test/mapMarkerAccessibleName.test.ts` derives its inventory of command-role marker constructs from source across every `*map*` file (`git ls-files src`) — Leaflet `divIcon(...)` calls and manual `setAttribute("role","button"|"link")` — and asserts each has an accessible name; canary tests reproduce the exact original bug shape and prove the checker flags it (also independently confirmed red against the pre-fix `TrackingMap.tsx` blob). `src/components/browseMap/mapMarkers.ts` (BrowseMap's pins/clusters) already did this correctly — checked, not touched.
+- [x] CLOSED 2026-09-14: pre-push a11y-prod sweep red on `/jobs` (helper, phone-light): axe `aria-command-name` serious, 2 nodes `.tracking-helper-pin` (a clickable map pin with no accessible name). Root cause: Leaflet gives every marker `role="button"` by default (`keyboard: true`), but only copies the `alt` option onto the icon DOM node `if (icon.tagName === 'IMG')` — a `divIcon` marker is a `<div>`, so the existing `<Marker alt="...">` was a no-op that read like a fix and changed nothing (an unlabelled focusable button stayed in the tab order). Fix: `withAccessibleName()` in `src/components/TrackingMap.tsx` stamps `aria-label` directly onto the marker's DOM node via a wrapped `createIcon`, applied to both the helper pin ("Your Helpr's current location") and destination pin ("The job location"). No visual change. Guard: `src/test/mapMarkerAccessibleName.test.ts` derives its inventory of command-role marker constructs from source across every `*map*` file (`git ls-files src`) — Leaflet `divIcon(...)` calls and manual `setAttribute("role","button"|"link")` — and asserts each has an accessible name; canary tests reproduce the exact original bug shape and prove the checker flags it (also independently confirmed red against the pre-fix `TrackingMap.tsx` blob). `src/components/browseMap/mapMarkers.ts` (BrowseMap's pins/clusters) already did this correctly — checked, not touched.
 - [x] AUDITED 2026-09-14 — the 21 edge `jobs` lifecycle writes baselined "not yet re-audited": **11 SAFE, 8 FIXED, 2 DEFERRED** (`docs/archive/lifecycle-writes-audit-2026-09-14.md`). Fixed: auto-release-payment (dispute/revision filed mid-run was overwritten to completed/payout_pending — now `.eq("status", job.status)`), auto-resolve-disputes (escalated or withdrawn dispute auto-paid — now status + dispute_status CAS), create-payment escrow stamp (gift-card funding written back to unpaid — payment_status CAS), `request_revision` / `resolve_revision` (double-tap + stamp on a disputed job — status CAS, `already*` replies), `cancel_escrow` claim + final flip (overwrote a dispute opened mid-refund — status + `cancelling` CAS), `charge.dispute.created` (overwrote a settled payout to chargeback — payment_status CAS + marker-only fallback). SAFE ones moved to a new `safe` list in the baseline with reasons; `check-race-class.mjs` still fails on any new unguarded write. Guard shown red on the pre-fix excerpts (`src/test/fixtures/raceClass/edgeLifecycleWrites.prefix.ts.txt`).
 - OPEN: the 2026-09-14 lifecycle-writes fixes have NO prod race proof yet (prod owned by another agent). Seven probes listed at the end of `docs/archive/lifecycle-writes-audit-2026-09-14.md` (auto-release vs dispute, auto-resolve vs escalate/withdraw, gift vs card funding, revision double-taps, cancel_escrow vs dispute, chargeback vs settled payout).
 - [x] CLOSED on `dispute-races` (lands with it): `admin_refund_general` flip pinned to the read status + payment_status (baseline `allow` entry removed, the scanner no longer hits it); `execute-dispute-split` jobPatch runs under the settlement claim (moved to `safe`). Quick Release / Quick Refund refuse `payment_status` other than `escrow`/`payout_pending` (`not_settleable`, enforced inside `claim_dispute_settlement`).
@@ -3424,7 +3424,7 @@ Measured against prod, warm median:
   **edge fn → Stripe 395–893ms**. The third-party hop is the whole problem;
   the Deno runtime is not.
 - `check-pro-subscription` (893ms) lands 570ms after everything else on
-  /dashboard. `stripe-connect status` (395ms) is the "Connect to start earning"
+  /home. `stripe-connect status` (395ms) is the "Connect to start earning"
   delay on /profile.
 - **Neither is prefetched anywhere**, and 24 call sites set `gcTime: 5min`,
   which is below the threshold for React Query persistence to survive a
@@ -3514,7 +3514,7 @@ Find both and make one authoritative.
   unknown tier string (report, not fixed); `/admin?view=support` shows "We couldn't
   load the support queue" under that spec (probably its read uses a non-`get_` RPC
   the spec's write firewall refuses; unverified).
-- **Every job card renders TWICE on /dashboard** (seen in the perf lane's
+- **Every job card renders TWICE on /home** (seen in the perf lane's
   screenshot). Unconfirmed cause.
 - **No retry for a failed arrival.** `mark_helper_arrival` fires once and the
   tracker only moves forward, so a helper who denied location then enabled it
@@ -3702,11 +3702,11 @@ which is where "162" comes from. The owner's number was right.
       time-to-error. `queryClient.ts` had `retry: failureCount < 2` on TanStack's
       default backoff — three round trips plus three seconds of pure waiting.
       Now one retry with an explicit capped `retryDelay`. Measured at 375:
-      /my-jobs **3.41s -> 1.15s**, /my-posts 3.42 -> 1.40, /messages 3.39 -> 1.14,
-      /dashboard 1.44 -> 1.24. Retries were NOT removed — a spec that fails the
+      /jobs **3.41s -> 1.15s**, /posts 3.42 -> 1.40, /messages 3.39 -> 1.14,
+      /home 1.44 -> 1.24. Retries were NOT removed — a spec that fails the
       first read then succeeds proves a blip still self-heals with no error card.
       Original report: **A backend failure shows ~20s of skeletons.** SEEN
-      on /dashboard, /my-jobs, /my-posts, /messages, both widths. The designed
+      on /home, /jobs, /posts, /messages, both widths. The designed
       "We couldn't load this / Try again" card only appears after React Query
       exhausts retry+backoff. Until then: blank pills, no message, no way out.
 - [x] **S2 · DONE (a520a50a8).** Cause: `useActivityData` returned
@@ -3718,7 +3718,7 @@ which is where "162" comes from. The owner's number was right.
       holding during a refetch only when there are zero rows to show (so a
       background refetch never blanks an existing list). False-empty window
       **3.7s -> 0s**. Original report: **A false empty state flashes.** SEEN on
-      /my-jobs at 375: "No applications yet" at 3.8s, then at 15s the same page
+      /jobs at 375: "No applications yet" at 3.8s, then at 15s the same page
       says "you have 1 in Waiting". The user is told they have nothing while
       they have work.
 - [x] **S3 · DONE — it was the MOCK, not the app.** `WorkRecord.tsx` reads the
@@ -3781,7 +3781,7 @@ previously-uncaptured Profile tabs is designed, not blank.
       Original report: **Duplicate seed family.** `jobs` holds two exact mirror families,
       `5eed0a…` and `5eed0b…`: 26 jobs / 24 applications / 80 messages EACH,
       all 26 titles+statuses matching pairwise, identical `created_at`. The seed
-      script ran twice. This is why every job card looks doubled on /dashboard —
+      script ran twice. This is why every job card looks doubled on /home —
       it is duplicated DATA, not a render defect. Deleting one family is a
       destructive prod DELETE of ~130 rows; either family is equivalent.
 
@@ -3917,13 +3917,13 @@ Verified clean, so these can stop being re-reported:
   with the marketing footer. The temp spec's matcher was wrong, not the page.
 - **/legal at 1440 fits correctly**: `#root` padding-right 248px applied once,
   content column 48→1144 centred in the 1192 post-rail area, zero overflow.
-- **/dashboard at 375 fits**: frame 0→375 full width, zero overflow. Five
+- **/home at 375 fits**: frame 0→375 full width, zero overflow. Five
   distinct job cards, no doubling — the seed delete is confirmed VISUALLY, not
   just by a row count.
 
 ## Reports from the loading-states lane (not fixed, out of its scope)
 
-- [x] **DONE f2b63d921.** Repro confirmed exactly: load /my-jobs empty, add an
+- [x] **DONE f2b63d921.** Repro confirmed exactly: load /jobs empty, add an
       application server-side, reload -> **0** network requests for 60s while the
       page states the account has nothing. The persisted IndexedDB cache is what
       lets it survive a reload. Fix: `refetchOnMount: "always"` on the two
@@ -3962,10 +3962,10 @@ Verified clean, so these can stop being re-reported:
       Against a HANGING (not 500ing) backend, ProtectedRoute's account-level
       error card still costs 10s + a retry. The retry-count fix helps, but the
       10s timeout is the dominant term there.
-- [x] **DONE — confirmed viewport-independent.** /my-jobs 935ms @1440 vs 923ms
-      @375; /dashboard 1906ms @1440 vs 1910ms @375. Screenshots opened and
+- [x] **DONE — confirmed viewport-independent.** /jobs 935ms @1440 vs 923ms
+      @375; /home 1906ms @1440 vs 1910ms @375. Screenshots opened and
       looked at: designed error card, rail correct on the right, no dead gutter.
-      **Measurement caveat worth keeping:** the pre-fix /dashboard number read
+      **Measurement caveat worth keeping:** the pre-fix /home number read
       1384ms and post-fix 1906ms. That is NOT a regression — the locator
       `/couldn't load/i` was matching the notification TOAST before it was
       removed. A measurement that was quietly measuring the wrong thing, which
@@ -4160,7 +4160,7 @@ Two follow-ups worth keeping:
       toast still lands at y 8 at 375 and y 24 at 1440. Nudge at 375
       **y 8–84 over the title -> y 640–716**, 32px clear of the dock; occluded
       controls **2 -> 0**.
-      And the answer to why it fired on /my-jobs but not /dashboard: it is not a
+      And the answer to why it fired on /jobs but not /home: it is not a
       global toast at all. `usePushPermissionNudge` is called only from
       `Activity.tsx` and `useActivityActions.ts`.
       Original report: **"Get notified?" toast covers the My Jobs title card** Measured:
@@ -4179,13 +4179,13 @@ Two follow-ups worth keeping:
       Original report: **AccountDenied / AccountBanned likely share it** —
       same `AuthShell` call with no `centerColumn`, where AccountPending passes
       `align="center"`. CODE READ ONLY, not reproduced live, not touched.
-- [x] **DONE afe650635.** Measured before: /my-jobs 1 panel at x 48–1144 (w
+- [x] **DONE afe650635.** Measured before: /jobs 1 panel at x 48–1144 (w
       1096), inbox 1 panel, **thread 0 panels** at both widths — it painted
       straight onto the canvas. `ChatPaneShell`'s standalone branch now renders
       through `PageScaffold` (the shared shell, NOT a hand-rolled panel), which
       is a thin wrapper over the same `AppShell`, so the 100dvh lock and
       bottom-nav reservation are unchanged. After: thread **1 panel, x 48–1144,
-      w 1096, radius 24, 1px border — byte-identical geometry to /my-jobs**;
+      w 1096, radius 24, 1px border — byte-identical geometry to /jobs**;
       375 matches the inbox. The stop-condition was checked rather than assumed:
       internal scrolling survives and the composer still reaches the viewport
       edge, with all 14 `messages-thread.spec.ts` specs passing. The lane also
@@ -4513,7 +4513,7 @@ on every one.
 ## Overnight — the three rulings, all DONE (2026-09-12)
 
 - [x] **Red build fixed first — a838fa807.** The empty-state sweep was failing a
-      137-screen run because /dashboard logged a 406 from `POST referral_codes`.
+      137-screen run because /home logged a 406 from `POST referral_codes`.
       The mock returned `[]` for every write under a comment claiming that was
       "so `.insert().select()` patterns get back data" — an empty array is
       precisely NOT data. It only surfaced once `honourSingleObject` started
@@ -4555,7 +4555,7 @@ on every one.
 
 ## ⚠️ FOR THE OWNER — your profile photo is (almost certainly) your ID document
 
-Found 2026-09-12 while walking /dashboard, /my-jobs, /my-posts, /messages and
+Found 2026-09-12 while walking /home, /jobs, /posts, /messages and
 /profile with a real session. Every one of those pages logs
 `400 GET .../user-documents/76b07824…/avatar.png`.
 
@@ -4617,14 +4617,14 @@ of these was the harness accusing working code:
   PURPOSE, for screen readers;
 - reported the whole bottom nav on /messages unclickable, because opening a
   thread hides the dock and the labels were captured on load;
-- reported already-active tabs dead ("Home" on /dashboard, "Posts" on
-  /my-posts, "Messages" on /messages, "Terms" on legal);
+- reported already-active tabs dead ("Home" on /home, "Posts" on
+  /posts, "Messages" on /messages, "Terms" on legal);
 - could not see toggle state, so "Copy Mon to all" looked dead.
 A harness that calls working controls broken spends the night's attention on
 itself. **Every finding below was reproduced by hand before being believed.**
 
 ### Confirmed and FIXED
-- [x] **Tapping Search on /dashboard left the field unfocused** (bfadf5460).
+- [x] **Tapping Search on /home left the field unfocused** (bfadf5460).
       The header swapped to a search box and `document.activeElement` stayed on
       BODY, so on a phone the keyboard never came up and you had to tap again —
       two taps for one intent on the primary surface. Fixed for the standalone
@@ -4822,14 +4822,14 @@ not defects, and worth saying plainly rather than filing thirty findings.
 - **"Copy Mon to all"** — no-op only because that account's seven days are
   already an identical 09:00–17:00. Proven to work where a day differs.
 - **"Light" / "Dark" on the accessibility tab, "Off" on auto-tip, "Lifetime" on
-  earnings, "Post a new job" on /post-job, "Home" on /dashboard** — every one is
+  earnings, "Post a new job" on /post-job, "Home" on /home** — every one is
   the already-selected option or the current route. Pressing them is supposed to
   do nothing.
 - **"Follow us on Facebook"** opens a new tab, which the walker cannot see as a
   change in the page it is watching.
 - **"Recenter map"** appears on /admin, /account-*, /signup-pending and / at
   1440 because every one of those REDIRECTS a signed-in approved non-admin to
-  /dashboard, which has the map. Same control, one screen.
+  /home, which has the map. Same control, one screen.
 
 ### Real, and open
 - [x] **TEXT CLIPPED on home_history — RETRACTED, it was my detector.** The
@@ -5085,7 +5085,7 @@ until the browser has been used to LOOK at it. Agents run one at a time.
       treating it as an app defect.
 - [ ] **My Posts search only searches the open status tab, and says the job does not exist** (journeys
       lane, 2026-09-12, seen on prod at 390px). Repro: as the poster, post and fund a job (it lands in
-      Waiting), open `/my-posts` (opens on Needs You), tap Search and type a word from its title. Result:
+      Waiting), open `/posts` (opens on Needs You), tap Search and type a word from its title. Result:
       "No jobs in this view / No jobs match your search — try a different term." with no pointer to
       Waiting, where the job is. The non-search empty state does point at other tabs ("14 in Done and 52
       in Cancelled"); the search empty state does not. A poster looking for a job they just posted is told
@@ -5093,9 +5093,9 @@ until the browser has been used to LOOK at it. Agents run one at a time.
       J2 now opens the Waiting tab explicitly. Not fixed: needs a product call (search across tabs, or
       name the tab holding matches).
 - [ ] **Tracking map throws "reading '_leaflet_pos'" on My Jobs** (journeys lane, 2026-09-12). Found by the
-      J3 journey's error_logs check: as the helper, open `/my-jobs` and switch to Waiting while a card with a
+      J3 journey's error_logs check: as the helper, open `/jobs` and switch to Waiting while a card with a
       tracking map is mounted. `report()` fired `TypeError: Cannot read properties of undefined (reading
-      '_leaflet_pos')` from TrackingMap. Prod `error_logs`: 13 rows since 2026-08-23, all from `/my-jobs`, 2
+      '_leaflet_pos')` from TrackingMap. Prod `error_logs`: 13 rows since 2026-08-23, all from `/jobs`, 2
       users. Cause: `fitBounds`/`setView` animate, and the zoom-end timer reads a pane that unmounted.
       Fix in the commit adding this line: `animate: false` on both. Closes when the J3 journey runs green on
       the deployed bundle and `error_logs` shows no new `_leaflet_pos` row.
@@ -5181,7 +5181,7 @@ until the browser has been used to LOOK at it. Agents run one at a time.
 
 - [x] **The burst never happened.** It dispatched all 90 `input` events inside one synchronous `page.evaluate`, and React 18 auto-batching collapses that into ONE render and one commit — so `useSearchParamMirror` performed ~1 write, not 90, and `WRITE_HARD_STOP` (60) was never approached. The spec had been asserting that a route survives a burst that did not occur. Fixed with a macrotask between dispatches, which is what a real typist produces.
 - [x] **The contract is invisible to the engine it runs on.** The crash is WebKit-only (`SecurityError` past ~100 `replaceState` calls); the `happy-path` project is Chromium, which throttles silently and throws nothing, so "the route did not crash" was true regardless of what the hook did. Now counts `history.replaceState` calls via `addInitScript` and bounds them both ways: `>= 25` (the burst genuinely reached the mirror — this is what stops the first defect recurring silently) and `<= WRITE_HARD_STOP + 10` (the breaker capped it). The crash itself stays with the nightly WebKit project.
-- [ ] **Still unexplained:** 19 of 20 `error_logs` RouteErrorBoundary entries are on `/browse`, `/my-jobs`, `/my-posts`. Both tests churn `q`/`filter` only and never the `adopt()` half re-firing mid-burst under a realtime-driven re-render, which the spec's own header names as the plausible mechanism. `/browse` (the other `useSearchParamMirror` caller) is not churned at all.
+- [ ] **Still unexplained:** 19 of 20 `error_logs` RouteErrorBoundary entries are on `/browse`, `/jobs`, `/posts`. Both tests churn `q`/`filter` only and never the `adopt()` half re-firing mid-burst under a realtime-driven re-render, which the spec's own header names as the plausible mechanism. `/browse` (the other `useSearchParamMirror` caller) is not churned at all.
 
 ### Dashboard three-surface CULL parity is still unguarded (2026-09-21)
 
@@ -5270,7 +5270,7 @@ Three different things, not one:
    and `settle()` keys on exactly that. Probed against prod 2026-09-22: the
    panel sits on four controls for **over 4.5 seconds**, perfectly stable and
    completely wrong. Both halves of the damage are in that one run — shards 1
-   and 3 walked the `/dashboard` bell with ZERO rows in it and passed
+   and 3 walked the `/home` bell with ZERO rows in it and passed
    (**vacuously green**), shard 4 enumerated 50 rows and then re-opened the
    panel 50 times before the rows arrived. Fixed at the source (`aria-busy` on
    the pending state, so every harness in the repo sees it) and in the harness
@@ -5284,19 +5284,19 @@ Three different things, not one:
    timed out", `api=0`). **OWNER DECISION NEEDED:** widening `prod-load` to those
    six would serialise a large part of CI. Not done unilaterally.
 3. **Two lone "control not found" — FIXED, and they were my own over-reach.**
-   `/account-banned` redirects to `/dashboard` once `profile` resolves, so it
+   `/account-banned` redirects to `/home` once `profile` resolves, so it
    renders once, is enumerated, then bounces on every later load. Worse, the
    consumed-row excuse fired on SEVEN page-level controls there. A page is not a
    feed: the excuse is now overlay-only, and "off the screen" is asked first.
    `isBounce` also read the SHARDED route list, so shard 4 did not recognise
-   `/signup-pending` → `/dashboard` as a bounce and walked the dashboard a
+   `/signup-pending` → `/home` as a bounce and walked the dashboard a
    second time — a second browser on the same account, pressing the same live
    feed shard 3 was pressing. It reads the full set now.
 
 Measured after, against prod, on the screens that failed:
 `/profile?tab=wrapped` customer 1 → 0 · incomplete 1 → 0 ·
 `/account-banned` customer 1 fail + 7 false excuses → 0 + 0 ·
-`/signup-pending` customer 50 → redirect-skipped (walked once, on `/dashboard`).
+`/signup-pending` customer 50 → redirect-skipped (walked once, on `/home`).
 
 ### press-every-control: the nine-day red was ONE class — a self-consuming list (2026-09-21)
 
@@ -5321,7 +5321,7 @@ normalised out), and a row this run itself consumed is a DOCUMENTED skip with
 its proof printed in coverage.md. Guard: `src/test/pressSelfConsumingList.test.ts`,
 five mutations, each shown red.
 
-Measured on /dashboard customer against prod, same commit base: **13 failed
+Measured on /home customer against prod, same commit base: **13 failed
 presses → 0**.
 
 ### press-every-control dispatched 2026-09-21 — #1582's symptom is GONE, three new things
@@ -5343,7 +5343,7 @@ Still red overall, but NOT for the tracked reason.
   the harness (grant or stub the permission, or allow-list this toast) before
   reading anything else in this workflow — it currently drowns the real signal.
 - [ ] **Real candidate: the Notifications panel renders an error boundary for
-  the customer role.** Seen on `/dashboard customer` and on one `/jobs/:id`
+  the customer role.** Seen on `/home customer` and on one `/jobs/:id`
   customer. `"Notifications" — error boundary / error copy rendered`. Needs the
   browser to chase; not the same as the load-time boundary above.
 - [ ] Minor: `"Posts"` in the bottom nav timed out at 8000 ms while resolving a
@@ -5497,7 +5497,7 @@ them, and that matters more than the findings, so it is written down first.
 | rendered pair | measured | AA floor | where |
 |---|---|---|---|
 | `#83837c` on `#ffffff` | **3.82:1** | 4.5 (normal text) | availability time popover |
-| `#fdfdfd` on `#b95e35` | **4.38:1** | 4.5 (normal text) | `/my-posts` SOS / emergency dialog |
+| `#fdfdfd` on `#b95e35` | **4.38:1** | 4.5 (normal text) | `/posts` SOS / emergency dialog |
 
 **The proposed cause is wrong, and acting on it would be an expensive
 mistake.** The report attributed the first to `--muted-foreground` via
@@ -5576,7 +5576,7 @@ was proposed.
 
 ### Found while closing the audit gaps (2026-09-12)
 
-- [ ] **The sweep never rendered /complete-profile.** Seed profile is complete, so it redirected to /dashboard; both owner bugs lived there. New `complete-profile-incomplete` screen. Uncommitted, waiting on the full sweep.
+- [ ] **The sweep never rendered /complete-profile.** Seed profile is complete, so it redirected to /home; both owner bugs lived there. New `complete-profile-incomplete` screen. Uncommitted, waiting on the full sweep.
 - [ ] **Profile photo on /complete-profile unreachable by keyboard/screen reader** (hidden file input, aria-label on <label>). Same class in 7 more pickers: dispute evidence x2, completion photos, Edit Profile photo, post-job photos x2, post-job video. All fixed + `fileInputsKeyboardReachable.test.ts`. Uncommitted.
 - [ ] **aria-label on role-less elements, 15 places** (job-card chips, pinned/active dots, earnings projection, checkout redirect overlay, post-job photo labels). Fixed + `noAriaLabelOnGenericElements.test.ts`. Uncommitted.
 - [ ] **Admin KPI tiles ragged in a row; fraud filter select 48px beside a 44px button.** Fixed; detector tightened with fixture cases. Uncommitted.
@@ -5610,7 +5610,7 @@ was proposed.
 - [ ] **press-every-control MODE=prod**: destructive presses allowed only on test-owned records; admin actions only against test targets.
 - [ ] **Paused lanes on resume use prod:** keyboard/large text, messy input, interruptions, slow phone/returning, scorecard, explorer. Their mocked specs get migrated, not extended.
 - [ ] **Existing mocked happy-path specs in CI** (e2e-happy-path.yml, ui-sweep): migrate to prod-backed or retire, one at a time, keeping CI green. (a11y-axe.yml DELETED 2026-09-14: its spec visual-audit-sweep.spec.ts was removed in 605df3d6f as superseded by a11y-prod, so every leg failed "No tests found"; a11y-webkit-prod.yml is the one a11y sweep.)
-- [x] **CI red 2026-09-14 — E2E happy-path smoke** `device-pass-measure /dashboard @ 375-dark + 1440-dark`: Urgent corner chip on JobCard painted 9px label in raw `--accent` = 3.75:1 (#d46735 on #382b27). Now `--accent-ink` (light byte-identical). Guard is the spec itself (red since ef18b5af1). Still open: the spec is mocked; a prod dark-mode dashboard axe check with an urgent seed job should replace it.
+- [x] **CI red 2026-09-14 — E2E happy-path smoke** `device-pass-measure /home @ 375-dark + 1440-dark`: Urgent corner chip on JobCard painted 9px label in raw `--accent` = 3.75:1 (#d46735 on #382b27). Now `--accent-ink` (light byte-identical). Guard is the spec itself (red since ef18b5af1). Still open: the spec is mocked; a prod dark-mode dashboard axe check with an urgent seed job should replace it.
 - [ ] **Uncommitted mock fixture change discarded** (edge-function stub bodies) per this decision.
 
 ### REDO on prod — work that was only verified on mocks (owner: "no mock mode ever")
@@ -5721,14 +5721,14 @@ was proposed.
 - [x] FIXED (two-dot tree diff; proven in a depth-1 clone: OK, exit 0). Was: Test 34745606366: "No oversized binary enters git history" step crashes — `git diff --diff-filter=AM <before>...HEAD` fails in CI (shallow checkout lacks the base sha). Fetch depth or fall back.
 - [x] DONE 2026-09-14 (snapshot refreshed and committed). The SQL was never the problem: no dropped/renamed name in it, and a local `node scripts/audit/write-contract.mjs --refresh --check-drift` ran clean against prod (0 REJECTs; exit 2 = drift only). Drift committed: 13 dead functions gone (count_profiles, get_approved_helpers, get_helper_parish_badges, get_hero_parishes, get_marketplace_activity_count, get_monthly_profile_view_count, get_platform_benchmarks, get_platform_impact_stats, get_public_avg_rating, get_public_completed_job_count, get_public_job_stories, get_recent_public_payouts, review_helper_credential), 2 dead tables (pet_report_cards, subscription_cancel_reasons), dropped columns jobs.protection_opted_in/scope_video_thumbnail_url, pet_profiles.is_evacuation_registered, platform_settings.latest_build, profiles.push_consent/sms_consent, gift_cards policies. the retired credits table, under its pre-gift-card name, appears nowhere (SQL, snapshot, src). Was: Write contract snapshot refresh 34745765776 failed; SQL suspected.
 - [x] PROVEN GREEN IN CI 2026-09-14: dispatched run 34913880468 succeeded; "Refresh snapshot and check drift" ran against prod and printed `write-contract: snapshot unchanged`, no IPv6 error. Was: FIX SHIPPED 2026-09-14, CI PROOF STILL OPEN: the workflow now runs a real `supabase link --project-ref` with SUPABASE_DB_PASSWORD (as db-drift-detect/db-backup do) and passes the password to the query step. Not yet proven green in CI: the agent could not re-enable/dispatch the disabled workflow (its tooling refused `gh workflow enable`), so whoever re-enables write-contract-refresh must dispatch it once and read the result. Was: write-contract-refresh CI failure is NETWORK, not schema (every run since 09-13 incl. scheduled 34846751782): `supabase db query --linked` in the runner prints "IPv6 is not supported on your current network … supabase link to setup IPv4 connection" because the workflow's "Link project" step only writes `supabase/.temp/project-ref` (no pooler-url). Fix in `.github/workflows/write-contract-refresh.yml` (workflows lane): run `supabase link --project-ref` or write the pooler URL before the query, then re-enable the workflow (currently disabled_manually, so `gh workflow run` returns 422).
-- [ ] E2E happy-path smoke 34746217548 red — two real failures: (a) /dashboard 375-dark and 1440-dark axe color-contrast 3.75:1, #d46735 bold 9px on #382b27 (likely a badge/chip; check whether af75d23c0 segmented-badge change or older); (b) activity-card-density.spec.ts:676 "an action in the bo…" toHaveCount got 2. These specs are the MOCKED happy-path set — reproduce on prod before fixing, then migrate the spec to prod. and E2E real backend cancelled; nightly-red #1592 (e2e-real-backend) open. Read the failing runs themselves and fix.
+- [ ] E2E happy-path smoke 34746217548 red — two real failures: (a) /home 375-dark and 1440-dark axe color-contrast 3.75:1, #d46735 bold 9px on #382b27 (likely a badge/chip; check whether af75d23c0 segmented-badge change or older); (b) activity-card-density.spec.ts:676 "an action in the bo…" toHaveCount got 2. These specs are the MOCKED happy-path set — reproduce on prod before fixing, then migrate the spec to prod. and E2E real backend cancelled; nightly-red #1592 (e2e-real-backend) open. Read the failing runs themselves and fix.
 - [ ] Open PRs: dependabot #1580, #1579, #1550, #1549 and #1529 "fix(e2e): resolve 4 Playwright failures" — land green ones in ONE batched merge window, close stale ones with a reason.
 
 ### Gaps found 2026-09-13 night (owner approved all; work top to bottom, batch pushes)
 - [x] DONE 2026-09-14 (strikes cleared + check). `node scripts/check-test-account-strikes.mjs` (3 service-role reads over the 6 shared accounts) was RED on prod: poster-e2e `ban_status=final_warning` + user_violations 117785e6 (off_platform/warning, 2026-09-13 01:56); helpr-audit-web-0824 user_violations 8062bb28 (cancel_with_helper/warning, job a2a61dc7, 2026-09-08). Both rows deleted (returned 2), poster-e2e restored to active (returned 1), check re-run GREEN (exit 0). Unit test src/test/checkTestAccountStrikes.test.ts. user_strikes was already empty for all six.
 - [x] DONE 2026-09-14: step "Shared test accounts carry no strikes" (if: always(), before the key is removed) fails the job on exit 1 and warns on exit 2. Not run in CI yet (prod-audit disabled). Was: Wire `node scripts/check-test-account-strikes.mjs` into `.github/workflows/prod-audit.yml` as its last step (workflows lane): it already holds SUPABASE_SERVICE_ROLE_KEY, runs in `prod-load`, and follows the journeys that make strikes. Exit 1 = a strike, 2 = could not check.
 - [ ] Make every harness that can add a strike (race probes, journeys, interruptions, messy input) delete its user_violations/user_strikes rows and restore ban_status in cleanup (the check above catches a miss; it does not prevent one).
-- [x] DONE 2026-09-14. Was: Job card at 375: "Under a minute left" chip squeezes location to "B…". The card is the Activity meta row (JobCardMetaRow: My Posts / My Jobs), not the browse JobCard (already hides the countdown <430px). Before, prod data at 375 (helper-e2e /my-posts, card 0e78dd2a, clock pinned 30s before expiry): city "New Iberia" 20px of 59px ("N…"), countdown 125px. After: city 59/59px full, countdown ellipsizes at 86px ("Under a mi…"), no-countdown card unchanged, no page overflow; both screenshots looked at and recorded (review-log). Countdown is `min-w-0 shrink-[100]` + truncate; city is `shrink-0 max-w-[50%]` only while a countdown is on the row. Guard JobCardMetaRow.locationPriority.test.tsx, RED on the old classes.
+- [x] DONE 2026-09-14. Was: Job card at 375: "Under a minute left" chip squeezes location to "B…". The card is the Activity meta row (JobCardMetaRow: My Posts / My Jobs), not the browse JobCard (already hides the countdown <430px). Before, prod data at 375 (helper-e2e /posts, card 0e78dd2a, clock pinned 30s before expiry): city "New Iberia" 20px of 59px ("N…"), countdown 125px. After: city 59/59px full, countdown ellipsizes at 86px ("Under a mi…"), no-countdown card unchanged, no page overflow; both screenshots looked at and recorded (review-log). Countdown is `min-w-0 shrink-[100]` + truncate; city is `shrink-0 max-w-[50%]` only while a countdown is on the row. Guard JobCardMetaRow.locationPriority.test.tsx, RED on the old classes.
 - [x] DONE 449fe9d9b (named exemption; planted bad fixture FAILS now, PASSED before). Was: fixtureSchemaContract was loosened (skips literals where most keys aren't table columns) so wrong fixtures slip through. Tighten: exempt only the known non-row object in e2e/visual-audit/responsive.spec.ts by name, keep majority rule off; prove a deliberately wrong fixture fails.
 - [x] INCONCLUSIVE: the saved subagent transcripts (a586a5b8…, a27a9405…) contain no denied tool call — the block was not persisted. Nothing unsafe landed: branch triage deleted only 11 logged branches; the money agent pushed with a logged skip reason. Was: Two agents tripped the auto-mode safety classifier (branch triage 2026-09-13; money double-tap refs). Read their transcripts, name the blocked commands, report whether anything unsafe was attempted.
 - [x] DONE a33298034 (Sets keyed by id; different-card tests RED on boolean, GREEN now). Was: Accept/Release handlers share one in-flight boolean per hook: a tap on job B while job A is in flight is silently ignored. Key the ref by job id.
@@ -5770,12 +5770,12 @@ was proposed.
 - [x] UI follow-up: a non-poster's existing thread with an applicant or an offered Helpr is read-only. LANDED f8435e919: src/lib/recipientGate.ts asks can_send_message_to_in_job for the open thread plus a control call for the poster (restricted = receiver false AND poster true, so banned/replaced/closed/rate-capped callers and the poster are never blamed); ChatComposer shows the lockout-style notice; an RLS-policy refusal marks the bubble `refused` and flips the open thread. Vitest red first (5 failed), 15/15. PROD: 375x812 screenshot of helper-e2e's thread with Eli shows the notice, no textbox, no overflow (test-results/offered-proof/recipient-restricted-375.png, review recorded ok).
 - [ ] OWNER QUESTION (lh-authz-rls review 2026-09-14, pre-existing, outside the send gate): a hired Helpr or roster member can still READ jobs.offered_to_helper_id (policy "Selected helpers can view their job", get_jobs_for_my_applications() returning SETOF jobs, src/pages/messages/messagesData/loadConversations.ts selecting the column), and a declined/expired offer never clears the column (20260904031002), so a Helpr hired after a declined offer can see who was offered first. Live 2026-09-14: 0 jobs with a pending offer beside a different hired/roster Helpr. Should the column be hidden from non-posters (view/column grant) or cleared on decline/expiry?
 - [x] FIXED 2026-09-15 with queue #1 below (both halves confirmed live first: contact_leak_reason('SEED offered-proof 20260914215014') = 'Phone number detected' on prod; the saved row is flagged_hidden, hidden from the receiver only by the SELECT policy, and the ladder copy said "blocked"). Was: VERIFY (found during the offered-Helpr prod proof 2026-09-14): a message whose content was "SEED offered-proof 20260914215014" was read as a phone number by the server contact scanner and issued a real off_platform warning (user_violations + fraud_flags + "That message was blocked" notification) to poster-e2e and Eli, yet the INSERT returned 201 and the row existed. Two things to check live: (1) a 14-digit number (order/reference id) counts as a phone number; (2) the copy says "blocked" while the row is kept (check flagged_hidden on such rows). Test rows were removed.
-- [ ] BUILT, APPLY + SCREENSHOT PENDING (2026-09-14): prod still has 0 group jobs, so group-job screens (GroupJobHelpers flat card, 70f93a220) are proven only on a local render. `scripts/audit/prod-seed.mjs` now has a `--group-job` flag (idempotent, also folded into `--apply`) that inserts one is_seed group job (status='open', 2 of 3 roster slots filled — accept_group_application only flips a job to 'accepted' on the LAST slot, so 'open' is the realistic state; the roster rows themselves carry status='accepted', the table's own default) owned by the shared poster, staffed by the shared helper-e2e account + applicant01, payment_status='unpaid' (deliberately, NOT 'escrow' — this script's own header says --apply never writes a money column, and seed_jobs_hidden_publicly() currently reads FALSE so an escrow is_seed job would be a live public-Browse listing; the poster's own /my-posts, the only surface this fixture needs, reads jobs unfiltered by payment_status). `e2e/a11y-prod/a11y-prod.spec.ts` resolves the poster's is_seed group job at run time (same pattern as jobByStatus) and sweeps `/my-posts?highlight=<id>` as `group-job-poster-card`, skipping visibly if the row doesn't exist yet. `src/test/prodSeedGroupJobFixture.test.ts` grades the payload against the live schema via schemaConstraints.ts (fixtureSchemaContract can't see it — scripts/ is outside its e2e/+src/test walk of fixture files, though the new file lives in src/test/ itself as the checker, not the checked); shown red first (budget bumped to 6000, a real jobs_budget_range violation) then green again. Apply: `node scripts/audit/prod-seed.mjs --group-job` (needs .env with SUPABASE_SERVICE_ROLE_KEY; run --apply first if applicant01 doesn't exist yet). Verify: `node scripts/audit/prod-seed.mjs --verify` (checks "group job (is_seed, is_group_job, 3 slots)" and "group job roster (2 of 3 slots, accepted)"). APPLIED + VERIFIED 2026-09-14 (see the APPLIED line below). STILL OPEN: screenshot the poster card at 375 light/dark on prod and log it with recordReview.
+- [ ] BUILT, APPLY + SCREENSHOT PENDING (2026-09-14): prod still has 0 group jobs, so group-job screens (GroupJobHelpers flat card, 70f93a220) are proven only on a local render. `scripts/audit/prod-seed.mjs` now has a `--group-job` flag (idempotent, also folded into `--apply`) that inserts one is_seed group job (status='open', 2 of 3 roster slots filled — accept_group_application only flips a job to 'accepted' on the LAST slot, so 'open' is the realistic state; the roster rows themselves carry status='accepted', the table's own default) owned by the shared poster, staffed by the shared helper-e2e account + applicant01, payment_status='unpaid' (deliberately, NOT 'escrow' — this script's own header says --apply never writes a money column, and seed_jobs_hidden_publicly() currently reads FALSE so an escrow is_seed job would be a live public-Browse listing; the poster's own /posts, the only surface this fixture needs, reads jobs unfiltered by payment_status). `e2e/a11y-prod/a11y-prod.spec.ts` resolves the poster's is_seed group job at run time (same pattern as jobByStatus) and sweeps `/posts?highlight=<id>` as `group-job-poster-card`, skipping visibly if the row doesn't exist yet. `src/test/prodSeedGroupJobFixture.test.ts` grades the payload against the live schema via schemaConstraints.ts (fixtureSchemaContract can't see it — scripts/ is outside its e2e/+src/test walk of fixture files, though the new file lives in src/test/ itself as the checker, not the checked); shown red first (budget bumped to 6000, a real jobs_budget_range violation) then green again. Apply: `node scripts/audit/prod-seed.mjs --group-job` (needs .env with SUPABASE_SERVICE_ROLE_KEY; run --apply first if applicant01 doesn't exist yet). Verify: `node scripts/audit/prod-seed.mjs --verify` (checks "group job (is_seed, is_group_job, 3 slots)" and "group job roster (2 of 3 slots, accepted)"). APPLIED + VERIFIED 2026-09-14 (see the APPLIED line below). STILL OPEN: screenshot the poster card at 375 light/dark on prod and log it with recordReview.
 - [ ] QUEUED (next prod slot): land + prove branch completion-race (2608b2585): before numbers via scripts/probes/completion-race.prod.mjs 20 cancel|approve|block, land, verify objects, after numbers, re-enable race-runner.yml and run it red (exclude_migrations=20260914215112) then green. Owner decision 2026-09-14: no cancel during a revision request (Done mark stays set).
 - [x] LEDGER CHECKED 2026-09-14 (read-only, 4 REST reads): the old-race job is the ONLY cancelled prod job with helper_completed_at: `d292622a-24cd-4621-a40f-8762279a1880`, is_seed=true, "[E2E DO NOT ACCEPT] automated lifecycle" (prod-lifecycle harness). Job: budget 25, customer_fee_amount 3, payment_status=cancelled, cancelled_by = poster, accepted 20:16:19.99, helper_completed_at 20:16:20.51, cancelled_at 20:18:44.60 (2026-09-07). payment_refunds: ONE row, re_3UD8xdKp2H4b7tEC0PMSE4kg on pi_3UD8xdKp2H4b7tEC0JOJVy11, 2500 cents, is_partial, source cancel_escrow, created 20:18:44.50 (before the flip, as create-payment's cancel_escrow orders it). payout_transfers: 0 rows. tips: 0 rows. Expected by cancel_escrow's rule: capture 2800 − max(service fee 300, Stripe fee ≈111) = 2500 refunded, nothing transferred. VERDICT on the ledger: refunded correctly, not double-moved; no ledger row to correct, nothing written. The stale helper_completed_at on a cancelled seed job is a job-row artefact of the old race, not a money row; left as is.
   - [x] STRIPE SIDE CONFIRMED 2026-09-15 (read-only GETs, STRIPE_TEST_SECRET_KEY from env, balance check confirmed livemode=false first). transfer_group/transfer_data were never set on this PI (both null), so the earlier plan to filter by `transfer_group=job_d292622a-…` returned nothing — found instead via `payment_intents/search` on `metadata['job_id']`, then read the charge, its refunds, and cross-checked against all 63 test-mode transfers for this account (metadata scan, none match this job). PaymentIntent `pi_3UD8xdKp2H4b7tEC0JOJVy11`: amount 2800, amount_received 2800, status succeeded. Charge `ch_3UD8xdKp2H4b7tEC023QwxJi`: amount 2800, amount_captured 2800, amount_refunded 2500, refunded=false (partial, matches ledger's is_partial), disputed=false, transfer_data=null. Refund `re_3UD8xdKp2H4b7tEC0PMSE4kg`: amount 2500, status succeeded — same refund id the ledger already had, so this isn't just consistent, it's the identical row. Transfers: 0 found with this job_id in metadata, matching payout_transfers: 0 rows. VERDICT: CORRECT. Poster got back exactly the ledger's 2500 cents ($25.00); Louisiana Helpr kept the 300-cent non-refundable service fee; no transfer to the Helpr was ever created for this job so none needed reversing; only one PI/charge exists for the job so nothing was charged twice. Zero cents of discrepancy.
 - [x] APPLIED 2026-09-14: `node scripts/audit/prod-seed.mjs --group-job` → job `def709bf-fe82-506d-944d-4f48a8cfa83f` (is_seed, open, unpaid, 3 slots), roster helper-e2e `437de07d-…` + applicant01 `c2976d11-…`. `--verify`: "group job (is_seed, is_group_job, 3 slots)" 1/1 yes, "group job roster (2 of 3 slots, accepted)" 2/2 yes, "seed-script jobs visible to anon browse" 0/0 yes; overall 51/56, the 5 NO rows pre-existing and unrelated (payment failed / chargeback / cancelling states, 1 seed dispute stuck mid-execution, helper avatar file HEAD 400).
-  - [ ] STILL OPEN (owner said finish up before this step): screenshot the poster's group card on /my-posts?highlight=def709bf-fe82-506d-944d-4f48a8cfa83f at 375 light + dark on a local vite preview against prod (getSession "poster" from e2e/journeys/fixtures.ts), confirm flat card (no box in box, no overflow), record with npm run review:record.
+  - [ ] STILL OPEN (owner said finish up before this step): screenshot the poster's group card on /posts?highlight=def709bf-fe82-506d-944d-4f48a8cfa83f at 375 light + dark on a local vite preview against prod (getSession "poster" from e2e/journeys/fixtures.ts), confirm flat card (no box in box, no overflow), record with npm run review:record.
 - [x] DONE 2026-09-14 in the lifecycle-writes audit commit (edge only, outside dispute-races' create-payment hunks): `resolve_revision` is a conditional flip (`status = revision_requested AND revision_completed_at IS NULL`); a duplicate call re-reads and returns `alreadyResolved` with no second notification. Class guard red on the pre-fix excerpt (`src/test/raceClassGuard.test.ts`). Prod double-tap proof still owed — see the lifecycle-writes OPEN line above.
 - [ ] QUEUED (prod slot, one probe run each): race proofs for fa107a92f fixes — auto-release vs dispute open; auto-resolve vs escalate and vs withdraw; gift-card redeem vs card payment on one unpaid job; request_revision double-tap; resolve_revision vs dispute + double-tap; cancel_escrow vs dispute open + double-tap; charge.dispute.created vs payout settling. Before numbers from the pre-fix behaviour are not recoverable now (already deployed) — record after numbers and prove each probe can fail on a local build with the predicate removed.
 - [x] Vercel paused 2026-09-14 (Hobby limits: Edge Requests 3.1M/1M, Deployment Storage 34 GB/10 GB). Owner upgraded to Pro.
@@ -5810,10 +5810,10 @@ Running: dispute-races close-HIGH→land→prove; charge.dispute.created hold-ov
 - [ ] OWNER: allow the Stripe connector write tool + reconnect Stripe, then add transfer.failed to live webhook and close #1462/#1521
 
 ## OWNER BATCH 2026-09-16 (verbatim intent; NOT yet started — needs browser before/after per screen)
-Captured from owner while low on usage; execute with screenshots on prod (test accounts), one browser at a time, when usage/Opus allows. Group the layout ones into a /jobs + /my-posts pass and the Messages ones into a Messages pass.
+Captured from owner while low on usage; execute with screenshots on prod (test accounts), one browser at a time, when usage/Opus allows. Group the layout ones into a /jobs + /posts pass and the Messages ones into a Messages pass.
 1. Messages: open/scroll to the UNREAD messages on entry.
 2. Seed TEST JOBS on Home, Post, and Jobs — populate ALL sections (every status bucket) so each renders with data.
-3. /jobs + /my-posts: move the Helpr/Poster PersonTile box to UNDER the tracker and ABOVE the map. Name shows ONCE only.
+3. /jobs + /posts: move the Helpr/Poster PersonTile box to UNDER the tracker and ABOVE the map. Name shows ONCE only.
 4. Remove the name to the LEFT of "updated", and remove the "at the job" text.
 5. QUESTION ANSWERED: maps are NOT all Apple — BrowseMap=Apple MapKit JS, TrackingMap=Leaflet. Owner likely wants tracker unified onto Apple MapKit (roadmap decision). → make it a task.
 6. POSTER side: there is NO button to confirm arrived / confirm working / confirm offered. Add them. If already clicked, still SHOW the box but DISABLED (or show the NEXT box once ready to advance).
@@ -5839,7 +5839,7 @@ Recon done by three agents; five of items 3/4/11/12/13 all land in ONE file
   pass**. It was the only non-Apple map left (Leaflet + raw OSM tiles);
   BrowseMap / AppleMapPreview / JobLocationPreview are all MapKit already.
 - **Item 8 vs destructive-right:** **primary wins.** Green primary is right-most
-  on /my-posts and /my-jobs everywhere; `OpenStep`'s Cancel moves LEFT, dropping
+  on /posts and /jobs everywhere; `OpenStep`'s Cancel moves LEFT, dropping
   the "furthest from the thumb" rule recorded at `OpenStep.tsx:12-13`.
 - **Item 7 scope:** **both** readings, and fix the escrow bug (below).
 - **Item 6 collapsed card:** confirm controls stay inside the EXPANDED card, but
@@ -6337,7 +6337,7 @@ unreviewed failures**. All prod fixtures restored and re-queried clean (1 probe 
 20 read-flags restored, 3 jobs' columns restored from snapshot, 2 temp `job_tracking` rows deleted).
 
 FIT — every touched page, `scrollWidth == clientWidth`, overflow 0, single 248px right-rail inset,
-zero left gutter, no per-page re-inset: `/dashboard`, `/my-posts`, `/my-jobs`, `/messages` + thread
+zero left gutter, no per-page re-inset: `/home`, `/posts`, `/jobs`, `/messages` + thread
 pane at both widths. At 320 both card pages are 320/320 (one 72px pulse-ring overhangs 4px, clipped).
 The only "widest element" hits are MapKit's offscreen `mk-font-size-detector` probe and an
 off-screen snap-carousel item inside an `overflow-x` scroller — both harmless.
@@ -6361,9 +6361,9 @@ scrollTop 1774 == scrollHeight 2444 - 670. The 96px below the last row is the co
 - **Item 7 note measured 112px/7 lines at 375, 128px/8 lines at 320**; with its 3-line disabled
   button ~23% of the viewport, reading LOUDER than the tracker above it. **OWNER DECISION: trim to
   ONE sentence, rest behind the tap.** Dispatched.
-- **Item 15 caveat — `/my-jobs` is the outlier, not Messages.** At 1440 `/dashboard`, `/my-posts`
-  and `/messages` all render `h1` as `sr-only`; `/my-jobs` still paints "My Jobs" in 20px Bodoni.
-  **OWNER DECISION: hide `/my-jobs`'s title to match.** Dispatched.
+- **Item 15 caveat — `/jobs` is the outlier, not Messages.** At 1440 `/home`, `/posts`
+  and `/messages` all render `h1` as `sr-only`; `/jobs` still paints "My Jobs" in 20px Bodoni.
+  **OWNER DECISION: hide `/jobs`'s title to match.** Dispatched.
 - **D1 — Helpr map pin is a ~6px dark crescent once arrived** (pins coincide, pill on top;
   `--olivewood` resolves to near-black `rgb(46,47,34)`, so the disc has no hue to separate it — the
   token is PRE-EXISTING, the port just put pill + both pins in the same 50px).
@@ -6387,7 +6387,7 @@ divergence is expected — but it is unproven, not proven.
 ## >>> ASK THE OWNER AFTER THE PUSH — they asked to be reminded <<<
 **Owner, 2026-09-19, verbatim: "im not sure. can you remind me to check this once everythung is on
 main and give you an answer once i see it for myself."**
-THE QUESTION: hiding `/my-jobs`'s desktop title (`bd86dfb18`) removed the `!isTrulyEmpty` escape
+THE QUESTION: hiding `/jobs`'s desktop title (`bd86dfb18`) removed the `!isTrulyEmpty` escape
 hatch that external QA added on 2026-09-07. On the DESKTOP WEBSITE an **empty** My Posts / My Jobs
 now shows a header bar with **no page name and no tabs — just a magnifier icon floating alone**.
 Options when they look: (a) show the title only when the page is empty — restore the old exception;
@@ -6401,7 +6401,7 @@ Options when they look: (a) show the title only when the page is empty — resto
   the same fact that draws the pill and shifts the camera. No new prop, no `arrivalGate` import.
   Un-arrived case proven byte-identical: 2 annotations, helper first, and
   `helper.factory().outerHTML === helperMarkerElement(true).outerHTML`.
-- **Fix 2 — `/my-jobs` and `/my-posts` NEVER diverged by route.** Both are `Activity.tsx` running
+- **Fix 2 — `/jobs` and `/posts` NEVER diverged by route.** Both are `Activity.tsx` running
   the same line: `titleSrOnly={isWebDesktop && !isTrulyEmpty}` where
   `sourceCount = tab === "posted" ? postedJobs.length : appliedApps.length`. It is **DATA**: an
   account with posts and no applications is truly-empty on My Jobs and not on My Posts — one
@@ -7384,11 +7384,11 @@ geography gate**. A guard that enshrines a wrong belief is worse than no guard.
 ### Lead visual verification 2026-09-19 late (signed in, local dev, prod data)
 VERIFIED WORKING, eyes on:
 - Map/list/header parity: 5/5/5, then 4/4/4 after one dismissal — all three move together.
-- `/my-posts` collapsed cards: dots gone, replaced by `WAITING · No applicants yet`.
+- `/posts` collapsed cards: dots gone, replaced by `WAITING · No applicants yet`.
 - Full street address renders ONCE, where the city used to be. Clean at 375; wraps
   to two centered lines at 320 with the street number intact. Zero page overflow at both.
 - Activity tab ORDER correct: Needs You · Waiting · Scheduled · Done · Cancelled.
-- Search dismiss on `/my-posts`: one click closes AND returns focus to the magnifier.
+- Search dismiss on `/posts`: one click closes AND returns focus to the magnifier.
 
 NEW DEFECTS FOUND IN THE SAME PASS:
 - **Status tab row overflows the phone viewport.** `flex items-baseline gap-4 shrink-0
@@ -7397,9 +7397,9 @@ NEW DEFECTS FOUND IN THE SAME PASS:
   has zero overflow and every overflow guard passes — but there is no scroll affordance,
   so on a phone the last tab is simply invisible. The owner chose this exact five-tab
   order; two of the five cannot be seen on a phone.
-- **Desktop Browse search still drops focus to `<body>`** on close (`/my-posts` is
+- **Desktop Browse search still drops focus to `<body>`** on close (`/posts` is
   correct). Sent to the search lane with measurements.
-- **`/my-jobs` empty state renders a header bar with no tabs and no title** — just a
+- **`/jobs` empty state renders a header bar with no tabs and no title** — just a
   magnifier floating in an empty strip.
 - Minor: at 320 the wrapped address is CENTRED while the date beneath it is left-aligned.
 
@@ -7418,15 +7418,15 @@ Known, measured, unfixed:
   "Cancelled" clips to "Ca…" at 375, "Done" to "Do…" at 320. It scrolls, so the page
   reports ZERO overflow and every overflow guard passes; there is no scroll
   affordance, so two of the owner's five tabs are invisible on a phone.
-- **Desktop Browse search drops focus to `<body>`** on close (`/my-posts` is correct).
-- **`/my-jobs` empty state** renders a header bar with no tabs and no title.
+- **Desktop Browse search drops focus to `<body>`** on close (`/posts` is correct).
+- **`/jobs` empty state** renders a header bar with no tabs and no title.
 - **TabFallback stands in for all 23 Profile tabs** with one 230px placeholder —
   `home_history` lands 3359px taller, `gift_card` 1230px. Needs per-tab reserved
   heights; owner-visible tradeoff.
 - **Two different components are both named `JobCardSkeleton`** (SkeletonLoaders.tsx
-  and ui/skeletons/), different shapes, so /dashboard paints two unrelated skeletons
+  and ui/skeletons/), different shapes, so /home paints two unrelated skeletons
   in sequence before content.
-- `ApplicationCardSkeleton` vs `JobCardShell` (/my-jobs, −52px); `/user/:id`
+- `ApplicationCardSkeleton` vs `JobCardShell` (/jobs, −52px); `/user/:id`
   `IdentityHeroSkeleton` (326px reserved, 141px arrives).
 - At 320 the wrapped address is CENTRED while the date beneath is left-aligned.
 - Dialog-corner WIP was RED and is NOT committed — backed up at
@@ -7444,7 +7444,7 @@ Known, measured, unfixed:
   is COLLAPSED BY DEFAULT on phone: at 375 and 414 `aria-expanded="false"` and zero tab
   words render; tapping the chevron reveals `You · Waiting · Soon · Done · Cancel`.
   Before that commit four of five were visible; now none are. Same complaint, worse.
-  Possible trigger: the selected bucket being EMPTY (plain `/my-posts` = Needs You with
+  Possible trigger: the selected bucket being EMPTY (plain `/posts` = Needs You with
   0 rows collapsed; `?filter=waiting` with 3 rows did not). Reopened in a new lane.
 - **`activityTabLabelsFitAPhone` is GREEN on a screen with no tabs on it** — it measures
   the row's WIDTH and cannot see that the row is not displayed. The lane must add the
@@ -7465,7 +7465,7 @@ Known, measured, unfixed:
   1440 → full words. Zero overflow at every width. Chevron now opens expanded.
 - **Root cause of the hidden row was filter IDENTITY, not emptiness** — the disclosure
   seeded `useState(!isDefaultFilter)`, so it collapsed on every arrival. Proven by data:
-  `/my-posts` default bucket had 15 rows and still hid its tabs.
+  `/posts` default bucket had 15 rows and still hid its tabs.
 - **A TEST FILE HAD DISABLED TAILWIND'S ENTIRE `min-[Npx]:` VARIANT FAMILY.** A guard
   asserting the breakpoint contained an interpolated candidate string; Tailwind scans
   `./src/**` as raw text, so the guard asserting the breakpoint is what deleted it.
@@ -7494,7 +7494,7 @@ Known, measured, unfixed:
   shared floor. Verified independently on the production build, both themes, 24 shots reviewed.
 - `TAB_TITLES.wrapped` drifts ("Helpr Wrapped" vs "Your 2026 so far") — SEASON lives
   inside the lazy chunk.
-- `/my-jobs` applied-card pitch unverified — both test accounts had zero live applications.
+- `/jobs` applied-card pitch unverified — both test accounts had zero live applications.
 - `vacuityGate.test.ts` races `discardedQueryFilters.test.ts` over a fixture in `src/`.
 
 ## BURN-DOWN — 129 guards have never been shown able to fail (opened 2026-09-20)

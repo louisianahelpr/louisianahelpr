@@ -166,7 +166,7 @@ export function NavQuickMenu({
               // already-composited pill rather than the page: the frost did
               // nothing, and the 40%-alpha fill it was paired with left page
               // text readable straight through the menu rows in both themes.
-              // Measured on /dashboard 2026-09-04 — panel and ancestor
+              // Measured on /home 2026-09-04 — panel and ancestor
               // div.flex-1.rounded-full both reported blur(40px) saturate(1.8).
               //
               // A surface that cannot blur must carry its own colour, so this

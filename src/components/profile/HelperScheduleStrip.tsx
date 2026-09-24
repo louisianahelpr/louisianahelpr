@@ -209,7 +209,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
               variant="primary"
               size="sm"
               className="mt-2"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/home")}
             >
               Browse Jobs
             </Button>

@@ -149,7 +149,7 @@ BEGIN
         || '": ' || v_reason
         || ' Because work had already started, we''re reviewing it — your payment stays in escrow until a decision is made, and you don''t need to do anything.',
       'warning',
-      '/my-posts'
+      '/posts'
     );
 
     RETURN v_result || jsonb_build_object(
@@ -188,7 +188,7 @@ BEGIN
       || '": ' || v_reason
       || ' They never started, so nothing was charged — the job is open to everyone again and your payment stays protected in escrow for whoever you pick next.',
     'warning',
-    '/my-posts'
+    '/posts'
   );
 
   RETURN v_result || jsonb_build_object('outcome', 'reopened');

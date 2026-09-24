@@ -160,7 +160,7 @@ BEGIN
                  COALESCE(v_job.title, 'A job'))
       END,
       CASE WHEN v_fee > 0 THEN 'payment' ELSE 'warning' END,
-      '/my-jobs?job=' || v_job.id::text
+      '/jobs?job=' || v_job.id::text
     );
   END IF;
 

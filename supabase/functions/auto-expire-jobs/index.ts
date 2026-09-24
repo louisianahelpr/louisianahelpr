@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
         // is "Waiting" (nobody has applied yet) or "Needs you" (applicants are
         // queued, or the day has already passed) depends on live state — and
         // `open` has had no chip since the strip became five buckets.
-        link: `/my-posts?job=${job.id}`,
+        link: `/posts?job=${job.id}`,
       });
       if (notifyErr) {
         console.error(`[auto-expire-jobs] poster notification failed for job ${job.id}:`, notifyErr);
@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
           type: "expired",
           // The helper's application was just set to `rejected` above, so an
           // applications row exists and `?job=` resolves against it.
-          link: `/my-jobs?job=${job.id}`,
+          link: `/jobs?job=${job.id}`,
         });
         if (helperNotifyErr) {
           console.error(`[auto-expire-jobs] helper notification failed for job ${job.id}:`, helperNotifyErr);

@@ -13,9 +13,9 @@
           "NOT /auth/*",
           "NOT /reset-password",
           "NOT /signup-pending",
-          "/dashboard",
-          "/my-posts",
-          "/my-jobs",
+          "/home",
+          "/posts",
+          "/jobs",
           "/profile",
           "/messages",
           "/jobs/*",
@@ -56,11 +56,11 @@
             "comment": "Same hazard as /reset-password. Signup.tsx sets emailRedirectTo=<origin>/signup-pending (it was /account-pending until that screen was deleted, Q193), and the signup confirmation carries its session in the fragment. Same two-part precondition. deepLinkRoute.ts now preserves the hash, but nothing on this screen consumes it — detectSessionInUrl already ran at app boot — so a brand-new user would land on the verify screen signed OUT with the tokens sitting unread in window.location.hash: a broken signup funnel. In the browser, supabase-js consumes the fragment on load and SignupPending's poll then lets the confirmed user in. Re-claim only once SignupPending calls setSession() from the fragment."
           },
           {
-            "/": "/dashboard",
-            "comment": "The single biggest miss in the census: 485 rows of /dashboard?quickApply=<id> plus 133 bare /dashboard — 618 rows, 38% of every notification sent. Apple ignores the query, so this one entry covers both."
+            "/": "/home",
+            "comment": "The single biggest miss in the census: 485 rows of /home?quickApply=<id> plus 133 bare /home — 618 rows, 38% of every notification sent. Apple ignores the query, so this one entry covers both."
           },
-          { "/": "/my-posts", "comment": "Poster side of Activity — ?job=, ?filter= and bare (152 rows)." },
-          { "/": "/my-jobs", "comment": "Helper side of Activity — ?job=, ?filter= and bare (51 rows)." },
+          { "/": "/posts", "comment": "Poster side of Activity — ?job=, ?filter= and bare (152 rows)." },
+          { "/": "/jobs", "comment": "Helper side of Activity — ?job=, ?filter= and bare (51 rows)." },
           { "/": "/profile", "comment": "Profile and its 18 ?tab= deep links (11 rows)." },
           { "/": "/messages", "comment": "Messages inbox, and the ?jobId=/?userId= thread deep links (119 rows)." },
           { "/": "/jobs/*", "comment": "Job detail (canonical) — 28 rows plus every shared /jobs/:id?ref=share link." },

@@ -473,7 +473,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           historyVisible={historyVisible}
           page={PAGE}
           onLoadMore={() => setHistoryVisible((n) => n + PAGE)}
-          onBrowseJobs={() => navigate("/dashboard")}
+          onBrowseJobs={() => navigate("/home")}
           feeFallbackPct={helperFeeFallbackPct}
         />
 

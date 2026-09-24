@@ -237,7 +237,7 @@ if (stage === "tiles") {
   for (const w of [375, 320]) {
     await page.setViewportSize({ width: w, height: 812 });
     for (const [label, id] of jobs) {
-      await goto(`/dashboard?quickApply=${id}`);
+      await goto(`/home?quickApply=${id}`);
       await sleep(2500);
       const m = await page.evaluate(() => {
         // The compact meta row: the first grid inside the dialog whose every

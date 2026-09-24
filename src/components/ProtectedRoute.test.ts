@@ -31,7 +31,7 @@ describe("isProfileGateAllowed", () => {
   });
 
   it("does not leak to other routes carrying ?tab=legal", () => {
-    expect(isProfileGateAllowed("/dashboard", "?tab=legal")).toBe(false);
+    expect(isProfileGateAllowed("/home", "?tab=legal")).toBe(false);
     expect(isProfileGateAllowed("/admin", "?tab=legal")).toBe(false);
   });
 

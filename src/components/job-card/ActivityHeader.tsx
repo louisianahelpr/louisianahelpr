@@ -100,7 +100,7 @@ export function ActivityHeader({
    * The initial state used to be `!isDefaultFilter`, i.e. closed whenever the
    * live filter was the one the screen opens on — which is the state every
    * phone arrives in. Measured on prod, signed in, 2026-09-20, plain
-   * `/my-posts` with no query string:
+   * `/posts` with no query string:
    *
    *     320 / 375 / 414   chevron aria-expanded="false"   tab words: []
    *     1440              tabs in the header row          all five words
@@ -111,7 +111,7 @@ export function ActivityHeader({
    *
    * ── AND IT WAS NEVER ABOUT EMPTINESS ─────────────────────────────────────
    * Worth stating because it is the obvious wrong guess and it costs a lane:
-   * /my-posts' default bucket happened to be empty that morning and /my-jobs'
+   * /posts' default bucket happened to be empty that morning and /jobs'
    * default bucket was NOT, and both hid their tabs. The predicate was the
    * filter's IDENTITY, not the list's length.
    *
@@ -123,7 +123,7 @@ export function ActivityHeader({
    * one line of 11px type that now fits 320 without scrolling.
    */
   /* ONE PRESS OUT, AND THE FOCUS COMES BACK.
-     Owner, 2026-09-19 (/my-posts): "the x on search needed to be clicked 3
+     Owner, 2026-09-19 (/posts): "the x on search needed to be clicked 3
      times to close the search bar". The state machine was never the problem —
      instrumented, the X already does query-clear + close in a single
      activation and the `?q=` mirror does not re-open it (transition trail in
@@ -343,7 +343,7 @@ export function ActivityHeader({
                you typed in while it is open. The tabs pay with type and with
                shorter words; the open field has no such lever — every other
                item on the row is fixed-width — so what yields is the visible
-               page name, below 500px only. Measured at 375 on /my-posts: the
+               page name, below 500px only. Measured at 375 on /posts: the
                field goes 95px → 233px. See `narrowTitleStepsAside`. */
             narrowTitleStepsAside: true,
             field: (

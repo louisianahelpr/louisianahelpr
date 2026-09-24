@@ -171,7 +171,7 @@ BEGIN
 
   v_title := '🎯 New job in your parish';
   v_message := 'A new ' || COALESCE(NEW.category::text, 'job') || ' job just posted in ' || NEW.parish || ' Parish: "' || NEW.title || '"';
-  v_link := '/dashboard?job=' || NEW.id::text;
+  v_link := '/home?job=' || NEW.id::text;
 
   -- helper_preferred_parishes is opt-in (users who set parish prefs are
   -- expressing helper intent by definition). Drop the role gate.
@@ -245,7 +245,7 @@ BEGIN
   LOOP
     v_title := '🎯 New job matches your saved search';
     v_message := 'A new job matches "' || match_record.name || '": ' || NEW.title || ' ($' || NEW.budget || ')';
-    v_link := '/dashboard?job=' || NEW.id::text;
+    v_link := '/home?job=' || NEW.id::text;
 
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (match_record.user_id, v_title, v_message, 'job_match', v_link);

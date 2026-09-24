@@ -3,7 +3,7 @@
 Started 2026-05-05. **Verified working end-to-end 2026-05-05.**
 First-time sign-in lands on `/complete-profile` (SPA new-user onboarding
 handler caught the freshly-minted Apple user); returning users land on
-`/dashboard`. Full chain healthy: Apple → Supabase callback at
+`/home`. Full chain healthy: Apple → Supabase callback at
 `fncmgoasalhdgfwzhsqa.supabase.co/auth/v1/callback` →
 `www.louisianahelpr.com` → SPA session.
 
@@ -94,7 +94,7 @@ Save.
 - Complete Apple's flow with a test Apple ID
 - **First-time users land on `/complete-profile`** (SPA onboarding
   handler — confirmed during the 2026-05-05 verification run)
-- **Returning users land on `/dashboard`**
+- **Returning users land on `/home`**
 
 If the test fails with a Supabase auth error, the most common causes:
 - JWT `iss` doesn't match the Apple Team ID — regenerate

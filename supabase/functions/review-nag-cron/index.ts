@@ -265,8 +265,8 @@ serve(async (req) => {
       // Both routes parse `?job=` (src/components/job-card/JobListPage.tsx) and open on the
       // right bucket for that job.
       for (const party of [
-        { user_id: job.customer_id, reviewing: "your Helpr", surface: "/my-posts" },
-        { user_id: job.helper_id, reviewing: "the person who posted this job", surface: "/my-jobs" },
+        { user_id: job.customer_id, reviewing: "your Helpr", surface: "/posts" },
+        { user_id: job.helper_id, reviewing: "the person who posted this job", surface: "/jobs" },
       ]) {
         if (!party.user_id) continue;
         if (reviewedBy.has(party.user_id)) continue;

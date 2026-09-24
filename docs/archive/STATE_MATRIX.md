@@ -46,8 +46,8 @@ the nullable columns each card reads.
 
 | Surface | Cells |
 | --- | ---: |
-| Poster job card (`/my-posts`) | 76 |
-| Helper job card (`/my-jobs`) | 48 |
+| Poster job card (`/posts`) | 76 |
+| Helper job card (`/jobs`) | 48 |
 | Tracker rail | 22 |
 | Activity shell (tab × bucket × density) | 26 |
 | Job detail dialog | 9 |

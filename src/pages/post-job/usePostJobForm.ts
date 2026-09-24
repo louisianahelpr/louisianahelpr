@@ -475,7 +475,7 @@ export function usePostJobForm() {
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
     } else {
-      navigate("/dashboard");
+      navigate("/home");
     }
   };
 

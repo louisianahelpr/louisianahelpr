@@ -16,12 +16,12 @@ export type UpcomingJob = {
  * "In progress" and landing on an unfiltered list.
  *
  * Both routes are the app's OWN existing deep links, not new ones:
- * `/my-jobs?filter=in_progress` is what every in-progress notification already
+ * `/jobs?filter=in_progress` is what every in-progress notification already
  * links to (`useLifecycleHandlers`, `create-payment`), and `?filter=active` is
- * the applied tab's default bucket. `/my-jobs` is Activity's `defaultTab:
- * "applied"` route — NOT `/activity`, which redirects to `/my-posts` and drops
+ * the applied tab's default bucket. `/jobs` is Activity's `defaultTab:
+ * "applied"` route — NOT `/activity`, which redirects to `/posts` and drops
  * the query string, and not `/jobs/:id`, which bounces a signed-in user to
- * `/dashboard?quickApply=…`, i.e. straight back to the screen they tapped from.
+ * `/home?quickApply=…`, i.e. straight back to the screen they tapped from.
  *
  * - `in_progress` → the job the badge is describing. The filter narrows the
  *   applied list to jobs whose status is exactly `in_progress`, which is the
@@ -38,6 +38,6 @@ export function inProgressBadgeTarget(job: UpcomingJob): {
 } {
   const live = job.status === "in_progress";
   return live
-    ? { live, label: "In progress", to: "/my-jobs?filter=in_progress", destination: "open this job in My Jobs" }
-    : { live, label: "Upcoming", to: "/my-jobs?filter=active", destination: "open your active jobs" };
+    ? { live, label: "In progress", to: "/jobs?filter=in_progress", destination: "open this job in My Jobs" }
+    : { live, label: "Upcoming", to: "/jobs?filter=active", destination: "open your active jobs" };
 }

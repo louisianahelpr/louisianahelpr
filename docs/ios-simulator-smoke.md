@@ -48,9 +48,9 @@ Screenshots land in `/tmp/sim-coldlaunch/` by default. Open them to see the boot
 | Time | Expected on fresh-install (signed out) | Expected on returning user (session restored) |
 |---|---|---|
 | **t = 500 ms** | LaunchScreen storyboard OR React's `RouteSuspenseFallback` (branded H + skeleton) | Same |
-| **t = 1500 ms** | `/browse` — guest dashboard with "Log in" / "Sign up" top right | Skeleton of `/dashboard` |
-| **t = 3000 ms** | `/browse` settled — jobs list (or "Something went wrong" if simulator has no internet) | `/dashboard` with jobs |
-| **t = 5000 ms** | `/browse` steady state | `/dashboard` steady state |
+| **t = 1500 ms** | `/browse` — guest dashboard with "Log in" / "Sign up" top right | Skeleton of `/home` |
+| **t = 3000 ms** | `/browse` settled — jobs list (or "Something went wrong" if simulator has no internet) | `/home` with jobs |
+| **t = 5000 ms** | `/browse` steady state | `/home` steady state |
 
 **Regression signals:**
 - A screenshot showing `/login` (email + password form) on a fresh install = `appUrlOpen` host filter broke
@@ -82,7 +82,7 @@ appId: com.Helpr
 ---
 - launchApp:
     clearState: false   # preserve seeded session
-- assertVisible: "Good morning"   # /dashboard greeting
+- assertVisible: "Good morning"   # /home greeting
 ```
 
 These would let `scripts/sim-smoke.sh` exit non-zero on regression, enabling a future CI hook (once we have a Mac runner that isn't burning GitHub-billed macos-15 minutes — see [`docs/xcode-cloud-setup.md`](./xcode-cloud-setup.md)).

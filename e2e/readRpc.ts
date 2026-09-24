@@ -4,7 +4,7 @@
  * PostgREST answers every `supabase.rpc()` with a POST, so a test firewall
  * that refuses all POSTs refuses the app's reads too. On 2026-09-20 that put
  * SEVEN prod-audit explore cases into their screens' own load-failure states
- * and filed them as production defects — /my-jobs, the three helper-side job
+ * and filed them as production defects — /jobs, the three helper-side job
  * details (`get_jobs_for_my_applications`, `get_my_pending_direct_offers`,
  * `get_safe_profiles`), /profile?tab=saved_helpers (`get_my_saved_helpers`)
  * and /admin?view=payouts (`get_payout_batches`). Worse than the false alarm:

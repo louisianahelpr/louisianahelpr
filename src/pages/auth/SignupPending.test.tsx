@@ -153,7 +153,7 @@ describe("SignupPending", () => {
       renderWithRouterState(EMAIL);
 
       await waitFor(() => {
-        expect(navigateMock).toHaveBeenCalledWith("/dashboard", { replace: true });
+        expect(navigateMock).toHaveBeenCalledWith("/home", { replace: true });
       });
       // The pending address is spent — it must not outlive the wait.
       expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull();
@@ -172,7 +172,7 @@ describe("SignupPending", () => {
       await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
 
       expect(getSessionMock.mock.calls.length).toBeGreaterThan(callsAfterMount);
-      expect(navigateMock).toHaveBeenCalledWith("/dashboard", { replace: true });
+      expect(navigateMock).toHaveBeenCalledWith("/home", { replace: true });
     });
 
     it("does NOT advance on a session whose email is still unconfirmed", async () => {
@@ -234,7 +234,7 @@ describe("SignupPending", () => {
         error: null,
       });
       await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-      expect(navigateMock).toHaveBeenCalledWith("/dashboard", { replace: true });
+      expect(navigateMock).toHaveBeenCalledWith("/home", { replace: true });
     });
 
     it("never refreshes when nobody is signed in", async () => {

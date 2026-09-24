@@ -129,7 +129,7 @@ export const makeAdminUserActions = ({
     const { error: notifyErr } = await supabase.from("notifications").insert({
       user_id: profile.user_id, title: "✅ Ban lifted",
       message: "Your account ban has been lifted. Please follow community guidelines going forward.",
-      type: "success", link: "/dashboard",
+      type: "success", link: "/home",
     });
     if (notifyErr) report(notifyErr, { tags: { source: "AdminUsers.unbanUser.notify" } });
 

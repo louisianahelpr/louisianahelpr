@@ -49,7 +49,7 @@ lane's brief assumes.** Measured, not estimated:
 
 | id | sev | surface | one-line |
 |---|---|---|---|
-| **SF-001** | HIGH · **blocker** | `src/lib/jobDate.ts` + `supabase/functions/_shared/cancellationFee.ts:53` | `jobLocalMidnightMs()` throws an unguarded `RangeError` on any non-`YYYY-MM-DD` date, from inside a `useMemo` — one bad date kills the whole `/my-posts` route. Artifact: trace console line `RangeError: Invalid time value at DateTimeFormat.formatToParts` in `scratchpad/trace/0-trace.trace` |
+| **SF-001** | HIGH · **blocker** | `src/lib/jobDate.ts` + `supabase/functions/_shared/cancellationFee.ts:53` | `jobLocalMidnightMs()` throws an unguarded `RangeError` on any non-`YYYY-MM-DD` date, from inside a `useMemo` — one bad date kills the whole `/posts` route. Artifact: trace console line `RangeError: Invalid time value at DateTimeFormat.formatToParts` in `scratchpad/trace/0-trace.trace` |
 | **SF-002** | HIGH | `e2e/happy-path/customer-post-job.spec.ts:105`, `customer-sees-application.spec.ts:24` | O-002 root cause: both specs seed `date_needed` as an ISO timestamp into a Postgres `date` column |
 | **SF-003** | HIGH | `src/components/TermsReconsentDialog.tsx:84` | Consent capture: unguarded zero-row write, and the `legal_acceptances` INSERT succeeds regardless — the two records permanently disagree |
 | **SF-004** | MEDIUM | `src/components/profile/CredentialsTab.tsx:397` | The one unguarded `profiles` write in a file whose other three are guarded; toasts a credentialing success that did not happen |
@@ -77,7 +77,7 @@ Three *separate* causes:
    on `fncmgoasalhdgfwzhsqa` returns `date_needed | date | NO`, so PostgREST
    only ever returns bare `YYYY-MM-DD`.
    The ISO string crashes `jobLocalMidnightMs` → `RangeError` →
-   `RouteErrorBoundary`, so `/my-posts` genuinely renders **"This page hit a
+   `RouteErrorBoundary`, so `/posts` genuinely renders **"This page hit a
    problem."** and the job title is really absent. The repo already documents
    the correct shape and ships the helper — `e2e/happy-path/seedData.ts:72`
    says verbatim *"`date_needed` is a Postgres `date`, NOT a timestamptz"* and
@@ -189,10 +189,10 @@ a targeted `tags->>'source'` query. `function_edge_logs` via `query_logs` for
    production `error_logs`, not reproduced on a device. Confirming the *cause*
    of the socket failure needs a device session this lane did not run.
 2. **SF-008 channel-count pressure.** A poster with N active jobs holds roughly
-   `7 + N` concurrent subscriptions on `/my-posts` (`JobTracking.tsx:575` opens
+   `7 + N` concurrent subscriptions on `/posts` (`JobTracking.tsx:575` opens
    one per rendered active card and has no dedupe, unlike the refcounted
    `ownProfileChannels` map added to `useCurrentUser.ts:137-181` after a
-   2026-08-31 capture found 13 channels open on `/dashboard`). That figure is
+   2026-08-31 capture found 13 channels open on `/home`). That figure is
    derived from mount sites, **not measured live**. It is a plausible
    contributor to the transport failures and should be measured on device
    before anyone acts on it.

@@ -33,7 +33,7 @@
  * so a placeholder nobody told this script about is still measured.
  *
  *   BASE=http://127.0.0.1:4173 node scripts/audit/measure-loading-states.mjs
- *   ROUTES=/dashboard,/profile?tab=earnings   … narrow
+ *   ROUTES=/home,/profile?tab=earnings   … narrow
  *   PERSONAS=customer                          … narrow
  *   DATA_DELAY=3000 CHUNK_DELAY=900            … tune the capture window
  *   OUT=docs/audit/loading-states                … where the JSON + PNGs land
@@ -110,7 +110,7 @@ const MEASURE = ([sel, probes]) => {
 
   /**
    * A path that still resolves AFTER the placeholder is gone. Anchoring on the
-   * nearest data-testid put `/dashboard` on `dashboard-route-skeleton`, which
+   * nearest data-testid put `/home` on `dashboard-route-skeleton`, which
    * exists only while loading: every re-measure found nothing and the delta
    * came back `undefined`. A measurement that cannot fail is not a
    * measurement, so a transient NAME is never an anchor.
@@ -142,7 +142,7 @@ const MEASURE = ([sel, probes]) => {
     // Rows are the region's OWN children — the boxes that swap — found by
     // descending only through sole-child wrappers. Picking instead the densest
     // same-height group ANYWHERE in the subtree (the first version) latched
-    // onto a different sub-container in each frame: `/dashboard` reported
+    // onto a different sub-container in each frame: `/home` reported
     // rowH 104→44 by comparing four feed bones against two chips inside a
     // card. Comparing a box to a different box is not a delta.
     let list = root;
@@ -227,7 +227,7 @@ const MEASURE = ([sel, probes]) => {
    *
    * A structural path (`div > div:nth-of-type(2) > div`) does not survive the
    * swap: React replaces the skeleton subtree with a differently-shaped one and
-   * the path then resolves to some unrelated element. `/dashboard` reported
+   * the path then resolves to some unrelated element. `/home` reported
    * Δh = -726px that way — a 800px scaffold measured against a 74px strip it
    * had never stood in for. Comparing a box to a different box is not a delta.
    *
@@ -260,7 +260,7 @@ const MEASURE = ([sel, probes]) => {
   if (!nodes.length) return base;
 
   // ---- cluster ------------------------------------------------------------
-  // One surface usually holds SEVERAL independent placeholders: on /dashboard
+  // One surface usually holds SEVERAL independent placeholders: on /home
   // the title bar's three button bones and the feed's four card bones. Taking
   // their lowest common ancestor treats those as one region, which is how an
   // earlier version came to measure the title card against the feed panel.
@@ -327,7 +327,7 @@ async function measureOne(context, { url, persona }) {
   page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text().slice(0, 200)); });
 
   // In-flight REAL data requests. The "loaded" frame is only loaded once prod
-  // has answered; waiting on the placeholder count alone captured /dashboard
+  // has answered; waiting on the placeholder count alone captured /home
   // while its four feed bones were still up and called them the loaded state,
   // which would have scored a jumping surface as clean.
   let inflight = 0;
@@ -382,7 +382,7 @@ async function measureOne(context, { url, persona }) {
     // The content has landed when prod has ANSWERED (no data request in flight
     // for a beat) and the placeholder count has then stopped changing. Either
     // signal alone is wrong: network-idle alone fires before React paints, and
-    // placeholder-count alone froze /dashboard mid-load with its four feed
+    // placeholder-count alone froze /home mid-load with its four feed
     // bones still up and scored that as the loaded frame. A decorative
     // `animate-pulse` (a live dot, a nav badge) never disappears, so the count
     // is allowed to settle above zero — what persists is REPORTED, not ignored.

@@ -170,7 +170,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // Messages (last-3-conversations preview). At most one open at a time;
   // the string identifies which tab's menu is showing so renderItem can
   // decide whether to render its NavQuickMenu.
-  const [quickMenuTab, setQuickMenuTab] = useState<"my-posts" | "messages" | null>(null);
+  const [quickMenuTab, setQuickMenuTab] = useState<"posts" | "messages" | null>(null);
   const closeQuickMenu = () => setQuickMenuTab(null);
   // A completed long-press still ends in a `touchend`, which browsers follow
   // with a synthetic `click` a beat later — without this guard that trailing
@@ -183,7 +183,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       if (isGuest) return;
       justLongPressedRef.current = true;
       hapticMedium();
-      setQuickMenuTab("my-posts");
+      setQuickMenuTab("posts");
     },
   });
   const messagesLongPress = useLongPress({
@@ -390,12 +390,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
 
   const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "posts" | "jobs" }) => {
     // Guest-mode tab remap: Home -> /browse (the read-only home dashboard
-    // that mirrors the real /dashboard), Profile -> /login. Other tabs stay
+    // that mirrors the real /home), Profile -> /login. Other tabs stay
     // visually present but show a lock + open the signup sheet.
-    const guestLocked = isGuest && !["/dashboard", "/profile"].includes(path);
+    const guestLocked = isGuest && !["/home", "/profile"].includes(path);
     const locked = guestLocked;
     const effectivePath = isGuest
-      ? path === "/dashboard"
+      ? path === "/home"
         ? "/browse"
         : path === "/profile"
           ? "/login"
@@ -404,7 +404,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
 
     const active =
       location.pathname === effectivePath ||
-      (isGuest && path === "/dashboard" && location.pathname === "/browse");
+      (isGuest && path === "/home" && location.pathname === "/browse");
 
     const inStack = !isGuest && isInStack(path);
     // Guests never carry a badge (nothing to count). Each badged tab pulls
@@ -424,7 +424,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     const handleClick = () => {
       // Swallow the trailing click a completed long-press's touchend
       // produces — see the comment on `justLongPressedRef` above.
-      if ((path === "/my-posts" || path === "/messages") && justLongPressedRef.current) {
+      if ((path === "/posts" || path === "/messages") && justLongPressedRef.current) {
         justLongPressedRef.current = false;
         return;
       }
@@ -464,7 +464,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     // filters or conversations. handleClick above already double-checks
     // `isGuest`, so this is belt-and-braces, not the only guard.
     const longPress =
-      !locked && path === "/my-posts"
+      !locked && path === "/posts"
         ? postsLongPress
         : !locked && path === "/messages"
           ? messagesLongPress
@@ -593,8 +593,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           />
         )}
       </TabButton>
-      {path === "/my-posts" && (
-        <NavQuickMenu open={quickMenuTab === "my-posts"} onClose={closeQuickMenu} title="Quick filter">
+      {path === "/posts" && (
+        <NavQuickMenu open={quickMenuTab === "posts"} onClose={closeQuickMenu} title="Quick filter">
           {POSTED_STATUS_FILTERS.map((f) => (
             <NavQuickMenuItem
               key={f.key}
@@ -602,7 +602,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               onSelect={() => {
                 closeQuickMenu();
                 hapticLight();
-                navigate(`/my-posts?filter=${f.key}`);
+                navigate(`/posts?filter=${f.key}`);
               }}
             />
           ))}

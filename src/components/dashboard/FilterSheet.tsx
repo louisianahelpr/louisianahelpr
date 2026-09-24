@@ -735,7 +735,7 @@ function AvailabilityRow({
  * Builds the standard stacked job-filter sections for the FilterSheet, reusing
  * the exact content blocks from JobFilters.
  *
- * ONE builder serves both the signed-in browse toolbar (/dashboard) and the
+ * ONE builder serves both the signed-in browse toolbar (/home) and the
  * signed-out guest feed (/browse), so the two filter sets can't silently
  * drift apart. (It used to say "the signed-out /jobs board"; that page was
  * deleted 2026-09-07 and /browse is the only signed-out feed now.)

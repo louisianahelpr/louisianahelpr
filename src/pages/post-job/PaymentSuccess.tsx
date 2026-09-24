@@ -191,7 +191,7 @@ const PaymentSuccess = () => {
    *
    * THREE THINGS WERE WRONG HERE, none of which threw or logged.
    *
-   * 1. The link was `/dashboard?job=<id>`. `/dashboard` is a `ProtectedRoute`,
+   * 1. The link was `/home?job=<id>`. `/home` is a `ProtectedRoute`,
    *    so a recipient without an account was bounced to
    *    `/login?redirect=%2Fdashboard%3Fjob%3D…` (verified against production,
    *    signed out) — a login wall in place of the job. And `Dashboard` never
@@ -257,9 +257,9 @@ const PaymentSuccess = () => {
       // and safeStorage already swallows the private-mode throw.
     }
     if (resolvedJobId) {
-      navigate(`/my-posts?job=${resolvedJobId}`);
+      navigate(`/posts?job=${resolvedJobId}`);
     } else {
-      navigate("/my-posts");
+      navigate("/posts");
     }
   };
 
@@ -637,7 +637,7 @@ const PaymentSuccess = () => {
                 // Silent by design — same convenience pointer as above; a
                 // stale value is handled by every reader.
               }
-              navigate("/dashboard");
+              navigate("/home");
             }}
             className="w-full rounded-ds-md"
             style={{ color: "hsl(var(--bark))" }}

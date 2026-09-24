@@ -138,7 +138,7 @@
     "e2e/happy-path/nav-hide-on-scroll.spec.ts :: filter to suppress all 30 feed rows",
     "e2e/happy-path/nav-hide-on-scroll.spec.ts :: y call with the same * 30 rows",
     "e2e/happy-path/overlay-sweep.spec.ts :: as invisible to // it: ~91 components",
-    "e2e/happy-path/overlay-sweep.spec.ts :: ashboard hide the other 65 routes",
+    "e2e/happy-path/overlay-sweep.spec.ts :: on /home hide the other 65 routes",
     "e2e/happy-path/overlay-sweep.spec.ts :: on path is identical at 2 routes",
     "e2e/happy-path/overlay-sweep.spec.ts :: s) captures each of the 68 routes",
     "e2e/happy-path/seedData.ts :: ilt from tuples because 34 hand-written rows",

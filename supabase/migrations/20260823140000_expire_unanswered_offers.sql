@@ -149,7 +149,7 @@ BEGIN
       'Your Helpr didn''t answer in time for "' || COALESCE(v_locked.title, 'your job')
         || '". It''s open to everyone again, so you can pick somebody else.',
       'job_updates',
-      '/my-posts'
+      '/posts'
     );
 
     INSERT INTO public.notifications (user_id, title, message, type, link)
@@ -159,7 +159,7 @@ BEGIN
       'The deadline passed on "' || COALESCE(v_locked.title, 'a job')
         || '" and it went back to everyone. Letting an offer expire counts the same as declining it.',
       'expired',
-      '/my-jobs'
+      '/jobs'
     );
 
     v_count := v_count + 1;

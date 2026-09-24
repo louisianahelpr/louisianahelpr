@@ -3,7 +3,7 @@
 Scope: geospatial radius/parish matching, filters, sort, pagination, feed
 completeness, and the browse map, across the four browse surfaces
 (`open_jobs_browse` view, `get_ranked_open_jobs`, `get_open_jobs_for_map`,
-`get_public_open_jobs`) and their client consumers (`/dashboard`, `/browse`,
+`get_public_open_jobs`) and their client consumers (`/home`, `/browse`,
 `/jobs`, `BrowseMap.tsx`).
 
 Worktree: `~/.lh-audit/lh-browse-discovery`, forked from `origin/main`
@@ -84,13 +84,13 @@ against the same prod DB for real Playwright reproductions.
   given time budget — see Unverified).
 - **URL/filter-state persistence**: `/jobs` (Jobs.tsx) uses
   `useSearchParamMirror` correctly (the WebKit-throttle-safe mirror).
-  `/dashboard` and `/browse` do NOT sync filter state to the URL at all — it
+  `/home` and `/browse` do NOT sync filter state to the URL at all — it
   lives in plain `useState`, only hydrated once from the URL on mount. This
   is not the WebKit-crash pattern (no rapid-fire `replaceState` — the only
   `setSearchParams` calls on those two pages are one-shot, on dialog-close /
   boost-toast-dismiss, not per-keystroke), so I did not file it as a defect;
   flagging it here as a judgment call. It does mean deep-linking a *filtered*
-  `/dashboard` or `/browse` URL beyond the very first load doesn't work,
+  `/home` or `/browse` URL beyond the very first load doesn't work,
   unlike `/jobs` — noted but not filed, borderline product-sense item.
 
 ## Findings filed (bus: `docs/audit/launch-2026-09/findings.jsonl`)

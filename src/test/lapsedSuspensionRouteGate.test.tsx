@@ -51,10 +51,10 @@ const baseProfile = {
 const renderGate = (profile: Record<string, unknown>) => {
   currentUser.profile = { ...baseProfile, ...profile };
   return render(
-    <MemoryRouter initialEntries={["/dashboard"]}>
+    <MemoryRouter initialEntries={["/home"]}>
       <Routes>
         <Route
-          path="/dashboard"
+          path="/home"
           element={
             <ProtectedRoute>
               <div>DASHBOARD</div>

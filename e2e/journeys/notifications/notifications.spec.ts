@@ -3,7 +3,7 @@
  *
  * Measured 2026-09-21: five of the six tests here assert create-notification
  * EDGE FUNCTION behaviour over REST (403 for spoofing a stranger, 400 for an
- * unsafe link and a bad type, the stored link sanitised to "/dashboard",
+ * unsafe link and a bad type, the stored link sanitised to "/home",
  * preference persistence, email_send_log fan-out). The gate mutates `src/` and
  * runs `npm run build`; it does not deploy an edge function, so a mutation
  * against those five returns SURVIVED for an environment reason.
@@ -81,7 +81,7 @@ test.describe("notifications & email", () => {
     // the words, type and link are the server's. The platform-branded types
     // an applicant used to push (payment / verified / system_alert) included.
     for (const type of ["info", "payment", "verified", "system_alert", "totally_made_up"]) {
-      const r = await request.post(FN, { headers: fnHeaders(), data: { user_id: posterId, title: "t", message: runId, type, link: "/dashboard" } });
+      const r = await request.post(FN, { headers: fnHeaders(), data: { user_id: posterId, title: "t", message: runId, type, link: "/home" } });
       expect(r.status(), `SECURITY: create-notification took caller-written copy of type "${type}" from a non-admin`).toBe(400);
     }
     for (const link of ["javascript:alert(1)", "//evil.com/x", "https://evil.com", "/x\\y", "not-a-path"]) {
@@ -128,7 +128,7 @@ test.describe("notifications & email", () => {
       /* THE APP CAN RELOAD ITSELF OUT FROM UNDER THIS GOTO, and did in
          e2e-journeys 35691377627 (journeys-webkit):
 
-           page.goto: Navigation to ".../my-posts?job=dfecbd90-…" is
+           page.goto: Navigation to ".../posts?job=dfecbd90-…" is
            interrupted by another navigation to ".../profile?tab=warnings
            &_v=1790058631340"
 

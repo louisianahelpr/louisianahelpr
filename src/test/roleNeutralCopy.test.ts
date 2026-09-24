@@ -261,7 +261,7 @@ describe("user-visible copy names what someone did on a job, never a role", () =
       // create-payment, a tip attempt by anyone else.
       'throw new Error("Only the customer can tip the Helpr");',
       // review-nag-cron, what the Helpr was asked to review.
-      '{ user_id: job.helper_id, reviewing: "the customer", surface: "/my-jobs" }',
+      '{ user_id: job.helper_id, reviewing: "the customer", surface: "/jobs" }',
     ];
     for (const src of shipped) {
       expect(findRoleCopy(f("supabase/functions/create-payment/index.ts"), src), src).toHaveLength(1);

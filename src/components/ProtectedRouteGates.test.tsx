@@ -113,9 +113,9 @@ describe("ProtectedRoute gate order", () => {
     expect(screen.getByText("VERIFY_EMAIL")).toBeTruthy();
   });
 
-  it("/dashboard does NOT exempt an incomplete profile from the form", () => {
+  it("/home does NOT exempt an incomplete profile from the form", () => {
     renderAt(
-      "/dashboard",
+      "/home",
       { profile: { ...emptyProfile, is_legacy_user: false } },
     );
     expect(screen.getByText("COMPLETE_PROFILE")).toBeTruthy();
@@ -141,7 +141,7 @@ describe("ProtectedRoute preserves the destination across the completeness gate"
     // The redirect used to be a bare <Navigate to="/complete-profile">, which
     // dropped the destination entirely — a push deep link or a shared job URL
     // was lost the moment the gate fired, and the user finished the form on
-    // /dashboard with nothing pointing back at what they had opened.
+    // /home with nothing pointing back at what they had opened.
     let seen = "unset";
     useCurrentUserMock.mockReturnValue({
       user: { id: "u1", email_confirmed_at: CONFIRMED },

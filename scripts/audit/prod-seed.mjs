@@ -532,7 +532,7 @@ async function ensureHelperAvatar(helperId) {
 // payment_status='escrow' would be a live, applicable-to listing on public
 // Browse and the map. 'unpaid' keeps it invisible everywhere the app filters
 // on payment_status (matching every other job below), and the ONE surface
-// this fixture is FOR — the poster's own /my-posts — reads
+// this fixture is FOR — the poster's own /posts — reads
 // `jobs?customer_id=eq.<id>` with no payment_status filter at all
 // (useActivityData.ts:140), so the poster card renders identically either
 // way. GroupJobHelpers itself never reads payment_status either

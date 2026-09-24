@@ -15,7 +15,7 @@ It refuses any address outside the seeded test set. Needs `.env`
 (`VITE_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`).
 
 **Seed `localStorage["helpr_onboarding"] = {"completed":true,"currentStep":0,"completedSteps":[]}`
-in the same step.** The onboarding tour opens on `/dashboard` in every fresh
+in the same step.** The onboarding tour opens on `/home` in every fresh
 context and blurs/intercepts the page — a harness that skips this audits the
 tour.
 

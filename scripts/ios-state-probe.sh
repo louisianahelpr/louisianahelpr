@@ -40,7 +40,7 @@
 # USAGE
 #   scripts/ios-state-probe.sh                       # default routes, light+dark
 #   DEVICE_ID=<udid> scripts/ios-state-probe.sh
-#   ROUTES="/my-posts /my-jobs" scripts/ios-state-probe.sh
+#   ROUTES="/posts /jobs" scripts/ios-state-probe.sh
 #   OUT=/tmp/ios-probe SWEEP=full scripts/ios-state-probe.sh   # + type sizes,
 #                                                              #   contrast,
 #                                                              #   landscape
@@ -115,7 +115,7 @@ xcrun simctl status_bar "$DEVICE_ID" override \
 # which is exactly the shape `normalizeDeepLinkUrl` (src/lib/deepLinkRoute.ts)
 # expects from the native-return bounce, so it routes without a Universal Link
 # and without the app being in any particular prior state.
-DEFAULT_ROUTES="/dashboard /my-posts /my-jobs /messages /post-job /profile /profile?tab=earnings /browse /support"
+DEFAULT_ROUTES="/home /posts /jobs /messages /post-job /profile /profile?tab=earnings /browse /support"
 ROUTES="${ROUTES:-$DEFAULT_ROUTES}"
 
 shoot() { # shoot <name>
@@ -161,7 +161,7 @@ fi
 # does nothing, and no Chromium harness can tell you that.
 for size in extra-small large accessibility-extra-extra-extra-large; do
   xcrun simctl ui "$DEVICE_ID" content_size "$size" >/dev/null 2>&1
-  for route in /dashboard /my-posts /profile; do
+  for route in /home /posts /profile; do
     visit "$route"
     shoot "$(slug "$route")__type-$size"
   done
@@ -170,7 +170,7 @@ xcrun simctl ui "$DEVICE_ID" content_size medium >/dev/null 2>&1
 
 # --- pass 3: Increase Contrast ---------------------------------------------
 xcrun simctl ui "$DEVICE_ID" increase_contrast enabled >/dev/null 2>&1
-for route in /dashboard /my-posts; do
+for route in /home /posts; do
   visit "$route"
   shoot "$(slug "$route")__increase-contrast"
 done
@@ -188,7 +188,7 @@ xcrun simctl ui "$DEVICE_ID" increase_contrast disabled >/dev/null 2>&1
 if osascript -e 'tell application "Simulator" to activate' >/dev/null 2>&1 &&
    osascript -e 'tell application "System Events" to tell process "Simulator" to keystroke (ASCII character 29) using command down' >/dev/null 2>&1; then
   sleep 2
-  for route in /dashboard /my-posts; do
+  for route in /home /posts; do
     visit "$route"
     shoot "$(slug "$route")__landscape"
   done

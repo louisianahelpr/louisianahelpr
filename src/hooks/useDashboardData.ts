@@ -299,14 +299,14 @@ export function useDashboardData() {
             // `JobDetailFooter`'s `(job.credential_tier ?? 0) > 0` lock check
             // was permanently false on this feed — a poster-restricted job
             // read as open to everyone. Without `parish`, the drive-time
-            // readout and ranking tie-break silently no-op'd on /dashboard
+            // readout and ranking tie-break silently no-op'd on /home
             // while working on /jobs, which reads the same column from a
             // different RPC.
             // `is_auto_created` was added here on 2026-09-05 (ef3550115) and
             // took the WHOLE FEED DOWN: this select runs against
             // `open_jobs_browse`, and that view does not project the column —
             // only `public.jobs` has it. PostgREST answers an unknown column
-            // with 400 / 42703 for the entire query, so /dashboard rendered
+            // with 400 / 42703 for the entire query, so /home rendered
             // "We couldn't load jobs" for every helper rather than degrading.
             //
             // Nothing on this feed ever read it. Its only consumer is

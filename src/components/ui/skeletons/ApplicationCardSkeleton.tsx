@@ -9,8 +9,8 @@ import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";
 
 /**
  * The placeholder for a COLLAPSED ACTIVITY JOB CARD — the helper-side
- * `AppliedJobCard` (/my-jobs) and, since 2026-09-21, the poster-side
- * `PostedJobCard` (/my-posts) too. They are the same shell at the same 151px;
+ * `AppliedJobCard` (/jobs) and, since 2026-09-21, the poster-side
+ * `PostedJobCard` (/posts) too. They are the same shell at the same 151px;
  * see the note beside `ApplicationCardSkeleton` at the foot of this file.
  *
  * It does not re-draw that card's frame; it IMPORTS it. Frame, category rail,
@@ -30,7 +30,7 @@ import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";
  * description is behind the expand and the action block is conditional on the
  * job's state.
  *
- * Measured on prod (helper-e2e, /my-jobs, Chromium at 375, this checkout's
+ * Measured on prod (helper-e2e, /jobs, Chromium at 375, this checkout's
  * local build, 2026-09-21):
  *
  *     placeholder row   220px, pitch 230px
@@ -47,7 +47,7 @@ import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";
  * slid. The number that matters here is the row height, which is what
  * `scripts/check-loading-state-shape.mjs` measures (ROW_BUDGET 8px) and what
  * `docs/audit/loading-states/baseline.json` had this surface pinned at
- * ("customer /my-jobs #1 … row 206px → 154px").
+ * ("customer /jobs #1 … row 206px → 154px").
  *
  * ── WHAT IT DRAWS NOW ────────────────────────────────────────────────────
  * The collapsed card's two blocks and nothing else, each sized from the real
@@ -190,13 +190,13 @@ export function CollapsedActivityCardSkeleton() {
 /**
  * BOTH activity tabs draw this one card.
  *
- * `ApplicationCardSkeleton` is the applied side (/my-jobs) and
+ * `ApplicationCardSkeleton` is the applied side (/jobs) and
  * `ActivityCardSkeleton` (src/components/SkeletonLoaders.tsx) is the posted
- * side (/my-posts). They are the same name for the same box: PostedJobCard and
+ * side (/posts). They are the same name for the same box: PostedJobCard and
  * AppliedJobCard are both JobCardShell + JobCardTitleBar + JobCardMetaRow +
  * JobStatusStrip, and both measure 151px collapsed at 375. The posted tab used
  * to hand-draw its own 106px approximation, which is the 45px-per-row jump the
- * owner reported on 2026-09-21 — the same defect /my-jobs had, through a
+ * owner reported on 2026-09-21 — the same defect /jobs had, through a
  * different component.
  *
  * The file keeps its name (and its path, which

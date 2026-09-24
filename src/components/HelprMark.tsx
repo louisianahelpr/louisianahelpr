@@ -132,7 +132,7 @@ export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, emblemOnl
     // every authed screen. Labelling the anchor REPLACES its inner text rather
     // than adding to it, so the wordmark variants stop reading "Helpr Helpr
     // · LA" too. One label covers every consumer: `to` is only ever "/" or
-    // "/dashboard", both of which are home.
+    // "/home", both of which are home.
     <Link to={to} aria-label="Helpr home" className={`${cls} min-h-11`}>
       {inner}
     </Link>

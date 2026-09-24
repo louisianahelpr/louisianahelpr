@@ -382,8 +382,8 @@ serve(async (req) => {
           duration_hours: String(BOOST_DURATION_HOURS),
         },
       },
-      success_url: buildRedirectUrl(`/dashboard?boosted=${job_id}`, isNative),
-      cancel_url: buildRedirectUrl(`/dashboard?boost_cancelled=${job_id}`, isNative),
+      success_url: buildRedirectUrl(`/home?boosted=${job_id}`, isNative),
+      cancel_url: buildRedirectUrl(`/home?boost_cancelled=${job_id}`, isNative),
       metadata: {
         kind: "job_boost",
         job_id,

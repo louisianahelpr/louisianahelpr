@@ -57,7 +57,7 @@ describe("new-tab links never target a redirect route", () => {
 
   it("no file in src/ opens a redirect route in a new tab", () => {
     const redirects = redirectRoutes(readFileSync("src/App.tsx", "utf8"));
-    // App.tsx has NO redirect routes since Q194 (noLegacyRedirectRoutes.test.ts
+    // App.tsx has NO redirect routes since Q194 (everyLinkIsARealRoute.test.ts
     // forbids them), so an empty list is the true state, not a broken parser;
     // the parser is proven on the synthetic /terms case above and by the
     // @mutate, which puts a <Navigate> back on /rules.

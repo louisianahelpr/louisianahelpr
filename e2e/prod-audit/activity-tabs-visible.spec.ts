@@ -6,8 +6,8 @@
  * five status labels need against the width their scroller gives them, and it
  * was green on 2026-09-20 while the owner, signed in on a phone, saw this:
  *
- *     375  /my-posts   header: "My Posts · 🔍 · ⌄"      tab words: []
- *     414  /my-posts   header: "My Posts · 🔍 · ⌄"      tab words: []
+ *     375  /posts   header: "My Posts · 🔍 · ⌄"      tab words: []
+ *     414  /posts   header: "My Posts · 🔍 · ⌄"      tab words: []
  *
  * Zero tabs. The row was not narrow, it was NOT RENDERED — collapsed behind a
  * chevron at `aria-expanded="false"` — and a guard that measures a row's
@@ -22,9 +22,9 @@
  *      keypress, the tab group has a real box (`getBoundingClientRect()` with
  *      non-zero width AND height) and no disclosure control is sitting at
  *      `aria-expanded="false"` in front of it. Asserted at 320 / 375 / 414 /
- *      1440, on BOTH /my-posts and /my-jobs, and for every one of the five
+ *      1440, on BOTH /posts and /jobs, and for every one of the five
  *      buckets — the EMPTY ones included, because the two states the owner
- *      hit were an empty bucket on /my-posts and a POPULATED one on /my-jobs.
+ *      hit were an empty bucket on /posts and a POPULATED one on /jobs.
  *      (That pair is also what settled the root cause: emptiness was never
  *      it. The row was hidden whenever the live filter was the DEFAULT one,
  *      full bucket or not.)
@@ -51,7 +51,7 @@
  * The inbox had the same shape of defect from the other direction. Its
  * Active/All strip and its magnifier were gated on `conversations.length > 0`
  * — so an EMPTY inbox painted "Messages · ☰" and nothing else, the same
- * "looks broken" screen the owner had just had fixed on /my-posts. That gate
+ * "looks broken" screen the owner had just had fixed on /posts. That gate
  * was itself the fix for an earlier report (the thread area jumping when an
  * empty result landed), so the owner ruled on the third option on 2026-09-20:
  * keep the row's height reserved and render the tabs in BOTH outcomes.
@@ -124,8 +124,8 @@ const INBOX_WORDS = INBOX_TAB_ORDER.map((k) => INBOX_TAB_LABEL[k]);
  * added, which is the point.
  */
 const ROUTES = [
-  { name: "my-posts", url: "/my-posts" },
-  { name: "my-jobs", url: "/my-jobs" },
+  { name: "posts", url: "/posts" },
+  { name: "jobs", url: "/jobs" },
 ] as const;
 
 /** Both Activity screens offer the same five buckets, in BUCKET_ORDER. */
@@ -265,7 +265,7 @@ function assertVisible(shot: TabShot, tag: string, expectedTabs: number) {
     shot.collapsedBy,
     `${tag}: the status tabs are behind a closed disclosure ("${shot.collapsedBy}"). ` +
       `The tab row is this screen's navigation — which slice of your jobs you are ` +
-      `looking at — and on 2026-09-20 a phone opened /my-posts to "My Posts · 🔍 · ⌄" ` +
+      `looking at — and on 2026-09-20 a phone opened /posts to "My Posts · 🔍 · ⌄" ` +
       `and nothing else. Navigation is not a thing the user has to discover a chevron ` +
       `to see.`,
   ).toBeNull();
@@ -381,8 +381,8 @@ test("every bucket on both Activity screens keeps its tabs, empty or full @375",
         // omits the count entirely at zero, so a live tab with no number
         // beside it is an empty bucket. Counted ACROSS both screens, because
         // which of the two has rows is a property of the test account on the
-        // day, not of the claim: on 2026-09-20 the poster's /my-posts had
-        // rows and its /my-jobs had none, which is the pair this needs.
+        // day, not of the claim: on 2026-09-20 the poster's /posts had
+        // rows and its /jobs had none, which is the pair this needs.
         const count = shot.liveCount;
         if (count > 0) sawFull++;
         else sawEmpty++;

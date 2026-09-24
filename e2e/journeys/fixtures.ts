@@ -553,7 +553,7 @@ async function errorLogReader(api: APIRequestContext): Promise<{ apikey: string;
  * THE APP CAN NAVIGATE ITSELF OUT FROM UNDER A `page.goto`, AND DOES — in
  * WebKit, under load. Seen twice on #1595:
  *
- *   notifications.spec.ts  goto ".../my-posts?job=…"  interrupted by ".../profile?tab=warnings&_v=1790058631340"
+ *   notifications.spec.ts  goto ".../posts?job=…"  interrupted by ".../profile?tab=warnings&_v=1790058631340"
  *   03-account.spec.ts:66  goto ".../profile"         interrupted by ".../user/437de07d-…?_v=1790094227753"   (run 35751533019)
  *
  * ONE mechanism, not two. `_v=` has exactly one writer in the whole app —

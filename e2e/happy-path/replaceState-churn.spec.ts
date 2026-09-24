@@ -1,6 +1,6 @@
 /**
  * F-2 repro attempt — the WebKit `replaceState` throttle that unmounted
- * /browse, /my-jobs and /my-posts into the error boundary (see
+ * /browse, /jobs and /posts into the error boundary (see
  * docs/E2E_FIXES_2026-08-27.md and the 2026-08-29 handoff memory note).
  *
  * `useSearchParamMirror` (src/hooks/useSearchParamMirror.ts) now ships a
@@ -11,7 +11,7 @@
  * unit test proving the tripwire fires in isolation
  * (src/hooks/useSearchParamMirror.test.tsx), but the real-world trigger that
  * put 19 of 20 recent `error_logs` RouteErrorBoundary entries on
- * /browse, /my-jobs and /my-posts was never reproduced end-to-end in 20
+ * /browse, /jobs and /posts was never reproduced end-to-end in 20
  * manual attempts, and was suspected to involve a SECOND session — switching
  * accounts, or two tabs/sessions open at once — interacting with the mirror.
  *
@@ -142,7 +142,7 @@ const readReplaceStateCount = (page: Page): Promise<number> =>
 const WRITE_HARD_STOP = 60;
 
 test.describe("F-2 replaceState churn — circuit breaker holds under a real burst", () => {
-  test("single session: rapid search + filter churn on /my-posts never crashes the route", async ({
+  test("single session: rapid search + filter churn on /posts never crashes the route", async ({
     page,
     context,
   }) => {
@@ -151,7 +151,7 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     await countReplaceState(page);
     const { pageErrors, consoleErrors } = collectErrors(page);
 
-    await page.goto("/my-posts");
+    await page.goto("/posts");
     await expect(page.getByRole("heading", { name: /my posts/i })).toBeVisible({ timeout: 15_000 });
 
     const rsBefore = await readReplaceStateCount(page);
@@ -214,7 +214,7 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     // Two isolated contexts = two real, independently-authenticated
     // sessions, the same technique e2e/two-role-lifecycle.spec.ts uses for
     // cross-role coverage. Account A (customer) is the one under test on
-    // /my-posts; Account B (helper) exists purely to give this scenario a
+    // /posts; Account B (helper) exists purely to give this scenario a
     // second, concurrently-active session as the task's "two tabs/sessions
     // interacting" hypothesis describes — see the file header for why the
     // code does not actually let B's tab write into A's mirror directly.
@@ -230,15 +230,15 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     await seedAuthedSession(helperCtx, FAKE_HELPER, "");
     await installSupabaseMocks(helper, { user: FAKE_HELPER, seed: true });
 
-    await poster.goto("/my-posts");
+    await poster.goto("/posts");
     await expect(poster.getByRole("heading", { name: /my posts/i })).toBeVisible({ timeout: 15_000 });
-    await helper.goto("/my-jobs");
+    await helper.goto("/jobs");
     await expect(helper.getByRole("heading", { name: /my jobs/i })).toBeVisible({ timeout: 15_000 });
 
     // Fire both sessions' own rapid churn CONCURRENTLY. This is the closest
     // this suite can get to "two sessions interacting" without a shared
     // backend to route realtime events through the mock layer: both routes
-    // that appear in error_logs (/my-posts, /my-jobs) are being hammered by
+    // that appear in error_logs (/posts, /jobs) are being hammered by
     // real, independent, simultaneously-active sessions at once, which at
     // minimum exercises the two mirrors under the same wall-clock contention
     // (event-loop scheduling, shared CPU) a real two-tab user session would
@@ -261,5 +261,5 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
 
 // Proof this guard can fail: neuter the circuit breaker so the 90-write burst
 // reaches the navigator unthrottled, which is the exact pre-fix condition that
-// unmounted /my-posts into the error boundary.
+// unmounted /posts into the error boundary.
 // @mutate src/hooks/useSearchParamMirror.ts | const tripped = times.length > WRITE_HARD_STOP; | const tripped = false;

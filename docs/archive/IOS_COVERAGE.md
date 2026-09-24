@@ -59,7 +59,7 @@ sweep can see, no axe rule reports, and no previous audit has recorded.
 
 Evidence: `/tmp/lh-ios-probe/*__type-*.png` from `SWEEP=full`, and the pair
 captured while writing this (`content_size medium` vs
-`accessibility-extra-extra-extra-large`, `/my-posts`, identical layout).
+`accessibility-extra-extra-extra-large`, `/posts`, identical layout).
 Status: **reported, not fixed** — the fix is a product decision, and this
 agent does not own `src/`.
 

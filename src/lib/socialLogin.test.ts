@@ -159,5 +159,5 @@ describe("nativeGoogleSignIn", () => {
   });
 });
 // Drop the Supabase error and both native sign-ins resolve successfully with no
-// session — the caller navigates to /dashboard and the app bounces them back out.
+// session — the caller navigates to /home and the app bounces them back out.
 // @mutate src/lib/socialAuth.ts | if (error) throw error; | void error;

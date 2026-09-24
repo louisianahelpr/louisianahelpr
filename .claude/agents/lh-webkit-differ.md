@@ -116,7 +116,7 @@ Run every route in both engines against the same dev server and diff.
 3. **`position: fixed` containing-block behavior** -- measure every overlay's rendered box
    as a fraction of the viewport, in both engines.
 4. **History API throttling.** WebKit throttles `replaceState`; the known symptom is
-   "This page hit a problem" on `/browse`, `/my-jobs`, `/my-posts`. `useSearchParamMirror`
+   "This page hit a problem" on `/browse`, `/jobs`, `/posts`. `useSearchParamMirror`
    exists for this -- verify it is used everywhere search params are written.
 5. `Intl` date and number formatting, `:has()` and container-query support, scroll
    anchoring, `dvh` behavior, and any other engine-divergent primitive the app relies on.

@@ -62,14 +62,14 @@ function takeJobIntent(): string | null {
  * `postLoginDest` comment requires ("log in → home"); the job rides in as a
  * param rather than replacing the destination.
  */
-export function postAuthDestination(fallback = "/dashboard"): string {
+export function postAuthDestination(fallback = "/home"): string {
   // A full destination path (`?redirect=`) is more specific than a bare job
   // id, so it wins. Both reads are destructive, so a session only ever spends
   // one of them and neither can fire again on an unrelated later sign-in.
   const path = takeSignupRedirect();
   const id = takeJobIntent();
   if (path) return path;
-  return id ? `/dashboard?quickApply=${encodeURIComponent(id)}` : fallback;
+  return id ? `/home?quickApply=${encodeURIComponent(id)}` : fallback;
 }
 
 /**

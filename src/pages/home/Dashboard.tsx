@@ -188,7 +188,7 @@ const Dashboard = () => {
   // third line to the title card and pushed the job feed down. The
   // headline job count it surfaced still shows in the date eyebrow.
 
-  // Stripe sends a paid boost back to `/dashboard?boosted=<jobId>` (and a
+  // Stripe sends a paid boost back to `/home?boosted=<jobId>` (and a
   // bailed one to `?boost_cancelled=<jobId>`). Nothing consumed either param,
   // so a poster who had just paid for a boost landed on the feed with no
   // confirmation at all — the Boosted badge only appears later, on My Posts.
@@ -201,10 +201,10 @@ const Dashboard = () => {
     if (boosted) {
       // `?boosted` IS the job id, so send the tap to that job rather than to
       // My Posts' default "Needs you" bucket — a freshly-boosted open post
-      // with nobody on it yet buckets to `waiting`, so a bare /my-posts landed
+      // with nobody on it yet buckets to `waiting`, so a bare /posts landed
       // on an empty list.
       toast.success("Your job is boosted — it's at the top of the feed for the next 24 hours.", {
-        action: { label: "View", onClick: () => navigate(`/my-posts?job=${boosted}`) },
+        action: { label: "View", onClick: () => navigate(`/posts?job=${boosted}`) },
       });
     } else {
       toast.error("Boost cancelled — your job is still posted, just not boosted.");

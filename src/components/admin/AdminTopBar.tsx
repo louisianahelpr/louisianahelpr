@@ -59,7 +59,7 @@ const AdminTopBar = () => {
             both already exist as rows at the BOTTOM OF THE SIDEBAR, so the bar
             was a second copy of two controls that already had a home, next to a
             badge that only restated the page you were already on. */}
-        <HelprMark to="/dashboard" size="sm" emblemOnly />
+        <HelprMark to="/home" size="sm" emblemOnly />
         {/* `[&_button]:h-11 [&_button]:w-11` — verbatim from DesktopTopNav. The
             bell renders at the Button component's `size="icon"` default (h-14)
             while its neighbours are h-11, so without this the hover and focus

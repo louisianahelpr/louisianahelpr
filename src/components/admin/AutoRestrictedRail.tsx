@@ -125,7 +125,7 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
       type: "success",
       // "Restriction lifted" means they can work again — send them to the
       // feed, the way admin-user-actions' own dismiss branch does.
-      link: "/dashboard",
+      link: "/home",
     });
     hapticSuccess();
     setReversing(null);

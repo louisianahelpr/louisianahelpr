@@ -447,7 +447,7 @@ serve(async (req) => {
           title: "Verification Successful",
           message: "Your identity has been verified! You're cleared to start using Helpr.",
           type: "success",
-          link: "/dashboard",
+          link: "/home",
         });
         if (notifErr) {
           console.error("[stripe-idv-webhook] Failed to insert verified notification:", notifErr);

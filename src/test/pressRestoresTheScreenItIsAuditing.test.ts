@@ -18,7 +18,7 @@
  * pressed 2, failed 4 — "Posts", "Jobs", "Messages", "Profile", each
  * "NOT CLICKABLE: locator.click: Timeout 16000ms exceeded". The resolved
  * element in the log is `<button aria-label="Posts" aria-current="page" …>`;
- * `aria-current="page"` means the browser was already on /my-posts. The job
+ * `aria-current="page"` means the browser was already on /posts. The job
  * does not exist on prod (a `select` on that id returns no row), so the route
  * bounced and the sweep carried on pressing the old inventory.
  *

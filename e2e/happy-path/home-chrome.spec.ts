@@ -37,11 +37,11 @@ mkdirSync(SHOT_DIR, { recursive: true });
 //
 // The pill is also a SHORTCUT now — one tap goes where the label says, which
 // is why both label states are clicked and the resulting URL is asserted.
-// `/my-jobs?filter=in_progress` and `?filter=active` are the app's own
+// `/jobs?filter=in_progress` and `?filter=active` are the app's own
 // existing deep links (see inProgressBadgeTarget); this spec is what proves
 // they land somewhere real rather than on /activity's redirect (which drops
 // the query string) or /jobs/:id (which bounces a signed-in user back to
-// /dashboard).
+// /home).
 
 /** The feed's header-row action icons, in row order. Accessible names, not
  *  classes.
@@ -104,7 +104,7 @@ async function gotoBrowseSurface(
   // reports "the action icons are missing" when they simply have not mounted.
   //
   // The two surfaces signal "loaded" differently and this used to wait only on
-  // the authed one. /dashboard mounts the Search icon in its title bar;
+  // the authed one. /home mounts the Search icon in its title bar;
   // /browse (guest) deliberately has NO title-bar icons — the search and
   // filter icons were removed because they ate the top of the screen for a
   // signed-out visitor.
@@ -124,7 +124,7 @@ async function gotoBrowseSurface(
 }
 
 const gotoHome = (page: Page, opts: { width: number; height: number; theme: "light" | "dark" }) =>
-  gotoBrowseSurface(page, "/dashboard", opts);
+  gotoBrowseSurface(page, "/home", opts);
 
 for (const variant of [
   { tag: "375-light", width: 375, height: 812, theme: "light" as const },
@@ -264,7 +264,7 @@ for (const variant of [
 }
 
 /* REMOVED: the two "the pill is a shortcut" tests.
-   They drove the in-progress pill into /my-jobs?filter=in_progress and
+   They drove the in-progress pill into /jobs?filter=in_progress and
    ?filter=active. The pill is no longer rendered anywhere (owner: "remove"),
    so they were asserting a control that does not exist. The deep links they
    protected are still real and still exported as `inProgressBadgeTarget`,

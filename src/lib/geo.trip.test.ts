@@ -2,7 +2,7 @@
  * THE OWNER'S NUMBERS WERE TRUE. THIS FILE SAYS SO, AND SAYS WHAT WE DO ABOUT
  * IT INSTEAD.
  *
- * Reported 2026-09-19 with a screenshot of /dashboard: four browse cards
+ * Reported 2026-09-19 with a screenshot of /home: four browse cards
  * reading "27h 6m · 1634 mi", "29h 52m · 1813 mi", "29h 28m · 1797 mi",
  * "28h 23m · 1731 mi" for jobs in Shreveport, New Iberia, Lafayette and Lake
  * Charles — "why is this showing here it hasnt before".

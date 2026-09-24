@@ -53,7 +53,7 @@ migration read or a code guess.
 
 3. **Long-string / max-content on real user-generated content.** DOM-injected
    a 200+ char string (long run, no-space token, emoji/multibyte) into short
-   text nodes on `/dashboard`, `/my-jobs`, `/messages`, `/profile?tab=profile`
+   text nodes on `/home`, `/jobs`, `/messages`, `/profile?tab=profile`
    at 375px. Job titles, thread previews, and the About-you bio all truncate
    cleanly with an ellipsis inside their containers; zero page-level
    horizontal overflow (`documentElement.scrollWidth <= clientWidth`) on any
@@ -102,15 +102,15 @@ is actually the harness that's wrong. Fixed by only touching
    bug, not a product bug).** A first pass minted the auth session for the
    Playwright context with `user: { id: TEST_USER_ID }` only (copying
    `scripts/audit-capture.mjs`'s shape). A cold `/post-job` load then bounced
-   through `/account-pending` → `/dashboard`, losing the deep-link target —
+   through `/account-pending` → `/home`, losing the deep-link target —
    which looked exactly like the "deep-link cold start" defect class the
    `lh-audit` standard calls out. It reproduced 100% of the time. Traced it
    to `useAuthReady.ts`'s `getSession()`, which trusts whatever `user` object
    is sitting in `localStorage` **without a network round-trip** — so my
    minimal user object left `email_confirmed_at` permanently `undefined`,
    which trips `ProtectedRoute.tsx`'s Stage-1 "email unconfirmed" gate on any
-   route that isn't `allowPending` (`/post-job` isn't; `/dashboard`,
-   `/my-jobs`, `/my-posts` are, which is why `audit-capture.mjs`'s existing
+   route that isn't `allowPending` (`/post-job` isn't; `/home`,
+   `/jobs`, `/posts` are, which is why `audit-capture.mjs`'s existing
    routes never exposed this). Confirmed the real account's
    `email_confirmed_at` has been set since 2026-08-24 via
    `GET /auth/v1/admin/users/<id>`. **Fix applied to this lane's own probe
@@ -136,7 +136,7 @@ is actually the harness that's wrong. Fixed by only touching
 3. **AppLockGate — the `?app_lock_demo=1` harness didn't surface the lock in
    headless Chromium.** `measureFixedOverlay()` found only the bottom nav
    (`z-50`) as the topmost fixed element after loading
-   `/dashboard?app_lock_demo=1`; the lock's own `z-[100]` panel never
+   `/home?app_lock_demo=1`; the lock's own `z-[100]` panel never
    rendered. `AppLockGate.tsx` gates on `isAppLockSupported()` and
    `requireBiometric()` (`src/lib/biometricGate.ts`) — plausible that the demo
    path still probes for a real WebAuthn/biometric capability that headless

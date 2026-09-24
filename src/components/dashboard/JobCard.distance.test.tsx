@@ -1,7 +1,7 @@
 /**
  * THE OWNER'S SCREENSHOT, AS A TEST.
  *
- * 2026-09-19, /dashboard: "im not sure about the timer thing and the miles??
+ * 2026-09-19, /home: "im not sure about the timer thing and the miles??
  * why is this showing here it hasnt before". The browse cards carried
  * "27h 6m · 1634 mi", "29h 52m · 1813 mi", "29h 28m · 1797 mi",
  * "28h 23m · 1731 mi" for jobs in Shreveport, New Iberia, Lafayette and Lake

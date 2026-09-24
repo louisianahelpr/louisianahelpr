@@ -69,7 +69,7 @@ found no offender wider than the viewport, at both 375 and 1440. Raw output:
 `scratch/shots-authed/`.
 
 Visual spot-check (screenshot, not just the automated scrollWidth assertion)
-on: `/dashboard`, `/legal`, `/post-job`, `/str-settings`, `/analytics`,
+on: `/home`, `/legal`, `/post-job`, `/str-settings`, `/analytics`,
 `/profile`, `/messages`, `/gift-card`, `/pets`, `/support`, `/help`,
 `/profile?tab=subscription`, `/profile?tab=credentials` at 1440 — all
 correctly centered in the post-rail content area, no double-inset, no dead
@@ -97,7 +97,7 @@ the measurement trap here so the next lane doesn't rebuild it, and flagging
 the stale "left rail" prose in `CLAUDE.md`/PROTOCOL to `team-lead` as a
 documentation fix, not a product one.
 
-`/admin` (non-admin, authed) correctly redirects to `/dashboard` at both
+`/admin` (non-admin, authed) correctly redirects to `/home` at both
 viewports — `AdminRoute` gate holds.
 
 ### 20 redirect-only routes — all 20 confirmed live, query-preservation intact
@@ -105,7 +105,7 @@ viewports — `AdminRoute` gate holds.
 `/activity`, `/earnings`, `/terms`, `/privacy`, `/data-rights`, `/warnings`,
 `/j/:id`, `/u/:id`, `/m/:id`, `/messages/:id`, `/post-job/*`, `/legal/:tab`,
 `/rules`, `/schedule`, `/availability`, `/saved-helpers`, `/gift-card (retired old route)`,
-`/dashboard/post-login`, `/settings/profile`, `/settings` — every one
+`/home/post-login`, `/settings/profile`, `/settings` — every one
 resolved to its documented target with query strings correctly carried
 through (e.g. `/post-job/anything?foo=bar` → `/login?redirect=%2Fpost-job%3Ffoo%3Dbar`,
 `/messages/test123?x=1` → `/login?redirect=%2Fmessages%3Fx%3D1%26jobId%3Dtest123`).
@@ -201,7 +201,7 @@ unreproduced by me. Flagging for `lane-admin` or a future pass to close.
 
 - **guest**: covered by the 34-route guest pass above.
 - **pending**: drove a real account (`approval_status='pending'`) through
-  login → landed on `/dashboard` with a "Verification in progress — browse
+  login → landed on `/home` with a "Verification in progress — browse
   and apply now" banner (correct per `allowPending` progressive-activation
   design). Zero overflow at 375/1440. Screenshot:
   `scratch/state-pending2-1440.png`.
@@ -211,7 +211,7 @@ unreproduced by me. Flagging for `lane-admin` or a future pass to close.
 - **denied**: `approval_status='denied'` → login routes to `/account-denied`
   ("We couldn't approve your account"), zero overflow at 1440. Note: this
   redirect only fires once the profile query resolves — my first attempt at
-  a 3.5s wait caught the page mid-fetch, still showing `/dashboard`; waiting
+  a 3.5s wait caught the page mid-fetch, still showing `/home`; waiting
   8s showed the correct `/account-denied` redirect (raw console log and both
   timings captured in `scratch/login_state4.mjs` / `scratch/login_state5.mjs`
   output this session, see `git log -1 --format=%H -- src/components/ProtectedRoute.tsx`
@@ -219,7 +219,7 @@ unreproduced by me. Flagging for `lane-admin` or a future pass to close.
   regardless of `allowPending`, confirmed at `ProtectedRoute.tsx:270-272`),
   but worth flagging to `lh-concurrency-cache`
   or whoever owns loading-state races: a user who is denied and refreshes
-  fast enough could see a flash of `/dashboard` before the redirect lands.
+  fast enough could see a flash of `/home` before the redirect lands.
   Did not file this separately — it's a sub-second race with no evidence of
   functional access, just a possible flash-of-wrong-content.
 - **approved**: covered throughout the authed pass.

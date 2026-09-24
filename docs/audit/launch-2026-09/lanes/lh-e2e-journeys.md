@@ -54,7 +54,7 @@ rather than silently missing. See UNVERIFIED below.
 already BD-001, fixed at 14:42 that day in `deedc745b`, which was not in my
 worktree. `origin/main` moved `b170609a → c24354a79` *during* my run. Re-tested
 at current main: all three guest doors converge correctly on
-`/dashboard?quickApply=<id>`. My first probe also read the wrong storage key —
+`/home?quickApply=<id>`. My first probe also read the wrong storage key —
 the deep-link door sets `helpr.jobIntent`, not `helpr.signupRedirect`.
 
 ---
@@ -75,7 +75,7 @@ the deep-link door sets `helpr.jobIntent`, not `helpr.signupRedirect`.
 - **All three guest→auth doors preserve the job.** `/browse` card tap and
   `/jobs?job=` "Sign up to apply" both persist `helpr.signupRedirect`; the
   `/jobs/:id` deep link persists `helpr.jobIntent` (`ProtectedRoute.tsx:208`).
-  All three land on `/dashboard?quickApply=34ccf004-b710-4458-bd28-d30734fa0d03`.
+  All three land on `/home?quickApply=34ccf004-b710-4458-bd28-d30734fa0d03`.
   Shots: `001-DOOR1-landing.png`, `002-DOOR2-landing.png`,
   `003-DOOR3-landing.png`.
 - **All six post-a-job entry paths exist and work** (`001-E0-entry.png`): Start Fresh, Pick Up Your
@@ -93,7 +93,7 @@ the deep-link door sets `helpr.jobIntent`, not `helpr.signupRedirect`.
 - **Duplicate apply is guarded server-side**: "You've already applied to this
   job." Captured from `[data-sonner-toast]`; shot `007-Y-helper-dup.png`.
 - **A poster opening their own job's share link** is routed to
-  `/my-posts?highlight=<id>&filter=waiting` — DH-001 regression clean, no "you
+  `/posts?highlight=<id>&filter=waiting` — DH-001 regression clean, no "you
   can't apply to your own post". Shot `001-Y-poster-own-link.png`.
 - **Offline handling.** With the network cut: "No connection — You've dropped
   offline. Try again once you're back on…" plus a working Try again, and clean
@@ -161,12 +161,12 @@ Routes and surfaces actually opened and operated:
 
 `/signup` (both steps, valid + invalid) · `/signup-pending` · `/login` (valid,
 6× invalid, lockout) · `/browse` (guest) · `/jobs?job=<id>` (guest preview) ·
-`/jobs/:id` (guest bounce, authed redirect, own-post redirect) · `/dashboard`
-(both personas) · `/dashboard?quickApply=<id>` · `/post-job` (entry step, all
+`/jobs/:id` (guest bounce, authed redirect, own-post redirect) · `/home`
+(both personas) · `/home?quickApply=<id>` · `/post-job` (entry step, all
 six cards) · `/post-job` form step (Details + Logistics + Budget) ·
-`/post-job?rebook=<id>` · `/post-job?offerTo=<id>` · `/my-posts` (collapsed,
+`/post-job?rebook=<id>` · `/post-job?offerTo=<id>` · `/posts` (collapsed,
 expanded, Applicants panel, hire → ResponseDeadlineDialog → Send Offer) ·
-`/my-jobs` (helper, before and after) · offline state · draft
+`/jobs` (helper, before and after) · offline state · draft
 save/resume/interrupt.
 
 Viewports measured: 320 · 344 · 360 · 375 · 393.

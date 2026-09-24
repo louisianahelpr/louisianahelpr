@@ -89,7 +89,7 @@ test("one sheet, one step: the apply form is on the job detail surface", async (
     } catch { /* no-storage guard */ }
   });
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto("/dashboard");
+  await page.goto("/home");
 
   const card = page.getByText(BASE_JOB.title);
   await card.waitFor({ timeout: 20_000 });
@@ -187,7 +187,7 @@ test("a short job leaves no dead band under the CTA", async ({ helperPage: page 
   // cannot tell the two apart. Give it 1400px and the question becomes the
   // one that matters: with room to spare, does the box hug?
   await page.setViewportSize({ width: 375, height: 1400 });
-  await page.goto("/dashboard");
+  await page.goto("/home");
 
   const card = page.getByText(BASE_JOB.title);
   await card.waitFor({ timeout: 20_000 });
@@ -254,7 +254,7 @@ test("dismissing the sheet abandons the apply", async ({ helperPage: page }) => 
     } catch { /* no-storage guard */ }
   });
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto("/dashboard");
+  await page.goto("/home");
 
   const card = page.getByText(BASE_JOB.title);
   await card.waitFor({ timeout: 20_000 });

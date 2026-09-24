@@ -7,7 +7,7 @@ import { JobCardMetaRow } from "../../../components/job-card/JobCardMetaRow";
  * VN-55, ON THE ROW IT NOW LIVES IN.
  *
  * `JobAddressLine` — a whole card row printing the street address under the
- * meta row — is gone (owner, 2026-09-19, with a screenshot of /my-jobs: "this
+ * meta row — is gone (owner, 2026-09-19, with a screenshot of /jobs: "this
  * shouldnt show 2 addresses… the full address needs to go where the city place
  * is. not be on a whole nother line"). The address moved INTO the meta row's
  * location slot, so these cases moved with it: same two claims, same predicate,

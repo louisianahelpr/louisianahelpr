@@ -193,7 +193,7 @@ node scripts/test-signin-link.mjs helper --session --json   # localStorage blob
 ### MANDATORY — dismiss the onboarding tour in the SAME init script
 
 `OnboardingTour` (`src/components/OnboardingTour.tsx`, mounted by
-`src/pages/home/Dashboard.tsx`) opens on `/dashboard` — where every signed-in pass
+`src/pages/home/Dashboard.tsx`) opens on `/home` — where every signed-in pass
 starts — 1.5s after load, in **every fresh browser context**: new Playwright
 context, incognito window, cleared simulator, and *each of the three origins*
 in the two-origin trick below. It is a Radix dialog that **blurs the page
@@ -321,7 +321,7 @@ runtime via `Capacitor.isNativePlatform()`:
 
 | Surface | Web | Native |
 |---|---|---|
-| `/` | marketing landing; `MarketingRedirect` bounces signed-in → `/dashboard` | `MarketingRedirect` is a **no-op**; `NativeRedirect` → `/dashboard` or `/browse` |
+| `/` | marketing landing; `MarketingRedirect` bounces signed-in → `/home` | `MarketingRedirect` is a **no-op**; `NativeRedirect` → `/home` or `/browse` |
 | `/jobs` | public marketing jobs page | redirects → `/browse` (`?job=` preserved) |
 | `/browse` | optional no-account preview | the canonical guest home |
 | `/help`, `/legal`, `/support`, 404 | `PublicLayout` marketing chrome | chrome swaps to `AppShell` |
@@ -349,18 +349,18 @@ are no nested route files. **Re-derive before starting.**
 | 8 | `/account-banned` | `AccountBanned` | public | | force via `ban_status` |
 | 9 | `/forgot-password` | `ForgotPassword` | public | | incl. success state |
 | 10 | `/reset-password` | `ResetPassword` | public | | needs a real recovery link |
-| 11 | `/dashboard` | `Dashboard` | signed-in (pending OK) | `ProtectedRoute allowPending` | `DashboardRouteSkeleton` fallback |
+| 11 | `/home` | `Dashboard` | signed-in (pending OK) | `ProtectedRoute allowPending` | `DashboardRouteSkeleton` fallback |
 | 12 | `/profile` | `Profile` | signed-in | `ProtectedRoute allowUnapproved` | 17 tabs → A3 |
 | 13 | `/post-job` | `PostJob` | approved | `ProtectedRoute` | 5 entry paths, 3-step wizard |
-| 14 | `/my-jobs` | `Activity` (`applied`) | pending OK | `ProtectedRoute allowPending` | |
-| 15 | `/my-posts` | `Activity` (`posted`) | pending OK | `ProtectedRoute allowPending` | |
+| 14 | `/jobs` | `Activity` (`applied`) | pending OK | `ProtectedRoute allowPending` | |
+| 15 | `/posts` | `Activity` (`posted`) | pending OK | `ProtectedRoute allowPending` | |
 | 16 | `/payment-success` | `PaymentSuccess` | approved | `ProtectedRoute` | reach via real Stripe return |
 | 17 | `/user/:userId` | `UserProfile` | approved | `ProtectedRoute` | see §5 params |
 | 18 | `/admin` | `Admin` | **admin** | `ProtectedRoute` → `AdminRoute` | 24 views → A4; excluded from AASA |
 | 19 | `/messages` | `Messages` | pending OK | `ProtectedRoute allowPending` | |
 | 20 | `/support` | `Support` | public | deliberately not `MarketingRedirect` | |
 | 21 | `/legal` | `Legal` | public | | tabs: terms/privacy/community |
-| 22 | `/jobs` | `Jobs` | public | | authed users self-redirect to `/dashboard?quickApply=` |
+| 22 | `/jobs` | `Jobs` | public | | authed users self-redirect to `/home?quickApply=` |
 | 23 | `/jobs/:id` | `JobDetail` | public preview | | signed-in users redirected |
 | 24 | `/browse` | `DashboardGuest` | public | `GuestBrowseSkeleton` | native guest home |
 | 25 | `/str-settings` | `StrSettings` | approved | `ProtectedRoute` | comment claiming "public" is stale |
@@ -378,12 +378,12 @@ are no nested route files. **Re-derive before starting.**
 A redirect is walked when you have **observed the landing URL**, not when you
 have read the `<Navigate>` element.
 
-`/activity`→`/my-posts` · `/earnings`→`/profile?tab=earnings` ·
+`/activity`→`/posts` · `/earnings`→`/profile?tab=earnings` ·
 `/terms`→`/legal?tab=terms` · `/privacy`→`/legal?tab=privacy` ·
 `/rules`→`/legal?tab=community` · `/data-rights`→`/profile?tab=legal` ·
 `/schedule`→`/profile?tab=schedule` · `/availability`→`/profile?tab=availability` ·
 `/saved-helpers`→`/profile?tab=saved_helpers` · `/gift-card (retired old route)`→`/gift-card` ·
-`/analytics`→`/profile?tab=earnings` · `/dashboard/post-login`→`/dashboard` ·
+`/analytics`→`/profile?tab=earnings` · `/home/post-login`→`/home` ·
 `/settings/profile`→`/profile` · `/settings`→`/profile`
 
 `/data-rights` is published in the Privacy Policy and the App Store listing —
@@ -425,7 +425,7 @@ are **gone**. Re-derive the list and fix the script.
 
 ### A5 — Activity tabs (2)
 
-`posted` (`/my-posts`) and `applied` (`/my-jobs`). Each has status filters and
+`posted` (`/posts`) and `applied` (`/jobs`). Each has status filters and
 per-status card states — **force them all**. A tab seen in one status is not a
 walked tab. Known filters: `?filter=scheduled|waiting|completed|done`.
 
@@ -438,7 +438,7 @@ walked tab. Known filters: `?filter=scheduled|waiting|completed|done`.
 
 ### Query-param sub-screens (audit as distinct surfaces)
 
-`/dashboard?quickApply=<jobId>` · `/messages?jobId=&userId=` ·
+`/home?quickApply=<jobId>` · `/messages?jobId=&userId=` ·
 `/browse?job=<id>` · `/legal?tab=` · plus every A3/A4 param.
 
 ### Deep links / universal links
@@ -886,7 +886,7 @@ to nobody — announce before touching them.
 
 | Lane | Scope |
 |---|---|
-| **A — money loop** | `/post-job`, `/my-posts`, `/my-jobs`, `/payment-success`, escrow, Stripe, payouts, disputes, B3 dialogs |
+| **A — money loop** | `/post-job`, `/posts`, `/jobs`, `/payment-success`, escrow, Stripe, payouts, disputes, B3 dialogs |
 | **B — identity & account** | auth family, `/complete-profile`, account-state screens, all 17 profile tabs, B5 dialogs, biometric/App Lock |
 | **C — public & operator** | `/`, `/browse`, `/jobs`, `/jobs/:id`, `/help`, `/legal`, `/support`, 404, sitemap, all 24 admin views, B9 dialogs |
 | **D — messages & trust** | `/messages`, `/user/:userId`, report/block, content scanner, B4 dialogs |

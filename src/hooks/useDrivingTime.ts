@@ -50,7 +50,7 @@ function heuristicMinutes(miles: number): number {
 /**
  * A DRIVE TIME IS ONLY OFFERED FOR A TRIP SOMEONE WOULD DRIVE.
  *
- * Owner, 2026-09-19, /dashboard: "27h 6m · 1634 mi" on a Shreveport job —
+ * Owner, 2026-09-19, /home: "27h 6m · 1634 mi" on a Shreveport job —
  * "why is this showing here". The first fix read that as a falsehood and
  * hunted the origin. It was not false: the owner was in Menlo Park and the
  * figures were correct to the mile (geo.ts carries the corrected account).

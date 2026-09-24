@@ -54,9 +54,9 @@ describe("the press harness honours ProtectedRoute's auto-heal", () => {
       refresh: vi.fn().mockResolvedValue(undefined),
     });
     const { container } = render(
-      <MemoryRouter initialEntries={["/dashboard"]}>
+      <MemoryRouter initialEntries={["/home"]}>
         <Routes>
-          <Route path="/dashboard" element={<ProtectedRoute><div>PROTECTED</div></ProtectedRoute>} />
+          <Route path="/home" element={<ProtectedRoute><div>PROTECTED</div></ProtectedRoute>} />
           <Route path="/login" element={<div>LOGIN</div>} />
         </Routes>
       </MemoryRouter>,

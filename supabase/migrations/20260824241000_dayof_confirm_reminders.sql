@@ -56,14 +56,14 @@ BEGIN
         INSERT INTO public.notifications (user_id, type, title, message, link, read)
         VALUES (rec.helper_id, 'job_update', 'Still on for tomorrow?',
                 format('"%s" starts soon — tap to confirm you''re still on. One tap keeps your spot.', rec.title),
-                '/my-jobs?filter=offered', false);
+                '/jobs?filter=offered', false);
         total_pushed := total_pushed + 1;
       END IF;
       IF rec.poster_confirmed_at IS NULL THEN
         INSERT INTO public.notifications (user_id, type, title, message, link, read)
         VALUES (rec.customer_id, 'job_update', 'Still on for tomorrow?',
                 format('"%s" starts soon — tap to confirm you''re still on so your Helpr knows it''s a go.', rec.title),
-                '/my-posts?filter=offered', false);
+                '/posts?filter=offered', false);
         total_pushed := total_pushed + 1;
       END IF;
       UPDATE public.jobs SET dayof_confirm_reminder_sent_at = NOW() WHERE id = rec.id;
@@ -93,7 +93,7 @@ BEGIN
       INSERT INTO public.notifications (user_id, type, title, message, link, read)
       VALUES (rec.customer_id, 'warning', 'Your Helpr hasn''t confirmed yet',
               format('"%s" starts in under 12 hours and your Helpr hasn''t confirmed they''re still on. Message them — or line up a backup while there''s time.', rec.title),
-              '/my-posts?filter=offered', false);
+              '/posts?filter=offered', false);
       UPDATE public.jobs SET dayof_unanswered_poster_alert_sent_at = NOW() WHERE id = rec.id;
       total_pushed := total_pushed + 1;
     EXCEPTION WHEN OTHERS THEN

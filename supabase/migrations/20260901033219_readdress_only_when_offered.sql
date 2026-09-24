@@ -23,7 +23,7 @@
 -- who had merely tapped Apply could read a job's FULL STREET ADDRESS and exact
 -- GPS. Proven against prod with a real helper JWT — "1408 Rue Beauregard,
 -- Delcambre, LA 70528", latitude 30.2262187 (7dp, ~1cm) — returned by
--- get_jobs_for_my_applications, which /dashboard calls unprompted every load.
+-- get_jobs_for_my_applications, which /home calls unprompted every load.
 
 -- "Should only see address when they are offered the job."
 --

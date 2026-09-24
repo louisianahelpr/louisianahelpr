@@ -101,14 +101,14 @@ const landings: Record<string, string> = {};
 // off the guard noticing anything.
 //
 // 1. the findings ratchet — strip the notification popover's only label and
-//    `/dashboard :: dialog :: no-accessible-name` appears, which is not in the
+//    `/home :: dialog :: no-accessible-name` appears, which is not in the
 //    baseline.
 // @mutate src/components/NotificationPanel.tsx | aria-labelledby={titleId} | data-unlabelled="1"
-// 2. the bounce check — signed-in /browse is declared to land on /dashboard.
+// 2. the bounce check — signed-in /browse is declared to land on /home.
 //    Send it somewhere else and the sweep must notice it audited the wrong
 //    screen. (It used to mutate the /settings <Navigate>; that route was
 //    deleted, Q194.)
-// @mutate src/components/MarketingRedirect.tsx |   to = "/dashboard", |   to = "/my-jobs",
+// @mutate src/components/MarketingRedirect.tsx |   to = "/home", |   to = "/jobs",
 
 const BASELINE_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "overlay-sweep.baseline.json");
 
@@ -160,7 +160,7 @@ const baseline = readBaseline();
  * sweeps on an unchanging app, 2026-09-21:
  *
  *   overlay opens per run    84 / 86 / 82 / 79 / 84
- *   /my-posts opened         Escalate|More|SOS (runs 1,2,3,5)
+ *   /posts opened         Escalate|More|SOS (runs 1,2,3,5)
  *                            Timeline & Evidence|No-Show (run 4)
  *   /availability contrast   seen on runs 1-4, absent on run 5
  *
@@ -211,14 +211,14 @@ const EXPECTED_LANDING: Record<string, string> = {
   // its `/browse` row has never probed the browse screen's overlays — it
   // probed the dashboard's, a second time, under browse's name. Real redirect,
   // real coverage gap: the browse filter sheet is audited by nobody here.
-  "/browse": "/dashboard",
+  "/browse": "/home",
 
-  // JobDetail forwards every signed-in visitor away. NOT to /dashboard, which
+  // JobDetail forwards every signed-in visitor away. NOT to /home, which
   // is what auditRoutes.ts's comment and empty-state-sweep both say: with the
   // seeded mocks the fixture customer OWNS this job, so it lands on the poster
   // view. Both are true of their own fixture, which is why this is measured
   // here rather than inherited from the catalog.
-  "/jobs/10000000-0000-4000-8000-000000000001": "/my-posts",
+  "/jobs/10000000-0000-4000-8000-000000000001": "/posts",
 };
 
 /**
@@ -239,9 +239,9 @@ const OPEN_OVERLAY =
  * and probing them is pure wall-clock.
  */
 const ROUTES = [
-  "/dashboard",
-  "/my-posts",
-  "/my-jobs",
+  "/home",
+  "/posts",
+  "/jobs",
   "/messages",
   "/post-job",
   "/browse",
@@ -509,7 +509,7 @@ async function probeRoute(page: Page, route: string): Promise<void> {
         // same iteration was judging.
         //
         // It made the sweep NONDETERMINISTIC, which is worse than being wrong:
-        // across three consecutive full runs the /my-posts SOS dialog's
+        // across three consecutive full runs the /posts SOS dialog's
         // colour-contrast violation (#fdfdfd on #b95e35 = 4.37:1) appeared
         // once. Under a findings ratchet that is a phantom — a real,
         // long-standing defect that reads as a NEW regression on whichever run
@@ -628,7 +628,7 @@ sweepDescribe("overlay sweep", () => {
   // The three assertions the file spent its life without. They run LAST and
   // over the whole sweep on purpose: `mode: serial` skips the rest of a describe
   // after the first failure, so asserting inside each route test would have let
-  // one new finding on /dashboard hide the other 65 routes.
+  // one new finding on /home hide the other 65 routes.
   test("zz probed something", () => {
     expect(probed.length).toBeGreaterThan(0);
   });

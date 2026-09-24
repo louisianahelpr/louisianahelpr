@@ -37,7 +37,7 @@
 --      (redeem_pif_credit) all write exactly 'escrow'. 'payout_pending' and
 --      'released' are included so a future reopen of a settled job is not
 --      silently swallowed. Nothing legitimately shows an open job before
---      escrow: the poster's own surfaces read public.jobs directly (my-posts),
+--      escrow: the poster's own surfaces read public.jobs directly (Posts),
 --      and JobDetail's read of open_jobs_browse is guest-only — a signed-in
 --      poster is redirected before the query runs.
 

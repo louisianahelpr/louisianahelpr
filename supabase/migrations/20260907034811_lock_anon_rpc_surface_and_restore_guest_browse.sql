@@ -214,7 +214,7 @@ END $$;
 DO $$
 DECLARE
   -- Money / booking mutation. A guest has no business calling any of these.
-  --   apply_to_job          ← src/pages/dashboard/useApplyFlow.ts      (authed)
+  --   apply_to_job          ← src/pages/home/useApplyFlow.ts      (authed)
   --   poster_cancel_job     ← src/components/CancellationDialog.tsx    (authed)
   --   helper_cancel_booking ← .../appliedJobCard/ConfirmedSection.tsx  (authed)
   --   rpc_withdraw_dispute  ← .../postedJobCard/PostedJobActions.tsx   (authed)

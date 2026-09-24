@@ -157,7 +157,7 @@ const VERCEL_TRANSFORM_PATH = "/_vercel/image";
  *   GET /_vercel/image?url=…&w=96&q=75  ->  200  content-type: text/html
  *
  * That is the owner's "job photos render as broken images" report: an empty
- * box reading `Photo 1` (JobCardPhotoStrip's alt) on /my-jobs and on an
+ * box reading `Photo 1` (JobCardPhotoStrip's alt) on /jobs and on an
  * offered card. It is not a corner case either — since 2026-09-14 EVERY
  * Playwright project serves the HTML from a local `vite preview` and talks to
  * prod Supabase (playwright.config.ts, "REAL BACKEND, LOCAL FRONTEND"), so

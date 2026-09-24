@@ -228,7 +228,7 @@ async function dismissNudge(page: Page) {
  * That is exactly how this file broke on 2026-09-19: the owner's card
  * reorganisation moved the Deep-clean card's toggle to y≈790 in an 812px
  * viewport — underneath the FIXED bottom navigation — so the click landed on
- * MobileNav's "Home" button, the app pushed /dashboard, and the assertion
+ * MobileNav's "Home" button, the app pushed /home, and the assertion
  * failed with "element(s) not found" while standing on the Home screen. The
  * app was never wrong: tapping the card body and activating this control from
  * the keyboard both expand in place, verified against this build.
@@ -349,7 +349,7 @@ test.describe("My Posts — card density + header", () => {
       // "all" so every seeded status — open / accepted / in_progress /
       // revision_requested / completed / cancelled / disputed — is on screen at
       // once and the colour system can be judged as a set.
-      await page.goto("/my-posts?filter=all");
+      await page.goto("/posts?filter=all");
       await page.waitForSelector("h1");
       await setTheme(page, v.theme);
       await settle(page);
@@ -357,17 +357,17 @@ test.describe("My Posts — card density + header", () => {
 
       await assertOneH1(page);
       await assertFits(page);
-      await assertNoAxeViolations(page, `/my-posts ${v.tag}`);
-      await recordContrast(page, `my-posts-${v.tag}`);
+      await assertNoAxeViolations(page, `/posts ${v.tag}`);
+      await recordContrast(page, `posts-${v.tag}`);
       await dismissNudge(page);
-      await page.screenshot({ path: `${SHOTS}/my-posts-all-${v.tag}.png`, fullPage: true });
+      await page.screenshot({ path: `${SHOTS}/posts-all-${v.tag}.png`, fullPage: true });
     });
 
     test(`My Jobs fits, has one h1 and zero axe violations @ ${v.tag}`, async ({ page, context, baseURL }) => {
       await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");
       await installSupabaseMocks(page, { user: FAKE_HELPER, seed: true });
       await page.setViewportSize({ width: v.width, height: v.height });
-      await page.goto("/my-jobs?filter=all");
+      await page.goto("/jobs?filter=all");
       await page.waitForSelector("h1");
       await setTheme(page, v.theme);
       await settle(page);
@@ -375,9 +375,9 @@ test.describe("My Posts — card density + header", () => {
 
       await assertOneH1(page);
       await assertFits(page);
-      await assertNoAxeViolations(page, `/my-jobs ${v.tag}`);
-      await recordContrast(page, `my-jobs-${v.tag}`);
-      await page.screenshot({ path: `${SHOTS}/my-jobs-all-${v.tag}.png`, fullPage: true });
+      await assertNoAxeViolations(page, `/jobs ${v.tag}`);
+      await recordContrast(page, `jobs-${v.tag}`);
+      await page.screenshot({ path: `${SHOTS}/jobs-all-${v.tag}.png`, fullPage: true });
     });
    });
   }
@@ -385,7 +385,7 @@ test.describe("My Posts — card density + header", () => {
   test("the description is collapsed by default and expands in place", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
-    await page.goto("/my-posts?filter=all");
+    await page.goto("/posts?filter=all");
     await page.waitForSelector("h1");
     await settle(page);
 
@@ -424,7 +424,7 @@ test.describe("My Posts — card density + header", () => {
     await activateCardToggle(toggle);
     await expect(description.first()).toBeVisible();
     // Same card — the toggle expanded in place rather than navigating.
-    await expect(page).toHaveURL(/\/my-posts/);
+    await expect(page).toHaveURL(/\/posts/);
     await page.screenshot({ path: `${SHOTS}/card-expanded-375.png`, fullPage: true });
 
     const collapse = deepCleanCard.getByRole("button", { name: "Collapse Job Details" });
@@ -446,7 +446,7 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([inProgressJobStarting(1)])],
     });
-    await page.goto("/my-posts?filter=all");
+    await page.goto("/posts?filter=all");
     await page.waitForSelector("h1");
     await settle(page);
 
@@ -477,7 +477,7 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([inProgressJobStarting(-1)])],
     });
-    await page.goto("/my-posts?filter=all");
+    await page.goto("/posts?filter=all");
     await page.waitForSelector("h1");
     await settle(page);
 
@@ -582,7 +582,7 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([{ ...inProgressJobStarting(-1), helper_on_the_way_at: new Date().toISOString() }])],
     });
-    await page.goto("/my-posts?filter=all");
+    await page.goto("/posts?filter=all");
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
@@ -695,7 +695,7 @@ test.describe("My Posts — card density + header", () => {
         { ...base, id: "job-msg-done", title: "Tracker colour B", helper_completed_at: new Date().toISOString() },
       ])],
     });
-    await page.goto("/my-posts?filter=all");
+    await page.goto("/posts?filter=all");
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
@@ -750,7 +750,7 @@ test.describe("My Posts — card density + header", () => {
       seed: true,
       rules: [jobsRule([inProgressJobStarting(-1)])],
     });
-    await page.goto("/my-posts?filter=all");
+    await page.goto("/posts?filter=all");
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
@@ -783,7 +783,7 @@ test.describe("My Posts — card density + header", () => {
     // default seed includes an overdue revision_requested card that sorts first
     // and does not render Edit (only "open" status cards do).
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: [jobsRule([SEED_JOBS[0] as Row])] });
-    await page.goto("/my-posts?filter=all");
+    await page.goto("/posts?filter=all");
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
@@ -833,7 +833,7 @@ test.describe("My Posts — card density + header", () => {
   test("the card-level toggle carries aria-expanded and flips on click", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
-    await page.goto("/my-posts?filter=all");
+    await page.goto("/posts?filter=all");
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
@@ -875,7 +875,7 @@ test.describe("My Posts — card density + header", () => {
 
     for (const filter of ["needs_you", "scheduled", "waiting", "done"] as const) {
       const label = wordFor(filter);
-      await page.goto(`/my-posts?filter=${filter}`);
+      await page.goto(`/posts?filter=${filter}`);
       await page.waitForSelector("h1");
       await settle(page);
       await dismissNudge(page);
@@ -896,7 +896,7 @@ test.describe("My Posts — card density + header", () => {
          2026-09-20; ActivityHeader's `tabsOpenPhone` is `useState(true)`).
          This used to assert the opposite — open only for a NON-default
          `?filter=`, so `needs_you` had to be clicked open here. That rule
-         shipped and measured: at 320/375/414 a plain /my-posts painted ZERO of
+         shipped and measured: at 320/375/414 a plain /posts painted ZERO of
          the five words until the reader found a chevron. The owner's original
          complaint was "Cancelled" clipping to "Ca…" — four of five readable —
          so the disclosure made the reported bug worse.
@@ -949,7 +949,7 @@ test.describe("My Posts — card density + header", () => {
     // reader was already standing in, all the way down the page.
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
-    await page.goto("/my-posts?filter=all");
+    await page.goto("/posts?filter=all");
     await page.waitForSelector("h1");
     await settle(page);
     await expandAllSections(page);
@@ -971,7 +971,7 @@ test.describe("My Posts — card density + header", () => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     const lonely: Row = { ...(SEED_JOBS.find((j) => j.status === "open") as Row), id: "10000000-0000-4000-8000-0000000000ff" };
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: [jobsRule([lonely])] });
-    await page.goto("/my-posts?filter=waiting");
+    await page.goto("/posts?filter=waiting");
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
@@ -982,7 +982,7 @@ test.describe("My Posts — card density + header", () => {
   test("My Jobs: the applied card carries the same stripe and one description toggle", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_HELPER, seed: true });
-    await page.goto("/my-jobs?filter=all");
+    await page.goto("/jobs?filter=all");
     await page.waitForSelector("h1");
     await settle(page);
 
@@ -1001,7 +1001,7 @@ test.describe("My Posts — card density + header", () => {
     // actionability check (they're intentionally not visually interactive).
     await first.click({ force: true });
     await expect(page.getByRole("button", { name: "Collapse Job Details" })).toHaveCount(1);
-    await page.screenshot({ path: `${SHOTS}/my-jobs-expanded-375.png`, fullPage: true });
+    await page.screenshot({ path: `${SHOTS}/jobs-expanded-375.png`, fullPage: true });
 
     // The withdraw action is the icon-over-label chip now, still destructive.
     void SEED_APPLICATIONS;

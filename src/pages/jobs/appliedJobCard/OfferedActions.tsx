@@ -224,7 +224,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
                     'open' — a claimed/cancelled job has nothing to offer. */}
                 {job.status === "open" && (
                   <Link
-                    to={`/dashboard?job=${job.id}`}
+                    to={`/home?job=${job.id}`}
                     onClick={(e) => e.stopPropagation()}
                     className="inline-flex items-center gap-1 mt-1.5 text-ds-11 font-semibold underline"
                     style={{ color: "hsl(var(--amber-ink))" }}

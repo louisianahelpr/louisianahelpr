@@ -290,10 +290,10 @@ serve(async (req) => {
           title: "Your tip didn't go through",
           message:
             "We couldn't charge your automatic tip — usually because there's no saved card on file. You can send it in a tap.",
-          // Straight to the finished job the tip was for. A bare "/my-posts"
+          // Straight to the finished job the tip was for. A bare "/posts"
           // opened on "Needs you", which a completed job is never in — so the
           // "send it in a tap" was a tap into an empty list.
-          link: `/my-posts?job=${c.job_id}`,
+          link: `/posts?job=${c.job_id}`,
         });
         if (notifyErr) {
           // Never swallowed: if this insert fails the poster is back to
@@ -504,7 +504,7 @@ serve(async (req) => {
             type: "payment",
             title: "Your auto-tip was sent",
             message: `We sent a $${(tipCents / 100).toFixed(2)} tip to your Helpr for this job — no action needed.`,
-            link: `/my-posts?job=${c.job_id}`,
+            link: `/posts?job=${c.job_id}`,
           });
           if (successNotifyErr) {
             log("ERROR writing tip-success notification", { jobId, error: successNotifyErr.message });

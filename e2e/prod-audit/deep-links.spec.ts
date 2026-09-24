@@ -80,7 +80,7 @@ test.describe("signed in (helper)", () => {
     const ctx = await newUserContext(browser, helper);
     const page = await ctx.newPage();
     await page.goto(`/jobs/${fx.openJob!.id}`);
-    await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
+    await page.waitForURL(/\/home/, { timeout: 30_000 });
     await expect(page.getByRole("dialog").getByText(fx.openJob!.title).first(), "the job sheet did not open").toBeVisible({ timeout: 30_000 });
     await assertHealthy(page, info, "job-open");
     await ctx.close();
@@ -91,7 +91,7 @@ test.describe("signed in (helper)", () => {
     const ctx = await newUserContext(browser, helper);
     const page = await ctx.newPage();
     await page.goto(`/jobs/${fx.openJob!.id}?ref=share`);
-    await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
+    await page.waitForURL(/\/home/, { timeout: 30_000 });
     await expect(page.getByRole("dialog").getByText(fx.openJob!.title).first()).toBeVisible({ timeout: 30_000 });
     await assertHealthy(page, info, "share-open");
     await ctx.close();
@@ -101,7 +101,7 @@ test.describe("signed in (helper)", () => {
     const ctx = await newUserContext(browser, helper);
     const page = await ctx.newPage();
     await page.goto(`/jobs/${fx.goneJobId}`);
-    await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
+    await page.waitForURL(/\/home/, { timeout: 30_000 });
     // The honest outcome is a toast/inline note, never silence and never a crash.
     await expect(page.getByText(/no longer|isn't available|not available|gone|removed|couldn't find|not found|filled|closed/i).first(), "no message for a gone job").toBeVisible({ timeout: 20_000 });
     await assertHealthy(page, info, "gone-job");
@@ -114,7 +114,7 @@ test.describe("signed in (helper)", () => {
     const ctx = await newUserContext(browser, poster);
     const page = await ctx.newPage();
     await page.goto(`/jobs/${fx.openJob!.id}`);
-    await page.waitForURL(/\/my-posts/, { timeout: 30_000 });
+    await page.waitForURL(/\/posts/, { timeout: 30_000 });
     await expect(page.getByText(fx.openJob!.title).first()).toBeVisible({ timeout: 30_000 });
     await assertHealthy(page, info, "own-post");
     await ctx.close();

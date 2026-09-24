@@ -126,10 +126,10 @@ const has = async (name) => (await q(`SELECT to_regproc($1) IS NOT NULL AS x`, [
 // ── Q157: the admin question equals the trigger's verdict ─────────────────
 if (await has("admin_notification_crosses_seed_boundary")) {
   const cases = [
-    { name: "seed job -> real poster", user: REAL, job: SEED_JOB, link: `/my-posts?job=${SEED_JOB}`, drop: true },
-    { name: "seed job -> seed account", user: SEED, job: SEED_JOB, link: `/my-jobs?job=${SEED_JOB}`, drop: false },
-    { name: "real job -> real poster", user: REAL, job: REAL_JOB, link: `/my-posts?job=${REAL_JOB}`, drop: false },
-    { name: "seed job named only by the link", user: REAL, job: null, link: `/my-posts?job=${SEED_JOB}`, drop: true },
+    { name: "seed job -> real poster", user: REAL, job: SEED_JOB, link: `/posts?job=${SEED_JOB}`, drop: true },
+    { name: "seed job -> seed account", user: SEED, job: SEED_JOB, link: `/jobs?job=${SEED_JOB}`, drop: false },
+    { name: "real job -> real poster", user: REAL, job: REAL_JOB, link: `/posts?job=${REAL_JOB}`, drop: false },
+    { name: "seed job named only by the link", user: REAL, job: null, link: `/posts?job=${SEED_JOB}`, drop: true },
   ];
   await as(ADMIN);
   for (const c of cases) {
@@ -176,7 +176,7 @@ if (await has("check_seed_boundary_failures")) {
   await db.exec(`ALTER FUNCTION public.notification_crosses_seed_boundary(uuid, uuid, text, uuid) RENAME TO ncsb_saved;
     CREATE FUNCTION public.notification_crosses_seed_boundary(a uuid, b uuid, c text, d uuid DEFAULT NULL) RETURNS boolean
       LANGUAGE plpgsql AS $f$ BEGIN RAISE EXCEPTION 'boom'; END $f$;`);
-  await q(`INSERT INTO public.notifications (user_id, job_id, title, message, link) VALUES ($1, $2, 't', 'm', $3)`, [REAL, REAL_JOB, `/my-posts?job=${REAL_JOB}`]);
+  await q(`INSERT INTO public.notifications (user_id, job_id, title, message, link) VALUES ($1, $2, 't', 'm', $3)`, [REAL, REAL_JOB, `/posts?job=${REAL_JOB}`]);
   const dropped = (await q(`SELECT count(*)::int AS n FROM public.notifications WHERE job_id = $1 AND title = 't' AND created_at > now() - interval '1 second'`, [REAL_JOB]))[0].n;
   const failRow = (await q(`SELECT error_message FROM public.notification_logs WHERE error_message LIKE 'seed boundary check failed%'`))[0];
   check("Q160 an errored check drops a REAL-to-REAL row (fail closed) and logs why", !!failRow, failRow?.error_message);

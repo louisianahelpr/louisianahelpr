@@ -394,7 +394,7 @@ function markColdLaunchStart() {
  *   - "init"                — `initSentry()` ran
  *   - "auth-ready-resolved" — `useAuthReady` saw its first event
  *   - "first-route-rendered"— `<App>` rendered its first non-Suspense child
- *   - "native-redirect-decided" — `NativeRedirect` picked /dashboard or /browse
+ *   - "native-redirect-decided" — `NativeRedirect` picked /home or /browse
  */
 /** Replay never records user-supplied media (CS-001). */
 export const REPLAY_BLOCKED_MEDIA = ["img", "video", "picture"];

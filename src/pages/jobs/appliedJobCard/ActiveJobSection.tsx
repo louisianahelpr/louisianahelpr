@@ -80,7 +80,7 @@ export function ActiveJobSection({
   // ── THE 30-MINUTE WINDOW HAS TO ELAPSE ON SCREEN ──
   //
   // "Available in 25 min" was computed from Date.now() at render time on a
-  // component with no timer of any kind, so a helper who opened /my-jobs at
+  // component with no timer of any kind, so a helper who opened /jobs at
   // minute 5 watched a frozen number on a disabled button until they navigated
   // away and came back. The unlock moment is a fixed point in time, so compute
   // it once and re-render on it — and only while the gate is actually closed.

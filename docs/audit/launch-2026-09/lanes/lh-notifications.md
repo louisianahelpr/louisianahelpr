@@ -145,7 +145,7 @@ the orchestrator.
 ### N-008 · LOW — deleted-job notifications tell the user to try again forever
 
 581 of 1773 rows (33%) link to a job that no longer exists; 474 are `job_match` →
-`/dashboard?quickApply=<id>`. These do **not** dead-end — `QuickApplyHandler`
+`/home?quickApply=<id>`. These do **not** dead-end — `QuickApplyHandler`
 resolves the miss and toasts. But the copy is *"This task isn't available to open
 **yet** — if you just got the alert, try again in a few minutes."* That copy was
 written for the Early-Access delay case and is permanently false for a deleted job.

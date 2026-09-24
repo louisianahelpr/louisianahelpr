@@ -35,7 +35,7 @@ beforeEach(() => {
   Object.defineProperty(window, "location", {
     configurable: true,
     writable: true,
-    value: { href: "/dashboard" },
+    value: { href: "/home" },
   });
 });
 

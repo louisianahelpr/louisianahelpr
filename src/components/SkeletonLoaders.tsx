@@ -21,7 +21,7 @@ import { CollapsedActivityCardSkeleton } from "@/components/ui/skeletons/Applica
  */
 
 /**
- * THE POSTED TAB'S PLACEHOLDER — /my-posts, and Activity's posted Suspense
+ * THE POSTED TAB'S PLACEHOLDER — /posts, and Activity's posted Suspense
  * fallback. Those are its only two call sites, and both stand in front of the
  * same list of PostedJobCards.
  *
@@ -43,11 +43,11 @@ import { CollapsedActivityCardSkeleton } from "@/components/ui/skeletons/Applica
  * Invisible to CLS for the reason `ApplicationCardSkeleton` documents at
  * length: the Layout Instability API only scores elements that were in the
  * previous frame and MOVED, and a skeleton→content swap removes one subtree
- * and inserts another. /my-jobs measured CLS 0.0000 across ZERO entries while
+ * and inserts another. /jobs measured CLS 0.0000 across ZERO entries while
  * every card on it slid up to 195px. Boxes, not CLS.
  *
  * ── WHAT IT DRAWS NOW ────────────────────────────────────────────────────
- * `CollapsedActivityCardSkeleton`, which is the drawing /my-jobs took on
+ * `CollapsedActivityCardSkeleton`, which is the drawing /jobs took on
  * 2026-09-21 (commit 21dad148b): the collapsed card's title bar, two meta
  * lines and status strip, each sized from `JobCardShell`'s own exported
  * geometry rather than redrawn. ONE drawing, because there is one card — the

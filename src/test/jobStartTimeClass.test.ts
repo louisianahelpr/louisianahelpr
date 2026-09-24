@@ -9,7 +9,7 @@ import { jobStartTimeLabel, FLEXIBLE_TIME_LABEL } from "@/lib/jobDate";
  * one rule — so the surface shows a blank, a raw column value, or a promise
  * the poster never made.
  *
- * Owner, 2026-09-19, with a screenshot of the job-detail dialog on /dashboard:
+ * Owner, 2026-09-19, with a screenshot of the job-detail dialog on /home:
  * "they also need times unless they were checked off as flexible. but if it is
  * flexible the time should show flexible bc rn its just an empty block."
  *

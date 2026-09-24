@@ -29,7 +29,7 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
   /**
    * THE TAB ROW IS PART OF THE TITLE CARD, so the placeholder reserves it.
    *
-   * Owner, 2026-09-21: "/my-jobs … jumps really bad". Measured on prod
+   * Owner, 2026-09-21: "/jobs … jumps really bad". Measured on prod
    * (helper-e2e, Chromium at 375, this checkout's local build, 2026-09-21):
    * the first PLACEHOLDER card's top sat at y=95 and the first REAL card's at
    * y=138 — the whole list, every card, slid 43px DOWN the instant the data

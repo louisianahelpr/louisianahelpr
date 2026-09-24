@@ -13,7 +13,7 @@ export const ERROR_SCREEN_PATTERNS: { name: string; re: RegExp }[] = [
   /*
    * ANCHORED, and case-sensitive on the capital S. `/Something went wrong/i`
    * matched any prose containing the phrase, and on 2026-09-21 that made
-   * 02-marketplace's apply step report an "error screen" on /dashboard whose
+   * 02-marketplace's apply step report an "error screen" on /home whose
    * actual excerpt was "…message your Helpr, or report a problem if something
    * went wrong." — the notification surface's own legitimate copy. J3 through
    * J5 of that journey were dead behind it.

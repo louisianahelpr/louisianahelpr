@@ -41,7 +41,7 @@ one of them was in a place this ledger was missing.** Every one was in a
 
 The route sweep photographs each place once, in whatever state production data
 happened to be in. It cannot see any of that, and the 147 `WALKED` rows below
-do not claim it can. `/my-posts` being WALKED means the route rendered; it says
+do not claim it can. `/posts` being WALKED means the route rendered; it says
 nothing about the eight statuses, the expansion axis, or the arrival lattice
 that route can render.
 
@@ -325,11 +325,11 @@ Source of truth: the `<Route>` table in `src/App.tsx`. Enumerated, not guessed.
 | `/account-banned` | AccountBanned | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/forgot-password` | ForgotPassword | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/reset-password` | ResetPassword | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
-| `/dashboard` | Dashboard | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/home` | Dashboard | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/profile` | Profile | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/post-job` | PostJob | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
-| `/my-jobs` | Activity (applied) | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
-| `/my-posts` | Activity (posted) | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/jobs` | Activity (applied) | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/posts` | Activity (posted) | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/payment-success` | PaymentSuccess | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/admin` | Admin | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/messages` | Messages | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
@@ -357,7 +357,7 @@ to the source, not when you have read the `<Navigate>` element.
 
 | Route | Redirects to | Status | Evidence |
 | --- | --- | --- | --- |
-| `/activity` | `/my-posts` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/activity` | `/posts` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/earnings` | `/profile?tab=earnings` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/terms` | `/legal?tab=terms` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/privacy` | `/legal?tab=privacy` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
@@ -368,7 +368,7 @@ to the source, not when you have read the `<Navigate>` element.
 | `/saved-helpers` | `/profile?tab=saved_helpers` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/gift-card (retired old route)` | ~~`/gift-card`~~ | RETIRED 2026-09-02 | **query-string preservation now driven, not just the landing URL.** `?claim=<token>` survives signed-out (`/login?redirect=%2Fgift-card%3Fclaim%3D…`) and signed-in (`claim-gift-card` invoked with `{"claim_token":"…"}`); prod A/B shows the pre-fix `?redirect=%2Fgift-card` with the token gone. 2026-09-01 · browser (Playwright). **Route deleted 2026-09-02 (2affc9dbb) — the redirect no longer exists; evidence retained for history.** |
 | `/analytics` | ~~`/profile?tab=earnings`~~ | RETIRED 2026-09-02 | landing URL observed in browser 2026-08-31; **route deregistered 2026-09-02 (c94209a08) — `analytics` is now a Profile tab (§3), `NEVER WALKED` as a tab** |
-| `/dashboard/post-login` | `/dashboard` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/home/post-login` | `/home` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/settings/profile` | `/profile` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/settings` | `/profile` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/warnings` | `/profile?tab=warnings` | NEVER WALKED | never — untracked here until the 2026-09-11 integrity check found it in `src/App.tsx:263` |
@@ -440,8 +440,8 @@ them; a tab seen in one status is not a walked tab.
 
 | Tab | Route | Status | Evidence |
 | --- | --- | --- | --- |
-| `posted` | `/my-posts` | WALKED | 2026-08-31 · browser; incl. ?filter=scheduled/waiting/done, 6 breakpoints. 2026-09-01 · browser (Playwright/Chromium 1440, session = helpr-audit-web-0824@mailinator.com, the job's own poster): notification deep-link resolution driven end to end. `?job=db21c20d…` → `/my-posts?job=…&filter=done`, chip **Done 3** the ONLY one selected, card "Rake and bag front-yard leaves" rendered (236×23 visible), 0 h-overflow — ~~/tmp/lhnotif/A-resolved-destination.png~~ **(2026-09-04: GONE, `/tmp` sweep; the measured record above is what carries this row).** Stale-filter case `?job=…&filter=offered` now also resolves to `filter=done`; with the precedence line temporarily reverted the same URL gave **0 chips selected and no card**, which is the defect. |
-| `applied` | `/my-jobs` | WALKED | 2026-08-31 · browser; incl. ?filter=scheduled/waiting/completed, 6 breakpoints |
+| `posted` | `/posts` | WALKED | 2026-08-31 · browser; incl. ?filter=scheduled/waiting/done, 6 breakpoints. 2026-09-01 · browser (Playwright/Chromium 1440, session = helpr-audit-web-0824@mailinator.com, the job's own poster): notification deep-link resolution driven end to end. `?job=db21c20d…` → `/posts?job=…&filter=done`, chip **Done 3** the ONLY one selected, card "Rake and bag front-yard leaves" rendered (236×23 visible), 0 h-overflow — ~~/tmp/lhnotif/A-resolved-destination.png~~ **(2026-09-04: GONE, `/tmp` sweep; the measured record above is what carries this row).** Stale-filter case `?job=…&filter=offered` now also resolves to `filter=done`; with the precedence line temporarily reverted the same URL gave **0 chips selected and no card**, which is the defect. |
+| `applied` | `/jobs` | WALKED | 2026-08-31 · browser; incl. ?filter=scheduled/waiting/completed, 6 breakpoints |
 
 ## 5. Edge functions (71)
 
@@ -581,7 +581,7 @@ callers is covered by a harness test but not by a real deploy-window run.
 | Fails toward today's behaviour | WALKED | S7c: `feature_flags` blanked → `seed_jobs_hidden_publicly()` = false and all 3 fixtures return. A missing key can never empty the marketplace. |
 | Grants / arity / reloptions across REPLACE | WALKED | S6a–e: `get_ranked_open_jobs` callable at 0/1/2/3-arg arity, exactly one `pg_proc` row (no overload), anon+authenticated EXECUTE intact on all three functions, `open_jobs_browse` SELECT grants intact, `security_invoker=false` re-asserted. `scripts/check-migration-grants.mjs` caught a missing REVOKE on `miles_between` — fixed. |
 | Saved search never fires — D-1 (radius token) | WALKED | **Live prod.** Saved search stored exactly as the UI writes it (`location_keyword='nearby:25'`, `category='cleaning'`), then a matching job posted in the same parish, same category, 0 mi away → **0 notifications**. The predicate that ran was `location ILIKE '%nearby:25%'` against `"123 Elm St, Baton Rouge, LA 70801"`. |
-| Saved search never fires — D-2 (invisible job) | WALKED | **Live prod.** Same search with the radius removed → 1 notification, link `/dashboard?job=<id>` — and that job as the alerted helper sees it: `open_jobs_browse` **0 rows**, `get_ranked_open_jobs` **0 rows** (`payment_status='unpaid'`). The alert linked to a job nobody could open. |
+| Saved search never fires — D-2 (invisible job) | WALKED | **Live prod.** Same search with the radius removed → 1 notification, link `/home?job=<id>` — and that job as the alerted helper sees it: `open_jobs_browse` **0 rows**, `get_ranked_open_jobs` **0 rows** (`payment_status='unpaid'`). The alert linked to a job nobody could open. |
 | Prod saved-search population | WALKED | `saved_searches` = **0 rows** before and after this lane; `match_digest_queue` = 1 row. The feature has never fired for a real user. |
 | Repaired trigger — full behaviour matrix | WALKED | PGlite V1–V15 (×3 replay passes): token converted to `radius_miles`; unpaid INSERT alerts nobody; funding fires exactly one alert; the linked job **is** in `open_jobs_browse` for the alerted helper; edit/re-save/boost never re-alert; 74.7 mi ≠ match / 3.6 mi = match at radius 25; parish fallback; no-coords-no-parish = no match; query matches title+description; a literal `%` is a character not a wildcard; fixtures obey the shared authority; pending direct offers excluded; poster and banned helper never alerted; throttle and digest mode intact; `send-notification-email` invoked with the right payload; two WHEN-gated triggers replace the unconditional one. |
 | `miles_between` ↔ `haversineMiles` | WALKED | Graded against the client implementation verbatim over 4 coordinate pairs: max delta **< 0.001 mi** (R = 3958.8 both sides), so the feed's radius filter and the alert's agree on the boundary. |
@@ -679,12 +679,12 @@ steps is one root.)
 
 | Overlay | Trigger | Status | Evidence |
 | --- | --- | --- | --- |
-| `FilterSheet` | `/dashboard` → Filters | WALKED | 2026-08-31 · browser; opened light+dark, axe 0 inside the dialog, Escape closes; `~/lh-audit-2026-08-30/dialogs/filter-sheet-{light,dark}.png` |
-| `JobDetailDialog` | `/dashboard` → job card | WALKED | 2026-08-31 · browser; real seeded row "Deep clean a 3-bedroom / $220 / Lafayette / Tre B. 5.0", axe 0, Escape closes; `dialogs/job-detail-dialog-{light,dark}.png` |
+| `FilterSheet` | `/home` → Filters | WALKED | 2026-08-31 · browser; opened light+dark, axe 0 inside the dialog, Escape closes; `~/lh-audit-2026-08-30/dialogs/filter-sheet-{light,dark}.png` |
+| `JobDetailDialog` | `/home` → job card | WALKED | 2026-08-31 · browser; real seeded row "Deep clean a 3-bedroom / $220 / Lafayette / Tre B. 5.0", axe 0, Escape closes; `dialogs/job-detail-dialog-{light,dark}.png` |
 | `SecurityTab` change-email | `/profile?tab=security` → Change | WALKED | 2026-08-31 · browser; opened light+dark, axe 0, Escape closes; `dialogs/security-change-email-{light,dark}.png` |
 
 **A harness driving this app from a fresh context MUST dismiss the onboarding
-tour first.** `OnboardingTour` opens over `/dashboard` on every new browser
+tour first.** `OnboardingTour` opens over `/home` on every new browser
 context and blurs the page behind it, so an unprepared sweep screenshots the
 tour rather than the screen, and every click it attempts is intercepted by the
 tour's overlay. Seed
@@ -738,8 +738,8 @@ could not drive is `UNVERIFIED` with the reason, never a pass.
 
 | Surface | Cells | Frames |
 | --- | ---: | ---: |
-| Poster job card (`/my-posts`) | 76 | — |
-| Helper job card (`/my-jobs`) | 48 | — |
+| Poster job card (`/posts`) | 76 | — |
+| Helper job card (`/jobs`) | 48 | — |
 | Tracker rail | 22 | — |
 | Activity shell (tab × bucket × density) | 26 | — |
 | Job detail dialog | 9 | — |

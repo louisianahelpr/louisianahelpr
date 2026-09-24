@@ -355,7 +355,7 @@ async function uploadProofThroughTheApp(
       ([key, value]) => localStorage.setItem(key, value),
       [AUTH_STORAGE_KEY, JSON.stringify(helper)] as const,
     );
-    await page.goto(`/my-jobs?job=${jobId}`);
+    await page.goto(`/jobs?job=${jobId}`);
   }
 
   // Scoped by the run id, which is unique per run and is part of the job
@@ -365,7 +365,7 @@ async function uploadProofThroughTheApp(
   const card = page.locator("div.liquid-glass").filter({ hasText: runId }).first();
   await expect(
     card,
-    `the helper's /my-jobs never rendered the card for run ${runId} — the job is ${jobId}`,
+    `the helper's /jobs never rendered the card for run ${runId} — the job is ${jobId}`,
   ).toBeVisible({ timeout: 60_000 });
 
   /* THE CARD STARTS COLLAPSED, AND A COLLAPSED CARD RENDERS NO TRACKER AT ALL.
@@ -375,7 +375,7 @@ async function uploadProofThroughTheApp(
      two investigations hunting for a rename that had not happened.
 
      What the 2026-09-22 failure artefact actually showed: the helper's
-     /my-jobs had the job on the **Scheduled** tab, and the card's whole
+     /jobs had the job on the **Scheduled** tab, and the card's whole
      accessible content was `button "Expand Job Details"`, the heading, `$22`,
      the location chip and `paragraph: Needs You — Finish and mark it done`.
      No tracker, no chip, nothing to press. The job is scheduled three days
@@ -960,11 +960,11 @@ test.describe("full money loop against production", () => {
       ([key, value]) => localStorage.setItem(key, value),
       [AUTH_STORAGE_KEY, JSON.stringify(helper)] as const,
     );
-    await page.goto(`/my-jobs?job=${job.id}`);
+    await page.goto(`/jobs?job=${job.id}`);
     const trackerCard = page.locator("div.liquid-glass").filter({ hasText: runId }).first();
     await expect(
       trackerCard,
-      `the helper's /my-jobs never rendered the card for run ${runId}`,
+      `the helper's /jobs never rendered the card for run ${runId}`,
     ).toBeVisible({ timeout: 60_000 });
     /* OPEN IT BEFORE WALKING THE LADDER. Every press below is guarded by `if
        (await cta.isVisible())`, so on a COLLAPSED card not one of them fires —

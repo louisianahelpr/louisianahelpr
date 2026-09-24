@@ -649,7 +649,7 @@
      this matches it; the dark value below is where they diverge.
      40%→38% (2026-09-16): on the disputed job-step's `bg-destructive/10` wash
      over parchment (effective #f2e3dc) the 40% ink measured 4.32:1 — just under
-     AA — so the a11y-prod sweep of /my-jobs flagged it. 38% is 4.69:1 there and
+     AA — so the a11y-prod sweep of /jobs flagged it. 38% is 4.69:1 there and
      stays ≥4.5 on every lighter surface it inks. */
   --destructive-ink: 19 74% 38%;
   --destructive-foreground: 0 0% 100%;
@@ -751,7 +751,7 @@
      descendants. So the panel's own blur(40px) samples the already-composited
      pill instead of the page: it is inert, and the 40% fill left page text
      legible straight through the menu rows. Measured 2026-09-04 on
-     /dashboard: menu backdrop-filter blur(40px) saturate(1.8) with ancestor
+     /home: menu backdrop-filter blur(40px) saturate(1.8) with ancestor
      div.flex-1.rounded-full carrying the identical filter.
      Same value the reduce-transparency block picks for this surface, and for
      the same reason stated there: full white, not --background, so the panel
@@ -1371,7 +1371,7 @@ html.web-desktop {
      inset rules above cannot reach. `.app-shell-frame` and `#root` both give
      the rail its width back, but sonner PORTALS its container to <body>, so it
      sits outside both and anchors itself to the raw viewport edge. Measured at
-     1440 on /dashboard with the panel open: the toast spanned x 1060–1416 at
+     1440 on /home with the panel open: the toast spanned x 1060–1416 at
      y 24–94 while the rail's "Post a Job" sits at x 1209–1411, y 93–142 and
      the header bell at x 1302–1346, y 6–50 — `elementFromPoint` over the
      bell's centre returned the TOAST, so Notifications was genuinely
@@ -1688,7 +1688,7 @@ html.web-desktop {
      painted before the app's module runs, so the classes always land on an
      already-painted element and 0 → 248px eased in view (/legal t=611–878ms,
      /help t=239–518ms); and on a ROUTE CHANGE between the two shell kinds
-     (/my-jobs → /help drops `app-shell`, handing the inset from
+     (/jobs → /help drops `app-shell`, handing the inset from
      `.app-shell-frame`'s `right` to `#root`'s padding-right, which had been 0
      all along — eased t=3091–3391ms with the rail already on screen). The full
      reasoning lives on `armShellTransitions`. */
@@ -3174,7 +3174,7 @@ button,
 
 
 /* Highlight pulse — draws the user's eye to a deep-linked application
-   card after landing from a notification (/my-jobs?highlight=<appId>).
+   card after landing from a notification (/jobs?highlight=<appId>).
    A warm ring expands out and fades over ~1.8 s; the background flash
    fades out over 2 s so the card settles back to glass. Skipped
    entirely under prefers-reduced-motion (scroll still happens). */

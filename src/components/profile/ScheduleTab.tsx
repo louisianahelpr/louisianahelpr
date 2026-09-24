@@ -67,13 +67,13 @@ const TERMINAL_ASSIGNED_FILTER: Record<string, string> = {
 function scheduleRowTarget(job: Job, isPosted: boolean): { to: string; destination: string } {
   if (isPosted) {
     return {
-      to: `/my-posts?filter=${bucketPostedJob(job)}`,
+      to: `/posts?filter=${bucketPostedJob(job)}`,
       destination: "open this job in My Posts",
     };
   }
   const settled = TERMINAL_ASSIGNED_FILTER[job.status];
   if (settled) {
-    return { to: `/my-jobs?filter=${settled}`, destination: "open this job in My Jobs" };
+    return { to: `/jobs?filter=${settled}`, destination: "open this job in My Jobs" };
   }
   return inProgressBadgeTarget(job);
 }
@@ -826,7 +826,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                       variant="outline"
                       size="sm"
                       className="rounded-ds-md"
-                      onClick={() => navigate("/dashboard")}
+                      onClick={() => navigate("/home")}
                     >
                       <Search className="w-3.5 h-3.5 mr-1.5" /> Browse Open Jobs
                     </Button>

@@ -459,7 +459,7 @@ d15c9a5f (now):        exit 1 · Unused files (16) · Unused exports (147)
    `playwright.config.ts:124` sets `reuseExistingServer: !CI`, so two local
    sessions share port 4173 and the second kills the first mid-run.
    Reproduced deliberately: a run died with
-   `net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4173/my-posts?filter=waiting`.
+   `net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4173/posts?filter=waiting`.
    I caused it myself — my own audit preview server was on 4173 while CI's
    logs were being compared.
 

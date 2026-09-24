@@ -47,7 +47,7 @@ const APP_JOB_IDS = Array.from(
 );
 
 /**
- * /my-jobs (applied tab) shows jobs the helper applied for, in "pending"
+ * /jobs (applied tab) shows jobs the helper applied for, in "pending"
  * state → bucket "waiting". Without these rows the applied tab renders an
  * empty-state with no scrollable region and the dock-hide assertion fires
  * vacuously ("no scrollable content" rather than "dock stayed visible").
@@ -159,7 +159,7 @@ const listRules: MockRule[] = [
     match: (url, method) => method === "GET" && url.pathname === "/rest/v1/messages",
     handle: () => ({ status: 200, body: manyMessages() }),
   },
-  // /my-jobs (applied tab) fetches applications by helper_id. Without these
+  // /jobs (applied tab) fetches applications by helper_id. Without these
   // the route shows an empty-state (no scrollable region) and the dock-hide
   // test fires vacuously.
   {
@@ -288,9 +288,9 @@ async function wheel(page: Page, dy: number, steps: number) {
 }
 
 // Seeded jobs are open with no applicants → bucket "waiting". The default
-// Activity tab is "needs_you", so /my-jobs and /my-posts land on an empty
+// Activity tab is "needs_you", so /jobs and /posts land on an empty
 // list without the filter param — nothing to scroll, nothing to hide for.
-const ROUTES = ["/dashboard", "/messages", "/my-jobs?filter=waiting", "/my-posts?filter=waiting"] as const;
+const ROUTES = ["/home", "/messages", "/jobs?filter=waiting", "/posts?filter=waiting"] as const;
 
 for (const route of ROUTES) {
   test(`dock hides on scroll-down and returns on scroll-up @ ${route}`, async ({
@@ -397,7 +397,7 @@ test("a hidden dock is taken out of the tab order, not just out of the a11y tree
   // fallback", and the empty state now offers the jump as a button instead), so
   // this asks for the populated bucket by name — the same accommodation the
   // inbox case above already makes for the same reason.
-  await boot(page, "/my-posts?filter=waiting");
+  await boot(page, "/posts?filter=waiting");
 
   await wheel(page, 120, 8);
   await expectDock(page, "hidden", "dock hidden");
@@ -432,7 +432,7 @@ test("switching Home to map view cannot strand the dock off-screen", async ({
 }) => {
   await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
   await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: listRules });
-  await boot(page, "/dashboard");
+  await boot(page, "/home");
 
   await wheel(page, 120, 8);
   await expectDock(page, "hidden", "dock hidden by scrolling the feed");

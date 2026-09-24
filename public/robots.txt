@@ -20,15 +20,17 @@ Allow: /
 # The no-index intent now lives where it belongs: `<meta name="robots"
 # content="noindex, follow">`, set server-side by api/share.ts for exactly
 # this route (see index.html's comment on the tag), which stops indexing
-# WITHOUT stopping the fetch. The index at /jobs stays public and crawlable,
-# so it is deliberately NOT in this list either way.
+# WITHOUT stopping the fetch. /jobs is now the signed-in Jobs tab and IS
+# listed below; its job pages share the prefix, so `Allow: /jobs/` keeps them
+# fetchable (RFC 9309: the longest matching rule wins).
 Disallow: /admin
-Disallow: /dashboard
+Disallow: /home
 Disallow: /profile
 Disallow: /messages
 Disallow: /post-job
-Disallow: /my-jobs
-Disallow: /my-posts
+Disallow: /jobs
+Allow: /jobs/
+Disallow: /posts
 Disallow: /payment-success
 Disallow: /gift-card
 Disallow: /settings

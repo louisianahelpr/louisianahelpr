@@ -45,7 +45,7 @@ accounts exist alongside the owner's two real ones; use the test accounts.
    and for each remaining one argue it is safe or fix it.
 8. Location oracles: `open_jobs_browse` coordinates are 2dp; no RPC lets a
    caller choose the aggregation set (trilateration). Try to break it.
-9. Distance filter on `/dashboard`: geodata first, signup ZIP fallback,
+9. Distance filter on `/home`: geodata first, signup ZIP fallback,
    `parish = null` never used as the answer. Drive it with an account that
    has no geodata.
 10. Dispute description required server-side; escalation notifies admins

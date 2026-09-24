@@ -43,11 +43,11 @@ test.describe("authenticated flows", () => {
     await page.locator("#email").fill(TEST_EMAIL!);
     await page.locator("#password").fill(TEST_PASSWORD!);
 
-    // Click submit + wait for navigation. Both /dashboard and
+    // Click submit + wait for navigation. Both /home and
     // /complete-profile are valid landing destinations (the latter for
     // first-time users who haven't filled out their profile).
     await Promise.all([
-      page.waitForURL(/\/(dashboard|complete-profile)/, { timeout: 15_000 }),
+      page.waitForURL(/\/(home|complete-profile)/, { timeout: 15_000 }),
       page.locator('button[type="submit"]').click(),
     ]);
 
@@ -70,7 +70,7 @@ test.describe("authenticated flows", () => {
     await page.locator("#email").fill(TEST_EMAIL!);
     await page.locator("#password").fill(TEST_PASSWORD!);
     await Promise.all([
-      page.waitForURL(/\/(dashboard|complete-profile)/, { timeout: 15_000 }),
+      page.waitForURL(/\/(home|complete-profile)/, { timeout: 15_000 }),
       page.locator('button[type="submit"]').click(),
     ]);
 

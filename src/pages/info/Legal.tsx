@@ -84,7 +84,7 @@ const Legal = () => {
   // Only the FALLBACK: BackButton prefers real in-app history over `to`, so a
   // normal in-app navigation still returns to wherever you actually came from.
   const { user } = useAuthReady();
-  const homeTo = user ? "/dashboard" : "/";
+  const homeTo = user ? "/home" : "/";
 
   // Cross-section policy search. The query feeds PolicySearchContext, which
   // every PolicySection / PolicyRowItem self-filters against. `hasResults`

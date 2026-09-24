@@ -7,6 +7,7 @@
 //   - corrupt / hostile stored values falling back to null rather than throwing
 //   - search params surviving, since tab state lives in the query string
 
+// @mutate src/lib/lastRoute.ts | (p !== "/jobs" && pathname.startsWith(`${p}/`)) | pathname.startsWith(`${p}/`)
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import {
   rememberRoute,
@@ -29,6 +30,11 @@ afterEach(() => {
 });
 
 describe("isRestorablePath", () => {
+  it("the Jobs tab is restorable, a public job page under it is not", () => {
+    expect(isRestorablePath("/jobs")).toBe(true);
+    expect(isRestorablePath("/jobs/3f0c9a4e-0000-4000-8000-000000000000")).toBe(false);
+  });
+
   it("accepts real destinations", () => {
     expect(isRestorablePath("/messages")).toBe(true);
     expect(isRestorablePath("/profile?tab=security")).toBe(true);
@@ -94,8 +100,8 @@ describe("remember → read round trip", () => {
 
   it("keeps only the most recent route", () => {
     rememberRoute("/messages");
-    rememberRoute("/my-jobs");
-    expect(readRestorableRoute()).toBe("/my-jobs");
+    rememberRoute("/jobs");
+    expect(readRestorableRoute()).toBe("/jobs");
   });
 
   it("does not record non-restorable routes", () => {
@@ -185,8 +191,8 @@ describe("rememberRoute — transient params", () => {
   });
 
   it("drops ?quickApply, which opens a dialog rather than naming a place", () => {
-    rememberRoute("/dashboard?quickApply=abc-123");
-    expect(readRestorableRoute()).toBe("/dashboard");
+    rememberRoute("/home?quickApply=abc-123");
+    expect(readRestorableRoute()).toBe("/home");
   });
 
   it("KEEPS ?tab — the tab is part of the place, not an overlay", () => {
@@ -200,8 +206,8 @@ describe("rememberRoute — transient params", () => {
   });
 
   it("leaves a param-free route alone", () => {
-    rememberRoute("/my-posts");
-    expect(readRestorableRoute()).toBe("/my-posts");
+    rememberRoute("/posts");
+    expect(readRestorableRoute()).toBe("/posts");
   });
 });
 

@@ -103,7 +103,7 @@ describe("payment-confirm-reminder edge function", () => {
     expect(notifWrites()).toHaveLength(1);
     expect((notifWrites()[0].payload as { user_id: string }).user_id).toBe("poster-1");
     // The link carries the poster to the job itself, not a filtered list.
-    expect((notifWrites()[0].payload as { link: string }).link).toBe("/my-posts?job=job-1");
+    expect((notifWrites()[0].payload as { link: string }).link).toBe("/posts?job=job-1");
     expect(markWrites()).toHaveLength(1);
   });
 

@@ -196,7 +196,7 @@ describe("the next pages are warmed once the current one has loaded", () => {
   it("names the likely next routes for guests and for signed-in visitors", () => {
     expect([...LIKELY_NEXT_ROUTES.guest]).toEqual(expect.arrayContaining(["/browse", "/login", "/signup"]));
     expect([...LIKELY_NEXT_ROUTES.signedIn]).toEqual(
-      expect.arrayContaining(["/dashboard", "/messages", "/my-jobs", "/post-job", "/profile"]),
+      expect.arrayContaining(["/home", "/messages", "/jobs", "/post-job", "/profile"]),
     );
     const prefetch = code("src/lib/routePrefetch.ts");
     const all = [...LIKELY_NEXT_ROUTES.guest, ...LIKELY_NEXT_ROUTES.signedIn];

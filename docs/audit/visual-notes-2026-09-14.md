@@ -79,9 +79,9 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 
 ## By area / component
 
-**Browse (Home /dashboard, map, filters)** — VN-5 search width · VN-6 recents overlay · VN-7 filter X · VN-8 filter bottom gap · VN-9 map pin card · VN-10 map card click does nothing · VN-11 recenter icon
+**Browse (Home /home, map, filters)** — VN-5 search width · VN-6 recents overlay · VN-7 filter X · VN-8 filter bottom gap · VN-9 map pin card · VN-10 map card click does nothing · VN-11 recenter icon
 **Job detail dialog / sharing** — VN-1 ID verified pill · VN-2 Message after applying · VN-4 share icon compass
-**Job cards + tracker (Jobs /my-jobs, Posts /my-posts; JobStepCard, JobTracking, PostedJobCard, AppliedJobCard)** — VN-18 Can't Finish wording · VN-19 Report a Problem beside Message · VN-20 Location confirmed → map · VN-21 all buttons one row, inside tracker box · VN-22 Helpr profile under description · VN-23 disputes keep tracker · VN-26 tip strip centering · VN-27 grey location chip · VN-28 no report once done · VN-29 keep expanded until tip+review · VN-31 search width + chevron · VN-32 page jumps on load · VN-33 arrival gate (GPS AND poster) · VN-34 rename payout button + photo gate
+**Job cards + tracker (Jobs /jobs, Posts /posts; JobStepCard, JobTracking, PostedJobCard, AppliedJobCard)** — VN-18 Can't Finish wording · VN-19 Report a Problem beside Message · VN-20 Location confirmed → map · VN-21 all buttons one row, inside tracker box · VN-22 Helpr profile under description · VN-23 disputes keep tracker · VN-26 tip strip centering · VN-27 grey location chip · VN-28 no report once done · VN-29 keep expanded until tip+review · VN-31 search width + chevron · VN-32 page jumps on load · VN-33 arrival gate (GPS AND poster) · VN-34 rename payout button + photo gate
 **Public profile (/user/:id)** — VN-12 remove availability · VN-13 drop "Verification in progress" · VN-14 badge rules (question) · VN-15 reviews shown twice · VN-16 worked-together 5th tile · VN-17 smaller badges · VN-39 skills/recent work (question)
 **Own Profile tabs (/profile?tab=…)** — VN-3 Earnings load/layout · VN-36 empty reviews stars · VN-37 side gaps · VN-38 parish line in Edit Profile · VN-40 save bar · VN-41 Schedule dead space · VN-42 Saved Helprs one column · VN-44 Membership Plus/Once/Annual (question) · VN-45 Referrals credits vs count · VN-46 Notifications won't scroll · VN-47 Legal download + duplicate support (also Rules, Privacy)
 **Messages** — VN-25 composer width · VN-35 header button order + search width
@@ -106,7 +106,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 ---
 
 ### VN-1: "ID verified" pill shows on the job-detail poster card
-- Screen / route: Job detail dialog — /dashboard?job=<id> (poster card "Posted by Hallie H.")
+- Screen / route: Job detail dialog — /home?job=<id> (poster card "Posted by Hallie H.")
 - Viewport / theme: 1440, light
 - What the owner sees: "id verified does not need to show here. only in their profile"
 - Where it lives: src/components/dashboard/JobPosterCard.tsx:223 (`{posterIdVerified && <IdVerifiedPill />}`), rendered by src/components/dashboard/JobDetailDialog.tsx:817
@@ -116,7 +116,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: pasted in chat (not saved)
 
 ### VN-2: Message button shows in the job popup after applying
-- Screen / route: Job detail dialog, "Applied" state — /dashboard?job=<id>
+- Screen / route: Job detail dialog, "Applied" state — /home?job=<id>
 - Viewport / theme: not specified (all)
 - What the owner sees: "once someone has applied to a job, that pop up that says applied, does not need a message button. they can [not] message the poster unless they have been offered/ accepted"
 - Where it lives: src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:108-123 (Message / "Ask a question" IconActionButton)
@@ -136,7 +136,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: none
 
 ### VN-4: Share sheet shows a generic compass icon instead of the H logo
-- Screen / route: Job detail dialog → Share button (corner) — /dashboard?job=<id>; shared link is /jobs/<id>?ref=share
+- Screen / route: Job detail dialog → Share button (corner) — /home?job=<id>; shared link is /jobs/<id>?ref=share
 - Viewport / theme: 1440, light (Chrome on macOS, system share sheet)
 - What the owner sees: "the compass when you go to share the job post, should be the h logo"
 - Where it lives: src/components/jobs/ShareJobButton.tsx:165-185 (handleShare → shareNative with title/text/url); the preview for /jobs/:id is served by api/share.ts (vercel.json:23 rewrite) using scripts/generated/og-shell.js; icons in index.html:69-73 (favicon / apple-touch-icon) and og:image block
@@ -146,7 +146,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: pasted in chat (not saved)
 
 ### VN-5: Browse search bar stretches across the whole list column
-- Screen / route: Home / browse jobs — /dashboard (list column beside the map)
+- Screen / route: Home / browse jobs — /home (list column beside the map)
 - Viewport / theme: 1440 (screenshot ~1920 wide), light
 - What the owner sees: "the search bar should not take up the whole column"
 - Where it lives: src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx:147-149 (`flex-1 min-w-0` wrapper and input container) and input `w-full` at :184; placed by src/components/dashboard/BrowseTasksToolbar.tsx
@@ -156,7 +156,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: pasted in chat (not saved)
 
 ### VN-6: Recent searches dropdown pushes the job list down instead of floating over it
-- Screen / route: Home / browse jobs — /dashboard, search field focused with empty query
+- Screen / route: Home / browse jobs — /home, search field focused with empty query
 - Viewport / theme: 1440, light
 - What the owner sees: "recents should expand like over the other stuff not push it down"
 - Where it lives: src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx:224-270 (Recent listbox, `mt-1.5 ... bg-card` in normal flow)
@@ -166,7 +166,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: pasted in chat (not saved)
 
 ### VN-7: Refine Your Search panel does not need its own X
-- Screen / route: Home / browse — /dashboard → Filters (sliders) button → "Refine Your Search" dropdown panel
+- Screen / route: Home / browse — /home → Filters (sliders) button → "Refine Your Search" dropdown panel
 - Viewport / theme: 1440, light (desktop dropdown form)
 - What the owner sees: "no x needed in the refine search tab. you tap the filter button again or out the box to close it"
 - Where it lives: src/components/dashboard/FilterSheet.tsx:426-439 (close button in the panel header, desktop Popover branch); header row :423
@@ -176,7 +176,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: pasted in chat (not saved)
 
 ### VN-8: Too much empty space below Saved Searches in the filter panel
-- Screen / route: Home / browse — /dashboard → Filters → "Refine Your Search", bottom of panel
+- Screen / route: Home / browse — /home → Filters → "Refine Your Search", bottom of panel
 - Viewport / theme: 1440, light
 - What the owner sees: "there is also too much space below saved searches"
 - Where it lives: src/components/dashboard/FilterSheet.tsx:223-226 (footer `px-5 pb-2` holding Saved Searches from src/components/dashboard/BrowseTasksToolbar.tsx:233-258); panel wrapper `flex-1 min-h-0` at :417 and PanelScroller :444
@@ -186,7 +186,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: pasted in chat (not saved)
 
 ### VN-9: Map pin preview card — extra white top band, ringed X, box doesn't fit the card
-- Screen / route: Home / browse — /dashboard, map view, tap a pin (preview card at bottom of map)
+- Screen / route: Home / browse — /home, map view, tap a pin (preview card at bottom of map)
 - Viewport / theme: 1440, light
 - What the owner sees: "the cards on the map should not look like this. remove that extra white gap at the top. and the circle around the x and make the box fit the context better. there is actually no x even needed here. they can click out"
 - Where it lives: src/components/BrowseMap.tsx:999-1066 — `<aside data-testid="browse-map-preview">` sheet; header lane with grab handle + close button at :1028-1060 (h-11 row); inner `<JobCard bare>` at :1066; width `max-w-[26rem]` wrapper at :960
@@ -196,7 +196,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: pasted in chat (not saved)
 
 ### VN-10: Clicking the job card on the map preview does nothing
-- Screen / route: Home / browse — /dashboard, map view → tap pin → tap the preview card (e.g. "Move-out clean for a one-bedroom", Baton Rouge, $145)
+- Screen / route: Home / browse — /home, map view → tap pin → tap the preview card (e.g. "Move-out clean for a one-bedroom", Baton Rouge, $145)
 - Viewport / theme: 1440, light
 - What the owner sees: "when you click on the job on the map, it should open the more details and apply stuff, right now it does nothing"
 - Where it lives: src/components/BrowseMap.tsx:1066-1070 (`<JobCard onSelect/onApply={() => onJobAction?.(id)}>`) → src/components/dashboard/BrowseTasksFeed.tsx:498-501 (`filters.filteredJobs.find(...)`; `if (job) setDetailJob(job)`)
@@ -206,7 +206,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: pasted in chat (same as VN-9, not saved)
 
 ### VN-11: Map "Recenter" button uses the "my location" crosshair icon (NEEDS DECISION)
-- Screen / route: Home / browse — /dashboard, map view, round button bottom-right of the map
+- Screen / route: Home / browse — /home, map view, round button bottom-right of the map
 - Viewport / theme: 1440, light
 - What the owner sees: "the recenter map button looks like the button that would normally show your location on the map so idk what to do with this button but the icon doesn't use what it's used for globally"
 - Where it lives: src/components/browseMap/MapLayers.tsx:117-145 (`RecenterControl`, lucide `Crosshair`, aria-label "Recenter map"); handler src/components/BrowseMap.tsx:701-706 (`setRegionAnimated(laRegion)` — zooms back out to all of Louisiana, NOT to the user)
@@ -291,7 +291,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: none
 
 ### VN-19: "Report a Problem" should sit beside Message, not under it
-- Screen / route: My Jobs — /my-jobs, Needs You tab, hired job card in the Working step (e.g. "Touch up hallway and stairwell", Perry P., $154)
+- Screen / route: My Jobs — /jobs, Needs You tab, hired job card in the Working step (e.g. "Touch up hallway and stairwell", Perry P., $154)
 - Viewport / theme: 1440, light
 - What the owner sees: "report a problem should not be under the message tab but on the side of message"
 - Where it lives: src/pages/jobs/appliedJobCard/ActiveJobSection.tsx:255-275 (`escape: <DisputeLink label="Report a Problem">`, underlined link); placed by src/pages/jobs/appliedJobCard/steps/WorkingStep.tsx:41 (`actions={[messageChip]}` with the escape link rendered below the row)
@@ -301,17 +301,17 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: pasted in chat (not saved)
 
 ### VN-20: "Location confirmed" should not show on the tracker — show it on the map instead
-- Screen / route: Job tracker (step rail) on active job cards — /my-jobs and the poster's view of the same job; the tracking map inside the same component
+- Screen / route: Job tracker (step rail) on active job cards — /jobs and the poster's view of the same job; the tracking map inside the same component
 - Viewport / theme: not specified
 - What the owner sees: "Location confirmed does not need to show on the tracker, it should be on the map"
 - Where it lives: caption under the Arrived step — src/components/JobTracking.tsx:1329 (`arrivalCaption = arrivalStateLabel(...)`) rendered ~:1780-1796; label text src/lib/arrivalGate.ts:66-72 ("Poster confirmed" / "Location confirmed"); map at src/components/JobTracking.tsx:1901 (`<TrackingMap>`, src/components/TrackingMap.tsx)
 - Likely cause: arrival verification is drawn as a caption in the step rail; owner wants it moved to the map (e.g. a marker/label at the job pin). Related: the status line under the rail ("Arrival GPS-verified · last ping at the job", "Location shared · at the job", JobTracking.tsx:377-402) says the same kind of thing — confirm whether that line moves to the map too (unverified)
 - Shared with: JobTracking is used by both the Helpr card (appliedJobCard) and the poster's posted-job card; "Poster confirmed" caption uses the same slot
 - Size: medium
-- Screenshot: none (previous /my-jobs screenshot shows the status line, not the caption)
+- Screenshot: none (previous /jobs screenshot shows the status line, not the caption)
 
 ### VN-21: Job and post cards stack buttons in several rows — put them all on one row (NEEDS DESIGN DISCUSSION)
-- Screen / route: My Jobs (/my-jobs) and Posts cards — every step card (e.g. Working: big "Request My Payout" bar, "Add Photo" bar, then a "Message" row, then "Report a Problem" link; Confirmed: "I'm On My Way" bar, then Directions · Message · Can't Finish row; Revision: "I'll Fix It" + Message)
+- Screen / route: My Jobs (/jobs) and Posts cards — every step card (e.g. Working: big "Request My Payout" bar, "Add Photo" bar, then a "Message" row, then "Report a Problem" link; Confirmed: "I'm On My Way" bar, then Directions · Message · Can't Finish row; Revision: "I'll Fix It" + Message)
 - Viewport / theme: 1440, light (must also work at 375)
 - What the owner sees: "i don't think i like the multiple rows of buttons for jobs and posts. can all the buttons be on 1 row like i'll fix it, message etc"
 - Where it lives: shared shell src/components/job-card/JobStepCard.tsx:32-112 — slots `ask` → `notice` → `primary` (full width) → `actions` (chip row) → `escape` stacked vertically; used by ~15 files incl. src/pages/jobs/appliedJobCard/steps/*.tsx (WorkingStep, OnSiteStep, EnRouteStep, RevisionStep…) and the poster-side cards; "I'll Fix It" in RevisionStep.tsx / HelperRevisionCard.tsx
@@ -320,7 +320,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Owner follow-up (poster side): "confirm they're working, no show, message etc — all of these buttons need to be on 1 line not multiple" — src/pages/posts/postedJobCard/steps/InProgressStep.tsx:160 ("Confirm They're Working" full-width primary) and :170 ("No-Show" chip) + Message chip. Confirms the one-row rule applies to Posts cards as well as Jobs cards
 - Shared with: every JobStepCard user (helper and poster steps); also ties in VN-18 (Can't Finish chip) and VN-19 (Report a Problem into the row)
 - Size: large (shared shell, all steps, both sides; design talk first)
-- Screenshot: /my-jobs screenshot from VN-19 (not saved)
+- Screenshot: /jobs screenshot from VN-19 (not saved)
 
 ### VN-22: When a posted job is expanded, show the Helpr's profile under the description, not in the small name line / tracker header
 - Screen / route: Posts — posted job card with a hired Helpr, expanded
@@ -328,13 +328,13 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - What the owner sees: "the profile for who's working the job should be shown when the job is expanded under the job description, not in that little area"
 - Where it lives: tiny inline name row src/pages/posts/PostedJobCard.tsx:157-171 (4px-dot avatar + name link, hidden when expanded with the tracker); when expanded the Helpr's name/avatar moves into the tracker header (JobTracking via :525 `helperName`); description block :367-372
 - Likely cause: an earlier owner ruling put the Helpr "in the tracker" (comment :146-155), so expanded cards show them only as a small identity in the tracker header. Owner now wants a proper profile block (avatar, name, rating, link) right under the description when expanded (unverified)
-- Owner follow-up (with /my-posts screenshot): "the person working the job should show when it's expanded, not like that" — i.e. REMOVE the small "H Hallie H." line from the collapsed card (PostedJobCard.tsx:157-171); the Helpr only appears, as a proper profile block, once expanded
+- Owner follow-up (with /posts screenshot): "the person working the job should show when it's expanded, not like that" — i.e. REMOVE the small "H Hallie H." line from the collapsed card (PostedJobCard.tsx:157-171); the Helpr only appears, as a proper profile block, once expanded
 - Shared with: helper-side AppliedJobCard shows the POSTER the same small way ("P Perry P." row) — confirm whether that side should match; JobTracking header used by both
 - Size: medium
 - Screenshot: none
 
 ### VN-23: Disputed jobs should still show the tracker
-- Screen / route: My Jobs (/my-jobs) — Helpr's card for a disputed job (check Posts side too)
+- Screen / route: My Jobs (/jobs) — Helpr's card for a disputed job (check Posts side too)
 - Viewport / theme: not specified
 - What the owner sees: "disputes should still show the tracker"
 - Where it lives: src/pages/jobs/appliedJobCard/DisputedSection.tsx:106-115 — dispute banner is put in the JobStepCard `header` slot where the tracker normally goes ("A disputed job has left the step rail"); mounted from src/pages/jobs/AppliedJobCard.tsx:493
@@ -365,7 +365,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: pasted in chat (not saved)
 
 ### VN-26: "Tap a card to open it" tip strip isn't centered
-- Screen / route: Posts — /my-posts, Needs You tab, tip strip above the cards (also check Jobs if it shows there)
+- Screen / route: Posts — /posts, Needs You tab, tip strip above the cards (also check Jobs if it shows there)
 - Viewport / theme: 1440 (1920 screenshot), light
 - What the owner sees: "tap a card needs to be centered better"
 - Where it lives: src/pages/posts/PostedJobsTab.tsx:118-150 (strip: `flex items-start gap-2 … px-3 py-2`, pin icon `mt-0.5`, text `flex-1` left-aligned, dismiss button `-m-2.5`)
@@ -375,14 +375,14 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: pasted in chat (not saved)
 
 ### VN-27: Remove the grey background box from the location on job cards
-- Screen / route: Posts — /my-posts (every card's meta row: "Lafayette", "Baton Rouge"…); same row on Jobs cards
+- Screen / route: Posts — /posts (every card's meta row: "Lafayette", "Baton Rouge"…); same row on Jobs cards
 - Viewport / theme: 1440, light
 - What the owner sees: "remove the grey background from the location"
 - Where it lives: src/components/job-card/JobCardMetaRow.tsx:302 (location button: `rounded-ds-sm border border-[hsl(var(--olivewood)/0.22)] bg-[hsl(var(--olivewood)/0.06)]` + hover/active fills)
 - Likely cause: the location is styled as a tappable chip (press-and-hold for directions) with its own tinted fill and border, so it reads as a grey box next to plain date/time text (unverified). Remove the resting fill/border; keep the 44px hit area (`py-2 -my-2`) and the press feedback
 - Shared with: JobCardMetaRow — PostedJobCard, AppliedJobCard (Jobs), dashboard JobCard (browse feed), ScheduleTab; check each still wants the chip look removed
 - Size: small
-- Screenshot: /my-posts screenshot from VN-26 (not saved)
+- Screenshot: /posts screenshot from VN-26 (not saved)
 
 ### VN-28: Remove "report" from a job once it's done
 - Screen / route: Posts and Jobs cards for completed jobs (Done tab)
@@ -395,7 +395,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: none
 
 ### VN-29: Keep a done job expanded until BOTH tip and review are done, then collapse
-- Screen / route: Posts — /my-posts Done tab (poster's completed job cards); check Jobs Done tab for the review-only equivalent
+- Screen / route: Posts — /posts Done tab (poster's completed job cards); check Jobs Done tab for the review-only equivalent
 - Viewport / theme: not specified
 - What the owner sees: "if they have a tip or review still needing to be done on a done job, leave it expanded until tip and review are both done, when they're done then collapse"
 - Where it lives: tip/review state src/pages/posts/PostedJobCard.tsx:630-670 (`completedJobMeta[job.id]` tipped / reviewed; collapsed summary strips "Tipped & Reviewed" / "— review still open"); expand state `isExpanded` in PostedJobCard / JobCardShell; Helpr side AppliedJobCard.tsx `isFullyDone` (~:567-585)
@@ -405,7 +405,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: none
 
 ### VN-30: Review quick-tag chips run off the edge and can't be scrolled
-- Screen / route: "Rate Hallie H." review popup — from /my-posts?filter=done (Review on a completed job)
+- Screen / route: "Rate Hallie H." review popup — from /posts?filter=done (Review on a completed job)
 - Viewport / theme: 1440, light (desktop mouse; check 375 touch too)
 - What the owner sees: "can['t] scroll these options" — chips "Great communicator · On time · Quality work · Very profession…" cut off at the right; the rest ("Highly recommend", "Friendly & helpful") are unreachable
 - Where it lives: src/components/reviewPanel/ReviewForm.tsx:281-289 (chip row `flex gap-2 overflow-x-auto scrollbar-none` + right-edge fade mask); options src/components/reviewPanel/types.ts:73-85
@@ -415,7 +415,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: pasted in chat (not saved)
 
 ### VN-31: Posts/Jobs search opens full width, and the chevron beside it is useless
-- Screen / route: Posts — /my-posts?filter=done after tapping the search icon (same header on Jobs /my-jobs)
+- Screen / route: Posts — /posts?filter=done after tapping the search icon (same header on Jobs /jobs)
 - Viewport / theme: 1440 (1920 screenshot), light
 - What the owner sees: "search does not need to open that large. also the chevron on the right is useless here"
 - Where it lives: src/components/job-card/ActivityHeader.tsx:163-200 (open search: `relative flex-1 min-w-0` wrapper, input `w-full`, replaces the status tabs); chevron button :222-231 (`setTabsOpen`, aria "Hide status filters" / "Filter by status", ChevronDown rotated)
@@ -425,17 +425,17 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: pasted in chat (not saved). Also visible: "Report Job" still on done jobs (VN-28), four buttons in one row (VN-21), grey location chip (VN-27)
 
 ### VN-32: My Jobs page jumps ~10 times before it settles
-- Screen / route: Jobs — /my-jobs (Needs You tab, hired cards with trackers, photo asks, payout button)
+- Screen / route: Jobs — /jobs (Needs You tab, hired cards with trackers, photo asks, payout button)
 - Viewport / theme: 1440 (1920 screenshot), light
 - What the owner sees: "this page jumps about 10 times before it settles"
 - Where it lives: page src/components/job-card/JobListPage.tsx (route skeleton App.tsx:185 `ActivityRouteSkeleton` → in-page skeletons :423-444, :576, :638 `ApplicationCardSkeleton`); cards src/pages/jobs/AppliedJobCard.tsx; per-card tracker src/components/JobTracking.tsx:527-570 (`tracking` state seeded from `initialTracking`, updated after mount); photo ask appliedJobCard/steps/HelperPhotoAsk.tsx; header ActivityHeader.tsx
 - Likely cause: several separate loads finish one after another and each changes height — route skeleton → page skeleton → card list (skeleton heights don't match real tracker cards) → each card's tracker/status line fills in → photo-ask and payout blocks appear → tab counts in the header update and may reorder/regroup the Needs You list; every step reflows the page (unverified — needs a recorded layout-shift trace to count the real steps)
-- Shared with: Posts (/my-posts) uses the same Activity page and JobTracking; same class of problem as VN-3 (Earnings)
+- Shared with: Posts (/posts) uses the same Activity page and JobTracking; same class of problem as VN-3 (Earnings)
 - Size: medium–large
 - Screenshot: pasted in chat (settled state only, not saved)
 
 ### VN-33: Helpr 2000+ miles away can still tap "I've Arrived" and move forward
-- Screen / route: Jobs — /my-jobs, hired job in On the Way → Arrived (card above "Touch up hallway and stairwell"; toast bottom-right, "Try My Location Again" button)
+- Screen / route: Jobs — /jobs, hired job in On the Way → Arrived (card above "Touch up hallway and stairwell"; toast bottom-right, "Try My Location Again" button)
 - Viewport / theme: 1440, light
 - What the owner sees: "it showed in the map I'm over 2000 miles away, which I am, so it shouldn't let me move forward until my location is actually showing near the site AND the poster says I've arrived"
 - Where it lives: arrival tap + toast src/components/JobTracking.tsx:1005-1013 ("Marked arrived, but you're about Nft from the job site…" / "…couldn't get your location…"); rule src/lib/arrivalGate.ts:1-64 (`arrivalState`: claimed / verified (server 500ft, `mark_helper_arrival` RPC) / confirmed (poster tap); `arrivalEstablished` = verified OR confirmed); lifecycle src/components/job-card/activityActions/useLifecycleHandlers.ts
@@ -445,14 +445,14 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: pasted in chat (not saved)
 
 ### VN-34: Rename "Request My Payout" on the Done step, and don't allow it until photos are uploaded
-- Screen / route: Jobs — /my-jobs, Helpr card in Working step (e.g. "Touch up hallway and stairwell"): big bar under the tracker
+- Screen / route: Jobs — /jobs, Helpr card in Working step (e.g. "Touch up hallway and stairwell"): big bar under the tracker
 - Viewport / theme: 1440, light
 - What the owner sees: "change request my payout for a done job to something else, like job completed or something idk. also don't let them click it's completed until photos are uploaded"
 - Where it lives: label src/components/JobTracking.tsx:73 (steps array `{ key: "done", action: "Request My Payout" }`) — rendered at ~:2080-2130 with `disabledReason`; photo gate `needsProof` :2089-2092 (hasRequiredProof on proof_before/after_urls, `require_photo_proof` default true), wired from src/pages/jobs/appliedJobCard/HelperTrackerPanel.tsx:142-152. A second payout button exists: src/pages/jobs/appliedJobCard/steps/PayoutPrimary.tsx:32 ("I'm Done — Request Payout", renders nothing until photos)
 - Likely cause: (1) wording names the money, not the event — owner wants e.g. "Job Completed" / "Mark Job Done" (pick with owner). (2) Photo gate: in the screenshot the bar is already greyed with "Before & after photos are required" above it, so it is probably already disabled until photos exist — verify it can't be clicked; if a poster turned photos off (`require_photo_proof=false`) the gate lifts, which owner may not want. Also two differently-worded payout CTAs for the same action (tracker vs PayoutPrimary) should become one (unverified)
 - Shared with: JobTracking steps array (label used for both tracker CTA and step), PayoutPrimary (OnSiteStep / WorkingStep); ties VN-21 (one row) and VN-33 (arrival gate also blocks this button)
 - Size: small (copy) + verify gate
-- Screenshot: /my-jobs screenshot from VN-33 (not saved)
+- Screenshot: /jobs screenshot from VN-33 (not saved)
 
 ### VN-35: Messages list header — move the chevron to the right of the hamburger; search opens too wide
 - Screen / route: Messages list — /messages (header row: search icon · filter chevron · ☰ options)
@@ -487,7 +487,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
   before touching this. The scroll wrapper was bled an extra 12px per side at
   `xl` so the cards would move from x=48 to x=36. It was wrong. Measured on
   prod at 1440 (`.app-shell-frame` 0→1192) BEFORE any change:
-  `/dashboard` panel 48→1144 · `/my-posts` 48→1144 · `/messages` 48→1144 ·
+  `/home` panel 48→1144 · `/posts` 48→1144 · `/messages` 48→1144 ·
   `/profile?tab=reviews` card 48→1144 — pixel-identical. The Profile tab pages
   are NOT inset relative to anything; they already sit flush with every
   PageScaffold sibling, and bleeding here moved Profile alone and split the
@@ -689,7 +689,7 @@ Ticked only with proof — `npm run visual-notes:check` fails otherwise. **Fixed
 - Screenshot: none
 
 ### VN-55: Offered/hired Helpr must see the full address as text, not only on the map
-- Screen / route: Jobs — /my-jobs, Helpr card once offered or hired (Scheduled / Needs You)
+- Screen / route: Jobs — /jobs, Helpr card once offered or hired (Scheduled / Needs You)
 - Viewport / theme: not specified
 - What the owner sees: "they need to be able to actually see the full address when the offer is sent to the helpr. not just in the map"
 - Where it lives: card meta row prints city only (src/components/job-card/JobCardMetaRow.tsx getCity); the full `location` already reaches the offered/hired Helpr via get_jobs_for_my_applications → user_may_see_job_address (verified live 2026-09-14)

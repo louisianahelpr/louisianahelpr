@@ -47,7 +47,7 @@ let disarmTimer: number | undefined;
  *     an already-painted element and the 0 → 248px they turn on was a
  *     transitionable change. Measured 2026-09-11 at 1440: /legal's column slid
  *     1440 → 1192 over t=611–878ms, /help over t=239–518ms.
- *   - ROUTE CHANGE between the two shell kinds. Going /my-jobs → /help drops
+ *   - ROUTE CHANGE between the two shell kinds. Going /jobs → /help drops
  *     the `app-shell` class, which hands the inset from `.app-shell-frame`'s
  *     `right` to `#root`'s `padding-right` — and #root's padding had been 0
  *     the whole time, so it eased 0 → 248px while the rail sat there already
@@ -122,7 +122,7 @@ export const SidePanelProvider = ({ children }: { children: ReactNode }) => {
   // column is 1440 or 1192 wide at 1440px. A passive effect runs AFTER the
   // browser has painted, so on every hard load the page painted full-width and
   // then slid 248px narrower over the 300ms transition those rules carry.
-  // Measured 2026-09-11 at 1440: /my-jobs painted frameW=1440 at t=225ms and
+  // Measured 2026-09-11 at 1440: /jobs painted frameW=1440 at t=225ms and
   // reached 1192 at t=424ms, and the class series showed exactly why — at
   // t=211ms <html> carried `desktop-rail` but not `side-panel-open`.
   useLayoutEffect(() => {

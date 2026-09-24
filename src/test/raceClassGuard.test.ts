@@ -200,6 +200,9 @@ describe("race-class guard — edge functions (create-payment release, proven on
 describe("race-class guard — job completion (helper Done vs poster confirm / cancel, 20260914215112)", () => {
   const JT = "src/components/JobTracking.tsx";
   const COMPLETION_FIX = "20260914215112";
+  // 20260924220318 restates the live bodies (guards included) to rename the
+  // tab addresses, so every pre-guard baseline excludes it too.
+  const RENAMES_TAB_ADDRESSES = "20260924220318";
   const latestDefinition = (name: string, exclude: string[] = []) => {
     let body: string | null = null;
     for (const { sql } of guard.readMigrations({ exclude })) {
@@ -225,7 +228,7 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
 
   it("without the fix migration there is no status guard on helper_completed_at and a done job is cancellable", () => {
     expect(triggerDefined([COMPLETION_FIX])).toBe(false);
-    expect(latestDefinition("poster_cancel_job", [COMPLETION_FIX])).not.toMatch(/helper_completed_at\s+IS\s+NOT\s+NULL/i);
+    expect(latestDefinition("poster_cancel_job", [COMPLETION_FIX, RENAMES_TAB_ADDRESSES])).not.toMatch(/helper_completed_at\s+IS\s+NOT\s+NULL/i);
   });
 
   it("with it: the trigger judges OLD.status and pins a re-stamp; poster_cancel_job refuses a job marked done", () => {
@@ -247,7 +250,7 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
       // function WITH the done-stamp guard, so the pre-guard baseline must
       // exclude it too — same as RESTATES_FIX above.
       // 20260923232809 (Q301) and 20260924023843 (Q345) restate it the same way.
-      block: latestDefinition("block_user_and_settle", [COMPLETION_FIX, "20260923075415", "20260923232809", "20260924023843"]),
+      block: latestDefinition("block_user_and_settle", [COMPLETION_FIX, "20260923075415", "20260923232809", "20260924023843", RENAMES_TAB_ADDRESSES]),
       // Also exclude the arrival migration (20260915044137): it legitimately
       // made report_helper_no_show read helper_completed_at for a STRONGER
       // no-show guard (refuses if arrived OR completed). The pre-guard baseline
@@ -255,7 +258,7 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
       // restates that guard after prod lost it to an out-of-order apply, and
       // 20260924060512 (DH-006: one report per job+Helpr) restates it again.
       noShow: latestDefinition("report_helper_no_show", [COMPLETION_FIX, "20260915044137", "20260915074058", "20260924060512"]),
-      helperCancel: latestDefinition("helper_cancel_booking", [COMPLETION_FIX]),
+      helperCancel: latestDefinition("helper_cancel_booking", [COMPLETION_FIX, RENAMES_TAB_ADDRESSES]),
     };
     expect(without.trg).toBe("");
     expect(without.block).not.toMatch(/helper_completed_at/);

@@ -92,7 +92,7 @@ describe("usePrefetchUserData", () => {
   });
 
   it("prefetches the 3 likely-next-nav route chunks, and only those", () => {
-    // The title said "all 4 … (my-posts, my-jobs, jobs, profile)" until
+    // The title said "all 4 … (posts, jobs, jobs, profile)" until
     // 2026-09-21. The hook has always warmed three; there is no /jobs
     // prefetch. Asserting the exact SET, not three `toContain`s, so a
     // silently-dropped or silently-added route is visible either way.
@@ -100,7 +100,7 @@ describe("usePrefetchUserData", () => {
     renderHook(() => usePrefetchUserData("user-1"), { wrapper });
 
     const routes = prefetchRouteMock.mock.calls.map((c) => c[0]);
-    expect(routes.slice().sort()).toEqual(["/my-jobs", "/my-posts", "/profile"]);
+    expect(routes.slice().sort()).toEqual(["/jobs", "/posts", "/profile"]);
   });
 
   it("warms the SLOW Stripe-class payout query — the whole point of the hook", () => {

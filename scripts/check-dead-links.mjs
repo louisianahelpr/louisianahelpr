@@ -29,7 +29,7 @@ const params = routes
 const resolves = (p) => statics.has(p) || params.some((re) => re.test(p));
 
 const SELF_TEST = [
-  ["/dashboard", true], ["/profile", true], ["/jobs/abc-123", true], ["/user/xyz", true],
+  ["/home", true], ["/profile", true], ["/jobs/abc-123", true], ["/user/xyz", true],
   ["/pets", false], ["/wrapped", false], ["/definitely-not-a-route", false],
 ];
 const selfFails = SELF_TEST.filter(([p, want]) => resolves(p) !== want);

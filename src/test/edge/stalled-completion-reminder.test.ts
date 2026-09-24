@@ -166,8 +166,8 @@ describe("stalled-completion-reminder", () => {
     expect(sent.find((n) => n.user_id === WORKED_BY)!.message).toMatch(/Mark Job Complete/);
     expect(sent.find((n) => n.user_id === POSTED_BY)!.message).toMatch(/nobody has marked it done/i);
     // …and each on their own surface.
-    expect(sent.find((n) => n.user_id === POSTED_BY)!.link).toBe("/my-posts?job=job-stalled");
-    expect(sent.find((n) => n.user_id === WORKED_BY)!.link).toBe("/my-jobs?job=job-stalled");
+    expect(sent.find((n) => n.user_id === POSTED_BY)!.link).toBe("/posts?job=job-stalled");
+    expect(sent.find((n) => n.user_id === WORKED_BY)!.link).toBe("/jobs?job=job-stalled");
     // The stage was claimed before anything was sent.
     expect(ledgerWrites()).toHaveLength(1);
     assertNoMoneyMoved();

@@ -100,8 +100,8 @@ BEGIN
         '" was escalated. An admin will decide it — the payment stays on hold until they do.',
       'warning',
       CASE WHEN _other = _customer
-           THEN '/my-posts?job=' || _job_id::text
-           ELSE '/my-jobs?job=' || _job_id::text
+           THEN '/posts?job=' || _job_id::text
+           ELSE '/jobs?job=' || _job_id::text
       END
     );
   END IF;

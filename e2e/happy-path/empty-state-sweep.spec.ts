@@ -218,14 +218,14 @@ const EXPECTED_LANDING: Record<string, string> = {
   // forwards on. That is what makes the ProtectedRoute mutation registered at
   // the bottom of this file provable: invert the gate and every OTHER route
   // starts bouncing to /complete-profile instead.
-  "/complete-profile": "/dashboard",
+  "/complete-profile": "/home",
 };
 
 /**
  * Job-detail routes are the one case that cannot be a literal: with every
  * table answering [] the job does not exist, so the detail route forwards to
  * the dashboard. That is correct behaviour for a missing job — but it does
- * mean these rows audit /dashboard, not a job page.
+ * mean these rows audit /home, not a job page.
  *
  * Catalog aliases are compared at PATH granularity here, matching every other
  * comparison in this sweep: an alias declaring `/profile?tab=x` is measured
@@ -546,9 +546,9 @@ sweepDescribe("empty-state sweep (every collection returns [])", () => {
 // Proof this sweep can fail — aimed at the hollow shape ROUTE_BOUNCE closes.
 //
 // A global redirect regression is invisible to every OTHER invariant in this
-// file, because the destination is a perfectly good screen: /dashboard has one
+// file, because the destination is a perfectly good screen: /home has one
 // <h1>, a document title, plenty of <main> text and no axe violations. So the
-// sweep would score 25 admin rows green while rendering /dashboard 25 times.
+// sweep would score 25 admin rows green while rendering /home 25 times.
 // Only ROUTE_BOUNCE notices.
 //
 // AdminRoute is the right lever because it is LIVE in this harness — the admin

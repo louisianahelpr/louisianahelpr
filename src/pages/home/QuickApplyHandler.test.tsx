@@ -1,4 +1,4 @@
-// QuickApplyHandler — the deep-link resolver behind BOTH `/dashboard?quickApply=<id>`
+// QuickApplyHandler — the deep-link resolver behind BOTH `/home?quickApply=<id>`
 // and `/jobs/<id>` (every signed-in visitor to that route is redirected here).
 //
 // What these tests prevent: telling a PARTICIPANT that a job they are working
@@ -114,7 +114,7 @@ describe("QuickApplyHandler — the deep link opens the job sheet", () => {
 
     await waitFor(() =>
       expect(navigateMock).toHaveBeenCalledWith(
-        `/my-posts?highlight=${JOB_ID}`,
+        `/posts?highlight=${JOB_ID}`,
         { replace: true },
       ),
     );
@@ -183,7 +183,7 @@ describe("QuickApplyHandler — a job the browse view cannot show", () => {
 
     await waitFor(() =>
       expect(navigateMock).toHaveBeenCalledWith(
-        `/my-jobs?job=${JOB_ID}`,
+        `/jobs?job=${JOB_ID}`,
         { replace: true },
       ),
     );
@@ -202,7 +202,7 @@ describe("QuickApplyHandler — a job the browse view cannot show", () => {
 
     await waitFor(() =>
       expect(navigateMock).toHaveBeenCalledWith(
-        `/my-posts?highlight=${JOB_ID}`,
+        `/posts?highlight=${JOB_ID}`,
         { replace: true },
       ),
     );
@@ -244,7 +244,7 @@ describe("QuickApplyHandler — a job the browse view cannot show", () => {
 // The participant fallback is the whole reason this file exists: a job the
 // browse view cannot show, opened by the person working it. Send them to the
 // poster's surface instead and they land on a screen their job cannot appear on.
-// @mutate src/pages/home/QuickApplyHandler.tsx | navigate(`/my-jobs?job=${encodeURIComponent(quickApplyId)}`, { replace: true }); | goToOwnPost(quickApplyId);
+// @mutate src/pages/home/QuickApplyHandler.tsx | navigate(`/jobs?job=${encodeURIComponent(quickApplyId)}`, { replace: true }); | goToOwnPost(quickApplyId);
 // The feed-hit branches, which were unguarded entirely until 2026-09-21: both
 // `if (false)`-ed out with every test in this file still green.
 // @mutate src/pages/home/QuickApplyHandler.tsx | if (feedJob.customer_id === userId) { | if (false) {

@@ -218,8 +218,8 @@ Deno.serve(async (req) => {
       if (!stage) return;
       try {
         if (!(await claim(job.id, stage))) return;
-        const postedLink = `/my-posts?job=${job.id}`;
-        const workingLink = `/my-jobs?job=${job.id}`;
+        const postedLink = `/posts?job=${job.id}`;
+        const workingLink = `/jobs?job=${job.id}`;
 
         if (stage === "first" || stage === "second") {
           const second = stage === "second";

@@ -150,7 +150,7 @@ describe("useSearchParamMirror", () => {
 });
 
 // ── Runaway-write instrumentation ────────────────────────────────────────────
-// The /my-posts replaceState crash survived three fixes, so the hook now
+// The /posts replaceState crash survived three fixes, so the hook now
 // reports when it writes too fast. That tripwire is only worth shipping if it
 // actually trips — otherwise we would sit waiting on evidence that can never
 // arrive. These two tests pin both halves: it fires on a genuine runaway, and
@@ -162,7 +162,7 @@ describe("useSearchParamMirror runaway-write reporting", () => {
     // Drive 40 DISTINCT states straight at the hook. Each one genuinely
     // differs from the URL, so each is a legitimate write — which is exactly
     // what a loop looks like from inside the hook: real writes, far too fast.
-    const m = renderMirror("/my-posts", () => {}, { filter: "v0" });
+    const m = renderMirror("/posts", () => {}, { filter: "v0" });
     for (let i = 1; i <= 40; i++) {
       await act(async () => {
         m.rerender({ state: { filter: `v${i}` } });
@@ -185,7 +185,7 @@ describe("useSearchParamMirror runaway-write reporting", () => {
   it("stays silent for ordinary write traffic", async () => {
     vi.mocked(report).mockClear();
     // A handful of real filter changes is normal use, not a loop.
-    const m = renderMirror("/my-posts", () => {}, { filter: "" });
+    const m = renderMirror("/posts", () => {}, { filter: "" });
     for (const v of ["a", "b", "c", ""]) {
       await act(async () => {
         m.rerender({ state: { filter: v } });
@@ -204,7 +204,7 @@ describe("useSearchParamMirror runaway-write reporting", () => {
 describe("useSearchParamMirror circuit breaker", () => {
   it("stops navigating once a runaway passes the hard stop", async () => {
     vi.mocked(report).mockClear();
-    const m = renderMirror("/my-posts", () => {}, { filter: "v0" });
+    const m = renderMirror("/posts", () => {}, { filter: "v0" });
 
     // 120 distinct states — comfortably past WebKit's ~100 replaceState
     // ceiling, which is the thing that was taking the route down.
@@ -227,7 +227,7 @@ describe("useSearchParamMirror circuit breaker", () => {
 
   it("never interferes with ordinary writes", async () => {
     vi.mocked(report).mockClear();
-    const m = renderMirror("/my-posts", () => {}, { filter: "" });
+    const m = renderMirror("/posts", () => {}, { filter: "" });
     for (const v of ["a", "b", "c"]) {
       await act(async () => {
         m.rerender({ state: { filter: v } });
@@ -236,7 +236,7 @@ describe("useSearchParamMirror circuit breaker", () => {
     }
     // Three real changes must all reach the URL — a breaker that swallowed
     // normal traffic would be a worse bug than the one it guards against.
-    expect(m.lastUrl()).toBe("/my-posts?filter=c");
+    expect(m.lastUrl()).toBe("/posts?filter=c");
     expect(vi.mocked(report)).not.toHaveBeenCalled();
   });
 });

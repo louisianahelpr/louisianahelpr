@@ -70,8 +70,8 @@ const recoverAdminGate = async (page: Page, budgetMs = 30_000) => {
 };
 
 /**
- * OPEN THE COLLAPSED SEARCH. Five surfaces (/legal, /dashboard, /messages,
- * /my-posts, /profile?tab=saved_helpers) start with no search field in the DOM
+ * OPEN THE COLLAPSED SEARCH. Five surfaces (/legal, /home, /messages,
+ * /posts, /profile?tab=saved_helpers) start with no search field in the DOM
  * at all: a magnifier trigger holds its place, and pressing it mounts the
  * field (owner's ruling, 2026-09-16 — the magnifier moves inside the field and
  * the ✕ becomes its only control). A sweep that only counted the fields on
@@ -147,7 +147,7 @@ const expandJobCard = async (page: Page, title: string) => {
  * is the app's own deep link (Activity.tsx `deepLinkJobId`): it resolves the
  * bucket the job is ACTUALLY in, exactly as a notification tap does.
  */
-const openActivityCard = async (page: Page, tab: "/my-jobs" | "/my-posts", job: { id: string; title: string }) => {
+const openActivityCard = async (page: Page, tab: "/jobs" | "/posts", job: { id: string; title: string }) => {
   await page.goto(`${tab}?job=${job.id}`);
   await settle(page);
   await expandJobCard(page, job.title);
@@ -189,7 +189,7 @@ const openMessageThread = (other: Account) => async (page: Page) => {
   await page.getByRole("textbox", { name: /type a message/i }).waitFor({ timeout: 20_000 });
 };
 
-/** /dashboard's Filters sheet folds "Saved Searches" into its last section (BrowseTasksToolbar.tsx) — open the sheet, then the row. */
+/** /home's Filters sheet folds "Saved Searches" into its last section (BrowseTasksToolbar.tsx) — open the sheet, then the row. */
 const openSavedSearches = async (page: Page) => {
   await page.getByRole("button", { name: /^filters/i }).first().click();
   const row = page.getByRole("button", { name: /saved searches/i }).first();
@@ -229,7 +229,7 @@ const openReportDialog = (target: Account) => async (page: Page) => {
  */
 const openDisputeDialog = async (page: Page) => {
   const job = fixtureOrThrow("helperEnRouteJob", "job the helper is on the way to or working");
-  await openActivityCard(page, "/my-jobs", job);
+  await openActivityCard(page, "/jobs", job);
   await pressChipForField(page, /^report a problem/i);
 };
 
@@ -252,7 +252,7 @@ const openDisputeDialog = async (page: Page) => {
 // exact-label regexes never matched), and swallowed the miss.
 const openActiveJobSection = async (page: Page) => {
   const job = fixtureOrThrow("helperConfirmedJob", "job the helper confirmed but has not left for");
-  await openActivityCard(page, "/my-jobs", job);
+  await openActivityCard(page, "/jobs", job);
   // Unanchored: inside the overflow sheet the same control is named
   // "Cancel Job — Cancel this job? …" (label + ariaLabel).
   await pressChipForField(page, /cancel this job\?/i);
@@ -274,7 +274,7 @@ const openActiveJobSection = async (page: Page) => {
 // 2026-09-23, while the helper was assigned one a seeded poster had filed.
 const openDisputedSectionResponse = async (page: Page) => {
   const job = fixtureOrThrow("helperDisputedJob", "dispute filed against the helper, unanswered");
-  await openActivityCard(page, "/my-jobs", job);
+  await openActivityCard(page, "/jobs", job);
   await pressChipForField(page, /respond to dispute|add your side/i);
 };
 
@@ -282,7 +282,7 @@ const openDisputedSectionResponse = async (page: Page) => {
 // The pencil's accessible name is "Edit your message" (PendingApplicationSection.tsx).
 const openPendingApplicationEdit = async (page: Page) => {
   const job = fixtureOrThrow("jobWithPendingApplicant", "job with a pending application");
-  await openActivityCard(page, "/my-jobs", job);
+  await openActivityCard(page, "/jobs", job);
   await pressChipForField(page, /^edit your message$/i);
 };
 
@@ -345,7 +345,7 @@ const openAdminJobAction = (buttonName: RegExp) => async (page: Page) => {
 async function openApplicantFixtureCard(page: Page): Promise<void> {
   const job = runtime.applicantJob;
   if (!job) throw new Error("Q100: no applicant fixture — messy-input.spec.ts's beforeAll did not mint one");
-  await page.goto(`/my-posts?job=${job.id}`);
+  await page.goto(`/posts?job=${job.id}`);
   await settle(page);
   const edit = page.getByRole("button", { name: /^edit job$/i }).first();
   const title = page.getByText(job.title, { exact: false }).first();
@@ -421,9 +421,9 @@ export const FORMS: FormSpec[] = [
     prepare: async (page) => { await pressIfPresent(page, /start fresh/i); },
     covers: ["src/components/postjob/detailsSection/TitleField.tsx", "src/components/postjob/detailsSection/DescriptionField.tsx"],
   },
-  { name: "dashboard-search", url: "/dashboard", as: "helper", prepare: openSearch, covers: ["src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx"] },
+  { name: "dashboard-search", url: "/home", as: "helper", prepare: openSearch, covers: ["src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx"] },
   { name: "messages-list", url: "/messages", as: "helper", prepare: openSearch, covers: ["src/components/messages/ConversationList.tsx"] },
-  { name: "my-posts-search", url: "/my-posts", as: "poster", prepare: openSearch, covers: ["src/components/job-card/ActivityHeader.tsx"] },
+  { name: "posts-search", url: "/posts", as: "poster", prepare: openSearch, covers: ["src/components/job-card/ActivityHeader.tsx"] },
   { name: "complete-profile", url: "/complete-profile", as: "incomplete", covers: ["src/pages/auth/CompleteProfile.tsx", "src/components/postjob/CityAutocomplete.tsx"] },
   { name: "profile-edit", url: "/profile?tab=profile", as: "helper", covers: ["src/components/profile/ProfileEditForm.tsx", "src/components/profile/profileEditForm/PhotoNameSection.tsx"] },
   { name: "profile-support", url: "/profile?tab=support", as: "helper", covers: ["src/components/profile/SupportInline.tsx"] },
@@ -486,15 +486,15 @@ export const FORMS: FormSpec[] = [
     name: "messages-thread", url: "/messages", as: "helper", prepare: openMessageThread("poster"),
     covers: ["src/components/RichMessageInput.tsx", "src/components/messages/ChatView.tsx"],
   },
-  { name: "saved-searches-dialog", url: "/dashboard", as: "poster", prepare: openSavedSearches, covers: ["src/components/SavedSearches.tsx"] },
-  { name: "report-user-dialog", url: "/dashboard", as: "poster", prepare: openReportDialog("helper"), covers: ["src/components/ReportDialog.tsx"] },
+  { name: "saved-searches-dialog", url: "/home", as: "poster", prepare: openSavedSearches, covers: ["src/components/SavedSearches.tsx"] },
+  { name: "report-user-dialog", url: "/home", as: "poster", prepare: openReportDialog("helper"), covers: ["src/components/ReportDialog.tsx"] },
   // Covers DisputeDialog.tsx, the file that renders the fields. The old entry
   // named ActivityDialogs.tsx, which only mounts it and is not in the form
   // inventory at all — a `covers` entry the coverage test could never check.
-  { name: "activity-dispute-dialog", url: "/my-jobs", as: "helper", prepare: openDisputeDialog, covers: ["src/components/DisputeDialog.tsx"] },
-  { name: "active-job-section", url: "/my-jobs", as: "helper", prepare: openActiveJobSection, covers: ["src/pages/jobs/appliedJobCard/ActiveJobSection.tsx"] },
-  { name: "disputed-section", url: "/my-jobs", as: "helper", prepare: openDisputedSectionResponse, covers: ["src/pages/jobs/appliedJobCard/DisputedSection.tsx"] },
-  { name: "pending-application-section", url: "/my-jobs", as: "helper", prepare: openPendingApplicationEdit, covers: ["src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx"] },
+  { name: "activity-dispute-dialog", url: "/jobs", as: "helper", prepare: openDisputeDialog, covers: ["src/components/DisputeDialog.tsx"] },
+  { name: "active-job-section", url: "/jobs", as: "helper", prepare: openActiveJobSection, covers: ["src/pages/jobs/appliedJobCard/ActiveJobSection.tsx"] },
+  { name: "disputed-section", url: "/jobs", as: "helper", prepare: openDisputedSectionResponse, covers: ["src/pages/jobs/appliedJobCard/DisputedSection.tsx"] },
+  { name: "pending-application-section", url: "/jobs", as: "helper", prepare: openPendingApplicationEdit, covers: ["src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx"] },
   {
     name: "admin-reports-message", url: "/admin?view=reports", as: "admin",
     // "Message <name>" renders only on a report that is still open — New or
@@ -587,9 +587,9 @@ export const FORMS: FormSpec[] = [
   // FormSpec that opens it the way a person does, so the sweep types into the
   // real field instead of the coverage test hoping a presser stumbles on it.
   {
-    name: "withdraw-application-other", url: "/my-jobs", as: "helper",
+    name: "withdraw-application-other", url: "/jobs", as: "helper",
     prepare: async (page) => {
-      await openActivityCard(page, "/my-jobs", fixtureOrThrow("jobWithPendingApplicant", "job with a pending application"));
+      await openActivityCard(page, "/jobs", fixtureOrThrow("jobWithPendingApplicant", "job with a pending application"));
       await pressChipForField(page, /^withdraw application$/i, { field: false });
       // The reason list is radio-like rows; only "Other" reveals the box.
       await page.getByRole("button", { name: /^other$/i }).or(page.getByRole("radio", { name: /^other$/i })).first().click();
@@ -598,7 +598,7 @@ export const FORMS: FormSpec[] = [
     covers: ["src/pages/jobs/AppliedJobsTab.tsx"],
   },
   {
-    name: "block-user-dialog", url: "/dashboard", as: "poster",
+    name: "block-user-dialog", url: "/home", as: "poster",
     prepare: async (page) => {
       await page.goto(`/user/${idFor("helper")}`);
       await settle(page);
@@ -613,7 +613,7 @@ export const FORMS: FormSpec[] = [
     // review with no response yet (ReviewsSection.tsx `isOwnProfile`). The
     // helper held 25 such reviews on prod, 2026-09-23. The list is collapsed
     // behind the reviews tile until `?tab=reviews` (UserProfile.tsx `showReviews`).
-    name: "review-public-response", url: "/dashboard", as: "helper",
+    name: "review-public-response", url: "/home", as: "helper",
     prepare: async (page) => {
       await page.goto(`/user/${idFor("helper")}?tab=reviews`);
       await settle(page);
@@ -690,7 +690,7 @@ export const FORMS: FormSpec[] = [
   // and its afterAll releases it through cancel_escrow. The sweep runs behind
   // the write firewall, so no Save / Confirm / Decline can reach prod.
   {
-    name: "edit-job", url: "/my-posts", as: "poster",
+    name: "edit-job", url: "/posts", as: "poster",
     prepare: async (page) => {
       await openApplicantFixtureCard(page);
       await page.getByRole("button", { name: /^edit job$/i }).first().click();
@@ -699,7 +699,7 @@ export const FORMS: FormSpec[] = [
     covers: ["src/pages/posts/EditJobDialog.tsx"],
   },
   {
-    name: "cancel-job", url: "/my-posts", as: "poster",
+    name: "cancel-job", url: "/posts", as: "poster",
     prepare: async (page) => {
       await openApplicantFixtureCard(page);
       await page.getByRole("button", { name: /^cancel job$/i }).first().click();
@@ -710,7 +710,7 @@ export const FORMS: FormSpec[] = [
   {
     // The panel's one text field is the private applicant note (localStorage
     // only), behind "Add Private Note" on the pending applicant's row.
-    name: "applicants-note", url: "/my-posts", as: "poster",
+    name: "applicants-note", url: "/posts", as: "poster",
     prepare: async (page) => {
       await openApplicantsPanel(page);
       await page.getByRole("button", { name: /add private note/i }).first().click();
@@ -719,7 +719,7 @@ export const FORMS: FormSpec[] = [
     covers: ["src/pages/posts/postedJobs/ApplicantsPanel.tsx"],
   },
   {
-    name: "decline-applicant", url: "/my-posts", as: "poster",
+    name: "decline-applicant", url: "/posts", as: "poster",
     prepare: async (page) => {
       await openApplicantsPanel(page);
       await page.getByRole("button", { name: /^decline /i }).first().click();

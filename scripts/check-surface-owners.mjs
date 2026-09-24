@@ -75,9 +75,9 @@ const OWNERS = {
   "/account-banned": ["lh-trust-safety"],
 
   // ── core loop ────────────────────────────────────────────────────────────
-  "/dashboard": ["lh-design-holes", "lh-copy-content"],
-  "/my-jobs": ["lh-design-holes"],
-  "/my-posts": ["lh-design-holes"],
+  "/home": ["lh-design-holes", "lh-copy-content"],
+  "/jobs": ["lh-design-holes"],
+  "/posts": ["lh-design-holes"],
   "/post-job": ["lh-input-boundary", "lh-money-escrow"],
   "/messages": ["lh-trust-safety"],
   // The Stripe checkout RETURN. Was owned only by lh-native-bridge, which

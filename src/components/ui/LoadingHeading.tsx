@@ -7,8 +7,8 @@
  * reader landed on an unlabelled document with nothing announced, and the
  * "exactly one <h1> per screen" invariant held only in the LOADED state.
  * The error-state sweep (e2e/happy-path/error-state-sweep.spec.ts) measures
- * that invariant in every state, which is how the gap surfaced: /my-posts,
- * /my-jobs and /dashboard all reported `h1Count: 0` while pending.
+ * that invariant in every state, which is how the gap surfaced: /posts,
+ * /jobs and /home all reported `h1Count: 0` while pending.
  *
  * Deliberately visually hidden. The skeleton IS the visible loading design;
  * this only restores the semantics the shimmer can't carry, so nothing about

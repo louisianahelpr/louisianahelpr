@@ -1002,7 +1002,7 @@ serve(async (req) => {
           title: "Job marked complete",
           message: `The person who posted "${job.title}" marked it complete. Please confirm completion to release payment.`,
           // `?job=` — see the note on the shared rule at the top of this file.
-          type: "info", link: `/my-jobs?job=${job.id}`,
+          type: "info", link: `/jobs?job=${job.id}`,
         });
       }
       if (isHelper && !posterDone) {
@@ -1010,7 +1010,7 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Helpr marked the job complete",
           message: `The helpr marked "${job.title}" as complete. Please confirm completion to release payment.`,
-          type: "info", link: `/my-posts?job=${job.id}`,
+          type: "info", link: `/posts?job=${job.id}`,
         });
       }
 
@@ -1028,7 +1028,7 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Job completed!",
           message: `"${job.title}" is complete. Payment has been captured. The Helpr is paid ${STANDARD_PAYOUT_PHRASE}.`,
-          type: "payment", link: `/my-posts?job=${job.id}`,
+          type: "payment", link: `/posts?job=${job.id}`,
         });
       }
 
@@ -1089,7 +1089,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Revision requested",
           message: `The person who posted "${job.title}" has requested revisions: ${note || "Please check the details."}`,
-          type: "warning", link: `/my-jobs?job=${job.id}`,
+          type: "warning", link: `/jobs?job=${job.id}`,
         });
       }
 
@@ -1147,7 +1147,7 @@ serve(async (req) => {
         user_id: job.customer_id,
         title: "Revision completed — review needed",
         message: `The helpr has fixed the revision for "${job.title}". You have 72 hours to accept (mark complete) or dispute. If you do nothing, payment auto-releases.`,
-        type: "warning", link: `/my-posts?job=${job.id}`,
+        type: "warning", link: `/posts?job=${job.id}`,
       });
 
       return new Response(JSON.stringify({ success: true }), {
@@ -1240,8 +1240,8 @@ serve(async (req) => {
           },
           application_fee_amount: tipFeeCents,
         },
-        success_url: buildRedirectUrl(`/my-posts?tip=success`, isNative),
-        cancel_url: buildRedirectUrl(`/my-posts`, isNative),
+        success_url: buildRedirectUrl(`/posts?tip=success`, isNative),
+        cancel_url: buildRedirectUrl(`/posts`, isNative),
         metadata: { job_id: jobId, tipper_id: user.id, helper_id: helperId, type: "tip" },
       }, {
         // Dedupe client retries (double-tap, network retry) without blocking a
@@ -1909,7 +1909,7 @@ serve(async (req) => {
         user_id: job.customer_id,
         title: "Dispute resolved",
         message: `The dispute on "${job.title}" has been resolved. Payment was released to the helpr.`,
-        type: "info", link: `/my-posts?job=${job.id}`,
+        type: "info", link: `/posts?job=${job.id}`,
       });
 
       // Settled. The claim would expire on its own and the job is no longer
@@ -2220,14 +2220,14 @@ serve(async (req) => {
         user_id: job.customer_id,
         title: "Dispute resolved — refund issued",
         message: `The dispute on "${job.title}" has been resolved in your favor. A refund has been issued.`,
-        type: "payment", link: `/my-posts?job=${job.id}`,
+        type: "payment", link: `/posts?job=${job.id}`,
       });
       if (job.helper_id) {
         await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
           title: "Dispute resolved",
           message: `The dispute on "${job.title}" has been resolved. The person who posted it has been refunded.`,
-          type: "info", link: `/my-jobs?job=${job.id}`,
+          type: "info", link: `/jobs?job=${job.id}`,
         });
       }
 
@@ -2552,7 +2552,7 @@ serve(async (req) => {
         // bucket — link the job and let Activity place it. (The full-refund
         // branch cancels the job, so `cancelled` is safe there, but `?job=`
         // says the same thing more directly.)
-        link: `/my-posts?job=${job.id}`,
+        link: `/posts?job=${job.id}`,
       });
 
       // Helper notification — only on full refund (job is cancelled). Partial
@@ -2568,7 +2568,7 @@ serve(async (req) => {
           // producer converted in migration
           // 20260831232514_notification_links_land_on_the_right_spot.sql.
           //
-          // This was `/my-jobs?filter=not_selected`. Two things were wrong
+          // This was `/jobs?filter=not_selected`. Two things were wrong
           // with it. `not_selected` is a LEGACY filter key: the Activity strip
           // is five buckets now (needs_you / scheduled / waiting / done /
           // cancelled, activityFilters.ts), and legacy enum keys still work as
@@ -2582,7 +2582,7 @@ serve(async (req) => {
           // anyway: which bucket a job sits in is a question about its LIVE
           // state, and the answer changes while the notification sits unread.
           // `?job=` lets Activity resolve the bucket at open time.
-          type: "info", link: `/my-jobs?job=${job.id}`,
+          type: "info", link: `/jobs?job=${job.id}`,
         });
       }
 

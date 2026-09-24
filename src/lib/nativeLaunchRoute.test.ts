@@ -1,11 +1,11 @@
 // resolveNativeLaunchRoute decides where to land a user when iOS/Android
 // cold-launches the app at "/". Bugs here either yank deep-links to the
-// dashboard (breaks push-tap navigation) or land guests on /dashboard
+// dashboard (breaks push-tap navigation) or land guests on /home
 // where ProtectedRoute kicks them to /login (jarring flash). Tests cover:
 //   - web no-ops (returns null so deep links + SEO work)
 //   - non-"/" paths return null (deep links preserved)
 //   - guests → /browse
-//   - signed-in → /dashboard
+//   - signed-in → /home
 //   - getSession failure → /browse (fail-safe to public surface)
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -49,7 +49,7 @@ describe("resolveNativeLaunchRoute", () => {
     it("returns null for non-root paths (deep links preserved)", async () => {
       expect(await resolveNativeLaunchRoute("/messages")).toBeNull();
       expect(await resolveNativeLaunchRoute("/profile")).toBeNull();
-      expect(await resolveNativeLaunchRoute("/dashboard")).toBeNull();
+      expect(await resolveNativeLaunchRoute("/home")).toBeNull();
       expect(await resolveNativeLaunchRoute("/user/abc-123")).toBeNull();
       // No session lookup happened — fast-path bail
       expect(getSessionMock).not.toHaveBeenCalled();
@@ -69,11 +69,11 @@ describe("resolveNativeLaunchRoute", () => {
       isNativePlatformMock.mockReturnValue(true);
     });
 
-    it("signed-in user → /dashboard", async () => {
+    it("signed-in user → /home", async () => {
       getSessionMock.mockResolvedValue({
         data: { session: { user: { id: "u1" } } },
       });
-      expect(await resolveNativeLaunchRoute("/")).toBe("/dashboard");
+      expect(await resolveNativeLaunchRoute("/")).toBe("/home");
     });
 
     it("guest (no session) → /browse", async () => {
@@ -102,7 +102,7 @@ describe("resolveNativeLaunchRoute", () => {
   // and reloads it on resume, restarting our JS at "/" with the native app
   // still alive (so no splash screen). That is indistinguishable from a cold
   // launch here, which is why a signed-in user kept getting yanked to
-  // /dashboard every time they checked a notification.
+  // /home every time they checked a notification.
   describe("resume restores the last route", () => {
     beforeEach(() => {
       isNativePlatformMock.mockReturnValue(true);
@@ -112,15 +112,15 @@ describe("resolveNativeLaunchRoute", () => {
     const remember = (path: string) =>
       localStorage.setItem("lh_last_route", JSON.stringify({ p: path, t: Date.now() }));
 
-    it("signed-in user returns to where they were, not /dashboard", async () => {
+    it("signed-in user returns to where they were, not /home", async () => {
       getSessionMock.mockResolvedValue({ data: { session: { user: { id: "u1" } } } });
       remember("/messages");
       expect(await resolveNativeLaunchRoute("/")).toBe("/messages");
     });
 
-    it("falls back to /dashboard when there is nothing remembered", async () => {
+    it("falls back to /home when there is nothing remembered", async () => {
       getSessionMock.mockResolvedValue({ data: { session: { user: { id: "u1" } } } });
-      expect(await resolveNativeLaunchRoute("/")).toBe("/dashboard");
+      expect(await resolveNativeLaunchRoute("/")).toBe("/home");
     });
 
     // The freshness window is 3 minutes (lastRoute.ts), not 30. It is the only
@@ -139,13 +139,13 @@ describe("resolveNativeLaunchRoute", () => {
       expect(await resolveNativeLaunchRoute("/")).toBe("/messages");
     });
 
-    it("falls back to /dashboard minutes later — the window is 3 min, not 30", async () => {
+    it("falls back to /home minutes later — the window is 3 min, not 30", async () => {
       getSessionMock.mockResolvedValue({ data: { session: { user: { id: "u1" } } } });
       localStorage.setItem(
         "lh_last_route",
         JSON.stringify({ p: "/messages", t: Date.now() - 4 * 60 * 1000 }),
       );
-      expect(await resolveNativeLaunchRoute("/")).toBe("/dashboard");
+      expect(await resolveNativeLaunchRoute("/")).toBe("/home");
     });
 
     it("never restores for a guest — a signed-out device gets /browse", async () => {

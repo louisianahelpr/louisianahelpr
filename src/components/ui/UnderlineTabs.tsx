@@ -152,7 +152,7 @@ export function UnderlineTabs({
               // Idle is 0.70, not 0.65. This one component is the single
               // largest source of contrast failures in the app: 128 of the 292
               // the five-leg sweep found, because it appears on every admin
-              // screen and across activity/messages/my-posts. 0.65 measured
+              // screen and across posts/jobs/messages. 0.65 measured
               // 4.46:1 against the 4.5:1 required — a 0.04 miss that reads as
               // "basically fine" and is not. 0.70 measures 5.18 light / 5.74
               // dark.

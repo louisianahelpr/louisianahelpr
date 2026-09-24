@@ -218,7 +218,7 @@ const NotificationPanel = () => {
     //
     // This toast used to fire on EVERY failed load, including the one that
     // runs 800ms after any authed page mounts with the panel shut. So a
-    // single backend outage on /dashboard produced two messages for the same
+    // single backend outage on /home produced two messages for the same
     // event: the page's own error card, and — floating over it for the four
     // seconds a sonner toast lives — "Couldn't load notifications — try
     // again?", about a panel the user had not opened and could not see.
@@ -772,7 +772,7 @@ const NotificationPanel = () => {
                  all of which key on that attribute — reads a panel that
                  has not answered yet as a panel with nothing in it. Measured
                  on press-every-control run 35692554813: two shards walked the
-                 /dashboard bell with zero rows in it and passed, while a third
+                 /home bell with zero rows in it and passed, while a third
                  enumerated 50 rows and then could not find one of them. */
               aria-busy="true"
               className="px-6 py-7 flex flex-col items-center text-center gap-2"

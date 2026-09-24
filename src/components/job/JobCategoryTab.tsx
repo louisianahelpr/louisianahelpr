@@ -24,7 +24,7 @@ import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";
  * activity cards absolutely position this tab over the card corner, where the
  * percentage resolves against a shrink-to-fit box: applying it there truncated
  * every label to its first letter ("C", "P", "Y…"). That was caught in a 375
- * screenshot of /my-posts, and it is exactly the drift a careless
+ * screenshot of /posts, and it is exactly the drift a careless
  * "extract the common case" ships.
  *
  * The tab is positioned by its CALLER, not by itself. This component owns the

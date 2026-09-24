@@ -4,16 +4,15 @@
 // lucide + framer-motion deps) onto the initial critical path.
 
 // Routes where the signed-in app chrome (and therefore the rail) should show.
-// NOTE: /jobs is deliberately absent — it's the PUBLIC guest browse page
-// (rendered inside PublicLayout with the marketing Navbar + Footer), so the
-// authed left rail must not cover it. Its authed counterpart is /dashboard.
+// /jobs is the Jobs tab. The public job page /jobs/<id> shares its prefix and
+// is excluded below (AUTH_PREFIX_EXCLUSIONS).
 const AUTH_PREFIXES = [
   // Admin. Removing it from NO_NAV_PREFIXES only stopped the nav being
   // suppressed — `isDesktopRailRoute` is an ALLOW-list, so it also has to be
   // named here or the nav still never renders. Both halves are required; this
   // is the pair that actually turns it on.
   "/admin",
-  "/dashboard", "/my-posts", "/my-jobs", "/post-job", "/profile",
+  "/home", "/posts", "/jobs", "/post-job", "/profile",
   "/messages", "/user",
   "/browse",
   // Strictly-authed (ProtectedRoute) app pages with no public sibling that
@@ -43,10 +42,7 @@ const AUTH_PREFIXES = [
   // ── The dual-surface pages ────────────────────────────────────────────
   // /help, /legal and /support are reachable BOTH logged out (marketing
   // Footer destinations) and from inside the app (Profile → Legal & Policies /
-  // Help Center). "/subscription" below is a dead entry: that route was
-  // removed in 49f4f2f30 and Membership lives at /profile?tab=subscription,
-  // already covered by "/profile" above. It is left in place because this is
-  // a comment-only correction; the entry matches nothing.
+  // Help Center).
   //
   // They used to be deliberately EXCLUDED here, because PublicLayout gave
   // everyone the marketing Navbar and the rail would have stacked a second
@@ -62,7 +58,7 @@ const AUTH_PREFIXES = [
   // so they have to be named here for the rail to own their nav. Logged-out
   // visitors are unaffected: the rail is additionally gated on `!!user` in
   // useAppShellViewport, so it still never shows on the public surface.
-  "/help", "/legal", "/support", "/subscription",
+  "/help", "/legal", "/support",
   // /terms, /privacy and /rules render the SAME Legal page through the same
   // PublicLayout (real routes since 8570fdbef, 2026-09-11) but were never
   // named here, so signed in they got the app shell with NO rail, top bar or
@@ -82,7 +78,9 @@ const AUTH_PREFIXES = [
 
 // Path prefixes that MUST NOT get the rail even though they'd otherwise
 // match an AUTH_PREFIXES entry.
-const AUTH_PREFIX_EXCLUSIONS: string[] = [];
+// The public job page /jobs/<id> (PublicLayout, marketing Navbar + Footer)
+// starts with the Jobs tab's "/jobs" but is not an app screen.
+const AUTH_PREFIX_EXCLUSIONS: string[] = ["/jobs/"];
 
 // `/admin` is NOT here any more. It was, back when the admin console rendered
 // its own top bar and its own left rail — a self-contained shell that did not

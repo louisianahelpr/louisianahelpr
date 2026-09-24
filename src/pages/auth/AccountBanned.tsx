@@ -93,7 +93,7 @@ const AccountBanned = () => {
     if (isLoading) return;
     if (!user) { navigate("/login", { replace: true }); return; }
     if (!profile?.ban_status || !(BAN_STATUSES as readonly string[]).includes(profile.ban_status)) {
-      navigate("/dashboard", { replace: true });
+      navigate("/home", { replace: true });
     }
   }, [user, profile, isLoading, navigate]);
 

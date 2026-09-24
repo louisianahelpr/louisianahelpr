@@ -22,7 +22,7 @@ No code changed; nothing committed.
 | Reduce-Transparency rule survives minification in the **bundle** | `dist/assets/index-8-a40FbE.css` — the `@supports` block carries BOTH `-webkit-backdrop-filter:none` and `backdrop-filter:none`; per-theme opaque overrides present for `.liquid-glass`, `.glass-modal`, `.glass-nav` |
 | Zero horizontal overflow, 14 routes at 402px | `results.json` — `scrollWidth == clientWidth == 402` on every route |
 | Form validation names the missing field (no dead disabled button) | login empty submit → "Add your email address" / "Add your password"; support → "Please tell us your name" |
-| Guest gate explains itself and preserves intent | `/my-jobs` → `/login?redirect=%2Fmy-jobs` + "That page needs an account. Log in and we'll take you straight back to it." |
+| Guest gate explains itself and preserves intent | `/jobs` → `/login?redirect=%2Fmy-jobs` + "That page needs an account. Log in and we'll take you straight back to it." |
 | Landing CTAs, header nav, job-card tap, legal tabs, 404 | all changed route or content; `operate/operate.json` |
 | No retired green brand asset anywhere | `app-icon-1024.png`, `apple-touch-icon.png`, `helpr-splash-icon.png`, `favicon-32.png` — 0% strongly-green pixels |
 | No JS runtime errors on any guest route | only 404s for `_vercel/*` analytics scripts, absent from a local preview server by construction |

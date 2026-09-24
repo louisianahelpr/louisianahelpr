@@ -114,7 +114,7 @@ describe("Q94: the press run writes a pass only for screens it walked cleanly", 
       { route: "/help", status: "error-on-load", failed: 1 },
       { route: "/signup", status: "session-lost" },
       { route: "/login", status: "uncovered" },
-      { route: "/dashboard", status: "harness-error", failed: 1 },
+      { route: "/home", status: "harness-error", failed: 1 },
       { route: "/", status: "ok", failed: 0 },
     ]);
     expect(passes).toEqual(["/", "/jobs/abc"]);

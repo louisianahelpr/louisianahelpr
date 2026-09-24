@@ -54,7 +54,7 @@ terminal states the Activity tabs expose (`completed`, `cancelled`,
 `revision_requested`, `disputed`). Buckets are the five in
 `src/components/job-card/activityFilters.ts`.
 
-### Side 1 — jobs the account POSTED (`/my-posts`), helper = Hallie Helper
+### Side 1 — jobs the account POSTED (`/posts`), helper = Hallie Helper
 
 | NN | Tracker stage | `jobs.status` | `payment_status` | Bucket (measured) | Title |
 |---|---|---|---|---|---|
@@ -72,7 +72,7 @@ terminal states the Activity tabs expose (`completed`, `cancelled`,
 | 12 | Disputed | disputed | escrow | needs_you | Move a piano across the house |
 | 13 | Cancelled | cancelled | **refunded** | cancelled | Two dog walks while I travel |
 
-### Side 2 — jobs the account IS DOING (`/my-jobs`), poster = Perry Poster
+### Side 2 — jobs the account IS DOING (`/jobs`), poster = Perry Poster
 
 | NN | Tracker stage | `jobs.status` | `payment_status` | Bucket (measured) | Title |
 |---|---|---|---|---|---|
@@ -128,7 +128,7 @@ terminal states the Activity tabs expose (`completed`, `cancelled`,
    and `cancelled` sits at step 1, which is the documented render-time refusal,
    not a seeding error.
 3. **Driven in Playwright Chromium at 375×812**, signed in as each account, all
-   five bucket tabs on `/my-posts` and `/my-jobs` plus `/messages`. Zero
+   five bucket tabs on `/posts` and `/jobs` plus `/messages`. Zero
    horizontal overflow on every screen; zero console errors on account B, only
    4× HTTP 400 from an unrelated background request on account A.
 4. **Public-browse leak checked as a signed-out visitor** — see below.

@@ -286,15 +286,15 @@ for (const vw of [375, 1440] as const) {
     // frozen that mistake into the suite. Profile is the one main screen not
     // built on PageScaffold, so the thing worth asserting is not a number — it
     // is that its tab pages land on the same edge as the screens that ARE.
-    // Measured on prod at 1440 (frame 0->1192): /dashboard, /my-posts,
+    // Measured on prod at 1440 (frame 0->1192): /home, /posts,
     // /messages all put `.page-panel` at 48->1144 and ?tab=reviews put its card
     // at 48->1144. Identical. A number would have to be re-chosen every time the
     // shared gutter changes; this does not.
     const sibling = await (async () => {
-      await page.goto("/dashboard");
+      await page.goto("/home");
       await settle(page);
       await clearAccountHiccup(page);
-      await expect(page.locator(".page-panel").first(), "no PageScaffold panel on /dashboard").toBeVisible({ timeout: 45_000 });
+      await expect(page.locator(".page-panel").first(), "no PageScaffold panel on /home").toBeVisible({ timeout: 45_000 });
       await page.waitForTimeout(700);
       return page.evaluate(() => {
         const el = document.querySelector<HTMLElement>(".page-panel");

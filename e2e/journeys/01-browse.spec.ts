@@ -142,10 +142,10 @@ test(authedTitle, async ({ browser, request, journey }) => {
 
   let total = 0;
   await test.step("signed-in Browse lists jobs", async () => {
-    await page.goto("/dashboard");
+    await page.goto("/home");
     await expect(cards.first()).toBeVisible({ timeout: 60_000 });
     total = await cards.count();
-    await assertHealthy(page, "/dashboard browse");
+    await assertHealthy(page, "/home browse");
     await journey.milestone(page, "helper-browse");
   });
 

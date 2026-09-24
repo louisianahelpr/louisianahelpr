@@ -77,7 +77,7 @@ export function jobDateMs(dateNeeded: string | null | undefined): number | null 
   // THROWS `RangeError: Invalid time value` on `new Date(NaN)` rather than
   // returning a bad answer. That throw escapes whatever is calling — and the
   // busiest caller is the `useMemo` in `activityFilters` that buckets the
-  // Activity list, so one malformed row took /my-posts and /my-jobs to the
+  // Activity list, so one malformed row took /posts and /jobs to the
   // error boundary ("This page hit a problem.") with every job on them gone.
   // An unreadable date is not a reason to lose the page: return null, which
   // every consumer here already handles as "no opinion" (`isPastDue` → false,

@@ -199,7 +199,7 @@ export function GroupJobHelpers({
         title: "You're no longer on this group job",
         message: "The person who posted this job is still putting this crew together and has taken you off it. You haven't been charged and nothing is owed.",
         type: "job_updates",
-        link: `/my-jobs?job=${jobId}`,
+        link: `/jobs?job=${jobId}`,
       });
       if (notifyError) {
         console.error("[GroupJobHelpers] removal notification failed:", notifyError);

@@ -19,7 +19,7 @@ const SHEET_COLUMNS =
 // IT OPENS THE JOB SHEET. It used to raise a sonner toast —
 // `Quick Apply: "<title>" ($40)` with an "Apply now" action — for the single
 // most common notification link in the product (470 of 1,584 prod
-// `notifications` rows carry `/dashboard?quickApply=<id>`, plus `/jobs/<id>`,
+// `notifications` rows carry `/home?quickApply=<id>`, plus `/jobs/<id>`,
 // which redirects here). Owner, 2026-09-11: "jobs should never show like
 // this in a toast." A toast is transient feedback; a job is a price, a
 // location, a date, a poster, photos and a money decision, and the surface
@@ -53,7 +53,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onOpenJob, onHa
   //   4. effect re-runs     → `shown` is already true, so it bails forever
   //
   // The prompt was gone, permanently, and nothing logged. That is the single
-  // most common notification link in the product: `/dashboard?quickApply=<id>`
+  // most common notification link in the product: `/home?quickApply=<id>`
   // is what every job-match notification carries — 470 of the 1,584 rows in
   // prod `notifications`, plus `/jobs/<id>`, which redirects here. Every one of
   // them opened the feed and said nothing about the job it was for.
@@ -70,7 +70,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onOpenJob, onHa
    * they cannot apply to something they never tried to apply to.
    */
   const goToOwnPost = useCallback(
-    (id: string) => navigate(`/my-posts?highlight=${encodeURIComponent(id)}`, { replace: true }),
+    (id: string) => navigate(`/posts?highlight=${encodeURIComponent(id)}`, { replace: true }),
     [navigate],
   );
 
@@ -208,7 +208,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onOpenJob, onHa
           // `?job=` rather than `?highlight=`: Activity resolves the right
           // bucket from the job's LIVE state, so this keeps working as the job
           // moves from in-progress to completed.
-          navigate(`/my-jobs?job=${encodeURIComponent(quickApplyId)}`, { replace: true });
+          navigate(`/jobs?job=${encodeURIComponent(quickApplyId)}`, { replace: true });
           return;
         }
 

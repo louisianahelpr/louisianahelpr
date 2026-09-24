@@ -8,11 +8,11 @@
 --   notifications.link = '/jobs/5eed0b10-0000-4000-8000-000000000005'
 --   select count(*) from jobs where id = '5eed0b10-…-000000000005'  → 0
 --
--- /jobs/:id bounces a signed-in reader to /dashboard?quickApply=<id>, the
+-- /jobs/:id bounces a signed-in reader to /home?quickApply=<id>, the
 -- browse view and the party-scoped jobs read both return zero rows, and the
 -- reader is told to "try again in a few minutes" about a job that is gone for
--- good. Other shapes fail differently but just as dead: /my-posts?job=<gone>,
--- /dashboard?job=<gone> (silently does nothing), /messages?jobId=<gone>
+-- good. Other shapes fail differently but just as dead: /posts?job=<gone>,
+-- /home?job=<gone> (silently does nothing), /messages?jobId=<gone>
 -- (messages are ON DELETE CASCADE, so the thread is gone too).
 --
 -- ── Why it happens: which layer ─────────────────────────────────────────────
@@ -27,10 +27,10 @@
 -- Measured on prod 2026-09-22 (read-only), links whose job id
 -- (notification_job_id_from_link) names no row in public.jobs:
 --   /messages?jobId=<id>&userId=<id>   80
---   /my-posts?job=<id>                 47
---   /dashboard?job=<id>                 4
+--   /posts?job=<id>                 47
+--   /home?job=<id>                 4
 --   /jobs/<id>                          4
---   /my-jobs?job=<id>                   3        total 138 of 1,744 rows
+--   /jobs?job=<id>                   3        total 138 of 1,744 rows
 -- The 97 other links carrying a uuid are /admin?view=people&user=<id> (92)
 -- and /post-job?offerTo=<id> (5); none names a live or dead job.
 --

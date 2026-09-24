@@ -711,7 +711,7 @@ export function ConversationList({
   // or disappear from, and the old paragraph's "permanent dead band above the
   // empty state" is not dead: it holds the tabs and the search the owner asked
   // to be able to see on an empty inbox — the same "looks broken" shape just
-  // fixed on /my-posts and /my-jobs.
+  // fixed on /posts and /jobs.
   //
   // Measured on the built app, prod data, before → after:
   //   375  empty inbox   thread area y=83  → y=127      tabs: none → 293x42
@@ -1366,7 +1366,7 @@ export function ConversationList({
                 title="No messages yet"
                 body="Apply to a job or accept a Helpr's offer — conversations appear here once they start."
                 action={
-                  <BarkPillButton onClick={() => navigate("/dashboard")}>
+                  <BarkPillButton onClick={() => navigate("/home")}>
                     Browse Jobs
                   </BarkPillButton>
                 }

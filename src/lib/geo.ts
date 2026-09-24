@@ -24,7 +24,7 @@ export function parseNearbyFilter(value: string): number | null {
  * TRUST AND PRESENTATION FOR A DISTANCE OR ETA SHOWN TO A USER
  *
  * ── THE REPORT ─────────────────────────────────────────────────────────────
- * Owner, 2026-09-19, /dashboard: the browse cards read "27h 6m · 1634 mi",
+ * Owner, 2026-09-19, /home: the browse cards read "27h 6m · 1634 mi",
  * "29h 52m · 1813 mi", "29h 28m · 1797 mi", "28h 23m · 1731 mi" for jobs in
  * Shreveport, New Iberia, Lafayette and Lake Charles — "why is this showing
  * here it hasnt before".

@@ -1,4 +1,4 @@
-// CLASS GUARD — every /dashboard surface that COUNTS or SHOWS open jobs must
+// CLASS GUARD — every /home surface that COUNTS or SHOWS open jobs must
 // apply the same viewer-local exclusions.
 //
 // THE CLASS, from the owner's own reports:
@@ -20,7 +20,7 @@
 //      appears here on the next run, un-evidenced, and this file goes red
 //      naming the surfaces that have not been taught about it.
 //   2. The INVENTORY of surfaces is derived from the WORLD, not declared:
-//      we walk /dashboard's own import graph and find every module that reads
+//      we walk /home's own import graph and find every module that reads
 //      an open-job source (`open_jobs_browse` or `get_open_jobs_for_map`).
 //      A fourth surface appearing on this screen fails the test until it is
 //      given a chain and its evidence.
@@ -124,7 +124,7 @@ const REGISTRY = "src/pages/home/viewerFeedExclusions.ts";
 const DASHBOARD_ENTRY = "src/pages/home/Dashboard.tsx";
 
 /**
- * The two things a /dashboard surface can read the open-job board from —
+ * The two things a /home surface can read the open-job board from —
  * matched at the CALL, not as a substring, so a mention in a comment or in
  * the generated types file is not mistaken for a surface.
  */
@@ -179,7 +179,7 @@ const ROUTED_PAGES = new Set(
 );
 const isOtherPage = (rel: string) => rel !== DASHBOARD_ENTRY && ROUTED_PAGES.has(rel);
 
-/** Every non-test module reachable from /dashboard, this screen only. */
+/** Every non-test module reachable from /home, this screen only. */
 function dashboardImportGraph(): string[] {
   const seen = new Set<string>();
   const queue = [DASHBOARD_ENTRY];
@@ -309,11 +309,11 @@ describe("viewer-feed exclusions — the shared predicate is complete", () => {
   });
 });
 
-describe("every /dashboard open-job surface applies every exclusion rule", () => {
+describe("every /home open-job surface applies every exclusion rule", () => {
   const FIELDS = exclusionFields();
   const GRAPH = dashboardImportGraph();
 
-  it("walks a real import graph off /dashboard", () => {
+  it("walks a real import graph off /home", () => {
     // Floor: without this the readers scan below could find nothing and the
     // coverage diff would pass on an empty world.
     expect(GRAPH.length).toBeGreaterThan(50);
@@ -340,7 +340,7 @@ describe("every /dashboard open-job surface applies every exclusion rule", () =>
     const undeclared = readers.filter((r) => !declared.has(r));
     expect(
       undeclared,
-      "a new /dashboard surface reads the open-job board but is not in " +
+      "a new /home surface reads the open-job board but is not in " +
         "SURFACE_CHAINS — give it a chain and evidence for every exclusion rule",
     ).toEqual([]);
   });

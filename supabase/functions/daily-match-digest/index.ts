@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
         title,
         message,
         type: "job_match",
-        link: `/dashboard`,
+        link: `/home`,
         read: false,
       });
     }

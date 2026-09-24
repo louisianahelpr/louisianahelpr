@@ -29,7 +29,7 @@ const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialo
  * existed — a dead end that forced recipients to a 404 instead of letting
  * them preview the job. This route closes that gap:
  *   - Signed-in recipients are handed to the real dashboard apply flow
- *     (`/dashboard?quickApply={id}`), which already surfaces a "Apply now"
+ *     (`/home?quickApply={id}`), which already surfaces a "Apply now"
  *     prompt for the job.
  *   - Guests get the same read-only preview the Browse grid opens, with
  *     apply/report routed to /signup. Closing returns them to the public
@@ -102,7 +102,7 @@ const JobDetail = () => {
 
   // Signed-in recipients land in their real dashboard apply flow.
   if (!authLoading && user) {
-    return <Navigate to={`/dashboard?quickApply=${id}`} replace />;
+    return <Navigate to={`/home?quickApply=${id}`} replace />;
   }
 
   const requireSignup = () => navigate("/signup");
@@ -142,7 +142,7 @@ const JobDetail = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate("/dashboard")}
+                  onClick={() => navigate("/home")}
                   className="squircle"
                 >
                   Browse Open Jobs
@@ -159,7 +159,7 @@ const JobDetail = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate("/dashboard")}
+                  onClick={() => navigate("/home")}
                   className="squircle"
                 >
                   Browse Open Jobs
@@ -183,7 +183,7 @@ const JobDetail = () => {
                 guest
                 job={job}
                 effectiveFee={TIER_PERKS.free.platformFeePercent}
-                onClose={() => navigate("/dashboard")}
+                onClose={() => navigate("/home")}
                 onApply={requireSignup}
                 onReport={requireSignup}
               />

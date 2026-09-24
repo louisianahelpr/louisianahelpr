@@ -111,7 +111,7 @@ export const TITLE_BAR_PADDING = "!py-2 lg:!py-2.5";
  * Zero horizontal overflow on both surfaces at 320 / 375 / 1440, light+dark.
  */
 export function DashboardTitleBar({
-  emblemTo = "/dashboard",
+  emblemTo = "/home",
   status,
   trailing,
   actions,

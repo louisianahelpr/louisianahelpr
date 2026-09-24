@@ -51,7 +51,7 @@ describe("press-every-control mutation gate (prod)", () => {
   });
 
   it("never mutates the shared SEED fixtures, even though they are test-owned", async () => {
-    expect(await gate({ ...base, label: "Cancel", routeUrl: "/my-posts", meta: { rowText: "SEED Mow and edge a corner lot · Perry Poster" } })).toBe(safety.SKIP_SHARED_SEED);
+    expect(await gate({ ...base, label: "Cancel", routeUrl: "/posts", meta: { rowText: "SEED Mow and edge a corner lot · Perry Poster" } })).toBe(safety.SKIP_SHARED_SEED);
     expect(await gate({ ...base, label: "Cancel job", routeUrl: "/jobs/x", urlOwned: { id: "x", owned: false, shared: true, why: "shared SEED fixture" } })).toBe(safety.SKIP_SHARED_SEED);
     expect(safety.isSharedSeed("SEED Feed and walk two dogs")).toBe(true);
     expect(safety.isSharedSeed("Reseed the lawn")).toBe(false);

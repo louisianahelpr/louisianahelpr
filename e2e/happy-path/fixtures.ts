@@ -687,7 +687,7 @@ function handleRest(
   // `.insert(...).select(...).single()` in the app began 406ing against the
   // mock — because zero rows genuinely IS a 406. That is correct PostgREST
   // behaviour for a write that returned nothing, and wrong as a model of a
-  // write that SUCCEEDED. It failed the empty-state sweep on /dashboard via
+  // write that SUCCEEDED. It failed the empty-state sweep on /home via
   // `useReferralData`'s code insert, and the 406 looked like an app defect.
   // (It is not: `referral_codes` has matching INSERT and SELECT policies in
   // prod — `with_check (user_id = auth.uid())` and `using (user_id =
@@ -798,10 +798,10 @@ export async function seedAuthedSession(context: BrowserContext, user: FakeUser,
   // …and the first-run OnboardingTour, for the same reason.
   //
   // OnboardingTour (src/components/OnboardingTour.tsx) opens on a
-  // `setTimeout(…, 1500)` on /dashboard for any account that has not completed
+  // `setTimeout(…, 1500)` on /home for any account that has not completed
   // it — which every freshly-seeded test session is. It is a MODAL Radix
   // dialog: it holds focus, blurs the page behind it, and eats the first tap
-  // and the first Escape. A spec that lands on /dashboard without suppressing
+  // and the first Escape. A spec that lands on /home without suppressing
   // it is driving the tour, not the app, and the failures it produces are
   // artifacts of the harness (focus "not moved into the overlay", Escape "did
   // not close it", a tap that opened nothing, axe scanning a mid-fade
@@ -879,8 +879,8 @@ export async function checkA11y(
  * "1440" variant there rendered a 4320x2700-pixel backing store, a screen no
  * device has (desktop Safari and iPad are 2x at most). CI's Linux WebKit
  * composites in software, and cost follows pixels: nightly-webkit 34924529210's
- * traces show one painted frame every 3.2-6.7s at 1440@3x on /my-posts and
- * /my-jobs (each Activity card carries its own backdrop-filter) against
+ * traces show one painted frame every 3.2-6.7s at 1440@3x on /posts and
+ * /jobs (each Activity card carries its own backdrop-filter) against
  * 1.1-1.6s at 375@3x, so every click's "stable" check (two frames) took 7-10s
  * and those tests timed out at 30s. The same tests take 4-6s locally on a GPU.
  *

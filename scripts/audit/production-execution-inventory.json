@@ -101,7 +101,7 @@
     "last_seen": "2026-09-22"
   },
   "instant-job-match": {
-    "observable": "notifications titled '% Match for you%' / link '/dashboard?quickApply='",
+    "observable": "notifications titled '% Match for you%' / link '/home?quickApply='",
     "why": "CORRECTED 2026-09-22: a prior pass called this unreachable after searching src/ and the function dirs. It IS invoked \u2014 stripe-webhook/handlers/checkoutSessionCompleted.ts:877 calls it on every funded job, so it runs on the money path with no UI, which is why it is not visible on any page. Migration 20260902015059 records 485 notifications from this producer historically, but 0 current rows carry its title or link, so it is executed-but-not-currently-attributable. Fails soft: the webhook logs WARN and continues if it throws.",
     "status": "EXECUTED-HISTORICALLY-NOT-ATTRIBUTABLE"
   },

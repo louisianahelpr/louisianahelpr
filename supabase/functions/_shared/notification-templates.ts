@@ -81,7 +81,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
       title: "Work has started",
       message: `Your Helpr started working on "${jobTitle(f)}".`,
       type: "info",
-      link: `/my-posts?job=${f.job.id}`,
+      link: `/posts?job=${f.job.id}`,
     }),
   },
   dispute_withdrawn: {
@@ -90,7 +90,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
       title: "Dispute withdrawn",
       message: `The Helpr withdrew the dispute on "${jobTitle(f)}". The payment is off hold and back on its normal schedule.`,
       type: "info",
-      link: `/my-posts?job=${f.job.id}`,
+      link: `/posts?job=${f.job.id}`,
     }),
   },
   dispute_response: {
@@ -105,7 +105,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
           ? `The Helpr added their side of the dispute on "${jobTitle(f)}". An admin is reviewing it.`
           : `The Helpr has responded to the dispute on "${jobTitle(f)}". Please review and mark resolved or escalate.`,
         type: "info",
-        link: `/my-posts?job=${f.job.id}`,
+        link: `/posts?job=${f.job.id}`,
       };
     },
   },
@@ -115,7 +115,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
       title: "Helpr acknowledged the revision",
       message: "Your Helpr has seen your revision request and will fix it. Payment stays held until you confirm.",
       type: "info",
-      link: `/my-posts?job=${f.job.id}`,
+      link: `/posts?job=${f.job.id}`,
     }),
   },
   job_confirmed: {
@@ -126,7 +126,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
         title: byPoster ? "The person who posted this job confirmed it!" : "Helpr confirmed the job!",
         message: `${byPoster ? "The person who posted this job" : "The Helpr"} confirmed they're committed to "${jobTitle(f)}". Tap to confirm your side too.`,
         type: "info",
-        link: byPoster ? `/my-jobs?job=${f.job.id}` : `/my-posts?job=${f.job.id}`,
+        link: byPoster ? `/jobs?job=${f.job.id}` : `/posts?job=${f.job.id}`,
       };
     },
   },
@@ -136,7 +136,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
       title: "Dispute resolved ✓",
       message: `The person who posted this job confirmed the issue on "${jobTitle(f)}" is resolved. Payment will be released.`,
       type: "payment",
-      link: `/my-jobs?job=${f.job.id}`,
+      link: `/jobs?job=${f.job.id}`,
     }),
   },
   revision_requested: {
@@ -149,7 +149,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
         title: "Revision requested",
         message: `The person who posted this job wants a small fix on "${d.slice(0, 80)}${d.length > 80 ? "…" : ""}". Tap to see details.`,
         type: "warning",
-        link: `/my-jobs?job=${f.job.id}`,
+        link: `/jobs?job=${f.job.id}`,
       };
     },
   },
@@ -159,7 +159,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
       title: "✅ Arrival confirmed",
       message: `The person who posted this job confirmed you've arrived for "${jobTitle(f)}".`,
       type: "success",
-      link: `/my-jobs?job=${f.job.id}`,
+      link: `/jobs?job=${f.job.id}`,
     }),
   },
   work_confirmed: {
@@ -168,7 +168,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
       title: "✅ Work confirmed",
       message: `The person who posted this job confirmed you're working on "${jobTitle(f)}".`,
       type: "success",
-      link: `/my-jobs?job=${f.job.id}`,
+      link: `/jobs?job=${f.job.id}`,
     }),
   },
   job_offer: {
@@ -185,7 +185,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
         title: "📋 New job offer!",
         message: `You've been selected for "${jobTitle(f)}". ${respond}`,
         type: "info",
-        link: `/my-jobs?job=${f.job.id}`,
+        link: `/jobs?job=${f.job.id}`,
       };
     },
   },
@@ -202,7 +202,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
           ? `${who} declined your application for "${jobTitle(f)}": ${note.slice(0, 500)}`
           : `${who} declined your application for "${jobTitle(f)}".`,
         type: "info",
-        link: `/my-jobs?job=${f.job.id}`,
+        link: `/jobs?job=${f.job.id}`,
       };
     },
   },

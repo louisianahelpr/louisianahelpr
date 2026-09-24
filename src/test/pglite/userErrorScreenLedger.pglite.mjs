@@ -175,9 +175,9 @@ check("fingerprint = screen + message with ids/numbers stripped: two people, two
 
 // ── seed / non-surface / server rows -> nothing ─────────────────────────────
 const before = (await items()).length;
-await ins(SEED, { source: "ErrorState", kind: "user-error-screen", screen: "/dashboard", origin: "client" }, "seed screen");
-await ins(REAL, { source: "ErrorState", kind: "user-error-screen", screen: "/dashboard", seed: "true", origin: "client" }, "seed-tagged");
-await ins(REAL, { source: "QueryCache", screen: "/dashboard", origin: "client" }, "a failed request, not a screen");
+await ins(SEED, { source: "ErrorState", kind: "user-error-screen", screen: "/home", origin: "client" }, "seed screen");
+await ins(REAL, { source: "ErrorState", kind: "user-error-screen", screen: "/home", seed: "true", origin: "client" }, "seed-tagged");
+await ins(REAL, { source: "QueryCache", screen: "/home", origin: "client" }, "a failed request, not a screen");
 await db.query(`INSERT INTO public.error_logs (severity, message, tags) VALUES ('error', 'server row', '{"source":"ErrorState","kind":"user-error-screen","screen":"/x"}')`);
 check("seed user, seed-tagged row, non-surface client row, server row -> no new item",
   (await items()).length === before, `before=${before} after=${(await items()).length}`);

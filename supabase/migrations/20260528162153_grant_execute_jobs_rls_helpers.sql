@@ -5,7 +5,7 @@
 -- (likely a Supabase advisor pass) stripped.
 --
 -- Symptom (2026-05-28): after PR #355 fixed the post-sign-in /login
--- bounce, sign-in lands on /dashboard but the BrowseTasks feed still
+-- bounce, sign-in lands on /home but the BrowseTasks feed still
 -- renders the ErrorState. The view query
 --   supabase.from('open_jobs_browse').select(...)
 -- (src/hooks/useDashboardData.ts:148) throws inside React Query, so

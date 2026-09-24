@@ -2,13 +2,13 @@
  * Last-route memory, for native resume.
  *
  * THE BUG THIS EXISTS FOR (owner-reported, on device): pull down the
- * notification shade, come back, and the app is on /dashboard instead of the
+ * notification shade, come back, and the app is on /home instead of the
  * screen you were reading. No splash screen appears, so the NATIVE process
  * never died — what died is the WKWebView content process. iOS jetsams it
  * while the app is backgrounded and reloads it on resume, which re-runs all
  * our JS from the web entrypoint. That entrypoint is always `/`, so
  * `resolveNativeLaunchRoute()` does its job perfectly and sends the
- * (signed-in) user to /dashboard. The router is not broken; it simply has no
+ * (signed-in) user to /home. The router is not broken; it simply has no
  * memory of where the user was.
  *
  * A remount is indistinguishable from a cold start from inside the WebView —
@@ -82,7 +82,7 @@ const NEVER_RESTORE = [
  * Deep screens are reached deliberately and are cheap to re-reach. Tabs are
  * where you live. Restoring only tabs means a wrong guess costs nothing.
  */
-const RESTORABLE_TABS = ["/dashboard", "/my-posts", "/my-jobs", "/messages", "/profile"];
+const RESTORABLE_TABS = ["/home", "/posts", "/jobs", "/messages", "/profile"];
 
 /** Is this a path worth coming back to? */
 export function isRestorablePath(path: string): boolean {
@@ -104,7 +104,8 @@ export function isRestorablePath(path: string): boolean {
 
   // Main tabs only — see RESTORABLE_TABS. A thread inside /messages still
   // qualifies via the child-segment check, since that is still the tab.
-  return RESTORABLE_TABS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  // /jobs/<id> is the public job page, not a child of the Jobs tab.
+  return RESTORABLE_TABS.some((p) => pathname === p || (p !== "/jobs" && pathname.startsWith(`${p}/`)));
 }
 
 /**

@@ -39,7 +39,7 @@ BEGIN
     'Your application was seen',
     'The poster viewed your application for "' || COALESCE(v_job_title, 'a job') || '".',
     'info',
-    '/my-jobs?highlight=' || NEW.id
+    '/jobs?highlight=' || NEW.id
   );
 
   RETURN NEW;

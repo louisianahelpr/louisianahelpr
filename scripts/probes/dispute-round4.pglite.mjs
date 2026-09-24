@@ -195,7 +195,7 @@ BEGIN
       'info',
       'Dispute resolved',
       'A decision has been made on "' || COALESCE(_job_title, 'your job') || '": ' || _decision_text,
-      '/my-posts?job=' || _job_id::text,
+      '/posts?job=' || _job_id::text,
       false
     );
   END IF;
@@ -207,7 +207,7 @@ BEGIN
       'info',
       'Dispute resolved',
       'A decision has been made on "' || COALESCE(_job_title, 'a job you worked') || '": ' || _decision_text,
-      '/my-jobs?job=' || _job_id::text,
+      '/jobs?job=' || _job_id::text,
       false
     );
   END IF;

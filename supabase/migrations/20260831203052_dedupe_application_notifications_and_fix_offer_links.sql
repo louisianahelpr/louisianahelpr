@@ -3,9 +3,9 @@
 --
 -- 1. ACCEPT sent the helper TWO notifications ~2s apart with DIFFERENT links.
 --    Producer A: this trigger's `accepted` branch — "Application accepted!",
---    link '/dashboard', no mention of the response deadline.
+--    link '/home', no mention of the response deadline.
 --    Producer B: useOfferHandlers.confirmAcceptWithDeadline -> create-notification
---    — "New job offer!", link '/my-jobs?filter=offered', and it names the
+--    — "New job offer!", link '/jobs?filter=offered', and it names the
 --    deadline the poster actually chose.
 --    B is the one the helper has to act on; A points at a screen where the
 --    offer cannot be accepted, and the offer expires. Drop A. (The email is
@@ -13,7 +13,7 @@
 --    service key, same as this trigger did.)
 --
 -- 2. DECLINE also sent two: this trigger's `rejected` branch ("was not
---    selected", link '/dashboard') plus a client insert carrying the poster's
+--    selected", link '/home') plus a client insert carrying the poster's
 --    actual reason but NO link at all (`link` defaults to null in both
 --    src/lib/notifications.ts and create-notification), i.e. a notification
 --    with nothing to tap.
@@ -25,7 +25,7 @@
 --    useOfferHandlers.declineApplication).
 --
 -- 3. The direct-offer notification linked to '/activity?tab=offers'.
---    '/activity' was a bare <Navigate to="/my-posts">: it sent the helper to
+--    '/activity' was a bare <Navigate to="/posts">: it sent the helper to
 --    the POSTER surface and dropped the query string on the way, so the offer
 --    — which carries a 24h response_deadline — was reachable from nowhere in
 --    the app. The route now maps legacy query values properly
@@ -74,7 +74,7 @@ BEGIN
     v_title := 'New application';
     v_message := 'Someone applied to "' || job_title || '"';
     v_type := 'application';
-    v_link := '/my-posts';
+    v_link := '/posts';
 
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (v_user_id, v_title, v_message, v_type, v_link);
@@ -105,7 +105,7 @@ BEGIN
 
   -- NO 'accepted' branch. The client (useOfferHandlers) is the single
   -- producer for an accept: only it knows the response deadline the poster
-  -- picked, and only its link ('/my-jobs?filter=offered') reaches the screen
+  -- picked, and only its link ('/jobs?filter=offered') reaches the screen
   -- where the helper can actually accept before that deadline runs out.
 
   IF TG_OP = 'UPDATE' AND NEW.status = 'rejected' AND OLD.status = 'pending' THEN
@@ -119,8 +119,8 @@ BEGIN
     END IF;
     v_type := 'info';
     -- A rejected application buckets to `cancelled` on the applied tab
-    -- (appliedActivityBucket). '/dashboard' showed the job board instead.
-    v_link := '/my-jobs?filter=cancelled';
+    -- (appliedActivityBucket). '/home' showed the job board instead.
+    v_link := '/jobs?filter=cancelled';
 
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (v_user_id, v_title, v_message, v_type, v_link);
@@ -174,7 +174,7 @@ BEGIN
       'new_offers',
       -- was '/activity?tab=offers' — a redirect to the POSTER surface that
       -- also discarded the query string.
-      '/my-jobs?filter=direct_offer'
+      '/jobs?filter=direct_offer'
     );
   END IF;
   RETURN NEW;

@@ -264,7 +264,7 @@ const AdminSidebar = ({
             collapsed && "justify-center px-0"
           )}
         >
-          <Link to="/dashboard" aria-label="Back to the app">
+          <Link to="/home" aria-label="Back to the app">
             <Home className="w-4 h-4" />
             {!collapsed && <span>Back to App</span>}
           </Link>

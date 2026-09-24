@@ -720,7 +720,7 @@ BEGIN
         || '": ' || v_reason
         || ' Because work had already started, we''re reviewing it — your payment stays in escrow until a decision is made, and you don''t need to do anything.',
       'warning',
-      '/my-posts?job=' || v_job.id::text
+      '/posts?job=' || v_job.id::text
     );
 
     RETURN v_result || jsonb_build_object(
@@ -759,7 +759,7 @@ BEGIN
       || '": ' || v_reason
       || ' They never started, so nothing was charged — the job is open to everyone again and your payment stays protected in escrow for whoever you pick next.',
     'warning',
-    '/my-posts?job=' || v_job.id::text
+    '/posts?job=' || v_job.id::text
   );
 
   RETURN v_result || jsonb_build_object('outcome', 'reopened');
@@ -970,7 +970,7 @@ BEGIN
           '" was not delivered before the deadline, so we opened a dispute for you. ' ||
           'The payment stays on hold and an admin will decide it — add your side.',
         'warning',
-        '/my-posts?job=' || _job_id::text
+        '/posts?job=' || _job_id::text
       );
     END IF;
     IF _helper IS NOT NULL THEN
@@ -982,7 +982,7 @@ BEGIN
           '" was not delivered before the deadline, so a dispute was opened automatically. ' ||
           'An admin will decide the payment — add your side.',
         'warning',
-        '/my-jobs?job=' || _job_id::text
+        '/jobs?job=' || _job_id::text
       );
     END IF;
   ELSIF _other IS NOT NULL THEN
@@ -994,8 +994,8 @@ BEGIN
         '". The payment is on hold while it is reviewed — add your side so an admin hears both.',
       'warning',
       CASE WHEN _other = _customer
-           THEN '/my-posts?job=' || _job_id::text
-           ELSE '/my-jobs?job=' || _job_id::text
+           THEN '/posts?job=' || _job_id::text
+           ELSE '/jobs?job=' || _job_id::text
       END
     );
   END IF;
@@ -1251,7 +1251,7 @@ BEGIN
       'info',
       'Dispute resolved',
       'A decision has been made on "' || COALESCE(_job_title, 'your job') || '": ' || _decision_text,
-      '/my-posts?job=' || _job_id::text,
+      '/posts?job=' || _job_id::text,
       false
     );
   END IF;
@@ -1263,7 +1263,7 @@ BEGIN
       'info',
       'Dispute resolved',
       'A decision has been made on "' || COALESCE(_job_title, 'a job you worked') || '": ' || _decision_text,
-      '/my-jobs?job=' || _job_id::text,
+      '/jobs?job=' || _job_id::text,
       false
     );
   END IF;
@@ -1367,8 +1367,8 @@ BEGIN
         '" was escalated. An admin will decide it — the payment stays on hold until they do.',
       'warning',
       CASE WHEN _other = _customer
-           THEN '/my-posts?job=' || _job_id::text
-           ELSE '/my-jobs?job=' || _job_id::text
+           THEN '/posts?job=' || _job_id::text
+           ELSE '/jobs?job=' || _job_id::text
       END
     );
   END IF;

@@ -220,7 +220,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           jobId={props.disputeJob.id}
           /* Which card this was opened from decides which five reasons the
              dialog offers and whose consequence copy it prints. Derived from
-             the job, not from the tab: `/my-posts` and `/my-jobs` both mount
+             the job, not from the tab: `/posts` and `/jobs` both mount
              this one dialog, and a poster who also worked a job would get the
              wrong list from a route check. */
           side={props.disputeJob.helper_id === props.user.id ? "helper" : "poster"}

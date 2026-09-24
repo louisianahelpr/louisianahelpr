@@ -44,7 +44,7 @@ Artifacts: `~/lh-audit-shots/visual-critic-2026-09-02/` — `probe.json` (188 ce
 | **The 7 tabs converted from routes today wear the canonical tab shell.** All of `PetProfiles`, `WorkRecord`, `HomeHistory`, `StrSettings`, `AutoTip`, `HelprWrapped`, `HelperAnalytics` open with `<div className="space-y-4">` + `<ProfileTabHeader>`, and all 23 tabs measure an identical **22.4px Bodoni Moda 700 `rgb(35,35,26)`** h1. HelperAnalytics in particular — the one that lost its own width wrapper — sits in the same column as its siblings with no gutter and no overflow at 375 or 1440. | `probe.json`, `375x812-light/profile-tab-*.png` |
 | **Both themes swap completely.** A single `bodyBg` across all 47 routes per theme (`rgb(240,242,244)` light, `rgb(20,22,26)` dark) and no unswapped custom hex found in any capture. Dark renders are legible and card surfaces keep their own ground distinct from the canvas. | `probe.json`, `375x812-dark/*` |
 | **The gloss trap is not currently firing.** Zero elements anywhere carry `btn-grad-primary` in their class list while computing `background-image: none` — checked across all 188 cells by reading the computed value, which is the only test that can detect it. | `probe.json` |
-| **Empty states are a strength.** `/my-jobs` empty renders a glyph tile, a serif headline, a subline that names the real counts ("but you have 3 in Waiting and 2 in Done") and a CTA that moves you somewhere useful. `/messages` desktop and the 404 are the same standard. | `375x812-light/my-jobs.png`, `nonexistent-404-guest.png` |
+| **Empty states are a strength.** `/jobs` empty renders a glyph tile, a serif headline, a subline that names the real counts ("but you have 3 in Waiting and 2 in Done") and a CTA that moves you somewhere useful. `/messages` desktop and the 404 are the same standard. | `375x812-light/my-jobs.png`, `nonexistent-404-guest.png` |
 | **The destructive-confirm tone is correctly reserved.** `BrandConfirmDialog` maps tone → shared `Button` variant, and Log Out (reversible) correctly gets the default gloss rather than the destructive red. Not a hierarchy defect. | `ui/BrandConfirmDialog.tsx:96-98` |
 
 ## 2. Defects — 10 filed
@@ -57,8 +57,8 @@ Artifacts: `~/lh-audit-shots/visual-critic-2026-09-02/` — `probe.json` (188 ce
 | VC-006 | MEDIUM | The AlertDialog close X is 32×44 — the twin of the Dialog X that was raised to 44×44 today, on the primitive behind ~33 confirmations |
 | VC-009 | MEDIUM | One of the six desktop nav-rail items is a different typeface, size, slant and weight from the other five |
 | VC-010 | MEDIUM | Four visual languages, three corner radii and three label scales for "pick one of N" |
-| VC-004 | LOW | The home screen has no visible title and three names ("Browse Jobs" / "Home" / `/dashboard`) |
-| VC-005 | LOW | `/my-jobs` stacks three glossy CTAs where its siblings show one |
+| VC-004 | LOW | The home screen has no visible title and three names ("Browse Jobs" / "Home" / `/home`) |
+| VC-005 | LOW | `/jobs` stacks three glossy CTAs where its siblings show one |
 | VC-007 | LOW | The one close X every popup shares is three different controls |
 | VC-008 | LOW | *(positive result — WD-001 verified clean in both engines; `gloss/chromium-filtersheet.png` vs `gloss/webkit-filtersheet.png`. Filed so the verifier can re-check it)* |
 
@@ -121,7 +121,7 @@ as part of the app; the two photo viewers are the odd ones, and deliberately so.
 
 - **6 of 188 cells timed out** in the harness (nav + probe + screenshot all
   exceeded their limits on the same cell): `/browse` 375-light, `/settings`
-  1440-light, `?tab=schedule` 1440-light, `/my-jobs` 1440-dark,
+  1440-light, `?tab=schedule` 1440-light, `/jobs` 1440-dark,
   `?tab=credentials` 1440-dark, `?tab=home_history` 1440-dark (each carries
   `navTimeout: true` in `probe.json`; each has a good capture elsewhere, e.g.
   `375x812-dark/my-jobs.png`). The failing set is
@@ -180,10 +180,10 @@ One thing I did fix, outside `src/`: **the capture harness.** See below.
 from `getSession()` without re-fetching, so `user.email_confirmed_at` is
 `undefined`, `ProtectedRoute.tsx:281-283` fires its email-unconfirmed gate, and
 `/account-pending` (finding the profile *is* approved) immediately re-navigates
-to `/dashboard`. **Every non-`allowPending` protected route therefore screenshots
+to `/home`. **Every non-`allowPending` protected route therefore screenshots
 the dashboard and files that PNG under the other route's name.** Measured:
-`/post-job` and `/gift-card` both landed on `/dashboard` with `bodyTextLen` 1016,
-identical to `/dashboard`, on cold load, on reload and on in-app `pushState`.
+`/post-job` and `/gift-card` both landed on `/home` with `bodyTextLen` 1016,
+identical to `/home`, on cold load, on reload and on in-app `pushState`.
 
 This is not a product bug — verified read-only against prod
 (`fncmgoasalhdgfwzhsqa`): `profiles.approval_status = 'approved'` and
@@ -229,7 +229,7 @@ claim in §1 has a named artifact on disk.
 45 routes/tabs × 2 viewports × 2 themes = 188 cells attempted, **182 completed**,
 6 unverified (listed in §3). 191 PNGs on disk.
 
-**Authed (17):** `/dashboard` `/browse` `/my-jobs` `/my-posts` `/messages`
+**Authed (17):** `/home` `/browse` `/jobs` `/posts` `/messages`
 `/post-job` `/jobs` `/settings` `/help` `/legal` `/gift-card` `/saved-helpers`
 `/earnings` `/schedule` `/availability` `/warnings` `/profile`
 

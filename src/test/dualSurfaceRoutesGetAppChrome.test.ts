@@ -71,3 +71,11 @@ describe("signed-in PublicLayout routes carry the app navigation (Q179)", () => 
     expect(routes.filter((r) => !authPages.some((p) => r.startsWith(p)))).toEqual([]);
   });
 });
+
+// @mutate src/lib/desktopNavRoutes.ts | const AUTH_PREFIX_EXCLUSIONS: string[] = ["/jobs/"]; | const AUTH_PREFIX_EXCLUSIONS: string[] = [];
+describe("the Jobs tab (/jobs) and the public job page (/jobs/<id>) are told apart", () => {
+  it("the rail shows on the Jobs tab but not on a job page", () => {
+    expect(isDesktopRailRoute("/jobs")).toBe(true);
+    expect(isDesktopRailRoute("/jobs/3f0c9a4e-0000-4000-8000-000000000000")).toBe(false);
+  });
+});

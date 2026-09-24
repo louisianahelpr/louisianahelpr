@@ -265,7 +265,7 @@ export default defineConfig({
         // production build) cannot intercept Supabase fetches before
         // page.route() mocks can handle them. Without this the SW's
         // NetworkFirst handler calls the real Supabase URL with our fake test
-        // tokens, gets 401s, and the /my-posts job list never renders.
+        // tokens, gets 401s, and the /posts job list never renders.
         serviceWorkers: "block",
       },
     },

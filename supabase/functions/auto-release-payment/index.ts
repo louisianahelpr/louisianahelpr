@@ -477,7 +477,7 @@ serve(async (req) => {
           // `?job=`, not `?filter=completed`: `completed` is a legacy filter key
           // with no chip in the five-bucket strip (the bucket is `done`), and the
           // bucket is resolved live by Activity from the job id.
-          type: "payment", link: `/my-jobs?job=${job.id}`,
+          type: "payment", link: `/jobs?job=${job.id}`,
         });
       }
       if (job.customer_id) {
@@ -487,7 +487,7 @@ serve(async (req) => {
           message: instantIds.has(job.id)
             ? `"${job.title}" released instantly per your Instant Release setting. The Helpr is paid ${STANDARD_PAYOUT_PHRASE}.`
             : `"${job.title}" was automatically marked complete after 24 hours. The Helpr is paid ${STANDARD_PAYOUT_PHRASE}.`,
-          type: "info", link: `/my-posts?job=${job.id}`,
+          type: "info", link: `/posts?job=${job.id}`,
         });
       }
       released++;

@@ -100,7 +100,7 @@ export function DisputedSection({
         return;
       }
       if (job.customer_id) {
-        // Copy and link (`/my-posts?job=`) are built server-side (Q223).
+        // Copy and link (`/posts?job=`) are built server-side (Q223).
         await notifyJobParty({ user_id: job.customer_id, job_id: job.id, template: "dispute_withdrawn" });
       }
       hapticSuccess();

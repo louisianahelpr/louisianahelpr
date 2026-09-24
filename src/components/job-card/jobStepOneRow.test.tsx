@@ -285,7 +285,7 @@ const CASES: Array<{
    *  note slot. A dead control with no explanation is the defect. */
   note?: RegExp;
 }> = [
-  // ── /my-jobs, Helpr ──
+  // ── /jobs, Helpr ──
   {
     /* THE START HAS NOT PASSED — and that is the whole state this case names.
        It was written `date_needed: TODAY, start_time: "00:00"`, which is a job
@@ -445,7 +445,7 @@ const CASES: Array<{
     minControls: 4,
     primary: ["Respond to Dispute"],
   },
-  // ── /my-posts, poster ──
+  // ── /posts, poster ──
   {
     name: "Posts · Open (Share · Boost · Edit · Cancel)",
     render: () => wrap(<OpenStep {...posterCtx(makeJob({ status: "open", helper_id: null }))} />),

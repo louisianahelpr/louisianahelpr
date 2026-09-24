@@ -107,7 +107,7 @@ const depthTo = (entry) => {
 let finalRoutes = [...new Set(affected)];
 if (argv.includes("--nearest") && finalRoutes.length) {
   if (isGlobal) {
-    finalRoutes = ["/dashboard"];
+    finalRoutes = ["/home"];
   } else {
     const scored = routes
       .filter((r) => finalRoutes.includes(r.path))

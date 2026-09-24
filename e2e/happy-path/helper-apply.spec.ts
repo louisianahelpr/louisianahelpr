@@ -5,7 +5,7 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks, mockTable, mockRpc, ch
 // surface appears.
 //
 // The contract this spec asserts:
-//   1. An authed helper lands on /dashboard without being bounced to /login
+//   1. An authed helper lands on /home without being bounced to /login
 //   2. The open-jobs feed surfaces the mocked job card
 //   3. Opening the job detail dialog shows an Apply affordance
 //   4. After apply, a confirmation toast / "Applied" indicator surfaces
@@ -76,7 +76,7 @@ const POSTER_PROFILE = {
 };
 
 test.describe("helper browse-and-apply happy path", () => {
-  test("authed helper sees open jobs on /dashboard", async ({ helperPage: page }) => {
+  test("authed helper sees open jobs on /home", async ({ helperPage: page }) => {
     await installSupabaseMocks(page, {
       user: FAKE_HELPER,
       rules: [
@@ -111,14 +111,14 @@ test.describe("helper browse-and-apply happy path", () => {
       }
     });
 
-    await page.goto("/dashboard");
+    await page.goto("/home");
 
     // The job title must surface in the feed — covers both the JobCard
     // and the section-heading code paths.
     try {
       await expect(page.getByText(OPEN_JOB.title)).toBeVisible({ timeout: 15_000 });
     } catch (e) {
-      console.log("DEBUG logs during /dashboard:\n" + logs.join("\n"));
+      console.log("DEBUG logs during /home:\n" + logs.join("\n"));
       throw e;
     }
 
@@ -143,8 +143,8 @@ test.describe("helper browse-and-apply happy path", () => {
       disableRules: ["color-contrast", "nested-interactive"],
     });
 
-    // Confirm we didn't get bounced off /dashboard.
-    expect(page.url()).toContain("/dashboard");
+    // Confirm we didn't get bounced off /home.
+    expect(page.url()).toContain("/home");
   });
 
   test("helper can open a job and reach an Apply affordance", async ({ helperPage: page }) => {
@@ -163,7 +163,7 @@ test.describe("helper browse-and-apply happy path", () => {
       ],
     });
 
-    await page.goto("/dashboard");
+    await page.goto("/home");
 
     // Tap the card title to open the detail dialog.
     const card = page.getByText(OPEN_JOB.title);

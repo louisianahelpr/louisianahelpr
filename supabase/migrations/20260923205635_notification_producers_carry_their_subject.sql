@@ -24,7 +24,7 @@
 --
 -- EFFECTIVE, NOT NEWEST TEXT. Eight of these functions had their notification links
 -- rewritten IN PLACE by 20260831232514 and 20260901021929 (pg_get_functiondef
--- + regexp_replace + EXECUTE): the bare '/my-posts' / '/my-jobs' and the fixed
+-- + regexp_replace + EXECUTE): the bare '/posts' / '/jobs' and the fixed
 -- '?filter=' links became '/my-…?job=' || <id>. Their newest CREATE FUNCTION
 -- text still shows the old links, so a restatement copied from that text
 -- reverts 14 direct links (the first cut of this change did, and a review
@@ -158,7 +158,7 @@ BEGIN
         '⚠️ Scope creep detected',
         'You''ve requested ' || NEW.revision_count || ' revisions on "' || NEW.title || '". Repeated revisions may signal unclear scope — consider a dispute or accepting the work.',
         'warning',
-        '/my-posts?job=' || NEW.id::text,
+        '/posts?job=' || NEW.id::text,
         NEW.id
       );
 
@@ -169,7 +169,7 @@ BEGIN
           '⚠️ Multiple revisions on this job',
           'The poster has requested ' || NEW.revision_count || ' revisions on "' || NEW.title || '". Admins have been notified.',
           'warning',
-          '/my-jobs?job=' || NEW.id::text,
+          '/jobs?job=' || NEW.id::text,
           NEW.id
         );
       END IF;
@@ -201,9 +201,9 @@ BEGIN
 
   -- The poster's active job lives in the "Scheduled" bucket of My Posts
   -- (postedActivityBucket: in_progress → scheduled). The old
-  -- '/my-posts?job=<id>' used a param the page never reads and landed on the
+  -- '/posts?job=<id>' used a param the page never reads and landed on the
   -- default "Needs you" list, which hides in-progress jobs.
-  v_link := '/my-posts?job=' || NEW.id::text;
+  v_link := '/posts?job=' || NEW.id::text;
   SELECT COALESCE(full_name, 'Your Helpr') INTO v_helper_name
   FROM public.profiles WHERE user_id = NEW.helper_id;
 
@@ -232,7 +232,7 @@ BEGIN
     v_msg := v_helper_name || ' has finished "' || NEW.title || '". Please review and confirm.';
     -- A completed claim IS the poster's move — send them where the confirm
     -- action lives.
-    v_link := '/my-posts?job=' || NEW.id::text;
+    v_link := '/posts?job=' || NEW.id::text;
 
   ELSE
     RETURN NEW;
@@ -315,7 +315,7 @@ BEGIN
       'new_offers',
       -- was '/activity?tab=offers' — a redirect to the POSTER surface that
       -- also discarded the query string.
-      '/my-jobs?job=' || NEW.id::text,
+      '/jobs?job=' || NEW.id::text,
       NEW.id
     );
   END IF;
@@ -352,7 +352,7 @@ BEGIN
     'Your application was seen',
     'The poster viewed your application for "' || COALESCE(v_job_title, 'a job') || '".',
     'info',
-    '/my-jobs?highlight=' || NEW.id,
+    '/jobs?highlight=' || NEW.id,
     NEW.job_id
   );
 
@@ -447,7 +447,7 @@ BEGIN
          'Offer declined',
          'Your direct offer for "' || title || '" was declined. The job is open to all helpers again.',
          'job_updates',
-         '/my-posts?job=' || id::text,
+         '/posts?job=' || id::text,
          id
     FROM public.jobs
    WHERE id = p_job_id;
@@ -530,7 +530,7 @@ BEGIN
       'Your Helpr didn''t answer in time for "' || COALESCE(v_locked.title, 'your job')
         || '". It''s open to everyone again, so you can pick somebody else.',
       'job_updates',
-      '/my-posts?job=' || v_locked.id::text,
+      '/posts?job=' || v_locked.id::text,
       v_locked.id
     );
 
@@ -541,7 +541,7 @@ BEGIN
       'The deadline passed on "' || COALESCE(v_locked.title, 'a job')
         || '" and it went back to everyone. Letting an offer expire counts the same as declining it.',
       'expired',
-      '/my-jobs?job=' || v_locked.id::text,
+      '/jobs?job=' || v_locked.id::text,
       v_locked.id
     );
 
@@ -589,14 +589,14 @@ BEGIN
         INSERT INTO public.notifications (user_id, type, title, message, link, read, job_id)
         VALUES (rec.helper_id, 'job_update', 'Still on for tomorrow?',
                 format('"%s" starts soon — tap to confirm you''re still on. One tap keeps your spot.', rec.title),
-                '/my-jobs?job=' || rec.id::text, false, rec.id);
+                '/jobs?job=' || rec.id::text, false, rec.id);
         total_pushed := total_pushed + 1;
       END IF;
       IF rec.poster_confirmed_at IS NULL THEN
         INSERT INTO public.notifications (user_id, type, title, message, link, read, job_id)
         VALUES (rec.customer_id, 'job_update', 'Still on for tomorrow?',
                 format('"%s" starts soon — tap to confirm you''re still on so your Helpr knows it''s a go.', rec.title),
-                '/my-posts?job=' || rec.id::text, false, rec.id);
+                '/posts?job=' || rec.id::text, false, rec.id);
         total_pushed := total_pushed + 1;
       END IF;
       UPDATE public.jobs SET dayof_confirm_reminder_sent_at = NOW() WHERE id = rec.id;
@@ -629,7 +629,7 @@ BEGIN
       INSERT INTO public.notifications (user_id, type, title, message, link, read, job_id)
       VALUES (rec.customer_id, 'warning', 'Your Helpr hasn''t confirmed yet',
               format('"%s" starts in under 12 hours and your Helpr hasn''t confirmed they''re still on. Message them — or line up a backup while there''s time.', rec.title),
-              '/my-posts?job=' || rec.id::text, false, rec.id);
+              '/posts?job=' || rec.id::text, false, rec.id);
       UPDATE public.jobs SET dayof_unanswered_poster_alert_sent_at = NOW() WHERE id = rec.id;
       total_pushed := total_pushed + 1;
     EXCEPTION WHEN OTHERS THEN
@@ -761,7 +761,7 @@ BEGIN
         'warning',
         'Last chance to review',
         format('"%s" auto-releases payment in about 2 hours. Approve it, or request a revision now if something''s wrong.', rec.title),
-        '/my-posts?job=' || rec.id::text,
+        '/posts?job=' || rec.id::text,
         false,
         rec.id
       );
@@ -869,7 +869,7 @@ BEGIN
         || '": ' || v_reason
         || ' Because work had already started, we''re reviewing it — your payment stays in escrow until a decision is made, and you don''t need to do anything.',
       'warning',
-      '/my-posts?job=' || v_job.id::text,
+      '/posts?job=' || v_job.id::text,
       v_job.id
     );
 
@@ -909,7 +909,7 @@ BEGIN
       || '": ' || v_reason
       || ' They never started, so nothing was charged — the job is open to everyone again and your payment stays protected in escrow for whoever you pick next.',
     'warning',
-    '/my-posts?job=' || v_job.id::text,
+    '/posts?job=' || v_job.id::text,
     v_job.id
   );
 
@@ -1154,7 +1154,7 @@ BEGIN
 
     IF COALESCE(v_pref, true) THEN
       INSERT INTO public.notifications (user_id, title, message, type, link)
-      VALUES (NEW.customer_id, v_title, v_msg, 'financial_alerts', '/my-posts?job=' || NEW.id::text);
+      VALUES (NEW.customer_id, v_title, v_msg, 'financial_alerts', '/posts?job=' || NEW.id::text);
       PERFORM public.log_notification(NEW.customer_id, 'financial_alerts', 'in_app', 'sent', v_title, NEW.id);
     END IF;
 
@@ -1164,7 +1164,7 @@ BEGIN
       FROM public.notification_preferences WHERE user_id = NEW.helper_id;
       IF COALESCE(v_pref, true) THEN
         INSERT INTO public.notifications (user_id, title, message, type, link)
-        VALUES (NEW.helper_id, 'Job funded', 'Payment for "' || NEW.title || '" is now in escrow. Get to work!', 'financial_alerts', '/my-jobs?job=' || NEW.id::text);
+        VALUES (NEW.helper_id, 'Job funded', 'Payment for "' || NEW.title || '" is now in escrow. Get to work!', 'financial_alerts', '/jobs?job=' || NEW.id::text);
         PERFORM public.log_notification(NEW.helper_id, 'financial_alerts', 'in_app', 'sent', 'Job funded', NEW.id);
       END IF;
     END IF;
@@ -1496,7 +1496,7 @@ BEGIN
           '" was not delivered before the deadline, so we opened a dispute for you. ' ||
           'The payment stays on hold and an admin will decide it — add your side.',
         'warning',
-        '/my-posts?job=' || _job_id::text
+        '/posts?job=' || _job_id::text
       );
     END IF;
     IF _helper IS NOT NULL THEN
@@ -1508,7 +1508,7 @@ BEGIN
           '" was not delivered before the deadline, so a dispute was opened automatically. ' ||
           'An admin will decide the payment — add your side.',
         'warning',
-        '/my-jobs?job=' || _job_id::text
+        '/jobs?job=' || _job_id::text
       );
     END IF;
   ELSIF _other IS NOT NULL THEN
@@ -1520,8 +1520,8 @@ BEGIN
         '". The payment is on hold while it is reviewed — add your side so an admin hears both.',
       'warning',
       CASE WHEN _other = _customer
-           THEN '/my-posts?job=' || _job_id::text
-           ELSE '/my-jobs?job=' || _job_id::text
+           THEN '/posts?job=' || _job_id::text
+           ELSE '/jobs?job=' || _job_id::text
       END
     );
   END IF;

@@ -19,7 +19,7 @@
 --
 --   job a89234fb… posted status='open', payment_status='unpaid'
 --     → notify_helpers_on_job_post fired 1 notification
---       title 'New job in your parish'  link '/dashboard?job=a89234fb…'
+--       title 'New job in your parish'  link '/home?job=a89234fb…'
 --     → open_jobs_browse?id=eq.a89234fb…      0 rows
 --     → get_ranked_open_jobs()                0 rows  (11 open jobs returned)
 --
@@ -46,8 +46,8 @@
 --   notify_helpers_on_job_post            'New job in your parish'       0
 --
 --   notifications?title=eq.New job in your parish   → 0 rows
---   notifications?link=like./dashboard?job=*        → 0 rows
---   (485 rows are '/dashboard?quickApply=<uuid>', 34 are bare '/dashboard'.)
+--   notifications?link=like./home?job=*        → 0 rows
+--   (485 rows are '/home?quickApply=<uuid>', 34 are bare '/home'.)
 --
 -- The reason is one row count: `public.helper_preferred_parishes` is EMPTY in
 -- prod — 0 rows, across all 32 accounts. This trigger's whole fan-out is
@@ -132,7 +132,7 @@
 -- 20260901035600 added `notifications.job_id` because 582 of 716 job-shaped
 -- links in prod already name a deleted job, and gave it a BEFORE INSERT fill
 -- trigger that recovers an id from the link. This producer's link is
--- '/dashboard?job=<uuid>', which that trigger's `[?&]job=` branch does adopt —
+-- '/home?job=<uuid>', which that trigger's `[?&]job=` branch does adopt —
 -- so job_id would be populated even if this file said nothing.
 --
 -- It says it anyway. The fill trigger is a safety net whose correctness
@@ -219,7 +219,7 @@ BEGIN
 
   v_title := 'New job in your parish';
   v_message := 'A new ' || COALESCE(NEW.category::text, 'job') || ' job just posted in ' || NEW.parish || ' Parish: "' || NEW.title || '"';
-  v_link := '/dashboard?job=' || NEW.id::text;
+  v_link := '/home?job=' || NEW.id::text;
 
   FOR helper_record IN
     SELECT DISTINCT hpp.helper_id

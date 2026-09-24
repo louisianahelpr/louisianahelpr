@@ -36,7 +36,7 @@
  * MEASURED 2026-09-19, Chromium, prod Supabase + this checkout's local build
  * (✕ vs the magnifier's landing box, shipped → with the slot deleted):
  *
- *   my-posts       320  0px ← 26px      my-jobs   320  0px ← 26px
+ *   posts       320  0px ← 26px      jobs   320  0px ← 26px
  *                  375  0px ← 26px                375  0px ← 26px
  *                 1440  0px ←  6px               1440  0px ←  6px
  *   messages       320  0px ← 28px      legal      320  0px ← 44px
@@ -206,7 +206,7 @@ async function overflowOf(page: Page) {
       // child past the right edge correct, not a defect — a side-scrolling tab
       // strip is the common case. Same walk `measureLayout` in auditRoutes.ts
       // uses for `clippedWideElements`, and omitting it produced a false
-      // positive on /my-posts@320 (the Cancelled tab of an overflow-x-auto
+      // positive on /posts@320 (the Cancelled tab of an overflow-x-auto
       // strip, right=326 of a 320px viewport) before this was added.
       const clipped = (e: Element): boolean => {
         let p = e.parentElement;
@@ -430,7 +430,7 @@ async function assertSurface(
   //
   // (a) proves the field covers nothing and (c) proves the ✕ clears the
   // magnifier — and BOTH were true, on every surface, of a field 42px wide.
-  // Measured on 2026-09-19 at 320: my-posts 76px, my-jobs 76px, messages 42px,
+  // Measured on 2026-09-19 at 320: posts 76px, jobs 76px, messages 42px,
   // with the magnifier (pl-9) and the ✕ (pr-10) claiming 76px before a
   // character is drawn. "oak tree" typed into the 375 field rendered as "ree".
   //
@@ -548,7 +548,7 @@ const SURFACES: {
 }[] = [
   {
     name: "browse-desktop-strip",
-    url: "/dashboard",
+    url: "/home",
     /* Scoped to the feed strip itself. Home's LOADING screen renders a
        DashboardTitleBar carrying its own `[data-search-trigger]` at every
        width, so an unscoped wait resolved against the skeleton and measured a
@@ -564,16 +564,16 @@ const SURFACES: {
     minWidth: 900,
   },
   {
-    name: "my-posts",
-    url: "/my-posts",
+    name: "posts",
+    url: "/posts",
     ready: "[data-search-trigger]",
     triggerSel: "[data-search-trigger]",
     fieldSel: 'input[aria-label="Search jobs"]',
     closeSel: 'button[aria-label="Close search"]',
   },
   {
-    name: "my-jobs",
-    url: "/my-jobs",
+    name: "jobs",
+    url: "/jobs",
     ready: "[data-search-trigger]",
     triggerSel: "[data-search-trigger]",
     fieldSel: 'input[aria-label="Search jobs"]',

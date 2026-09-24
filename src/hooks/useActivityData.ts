@@ -354,7 +354,7 @@ export async function fetchPostedActivityDetail(
  * a helper with zero applications — paid for by a whole extra round trip for
  * every helper who has any.
  *
- * Measured on prod (helper-e2e, /my-jobs at 375, this checkout's local build,
+ * Measured on prod (helper-e2e, /jobs at 375, this checkout's local build,
  * Chromium, 2026-09-21), the request timeline from `goto`:
  *
  *     +180ms   GET  applications?select=*          ← wave 1 issued
@@ -622,7 +622,7 @@ function latestTrackingByJob(
 const CORE_STALE = 60 * 1000;
 
 /**
- * MOUNTING /my-jobs OR /my-posts ALWAYS REVALIDATES, EVEN WHEN THE CACHE SAYS FRESH.
+ * MOUNTING /jobs OR /posts ALWAYS REVALIDATES, EVEN WHEN THE CACHE SAYS FRESH.
  *
  * `staleTime: CORE_STALE` plus React Query's default `refetchOnMount: true`
  * means "refetch on mount only if stale". The cache is persisted to IndexedDB
@@ -932,7 +932,7 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
   //   - a cached-empty result is being REFETCHED — data is `[]` and settled
   //     from a previous fetch, so `isLoading` is false while the request that
   //     will return the user's actual work is still in flight.
-  // Measured on /my-jobs at 375 with one real application: "No applications
+  // Measured on /jobs at 375 with one real application: "No applications
   // yet" from 0.7s, replaced by the real card only once the read landed.
   //
   // So: hold the skeleton until this tab's core query has actually settled,

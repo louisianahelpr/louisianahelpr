@@ -10,7 +10,7 @@
 --   2. Because status and helper_on_the_way_at were two separate UPDATEs,
 --      notify_poster_on_status_change fired twice and the poster got BOTH
 --      "Work has started" and "<name> is on the way" for one tap.
---   3. notify_poster_on_status_change linked to '/my-posts?job=<id>' — the
+--   3. notify_poster_on_status_change linked to '/posts?job=<id>' — the
 --      Activity page reads no `job` param (only filter/q/highlight), so the
 --      tap landed on the default "Needs you" list, which does not contain an
 --      in_progress job. Those bucket as `scheduled`
@@ -98,7 +98,7 @@ GRANT EXECUTE ON FUNCTION public.helper_mark_on_the_way(uuid, float8, float8) TO
 
 -- 2. Fix the dead deep link in notify_poster_on_status_change.
 --    Byte-identical to the 20260824070000 version except v_link:
---    '/my-posts?job=' || id  →  '/my-posts?filter=scheduled'.
+--    '/posts?job=' || id  →  '/posts?filter=scheduled'.
 --    (Activity.tsx reads `filter`; in_progress posted jobs bucket as
 --    "scheduled".)
 
@@ -122,9 +122,9 @@ BEGIN
 
   -- The poster's active job lives in the "Scheduled" bucket of My Posts
   -- (postedActivityBucket: in_progress → scheduled). The old
-  -- '/my-posts?job=<id>' used a param the page never reads and landed on the
+  -- '/posts?job=<id>' used a param the page never reads and landed on the
   -- default "Needs you" list, which hides in-progress jobs.
-  v_link := '/my-posts?filter=scheduled';
+  v_link := '/posts?filter=scheduled';
   SELECT COALESCE(full_name, 'Your Helpr') INTO v_helper_name
   FROM public.profiles WHERE user_id = NEW.helper_id;
 
@@ -153,7 +153,7 @@ BEGIN
     v_msg := v_helper_name || ' has finished "' || NEW.title || '". Please review and confirm.';
     -- A completed claim IS the poster's move — send them where the confirm
     -- action lives.
-    v_link := '/my-posts?filter=needs_you';
+    v_link := '/posts?filter=needs_you';
 
   ELSE
     RETURN NEW;

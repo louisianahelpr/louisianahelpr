@@ -65,14 +65,14 @@ const CompleteProfile = () => {
   // Where the user was actually headed when the completeness gate
   // intercepted them (ProtectedRoute passes it as `?next=`). Before this,
   // the redirect dropped the destination entirely — a push deep link, a
-  // shared job URL or an email link all ended on /dashboard once the form
+  // shared job URL or an email link all ended on /home once the form
   // was done, with nothing left pointing at what they had opened.
   //
   // Re-validated here rather than trusted: `?next=` is attacker-supplied,
   // and `safeInternalRedirect` rejects protocol-relative, scheme-bearing,
   // control-character and auth-screen targets. Anything it refuses falls
   // back to the dashboard.
-  const nextDestination = safeInternalRedirect(searchParams.get("next")) ?? "/dashboard";
+  const nextDestination = safeInternalRedirect(searchParams.get("next")) ?? "/home";
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -204,7 +204,7 @@ const CompleteProfile = () => {
   //
   // This list has SEVEN items; PROFILE_GATE_FIELDS (ProtectedRoute.tsx) has
   // FIVE — it carries neither "ZIP code" nor the policy acceptance. The
-  // early-return below bounces to /dashboard on isProfileComplete(profile),
+  // early-return below bounces to /home on isProfileComplete(profile),
   // which consults only those five. So an account whose row already holds
   // full_name, avatar_url, date_of_birth, phone and location but NO zip_code
   // is redirected away before this screen can ask for the ZIP — i.e. the
@@ -389,7 +389,7 @@ const CompleteProfile = () => {
       //
       // Read the persisted row back in the same round-trip. ProtectedRoute's
       // Big-7 completeness gate re-evaluates the instant we navigate to
-      // /dashboard, so the cache MUST hold the authoritative saved row — not
+      // /home, so the cache MUST hold the authoritative saved row — not
       // an optimistic guess that a stale background refetch could clobber.
       //
       // Guarded through unwrapMutation because a null `error` does NOT mean
@@ -398,7 +398,7 @@ const CompleteProfile = () => {
       // `{ data: [], error: null }`. The previous shape read that as success
       // and fell back to an OPTIMISTIC merge — writing a profile the database
       // does not have into the cache, letting the gate pass, and dropping the
-      // user on /dashboard until the next real fetch bounced them back here
+      // user on /home until the next real fetch bounced them back here
       // with nothing to show for the attempt. This is the one write on the
       // screen, and it is the screen's only exit, so a silent rejection has to
       // surface as a failure.
@@ -541,7 +541,7 @@ const CompleteProfile = () => {
   // checklist they can't dismiss. (Said 0/8; the checklist has seven items.)
   // See the divergence note on `checklist` above before touching this gate.
   if (profile && (profile.is_legacy_user === true || isProfileComplete(profile))) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   // Migrated from a bespoke wrapper to the shared AuthShell so this screen

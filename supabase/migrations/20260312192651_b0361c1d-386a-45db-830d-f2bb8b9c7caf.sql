@@ -25,7 +25,7 @@ BEGIN
     v_title := 'New application';
     v_message := 'Someone applied to "' || job_title || '"';
     v_type := 'application';
-    v_link := '/dashboard';
+    v_link := '/home';
     
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (v_user_id, v_title, v_message, v_type, v_link);
@@ -61,7 +61,7 @@ BEGIN
     v_title := 'Application accepted!';
     v_message := 'You were accepted for "' || job_title || '"';
     v_type := 'success';
-    v_link := '/dashboard';
+    v_link := '/home';
     
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (v_user_id, v_title, v_message, v_type, v_link);
@@ -93,7 +93,7 @@ BEGIN
     v_title := 'Application update';
     v_message := 'Your application for "' || job_title || '" was not selected';
     v_type := 'info';
-    v_link := '/dashboard';
+    v_link := '/home';
     
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (v_user_id, v_title, v_message, v_type, v_link);

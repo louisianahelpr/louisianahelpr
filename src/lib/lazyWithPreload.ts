@@ -16,7 +16,7 @@ import { markChunkLoadSucceeded } from "./chunkReload";
  * until auth had resolved. The route chunk fetch and the auth round-trip,
  * which have nothing to do with each other, ran strictly one after the other.
  *
- * Measured on prod (www.louisianahelpr.com/my-posts, seeded poster with 6
+ * Measured on prod (www.louisianahelpr.com/posts, seeded poster with 6
  * jobs, Chromium 393x852, unthrottled, warm H2): `GET /assets/Activity-*.js`
  * was not requested until **2046ms** — the exact millisecond the `profiles`
  * response landed — even though the app bundle had finished at ~1.2s. It then

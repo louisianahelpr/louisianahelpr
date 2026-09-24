@@ -19,7 +19,7 @@ import { UNPAID_DRAFT_PAYMENT_STATES } from "@/hooks/useUnpaidJobDrafts";
  * to `/rest/v1/jobs` as the poster, and the live `enforce_jobs_insert_column
  * _lock` forces EVERY such row to `status := 'open'`, `payment_status :=
  * 'unpaid'` — the precise shape the new rule hides. Ten countdown-chip
- * assertions on `/my-posts` went red the same night, and e2e-journeys stayed
+ * assertions on `/posts` went red the same night, and e2e-journeys stayed
  * red with them.
  *
  * THE GUARD, and why it is not a list checked against itself. The inventory of
@@ -52,7 +52,7 @@ function specFiles(dir: string, out: string[] = []): string[] {
 /** Creates a job the way a real poster does: a REST INSERT on its own token. */
 const CREATES_JOB_VIA_REST = /\.post\(\s*`\$\{SUPABASE_URL\}\/rest\/v1\/jobs/;
 /** Navigates to one of the two surfaces that list a poster's / helper's jobs. */
-const VISITS_A_JOB_LIST = /["'`]\/my-(posts|jobs)/;
+const VISITS_A_JOB_LIST = /["'`]\/(posts|jobs)(?![\w/-])/;
 /** Funds through the real Checkout, so its row leaves the unfunded state. */
 const FUNDS_THROUGH_CHECKOUT = /functions\/v1\/create-payment/;
 /**
@@ -112,20 +112,20 @@ describe("e2e job fixtures vs the filters that hide them", () => {
     expect(
       unacknowledgedFixtures(files),
       "these specs POST a job to /rest/v1/jobs (forced to open+unpaid by the insert lock), then drive " +
-        "/my-posts or /my-jobs, where jobIsUnfundedDraft keeps that row off the list AND out of the tab " +
+        "/posts or /jobs, where jobIsUnfundedDraft keeps that row off the list AND out of the tab " +
         "counts. Either fund it through create-payment, or assert the absence (toHaveCount(0)).",
     ).toEqual([]);
   });
 
   it("is shown able to fail: the spec as it stood when #1595's countdown leg went red", () => {
     // e2e/journeys/time-travel.spec.ts before 2026-09-22 — it posted the job
-    // and then asserted a chip on /my-posts, with nothing funded and no
+    // and then asserted a chip on /posts, with nothing funded and no
     // absence assertion anywhere in the file.
     const before = `
       const r = await request.post(\`\${SUPABASE_URL}/rest/v1/jobs?select=id,title,expires_at\`, {
         data: { status: "open", payment_status: "unpaid" },
       });
-      await page.goto(\`/my-posts?job=\${job.id}\`);
+      await page.goto(\`/posts?job=\${job.id}\`);
       await expect(card).toBeVisible({ timeout: 20_000 });
     `;
     expect(unacknowledgedFixtures([{ path: "e2e/journeys/time-travel.spec.ts", source: before }])).toEqual([

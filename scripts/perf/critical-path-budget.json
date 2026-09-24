@@ -26,7 +26,7 @@
       "rounds": 2,
       "jsKB": 343
     },
-    "/my-posts": {
+    "/posts": {
       "routeRound": 2,
       "rounds": 2,
       "jsKB": 337

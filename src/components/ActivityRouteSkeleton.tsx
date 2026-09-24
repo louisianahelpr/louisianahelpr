@@ -1,10 +1,10 @@
 import { ActivityPageSkeleton } from "@/components/ActivityPageSkeleton";
 
 /**
- * Suspense fallback for the `/my-jobs` and `/my-posts` routes' lazy chunk.
+ * Suspense fallback for the `/jobs` and `/posts` routes' lazy chunk.
  *
  * Same defect, same fix as DashboardRouteSkeleton — read that file's header
- * first. Measured on a cold 375x812 slow-3G load, `/my-jobs` painted THREE
+ * first. Measured on a cold 375x812 slow-3G load, `/jobs` painted THREE
  * unrelated shapes before content:
  *
  *   1. the generic `RouteSuspenseFallback` (an unaligned bones column: no
@@ -25,7 +25,7 @@ import { ActivityPageSkeleton } from "@/components/ActivityPageSkeleton";
  * — that module drags lucide icons, UnderlineTabs, ScreenHeaderRow and the
  * haptics bridge onto the entry chunk for a padding string.
  *
- * `/my-jobs` and `/my-posts` are AppShell (via PageScaffold) routes and are
+ * `/jobs` and `/posts` are AppShell (via PageScaffold) routes and are
  * correctly ABSENT from DOCUMENT_SCROLL_ROUTES; this fallback uses the same
  * primitive, so the shell choice still agrees with that list.
  */

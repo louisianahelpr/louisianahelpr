@@ -1069,8 +1069,8 @@ serve(async (req) => {
             message: `"${parent.title}" on ${visitDate} is confirmed and paid. Can't make it? Release the date from My Jobs.`,
             type: "job_updates",
             // THIS visit, not the My Jobs default bucket — a confirmed booking
-            // is `scheduled`, and /my-jobs opens on "Needs you".
-            link: `/my-jobs?job=${child.id}`,
+            // is `scheduled`, and /jobs opens on "Needs you".
+            link: `/jobs?job=${child.id}`,
           },
           {
             user_id: parent.customer_id,
@@ -1078,7 +1078,7 @@ serve(async (req) => {
             title: "Next visit funded",
             message: `"${parent.title}" on ${visitDate} is booked and held in escrow.`,
             type: "job_updates",
-            link: `/my-posts?job=${child.id}`,
+            link: `/posts?job=${child.id}`,
           },
         ];
         // Q158: a seed (test) series never notifies a REAL party. The
@@ -1271,12 +1271,12 @@ async function notifyPosterCardProblem(
     // The series parent — there is no child job for a visit that was never
     // created. If the helper has no card for it, Activity leaves the view on
     // its default rather than pinning an empty bucket.
-    link: `/my-jobs?job=${parent.id}`,
+    link: `/jobs?job=${parent.id}`,
   }).select("id");
   if (
     helperErr || !helperRows ||
     (helperRows.length === 0 &&
-      (await seedBoundaryDropsRow(supabase, { user_id: helperId, job_id: parent.id as string, link: `/my-jobs?job=${parent.id}` })) !== true)
+      (await seedBoundaryDropsRow(supabase, { user_id: helperId, job_id: parent.id as string, link: `/jobs?job=${parent.id}` })) !== true)
   ) {
     console.error("[charge-recurring-visits] helper notification failed", helperErr ?? "zero rows");
     failures.push(

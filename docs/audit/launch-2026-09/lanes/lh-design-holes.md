@@ -23,7 +23,7 @@ what is queued for the owner under the money/auth/data-model rule.
 
 | id | sev | surface | the state that should not have been reachable |
 |---|---|---|---|
-| DH-001 | HIGH | `/jobs/:id` → `/dashboard?quickApply=` | The poster opens their own share link and is refused |
+| DH-001 | HIGH | `/jobs/:id` → `/home?quickApply=` | The poster opens their own share link and is refused |
 | DH-002 | MEDIUM | `/messages?userId=<self>` | A message thread a user has with themselves |
 | DH-003 | MEDIUM | Review chip | Offered forever; server closes the window at 30 days |
 | DH-004 | MEDIUM | Instant Book | A Retry button on a refusal that can never succeed |
@@ -41,7 +41,7 @@ The headline, and the same shape as the case this lane was built from.
   **primary empty-state CTA** when a job has no applicants yet
   (`ApplicantsStates.tsx:247`) — the app's own advice is "share this".
 - `JobDetail.tsx:105` redirects **every** signed-in visitor to
-  `/dashboard?quickApply=<id>`. There is no owner branch on that route at all.
+  `/home?quickApply=<id>`. There is no owner branch on that route at all.
 - `open_jobs_browse` deliberately whitelists `customer_id = auth.uid()`
   (artifact: `pg_get_viewdef('public.open_jobs_browse')` on `fncmgoasalhdgfwzhsqa`
   returns `... OR customer_id = auth.uid() OR ...`), so the fallback read at
@@ -286,7 +286,7 @@ the review client-vs-server divergence query · `open_jobs_browse` read under
 
 **Driven in the browser** (Chromium, 393×852, real session via
 `scripts/test-signin-link.mjs poster`, onboarding tour seeded):
-`/jobs/:id?ref=share` as the job's owner · `/dashboard?job=<own job>` ·
+`/jobs/:id?ref=share` as the job's owner · `/home?job=<own job>` ·
 `/messages?userId=<self>&jobId=<own job>`.
 
 **Files read:** `JobDetail.tsx` · `Jobs.tsx` · `Dashboard.tsx` ·

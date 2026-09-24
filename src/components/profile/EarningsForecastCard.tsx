@@ -206,7 +206,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
           variant="primary"
           size="sm"
           className="w-full gap-1.5"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/home")}
         >
           <Briefcase className="w-3.5 h-3.5" />
           Browse Jobs

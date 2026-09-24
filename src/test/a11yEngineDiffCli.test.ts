@@ -46,7 +46,7 @@ function report(): string {
   return JSON.stringify({
     screens: [
       { name: "/browse", variant: "guest", status: "ok", topViolations: [], contrastFailures: [], layout: { overflowPx: 0 } },
-      { name: "/dashboard", variant: "helper", status: "ok", topViolations: [], contrastFailures: [], layout: { overflowPx: 0 } },
+      { name: "/home", variant: "helper", status: "ok", topViolations: [], contrastFailures: [], layout: { overflowPx: 0 } },
     ],
   });
 }

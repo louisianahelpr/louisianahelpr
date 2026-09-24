@@ -28,10 +28,10 @@ import ProtectedRoute from "./ProtectedRoute";
 
 const renderRoute = () =>
   render(
-    <MemoryRouter initialEntries={["/dashboard"]}>
+    <MemoryRouter initialEntries={["/home"]}>
       <Routes>
         <Route
-          path="/dashboard"
+          path="/home"
           element={<ProtectedRoute><div>PROTECTED</div></ProtectedRoute>}
         />
         <Route path="/login" element={<div>LOGIN</div>} />
@@ -97,10 +97,10 @@ describe("ProtectedRoute — recoverable profile error auto-heals", () => {
       refresh,
     });
     rerender(
-      <MemoryRouter initialEntries={["/dashboard"]}>
+      <MemoryRouter initialEntries={["/home"]}>
         <Routes>
           <Route
-            path="/dashboard"
+            path="/home"
             element={<ProtectedRoute><div>PROTECTED</div></ProtectedRoute>}
           />
           <Route path="/login" element={<div>LOGIN</div>} />

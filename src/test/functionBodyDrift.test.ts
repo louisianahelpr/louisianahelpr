@@ -58,7 +58,7 @@ describe("function-body drift — parser", () => {
 
   it("comment and whitespace differences are not drift; link literals rewritten in place are not drift", () => {
     expect(normalizeBody("BEGIN\n  -- why\n  RETURN 1;\nEND")).toBe(normalizeBody("BEGIN RETURN 1; END"));
-    expect(linkNormalize("VALUES (x, '/my-posts')")).toBe(linkNormalize("VALUES (x, '/my-posts?job=' || v_job.id::text)"));
+    expect(linkNormalize("VALUES (x, '/posts')")).toBe(linkNormalize("VALUES (x, '/posts?job=' || v_job.id::text)"));
     expect(linkNormalize("IF v_arrived THEN RAISE")).not.toBe(linkNormalize("IF v_done THEN RAISE"));
   });
 });

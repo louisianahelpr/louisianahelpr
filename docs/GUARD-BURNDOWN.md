@@ -44,16 +44,16 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 
 | scope | files | proven able to fail | exempt, with a reason | still owed |
 |---|---|---|---|---|
-| **`src/test/*.test.ts*`** | 499 | **499 — COMPLETE** | 0 | **0** |
+| **`src/test/*.test.ts*`** | 498 | **498 — COMPLETE** | 0 | **0** |
 | **`src/test/edge/` (money)** | 72 | **72 — COMPLETE** | 0 | **0** |
 | **colocated beside components** | 372 | **372 — COMPLETE** | 0 | **0** |
 | **Playwright `e2e/`** | 67 | **58 — COMPLETE** | 9 | **0** |
-| **total** | **1010** | **1001 (99%)** | **9** | **0** |
+| **total** | **1009** | **1000 (99%)** | **9** | **0** |
 
 `npm run vacuity` prints the same three numbers on every run:
 
 ```
-registration: 1001/1010 guards register a mutation (9 exempt with a reason, 0 grandfathered)
+registration: 1000/1009 guards register a mutation (9 exempt with a reason, 0 grandfathered)
 ```
 
 <!-- /generated:burndown-score -->
@@ -431,7 +431,7 @@ app say so:
 
 ```
 overlay opens per run    84 / 86 / 82 / 79 / 84
-/my-posts opened         Escalate|More|SOS            (runs 1,2,3,5)
+/posts opened         Escalate|More|SOS            (runs 1,2,3,5)
                          Timeline & Evidence|No-Show  (run 4)
 /availability contrast   present runs 1-4, absent run 5
 ```
@@ -523,7 +523,7 @@ whose ancestor clips or SCROLLS on the x-axis, because a side-scrolling tab
 strip's last tab sitting past the edge is the feature, not a defect.
 `measureLayout` in `auditRoutes.ts` already had that walk — it is how it splits
 `overflowOffenders` from `clippedWideElements` — and I had written a cruder rule
-instead. It false-positived immediately, on `/my-posts@320`:
+instead. It false-positived immediately, on `/posts@320`:
 `<button.group> right=326 > 320`, inside `overflow-x-auto`.
 
 Adding the correct clause **turned one of my own `killed` verdicts into

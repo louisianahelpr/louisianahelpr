@@ -17,7 +17,7 @@ interface AdminRouteProps {
  * This component used to read only `isAdmin`, and `isAdmin === false` meant
  * BOTH "we asked and you are not an admin" and "we could not ask". So a real
  * admin on a slow connection — anything that pushed the `user_roles` read past
- * the hook's 10s timeout — was silently redirected to /dashboard, with nothing
+ * the hook's 10s timeout — was silently redirected to /home, with nothing
  * on screen to say a lookup had failed and no way to retry short of a reload
  * that would race the same timeout again. Reproduced against prod on
  * 2026-08-31 with the role row present and the response body confirmed
@@ -68,7 +68,7 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
   }
 
   // Could not determine the role. Deny access — but say so, and offer the
-  // retry, instead of bouncing an admin to /dashboard as if we had checked.
+  // retry, instead of bouncing an admin to /home as if we had checked.
   if (adminStatus === "unknown") {
     // Reporting moved to the effect above (AR-012) — this branch only renders.
     return (
@@ -87,7 +87,7 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/home")}
               className="text-ds-13"
             >
               Go to dashboard
@@ -100,7 +100,7 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
 
   // Confirmed non-admin. The redirect is still the right answer here.
   if (adminStatus !== "admin") {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   return <>{children}</>;

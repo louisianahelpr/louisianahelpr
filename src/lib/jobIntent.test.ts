@@ -63,12 +63,12 @@ describe("jobIntent — signup redirect", () => {
   it("postAuthDestination spends the redirect, then falls back", () => {
     rememberSignupRedirect("/jobs/abc-123");
     expect(postAuthDestination()).toBe("/jobs/abc-123");
-    expect(postAuthDestination()).toBe("/dashboard");
+    expect(postAuthDestination()).toBe("/home");
   });
 
   it("postAuthDestination still honors a bare ?job= intent", () => {
     localStorage.setItem("helpr.jobIntent", "job-9");
-    expect(postAuthDestination()).toBe("/dashboard?quickApply=job-9");
+    expect(postAuthDestination()).toBe("/home?quickApply=job-9");
   });
 });
 

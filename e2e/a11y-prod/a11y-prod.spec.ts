@@ -149,7 +149,7 @@ test.describe("UI audit evidence sweep (prod)", () => {
     //
     // This replaces the mocked sweep's job-detail-2..6, which were marked
     // `seededOnly` and never covered what they claimed: every one of them
-    // redirected a signed-in visitor to /dashboard, so the sweep audited the
+    // redirected a signed-in visitor to /home, so the sweep audited the
     // dashboard five extra times and no job-status screen even once
     // (auditRoutes.ts says so in its own comment). Prod has a seeded job in
     // all eight statuses, so the intent is finally achievable — but only with
@@ -200,7 +200,7 @@ test.describe("UI audit evidence sweep (prod)", () => {
         continue;
       }
       // Swept under the incomplete seed account below; for these two the gate
-      // redirects to /dashboard (their profiles are complete).
+      // redirects to /home (their profiles are complete).
       if (s.name === "complete-profile-incomplete") continue;
       if (s.name === "user-profile") { out.push({ name: "user-profile", url: `/user/${other.user.id}` }); continue; }
       if (s.name === "user-profile-customer") { out.push({ name: "user-profile-self", url: `/user/${me.user.id}` }); continue; }
@@ -284,14 +284,14 @@ test.describe("UI audit evidence sweep (prod)", () => {
   }
 
   // GROUP JOB POSTER CARD — GroupJobHelpers renders inside PostedJobCard on
-  // /my-posts (`{job.is_group_job && <GroupJobHelpers …/>}`,
+  // /posts (`{job.is_group_job && <GroupJobHelpers …/>}`,
   // PostedJobCard.tsx:711), not on /jobs/:id, so this is its own block rather
   // than folded into JOB DETAIL above. `?highlight=<jobId>` (Activity.tsx)
   // scrolls the target job into view and switches the status-filter bucket to
   // whichever one it is actually in, so this works regardless of the seeded
   // job's status. Resolved at run time (groupJobId, beforeAll) exactly like
   // jobByStatus — never a pinned id.
-  const groupJobInScope = inScope([{ url: "/my-posts" }]).length > 0;
+  const groupJobInScope = inScope([{ url: "/posts" }]).length > 0;
   for (const v of VARIANTS) {
     if (!groupJobInScope) continue;
     const i = ++index;
@@ -304,7 +304,7 @@ test.describe("UI audit evidence sweep (prod)", () => {
       const ctx = await sweepContext(browser, poster);
       const page = await ctx.newPage();
       try {
-        await captureScreen(page, i, "group-job-poster-card", `/my-posts?highlight=${groupJobId}`, "authed", undefined, v);
+        await captureScreen(page, i, "group-job-poster-card", `/posts?highlight=${groupJobId}`, "authed", undefined, v);
       } finally {
         await ctx.close();
       }

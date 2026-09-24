@@ -26,7 +26,7 @@
  * uses (PLACEHOLDER_SEL). No mock mode: every response is prod's.
  *
  *   BASE=http://127.0.0.1:4173 node scripts/audit/measure-page-settle.mjs
- *   ROUTES=/browse,/dashboard   narrow       WIDTHS=375,1440
+ *   ROUTES=/browse,/home   narrow       WIDTHS=375,1440
  *   THROTTLE=fast3g             Fast 3G network + 4x CPU (CDP)
  *   OUT=~/.lh-shots/cls/run.json
  */

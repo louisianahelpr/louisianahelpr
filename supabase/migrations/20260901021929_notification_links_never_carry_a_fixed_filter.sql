@@ -1,7 +1,7 @@
 -- A notification link may never carry a FIXED ?filter=.
 --
 -- 20260831232514_notification_links_land_on_the_right_spot.sql established the
--- rule and converted every producer that wrote a BARE '/my-posts' / '/my-jobs'
+-- rule and converted every producer that wrote a BARE '/posts' / '/jobs'
 -- to '?job=<id>'. It did not convert the producers that wrote a fixed
 -- '?filter=', and its verify block only warns on the bare form — so none of
 -- them tripped it and the defect survived two sweeps that each believed they
@@ -80,14 +80,14 @@ BEGIN
       -- for them and "Scheduled" the moment they confirm — which is the exact
       -- action the notification is asking for.
       (10, 'sweep_dayof_confirm_reminders',
-           $p$'/my-jobs\?filter=offered'$p$,
-           $q$'/my-jobs?job=' || rec.id::text$q$, 'g'),
+           $p$'/jobs\?filter=offered'$p$,
+           $q$'/jobs?job=' || rec.id::text$q$, 'g'),
       (11, 'sweep_dayof_confirm_reminders',
-           $p$'/my-posts\?filter=offered'$p$,
-           $q$'/my-posts?job=' || rec.id::text$q$, 'g'),
+           $p$'/posts\?filter=offered'$p$,
+           $q$'/posts?job=' || rec.id::text$q$, 'g'),
 
       -- ── notify_poster_on_status_change — the 18 "real chip" rows ──────────
-      -- 20260829061546 moved this OFF '/my-posts?job=' || id and ONTO fixed
+      -- 20260829061546 moved this OFF '/posts?job=' || id and ONTO fixed
       -- filters, because at the time nothing on the page read `job`. Activity
       -- reads it now (20260831232514), so this reverts to the job — which is
       -- the shape that was right all along.
@@ -99,11 +99,11 @@ BEGIN
       -- instant the helper claims completion and wrong as soon as the poster
       -- approves or sends it back.
       (20, 'notify_poster_on_status_change',
-           $p$'/my-posts\?filter=scheduled'$p$,
-           $q$'/my-posts?job=' || NEW.id::text$q$, 'g'),
+           $p$'/posts\?filter=scheduled'$p$,
+           $q$'/posts?job=' || NEW.id::text$q$, 'g'),
       (21, 'notify_poster_on_status_change',
-           $p$'/my-posts\?filter=needs_you'$p$,
-           $q$'/my-posts?job=' || NEW.id::text$q$, 'g'),
+           $p$'/posts\?filter=needs_you'$p$,
+           $q$'/posts?job=' || NEW.id::text$q$, 'g'),
 
       -- ── notify_helper_on_direct_offer ─────────────────────────────────────
       -- 'direct_offer' has no chip. `?job=` DOES resolve here even though a
@@ -115,24 +115,24 @@ BEGIN
       -- synthetic row is gone and the link falls back to the default bucket —
       -- which is also "Needs you", so this link never degrades.
       (30, 'notify_helper_on_direct_offer',
-           $p$'/my-jobs\?filter=direct_offer'$p$,
-           $q$'/my-jobs?job=' || NEW.id::text$q$, 'g'),
+           $p$'/jobs\?filter=direct_offer'$p$,
+           $q$'/jobs?job=' || NEW.id::text$q$, 'g'),
 
       -- ── notify_on_application ─────────────────────────────────────────────
       -- The decline link. See the note at the top on why 'cancelled' is not
       -- terminal. Kept in lockstep with useOfferHandlers.declineApplication,
       -- its deploy-lag twin, which moves to the same shape in this change.
       (40, 'notify_on_application',
-           $p$'/my-jobs\?filter=cancelled'$p$,
-           $q$'/my-jobs?job=' || NEW.job_id::text$q$, 'g'),
-      -- AND the bare '/my-posts' on the "New application" insert — a producer
+           $p$'/jobs\?filter=cancelled'$p$,
+           $q$'/jobs?job=' || NEW.job_id::text$q$, 'g'),
+      -- AND the bare '/posts' on the "New application" insert — a producer
       -- 20260831232514 simply did not list, even though its OWN verify block
       -- warns about exactly this shape. That is the miss this file exists to
       -- stop recurring. Anchored on the assignment so the substitution cannot
       -- touch anything else in the body.
       (41, 'notify_on_application',
-           $p$v_link\s*:=\s*'/my-posts';$p$,
-           $q$v_link := '/my-posts?job=' || NEW.job_id::text;$q$, 'g')
+           $p$v_link\s*:=\s*'/posts';$p$,
+           $q$v_link := '/posts?job=' || NEW.job_id::text;$q$, 'g')
     ) AS t(ord, fn, pat, rep, flags)
     ORDER BY 1
   LOOP
@@ -171,14 +171,14 @@ $migrate$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Verify — WIDENED.
 --
--- 20260831232514's guard only warned on a BARE '/my-posts' / '/my-jobs', so
+-- 20260831232514's guard only warned on a BARE '/posts' / '/jobs', so
 -- every producer above passed it while writing a link to a chip that does not
 -- exist. It now also catches a fixed '?filter=' on an Activity route, which is
 -- the shape that actually shipped 66 bad rows.
 --
 -- Line comments are stripped before the test. Function bodies here quote link
 -- strings in prose ("was '/activity?tab=offers'", "the client's link
--- ('/my-jobs?filter=offered')"), and a guard that fires on its own explanatory
+-- ('/jobs?filter=offered')"), and a guard that fires on its own explanatory
 -- comment is a guard everyone learns to ignore. `'gn'`: `n` makes `.` stop at
 -- a newline and `$` match at line ends, so only the comment is removed.
 --
@@ -211,7 +211,7 @@ BEGIN
     -- A bare Activity surface opens the "Needs you" bucket, which is the wrong
     -- bucket for most events.
     IF v_body ~ $bare$'/my-(posts|jobs)'$bare$ THEN
-      RAISE WARNING 'public.% writes a BARE /my-posts or /my-jobs notification link (no ?job=) — it will open on the Needs You bucket', r.proname;
+      RAISE WARNING 'public.% writes a BARE /posts or /jobs notification link (no ?job=) — it will open on the Needs You bucket', r.proname;
     END IF;
 
     -- THE WIDENING. A fixed '?filter=' pins a bucket at write time; the bucket

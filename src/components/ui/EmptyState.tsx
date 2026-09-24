@@ -152,7 +152,7 @@ export function EmptyState({
       //
       // It reproduced only on CI's runner, whose font metrics differ from a
       // Mac's, which is why a local repro kept coming back clean while
-      // `device-pass-measure /dashboard @ 320-light` failed every run.
+      // `device-pass-measure /home @ 320-light` failed every run.
       // Dock variant: NO top rounding either (was `rounded-t-2xl`). It sat
       // directly below the tab-bar row, which already supplies its own
       // rounded top edge above — this card's independent top curve read as

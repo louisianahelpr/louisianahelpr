@@ -18,7 +18,7 @@
 -- still pending.
 --
 -- Copy deliberately mirrors expire_unanswered_offers' poster notification —
--- same shape, same 'job_updates' type, same /my-posts?job= deep link — because
+-- same shape, same 'job_updates' type, same /posts?job= deep link — because
 -- from the poster's side the two outcomes are the same event ("your pick fell
 -- through, the job is open again") and should not read as two different
 -- features. It names the decline rather than implying a timeout, since the
@@ -97,7 +97,7 @@ BEGIN
       'Your Helpr turned down "' || COALESCE(v_job_title, 'your job')
         || '". It''s open to everyone again, so you can pick somebody else.',
       'job_updates',
-      '/my-posts?job=' || v_job_id::text
+      '/posts?job=' || v_job_id::text
     );
   END IF;
 

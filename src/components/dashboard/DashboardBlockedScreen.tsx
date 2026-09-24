@@ -6,7 +6,7 @@ interface BannedScreenProps {
 }
 
 /**
- * Banned-account stop screen. `/dashboard` is a fixed-shell route; an inline
+ * Banned-account stop screen. `/home` is a fixed-shell route; an inline
  * `min-h-screen` would be clipped by html.app-shell's overflow:hidden.
  * AppShell gives this short message a 100dvh container with an internal
  * scroll surface so the text never escapes the viewport.

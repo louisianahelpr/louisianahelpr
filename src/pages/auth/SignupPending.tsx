@@ -102,7 +102,7 @@ const SignupPending = () => {
         }
         // Into the app. `postAuthDestination` spends a stored job intent /
         // `?redirect=` target (the job a logged-out visitor tapped before
-        // signing up) and otherwise returns /dashboard; ProtectedRoute there
+        // signing up) and otherwise returns /home; ProtectedRoute there
         // sends an incomplete profile on to /complete-profile. This hop used
         // to live on /account-pending, which the email link opened (Q193).
         navigate(postAuthDestination(), { replace: true });
@@ -274,7 +274,7 @@ const SignupPending = () => {
                   (ProtectedRoute.tsx:110) is exactly those five, so an email
                   signup satisfies `isProfileComplete` on arrival and
                   CompleteProfile's own guard (`CompleteProfile.tsx:535`)
-                  bounces straight to /dashboard. The user never sees a form —
+                  bounces straight to /home. The user never sees a form —
                   step 3 was describing work they had already finished, on the
                   one screen whose entire job is to set expectations about what
                   happens next.

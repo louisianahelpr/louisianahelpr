@@ -32,7 +32,7 @@ BEGIN
         '⚠️ Scope creep detected',
         'You''ve requested ' || NEW.revision_count || ' revisions on "' || NEW.title || '". Repeated revisions may signal unclear scope — consider a dispute or accepting the work.',
         'warning',
-        '/my-posts'
+        '/posts'
       );
 
       IF NEW.helper_id IS NOT NULL THEN
@@ -42,7 +42,7 @@ BEGIN
           '⚠️ Multiple revisions on this job',
           'The poster has requested ' || NEW.revision_count || ' revisions on "' || NEW.title || '". Admins have been notified.',
           'warning',
-          '/my-jobs'
+          '/jobs'
         );
       END IF;
     END IF;

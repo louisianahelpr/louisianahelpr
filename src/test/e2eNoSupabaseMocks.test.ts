@@ -114,7 +114,7 @@ describe("no e2e file mocks Supabase (ratchet)", () => {
       mocksSupabaseOrigin(`await page.route("**/rest/v1/jobs*", (r) => r.fulfill({ body: "[]" }));`),
     ).toBe(true);
     expect(mocksSupabaseOrigin(`await ctx.route(\`\${SUPABASE_URL}/**\`, (r) => r.continue());`)).toBe(false);
-    expect(mocksSupabaseOrigin(`await page.goto("/dashboard");`)).toBe(false);
+    expect(mocksSupabaseOrigin(`await page.goto("/home");`)).toBe(false);
   });
 
   it("adds no NEW Supabase mock", () => {

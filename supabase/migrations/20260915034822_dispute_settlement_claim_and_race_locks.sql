@@ -1271,7 +1271,7 @@ BEGIN
           '" was not delivered before the deadline, so we opened a dispute for you. ' ||
           'The payment stays on hold and an admin will decide it — add your side.',
         'warning',
-        '/my-posts?job=' || _job_id::text
+        '/posts?job=' || _job_id::text
       );
     END IF;
     IF _helper IS NOT NULL THEN
@@ -1283,7 +1283,7 @@ BEGIN
           '" was not delivered before the deadline, so a dispute was opened automatically. ' ||
           'An admin will decide the payment — add your side.',
         'warning',
-        '/my-jobs?job=' || _job_id::text
+        '/jobs?job=' || _job_id::text
       );
     END IF;
   ELSIF _other IS NOT NULL THEN
@@ -1295,8 +1295,8 @@ BEGIN
         '". The payment is on hold while it is reviewed — add your side so an admin hears both.',
       'warning',
       CASE WHEN _other = _customer
-           THEN '/my-posts?job=' || _job_id::text
-           ELSE '/my-jobs?job=' || _job_id::text
+           THEN '/posts?job=' || _job_id::text
+           ELSE '/jobs?job=' || _job_id::text
       END
     );
   END IF;
@@ -1671,14 +1671,14 @@ BEGIN
     VALUES (_customer, 'Dispute re-opened',
       'An admin is taking another look at the dispute on "' || COALESCE(_title, 'a job') ||
         '". The payment stays on hold until a new decision is made.',
-      'info', '/my-posts?job=' || _d.job_id::text);
+      'info', '/posts?job=' || _d.job_id::text);
   END IF;
   IF _helper IS NOT NULL THEN
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (_helper, 'Dispute re-opened',
       'An admin is taking another look at the dispute on "' || COALESCE(_title, 'a job') ||
         '". The payment stays on hold until a new decision is made.',
-      'info', '/my-jobs?job=' || _d.job_id::text);
+      'info', '/jobs?job=' || _d.job_id::text);
   END IF;
 
   RETURN _new_id;
@@ -1833,7 +1833,7 @@ BEGIN
       'info',
       'Dispute resolved',
       'A decision has been made on "' || COALESCE(_job_title, 'your job') || '": ' || _decision_text,
-      '/my-posts?job=' || _job_id::text,
+      '/posts?job=' || _job_id::text,
       false
     );
   END IF;
@@ -1845,7 +1845,7 @@ BEGIN
       'info',
       'Dispute resolved',
       'A decision has been made on "' || COALESCE(_job_title, 'a job you worked') || '": ' || _decision_text,
-      '/my-jobs?job=' || _job_id::text,
+      '/jobs?job=' || _job_id::text,
       false
     );
   END IF;

@@ -421,7 +421,7 @@ describe("admin deep links emitted by edge functions", () => {
     expect(raws).toContain("/admin?view=stalled&job={}");
     expect(raws.some((r) => r.startsWith("/admin?view=jobs&job="))).toBe(true);
     // …and prose about /admin in a comment is NOT (send-push-notification's
-    // category.ts documents "/admin 627 · /dashboard 619" in a block comment).
+    // category.ts documents "/admin 627 · /home 619" in a block comment).
     expect(links.some((l) => l.file.endsWith("send-push-notification/category.ts"))).toBe(false);
   });
 

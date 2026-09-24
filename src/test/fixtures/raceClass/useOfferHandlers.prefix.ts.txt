@@ -173,7 +173,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         // card moves out of Cancelled while this notification is still unread.
         // Kept in lockstep with notify_on_application(), which is the primary
         // producer for this event and now writes the same shape.
-        link: `/my-jobs?job=${app.job_id}`,
+        link: `/jobs?job=${app.job_id}`,
       });
     }
   };
@@ -323,7 +323,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     // just set to `accepted` above, so `?job=` resolves against it and Activity
     // both selects the live bucket ("Needs you", since the offer is being held
     // for them) and pulses the card.
-    await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: `/my-jobs?job=${selectedJob.id}` });
+    await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: `/jobs?job=${selectedJob.id}` });
     // Success moment — the poster just hired an applicant. hapticSuccess is
     // a result haptic (fires even under Reduce Motion); the overlay itself
     // self-respects reduced motion (static check, no draw-in).

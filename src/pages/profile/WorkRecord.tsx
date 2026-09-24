@@ -560,7 +560,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                   <p className="text-ds-13 text-muted-foreground font-sans">
                     No completed jobs yet. Once you complete your first job, your work record will fill in automatically.
                   </p>
-                  <BarkPillButton onClick={() => navigate("/dashboard")} className="mt-1">
+                  <BarkPillButton onClick={() => navigate("/home")} className="mt-1">
                     Browse Jobs
                   </BarkPillButton>
                 </div>

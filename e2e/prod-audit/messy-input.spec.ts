@@ -506,7 +506,7 @@ test.describe("targeted rules", () => {
        marked body contains "report a problem if something went wrong", which is
        one of the phrases `assertHealthy` treats as generic failure copy. So
        this spec's residue was failing ANOTHER spec: 02-marketplace's apply step
-       read an "error screen" on /dashboard that was really this notification.
+       read an "error screen" on /home that was really this notification.
        A test that cleans up its own table and not the row its write triggered
        has not cleaned up. */
     const n = await restAs(
@@ -547,11 +547,11 @@ const JOB_FIXTURES: Array<[keyof Omit<Fixtures, "goneJobId">, Account]> = [
 const PROFILE_TABS = ["profile", "security", "credentials", "notifications", "saved_helpers", "earnings", "gift_card", "legal", "support", "pets", "str_settings", "auto_tip"];
 
 const EXPLORE: Explore[] = [
-  { name: "my-posts", url: () => "/my-posts", as: "poster" },
-  { name: "my-jobs", url: () => "/my-jobs", as: "helper" },
+  { name: "posts", url: () => "/posts", as: "poster" },
+  { name: "jobs", url: () => "/jobs", as: "helper" },
   { name: "messages-poster", url: () => "/messages", as: "poster" },
   { name: "messages-helper", url: () => "/messages", as: "helper" },
-  { name: "dashboard-helper", url: () => "/dashboard", as: "helper" },
+  { name: "dashboard-helper", url: () => "/home", as: "helper" },
   ...JOB_FIXTURES.map(([k, as]): Explore => ({
     name: `${k}-${as}`,
     as,
@@ -669,7 +669,7 @@ test.describe("explore dialog-gated forms from real records", () => {
        * which is the wrong clock: a call refused at page load poisons the
        * screen for the rest of its life, and the press three steps later got
        * the blame (measured 2026-09-20 on profile-earnings, and on the four
-       * /my-jobs cases before the read RPCs were let through).
+       * /jobs cases before the read RPCs were let through).
        */
       const firewallAllow = () =>
         blocked.length > blockedBeforeLoad ? ["generic failure copy", "section/data load failure"] : [];

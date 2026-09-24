@@ -345,7 +345,7 @@ drawn first.
 
 - **My Posts fifth tab** was on screen for no one: five labels measure
   ~382–407px in a ~333px column, the scroller's 4px inset hid "Cancelled"
-  entirely, and `/my-posts?filter=cancelled` selected a tab 50px
+  entirely, and `/posts?filter=cancelled` selected a tab 50px
   off-screen. Scroller now bleeds to the card edge so the fifth label
   peeks, and the selected tab scrolls itself into view. After: Cancelled
   at x 262–334 when selected. **Owner call:** at rest the peek is a sliver

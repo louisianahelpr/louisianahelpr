@@ -58,8 +58,8 @@ describe("BackButton", () => {
   });
 
   it("cold deep link THROUGH a replace redirect: still falls back to `to`", () => {
-    // The real /login defect: a guest cold-opens /dashboard, ProtectedRoute
-    // renders <Navigate to="/login?redirect=/dashboard" replace />. The replace
+    // The real /login defect: a guest cold-opens /home, ProtectedRoute
+    // renders <Navigate to="/login?redirect=/home" replace />. The replace
     // mints a fresh location.key but adds NO history entry, so the old
     // `key !== "default"` test wrongly reported in-app history and Back left
     // the app (observed: about:blank).

@@ -96,7 +96,7 @@ export function BrowseSearchBar({
   //
   // It simply does not apply to the other caller. Standalone, this bar exists
   // because the user tapped the magnifier in the header — an action whose
-  // entire purpose is typing. Measured on /dashboard at 375: tapping it swapped
+  // entire purpose is typing. Measured on /home at 375: tapping it swapped
   // the header for the field and left `document.activeElement` on BODY, so the
   // keyboard did not appear and the field had to be tapped a second time. Two
   // taps for one intent, on the app's primary surface.

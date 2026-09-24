@@ -17,7 +17,7 @@ Production `dist/assets` chunk sizes (latest build):
 |---|---|---|---|
 | jspdf.es.min | 392 KB | dynamic import("jspdf") only | OK — code-split |
 | CartesianChart (recharts) | 256 KB | charts routes | Medium — lazy via route chunk |
-| Activity | 220 KB | /my-jobs, /my-posts | Medium — large page chunk |
+| Activity | 220 KB | /jobs, /posts | Medium — large page chunk |
 | supabase | 200 KB | app shell | vendor, unavoidable |
 | html2canvas | 196 KB | dynamic import (PDF export) | OK — code-split |
 | posthog | 192 KB | idle-init after first paint | OK — deferred |
@@ -38,7 +38,7 @@ implied a single stack. Fix: track a consolidation spike (MapKit can render
 interactive maps). Defer post-launch.
 
 **F-PERF-03 (Medium) — Activity route chunk is 220 KB.**
-/my-jobs and /my-posts both resolve to Activity. Fix: React.lazy-split the tabbed
+/jobs and /posts both resolve to Activity. Fix: React.lazy-split the tabbed
 sub-views (PostedJobsTab, AppliedJobsTab, dialogs) by tab. Defer; medium win.
 
 ---

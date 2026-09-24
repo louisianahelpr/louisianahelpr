@@ -96,13 +96,13 @@ const PROFILE_GATE_FIELDS = [
   // makes it optional (identity verification is deferred to first-post / IDV),
   // so requiring it here trapped freshly-completed profiles in a redirect loop
   // back to /complete-profile — the form reported 7/7 done and navigated to
-  // /dashboard, but this gate bounced them right back. The two definitions of
+  // /home, but this gate bounced them right back. The two definitions of
   // "complete" must stay in sync; the form is the source of truth.
   //
   // Bio is ALSO not a gate field, same reasoning, same failure mode: it was
   // required here (20+ chars) after CompleteProfile made it optional and
   // stopped blocking submission on it — a profile could save with bio empty,
-  // navigate to /dashboard, and get bounced straight back here forever.
+  // navigate to /home, and get bounced straight back here forever.
 ] as const;
 
 const isFieldComplete = (
@@ -174,7 +174,7 @@ const ProtectedRoute = ({
    * into Capacitor Preferences, so it survives a reload AND the email
    * verification round-trip that can kill the app on native. Login and Signup
    * both already consume it via `postAuthDestination`, landing on
-   * /dashboard?quickApply=<id> — the same screen a signed-in visitor opening
+   * /home?quickApply=<id> — the same screen a signed-in visitor opening
    * the same link reaches, so guest and member converge. The two guest browse
    * feeds already fed it via `?job=`; only the bounce did not.
    *
@@ -194,7 +194,7 @@ const ProtectedRoute = ({
    * rendered during the cold-start beat — and React only begins a `lazy()`
    * import when the element renders. So the route chunk fetch sat strictly
    * BEHIND the session/profile round-trip, despite depending on none of it.
-   * Measured on prod at /my-posts: the app bundle was done at ~1.2s and
+   * Measured on prod at /posts: the app bundle was done at ~1.2s and
    * `Activity-*.js` was not requested until 2046ms, the millisecond the
    * `profiles` response landed. See `lazyWithPreload` for the full trace.
    *
@@ -259,7 +259,7 @@ const ProtectedRoute = ({
 
   if (!user) {
     // Preserve where the user was headed so /login can return them there
-    // after they sign in, instead of silently dumping them on /dashboard.
+    // after they sign in, instead of silently dumping them on /home.
     const intended = location.pathname + location.search;
     const to =
       intended && intended !== "/"
@@ -274,7 +274,7 @@ const ProtectedRoute = ({
   // and will land on a subsequent render. When the fetch has actually
   // failed, no re-render is coming for the rest of the session, so a
   // banned / unverified user would otherwise get full UI access
-  // to /dashboard, /post-job, /admin etc.
+  // to /home, /post-job, /admin etc.
   //
   // We MUST NOT render protected children here — but we must also NOT bounce
   // to /login. The session (`user`) is still valid; a profile-fetch failure
@@ -356,7 +356,7 @@ const ProtectedRoute = ({
   // Stage 1: Email verification (auth user is the source of truth), on EVERY
   // protected route. Owner rule, 2026-09-23 (Q180): "in order to actually
   // finish sign up they must verify their email ... They can't enter until
-  // they verify email." Dashboard, my-jobs, my-posts and messages used to
+  // they verify email." Dashboard, jobs, posts and messages used to
   // skip this (a since-deleted per-route prop) so an unconfirmed account could
   // browse while it waited; that is exactly what the rule forbids.
   //
@@ -397,7 +397,7 @@ const ProtectedRoute = ({
       // Carry the destination across the gate. `<Navigate to="/complete-profile">`
       // dropped it entirely — path AND query — so a user who followed a push
       // deep link, a shared job URL or an email link into the app finished
-      // the form and landed on /dashboard with no idea what they had lost.
+      // the form and landed on /home with no idea what they had lost.
       // `safeInternalRedirect` re-validates on the far side, so an
       // attacker-crafted `?next=` cannot turn this into an open redirect.
       const intended = location.pathname + location.search;

@@ -317,7 +317,7 @@ Deno.serve(async (req) => {
           title: `${emoji} Match for you${job.is_urgent ? " · Urgent" : ""}`,
           message: `${job.title} in ${displayLocation} · $${job.budget}. Tap to review and apply.`,
           type: "job_match",
-          link: `/dashboard?quickApply=${job.id}`,
+          link: `/home?quickApply=${job.id}`,
           read: false,
         })),
       );

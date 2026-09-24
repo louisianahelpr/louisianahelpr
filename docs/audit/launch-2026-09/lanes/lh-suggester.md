@@ -360,7 +360,7 @@ delete", I say so.
 | 7 | **`helpr-pass-wallet`** (S-005) | 199 LOC, deployed edge function | **zero callers** in `src/`, `supabase/`, or `e2e/` — the only grep hit is a comment | **Delete the function.** It reads `profiles` and `reviews`, so it is live attack surface with no product behind it. Also: the `lh-audit` standard still carries a whole must-drive sub-checklist for it, including tier-refresh semantics, for a feature with no UI. |
 | 8 | **Broadcast messages** (S-004) | `BroadcastBanner` runs **two queries on every Dashboard load**; `AdminBroadcasts` can still write to the table | 0 rows in both tables; owner confirmed the feature removed 2026-09-01 | **Delete both.** Pure latency on the most-loaded screen for a product that no longer exists. |
 | 9 | **Worker protection** (`jobs.protection_opted_in` / `protection_fee`) | 2 columns, defended across 8 migrations including the money-column and negative-amount constraints | **zero frontend consumers** — the only `src/` hit is generated types | **Drop the columns.** Every future money-safety migration has to reason about two fields no code touches. |
-| 10 | **`BirthdayPopup`** | 174 LOC, mounted on `/dashboard` | — | **Cut.** A modal that interrupts the primary screen of a marketplace to say happy birthday. It is the clearest single example of the app doing something other than its job. |
+| 10 | **`BirthdayPopup`** | 174 LOC, mounted on `/home` | — | **Cut.** A modal that interrupts the primary screen of a marketplace to say happy birthday. It is the clearest single example of the app doing something other than its job. |
 
 **What I would keep**, and why, so the cut list is not read as "cut everything":
 **pet profiles** (2 rows but it is a genuine job-quality input for `pet_care`,

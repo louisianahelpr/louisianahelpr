@@ -190,7 +190,7 @@ BEGIN
           format('"%s" was cancelled. No cancellation fee applies.', COALESCE(v_job.title, 'A job'))
       END,
       CASE WHEN v_fee > 0 THEN 'payment' ELSE 'warning' END,
-      '/my-jobs'
+      '/jobs'
     );
 
     -- The reliability strike, through the SAME ladder the normal cancel path

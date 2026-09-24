@@ -3,7 +3,7 @@
  *
  * There are two browse feeds and they are different screens, not a screen and
  * a redirect to it: `/browse` (DashboardGuest) is the signed-out feed, and
- * `/dashboard` (Dashboard) is the signed-in one. Both render the same
+ * `/home` (Dashboard) is the signed-in one. Both render the same
  * `BrowseTasksToolbar` over the same `open_jobs_browse` view; what differs is
  * everything that needs a user — saves, applications, availability.
  *
@@ -17,9 +17,9 @@
  *
  * Use this rather than hand-rolling the ternary, so the two destinations stay
  * derived in ONE place. A caller on a surface that is authed-only (Activity,
- * the completion prompts, JobDetail) should skip it and name `/dashboard`
+ * the completion prompts, JobDetail) should skip it and name `/home`
  * outright — passing a user it always has is noise.
  */
-export function browseDestinationFor(user: { id: string } | null | undefined): "/browse" | "/dashboard" {
-  return user ? "/dashboard" : "/browse";
+export function browseDestinationFor(user: { id: string } | null | undefined): "/browse" | "/home" {
+  return user ? "/home" : "/browse";
 }

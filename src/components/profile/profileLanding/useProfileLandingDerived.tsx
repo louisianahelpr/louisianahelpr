@@ -282,8 +282,8 @@ export function useProfileLandingDerived({
           tint: SECTION_TINT.account,
           href: "/profile?tab=home_history",
         },
-        // "Posted Jobs" (→ /my-posts) and "Completed Jobs"
-        // (→ /my-posts?filter=done) were the last two rows here until
+        // "Posted Jobs" (→ /posts) and "Completed Jobs"
+        // (→ /posts?filter=done) were the last two rows here until
         // 2026-08-31, when the owner removed them: "Remove posted and
         // completed jobs from here."
         //
@@ -293,11 +293,11 @@ export function useProfileLandingDerived({
         // deep-link into My Posts — so Account offered two extra spellings of
         // the Posts tab that the bottom nav and the desktop rail both already
         // carry, one of them a pre-applied filter chip. Nothing is lost:
-        // posting history lives in My Posts (`/my-posts`, Activity's "posted"
+        // posting history lives in My Posts (`/posts`, Activity's "posted"
         // tab) and completion history in its "Done" bucket (`?filter=done` —
         // POSTED_STATUS_FILTERS / postedActivityBucket in activityFilters.ts).
         //
-        // No route was orphaned by this: `/my-posts` is a primary nav
+        // No route was orphaned by this: `/posts` is a primary nav
         // destination (MobileNav, DesktopSidebarNav) and the target of a dozen
         // notification deep links. `/profile?tab=posted_jobs` /
         // `?tab=completed_jobs` still resolve — `resolveTab` in

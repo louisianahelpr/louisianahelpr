@@ -410,7 +410,7 @@ const DashboardGuest = () => {
       .then(({ data }) => {
         clearTimeout(fallback);
         if (cancelled) return;
-        if (data.session?.user) navigate("/dashboard", { replace: true });
+        if (data.session?.user) navigate("/home", { replace: true });
         else setSessionChecked(true);
       })
       .catch(() => {

@@ -681,7 +681,7 @@ Deno.serve(async (req) => {
           type: "payment",
           // `?job=`, not `?filter=completed` — `completed` is a legacy key with
           // no chip (the bucket is `done`), and the job may still be settling.
-          link: `/my-jobs?job=${job.id}`,
+          link: `/jobs?job=${job.id}`,
         });
       }
 
@@ -693,7 +693,7 @@ Deno.serve(async (req) => {
         // poster's half said `warning`, so ONE event landed in two different
         // preference categories depending on which side of it you were on.
         type: "payment",
-        link: `/my-posts?job=${job.id}`,
+        link: `/posts?job=${job.id}`,
       });
 
       // Notify admins

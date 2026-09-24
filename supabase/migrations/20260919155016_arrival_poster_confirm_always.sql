@@ -223,7 +223,7 @@ BEGIN
       '"' || v_job.title || '" — their location is ' || round(v_dist)::bigint
         || ' ft from the map pin. If they are there, tap Confirm They Arrived.',
       'job_updates',
-      '/my-posts?job=' || p_job_id
+      '/posts?job=' || p_job_id
     );
   END IF;
 

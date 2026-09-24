@@ -372,12 +372,12 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
 
   await test.step("outlive: the applicant's Activity still renders once the poster is gone", async () => {
     // The applicant's own surface for a job they applied to is Activity
-    // (/my-jobs, applied tab). /jobs/:id is not: signed in, it hands off to
+    // (/jobs, applied tab). /jobs/:id is not: signed in, it hands off to
     // quick-apply, which reads open_jobs_browse, and that view excludes
     // ownerless jobs by design (CLAUDE.md). The kept row is asserted above.
     const helperCtx = await newUserContext(browser, await getSession(request, "helper"));
     const hp = await helperCtx.newPage();
-    await hp.goto("/my-jobs");
+    await hp.goto("/jobs");
     await assertHealthy(hp, "applicant's Activity with an ownerless job");
     await helperCtx.close();
   });

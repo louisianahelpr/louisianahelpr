@@ -13,17 +13,17 @@ BEGIN
   
   IF TG_OP = 'INSERT' THEN
     INSERT INTO public.notifications (user_id, title, message, type, link)
-    VALUES (job_owner, 'New application', 'Someone applied to "' || job_title || '"', 'application', '/dashboard');
+    VALUES (job_owner, 'New application', 'Someone applied to "' || job_title || '"', 'application', '/home');
   END IF;
   
   IF TG_OP = 'UPDATE' AND NEW.status = 'accepted' AND OLD.status = 'pending' THEN
     INSERT INTO public.notifications (user_id, title, message, type, link)
-    VALUES (NEW.helper_id, 'Application accepted!', 'You were accepted for "' || job_title || '"', 'success', '/dashboard');
+    VALUES (NEW.helper_id, 'Application accepted!', 'You were accepted for "' || job_title || '"', 'success', '/home');
   END IF;
   
   IF TG_OP = 'UPDATE' AND NEW.status = 'rejected' AND OLD.status = 'pending' THEN
     INSERT INTO public.notifications (user_id, title, message, type, link)
-    VALUES (NEW.helper_id, 'Application update', 'Your application for "' || job_title || '" was not selected', 'info', '/dashboard');
+    VALUES (NEW.helper_id, 'Application update', 'Your application for "' || job_title || '" was not selected', 'info', '/home');
   END IF;
   
   RETURN NEW;

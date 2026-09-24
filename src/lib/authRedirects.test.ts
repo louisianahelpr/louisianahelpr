@@ -37,7 +37,7 @@ describe("safeInternalRedirect", () => {
   it("accepts a same-origin path, encoded or not", () => {
     expect(safeInternalRedirect("/jobs/abc-123")).toBe("/jobs/abc-123");
     expect(safeInternalRedirect("%2Fjobs%2Fabc-123")).toBe("/jobs/abc-123");
-    expect(safeInternalRedirect("/dashboard?quickApply=1")).toBe("/dashboard?quickApply=1");
+    expect(safeInternalRedirect("/home?quickApply=1")).toBe("/home?quickApply=1");
   });
 
   it.each([

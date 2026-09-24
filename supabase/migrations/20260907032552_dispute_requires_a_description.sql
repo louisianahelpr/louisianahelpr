@@ -185,8 +185,8 @@ BEGIN
         '". The payment is on hold while it is reviewed — add your side so an admin hears both.',
       'warning',
       CASE WHEN _other = _customer
-           THEN '/my-posts?job=' || _job_id::text
-           ELSE '/my-jobs?job=' || _job_id::text
+           THEN '/posts?job=' || _job_id::text
+           ELSE '/jobs?job=' || _job_id::text
       END
     );
   END IF;

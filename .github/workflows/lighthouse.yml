@@ -103,8 +103,8 @@ jobs:
         #      nothing has proven nothing and must not read as a pass.
         # Reports still upload via temporaryPublicStorage for trend review.
         with:
-          # Public routes only — anything behind auth (/dashboard, /post-job,
-          # /my-jobs, /messages, etc.) needs a test session and isn't worth
+          # Public routes only — anything behind auth (/home, /post-job,
+          # /jobs, /messages, etc.) needs a test session and isn't worth
           # the Lighthouse-CI complexity. Landing + browse + signup cover
           # the highest-traffic first-paint surfaces.
           urls: |

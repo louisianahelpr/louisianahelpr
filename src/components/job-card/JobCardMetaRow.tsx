@@ -153,7 +153,7 @@ interface JobCardMetaRowProps {
   /**
    * Print the FULL street address in the location slot instead of the city.
    *
-   * Owner, 2026-09-19, with a screenshot of /my-jobs: "this shouldnt show 2
+   * Owner, 2026-09-19, with a screenshot of /jobs: "this shouldnt show 2
    * addresses. once they are at the correct state, the full address should
    * replace the city in the job card. not be on a whole nother line. the full
    * address needs to go where the city place is."

@@ -178,11 +178,11 @@ for (const view of VIEWS) {
      * NAME THE ACCOUNT AND THE REASON (2026-09-20). This assertion read
      * "admin-e2e was bounced off /admin" and nothing else, so 26 identical
      * failures a night said only that something was wrong with /admin. The
-     * actual destination was /complete-profile, not /dashboard: the account
+     * actual destination was /complete-profile, not /home: the account
      * PLAYWRIGHT_ADMIN_EMAIL points at had `avatar_url` NULL, which is one of
      * ProtectedRoute's Big-7 gate fields, so it never reached AdminRoute at
      * all and the admin surface was never exercised. A bounce to
-     * /complete-profile is a fact about the ACCOUNT; a bounce to /dashboard is
+     * /complete-profile is a fact about the ACCOUNT; a bounce to /home is
      * a fact about its ROLE; they are different bugs and the message now says
      * which one happened, on whose account.
      */
@@ -192,7 +192,7 @@ for (const view of VIEWS) {
         ? " — the profile gate, not the admin gate: this account is missing one of " +
           "ProtectedRoute's Big-7 fields (full_name, avatar_url, date_of_birth, phone, location). " +
           "Point PLAYWRIGHT_ADMIN_EMAIL at the seeded admin (scripts/audit/prod-seed.mjs), or complete this profile."
-        : landed === "/dashboard"
+        : landed === "/home"
           ? " — the admin gate: the role lookup came back CONFIRMED not-admin for this account."
           : landed === "/login"
             ? " — the session was not accepted; it is signed out."

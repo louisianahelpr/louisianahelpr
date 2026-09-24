@@ -8,9 +8,9 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
  * The two things an admin job action's notification has to get right, and got
  * wrong until now.
  *
- * 1. WHERE IT LANDS. `/my-jobs` is the HELPER surface and `/my-posts` is the
+ * 1. WHERE IT LANDS. `/jobs` is the HELPER surface and `/posts` is the
  *    POSTER's, and both open on the "Needs You" bucket. Every notice addressed
- *    to the poster linked to `/my-jobs` — the other party's screen, where a job
+ *    to the poster linked to `/jobs` — the other party's screen, where a job
  *    they posted cannot appear — and no fixed `?filter=` can fix that from the
  *    producer side, because the bucket a job is in keeps changing while the
  *    notification sits unread. `?job=<id>` is the shape the rest of the app was
@@ -177,17 +177,17 @@ describe("AdminJobs — the notification link each party gets", () => {
     await removeTheJob();
 
     const byUser = new Map(notifyCalls.map((c) => [c.row.user_id as string, c.row.link as string]));
-    expect(byUser.get(POSTER_ID)).toBe(`/my-posts?job=${JOB_ID}`);
-    expect(byUser.get(HELPER_ID)).toBe(`/my-jobs?job=${JOB_ID}`);
+    expect(byUser.get(POSTER_ID)).toBe(`/posts?job=${JOB_ID}`);
+    expect(byUser.get(HELPER_ID)).toBe(`/jobs?job=${JOB_ID}`);
   });
 
   it("never writes a bare Activity surface — that opens the Needs You bucket", async () => {
     await removeTheJob();
     for (const call of notifyCalls) {
-      expect(call.row.link).not.toBe("/my-jobs");
-      expect(call.row.link).not.toBe("/my-posts");
-      // /dashboard is Browse: it says nothing about the job that just changed.
-      expect(call.row.link).not.toBe("/dashboard");
+      expect(call.row.link).not.toBe("/jobs");
+      expect(call.row.link).not.toBe("/posts");
+      // /home is Browse: it says nothing about the job that just changed.
+      expect(call.row.link).not.toBe("/home");
       expect(String(call.row.link)).toContain(`?job=${JOB_ID}`);
     }
   });
@@ -227,9 +227,9 @@ describe("AdminJobs — the notification insert cannot fail silently", () => {
   });
 });
 
-// /my-jobs is the HELPER surface. Sending the poster there lands them on a
+// /jobs is the HELPER surface. Sending the poster there lands them on a
 // screen the job they posted can never appear on.
-// @mutate src/components/admin/AdminJobs.tsx | role === "poster" ? `/my-posts?job=${jobId}` : `/my-jobs?job=${jobId}`; | `/my-jobs?job=${jobId}`;
+// @mutate src/components/admin/AdminJobs.tsx | role === "poster" ? `/posts?job=${jobId}` : `/jobs?job=${jobId}`; | `/jobs?job=${jobId}`;
 
 // Q157: the notifications BEFORE INSERT trigger (Q137) drops a seed job's row
 // to a REAL account. That drop is the rule working, not a failed write, and the
@@ -241,8 +241,8 @@ describe("AdminJobs — a seed job never notifies a real account, and says so ho
   it("asks the boundary with the trigger's own arguments before each insert", async () => {
     await removeTheJob();
     expect(seedCalls).toEqual([
-      { fn: "admin_notification_crosses_seed_boundary", args: { p_recipient: POSTER_ID, p_job_id: JOB_ID, p_link: `/my-posts?job=${JOB_ID}` } },
-      { fn: "admin_notification_crosses_seed_boundary", args: { p_recipient: HELPER_ID, p_job_id: JOB_ID, p_link: `/my-jobs?job=${JOB_ID}` } },
+      { fn: "admin_notification_crosses_seed_boundary", args: { p_recipient: POSTER_ID, p_job_id: JOB_ID, p_link: `/posts?job=${JOB_ID}` } },
+      { fn: "admin_notification_crosses_seed_boundary", args: { p_recipient: HELPER_ID, p_job_id: JOB_ID, p_link: `/jobs?job=${JOB_ID}` } },
     ]);
     // The row carries its subject itself, so the trigger judges the same job.
     for (const c of notifyCalls) expect(c.row.job_id).toBe(JOB_ID);

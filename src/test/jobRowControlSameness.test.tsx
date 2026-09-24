@@ -283,7 +283,7 @@ const disputedHelper = (job: J) => () =>
  * guard on an empty row.
  */
 const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minControls: number }> = [
-  // ── /my-jobs, Helpr — THE SCREENSHOT'S OWN ROW IS THE FIRST TWO ──────────
+  // ── /jobs, Helpr — THE SCREENSHOT'S OWN ROW IS THE FIRST TWO ──────────
   {
     name: "Jobs · Confirmed — Directions · Message · Cancel Job + I'm On My Way",
     render: () =>
@@ -374,7 +374,7 @@ const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minC
     render: disputedHelper(makeJob({ status: "disputed", dispute_status: "open", disputed_by: HELPER, dispute_reason: "x" })),
     minControls: 4,
   },
-  // ── /my-posts, poster ────────────────────────────────────────────────────
+  // ── /posts, poster ────────────────────────────────────────────────────
   {
     name: "Posts · Open — Share · Boost · Edit · Cancel",
     render: () => wrap(<OpenStep {...posterCtx(makeJob({ status: "open", helper_id: null }))} />),

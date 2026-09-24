@@ -129,7 +129,7 @@ async function nativeSignIn(provider: SocialProvider): Promise<void> {
 // Public: drive an Apple or Google sign-in.
 //   - On native (plugin available) → native ASAuthorization / GoogleSignIn flow
 //     → supabase.auth.signInWithIdToken → returns { kind: "success" } so the
-//     caller navigates to /dashboard.
+//     caller navigates to /home.
 //   - On web (or any platform where the plugin isn't wired) → supabase
 //     OAuth redirect flow → returns { kind: "redirecting" } so the caller
 //     leaves the spinner up; the post-redirect handler picks up the
@@ -188,7 +188,7 @@ export async function signInWithProvider(
 
   // Web fallback — supabase.auth.signInWithOAuth navigates the browser
   // straight to the provider's authorization page. We can't observe the
-  // outcome here; the post-redirect handler at /dashboard (or redirectTo)
+  // outcome here; the post-redirect handler at /home (or redirectTo)
   // takes over.
   try {
     // Optimistically record the method we're about to use. If the user
@@ -201,7 +201,7 @@ export async function signInWithProvider(
       options: {
         redirectTo:
           opts.redirectTo ??
-          `${getPublicOrigin()}/dashboard`,
+          `${getPublicOrigin()}/home`,
       },
     });
     if (error) {

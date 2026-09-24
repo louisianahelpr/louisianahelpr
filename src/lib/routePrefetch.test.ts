@@ -24,6 +24,8 @@
  * production change this file does not justify on its own.
  */
 
+// @mutate src/lib/routePrefetch.ts | .sort((a, b) => b.length - a.length) | .sort(() => 0)
+// @mutate src/lib/routePrefetch.ts | const pathname = path.split(/[?#]/)[0]; | const pathname = path;
 import { describe, it, expect, vi } from "vitest";
 
 const PAGES: [string, string][] = [
@@ -32,6 +34,7 @@ const PAGES: [string, string][] = [
   ["@/pages/post-job/PostJob", "PostJob"],
   ["@/pages/posts/PostsPage", "PostsPage"],
   ["@/pages/jobs/JobsPage", "JobsPage"],
+  ["@/pages/jobs/JobDetail", "JobDetail"],
   ["@/pages/messages/Messages", "Messages"],
   ["@/pages/info/Support", "Support"],
   ["@/pages/auth/Login", "Login"],
@@ -73,9 +76,26 @@ async function loadFresh() {
 const settle = () => new Promise((r) => setTimeout(r, 0));
 
 describe("prefetchRoute — which chunk it warms", () => {
+  // The Jobs tab is /jobs and the public job page is /jobs/<id>. A bare
+  // prefix match warmed the Jobs tab chunk for every job link hovered.
+  it("a job page (/jobs/<id>) warms the job page chunk, not the Jobs tab", async () => {
+    const { prefetchRoute } = await loadFresh();
+    prefetchRoute("/jobs/3f0c9a4e-0000-4000-8000-000000000000");
+    await settle();
+    expect(loaded).toContain("JobDetail");
+    expect(loaded).not.toContain("JobsPage");
+  });
+
+  it("a query string still finds its tab", async () => {
+    const { prefetchRoute } = await loadFresh();
+    prefetchRoute("/posts?filter=needs_you");
+    await settle();
+    expect(loaded).toContain("PostsPage");
+  });
+
   it("warms the chunk an exact path maps to", async () => {
     const { prefetchRoute } = await loadFresh();
-    prefetchRoute("/dashboard");
+    prefetchRoute("/home");
     await settle();
     expect(loaded).toContain("Dashboard");
   });
@@ -146,16 +166,16 @@ describe("prefetchRoute — never breaks the interaction it is attached to", () 
 
   it("is fire-and-forget — returns void, with no promise to await", async () => {
     const { prefetchRoute } = await loadFresh();
-    expect(prefetchRoute("/dashboard")).toBeUndefined();
+    expect(prefetchRoute("/home")).toBeUndefined();
   });
 
   it("repeat calls for the same path stay silent", async () => {
     // NOT a proof of the `warmed` set — see the header. This pins that the
     // second call is harmless, which is all a hover handler needs.
     const { prefetchRoute } = await loadFresh();
-    prefetchRoute("/dashboard");
-    expect(() => prefetchRoute("/dashboard")).not.toThrow();
-    expect(() => prefetchRoute("/dashboard")).not.toThrow();
+    prefetchRoute("/home");
+    expect(() => prefetchRoute("/home")).not.toThrow();
+    expect(() => prefetchRoute("/home")).not.toThrow();
   });
 });
 
@@ -164,4 +184,4 @@ describe("prefetchRoute — never breaks the interaction it is attached to", () 
 // carrying an id warms nothing at all, and the chunk waterfall this module
 // exists to remove is paid in full at the tap. The old suite, being entirely
 // `not.toThrow()`, was green for that.
-// @mutate src/lib/routePrefetch.ts | : Object.keys(prefetchers).find((p) => path.startsWith(p)); | : undefined;
+// @mutate src/lib/routePrefetch.ts | : Object.keys(prefetchers).sort((a, b) => b.length - a.length).find((p) => pathname.startsWith(p)); | : undefined;

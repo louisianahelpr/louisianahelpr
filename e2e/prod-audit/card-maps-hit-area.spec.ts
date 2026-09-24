@@ -4,7 +4,7 @@
  * correct."
  *
  * ── THE CLASS, not the instance ───────────────────────────────────────────
- * The instance was /my-jobs. The CLASS is: a job card's primary tap action is
+ * The instance was /jobs. The CLASS is: a job card's primary tap action is
  * "open this job", and a maps link — a control whose activation LEAVES THE APP
  * — may not own a meaningful share of that card's tap area on any surface. It
  * is a class and not a one-off because the address is drawn by one shared
@@ -27,9 +27,9 @@
  * ── MEASURED, before → after (prod Supabase, local build of this checkout,
  *    Chromium, helper-e2e / poster-e2e, 2026-09-21) ───────────────────────
  *
- *   /my-jobs  @375   15% of each 301x139 card, one live 267x32 anchor
+ *   /jobs  @375   15% of each 301x139 card, one live 267x32 anchor
  *                    (89% of the card's width)         →  0%, anchor 1x1
- *   /my-posts @375    0% (already fixed 2026-09-14)     →  0%
+ *   /posts @375    0% (already fixed 2026-09-14)     →  0%
  *
  * ── THE BUDGET ───────────────────────────────────────────────────────────
  * Zero is the wrong number to demand, and demanding it is how a check like
@@ -50,7 +50,7 @@
  *     card-maps-hit-area
  */
 // SHOWN ABLE TO FAIL: dropping the prop restores the original defect verbatim
-// — the location slot goes back to being the full-width anchor, and /my-jobs
+// — the location slot goes back to being the full-width anchor, and /jobs
 // measures 15% again at 375.
 // @mutate src/pages/jobs/AppliedJobCard.tsx | locationPressToMap | locationPressToMap={false}
 
@@ -202,8 +202,8 @@ async function authedContext(browser: Browser, vw: number, baseURL: string | und
 
 /** Route → which account sees cards there → which source file draws them. */
 const SURFACES: { name: string; url: string; as: "poster" | "helper"; drawnBy: string }[] = [
-  { name: "my-jobs", url: "/my-jobs", as: "helper", drawnBy: "pages/jobs/AppliedJobCard.tsx" },
-  { name: "my-posts", url: "/my-posts", as: "poster", drawnBy: "pages/posts/PostedJobCard.tsx" },
+  { name: "jobs", url: "/jobs", as: "helper", drawnBy: "pages/jobs/AppliedJobCard.tsx" },
+  { name: "posts", url: "/posts", as: "poster", drawnBy: "pages/posts/PostedJobCard.tsx" },
 ];
 
 test("every file that draws the shared meta row is on a route this spec measures", () => {

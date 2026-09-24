@@ -101,7 +101,7 @@ describe("job dates resolve in the platform's zone", () => {
     // anything else yields NaN — and `Intl.DateTimeFormat.formatToParts(new
     // Date(NaN))` throws `RangeError: Invalid time value`. That throw escaped
     // through `isPastDue` into the `useMemo` that buckets the Activity list, so
-    // a single unreadable date took /my-posts to the error boundary and every
+    // a single unreadable date took /posts to the error boundary and every
     // job on the page vanished. Losing the overdue treatment on one card is a
     // far cheaper failure than losing the page.
     for (const bad of ["", "not-a-date", "2026-09-03T04:12:34.567Z", "09/03/2026", "2026-9-3"]) {

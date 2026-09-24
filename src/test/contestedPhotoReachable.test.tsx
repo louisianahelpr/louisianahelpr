@@ -2,7 +2,7 @@
  * A CARD THAT STATES A PROOF REQUIREMENT MUST OFFER A WAY TO SATISFY IT —
  * and it must state it to the person who can.
  *
- * Owner, 2026-09-19, on a `/my-posts` card for a DISPUTED job: "here they have
+ * Owner, 2026-09-19, on a `/posts` card for a DISPUTED job: "here they have
  * no way to submit the photos after the dispute or revision."
  *
  * ── WHAT WAS ACTUALLY WRONG, ON WHICH SIDE ────────────────────────────────
@@ -192,7 +192,7 @@ const renderRevision = (job: Job) =>
   );
 
 // ===========================================================================
-// /my-jobs — the side that actually uploads
+// /jobs — the side that actually uploads
 // ===========================================================================
 describe("Jobs card: the Helpr can file photos in BOTH contested states", () => {
   it("revision: a capture chip is in the action row", () => {
@@ -253,7 +253,7 @@ describe("Jobs card: the Helpr can file photos in BOTH contested states", () => 
 });
 
 // ===========================================================================
-// /my-posts — the side that does NOT upload
+// /posts — the side that does NOT upload
 // ===========================================================================
 describe("Posts card: the proof note is aimed at its reader", () => {
   it("disputed: the poster is told the FACT, not the Helpr's instruction", () => {

@@ -1705,8 +1705,8 @@ serve(async (req) => {
       message: `The dispute on "${job.title}" was settled with a ${Math.round(posterShare * 100)}% share to you. ${posterHow}`,
       type: "payment",
       // The settled job. A resolved dispute leaves the job completed or
-      // cancelled — either way not in the "Needs you" bucket /my-posts opens on.
-      link: `/my-posts?job=${job.id}`,
+      // cancelled — either way not in the "Needs you" bucket /posts opens on.
+      link: `/posts?job=${job.id}`,
     });
     if (posterNoteErr) {
       console.error(

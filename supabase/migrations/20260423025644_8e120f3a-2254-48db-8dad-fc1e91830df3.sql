@@ -77,7 +77,7 @@ BEGIN
          'Direct offer expired',
          'Your offer for "' || title || '" was not accepted in time. The job is now visible to all helpers.',
          'job_updates',
-         '/my-posts'
+         '/posts'
     FROM public.jobs
    WHERE direct_offer_status = 'expired'
      AND direct_offer_expires_at < now()

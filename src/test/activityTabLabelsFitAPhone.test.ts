@@ -69,7 +69,7 @@ import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
 //      40px of box at 320. Part 2 must go red.
 //   5. The held-open magnifier slot doubles. Part 2 must go red: the field is
 //      the only thing on the row that can pay for it.
-//   6. The tabs are taken away again on an empty list, which is the /my-jobs
+//   6. The tabs are taken away again on an empty list, which is the /jobs
 //      screen that rendered one magnifier and nothing else. Part 3 must go red.
 //   7. The edge fade is unhooked from the scroller, leaving the hard cut at the
 //      card's corner this row shipped with.
@@ -137,11 +137,11 @@ const clipWidth = (viewport: number) => viewport - CLIP_INSET;
  * of THIS row it came out uniformly narrow by a factor of 1.13–1.15:
  *
  *   row                              model    browser   ratio
- *   my-posts long  11px/12px gap     290.7      333     1.145
- *   my-posts short 11px/12px gap     214.3      244     1.139
- *   my-jobs  long  11px/12px gap     264.0      301     1.140
- *   my-jobs  short 11px/12px gap     187.6      212     1.130
- *   my-posts long  12px/16px gap     326.4      372     1.140
+ *   posts long  11px/12px gap     290.7      333     1.145
+ *   posts short 11px/12px gap     214.3      244     1.139
+ *   jobs  long  11px/12px gap     264.0      301     1.140
+ *   jobs  short 11px/12px gap     187.6      212     1.130
+ *   posts long  12px/16px gap     326.4      372     1.140
  *
  * 1.20 is that factor plus a margin, and the margin points the only safe way:
  * the model over-states every label, so this guard goes red BEFORE the browser
@@ -347,8 +347,8 @@ describe("the Activity status tabs fit a phone", () => {
     it(`every label is inside the clip at ${viewport}`, () => {
       const clip = clipWidth(viewport);
       for (const [name, filters] of [
-        ["my-posts", POSTED_STATUS_FILTERS],
-        ["my-jobs", APPLIED_STATUS_FILTERS],
+        ["posts", POSTED_STATUS_FILTERS],
+        ["jobs", APPLIED_STATUS_FILTERS],
       ] as const) {
         const content = contentWidth(filters, viewport, {
           tight: PHONE_IS_TIGHT,
@@ -430,7 +430,7 @@ describe("an empty Activity list still shows its tabs", () => {
     expect(
       m![1].trim(),
       "Activity.tsx is gating the status tabs on whether the list has rows. That is the " +
-        "/my-jobs screen an account with no applications saw on 2026-09-19: a header " +
+        "/jobs screen an account with no applications saw on 2026-09-19: a header " +
         "strip holding one magnifier and nothing else, because the title is sr-only on " +
         "the desktop website and the tabs had been removed. The tabs are where you ARE " +
         "in the screen, not an action on its rows.",
@@ -446,8 +446,8 @@ describe("an empty Activity list still shows its tabs", () => {
  * scroller gives them. All three were GREEN on 2026-09-20 while the owner,
  * signed in on a phone, saw no tab row at all:
  *
- *     375  /my-posts   chevron aria-expanded="false"   visible tab words: []
- *     414  /my-posts   chevron aria-expanded="false"   visible tab words: []
+ *     375  /posts   chevron aria-expanded="false"   visible tab words: []
+ *     414  /posts   chevron aria-expanded="false"   visible tab words: []
  *
  * A width check cannot tell a row that FITS from a row that is NOT RENDERED:
  * in both cases nothing is past the clip edge. Two claims were missing, and
@@ -485,11 +485,11 @@ describe("the status tabs survive first paint, and their breakpoint is a real ru
     expect(
       seed,
       `ActivityHeader opens the phone status tabs collapsed (useState(${seed})). ` +
-        "That is the screen the owner reported on 2026-09-20: plain /my-posts at 375 and " +
+        "That is the screen the owner reported on 2026-09-20: plain /posts at 375 and " +
         "414 painted \"My Posts · 🔍 · ⌄\" and no tab row, because the seed was " +
         "`!isDefaultFilter` and the default filter is what every arrival lands on. Note " +
         "the obvious wrong guess, ruled out by measurement that day: it was never about " +
-        "the bucket being EMPTY — /my-jobs' default bucket had rows and hid its tabs too. " +
+        "the bucket being EMPTY — /jobs' default bucket had rows and hid its tabs too. " +
         "The tabs are navigation; they open with the screen.",
     ).toBe("true");
   });

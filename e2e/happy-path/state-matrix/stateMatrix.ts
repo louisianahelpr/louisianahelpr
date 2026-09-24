@@ -1123,7 +1123,7 @@ function posterCells(): StateCell[] {
         cells.push({
           id: slug(`posted-${status}-${sub.key}-${expanded ? "expanded" : "collapsed"}`),
           surface: "posted-card",
-          route: "/my-posts?filter=all",
+          route: "/posts?filter=all",
           describe: `Poster card — ${sub.describe} (${expanded ? "expanded" : "collapsed"}).`,
           status,
           axes: {
@@ -1205,7 +1205,7 @@ function posterCells(): StateCell[] {
     cells.push({
       id: slug(`posted-content-${c.key}`),
       surface: "posted-card",
-      route: "/my-posts?filter=all",
+      route: "/posts?filter=all",
       describe: `Poster card — ${c.describe} (expanded).`,
       status: (c.job.status as JobStatus) ?? null,
       axes: { role: "poster", status: String(c.job.status), substate: c.key, expanded: "true", content: c.key },
@@ -1220,7 +1220,7 @@ function posterCells(): StateCell[] {
   cells.push({
     id: "posted-category-palette",
     surface: "posted-card",
-    route: "/my-posts?filter=all",
+    route: "/posts?filter=all",
     describe:
       "All twelve categories as sibling cards — the one cell that answers 'do these twelve hues read as one system, and is any pair indistinguishable'.",
     status: "open",
@@ -1243,7 +1243,7 @@ function appliedCells(): StateCell[] {
       cells.push({
         id: slug(`applied-${s.key}-${expanded ? "expanded" : "collapsed"}`),
         surface: "applied-card",
-        route: "/my-jobs?filter=all",
+        route: "/jobs?filter=all",
         describe: `Helper card — ${s.describe} (${expanded ? "expanded" : "collapsed"}).`,
         status: (s.job?.status as JobStatus) ?? null,
         derived: s.derived,
@@ -1290,7 +1290,7 @@ function appliedCells(): StateCell[] {
     cells.push({
       id: slug(`applied-content-${c.key}`),
       surface: "applied-card",
-      route: "/my-jobs?filter=all",
+      route: "/jobs?filter=all",
       describe: `Helper card — ${c.describe} (expanded).`,
       status: (c.job.status as JobStatus) ?? null,
       axes: { role: "helper", substate: c.key, expanded: "true", content: c.key },
@@ -1316,8 +1316,8 @@ function activityShellCells(): StateCell[] {
   const buckets = ["needs_you", "waiting", "scheduled", "done", "cancelled", "all"];
   const cells: StateCell[] = [];
   for (const tab of [
-    { key: "posted", route: "/my-posts" },
-    { key: "applied", route: "/my-jobs" },
+    { key: "posted", route: "/posts" },
+    { key: "applied", route: "/jobs" },
   ]) {
     for (const bucket of buckets) {
       for (const density of ["empty", "rich"] as const) {
@@ -1365,8 +1365,8 @@ function trackerCells(): StateCell[] {
   const cells: StateCell[] = [];
   for (const p of positions) {
     for (const view of [
-      { key: "poster", route: "/my-posts?filter=all", note: "poster view — includePostingSteps adds a 'Posted' pre-step, shifting every index by one" },
-      { key: "helper", route: "/my-jobs?filter=all", note: "helper view — no pre-step; the SAME job renders a rail one step shorter" },
+      { key: "poster", route: "/posts?filter=all", note: "poster view — includePostingSteps adds a 'Posted' pre-step, shifting every index by one" },
+      { key: "helper", route: "/jobs?filter=all", note: "helper view — no pre-step; the SAME job renders a rail one step shorter" },
     ]) {
       cells.push({
         id: slug(`tracker-${p.key}-${view.key}`),
@@ -1396,10 +1396,10 @@ function trackerCells(): StateCell[] {
 function jobDetailCells(): StateCell[] {
   const viewers = [
     { key: "guest", route: "/browse", describe: "signed-out viewer — no save/share/report corner actions, single 'Sign up to apply' CTA", reachable: "auto" as Reachability },
-    { key: "helper-not-applied", route: "/dashboard", describe: "signed-in helper who has not applied — Apply / Continue CTA", reachable: "auto" as Reachability },
-    { key: "helper-applied", route: "/dashboard", describe: "helper who already applied — CTA reads 'Applied — #N'", reachable: "auto" as Reachability },
-    { key: "poster-own-job", route: "/dashboard", describe: "the poster looking at their own post — CTA reads 'This is your post'", reachable: "auto" as Reachability },
-    { key: "credential-gated", route: "/dashboard", describe: "credential_tier above the viewer's tier — the CTA becomes a gate button whose label differs per tier", reachable: "auto" as Reachability },
+    { key: "helper-not-applied", route: "/home", describe: "signed-in helper who has not applied — Apply / Continue CTA", reachable: "auto" as Reachability },
+    { key: "helper-applied", route: "/home", describe: "helper who already applied — CTA reads 'Applied — #N'", reachable: "auto" as Reachability },
+    { key: "poster-own-job", route: "/home", describe: "the poster looking at their own post — CTA reads 'This is your post'", reachable: "auto" as Reachability },
+    { key: "credential-gated", route: "/home", describe: "credential_tier above the viewer's tier — the CTA becomes a gate button whose label differs per tier", reachable: "auto" as Reachability },
   ];
   const cells: StateCell[] = viewers.map((v) => ({
     id: slug(`job-detail-${v.key}`),
@@ -1418,7 +1418,7 @@ function jobDetailCells(): StateCell[] {
   cells.push({
     id: "job-detail-apply-step",
     surface: "job-detail",
-    route: "/dashboard",
+    route: "/home",
     describe:
       "Job detail dialog, step = 'apply' — the second screen of a two-step dialog. The route sweep only ever saw step 1.",
     status: "open",
@@ -1434,7 +1434,7 @@ function jobDetailCells(): StateCell[] {
   cells.push({
     id: "job-detail-photo-none",
     surface: "job-detail",
-    route: "/dashboard",
+    route: "/home",
     describe: "Job detail dialog on a job with NO photos — the cover-image slot must collapse, not leave a band.",
     status: "open",
     axes: { surface: "job-detail", viewer: "helper-not-applied", content: "no-photos" },
@@ -1447,7 +1447,7 @@ function jobDetailCells(): StateCell[] {
   cells.push({
     id: "job-detail-photo-many",
     surface: "job-detail",
-    route: "/dashboard",
+    route: "/home",
     describe: "Job detail dialog with five photos plus a scope video — cover image, 'View All' pill and the video block stacked.",
     status: "open",
     axes: { surface: "job-detail", viewer: "helper-not-applied", content: "five-photos-plus-video" },
@@ -1479,70 +1479,70 @@ function dialogCells(): StateCell[] {
     // job detail sheet flag button, aria "Report this job").
     {
       id: "dialog-report-step-reason",
-      route: "/my-posts?filter=all",
+      route: "/posts?filter=all",
       describe: "ReportDialog step 1 of 3 — 'reason'. Reached from a COMPLETED job's Report Job chip.",
       open: ["card", "Report Job"],
       fixture: { job: { ...BASE_JOB, status: "completed", helper_id: HELPER_ID, ...completedStamps(), payment_status: "released" } as CellFixture["job"] },
     },
     {
       id: "dialog-report-step-details",
-      route: "/my-posts?filter=all",
+      route: "/posts?filter=all",
       describe: "ReportDialog step 2 of 3 — 'details'. Never captured by any prior sweep.",
       open: ["card", "Report Job", "<first reason>", "Continue"],
       fixture: { job: { ...BASE_JOB, status: "completed", helper_id: HELPER_ID, ...completedStamps(), payment_status: "released" } as CellFixture["job"] },
     },
     {
       id: "dialog-completion-choice",
-      route: "/my-posts?filter=all",
+      route: "/posts?filter=all",
       describe: "CompletionChoiceSheet mode = 'choice' — approve or ask for a revision.",
       open: ["card", "Approve"],
       fixture: { job: { ...BASE_JOB, status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_arrived_at: ISO(-HOURS(5)), helper_arrival_verified_at: ISO(-HOURS(5)), poster_confirmed_arrival_at: ISO(-HOURS(5)), poster_confirmed_working_at: ISO(-HOURS(4)), helper_completed_at: ISO(-HOURS(1)), date_needed: DATE_ONLY(0) } as CellFixture["job"] },
     },
     {
       id: "dialog-completion-revision",
-      route: "/my-posts?filter=all",
+      route: "/posts?filter=all",
       describe: "CompletionChoiceSheet mode = 'revision' — step 2 of the same sheet.",
       open: ["card", "Approve", "revision"],
       fixture: { job: { ...BASE_JOB, status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_arrived_at: ISO(-HOURS(5)), helper_arrival_verified_at: ISO(-HOURS(5)), poster_confirmed_arrival_at: ISO(-HOURS(5)), poster_confirmed_working_at: ISO(-HOURS(4)), helper_completed_at: ISO(-HOURS(1)), date_needed: DATE_ONLY(0) } as CellFixture["job"] },
     },
     {
       id: "dialog-cancellation",
-      route: "/my-posts?filter=all",
+      route: "/posts?filter=all",
       describe: "CancellationDialog on an ACCEPTED job — the fee-consequence copy differs from the open-job case.",
       open: ["card", "Cancel"],
       fixture: { job: { ...BASE_JOB, status: "accepted", helper_id: HELPER_ID, helper_confirmed_at: ISO(-HOURS(6)), date_needed: DATE_ONLY(DAYS(1)) } as CellFixture["job"] },
     },
     {
       id: "dialog-boost",
-      route: "/my-posts?filter=all",
+      route: "/posts?filter=all",
       describe: "JobBoostDialog on an open job.",
       open: ["card", "Boost"],
       fixture: { job: { ...BASE_JOB, status: "open" } as CellFixture["job"] },
     },
     {
       id: "dialog-edit-job",
-      route: "/my-posts?filter=all",
+      route: "/posts?filter=all",
       describe: "EditJobDialog on an open job — the longest form the app renders inside a dialog.",
       open: ["card", "Edit"],
       fixture: { job: { ...BASE_JOB, status: "open" } as CellFixture["job"] },
     },
     {
       id: "dialog-dispute-timeline",
-      route: "/my-posts?filter=all",
+      route: "/posts?filter=all",
       describe: "DisputeTimelineDialog on a disputed job.",
       open: ["card", "Timeline"],
       fixture: { job: { ...BASE_JOB, status: "disputed", helper_id: HELPER_ID, ...completedStamps(), has_active_dispute: true, dispute_status: "open", disputed_by: POSTER_ID, dispute_reason: "Baseboards missed.", dispute_deadline: ISO(HOURS(40)) } as CellFixture["job"] },
     },
     {
       id: "dialog-decline-applicant",
-      route: "/my-posts?filter=all",
+      route: "/posts?filter=all",
       describe: "DeclineApplicantSheet from the applicants panel of an open job.",
       open: ["card", "Applicants", "Decline"],
       fixture: { job: { ...BASE_JOB, status: "open" } as CellFixture["job"], applicants: 3 },
     },
     {
       id: "dialog-helper-cancel-job-accepted",
-      route: "/my-jobs?filter=all",
+      route: "/jobs?filter=all",
       describe:
         "Helper-side 'Cancel Job' confirm on a confirmed booking (status 'accepted' + helper_confirmed_at) — the money-consequence copy. Was 'Can't Make It'; renamed to match the in-progress card (owner, 2026-09-14, VN-18).",
       open: ["card", "Cancel Job"],
@@ -1553,7 +1553,7 @@ function dialogCells(): StateCell[] {
     },
     {
       id: "dialog-helper-cancel-job",
-      route: "/my-jobs?filter=all",
+      route: "/jobs?filter=all",
       describe:
         "Helper-side 'Cancel Job' confirm on a confirmed in-progress job BEFORE 'I'm On My Way' — the only window the back-out exists (owner, 2026-09-14, VN-18). Once on the way / arrived there is no Cancel Job chip at all.",
       open: ["card", "Cancel Job"],
@@ -1564,7 +1564,7 @@ function dialogCells(): StateCell[] {
     },
     {
       id: "dialog-withdraw-application",
-      route: "/my-jobs?filter=all",
+      route: "/jobs?filter=all",
       describe: "Helper-side Withdraw confirm on a pending application.",
       open: ["card", "Withdraw"],
       fixture: {

@@ -78,8 +78,8 @@ reproduced here, all UAs get the same 200.
 ## What I fixed
 
 1. **`public/robots.txt`** — added `Disallow` for every authenticated/
-   admin/account-state path (`/admin`, `/dashboard`, `/profile`, `/messages`,
-   `/post-job`, `/my-jobs`, `/my-posts`, `/payment-success`, `/gift-card`,
+   admin/account-state path (`/admin`, `/home`, `/profile`, `/messages`,
+   `/post-job`, `/jobs`, `/posts`, `/payment-success`, `/gift-card`,
    `/settings`, `/availability`, `/earnings`, `/schedule`, `/saved-helpers`,
    `/complete-profile`, `/warnings`, `/activity`, `/data-rights`,
    `/account-pending`, `/account-denied`, `/account-banned`,

@@ -36,7 +36,7 @@ const renderGate = (Gate: React.ComponentType<{ children: React.ReactNode; to?: 
     <MemoryRouter initialEntries={["/"]}>
       <Routes>
         <Route path="/" element={<Gate><h1>{LANDING}</h1></Gate>} />
-        <Route path="/dashboard" element={<div>DASHBOARD</div>} />
+        <Route path="/home" element={<div>DASHBOARD</div>} />
       </Routes>
     </MemoryRouter>,
   );

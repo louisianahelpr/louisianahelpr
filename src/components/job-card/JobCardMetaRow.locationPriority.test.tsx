@@ -2,7 +2,7 @@
  * LOCATION OUTRANKS THE EXPIRY COUNTDOWN on the activity card meta row
  * (owner, 2026-09-11 and again 2026-09-13).
  *
- * Measured on prod at 375 (/my-posts, "Pressure wash a driveway" at
+ * Measured on prod at 375 (/posts, "Pressure wash a driveway" at
  * "Under a minute left"): the row is 267px and nowrap; the city "New Iberia"
  * rendered as "N…" (20px of the 59px it needs) while the countdown kept its
  * full 125px, because the countdown was `shrink-0` and the city was the only

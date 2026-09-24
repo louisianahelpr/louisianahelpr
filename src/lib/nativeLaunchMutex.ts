@@ -10,7 +10,7 @@
  *
  * Their order is non-deterministic, so a deep-link arrival could win
  * the race and navigate to /m/abc, then NativeLaunchRouter resolves
- * (still holding initialPath="/") and overrides with /dashboard.
+ * (still holding initialPath="/") and overrides with /home.
  *
  * This shared flag lets the deep-link handler claim navigation first.
  * NativeLaunchRouter checks the flag before its own navigate() call and

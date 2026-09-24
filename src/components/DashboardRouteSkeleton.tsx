@@ -5,7 +5,7 @@ import { TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
 import HelprMark from "@/components/HelprMark";
 
 /**
- * Suspense / auth-pending fallback for the `/dashboard` route.
+ * Suspense / auth-pending fallback for the `/home` route.
  *
  * Owner: "the home dashboard webpage goes through like 3 different loading
  * screens then opens." Measured cause: three DIFFERENT-shaped surfaces
@@ -36,7 +36,7 @@ import HelprMark from "@/components/HelprMark";
  * A static emblem + bell-shaped bone holds the same 44px row instead.
  *
  * Used as BOTH:
- *   - the `/dashboard` route's Suspense fallback (`routeEl`'s second arg
+ *   - the `/home` route's Suspense fallback (`routeEl`'s second arg
  *     in App.tsx), replacing the generic `RouteSuspenseFallback` for this
  *     route only
  *   - `ProtectedRoute`'s `fallback` prop on that same route, so the (rare,

@@ -44,7 +44,7 @@ const cases = [
   },
   {
     /*
-     * THE POSTED TAB'S PLACEHOLDER (/my-posts, and Activity's posted Suspense
+     * THE POSTED TAB'S PLACEHOLDER (/posts, and Activity's posted Suspense
      * fallback). It was the last activity skeleton still hand-drawing a card:
      * a `rounded-ds-md skeleton-glass p-4` box with no frame, no category rail
      * and no category tab, standing in for a PostedJobCard built from the same

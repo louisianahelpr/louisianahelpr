@@ -343,7 +343,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       // the helper saw the card vanish from Browse with no confirmation and
       // no obvious way to find the application again. Toast up front =
       // confirmation can never be swallowed by a later best-effort call.
-      // `?job=` — not a bare "/my-jobs". My Jobs opens on the "Needs you"
+      // `?job=` — not a bare "/jobs". My Jobs opens on the "Needs you"
       // bucket, and neither of these two lands there: a booking the helper has
       // already confirmed is `scheduled`, and an application awaiting the
       // poster's decision is `waiting`. Tapping View went to an empty list
@@ -383,11 +383,11 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
           description:
             "It looked like contact or payment details, which can't be shared before a job is confirmed. The person who posted it sees your application without it.",
           duration: 10000,
-          action: { label: "View", onClick: () => navigate(`/my-jobs?job=${vars.jobId}`) },
+          action: { label: "View", onClick: () => navigate(`/jobs?job=${vars.jobId}`) },
         });
       } else {
         toast.success("Application sent! Track it in My Jobs.", {
-          action: { label: "View", onClick: () => navigate(`/my-jobs?job=${vars.jobId}`) },
+          action: { label: "View", onClick: () => navigate(`/jobs?job=${vars.jobId}`) },
         });
       }
       // First-application funnel event — strictly best-effort analytics, so

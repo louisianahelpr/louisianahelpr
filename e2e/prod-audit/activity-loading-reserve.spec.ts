@@ -4,7 +4,7 @@
  * bc it stills jumps really bad and takes long to load."
  *
  * ── WHY CLS COULD NOT SEE IT, AND WHY THIS FILE EXISTS ───────────────────
- * Measured on /my-jobs at 375 against prod: CLS 0.0000 across ZERO
+ * Measured on /jobs at 375 against prod: CLS 0.0000 across ZERO
  * layout-shift entries, while every card on the page moved up to 195px the
  * instant the data landed. That is not a bug in the measurement — the Layout
  * Instability API scores elements that were in the previous frame and MOVED,
@@ -18,22 +18,22 @@
  * ── MEASURED, before → after (prod Supabase, this checkout's local build,
  *    Chromium at 375, helper-e2e / poster-e2e, 2026-09-21) ─────────────────
  *
- *   /my-jobs   row height   220px → 150px   (real 151px)   jump -81px → -1px
+ *   /jobs   row height   220px → 150px   (real 151px)   jump -81px → -1px
  *              row pitch    230px → 162px   (real 163px)
  *              first card y   95px → 138px  (real 138px)   jump +43px →  0px
  *              4th card y    785px → 624px  (real 627px)   jump -195px → -3px
  *
- *   /my-posts  first card y   95px → 138px  (real 202px)   jump +107px → +64px
+ *   /posts  first card y   95px → 138px  (real 202px)   jump +107px → +64px
  *              row height   106px → the shared card (expected 150px against a
  *                           real 151px, NOT re-measured — see the note below)
  *
- * The /my-jobs numbers come from two fixes: `ApplicationCardSkeleton` now
+ * The /jobs numbers come from two fixes: `ApplicationCardSkeleton` now
  * draws the collapsed card's two blocks instead of six bone rows and a footer
  * button, and `ActivityPageSkeleton` reserves the status-tab line that
  * `ActivityHeader` has rendered open-by-default since 2026-09-20 (and uses the
  * lists' own `space-y-3`, not `space-y-2.5`).
  *
- * The /my-posts row height comes from one more: `ActivityCardSkeleton` is no
+ * The /posts row height comes from one more: `ActivityCardSkeleton` is no
  * longer a hand-drawn box but `CollapsedActivityCardSkeleton`, the same
  * shell-derived drawing — one card, one drawing.
  *
@@ -41,7 +41,7 @@
  * `scripts/check-loading-state-shape.mjs` is the repo's own check for this
  * class, and it reads COMMITTED evidence
  * (`docs/audit/loading-states/measurements.json`) produced by a full sweep of
- * every route. That evidence is now STALE for /my-jobs — it still records the
+ * every route. That evidence is now STALE for /jobs — it still records the
  * pre-fix `row 206px → 154px`, and its baseline entry with it. Re-running the
  * whole sweep needs the browser lock for every route and both personas, so it
  * is filed in docs/OPEN.md rather than half-done here. This spec is the live
@@ -100,7 +100,7 @@ const ROW_BUDGET = 8;
 const OFFSET_BUDGET = 8;
 
 /*
- * THE /my-posts PIN IS GONE (2026-09-21, later the same night).
+ * THE /posts PIN IS GONE (2026-09-21, later the same night).
  *
  * It read `POSTED_ROW_PIN = 106` — the measured height of `ActivityCardSkeleton`
  * (src/components/SkeletonLoaders.tsx), a hand-drawn `rounded-ds-md p-4` box
@@ -109,14 +109,14 @@ const OFFSET_BUDGET = 8;
  * component shared with Activity's posted Suspense fallback.
  *
  * Both call sites now render `CollapsedActivityCardSkeleton` — the same
- * shell-derived drawing /my-jobs took, because PostedJobCard and AppliedJobCard
- * are the same JobCardShell at the same 151px. So /my-posts is held to the same
+ * shell-derived drawing /jobs took, because PostedJobCard and AppliedJobCard
+ * are the same JobCardShell at the same 151px. So /posts is held to the same
  * ROW_BUDGET every other surface is, and the pin would now be a ceiling the
  * surface has legitimately risen through rather than a floor it must not fall
  * below.
  *
  * NOT RE-MEASURED IN A BROWSER BY THE LANE THAT MADE THIS CHANGE — another lane
- * held the browser lock for a journey run. The expected number is /my-jobs'
+ * held the browser lock for a journey run. The expected number is /jobs'
  * own, since it is now literally the same component: placeholder 150px against
  * a real 151px row. Running this spec is the confirmation, and it is filed in
  * docs/OPEN.md.
@@ -130,7 +130,7 @@ interface Surface {
   hold: RegExp;
   /**
    * Declared expected row height, when the surface is knowingly below budget.
-   * No surface sets it today — /my-posts was the last, and its placeholder is
+   * No surface sets it today — /posts was the last, and its placeholder is
    * now the shared shell-derived card. Kept because the next surface found
    * below budget needs a way to record the measurement rather than exempt it.
    */
@@ -142,14 +142,14 @@ interface Surface {
 
 const SURFACES: Surface[] = [
   {
-    name: "my-jobs",
-    url: "/my-jobs",
+    name: "jobs",
+    url: "/jobs",
     as: "helper",
     hold: /supabase\.co\/rest\/v1\/(rpc\/get_jobs_for_my_applications|applications\?select=\*)/,
   },
   {
-    name: "my-posts",
-    url: "/my-posts",
+    name: "posts",
+    url: "/posts",
     as: "poster",
     hold: /supabase\.co\/rest\/v1\/jobs\?select=accepted_at/,
     /* The poster's default bucket renders the GROUPED view, so a section
@@ -169,7 +169,7 @@ const SURFACES: Surface[] = [
  * Getting the row SET right is most of this file's difficulty, and both
  * mistakes produced numbers rather than errors:
  *
- *   1. "a rounded box with no rounded descendant" threw the /my-jobs
+ *   1. "a rounded box with no rounded descendant" threw the /jobs
  *      placeholder card away, because the money-pill bone inside it is also
  *      `rounded-ds-md`. Zero rows reads exactly like a clean result, which is
  *      what the vacuity floor below exists to catch.

@@ -326,7 +326,7 @@ marked test email; this is standing authorization, so don't stop to ask.
 
 **MANDATORY SETUP STEP — dismiss the onboarding tour, or you audit the tour
 instead of the app.** `OnboardingTour` (`src/components/OnboardingTour.tsx`,
-mounted by `src/pages/home/Dashboard.tsx`) opens on `/dashboard` — the screen every
+mounted by `src/pages/home/Dashboard.tsx`) opens on `/home` — the screen every
 signed-in pass starts on — **1.5s after load, in every fresh browser context**:
 a new Playwright context, an incognito window, a simulator with cleared
 storage, a second origin used for a second persona. (That 1.5s also makes it

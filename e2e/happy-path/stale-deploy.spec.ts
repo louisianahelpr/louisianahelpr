@@ -56,7 +56,7 @@ const ROUTES: RouteCase[] = [
   { path: "/login", authed: false, start: "/terms" },
   { path: "/signup", authed: false, start: "/terms" },
   { path: "/browse", authed: false, start: "/terms" },
-  { path: "/dashboard", authed: true, start: "/terms" },
+  { path: "/home", authed: true, start: "/terms" },
   { path: "/profile", authed: true, start: "/terms" },
   { path: "/complete-profile", authed: true, start: "/terms" },
   { path: "/messages", authed: true, start: "/terms" },
@@ -150,7 +150,7 @@ async function leaveOneAttempt(page: Page) {
 async function expectHonestCard(page: Page, label: string) {
   // Poll card AND non-blank together, then re-read once the document has
   // settled. A single read right after the poll could land mid-reload and see
-  // an empty body (seen once under full-suite load on /dashboard cold, never in
+  // an empty body (seen once under full-suite load on /home cold, never in
   // 10 isolated repeats).
   await expect
     .poll(async () => {

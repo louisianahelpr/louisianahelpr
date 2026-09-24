@@ -137,7 +137,7 @@ BEGIN
     VALUES (NEW.helper_id, 'application_spam',
             format('Helper exceeded %s applications in 24h.', v_cap));
     -- The client maps this message to warm copy by EXACT STRING (see the
-    -- comment in src/pages/dashboard/useApplyFlow.ts). The cap is interpolated
+    -- comment in src/pages/home/useApplyFlow.ts). The cap is interpolated
     -- now, so that lookup can no longer match — the client side of this change
     -- switches to matching the stable prefix instead.
     RAISE EXCEPTION 'You have reached the daily application limit (%). Please try again tomorrow.', v_cap;

@@ -30,7 +30,7 @@
 /**
  * Same probe as `hasPersistedAuthToken()` in src/lib/persistedAuthToken.ts,
  * copied rather than imported because of the rule above. A signed-in visitor
- * on `/` or `/browse` is redirected to /dashboard by MarketingRedirect, so
+ * on `/` or `/browse` is redirected to /home by MarketingRedirect, so
  * preloading the guest page for them would spend their bandwidth on a page
  * they will not see.
  */
@@ -69,7 +69,7 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
     guest: [() => import("@/pages/auth/Signup")],
     signedIn: [() => import("@/pages/auth/Signup")],
   },
-  "/dashboard": {
+  "/home": {
     guest: [protectedRoute],
     signedIn: [() => import("@/pages/home/Dashboard"), protectedRoute],
   },
@@ -77,11 +77,11 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
     guest: [protectedRoute],
     signedIn: [() => import("@/pages/messages/Messages"), protectedRoute],
   },
-  "/my-jobs": {
+  "/jobs": {
     guest: [protectedRoute],
     signedIn: [() => import("@/pages/jobs/JobsPage"), protectedRoute],
   },
-  "/my-posts": {
+  "/posts": {
     guest: [protectedRoute],
     signedIn: [() => import("@/pages/posts/PostsPage"), protectedRoute],
   },

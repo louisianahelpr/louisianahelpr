@@ -56,7 +56,7 @@ const nmd5 = (s) => md5(normalizeBody(s));
  * Notification links are rewritten in place by dynamic-SQL migrations
  * (20260831232514, 20260901021929: regexp_replace over pg_get_functiondef), so
  * a live body can legitimately differ from its newest CREATE only in link
- * literals such as '/my-posts' -> '/my-posts?job=' || v_job.id::text.
+ * literals such as '/posts' -> '/posts?job=' || v_job.id::text.
  */
 export const linkNormalize = (s) =>
   normalizeBody(s)

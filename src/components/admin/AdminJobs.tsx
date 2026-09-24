@@ -29,12 +29,12 @@ import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
  * Two things were wrong at the three call sites below, and neither is visible
  * from the producer side:
  *
- * 1. THE SURFACE WAS THE OTHER PARTY'S. `/my-jobs` is the HELPER surface
+ * 1. THE SURFACE WAS THE OTHER PARTY'S. `/jobs` is the HELPER surface
  *    (`Activity defaultTab="applied"`, App.tsx:170); the poster's is
- *    `/my-posts` (App.tsx:171). Every notice addressed to
- *    `detailJob.customer_id` — the poster — linked to `/my-jobs`, a screen
+ *    `/posts` (App.tsx:171). Every notice addressed to
+ *    `detailJob.customer_id` — the poster — linked to `/jobs`, a screen
  *    built from that user's *applications*, where their own posted job cannot
- *    appear at all. The helper's notices went to `/dashboard` (Browse), which
+ *    appear at all. The helper's notices went to `/home` (Browse), which
  *    is not wrong so much as silent: it says nothing about the job that just
  *    changed under them.
  *
@@ -57,7 +57,7 @@ import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
  * hard-coded surface for a notification that can be addressed to either party.
  */
 const activityLinkFor = (role: "poster" | "helper", jobId: string): string =>
-  role === "poster" ? `/my-posts?job=${jobId}` : `/my-jobs?job=${jobId}`;
+  role === "poster" ? `/posts?job=${jobId}` : `/jobs?job=${jobId}`;
 
 /**
  * Insert one admin notification, and refuse to let it fail silently.
@@ -326,7 +326,7 @@ const AdminJobs = () => {
         );
       }
 
-      // Also notify the helper if assigned. This used to land on /dashboard
+      // Also notify the helper if assigned. This used to land on /home
       // (Browse), which never mentions the job they just lost.
       if (detailJob.helper_id) {
         await notifyJobParty(

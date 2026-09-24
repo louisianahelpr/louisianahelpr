@@ -33,7 +33,7 @@
 --      sender every producer uses for notification mail, including the three
 --      SQL producers that POST to it directly.
 --   4. sweep_daily_job_digest counts jobs per parish into one row whose link
---      is '/dashboard'; it now counts seed jobs only for seed recipients.
+--      is '/home'; it now counts seed jobs only for seed recipients.
 -- A suppressed row is recorded in notification_logs (status
 -- 'suppressed_seed'), so the rule is observable, not silent.
 --
@@ -266,7 +266,7 @@ BEGIN
             ELSE format('$%s to $%s', budget_lo, budget_hi)
           END
         ),
-        '/dashboard',
+        '/home',
         false
       );
       total_sent := total_sent + 1;

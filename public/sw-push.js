@@ -55,13 +55,13 @@ self.addEventListener('fetch', (event) => {
 
 // Push notification handling
 //
-// A NULL LINK MEANS "NO DESTINATION" — it does not mean "/dashboard".
+// A NULL LINK MEANS "NO DESTINATION" — it does not mean "/home".
 // Both this file and `showLocalNotification` in src/lib/pushNotifications.ts
-// used to substitute `/dashboard` for a missing link, while the two readers
+// used to substitute `/home` for a missing link, while the two readers
 // that matter — `NotificationPanel.handleClick` and `nativePush.ts`, the one
 // that actually runs in the shipped iOS app — navigate only when the link
 // `startsWith("/")` and otherwise stay put. The same notification therefore
-// went somewhere via web push and nowhere in-app. `/dashboard` is a guess, and
+// went somewhere via web push and nowhere in-app. `/home` is a guess, and
 // for the rows in prod that carry `link: null` it is the wrong one. All three
 // now agree: no link, no navigation.
 self.addEventListener("push", (event) => {

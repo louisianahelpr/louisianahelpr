@@ -232,7 +232,7 @@ test(stepTitle("sign-in", "3g"), async ({ browser, journey }) => {
   await waitShowsProgress(page, "cold load /login", () => page.goto("/login", { waitUntil: "commit" }), visible(page.locator("#email")), { coldLoad: true });
   await page.locator("#email").fill(creds.email);
   await page.locator("#password").fill(creds.password);
-  await waitShowsProgress(page, "Log In", () => page.locator('button[type="submit"]').click(), async () => /\/(dashboard|complete-profile)/.test(page.url()));
+  await waitShowsProgress(page, "Log In", () => page.locator('button[type="submit"]').click(), async () => /\/(home|complete-profile)/.test(page.url()));
   await assertHealthy(page, "signed in on 3G", { settleMs: 60_000 });
   await journey.milestone(page, "signin-3g");
   await ctx.close();
@@ -256,7 +256,7 @@ test(stepTitle("sign-in", "drop"), async ({ browser, journey }) => {
     journey.allowReport(/sign.?in|auth|fetch|network|load failed/i, "deliberate: the sign-in response is dropped on the wire");
     // Fresh signed-out context: the offline press can still sign in (run
     // 35935392919's trace: the password grant answered 200 while the context
-    // was set offline, and /dashboard followed a moment after the URL check).
+    // was set offline, and /home followed a moment after the URL check).
     await ctx.close();
     ctx = await newUserContext(browser, null);
     page = journey.track("guest", await ctx.newPage());
@@ -268,7 +268,7 @@ test(stepTitle("sign-in", "drop"), async ({ browser, journey }) => {
     await expect(page.getByText(OFFLINE_COPY).first(), "a lost sign-in response left no message").toBeVisible({ timeout: 30_000 });
     await expect(page.locator('button[type="submit"]')).toBeEnabled({ timeout: 30_000 });
     await page.locator('button[type="submit"]').click();
-    await page.waitForURL(/\/(dashboard|complete-profile)/, { timeout: 60_000 });
+    await page.waitForURL(/\/(home|complete-profile)/, { timeout: 60_000 });
     await assertHealthy(page, "signed in after a lost response");
   });
   await ctx.close();
@@ -364,7 +364,7 @@ async function helperOnFixture(browser: Browser, request: APIRequestContext) {
 }
 
 async function openApplyDialog(page: Page, jobTitleText: string) {
-  await page.goto("/dashboard");
+  await page.goto("/home");
   await page.getByRole("button", { name: "Search jobs" }).first().click();
   await page.getByRole("combobox", { name: "Search jobs" }).fill(jobTitleText);
   const esc = jobTitleText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

@@ -193,7 +193,7 @@ BEGIN
   IF COALESCE(NEW.is_seed, false) AND public.seed_jobs_hidden_publicly() THEN RETURN NEW; END IF;
   v_title := 'New job in your parish';
   v_message := 'A new ' || COALESCE(NEW.category::text, 'job') || ' job just posted in ' || NEW.parish || ' Parish: "' || NEW.title || '"';
-  v_link := '/dashboard?job=' || NEW.id::text;
+  v_link := '/home?job=' || NEW.id::text;
   FOR helper_record IN
     WITH candidates AS (
       SELECT p2.user_id FROM public.profiles p2 WHERE p2.parish = NEW.parish
@@ -225,7 +225,7 @@ BEGIN
   IF COALESCE(NEW.is_seed, false) AND public.seed_jobs_hidden_publicly() THEN RETURN NEW; END IF;
   v_is_urgent := COALESCE(NEW.is_urgent, false);
   v_title := 'New job matches your saved search';
-  v_link  := '/dashboard?job=' || NEW.id::text;
+  v_link  := '/home?job=' || NEW.id::text;
   FOR match_record IN
     SELECT s.user_id, (ARRAY_AGG(s.name ORDER BY s.created_at DESC))[1] AS search_name, ARRAY_AGG(s.id) AS matched_search_ids,
       COALESCE(BOOL_OR(np.match_digest_mode), false) AS digest_mode
@@ -379,7 +379,7 @@ await reset();
     `posts=${toReal.length}`);
 }
 
-// ── 3. sweep_daily_job_digest ("New jobs in <parish>", link '/dashboard') ──
+// ── 3. sweep_daily_job_digest ("New jobs in <parish>", link '/home') ──
 await reset();
 {
   await db.exec(`DELETE FROM public.jobs;`);

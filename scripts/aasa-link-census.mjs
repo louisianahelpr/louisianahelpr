@@ -14,7 +14,7 @@
  * On 2026-08-31 that comparison found the AASA covered 217 of 1611 non-null
  * prod notification links (13.5%). 1394 opened Safari; 858 of those were
  * non-admin, i.e. real user destinations. The single largest miss was
- * /dashboard?quickApply= at 485 rows — 30% of every notification ever sent.
+ * /home?quickApply= at 485 rows — 30% of every notification ever sent.
  * Nothing was broken, nothing was logged, and no test could have caught it,
  * because "opens the wrong app" is invisible to both the client and the server.
  *
@@ -37,8 +37,8 @@
  * strand the user). But every unmatched shape must be a decision someone
  * made, not a shape nobody noticed.
  *
- * NOTE ON QUERY STRINGS: Apple matches on PATH ONLY. `/dashboard` covers
- * `/dashboard?quickApply=<id>` and every other param variant. That is why the
+ * NOTE ON QUERY STRINGS: Apple matches on PATH ONLY. `/home` covers
+ * `/home?quickApply=<id>` and every other param variant. That is why the
  * claim list is far shorter than the list of distinct link shapes below.
  *
  * USAGE

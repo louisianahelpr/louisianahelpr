@@ -13,17 +13,17 @@ BEGIN
   
   IF TG_OP = 'INSERT' THEN
     INSERT INTO public.notifications (user_id, title, message, type, link)
-    VALUES (job_owner, 'New application', 'Someone applied to "' || job_title || '"', 'application', '/my-posts');
+    VALUES (job_owner, 'New application', 'Someone applied to "' || job_title || '"', 'application', '/posts');
   END IF;
   
   IF TG_OP = 'UPDATE' AND NEW.status = 'accepted' AND OLD.status = 'pending' THEN
     INSERT INTO public.notifications (user_id, title, message, type, link)
-    VALUES (NEW.helper_id, 'Application accepted!', 'You were accepted for "' || job_title || '"', 'success', '/my-jobs');
+    VALUES (NEW.helper_id, 'Application accepted!', 'You were accepted for "' || job_title || '"', 'success', '/jobs');
   END IF;
   
   IF TG_OP = 'UPDATE' AND NEW.status = 'rejected' AND OLD.status = 'pending' THEN
     INSERT INTO public.notifications (user_id, title, message, type, link)
-    VALUES (NEW.helper_id, 'Application update', 'Your application for "' || job_title || '" was not selected', 'info', '/my-jobs');
+    VALUES (NEW.helper_id, 'Application update', 'Your application for "' || job_title || '" was not selected', 'info', '/jobs');
   END IF;
   
   RETURN NEW;
@@ -39,12 +39,12 @@ AS $function$
 BEGIN
   IF NEW.status = 'completed' AND OLD.status = 'in_progress' AND NEW.helper_id IS NOT NULL THEN
     INSERT INTO public.notifications (user_id, title, message, type, link)
-    VALUES (NEW.helper_id, 'Job completed!', '"' || NEW.title || '" has been marked complete. Payment is being processed.', 'payment', '/my-jobs');
+    VALUES (NEW.helper_id, 'Job completed!', '"' || NEW.title || '" has been marked complete. Payment is being processed.', 'payment', '/jobs');
   END IF;
   
   IF NEW.status = 'cancelled' AND OLD.status != 'cancelled' AND OLD.helper_id IS NOT NULL THEN
     INSERT INTO public.notifications (user_id, title, message, type, link)
-    VALUES (OLD.helper_id, 'Job cancelled', '"' || OLD.title || '" has been cancelled by the poster.', 'warning', '/my-jobs');
+    VALUES (OLD.helper_id, 'Job cancelled', '"' || OLD.title || '" has been cancelled by the poster.', 'warning', '/jobs');
   END IF;
   
   RETURN NEW;

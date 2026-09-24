@@ -96,7 +96,7 @@ rules (raw grep/python3 output reproduced in the WD-001 bus entry).
   the earnings query specifically.
 - **`/browse` bypasses `useSearchParamMirror`** — `DashboardGuest.tsx`
   (`/browse`) uses raw `useSearchParams` from react-router instead of the
-  circuit-breaker hook that `Activity.tsx` (`/my-jobs`, `/my-posts`) and
+  circuit-breaker hook that `Activity.tsx` (`/jobs`, `/posts`) and
   `useDashboardFilters.ts` already adopted, which is exactly the
   `useSearchParamMirror` audit CLAUDE.md tells this lane to check ("verify
   it is used everywhere search params are written", citing `/browse` by
@@ -124,10 +124,10 @@ engines), 404 catch-all.
 
 **Authed routes (15)** — checked-clean at 1440×900, minted session
 (evidence: `out/report-authed-authed.json`, `finalUrl` field per route in
-both engines): `/dashboard`, `/profile`, `/my-jobs`, `/my-posts`,
+both engines): `/home`, `/profile`, `/jobs`, `/posts`,
 `/messages` rendered their real screen; `/post-job`, `/payment-success`,
 `/admin`, `/str-settings`, `/auto-tip`, `/gift-card`, `/analytics`,
-`/home-history`, `/work-record`, `/pets` all redirected to `/dashboard`
+`/home-history`, `/work-record`, `/pets` all redirected to `/home`
 for this seeded non-admin/non-elevated test account, identically in both
 engines. Re-run via `npx playwright` with `node webkit-diff.mjs authed
 --authed`, and see `out/report-authed-authed.json`'s per-route `finalUrl`
@@ -140,13 +140,13 @@ notifications, payment, profile, referral, reviews, saved_helpers,
 schedule, security, subscription, support, warnings.
 
 **Production build** — `npm run build` + `vite preview`, `/login` and
-`/dashboard` A/B'd; found WD-001 (above).
+`/home` A/B'd; found WD-001 (above).
 
 ## UNVERIFIED — could not reach, and why
 
 - **`/admin?view=*` (24 variants)** — the seeded test account
   (`eli.test.helper@…`) is not `is_admin`; `/admin` redirects to
-  `/dashboard` in both engines. Elevating it would mutate shared account
+  `/home` in both engines. Elevating it would mutate shared account
   state, which under the protocol requires
   `snapshotAccountState()`/`restoreAccountState()` machinery this
   narrowly-scoped rendering pass didn't build. Deprioritized given the

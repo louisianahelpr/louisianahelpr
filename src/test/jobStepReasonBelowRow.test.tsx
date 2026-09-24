@@ -176,7 +176,7 @@ const makeApp = (job: Job) =>
   ({ id: "app-1", job_id: job.id, helper_id: HELPER, status: "accepted", posterName: "Pierre B.", created_at: ago(72), job }) as unknown as AppliedApp;
 
 // ===========================================================================
-// /my-posts — the poster's gate reason
+// /posts — the poster's gate reason
 // ===========================================================================
 describe("Posts card: the gate reason renders BELOW the action row", () => {
   it("the owner's own string is in the note host, and the host follows the row", () => {
@@ -225,7 +225,7 @@ describe("Posts card: the gate reason renders BELOW the action row", () => {
 });
 
 // ===========================================================================
-// /my-jobs — the helper's gate reason ("applies to jobs also")
+// /jobs — the helper's gate reason ("applies to jobs also")
 // ===========================================================================
 describe("Jobs card: the gate reason renders BELOW the action row", () => {
   it("the day-of confirmation deadline sits under the row, not above it", () => {

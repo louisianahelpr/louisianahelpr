@@ -32,12 +32,12 @@ const renderAt = (path = "/") =>
         <Route
           path="/"
           element={
-            <SignedInRedirect to="/dashboard">
+            <SignedInRedirect to="/home">
               <h1>{LANDING}</h1>
             </SignedInRedirect>
           }
         />
-        <Route path="/dashboard" element={<div>DASHBOARD</div>} />
+        <Route path="/home" element={<div>DASHBOARD</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -86,9 +86,9 @@ describe("SignedInRedirect", () => {
         <Routes>
           <Route
             path="/promo"
-            element={<SignedInRedirect to="/dashboard"><h1>{LANDING}</h1></SignedInRedirect>}
+            element={<SignedInRedirect to="/home"><h1>{LANDING}</h1></SignedInRedirect>}
           />
-          <Route path="/dashboard" element={<div>DASHBOARD</div>} />
+          <Route path="/home" element={<div>DASHBOARD</div>} />
         </Routes>
       </MemoryRouter>,
     );

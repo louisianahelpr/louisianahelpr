@@ -70,7 +70,7 @@ export function ActionsTab({
     await logAdminAction("impersonate_user_start", "user", viewProfile.user_id, {
       mode: "read_only",
     });
-    navigate("/dashboard");
+    navigate("/home");
   };
 
   const alreadyVerified = isIdentityVerified({ connectIdentityVerified: viewProfile.stripe_identity_verified, idvStatus: viewProfile.idv_status });

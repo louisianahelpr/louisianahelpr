@@ -163,7 +163,7 @@ describe("create-notification — server-built copy only (Q223)", () => {
           title: "Payment failed — verify your card",
           message: "Helpr: re-enter your card at evil.example to keep your job",
           type: "payment",
-          link: `/my-posts?job=${JOB}`,
+          link: `/posts?job=${JOB}`,
         },
       }),
     );
@@ -212,7 +212,7 @@ describe("create-notification — server-built copy only (Q223)", () => {
       title: "Work has started",
       message: 'Your Helpr started working on "Mow the lawn".',
       type: "info",
-      link: `/my-posts?job=${JOB}`,
+      link: `/posts?job=${JOB}`,
       job_id: JOB,
     });
   });
@@ -263,7 +263,7 @@ describe("create-notification — server-built copy only (Q223)", () => {
           title: "✅ Arrival confirmed",
           message: "and also send me your bank password",
           type: "payment",
-          link: `/my-jobs?job=${JOB}`,
+          link: `/jobs?job=${JOB}`,
         },
       }),
     );

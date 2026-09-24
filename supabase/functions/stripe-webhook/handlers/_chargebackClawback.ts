@@ -212,7 +212,7 @@ export async function wasToldOnHold(supabase: Db, userId: string, jobId: string)
     .select("id")
     .eq("user_id", userId)
     .eq("title", HOLD_NOTICE_TITLE)
-    .eq("link", `/my-jobs?job=${jobId}`)
+    .eq("link", `/jobs?job=${jobId}`)
     .limit(1);
   return !error && (data?.length ?? 0) > 0;
 }
@@ -223,7 +223,7 @@ export async function notifyPayee(supabase: Db, userId: string, jobId: string, t
     title,
     message,
     type: "payment",
-    link: `/my-jobs?job=${jobId}`,
+    link: `/jobs?job=${jobId}`,
   });
   if (error) {
     await postSlackOpsAlert({

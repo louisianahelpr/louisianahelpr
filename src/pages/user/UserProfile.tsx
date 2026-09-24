@@ -410,7 +410,7 @@ const UserProfile = () => {
               // looking for a helpr.
               action={
                 <BarkPillButton
-                  onClick={() => (hasInAppHistory() ? navigate(-1) : navigate("/dashboard"))}
+                  onClick={() => (hasInAppHistory() ? navigate(-1) : navigate("/home"))}
                 >
                   Go back
                 </BarkPillButton>
@@ -743,7 +743,7 @@ const UserProfile = () => {
 
                 Nothing became unreachable. Every incomplete row on that
                 checklist navigated to `/profile?tab=profile` (photo, bio,
-                skills) or `/dashboard` (find jobs); both are one tap from the
+                skills) or `/home` (find jobs); both are one tap from the
                 bottom nav, and the Edit-Profile form owns those fields. */}
 
             {/* Paid background-check → public Background-Checked badge.
@@ -873,7 +873,7 @@ const UserProfile = () => {
           onClose={() => setShowBlock(false)}
           blockedUserId={userId}
           blockedUserName={formatName(profile.full_name) || "this user"}
-          onBlocked={() => navigate("/dashboard", { replace: true })}
+          onBlocked={() => navigate("/home", { replace: true })}
         />
       )}
     </>

@@ -261,7 +261,7 @@ BEGIN
           '" was not delivered before the deadline, so we opened a dispute for you. ' ||
           'The payment stays on hold and an admin will decide it — add your side.',
         'warning',
-        '/my-posts?job=' || _job_id::text
+        '/posts?job=' || _job_id::text
       );
     END IF;
     IF _helper IS NOT NULL THEN
@@ -273,7 +273,7 @@ BEGIN
           '" was not delivered before the deadline, so a dispute was opened automatically. ' ||
           'An admin will decide the payment — add your side.',
         'warning',
-        '/my-jobs?job=' || _job_id::text
+        '/jobs?job=' || _job_id::text
       );
     END IF;
   ELSIF _other IS NOT NULL THEN
@@ -285,8 +285,8 @@ BEGIN
         '". The payment is on hold while it is reviewed — add your side so an admin hears both.',
       'warning',
       CASE WHEN _other = _customer
-           THEN '/my-posts?job=' || _job_id::text
-           ELSE '/my-jobs?job=' || _job_id::text
+           THEN '/posts?job=' || _job_id::text
+           ELSE '/jobs?job=' || _job_id::text
       END
     );
   END IF;

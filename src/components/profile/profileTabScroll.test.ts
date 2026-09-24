@@ -253,8 +253,8 @@ describe("Profile tab scroll wrapper keeps its shadow gutter free", () => {
  * extra 12px per side at `xl`. It was wrong. Measured on prod at 1440, frame
  * 0->1192, BEFORE anything was touched:
  *
- *     /dashboard ............ panel  48 -> 1144
- *     /my-posts ............. panel  48 -> 1144
+ *     /home ............ panel  48 -> 1144
+ *     /posts ............. panel  48 -> 1144
  *     /messages ............. panel  48 -> 1144
  *     /profile?tab=reviews .. card   48 -> 1144
  *

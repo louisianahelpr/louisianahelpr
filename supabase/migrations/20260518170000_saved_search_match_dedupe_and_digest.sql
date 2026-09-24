@@ -53,7 +53,7 @@ BEGIN
 
   v_is_urgent := COALESCE(NEW.is_urgent, false);
   v_title := '🎯 New job matches your saved search';
-  v_link  := '/dashboard?job=' || NEW.id::text;
+  v_link  := '/home?job=' || NEW.id::text;
 
   -- One row per matching helper. matched_search_ids collects every saved
   -- search that fired for that helper so we can update their throttle

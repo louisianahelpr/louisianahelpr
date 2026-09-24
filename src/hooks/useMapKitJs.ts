@@ -256,7 +256,7 @@ function reportServerTokenFailure(reason: string) {
  * downloaded, parsed and `init()` has run — so resolving the token in there
  * put an edge-function round-trip strictly AFTER Apple's CDN round-trip, for
  * two requests that have nothing to do with each other. Measured on prod
- * (/dashboard, Chromium 393x852, warm wired): mapkit.js requested 3550ms,
+ * (/home, Chromium 393x852, warm wired): mapkit.js requested 3550ms,
  * responded 3782ms; `functions/v1/mapkit-token` requested 3803ms, responded
  * 4055ms; MapKit's own `ma/bootstrap` at 4058ms — before a single tile. The
  * token wait was 252ms of pure serial dead time on a wired connection, and it

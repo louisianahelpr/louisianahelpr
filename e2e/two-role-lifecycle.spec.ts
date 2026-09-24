@@ -67,7 +67,7 @@ test.describe("two-role lifecycle", () => {
     const helper = await seededPage(helperCtx, helperSession);
 
     /* ── Helper: find the job, answer the day-before question ──
-       DEEP-LINKED BY JOB ID, not just "/my-jobs". The page opens on its default
+       DEEP-LINKED BY JOB ID, not just "/jobs". The page opens on its default
        tab — "Needs You" — and a confirmed booking whose day is still ahead sits
        under "Scheduled", so this looked for the button on a tab that could
        never show it. Diagnosed from the failure screenshot: Needs You 11,
@@ -76,7 +76,7 @@ test.describe("two-role lifecycle", () => {
        uses), so product code brings the card into view rather than this spec
        guessing a tab name or scrolling a list whose shape it would have to
        know. Same technique as prod-lifecycle.spec.ts. */
-    await helper.goto(BASE + `/my-jobs?job=${jobId}`);
+    await helper.goto(BASE + `/jobs?job=${jobId}`);
     /* EXPAND THE CARD. The collapsed card carries only its status strip — the
        screenshot showed the seeded job first under Scheduled, reading
        "You're confirmed", with no control on it at all. `JobConfirmation`
@@ -129,7 +129,7 @@ test.describe("two-role lifecycle", () => {
     ).toBeTruthy();
 
     // ── Poster: sees the mutual confirm without reloading ──
-    await poster.goto(BASE + `/my-posts?job=${jobId}`);
+    await poster.goto(BASE + `/posts?job=${jobId}`);
     await expect(
       poster.getByText(/Confirmed/i).first(),
       "poster's tracker must reflect the helper's confirm (realtime)",

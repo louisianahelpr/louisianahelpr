@@ -23,7 +23,7 @@ interface MarketingRedirectProps {
    *
    * `/browse` is not ambiguous in the same way. A visitor who reaches this
    * branch there has a token, so the overwhelmingly likely destination is
-   * /dashboard, and passing DashboardRouteSkeleton means the wait is spent in
+   * /home, and passing DashboardRouteSkeleton means the wait is spent in
    * the shape that is about to arrive rather than on a blank field.
    */
   fallback?: ReactNode;
@@ -90,7 +90,7 @@ interface MarketingRedirectProps {
  */
 const MarketingRedirect = ({
   children,
-  to = "/dashboard",
+  to = "/home",
   fallback = <div className="min-h-screen bg-premium-page" />,
 }: MarketingRedirectProps) => {
   const [maybeSignedIn] = useState(() => !isNativePlatform && hasPersistedAuthToken());

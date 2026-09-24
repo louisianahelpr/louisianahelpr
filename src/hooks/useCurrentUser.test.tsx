@@ -289,7 +289,7 @@ describe("useCurrentUser", () => {
   //
   // The regression: the role lookup was wrapped in `.catch(() => false)`, so a
   // slow or failing `user_roles` response was reported as a confirmed
-  // non-admin. AdminRoute reads that and redirects to /dashboard, so a real
+  // non-admin. AdminRoute reads that and redirects to /home, so a real
   // admin on a bad connection is silently told they have no admin rights —
   // with no way to tell a permissions problem from a network one. Reproduced
   // against prod on 2026-08-31 with the role row present.
@@ -489,6 +489,6 @@ describe("useCurrentUser", () => {
 });
 
 // "We could not determine your role" reported as "you are not an admin" — the
-// 2026-08-31 outage that bounced a real admin to /dashboard with nothing on
+// 2026-08-31 outage that bounced a real admin to /home with nothing on
 // screen to say a lookup had failed. One flipped field is the whole regression.
 // @mutate src/hooks/useCurrentUser.ts | adminCheckFailed: !adminResult.ok | adminCheckFailed: false

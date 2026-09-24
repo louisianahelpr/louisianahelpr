@@ -177,7 +177,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   // left `jobs` at [], so a 500 rendered the "Empty map for now." card — the
   // map told the user Louisiana had no work when in truth the query died.
   // That is the exact failure CLAUDE.md's "never drop the Supabase error"
-  // rule exists to stop, and the error-state sweep caught it on /dashboard's
+  // rule exists to stop, and the error-state sweep caught it on /home's
   // map view (SILENT_FAILURE: 36 failed requests, no failure wording, no way
   // out). Tracked explicitly so the map can say so and offer a retry.
   const [loadError, setLoadError] = useState(false);

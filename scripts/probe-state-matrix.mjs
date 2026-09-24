@@ -265,8 +265,8 @@ async function main() {
     const page = await context.newPage();
 
     const cells = [
-      { url: '/dashboard', name: 'dashboard' },
-      { url: '/my-jobs', name: 'my-jobs' },
+      { url: '/home', name: 'dashboard' },
+      { url: '/jobs', name: 'jobs' },
       { url: '/messages', name: 'messages' },
       { url: '/profile?tab=profile', name: 'profile-edit' },
     ];
@@ -322,7 +322,7 @@ async function main() {
     const page = await context.newPage();
 
     // 4a. PhotoLightbox — opened from Dashboard's photo strip if present.
-    await page.goto(`${TARGET}/dashboard`, { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
+    await page.goto(`${TARGET}/home`, { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
     await page.waitForTimeout(1500);
     const photoTrigger = page.locator('[data-testid*="photo" i], img[alt*="job photo" i]').first();
     if (await photoTrigger.count()) {
@@ -337,7 +337,7 @@ async function main() {
     }
 
     // 4b. ApplicantsPanel — from My Posts, open a job with applicants.
-    await page.goto(`${TARGET}/my-posts`, { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
+    await page.goto(`${TARGET}/posts`, { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
     await page.waitForTimeout(1500);
     const applicantsTrigger = page.getByText(/applicant/i).first();
     if (await applicantsTrigger.count()) {
@@ -348,7 +348,7 @@ async function main() {
       log('overlay: ApplicantsPanel fills viewport', rect.ok, rect.detail);
       await page.keyboard.press('Escape').catch(() => {});
     } else {
-      log('overlay: ApplicantsPanel trigger not found on my-posts', null, 'UNVERIFIED — no posted job with an "applicant" affordance visible for this account');
+      log('overlay: ApplicantsPanel trigger not found on posts', null, 'UNVERIFIED — no posted job with an "applicant" affordance visible for this account');
     }
 
     // 4c. MessageAttachment lightbox — from Messages, open a thread with an image attachment.
@@ -376,7 +376,7 @@ async function main() {
     // 4d/4e. AppLockGate / ForceUpdateGate — driven via the documented dev
     // harness query params rather than real state, since biometric hardware
     // and a stale native version can't be produced from a browser context.
-    await page.goto(`${TARGET}/dashboard?app_lock_demo=1`, { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
+    await page.goto(`${TARGET}/home?app_lock_demo=1`, { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
     await page.waitForTimeout(1000);
     const lockRect = await measureFixedOverlay(page, false);
     await page.screenshot({ path: path.join(OUT_DIR, 'overlay-applockgate-attempt.png') });

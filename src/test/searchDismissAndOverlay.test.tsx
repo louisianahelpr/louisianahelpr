@@ -27,8 +27,8 @@
  *   THE BROWSER PASS MUST STILL CONFIRM, at 320 / 375 / 1440:
  *     a. the open field's rect does not intersect the rect of any sibling in
  *        its row (the real form of the rule);
- *     b. `documentElement.scrollWidth <= clientWidth` on /dashboard,
- *        /my-posts, /my-jobs, /messages, /legal and Profile ▸ Saved Helprs
+ *     b. `documentElement.scrollWidth <= clientWidth` on /home,
+ *        /posts, /jobs, /messages, /legal and Profile ▸ Saved Helprs
  *        with search OPEN — an expanding field is a width change;
  *     c. the ✕'s rect and the search trigger's post-close rect DO NOT
  *        OVERLAP. This is the diagnosis for report (2) — see the block above
@@ -727,12 +727,12 @@ describe("desktop Browse strip — opening search unmounts nothing but the field
 /**
  * THE THREE-CLICK FIX, as a source contract.
  *
- * Owner, 2026-09-19 (/my-posts): "the x on search needed to be clicked 3 times
+ * Owner, 2026-09-19 (/posts): "the x on search needed to be clicked 3 times
  * to close the search bar". The ✕ is anchored to the open field's trailing
  * edge; dropping the magnifier from the right-aligned cluster while the field
  * is up lets the field grow into the space the magnifier will come back to, so
  * the ✕ ends up sitting ON the magnifier's box — measured 26px of overlap at
- * 375 on /my-posts, with the ✕'s visual centre inside it. One tap closes, the
+ * 375 on /posts, with the ✕'s visual centre inside it. One tap closes, the
  * magnifier appears under the finger, the next tap re-opens.
  *
  * The fix is `SearchTriggerSlot`: the row holds the magnifier's slot OPEN

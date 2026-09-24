@@ -115,7 +115,7 @@ const JOB_MARKER = MARKER.replace(/[[\]]/g, "");
 /** Open the apply sheet for the open seed job as the helper, with a marked pitch typed. */
 async function openApply(page: Page, jobId: string) {
   await page.goto(`/jobs/${jobId}`);
-  await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
+  await page.waitForURL(/\/home/, { timeout: 30_000 });
   const sheet = page.getByRole("dialog").last();
   const apply = sheet.getByRole("button", { name: /^(apply now|book now)$/i });
   await expect(apply).toBeVisible({ timeout: 30_000 });
@@ -304,7 +304,7 @@ test.describe("apply", () => {
     // A fresh context has no history, so goBack() from the first page lands on
     // about:blank — which is the harness, not the app. Arrive at the feed the
     // way a person does, then deep-link, so Back has somewhere real to go.
-    await page.goto("/dashboard");
+    await page.goto("/home");
     await settle(page);
     await openApply(page, jobId);
     const writes = watchWrites(page, APPLY_WRITE);
@@ -354,7 +354,7 @@ test.describe("apply", () => {
     await expect(page.getByText(/application sent/i), "success shown for a write that was refused").toHaveCount(0);
     // Recoverable: with the network honest again, the app comes back.
     await page.unrouteAll({ behavior: "ignoreErrors" });
-    await page.goto("/dashboard");
+    await page.goto("/home");
     await settle(page);
     await assertHealthy(page, info, "apply-session-recovered", { allow: [] });
     await ctx.close();

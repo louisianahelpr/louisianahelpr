@@ -3,7 +3,7 @@
  * COMMUTE WHEN IT IS ONE.
  *
  * ── THE REPORT ─────────────────────────────────────────────────────────────
- * Owner, 2026-09-19, with a screenshot of /dashboard: "im not sure about the
+ * Owner, 2026-09-19, with a screenshot of /home: "im not sure about the
  * timer thing and the miles?? why is this showing here it hasnt before". The
  * browse cards read "27h 6m · 1634 mi", "29h 52m · 1813 mi",
  * "29h 28m · 1797 mi", "28h 23m · 1731 mi", for jobs in Shreveport, New

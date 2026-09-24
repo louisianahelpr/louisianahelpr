@@ -48,7 +48,7 @@ export async function handlePaymentIntentPaymentFailed(
       // `?job=` — My Posts opens on the "Needs you" bucket and a job whose
       // payment just failed is not necessarily in it. Activity resolves the
       // job id to whichever bucket it is actually in.
-      link: `/my-posts?job=${failedJob.id}`,
+      link: `/posts?job=${failedJob.id}`,
     });
     // Must throw on failure: a silent drop here leaves the job in its pre-failure
     // state (e.g. "escrow") permanently. The outer handler rolls back the dedupe

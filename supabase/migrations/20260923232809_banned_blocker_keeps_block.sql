@@ -123,7 +123,7 @@ BEGIN
           format('"%s" was cancelled. No cancellation fee applies.', COALESCE(v_job.title, 'A job'))
       END,
       CASE WHEN v_fee > 0 THEN 'payment' ELSE 'warning' END,
-      CASE WHEN v_job.helper_id = p_blocked THEN '/my-jobs?job=' ELSE '/my-posts?job=' END || v_job.id::text
+      CASE WHEN v_job.helper_id = p_blocked THEN '/jobs?job=' ELSE '/posts?job=' END || v_job.id::text
     );
 
     -- The reliability strike, through the SAME ladder the normal cancel path

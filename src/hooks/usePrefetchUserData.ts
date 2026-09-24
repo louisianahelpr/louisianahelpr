@@ -40,8 +40,8 @@ export function usePrefetchUserData(userId: string | undefined) {
       // warmed from here — and nothing waits on them to paint.
       prefetchActivityCores(queryClient, userId);
       // Route chunks — first paint of the destination is now ~instant.
-      prefetchRoute("/my-posts");
-      prefetchRoute("/my-jobs");
+      prefetchRoute("/posts");
+      prefetchRoute("/jobs");
       prefetchRoute("/profile");
       // The SLOW class. Everything above is PostgREST/RPC (~110ms); these two
       // are edge fn → Stripe (395ms measured against prod) and are the whole

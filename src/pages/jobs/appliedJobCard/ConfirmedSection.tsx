@@ -67,7 +67,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
       // REVERSIBLE 7-day restriction while an admin decides. Mirror the decline
       // path (useOfferHandlers): not a toast — hard-load the banned screen so
       // the restricted session is torn down rather than left live behind
-      // /my-jobs. The retired "permanent_ban" string is still handled for the
+      // /jobs. The retired "permanent_ban" string is still handled for the
       // window between this code shipping and the migration reaching prod.
       window.location.assign("/account-banned");
       return;
@@ -82,7 +82,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
     setCancelOpen(false);
     // The job left this list; the realtime jobs subscription refetches, but
     // navigating home is the honest immediate state.
-    navigate("/my-jobs");
+    navigate("/jobs");
   };
 
   /* No "Add to Calendar" (owner, twice — here and on the offer card): "once

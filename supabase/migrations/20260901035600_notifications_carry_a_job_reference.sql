@@ -7,8 +7,8 @@
 -- 20260311004406, and a URL string carries no reference to the job it concerns.
 -- Everything downstream of that has been a guess about a live question:
 --
---   * 20260831232514 converted ~40 producers off a bare '/my-posts' /
---     '/my-jobs' (which opens the "Needs you" bucket — essentially never where
+--   * 20260831232514 converted ~40 producers off a bare '/posts' /
+--     '/jobs' (which opens the "Needs you" bucket — essentially never where
 --     the job is). Its verify block warned only on the BARE form.
 --   * 20260901021929 found the producers the bare-only guard could not see:
 --     the ones writing a FIXED '?filter='. It widened the guard to catch that
@@ -27,7 +27,7 @@
 --     134  of those name a job that STILL EXISTS
 --     582  name a job that has been DELETED  ← 36% of the whole table
 --      84  carry a fixed '?filter='  (66 of them chip-less; see below)
---      36  are still a bare '/my-posts' (19) or '/my-jobs' (17)
+--      36  are still a bare '/posts' (19) or '/jobs' (17)
 --
 -- The 582 is the number that matters. More than a third of this table already
 -- deep-links to a job that is gone, and NOTHING could see it, because a URL
@@ -128,8 +128,8 @@ AS $$
              -- '/messages?jobId=<job>&userId=<user>' — param-anchored so the
              -- trailing userId is never picked up.
              (regexp_match(p_link, '[?&]jobId=([0-9a-fA-F-]{36})'))[1],
-             -- '/dashboard?quickApply=<job>' — the single most common link in
-             -- the product (485 rows). src/pages/dashboard/QuickApplyHandler.tsx
+             -- '/home?quickApply=<job>' — the single most common link in
+             -- the product (485 rows). src/pages/home/QuickApplyHandler.tsx
              -- looks this id up with .eq("id", …) against jobs.
              (regexp_match(p_link, '[?&]quickApply=([0-9a-fA-F-]{36})'))[1],
              -- '/jobs/<job>' — the public job detail route (App.tsx:257).
@@ -269,7 +269,7 @@ UPDATE public.notifications
 -- 6. VERIFY — a guard that can fail on a MISSING JOB REFERENCE.
 --
 -- What the two previous guards could and could not see:
---   20260831232514 — bare '/my-posts' / '/my-jobs' only. Every fixed-filter
+--   20260831232514 — bare '/posts' / '/jobs' only. Every fixed-filter
 --                    producer passed it.
 --   20260901021929 — added the fixed '?filter=' shape. Neither can see a
 --                    missing job_id, because until this migration there was no
@@ -296,7 +296,7 @@ UPDATE public.notifications
 -- — see the change report.)
 --
 -- Line comments are stripped first. These bodies quote link strings in prose
--- ("the client's link ('/my-jobs?filter=offered')"), and a guard that fires on
+-- ("the client's link ('/jobs?filter=offered')"), and a guard that fires on
 -- its own explanatory comment is a guard everyone learns to ignore.
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $verify$
@@ -342,7 +342,7 @@ BEGIN
     IF NOT v_has_col THEN
       -- ── inherited from 20260831232514 / 20260901021929 ───────────────────
       IF v_body ~ $bare$'/my-(posts|jobs)'$bare$ THEN
-        RAISE WARNING 'public.% writes a BARE /my-posts or /my-jobs notification link (no ?job=) and no job_id — it will open on the Needs You bucket', r.proname;
+        RAISE WARNING 'public.% writes a BARE /posts or /jobs notification link (no ?job=) and no job_id — it will open on the Needs You bucket', r.proname;
       END IF;
 
       IF v_body ~ $fixed$'/my-(posts|jobs)[^']*[?&]filter=$fixed$ THEN
@@ -361,7 +361,7 @@ BEGIN
 
       IF v_bad IS NOT NULL THEN
         RAISE WARNING
-          'public.% writes the Activity link(s) % with NO job reference — the notification will arrive with job_id NULL. Either write ''/my-posts?job='' || <job id> (the fill trigger adopts it) or set job_id in the INSERT.',
+          'public.% writes the Activity link(s) % with NO job reference — the notification will arrive with job_id NULL. Either write ''/posts?job='' || <job id> (the fill trigger adopts it) or set job_id in the INSERT.',
           r.proname, v_bad;
       END IF;
     END IF;

@@ -218,7 +218,7 @@ if (!SKIP) await q(`INSERT INTO public.ops_route_probe (route, passed_at) VALUES
 check("a probe pass OLDER than last_seen does not count", (await condOf(it.id)) === true);
 
 let n = null;
-try { [{ n }] = await q(`SELECT public.record_route_probe_passes(ARRAY[$1, '/dashboard', 'not-a-path'], 'run-1') n`, [`/jobs/${JOB_B}?tab=x`]); }
+try { [{ n }] = await q(`SELECT public.record_route_probe_passes(ARRAY[$1, '/home', 'not-a-path'], 'run-1') n`, [`/jobs/${JOB_B}?tab=x`]); }
 catch (e) { check("record_route_probe_passes callable", false, e.message); }
 check("record_route_probe_passes upserts path keys only (2 of 3)", n === 2, String(n));
 check("a pass AFTER last_seen, for another job id on the same route, clears it", (await condOf(it.id)) === false);

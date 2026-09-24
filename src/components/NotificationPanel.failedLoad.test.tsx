@@ -151,7 +151,7 @@ describe("NotificationPanel: a failed load renders the error card, never the emp
    * — assistive tech, and every harness in this repo, all of which key on
    * `[aria-busy="true"]` — treated a panel that had not answered yet as a
    * panel with nothing in it. press-every-control run 35692554813 shows both
-   * halves of the damage on ONE screen: two shards walked the /dashboard bell
+   * halves of the damage on ONE screen: two shards walked the /home bell
    * with zero rows in it and passed, a third enumerated 50 rows and then could
    * not find a single one of them again.
    */

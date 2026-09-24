@@ -89,11 +89,11 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/account-banned`
 - [ ] `/forgot-password`
 - [ ] `/reset-password`
-- [ ] `/dashboard`
+- [ ] `/home`
 - [ ] `/profile`
 - [ ] `/post-job`
-- [ ] `/my-jobs`
-- [ ] `/my-posts`
+- [ ] `/jobs`
+- [ ] `/posts`
 - [ ] `/payment-success`
 - [ ] `/user/:userId`
 - [ ] `/admin`

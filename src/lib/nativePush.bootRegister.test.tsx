@@ -15,7 +15,7 @@
  * 1. BOOT RACE. `useNativePushSetup` depended on `navigate`, whose identity in
  *    react-router 7 changes with every pathname change. A native cold launch
  *    starts at "/" and NativeLaunchRouter immediately replaces it with
- *    /dashboard or /browse — so the effect's cleanup set `cancelled = true`
+ *    /home or /browse — so the effect's cleanup set `cancelled = true`
  *    while the setup was still awaiting the plugin import. The re-run was
  *    blocked by the module-level `listenersAttached` flag, and the in-flight
  *    setup hit `if (cancelled) return;` BEFORE `checkPermissions()` /
@@ -130,7 +130,7 @@ vi.mock("@/hooks/usePermissionRationale", () => ({
 function LaunchRedirect({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   useEffect(() => {
-    navigate("/dashboard", { replace: true });
+    navigate("/home", { replace: true });
   }, [navigate]);
   return <>{children}</>;
 }
@@ -162,7 +162,7 @@ describe("useNativePushSetup — cold launch that redirects away from /", () => 
   it("control: with NO launch redirect, register() is called (harness sanity)", async () => {
     const mod = await import("./nativePush");
     renderHook(() => mod.useNativePushSetup(), {
-      wrapper: ({ children }) => <MemoryRouter initialEntries={["/dashboard"]}>{children}</MemoryRouter>,
+      wrapper: ({ children }) => <MemoryRouter initialEntries={["/home"]}>{children}</MemoryRouter>,
     });
     await waitFor(() => expect(registerMock).toHaveBeenCalledTimes(1));
   });

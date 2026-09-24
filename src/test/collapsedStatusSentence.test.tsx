@@ -1,7 +1,7 @@
 /**
  * EVERY COLLAPSED CARD SAYS WHAT IT IS WAITING ON, ON BOTH TABS, AND IT FITS.
  *
- * Owner, 2026-09-19, looking at the collapsed cards on /my-posts:
+ * Owner, 2026-09-19, looking at the collapsed cards on /posts:
  *   "in the box to the left of the dots should show what we are waiting on,
  *    like if the person is on their way or confirmed but now you need to
  *    confirm etc, remove the dots"

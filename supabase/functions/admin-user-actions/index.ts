@@ -285,7 +285,7 @@ Deno.serve(async (req) => {
         title: 'Manually verified',
         message: 'An admin has manually verified your identity. You have full access to Helpr.',
         type: 'success',
-        link: '/dashboard',
+        link: '/home',
       }, 'manual_verify')
 
       const { html, text } = await renderEmail(
@@ -300,7 +300,7 @@ Deno.serve(async (req) => {
               '. You now have full access to post or accept jobs on Helpr.',
             ],
           ],
-          ctaUrl: `${appUrl}/dashboard`,
+          ctaUrl: `${appUrl}/home`,
           ctaLabel: 'Go to Dashboard',
         }),
       )
@@ -803,7 +803,7 @@ Deno.serve(async (req) => {
                 // advice handed to someone whose case was about no-shows.
                 message: banDismissedMessage(copy),
                 type: 'success',
-                link: '/dashboard',
+                link: '/home',
               },
           confirming ? 'confirm_message_ban' : 'dismiss_message_ban_review',
         )

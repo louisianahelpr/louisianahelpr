@@ -73,7 +73,7 @@ says more.
   parallel lanes guessed the same number three times on 2026-09-23.
 
 ## Waiting (no orphan shells)
-Never run `scripts/vacuity/index.mjs` in the SHARED main checkout at all (lead included), only inside your own worktree: `--only` does NOT limit what it mutates (it still runs every registration touching changed files; a Q194 `--only` run mutated 61 in ~25 min). A run MUTATES source files for many minutes, and if it is killed mid-run the mutation stays (2026-09-23: `/terms` became a redirect and `/settings` pointed at /my-jobs in the main tree). After killing any process, confirm with `ps` that it is gone and `git status` that nothing it touched is left modified.
+Never run `scripts/vacuity/index.mjs` in the SHARED main checkout at all (lead included), only inside your own worktree: `--only` does NOT limit what it mutates (it still runs every registration touching changed files; a Q194 `--only` run mutated 61 in ~25 min). A run MUTATES source files for many minutes, and if it is killed mid-run the mutation stays (2026-09-23: `/terms` became a redirect and `/settings` pointed at /jobs in the main tree). After killing any process, confirm with `ps` that it is gone and `git status` that nothing it touched is left modified.
 Wait with ONE `run_in_background` command and let its notification wake you.
 Never re-issue a foreground `until`/`sleep` loop: a timed-out foreground call
 leaves its shell running (2026-09-23: five identical "until 14:42" loops piled

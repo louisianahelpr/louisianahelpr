@@ -32,13 +32,13 @@ const TOUR_STEPS: TourStep[] = [
     icon: <Home className="w-8 h-8" strokeWidth={1.75} />,
   },
   {
-    id: "my-posts",
+    id: "posts",
     title: "My Posts",
     description: "Track and manage the jobs you've posted.",
     icon: <Send className="w-8 h-8" strokeWidth={1.75} />,
   },
   {
-    id: "my-jobs",
+    id: "jobs",
     title: "My Jobs",
     description: "See jobs you're offered, applied to, or working.",
     icon: <ClipboardList className="w-8 h-8" strokeWidth={1.75} />,
@@ -186,7 +186,7 @@ const OnboardingTour = ({ profileComplete = false, userId, onActiveChange }: Onb
   // shows exactly once per account, ever, and only while it hasn't been
   // completed.
   useEffect(() => {
-    if (location.pathname !== "/dashboard") {
+    if (location.pathname !== "/home") {
       // Off the one route this tour renders on, it is never going to open —
       // release whoever is waiting behind it rather than stranding them.
       setPending(false);

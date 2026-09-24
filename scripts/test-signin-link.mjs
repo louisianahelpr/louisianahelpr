@@ -203,7 +203,7 @@ async function exchangeForSession(actionLink, userId, supabaseUrl, anonKey) {
   // broken by it on 2026-08-31 and each rediscovered the cause independently:
   // `ProtectedRoute` reads `email_confirmed_at` off `session.user`, an absent
   // field is falsy, so EVERY authed route bounced to /account-pending and then
-  // /dashboard. The harness looked signed in, and every deep link it tried
+  // /home. The harness looked signed in, and every deep link it tried
   // landed somewhere else — which reads as an app bug, not a harness bug.
   //
   // `GET /auth/v1/user` with the freshly-minted access token returns exactly

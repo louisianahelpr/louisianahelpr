@@ -17,7 +17,7 @@
 --
 -- 2. PARISH. Present on get_ranked_open_jobs and get_open_jobs_for_map but
 -- missing here, which is why the parish-based drive-time readout and the
--- dashboard's parish tie-break in ranking silently no-op on /dashboard while
+-- dashboard's parish tie-break in ranking silently no-op on /home while
 -- working on /jobs — three surfaces reading the "same" data with different
 -- shapes. Added for parity.
 --

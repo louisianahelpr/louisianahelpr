@@ -42,14 +42,14 @@ describe("inferCategoryFromLink", () => {
 
   it("gives a job you ALREADY HOLD the Message/View pair, not Apply/Save", () => {
     // These are the 226 live rows that were either mis-labelled JOB_APPLY
-    // (/jobs/:id) or given no category at all (/my-posts, /my-jobs).
+    // (/jobs/:id) or given no category at all (/posts, /jobs).
     for (const link of [
       "/jobs/5eed0827-0000-4000-8000-000000000020", // "Starting soon"
       "/jobs/db21c20d-82ad-4016-9c7e-5a79051b4c8f", // "Has your helpr arrived?"
-      "/my-posts", // "Payment secured in escrow"
-      "/my-posts?job=44444444-4444-4444-8444-444444444444", // dispute counterparty
-      "/my-jobs", // "Job completed!"
-      "/my-jobs?job=44444444-4444-4444-8444-444444444444",
+      "/posts", // "Payment secured in escrow"
+      "/posts?job=44444444-4444-4444-8444-444444444444", // dispute counterparty
+      "/jobs", // "Job completed!"
+      "/jobs?job=44444444-4444-4444-8444-444444444444",
     ]) {
       expect(inferCategoryFromLink(link), link).toBe("JOB_ACCEPTED");
     }
@@ -58,21 +58,21 @@ describe("inferCategoryFromLink", () => {
   it("makes JOB_ACCEPTED reachable at all, which it never was", () => {
     // The old rule was `link.includes('/jobs/') && link.includes('accepted')`.
     // ZERO of the 1,709 production notification links contain "accepted" —
-    // the notification titled "Application accepted!" links to /dashboard —
+    // the notification titled "Application accepted!" links to /home —
     // so no push has ever carried this category.
     const everReachable = [
       "/jobs/abc",
-      "/my-posts",
-      "/my-jobs",
-      "/dashboard",
+      "/posts",
+      "/jobs",
+      "/home",
       "/messages",
     ].some((l) => inferCategoryFromLink(l) === "JOB_ACCEPTED");
     expect(everReachable).toBe(true);
   });
 
   it("gives an OPPORTUNITY the Apply/Save pair", () => {
-    expect(inferCategoryFromLink("/dashboard")).toBe("JOB_APPLY"); // job_match feed
-    expect(inferCategoryFromLink("/dashboard?job=1")).toBe("JOB_APPLY");
+    expect(inferCategoryFromLink("/home")).toBe("JOB_APPLY"); // job_match feed
+    expect(inferCategoryFromLink("/home?job=1")).toBe("JOB_APPLY");
   });
 
   it("leaves links with no honest button pair uncategorised", () => {
@@ -148,4 +148,4 @@ describe("str-ical look-ahead window", () => {
 });
 
 // @mutate supabase/functions/str-ical-sync/dates.ts | const from = utcDay(now); | const from = now;
-// @mutate supabase/functions/send-push-notification/category.ts | path.startsWith('/jobs/') | path.includes('accepted')
+// @mutate supabase/functions/send-push-notification/category.ts | path.startsWith('/jobs')) { | path.includes('accepted')) {

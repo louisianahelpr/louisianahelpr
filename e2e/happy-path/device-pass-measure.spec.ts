@@ -482,13 +482,13 @@ test.describe("device pass — measured", () => {
    test.describe(() => {
     const scale = desktopScaleFor(v.width);
     if (scale) test.use(scale);
-    test(`/my-posts @ ${v.tag}`, async ({ page, context, baseURL }, testInfo) => {
+    test(`/posts @ ${v.tag}`, async ({ page, context, baseURL }, testInfo) => {
       const record = recorder(slugify(testInfo.title));
       await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
       await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
       await page.setViewportSize({ width: v.width, height: v.height });
       await suppressOnboardingTour(page);
-      await page.goto("/my-posts?filter=all");
+      await page.goto("/posts?filter=all");
       await page.waitForSelector("h1");
       await setTheme(page, v.theme);
       await settleAnimations(page);
@@ -498,29 +498,29 @@ test.describe("device pass — measured", () => {
       // settle has to happen AFTER them, not before.
       await waitForNoAnimations(page);
 
-      await assertOneH1(page, `/my-posts ${v.tag}`);
-      await assertFits(page, `/my-posts ${v.tag}`);
-      await assertNoAxeViolations(page, `/my-posts ${v.tag}`);
-      await recordStripeContrast(page, `my-posts-${v.tag}`, record);
+      await assertOneH1(page, `/posts ${v.tag}`);
+      await assertFits(page, `/posts ${v.tag}`);
+      await assertNoAxeViolations(page, `/posts ${v.tag}`);
+      await recordStripeContrast(page, `posts-${v.tag}`, record);
 
       record({
         kind: "card-heights",
-        screen: "my-posts",
+        screen: "posts",
         variant: v.tag,
         cards: await measureCardHeights(page, CARD),
       });
 
       await dismissNudge(page);
-      await page.screenshot({ path: `${SHOTS}/${LABEL}-my-posts-${v.tag}.png`, fullPage: true });
+      await page.screenshot({ path: `${SHOTS}/${LABEL}-posts-${v.tag}.png`, fullPage: true });
     });
 
-    test(`/my-jobs @ ${v.tag}`, async ({ page, context, baseURL }, testInfo) => {
+    test(`/jobs @ ${v.tag}`, async ({ page, context, baseURL }, testInfo) => {
       const record = recorder(slugify(testInfo.title));
       await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");
       await installSupabaseMocks(page, { user: FAKE_HELPER, seed: true });
       await page.setViewportSize({ width: v.width, height: v.height });
       await suppressOnboardingTour(page);
-      await page.goto("/my-jobs?filter=all");
+      await page.goto("/jobs?filter=all");
       await page.waitForSelector("h1");
       await setTheme(page, v.theme);
       await settleAnimations(page);
@@ -530,15 +530,15 @@ test.describe("device pass — measured", () => {
       // settle has to happen AFTER them, not before.
       await waitForNoAnimations(page);
 
-      await assertOneH1(page, `/my-jobs ${v.tag}`);
-      await assertFits(page, `/my-jobs ${v.tag}`);
-      await assertNoAxeViolations(page, `/my-jobs ${v.tag}`);
-      await recordStripeContrast(page, `my-jobs-${v.tag}`, record);
+      await assertOneH1(page, `/jobs ${v.tag}`);
+      await assertFits(page, `/jobs ${v.tag}`);
+      await assertNoAxeViolations(page, `/jobs ${v.tag}`);
+      await recordStripeContrast(page, `jobs-${v.tag}`, record);
 
       const cards = await measureCardHeights(page, CARD);
       record({
         kind: "card-heights",
-        screen: "my-jobs",
+        screen: "jobs",
         variant: v.tag,
         cards,
         // The owner's ask: two applied cards on screen together at 375.
@@ -546,25 +546,25 @@ test.describe("device pass — measured", () => {
         viewportH: v.height,
       });
 
-      await page.screenshot({ path: `${SHOTS}/${LABEL}-my-jobs-${v.tag}.png`, fullPage: true });
+      await page.screenshot({ path: `${SHOTS}/${LABEL}-jobs-${v.tag}.png`, fullPage: true });
     });
 
-    test(`/dashboard @ ${v.tag}`, async ({ page, context, baseURL }, testInfo) => {
+    test(`/home @ ${v.tag}`, async ({ page, context, baseURL }, testInfo) => {
       const record = recorder(slugify(testInfo.title));
       await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
       await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
       await page.setViewportSize({ width: v.width, height: v.height });
       await suppressOnboardingTour(page);
-      await page.goto("/dashboard");
+      await page.goto("/home");
       await page.waitForSelector("h1");
       await setTheme(page, v.theme);
       await settleAnimations(page);
       await dismissOnboardingTour(page);
       await waitForNoAnimations(page);
 
-      await assertOneH1(page, `/dashboard ${v.tag}`);
-      await assertFits(page, `/dashboard ${v.tag}`);
-      await assertNoAxeViolations(page, `/dashboard ${v.tag}`);
+      await assertOneH1(page, `/home ${v.tag}`);
+      await assertFits(page, `/home ${v.tag}`);
+      await assertNoAxeViolations(page, `/home ${v.tag}`);
       record({ kind: "page", screen: "dashboard", variant: v.tag, ok: true });
       await dismissNudge(page);
       await page.screenshot({ path: `${SHOTS}/${LABEL}-dashboard-${v.tag}.png`, fullPage: true });
@@ -593,7 +593,7 @@ test.describe("device pass — measured", () => {
         ...(listCase.rows ? { rules: [jobsRule(listCase.rows)] } : {}),
       });
       await page.setViewportSize({ width: 375, height: 812 });
-      await page.goto("/my-posts?filter=all");
+      await page.goto("/posts?filter=all");
       await page.waitForSelector("h1");
       await settleAnimations(page);
       await dismissNudge(page);
@@ -634,7 +634,7 @@ test.describe("device pass — measured", () => {
       ],
     });
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto("/my-jobs?filter=all");
+    await page.goto("/jobs?filter=all");
     await page.waitForSelector("h1");
     await settleAnimations(page);
     await expandAllSections(page);
@@ -650,7 +650,7 @@ test.describe("device pass — measured", () => {
        Owner, 2026-09-19: "jobs should open collapsed just like post does"
        (7e76e2a3b). A collapsed applied card is a SUMMARY — it signals state
        ("Waiting · They haven't replied yet") and offers no controls, exactly
-       as the collapsed card on /my-posts does. Nothing today's activity-header
+       as the collapsed card on /posts does. Nothing today's activity-header
        work did; verified by blaming the `isExpanded` gate on the JobActionRow.
 
        So this used to count Withdraw buttons across the whole PAGE, and on the
@@ -722,7 +722,7 @@ test.describe("device pass — measured", () => {
    * `pt-safe-top` resolved to 0 inside <PageTransition>. Measure that the first
    * painted text starts BELOW the simulated notch.
    */
-  for (const route of ["/my-posts?filter=all", "/profile?tab=analytics", "/profile"]) {
+  for (const route of ["/posts?filter=all", "/profile?tab=analytics", "/profile"]) {
     test(`top safe-area inset @ 375 — ${route}`, async ({ page, context, baseURL }, testInfo) => {
       const record = recorder(slugify(testInfo.title));
       await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");

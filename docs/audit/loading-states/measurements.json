@@ -1907,7 +1907,7 @@
       "note": "no loading placeholder rendered within 25s at this delay"
     },
     {
-      "url": "/dashboard",
+      "url": "/home",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
       "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_dashboard.loading.png",
@@ -2170,7 +2170,7 @@
       ]
     },
     {
-      "url": "/dashboard",
+      "url": "/home",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
       "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/helper_dashboard.loading.png",
@@ -2727,7 +2727,7 @@
       ]
     },
     {
-      "url": "/dashboard",
+      "url": "/home",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "status": "no-placeholder",
@@ -15096,7 +15096,7 @@
       "note": "no loading placeholder rendered within 25s at this delay"
     },
     {
-      "url": "/my-jobs",
+      "url": "/jobs",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
       "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_my_jobs.loading.png",
@@ -15392,7 +15392,7 @@
       ]
     },
     {
-      "url": "/my-jobs",
+      "url": "/jobs",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
       "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/helper_my_jobs.loading.png",
@@ -15743,7 +15743,7 @@
       "note": "no loading placeholder rendered within 25s at this delay"
     },
     {
-      "url": "/my-posts",
+      "url": "/posts",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
       "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_my_posts.loading.png",
@@ -16095,14 +16095,14 @@
       ]
     },
     {
-      "url": "/my-jobs",
+      "url": "/jobs",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "status": "no-placeholder",
       "note": "no loading placeholder rendered within 25s at this delay"
     },
     {
-      "url": "/my-posts",
+      "url": "/posts",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
       "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/helper_my_posts.loading.png",
@@ -16314,7 +16314,7 @@
       ]
     },
     {
-      "url": "/my-posts",
+      "url": "/posts",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "status": "no-placeholder",

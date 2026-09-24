@@ -16,7 +16,7 @@ const RAIL = 248;
 const OUT = process.env.PROBE_OUT || "test-results/rail-probe";
 mkdirSync(OUT, { recursive: true });
 
-const ROUTES = (process.env.PROBE_ROUTES || "/messages,/dashboard,/my-jobs,/activity,/profile,/browse,/notifications,/settings").split(",");
+const ROUTES = (process.env.PROBE_ROUTES || "/messages,/home,/jobs,/activity,/profile,/browse,/notifications,/settings").split(",");
 
 const raw = JSON.parse(execSync(`node scripts/test-signin-link.mjs ${process.env.PROBE_ROLE || "poster-e2e"} --session --json`, { encoding: "utf8", maxBuffer: 1 << 24 }));
 

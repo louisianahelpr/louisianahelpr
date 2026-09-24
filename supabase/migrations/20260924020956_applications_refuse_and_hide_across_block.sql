@@ -21,7 +21,7 @@
 --   applicant panel (useApplicantsState) filtered blocked helpers out on the
 --   client, but the three counters (useActivityData applicantCounts and
 --   pendingApplicantCounts, useActivityBadgeCounts' posts badge) did not — so
---   /my-posts said "Applicants are waiting", "Applicants (1)", nav badge 1,
+--   /posts said "Applicants are waiting", "Applicants (1)", nav badge 1,
 --   and the panel said "Still no applications".
 --
 -- THE FIX, one rule per layer, each in ONE place:

@@ -74,7 +74,7 @@ const BackButton = ({ to, className, onClick }: BackButtonProps) => {
   // very first entry, but a REPLACE navigation mints a fresh key WITHOUT adding
   // a history entry — so key stopped being a proxy for "there is somewhere to go
   // back to" the moment anything redirected on mount. That is the /login bug:
-  // a guest who cold-opens /dashboard is bounced by ProtectedRoute's
+  // a guest who cold-opens /home is bounced by ProtectedRoute's
   // `<Navigate to="/login?redirect=…" replace />`, which leaves key random and
   // the entry count at one. Back then ran navigate(-1) and left the app —
   // observed landing on about:blank in Chrome; in a freshly-opened tab there is

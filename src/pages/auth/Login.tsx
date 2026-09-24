@@ -155,13 +155,13 @@ const Login = () => {
   // sign-in: a user who opens /login of their own accord lands on the
   // dashboard, and the app's main tabs are never a post-login destination the
   // user did not ask for.
-  const postLoginDest = "/dashboard";
+  const postLoginDest = "/home";
   // ?redirect= is the ONE case that is not an ordinary sign-in. ProtectedRoute
   // writes it when it bounces a logged-out visitor off a route they had
   // already navigated to, so the param IS the user asking to go somewhere —
   // returning them there is not overriding the landing rule, it is completing
   // the interruption. It used to be read only to phrase the notice, so
-  // /login?redirect=%2Fmy-posts signed you in and dropped you on the dashboard
+  // /login?redirect=%2Fposts signed you in and dropped you on the dashboard
   // with the page you had asked for silently discarded.
   //
   // It rides the SAME storage + validation Signup already uses

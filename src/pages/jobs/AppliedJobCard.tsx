@@ -249,7 +249,7 @@ function AppliedJobCardInner({
         location={job.location ?? ""}
         /* TAP EXPANDS, HOLD OPENS THE MAP — the same prop PostedJobCard has
            carried since 2026-09-14, now on this card too.
-           (Owner, 2026-09-21, pointing at a /my-jobs card: "any time i click
+           (Owner, 2026-09-21, pointing at a /jobs card: "any time i click
            in this job card, it opens apple maps. ths is not correct.")
 
            WHY IT WAS SO EASY TO HIT HERE, with the arithmetic. The location
@@ -261,7 +261,7 @@ function AppliedJobCardInner({
            301x139 with a live 267x32 maps anchor in it — 89% of the card's
            width, directly under the title, painted exactly like the plain date
            text beside it. 15% of the card's in-viewport area left the app. The
-           same probe on /my-posts scored 0%, because My Posts already had this
+           same probe on /posts scored 0%, because My Posts already had this
            prop; the note on it says "opt-in per card so My Jobs is untouched",
            and untouched is what the owner is reporting.
 
@@ -281,7 +281,7 @@ function AppliedJobCardInner({
            e2e/prod-audit/card-maps-hit-area.spec.ts (the geometry). */
         locationPressToMap
         /* THE FULL ADDRESS TAKES THE CITY'S PLACE (owner, 2026-09-19, with a
-           screenshot of /my-jobs: "this shouldnt show 2 addresses... the full
+           screenshot of /jobs: "this shouldnt show 2 addresses... the full
            address needs to go where the city place is. not be on a whole
            nother line").
 

@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
           // poster buckets to "Needs you", which is exactly what this reminder
           // is about, but it moves the moment they act. Activity resolves the
           // bucket from the job id at open time.
-          link: `/my-posts?job=${job.id}`,
+          link: `/posts?job=${job.id}`,
         }).select("id");
 
         if (notifErr) {
@@ -280,7 +280,7 @@ Deno.serve(async (req) => {
           (await seedBoundaryDropsRow(supabase, {
             user_id: job.customer_id,
             job_id: job.id,
-            link: `/my-posts?job=${job.id}`,
+            link: `/posts?job=${job.id}`,
           })) === true;
         if ((notifRows?.length ?? 0) === 0 && !suppressedSeed) {
           // Same handling as an error: do NOT mark the flag, so the next run

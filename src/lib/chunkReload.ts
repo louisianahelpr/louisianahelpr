@@ -207,7 +207,7 @@ export const beginSpeculativePrefetch = (): (() => void) => {
  * returns. Applying to a job back online: `apply_to_job` answered 200 and the
  * row landed, then onSuccess's `track()` asked for the posthog chunk, which had
  * failed offline; `vite:preloadError` fired, the device was online again, so
- * recovery reloaded the page to `/dashboard?_v=...` and wiped "Application
+ * recovery reloaded the page to `/home?_v=...` and wiped "Application
  * sent!" as it appeared. The user was left with no confirmation for an
  * application that had gone through.
  */

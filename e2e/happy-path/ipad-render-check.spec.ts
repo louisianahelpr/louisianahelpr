@@ -12,7 +12,7 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks } from "./fixtures";
 //
 // This captures the sizes Apple actually reviews on, so the decision to keep or
 // drop iPad support is made from screenshots rather than assumption.
-const ROUTES = ["/dashboard", "/post-job", "/messages", "/profile", "/profile?tab=subscription", "/my-posts"];
+const ROUTES = ["/home", "/post-job", "/messages", "/profile", "/profile?tab=subscription", "/posts"];
 
 const SIZES = [
   { name: "ipad-11-portrait", width: 834, height: 1194 },
@@ -30,7 +30,7 @@ for (const size of SIZES) {
       } catch { /* no-storage guard */ }
     });
     await page.setViewportSize({ width: size.width, height: size.height });
-    await page.goto("/dashboard");
+    await page.goto("/home");
     // Content, not just a route: the rejection was specifically "content didn't
     // load", so assert something real rendered before judging the layout.
     await page.waitForTimeout(3000);

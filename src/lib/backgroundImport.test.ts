@@ -8,7 +8,7 @@
  * asked for the posthog chunk. That chunk had failed to load while the device
  * was offline, and the browser keeps a failed module fetch for the life of the
  * document, so it failed again; `vite:preloadError` fired while online, and
- * main.tsx reloaded the page to `/dashboard?_v=…`, wiping "Application sent!".
+ * main.tsx reloaded the page to `/home?_v=…`, wiping "Application sent!".
  *
  * main.tsx declines recovery while `isSpeculativePrefetchInFlight()` is true.
  * So the contract is: while any analytics lazy import is being fetched, that
@@ -128,7 +128,7 @@ describe("a background import that fails AFTER its gate timeout (Q170)", () => {
     __resetChunkReloadForTests();
     sessionStorage.clear();
     Object.defineProperty(window, "location", {
-      value: { href: "https://www.louisianahelpr.com/dashboard", replace: vi.fn() },
+      value: { href: "https://www.louisianahelpr.com/home", replace: vi.fn() },
       configurable: true,
       writable: true,
     });

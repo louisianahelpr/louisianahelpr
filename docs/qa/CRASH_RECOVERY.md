@@ -12,7 +12,7 @@ Force-quit the app at each scenario below and verify the user lands somewhere se
 **Trigger:** Start a job post, fill the form, tap Review & Pay → on the Stripe Checkout screen, swipe up and force-quit.
 
 **Expected:**
-- App relaunches to /dashboard (last route) or /
+- App relaunches to /home (last route) or /
 - The draft job is NOT created on the backend (Stripe webhook only fires on capture)
 - Form draft is preserved in safeStorage — reopening /post-job shows the "Draft restored" banner
 - No orphan job row in the database
@@ -66,7 +66,7 @@ Force-quit the app at each scenario below and verify the user lands somewhere se
 **Trigger:** Kill the app. Send a "Match for you" push from another account. Tap the push on the lock screen.
 
 **Expected:**
-- App cold-launches to /dashboard?quickApply=\<jobId\>
+- App cold-launches to /home?quickApply=\<jobId\>
 - The QuickApplyHandler triggers within ~2 seconds and surfaces the apply dialog
 - If the user wasn't logged in, lands on /login first, then deep-links after
 

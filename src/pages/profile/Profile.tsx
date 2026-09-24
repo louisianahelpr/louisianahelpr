@@ -145,8 +145,8 @@ const ProfilePage = () => {
   //
   // Opening a tab PUSHES a history entry. It used to replace, so entering a
   // tab added nothing to history and Back skipped the Profile landing
-  // entirely: /dashboard -> Profile -> Account Security -> Back landed on
-  // /dashboard, with history.length never incrementing. On iOS the swipe-back
+  // entirely: /home -> Profile -> Account Security -> Back landed on
+  // /home, with history.length never incrementing. On iOS the swipe-back
   // gesture did the same, which is the one users reach for constantly.
   //
   // Returning to the landing still REPLACES, so Back doesn't walk you through
@@ -765,8 +765,8 @@ const ProfilePage = () => {
               Measured on prod at 1440 (frame 0->1192) before touching
               anything, and this is why it was reverted:
 
-                /dashboard ............. panel  48 -> 1144
-                /my-posts .............. panel  48 -> 1144
+                /home ............. panel  48 -> 1144
+                /posts .............. panel  48 -> 1144
                 /messages .............. panel  48 -> 1144
                 /profile?tab=reviews ... card   48 -> 1144
 

@@ -9,7 +9,7 @@
  * 20260901021929, and the one before them) that each believed they had fixed
  * every producer and each had not:
  *
- *   * ~40 producers wrote a bare `/my-posts` / `/my-jobs`, which opens the
+ *   * ~40 producers wrote a bare `/posts` / `/jobs`, which opens the
  *     "Needs you" bucket — essentially never where the job is.
  *   * Others wrote a fixed `?filter=`, which is a claim about the job's LIVE
  *     state ("whose move is it?") frozen at write time. It is wrong the moment
@@ -32,7 +32,7 @@
  */
 
 /** The two Activity surfaces whose bucket is resolved from the job at open time. */
-const ACTIVITY_PATHS = new Set(["/my-posts", "/my-jobs"]);
+const ACTIVITY_PATHS = new Set(["/posts", "/jobs"]);
 
 export type DestinationInput = {
   link: string | null;
@@ -91,7 +91,7 @@ export function notificationDestination(n: DestinationInput): string | null {
 
   // A job we know about, and a link that deliberately points elsewhere —
   // `/earnings` for a payout, `/messages?jobId=…` for a message, `/admin` for
-  // an operator alert, `/dashboard?quickApply=…` to open the apply sheet. The
+  // an operator alert, `/home?quickApply=…` to open the apply sheet. The
   // link is the right destination; job_id is the reference, not an override.
   return link;
 }

@@ -97,7 +97,7 @@ describe("alertSubjectFromLink", () => {
   const U = "71c56dfb-b326-4010-b960-b18dd3966e7f";
   it("reads the job or user a link names", () => {
     expect(alertSubjectFromLink(`/admin?view=stalled&job=${J}`)).toEqual({ jobId: J });
-    expect(alertSubjectFromLink(`/my-jobs?job=${J}`)).toEqual({ jobId: J });
+    expect(alertSubjectFromLink(`/jobs?job=${J}`)).toEqual({ jobId: J });
     expect(alertSubjectFromLink(`/jobs/${J}`)).toEqual({ jobId: J });
     expect(alertSubjectFromLink(`/admin?view=people&user=${U}`)).toEqual({ userId: U });
   });

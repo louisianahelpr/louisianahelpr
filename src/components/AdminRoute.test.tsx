@@ -10,7 +10,7 @@ import type { AdminStatus } from "@/hooks/useCurrentUser";
  * AdminRoute used to read only `isAdmin`, and `isAdmin === false` meant BOTH
  * "we asked and you are not an admin" AND "we could not ask". A real admin on
  * a connection slow enough to cross useCurrentUser's 10s role-query timeout was
- * therefore redirected to /dashboard with nothing on screen explaining it — a
+ * therefore redirected to /home with nothing on screen explaining it — a
  * silent lockout that cost two lanes their admin surfaces before it was found,
  * and that a code read cannot see, because the class of the bug is two states
  * sharing one boolean.
@@ -64,7 +64,7 @@ const renderAt = () =>
             </AdminRoute>
           }
         />
-        <Route path="/dashboard" element={<div>DASHBOARD</div>} />
+        <Route path="/home" element={<div>DASHBOARD</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -123,7 +123,7 @@ describe("AdminRoute", () => {
               </AdminRoute>
             }
           />
-          <Route path="/dashboard" element={<div>DASHBOARD</div>} />
+          <Route path="/home" element={<div>DASHBOARD</div>} />
         </Routes>
       </MemoryRouter>,
     );

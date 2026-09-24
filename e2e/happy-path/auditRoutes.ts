@@ -109,7 +109,7 @@ export function distinctScreens(rows: ScreenSpec[]): ScreenSpec[] {
 export function catalogLandingFor(url: string): string | undefined {
   // Every signed-in visitor to a job detail is forwarded to the dashboard
   // (src/pages/jobs/JobDetail.tsx), so this cannot be a per-row literal.
-  if (url.startsWith("/jobs/")) return "/dashboard";
+  if (url.startsWith("/jobs/")) return "/home";
   const row = [...ANON_SCREENS, ...AUTHED_SCREENS, ...ADMIN_SCREENS].find((s) => s.url === url);
   return row?.redirectsTo;
 }
@@ -200,7 +200,7 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // The GUEST job preview — the page a shared `/jobs/{id}?ref=share` link opens.
   //
   // Added 2026-08-17. This is the only way JobDetail is ever rendered:
-  // src/pages/jobs/JobDetail.tsx:79 returns `<Navigate to="/dashboard?quickApply=…">`
+  // src/pages/jobs/JobDetail.tsx:79 returns `<Navigate to="/home?quickApply=…">`
   // for any signed-in user, so the seven `/jobs/*` entries in AUTHED_SCREENS all
   // land on the dashboard and JobDetail itself had ZERO coverage in either
   // sweep, despite the catalog claiming six job-status variants. Verified from
@@ -225,7 +225,7 @@ export const ANON_SCREENS: ScreenSpec[] = [
   //
   // Note this leaves JobDetail's own populated branch rendered by NOBODY: a
   // guest never reaches it, and JobDetail.tsx:105 redirects every signed-in
-  // visitor to /dashboard?quickApply=<id>. The page is now a redirect shim
+  // visitor to /home?quickApply=<id>. The page is now a redirect shim
   // wearing a page's clothes. Flagged to the owner rather than quietly deleted
   // — the share-link landing experience it contains was built deliberately.
   { name: "not-found", url: "/this-route-does-not-exist" },
@@ -239,22 +239,22 @@ export const ANON_SCREENS: ScreenSpec[] = [
 // availability/credentials are helper-rich; payment/subscription/saved-
 // helpers are customer-rich) — so this is the exhaustive matrix.
 export const AUTHED_SCREENS: ScreenSpec[] = [
-  { name: "dashboard", url: "/dashboard" },
+  { name: "dashboard", url: "/home" },
   {
     name: "dashboard-map",
-    url: "/dashboard",
+    url: "/home",
     extraSetup: async (page) => {
       await toggleDashboardMap(page);
     },
   },
-  { name: "my-posts", url: "/my-posts" },
-  { name: "my-jobs", url: "/my-jobs" },
+  { name: "posts", url: "/posts" },
+  { name: "jobs", url: "/jobs" },
   { name: "messages", url: "/messages" },
   { name: "post-job", url: "/post-job" },
   { name: "payment-success", url: "/payment-success" },
   { name: "complete-profile", url: "/complete-profile" },
   // The seeded account's profile is COMPLETE, so "complete-profile" above
-  // redirects to /dashboard and the sweep never saw the gate itself. Both
+  // redirects to /home and the sweep never saw the gate itself. Both
   // owner-found bugs of 2026-09-12 (missing ZIP check, Enter App vs Sign Out
   // heights) lived on that unswept screen. This one serves the signed-in
   // user's own profile with no photo and no legacy bypass, so the gate renders.
@@ -319,7 +319,7 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // (the `?tab=completed_jobs` tab this comment used to name was itself
   // removed from the Tab union — see the Profile block above).
   // ⚠ These seven `/jobs/*` rows do NOT audit JobDetail. JobDetail.tsx:79
-  // redirects every SIGNED-IN visitor to `/dashboard?quickApply={id}` by
+  // redirects every SIGNED-IN visitor to `/home?quickApply={id}` by
   // design (the dashboard owns the apply flow), so all seven land on the
   // dashboard and audit it a seventh time. The intent below — one row per
   // job_status so cancelled/disputed/in-progress each get looked at — has
@@ -357,7 +357,7 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
 
 
 
-// Admin surface — gated by AdminRoute, which redirects to /dashboard unless
+// Admin surface — gated by AdminRoute, which redirects to /home unless
 // user_roles reports role=admin. Override that one table so the real Admin
 // page renders.
 //
@@ -525,10 +525,10 @@ export async function settleAnimations(page: Page, minMs = 2200): Promise<void> 
   //
   // The two waits above are not enough, and the gap they leave produced a
   // load-dependent false finding: `helper-jobs` (which redirects to
-  // /dashboard) failed axe with `#f9f5f3 on #f3f2f2 = 1.03:1` on four nodes —
+  // /home) failed axe with `#f9f5f3 on #f3f2f2 = 1.03:1` on four nodes —
   // near-white text on near-white background, i.e. an element sampled at
   // ~0 opacity — but only when the sweep ran with 3 parallel workers. Alone it
-  // passed three times out of three. The same /dashboard route reached
+  // passed three times out of three. The same /home route reached
   // DIRECTLY was clean in the same run.
   //
   // Cause: framer-motion drives page transitions with requestAnimationFrame

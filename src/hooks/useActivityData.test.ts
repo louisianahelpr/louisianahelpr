@@ -302,7 +302,7 @@ describe("fetchAppliedActivity — My Jobs core", () => {
     const result = await fetchAppliedActivity("u1");
     expect(result.helperReviewedJobIds.has("j1")).toBe(true);
 
-    /* THE WAVE COUNT IS THE ASSERTION (owner, 2026-09-21: /my-jobs "takes
+    /* THE WAVE COUNT IS THE ASSERTION (owner, 2026-09-21: /jobs "takes
        long to load").
        `get_jobs_for_my_applications()` used to be awaited AFTER the
        applications query, which cost a second serial Supabase round trip —

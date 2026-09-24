@@ -8,7 +8,7 @@
  * context for what happened on the job ("Helper marked on the way",
  * "The person who posted this job confirmed it complete", "Job cancelled by
  * the person who posted it") so
- * they don't have to jump to /my-jobs to see state changes.
+ * they don't have to jump to /jobs to see state changes.
  *
  * This is a pure derivation — no schema changes, no separate audit
  * table. The `jobs` table already records each transition's timestamp

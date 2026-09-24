@@ -72,7 +72,7 @@ test("every open job the API returns is rendered somewhere", async ({ page, cont
   await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules });
   const errs: string[] = [];
   page.on("console", (m) => { if (m.type() === "error") errs.push(m.text().slice(0, 200)); });
-  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+  await page.goto("/home", { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(3500);
 
   const shown = await page.evaluate(() =>

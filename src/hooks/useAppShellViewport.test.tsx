@@ -55,8 +55,8 @@ describe("useAppShellViewport", () => {
     expect(document.documentElement.classList.contains("app-shell")).toBe(false);
   });
 
-  it("ADDS app-shell on /dashboard (the in-app shell with internal scroll)", () => {
-    renderHook(() => useAppShellViewport(), { wrapper: wrapperFor("/dashboard") });
+  it("ADDS app-shell on /home (the in-app shell with internal scroll)", () => {
+    renderHook(() => useAppShellViewport(), { wrapper: wrapperFor("/home") });
     expect(document.documentElement.classList.contains("app-shell")).toBe(true);
   });
 

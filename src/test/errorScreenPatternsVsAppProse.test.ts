@@ -7,7 +7,7 @@
  * of them at once. It happened: `/Something went wrong/i` matched the overdue-job
  * notification body, and it took out 02-marketplace J3-J5 (fixed in 320dfba24,
  * which shipped without a test — this is it) and press-every-control's
- * "Notifications" press on /dashboard and /jobs/:id for the customer persona
+ * "Notifications" press on /home and /jobs/:id for the customer persona
  * (run 35660182220).
  *
  * The prose below is not invented. It is the exact `notifications.message`

@@ -380,7 +380,7 @@ test(j7, async ({ browser, request, journey }) => {
   });
 
   await test.step("poster saves a search from Browse, sees it, deletes it", async () => {
-    await pp.goto("/dashboard");
+    await pp.goto("/home");
     await pp.getByRole("button", { name: "Filters" }).first().click();
     // A saved search is a saved FILTER SET; with none active the dialog says "set filters first".
     await pp.getByRole("dialog").getByRole("group", { name: "Filter by category" }).getByRole("button", { name: /cleaning/i }).first().click();
@@ -463,8 +463,8 @@ test(j8, async ({ browser, request, journey }) => {
     await expect.poll(async () => page.evaluate((k) => localStorage.getItem(k), AUTH_STORAGE_KEY), { timeout: 20_000, message: "the session is still stored after Log Out" }).toBeNull();
     forgetSession("helper"); // Log Out revoked every helper session, including the cached one
     await expect(page).not.toHaveURL(/\/profile/, { timeout: 20_000 });
-    await page.goto("/my-jobs");
-    await expect(page, "a signed-out visitor reached /my-jobs").toHaveURL(/\/(login|signup|$)|\/\?/, { timeout: 30_000 });
+    await page.goto("/jobs");
+    await expect(page, "a signed-out visitor reached /jobs").toHaveURL(/\/(login|signup|$)|\/\?/, { timeout: 30_000 });
     await assertHealthy(page, "signed out");
     await journey.milestone(page, "signed-out");
   });
@@ -497,7 +497,7 @@ test(j8, async ({ browser, request, journey }) => {
         // An attempt that DID take leaves /login redirecting away, so there is
         // no form to fill — stop rather than throw on a missing field. (The
         // first pass always finds one: the step above proved we are signed out
-        // by being bounced off /my-jobs.)
+        // by being bounced off /jobs.)
         if (!(await emailField.waitFor({ state: "visible", timeout: 15_000 }).then(() => true, () => false))) break;
         await emailField.fill(email);
         await page.getByLabel(/password/i).first().fill(password);

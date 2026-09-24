@@ -318,7 +318,7 @@ describe("ShareJobButton", () => {
     // that is url-only gives the recipient a naked link with no context —
     // which is what PaymentSuccess used to send. Every rung here must carry
     // both, and the url must be the PUBLIC /jobs/:id preview route (guest
-    // readable), never a /dashboard or other ProtectedRoute path.
+    // readable), never a /home or other ProtectedRoute path.
     isNativePlatformMock.mockReturnValue(true);
     capacitorShareMock.mockResolvedValue({});
 
@@ -330,7 +330,7 @@ describe("ShareJobButton", () => {
     expect(payload.text).toBeTruthy();
     expect(payload.url).toBe(EXPECTED_URL);
     expect(String(payload.url)).toContain("/jobs/");
-    expect(String(payload.url)).not.toContain("/dashboard");
+    expect(String(payload.url)).not.toContain("/home");
     // `files` must never be a sibling of text/url — a mixed activity makes
     // iOS suppress the document handlers outright.
     expect(payload.files).toBeUndefined();

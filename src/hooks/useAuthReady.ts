@@ -38,7 +38,7 @@ const authListeners = new Set<(snapshot: AuthSnapshot) => void>();
  *
  * What that costs when it happens is not an error, which is the point:
  * `!!user` is true, so every id-keyed query downstream runs with
- * `undefined` as its filter. Measured on /dashboard with the id stripped from
+ * `undefined` as its filter. Measured on /home with the id stripped from
  * the persisted session — SEVEN malformed PostgREST requests on one page load,
  * from five different call sites:
  *

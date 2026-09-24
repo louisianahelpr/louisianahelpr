@@ -47,7 +47,7 @@ import { readSectionSpacing, readShellSpacing, spacingScreens, type SpacingRow, 
 const OUT = process.env.LH_SHELL_SPACING_OUT;
 const SHOTS = process.env.LH_SHELL_SPACING_SHOTS;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
-const SHOT_NAMES = new Set(["browse-guest", "dashboard", "my-jobs", "messages", "profile-landing", "legal-terms", "help", "login"]);
+const SHOT_NAMES = new Set(["browse-guest", "dashboard", "jobs", "messages", "profile-landing", "legal-terms", "help", "login"]);
 
 const PHONES = [375, 320, 390, 430] as const;
 const TOL = 2;
@@ -274,18 +274,18 @@ const SECTION_GAP = sectionGapPx();
 const SECTION_EXCEPTIONS: Record<string, { px: number; first?: boolean; why: string }> = {
   "browse-guest": { px: 10, why: "the guest job feed is a LIST (GUEST_FEED_GRID_CLASS gap-2.5), not page sections; unifying the job-card list rhythm (8 dashboard, 10 here, 12 Activity) is Q213" },
   dashboard: { px: 8, why: "the virtualized job feed's own row pitch (BrowseTasksFeed pb-2) — a list, not sections" },
-  "complete-profile": { px: 8, why: "a complete account lands on /dashboard: same feed" },
-  "job-detail-1": { px: 8, why: "the catalog's fake job id lands on /dashboard: same feed" },
-  "job-detail-missing": { px: 8, why: "a missing job lands on /dashboard: same feed" },
+  "complete-profile": { px: 8, why: "a complete account lands on /home: same feed" },
+  "job-detail-1": { px: 8, why: "the catalog's fake job id lands on /home: same feed" },
+  "job-detail-missing": { px: 8, why: "a missing job lands on /home: same feed" },
   messages: { px: 20, why: "conversation rows are a divided list (row padding either side of a hairline), not cards" },
-  "my-posts": { px: SECTION_GAP, first: true, why: "after the list, ListTail's mt-auto fills the panel's leftover height — a filler, not a gap" },
+  "posts": { px: SECTION_GAP, first: true, why: "after the list, ListTail's mt-auto fills the panel's leftover height — a filler, not a gap" },
   "profile-support": { px: 24, why: "the Help Center row sits a deliberate DOUBLE rhythm (!mt-6) below the form so it does not read as part of it" },
 };
 
 /** Screens with no multi-section stack under the title (one card, a form, a centred composition). */
 const NO_SECTION_STACK = new Set([
   "signup", "login", "forgot-password", "reset-password", "signup-pending", "account-banned", "support",
-  "my-jobs", "user-profile", "user-profile-customer", "user-profile-missing",
+  "jobs", "user-profile", "user-profile-customer", "user-profile-missing",
   "profile-notifications", "profile-warnings", "analytics", "str-settings", "work-record", "wrapped",
 ]);
 

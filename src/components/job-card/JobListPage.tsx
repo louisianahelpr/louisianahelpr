@@ -94,7 +94,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   });
 
   // Deep-link highlight — the notification for "poster viewed your
-  // application" links to /my-jobs?highlight=<applicationId>. We read
+  // application" links to /jobs?highlight=<applicationId>. We read
   // it once on mount, hand it to AppliedJobsTab so the matching card
   // can scroll into view + pulse, then strip it from the URL (replace,
   // not push) so Back doesn't re-trigger the animation.
@@ -123,8 +123,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   //
   // This is the param nearly every notification wants to send, and until now
   // nothing on this screen read it. `notify_on_payment_escrowed` has linked
-  // "Payment secured in escrow" / "Job funded" to `/my-posts?job=<id>` and
-  // `/my-jobs?job=<id>` since 20260824070000 — the route resolved, the param
+  // "Payment secured in escrow" / "Job funded" to `/posts?job=<id>` and
+  // `/jobs?job=<id>` since 20260824070000 — the route resolved, the param
   // was dropped on the floor, and the reader landed on the default "Needs you"
   // bucket, which for a freshly-funded booking is the one bucket the job is
   // NOT in. 79 rows in prod `notifications` carry that shape.
@@ -195,13 +195,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // Mirror filter + search into the URL through the SHARED hook.
   //
   // This screen used to hand-roll the same job in three interacting effects,
-  // and it is the reason /my-jobs and /my-posts kept crashing into the route
+  // and it is the reason /jobs and /posts kept crashing into the route
   // error boundary. The failure mode is not obvious: `setSearchParams`
   // navigates unconditionally AND its identity churns on every location
   // change, so an effect that both writes it and depends on it re-arms itself.
   // WebKit throws at ~100 replaceState calls in 10s, which unmounts the route.
   // error_logs shows 19 of the last 20 RouteErrorBoundary entries are exactly
-  // that message, across /browse, /my-jobs and /my-posts.
+  // that message, across /browse, /jobs and /posts.
   //
   // /browse had the identical bug and was cured by moving onto
   // useSearchParamMirror, which decides OUTSIDE the updater (so the navigator
@@ -359,7 +359,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
   // Pull-to-refresh — refetches this tab's core + detail queries only (the
   // other tab has its own keys and its own idle warm), and each Activity
-  // instance ("/my-posts" vs "/my-jobs") tracks its own pull-state so one
+  // instance ("/posts" vs "/jobs") tracks its own pull-state so one
   // tab's refresh never leaks into the other.
   const tabRefresh = useCallback(async () => {
     /* THE GESTURE ALSO RE-CHECKS AN UNVERIFIED ARRIVAL (owner, 2026-09-19).
@@ -491,8 +491,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       // sr-only title left an empty list's row a 1094px bar holding nothing
       // but a magnifier). It was never a My Jobs / My Posts difference — the
       // two tabs run this exact line — but it read as one: an account with
-      // posts and no applications saw the title vanish on /my-posts and
-      // reappear in 20px Bodoni on /my-jobs, the only page of the four still
+      // posts and no applications saw the title vanish on /posts and
+      // reappear in 20px Bodoni on /jobs, the only page of the four still
       // painting one at 1440 (browser verification, 2026-09-19). Owner
       // decision that day: hide it, matching Home, My Posts and Messages.
       titleSrOnly={isWebDesktop}
@@ -503,12 +503,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       //
       // This used to be `isTrulyEmpty ? [] : activeStatusFilters`, on the
       // reasoning quoted above: a filter with nothing to filter has nothing to
-      // act on. What that produced on /my-jobs for an account with no
+      // act on. What that produced on /jobs for an account with no
       // applications — screenshotted 2026-09-19, 1440 — was a header strip
       // holding a single magnifier and nothing else: the title is sr-only on
       // the desktop website and the tabs were gone, so the row was empty
       // chrome above an empty panel and the screen read as broken rather than
-      // as empty. /my-posts on the same account showed all five tabs and the
+      // as empty. /posts on the same account showed all five tabs and the
       // "No jobs in this view" card, because it HAS posts and was merely
       // filtered to none; the difference was never a difference between the
       // two pages, but it looked like one.
@@ -611,7 +611,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                against the real 12px — the same 2px-per-row drift
                ActivityPageSkeleton was fixed for on 2026-09-21; a gap is part
                of the reservation. (The applied branch below still reads
-               `space-y-2.5`; that surface belongs to the /my-jobs report and is
+               `space-y-2.5`; that surface belongs to the /jobs report and is
                filed in docs/OPEN.md rather than changed here.) */
             <Suspense fallback={
               <div className="px-0 space-y-3">

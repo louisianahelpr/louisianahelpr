@@ -57,12 +57,12 @@ const ResetPassword = () => {
   // The success state is RENDERED, not implied.
   //
   // This screen used to do nothing at all on success: no toast, no copy, no
-  // state change — just `setTimeout(navigate("/dashboard"), 800)`. The comment
+  // state change — just `setTimeout(navigate("/home"), 800)`. The comment
   // beside it claimed that was "confirmation without making the user stare at a
   // toast", but nothing was ever drawn, so the only feedback a person got for
   // changing their password was the screen vanishing. Measured 2026-09-01: 400 ms
   // after submit the form still read "Update Password" with both fields filled,
-  // and the URL was already /dashboard. Changing a password is a security
+  // and the URL was already /home. Changing a password is a security
   // action — the one class of action that must leave visible evidence it worked.
   //
   // Shape is lifted from the canonical sibling, ForgotPassword's `sent` state
@@ -76,7 +76,7 @@ const ResetPassword = () => {
   const [linkError, setLinkError] = useState<"expired" | "used" | null>(null);
   // Holds the id of the post-success redirect timer so we can cancel it if
   // the user navigates away within the 1.5 s window — prevents a "navigate
-  // on unmounted component" warning and a phantom navigation to /dashboard.
+  // on unmounted component" warning and a phantom navigation to /home.
   const redirectTidRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -209,7 +209,7 @@ const ResetPassword = () => {
       }
     } else {
       // updateUser leaves the recovery session live, which is effectively
-      // already signed in — so route straight to /dashboard instead of
+      // already signed in — so route straight to /home instead of
       // bouncing through /login. The confirmation panel below renders FIRST and
       // is announced (role="status"), and the hand-off is long enough to read
       // rather than the old 800ms flicker. The panel's own button goes to the
@@ -223,7 +223,7 @@ const ResetPassword = () => {
       window.history.replaceState(null, "", window.location.pathname);
       setSubmitError(null);
       setDone(true);
-      redirectTidRef.current = window.setTimeout(() => navigate("/dashboard", { replace: true }), 2200);
+      redirectTidRef.current = window.setTimeout(() => navigate("/home", { replace: true }), 2200);
     }
   };
 
@@ -283,7 +283,7 @@ const ResetPassword = () => {
               className="w-full rounded-ds-md"
               onClick={() => {
                 if (redirectTidRef.current !== null) window.clearTimeout(redirectTidRef.current);
-                navigate("/dashboard", { replace: true });
+                navigate("/home", { replace: true });
               }}
             >
               Go to Dashboard

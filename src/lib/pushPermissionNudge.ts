@@ -221,7 +221,7 @@ export function usePushPermissionNudge() {
           duration: 12_000,
           // NO per-toast position override any more. This toast used to opt
           // out to bottom-centre on phones, because the Toaster was anchored to
-          // the TOP and, measured at 375 on /my-jobs, the toast did not merely
+          // the TOP and, measured at 375 on /jobs, the toast did not merely
           // overlap the title card — it REPLACED it. `<h1>My Jobs</h1>` was
           // gone, `elementFromPoint` over the title returned the toast, and the
           // card's "Search jobs" and "Filter by status" controls were

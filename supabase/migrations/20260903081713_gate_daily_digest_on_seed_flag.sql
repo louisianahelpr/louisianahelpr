@@ -116,7 +116,7 @@ BEGIN
             ELSE format('$%s to $%s', budget_lo, budget_hi)
           END
         ),
-        '/dashboard',
+        '/home',
         false
       );
       total_sent := total_sent + 1;

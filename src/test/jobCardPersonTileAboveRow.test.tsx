@@ -3,8 +3,8 @@
  *
  * Owner, 2026-09-19: "also the helpr or posted by should be right above the
  * buttons", and then, on the whole batch: "these changes all apply to jobs
- * also". So this is one rule with two proofs — `/my-posts` (PostedJobCard,
- * eyebrow "Helpr") and `/my-jobs` (AppliedJobCard, eyebrow "Posted by").
+ * also". So this is one rule with two proofs — `/posts` (PostedJobCard,
+ * eyebrow "Helpr") and `/jobs` (AppliedJobCard, eyebrow "Posted by").
  *
  * ── WHY THIS ASSERTS POSITION AND NOT PRESENCE ────────────────────────────
  * The tile has now occupied THREE positions in five days — the meta row
@@ -229,7 +229,7 @@ const before = (a: Element, b: Element) =>
   !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
 // ===========================================================================
-// /my-posts — the Helpr's tile
+// /posts — the Helpr's tile
 // ===========================================================================
 describe("Posts card: the Helpr tile is the last thing before the action row", () => {
   it("expanded: exactly one tile, and it sits ABOVE [data-job-step-row]", () => {
@@ -306,7 +306,7 @@ describe("Posts card: the Helpr tile is the last thing before the action row", (
 });
 
 // ===========================================================================
-// /my-jobs — the poster's tile ("these changes all apply to jobs also")
+// /jobs — the poster's tile ("these changes all apply to jobs also")
 // ===========================================================================
 describe("Jobs card: the Posted-by tile is the last thing before the action row", () => {
   it("expanded: exactly one tile, and it sits ABOVE [data-job-step-row]", () => {

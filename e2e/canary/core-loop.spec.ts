@@ -258,7 +258,7 @@ test.describe("core-loop canary", () => {
       const hp: Page = await hctx.newPage();
 
       await step("browse", async () => {
-        await hp.goto("/dashboard");
+        await hp.goto("/home");
         await hp.getByRole("button", { name: "Search jobs" }).first().click();
         await hp.getByRole("combobox", { name: "Search jobs" }).fill(FUNDED_FIXTURE_TITLE);
         await expect(

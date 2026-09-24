@@ -125,7 +125,7 @@ describe("errorLogger._isDevEnvironment", () => {
 
   it("returns false for production hostnames", () => {
     Object.defineProperty(window, "location", {
-      value: new URL("https://www.louisianahelpr.com/dashboard"),
+      value: new URL("https://www.louisianahelpr.com/home"),
       writable: true,
     });
     expect(_isDevEnvironment(null)).toBe(false);
@@ -188,7 +188,7 @@ describe("errorLogger._describeUnknownError", () => {
 describe("report() applies the scrubbing to the row it persists", () => {
   const atProd = () =>
     Object.defineProperty(window, "location", {
-      value: new URL("https://www.louisianahelpr.com/dashboard?token=abc123def456"),
+      value: new URL("https://www.louisianahelpr.com/home?token=abc123def456"),
       writable: true,
     });
 
@@ -209,7 +209,7 @@ describe("report() applies the scrubbing to the row it persists", () => {
     // The caller's own context strings go through the same pass.
     expect(row.context.callbackUrl).toBe("https://app.example.com/auth?token=<redacted>");
     // window.location.href carried ?token= — the row keeps origin + path only.
-    expect(row.url).toBe("https://www.louisianahelpr.com/dashboard");
+    expect(row.url).toBe("https://www.louisianahelpr.com/home");
     // Belt and braces: the secret appears nowhere in the serialised row.
     expect(JSON.stringify(row)).not.toContain("abc123def456");
   });
@@ -233,7 +233,7 @@ describe("report() applies the scrubbing to the row it persists", () => {
 
   it("still drops dev-environment errors before they ever reach the queue", async () => {
     Object.defineProperty(window, "location", {
-      value: new URL("http://localhost:8080/dashboard"),
+      value: new URL("http://localhost:8080/home"),
       writable: true,
     });
     insertSpy.mockClear();

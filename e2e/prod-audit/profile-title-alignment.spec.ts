@@ -155,7 +155,7 @@ function readTitle(): TitleBox {
       // child past the right edge correct, not a defect — a side-scrolling tab
       // strip is the common case. Same walk `measureLayout` in auditRoutes.ts
       // uses for `clippedWideElements`, and omitting it produced a false
-      // positive on /my-posts@320 (the Cancelled tab of an overflow-x-auto
+      // positive on /posts@320 (the Cancelled tab of an overflow-x-auto
       // strip, right=326 of a 320px viewport) before this was added.
       const clipped = (e: Element): boolean => {
         let p = e.parentElement;

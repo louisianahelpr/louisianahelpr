@@ -11,7 +11,7 @@ import { DATE } from "./seedData";
 //   2. /signup loads without crashing (the public-form route entry-point)
 //   3. An authed customer can reach /post-job, see the entry landing, and
 //      "Start fresh" into the form step
-//   4. /my-posts surfaces a job the customer "posted" (mocked select)
+//   4. /posts surfaces a job the customer "posted" (mocked select)
 
 test.describe("customer post-job happy path", () => {
   test("landing → signup CTA → signup page renders", async ({ page }) => {
@@ -95,7 +95,7 @@ test.describe("customer post-job happy path", () => {
     expect(page.url()).toContain("/post-job");
   });
 
-  test("/my-posts shows a posted job for the authed customer", async ({ customerPage: page }) => {
+  test("/posts shows a posted job for the authed customer", async ({ customerPage: page }) => {
     const postedJob = {
       id: "11111111-1111-4111-8111-111111111111",
       customer_id: FAKE_CUSTOMER.id,
@@ -110,7 +110,7 @@ test.describe("customer post-job happy path", () => {
       // day parse as "03T04:12:34.567Z" → NaN, and since 0f806174 that NaN
       // reaches `jobLocalMidnightMs` → `Intl.DateTimeFormat.formatToParts(new
       // Date(NaN))`, which THROWS `RangeError: Invalid time value` out of the
-      // `useMemo` that buckets the list. /my-posts rendered the error boundary
+      // `useMemo` that buckets the list. /posts rendered the error boundary
       // ("This page hit a problem.") and this assertion timed out looking for a
       // title on a page that had crashed. The fixture was lying about the wire
       // format; the app is right to trust its own column type.
@@ -164,7 +164,7 @@ test.describe("customer post-job happy path", () => {
     // Open job with no applicants → postedActivityBucket returns "waiting".
     // The default tab is "needs_you", so navigate directly to the bucket
     // that holds this job or the title will be on an unrendered tab.
-    await page.goto("/my-posts?filter=waiting");
+    await page.goto("/posts?filter=waiting");
 
     // Heading must render — ActivityHeader uses "My Posts" as the title.
     await expect(

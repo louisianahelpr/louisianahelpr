@@ -171,7 +171,7 @@ function nativeAppShellRoutes(): string[] {
  * The mount pattern is `<Name` followed by a boundary character, not the old
  * "optional whitespace then a self-closing slash". That propless form missed
  * every page mounted WITH props —
- * `<Activity defaultTab="applied" />` is two routes (/my-jobs, /my-posts) and
+ * `<Activity defaultTab="applied" />` is two routes (/jobs, /posts) and
  * both came back as "no routes at all", which silently excused Activity from
  * the DOCUMENT_SCROLL_ROUTES agreement check below. The boundary class is what
  * keeps `<Profile` from also matching `<ProfileRouteSkeleton`.

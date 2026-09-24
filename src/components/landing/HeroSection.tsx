@@ -223,7 +223,7 @@ const HeroSection = () => {
                 <Link> with the right `to` needs no click handler — the old one
                 preventDefault'd and re-navigated to a third route whose only
                 job was to look at the session and bounce again. */}
-            <Link to={loggedIn ? "/dashboard" : "/browse"}>
+            <Link to={loggedIn ? "/home" : "/browse"}>
               <Search className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
               Browse Jobs
               <ArrowRight className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />

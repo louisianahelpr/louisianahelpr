@@ -420,7 +420,7 @@ interface CapturedJoin {
   hasPresence: boolean;
 }
 
-const AUTHED_ROUTES = ["/dashboard", "/my-posts", "/my-jobs", "/messages", "/profile"];
+const AUTHED_ROUTES = ["/home", "/posts", "/jobs", "/messages", "/profile"];
 
 test("1b · runtime: no duplicate channel names, every binding filtered to the user", async ({
   page,
@@ -438,7 +438,7 @@ test("1b · runtime: no duplicate channel names, every binding filtered to the u
   // on a LIVE socket, so a collision only matters within one page session.
   const perRoute: { route: string; joins: CapturedJoin[] }[] = [];
   const socketUrls: string[] = [];
-  for (const route of [...AUTHED_ROUTES, "/dashboard"]) {
+  for (const route of [...AUTHED_ROUTES, "/home"]) {
     await page.goto(route, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(3000); // let the subscribing effects mount + join
     const j = (await page.evaluate(
@@ -750,7 +750,7 @@ test("2d · offline: OfflineBanner appears and the app degrades honestly", async
 
   // Load fully FIRST — OfflineBanner is itself a lazy chunk, so going offline
   // before it loads would only prove the chunk can't be fetched.
-  await page.goto("/dashboard", { waitUntil: "load" });
+  await page.goto("/home", { waitUntil: "load" });
   await page.waitForTimeout(1500);
   await expect(page.getByText("You're offline", { exact: false })).toHaveCount(0);
 
@@ -789,8 +789,8 @@ const AASA_URL = "https://www.louisianahelpr.com/.well-known/apple-app-site-asso
  *
  * This is deliberately a SUBSET, not the whole list. It used to be a
  * hand-maintained copy of the file's entire `paths` array, asserted with
- * `toEqual` — and 08ed41e5 grew that array from 16 entries to 33 (`/dashboard`,
- * `/my-posts`, `/browse`, `NOT /reset-password`, …) without touching the copy.
+ * `toEqual` — and 08ed41e5 grew that array from 16 entries to 33 (`/home`,
+ * `/posts`, `/browse`, `NOT /reset-password`, …) without touching the copy.
  * The served file and the committed file agreed with each other perfectly; only
  * this duplicate disagreed, and it failed every CI run for two days while
  * describing the deployment as broken. A copy of data is not an assertion about
@@ -846,7 +846,7 @@ test("3a · AASA is served over HTTPS with the claimed paths", async () => {
   }
   // Apple stops at the FIRST matching entry, so an exclusion is only an
   // exclusion while it precedes the broader claims. `NOT /admin/*` listed after
-  // `/dashboard`-style claims would still be honoured (nothing claims /admin),
+  // `/home`-style claims would still be honoured (nothing claims /admin),
   // but the moment a wildcard claim is added above it the exclusion is dead —
   // which is exactly the failure mode the file's own `NOT /admin` comment
   // describes. Pin the ordering, not just the membership.

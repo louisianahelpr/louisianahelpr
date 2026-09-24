@@ -23,7 +23,7 @@ Specs: `auth.spec.ts`, `post-and-apply.spec.ts`, `payment-lifecycle.spec.ts`,
 **Covered:** public landing + marketing hero; signup/login/forgot render + JS-error-free;
 sign-in lands on dashboard or complete-profile; guest `/browse`; authed customer reaches
 `/post-job`; **post-job → checkout → stubbed escrow redirect → `/payment-success`**;
-helper browse-and-apply → Apply affordance; `/my-posts` shows posted job + applicant count;
+helper browse-and-apply → Apply affordance; `/posts` shows posted job + applicant count;
 `create-payment` edge fn **rejects unauthenticated escrow call**; authed user reads profile
 **via RLS**; 404 + redirect stubs; a11y (no critical/serious) on public forms.
 
@@ -36,7 +36,7 @@ happy-path e2e each before or shortly after launch.
 ## Journey A — New Poster
 
 signup (P03, public) → complete-profile (P05, `allowUnapproved`) → post-job (P13,
-`ProtectedRoute`, **verify-required**) → receive application (Activity P15 `/my-posts`,
+`ProtectedRoute`, **verify-required**) → receive application (Activity P15 `/posts`,
 `allowPending`) → accept (accept-application RPC; gated by JIT verify) → payment
 authorized/held **[escrow, e2e-covered to checkout]** → job completed (CompletionPrompts /
 PhotoProof) → payment released (auto-release-payment edge fn) → review (ReviewPanel).

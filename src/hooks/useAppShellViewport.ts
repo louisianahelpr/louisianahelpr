@@ -207,8 +207,8 @@ export const useAppShellViewport = () => {
    * narrower when auth finally resolved and the class came back. Measured at
    * 1440 on 2026-09-11 — <html> carried `desktop-rail` at t=211ms, lost it at
    * t=225ms, and the content column animated 1440 → 1192 between t=238ms and
-   * t=424ms on /my-jobs, with the same 248px delta on /my-posts, /profile,
-   * /messages, /dashboard, /help and /legal. That IS the owner's "opens wide
+   * t=424ms on /jobs, with the same 248px delta on /posts, /profile,
+   * /messages, /home, /help and /legal. That IS the owner's "opens wide
    * then gets smaller".
    *
    * So while auth is still in flight, fall back to the synchronous probe this

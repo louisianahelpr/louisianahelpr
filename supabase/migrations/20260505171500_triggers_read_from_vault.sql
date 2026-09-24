@@ -44,7 +44,7 @@ BEGIN
     v_title := 'New application';
     v_message := 'Someone applied to "' || job_title || '"';
     v_type := 'application';
-    v_link := '/dashboard';
+    v_link := '/home';
 
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (v_user_id, v_title, v_message, v_type, v_link);
@@ -79,7 +79,7 @@ BEGIN
     v_title := 'Application accepted!';
     v_message := 'You were accepted for "' || job_title || '"';
     v_type := 'success';
-    v_link := '/dashboard';
+    v_link := '/home';
 
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (v_user_id, v_title, v_message, v_type, v_link);
@@ -111,7 +111,7 @@ BEGIN
     v_title := 'Application update';
     v_message := 'Your application for "' || job_title || '" was not selected';
     v_type := 'info';
-    v_link := '/dashboard';
+    v_link := '/home';
 
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (v_user_id, v_title, v_message, v_type, v_link);
@@ -162,7 +162,7 @@ BEGIN
 
   v_title := '🎯 New job in your parish';
   v_message := 'A new ' || COALESCE(NEW.category::text, 'job') || ' job just posted in ' || NEW.parish || ' Parish: "' || NEW.title || '"';
-  v_link := '/dashboard?job=' || NEW.id::text;
+  v_link := '/home?job=' || NEW.id::text;
 
   FOR helper_record IN
     SELECT DISTINCT hpp.helper_id
@@ -237,7 +237,7 @@ BEGIN
   LOOP
     v_title := '🎯 New job matches your saved search';
     v_message := 'A new job matches "' || match_record.name || '": ' || NEW.title || ' ($' || NEW.budget || ')';
-    v_link := '/dashboard?job=' || NEW.id::text;
+    v_link := '/home?job=' || NEW.id::text;
 
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (match_record.user_id, v_title, v_message, 'job_match', v_link);

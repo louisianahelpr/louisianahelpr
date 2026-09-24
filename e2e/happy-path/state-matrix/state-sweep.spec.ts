@@ -226,7 +226,7 @@ function buildRules(cell: StateCell): MockRule[] {
     rules.push(mockTable("jobs", job ? [job] : []));
     rules.push(mockRpc("get_jobs_for_my_applications", job ? [job] : []));
 
-    if (cell.surface === "applied-card" || cell.route.startsWith("/my-jobs")) {
+    if (cell.surface === "applied-card" || cell.route.startsWith("/jobs")) {
       rules.push(mockTable("applications", f.application ? [f.application] : []));
     } else {
       // Poster side: `applications` is the PENDING-APPLICANT count query.
@@ -271,7 +271,7 @@ function buildRules(cell: StateCell): MockRule[] {
  */
 function identityFor(cell: StateCell): typeof FAKE_CUSTOMER | typeof FAKE_HELPER | null {
   if (cell.route.startsWith("/browse")) return null; // guest
-  if (cell.route.startsWith("/my-jobs")) return FAKE_HELPER;
+  if (cell.route.startsWith("/jobs")) return FAKE_HELPER;
   if (cell.axes.viewer === "guest") return null;
   return FAKE_CUSTOMER;
 }

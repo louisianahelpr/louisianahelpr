@@ -28,8 +28,8 @@
 -- The write surfaces are the two Activity routes, and which one depends on
 -- which side of the job the reviewee is:
 --
---   poster  → /my-posts  (PostedJobsTab → onReview → ReviewForm)
---   helper  → /my-jobs   (AppliedJobsTab → onHelperReview → ReviewForm)
+--   poster  → /posts  (PostedJobsTab → onReview → ReviewForm)
+--   helper  → /jobs   (AppliedJobsTab → onHelperReview → ReviewForm)
 --
 -- Both parse `?job=` (src/pages/Activity.tsx) and open on the bucket that job
 -- is actually in. `supabase/functions/review-nag-cron/index.ts` is repointed at
@@ -89,13 +89,13 @@ BEGIN
     -- The ask IS to write one, so land on the surface that can.
     -- A job whose row has gone (or a review with no job) has no Activity card
     -- to land on, so it falls back to the read-only tab rather than to a
-    -- /my-posts?job= link naming nothing.
+    -- /posts?job= link naming nothing.
     IF NEW.job_id IS NULL OR v_customer_id IS NULL THEN
       v_link := '/profile?tab=reviews';
     ELSIF NEW.reviewee_id = v_customer_id THEN
-      v_link := '/my-posts?job=' || NEW.job_id;
+      v_link := '/posts?job=' || NEW.job_id;
     ELSE
-      v_link := '/my-jobs?job=' || NEW.job_id;
+      v_link := '/jobs?job=' || NEW.job_id;
     END IF;
   END IF;
 

@@ -122,7 +122,7 @@ BEGIN
          'Offer declined',
          'Your direct offer for "' || title || '" was declined. The job is open to all helpers again.',
          'job_updates',
-         '/my-posts'
+         '/posts'
     FROM public.jobs
    WHERE id = p_job_id;
 

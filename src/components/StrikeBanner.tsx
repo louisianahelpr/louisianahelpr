@@ -55,7 +55,7 @@ export default function StrikeBanner() {
 
   // Reserve space for this banner the way OfflineBanner does, or every
   // fixed-shell page header (title card, back arrow, filter row) renders
-  // UNDER it and cannot be reached — seen on /my-jobs, /messages and every
+  // UNDER it and cannot be reached — seen on /jobs, /messages and every
   // /profile tab at 393 with a final warning active. Fixed, not sticky:
   // sticky lives in normal flow inside #root, which the document-scroll
   // padding rule would then double-count. It sits directly below the offline
@@ -64,7 +64,7 @@ export default function StrikeBanner() {
   const setContribution = useSetBannerContribution("strike");
   const contentRef = useRef<HTMLDivElement | null>(null);
   const pathNow = typeof window !== "undefined" ? window.location.pathname : "";
-  const onAuthPage = ["/", "/login", "/signup"].includes(pathNow) || pathNow.startsWith("/forgot") || pathNow.startsWith("/reset");
+  const onAuthPage = ["/", "/login", "/signup"].includes(pathNow) || pathNow.startsWith("/forgot-password") || pathNow.startsWith("/reset-password");
   const visible = !!status && !onAuthPage && (
     (status.ban_status === "temp_banned" && !!status.auto_suspended_until && new Date(status.auto_suspended_until) > new Date()) ||
     status.ban_status === "final_warning"
@@ -83,7 +83,7 @@ export default function StrikeBanner() {
   if (!status) return null;
 
   const path = typeof window !== "undefined" ? window.location.pathname : "";
-  if (["/", "/login", "/signup"].includes(path) || path.startsWith("/forgot") || path.startsWith("/reset")) return null;
+  if (["/", "/login", "/signup"].includes(path) || path.startsWith("/forgot-password") || path.startsWith("/reset-password")) return null;
 
   if (status.ban_status === "temp_banned" && status.auto_suspended_until) {
     const until = new Date(status.auto_suspended_until);

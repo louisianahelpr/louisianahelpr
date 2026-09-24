@@ -128,10 +128,10 @@ export const showLocalNotification = (title: string, message: string, link?: str
       body: message,
       icon: "/apple-touch-icon.png",
       badge: "/favicon-32.png",
-      // NO `/dashboard` DEFAULT — a missing link means "no destination", not
+      // NO `/home` DEFAULT — a missing link means "no destination", not
       // "the dashboard".
       //
-      // This line used to read `link || "/dashboard"`, and `public/sw-push.js`
+      // This line used to read `link || "/home"`, and `public/sw-push.js`
       // said the same thing, while `NotificationPanel.handleClick` and
       // `nativePush.ts` (which only navigates on a link that
       // `startsWith("/")`) both treat a null link as "go nowhere". So one
@@ -139,7 +139,7 @@ export const showLocalNotification = (title: string, message: string, link?: str
       // as a web notification it dropped you on the dashboard. Two of the three
       // implementations, including the native one that actually ships in the
       // iOS app, already agreed on "go nowhere" — and they are the ones that
-      // are right. `/dashboard` is a guess, and for the rows in prod that carry
+      // are right. `/home` is a guess, and for the rows in prod that carry
       // `link: null` ("Test from Helpr", "Application declined") it is a wrong
       // guess that costs the reader a page load and their place in the app.
       data: { link: link && link.startsWith("/") ? link : null },

@@ -2,7 +2,7 @@
  * WHAT THIS HOOK IS ALLOWED TO DO WITH A POSITION IT RECEIVED.
  *
  * ── THE REPORT, AND THE DIAGNOSIS THAT WAS WRONG ───────────────────────────
- * Owner, 2026-09-19, /dashboard: "im not sure about the timer thing and the
+ * Owner, 2026-09-19, /home: "im not sure about the timer thing and the
  * miles?? why is this showing here it hasnt before" — four browse cards
  * reading 1634 / 1813 / 1797 / 1731 miles for jobs in Louisiana.
  *

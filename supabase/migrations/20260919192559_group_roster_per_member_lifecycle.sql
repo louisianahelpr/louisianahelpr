@@ -569,7 +569,7 @@ BEGIN
         || CASE WHEN v_near_miss THEN ', ' || round(v_dist)::bigint || ' ft from the map pin' ELSE '' END
         || '. If they are there, tap Confirm They Arrived.',
       'job_updates',
-      '/my-posts?job=' || _job_id
+      '/posts?job=' || _job_id
     );
   END IF;
 

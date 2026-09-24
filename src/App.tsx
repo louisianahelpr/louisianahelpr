@@ -200,7 +200,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* SIGNED-IN VISITORS SKIP THE MARKETING SITE.
           Owner decision: once someone is signed in there should be no
           references back to landing — everything they need is in the app. So
-          the landing route bounces an authenticated visitor to /dashboard.
+          the landing route bounces an authenticated visitor to /home.
 
           <MarketingRedirect> wraps OUTSIDE routeEl() on purpose: it renders
           `children` only in the guest branch, so a signed-in visitor never
@@ -225,7 +225,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           Three different-shaped surfaces before the page, which is the owner's
           report twice over: "the home dashboard webpage goes through like 3
           different loading screens then opens" (2026-09-19, fixed for
-          /dashboard by DashboardRouteSkeleton) and "the loading for the webpage
+          /home by DashboardRouteSkeleton) and "the loading for the webpage
           should go straight to the webpage not load another thing then go to
           webpage" (2026-09-22).
 
@@ -247,11 +247,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           the moments that require it (accept, payout) inside the components.
           Banned users are redirected, and an unverified EMAIL is redirected to
           /signup-pending on every protected route (Q180, Q193) — see ProtectedRoute. */}
-      <Route path="/dashboard" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<DashboardRouteSkeleton />}><Dashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
+      <Route path="/home" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<DashboardRouteSkeleton />}><Dashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ProfileRouteSkeleton />}><Profile /></ProtectedRoute>, <ProfileRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/my-jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ActivityRouteSkeleton tab="applied" />}><JobsPage /></ProtectedRoute>, <ActivityRouteSkeleton tab="applied" />)}</RouteErrorBoundary>} />
-      <Route path="/my-posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ActivityRouteSkeleton tab="posted" />}><PostsPage /></ProtectedRoute>, <ActivityRouteSkeleton tab="posted" />)}</RouteErrorBoundary>} />
+      <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ActivityRouteSkeleton tab="applied" />}><JobsPage /></ProtectedRoute>, <ActivityRouteSkeleton tab="applied" />)}</RouteErrorBoundary>} />
+      <Route path="/posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ActivityRouteSkeleton tab="posted" />}><PostsPage /></ProtectedRoute>, <ActivityRouteSkeleton tab="posted" />)}</RouteErrorBoundary>} />
       <Route path="/payment-success" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PaymentSuccess /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -330,12 +330,12 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           real card in Messages and on social. */}
       <Route path="/jobs/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PageTransition><JobDetail /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Guest "home dashboard" — what iOS native users see before signing up.
-          Mirrors /dashboard's chrome and JobCard rendering, but every action
+          Mirrors /home's chrome and JobCard rendering, but every action
           routes to /signup. Public web visitors can hit it too if they want
           a no-account preview, though the marketing landing remains canonical.
 
           WRAPPED IN <MarketingRedirect>, like `/` and for the same reason.
-          DashboardGuest DOES redirect a signed-in visitor to /dashboard — but
+          DashboardGuest DOES redirect a signed-in visitor to /home — but
           it decides that from `supabase.auth.getSession()`, INSIDE the route
           chunk, so the guest chunk and the Supabase client both had to
           download before the redirect could even be considered. Measured on a
@@ -372,7 +372,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           gone: an old address is a 404. The app has not launched (owner), so no
           installed build or sent email carries one; the App Store metadata
           (fastlane/metadata/en-US/*_url.txt) names /privacy, /support and the
-          root, never a redirect. src/test/noLegacyRedirectRoutes.test.ts keeps
+          root, never a redirect. src/test/everyLinkIsARealRoute.test.ts keeps
           both halves shut. */}
       {/* /analytics — Advanced Analytics, the perk printed on the $10 Pro card.
           It was a <Navigate> to the Earnings tab from 2026-08-23, and that was

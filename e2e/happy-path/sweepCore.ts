@@ -225,7 +225,7 @@ export async function captureScreen(
 
     // Suppress the onboarding tour, as home-chrome, overlay-sweep and
     // empty-state-sweep do. It mounts ONLY in Dashboard.tsx, on a 1.5s
-    // post-load timer, and then fades in — and this sweep visits /dashboard as
+    // post-load timer, and then fades in — and this sweep visits /home as
     // an authed user (it is in the shared SCREENS list), so without this axe
     // can scan the overlay MID-FADE and report near-transparent text over
     // near-transparent background as a ~1.01:1 contrast failure that does not

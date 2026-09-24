@@ -75,7 +75,7 @@ BEGIN
       '🎯 New job in your parish',
       'A new ' || COALESCE(NEW.category::text, 'job') || ' job just posted in ' || NEW.parish || ' Parish: "' || NEW.title || '"',
       'job_match',
-      '/dashboard?job=' || NEW.id::text
+      '/home?job=' || NEW.id::text
     );
   END LOOP;
 

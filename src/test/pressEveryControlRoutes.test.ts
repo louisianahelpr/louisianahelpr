@@ -48,7 +48,7 @@ describe("press-every-control route derivation", () => {
     // synthetic route table.
     const synthetic = parseAppRoutes(`<Route path="/old" element={<Navigate to="/profile" replace />} />`);
     expect(synthetic).toEqual([expect.objectContaining({ path: "/old", redirect: true })]);
-    expect(byPath["/dashboard"].redirect).toBe(false);
+    expect(byPath["/home"].redirect).toBe(false);
     // A wrapper that contains a page (MarketingRedirect around <Index />) is a
     // page, not a redirect.
     expect(byPath["/"].redirect).toBe(false);
@@ -76,7 +76,7 @@ describe("press-every-control route derivation", () => {
   });
 
   it("visits protected routes as customer, helper and the incomplete-profile account; public routes anonymously", () => {
-    const dash = derived.find((r) => r.url === "/dashboard");
+    const dash = derived.find((r) => r.url === "/home");
     expect(dash?.personas).toEqual(expect.arrayContaining(["anon", "customer", "helper", "incomplete"]));
     const help = derived.find((r) => r.url === "/help");
     expect(help?.personas).toEqual(expect.arrayContaining(["anon", "customer"]));

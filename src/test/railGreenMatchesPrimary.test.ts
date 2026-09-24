@@ -2,7 +2,7 @@
  * THE COMPLETED STEP PIPS ARE THE PRIMARY BUTTON'S GREEN — the same green, by
  * resolved value, not by looking similar.
  *
- * Owner, 2026-09-19, on a `/my-posts` disputed card: "also the posted offered
+ * Owner, 2026-09-19, on a `/posts` disputed card: "also the posted offered
  * accepted etc buttons should all be the same primary green as the buttons not
  * a different shade."
  *

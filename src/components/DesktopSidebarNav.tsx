@@ -48,9 +48,9 @@ const NAV_ITEMS: Array<{
   label: string;
   badgeKey?: "messages" | "posts" | "jobs";
 }> = [
-  { path: "/dashboard", icon: Home, label: "Home" },
-  { path: "/my-posts", icon: Send, label: "Posts", badgeKey: "posts" },
-  { path: "/my-jobs", icon: ClipboardList, label: "Jobs", badgeKey: "jobs" },
+  { path: "/home", icon: Home, label: "Home" },
+  { path: "/posts", icon: Send, label: "Posts", badgeKey: "posts" },
+  { path: "/jobs", icon: ClipboardList, label: "Jobs", badgeKey: "jobs" },
   { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" },
   { path: "/profile", icon: User, label: "Profile" },
 ];
@@ -115,7 +115,7 @@ const DesktopSidebarNav = () => {
   if (!isDesktopRailRoute(location.pathname)) return null;
   // The rail is authed app chrome — its destinations are ProtectedRoutes. On a
   // guest-reachable rail route (e.g. /browse, which redirects authed users to
-  // /dashboard, so its visitor is ALWAYS logged out) rendering the rail would
+  // /home, so its visitor is ALWAYS logged out) rendering the rail would
   // stack a second nav over the marketing Navbar and offer links that bounce to
   // /login. Gate on `!!user`, matching Navbar's `railOwnsNav` and the
   // `desktop-rail` inset gate in useAppShellViewport so all three move together.

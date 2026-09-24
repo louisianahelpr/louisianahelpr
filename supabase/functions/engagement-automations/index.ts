@@ -452,7 +452,7 @@ Deno.serve(async (_req) => {
         (unsubscribeUrl) =>
           React.createElement(step.component, {
             greetingName: user.full_name || '',
-            dashboardUrl: `${getAppUrl()}/dashboard`,
+            dashboardUrl: `${getAppUrl()}/home`,
             unsubscribeUrl,
           }),
         step.subject,
@@ -526,7 +526,7 @@ Deno.serve(async (_req) => {
         (unsubscribeUrl) =>
           React.createElement(ReEngagementEmail, {
             greetingName: user.full_name || '',
-            dashboardUrl: `${getAppUrl()}/dashboard`,
+            dashboardUrl: `${getAppUrl()}/home`,
             unsubscribeUrl,
           }),
         'New jobs are open in your area.',

@@ -350,7 +350,7 @@ export function isAccountSettingToggle({ persona, meta = {}, label = "" }) {
   return isStateToggle({ meta, label });
 }
 /** Routes whose subject is the signed-in account (a mutation there touches only the test account's own rows). */
-export const SELF_ROUTE_RX = /^\/(profile|post-job|support|schedule|availability|settings|complete-profile|warnings|data-rights|my-posts|payment-success|gift-card|forgot-password|reset-password|signup|login)(\/|\?|$)/;
+export const SELF_ROUTE_RX = /^\/(profile|post-job|support|complete-profile|posts|payment-success|forgot-password|reset-password|signup|login)(\/|\?|$)/;
 
 export const SKIP_DESTROY = "would destroy or lock the shared test account";
 export const SKIP_SESSION_END = "ends the session this sharded run is driving (a sign-out revokes the other shards too)";

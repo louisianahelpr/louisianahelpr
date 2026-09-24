@@ -52,7 +52,7 @@ const PopoverPortal = PopoverPrimitive.Portal;
  * `click`, not the `pointerdown` — which means the very click that closes the
  * panel is still live on the page underneath. Measured on both panels before
  * this layer existed: a tap outside closed the panel AND opened the job card
- * under your finger (`/dashboard` -> `/dashboard?job=…`), at 320, 375, 768 and
+ * under your finger (`/home` -> `/home?job=…`), at 320, 375, 768 and
  * 1440. A trailing-click swallower cannot help, because it would have to be
  * registered during the click that is already happening. Something has to
  * RECEIVE that click, and this is it: it sits above the page and below the

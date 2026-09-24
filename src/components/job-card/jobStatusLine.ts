@@ -16,7 +16,7 @@ import { derivePosterStep, posterConfirmationRung } from "../../pages/posts/post
 /**
  * WHAT THIS CARD IS WAITING ON — one sentence, on every collapsed job card.
  *
- * Owner, 2026-09-19, looking at the collapsed cards on /my-posts:
+ * Owner, 2026-09-19, looking at the collapsed cards on /posts:
  *   "in the box to the left of the dots should show what we are waiting on,
  *    like if the person is on their way or confirmed but now you need to
  *    confirm etc, remove the dots"
@@ -137,7 +137,7 @@ export type PosterWait =
   | "cancelled";
 
 /**
- * The poster's sentence for every state a collapsed /my-posts card can hold.
+ * The poster's sentence for every state a collapsed /posts card can hold.
  *
  * Written from the POSTER's point of view — the same job says something
  * different on the other tab (see HELPER_WAIT). The owner's own example, "now
@@ -383,8 +383,8 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   revision_sent: { detail: "Your fix is with them", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
   /* THE HELPER'S SIDE OF THE SAME CHANGE (owner, 2026-09-21: "all of this also
      goes for jobs"). The poster's table got state-then-action and this one was
-     missed on the first pass — caught by looking at a /my-jobs screenshot,
-     which still read "The day has passed" while /my-posts had moved on.
+     missed on the first pass — caught by looking at a /jobs screenshot,
+     which still read "The day has passed" while /posts had moved on.
      Both actions genuinely exist on this side: a Helpr can mark the job done,
      and `helper_cancel_booking` is the other way out, so the sentence is the
      same one rather than a softer helper-only variant. */

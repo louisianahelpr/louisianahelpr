@@ -276,7 +276,7 @@ function specGateEnv(guard) {
     // 66, which is what the mutation is proving.
     "e2e/happy-path/overlay-sweep.spec.ts": {
       RUN_OVERLAY_SWEEP: "1",
-      OVERLAY_SWEEP_ROUTES: "/dashboard,/settings",
+      OVERLAY_SWEEP_ROUTES: "/home,/settings",
     },
     "e2e/happy-path/appstore-screenshots.spec.ts": { RUN_APPSTORE_SHOTS: "1" },
     // SCOPED, third of its kind and for the same reason as the two sweeps

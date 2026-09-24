@@ -8,7 +8,7 @@ import { report } from "@/lib/errorLogger";
  * WebKit throws past ~100 replaceState calls in a short window, which unmounts
  * the route into the error boundary. Three separate fixes have been shipped for
  * that loop (dep-array, live-URL compare, and moving Activity onto this hook)
- * and error_logs shows /my-posts STILL crashing after all three — so the next
+ * and error_logs shows /posts STILL crashing after all three — so the next
  * step is evidence, not a fourth guess.
  *
  * This records every write this hook performs and, once a caller crosses

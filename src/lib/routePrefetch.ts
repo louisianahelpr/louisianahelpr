@@ -8,11 +8,12 @@ import { beginSpeculativePrefetch } from "@/lib/chunkReload";
  * are silent no-ops.
  */
 const prefetchers: Record<string, () => Promise<unknown>> = {
-  "/dashboard": () => import("@/pages/home/Dashboard"),
+  "/home": () => import("@/pages/home/Dashboard"),
   "/profile": () => import("@/pages/profile/Profile"),
   "/post-job": () => import("@/pages/post-job/PostJob"),
-  "/my-posts": () => import("@/pages/posts/PostsPage"),
-  "/my-jobs": () => import("@/pages/jobs/JobsPage"),
+  "/posts": () => import("@/pages/posts/PostsPage"),
+  "/jobs": () => import("@/pages/jobs/JobsPage"),
+  "/jobs/": () => import("@/pages/jobs/JobDetail"),
   "/messages": () => import("@/pages/messages/Messages"),
   // /support is its own public page now (it used to redirect into the
   // Profile tab system, so this key pointed at the Profile chunk — which
@@ -180,7 +181,7 @@ export function isConstrainedNetwork(): boolean {
  */
 export const LIKELY_NEXT_ROUTES = {
   guest: ["/browse", "/login", "/signup"],
-  signedIn: ["/dashboard", "/messages", "/my-jobs", "/post-job", "/profile"],
+  signedIn: ["/home", "/messages", "/jobs", "/post-job", "/profile"],
 } as const;
 
 export function prefetchLikelyNextRoutes(signedIn: boolean, currentPath: string): () => void {
@@ -191,9 +192,11 @@ export function prefetchLikelyNextRoutes(signedIn: boolean, currentPath: string)
 export function prefetchRoute(path: string): void {
   if (!path || warmed.has(path)) return;
   // Match by exact key first, then by prefix (so /user/:id, /admin/* etc still hit the right chunk).
-  const key = prefetchers[path]
-    ? path
-    : Object.keys(prefetchers).find((p) => path.startsWith(p));
+  // Longest key first: "/jobs/<id>" is the job page ("/jobs/"), not the Jobs tab ("/jobs").
+  const pathname = path.split(/[?#]/)[0];
+  const key = prefetchers[pathname]
+    ? pathname
+    : Object.keys(prefetchers).sort((a, b) => b.length - a.length).find((p) => pathname.startsWith(p));
   if (!key) return;
   warmed.add(key);
   // Fire-and-forget; swallow errors so a failed prefetch never breaks navigation.

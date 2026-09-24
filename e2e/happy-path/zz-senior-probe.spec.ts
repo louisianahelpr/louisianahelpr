@@ -38,11 +38,11 @@ const TAG = process.env.LH_TAG || "run";
 const WIDTHS = [320, 375] as const;
 
 const ROUTES = [
-  { name: "dashboard", url: "/dashboard" },
+  { name: "dashboard", url: "/home" },
   { name: "browse", url: "/browse" },
   { name: "messages", url: "/messages" },
-  { name: "my-jobs", url: "/my-jobs" },
-  { name: "my-posts", url: "/my-posts" },
+  { name: "jobs", url: "/jobs" },
+  { name: "posts", url: "/posts" },
   { name: "analytics", url: "/profile?tab=analytics" },
   { name: "profile-notifications", url: "/profile?tab=notifications" },
   { name: "profile-accessibility", url: "/profile?tab=accessibility" },
@@ -218,7 +218,7 @@ test("control bench", async ({ context, page, baseURL }) => {
   await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
   await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
   await page.setViewportSize({ width: 375, height: 780 });
-  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+  await page.goto("/home", { waitUntil: "domcontentloaded" });
   await settle(page);
 
   const bench = await page.evaluate(() => {
@@ -311,7 +311,7 @@ test("boot trace", async ({ context, page, baseURL }) => {
     };
   });
   await page.setViewportSize({ width: 375, height: 780 });
-  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+  await page.goto("/home", { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(4000);
   const trace = await page.evaluate(() => ({
     calls: (window as unknown as { __tokTrace: unknown[] }).__tokTrace,
@@ -340,7 +340,7 @@ test("reduced transparency", async ({ context, page, baseURL }) => {
   await page.setViewportSize({ width: 375, height: 780 });
   const out: Record<string, unknown> = {};
   for (const r of [
-    { name: "dashboard", url: "/dashboard" },
+    { name: "dashboard", url: "/home" },
     { name: "messages", url: "/messages" },
     { name: "browse", url: "/browse" },
     { name: "landing", url: "/" },
@@ -394,7 +394,7 @@ test("shots", async ({ context, page, baseURL }) => {
       { name: "profile-subscription", url: "/profile?tab=subscription" },
       { name: "profile-notifications", url: "/profile?tab=notifications" },
       { name: "profile-landing", url: "/profile" },
-      { name: "dashboard", url: "/dashboard" },
+      { name: "dashboard", url: "/home" },
     ]) {
       for (const senior of [false, true]) {
         await page.goto(r.url, { waitUntil: "domcontentloaded" });
@@ -510,7 +510,7 @@ test("axe", async ({ context, page, baseURL }) => {
       { name: "profile-notifications", url: "/profile?tab=notifications" },
       { name: "profile-landing", url: "/profile" },
       { name: "messages", url: "/messages" },
-      { name: "dashboard", url: "/dashboard" },
+      { name: "dashboard", url: "/home" },
     ]) {
       await page.setViewportSize({ width: 375, height: 812 });
       await page.goto(r.url, { waitUntil: "domcontentloaded" });

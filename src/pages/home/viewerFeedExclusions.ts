@@ -1,7 +1,7 @@
 // The viewer-local culls that narrow the Browse board — in ONE place.
 //
 // WHY THIS EXISTS (owner, 2026-09-19: "map shows 7 jobs. list shows 4"):
-// /dashboard renders the same set of open jobs through THREE surfaces —
+// /home renders the same set of open jobs through THREE surfaces —
 //   1. the LIST      (useDashboardFilters.filteredJobs → BrowseTasksFeed)
 //   2. the HEADER    (useDashboardJobsCount, a `count: exact` query)
 //   3. the MAP       (BrowseMap, its own unpaginated get_open_jobs_for_map)

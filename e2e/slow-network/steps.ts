@@ -39,7 +39,7 @@ export const SLOW_NETWORK_STEPS = [
   { id: "sign-in", route: "/login", write: "POST /auth/v1/token (a new session; nothing to double)" },
   { id: "browse", route: "/browse", write: null },
   { id: "post", route: "/post-job", write: "POST /rest/v1/jobs" },
-  { id: "apply", route: "/dashboard", write: "POST /rest/v1/rpc/apply_to_job" },
+  { id: "apply", route: "/home", write: "POST /rest/v1/rpc/apply_to_job" },
   { id: "message", route: "/messages", write: "POST /rest/v1/messages" },
   { id: "pay-start", route: "/post-job", write: "POST /functions/v1/create-payment" },
 ] as const;

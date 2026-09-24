@@ -596,7 +596,7 @@ export default defineConfig(({ mode }) => ({
         // rolldown's automatic common-chunk extraction, which emits ONE FILE
         // PER SHARE GROUP with no size floor at all. Measured on the 2026-09-07
         // build: 400 JS files in dist/assets, and a cold authed load of
-        // /my-posts fetched 214 of them. The bytes were never the problem
+        // /posts fetched 214 of them. The bytes were never the problem
         // (105 KB over the wire for that route) — the problem is that the
         // browser walks that graph one round-trip per level, so on Slow-4G the
         // last JS request did not even START until 4.26 s.
@@ -691,7 +691,7 @@ export default defineConfig(({ mode }) => ({
             },
             // ── First-party shared code ───────────────────────────────────
             // Without this group, every src/ module imported by two or more
-            // chunks became its OWN chunk. Measured on /my-posts: an
+            // chunks became its OWN chunk. Measured on /posts: an
             // 18-level-deep serial waterfall, with waves of ONE file
             // (queryKeys, clsx, useIsWebDesktop, supabaseResult) each costing
             // a full round trip. `minShareCount: 2` captures exactly those
@@ -700,9 +700,9 @@ export default defineConfig(({ mode }) => ({
             //
             // MEASURED TRADE (Slow-4G 1.6Mbps/150ms + 4x CPU, 390x844, median
             // of 3, against the built bundle served by `vite preview`):
-            //   /my-posts   content 4543 -> 4169 ms, JS reqs 214 -> 113,
+            //   /posts   content 4543 -> 4169 ms, JS reqs 214 -> 113,
             //               transfer 105 -> 79 KB, LCP 1244 -> 1376 ms
-            //   /dashboard  content 5025 -> 4615 ms, JS reqs 217 -> 116,
+            //   /home  content 5025 -> 4615 ms, JS reqs 217 -> 116,
             //               transfer 112 -> 86 KB, LCP 1300 -> 1312 ms
             // The LCP cost is the skeleton painting ~130 ms later because the
             // first wave now carries one 339 KB chunk; the real content lands

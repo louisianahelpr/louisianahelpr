@@ -473,7 +473,7 @@ export function useActivityFilters({
         // is anonymised (20260901033011). This runs inside a filter callback,
         // so an unguarded null here throws and takes out the WHOLE list, not
         // one row — the same shape as the unparseable date that once emptied
-        // /my-posts. A job with no address simply never matches a text search,
+        // /posts. A job with no address simply never matches a text search,
         // which is the truthful answer rather than a swallowed one.
         return j.title.toLowerCase().includes(searchLower) || j.description.toLowerCase().includes(searchLower) || (j.location?.toLowerCase().includes(searchLower) ?? false);
       }

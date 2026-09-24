@@ -98,7 +98,7 @@ BEGIN
       '🎯 New job matches your saved search',
       'A new job matches "' || match_record.name || '": ' || NEW.title || ' ($' || NEW.budget || ')',
       'job_match',
-      '/dashboard?job=' || NEW.id::text
+      '/home?job=' || NEW.id::text
     );
 
     UPDATE public.saved_searches

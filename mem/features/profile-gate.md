@@ -6,7 +6,7 @@ type: feature
 
 **Cutoff (legacy bypass)**: A `profiles.is_legacy_user` boolean was backfilled to `true` on 2026-04-27 for every existing row. New signups default to `false` and must clear the gate.
 
-**Gate location**: `src/components/ProtectedRoute.tsx` — runs after the email-verification + ban + approval-status checks. Only redirects to `/complete-profile` when `is_legacy_user !== true` **AND** a non-null profile row was actually loaded. If `profile === null` (fetch timed out / RLS hiccup) the gate **fails open** so legacy users are never bounced to /complete-profile on a slow network. The page itself also self-redirects legacy users back to /dashboard as a second line of defense.
+**Gate location**: `src/components/ProtectedRoute.tsx` — runs after the email-verification + ban + approval-status checks. Only redirects to `/complete-profile` when `is_legacy_user !== true` **AND** a non-null profile row was actually loaded. If `profile === null` (fetch timed out / RLS hiccup) the gate **fails open** so legacy users are never bounced to /complete-profile on a slow network. The page itself also self-redirects legacy users back to /home as a second line of defense.
 
 **Big 7 required fields** (all must be non-empty strings on `profiles`):
 1. `full_name`

@@ -39,7 +39,7 @@ BEGIN
         'warning',
         'Last chance to review',
         format('"%s" auto-releases payment in about 2 hours. Approve it, or request a revision now if something''s wrong.', rec.title),
-        '/my-posts',
+        '/posts',
         false
       );
       UPDATE public.jobs SET release_last_chance_notif_sent_at = NOW() WHERE id = rec.id;

@@ -8,7 +8,7 @@
 //     name — "Sign in with Apple" — stays on aria-label)
 //   - keep a spinner while sign-in is in flight
 //   - on cancel → hapticError + dismissable toast (no scary copy)
-//   - on success (native) → navigate to redirectTo (default /dashboard)
+//   - on success (native) → navigate to redirectTo (default /home)
 //   - on redirecting (web OAuth) → keep spinner up, the browser is about
 //     to leave the page anyway
 //   - on error → hapticError + toast with friendly copy
@@ -33,7 +33,7 @@ type SocialAuthLabelMode = "signin" | "signup";
 interface SocialAuthButtonsProps {
   // Label mode — "signin" → "Sign in with Apple", "signup" → "Sign up with Apple".
   mode?: SocialAuthLabelMode;
-  // Where to navigate after a successful native sign-in. Defaults to /dashboard.
+  // Where to navigate after a successful native sign-in. Defaults to /home.
   redirectTo?: string;
 }
 
@@ -105,7 +105,7 @@ function SocialAuthButton({ provider, mode, redirectTo }: SocialAuthButtonProps)
         // guard will redirect to /complete-profile for first-time users.
         const target = redirectTo
           ? new URL(redirectTo, window.location.origin).pathname
-          : "/dashboard";
+          : "/home";
         navigate(target, { replace: true });
         return;
       }

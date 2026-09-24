@@ -98,9 +98,9 @@ const ROUTES: Route[] = [
   { path: "/reset-password", auth: "anon", exempt: true },
 
   // Authed core loop
-  { path: "/dashboard", auth: "authed" },
-  { path: "/my-posts", auth: "authed" },
-  { path: "/my-jobs", auth: "authed" },
+  { path: "/home", auth: "authed" },
+  { path: "/posts", auth: "authed" },
+  { path: "/jobs", auth: "authed" },
   { path: "/messages", auth: "authed" },
   { path: "/profile", auth: "authed" },
   { path: "/post-job", auth: "authed" },

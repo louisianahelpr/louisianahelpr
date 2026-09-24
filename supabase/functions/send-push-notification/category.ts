@@ -31,15 +31,15 @@ export type PushCategory = 'JOB_APPLY' | 'MESSAGE' | 'JOB_ACCEPTED'
  * column IS the inventory. Measured in production on 2026-09-01 over all
  * 1,709 rows:
  *
- *   /admin 627 · /dashboard 619 · /my-posts 150 · /messages 120 · /post-job 72
- *   · /my-jobs 48 · /jobs/:id 28 · /earnings 16 · /profile 11 · /activity 6
+ *   /admin 627 · /home 619 · /posts 150 · /messages 120 · /post-job 72
+ *   · /jobs 48 · /jobs/:id 28 · /earnings 16 · /profile 11 · /activity 6
  *   · /support 3 · /warnings 3 · null 5
  *
  * Two things the old three-line version made look true and were not:
  *
  *   1. `link.includes('accepted')` never matched anything. ZERO of the 1,709
  *      links contain that substring — the notification that reads
- *      "Application accepted!" links to `/dashboard`, not to a URL with the
+ *      "Application accepted!" links to `/home`, not to a URL with the
  *      word in it — so JOB_ACCEPTED was genuinely unreachable and the
  *      Message/View pair had never once been attached to a push.
  *   2. `startsWith('/jobs/')` was NOT dead (28 rows), but every one of those
@@ -74,17 +74,15 @@ export function inferCategoryFromLink(link: string | null | undefined): PushCate
 
   if (path.startsWith('/messages')) return 'MESSAGE'
 
-  // A job you already hold: the poster's own posts, the helper's own jobs,
-  // and the per-job detail route the reminder crons link to.
-  if (path.startsWith('/my-posts') || path.startsWith('/my-jobs') || path.startsWith('/jobs/')) {
+  // A job you already hold: the poster's own posts (/posts), the helper's own
+  // jobs (/jobs) and the per-job page the reminder crons link to (/jobs/<id>).
+  if (path.startsWith('/posts') || path.startsWith('/jobs')) {
     return 'JOB_ACCEPTED'
   }
 
-  // A job you could take: the browse feed (job_match is 470 of the 619
-  // /dashboard rows). Direct offers link /my-jobs?job= now (the /activity
-  // route they used to name was deleted with Q194), so they take the
-  // JOB_ACCEPTED branch above.
-  if (path.startsWith('/dashboard')) return 'JOB_APPLY'
+  // A job you could take: the browse feed on /home. Direct offers link
+  // /jobs?job=, so they take the JOB_ACCEPTED branch above.
+  if (path.startsWith('/home')) return 'JOB_APPLY'
 
   return undefined
 }

@@ -179,9 +179,9 @@ describe("every error surface reports with a screen tag", () => {
     currentUser.isError = true;
     currentUser.profile = null;
     render(
-      <MemoryRouter initialEntries={["/dashboard"]}>
+      <MemoryRouter initialEntries={["/home"]}>
         <Routes>
-          <Route path="/dashboard" element={<ProtectedRoute><div>DASH</div></ProtectedRoute>} />
+          <Route path="/home" element={<ProtectedRoute><div>DASH</div></ProtectedRoute>} />
         </Routes>
       </MemoryRouter>,
     );
@@ -189,7 +189,7 @@ describe("every error surface reports with a screen tag", () => {
     // ErrorState mounts inside and reports too; the route-level signal is the one asserted.
     const call = report.mock.calls.find((c) => (c[1] as { tags?: { source?: string } })?.tags?.source === "ProtectedRoute.profileFetchError");
     expect(call, "ProtectedRoute must report its own account-load failure").toBeTruthy();
-    expect((call![1] as { tags: { screen: string } }).tags.screen).toBe("/dashboard");
+    expect((call![1] as { tags: { screen: string } }).tags.screen).toBe("/home");
     // The card itself (ErrorState) is what reaches the ops ledger (Q12/Q39).
     const card = report.mock.calls.find((c) => (c[1] as { tags?: { kind?: string } })?.tags?.kind === USER_ERROR_SCREEN);
     expect(card, "the account-load card must report as a user error screen").toBeTruthy();

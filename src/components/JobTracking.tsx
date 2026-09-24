@@ -1505,7 +1505,7 @@ export function JobTracking({
     //                  ALREADY in_progress (the normal case — on_the_way set
     //                  it) no jobs column changes at the "working" tap, so no
     //                  server writer exists and the client one is KEPT.
-    // Link: /my-posts?filter=scheduled — the old filter=in_progress is not a
+    // Link: /posts?filter=scheduled — the old filter=in_progress is not a
     // bucket Activity knows (needs_you/scheduled/waiting/done) and landed on
     // the default list; a poster's in_progress job buckets as "scheduled".
     //
@@ -1520,7 +1520,7 @@ export function JobTracking({
       if (notifyErr) report(notifyErr, { tags: { source: "JobTracking.notifyPoster" } });
       if (job?.customer_id) {
         const { notifyJobParty } = await import("@/lib/notifications");
-        // Copy and link (`/my-posts?job=`) are built server-side (Q223).
+        // Copy and link (`/posts?job=`) are built server-side (Q223).
         const { error: pushErr } = await notifyJobParty({
           user_id: job.customer_id,
           job_id: jobId,

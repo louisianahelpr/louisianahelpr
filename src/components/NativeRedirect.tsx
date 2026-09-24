@@ -22,14 +22,14 @@ const NativeRedirect = () => {
   // problem — it is shaped like a page that does not exist and that the user
   // is not going to, so it reads as the app flashing up some other screen and
   // then leaving it. It also cannot be right: at this point we do not yet know
-  // whether we are heading to /dashboard or /browse, so any content-shaped
+  // whether we are heading to /home or /browse, so any content-shaped
   // bones are guessing at a layout.
   //
   // Matching the Suspense fallback in Index exactly means the chunk-download
   // and auth-resolve phases are indistinguishable — one calm surface that
   // holds until the real destination paints its own skeleton.
   if (isLoading) return <div className="min-h-screen bg-premium-page" />;
-  return <Navigate to={user ? "/dashboard" : "/browse"} replace />;
+  return <Navigate to={user ? "/home" : "/browse"} replace />;
 };
 
 export default NativeRedirect;

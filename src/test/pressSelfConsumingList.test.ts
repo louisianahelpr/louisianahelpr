@@ -139,7 +139,7 @@ describe("press-every-control: addressing a control in a self-consuming list", (
    * The excuse is for FEEDS, not for pages. On run 35692554813 the unrestricted
    * rule excused seven page-level controls on /account-banned — the header
    * logo, the footer links — where the real cause was that the screen
-   * redirects to /dashboard once `profile` resolves, i.e. every later load
+   * redirects to /home once `profile` resolves, i.e. every later load
    * landed somewhere else entirely. A page is not a list; a control that
    * vanishes from one is never explained by "the list consumed it".
    */

@@ -78,8 +78,8 @@ const EXTRA_WAIT_MS = 1500;
 const PARALLELISM = 3;
 
 const AUTHED_ROUTES = [
-  '/dashboard', '/browse', '/my-jobs', '/my-jobs?filter=scheduled', '/my-jobs?filter=waiting',
-  '/my-jobs?filter=completed', '/my-posts', '/my-posts?filter=scheduled', '/my-posts?filter=waiting',
+  '/home', '/browse', '/jobs', '/jobs?filter=scheduled', '/jobs?filter=waiting',
+  '/jobs?filter=completed', '/posts', '/posts?filter=scheduled', '/posts?filter=waiting',
   // '/subscription' and '/family' were REMOVED: neither is a registered route
   // any more, so both render the 404 page. Sweeping them graded NotFound twice
   // under names that read like real screens. The membership screen is
@@ -89,7 +89,7 @@ const AUTHED_ROUTES = [
   // /work-record, /auto-tip, /str-settings and /wrapped are no longer routes.
   // They are Profile tabs now and are covered by PROFILE_ROUTES below, derived
   // from the Tab union itself so they cannot be missed.
-  '/my-posts?filter=done', '/messages', '/post-job',
+  '/posts?filter=done', '/messages', '/post-job',
   // /settings, /availability, /schedule, /earnings, /saved-helpers,
   // /gift-card and /data-rights left 2026-09-23 with their redirect routes
   // (Q194); the pages they forwarded to are listed on their own.
@@ -197,7 +197,7 @@ async function mintSession(supabaseUrl, serviceKey) {
   // getSession() without re-fetching, so `user.email_confirmed_at` came back
   // undefined; ProtectedRoute.tsx's email-unconfirmed gate then bounced to
   // /account-pending, which (profile IS approved) immediately re-navigated to
-  // /dashboard. Every email-gated protected route therefore rendered the
+  // /home. Every email-gated protected route therefore rendered the
   // DASHBOARD, and the sweep filed that PNG under the route's own name.
   // Measured: /post-job and /gift-card both produced byte-comparable dashboard
   // captures. It reproduced on cold load, on reload and on pushState nav, so it
@@ -242,10 +242,10 @@ async function mintSession(supabaseUrl, serviceKey) {
  *  2. ALWAYS suppress the onboarding tour.
  *
  * (2) is not optional. `OnboardingTour` (src/components/OnboardingTour.tsx,
- * mounted by src/pages/home/Dashboard.tsx) opens on /dashboard 1.5s after load in
+ * mounted by src/pages/home/Dashboard.tsx) opens on /home 1.5s after load in
  * every fresh browser context — and every context here is fresh. It is a Radix
  * dialog that blurs the page behind it and intercepts clicks, so without this
- * the /dashboard captures are screenshots of the TOUR over a blurred
+ * the /home captures are screenshots of the TOUR over a blurred
  * dashboard, the layout metrics measure the tour, and the flags report grades
  * the tour. Worse, EXTRA_WAIT_MS is 1500 — exactly the tour's delay — so it
  * appeared in some runs and not others, which reads as flakiness in the app.
@@ -277,7 +277,7 @@ async function captureCell({ browser, cellName, url, viewport, outDirBase, sessi
   });
   // Always installed — with a session when we have one, and in every case to
   // suppress the onboarding tour. Guest contexts need the tour suppression
-  // too: a guest cell that lands on /dashboard mid-redirect can still catch it.
+  // too: a guest cell that lands on /home mid-redirect can still catch it.
   await context.addInitScript(installSession, sessionArgs ?? { key: null, val: null });
   const page = await context.newPage();
 
@@ -646,22 +646,22 @@ async function main() {
     process.exit(1);
   }
 
-  // Verify auth works by loading /dashboard once.
+  // Verify auth works by loading /home once.
   if (sessionArgs) {
     const verifyContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     await verifyContext.addInitScript(installSession, sessionArgs);
     const verifyPage = await verifyContext.newPage();
     try {
-      await verifyPage.goto(`${TARGET}/dashboard`, { waitUntil: 'networkidle', timeout: NAV_TIMEOUT });
+      await verifyPage.goto(`${TARGET}/home`, { waitUntil: 'networkidle', timeout: NAV_TIMEOUT });
       await verifyPage.waitForTimeout(1500);
       const finalUrl = verifyPage.url();
       if (/\/login(\?|$)/.test(finalUrl)) {
-        console.error(`AUTH VERIFY FAILED: /dashboard redirected to ${finalUrl}`);
+        console.error(`AUTH VERIFY FAILED: /home redirected to ${finalUrl}`);
         console.error('Continuing with GUEST pass only.');
         sessionArgs = null;
       } else {
         authOk = true;
-        console.log(`Auth verified: /dashboard loaded at ${finalUrl}`);
+        console.log(`Auth verified: /home loaded at ${finalUrl}`);
       }
     } catch (e) {
       console.error(`AUTH VERIFY FAILED: ${String(e).slice(0, 300)}`);

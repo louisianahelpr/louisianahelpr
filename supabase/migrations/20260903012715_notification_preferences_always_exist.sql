@@ -230,7 +230,7 @@ BEGIN
     v_title := 'New application';
     v_message := 'Someone applied to "' || job_title || '"';
     v_type := 'application';
-    v_link := '/my-posts?job=' || NEW.job_id::text;
+    v_link := '/posts?job=' || NEW.job_id::text;
 
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (v_user_id, v_title, v_message, v_type, v_link);
@@ -261,7 +261,7 @@ BEGIN
 
   -- NO 'accepted' branch. The client (useOfferHandlers) is the single
   -- producer for an accept: only it knows the response deadline the poster
-  -- picked, and only its link ('/my-jobs?filter=offered') reaches the screen
+  -- picked, and only its link ('/jobs?filter=offered') reaches the screen
   -- where the helper can actually accept before that deadline runs out.
 
   IF TG_OP = 'UPDATE' AND NEW.status = 'rejected' AND OLD.status = 'pending' THEN
@@ -275,8 +275,8 @@ BEGIN
     END IF;
     v_type := 'info';
     -- A rejected application buckets to `cancelled` on the applied tab
-    -- (appliedActivityBucket). '/dashboard' showed the job board instead.
-    v_link := '/my-jobs?job=' || NEW.job_id::text;
+    -- (appliedActivityBucket). '/home' showed the job board instead.
+    v_link := '/jobs?job=' || NEW.job_id::text;
 
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (v_user_id, v_title, v_message, v_type, v_link);

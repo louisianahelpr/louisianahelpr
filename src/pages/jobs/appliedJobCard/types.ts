@@ -24,7 +24,7 @@ export interface AppliedJobCardProps {
   app: AppliedApp;
   /** When true, scroll this card into view on mount and apply a brief
    *  pulse ring so the helper knows which application the notification
-   *  was about (/my-jobs?highlight=<appId> deep-link). Respects
+   *  was about (/jobs?highlight=<appId> deep-link). Respects
    *  prefers-reduced-motion — animation skipped but scroll still fires. */
   highlight?: boolean;
   expandedJobIds: Set<string>;

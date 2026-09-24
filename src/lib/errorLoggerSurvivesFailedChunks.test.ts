@@ -60,7 +60,7 @@ const AUTH_TOKEN_KEY = `sb-${new URL(String(import.meta.env.VITE_SUPABASE_URL)).
 
 const atProd = () =>
   Object.defineProperty(window, "location", {
-    value: new URL("https://www.louisianahelpr.com/dashboard"),
+    value: new URL("https://www.louisianahelpr.com/home"),
     writable: true,
   });
 

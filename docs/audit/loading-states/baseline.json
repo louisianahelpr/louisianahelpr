@@ -133,17 +133,17 @@
       "was": "5 avatar/media bone(s) → 8 real"
     },
     {
-      "key": "customer /my-jobs #1",
+      "key": "customer /jobs #1",
       "kind": "jump",
       "was": "row 52px → 154px (+102px)"
     },
     {
-      "key": "helper /my-jobs #1",
+      "key": "helper /jobs #1",
       "kind": "jump",
       "was": "row 52px → 28px (-24px)"
     },
     {
-      "key": "customer /my-posts #1",
+      "key": "customer /posts #1",
       "kind": "rows",
       "was": "2 placeholder row(s) → 5 real row(s)"
     },

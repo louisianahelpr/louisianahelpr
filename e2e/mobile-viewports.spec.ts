@@ -29,7 +29,7 @@ import { LOCAL_BASE_URL } from "./localBase";
 //   targeted a component that has since been deleted, and had been SKIPPING on
 //   all five viewports. Removed; see the note where it used to live.
 //
-// Pages tested are public-only — /dashboard etc. need an auth session
+// Pages tested are public-only — /home etc. need an auth session
 // which lives in a different test (post-and-apply.spec.ts). The
 // landing page (`/`) and `/browse` are the two highest-value mobile
 // surfaces because they're what every prospective user first sees.
@@ -48,7 +48,7 @@ const VIEWPORTS = [
 ] as const;
 
 // Pages each viewport is exercised against. Pure-public routes only —
-// /dashboard etc. live in post-and-apply.spec.ts.
+// /home etc. live in post-and-apply.spec.ts.
 const PAGES: { path: string; label: string }[] = [
   { path: "/",       label: "landing"   },
   { path: "/browse", label: "browse"    },
@@ -154,7 +154,7 @@ for (const vp of VIEWPORTS) {
           // An ancestor that legitimately clips or SCROLLS on x makes a child
           // past the right edge correct — a side-scrolling tab strip is the
           // common case. Same walk measureLayout uses for clippedWideElements;
-          // without it, /my-posts@320 reports its overflow-x-auto strip's last
+          // without it, /posts@320 reports its overflow-x-auto strip's last
           // tab (right=326 of 320) as a defect.
           const clipped = (e: Element): boolean => {
             let p2 = e.parentElement;

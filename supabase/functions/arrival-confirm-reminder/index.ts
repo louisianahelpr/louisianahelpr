@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
       if (!stage) continue;
       try {
         if (!(await claim(job.id, stage))) continue;
-        const posterLink = `/my-posts?job=${job.id}`;
+        const posterLink = `/posts?job=${job.id}`;
         if (stage === "first" && nearMiss) {
           // mark_helper_arrival already sent "Is your Helpr at the door?".
         } else if (stage === "second" && nearMiss) {
@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
             job.helper_id!,
             "We've asked support to step in",
             `"${job.title}" — the person who posted this job hasn't confirmed your arrival, so our team is reviewing it.`,
-            `/my-jobs?job=${job.id}`,
+            `/jobs?job=${job.id}`,
             "job_updates",
             job.id,
           );

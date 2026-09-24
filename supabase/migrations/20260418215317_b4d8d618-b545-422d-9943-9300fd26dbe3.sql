@@ -98,7 +98,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  v_link := '/my-posts?job=' || NEW.id::text;
+  v_link := '/posts?job=' || NEW.id::text;
   SELECT COALESCE(full_name, 'Your helper') INTO v_helper_name
   FROM public.profiles WHERE user_id = NEW.helper_id;
 
@@ -178,7 +178,7 @@ BEGIN
 
     IF COALESCE(v_pref, true) THEN
       INSERT INTO public.notifications (user_id, title, message, type, link)
-      VALUES (NEW.customer_id, v_title, v_msg, 'financial_alerts', '/my-posts?job=' || NEW.id::text);
+      VALUES (NEW.customer_id, v_title, v_msg, 'financial_alerts', '/posts?job=' || NEW.id::text);
       PERFORM public.log_notification(NEW.customer_id, 'financial_alerts', 'in_app', 'sent', v_title, NEW.id);
     END IF;
 
@@ -188,7 +188,7 @@ BEGIN
       FROM public.notification_preferences WHERE user_id = NEW.helper_id;
       IF COALESCE(v_pref, true) THEN
         INSERT INTO public.notifications (user_id, title, message, type, link)
-        VALUES (NEW.helper_id, '💰 Job funded', 'Payment for "' || NEW.title || '" is now in escrow. Get to work!', 'financial_alerts', '/my-jobs?job=' || NEW.id::text);
+        VALUES (NEW.helper_id, '💰 Job funded', 'Payment for "' || NEW.title || '" is now in escrow. Get to work!', 'financial_alerts', '/jobs?job=' || NEW.id::text);
         PERFORM public.log_notification(NEW.helper_id, 'financial_alerts', 'in_app', 'sent', 'Job funded', NEW.id);
       END IF;
     END IF;

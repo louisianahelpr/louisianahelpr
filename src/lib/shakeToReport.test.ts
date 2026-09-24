@@ -152,7 +152,7 @@ describe("initShakeToReport — iOS 13+ permission gate", () => {
 
     // And the guard does not permanently disarm: the same listener is still
     // attached, so a tap once the user is inside the app still asks.
-    window.history.replaceState({}, "", "/dashboard");
+    window.history.replaceState({}, "", "/home");
     window.dispatchEvent(new Event("touchend"));
     await vi.waitFor(() => expect(requestPermission).toHaveBeenCalledTimes(1));
     window.history.replaceState({}, "", "/");

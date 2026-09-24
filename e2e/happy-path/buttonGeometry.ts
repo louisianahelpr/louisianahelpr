@@ -171,7 +171,7 @@ export function detectButtonGeometry(scopeSelector?: string): ButtonGeometryRepo
    *
    * Tailwind's preflight sets `box-sizing: border-box` globally, so the
    * border-box branch is the common one and the naive "always add them back"
-   * DOUBLE-COUNTS. Measured on /dashboard at 375: MobileNav's "Post a new job"
+   * DOUBLE-COUNTS. Measured on /home at 375: MobileNav's "Post a new job"
    * is `w-14 h-14` with an inline 1px border — `{rect: 56, computedHeight:
    * "56px", boxSizing: "border-box", borderTop: "1px"}`. Correct at 56px, and
    * reported as 58px, which made the pre-push changed-screen gate red for

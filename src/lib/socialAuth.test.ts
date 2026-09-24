@@ -151,12 +151,12 @@ describe("signInWithProvider — web fallback path", () => {
 
     const { signInWithProvider } = await load();
     const result = await signInWithProvider("google", {
-      redirectTo: "https://example.com/dashboard",
+      redirectTo: "https://example.com/home",
     });
     expect(result).toEqual({ kind: "redirecting" });
     expect(signInWithOAuthMock).toHaveBeenCalledWith({
       provider: "google",
-      options: { redirectTo: "https://example.com/dashboard" },
+      options: { redirectTo: "https://example.com/home" },
     });
     // Native path must not be touched on web.
     expect(loginMock).not.toHaveBeenCalled();

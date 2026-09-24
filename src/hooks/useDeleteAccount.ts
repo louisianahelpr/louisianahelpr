@@ -96,9 +96,9 @@ export function useDeleteAccount(): UseDeleteAccount {
       console.error("[deleteAccount] sign-out after deletion failed", err);
       // But it cannot just be logged, either. The token that `signOut()` failed
       // to remove is exactly what `MarketingRedirect` reads on `/`, so leaving
-      // it behind sends the user to `/dashboard` as a signed-in user of an
+      // it behind sends the user to `/home` as a signed-in user of an
       // account that no longer exists — measured 2026-09-06 with the sign-out
-      // forced to reject: URL `/dashboard`, greeting rendered, token still in
+      // forced to reject: URL `/home`, greeting rendered, token still in
       // localStorage. Pulling the key is the floor under a failed sign-out.
       clearPersistedAuthToken();
     }

@@ -20,7 +20,7 @@ import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 const BASE = process.env.BASE ?? "http://localhost:5183";
 const OUT = process.env.OUT ?? "/tmp/lh-audit";
 const ACCOUNT = process.env.ACCOUNT ?? "poster-e2e";
-const ROUTES = (process.env.ROUTES ?? "/dashboard").split(",");
+const ROUTES = (process.env.ROUTES ?? "/home").split(",");
 const WIDTHS = (process.env.WIDTHS ?? "375,1440").split(",").map(Number);
 const THEMES = (process.env.THEMES ?? "light,dark").split(",");
 const CLICK = process.env.CLICK !== "0";
@@ -125,7 +125,7 @@ for (const theme of THEMES) {
                 const r = el.getBoundingClientRect(), pr = p.getBoundingClientRect();
                 // IT MUST HUG ON BOTH OPPOSITE EDGES. A minimum over all four
                 // gaps calls any small control sitting near one edge a nested
-                // card — on /my-posts it flagged the "Lafayette" location chips,
+                // card — on /posts it flagged the "Lafayette" location chips,
                 // tinted 6%-opacity pills four pixels from the card's left
                 // edge, eight per screen. A card drawn inside a card spans its
                 // parent: it hugs left AND right, or top AND bottom. That is
@@ -237,7 +237,7 @@ for (const theme of THEMES) {
             const esc = label.replace(/"/g, '\\"');
             // Every candidate is restricted to an INTERACTIVE element.
             // `getByLabel` alone matches any element carrying the name — on
-            // /dashboard it resolved "Notifications" to the panel's own
+            // /home it resolved "Notifications" to the panel's own
             // <section aria-label="Notifications">, then timed out waiting for
             // a section to become clickable and reported the BELL as
             // unclickable. A harness that mis-addresses a control and then
@@ -276,7 +276,7 @@ for (const theme of THEMES) {
 
             // `sr-only` controls are clipped to a pixel ON PURPOSE — they exist
             // for a screen reader, and a pointer is never meant to reach them.
-            // "Expand Job Details" on /my-posts is one. Reporting them as
+            // "Expand Job Details" on /posts is one. Reporting them as
             // unclickable is reporting the accessibility layer as a defect.
             const srOnly = await target
               .evaluate((el) => el.closest(".sr-only") !== null || el.classList.contains("sr-only"))
@@ -285,8 +285,8 @@ for (const theme of THEMES) {
 
             // ALREADY SELECTED IS NOT DEAD. A tab that is the current tab, or a
             // nav item for the route you are on, is SUPPOSED to do nothing when
-            // pressed. Without this the walk reports "Home" dead on /dashboard,
-            // "Posts" dead on /my-posts, "Messages" dead on /messages and
+            // pressed. Without this the walk reports "Home" dead on /home,
+            // "Posts" dead on /posts, "Messages" dead on /messages and
             // "Terms" dead on the legal tab — four confident findings per run,
             // none of them real, all of them crowding out the ones that are.
             const active = await target

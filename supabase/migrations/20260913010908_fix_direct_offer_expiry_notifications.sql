@@ -8,7 +8,7 @@
 -- keeps the function's existing ACL (service_role only, set by
 -- 20260824210000); the explicit statements below restate it so the migration
 -- lint sees them. The link keeps the per-job form that 20260831232514 rewrote
--- the live body to ('/my-posts?job=' || id), so this does not regress it.
+-- the live body to ('/posts?job=' || id), so this does not regress it.
 CREATE OR REPLACE FUNCTION public.expire_pending_direct_offers()
 RETURNS integer
 LANGUAGE plpgsql
@@ -31,7 +31,7 @@ BEGIN
            'Direct offer expired',
            'Your offer for "' || title || '" was not accepted in time. The job is now visible to all helpers.',
            'job_updates',
-           '/my-posts?job=' || id::text
+           '/posts?job=' || id::text
       FROM expired
      WHERE customer_id IS NOT NULL
     RETURNING 1

@@ -8,7 +8,7 @@
  * validateResult are those three modules themselves; everything else goes
  * through checkDrift() (a dynamic import). The bundler half (vite.config.ts
  * pins zodConfig into the forms chunk, or app-shared captures it and imports
- * zod statically) is held by the built-bundle budget: without it /my-posts
+ * zod statically) is held by the built-bundle budget: without it /posts
  * measured 361 KB gz against a 337 budget, over the +5% band
  * (scripts/perf/critical-path.mjs --check, bundle-size.yml).
  *

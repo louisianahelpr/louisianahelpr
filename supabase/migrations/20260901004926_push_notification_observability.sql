@@ -138,7 +138,7 @@ COMMENT ON FUNCTION public.log_push_notification(uuid, text, text, text, uuid, t
 --
 -- What this section DOES add is the missing standing guard. That file's verify
 -- block warns about '/warnings', '/admin/users/', '/admin/jobs/', '/activity'
--- and bare '/my-posts' | '/my-jobs' links — but not about '/business', the very
+-- and bare '/posts' | '/jobs' links — but not about '/business', the very
 -- shape it had just decided to tolerate. A restore from a pre-2026-08-28
 -- backup replays every migration in order and would land on a database where
 -- these functions exist again; the drops below make that converge, and the

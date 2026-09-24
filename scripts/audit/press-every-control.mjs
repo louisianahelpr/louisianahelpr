@@ -6,7 +6,7 @@
  * file closes each one by construction rather than by care:
  *
  *   1. `labels.slice(0, 40)`     → there is NO cap. Every control is queued.
- *   2. default ROUTES=/dashboard → the route set is DERIVED FROM src/App.tsx
+ *   2. default ROUTES=/home → the route set is DERIVED FROM src/App.tsx
  *                                  (same regex as auditCatalogRoutes.test.ts),
  *                                  expanded with every Profile tab, every
  *                                  admin view and every legal tab.
@@ -44,7 +44,7 @@
  * gets a screenshot, plus a small sample per route (SAMPLE=n).
  *
  *   BASE=http://127.0.0.1:4173 node scripts/audit/press-every-control.mjs
- *   ROUTES=/dashboard,/profile?tab=earnings  … to narrow
+ *   ROUTES=/home,/profile?tab=earnings  … to narrow
  *   PERSONAS=customer                       … to narrow (anon,customer,helper,admin,incomplete)
  *   SHARD=1/4                               … CI sharding over the route list
  *   CLEANUP_SINCE=<iso>                     … clean-up only (the workflow's final job)
@@ -643,7 +643,7 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel }) => {
  * screen in the same run:
  *
  *   - shards 1 and 3 enumerated FOUR controls (Close / Unread / All / the push
- *     row) and walked the /dashboard bell with ZERO rows in it. Green, and
+ *     row) and walked the /home bell with ZERO rows in it. Green, and
  *     vacuous: the rows the sweep exists to press were never seen.
  *   - shard 4 enumerated 50 rows and then re-opened the panel 50 times, each
  *     time before the rows arrived. All 50 were "control not found".
@@ -779,7 +779,7 @@ async function main() {
   }
   // WHETHER A LANDING URL IS "WALKED ON ITS OWN ROW" IS A PROPERTY OF THE APP,
   // NOT OF THIS SHARD. `isBounce` used the sharded list, so on run 35692554813
-  // shard 4's /signup-pending → /dashboard was NOT recognised as a bounce (the
+  // shard 4's /signup-pending → /home was NOT recognised as a bounce (the
   // dashboard lives in shard 3) and the dashboard was walked a second time —
   // by a second browser, signed in as the SAME shared poster account, against
   // the SAME live notification feed shard 3 was pressing. Hence the full set.
@@ -1056,8 +1056,8 @@ async function main() {
       /**
        * A route that lands somewhere else is a pure bounce (login, account
        * gates, the bare dashboard — walked on their own rows) OR a real
-       * screen with state in its query (/jobs/:id → /my-posts?highlight=…,
-       * /dashboard?quickApply=…) that no other row reaches. The second kind is
+       * screen with state in its query (/jobs/:id → /posts?highlight=…,
+       * /home?quickApply=…) that no other row reaches. The second kind is
        * walked HERE, on the screen it landed on.
        */
       const isBounce = (u) => {
@@ -1312,7 +1312,7 @@ async function main() {
             // "Profile", every one NOT CLICKABLE at 16000ms. The log gives the
             // game away: the resolved element is
             // `<button aria-label="Posts" aria-current="page" …>`. `aria-current`
-            // means we were ALREADY on /my-posts. The job itself does not exist
+            // means we were ALREADY on /posts. The job itself does not exist
             // in prod (`select … where id = '7d315f44-…'` returns no row), so
             // the route bounced and the sweep kept pressing the old inventory.
             //
@@ -1340,7 +1340,7 @@ async function main() {
             if (again) { item.step.path = again.path; target = locate(item.step); entry.relocated = true; }
             else {
               // A route whose gate resolves after the first paint
-              // (/account-banned for an un-banned account goes to /dashboard
+              // (/account-banned for an un-banned account goes to /home
               // once `profile` lands; /profile for the incomplete persona goes
               // to /complete-profile) renders once, is enumerated, and then
               // redirects on EVERY later load — so ask where we are first.

@@ -117,7 +117,7 @@ async function renderAccountStatusEmail(
 ): Promise<{ html: string; text: string }> {
   const siteUrl = getAppUrl()
   const emailType = EMAIL_TYPE[status]
-  const destination = `${siteUrl}/dashboard`
+  const destination = `${siteUrl}/home`
   const ctaUrl = await trackedLink(userId, emailType, destination)
   const pixelUrl = await trackingPixelUrl(userId, emailType)
 

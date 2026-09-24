@@ -181,7 +181,7 @@ async function savePushToken(token: string, platform: "ios" | "android") {
 }
 
 /**
- * Append a `?ref=<token>` param to an internal path (e.g. "/dashboard?job=abc").
+ * Append a `?ref=<token>` param to an internal path (e.g. "/home?job=abc").
  * Preserves any existing query params; does NOT override an existing `ref` so
  * a notification that itself carries a ref (e.g. a shared link forwarded via
  * push) keeps the more-specific attribution.
@@ -338,7 +338,7 @@ export function useNativePushSetup() {
             // established param (jobIntent.postAuthDestination builds the same
             // URL for a guest returning from signup).
             if (actionId === "APPLY" && jobId) {
-              navigate(appendRef(`/dashboard?quickApply=${encodeURIComponent(jobId)}`, "notif"));
+              navigate(appendRef(`/home?quickApply=${encodeURIComponent(jobId)}`, "notif"));
               return;
             }
 

@@ -109,13 +109,13 @@ test.describe("payment lifecycle — authenticated post → escrow checkout", ()
     "PLAYWRIGHT_TEST_USER_EMAIL + PLAYWRIGHT_TEST_USER_PASSWORD not set — skipping authenticated payment flow",
   );
 
-  /** Sign the test customer in; lands on /dashboard or /complete-profile. */
+  /** Sign the test customer in; lands on /home or /complete-profile. */
   async function signIn(page: Page) {
     await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded" });
     await page.locator("#email").fill(TEST_EMAIL!);
     await page.locator("#password").fill(TEST_PASSWORD!);
     await Promise.all([
-      page.waitForURL(/\/(dashboard|complete-profile)/, { timeout: 15_000 }),
+      page.waitForURL(/\/(home|complete-profile)/, { timeout: 15_000 }),
       page.locator('button[type="submit"]').click(),
     ]);
   }

@@ -38,7 +38,7 @@ export const ROUTES = [
   { path: "/login", chunk: "Login" },
   { path: "/signup", chunk: "Signup" },
   // Signed-in representative (PD-020): useProfile + the job-list page's shared graph.
-  { path: "/my-posts", chunk: "PostsPage" },
+  { path: "/posts", chunk: "PostsPage" },
 ];
 
 function die(msg) {

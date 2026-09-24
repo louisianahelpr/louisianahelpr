@@ -20,7 +20,7 @@
 --    the tab has to be named exactly.
 --
 -- 3. LINKS TO AN ACTIVITY SURFACE WITH NO IDEA WHICH BUCKET. This is the big
---    one, and it is why a bare `/my-posts` or `/my-jobs` is never a correct
+--    one, and it is why a bare `/posts` or `/jobs` is never a correct
 --    notification link any more. Both routes open on the "Needs you" bucket
 --    (defaultStatusFilterFor, activityConstants.ts). "Your Helpr cancelled",
 --    "Job cancelled", "Offer expired — job reopened", "Job completed!" — none
@@ -124,69 +124,69 @@ BEGIN
       -- {0,200} chain to the same 600 ceiling while each stays legal.
       (30, 'rpc_decide_dispute',
            $p$(_customer_id,.{0,200}?.{0,200}?.{0,200}?)'/activity'$p$,
-           $q$\1'/my-posts?job=' || _job_id::text$q$, ''),
+           $q$\1'/posts?job=' || _job_id::text$q$, ''),
       (31, 'rpc_decide_dispute',
            $p$(_helper_id,.{0,200}?.{0,200}?.{0,200}?)'/activity'$p$,
-           $q$\1'/my-jobs?job=' || _job_id::text$q$, ''),
+           $q$\1'/jobs?job=' || _job_id::text$q$, ''),
 
       -- Poster-side notifications: the insert is a SELECT over public.jobs, so
       -- the bare `id` column is the job.
       (32, 'expire_pending_direct_offers',
-           $p$'/my-posts'$p$,
-           $q$'/my-posts?job=' || id::text$q$, 'g'),
+           $p$'/posts'$p$,
+           $q$'/posts?job=' || id::text$q$, 'g'),
       (33, 'respond_to_direct_offer',
-           $p$'/my-posts'$p$,
-           $q$'/my-posts?job=' || id::text$q$, 'g'),
+           $p$'/posts'$p$,
+           $q$'/posts?job=' || id::text$q$, 'g'),
 
       -- expire_unanswered_offers notifies both sides off the same locked row.
       (34, 'expire_unanswered_offers',
-           $p$'/my-posts'$p$,
-           $q$'/my-posts?job=' || v_locked.id::text$q$, 'g'),
+           $p$'/posts'$p$,
+           $q$'/posts?job=' || v_locked.id::text$q$, 'g'),
       (35, 'expire_unanswered_offers',
-           $p$'/my-jobs'$p$,
-           $q$'/my-jobs?job=' || v_locked.id::text$q$, 'g'),
+           $p$'/jobs'$p$,
+           $q$'/jobs?job=' || v_locked.id::text$q$, 'g'),
 
       (36, 'helper_cancel_booking',
-           $p$'/my-posts'$p$,
-           $q$'/my-posts?job=' || v_job.id::text$q$, 'g'),
+           $p$'/posts'$p$,
+           $q$'/posts?job=' || v_job.id::text$q$, 'g'),
       -- helper_abort_job has two poster inserts (work had started / never
       -- started). Both want the same job on the same surface, so one
       -- substitution covers both.
       (37, 'helper_abort_job',
-           $p$'/my-posts'$p$,
-           $q$'/my-posts?job=' || v_job.id::text$q$, 'g'),
+           $p$'/posts'$p$,
+           $q$'/posts?job=' || v_job.id::text$q$, 'g'),
       (38, 'poster_cancel_job',
-           $p$'/my-jobs'$p$,
-           $q$'/my-jobs?job=' || v_job.id::text$q$, 'g'),
+           $p$'/jobs'$p$,
+           $q$'/jobs?job=' || v_job.id::text$q$, 'g'),
 
       -- block_user_and_settle notifies whichever party was blocked, which can
       -- be either side of the job — so the SURFACE has to be chosen at write
-      -- time, not baked in. It was hard-coded to '/my-jobs', which sent a
+      -- time, not baked in. It was hard-coded to '/jobs', which sent a
       -- blocked POSTER to the helper surface.
       (39, 'block_user_and_settle',
-           $p$'/my-jobs'$p$,
-           $q$CASE WHEN v_job.helper_id = p_blocked THEN '/my-jobs?job=' ELSE '/my-posts?job=' END || v_job.id::text$q$, 'g'),
+           $p$'/jobs'$p$,
+           $q$CASE WHEN v_job.helper_id = p_blocked THEN '/jobs?job=' ELSE '/posts?job=' END || v_job.id::text$q$, 'g'),
 
       -- notify_on_job_update: two helper inserts, distinguished by the `type`
       -- literal that immediately precedes the link. Completion reads NEW,
       -- cancellation reads OLD (the row is already cancelled by then).
       (40, 'notify_on_job_update',
-           $p$'payment',\s*'/my-jobs'$p$,
-           $q$'payment', '/my-jobs?job=' || NEW.id::text$q$, 'g'),
+           $p$'payment',\s*'/jobs'$p$,
+           $q$'payment', '/jobs?job=' || NEW.id::text$q$, 'g'),
       (41, 'notify_on_job_update',
-           $p$'warning',\s*'/my-jobs'$p$,
-           $q$'warning', '/my-jobs?job=' || OLD.id::text$q$, 'g'),
+           $p$'warning',\s*'/jobs'$p$,
+           $q$'warning', '/jobs?job=' || OLD.id::text$q$, 'g'),
 
       (42, 'track_revision_scope_creep',
-           $p$'/my-posts'$p$,
-           $q$'/my-posts?job=' || NEW.id::text$q$, 'g'),
+           $p$'/posts'$p$,
+           $q$'/posts?job=' || NEW.id::text$q$, 'g'),
       (43, 'track_revision_scope_creep',
-           $p$'/my-jobs'$p$,
-           $q$'/my-jobs?job=' || NEW.id::text$q$, 'g'),
+           $p$'/jobs'$p$,
+           $q$'/jobs?job=' || NEW.id::text$q$, 'g'),
 
       (44, 'sweep_release_last_chance',
-           $p$'/my-posts'$p$,
-           $q$'/my-posts?job=' || rec.id::text$q$, 'g')
+           $p$'/posts'$p$,
+           $q$'/posts?job=' || rec.id::text$q$, 'g')
     ) AS t(ord, fn, pat, rep, flags)
     ORDER BY 1
   LOOP
@@ -253,7 +253,7 @@ BEGIN
     -- A bare Activity surface with no job on it opens the "Needs you" bucket,
     -- which is the wrong bucket for most events. `?job=` is the shape.
     IF r.body ~ $bare$'/my-(posts|jobs)'$bare$ THEN
-      RAISE WARNING 'public.% writes a bare /my-posts or /my-jobs notification link (no ?job= / ?filter=) — it will open on the Needs You bucket', r.proname;
+      RAISE WARNING 'public.% writes a bare /posts or /jobs notification link (no ?job= / ?filter=) — it will open on the Needs You bucket', r.proname;
     END IF;
   END LOOP;
 END

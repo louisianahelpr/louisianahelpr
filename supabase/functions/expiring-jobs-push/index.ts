@@ -89,8 +89,8 @@ Deno.serve(async (req) => {
           type: "job_updates",
           // The expiring job itself. A job with no helpr yet and no pending
           // applications buckets to "Waiting", not the "Needs you" bucket a
-          // bare /my-posts opens on.
-          link: `/my-posts?job=${job.id}`,
+          // bare /posts opens on.
+          link: `/posts?job=${job.id}`,
         });
 
         if (notifErr) {

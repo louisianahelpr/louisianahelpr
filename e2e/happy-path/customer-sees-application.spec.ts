@@ -3,11 +3,11 @@ import { settleAnimations } from "./auditRoutes";
 import { DATE } from "./seedData";
 
 // Customer sees an application: an authed customer with one posted job
-// that has one helper application on it navigates to /my-posts and sees
+// that has one helper application on it navigates to /posts and sees
 // the applicant-count badge surface ("1 applicant") next to the job.
 //
 // The contract this spec asserts:
-//   1. /my-posts loads for an authed customer
+//   1. /posts loads for an authed customer
 //   2. The posted job renders
 //   3. The applicant-count surface shows up because a mocked
 //      applications.select returned a row for that job
@@ -29,7 +29,7 @@ const POSTED_JOB = {
   // "05T04:12:34.567Z" → NaN, which since 0f806174 flows into
   // `jobLocalMidnightMs` → `Intl.DateTimeFormat.formatToParts(new Date(NaN))`
   // and THROWS `RangeError: Invalid time value` out of the bucketing `useMemo`.
-  // /my-posts rendered "This page hit a problem." and this spec timed out on a
+  // /posts rendered "This page hit a problem." and this spec timed out on a
   // crashed page. Fixture bug, not an app bug.
   date_needed: DATE(3),
   start_time: "09:00",
@@ -71,7 +71,7 @@ const APPLICATION_ROW = {
 };
 
 test.describe("customer sees helper application", () => {
-  test("/my-posts surfaces the applicant count when a helper has applied", async ({ customerPage: page }) => {
+  test("/posts surfaces the applicant count when a helper has applied", async ({ customerPage: page }) => {
     await installSupabaseMocks(page, {
       user: FAKE_CUSTOMER,
       rules: [
@@ -93,7 +93,7 @@ test.describe("customer sees helper application", () => {
       ],
     });
 
-    await page.goto("/my-posts");
+    await page.goto("/posts");
 
     // 1. Posted job title surfaces.
     await expect(page.getByText(POSTED_JOB.title)).toBeVisible({ timeout: 15_000 });

@@ -72,7 +72,7 @@ const H = await openAs(browser, "helper", helper);
 try {
   // ---- 1. both sessions are really signed in -------------------------------
   for (const [who, S, id] of [["poster", P, POSTER_ID], ["helper", H, HELPER_ID]]) {
-    await S.page.goto(`${BASE}/dashboard`, { waitUntil: "domcontentloaded" });
+    await S.page.goto(`${BASE}/home`, { waitUntil: "domcontentloaded" });
     await S.page.waitForTimeout(3500);
     const signedIn = !/\/login/.test(S.page.url());
     step(`${who} session is live (no bounce to /login)`, signedIn, S.page.url().replace(BASE, ""));

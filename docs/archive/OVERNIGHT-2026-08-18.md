@@ -39,7 +39,7 @@
 > - **Starter tightens 2 → 1** — existing starter businesses keep their member but cannot re-invite after a removal.
 > - **My Jobs banner** — direction not chosen.
 > - **Seeded persona avatars.** All six personas share one dicebear URL seeded `Dana%20Guidry`, so every avatar genuinely renders "DG". Bad seed data, not a rendering bug. Correct the rows or leave them.
-> - **Action chips are pastel multi-colour** on /my-posts — taste call.
+> - **Action chips are pastel multi-colour** on /posts — taste call.
 >
 > ### Not re-verified (do not treat as either open or closed)
 >
@@ -82,7 +82,7 @@ Release build 4823) plus code inspection. Owner asleep; questions saved for the 
    instead of the real name. Profile hydration is not resolving — almost
    certainly the `profiles.id` vs `profiles.user_id` confusion (they are
    different values; message sender/receiver are AUTH ids). AGENT ASSIGNED.
-2. **Applicant count renders three times on one card** (/my-posts): a
+2. **Applicant count renders three times on one card** (/posts): a
    "N applicants · pick someone" pill, a "N applicants" meta row, and the
    "Applicants (N)" button. AGENT ASSIGNED.
 3. ~~**Content clipped behind the floating bottom dock**~~ — **I WAS WRONG.**
@@ -93,7 +93,7 @@ Release build 4823) plus code inspection. Owner asleep; questions saved for the 
    wheel-notch resolves. The "dock clearance is solved four different ways"
    section below is still accurate as an observation about the CODE, but it is
    an inconsistency, not a live defect — do not "fix" it on my say-so.
-4. **Action chips are pastel multi-colour** on /my-posts cards: Share=blue,
+4. **Action chips are pastel multi-colour** on /posts cards: Share=blue,
    Boost=orange, Edit=cream, Cancel=pink. Blue appears nowhere else in the
    palette. Proposed, not shipped — taste call for the owner.
 5. **Apply/Bid dialog is cut off horizontally.** Reported months ago and
@@ -179,7 +179,7 @@ Release build 4823) plus code inspection. Owner asleep; questions saved for the 
    fresh" uses a `>` chevron (navigates), "Repost a recent job" and "Use a
    template" use `⌄` (expand in place), and "Try the AI Job Builder" uses a text
    button ("Try it" / "Hide"). Three different signals for four sibling rows.
-10. **Blue keeps appearing outside the palette** — the Share chip on /my-posts,
+10. **Blue keeps appearing outside the palette** — the Share chip on /posts,
     the "Storm · IN SEASON" category tile, and the Delivery category dot. The
     brand is olive / burnt-sienna / parchment; blue reads as foreign.
 
@@ -203,7 +203,7 @@ screen is left to solve it alone. They have solved it differently:
 - `AppliedJobsTab.tsx:264` — a NEGATIVE `marginBottom: calc(-1 * (env(safe-area-inset-bottom) + 96px))`,
   i.e. deliberately pulling content DOWN under the dock.
 - `PetReportCard.tsx`, `CompletionChoiceSheet.tsx` — the `pb-safe-nav` utility.
-- /my-posts and /profile — nothing, which is why their last row is clipped.
+- /posts and /profile — nothing, which is why their last row is clipped.
 
 Four mechanisms (utility class, inline calc, negative margin, nothing) for one
 concern. CLAUDE.md's rule is that the 100dvh lock, the internal scroller and the

@@ -5,7 +5,7 @@
 //
 // The bug this pins: ProtectedRoute's email gate read
 // `!allowPending && !user.email_confirmed_at`, so every route mounted with that
-// (since-deleted, Q205a) prop — /dashboard, /my-jobs, /my-posts, /messages —
+// (since-deleted, Q205a) prop — /home, /jobs, /posts, /messages —
 // let an unconfirmed account in to "browse while they wait". The route list is
 // DERIVED from the route table in src/App.tsx (every `<Route path=…>` whose
 // element mounts `<ProtectedRoute`), not typed here, so a route added tomorrow
@@ -20,7 +20,7 @@
 //
 // PROVEN RED 2026-09-23: against the pre-fix ProtectedRoute (git HEAD
 // ff4ace98c) 14 of 20 cases failed — every route then mounted with a bypass
-// prop (/dashboard, /my-jobs, /my-posts, /messages, /profile,
+// prop (/home, /jobs, /posts, /messages, /profile,
 // /complete-profile) rendered PROTECTED for an unconfirmed account. The first
 // registered mutation below (skipping the email gate outright) re-opens it.
 // @mutate src/components/ProtectedRoute.tsx | if (!user.email_confirmed_at) { | if (false) {
@@ -146,7 +146,7 @@ describe("Q180: the email gate covers EVERY protected route", () => {
     expect(uses).toBe(protectedRoutes.length);
     expect(protectedRoutes.length).toBeGreaterThan(8);
     const paths = protectedRoutes.map((r) => r.path);
-    for (const p of ["/dashboard", "/my-jobs", "/my-posts", "/messages", "/profile", "/complete-profile"]) {
+    for (const p of ["/home", "/jobs", "/posts", "/messages", "/profile", "/complete-profile"]) {
       expect(paths).toContain(p);
     }
   });

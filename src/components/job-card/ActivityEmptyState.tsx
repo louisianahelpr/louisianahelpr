@@ -16,7 +16,7 @@ import type { Tab } from "@/components/job-card/activityConstants";
  * vice-versa: when they haven't applied to anything, "post a job"
  * surfaces the other half of the marketplace they may not have tried.
  * Cross-tab CTAs intentionally swap the suggestion: posted-empty points
- * at /dashboard (Apply), applied-empty points at /post-job (Post).
+ * at /home (Apply), applied-empty points at /post-job (Post).
  */
 export interface ActivityEmptyStateProps {
   tab: Tab;
@@ -87,7 +87,7 @@ export function ActivityEmptyState({
   // user go and look. When we already know exactly which buckets hold their
   // items, say so: "Nothing under active — but you have 3 in Closed."
   //
-  // This is the same failure the /my-jobs default-filter bug produced — items
+  // This is the same failure the /jobs default-filter bug produced — items
   // present, screen blank, the explanation one menu away — so the empty state
   // should point at them rather than shrug.
   const activeLabel =
@@ -103,7 +103,7 @@ export function ActivityEmptyState({
      Scheduled view, read "you have 2 in Needs You and 3 in Waiting" above a
      single button that said "Show Waiting (3)": the sentence named the
      approval that was waiting on them and the control walked past it
-     (measured 2026-09-07 on /my-posts as Audit Weblane). */
+     (measured 2026-09-07 on /posts as Audit Weblane). */
   const jumpTo = (statusLabels ?? [])
     .filter((f) => f.key !== statusFilter && f.key !== "all" && (statusCounts?.[f.key] ?? 0) > 0)
     .sort((a, b) =>
@@ -138,8 +138,8 @@ export function ActivityEmptyState({
     ? (isPosted ? "Browse Jobs" : "Post a Job")
     : (isPosted ? "Post a Job" : "Browse Jobs");
   const ctaTo = isCrossTabSuggestion
-    ? (isPosted ? "/dashboard" : "/post-job")
-    : (isPosted ? "/post-job" : "/dashboard");
+    ? (isPosted ? "/home" : "/post-job")
+    : (isPosted ? "/post-job" : "/home");
   // Icon mirrors the CTA target so the eye lands on the matching glyph.
   const Icon = isCrossTabSuggestion
     ? (isPosted ? Send : Wrench)
@@ -172,7 +172,7 @@ export function ActivityEmptyState({
              tapping it switched bucket with the query still applied, landed
              on another zero, and offered the next bucket: a treadmill that
              never reaches the two jobs it promised (measured 2026-09-07 on
-             /my-posts?q=zzz-nomatch). The one action that ends a search miss
+             /posts?q=zzz-nomatch). The one action that ends a search miss
              is clearing the search. */
           hasSearch && onClearSearch ? (
             <BarkPillButton onClick={onClearSearch}>Clear search</BarkPillButton>

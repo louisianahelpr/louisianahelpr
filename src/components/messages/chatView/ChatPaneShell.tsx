@@ -79,7 +79,7 @@ export function ChatPaneShell({
     // conversation was the ONE authed screen painted straight onto the page
     // canvas — no card, no border, and a composer whose white band simply
     // stopped in mid-air. Measured at 1440: `.page-panel` count 1 on
-    // /my-jobs, /my-posts and the Messages INBOX (which is itself a
+    // /jobs, /posts and the Messages INBOX (which is itself a
     // PageScaffold), 0 here.
     //
     // PageScaffold is that panel, and it is a thin wrapper over AppShell —

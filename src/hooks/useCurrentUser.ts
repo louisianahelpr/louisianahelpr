@@ -15,7 +15,7 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"];
  * `fetchCurrentUser`. A privilege check must still fail CLOSED on `unknown`
  * (deny access), but the UI must be able to tell the reader *why* it is
  * denying, and offer a retry, instead of silently redirecting an admin to
- * /dashboard because their connection was slow.
+ * /home because their connection was slow.
  */
 export type AdminStatus = "admin" | "not_admin" | "unknown";
 
@@ -31,7 +31,7 @@ export type AdminStatus = "admin" | "not_admin" | "unknown";
  * It was 10000, and the query below carried its own `retry: 2` — which is the
  * part nobody costed. Against a backend that HANGS (not one returning 500s,
  * where the failure is instant) that is three 10s attempts plus TanStack's
- * backoff between them. Measured on the preview build, /my-jobs, every
+ * backoff between them. Measured on the preview build, /jobs, every
  * `/rest/v1/profiles` request held open and never answered:
  *
  *   time to the account error card: 32.2s
@@ -173,7 +173,7 @@ const fetchCurrentUser = async (
   //
   // What it must NOT do is report the failure as `false`. `.catch(() => false)`
   // made a slow network INDISTINGUISHABLE from "not an admin": AdminRoute read
-  // `isAdmin === false` and bounced a real admin to /dashboard with nothing on
+  // `isAdmin === false` and bounced a real admin to /home with nothing on
   // screen to say a lookup had failed — reproduced repeatedly against prod on
   // 2026-08-31 with the role row present and the response body confirmed
   // `[{"role":"admin"}]`, on a connection slow enough to cross the profile-query timeout.

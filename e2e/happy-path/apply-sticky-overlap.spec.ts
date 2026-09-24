@@ -278,7 +278,7 @@ for (const { width, height, label } of [
       } catch { /* no-storage guard */ }
     });
     await page.setViewportSize({ width, height });
-    await page.goto("/dashboard");
+    await page.goto("/home");
 
     const card = page.getByText(BASE_JOB.title);
     await card.waitFor({ timeout: 20_000 });

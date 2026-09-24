@@ -1,5 +1,5 @@
 /**
- * OWNER, 2026-09-21, pointing at a /my-jobs card: "any time i click in this job
+ * OWNER, 2026-09-21, pointing at a /jobs card: "any time i click in this job
  * card, it opens apple maps. ths is not correct."
  *
  * ── WHAT WAS ACTUALLY WRONG, MEASURED ─────────────────────────────────────
@@ -10,11 +10,11 @@
  * anchor itself carries that class, so the link box is the whole row, and
  * `py-2 -my-2` makes it 32px tall.
  *
- * Measured on prod (helper-e2e, /my-jobs, Chromium at 375, local build):
+ * Measured on prod (helper-e2e, /jobs, Chromium at 375, local build):
  * every card was 301x139 with a 267x32 live maps anchor in it — 89% of the
  * card's width, sitting directly under the title, painted exactly like the
  * plain date text beside it. 15% of the card's in-viewport area opened Apple
- * Maps. The same probe on /my-posts scored 0% (its anchor is the 1x1 sr-only
+ * Maps. The same probe on /posts scored 0% (its anchor is the 1x1 sr-only
  * one), because My Posts already took the fix this card was denied.
  *
  * ── WHY `DirectionsButton.test.tsx`'s stopPropagation DID NOT SAVE IT ─────
@@ -156,7 +156,7 @@ const mapsLinks = () =>
     ),
   );
 
-describe("/my-jobs card: a tap opens the job, it never opens Apple Maps", () => {
+describe("/jobs card: a tap opens the job, it never opens Apple Maps", () => {
   it("has no VISIBLE maps link — the only one is the focus-only accessible action", () => {
     renderCard();
     const links = mapsLinks();

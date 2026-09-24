@@ -308,7 +308,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
         await expect(draft, "the draft row does not name the job it belongs to").toContainText(job.title);
         await step(journey, page, "unfunded-is-a-draft");
 
-        await page.goto(`/my-posts?job=${job.id}`);
+        await page.goto(`/posts?job=${job.id}`);
         await expect(page.getByRole("heading", { name: "My Posts", level: 1 })).toBeVisible({ timeout: 45_000 });
         // `?job=` is the app's OWN "take me to this job" link (Activity.tsx):
         // when the id is in `postedJobs` it sets the status filter to that
@@ -325,7 +325,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
           page.getByText(job.title),
           "an unfunded job is still listed as a post — no Helpr can see it, so it is a card for a job that cannot move",
         ).toHaveCount(0);
-        await step(journey, page, "unfunded-not-in-my-posts");
+        await step(journey, page, "unfunded-not-in-posts");
       } finally {
         await ctx.close();
       }

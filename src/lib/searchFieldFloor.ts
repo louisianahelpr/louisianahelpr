@@ -17,7 +17,7 @@
  * still be read back.
  *
  * What it really guards is the REGRESSION. Measured on 2026-09-19 at 320px,
- * signed in: /my-posts 76px, /my-jobs 76px, /messages 42px, with the ✕ drawn
+ * signed in: /posts 76px, /jobs 76px, /messages 42px, with the ✕ drawn
  * ON TOP of the magnifier on all three, and "oak tree" typed into the 375
  * field rendering as "ree". The field is the only flexible item on those rows
  * — title, held-open magnifier slot, icon cluster and gaps are all fixed — so

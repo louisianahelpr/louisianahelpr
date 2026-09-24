@@ -465,7 +465,7 @@ Everything below was opened or executed. Nothing in scope is unlisted.
 Chromium and WebKit, plus a clean control.
 
 **Executed live (Playwright, dev server :5231):** `/` (Chromium + WebKit),
-`/signup` step 1 + step 2, `/login`, `/dashboard` (authed, 10 seeded jobs),
+`/signup` step 1 + step 2, `/login`, `/home` (authed, 10 seeded jobs),
 job-detail sheet + save control, `/post-job` entry + form (two tabs, one
 context). Storage matrix: clean · corrupt-nonjson · corrupt-halfjson ·
 corrupt-expired · blocked · quota-full · idb-blocked. Failure injection:

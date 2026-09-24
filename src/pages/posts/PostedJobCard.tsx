@@ -253,7 +253,7 @@ function PostedJobCardInner({
                 // the prop's note in JobCardMetaRow.
                 locationPressToMap
                 /* THE FULL ADDRESS GOES WHERE THE CITY WAS (owner, 2026-09-19,
-                   pointing at /my-jobs: "the full address needs to go where the
+                   pointing at /jobs: "the full address needs to go where the
                    city place is"). The poster is always entitled to their own
                    job's address — `user_may_see_job_address` lists them first —
                    so this is unconditional here, where on the Helpr's card it

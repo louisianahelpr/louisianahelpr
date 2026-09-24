@@ -130,7 +130,7 @@ export async function handleChargeRefunded(
         type: "payment",
         // The refunded job, not the My Posts default bucket — a refunded job
         // is `cancelled`/`done`, never "Needs you".
-        link: `/my-posts?job=${refundedJob.id}`,
+        link: `/posts?job=${refundedJob.id}`,
       });
       if (notifyErr) logStep("WARN: refund notification insert failed", { error: notifyErr.message });
 

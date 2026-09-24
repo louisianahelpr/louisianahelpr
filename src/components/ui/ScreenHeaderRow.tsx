@@ -34,7 +34,7 @@ const SCREEN_HEADER_ROW_MIN_HEIGHT = "44px";
 /**
  * THE MAGNIFIER'S LANDING SLOT — the whole of the three-click fix.
  *
- * Owner, 2026-09-19 (/my-posts): "the x on search needed to be clicked 3 times
+ * Owner, 2026-09-19 (/posts): "the x on search needed to be clicked 3 times
  * to close the search bar". The state machine was never the problem (proved by
  * instrumentation, see src/test/searchDismissAndOverlay.test.tsx): one press
  * already clears the query and closes the field. The problem is WHERE the
@@ -55,7 +55,7 @@ const SCREEN_HEADER_ROW_MIN_HEIGHT = "44px";
  * numbers (44 + 4 - 12 - 10) is +26px of OVERLAP, with the ✕'s visual centre
  * landing INSIDE the magnifier's box. One tap closes; the magnifier
  * materialises under the finger; the next tap re-opens. Close, re-open, close
- * — three taps for one intent. Measured at 375 on /my-posts before this
+ * — three taps for one intent. Measured at 375 on /posts before this
  * change: ✕ at 224…268, the trigger returning at 242…286.
  *
  * Shrinking the ✕ cannot fix it: the ✕ is anchored to the field's RIGHT edge,
@@ -177,7 +177,7 @@ export interface ScreenHeaderRowProps {
     /**
      * ON A NARROW PHONE THE NAME STEPS ASIDE, so the field is typable.
      *
-     * ── WHAT THE ROW ACTUALLY HAD, MEASURED AT 375 ON /my-posts ────────────
+     * ── WHAT THE ROW ACTUALLY HAD, MEASURED AT 375 ON /posts ────────────
      *     title 0…132 · field 135…230 (95px) · slot 242…286 · chevron 286…330
      *
      * 95px of field, and the magnifier and the ✕ live INSIDE it (a 36px inset

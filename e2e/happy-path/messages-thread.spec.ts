@@ -96,7 +96,7 @@ test.describe("Messages — the bottom nav can never strand the user", () => {
 
   test("(c) hardware/gesture back from a thread lands on the LIST with its nav — not out of Messages", async ({ page, context, baseURL }) => {
     await setup(page, context, baseURL);
-    await gotoMessages(page, "/dashboard");
+    await gotoMessages(page, "/home");
     await gotoMessages(page);
     await openFirstThread(page);
     expect(new URL(page.url()).searchParams.get("chat")).toBe("1");

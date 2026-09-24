@@ -43,7 +43,7 @@
 //   recoverable-error screen (ProtectedRoute.tsx: `if (isError && !profile)`),
 //   so the sweep would audit ONE screen ~120 times and learn nothing about the
 //   other 60 routes. `user_roles` is exempt for the same reason at the admin
-//   route — fail it and AdminRoute bounces to /dashboard.
+//   route — fail it and AdminRoute bounces to /home.
 //
 // So what this sweep models is: "you are signed in, your account loaded, and
 // then THIS PAGE's data failed / is still in flight". The session-level failure
@@ -426,7 +426,7 @@ async function auditFailingScreen(
 
     // Suppress the onboarding tour, as home-chrome, overlay-sweep and
     // empty-state-sweep do. It mounts ONLY in Dashboard.tsx, on a 1.5s
-    // post-load timer, and then fades in — and this sweep visits /dashboard as
+    // post-load timer, and then fades in — and this sweep visits /home as
     // an authed user (it is in the shared SCREENS list), so without this axe
     // can scan the overlay MID-FADE and report near-transparent text over
     // near-transparent background as a ~1.01:1 contrast failure that does not
@@ -460,7 +460,7 @@ async function auditFailingScreen(
       // longer than that with nothing in flight. So networkidle fires INSIDE
       // the retry window and the sweep photographs the skeleton — then
       // reports "STUCK IN LOADING", which is a claim about permanence it has
-      // no evidence for. Measured on /my-posts (2026-08-17, injected 500s):
+      // no evidence for. Measured on /posts (2026-08-17, injected 500s):
       // skeleton from 0.9s, real error card with h1 + "Try again" from 3.8s,
       // steady through 10.6s. The old wait landed at ~3s, every time.
       //

@@ -86,7 +86,7 @@ describe("bucket order + the live-day rule are one change", () => {
    * rule for only `postedActivityBucket` — so the reorder shipped on both
    * sides while the rule that makes it safe shipped on one, and this guard
    * said nothing. Browser verification found five of five today-jobs sitting
-   * under Scheduled on the helper's /my-jobs.
+   * under Scheduled on the helper's /jobs.
    *
    * Every case below is therefore run through BOTH functions. A rule that is
    * true of one side of a two-sided marketplace and not the other is exactly

@@ -5,8 +5,8 @@
  * Two migrations (20260831232514, 20260901021929) changed notification links
  * by reading `pg_get_functiondef()`, running `regexp_replace` over it and
  * EXECUTE-ing the result. After them, the newest textual definition of e.g.
- * notify_poster_on_status_change still writes '/my-posts?filter=scheduled',
- * while the database writes '/my-posts?job=' || NEW.id::text. A restatement
+ * notify_poster_on_status_change still writes '/posts?filter=scheduled',
+ * while the database writes '/posts?job=' || NEW.id::text. A restatement
  * copied from the newest TEXT silently undoes the rewrite (Q139, 2026-09-23:
  * a branch restated 16 functions that way and reverted 11 direct links).
  *

@@ -50,7 +50,7 @@ export const hasPersistedAuthToken = (): boolean => {
  * ONLY for the case where `supabase.auth.signOut()` has already failed and
  * leaving the token in place would be worse than any inconsistency this
  * causes: after an account is DELETED, a surviving token is what bounces the
- * person straight back into `/dashboard` on a profile that no longer exists.
+ * person straight back into `/home` on a profile that no longer exists.
  * Normal sign-out goes through `signOutWithPushCleanup()`; this is the floor
  * under it, not an alternative to it.
  *

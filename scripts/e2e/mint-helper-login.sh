@@ -14,6 +14,6 @@ curl -s -o /dev/null -w "create-user: %{http_code}\n" -X POST "https://$REF.supa
 # 2. magic link, redirected to the second dev origin (127.0.0.1 = separate session from localhost)
 curl -s -X POST "https://$REF.supabase.co/auth/v1/admin/generate_link" \
   -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d "{\"type\":\"magiclink\",\"email\":\"$ELI_EMAIL\",\"options\":{\"redirect_to\":\"http://127.0.0.1:8080/dashboard\"}}" \
+  -d "{\"type\":\"magiclink\",\"email\":\"$ELI_EMAIL\",\"options\":{\"redirect_to\":\"http://127.0.0.1:8080/home\"}}" \
   | python3 -c "import json,sys;print(json.load(sys.stdin)['action_link'])" > /tmp/lh-helper-magiclink.txt
 echo "magic link written to /tmp/lh-helper-magiclink.txt"

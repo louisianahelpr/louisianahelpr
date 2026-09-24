@@ -217,6 +217,10 @@ serve(async (req) => {
     // with only the payout error, leaving admins unable to tell from the DB
     // alone whether the helper's Connect account was already debited.
     let feeTransferSucceeded = false;
+    // ME-015: the fee_uncollected marker written below used to be clobbered by
+    // the payout-failure write (plain assignment). Kept here and prefixed onto
+    // that write, as the SQL reaper does with COALESCE.
+    let feeMarker = "";
 
     try {
       // Transfer the fee to the platform account first.
@@ -241,13 +245,28 @@ serve(async (req) => {
             `[instant-payout] platform account retrieval failed — fee transfer skipped for instant_payout ${record.id}: ${acctMsg}`
           );
           // Best-effort reconciliation write so the skipped fee is visible in the DB.
+          feeMarker = `fee_uncollected: platform_account_retrieval_failed: ${acctMsg}`;
           const { error: acctRecErr } = await supabaseAdmin
             .from("instant_payouts")
-            .update({ error_message: `fee_uncollected: platform_account_retrieval_failed: ${acctMsg}` })
+            .update({ error_message: feeMarker })
             .eq("id", record.id);
           if (acctRecErr) {
             console.error(`[instant-payout] failed to record platform_account_retrieval_failed for ${record.id}:`, acctRecErr);
           }
+          // ME-015: same write-only marker as the transfer-failure branch below,
+          // which alerts; this one only logged.
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            severity: "warning",
+            title: "Instant-payout fee NOT collected",
+            message: "The platform Stripe account could not be read, so the instant-payout fee transfer was skipped. The helper was not double-charged; the platform forgoes this fee unless it is collected manually.",
+            fields: {
+              "Instant payout ID": String(record.id),
+              "Helper ID": user.id,
+              "Fee (cents)": String(feeCents),
+              Error: acctMsg.slice(0, 200),
+            },
+          });
         }
 
         if (platformAccountId) {
@@ -292,9 +311,10 @@ serve(async (req) => {
           // The reconciliation write is itself best-effort: if it fails we still
           // want the net payout below to proceed, so log rather than throw (a
           // throw here would surface as an uncaught rejection inside .catch()).
+          feeMarker = `fee_uncollected: ${feeMsg}`;
           const { error: recErr } = await supabaseAdmin
             .from("instant_payouts")
-            .update({ error_message: `fee_uncollected: ${feeMsg}` })
+            .update({ error_message: feeMarker })
             .eq("id", record.id);
           if (recErr) {
             console.error(`[instant-payout] failed to record fee_uncollected for ${record.id}:`, recErr);
@@ -412,11 +432,28 @@ serve(async (req) => {
       // alone whether the helper's Connect account was already debited before
       // the payout failed — without this note the record is ambiguous and
       // requires manual Stripe reconciliation on every failed instant payout.
-      let fullError = msg;
+      let fullError = feeMarker ? `${feeMarker} | ${msg}` : msg;
       if (feeCents > 0) {
         fullError += feeTransferSucceeded
           ? ` | IMPORTANT: fee of ${feeCents}¢ was already transferred to platform — reverse transfer to Helpr's Connect account before closing`
           : ` | fee transfer also failed (fee not collected)`;
+      }
+      // ME-015: this is the one branch where the HELPER is out money (the fee
+      // left their Connect balance, no payout followed). It used to alert only
+      // if the DB write below failed; the marker alone reached nobody.
+      if (feeCents > 0 && feeTransferSucceeded) {
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: "Instant-payout fee taken but the payout failed",
+          message: `The ${feeCents}¢ instant-payout fee was transferred from the helper's Connect account to the platform, then the payout itself failed. Reverse the fee transfer to the helper's Connect account.`,
+          fields: {
+            "Instant payout ID": String(record.id),
+            "Helper ID": user.id,
+            "Fee (cents)": String(feeCents),
+            "Payout error": msg.slice(0, 200),
+          },
+        });
       }
       // Same hazard as the completion write above, and this one did not even
       // destructure `error` — a rejected or zero-row update was invisible. A

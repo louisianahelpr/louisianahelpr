@@ -78,6 +78,9 @@ export interface StripeMock {
   accounts: {
     retrieve: ReturnType<typeof vi.fn>;
   };
+  /** instant-payout: the helper's instant_available balance and the payout. */
+  balance: { retrieve: ReturnType<typeof vi.fn> };
+  payouts: { create: ReturnType<typeof vi.fn> };
   charges: {
     retrieve: ReturnType<typeof vi.fn>;
   };
@@ -157,6 +160,12 @@ export const stripeMock: StripeMock = {
   accounts: {
     retrieve: vi.fn(),
   },
+  balance: {
+    retrieve: vi.fn(),
+  },
+  payouts: {
+    create: vi.fn(),
+  },
   charges: {
     retrieve: vi.fn(),
   },
@@ -194,6 +203,8 @@ export function resetStripeMock() {
     stripeMock.refunds,
     stripeMock.transfers,
     stripeMock.accounts,
+    stripeMock.balance,
+    stripeMock.payouts,
     stripeMock.charges,
     stripeMock.subscriptions,
     stripeMock.billingPortal.sessions,

@@ -35,22 +35,6 @@
    "tbl": "applications"
   },
   {
-   "op": "INSERT",
-   "tbl": "broadcast_dismissals"
-  },
-  {
-   "op": "DELETE",
-   "tbl": "broadcast_messages"
-  },
-  {
-   "op": "INSERT",
-   "tbl": "broadcast_messages"
-  },
-  {
-   "op": "UPDATE",
-   "tbl": "broadcast_messages"
-  },
-  {
    "op": "DELETE",
    "tbl": "disputes"
   },

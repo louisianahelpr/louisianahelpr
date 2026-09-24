@@ -72,8 +72,7 @@ const AGO = (d: number) =>
 export const ADMIN_ID = "00000000-0000-4000-8000-0000000000aa";
 
 /**
- * Timestamps that must still be in the FUTURE when the sweep runs — ban expiry,
- * an active broadcast's `expires_at`. Anchored to real time for the same reason
+ * Timestamps that must still be in the FUTURE when the sweep runs — ban expiry. Anchored to real time for the same reason
  * as `DATE` below: a frozen clock would have expired them all.
  */
 const FUTURE = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString();
@@ -1675,12 +1674,6 @@ export const SEED_NOTIFICATION_PREFERENCES = [
   { ...NOTIF_PREF_BASE, id: "72000000-0000-4000-8000-000000000002", user_id: HELPER_ID, match_digest_mode: true, created_at: AGO(300), updated_at: AGO(40) },
 ] satisfies Ins<"notification_preferences">[];
 
-export const SEED_BROADCAST_MESSAGES = [
-  { id: "73000000-0000-4000-8000-000000000001", type: "info", title: "Tropical storm watch for the coast", message: "Jobs in Terrebonne, Lafourche and Plaquemines may be rescheduled this weekend. Check your Activity tab.", created_by: ADMIN_ID, starts_at: AGO(1), expires_at: FUTURE(3), created_at: AGO(1) },
-  { id: "73000000-0000-4000-8000-000000000002", type: "warning", title: "Scheduled maintenance", message: "Payouts pause from 1 to 2am Sunday.", created_by: ADMIN_ID, starts_at: FUTURE(2), expires_at: FUTURE(4), created_at: AGO(0) },
-  { id: "73000000-0000-4000-8000-000000000003", type: "info", title: "Mardi Gras hours", message: "Support replies may be slower this week.", created_by: ADMIN_ID, starts_at: AGO(200), expires_at: AGO(190), created_at: AGO(200) },
-] satisfies Ins<"broadcast_messages">[];
-
 export const SEED_LOGIN_HISTORY = [
   { id: "74000000-0000-4000-8000-000000000001", user_id: CUSTOMER_ID, ip_address: "73.12.44.201", user_agent: "Helpr/1.0.4 (iPhone; iOS 26.1)", created_at: AGO(0) },
   { id: "74000000-0000-4000-8000-000000000002", user_id: CUSTOMER_ID, ip_address: "73.12.44.201", user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15", created_at: AGO(3) },
@@ -2196,7 +2189,6 @@ export const SEED_TABLES: Record<string, unknown[]> = {
   gift_cards: SEED_GIFT_CARDS,
   str_calendar_connections: SEED_STR_CALENDAR_CONNECTIONS,
   notification_preferences: SEED_NOTIFICATION_PREFERENCES,
-  broadcast_messages: SEED_BROADCAST_MESSAGES,
   login_history: SEED_LOGIN_HISTORY,
   user_blocks: SEED_USER_BLOCKS,
   reports: SEED_REPORTS,

@@ -210,74 +210,6 @@ export type Database = {
           },
         ]
       }
-      broadcast_dismissals: {
-        Row: {
-          broadcast_id: string
-          dismissed_at: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          broadcast_id: string
-          dismissed_at?: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          broadcast_id?: string
-          dismissed_at?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "broadcast_dismissals_broadcast_id_fkey"
-            columns: ["broadcast_id"]
-            isOneToOne: false
-            referencedRelation: "broadcast_messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      broadcast_messages: {
-        Row: {
-          created_at: string
-          created_by: string
-          expires_at: string
-          id: string
-          message: string
-          pending_push_fan_out_at: string | null
-          push_fanned_out_at: string | null
-          starts_at: string
-          title: string
-          type: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          expires_at: string
-          id?: string
-          message: string
-          pending_push_fan_out_at?: string | null
-          push_fanned_out_at?: string | null
-          starts_at?: string
-          title: string
-          type?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          expires_at?: string
-          id?: string
-          message?: string
-          pending_push_fan_out_at?: string | null
-          push_fanned_out_at?: string | null
-          starts_at?: string
-          title?: string
-          type?: string
-        }
-        Relationships: []
-      }
       chargeback_clawbacks: {
         Row: {
           created_at: string
@@ -5343,10 +5275,6 @@ export type Database = {
           new_expires_at: string
         }[]
       }
-      fan_out_broadcast_to_notifications: {
-        Args: { _broadcast_id: string }
-        Returns: number
-      }
       get_category_price_stats: {
         Args: { p_category: string; p_parish?: string }
         Returns: {
@@ -6459,7 +6387,6 @@ export type Database = {
       sweep_old_email_send_log: { Args: never; Returns: number }
       sweep_old_error_logs: { Args: never; Returns: number }
       sweep_old_notifications: { Args: never; Returns: number }
-      sweep_pending_broadcast_fan_outs: { Args: never; Returns: number }
       sweep_release_last_chance: { Args: never; Returns: number }
       sweep_silent_cron_failures: { Args: never; Returns: Json }
       sync_jobs_select_grants: { Args: never; Returns: Json }

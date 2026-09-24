@@ -792,6 +792,15 @@
     "nargs": 0
    }
   ],
+  "enforce_chargeback_due_server_owned": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "enforce_completion_on_live_job": [
    {
     "anon": false,
@@ -838,6 +847,15 @@
    }
   ],
   "enforce_dispute_opener_column_whitelist": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "enforce_funded_category_tax_class": [
    {
     "anon": false,
     "args": [],
@@ -914,6 +932,15 @@
     "anon": false,
     "args": [],
     "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "enforce_hire_columns_rpc_only": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
     "nargdefaults": 0,
     "nargs": 0
    }
@@ -1026,6 +1053,15 @@
     "nargs": 0
    }
   ],
+  "enforce_profile_image_urls": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "enforce_referral_cap": [
    {
     "anon": false,
@@ -1068,6 +1104,15 @@
    }
   ],
   "enforce_saved_search_limit": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "enforce_series_columns_client_lock": [
    {
     "anon": false,
     "args": [],
@@ -1124,17 +1169,6 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
-   }
-  ],
-  "fan_out_broadcast_to_notifications": [
-   {
-    "anon": false,
-    "args": [
-     "_broadcast_id"
-    ],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 1
    }
   ],
   "fan_out_push_on_notification": [
@@ -2379,6 +2413,20 @@
     "nargs": 4
    }
   ],
+  "ops_alert_fingerprint": [
+   {
+    "anon": false,
+    "args": [
+     "p_source_kind",
+     "p_source",
+     "p_title",
+     "p_job"
+    ],
+    "authenticated": false,
+    "nargdefaults": 1,
+    "nargs": 4
+   }
+  ],
   "ops_alert_fold_pending": [
    {
     "anon": false,
@@ -2760,6 +2808,15 @@
     "nargs": 0
    }
   ],
+  "reject_contact_leak_in_review": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "reject_new_group_jobs": [
    {
     "anon": false,
@@ -2828,6 +2885,15 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 7
+   }
+  ],
+  "reports_rate_limit": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "resolve_auto_tip": [
@@ -3235,15 +3301,6 @@
     "nargs": 1
    }
   ],
-  "set_broadcast_pending_fan_out": [
-   {
-    "anon": false,
-    "args": [],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 0
-   }
-  ],
   "set_dispute_deadline": [
    {
     "anon": false,
@@ -3378,6 +3435,15 @@
    }
   ],
   "stamp_recurring_series_helper": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "stamp_w9_signer_ip": [
    {
     "anon": false,
     "args": [],
@@ -3524,15 +3590,6 @@
    }
   ],
   "sweep_old_notifications": [
-   {
-    "anon": false,
-    "args": [],
-    "authenticated": false,
-    "nargdefaults": 0,
-    "nargs": 0
-   }
-  ],
-  "sweep_pending_broadcast_fan_outs": [
    {
     "anon": false,
     "args": [],
@@ -4113,7 +4170,7 @@
   },
   "applications": {
    "checks": [
-    "CHECK (((closed_reason IS NULL) OR (closed_reason = 'job_cancelled'::text)))",
+    "CHECK (((closed_reason IS NULL) OR (closed_reason = ANY (ARRAY['job_cancelled'::text, 'party_blocked'::text]))))",
     "CHECK ((stake_status = ANY (ARRAY['none'::text, 'staked'::text, 'returned'::text, 'forfeited'::text])))",
     "CHECK (((stake_amount IS NULL) OR (stake_amount >= (0)::numeric)))"
    ],
@@ -4333,208 +4390,6 @@
     "before:insert",
     "before:insert|update",
     "before:update"
-   ]
-  },
-  "broadcast_dismissals": {
-   "checks": [],
-   "columnGrants": {},
-   "columns": {
-    "broadcast_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": true,
-     "type": "uuid"
-    },
-    "dismissed_at": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "timestamp with time zone"
-    },
-    "id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "uuid"
-    },
-    "user_id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": true,
-     "type": "uuid"
-    }
-   },
-   "grants": {
-    "anon": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
-    ],
-    "authenticated": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
-    ]
-   },
-   "kind": "table",
-   "policies": [
-    {
-     "cmd": "INSERT",
-     "name": "Users can insert own dismissals",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    },
-    {
-     "cmd": "SELECT",
-     "name": "Users can view own dismissals",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    }
-   ],
-   "rls": true,
-   "triggers": []
-  },
-  "broadcast_messages": {
-   "checks": [],
-   "columnGrants": {},
-   "columns": {
-    "created_at": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "timestamp with time zone"
-    },
-    "created_by": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": true,
-     "type": "uuid"
-    },
-    "expires_at": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": true,
-     "type": "timestamp with time zone"
-    },
-    "id": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "uuid"
-    },
-    "message": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": true,
-     "type": "text"
-    },
-    "pending_push_fan_out_at": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "timestamp with time zone"
-    },
-    "push_fanned_out_at": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": false,
-     "type": "timestamp with time zone"
-    },
-    "starts_at": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "timestamp with time zone"
-    },
-    "title": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": false,
-     "notNull": true,
-     "type": "text"
-    },
-    "type": {
-     "enum": null,
-     "generated": false,
-     "hasDefault": true,
-     "notNull": true,
-     "type": "text"
-    }
-   },
-   "grants": {
-    "anon": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
-    ],
-    "authenticated": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
-    ]
-   },
-   "kind": "table",
-   "policies": [
-    {
-     "cmd": "DELETE",
-     "name": "Admins can delete broadcasts",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    },
-    {
-     "cmd": "INSERT",
-     "name": "Admins can insert broadcasts",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    },
-    {
-     "cmd": "UPDATE",
-     "name": "Admins can update broadcasts",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    },
-    {
-     "cmd": "SELECT",
-     "name": "Anyone can view active broadcasts",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    }
-   ],
-   "rls": true,
-   "triggers": [
-    "before:insert"
    ]
   },
   "chargeback_clawbacks": {
@@ -6505,7 +6360,9 @@
    ]
   },
   "helper_availability": {
-   "checks": [],
+   "checks": [
+    "CHECK (((is_available IS NOT TRUE) OR (start_time IS NULL) OR (end_time IS NULL) OR (start_time < end_time))) NOT VALID"
+   ],
    "columnGrants": {},
    "columns": {
     "created_at": {
@@ -7739,6 +7596,7 @@
     "CHECK (((recurrence_days IS NULL) OR (((array_length(recurrence_days, 1) >= 1) AND (array_length(recurrence_days, 1) <= 7)) AND (recurrence_days <@ ARRAY[(0)::smallint, (1)::smallint, (2)::smallint, (3)::smallint, (4)::smallint, (5)::smallint, (6)::smallint]))))",
     "CHECK (((recurrence_weeks IS NULL) OR ((recurrence_weeks >= 1) AND (recurrence_weeks <= 52))))",
     "CHECK ((NOT (COALESCE(is_group_job, false) AND (recurrence_days IS NOT NULL))))",
+    "CHECK ((COALESCE(is_flexible_schedule, false) OR (start_time IS NOT NULL) OR (is_seed AND (recurrence_days IS NULL))))",
     "CHECK (((urgent_fee IS NULL) OR ((urgent_fee >= (0)::numeric) AND (urgent_fee <= (250)::numeric))))",
     "CHECK (((is_urgent IS NOT TRUE) OR ((urgent_fee IS NOT NULL) AND (urgent_fee >= (5)::numeric))))"
    ],
@@ -7757,6 +7615,7 @@
       "cancelled_at",
       "cancelled_by",
       "category",
+      "chargeback_evidence_due_by",
       "client_request_id",
       "commission_tax_amount",
       "completed_at",
@@ -7955,6 +7814,13 @@
      "hasDefault": true,
      "notNull": true,
      "type": "job_category"
+    },
+    "chargeback_evidence_due_by": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
     },
     "client_request_id": {
      "enum": null,
@@ -9930,7 +9796,8 @@
   },
   "messages": {
    "checks": [
-    "CHECK (((content IS NULL) OR (char_length(content) <= 4000)))"
+    "CHECK (((content IS NULL) OR (char_length(content) <= 4000)))",
+    "CHECK ((sender_id <> receiver_id))"
    ],
    "columnGrants": {
     "authenticated": {
@@ -10051,7 +9918,7 @@
      "enum": null,
      "generated": false,
      "hasDefault": false,
-     "notNull": true,
+     "notNull": false,
      "type": "uuid"
     },
     "reply_to_id": {
@@ -13529,6 +13396,13 @@
      "notNull": true,
      "type": "boolean"
     },
+    "redeemed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
     "referral_code_id": {
      "enum": null,
      "generated": false,
@@ -13542,6 +13416,13 @@
      "hasDefault": false,
      "notNull": false,
      "type": "uuid"
+    },
+    "stripe_transfer_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
     },
     "user_id": {
      "enum": null,
@@ -13790,7 +13671,8 @@
    ],
    "rls": true,
    "triggers": [
-    "after:insert"
+    "after:insert",
+    "before:insert"
    ]
   },
   "retained_bans": {
@@ -14019,6 +13901,7 @@
    "triggers": [
     "after:insert",
     "before:insert",
+    "before:insert|update",
     "before:update"
    ]
   },

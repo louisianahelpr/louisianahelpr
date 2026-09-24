@@ -1464,6 +1464,14 @@ sure someone hears it and closes it.
 - [ ] **Q73 Email deliverability.** Verify SPF/DKIM/DMARC for the sending domain,
   seed-inbox placement (inbox vs spam), bounce and complaint rates from
   Resend, and why test mail dead-letters (Q29/Q2). Show them on the scoreboard.
+  MEASURED 2026-09-24 (lead): DNS: SPF, DKIM and DMARC all resolve OK. email_send_log over 30d:
+  856 sent, 54 dlq, 33 failed, 45 pending. All 45 pending were written 2026-09-13 02:11-03:30Z
+  to 2 is_seed accounts, so they are stale log rows, not a stuck queue. Every dlq/failed row in
+  the last 3 days went to an example.com test address ("Resend 422 Invalid `to`", then "Max
+  retries (5)"). That is test noise, and Q144's seed skip removes it. Bounces ARE recorded:
+  resend-webhook is deployed and suppressed_emails holds 1 bounce (2026-09-21). email_send_log
+  never gets a 'bounced' status by design, so rates come from suppressed_emails. Still open:
+  seed-inbox placement and the scoreboard row.
 - [ ] **Q74 App crash rate.** FOUND 2026-09-24 (Q296 work): the NATIVE apps never reported to Sentry. beforeSend dropped every event with hostname 'localhost' outside DEV, and iOS loads from capacitor://localhost, Android from https://localhost; Sentry had 0 error events with a capacitor:// or https://localhost URL in 90 days (search_events, helpr-4m). errorLogger.ts had the same bug fixed with isNativePlatform; Sentry had not. Fixed by isLocalBuildHost (http-only loopback) — takes effect in the next native build (Q152). Then measure crash-free sessions here. iOS/Android crash-free sessions from Sentry native
   + App Store Connect, on the scoreboard with a target (e.g. >= 99.5%), and
   a crash spike creates a ledger alert.

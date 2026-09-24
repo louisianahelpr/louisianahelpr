@@ -254,7 +254,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
           ariaLabel="Message Helpr"
           tone="message"
           // Straight into the thread with THIS helpr on THIS job.
-          onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}
+          onClick={() => navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages")}
         />,
         showApprove ? (
           <JobActionChip

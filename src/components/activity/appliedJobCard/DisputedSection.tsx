@@ -449,7 +449,7 @@ export function DisputedSection({
           label="Message"
           ariaLabel="Message them"
           tone="message"
-          onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)}
+          onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}
         />,
         <JobActionChip
           key="timeline"

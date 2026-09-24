@@ -203,7 +203,7 @@ export function DisputedStep(ctx: PosterStepCtx) {
           label="Message"
           ariaLabel="Message Helpr"
           tone="message"
-          onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}
+          onClick={() => navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages")}
         />,
         <JobActionChip
           key="admin"

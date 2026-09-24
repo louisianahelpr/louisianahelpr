@@ -43,7 +43,11 @@ export function CompletedStep({
   // when the app auto-opens the rating sheet. Matches the reviews INSERT policy.
   // DH-003: once the review window has closed, "Reviewed" still shows but an
   // unreviewed job no longer offers a Review the server would refuse.
+  // AL-009: a helper who deleted their account leaves helper_id NULL, and
+  // openReviewForPosted returns silently on a NULL helper, so the chip would
+  // be a dead control. The helper side gates on posterId the same way.
   const canReview =
+    !!job.helper_id &&
     (job.payment_status === "released" || job.payment_status === "payout_pending") &&
     (!!hasReviewed || reviewWindowOpen(job));
 

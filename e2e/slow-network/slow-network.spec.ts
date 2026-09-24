@@ -229,8 +229,8 @@ test(stepTitle("sign-in", "3g"), async ({ browser, journey }) => {
 
 test(stepTitle("sign-in", "drop"), async ({ browser, journey }) => {
   const creds = posterCreds();
-  const ctx = await newUserContext(browser, null);
-  const page = journey.track("guest", await ctx.newPage());
+  let ctx = await newUserContext(browser, null);
+  let page = journey.track("guest", await ctx.newPage());
   await page.goto("/login");
   await page.locator("#email").fill(creds.email);
   await page.locator("#password").fill(creds.password);
@@ -243,15 +243,15 @@ test(stepTitle("sign-in", "drop"), async ({ browser, journey }) => {
   });
   await test.step("response lost after the server signed in: a retry still lands signed in", async () => {
     journey.allowReport(/sign.?in|auth|fetch|network|load failed/i, "deliberate: the sign-in response is dropped on the wire");
-    // The offline press can finish on its own once the network is back (run
-    // 35931277278 ended on /dashboard); start this step signed out again.
-    if (!/\/login/.test(page.url())) {
-      await ctx.clearCookies();
-      await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
-      await page.goto("/login");
-      await page.locator("#email").fill(creds.email);
-      await page.locator("#password").fill(creds.password);
-    }
+    // Fresh signed-out context: the offline press can still sign in (run
+    // 35935392919's trace: the password grant answered 200 while the context
+    // was set offline, and /dashboard followed a moment after the URL check).
+    await ctx.close();
+    ctx = await newUserContext(browser, null);
+    page = journey.track("guest", await ctx.newPage());
+    await page.goto("/login");
+    await page.locator("#email").fill(creds.email);
+    await page.locator("#password").fill(creds.password);
     await loseNextResponse(page, `${SUPABASE_URL}/auth/v1/token**`);
     await page.locator('button[type="submit"]').click();
     await expect(page.getByText(OFFLINE_COPY).first(), "a lost sign-in response left no message").toBeVisible({ timeout: 30_000 });
@@ -402,12 +402,17 @@ test(stepTitle("apply", "drop"), async ({ browser, request, journey }) => {
   });
   await test.step("RPC response lost, user presses again: exactly one application", async () => {
     journey.allowReport(/appl|fetch|network|failed/i, "deliberate: the apply response is dropped on the wire");
-    await loseNextResponse(page, `${SUPABASE_URL}/rest/v1/rpc/apply_to_job**`);
+    const lost = await loseNextResponse(page, `${SUPABASE_URL}/rest/v1/rpc/apply_to_job**`);
     await apply.click();
+    // The offline step's own "Couldn't send" toast (and its Retry) may still be
+    // up: pressing that one raced a second apply against the in-flight first
+    // (run 35935392919). Wait for THIS attempt's response to be lost, then take
+    // the newest Retry.
+    await expect.poll(() => lost.at, { timeout: 60_000, message: "the apply request never reached the server" }).toBeGreaterThan(0);
     // The dialog closes on press (optimistic apply); a failure on the wire
     // answers with a "Couldn't send your application through" toast whose
     // Retry is the user's way back (seen in run 35931277278's trace).
-    const retry = page.getByRole("button", { name: /^Retry$/ }).first();
+    const retry = page.getByRole("button", { name: /^Retry$/ }).last();
     await expect(retry, "a lost apply response left no Retry (hang or silent)").toBeVisible({ timeout: 60_000 });
     await retry.click();
     await expectExactlyOnce(request, helper, q, "applications row");

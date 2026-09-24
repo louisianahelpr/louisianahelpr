@@ -123,6 +123,8 @@ const ACCEPT_REASONS = {
   application_not_found: "This application no longer exists — the applicant may have withdrawn.",
   application_not_pending: "This applicant can no longer be accepted.",
   not_authorized: "You can only accept applicants on a job you posted.",
+  // Q345: the two of you are blocked (either direction). Never says who blocked.
+  applicant_blocked: "This person can no longer be hired for this job.",
 } as const;
 
 /**
@@ -163,6 +165,8 @@ export const RPC_ERROR_COPY = {
     not_your_offer: "This offer isn't yours to respond to any more.",
     job_not_open: "This job is no longer open.",
     job_not_found: "This job is no longer available.",
+    // Q345: blocked in either direction. Never says who blocked.
+    applicant_blocked: "This offer is no longer available to you.",
   },
   // useOfferHandlers — declining an accepted offer.
   decline_job_offer: {

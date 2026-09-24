@@ -195,3 +195,10 @@ export const PRO_RECURRING_AMOUNT_CENTS: Record<"monthly" | "annual", Record<Pro
   monthly: { basic: 500, pro: 1000, plus: 1500, elite: 2000 },
   annual: { basic: 5000, pro: 10000, plus: 15000, elite: 20000 },
 };
+
+/**
+ * S-003: the "Once" pass is sold at the MONTHLY price (tierConfig.tsx renders
+ * oneTime as `$${monthlyPrice}`), so that is what its live one_time Price must
+ * charge. subscription-reconciliation asks Stripe for all three cycles.
+ */
+export const PRO_ONE_TIME_AMOUNT_CENTS: Record<ProTierKey, number> = PRO_RECURRING_AMOUNT_CENTS.monthly; // S-003 once = monthly

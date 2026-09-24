@@ -76,7 +76,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { PRODUCT_TO_TIER } from "../_shared/productTiers.ts";
-import { PRO_PRICE_MAP, PRO_RECURRING_AMOUNT_CENTS } from "../_shared/proTiers.ts";
+import { PRO_ONE_TIME_AMOUNT_CENTS, PRO_PRICE_MAP, PRO_RECURRING_AMOUNT_CENTS } from "../_shared/proTiers.ts";
 import { subscriptionCurrentPeriodEndISO } from "../_shared/stripeSubscriptionPeriod.ts";
 import { subscriptionLinkage } from "../_shared/subscriptionLinkage.ts";
 
@@ -268,14 +268,15 @@ serve(async (req) => {
     //
     // So this asks STRIPE. It is cheap (one Price retrieve per tier per
     // recurring cycle, six calls) and it runs where a Stripe key already
-    // exists. The one-time cycle is skipped because PRO_RECURRING_AMOUNT_CENTS
-    // deliberately covers only the recurring ladder.
+    // exists. The one-time cycle is checked too (S-003): it charges its own
+    // Price, sold at the monthly amount (PRO_ONE_TIME_AMOUNT_CENTS).
     //
     // Deliberately non-fatal: a Price lookup that fails must not take the
     // whole reconciliation down, because the checks below are about members
     // being charged wrongly RIGHT NOW and matter more than a config drift.
-    for (const cycle of ["monthly", "annual"] as const) {
-      for (const [tier, expectedCents] of Object.entries(PRO_RECURRING_AMOUNT_CENTS[cycle])) {
+    const expectedByCycle = { ...PRO_RECURRING_AMOUNT_CENTS, one_time: PRO_ONE_TIME_AMOUNT_CENTS };
+    for (const cycle of ["monthly", "annual", "one_time"] as const) { // S-003 all three cycles
+      for (const [tier, expectedCents] of Object.entries(expectedByCycle[cycle])) {
         const priceId = PRO_PRICE_MAP[cycle][tier as keyof typeof PRO_RECURRING_AMOUNT_CENTS.monthly];
         if (!priceId) continue;
         try {

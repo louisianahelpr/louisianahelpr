@@ -30,7 +30,7 @@
  *     purge_user_data would have broken account deletion);
  *   - each of the four id-documents policies' last statement is its DROP.
  *
- * @mutate supabase/migrations/20260923145614_drop_retired_id_document_upload.sql |        SET full_name                = NULL, |        SET full_name                = NULL, id_document_url = NULL,
+ * @mutate supabase/migrations/20260924072554_redacted_job_description_is_user_copy.sql |        SET full_name                = NULL, |        SET full_name                = NULL, id_document_url = NULL,
  * @mutate supabase/migrations/20260923165718_drop_retired_id_document_column_and_bucket.sql | ALTER TABLE IF EXISTS public.profiles DROP COLUMN IF EXISTS id_document_url; | SELECT 1;
  * @mutate supabase/migrations/20260923145614_drop_retired_id_document_upload.sql | DROP POLICY IF EXISTS "Admins can view all ID documents"        ON storage.objects; | SELECT 1;
  * @mutate supabase/functions/complete-signup/index.ts | if (phone) updateData.phone = phone; | if (phone) updateData.phone = phone; if (body.idBase64) updateData.id_document_url = "x";

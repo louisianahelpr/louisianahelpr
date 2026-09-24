@@ -41,12 +41,12 @@
  *   - sweep_silent_cron_failures only ingests responses a cron tagged.
  *
  * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | AND j.command NOT LIKE '%cron_http_tag(%' | AND false
- * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | JOIN public.cron_http_requests t ON t.request_id = resp.id | LEFT JOIN public.cron_http_requests t ON t.request_id = resp.id
+ * @mutate supabase/migrations/20260924132850_cron_log_keys_survive_pg_net_id_reuse.sql | JOIN public.cron_http_requests t ON t.request_id = resp.id | LEFT JOIN public.cron_http_requests t ON t.request_id = resp.id
  * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | WHERE h.jobname = r.jobname AND h.created_at = now(); | WHERE false;
- * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | action          = CASE WHEN v_ok THEN action ELSE 'catch_up_failed' END, | action = action,
- * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | IF cardinality(v_parts) > 0 THEN | IF v_errors > 0 THEN
+ * @mutate supabase/migrations/20260924132850_cron_log_keys_survive_pg_net_id_reuse.sql | action          = CASE WHEN v_ok THEN action ELSE 'catch_up_failed' END, | action = action,
+ * @mutate supabase/migrations/20260924132850_cron_log_keys_survive_pg_net_id_reuse.sql | IF cardinality(v_parts) > 0 THEN | IF v_errors > 0 THEN
  *
- * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql |       JOIN public.cron_http_requests tag ON | LEFT JOIN public.cron_http_requests tag ON
+ * @mutate supabase/migrations/20260924132850_cron_log_keys_survive_pg_net_id_reuse.sql |       JOIN public.cron_http_requests tag ON | LEFT JOIN public.cron_http_requests tag ON
  * @mutate supabase/migrations/20260923170422_cron_http_request_ids.sql |     'auto-tip-charge', |     'auto-tip-charge-gone',
  * @mutate supabase/migrations/20260923170422_cron_http_request_ids.sql |        AND command NOT LIKE '%cron_http_tag(%' |        AND true
  * @mutate supabase/migrations/20260923170422_cron_http_request_ids.sql |      WHERE command LIKE '%net.http_post(%' |      WHERE command LIKE '%net.http_post(%' AND jobname LIKE 'auto-%'

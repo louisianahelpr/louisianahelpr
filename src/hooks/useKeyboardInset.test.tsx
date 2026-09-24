@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+/**
+ * @mutate src/hooks/useKeyboardInset.ts |       return () => {\n        cancelled = true;\n        subs.forEach((s) => s.remove());\n      };\n |       void 0;\n
+ */
 import { renderHook, act, waitFor } from "@testing-library/react";
 
 // Mock the Capacitor + Keyboard plugin paths so the hook can be exercised
@@ -153,6 +156,19 @@ describe("useKeyboardInset", () => {
     await flushAsync();
     expect(mocks.showRemove).toHaveBeenCalled();
     expect(mocks.hideRemove).toHaveBeenCalled();
+  });
+
+  // NB-010: native must NOT also attach visualViewport. With Keyboard.resize
+  // = 'body', visualViewport reads ~0 and overwrote the real keyboard height.
+  it("native: never subscribes to visualViewport, and keeps the keyboard height", async () => {
+    mocks.isNativePlatformMock.mockReturnValue(true);
+    const vv = installFakeVisualViewport(800, 0);
+    const { result } = renderHook(() => useKeyboardInset());
+    await flushAsync();
+    expect(vv.addEventListener).not.toHaveBeenCalled();
+    act(() => mocks.fireKeyboardWillShow(300));
+    act(() => vvListeners.resize.forEach((fn) => fn(new Event("resize"))));
+    expect(result.current).toBe(300);
   });
 
   it("web: subscribes to visualViewport resize + scroll", async () => {

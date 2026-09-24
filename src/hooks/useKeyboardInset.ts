@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 
 /**
  * Tracks the on-screen keyboard height in CSS pixels.
@@ -14,35 +15,37 @@ export function useKeyboardInset(): number {
   const [inset, setInset] = useState(0);
 
   useEffect(() => {
-    let cleanupCap: (() => void) | undefined;
     let cancelled = false;
 
-    // Try Capacitor Keyboard plugin (native only)
-    (async () => {
-      try {
-        const { Capacitor } = await import("@capacitor/core");
-        if (Capacitor.isNativePlatform()) {
-          const { Keyboard } = await import("@capacitor/keyboard");
-          const showSub = await Keyboard.addListener("keyboardWillShow", (info) => {
-            if (!cancelled) setInset(info.keyboardHeight);
-          });
-          const hideSub = await Keyboard.addListener("keyboardWillHide", () => {
-            if (!cancelled) setInset(0);
-          });
-          cleanupCap = () => {
-            showSub.remove();
-            hideSub.remove();
-          };
-          return;
-        }
-      } catch {
-        // plugin not available — fall through to visualViewport
-      }
-    })();
+    // NATIVE: the Capacitor Keyboard events ONLY. NB-010: this used to sit in
+    // an un-awaited async IIFE whose `return` left only the IIFE, so native also
+    // attached the visualViewport listeners below. With Keyboard.resize = 'body'
+    // (capacitor.config.ts) the body shrinks with the keyboard, visualViewport
+    // then measures ~0 and overwrote the real keyboardHeight.
+    if (Capacitor.isNativePlatform()) {
+      const subs: Array<{ remove: () => void }> = [];
+      (async () => {
+        const { Keyboard } = await import("@capacitor/keyboard");
+        const show = await Keyboard.addListener("keyboardWillShow", (info) => {
+          if (!cancelled) setInset(info.keyboardHeight);
+        });
+        const hide = await Keyboard.addListener("keyboardWillHide", () => {
+          if (!cancelled) setInset(0);
+        });
+        if (cancelled) { show.remove(); hide.remove(); return; }
+        subs.push(show, hide);
+      })().catch(() => {
+        // plugin not available: no inset; the WebView resizes the body itself.
+      });
+      return () => {
+        cancelled = true;
+        subs.forEach((s) => s.remove());
+      };
+    }
 
-    // visualViewport fallback (web)
+    // WEB: visualViewport.
     const vv = typeof window !== "undefined" ? window.visualViewport : null;
-    if (!vv) return () => { cancelled = true; cleanupCap?.(); };
+    if (!vv) return;
 
     const update = () => {
       const diff = window.innerHeight - vv.height - vv.offsetTop;
@@ -53,10 +56,8 @@ export function useKeyboardInset(): number {
     update();
 
     return () => {
-      cancelled = true;
       vv.removeEventListener("resize", update);
       vv.removeEventListener("scroll", update);
-      cleanupCap?.();
     };
   }, []);
 

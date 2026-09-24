@@ -4,6 +4,10 @@
  * inert (and App Review can ask why it is there). `remote-notification` sat
  * there with no didReceiveRemoteNotification:fetchCompletionHandler: anywhere.
  *
+ * NB-016: en-route tracking must use the native watch, not a WebView timer
+ * iOS suspends in the background.
+ *
+ * @mutate src/components/JobTracking.tsx |     const watch = startEnRouteWatch({ |     setInterval(() => {}, 45_000); const watch = startEnRouteWatch({
  * @mutate ios/App/App/Info.plist | \t\t\t<string>location</string>\n | \t\t\t<string>remote-notification</string>\n\t\t\t<string>location</string>\n
  */
 import { describe, it, expect } from "vitest";
@@ -38,5 +42,16 @@ describe("every iOS background mode has native code behind it (NB-003)", () => {
       expect(HANDLER[m], `no handler rule for background mode "${m}"`).toBeDefined();
       expect(swift, `background mode "${m}" has no native handler`).toMatch(HANDLER[m]);
     }
+  });
+});
+
+describe("en-route tracking is the native watch, not a WebView timer (NB-016)", () => {
+  it("JobTracking starts startEnRouteWatch and runs no setInterval", () => {
+    const code = readFileSync(resolve(ROOT, "src/components/JobTracking.tsx"), "utf8")
+      .split("\n")
+      .filter((l) => !/^\s*(\/\/|\*)/.test(l))
+      .join("\n");
+    expect(code).toMatch(/startEnRouteWatch\(/);
+    expect(code).not.toMatch(/setInterval\(/);
   });
 });

@@ -352,7 +352,7 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     const customerId = customers.data[0]?.id;
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [{
@@ -390,8 +390,19 @@ serve(async (req) => {
         customer_id: user.id,
         duration_hours: String(BOOST_DURATION_HOURS),
       },
-    }, {
-      idempotencyKey: `boost:${user.id}:${job_id}`,
+    };
+    // Same request = same key, so a double tap replays the first session
+    // instead of minting a second payable one. The key carries a digest of the
+    // params because Stripe REJECTS a reused key whose params differ (ME-017
+    // #8): a retry within 24h after a plan change (price, product name), a
+    // first Stripe customer, or web vs app (return URLs) used to fail with an
+    // idempotency error shown as a generic one.
+    const paramsDigest = Array.from(
+      new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(sessionParams)))),
+      (b) => b.toString(16).padStart(2, "0"),
+    ).join("").slice(0, 16);
+    const session = await stripe.checkout.sessions.create(sessionParams, {
+      idempotencyKey: `boost:${user.id}:${job_id}:${paramsDigest}`,
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

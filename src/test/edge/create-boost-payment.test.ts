@@ -33,7 +33,10 @@
 //   request spend two free credits; (2) dropping the Checkout idempotency key
 //   lets a double-tap mint two sessions, i.e. two real charges.
 // @mutate supabase/functions/create-boost-payment/index.ts |         .or(`boost_expires_at.is.null,boost_expires_at.lte.${flipAt}`) | 
-// @mutate supabase/functions/create-boost-payment/index.ts | }, {\n      idempotencyKey: `boost:${user.id}:${job_id}`,\n    }); | });
+// @mutate supabase/functions/create-boost-payment/index.ts | create(sessionParams, {\n      idempotencyKey: `boost:${user.id}:${job_id}:${paramsDigest}`,\n    }); | create(sessionParams);
+//   (3) ME-017 #8: a key that ignores the params makes a retry after a plan
+//   change hit Stripe's idempotency-mismatch error.
+// @mutate supabase/functions/create-boost-payment/index.ts | idempotencyKey: `boost:${user.id}:${job_id}:${paramsDigest}`, | idempotencyKey: `boost:${user.id}:${job_id}`,
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -400,7 +403,7 @@ describe("create-boost-payment — the PAID Stripe Checkout path", () => {
     ];
     // Same user + same job = same key, so Stripe replays the first session
     // rather than minting a second one a second tap could also pay.
-    expect(opts?.idempotencyKey).toBe(`boost:${USER_ID}:${JOB_ID}`);
+    expect(opts?.idempotencyKey).toMatch(new RegExp(`^boost:${USER_ID}:${JOB_ID}:[0-9a-f]{16}$`));
     // A session that pays but does not say WHICH job it boosts charges the
     // poster and boosts nothing — stripe-webhook routes on exactly these keys.
     expect(params.metadata).toMatchObject({
@@ -412,5 +415,23 @@ describe("create-boost-payment — the PAID Stripe Checkout path", () => {
       kind: "job_boost",
       job_id: JOB_ID,
     });
+  });
+
+  it("same request = same key; a changed plan gets a new key instead of Stripe's mismatch error (ME-017 #8)", async () => {
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_boost" }] });
+    stripeMock.checkout.sessions.create.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_x" });
+    const keyFor = async (tier: string) => {
+      resetSupabaseMock();
+      seed(tier);
+      const fn = await load();
+      await fn.fetch(call(fn));
+      const calls = stripeMock.checkout.sessions.create.mock.calls;
+      return (calls[calls.length - 1][1] as { idempotencyKey: string }).idempotencyKey;
+    };
+    const free1 = await keyFor("free");
+    const free2 = await keyFor("free");
+    const paid = await keyFor("basic");
+    expect(free1).toBe(free2);
+    expect(paid).not.toBe(free1);
   });
 });

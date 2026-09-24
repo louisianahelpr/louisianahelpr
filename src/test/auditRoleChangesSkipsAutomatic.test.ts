@@ -27,7 +27,7 @@ describe("audit_role_changes logs admin actions, not signup bookkeeping (AM-004)
 
   it("the skip needs BOTH no actor AND a non-admin role", () => {
     const { f, sql } = defs[defs.length - 1];
-    const skip = sql.match(/IF auth\.uid\(\) IS NULL([^\n]*)THEN\s+RETURN/)?.[1] ?? "";
+    const skip = sql.match(/IF auth\.uid\(\) IS NULL([^\n]*)THEN[^\n]*\n\s+RETURN/)?.[1] ?? "";
     expect(skip, f).toMatch(/<> 'admin'/);
   });
 });

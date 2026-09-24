@@ -45,9 +45,11 @@ serve(async (req) => {
     // Read once: native callers get a return URL the app can intercept.
     const body = await req.json().catch(() => ({}));
     const isNative = isNativeRequest(body);
-    // "job_post" is the only caller today (IDVPromptDialog is only mounted
-    // from PostJob) — see 20260829090211_idv_job_post_skips_fee_gate.sql for
-    // why that context is allowed to skip the pre-paid-fee requirement.
+    // Only PostJob's IDVPromptDialog sends "job_post". The Profile row
+    // (VerificationStatusRow) mounts the same dialog but deliberately sends no
+    // context, so it keeps the fee gate — see
+    // 20260829090211_idv_job_post_skips_fee_gate.sql for why that context is
+    // allowed to skip the pre-paid-fee requirement.
     const skipFeeGate = (body as { context?: string })?.context === "job_post";
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",

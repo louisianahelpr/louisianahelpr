@@ -24,6 +24,7 @@ import { join } from "node:path";
 // How purge_user_data treats each (live prosrc, 2026-09-24). "deletes" and
 // "anonymises" tables are Q331: give each a FK that matches purge (CASCADE /
 // SET NULL) so a deletion that skips purge cannot orphan them.
+// @two-way src/test/userIdForeignKeys.test.ts:KNOWN_NO_FK lists no table that now has a FK
 const KNOWN_NO_FK: Record<string, string> = {
   admin_user_notes: "purge deletes; FK pending Q331",
   analytics_events: "purge anonymises (nullable); FK SET NULL pending Q331",

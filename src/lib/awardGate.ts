@@ -46,7 +46,7 @@ export function awardBlockFromError(err: unknown): AwardBlockReason | null {
  * (Q320).
  */
 export const UNFUNDED_AWARD_COPY =
-  "This job isn't funded right now, so it can't be accepted yet. The poster needs to complete checkout first.";
+  "This job isn't funded right now, so it can't be accepted yet. The person who posted this job needs to complete checkout first.";
 export function isUnfundedAwardRefusal(err: unknown): boolean {
   const e = err as { code?: unknown; message?: unknown } | null;
   return String(e?.code ?? "") === "23514" && /not funded/i.test(String(e?.message ?? ""));

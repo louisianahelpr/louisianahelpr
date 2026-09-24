@@ -27,16 +27,32 @@ import { del, get, set } from "idb-keyval";
  * idb-keyval transparently stores the JSON string under a single key in
  * its default IndexedDB database (`keyval-store`).
  */
+// Each method is best-effort (CC-004): with IndexedDB unavailable (Safari
+// private mode, blocked site data) idb-keyval throws on every cold load, and
+// an uncaught rejection there looks like a crash in Sentry. Persistence is
+// optional — a failed read is an empty cache, a failed write is skipped.
 const idbAsyncStorage = {
   getItem: async (key: string): Promise<string | null> => {
-    const value = await get<string>(key);
-    return value ?? null;
+    try {
+      const value = await get<string>(key);
+      return value ?? null;
+    } catch {
+      return null;
+    }
   },
   setItem: async (key: string, value: string): Promise<void> => {
-    await set(key, value);
+    try {
+      await set(key, value);
+    } catch {
+      /* persistence unavailable; the in-memory cache still works */
+    }
   },
   removeItem: async (key: string): Promise<void> => {
-    await del(key);
+    try {
+      await del(key);
+    } catch {
+      /* persistence unavailable; nothing was stored */
+    }
   },
 };
 

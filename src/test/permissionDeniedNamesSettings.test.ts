@@ -5,7 +5,7 @@
  * location / photo / camera / microphone permission is denied or off must name
  * Settings.
  *
- * @mutate src/hooks/useUserLocation.ts | "Location access is off. Turn it on in Settings to use your location." | "Location permission denied"
+ * @mutate src/hooks/useUserLocation.ts | err.PERMISSION_DENIED ? "Location access is off. Turn it on in Settings to use your location." | err.PERMISSION_DENIED ? "Location permission denied"
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";

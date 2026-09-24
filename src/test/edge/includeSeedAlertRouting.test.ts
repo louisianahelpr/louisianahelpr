@@ -34,7 +34,7 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
-import { PRO_PRICE_MAP, PRO_RECURRING_AMOUNT_CENTS } from "../../../supabase/functions/_shared/proTiers";
+import { PRO_ONE_TIME_AMOUNT_CENTS, PRO_PRICE_MAP, PRO_RECURRING_AMOUNT_CENTS } from "../../../supabase/functions/_shared/proTiers";
 
 const CRON_SECRET = "cron-secret-seed-routing";
 type Alert = { seed?: boolean; title?: string; severity?: string; fields?: Record<string, unknown>; message?: string };
@@ -303,8 +303,9 @@ describe("subscription-reconciliation ?include_seed=1", () => {
     });
     // Every Price says what the app says, so the price check is clean.
     const amountFor = new Map<string, number>();
-    for (const cycle of ["monthly", "annual"] as const) {
-      for (const [tier, cents] of Object.entries(PRO_RECURRING_AMOUNT_CENTS[cycle])) {
+    const expected = { ...PRO_RECURRING_AMOUNT_CENTS, one_time: PRO_ONE_TIME_AMOUNT_CENTS };
+    for (const cycle of ["monthly", "annual", "one_time"] as const) {
+      for (const [tier, cents] of Object.entries(expected[cycle])) {
         const id = PRO_PRICE_MAP[cycle][tier as keyof typeof PRO_RECURRING_AMOUNT_CENTS.monthly];
         if (id) amountFor.set(id, cents as number);
       }

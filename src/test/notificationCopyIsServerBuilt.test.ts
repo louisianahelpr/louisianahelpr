@@ -170,7 +170,8 @@ function edgeOffenders(): Map<string, string> {
     const code = blankComments(readFileSync(file, "utf8"));
     const ids = bodyIdentifiers(code);
     if (!ids.size) continue;
-    for (const m of code.matchAll(/\.from\(\s*["']notifications["']\s*\)\s*\.insert\s*\(/g)) {
+    // Inline inserts and the Q358 shared helper `insertNotifications(client, {...})`.
+    for (const m of code.matchAll(/(?:\.from\(\s*["']notifications["']\s*\)\s*\.insert|\binsertNotifications)\s*\(/g)) {
       const args = callArgs(code, m.index! + m[0].length - 1);
       for (const key of ["title", "message"]) {
         for (const value of propertyValues(args, key)) {
@@ -310,7 +311,7 @@ describe("notification copy is server-built for every non-admin path (Q223)", ()
     const offenders = edgeOffenders();
     // Inventory floor: the scan must be reading real edge functions.
     const scanned = walkSource([FUNCTIONS], [".ts", ".tsx"]).filter((f) =>
-      /\.from\(\s*["']notifications["']\s*\)\s*\.insert/.test(readFileSync(f, "utf8")),
+      /\.from\(\s*["']notifications["']\s*\)\s*\.insert|\binsertNotifications\(\s*\w+\s*,/.test(readFileSync(f, "utf8")),
     );
     expect(scanned.length).toBeGreaterThan(20);
     const unexpected = [...offenders].filter(([f]) => !(f in EDGE_EXEMPT));

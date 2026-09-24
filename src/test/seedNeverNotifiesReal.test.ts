@@ -182,10 +182,15 @@ function balancedLiteral(s: string): string {
   }
   return s;
 }
-const INSERT_NOTIF_TS = /from\(\s*["']notifications["']\s*\)\s*\.(?:insert|upsert)\(\s*/g;
+// `insertNotifications(client, rows)` (Q358) is the same insert through the
+// shared helper; the helper's own `.insert(rows)` is not a producer (its
+// callers are), so tsSites skips that file.
+const INSERT_NOTIF_TS = /(?:from\(\s*["']notifications["']\s*\)\s*\.(?:insert|upsert)\(|\binsertNotifications\(\s*\w+\s*,)\s*/g;
+const NOTIFY_HELPER = "supabase/functions/_shared/insertNotifications.ts";
 function tsSites(): Site[] {
   const out: Site[] = [];
   for (const f of tsFiles) {
+    if (rel(f) === NOTIFY_HELPER) continue;
     const src = codeOf.get(f)!;
     let k = 0;
     for (const m of src.matchAll(INSERT_NOTIF_TS)) {

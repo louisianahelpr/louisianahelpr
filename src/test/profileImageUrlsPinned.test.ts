@@ -1,5 +1,5 @@
 /**
- * A-007: avatar_url and portfolio_urls render into <img src> on 14 surfaces
+ * A-007: avatar_url and portfolio_urls render into <img src> on 14 surfaces (grep, 2026-09-24)
  * (admin user detail among them), so a client write of a third-party URL is a
  * tracking pixel. The newest migration defining enforce_profile_image_urls
  * must anchor on THIS project's host with the trailing slash (so

@@ -1601,3 +1601,4 @@
 {"kind":"status","id":"BR-021","ts":"2026-09-24T07:31:53.440Z","status":"fixed","by":"lead","note":"icons moved to branding/; live check after deploy: /app-icon-1024.png no longer served as PNG"}
 {"kind":"status","id":"AL-012","ts":"2026-09-24T07:31:53.471Z","status":"fixed","by":"lead","note":"purge_user_data writes a readable sentence; PGlite 3x; guard redactedJobDescriptionIsCopy"}
 {"kind":"status","id":"AM-004","ts":"2026-09-24T07:31:53.501Z","status":"fixed","by":"lead","note":"trigger skips no-actor non-admin role rows; PGlite proven; 742 historic rows left (owner call)"}
+{"kind":"status","id":"PD-013","ts":"2026-09-24T07:38:33.572Z","status":"fixed","by":"lead","note":"uuid override ^11.1.1; npm audit 0 vulns; lockfile uuid-only; guard uuidOverridePinned 1/1 killed"}

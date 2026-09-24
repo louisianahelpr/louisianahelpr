@@ -141,9 +141,10 @@
 		  so the return is a two-step: Stripe -> our tagged https page ->
 		  helpr:///path -> here. See src/lib/nativeReturnBounce.ts.
 
-		  Registering it here is also the trust boundary: this scheme is only
-		  deliverable to this bundle, which is why src/lib/deepLinkRoute.ts is
-		  allowed to route it without the https host allowlist.
+		  This scheme is NOT a trust boundary: any app or web page can open a
+		  helpr:// URL. src/lib/deepLinkRoute.ts routes it without the https
+		  host allowlist only because the page it lands on (PaymentSuccess)
+		  performs no writes.
 		-->
 		<dict>
 		<key>CFBundleURLName</key>

@@ -68,9 +68,11 @@ export function normalizeDeepLinkUrl(rawUrl: string): string | null {
   // from a Universal Link opened inside that same app's SFSafariViewController,
   // so the https success_url bounces through the scheme instead (see
   // src/lib/nativeReturnBounce.ts). It carries no host by construction, so the
-  // host allowlist below would reject it; the scheme is only deliverable to us
-  // because it is registered in our own Info.plist, which is the same trust
-  // boundary the allowlist provides for https links.
+  // host allowlist below would reject it. The scheme is NOT exclusive: any app
+  // or web page can open helpr:///anything, and iOS hands it to us. That is
+  // safe only because it can reach nothing a normal in-app link could not, and
+  // the route it exists for (PaymentSuccess) only READS job state — it never
+  // writes (src/test/nativeReturnSchemeIsUntrusted.test.ts).
   const isNativeReturnScheme = url.protocol === `${NATIVE_RETURN_SCHEME}:`;
 
   if (!isNativeReturnScheme && !ALLOWED_DEEP_LINK_HOSTS.has(url.host)) return null;

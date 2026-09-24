@@ -490,7 +490,7 @@ async function dbHealthRows(sqlFn, now) {
   } else {
     try {
       const start = new Date(now - 864e5).toISOString();
-      const q = "select count(*) as n from postgres_logs where regexp_contains(event_message, 'canceling statement due to statement timeout')";
+      const q = "select count(*) as n from logs where source = 'postgres_logs' and positionCaseInsensitive(event_message, 'canceling statement due to statement timeout') > 0";
       const url = logsQueryUrl({ ref, sql: q, start, end: new Date(now).toISOString() });
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(20000) });
       if (!res.ok) throw new Error(`Management API ${res.status}`);

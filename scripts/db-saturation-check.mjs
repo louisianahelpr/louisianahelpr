@@ -31,7 +31,7 @@ const REF = process.env.SUPABASE_PROJECT_REF;
 const WINDOW_MIN = Number(process.env.WINDOW_MINUTES ?? 60);
 
 const TIMEOUT_LOG_SQL =
-  "select count(*) as n from postgres_logs where regexp_contains(event_message, 'canceling statement due to statement timeout')";
+  "select count(*) as n from logs where source = 'postgres_logs' and positionCaseInsensitive(event_message, 'canceling statement due to statement timeout') > 0";
 
 /** The count out of a Management API logs response, or throw — never a silent 0. */
 export function countFromLogsBody(body) {

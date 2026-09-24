@@ -112,7 +112,7 @@ export const QUOTAS = [
     window: "trailing 24h, projected to 30 days",
     read: "logs",
     env: "LH_QUOTA_SUPABASE_EDGE_INVOCATIONS",
-    limitSource: "Supabase Pro: 2,000,000 edge function invocations/month included (pricing page; not re-read 2026-09-23). Measured: count(*) from function_edge_logs over 24h, times 30 (the billing-cycle total has no API).",
+    limitSource: "Supabase Pro: 2,000,000 edge function invocations/month included (pricing page; not re-read 2026-09-23). Measured: function_edge_logs rows in the logs table over 24h, times 30 (the billing-cycle total has no API).",
   },
   {
     id: "supabase.egress",

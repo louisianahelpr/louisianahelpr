@@ -118,7 +118,7 @@ export const SQL = {
       percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM coalesce(pt.paid_at, pt.created_at) - j.completed_at) / 3600) AS p50_h
     FROM public.payout_transfers pt JOIN public.jobs j ON j.id = pt.job_id
     WHERE pt.status = 'paid' AND pt.created_at > now() - interval '30 days' AND j.completed_at IS NOT NULL`,
-  apiErrors: "select count(*) as total, countif(r.status_code >= 500) as errors from edge_logs cross join unnest(metadata) as m cross join unnest(m.response) as r",
+  apiErrors: "select count(*) as total, countIf(toInt32OrZero(log_attributes['response.status_code']) >= 500) as errors from logs where source = 'edge_logs'",
 };
 
 /**

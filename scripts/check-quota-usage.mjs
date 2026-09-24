@@ -108,7 +108,7 @@ async function readEdgeInvocations() {
   if (!TOKEN || !REF) return fail([id], "could not read: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required");
   const end = new Date();
   const start = new Date(end.getTime() - 24 * 3600_000);
-  const q = "select count(*) as n from function_edge_logs";
+  const q = "select count(*) as n from logs where source = 'function_edge_logs'";
   try {
     const url = logsQueryUrl({ ref: REF, sql: q, start: start.toISOString(), end: end.toISOString(), base: SUPA });
     const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }, signal: AbortSignal.timeout(30_000) });

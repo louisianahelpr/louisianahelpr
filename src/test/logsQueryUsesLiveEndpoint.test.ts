@@ -8,6 +8,8 @@
  * script or workflow that builds an /analytics/endpoints/logs URL itself.
  */
 // @mutate scripts/lib/supabaseLogs.mjs | /analytics/endpoints/logs?sql= | /analytics/endpoints/logs.all?sql=
+// @mutate scripts/slo.mjs | from logs where source = 'edge_logs' | from edge_logs
+// @mutate scripts/db-saturation-check.mjs | "select count(*) as n from logs where source = 'postgres_logs' and | "select count(*) as n from postgres_logs where
 // @mutate scripts/db-saturation-check.mjs | const url = logsQueryUrl({ ref: REF, sql: TIMEOUT_LOG_SQL, start, end: new Date(now).toISOString() }); | const url = `https://api.supabase.com/v1/projects/${REF}/analytics/endpoints/logs.all?sql=${TIMEOUT_LOG_SQL}`;
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -45,5 +47,13 @@ describe("Management API log queries use the live endpoint", () => {
       ["scripts/check-quota-usage.mjs", "scripts/db-saturation-check.mjs", "scripts/scoreboard.mjs", "scripts/slo.mjs"],
     );
     expect(files.filter((f) => f.rel !== HELPER && /analytics\/endpoints\/logs\b/.test(f.src)).map((f) => f.rel)).toEqual([]);
+  });
+
+  it("log SQL reads the one ClickHouse `logs` table by source, never the old per-source tables", () => {
+    // The new endpoint answers "Table postgres_logs does not exist" (run 36006924856).
+    const old = /\bselect\b[^"`\n]*\bfrom\s+(edge_logs|postgres_logs|function_edge_logs|function_logs|auth_logs|postgrest_logs)\b/i;
+    expect(files.filter((f) => old.test(f.src)).map((f) => f.rel)).toEqual([]);
+    const readers = ["scripts/check-quota-usage.mjs", "scripts/db-saturation-check.mjs", "scripts/scoreboard.mjs", "scripts/slo.mjs"];
+    for (const r of readers) expect(files.find((f) => f.rel === r)!.src, r).toMatch(/from logs where source = '\w+'/);
   });
 });

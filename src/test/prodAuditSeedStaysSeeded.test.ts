@@ -10,7 +10,7 @@
  *    its first playwright run, so any drifted fixture is restored, not timed out on;
  *  - a journey that removes a pre-existing save restores it.
  *
- * @mutate .github/workflows/prod-audit.yml | run: node scripts/audit/prod-seed.mjs --apply || | run: echo skipped ||
+ * @mutate .github/workflows/prod-audit.yml | run: node scripts/audit/prod-seed.mjs --apply | run: echo skipped
  * @mutate e2e/journeys/03-account.spec.ts | const restored = favoriteWrite("POST"); | const restored = Promise.resolve();
  */
 import { describe, it, expect } from "vitest";

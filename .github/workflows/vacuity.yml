@@ -174,6 +174,37 @@ jobs:
           } > .env
           test -s .env
 
+      - name: Give prod-backed e2e guards the service-role key
+        # e2e registrations (prod-audit, a11y-prod, journeys) mint their test
+        # sessions through scripts/test-signin-link.mjs, which needs
+        # SUPABASE_SERVICE_ROLE_KEY in .env. Without it every such guard is
+        # red BEFORE its mutation and reports INCONCLUSIVE: run 35935153284
+        # (2026-09-23, nightly-red #1731) had 5 of 11 registrations
+        # inconclusive with "ERROR: .env is missing VITE_SUPABASE_URL and/or
+        # SUPABASE_SERVICE_ROLE_KEY". Minted the same way prod-audit.yml does.
+        # Guard: src/test/vacuityWorkflowsProvideServiceRole.test.ts.
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ]; then
+            KEY=$(npx --yes supabase@2 projects api-keys --project-ref "$PROJECT_REF" --reveal -o json \
+              | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+            echo "::add-mask::$KEY"
+            umask 077
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY" >> .env
+          elif [ "$EVENT" = "schedule" ] || [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN missing: prod-backed e2e guards cannot mint sessions."
+            exit 1
+          else
+            # A bot PR (dependabot) gets no secrets. Not a false green: an e2e
+            # registration in its changed set comes back INCONCLUSIVE, which
+            # the gate itself fails on.
+            echo "::warning::SUPABASE_ACCESS_TOKEN missing on a $EVENT run: e2e registrations that need the service-role key will be inconclusive."
+          fi
+
       - name: Vacuity gate
         env:
           # Through env, never interpolated into the script (injection-safe).
@@ -205,6 +236,10 @@ jobs:
           name: vacuity-report
           path: docs/audit/vacuity-report.json
           if-no-files-found: warn
+
+      - name: Remove the service-role key from the runner
+        if: always()
+        run: rm -f .env
 
   # A RED RUN HAS TO LAND SOMEWHERE. Added 2026-09-23 after vacuity — along
   # with 13 other scheduled workflows — was found failing with nobody told.

@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 235 done, 28 partly done (fixed, protection pending), 110 open. Source of truth for work.
+- **Queue (this file):** 235 done, 29 partly done (fixed, protection pending), 111 open. Source of truth for work.
 - **Audit bus:** 37 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 373 items — 235 done, 28 partly done (fixed, protection pending), 110 open.**
+**Queue: 375 items — 235 done, 29 partly done (fixed, protection pending), 111 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -2936,3 +2936,5 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q374** (LAUNCH CHECKLIST, owner MQ21/24 2026-09-24, "you decide"): before launch, the owner's CPA answers (1) whether to add a Louisiana registration in Stripe Tax, (2) which job categories are taxable, and (3) whether the service fee is taxable. No code change until then.
 - [ ] **Q375** (OWNER TO-DO, MQ26 2026-09-24): the owner makes a fresh Sign in with Apple web secret (tools/apple-jwt.html + the .p8) and pastes it into Supabase > Auth > Apple; the lead records today + 6 months for the expiry monitor. VERCEL_TOKEN expiry is still unknown.
 - [x] **Q376** (alert, ledger 998885c7 + 66fa774b, 2026-09-24): cron-dead "sweep-pending-broadcast-fan-outs is expected to run but does not exist in cron.job" and the "1 cron(s) need attention" page it sent at 18:53Z. Root cause: 20260924174847_drop_broadcasts_feature unscheduled the cron but left its cron_work_expectations row (measured live: the only expectation with no cron.job entry). DONE 2026-09-24: migration 20260924221523_retire_broadcast_cron_expectation deletes the row. GUARD: src/test/cronLivenessCoverage.test.ts "a cron a migration unschedules has its expectation retired too" (red without the migration; @mutate proven by vacuity --only).
+- [~] **Q377** (alert, nightly-red #1731 / ledger b8e9e48d, 2026-09-24): vacuity run 35935153284 had 5 of 11 registrations INCONCLUSIVE, every one an e2e guard that mints a prod session through scripts/test-signin-link.mjs ("ERROR: .env is missing VITE_SUPABASE_URL and/or SUPABASE_SERVICE_ROLE_KEY"): vacuity.yml wrote only the publishable pair. FIXED 2026-09-24: vacuity.yml mints the service-role key the way prod-audit.yml does and removes .env at the end. GUARD: src/test/vacuityWorkflowsProvideServiceRole.test.ts (every job that runs the harness writes the key; red on the old vacuity.yml; @mutate proven). PENDING: the re-dispatch with the same --only list must go green to close #1731.
+- [ ] **Q378** (alert, nightly-red #1783 privacy-journey + #1772 schedule-heartbeat, 2026-09-24; FENCED: e2e/ is the lead's during the route rename): e2e/privacy/privacy-requests.spec.ts seeds its disposable account with the literal `terms_version_accepted: "Jun 2026"` (lines 202 and 429); since the terms bump to "Sep 2026" the app shows the "Please Take a Moment to Re-Agree" dialog and "Download My Data" is never reachable (run 36066796503, screenshot ~/.lh-shots/alerts-0924/privacy/). schedule-heartbeat is red only because no privacy-journey run has gone green since the month marker was added (Q293, 09-23 21:38Z; the one green run was 19:10Z), so the privacy-journey-marker issue does not exist. Fix: import LATEST_TERMS_VERSION from src/lib/consent.ts in the spec (e2e/happy-path/fixtures.ts already does), dispatch privacy-journey, then schedule-heartbeat. GUARD to add: no literal terms version in e2e/ or scripts/ seeders (scripts/audit/prod-seed.mjs:267 and scripts/create-app-review-demo-account.mjs:174 also hard-code "Sep 2026" and will break at the next bump). The run also reported "privacy: perTest 15 is under half its budget 40.5", which is from the truncated run, not a real budget change.

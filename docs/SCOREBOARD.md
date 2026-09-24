@@ -16,8 +16,8 @@ Recomputed from committed files and diffed on every push by
 
 | group | signal | status | pass | fail | skipped | total | measured at | source | note |
 |---|---|---|---|---|---|---|---|---|---|
-| open work | OPEN.md queue (done / partly / open) | **WARN** | 226 | 102 | 27 partly | 355 | HEAD (diffed every push) | [docs/OPEN.md](OPEN.md) · scripts/queue-count.mjs | 226 done, 27 partly done (fixed, protection pending), 102 open |
-| open work | audit bus findings (open / launch blockers) | **FAIL** | 283 | 78 | — | 429 | HEAD (diffed every push) | [ROLLUP.md](audit/launch-2026-09/ROLLUP.md) · `node scripts/audit-bus.mjs list --blockers` | 78 open, 3 open launch blockers; 283 fixed, 14 retracted, 31 duplicate, 1 wontfix, 22 obsolete |
+| open work | OPEN.md queue (done / partly / open) | **WARN** | 227 | 102 | 27 partly | 356 | HEAD (diffed every push) | [docs/OPEN.md](OPEN.md) · scripts/queue-count.mjs | 227 done, 27 partly done (fixed, protection pending), 102 open |
+| open work | audit bus findings (open / launch blockers) | **FAIL** | 286 | 75 | — | 429 | HEAD (diffed every push) | [ROLLUP.md](audit/launch-2026-09/ROLLUP.md) · `node scripts/audit-bus.mjs list --blockers` | 75 open, 3 open launch blockers; 286 fixed, 14 retracted, 31 duplicate, 1 wontfix, 22 obsolete |
 | guards | vacuity: guards proven able to fail / exempt / owed | **PASS** | 952 | 0 | 9 exempt | 961 | HEAD (diffed every push) | [GUARD-BURNDOWN.md](GUARD-BURNDOWN.md) · `npm run vacuity` | registered @mutate per guard; whether each mutation is KILLED is the full-sweep row below |
 | number currency | dead-code baseline (unused exports / types ceiling) | **INFO** | — | — | — | 96 exports, 11 types | HEAD (diffed every push) | scripts/deadcode-baseline.json · src/test/deadcodeRatchet.test.ts | a ratchet ceiling; whether knip stays under it is the test.yml Dead code step (live section) |
 | number currency | undated stated counts (baselined, may only shrink) | **WARN** | — | 305 | — | 305 | HEAD (diffed every push) | scripts/stated-counts-baseline.json · `npm run check:counts` | each is a number in prose with no date; new ones already fail check:counts |

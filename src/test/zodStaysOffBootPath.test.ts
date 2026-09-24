@@ -29,6 +29,7 @@ describe("zod stays off the boot path", () => {
     const files = walkSource([join(ROOT, "src")]).filter(
       (f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$|\/test\//.test(f),
     );
+    expect(files.length).toBeGreaterThan(500); // ~1,000 app modules on 2026-09-24
     const offenders = files
       .map((f) => relative(ROOT, f))
       .filter((f) => !ZOD_HOMES.has(f))

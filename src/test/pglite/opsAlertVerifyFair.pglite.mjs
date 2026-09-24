@@ -9,9 +9,9 @@
  *
  * The ledger table is created from its own migration; ops_alert_condition and
  * ops_alert_fold_pending are stubbed so the only thing under test is WHICH
- * items the verifier re-asks. Proves, with 250 fresh still-failing items and
- * one OLD money item whose condition has cleared:
- *   - the old item closes within ceil(251 / 200) = 2 runs (the old verifier
+ * items the verifier re-asks. Proves, with a burst of fresh still-failing
+ * items larger than one batch and one OLD money item whose condition cleared:
+ *   - the old item closes within ceil(open / batch) runs (the old verifier
  *     never reaches it while the burst stays fresher);
  *   - an item whose condition can never be answered (NULL) does not keep its
  *     slot: every open item is asked within ceil(open / 200) runs;

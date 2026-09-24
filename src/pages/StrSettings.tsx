@@ -27,7 +27,6 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import type { AddFormState, StrConnection } from "./strSettings/types";
 import { cardStyle } from "./strSettings/strSettingsHelpers";
 import { ConnectionCard } from "./strSettings/ConnectionCard";
@@ -39,7 +38,6 @@ import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 // Main page
 // ---------------------------------------------------------------------------
 export default function StrSettings({ onBack }: { onBack?: () => void }) {
-  usePageTitle("Host Automation — Helpr");
   const [addOpen, setAddOpen] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);

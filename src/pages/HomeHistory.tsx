@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Calendar, Home, Loader2, Share2 } from "lucide-react";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
 import { getCategoryIcon } from "@/lib/categoryIcons";
@@ -114,7 +113,6 @@ function groupByYear(jobs: CompletedJobWithHelper[]): { year: number; jobs: Comp
  * life of the house) and scrolls in the AppShell container Profile owns.
  */
 const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
-  usePageTitle("Home History — Helpr");
   const navigate = useNavigate();
   const { user } = useAuthReady();
   const userId = user?.id;

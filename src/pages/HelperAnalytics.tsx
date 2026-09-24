@@ -29,7 +29,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { BarChart3 } from "lucide-react";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import {
@@ -79,7 +78,6 @@ function RangeToggle({
 }
 
 export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
-  usePageTitle("Analytics");
   const { user, profile, isLoading: userLoading } = useCurrentUser();
   const [range, setRange] = useState<AnalyticsRange>(DEFAULT_ANALYTICS_RANGE);
   const { data, isLoading, isError, refetch, isFetching } = useHelperAnalytics(user?.id, range);

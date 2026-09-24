@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -39,7 +38,6 @@ import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
  * the AppShell; keeping it here would nest two 100dvh viewport locks.
  */
 const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
-  usePageTitle("My Pets — Helpr");
   const { user } = useCurrentUser();
   const userId = user?.id ?? null;
   const queryClient = useQueryClient();

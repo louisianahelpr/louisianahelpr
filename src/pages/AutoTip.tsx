@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
@@ -75,7 +74,6 @@ const FIELD_BASE =
  * would nest two 100dvh viewport locks.
  */
 const AutoTip = ({ onBack }: { onBack?: () => void }) => {
-  usePageTitle("After a Job — Helpr");
   const { user, profile, refresh } = useCurrentUser();
 
   const [mode, setMode] = useState<Mode>("off");

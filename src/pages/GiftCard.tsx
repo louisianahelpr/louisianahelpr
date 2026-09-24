@@ -45,7 +45,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap, functionErrorMessage } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { posterServiceFeeCents } from "@/lib/posterFees";
 import { formatPriceExact } from "@/lib/format";
@@ -79,7 +78,6 @@ const MAX_GIFT = 500; // matches MAX_GIFT_CENTS (50000) in create-gift-card-chec
 export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  usePageTitle("Gift Card — Helpr");
 
   const { user, profile, isLoading: authLoading } = useCurrentUser();
   const myEmail = user?.email?.toLowerCase() ?? "";

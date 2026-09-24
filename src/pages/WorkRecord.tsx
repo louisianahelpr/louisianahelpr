@@ -14,7 +14,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
@@ -114,7 +113,6 @@ const canPrintDocument =
  * the AppShell; keeping it here would nest two 100dvh viewport locks.
  */
 const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
-  usePageTitle("Work Record — Helpr");
   const navigate = useNavigate();
   const { user } = useAuthReady();
   const userId = user?.id;

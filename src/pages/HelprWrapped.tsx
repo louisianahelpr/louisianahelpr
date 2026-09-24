@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { shareNative } from "@/lib/nativeShare";
 import { report } from "@/lib/errorLogger";
@@ -273,7 +272,6 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
   // to drop the suffix AND reorder the words ("Helpr Wrapped 2026"), so the
   // one month the feature is at its most shareable was the one month its tab
   // stopped looking like the rest of the app.
-  usePageTitle(`${TAB_TITLES.wrapped} — Helpr`);
   // `isReady` is still read below to tell "auth is resolving" apart from
   // "resolved, no user" in the query gate — but the redirect that used to live
   // here is gone. It bounced to /login once auth resolved with no user, which

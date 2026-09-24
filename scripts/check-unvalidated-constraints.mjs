@@ -27,19 +27,32 @@ SELECT (SELECT count(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.co
           WHERE n.nspname = 'public' AND NOT c.convalidated
           ORDER BY 1, 2) o), '[]'::json) AS unvalidated`;
 
-async function liveRow() {
+// Constraints deliberately left NOT VALID, each with the query that counts its
+// violating rows. Two-way: a listed constraint that is now validated is a stale
+// entry (exit 1), and one whose violators reached 0 must be VALIDATEd now (exit
+// 1), so nothing sits here after its reason is gone.
+// @two-way scripts/check-unvalidated-constraints.mjs:is listed in KNOWN_UNVALIDATED but is now validated
+const KNOWN_UNVALIDATED = {
+  // ST-002 (aaaed5cbe): one real user's availability row, Sunday 21:00-17:00.
+  // Real account data is never edited by us; the editor now refuses the shape,
+  // so the row is fixed when its owner next saves that day.
+  "helper_availability.helper_availability_range_forward":
+    "SELECT count(*)::int AS n FROM public.helper_availability WHERE NOT (is_available IS NOT TRUE OR start_time IS NULL OR end_time IS NULL OR start_time < end_time)",
+};
+
+async function liveRow(sql = SQL) {
   const token = process.env.SUPABASE_ACCESS_TOKEN;
   const ref = process.env.SUPABASE_PROJECT_REF;
   if (token && ref) {
     const res = await fetch(`${process.env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com"}/v1/projects/${ref}/database/query`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query: SQL, read_only: true }),
+      body: JSON.stringify({ query: sql, read_only: true }),
     });
     if (!res.ok) throw new Error(`Management API query failed: ${res.status} ${await res.text()}`);
     return (await res.json())[0];
   }
-  const out = execFileSync("supabase", ["db", "query", "--linked", "-o", "json", SQL], {
+  const out = execFileSync("supabase", ["db", "query", "--linked", "-o", "json", sql], {
     encoding: "utf8",
     maxBuffer: 1 << 26,
     stdio: ["ignore", "pipe", "pipe"],
@@ -65,10 +78,36 @@ if (total < 50) {
   process.exit(2);
 }
 console.log(`Checked ${total} public constraints.`);
-if (offenders.length) {
-  for (const o of offenders) {
+let failed = false;
+for (const [key, countSql] of Object.entries(KNOWN_UNVALIDATED)) {
+  if (!offenders.some((o) => `${o.tbl}.${o.conname}` === key)) {
+    console.error(`::error::${key} is listed in KNOWN_UNVALIDATED but is now validated — drop the entry.`);
+    failed = true; // stale entry
+    continue;
+  }
+  let n;
+  try {
+    n = Number((await liveRow(countSql))?.n);
+  } catch (e) {
+    console.error(`::error::could not count violators of ${key}: ${e.message}`);
+    process.exit(2);
+  }
+  if (!Number.isFinite(n)) {
+    console.error(`::error::violator count for ${key} was unreadable — refusing to report clean.`);
+    process.exit(2);
+  }
+  if (n === 0) {
+    console.error(`::error::${key} has no violating rows left — ALTER TABLE ... VALIDATE CONSTRAINT and drop its KNOWN_UNVALIDATED entry.`);
+    failed = true;
+  } else {
+    console.log(`known NOT VALID: ${key} (${n} violating row(s), left deliberately)`);
+  }
+}
+const unexpected = offenders.filter((o) => !(`${o.tbl}.${o.conname}` in KNOWN_UNVALIDATED));
+if (unexpected.length || failed) {
+  for (const o of unexpected) {
     console.error(`::error::${o.tbl}.${o.conname} (${o.kind}) is NOT VALID — a row violates it, and the next UPDATE of that row will fail. Find it, fix the row, then ALTER TABLE ... VALIDATE CONSTRAINT.`);
   }
   process.exit(1);
 }
-console.log("OK: every public constraint is validated.");
+console.log(`OK: every public constraint is validated, apart from ${Object.keys(KNOWN_UNVALIDATED).length} known and still-justified.`);

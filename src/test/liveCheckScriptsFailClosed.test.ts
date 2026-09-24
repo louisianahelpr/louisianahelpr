@@ -33,6 +33,8 @@
  * any crash), or it is in NOT_HERMETIC with a reason. Both lists are two-way.
  */
 
+// @mutate scripts/check-unvalidated-constraints.mjs | if (n === 0) { | if (n === -1) {
+// @mutate scripts/check-unvalidated-constraints.mjs | failed = true; // stale entry | // stale entry
 // @mutate scripts/check-anon-table-grants.mjs | if (!tablesChecked \|\| !Array.isArray(offenders)) { | if (false) {
 // @mutate scripts/check-ban-gate-coverage.mjs | if (!tablesChecked \|\| !Number(row?.has_ban_helper) \|\| !Array.isArray(offenders)) { | if (false) {
 // @mutate scripts/check-stripe-webhook-events.mjs | fail(\n      `No enabled test-mode endpoint | notes.push(\n      `No enabled test-mode endpoint
@@ -167,6 +169,8 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "CLI read is empty", cli: CLI_EMPTY, says: /refusing to report clean/ },
     { label: "Management API 500", env: MGMT("fail"), says: /could not read the live catalog/ },
     { label: "Management API []", env: MGMT("empty"), says: /refusing to report clean/ },
+    { label: "known entry now validated", env: MGMT("cleancat"), says: /is listed in KNOWN_UNVALIDATED but is now validated/ },
+    { label: "known entry has 0 violators", env: MGMT("knownzero"), says: /has no violating rows left/ },
   ],
   "scripts/check-updatable-views.mjs": catalogCheck(/could not read live view catalog/),
   "scripts/audit/function-body-drift.mjs": [
@@ -266,6 +270,18 @@ beforeAll(async () => {
       return;
     }
     if (req.url?.includes("webhook_endpoints")) return void res.end(JSON.stringify({ object: "list", data: [] }));
+    // check-unvalidated-constraints' KNOWN_UNVALIDATED is two-way: a listed
+    // constraint that is validated, or has 0 violators, must fail.
+    if (mode === "cleancat" || mode === "knownzero") {
+      let body = "";
+      req.on("data", (c) => (body += c));
+      req.on("end", () => {
+        if (!body.includes("public_constraints")) return void res.end(JSON.stringify([{ n: 0 }]));
+        const unvalidated = mode === "knownzero" ? [{ tbl: "helper_availability", conname: "helper_availability_range_forward", kind: "c" }] : [];
+        res.end(JSON.stringify([{ public_constraints: 300, unvalidated }]));
+      });
+      return;
+    }
     if (mode === "one" && req.url?.includes("/rest/v1/profiles")) {
       return void res.end(JSON.stringify([{ user_id: "00000000-0000-0000-0000-000000000001", email: "helpr-e2e-poster-0902@mailinator.com", ban_status: "active" }]));
     }

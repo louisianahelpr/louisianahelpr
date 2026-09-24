@@ -64,12 +64,17 @@
  *
  * Q316 (20260924035844): ops_alert_normalise turns digits into '#', so
  * cleanup-7d and cleanup-30d shared one 'cron-http-untagged' item and the close
- * rule judged only the last job. The NEWEST ops_alert_apply appends the raw job
- * name to that source's fingerprint only. Behaviour, red without the migration
- * (4 checks): src/test/pglite/cronUntaggedFingerprint.pglite.mjs.
+ * rule judged only the last job. Follow-up 20260924041136: the fingerprint is
+ * ONE function, ops_alert_fingerprint, appending the raw job name for that
+ * source only; ops_alert_apply (writer) and ops_alert_verify's companions path
+ * (reader, which had rebuilt md5 without the suffix) both call it, so they
+ * cannot drift. Behaviour: src/test/pglite/cronUntaggedFingerprint.pglite.mjs
+ * (NEW_MIGRATION=skip: 4 FAIL; FOLLOWUP=skip: 2 companions FAIL).
  *
- * @mutate supabase/migrations/20260924035844_q316_cron_untagged_fingerprint.sql | WHEN v_source = 'cron-http-untagged' AND | WHEN v_source = 'cron-http-untagged-gone' AND
- * @mutate supabase/migrations/20260924035844_q316_cron_untagged_fingerprint.sql | THEN '\|job:' \|\| (p_sample_ref ->> 'job') ELSE | THEN '' ELSE
+ * @mutate supabase/migrations/20260924041136_q316_shared_ops_alert_fingerprint.sql | WHEN s.src = 'cron-http-untagged' AND | WHEN s.src = 'cron-http-untagged-gone' AND
+ * @mutate supabase/migrations/20260924041136_q316_shared_ops_alert_fingerprint.sql | THEN '\|job:' \|\| p_job ELSE | THEN '' ELSE
+ * @mutate supabase/migrations/20260924041136_q316_shared_ops_alert_fingerprint.sql | CASE WHEN jsonb_typeof(e.tags) = 'object' THEN e.tags ->> 'job' END) AS fp | NULL) AS fp
+ * @mutate supabase/migrations/20260924041136_q316_shared_ops_alert_fingerprint.sql | v_fp := public.ops_alert_fingerprint(p_source_kind, p_source, p_title, p_sample_ref ->> 'job'); | v_fp := md5(p_source_kind \|\| '\|' \|\| v_source \|\| '\|' \|\| v_title);
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -239,28 +244,43 @@ describe("an untagged-cron ledger item closes itself (Q287)", () => {
 });
 
 describe("one ledger item per untagged cron, digits kept (Q316)", () => {
-  /** Newest ops_alert_apply(...) (it takes arguments), any dollar tag, comments blanked. */
-  const apply = (() => {
-    const re = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?ops_alert_apply\s*\([\s\S]*?\)\s*RETURNS[\s\S]*?\bAS\s+(\$\w*\$)([\s\S]*?)\1/gi;
+  /** Newest definition of public.<name>(...), any dollar tag, comments blanked. */
+  const newestFn = (name: string) => {
+    const re = new RegExp(String.raw`CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?${name}\s*\([\s\S]*?\)\s*RETURNS[\s\S]*?\bAS\s+(\$\w*\$)([\s\S]*?)\1`, "gi");
     let found = { file: "", body: "" };
     for (const { file, sql } of files) {
       for (const m of blankSqlComments(sql).matchAll(re)) found = { file, body: m[2] };
     }
     return found;
-  })();
+  };
+  const fpFn = newestFn("ops_alert_fingerprint");
+  const apply = newestFn("ops_alert_apply");
+  const verify = newestFn("ops_alert_verify");
 
-  it("reads the newest ops_alert_apply (floor)", () => {
-    expect(apply.file >= "20260924035844", apply.file).toBe(true);
+  it("reads the newest definitions (floor)", () => {
+    expect(fpFn.file >= "20260924041136", fpFn.file).toBe(true);
+    expect(apply.file >= "20260924041136", apply.file).toBe(true);
+    expect(verify.file >= "20260924041136", verify.file).toBe(true);
     expect(apply.body.length).toBeGreaterThan(1500);
+    expect(verify.body.length).toBeGreaterThan(2000);
     expect(apply.body).toMatch(/ON\s+CONFLICT\s*\(\s*fingerprint\s*\)/i);
   });
 
-  it("the fingerprint carries the verbatim job name for 'cron-http-untagged' only", () => {
-    const fp = /v_fp\s*:=\s*md5\(([\s\S]*?)\);/.exec(apply.body)?.[1] ?? "";
-    // every source keeps the old prefix, so existing open items keep matching
-    expect(fp).toMatch(/^p_source_kind\s*\|\|\s*'\|'\s*\|\|\s*v_source\s*\|\|\s*'\|'\s*\|\|\s*v_title\s*\|\|/);
-    // scoped to that one source, and the raw name, not a normalised one
-    expect(fp).toMatch(/CASE\s+WHEN\s+v_source\s*=\s*'cron-http-untagged'\s+AND\s+p_sample_ref\s*->>\s*'job'\s+IS\s+NOT\s+NULL\s+THEN\s+'\|job:'\s*\|\|\s*\(\s*p_sample_ref\s*->>\s*'job'\s*\)\s+ELSE\s+''\s+END/i);
-    expect(fp).not.toMatch(/ops_alert_normalise/i);
+  it("ops_alert_fingerprint keeps the old shape and appends the raw job for 'cron-http-untagged' only", () => {
+    const b = fpFn.body;
+    // every source keeps md5(kind|source|normalised title), so open items keep matching
+    expect(b).toMatch(/md5\(\s*p_source_kind\s*\|\|\s*'\|'\s*\|\|\s*s\.src\s*\|\|\s*'\|'\s*\|\|\s*coalesce\(nullif\(public\.ops_alert_normalise\(p_title\),\s*''\),\s*'\(no message\)'\)/i);
+    expect(b).toMatch(/left\(coalesce\(nullif\(btrim\(p_source\),\s*''\),\s*'unknown'\),\s*120\)\s+AS\s+src/i);
+    // scoped to that one source, and the raw name, never normalised
+    expect(b).toMatch(/CASE\s+WHEN\s+s\.src\s*=\s*'cron-http-untagged'\s+AND\s+p_job\s+IS\s+NOT\s+NULL\s+THEN\s+'\|job:'\s*\|\|\s*p_job\s+ELSE\s+''\s+END/i);
+    expect(b).not.toMatch(/ops_alert_normalise\s*\(\s*p_job/i);
+  });
+
+  it("the writer and the companions reader both use it, and neither builds its own md5", () => {
+    expect(apply.body).toMatch(/v_fp\s*:=\s*public\.ops_alert_fingerprint\(\s*p_source_kind\s*,\s*p_source\s*,\s*p_title\s*,\s*p_sample_ref\s*->>\s*'job'\s*\)\s*;/i);
+    expect(apply.body).not.toMatch(/\bmd5\s*\(/i);
+    const comp = /WITH\s+comp\s+AS\s*\(([\s\S]*?)\)\s*SELECT\s+count/i.exec(verify.body)?.[1] ?? "";
+    expect(comp).toMatch(/public\.ops_alert_fingerprint\(\s*'error_logs'\s*,\s*src\s*,\s*split_part\(coalesce\(e\.message,\s*''\),\s*' — ',\s*1\)\s*,\s*CASE\s+WHEN\s+jsonb_typeof\(e\.tags\)\s*=\s*'object'\s+THEN\s+e\.tags\s*->>\s*'job'\s+END\s*\)\s+AS\s+fp/i);
+    expect(verify.body).not.toMatch(/\bmd5\s*\(/i);
   });
 });

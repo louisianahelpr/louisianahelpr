@@ -4,7 +4,14 @@
  * Q316): 'cron-http-untagged' ledger items are one per job, digits kept.
  *
  *   node src/test/pglite/cronUntaggedFingerprint.pglite.mjs
- *   NEW_MIGRATION=skip node src/test/pglite/cronUntaggedFingerprint.pglite.mjs   # RED
+ *   NEW_MIGRATION=skip node src/test/pglite/cronUntaggedFingerprint.pglite.mjs   # RED (neither)
+ *   FOLLOWUP=skip node src/test/pglite/cronUntaggedFingerprint.pglite.mjs        # RED (companions)
+ *
+ * Follow-up 20260924041136: ops_alert_verify's companions path rebuilt
+ * fingerprints without the '|job:' suffix, so the sweep's Slack summary closed
+ * early (only its closed cron-http companion matched) or never (untagged-only
+ * run: nothing matched). Both are checked below; FOLLOWUP=skip applies only
+ * 20260924035844 and the companions checks FAIL.
  *
  * pglite is not a dependency (CLAUDE.md): it is loaded from ~/.lh-pglite
  * (override with PGLITE_DIR). The fixture is cronHttpUntaggedCloseRule's.
@@ -41,8 +48,12 @@ const CHAIN = [
   "20260923182022_ops_route_probe_close_rule.sql",
   // Q287: the 'cron-http-untagged' close rule this item's bug undermines.
   "20260923215732_cron_http_untagged_close_rule.sql",
+  // Q291: the ops_alert_verify whose companions path the follow-up fixes.
+  "20260924005818_ops_alert_verify_is_fair.sql",
 ];
 const Q316 = "20260924035844_q316_cron_untagged_fingerprint.sql";
+// The follow-up: one shared ops_alert_fingerprint, used by the verifier too.
+const Q316B = "20260924041136_q316_shared_ops_alert_fingerprint.sql";
 
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -133,12 +144,16 @@ for (const f of CHAIN) {
 const SKIP = process.env.NEW_MIGRATION === "skip";
 if (SKIP) console.log("NEW_MIGRATION=skip: running WITHOUT the Q316 migration (expect FAILs)");
 else {
-  for (let i = 1; i <= 3; i++) {
-    try {
-      await db.exec(mig(Q316));
-      check(`apply ${Q316.slice(0, 14)} pass #${i}`, true);
-    } catch (e) {
-      check(`apply ${Q316.slice(0, 14)} pass #${i}`, false, e.message);
+  const NEW = process.env.FOLLOWUP === "skip" ? [Q316] : [Q316, Q316B];
+  if (NEW.length === 1) console.log("FOLLOWUP=skip: running WITHOUT the shared-fingerprint follow-up (expect FAILs)");
+  for (const f of NEW) {
+    for (let i = 1; i <= 3; i++) {
+      try {
+        await db.exec(mig(f));
+        check(`apply ${f.slice(0, 14)} pass #${i}`, true);
+      } catch (e) {
+        check(`apply ${f.slice(0, 14)} pass #${i}`, false, e.message);
+      }
     }
   }
 }
@@ -200,6 +215,81 @@ await q(`INSERT INTO public.error_logs (severity, message, tags) VALUES ('error'
   const nojob = rows.find((r) => r.source === "cron-http-untagged");
   check("an unrelated source's fingerprint is unchanged", !!dead && dead.fingerprint === dead.old_fp, JSON.stringify(dead ?? null));
   check("an untagged row with no job keeps the old fingerprint", !!nojob && nojob.fingerprint === nojob.old_fp, JSON.stringify(nojob ?? null));
+}
+
+// ── Follow-up: the sweep's Slack summary (verify_kind 'companions') ──────────
+// sweep_cron_http_failures posts ONE Slack message per run; ops_alert_record
+// files it as 'sql_slack'. ops_alert_verify closes it only when every
+// error_logs item it summarised (rows in the 5 minutes up to it) is closed,
+// matching them BY FINGERPRINT. Each window is placed in the future so it
+// holds only its own rows.
+const fileAt = (job, source, atSql) =>
+  q(`INSERT INTO public.error_logs (severity, message, tags, context, created_at) VALUES ('error', $1,
+       jsonb_build_object('source', $3::text, 'area', 'cron', 'job', $2::text), '{}'::jsonb, ${atSql})`,
+    [source === "cron-http-untagged"
+      ? `Untagged HTTP cron: ${job} calls net.http_post without public.cron_http_tag(), so its HTTP failures are never filed.`
+      : `Cron HTTP failure: ${job} returned 500`, job, source]);
+const summary = async (atSql) =>
+  (await q(`SELECT public.ops_alert_record('sql_slack', 'ops-alert:sweep_cron_http_failures',
+              '1 cron HTTP failure(s) in the last hour', 'error', NULL, '{}'::jsonb, NULL, NULL, ${atSql}) id`))[0].id;
+const statusOf = async (id) => (await q(`SELECT status, verify_kind FROM public.ops_alert_ledger WHERE id = $1`, [id]))[0];
+const itemFor = async (job) =>
+  (await q(`SELECT id, status FROM public.ops_alert_ledger WHERE source = 'cron-http-untagged' AND sample_ref->>'job' = $1`, [job]))[0];
+
+await q(`INSERT INTO cron.job (jobid, jobname, schedule, command, active) VALUES
+  (21, 'reports-2w', '0 4 * * *', $1, true),
+  (22, 'reports-3w', '0 4 * * *', $1, true)`, [POST]);
+
+// (a) EARLY CLOSE: a cron-http failure + an untagged job in one run.
+await fileAt("money-reconciliation", "cron-http", "now() + interval '1 hour'");
+await fileAt("reports-2w", "cron-http-untagged", "now() + interval '1 hour'");
+const sumA = await summary("now() + interval '1 hour 1 minute'");
+check("the sweep summary is a companions item", (await statusOf(sumA))?.verify_kind === "companions", JSON.stringify(await statusOf(sumA)));
+// A person closes the cron-http failure (it has no condition); reports-2w is still untagged.
+await q(`UPDATE public.ops_alert_ledger SET status = 'closed', closed_at = now() + interval '1 hour 2 minutes',
+                closed_evidence = 'test: closed by a person'
+          WHERE source = 'cron-http' AND sample_ref->>'job' = 'money-reconciliation'`);
+await q(`SELECT public.ops_alert_verify()`);
+{
+  const it2 = await itemFor("reports-2w");
+  const s = (await statusOf(sumA)).status;
+  check("(a) untagged reports-2w still open", it2?.status === "open", String(it2?.status));
+  check("(a) summary stays OPEN while an item it summarised is open (RED: closes early)", s === "open", s);
+}
+await q(`UPDATE cron.job SET command = $1 WHERE jobname = 'reports-2w'`, [TAGGED("reports-2w")]);
+await q(`SELECT public.ops_alert_verify()`);
+{
+  const s = (await statusOf(sumA)).status;
+  check("(a) once reports-2w is tagged, both close and the summary closes", (await itemFor("reports-2w"))?.status === "closed" && s === "closed", s);
+}
+
+// (b) NEVER CLOSES: an untagged-only run.
+await fileAt("reports-3w", "cron-http-untagged", "now() + interval '2 hours'");
+const sumB = await summary("now() + interval '2 hours 1 minute'");
+await q(`SELECT public.ops_alert_verify()`);
+check("(b) summary open while reports-3w is untagged", (await statusOf(sumB)).status === "open", (await statusOf(sumB)).status);
+await q(`UPDATE cron.job SET command = $1 WHERE jobname = 'reports-3w'`, [TAGGED("reports-3w")]);
+await q(`SELECT public.ops_alert_verify()`);
+{
+  const s = (await statusOf(sumB)).status;
+  check("(b) tagging reports-3w closes its item AND the untagged-only summary (RED: never closes)",
+    (await itemFor("reports-3w"))?.status === "closed" && s === "closed", s);
+}
+
+// The one definition: apply and verify both call it, and it matches the ledger.
+if (process.env.NEW_MIGRATION !== "skip" && process.env.FOLLOWUP !== "skip") {
+  const [{ n }] = await q(`SELECT count(*)::int n FROM public.ops_alert_ledger WHERE source_kind = 'error_logs'`);
+  const [{ mism }] = await q(`SELECT count(*)::int mism FROM public.error_logs e
+      JOIN public.ops_alert_ledger l ON l.sample_ref->>'error_log_id' = e.id::text
+     WHERE l.fingerprint <> public.ops_alert_fingerprint('error_logs',
+             coalesce(e.tags ->> 'source', e.tags ->> 'area', 'app'),
+             split_part(coalesce(e.message, ''), ' — ', 1), e.tags ->> 'job')`);
+  check("every error_logs ledger item's stored fingerprint == ops_alert_fingerprint of its newest row",
+    n > 5 && mism === 0, JSON.stringify({ n, mism }));
+  for (const role of ["anon", "authenticated"]) {
+    const [{ ok }] = await q(`SELECT has_function_privilege($1, 'public.ops_alert_fingerprint(text,text,text,text)', 'EXECUTE') ok`, [role]);
+    check(`${role} cannot execute ops_alert_fingerprint`, ok === false);
+  }
 }
 
 for (const role of ["anon", "authenticated", "service_role"]) {

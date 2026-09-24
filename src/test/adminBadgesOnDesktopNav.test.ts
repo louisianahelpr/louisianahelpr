@@ -13,6 +13,7 @@ import { readFileSync } from "node:fs";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { publishAdminBadges, useAdminBadges } from "@/components/admin/adminBadgeStore";
+import { adminNavGroups } from "@/components/admin/adminNavGroups";
 
 describe("admin queue badges reach the desktop nav (AM-011)", () => {
   it("a published count reaches a subscriber", () => {
@@ -24,6 +25,10 @@ describe("admin queue badges reach the desktop nav (AM-011)", () => {
   });
 
   it("Admin publishes and the desktop nav renders every section's count", () => {
+    // The publish loop walks adminNavGroups; the queues it must cover are there.
+    const ids = adminNavGroups.flatMap((g) => g.items.map((i) => i.id));
+    expect(ids.length).toBeGreaterThan(20);
+    expect(ids).toEqual(expect.arrayContaining(["disputes", "reports", "support"]));
     expect(readFileSync("src/pages/Admin.tsx", "utf8")).toMatch(/publishAdminBadges\(next\);/);
     const nav = readFileSync("src/components/DesktopSidebarNav.tsx", "utf8");
     expect(nav).toMatch(/const adminBadges = useAdminBadges\(\);/);

@@ -1768,6 +1768,22 @@ sure someone hears it and closes it.
    deletion, then delete automatically; (b) delete them with the account; (c) keep
    forever. I recommend (a), but it is a legal call. No W-9s exist in prod yet.
 
+16. **Opening the profile of someone you blocked (TS-011, 2026-09-24).** The Block
+   screen promises "You won't see their … profile", but /user/<their id> still
+   shows the full profile. (Saved Helprs now hides them. Messages, applications
+   and offers were already refused by the server.) Options: (a) the profile page
+   says "You blocked this person" with an Unblock button, and their details stay
+   hidden; (b) show the profile as now, and change the Block screen's wording. I
+   recommend (a).
+
+17. **Test rows in the admin queues (AM-012, 2026-09-24).** The admin home page
+   and the sidebar badges leave out test (seed) rows, but the Disputes, Users and
+   Reports lists show them. So home can say "0 disputes" while the Disputes list
+   holds 2 with live Refund / Release buttons. The automated admin tests need to
+   reach those test rows. Options: (a) keep them in the lists with a "Test" tag
+   on each card, and home shows "0 (+2 test)"; (b) hide them from the lists too
+   (the admin tests would need another way in). I recommend (a).
+
 ## CARRIED — still open from the sections archived 2026-09-23
 
 Every unchecked box and every section marked OPEN / STILL OPEN / HEADS-UP /

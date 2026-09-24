@@ -13,3 +13,7 @@ COMMENT ON COLUMN public.jobs.chargeback_evidence_due_by IS
   'Stripe dispute evidence deadline for a card chargeback on this job (AM-002). Written by stripe-webhook charge.dispute.created; null when no chargeback.';
 
 GRANT SELECT (chargeback_evidence_due_by) ON public.jobs TO authenticated;
+
+-- The repo convention (offeredHelperPrivacy.test.ts): every jobs ADD COLUMN
+-- ends with the grant sync. Equivalent to the GRANT above for this column.
+SELECT public.sync_jobs_select_grants();

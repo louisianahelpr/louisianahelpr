@@ -1832,6 +1832,7 @@ export type Database = {
           cancelled_at: string | null
           cancelled_by: string | null
           category: Database["public"]["Enums"]["job_category"]
+          chargeback_evidence_due_by: string | null
           client_request_id: string | null
           commission_tax_amount: number | null
           completed_at: string | null
@@ -1945,6 +1946,7 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           category?: Database["public"]["Enums"]["job_category"]
+          chargeback_evidence_due_by?: string | null
           client_request_id?: string | null
           commission_tax_amount?: number | null
           completed_at?: string | null
@@ -2058,6 +2060,7 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           category?: Database["public"]["Enums"]["job_category"]
+          chargeback_evidence_due_by?: string | null
           client_request_id?: string | null
           commission_tax_amount?: number | null
           completed_at?: string | null
@@ -5470,6 +5473,7 @@ export type Database = {
           cancelled_at: string | null
           cancelled_by: string | null
           category: Database["public"]["Enums"]["job_category"]
+          chargeback_evidence_due_by: string | null
           client_request_id: string | null
           commission_tax_amount: number | null
           completed_at: string | null
@@ -5608,6 +5612,7 @@ export type Database = {
           cancelled_at: string | null
           cancelled_by: string | null
           category: Database["public"]["Enums"]["job_category"]
+          chargeback_evidence_due_by: string | null
           client_request_id: string | null
           commission_tax_amount: number | null
           completed_at: string | null

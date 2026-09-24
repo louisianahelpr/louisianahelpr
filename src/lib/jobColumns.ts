@@ -34,6 +34,7 @@ export const JOB_READABLE_COLUMN_LIST = [
   "cancelled_at",
   "cancelled_by",
   "category",
+  "chargeback_evidence_due_by",
   "client_request_id",
   "commission_tax_amount",
   "completed_at",

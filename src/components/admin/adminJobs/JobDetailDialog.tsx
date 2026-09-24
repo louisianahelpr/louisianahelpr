@@ -109,6 +109,18 @@ export const JobDetailDialog = ({
               </span>
             </div>
 
+            {/* AM-002: a card chargeback is lost by default if nobody answers
+                in Stripe before this deadline. Written by stripe-webhook. */}
+            {detailJob.chargeback_evidence_due_by && (
+              <div data-testid="chargeback-evidence-due" className="rounded-ds-sm border border-destructive/40 bg-destructive/10 p-3 text-ds-13 text-foreground">
+                <p className="font-semibold">Card chargeback: evidence due {new Date(detailJob.chargeback_evidence_due_by).toLocaleString("en-US", { timeZone: "America/Chicago", dateStyle: "medium", timeStyle: "short" })} CT</p>
+                <p className="text-ds-11 text-muted-foreground">Respond in the Stripe Dashboard before then or the dispute is lost.</p>
+                {detailJob.stripe_payment_intent_id && (
+                  <a className="text-ds-11 underline" href={`https://dashboard.stripe.com/payments/${detailJob.stripe_payment_intent_id}`} target="_blank" rel="noreferrer">Open the payment in Stripe</a>
+                )}
+              </div>
+            )}
+
             <p className="text-ds-13 text-foreground">{detailJob.description}</p>
 
             <div className="grid grid-cols-2 gap-3">

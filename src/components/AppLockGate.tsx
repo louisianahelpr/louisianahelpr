@@ -274,10 +274,16 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
         // 2. pause — the app ACTUALLY went to the background
         //    (didEnterBackground). This is the only event that may start the
         //    grace clock.
+        //
+        //    NB-015: the SHIELD goes up here for every signed-in user, lock on
+        //    or off. iOS writes the app-switcher snapshot to disk around this
+        //    event, and the screens behind it are chats, payouts and ID
+        //    uploads. Only the grace clock is the lock's business. (pause is
+        //    real backgrounding, so this brings back no Control Centre flash.)
         await add("pause", () => {
-          if (!isAppLockEnabled() || !userRef.current) return;
-          recordBackgroundedAt();
+          if (!userRef.current) return;
           setCovered(true);
+          if (isAppLockEnabled()) recordBackgroundedAt();
         });
 
         // 3. resume — willEnterForeground. Fires BEFORE didBecomeActive, so

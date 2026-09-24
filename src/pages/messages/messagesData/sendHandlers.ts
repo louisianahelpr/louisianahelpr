@@ -13,6 +13,7 @@ import {
   isLockoutRefusal,
 } from "@/lib/messagingLockout";
 import { RECIPIENT_RESTRICTED_TOAST, fetchRecipientRestricted } from "@/lib/recipientGate";
+import { DELETED_ACCOUNT_NOTICE } from "@/lib/deletedCounterparty";
 
 // Module-level so it survives the per-render re-creation of the handlers:
 // a blocked send logs at most ONE violation per unique (user, message) —
@@ -126,6 +127,8 @@ export function createSendHandlers({
           m.clientId === optimistic.clientId ? { ...m, sendStatus: "refused" } : m,
         ),
       );
+      hapticError();
+      toast.error(DELETED_ACCOUNT_NOTICE);
       return;
     }
     const insertRow = (withClientId: boolean) => supabase

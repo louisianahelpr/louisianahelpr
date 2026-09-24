@@ -57,7 +57,10 @@ export function WorkingStep({
            Report a Problem · …middle… · Before/After Photo · [green primary]
          The ends are also what the overflow control may never take — see
          `allocateJobStepRow`. */
-      actions={[sosChip, reportChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="working" />]}
+      // Owner, 2026-09-24: at phone width Message stays in the row and
+      // Report a Problem + SOS go into More, drawn to its left.
+      soloChipKey="message"
+      actions={[reportChip, sosChip, messageChip, <HelperPhotoAsk key="photo" jobId={app.job_id} job={job} step="working" />]}
       escape={abortedNotice}
     />
   );

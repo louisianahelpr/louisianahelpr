@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { isValidElement, useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   JobStepRowContext,
@@ -143,6 +143,7 @@ export function JobStepCard({
   ask,
   primary,
   actions,
+  soloChipKey,
   footnote,
   escape,
   dialogs,
@@ -163,6 +164,10 @@ export function JobStepCard({
   primary?: ReactNode;
   /** Chips for the row, beside the primary. Falsy entries are dropped. */
   actions?: ReactNode[];
+  /** The React key of the chip that stays when only ONE fits (phone width);
+   *  the rest go into `More`, drawn to its left. Unset: the leftmost chip stays.
+   *  See partitionJobStepRowChips. */
+  soloChipKey?: string;
   /** One quiet CENTRED sentence under the row saying what its enabled primary
    *  will do — "Approve to release payment — then you can review and tip."
    *  Never a control, never amber (amber means a gate is stopping you), and
@@ -296,6 +301,9 @@ export function JobStepCard({
   const rowChips = partitionJobStepRowChips(
     chips,
     layout.alloc.overflowChips > 0 ? layout.alloc.visibleChips : chips.length,
+    soloChipKey === undefined
+      ? -1
+      : chips.findIndex((c) => isValidElement(c) && c.key === soloChipKey),
   );
 
   return (

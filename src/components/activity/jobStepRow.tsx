@@ -393,14 +393,23 @@ export function allocateJobStepRow({
  * safety problem rather than an inconvenience — and the photo chip is still one
  * tap away inside `More`, which is not true of nothing at all.
  *
+ * `soloIndex` OVERRIDES THAT for a row that names its one-chip survivor: the
+ * Helpr's on-site rows (owner, 2026-09-24, choosing between the phone layouts:
+ * "Message visible. SOS and report in more. More on the left of message").
+ * The named chip becomes the trail and `More` sits to its left.
+ *
  * Pure, and exported, so the rule is testable without a layout.
  */
 export function partitionJobStepRowChips<T>(
   chips: readonly T[],
   visible: number,
+  soloIndex = -1,
 ): { lead: T[]; overflow: T[]; trail: T[] } {
   if (visible >= chips.length) return { lead: [...chips], overflow: [], trail: [] };
   if (visible <= 0) return { lead: [], overflow: [...chips], trail: [] };
+  if (visible === 1 && soloIndex >= 0 && soloIndex < chips.length) {
+    return { lead: [], overflow: chips.filter((_, i) => i !== soloIndex), trail: [chips[soloIndex]] };
+  }
   if (visible === 1) return { lead: [chips[0]], overflow: chips.slice(1), trail: [] };
   const trail = [chips[chips.length - 1]];
   // `visible - 1` because the trail pin takes one of the visible slots.

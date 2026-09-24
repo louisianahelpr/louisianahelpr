@@ -13,9 +13,9 @@
  */
 // @mutate src/components/SosShareButton.tsx | return !!job.helper_arrived_at && !job.helper_completed_at && !job.poster_completed_at; | return !!job.helper_arrived_at;
 // @mutate src/components/activity/appliedJobCard/ActiveJobSection.tsx | sosChip: sosOffered(job) ? <SosShareButton key="sos" jobId={job.id} /> : null, | sosChip: null,
-// @mutate src/components/activity/appliedJobCard/steps/OnSiteStep.tsx | actions={[sosChip, reportChip, | actions={[reportChip,
-// @mutate src/components/activity/appliedJobCard/steps/WorkingStep.tsx | actions={[sosChip, reportChip, | actions={[reportChip,
-// @mutate src/components/activity/appliedJobCard/steps/RevisionStep.tsx | actions={[sosChip, reportChip, | actions={[reportChip,
+// @mutate src/components/activity/appliedJobCard/steps/OnSiteStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
+// @mutate src/components/activity/appliedJobCard/steps/WorkingStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
+// @mutate src/components/activity/appliedJobCard/steps/RevisionStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
 // @mutate src/components/activity/postedJobCard/steps/InProgressStep.tsx | const showSos = sosOffered(job); | const showSos = !!job.helper_arrived_at;
 // @mutate src/components/ReportDialog.tsx | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application"; | type ReportedType = "job" \| "message" \| "user" \| "review";
 // @mutate src/components/activity/postedJobs/ApplicantsPanel.tsx | reportedType="application" | reportedType="user"
@@ -47,8 +47,13 @@ describe("Q366: SOS for the Helpr on site", () => {
       .toContain('sosChip: sosOffered(job) ? <SosShareButton key="sos" jobId={job.id} /> : null,');
   });
 
-  it.each(["OnSiteStep", "WorkingStep", "RevisionStep"])("the Helpr's %s puts the SOS chip first", (step) => {
-    expect(read(`src/components/activity/appliedJobCard/steps/${step}.tsx`)).toContain("actions={[sosChip, reportChip,");
+  const HELPER_ON_SITE_STEPS = ["OnSiteStep", "WorkingStep", "RevisionStep"];
+  it("covers every Helpr step that is on site", () => {
+    expect(HELPER_ON_SITE_STEPS.length).toBeGreaterThan(2);
+  });
+
+  it.each(HELPER_ON_SITE_STEPS)("the Helpr's %s puts SOS right after Report a Problem (owner 2026-09-19: Report stays leftmost)", (step) => {
+    expect(read(`src/components/activity/appliedJobCard/steps/${step}.tsx`)).toContain("actions={[reportChip, sosChip,");
   });
 });
 

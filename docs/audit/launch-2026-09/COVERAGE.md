@@ -4,10 +4,10 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: node scripts/audit-coverage.mjs -->
 
-Generated from findings.jsonl as of its newest entry: 2026-09-24T05:09:37.149Z
+Generated from findings.jsonl as of its newest entry: 2026-09-24T05:13:05.984Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 121 open (3 open launch blockers), 242 fixed, 0 wontfix, 21 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
+- **Findings:** 117 open (3 open launch blockers), 246 fixed, 0 wontfix, 21 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
 - **Surface:** 1035 auditable surfaces (449 navigable, 586 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
@@ -16,7 +16,7 @@ lane report on disk — treat it as incomplete, not as covered.
 
 | Wave | Lane | State | Open | Open blockers | Fixed |
 |---|---|---|---:|---:|---:|
-| 1 | `lh-generated-drift` | REPORTED | 1 | – | 10 |
+| 1 | `lh-generated-drift` | REPORTED | 0 | – | 11 |
 | 1 | `lh-route-walker` | REPORTED | 0 | – | 2 |
 | 1 | `lh-schema-integrity` | REPORTED | 3 | – | 11 |
 | 1 | `lh-silent-failure` | REPORTED | 0 | – | 9 |
@@ -27,7 +27,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 2 | `lh-webkit-differ` | REPORTED | 0 | – | 1 |
 | 3 | `lh-cron-jobs` | REPORTED | 7 | – | 4 |
 | 3 | `lh-money-escrow` | REPORTED | 12 | – | 12 |
-| 3 | `lh-native-bridge` | REPORTED | 15 | **2** | 5 |
+| 3 | `lh-native-bridge` | REPORTED | 14 | **2** | 6 |
 | 4 | `lh-build-release` | REPORTED | 5 | – | 10 |
 | 4 | `lh-onboarding-auth` | REPORTED | 9 | – | 7 |
 | 4 | `lh-state-matrix` | REPORTED | 0 | – | 3 |
@@ -36,7 +36,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 5 | `lh-trust-safety` | REPORTED | 5 | – | 7 |
 | 5 | `lh-verification-credentials` | REPORTED | 2 | – | 7 |
 | 6 | `lh-admin-moderation` | REPORTED | 4 | – | 7 |
-| 6 | `lh-concurrency-cache` | REPORTED | 3 | – | 3 |
+| 6 | `lh-concurrency-cache` | REPORTED | 2 | – | 4 |
 | 6 | `lh-notifications` | REPORTED | 2 | – | 8 |
 | 7 | `lh-input-boundary` | REPORTED | 0 | – | 3 |
 | 7 | `lh-scheduling-time` | REPORTED | 4 | – | 4 |
@@ -47,7 +47,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 9 | `lh-copy-content` | REPORTED | 1 | – | 6 |
 | 9 | `lh-email-delivery` | REPORTED | 1 | – | 1 |
 | 9 | `lh-long-tail-features` | REPORTED | 0 | – | 2 |
-| 10 | `lh-compliance-store` | REPORTED | 5 | – | 3 |
+| 10 | `lh-compliance-store` | REPORTED | 4 | – | 4 |
 | 10 | `lh-observability` | REPORTED | 1 | **1** | 2 |
 | 10 | `lh-perf-deps` | REPORTED | 9 | – | 6 |
 | 10 | `lh-seo-web` | REPORTED | 2 | – | 3 |

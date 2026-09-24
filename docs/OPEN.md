@@ -5,7 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Queue (this file):** 225 done, 27 partly done (fixed, protection pending), 102 open. Source of truth for work.
-- **Audit bus:** 121 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Audit bus:** 117 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
 - **nightly-red issues:** 8 open — `gh issue list -l nightly-red`. _(2026-09-23T06:08Z)_
@@ -1749,6 +1749,13 @@ sure someone hears it and closes it.
    documents) or the edge-function secrets. Options: (a) a nightly GitHub job
    copies the files to a private GitHub artifact (free, 90-day keep), or (b) leave
    as-is until launch. I recommend (a).
+
+14. **What to call a person whose account was deleted (AL-011, 2026-09-24).** The
+   app uses 16 different labels for the same thing: "A neighbor", "Helpr",
+   "Former Helpr", "Deleted user", "Unknown", "No name" and more. Admin can't tell
+   a deleted account from a missing name. Options: (a) users see "Former member"
+   and admin sees "Deleted account", everywhere; (b) pick different words. I
+   recommend (a). It changes copy on about 15 screens.
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

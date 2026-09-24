@@ -8,8 +8,7 @@ import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
 import type { TrackingData } from "@/components/JobTracking";
 import { queryKeys } from "@/lib/queryKeys";
-import { validateResult } from "@/lib/validateResult";
-import { helperApplicationsSchema } from "@/lib/schemas";
+import { checkDrift } from "@/lib/checkDrift";
 import { report } from "@/lib/errorLogger";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
@@ -406,7 +405,7 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
   // proposed rates, or missing applications. Logged-only — the screen
   // still renders the raw payload on drift.
   if (appsRes.data) {
-    validateResult(helperApplicationsSchema, appsRes.data, "useActivityData.applicationsForHelper");
+    checkDrift("helperApplications", appsRes.data, "useActivityData.applicationsForHelper");
   }
 
   // Enrichments — a dropped violations fetch would show declined jobs as

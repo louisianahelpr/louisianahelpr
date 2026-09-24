@@ -9,8 +9,7 @@ import { JOB_READABLE_COLUMNS, readableJobRow } from "@/lib/jobColumns";
 import { pickRequestedProfile } from "@/lib/safeProfiles";
 import { posterFeePercentForTier } from "@/lib/posterFees";
 import { CUSTOMER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
-import { validateResult } from "@/lib/validateResult";
-import { jobRowSchema } from "@/lib/schemas";
+import { checkDrift } from "@/lib/checkDrift";
 import { parseLocationIntoFields } from "./postJobFormHelpers";
 
 /**
@@ -268,7 +267,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
         // isn't blocked by an additive backend column change. The schema
         // is intentionally partial (.passthrough()) — we re-cast to the
         // full Supabase Row type so downstream setters keep their types.
-        validateResult(jobRowSchema, raw, "usePostJobForm.rebookJobLoad");
+        checkDrift("jobRow", raw, "usePostJobForm.rebookJobLoad");
         const data = readableJobRow(raw);
         setTitle(data.title);
         setDescription(data.description);

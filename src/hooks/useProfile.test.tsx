@@ -193,4 +193,4 @@ describe("useInvalidateProfile", () => {
 // @mutate src/hooks/useProfile.ts | if (error) throw error; | void error;
 // The boundary check was unproven until 2026-09-21: this whole file stayed
 // green with the validateResult() line deleted from fetchProfile.
-// @mutate src/hooks/useProfile.ts | validateResult(sharedProfileOrNullSchema, data ?? null, "useProfile.fetchProfile"); | void 0;
+// @mutate src/hooks/useProfile.ts | checkDrift("sharedProfileOrNull", data ?? null, "useProfile.fetchProfile"); | void 0;

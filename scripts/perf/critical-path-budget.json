@@ -1,11 +1,35 @@
 {
   "_what": "Q178 critical-path budget, checked by `node scripts/perf/critical-path.mjs --check` against the BUILT bundle (bundle-size.yml, npm run gate). Rounds are exact both ways; KB is a band (+5% fails as a regression, -10% fails as a stale budget). Lower these in the same commit as the change that lowers them.",
-  "_measured": "2026-09-23, production vite build",
-  "entry": { "staticChunks": 2, "kb": 3.3 },
+  "_measured": "2026-09-24, production vite build (PD-020: zod off the boot path)",
+  "entry": {
+    "staticChunks": 2,
+    "kb": 3.3
+  },
   "routes": {
-    "/": { "routeRound": 2, "rounds": 2, "jsKB": 329 },
-    "/browse": { "routeRound": 2, "rounds": 2, "jsKB": 397 },
-    "/login": { "routeRound": 2, "rounds": 2, "jsKB": 331 },
-    "/signup": { "routeRound": 2, "rounds": 2, "jsKB": 365 }
+    "/": {
+      "routeRound": 2,
+      "rounds": 2,
+      "jsKB": 307
+    },
+    "/browse": {
+      "routeRound": 2,
+      "rounds": 2,
+      "jsKB": 376
+    },
+    "/login": {
+      "routeRound": 2,
+      "rounds": 2,
+      "jsKB": 309
+    },
+    "/signup": {
+      "routeRound": 2,
+      "rounds": 2,
+      "jsKB": 343
+    },
+    "/my-posts": {
+      "routeRound": 2,
+      "rounds": 2,
+      "jsKB": 337
+    }
   }
 }

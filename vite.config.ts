@@ -714,6 +714,16 @@ export default defineConfig(({ mode }) => ({
             // requests saved. Nor `entriesAware: true` on this group: it
             // splits per reachable-entry set and restores the original
             // 17-wave waterfall (215 requests), i.e. it undoes the fix.
+            // zodConfig is shared by schemas + validateResult, so app-shared
+            // captured it, and its static `import { config } from "zod"` then
+            // put the whole forms chunk on every signed-in page's boot path
+            // (PD-020). Riding with zod keeps it lazy with its only importers.
+            {
+              name: "forms",
+              test: /[\\/]src[\\/]lib[\\/]zodConfig\.ts$/,
+              priority: 20,
+              minSize: 0,
+            },
             {
               name: "app-shared",
               test: /[\\/]src[\\/](lib|hooks|utils|contexts|integrations|config|constants)[\\/]/,

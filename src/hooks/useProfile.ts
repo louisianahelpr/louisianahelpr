@@ -18,8 +18,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys } from "@/lib/queryKeys";
-import { validateResult } from "@/lib/validateResult";
-import { sharedProfileOrNullSchema } from "@/lib/schemas";
+import { checkDrift } from "@/lib/checkDrift";
 
 export interface SharedProfile {
   user_id: string;
@@ -54,7 +53,7 @@ export async function fetchProfile(userId: string): Promise<SharedProfile | null
   // A schema mismatch logs to Sentry but does NOT crash the screen. Cast
   // back to the SharedProfile interface so the hook's public contract is
   // unchanged regardless of Zod's inferred narrowing.
-  validateResult(sharedProfileOrNullSchema, data ?? null, "useProfile.fetchProfile");
+  checkDrift("sharedProfileOrNull", data ?? null, "useProfile.fetchProfile");
   return (data ?? null) as SharedProfile | null;
 }
 

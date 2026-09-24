@@ -14,7 +14,7 @@
 import { Capacitor } from "@capacitor/core";
 import { SocialLogin } from "@capgo/capacitor-social-login";
 import { supabase } from "@/integrations/supabase/client";
-import { friendlyAuthError } from "@/lib/authErrors";
+import { recognizedAuthError } from "@/lib/authErrors";
 import { setLastAuthMethod } from "@/lib/lastAuthMethod";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { report } from "@/lib/errorLogger";
@@ -87,19 +87,15 @@ function isCancelError(err: unknown): boolean {
   );
 }
 
-// Provider-aware error string. Re-uses friendlyAuthError so the social
+// Provider-aware error string. Re-uses recognizedAuthError so the social
 // flow shows the same warm copy as the email/password flow, with a final
 // fallback that names the provider.
 function friendlyProviderError(provider: SocialProvider, err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err ?? "");
   if (!raw) return `${providerLabel(provider)} sign-in didn't work — give it another try?`;
-  const mapped = friendlyAuthError(raw);
-  // friendlyAuthError returns the generic fallback for unrecognised input;
-  // when that happens, prefer a provider-named line over the bare generic.
-  if (mapped === "Couldn't sign you in — give it another try?") {
-    return `${providerLabel(provider)} sign-in didn't work — give it another try?`;
-  }
-  return mapped;
+  // OA-010: recognition is recognizedAuthError's null, never a comparison
+  // against the generic fallback's wording (a copy edit silently broke that).
+  return recognizedAuthError(raw) ?? `${providerLabel(provider)} sign-in didn't work — give it another try?`;
 }
 
 function providerLabel(provider: SocialProvider): string {

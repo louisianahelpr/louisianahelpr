@@ -1,3 +1,7 @@
+/**
+ * OA-010: an unrecognised provider error must read "<Provider> sign-in didn't work".
+ * @mutate src/lib/socialAuth.ts | recognizedAuthError(raw) ?? | (recognizedAuthError(raw) ?? "Couldn't sign you in — give it another try?") ??
+ */
 // signInWithProvider locks in:
 //   - structured result kinds (success / redirecting / cancelled / error)
 //   - never throws; the UI switches on `kind`

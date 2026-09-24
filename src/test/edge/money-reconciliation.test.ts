@@ -1,4 +1,5 @@
 // @mutate supabase/functions/money-reconciliation/index.ts | if ((hit as { gift_card_id?: unknown } \| null)?.gift_card_id != null) return false; | if (false) return false;
+// @mutate supabase/functions/money-reconciliation/index.ts | if (job.dispute_status === "resolved" && !job.cancelled_at) continue; | if (false) continue;
 /**
  * Unit tests for the `money-reconciliation` Supabase edge function — the
  * read-only alarm for money rows that disagree with what settlement derives.
@@ -204,6 +205,43 @@ describe("money-reconciliation edge function", () => {
     expect(findings.map((f) => f.check)).toContain("released_without_payout_transfer");
     expect(res.status).toBe(500);
     expect(slackAlerts).toHaveLength(1);
+  });
+
+  // ── A dispute decision is not a cancellation (docs/OPEN.md Q336) ──────
+  // rpc_decide_dispute (poster wins) sets status 'cancelled' and
+  // dispute_status 'resolved' but never cancelled_at; the $0 close then sets
+  // payment_status 'cancelled'. Read as a cancellation, a committed Helpr and
+  // a past date yield a 50% fee "owed" -> a critical page on a job that owes
+  // nothing. A plain cancellation with the same fields still flags.
+  describe("dispute-closed jobs (Q336)", () => {
+    function cancelledJob(extra: Record<string, unknown>) {
+      seedCleanLedger();
+      scenario.reads.jobs = { rows: [{
+        ...(scenario.reads.jobs as { rows: Record<string, unknown>[] }).rows[0],
+        id: "job-d", status: "cancelled", payment_status: "cancelled",
+        helper_confirmed_at: new Date(Date.now() - 6 * 86_400_000).toISOString(),
+        platform_fee_amount: 0, poster_completed_at: null, helper_completed_at: null,
+        date_needed: new Date(Date.now() - 5 * 86_400_000).toISOString().slice(0, 10), start_time: null,
+        ...extra,
+      }] };
+      scenario.reads.payout_transfers = { rows: [] };
+    }
+    it("a poster-wins $0 close raises no fee finding", async () => {
+      const fn = await loadConfigured();
+      cancelledJob({ dispute_status: "resolved", cancelled_at: null });
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(b.error).toBeUndefined();
+      const checks = ((b.findings ?? []) as Array<{ check: string }>).map((f) => f.check);
+      expect(checks.filter((c) => /cancellation|late_cancellation/.test(c))).toEqual([]);
+    });
+    it("the same job cancelled WITHOUT a dispute still flags the unmarked fee", async () => {
+      const fn = await loadConfigured();
+      cancelledJob({ dispute_status: null, cancelled_at: new Date(Date.now() - 4 * 86_400_000).toISOString() });
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(b.error).toBeUndefined();
+      const checks = ((b.findings ?? []) as Array<{ check: string }>).map((f) => f.check);
+      expect(checks).toContain("cancellation_fee_mismatch");
+    });
   });
 
   // ── include_seed runs never page (docs/OPEN.md Q90) ─────────────────────

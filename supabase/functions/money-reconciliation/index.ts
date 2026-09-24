@@ -441,6 +441,11 @@ serve(async (req) => {
     // ── Cancelled-job checks ─────────────────────────────────────────────────
     for (const job of jobRows) {
       if (job.status !== "cancelled") continue;
+      // A dispute decided for the poster (rpc_decide_dispute) sets 'cancelled'
+      // with dispute_status 'resolved' and never stamps cancelled_at. The
+      // decision governs its money, not the cancellation ladder: read as a
+      // cancellation it "owes" a 50% fee and pages critical (Q336).
+      if (job.dispute_status === "resolved" && !job.cancelled_at) continue;
 
       // Recompute from the SAME module void-cancelled-payments settles with.
       const expectedFee = computeCancellationFee({

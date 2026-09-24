@@ -22,7 +22,10 @@ declare global {
     HELPR_BUILD?: string;
   }
 }
-window.HELPR_BUILD = "2026-05-04-editorial-brand-polish";
+// NB-020: injected at build time (vite.config.ts define), so push_tokens.app_version
+// names the commit and build that registered the device; a literal never changed.
+window.HELPR_BUILD =
+  typeof __APP_COMMIT__ === "string" ? `${__APP_COMMIT__}@${__APP_BUILT_AT__}` : "unknown"; // NB-020 build-injected
 
 // Global error handlers are tiny + synchronous — keep them eager so we
 // catch any throw during the very first render.

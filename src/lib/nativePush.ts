@@ -94,7 +94,7 @@ function publishNativePermission(receive: string, source: "boot" | "request"): v
   else setNativePushPermission("default"); // "prompt" | "prompt-with-rationale"
 }
 
-// App version is exposed on `window.HELPR_BUILD` from main.tsx (set at
+// App version is exposed on `window.HELPR_BUILD` from main.tsx (commit@built-at, set at
 // bundle time). This avoids the previous hardcoded "1.0.4" which would
 // silently lie after every iOS rebuild. Falls back to "unknown" if the
 // global is missing (e.g. in SSR or pre-hydration test contexts).

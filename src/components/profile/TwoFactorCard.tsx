@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -237,9 +237,25 @@ function EnrollDialog({
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [copied, setCopied] = useState(false);
+  // OA-015: the setup key is a permanent credential. Once the user has used
+  // it we overwrite the pasteboard, inside the Verify/Cancel click so WebKit
+  // still counts it as a user gesture.
+  const secretOnClipboardRef = useRef(false);
+  const clearCopiedSecret = () => {
+    if (!secretOnClipboardRef.current) return;
+    secretOnClipboardRef.current = false;
+    navigator.clipboard?.writeText("").catch(() => {
+      // Clipboard write refused; nothing more we can do from the web layer.
+    });
+  };
+  const close = () => {
+    clearCopiedSecret();
+    onClose();
+  };
 
   const handleVerify = async () => {
     if (!data || code.trim().length !== 6) return;
+    clearCopiedSecret();
     setVerifying(true);
     const { error: verifyError } = await supabase.auth.mfa.challengeAndVerify({
       factorId: data.factorId,
@@ -254,7 +270,7 @@ function EnrollDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) close(); }}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
           title="Turn On Two-Step?"
@@ -289,6 +305,7 @@ function EnrollDialog({
                 onClick={async () => {
                   try {
                     await navigator.clipboard.writeText(data.secret);
+                    secretOnClipboardRef.current = true;
                     setCopied(true);
                     window.setTimeout(() => setCopied(false), 1500);
                   } catch { /* clipboard unavailable */ }
@@ -327,7 +344,7 @@ function EnrollDialog({
         )}
 
         <DialogFooter>
-          <DialogSecondaryAction onClick={onClose}>
+          <DialogSecondaryAction onClick={close}>
             Cancel
           </DialogSecondaryAction>
           <DialogPrimaryAction

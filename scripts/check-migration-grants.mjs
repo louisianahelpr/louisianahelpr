@@ -64,8 +64,11 @@ for (const file of allMigrationFiles()) {
   }
 }
 
-// Q263: with --all, a function a LATER migration drops (and never re-creates)
-// no longer exists, so its historical definition cannot leak a grant.
+// Q263: a function a LATER migration drops (and never re-creates) no longer
+// exists, so its historical definition cannot leak a grant. This holds for a
+// changed file too: an old migration edited in place (the 2026-09-24 address
+// rename touched 2026-05 files defining since-dropped functions) is not a new
+// function, and flagging it blocked db-deploy.
 const dropRe = /\bdrop\s+function\s+(?:if\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi;
 const createRe = /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?([a-z0-9_]+)"?\s*\(/gi;
 const lastCreate = new Map();
@@ -89,7 +92,7 @@ for (const file of changedFiles) {
     // those functions are invoked by the trigger machinery, never granted.
     const sig = sql.slice(m.index, m.index + 600);
     if (/\breturns\s+(trigger|event_trigger)\b/i.test(sig)) continue;
-    if (scanAll && droppedForGood(name.toLowerCase())) continue;
+    if (droppedForGood(name.toLowerCase())) continue;
     if (!granted.has(name.toLowerCase())) violations.push({ file, name });
   }
 }

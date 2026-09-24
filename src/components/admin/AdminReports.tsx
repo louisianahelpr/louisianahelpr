@@ -31,6 +31,7 @@ import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { userFacingError } from "@/lib/userFacingError";
+import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 
 type Report = {
   id: string;
@@ -164,10 +165,10 @@ const AdminReports = () => {
         // do not know. If it succeeded, a miss means the row is not there.
         // Accepts null: `reporter_id` is nulled by purge_user_data() when the
         // reporter deletes their account, and a null owner is the same thing to
-        // an admin as an id with no profile behind it — "Deleted user".
+        // an admin as an id with no profile behind it — ADMIN_DELETED_ACCOUNT_LABEL.
         const nameFor = (id: string | null) =>
           (id ? nameMap.get(id) : undefined) ??
-          (profilesError && id ? "Name unavailable" : "Deleted user");
+          (profilesError && id ? "Name unavailable" : ADMIN_DELETED_ACCOUNT_LABEL);
 
         // A job report names the JOB. Falling back to "Deleted job" keeps the
         // same two-state honesty as `nameFor`: the row is genuinely gone (a
@@ -444,7 +445,7 @@ const AdminReports = () => {
                           report itself because it protects the person named in
                           `reported_id`. Without this branch the link built a
                           `/user/null` href that renders a not-found profile.
-                          `reporter_name` already resolves to "Deleted user" via
+                          `reporter_name` already resolves to ADMIN_DELETED_ACCOUNT_LABEL via
                           nameFor(), so the label needs no special case. */}
                       {report.reporter_id ? (
                         <button

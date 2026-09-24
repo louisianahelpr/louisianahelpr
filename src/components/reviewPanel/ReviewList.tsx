@@ -6,6 +6,7 @@ import { report } from "@/lib/errorLogger";
 import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import { safeImageSrc, type Review, type ReviewListProps } from "./types";
 import { formatShortDate } from "@/lib/format";
+import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 
 export const ReviewList = ({ userId }: ReviewListProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -60,8 +61,8 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
         // review stands with no author. Null is not an id to look up, and
         // handing one to a uuid[] RPC parameter is a malformed filter rather
         // than a no-match — so it is dropped here. The row still renders; the
-        // lookup misses and it falls through to the existing "a neighbor"
-        // fallback, which is what an unresolved reviewer already got.
+        // author is named FORMER_MEMBER_LABEL (Q369); only an unresolved live
+        // reviewer falls through to "a neighbor".
         const reviewerIds = [...new Set(data.map((r) => r.reviewer_id).filter((id): id is string => !!id))];
         const { data: profiles, error: profErr } = await supabase
           .rpc("get_safe_profiles", { user_ids: reviewerIds });
@@ -72,7 +73,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
         }
 
         const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
-        setReviews(data.map((r: any) => ({ ...r, reviewerName: profileMap.get(r.reviewer_id) })));
+        setReviews(data.map((r: any) => ({ ...r, reviewerName: r.reviewer_id ? profileMap.get(r.reviewer_id) : FORMER_MEMBER_LABEL })));
       }
       setLoaded(true);
     };

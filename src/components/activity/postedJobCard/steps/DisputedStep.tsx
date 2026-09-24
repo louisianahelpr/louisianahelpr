@@ -8,6 +8,7 @@ import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { posterDisputeControls } from "../posterDisputeControls";
 import { disputeSupportSubject } from "@/lib/supportSubject";
 import type { PosterStepCtx } from "./posterStepContract";
+import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 
 /**
  * POSTER STEP 5 — disputed.
@@ -238,7 +239,8 @@ export function DisputedStep(ctx: PosterStepCtx) {
                   // helperNames values are abbreviated ("Hallie H.") and end in
                   // a period whenever the surname is an initial, so a
                   // hard-coded ". You can't" rendered "Hallie H.. You can't".
-                  const who = job.helper_id ? helperNames[job.helper_id] || "your Helpr" : "your Helpr";
+                  // Q369: a disputed job had a Helpr; NULL means they deleted their account.
+                  const who = job.helper_id ? helperNames[job.helper_id] || "your Helpr" : `a ${FORMER_MEMBER_LABEL.toLowerCase()}`;
                   const sentence = `Resolving this dispute closes it and releases the full amount held for this job to ${who}`;
                   return `${sentence.endsWith(".") ? sentence : sentence + "."} You can't reopen this dispute afterwards.`;
                 })()}

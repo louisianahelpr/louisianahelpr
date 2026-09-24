@@ -29,6 +29,7 @@ import {
   STALLED_NO_MONEY_NOTE,
   type StalledQueueRow,
 } from "@/components/admin/adminStalledJobs/stalledQueue";
+import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 
 /**
  * STUCK JOBS — the human half of the stalled-completion sweep.
@@ -288,7 +289,7 @@ const StalledJobRow = ({
   const resolved = !!row.resolved_at;
   // A job can outlive its poster: deletion nulls `customer_id` (CLAUDE.md), so
   // neither id is assumed present and neither renders an empty link.
-  const poster = row.customer_id ? names[row.customer_id] ?? "Unknown" : "Account deleted";
+  const poster = row.customer_id ? names[row.customer_id] ?? "Unknown" : ADMIN_DELETED_ACCOUNT_LABEL;
   const helper = row.helper_id ? names[row.helper_id] ?? "Unknown" : "No Helpr on record";
 
   return (

@@ -4,8 +4,8 @@
  * referrals fell through a null name and null email to an 8-character raw
  * UUID shown as a person's name.
  *
- * @mutate src/pages/giftCards/CreditCard.tsx |   const donorFirst = credit.donor?.full_name?.trim().split(" ")[0] \|\| "a neighbor"; |   const donorFirst = (credit.donor?.full_name ?? "A neighbor").split(" ")[0];
- * @mutate src/components/admin/AdminReferrals.tsx |           nameMap[p.user_id] = p.full_name \|\| p.email \|\| (p.anonymized_at ? "Deleted account" : "No name on file"); |           nameMap[p.user_id] = p.full_name \|\| p.email \|\| p.user_id.slice(0, 8);
+ * @mutate src/pages/giftCards/CreditCard.tsx |     : `a ${FORMER_MEMBER_LABEL.toLowerCase()}`; |     : "A neighbor".split(" ")[0];
+ * @mutate src/components/admin/AdminReferrals.tsx |           nameMap[p.user_id] = p.full_name \|\| p.email \|\| (p.anonymized_at ? ADMIN_DELETED_ACCOUNT_LABEL : "No name on file"); |           nameMap[p.user_id] = p.full_name \|\| p.email \|\| p.user_id.slice(0, 8);
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -22,9 +22,9 @@ const gift = (over: Partial<GiftCardRow> = {}): GiftCardRow => ({
 });
 
 describe("a departed person is named, not mangled (AL-011)", () => {
-  it("gift card from a deleted donor reads 'from a neighbor'", () => {
+  it("gift card from a deleted donor reads 'from a former member' (Q369)", () => {
     render(<CreditCard credit={gift()} currentUserId="me" onRedeem={vi.fn()} onClaim={vi.fn()} />);
-    expect(screen.getByText(/from a neighbor/)).toBeTruthy();
+    expect(screen.getByText(/from a former member/)).toBeTruthy();
     expect(screen.queryByText(/from A\b/)).toBeNull();
   });
 

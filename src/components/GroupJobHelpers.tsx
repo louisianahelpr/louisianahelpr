@@ -7,6 +7,7 @@ import { applicationStatusLabel } from "@/lib/statusLabels";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 
 /** Label for a roster slot whose helper has deleted their account.
  *
@@ -17,12 +18,11 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
  * it identically to a member whose profile read merely errored, which is the
  * one thing the poster must not confuse it with: one of those people can still
  * be messaged and paid, and the other cannot. */
-const DEPARTED_HELPER_LABEL = "Former Helpr";
 
 type GroupHelper = {
   id: string;
   /** NULL once this member deletes their account — the slot is retained, the
-      identity is severed. See DEPARTED_HELPER_LABEL. */
+      identity is severed. See FORMER_MEMBER_LABEL. */
   helper_id: string | null;
   status: string;
   helperName?: string;
@@ -111,7 +111,7 @@ export function GroupJobHelpers({
           ...h,
           helperName: h.helper_id
             ? nameMap.get(h.helper_id) || "Helpr"
-            : DEPARTED_HELPER_LABEL,
+            : FORMER_MEMBER_LABEL,
         }))
       );
     } else {

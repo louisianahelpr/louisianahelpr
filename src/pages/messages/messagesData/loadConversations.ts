@@ -9,7 +9,7 @@ import { getMutedThreadMap, threadMuteKey } from "@/lib/threadMutes";
 import { fetchMessagingClosesAt } from "@/lib/messagingLockout";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import type { Conversation, Message } from "@/components/messages/types";
-import { DELETED_ACCOUNT_LABEL } from "@/lib/deletedCounterparty";
+import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 
 /**
  * One person, resolved once.
@@ -276,7 +276,7 @@ export async function fetchConversations(
     // reach the fallback now, and they get the house label rather than the
     // bare word "User".
     // Q262: the deleted-account thread says so plainly.
-    otherUserName: otherDeleted ? DELETED_ACCOUNT_LABEL : other?.name || UNRESOLVED_PERSON,
+    otherUserName: otherDeleted ? FORMER_MEMBER_LABEL : other?.name || UNRESOLVED_PERSON,
     otherUserAvatarUrl: other?.avatarUrl ?? null,
     jobTitle: jobMap.get(v.jobId)?.title || "a job",
     jobId: v.jobId,

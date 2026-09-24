@@ -25,6 +25,7 @@ import {
   type HelperSideReviews,
 } from "@/lib/helperBadgeStats";
 import { JOB_READABLE_COLUMNS, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
+import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 
 // The row as a signed-in client can read it: jobs.offered_to_helper_id is not
 // selectable (20260915045110), so these reads name their columns.
@@ -189,9 +190,9 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
         // state says "a neighbor" (ReviewList, PublicReviewWall, useActivityData,
         // DashboardGuest). "User" read like an unfilled placeholder rather than
         // a person who left, and it disagreed with the review panel about the
-        // same review. Admin surfaces keep "Deleted user" — an admin should see
-        // the truth.
-        reviewerName: (r.reviewer_id ? nameMap.get(r.reviewer_id) : null) || "a neighbor",
+        // same review. A NULL reviewer_id is a deleted author: FORMER_MEMBER_LABEL
+        // (Q369); admin screens say ADMIN_DELETED_ACCOUNT_LABEL.
+        reviewerName: r.reviewer_id ? nameMap.get(r.reviewer_id) || "a neighbor" : FORMER_MEMBER_LABEL,
         jobTitle: jobMap.get(r.job_id) || "a job",
       }));
     },

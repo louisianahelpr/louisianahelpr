@@ -15,6 +15,7 @@ import {
   type HelperSideReviews,
 } from "@/lib/helperBadgeStats";
 import type { ProfileReview, ProfileJob, ReplyLatency } from "./types";
+import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -110,7 +111,8 @@ function enrichReviewRows(
       rating: r.rating,
       feedback: r.feedback,
       created_at: r.created_at,
-      reviewerName: nameMap.get(r.reviewer_id) || "a neighbor",
+      // Q369: a NULL reviewer_id is an author who deleted their account.
+      reviewerName: r.reviewer_id ? nameMap.get(r.reviewer_id) || "a neighbor" : FORMER_MEMBER_LABEL,
       jobTitle: j?.title || "a job",
       jobCategory: j?.category ?? null,
       response_text: r.response_text ?? null,

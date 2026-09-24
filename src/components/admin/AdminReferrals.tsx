@@ -11,6 +11,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { formatShortDate, formatPriceExact } from "@/lib/format";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 
 /**
  * NOTE ON THE NULLABLE OWNER COLUMNS BELOW.
@@ -123,7 +124,7 @@ const AdminReferrals = () => {
         (profiles || []).forEach(p => {
           // AL-011: an anonymised profile has no name and no email; it is a
           // departed account, not an 8-character UUID shown as a person.
-          nameMap[p.user_id] = p.full_name || p.email || (p.anonymized_at ? "Deleted account" : "No name on file");
+          nameMap[p.user_id] = p.full_name || p.email || (p.anonymized_at ? ADMIN_DELETED_ACCOUNT_LABEL : "No name on file");
         });
       }
 
@@ -131,9 +132,8 @@ const AdminReferrals = () => {
       // than showing a blank cell an admin would read as a bug. A non-null id
       // with no profile row is a different thing (orphan), and still shows its
       // truncated id so it stays traceable.
-      const DEPARTED = "Deleted account";
       const nameFor = (id: string | null | undefined) =>
-        !id ? DEPARTED : nameMap[id] || id.slice(0, 8);
+        !id ? ADMIN_DELETED_ACCOUNT_LABEL : nameMap[id] || id.slice(0, 8);
 
       // Codes outlive their owners (deletion nulls or orphans the owner
       // link but keeps the row), so `codes.length` is NOT "users with codes".

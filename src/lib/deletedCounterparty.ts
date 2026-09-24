@@ -11,9 +11,6 @@
  * the deleted side. Guard: src/test/messagesReceiverNullable.test.ts.
  */
 
-/** Name shown for the other party of a thread whose account was deleted. */
-export const DELETED_ACCOUNT_LABEL = "Deleted account";
-
 /** Read-only notice that replaces the composer in that thread. Role-neutral. */
 export const DELETED_ACCOUNT_NOTICE =
   "This account has been deleted. Your earlier messages are still here, but new messages can't be sent.";

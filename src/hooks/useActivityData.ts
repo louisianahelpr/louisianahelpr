@@ -12,6 +12,7 @@ import { checkDrift } from "@/lib/checkDrift";
 import { report } from "@/lib/errorLogger";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
+import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 
 /* ============================================================================
    WHY THIS FILE IS FOUR QUERIES AND NOT ONE
@@ -51,7 +52,7 @@ export interface GroupHelperLite {
   job_id: string;
   /** NULL once this roster member deletes their account — 20260902014651 kept
       the row and severed the identity, because the roster is the poster's
-      record of who worked the job. Rendered as "Former Helpr", never as the
+      record of who worked the job. Rendered as FORMER_MEMBER_LABEL, never as the
       generic "Helpr" fallback, which would be indistinguishable from a member
       whose profile lookup merely failed. */
   helper_id: string | null;
@@ -319,7 +320,7 @@ export async function fetchPostedActivityDetail(
         ...row,
         helperName: row.helper_id
           ? nameMap.get(row.helper_id) || "Helpr"
-          : "Former Helpr",
+          : FORMER_MEMBER_LABEL,
       });
     }
   }
@@ -909,10 +910,10 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
       // `customer_id` is nullable since 20260901033011 — a poster who deleted
       // their account leaves the job standing with no owner. Null is not a
       // key: `posterNames` is only ever built from the non-null ids collected
-      // at line 438, so an ownerless job simply falls through to the existing
-      // "a neighbor" fallback rather than indexing the record with null.
+      // above, so an ownerless job is named FORMER_MEMBER_LABEL (Q369) rather
+      // than indexing the record with null.
       const posterId = a.job.customer_id;
-      const name = posterId ? posterNames[posterId] : undefined;
+      const name = posterId ? posterNames[posterId] : FORMER_MEMBER_LABEL;
       return { ...a, posterName: name ?? "a neighbor" };
     });
   }, [appliedAppsList, posterNames, appliedDetail.data]);

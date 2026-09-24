@@ -5,6 +5,7 @@ import { JobActionChip } from "../../JobActionRow";
 import { PhotoProofDialog } from "@/components/PhotoProof";
 import type { PosterStepCtx } from "./posterStepContract";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
+import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 
 /**
  * POSTER STEP 4 — done.
@@ -35,7 +36,9 @@ export function CompletedStep({
   const meta = completedJobMeta[job.id];
   const hasTipped = meta?.tipped;
   const hasReviewed = meta?.reviewed;
-  const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
+  // Q369: a completed job always had a Helpr; a NULL helper_id is one who
+  // deleted their account (jobs_helper_id_fkey ON DELETE SET NULL).
+  const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : FORMER_MEMBER_LABEL;
   const hasProof = (job.proof_before_urls?.length ?? 0) > 0 || (job.proof_after_urls?.length ?? 0) > 0;
 
   // Approving completion leaves the job at 'payout_pending' until the transfer

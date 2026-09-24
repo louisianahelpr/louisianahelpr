@@ -11,6 +11,7 @@ import { previewDisputeSplit } from "@/lib/disputeSplitPreview";
 import { isUnsettled, unsettledReason } from "./unsettled";
 import { partitionEvidenceUrls } from "@/lib/evidenceUrl";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
+import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 
 /**
  * The split readout is ONE money column — net, gross and deduction stacked.
@@ -107,7 +108,7 @@ export const DisputeCard = ({
   const preview = previewDisputeSplit(job, helperShare / 100, job.helper_id ? tiers[job.helper_id] : null);
   const isActivePanel = activePanelJobId === job.id;
   const helperName = job.helper_id ? profiles[job.helper_id] || "Unknown" : null;
-  const posterName = profiles[job.customer_id] || "Unknown";
+  const posterName = job.customer_id ? profiles[job.customer_id] || "Unknown" : ADMIN_DELETED_ACCOUNT_LABEL;
 
   return (
     <div key={job.id} className="rounded-ds-md border border-destructive/30 bg-card p-4 space-y-3">

@@ -17,6 +17,7 @@ import {
 } from "../../../../../supabase/functions/_shared/stalledCompletion";
 import { PosterConfirmationPrimary } from "./PosterConfirmationPrimary";
 import { posterStalledNotice, recentArrivalNearMiss, type PosterStepCtx } from "./posterStepContract";
+import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 
 /**
  * POSTER STEP 3 — the job is underway (or in a revision).
@@ -326,7 +327,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
             jobId={job.id}
             jobTitle={job.title}
             helperId={job.helper_id}
-            helperName={job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"}
+            helperName={job.helper_id ? helperNames[job.helper_id] || "Helpr" : FORMER_MEMBER_LABEL /* Q369: helper deleted their account */}
             userId={userId}
             proofBeforeUrls={job.proof_before_urls || []}
             proofAfterUrls={job.proof_after_urls || []}

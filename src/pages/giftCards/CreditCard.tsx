@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { StatusPill } from "./StatusPill";
 import { formatShortDate, formatPrice } from "@/lib/format";
 import type { GiftCardRow } from "./types";
+import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 
 // ─── Credit card ──────────────────────────────────────────────────────────────
 export function CreditCard({
@@ -23,7 +24,10 @@ export function CreditCard({
   perspective?: "received" | "sent";
 }) {
   // AL-011: split the NAME, never the fallback ("A neighbor" split to "from A").
-  const donorFirst = credit.donor?.full_name?.trim().split(" ")[0] || "a neighbor";
+  // Q369: a NULL donor_id is a donor who deleted their account.
+  const donorFirst = credit.donor_id
+    ? credit.donor?.full_name?.trim().split(" ")[0] || "a neighbor"
+    : `a ${FORMER_MEMBER_LABEL.toLowerCase()}`;
   const subline =
     perspective === "sent"
       ? `to ${credit.recipient_email ?? "your recipient"}`

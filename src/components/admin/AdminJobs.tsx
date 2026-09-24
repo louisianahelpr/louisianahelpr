@@ -21,6 +21,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { requireBiometric } from "@/lib/biometricGate";
 import { report } from "@/lib/errorLogger";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
+import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 
 /**
  * Where an admin notification about a job should land, per RECIPIENT.
@@ -251,7 +252,7 @@ const AdminJobs = () => {
     // `map.get`, and an admin should read the truth, not a friendly fallback.
     const posterId = job.customer_id;
     const ids = [posterId, job.helper_id].filter((id): id is string => !!id);
-    if (posterId === null) setPosterName("Deleted user");
+    if (posterId === null) setPosterName(ADMIN_DELETED_ACCOUNT_LABEL);
     if (ids.length > 0) {
       const { data, error } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
       if (error) {

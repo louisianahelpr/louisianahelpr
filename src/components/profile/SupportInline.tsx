@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { reportSubmitError } from "@/lib/reportErrors";
 import { isStorageObjectPath } from "@/lib/storagePath";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -220,7 +221,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
     setSending(false);
     if (error) {
       hapticError();
-      toast.error("We couldn't send that — please try again.");
+      toast.error(reportSubmitError(error, "We couldn't send that — please try again."));
     } else {
       setSent(true);
     }

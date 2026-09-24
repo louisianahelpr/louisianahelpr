@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { reportSubmitError } from "@/lib/reportErrors";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -242,7 +243,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
 
     if (error || !data) {
       hapticError();
-      toast.error("We couldn't send your report — please try again.");
+      toast.error(reportSubmitError(error, "We couldn't send your report — please try again."));
       submitInFlight.current = false;
       setSubmitting(false);
       return;

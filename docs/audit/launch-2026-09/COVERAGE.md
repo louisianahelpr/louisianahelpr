@@ -4,11 +4,11 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: node scripts/audit-coverage.mjs -->
 
-Generated from findings.jsonl as of its newest entry: 2026-09-23T05:28:18.414Z
+Generated from findings.jsonl as of its newest entry: 2026-09-24T04:17:29.676Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 165 open (8 open launch blockers), 205 fixed, 0 wontfix, 17 obsolete, 14 retracted, 28 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
-- **Surface:** 1033 auditable surfaces (449 navigable, 584 copy) per SURFACE.md
+- **Findings:** 162 open (5 open launch blockers), 208 fixed, 0 wontfix, 17 obsolete, 14 retracted, 28 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
+- **Surface:** 1034 auditable surfaces (449 navigable, 585 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
 very different.** `RAN — no report` means findings exist in the bus with no
@@ -29,20 +29,20 @@ lane report on disk — treat it as incomplete, not as covered.
 | 3 | `lh-money-escrow` | REPORTED | 12 | – | 12 |
 | 3 | `lh-native-bridge` | REPORTED | 19 | **2** | 1 |
 | 4 | `lh-build-release` | REPORTED | 7 | **1** | 8 |
-| 4 | `lh-onboarding-auth` | REPORTED | 13 | **2** | 4 |
+| 4 | `lh-onboarding-auth` | REPORTED | 12 | **1** | 5 |
 | 4 | `lh-state-matrix` | REPORTED | 0 | – | 3 |
 | 5 | `lh-account-lifecycle` | REPORTED | 7 | – | 5 |
 | 5 | `lh-e2e-journeys` | REPORTED | 1 | – | 10 |
 | 5 | `lh-trust-safety` | REPORTED | 6 | – | 6 |
 | 5 | `lh-verification-credentials` | REPORTED | 4 | – | 6 |
 | 6 | `lh-admin-moderation` | REPORTED | 5 | – | 6 |
-| 6 | `lh-concurrency-cache` | REPORTED | 4 | **1** | 2 |
+| 6 | `lh-concurrency-cache` | REPORTED | 3 | – | 3 |
 | 6 | `lh-notifications` | REPORTED | 3 | – | 7 |
 | 7 | `lh-input-boundary` | REPORTED | 1 | – | 2 |
 | 7 | `lh-scheduling-time` | REPORTED | 4 | – | 4 |
 | 7 | `lh-subscriptions-credits` | REPORTED | 4 | – | 7 |
 | 8 | `lh-a11y-sensory` | REPORTED | 0 | – | 6 |
-| 8 | `lh-browse-discovery` | REPORTED | 1 | **1** | 4 |
+| 8 | `lh-browse-discovery` | REPORTED | 0 | – | 5 |
 | 8 | `lh-visual-critic` | REPORTED | 2 | – | 7 |
 | 9 | `lh-copy-content` | REPORTED | 1 | – | 6 |
 | 9 | `lh-email-delivery` | REPORTED | 1 | – | 1 |
@@ -63,7 +63,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | — | `lh-mkt-instagram` | NOT STARTED | – | – | – |
 | — | `lh-mkt-orchestrator` | NOT STARTED | – | – | – |
 
-## Surface coverage — 1033 auditable surfaces, not 46 lanes
+## Surface coverage — 1034 auditable surfaces, not 46 lanes
 
 Routes are 3% of the surface. Coverage is measured against SURFACE.md classes,
 each naming the lane accountable for it.
@@ -75,7 +75,7 @@ each naming the lane accountable for it.
 | `?tab=` variants | 29 | `lh-route-walker` · `lh-state-matrix` | COVERED |
 | `?view=` variants | 26 | `lh-route-walker` · `lh-state-matrix` | COVERED |
 | Overlay surfaces | 150 | `lh-state-matrix` · `lh-visual-critic` | COVERED |
-| Toast messages | 547 | `lh-copy-content` | COVERED |
+| Toast messages | 548 | `lh-copy-content` | COVERED |
 | Multi-step flows — confirmed | 16 | `lh-e2e-journeys` | COVERED |
 | Multi-step flows — probable | 15 | `lh-e2e-journeys` | COVERED |
 | Back/next navigation only | 40 | `lh-e2e-journeys` · `lh-state-matrix` | COVERED |

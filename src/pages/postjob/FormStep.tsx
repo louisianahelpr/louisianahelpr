@@ -180,10 +180,7 @@ export function FormStep({ form }: FormStepProps) {
             MobileNav dock so the button is never tucked under it. The label
             is contextual: it names the next unfinished chapter until every
             required field is in, then becomes "Review & Pay". */}
-        <div
-          className="pt-1"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
-        >
+        <div className="pt-1 pb-safe-nav">
           <Button
             variant="primary"
             type="submit"

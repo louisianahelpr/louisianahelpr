@@ -1,8 +1,9 @@
 {
-  "generated": "2026-09-24T04:05:36.800Z",
-  "guards": 907,
-  "registered": 906,
+  "generated": "2026-09-24T04:18:51.200Z",
+  "guards": 909,
+  "registered": 907,
   "unregistered": [
+    "src/test/dashboardCountNeverOverstates.test.ts",
     "src/test/uiSweepScheduledDark.test.ts"
   ],
   "classA_noInventoryFloor": [

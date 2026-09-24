@@ -77,6 +77,23 @@ jobs:
           # script refuses to report fresh in CI.
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run check:staleness
+      - name: The schedule heartbeat itself is still firing (CJ-009)
+        # schedule-heartbeat.yml watches every other cron; nothing watched it.
+        # If GitHub disables it (60 days idle) every workflow it guards goes
+        # unwatched at once, so this job checks it: active, and a scheduled
+        # run within 2 days (it fires daily at 11:23).
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eo pipefail
+          STATE=$(gh api "repos/${{ github.repository }}/actions/workflows/schedule-heartbeat.yml" --jq '.state')
+          LAST=$(gh api "repos/${{ github.repository }}/actions/workflows/schedule-heartbeat.yml/runs?event=schedule&per_page=1" --jq '.workflow_runs[0].created_at // ""')
+          [ "$STATE" = "active" ] || { echo "::error::schedule-heartbeat.yml is $STATE; every cron it watches is unwatched. gh workflow enable schedule-heartbeat.yml"; exit 1; }
+          [ -n "$LAST" ] || { echo "::error::schedule-heartbeat.yml has no scheduled run."; exit 1; }
+          AGE=$(( ( $(date -u +%s) - $(date -u -d "$LAST" +%s) ) / 86400 ))
+          [ "$AGE" -le 2 ] || { echo "::error::schedule-heartbeat.yml last ran on schedule ${AGE}d ago (budget 2d)."; exit 1; }  # CJ-009 heartbeat budget
+          echo "schedule-heartbeat last scheduled run ${AGE}d ago"
 
   land:
     name: Land regenerated inventories (Q57 refresh PR)

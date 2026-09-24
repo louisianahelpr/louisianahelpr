@@ -77,18 +77,46 @@ jobs:
           set -eo pipefail
 
           # file:max_age_days — cadence plus one full period of slack.
+          # EVERY workflow with a cron except this one and privacy-journey.yml (its
+          # month-aware marker check below replaces this loop, Q293). CJ-009:
+          # staleness-watch.yml
+          # watches this file, so neither watcher is unwatched. Budget = the
+          # longest gap between its cron slots plus a day. Two-way checked by
+          # src/test/scheduleHeartbeatWatchesEveryCron.test.ts.
           WATCHED="
+          a11y-webkit-prod.yml:4
           broken-links.yml:14
+          core-loop-canary.yml:1
+          db-backup.yml:2
           db-drift-detect.yml:3
+          db-restore-drill.yml:8
+          e2e-abuse-notifications.yml:8
+          e2e-journeys.yml:5
+          e2e-real-backend.yml:3
           edge-function-smoke.yml:14
+          expiry-monitor.yml:2
           lighthouse.yml:14
+          loading-states-refresh.yml:2
           morning-page.yml:2
+          nightly-red-age.yml:2
+          nightly-webkit.yml:5
+          press-every-control.yml:4
+          prod-audit.yml:5
           prod-deploy.yml:1
           prod-errors.yml:1
+          prod-freshness.yml:1
           quota-monitor.yml:2
+          race-runner.yml:2
           scoreboard.yml:2
           security-audit.yml:14
           slow-network.yml:4
+          staleness-watch.yml:2
+          stripe-webhook-guard.yml:2
+          supabase-usage.yml:8
+          ui-sweep.yml:6
+          uptime.yml:1
+          vacuity.yml:8
+          write-contract-refresh.yml:8
           "
 
           NOW=$(date -u +%s)

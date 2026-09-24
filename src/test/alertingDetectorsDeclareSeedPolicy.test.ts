@@ -29,6 +29,7 @@
  *
  * @mutate supabase/migrations/20260923052520_seed_alerts_go_to_the_digest.sql | coalesce(j.is_seed OR sp.is_seed, false) AS seed | false AS seed
  * @mutate supabase/functions/execute-dispute-split/index.ts | // seed-policy: | // seed policy -
+ * @mutate supabase/migrations/20260924124245_seed_disputes_go_to_the_digest.sql | SELECT j.is_seed INTO v_seed FROM public.jobs j WHERE j.id = _job_id; | SELECT false INTO v_seed;
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -50,7 +51,10 @@ for (const f of readdirSync(MIG).filter((x) => x.endsWith(".sql")).sort()) {
   for (const m of sql.matchAll(FN_RE)) sqlLatest.set(m[1].toLowerCase(), { body: m[3], file: f });
 }
 const SQL_ALERTS = /insert\s+into\s+(?:public\.)?error_logs\b|slack-ops-alert/i;
-const SQL_MONEY = /\b(?:from|join|update)\s+(?:public\.)?(?:jobs|payout_transfers|disputes)\b/i;
+// …or is HANDED a job: notify_ops_dispute_filed(_job_id, …) reads no table,
+// so the read-only pattern missed it and a seed dispute fixture paged
+// #ops-alerts critical on 2026-09-24 08:06 (ops ledger 076553f2).
+const SQL_MONEY = /\b(?:from|join|update)\s+(?:public\.)?(?:jobs|payout_transfers|disputes)\b|\b(?:_|p_)job_id\b/i;
 const sqlDetectors = [...sqlLatest.entries()]
   .filter(([, { body }]) => SQL_ALERTS.test(stripSql(body)) && SQL_MONEY.test(stripSql(body)))
   .map(([name, v]) => ({ name, ...v }));

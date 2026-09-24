@@ -16,7 +16,7 @@ import {
   type InternalPayoutHold,
 } from "./_chargebackHold.ts";
 import { alertGiftDisputeClosed } from "./_giftCardRefund.ts";
-import { finalizeLostClawback, notifyPayee, repayClawback, type RepayResult } from "./_chargebackClawback.ts";
+import { finalizeLostClawback, notifyPayee, repayClawback, wasToldOnHold, type RepayResult } from "./_chargebackClawback.ts";
 
 export async function handleChargeDisputeClosed(
   event: Stripe.Event,
@@ -232,7 +232,7 @@ export async function handleChargeDisputeClosed(
         const lost = await finalizeLostClawback({ stripe, supabase, logStep }, closedDispute, { id: closedJob.id, title: closedJob.title });
         // ME-009: a payout that was held (never paid, so nothing to claw back)
         // used to end in silence. finalizeLostClawback tells a clawed-back payee.
-        if (lost.rows === 0 && closedJob.helper_id && closedJob.payment_status === "chargeback") {
+        if (lost.rows === 0 && closedJob.helper_id && await wasToldOnHold(supabase, closedJob.helper_id, String(closedJob.id))) {
           await notifyPayee(
             supabase, closedJob.helper_id, String(closedJob.id),
             "Card dispute closed",
@@ -270,13 +270,15 @@ export async function handleChargeDisputeClosed(
           if (noticeErr) logStep("Won-dispute admin notice failed", { adminId, error: noticeErr.message });
         }
       } else if (outcome === "won") {
-        // ME-009: tell the held Helpr it was won — only when nothing else
-        // holds the job, since that is when admins are asked to release it.
-        if (!held && !hold.readError && closedJob.helper_id && closedJob.payment_status === "chargeback") {
+        // ME-009: tell the held Helpr it was won. "Asked to release" only when
+        // nothing else holds the job — that is when admins are asked to.
+        if (closedJob.helper_id && await wasToldOnHold(supabase, closedJob.helper_id, String(closedJob.id))) {
           await notifyPayee(
             supabase, closedJob.helper_id, String(closedJob.id),
             "Card dispute decided in our favor",
-            `The card dispute on "${closedJob.title ?? "a job"}" was decided in our favor. Our team has been asked to release your payout for it.`,
+            !held && !hold.readError
+              ? `The card dispute on "${closedJob.title ?? "a job"}" was decided in our favor. Our team has been asked to release your payout for it.`
+              : `The card dispute on "${closedJob.title ?? "a job"}" was decided in our favor, but a separate review of this job still holds your payout. Questions? Contact support.`,
             closedDispute.id,
           );
         }
@@ -408,12 +410,14 @@ export async function handleChargeDisputeClosed(
               link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
             });
           }
-          // ME-009: the Helpr was told their payout was on hold; say it lifted.
-          if (!held && closedJob.helper_id) {
+          // ME-009: the Helpr was told their payout was on hold; say how it ended.
+          if (closedJob.helper_id && await wasToldOnHold(supabase, closedJob.helper_id, String(closedJob.id))) {
             await notifyPayee(
               supabase, closedJob.helper_id, String(closedJob.id),
-              "Payout hold lifted",
-              `The bank's question about the payment for "${closedJob.title ?? "a job"}" was closed with no dispute, so the hold on your payout is lifted and the job continues as normal.`,
+              held ? "Bank question closed" : "Payout hold lifted",
+              held
+                ? `The bank's question about the payment for "${closedJob.title ?? "a job"}" was closed with no dispute, but a separate review of this job still holds your payout. Questions? Contact support.`
+                : `The bank's question about the payment for "${closedJob.title ?? "a job"}" was closed with no dispute, so the hold on your payout is lifted and the job continues as normal.`,
               closedDispute.id,
             );
           }

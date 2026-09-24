@@ -17,7 +17,7 @@ import {
   holdReasons,
 } from "./_chargebackHold.ts";
 import { revokeGiftCardForRefund } from "./_giftCardRefund.ts";
-import { clawBackReleasedPayout, notifyPayee, type ClawbackResult } from "./_chargebackClawback.ts";
+import { clawBackReleasedPayout, HOLD_NOTICE_TITLE, notifyPayee, type ClawbackResult } from "./_chargebackClawback.ts";
 
 export async function handleChargeDisputeCreated(
   event: Stripe.Event,
@@ -108,6 +108,7 @@ async function applyCardDispute(
   let keptHold: string | null = null;
   // Set when this dispute clawed back an already-paid Helpr payout (Q202).
   let clawback: ClawbackResult | null = null;
+  let holdNotice: { helperId: string; jobId: string; message: string } | null = null;
   // The job the clawback runs against (after every page and notice below, so
   // a throw inside it can never suppress them), and whether finding nothing
   // to reverse is itself an alarm (only for a job read as paid out).
@@ -355,14 +356,16 @@ async function applyCardDispute(
       // ME-009: a payout that had not gone out yet used to be blocked in
       // silence — only admins were told, and the Helpr saw a healthy job. The
       // block above is a compare-and-set that matches once per chargeback, so
-      // this notice fires once. A released job's Helpr is told by the clawback.
+      // this notice fires once. Sent after the clawback (end of handler).
       if (blockedNow && chargebackJob.helper_id) {
-        await notifyPayee(
-          supabase, chargebackJob.helper_id, String(chargebackJob.id),
-          "Payout on hold: card dispute",
-          `The card used to pay for "${chargebackJob.title ?? "a job"}" is being disputed with the bank, so your payout for this job is on hold while it is reviewed. Nothing is needed from you now. Questions? Contact support.`,
-          dispute.id,
-        );
+        const title = chargebackJob.title ?? "a job";
+        holdNotice = {
+          helperId: chargebackJob.helper_id,
+          jobId: String(chargebackJob.id),
+          message: isInquiry
+            ? `The bank has asked about the card payment for "${title}", so your payout for this job is on hold until that is answered. Questions? Contact support.`
+            : `The card used to pay for "${title}" is being disputed with the bank, so your payout for this job is on hold while it is reviewed. Questions? Contact support.`,
+        };
       }
 
       if (!markersPlaced) {
@@ -460,5 +463,12 @@ async function applyCardDispute(
         link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
       });
     }
+  }
+
+  // ME-009 hold notice, after the clawback: a payout that went out between the
+  // read and the block is reversed above and its payee told "taken back" by
+  // the clawback, so it is not also told the payout is merely on hold.
+  if (holdNotice && (clawback?.reversedTotalCents ?? 0) === 0) {
+    await notifyPayee(supabase, holdNotice.helperId, holdNotice.jobId, HOLD_NOTICE_TITLE, holdNotice.message, dispute.id);
   }
 }

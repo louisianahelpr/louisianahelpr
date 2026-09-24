@@ -196,6 +196,27 @@ async function existingRepay(stripe: Stripe, row: ClawbackRow, disputeId: string
   ) ?? null;
 }
 
+/** The ME-009 notice a Helpr gets when a card dispute holds an unpaid payout. */
+export const HOLD_NOTICE_TITLE = "Payout on hold: card dispute";
+
+/**
+ * Whether this Helpr was told their payout for this job was held (ME-009). The
+ * outcome notices are sent only then: a released job flipped to 'chargeback'
+ * with nothing to claw back looks the same on the job row, and its Helpr was
+ * paid, so "stays on hold" / "asked to release" would be false. A read failure
+ * answers false — a missing notice is recoverable, a false one is not.
+ */
+export async function wasToldOnHold(supabase: Db, userId: string, jobId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("title", HOLD_NOTICE_TITLE)
+    .eq("link", `/my-jobs?job=${jobId}`)
+    .limit(1);
+  return !error && (data?.length ?? 0) > 0;
+}
+
 export async function notifyPayee(supabase: Db, userId: string, jobId: string, title: string, message: string, disputeId: string) {
   const { error } = await supabase.from("notifications").insert({
     user_id: userId,

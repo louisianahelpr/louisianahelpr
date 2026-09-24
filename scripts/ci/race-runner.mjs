@@ -130,9 +130,9 @@ async function fixture(admin, race) {
       // Funded (escrow): an award or confirmation on an unfunded job is refused
       // by enforce_job_funded_before_award(), which is not the guard under test.
       `INSERT INTO public.jobs (title, description, category, budget, location, parish, status,
-                                customer_id, helper_id, date_needed, created_at, payment_status)
+                                customer_id, helper_id, date_needed, created_at, payment_status, start_time)
        VALUES ('[CI race] job', 'race-runner.mjs fixture', 'cleaning', 100, 'Test Address', 'Orleans',
-               $1::job_status, $2, $3, CURRENT_DATE + 7, now() - interval '30 days', 'escrow')
+               $1::job_status, $2, $3, CURRENT_DATE + 7, now() - interval '30 days', 'escrow', '00:00')
        RETURNING id`,
       race === 1 ? ["open", poster, null] : ["accepted", poster, helper],
     );
@@ -143,13 +143,13 @@ async function fixture(admin, race) {
   // refuse the Helpr's Done is the guard under test.
   const { rows } = await admin.query(
     `INSERT INTO public.jobs (title, description, category, budget, location, parish, status,
-                              customer_id, helper_id, date_needed, created_at, payment_status,
+                              customer_id, helper_id, date_needed, start_time, created_at, payment_status,
                               helper_confirmed_at, poster_confirmed_at, accepted_at,
                               helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at,
                               poster_confirmed_arrival_at,
                               poster_confirmed_working_at, proof_before_urls, proof_after_urls, helper_completed_at)
      VALUES ('[CI race] completion', 'race-runner.mjs fixture', 'cleaning', 100, 'Test Address', 'Orleans',
-             'in_progress', $1, $2, CURRENT_DATE, now() - interval '30 days', 'escrow',
+             'in_progress', $1, $2, CURRENT_DATE, '00:00', now() - interval '30 days', 'escrow',
              now() - interval '5 hours', now() - interval '5 hours', now() - interval '6 hours',
              now() - interval '4 hours', now() - interval '3 hours', now() - interval '3 hours',
              now() - interval '2 hours 45 minutes',
@@ -382,9 +382,9 @@ async function disputeFixture(admin) {
   // the terminal dispute state — the only shape settle_dispute_record accepts.
   const { rows } = await admin.query(
     `INSERT INTO public.jobs (title, description, category, budget, location, parish, status,
-                              customer_id, helper_id, date_needed, created_at, payment_status)
+                              customer_id, helper_id, date_needed, created_at, payment_status, start_time)
      VALUES ('[CI race] dispute', 'race-runner.mjs fixture', 'cleaning', 100, 'Test Address', 'Orleans',
-             'in_progress'::job_status, $1, $2, CURRENT_DATE + 7, now() - interval '30 days', 'escrow')
+             'in_progress'::job_status, $1, $2, CURRENT_DATE + 7, now() - interval '30 days', 'escrow', '00:00')
      RETURNING id`,
     [poster, helper],
   );

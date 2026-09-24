@@ -156,13 +156,13 @@ BEGIN
         INSERT INTO public.user_roles (user_id, role) VALUES (D, 'admin');
       WHEN 'jobs' THEN
         INSERT INTO public.jobs (id, title, description, category, budget, location, parish, date_needed,
-                                 customer_id, helper_id, status, payment_status)
+                                 customer_id, helper_id, status, payment_status, start_time)
         VALUES (J, '[q140] open', 'q140 fixture', 'cleaning', 50, 'Test', 'Orleans', CURRENT_DATE + 7,
-                A, B, 'open', 'escrow');
+                A, B, 'open', 'escrow', '00:00');
         INSERT INTO public.jobs (id, title, description, category, budget, location, parish, date_needed,
-                                 customer_id, helper_id, status, payment_status, poster_completed_at, helper_completed_at)
+                                 customer_id, helper_id, status, payment_status, poster_completed_at, helper_completed_at, start_time)
         VALUES (R, '[q140] done', 'q140 fixture', 'cleaning', 50, 'Test', 'Orleans', CURRENT_DATE,
-                A, B, 'completed', 'released', now(), now());
+                A, B, 'completed', 'released', now(), now(), '00:00');
       WHEN 'application' THEN
         INSERT INTO public.applications (job_id, helper_id) VALUES (J, B);
       WHEN 'bucket' THEN

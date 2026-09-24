@@ -185,15 +185,26 @@ Deno.serve(async (req) => {
       error: tokenError,
     };
 
-    if (!env.pageAccessToken && autoPublishEnabled !== true) {
-      // Not configured, and nothing depends on it: the Meta auto-poster was
-      // never set up (no META_* secrets exist) and auto-publish is off. A
-      // daily "could not run" critical about a feature nobody turned on is how
-      // #ops-alerts got muted (2026-09-14). Reported in the body, not Slack.
-      // If auto-publish is ever switched on without a token, the branch below
-      // still pages, because then posts really are failing.
+    if (!env.pageAccessToken) {
+      // Not configured. With auto-publish OFF nothing depends on it: a daily
+      // "could not run" critical about a feature nobody turned on is how
+      // #ops-alerts got muted (2026-09-14).
+      //
+      // With auto-publish ON and no token, posts really are not going out —
+      // but that is an OWNER ACTION (set the secret), and marketing-publish
+      // already reports it: one warning ledger item, Slack once a day, HTTP
+      // 200 (_shared/marketing/secretGap.ts, metaSecretGapAlert). This check
+      // used to report the same missing secret a second time as a CRITICAL
+      // "could not run" page plus a 500 (2026-09-24 07:38Z, ops ledger
+      // e1912d2c + 2718d15a) while the owner's decision was still open
+      // (docs/OPEN.md MORNING QUESTIONS 8). A missing secret is not the check
+      // failing; the check failing is a SET token it cannot inspect (below).
       probe("skipped");
-      report.token = { ...(report.token as Record<string, unknown>), configured: false };
+      report.token = {
+        ...(report.token as Record<string, unknown>),
+        configured: false,
+        ...(autoPublishEnabled === true ? { owner_action: "META_PAGE_ACCESS_TOKEN missing; reported by marketing-publish" } : {}),
+      };
     } else if (tokenError) {
       // The check itself did not run. That is a defect: the thing that is
       // supposed to notice silent death was itself silent.

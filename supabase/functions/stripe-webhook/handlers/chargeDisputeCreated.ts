@@ -359,15 +359,22 @@ async function applyCardDispute(
       const { ids: chargebackAdminIds } = mode === "created" || changed
         ? await loadAdminIds(supabase, "stripe-webhook.chargeDisputeCreated")
         : { ids: [] as string[] };
+      // The evidence deadline is written into the notice itself (AM-002): it
+      // used to exist only in a Slack field, so nothing in the app could say
+      // when the dispute would be auto-lost.
+      const dueBy = dispute.evidence_details?.due_by
+        ? new Date(dispute.evidence_details.due_by * 1000).toISOString().split("T")[0]
+        : null;
       for (const adminId of chargebackAdminIds) {
-        await supabase.from("notifications").insert({
+        const { error: noticeErr } = await supabase.from("notifications").insert({
           user_id: adminId,
           job_id: chargebackJob.id,
           title: "Stripe chargeback filed",
-          message: `A $${(dispute.amount / 100).toFixed(2)} chargeback was filed for "${chargebackJob.title}". Respond in Stripe Dashboard before the evidence deadline or the dispute is auto-lost.`,
+          message: `A $${(dispute.amount / 100).toFixed(2)} chargeback was filed for "${chargebackJob.title}". Respond in Stripe Dashboard ${dueBy ? `by ${dueBy} (the evidence deadline)` : "before the evidence deadline"} or the dispute is auto-lost.`,
           type: "warning",
           link: "/admin",
         });
+        if (noticeErr) logStep("Chargeback admin notice failed", { adminId, error: noticeErr.message });
       }
     }
   }

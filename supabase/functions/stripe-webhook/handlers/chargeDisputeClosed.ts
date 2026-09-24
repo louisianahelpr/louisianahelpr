@@ -270,7 +270,7 @@ export async function handleChargeDisputeClosed(
           "stripe-webhook.chargeDisputeClosed.won",
         );
         for (const adminId of wonAdminIds) {
-          await supabase.from("notifications").insert({
+          const { error: noticeErr } = await supabase.from("notifications").insert({
             user_id: adminId,
             job_id: closedJob.id,
             title: held
@@ -286,6 +286,7 @@ export async function handleChargeDisputeClosed(
             type: "payment",
             link: "/admin",
           });
+          if (noticeErr) logStep("Chargeback-closed admin notice failed", { adminId, error: noticeErr.message });
         }
       } else if (outcome === "warning_closed") {
         // A retrieval request (card-network inquiry, no funds ever withdrawn) was
@@ -393,7 +394,7 @@ export async function handleChargeDisputeClosed(
             "stripe-webhook.chargeDisputeClosed.warningClosed",
           );
           for (const adminId of warnAdminIds) {
-            await supabase.from("notifications").insert({
+            const { error: noticeErr } = await supabase.from("notifications").insert({
               user_id: adminId,
               job_id: closedJob.id,
               title: held
@@ -409,6 +410,7 @@ export async function handleChargeDisputeClosed(
               type: "info",
               link: "/admin",
             });
+            if (noticeErr) logStep("Chargeback-closed admin notice failed", { adminId, error: noticeErr.message });
           }
         } else if (closedJob.payment_status === "chargeback") {
           // We read the job as blocked, the conditional write matched nothing:

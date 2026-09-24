@@ -152,6 +152,33 @@ serve(async (req) => {
       if (jobError || !job) throw new PublicError("Job not found");
       if (job.customer_id !== user.id) throw new PublicError("Not authorized");
 
+      // ─── A settled job is never funded (Q235 follow-up) ───
+      // Checked BEFORE the payment_status gate so a poster retrying a closed
+      // job reads why, not "already processed". A completed or cancelled job,
+      // or one whose dispute an admin has decided, is settled: rpc_settle_dispute_without_payment closes a
+      // decided dispute on an unfunded job as moving nothing, and money taken
+      // afterwards would sit in escrow that no sweep pages and no path pays.
+      // The RPC also moves payment_status to 'cancelled', and stampSession's
+      // conditional write carries the same status guard, so a checkout minted
+      // just before the close is never recorded or returned. FAIL CLOSED on an
+      // unreadable dispute table.
+      if (FUNDING_CLOSED_JOB_STATUSES.has(String(job.status))) {
+        throw new PublicError("This job is closed, so it can no longer be paid for.");
+      }
+      const { data: decidedDisputes, error: decidedErr } = await supabaseAdmin
+        .from("disputes")
+        .select("id")
+        .eq("job_id", jobId)
+        .eq("status", "decided")
+        .limit(1);
+      if (decidedErr) {
+        console.error(`[create-payment] decided-dispute read failed for job ${jobId}; refusing escrow:`, decidedErr);
+        throw new PublicError("Could not check this job's dispute status. Please try again in a moment.");
+      }
+      if (decidedDisputes && decidedDisputes.length > 0) {
+        throw new PublicError("This job's dispute has been decided, so it can no longer be paid for.");
+      }
+
       // ─── Re-mint gate: which payment_status may open a NEW checkout ───
       //
       // This used to be `job.stripe_session_id && payment_status !== "unpaid"`,
@@ -181,31 +208,6 @@ serve(async (req) => {
         throw new PublicError("This job's payment has already been processed. Open the job to see its payment status.");
       }
 
-      // ─── A settled job is never funded (Q235 follow-up) ───
-      // A completed or cancelled job, or one whose dispute an admin has
-      // decided, is settled: rpc_settle_dispute_without_payment closes a
-      // decided dispute on an unfunded job as moving nothing, and money taken
-      // afterwards would sit in escrow that no sweep pages and no path pays.
-      // The RPC also moves payment_status to 'cancelled', and stampSession's
-      // conditional write carries the same status guard, so a checkout minted
-      // just before the close is never recorded or returned. FAIL CLOSED on an
-      // unreadable dispute table.
-      if (FUNDING_CLOSED_JOB_STATUSES.has(String(job.status))) {
-        throw new PublicError("This job is closed, so it can no longer be paid for.");
-      }
-      const { data: decidedDisputes, error: decidedErr } = await supabaseAdmin
-        .from("disputes")
-        .select("id")
-        .eq("job_id", jobId)
-        .eq("status", "decided")
-        .limit(1);
-      if (decidedErr) {
-        console.error(`[create-payment] decided-dispute read failed for job ${jobId}; refusing escrow:`, decidedErr);
-        throw new PublicError("Could not check this job's dispute status. Please try again in a moment.");
-      }
-      if (decidedDisputes && decidedDisputes.length > 0) {
-        throw new PublicError("This job's dispute has been decided, so it can no longer be paid for.");
-      }
 
       // ─── Price cap, enforced where the money is taken (Q202) ───
       // The DB CHECK (jobs_budget_range) and validate_job_budget() refuse a new

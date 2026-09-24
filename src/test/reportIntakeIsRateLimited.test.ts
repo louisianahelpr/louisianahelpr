@@ -29,7 +29,7 @@ describe("report intake is rate limited (TS-012)", () => {
       .sort()
       .map((f) => readFileSync(join("supabase/migrations", f), "utf8"))
       .filter((s) => /FUNCTION public\.reports_rate_limit\(\)/.test(s));
-    const latest = defs.at(-1) ?? "";
+    const latest = defs[defs.length - 1] ?? "";
     expect(latest).toMatch(/BEFORE INSERT ON public\.reports/);
     expect(latest).toMatch(/IF v_hour >= \d+ OR v_day >= \d+ THEN/);
     expect(latest).toMatch(/RAISE EXCEPTION 'report_rate_limited'/);

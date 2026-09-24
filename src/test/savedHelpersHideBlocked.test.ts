@@ -18,7 +18,7 @@ describe("Saved Helprs hide blocked people (TS-011)", () => {
       .map((f) => readFileSync(join("supabase/migrations", f), "utf8"))
       .filter((s) => /CREATE OR REPLACE FUNCTION public\.get_my_saved_helpers\(\)/.test(s));
     expect(defs.length).toBeGreaterThanOrEqual(3);
-    const latest = defs.at(-1)!;
+    const latest = defs[defs.length - 1];
     const body = latest.slice(latest.indexOf("CREATE OR REPLACE FUNCTION public.get_my_saved_helpers()"));
     expect(body).toMatch(/AND NOT public\.are_users_blocked\(fh\.customer_id, fh\.helper_id\)/);
   });

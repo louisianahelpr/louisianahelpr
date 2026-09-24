@@ -8,7 +8,7 @@
  *
  *   read: "sql"      Management API read-only SQL against prod (the token
  *                    every prod workflow already holds).
- *   read: "logs"     Management API logs.all (function_edge_logs).
+ *   read: "logs"     Management API logs query (function_edge_logs).
  *   read: "github"   the GitHub REST API with the workflow's GITHUB_TOKEN.
  *   read: "sentry"   the Sentry REST API (SENTRY_AUTH_TOKEN / ORG / PROJECT).
  *   read: null       NO API exists that this repo can read. Never dropped and

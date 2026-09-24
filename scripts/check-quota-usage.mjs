@@ -8,7 +8,7 @@
  *   1. ONE read-only SQL statement through the Management API: database size,
  *      max_connections + client connections, storage.objects bytes, and
  *      email_send_log 'sent' rows (month to date, last 24h).
- *   2. Management API logs.all: function_edge_logs rows in the last 24h.
+ *   2. Management API logs query: function_edge_logs rows in the last 24h.
  *   3. GitHub REST: deployments created in the last 24h (all environments).
  *   4. Sentry REST: error events over 30 days, accepted + rate_limited (org
  *      stats_v2, all four outcomes read and split in the note; Q311 — an
@@ -34,6 +34,7 @@
 import { appendFileSync } from "node:fs";
 import { QUOTAS, alertTitle, evaluateQuotas, unreadableTitle } from "./lib/quotaMonitor.mjs";
 import { recordOpsAlert } from "./lib/opsAlertLedger.mjs";
+import { logsQueryUrl } from "./lib/supabaseLogs.mjs";
 
 const env = process.env;
 const SUPA = env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com";
@@ -109,8 +110,7 @@ async function readEdgeInvocations() {
   const start = new Date(end.getTime() - 24 * 3600_000);
   const q = "select count(*) as n from function_edge_logs";
   try {
-    const url = `${SUPA}/v1/projects/${REF}/analytics/endpoints/logs.all?sql=${encodeURIComponent(q)}`
-      + `&iso_timestamp_start=${encodeURIComponent(start.toISOString())}&iso_timestamp_end=${encodeURIComponent(end.toISOString())}`;
+    const url = logsQueryUrl({ ref: REF, sql: q, start: start.toISOString(), end: end.toISOString(), base: SUPA });
     const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }, signal: AbortSignal.timeout(30_000) });
     if (!res.ok) throw new Error(`Management API logs ${res.status}: ${(await res.text()).slice(0, 200)}`);
     const body = await res.json();

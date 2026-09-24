@@ -139,7 +139,7 @@ beforeAll(async () => {
       const db = mode.sql === "full" ? String(7 * GB) : mode.sql === "zero" ? "0" : String(200 * 1024 * 1024);
       return send(200, [{ db_bytes: db, max_conns: 60, client_conns: 9, storage_bytes: "21000000", storage_objects: 95, emails_month: 12, emails_day: 1 }]);
     }
-    if (url.includes("logs.all")) return mode.logs === "fail" ? send(500, { message: "x" }) : send(200, { result: [{ n: 1200 }] });
+    if (url.includes("/analytics/endpoints/logs?")) return mode.logs === "fail" ? send(500, { message: "x" }) : send(200, { result: [{ n: 1200 }] });
     if (url.includes("/deployments")) {
       if (mode.gh === "empty") return send(200, []);
       const now = Date.now();

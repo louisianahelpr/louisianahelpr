@@ -24,6 +24,7 @@
  */
 import { appendFileSync } from "node:fs";
 import { sql } from "./lib/opsAlertLedger.mjs";
+import { logsQueryUrl } from "./lib/supabaseLogs.mjs";
 
 const TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
 const REF = process.env.SUPABASE_PROJECT_REF;
@@ -32,7 +33,7 @@ const WINDOW_MIN = Number(process.env.WINDOW_MINUTES ?? 60);
 const TIMEOUT_LOG_SQL =
   "select count(*) as n from postgres_logs where regexp_contains(event_message, 'canceling statement due to statement timeout')";
 
-/** The count out of a logs.all response, or throw — never a silent 0. */
+/** The count out of a Management API logs response, or throw — never a silent 0. */
 export function countFromLogsBody(body) {
   if (body?.error) throw new Error(`logs query error: ${JSON.stringify(body.error).slice(0, 200)}`);
   const n = Number(body?.result?.[0]?.n);
@@ -42,8 +43,7 @@ export function countFromLogsBody(body) {
 
 async function countTimeouts(now) {
   const start = new Date(now - WINDOW_MIN * 60_000).toISOString();
-  const url = `https://api.supabase.com/v1/projects/${REF}/analytics/endpoints/logs.all?sql=${encodeURIComponent(TIMEOUT_LOG_SQL)}`
-    + `&iso_timestamp_start=${encodeURIComponent(start)}&iso_timestamp_end=${encodeURIComponent(new Date(now).toISOString())}`;
+  const url = logsQueryUrl({ ref: REF, sql: TIMEOUT_LOG_SQL, start, end: new Date(now).toISOString() });
   const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }, signal: AbortSignal.timeout(30_000) });
   if (!res.ok) throw new Error(`Management API logs ${res.status}: ${(await res.text()).slice(0, 200)}`);
   return countFromLogsBody(await res.json());

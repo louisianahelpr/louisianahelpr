@@ -27,7 +27,7 @@ name: Quota and analytics monitors
 #           ledger error AND a red run. Test mode only: a non-test key is refused.
 #
 # Both read prod through the Management API with read_only SQL (one statement
-# each) plus one logs.all query; nothing is written except ledger items.
+# each) plus one Management API logs query; nothing is written except ledger items.
 # The alert path is the ops alert ledger (scripts/lib/opsAlertLedger.mjs), the
 # same one prod-errors / supabase-usage use; its items carry verify-ref
 # quota-monitor.yml, so `ops-alert-ledger.mjs sync` closes each only after a

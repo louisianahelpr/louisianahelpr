@@ -47,6 +47,7 @@ import { queueCounts } from "./queue-count.mjs";
 import { countFindings, foldFindings, parseFindingsLog } from "./lib/auditFindings.mjs";
 import { INVENTORY as EXPIRY_INVENTORY, inventoryCounts, runAll as runExpiry, scoreboardRows as expiryScoreboardRows } from "./lib/expiryMonitor.mjs";
 import { measureSlos, realIo, sloRecord, sloTargetRows } from "./slo.mjs";
+import { logsQueryUrl } from "./lib/supabaseLogs.mjs";
 
 export const REPO = resolve(import.meta.dirname, "..");
 export const SCOREBOARD = "docs/SCOREBOARD.md";
@@ -490,14 +491,14 @@ async function dbHealthRows(sqlFn, now) {
     try {
       const start = new Date(now - 864e5).toISOString();
       const q = "select count(*) as n from postgres_logs where regexp_contains(event_message, 'canceling statement due to statement timeout')";
-      const url = `https://api.supabase.com/v1/projects/${ref}/analytics/endpoints/logs.all?sql=${encodeURIComponent(q)}&iso_timestamp_start=${encodeURIComponent(start)}&iso_timestamp_end=${encodeURIComponent(new Date(now).toISOString())}`;
+      const url = logsQueryUrl({ ref, sql: q, start, end: new Date(now).toISOString() });
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(20000) });
       if (!res.ok) throw new Error(`Management API ${res.status}`);
       const body = await res.json();
       if (body.error) throw new Error(JSON.stringify(body.error).slice(0, 160));
       const n = Number(body.result?.[0]?.n);
       if (!Number.isFinite(n)) throw new Error("no count in the response");
-      rows.push({ group: "DB health", signal: "statement timeouts in Postgres logs (24h)", status: n ? "FAIL" : "PASS", fail: n, at: iso(now), source: "Management API logs.all (postgres_logs)", note: "" });
+      rows.push({ group: "DB health", signal: "statement timeouts in Postgres logs (24h)", status: n ? "FAIL" : "PASS", fail: n, at: iso(now), source: "Management API logs query (postgres_logs)", note: "" });
     } catch (e) {
       rows.push(unknown("DB health", "statement timeouts in Postgres logs (24h)", `logs query failed: ${errMsg(e)}`));
     }

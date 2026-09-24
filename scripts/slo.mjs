@@ -22,6 +22,7 @@
  * checked both ways by src/test/sloTargetsTwoWay.test.ts.
  */
 import { execFileSync } from "node:child_process";
+import { logsQueryUrl } from "./lib/supabaseLogs.mjs";
 
 export const GROUP = "targets (SLOs)";
 
@@ -50,7 +51,7 @@ export const SLOS = [
   {
     id: "api-error-rate", q66: "API error rate", name: "API error rate (5xx share of Supabase API requests)",
     target: 1, unit: "%", good: "max", window: "24h",
-    source: "Management API logs.all: edge_logs (every REST, auth, storage and edge-function request), status_code >= 500",
+    source: "Management API logs query: edge_logs (every REST, auth, storage and edge-function request), status_code >= 500",
     ci: "scoreboard.yml (SUPABASE_ACCESS_TOKEN)",
   },
   {
@@ -187,7 +188,7 @@ export async function realIo(sqlFn) {
   const logsFn = async (q, start, end) => {
     const token = process.env.SUPABASE_ACCESS_TOKEN, ref = process.env.SUPABASE_PROJECT_REF;
     if (!token || !ref) throw new Error("needs SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF (scoreboard.yml has them)");
-    const url = `https://api.supabase.com/v1/projects/${ref}/analytics/endpoints/logs.all?sql=${encodeURIComponent(q)}&iso_timestamp_start=${encodeURIComponent(start)}&iso_timestamp_end=${encodeURIComponent(end)}`;
+    const url = logsQueryUrl({ ref, sql: q, start, end });
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30000) });
     if (!res.ok) throw new Error(`Management API ${res.status}`);
     const body = await res.json();

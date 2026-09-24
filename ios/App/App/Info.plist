@@ -72,7 +72,7 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Helpr transcribes your voice so you can dictate chat messages instead of typing.</string>
 <key>NSFaceIDUsageDescription</key>
-	<string>Helpr uses Face ID to confirm it's you before cashing out your earnings.</string>
+	<string>Helpr uses Face ID to confirm it's you when you unlock the app and before sensitive actions like cashing out.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Helpr uses your location to show nearby jobs, and to share your position with the poster while you are on your way to a job — including when your screen is off — until you mark yourself arrived. Tracking stops there.</string>
 	<!--

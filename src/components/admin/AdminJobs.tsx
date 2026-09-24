@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
-import { functionErrorMessage } from "@/lib/supabaseResult";
+import { functionErrorMessage, unwrap } from "@/lib/supabaseResult";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -144,6 +144,31 @@ const AdminJobs = () => {
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundReason, setRefundReason] = useState("");
   const [refundAmount, setRefundAmount] = useState(""); // empty = full refund; otherwise partial $
+  // The refund dialog asks the ledger the same question create-payment's
+  // escrowAlreadyMovedTheOtherWay asks: is there a pending or paid payout
+  // row? payment_status alone is wrong both ways (a released job whose only
+  // transfer failed can still be fully refunded; a payout_pending job with a
+  // transfer in flight cannot). undefined while loading or on error: the
+  // dialog then falls back to payment_status.
+  const refundJobId = refundOpen ? detailJob?.id : undefined;
+  const [payoutMoved, setPayoutMoved] = useState<boolean | undefined>(undefined);
+  useEffect(() => {
+    setPayoutMoved(undefined);
+    if (!refundJobId) return;
+    let live = true;
+    void (async () => {
+      try {
+        const rows = unwrap(
+          await supabase.from("payout_transfers").select("id")
+            .eq("job_id", refundJobId).in("status", ["pending", "paid"]).limit(1),
+        );
+        if (live) setPayoutMoved((rows ?? []).length > 0);
+      } catch (err) {
+        report(err, { severity: "warning", tags: { source: "AdminJobs.payoutMoved" }, context: { jobId: refundJobId } });
+      }
+    })();
+    return () => { live = false; };
+  }, [refundJobId]);
   const [refunding, setRefunding] = useState(false);
   // Manual status override — admins can re-open, mark complete, or
   // cancel a job out of band. Tracked separately from the regular
@@ -619,6 +644,7 @@ const AdminJobs = () => {
         refundReason={refundReason}
         refundAmount={refundAmount}
         refunding={refunding}
+        payoutMoved={payoutMoved}
         onOpenChange={(o) => { if (!o) { setRefundOpen(false); setRefundReason(""); } }}
         onReasonChange={setRefundReason}
         onAmountChange={setRefundAmount}

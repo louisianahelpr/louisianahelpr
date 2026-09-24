@@ -12,6 +12,13 @@
  * @mutate supabase/functions/create-payment/index.ts | const alreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund", "admin_refund"); | const alreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund");
  * @mutate supabase/functions/create-payment/index.ts | const partialAlreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund", "admin_refund"); | const partialAlreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund");
  * @mutate src/components/admin/adminJobs/RefundJobDialog.tsx | disabled={refunding \|\| needsAmount} | disabled={refunding}
+ * @mutate src/components/admin/adminJobs/RefundJobDialog.tsx | const paidOut = payoutMoved ?? detailJob?.payment_status === "released"; | const paidOut = detailJob?.payment_status === "released";
+ * @mutate src/components/admin/AdminJobs.tsx | .eq("job_id", refundJobId).in("status", ["pending", "paid"]).limit(1), | .eq("job_id", refundJobId).limit(1),
+ *
+ * Review (lh-money-escrow): payment_status is the wrong question both ways — a
+ * released job whose only transfer FAILED can still be fully refunded, and a
+ * payout_pending job with a transfer in flight cannot. The dialog now takes the
+ * ledger answer (payoutMoved) AdminJobs reads with the server's own filter.
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -22,7 +29,7 @@ import type { Job } from "@/components/admin/adminJobs/types";
 
 const src = readFileSync(resolve(__dirname, "../../supabase/functions/create-payment/index.ts"), "utf8");
 
-function renderDialog(payment_status: string, refundAmount: string) {
+function renderDialog(payment_status: string, refundAmount: string, payoutMoved?: boolean) {
   const job = { id: "j1", title: "Test job", budget: 100, payment_status, helper_id: "h1" } as unknown as Job;
   render(
     <RefundJobDialog
@@ -31,6 +38,7 @@ function renderDialog(payment_status: string, refundAmount: string) {
       refundReason=""
       refundAmount={refundAmount}
       refunding={false}
+      payoutMoved={payoutMoved}
       onOpenChange={vi.fn()}
       onReasonChange={vi.fn()}
       onAmountChange={vi.fn()}
@@ -69,5 +77,21 @@ describe("admin refund after payout", () => {
 
   it("a job still in escrow can issue a full refund with the amount blank", () => {
     expect(renderDialog("escrow", "")).toBeEnabled();
+  });
+
+  it("a released job whose only transfer failed can still be fully refunded", () => {
+    expect(renderDialog("released", "", false)).toBeEnabled();
+  });
+
+  it("a payout_pending job with a transfer in flight needs an amount", () => {
+    expect(renderDialog("payout_pending", "", true)).toBeDisabled();
+  });
+
+  it("AdminJobs asks the ledger with the server's own pending/paid filter", () => {
+    const admin = readFileSync(resolve(__dirname, "../components/admin/AdminJobs.tsx"), "utf8");
+    const helper = src.slice(src.indexOf("async function escrowAlreadyMovedTheOtherWay("));
+    expect(helper).toMatch(/ledger\.in\("status", \["pending", "paid"\]\)/);
+    expect(admin).toMatch(/from\("payout_transfers"\)[\s\S]{0,200}\.in\("status", \["pending", "paid"\]\)/);
+    expect(admin).toMatch(/payoutMoved=\{payoutMoved\}/);
   });
 });

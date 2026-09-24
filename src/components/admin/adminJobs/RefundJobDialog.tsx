@@ -18,6 +18,8 @@ interface RefundJobDialogProps {
   refundReason: string;
   refundAmount: string;
   refunding: boolean;
+  /** A pending or paid payout_transfers row exists (the server's own test). undefined = unknown. */
+  payoutMoved?: boolean;
   onOpenChange: (open: boolean) => void;
   onReasonChange: (value: string) => void;
   onAmountChange: (value: string) => void;
@@ -31,16 +33,18 @@ export const RefundJobDialog = ({
   refundReason,
   refundAmount,
   refunding,
+  payoutMoved,
   onOpenChange,
   onReasonChange,
   onAmountChange,
   onCancel,
   onConfirm,
 }: RefundJobDialogProps) => {
-  // create-payment refuses a FULL refund once the Helpr has been paid
-  // (payout_transfers holds a row); only a partial goodwill refund is allowed.
-  // So a paid-out job needs an amount before the refund can be issued.
-  const paidOut = detailJob?.payment_status === "released";
+  // create-payment refuses a FULL refund once a pending or paid
+  // payout_transfers row exists; only a partial goodwill refund is allowed.
+  // So such a job needs an amount before the refund can be issued. The
+  // ledger answer wins; payment_status is only the fallback while unknown.
+  const paidOut = payoutMoved ?? detailJob?.payment_status === "released";
   const needsAmount = paidOut && !(refundAmount.trim() && Number(refundAmount) > 0);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,7 +104,7 @@ export const RefundJobDialog = ({
             onChange={(e) => onReasonChange(e.target.value)}
             rows={3}
           />
-          {detailJob?.payment_status === "released" && (
+          {paidOut && (
             <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">
               <p className="text-ds-11 text-[hsl(var(--destructive-ink))] font-medium mb-1">⚠️ Money already paid out</p>
               <p className="text-ds-11 text-foreground">

@@ -68,7 +68,7 @@ serve(async (req) => {
     console.log(`[STRIPE-WEBHOOK] 🔑 Stripe key mode: ${keyMode} (prefix: ${stripeKey.slice(0, 8)}...)`);
   }
   if (webhookSecret) {
-    console.log(`[STRIPE-WEBHOOK] 🔐 Webhook secret loaded (prefix: ${webhookSecret.slice(0, 8)}..., length: ${webhookSecret.length})`);
+    console.log(`[STRIPE-WEBHOOK] 🔐 Webhook secret loaded (length: ${webhookSecret.length})`);
   }
 
   if (!stripeKey) {
@@ -160,7 +160,7 @@ serve(async (req) => {
     console.error(`[STRIPE-WEBHOOK] Error: ${String(err)}`);
     console.error(`[STRIPE-WEBHOOK] Signature schemes: ${delivery.schemes.join(",") || "none"} (Stripe adds v0 only to TEST-mode events)`);
     console.error(`[STRIPE-WEBHOOK] Claimed (UNVERIFIED) event: ${delivery.claimedId ?? "none"} type=${delivery.claimedType ?? "none"} livemode=${delivery.claimedLivemode}`);
-    console.error(`[STRIPE-WEBHOOK] Tried ${webhookSecrets.length} secret(s): ${webhookSecrets.map((s) => `${s.slice(0, 8)}…(${s.length})`).join(", ")}`);
+    console.error(`[STRIPE-WEBHOOK] Tried ${webhookSecrets.length} secret(s), lengths: ${webhookSecrets.map((s) => s.length).join(", ")}`);
     console.error(`[STRIPE-WEBHOOK] Body length: ${delivery.bodyBytes} bytes`);
     console.error("[STRIPE-WEBHOOK] → Refusing (400) so Stripe retries. Add the sending endpoint's signing secret to STRIPE_WEBHOOK_SECRET (comma-separate multiple endpoints).");
     await postSlackOpsAlert(

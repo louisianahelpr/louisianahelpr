@@ -4,10 +4,10 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: node scripts/audit-coverage.mjs -->
 
-Generated from findings.jsonl as of its newest entry: 2026-09-24T06:57:55.801Z
+Generated from findings.jsonl as of its newest entry: 2026-09-24T07:12:29.914Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 75 open (3 open launch blockers), 286 fixed, 1 wontfix, 22 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
+- **Findings:** 71 open (3 open launch blockers), 290 fixed, 1 wontfix, 22 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
 - **Surface:** 1038 auditable surfaces (450 navigable, 588 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
@@ -18,7 +18,7 @@ lane report on disk — treat it as incomplete, not as covered.
 |---|---|---|---:|---:|---:|
 | 1 | `lh-generated-drift` | REPORTED | 0 | – | 11 |
 | 1 | `lh-route-walker` | REPORTED | 0 | – | 2 |
-| 1 | `lh-schema-integrity` | REPORTED | 2 | – | 12 |
+| 1 | `lh-schema-integrity` | REPORTED | 1 | – | 13 |
 | 1 | `lh-silent-failure` | REPORTED | 0 | – | 9 |
 | 2 | `lh-appsec` | REPORTED | 2 | – | 6 |
 | 2 | `lh-authz-rls` | REPORTED | 0 | – | 9 |
@@ -27,16 +27,16 @@ lane report on disk — treat it as incomplete, not as covered.
 | 2 | `lh-webkit-differ` | REPORTED | 0 | – | 1 |
 | 3 | `lh-cron-jobs` | REPORTED | 5 | – | 6 |
 | 3 | `lh-money-escrow` | REPORTED | 11 | – | 13 |
-| 3 | `lh-native-bridge` | REPORTED | 11 | **2** | 9 |
+| 3 | `lh-native-bridge` | REPORTED | 10 | **2** | 10 |
 | 4 | `lh-build-release` | REPORTED | 3 | – | 12 |
-| 4 | `lh-onboarding-auth` | REPORTED | 4 | – | 12 |
+| 4 | `lh-onboarding-auth` | REPORTED | 3 | – | 13 |
 | 4 | `lh-state-matrix` | REPORTED | 0 | – | 3 |
 | 5 | `lh-account-lifecycle` | REPORTED | 2 | – | 9 |
 | 5 | `lh-e2e-journeys` | REPORTED | 0 | – | 11 |
 | 5 | `lh-trust-safety` | REPORTED | 2 | – | 10 |
 | 5 | `lh-verification-credentials` | REPORTED | 0 | – | 9 |
 | 6 | `lh-admin-moderation` | REPORTED | 3 | – | 8 |
-| 6 | `lh-concurrency-cache` | REPORTED | 1 | – | 5 |
+| 6 | `lh-concurrency-cache` | REPORTED | 0 | – | 6 |
 | 6 | `lh-notifications` | REPORTED | 1 | – | 9 |
 | 7 | `lh-input-boundary` | REPORTED | 0 | – | 3 |
 | 7 | `lh-scheduling-time` | REPORTED | 2 | – | 6 |

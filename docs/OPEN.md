@@ -5,7 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Queue (this file):** 227 done, 27 partly done (fixed, protection pending), 102 open. Source of truth for work.
-- **Audit bus:** 75 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Audit bus:** 71 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
 - **nightly-red issues:** 8 open — `gh issue list -l nightly-red`. _(2026-09-23T06:08Z)_
@@ -2519,7 +2519,7 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 | IB-002 | HIGH | Narrowed: title/description gated live (2b0528f9f); special_requirements still unscanned |
 | NB-018 | HIGH | analytics_events shows 0 permission_denied/permission_skipped_guest rows ever; push ask still unexercised in prod. |
 | PD-005 | HIGH | Sentry chunk still loads on every passive page load via useAuthReady's auth-ready breadcrumb, defeating the interaction gate. |
-| PD-020 | HIGH | Not re-measured this pass - /my-posts's fine-grained chunk splitting cost is unverified post-PD-018/019 fixes. |
+| PD-020 | HIGH | Re-measured 2026-09-24 from dist (static graph, scripts/perf/critical-path.mjs analyse with /my-posts->Activity): 45 chunks, 361 KB gz, 2 rounds. 12 of the 13 named early chunks are no longer on the static path; forms (zod, ~80 KB raw) still is, via Activity -> app-shared -> forms. Browser request count (was 252 / 2.49 MB) not re-measured (needs the browser lock). |
 - [x] **Q87 DONE: reviewed (lh-money-escrow). No raw detail in any PublicError; the gift redeem P0001 path only carries 5 static sentences; nothing that should stay hidden became public. Fixed from the review: the EF-5 exemption now requires the REAL imported helper plus a LITERAL fallback (a same-named wrapper or publicErrorMessage(err, err.message) goes red), and the one non-admin message that showed Stripe's pi.status is now a fixed sentence.** GUARD: src/test/edge/error-leak-EF5.test.ts (abuse tests; red when the exemption is loosened) + src/test/edge/create-payment.test.ts. Was: REVIEW-ONLY pass owed on 96ae77309.
   76 `throw new Error` became `throw new PublicError`; the catch returns
   publicErrorMessage(err, fixed); the EF-5 detector exempts that call. Check that

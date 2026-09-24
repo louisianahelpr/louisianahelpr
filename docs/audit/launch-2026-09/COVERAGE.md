@@ -4,10 +4,10 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: node scripts/audit-coverage.mjs -->
 
-Generated from findings.jsonl as of its newest entry: 2026-09-24T04:24:11.254Z
+Generated from findings.jsonl as of its newest entry: 2026-09-24T04:41:03.773Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 160 open (3 open launch blockers), 210 fixed, 0 wontfix, 17 obsolete, 14 retracted, 28 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
+- **Findings:** 156 open (3 open launch blockers), 212 fixed, 0 wontfix, 18 obsolete, 14 retracted, 29 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
 - **Surface:** 1035 auditable surfaces (449 navigable, 586 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
@@ -22,12 +22,12 @@ lane report on disk — treat it as incomplete, not as covered.
 | 1 | `lh-silent-failure` | REPORTED | 1 | – | 8 |
 | 2 | `lh-appsec` | REPORTED | 6 | – | 2 |
 | 2 | `lh-authz-rls` | REPORTED | 2 | – | 8 |
-| 2 | `lh-design-holes` | REPORTED | 6 | – | 3 |
-| 2 | `lh-edge-functions` | REPORTED | 4 | – | 11 |
+| 2 | `lh-design-holes` | REPORTED | 5 | – | 3 |
+| 2 | `lh-edge-functions` | REPORTED | 3 | – | 12 |
 | 2 | `lh-webkit-differ` | REPORTED | 0 | – | 1 |
 | 3 | `lh-cron-jobs` | REPORTED | 8 | – | 3 |
 | 3 | `lh-money-escrow` | REPORTED | 12 | – | 12 |
-| 3 | `lh-native-bridge` | REPORTED | 19 | **2** | 1 |
+| 3 | `lh-native-bridge` | REPORTED | 18 | **2** | 2 |
 | 4 | `lh-build-release` | REPORTED | 6 | – | 9 |
 | 4 | `lh-onboarding-auth` | REPORTED | 11 | – | 6 |
 | 4 | `lh-state-matrix` | REPORTED | 0 | – | 3 |
@@ -46,7 +46,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 8 | `lh-visual-critic` | REPORTED | 2 | – | 7 |
 | 9 | `lh-copy-content` | REPORTED | 1 | – | 6 |
 | 9 | `lh-email-delivery` | REPORTED | 1 | – | 1 |
-| 9 | `lh-long-tail-features` | REPORTED | 1 | – | 2 |
+| 9 | `lh-long-tail-features` | REPORTED | 0 | – | 2 |
 | 10 | `lh-compliance-store` | REPORTED | 8 | – | 1 |
 | 10 | `lh-observability` | REPORTED | 1 | **1** | 2 |
 | 10 | `lh-perf-deps` | REPORTED | 13 | – | 2 |

@@ -228,7 +228,7 @@ export const linkStyle = {
   textDecoration: 'underline',
 }
 
-export const button = {
+const button = {
   backgroundColor: brand.bark,
   color: '#ffffff',
   fontSize: '15px',

@@ -64,24 +64,10 @@ type TrackerStep = {
   color: string;
 };
 
-/** The step LABELS, in order, for a surface that draws the rail without
- *  mounting this component. Exported as labels rather than the whole array so
- *  the icons and the action phrasing stay private to the full rail.
- *
- *  REPORTED, NOT DELETED (2026-09-19): its only consumer was the collapsed
- *  card's compact 16px rail, and the owner replaced those dots with a sentence
- *  the same day ("remove the dots") — so this and `railDisplayIdx` below now
- *  have no caller in `src/`. They are a small, pure, correct public API of this
- *  module and deleting an export is not this change's business; flagged here
- *  so the next reader knows they are unused rather than assuming otherwise. */
-export function railStepLabels(includePostingSteps: boolean): string[] {
-  return (includePostingSteps ? [...PRE_STATUSES, ...STATUSES] : STATUSES).map((s) => s.label);
-}
-
 /** Where the compact rail's cursor sits, given the same inputs the full rail
  *  derives from. One definition of the `includePostingSteps` offset, so the
  *  two rails cannot disagree about which step a job is on. */
-export function railDisplayIdx({
+function railDisplayIdx({
   currentStatusIdx,
   includePostingSteps,
   helperId,

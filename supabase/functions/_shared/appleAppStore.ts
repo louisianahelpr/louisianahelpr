@@ -177,7 +177,7 @@ interface AppleConfig {
   preferSandbox: boolean;
 }
 
-export function readAppleConfig(): AppleConfig {
+function readAppleConfig(): AppleConfig {
   const issuerId = readEnv("APPLE_IAP_ISSUER_ID");
   const keyId = readEnv("APPLE_IAP_KEY_ID");
   const privateKeyPem = readEnv("APPLE_IAP_PRIVATE_KEY");

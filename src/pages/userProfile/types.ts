@@ -74,35 +74,3 @@ export type ReplyLatency = {
    reason instead of re-adding it. */
 
 export type LastActiveLabel = { text: string; isLive: boolean };
-
-
-
-/**
- * How much history each gated stat was computed from.
- *
- * A rate arrives as `null` from `get_public_profile_stats` whenever its sample
- * is below the floor, which is correct — "0% on time" off one data point is a
- * lie of precision. But a bare `null` cannot tell the card whether the answer
- * is "we measured nothing yet" or "this stat is broken", so the sample size
- * travels alongside it and the card says which, out loud, instead of quietly
- * dropping a cell and leaving the reader to assume the worst.
- */
-export type StatSamples = {
-  /** Jobs on either side of the marketplace — the cancellation denominator. */
-  jobs: number;
-  /** Completed jobs with a comparable scheduled start AND a recorded arrival. */
-  onTime: number;
-  /** Completed jobs as a helper — the revision-rate denominator. */
-  revisions: number;
-  /** Distinct clients who completed a job with this helper. */
-  repeatClients: number;
-  /** Reviews received for jobs this person posted. */
-  posterReviews: number;
-  /**
-   * FALSE while `get_public_profile_stats` is undeployed (PGRST202). The
-   * numbers on screen are then the old client-side derivations, which a
-   * visitor measures as zero — so the card must not editorialise about
-   * sample sizes it did not actually measure.
-   */
-  hasServerStats: boolean;
-};

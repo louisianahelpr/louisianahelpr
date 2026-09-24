@@ -21,7 +21,7 @@ import { Heading, Text } from 'npm:@react-email/components@0.0.22'
 import { brand, h1, subtext, text as textStyle } from './styles.ts'
 import { BaseLayout, BrandButton } from './components.tsx'
 
-export type AccountStatus = 'verified'
+type AccountStatus = 'verified'
 
 export interface AccountStatusEmailProps {
   status: AccountStatus

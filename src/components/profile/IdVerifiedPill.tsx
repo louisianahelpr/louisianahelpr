@@ -46,24 +46,3 @@ export const IdVerifiedShield = ({ className }: { className?: string }) => (
     aria-hidden
   />
 );
-
-/**
- * The standalone pill, for surfaces that are not the profile badge row (the
- * badge row draws the same treatment through `ProfileBadge`, which adds the
- * shared 44px tap target and the explanatory popover).
- */
-export const IdVerifiedPill = ({ className }: { className?: string }) => (
-  <span
-    className={[
-      "inline-flex items-center gap-1 rounded-full px-2 py-0.5",
-      "font-sans font-semibold text-ds-11 leading-none",
-      className ?? "",
-    ]
-      .filter(Boolean)
-      .join(" ")}
-    style={ID_VERIFIED_PILL_STYLE}
-  >
-    <IdVerifiedShield className="w-3.5 h-3.5 shrink-0" />
-    {ID_VERIFIED_LABEL}
-  </span>
-);

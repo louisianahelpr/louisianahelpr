@@ -29,7 +29,7 @@ import { SUPPORT_EMAIL } from '../resend.ts'
  * One run of copy inside a line: plain text, bold, or bold in the burnt-sienna
  * accent. Emphasis is expressed as data so the call sites never build markup.
  */
-export type Run = string | { b: string } | { accent: string }
+type Run = string | { b: string } | { accent: string }
 
 /** A paragraph: a bare string, or runs when part of it needs emphasis. */
 type Line = string | Run[]
@@ -54,7 +54,7 @@ const renderLine = (line: Line): React.ReactNode => {
  * - `alert` — the red final-warning / suspended box.
  * - `plain` — the quiet 14px escalation line (strike 1), no box.
  */
-export type CalloutTone = 'note' | 'alert' | 'plain'
+type CalloutTone = 'note' | 'alert' | 'plain'
 
 export interface AdminActionCallout {
   tone: CalloutTone

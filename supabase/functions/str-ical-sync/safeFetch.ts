@@ -100,13 +100,13 @@ export class FeedTooLargeError extends Error {
 // ---------------------------------------------------------------------------
 
 /** Hard cap on the response body. `.text()` on an unbounded body is an OOM. */
-export const MAX_FEED_BYTES = 2 * 1024 * 1024; // 2 MiB
+const MAX_FEED_BYTES = 2 * 1024 * 1024; // 2 MiB
 /** Redirect hops we will follow. Airbnb/VRBO use at most one (webcal → https). */
-export const MAX_REDIRECTS = 3;
+const MAX_REDIRECTS = 3;
 /** Per-hop connect/response timeout. */
-export const PER_HOP_TIMEOUT_MS = 8_000;
+const PER_HOP_TIMEOUT_MS = 8_000;
 /** Wall-clock budget for the whole chain, so N hops can't multiply the timeout. */
-export const TOTAL_TIMEOUT_MS = 15_000;
+const TOTAL_TIMEOUT_MS = 15_000;
 
 /** The only schemes we will dereference. `webcal:` is normalised to https. */
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
@@ -228,7 +228,7 @@ export type DnsResolver = (hostname: string) => Promise<string[]>;
  * `Deno` global so this module also imports cleanly under vitest/node, where
  * the tests supply their own resolver.
  */
-export const denoResolver: DnsResolver = async (hostname: string) => {
+const denoResolver: DnsResolver = async (hostname: string) => {
   const D = (globalThis as {
     Deno?: { resolveDns?: (h: string, t: string) => Promise<string[]> };
   }).Deno;

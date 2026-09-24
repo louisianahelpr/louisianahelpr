@@ -138,7 +138,7 @@ export const SUPPORT_EMAIL = Deno.env.get("SUPPORT_INBOX_EMAIL") || `admin@${SEN
 // opt-out now. Kept as a named constant so that if the alias is ever actually
 // staffed, wiring it back is one import rather than a rediscovery.
 // Owner's call, 2026-08-31.
-export const UNSUBSCRIBE_MAILBOX = `unsubscribe@${SENDER_DOMAIN}`;
+const UNSUBSCRIBE_MAILBOX = `unsubscribe@${SENDER_DOMAIN}`;
 
 export interface SendEmailParams {
   to: string;

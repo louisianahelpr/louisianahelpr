@@ -13,7 +13,7 @@
  * fails if the count drops without this baseline being lowered in the same
  * commit (CLAUDE.md "every number we track stays current").
  *
- * Measured 2026-09-23: `grep -rn "hover:underline" src --include="*.tsx" | wc -l` → 36
+ * Measured 2026-09-24: `grep -rn "hover:underline" src --include="*.tsx" | wc -l` → 35 (36 on 09-23; PublicReviewWall deleted, Q364)
  * Measured 2026-09-23: `grep -rl "link-standard" src --include="*.tsx" | wc -l` → 4
  */
 import { describe, it, expect } from "vitest";
@@ -34,7 +34,7 @@ function tsxFiles(): string[] {
     .filter((f) => existsSync(resolve(ROOT, f)));
 }
 
-const HOVER_UNDERLINE_SITE_COUNT = 36;
+const HOVER_UNDERLINE_SITE_COUNT = 35;
 const LINK_STANDARD_FILE_COUNT = 4;
 
 describe("Q248(b): hover:underline vs the shared link-standard", () => {
@@ -44,7 +44,7 @@ describe("Q248(b): hover:underline vs the shared link-standard", () => {
     expect(files.length).toBeGreaterThan(200);
   });
 
-  it("exactly 36 hand-rolled hover:underline sites (raise or lower this baseline in the same commit as any change)", () => {
+  it("exactly 35 hand-rolled hover:underline sites (raise or lower this baseline in the same commit as any change)", () => {
     let hits = 0;
     for (const f of files) {
       const src = readFileSync(resolve(ROOT, f), "utf8");

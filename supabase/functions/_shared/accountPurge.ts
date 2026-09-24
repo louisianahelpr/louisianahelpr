@@ -93,7 +93,7 @@ interface StorageListLike {
 
 // IDENTITY_BUCKETS and the existence check live in ./purgeBuckets.ts (Q219).
 
-export interface PurgeStep {
+interface PurgeStep {
   step: string;
   ok: boolean;
   detail: string;

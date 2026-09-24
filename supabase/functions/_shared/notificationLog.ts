@@ -40,7 +40,7 @@
 // deno-lint-ignore-file no-explicit-any
 
 /** Statuses this module writes. `token_deleted` is new; the rest match email. */
-export type PushLogStatus = "sent" | "failed" | "skipped" | "token_deleted";
+type PushLogStatus = "sent" | "failed" | "skipped" | "token_deleted";
 
 /**
  * notification type -> notification_logs.category.
@@ -84,7 +84,7 @@ const CATEGORY_BY_TYPE: Record<string, string> = {
  * for want of a category, and an unmapped type shows up as System rather than
  * as nothing at all.
  */
-export function pushLogCategory(notificationType?: string | null): string {
+function pushLogCategory(notificationType?: string | null): string {
   if (!notificationType) return "system";
   return CATEGORY_BY_TYPE[notificationType] ?? "system";
 }
@@ -100,7 +100,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * use the same param. Anything else yields null — a log row with no job_id is
  * normal (system alerts, reviews, promotions), so this never throws or guesses.
  */
-export function jobIdFromLink(link?: string | null): string | null {
+function jobIdFromLink(link?: string | null): string | null {
   if (!link || typeof link !== "string") return null;
   const q = link.indexOf("?");
   if (q === -1) return null;

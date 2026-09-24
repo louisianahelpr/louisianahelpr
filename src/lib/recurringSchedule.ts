@@ -1,23 +1,3 @@
-// recurringSchedule — client mirror of which dates a recurring series runs.
-//
-// The AUTHORITY is `supabase/functions/_shared/recurringSchedule.ts` (read by
-// the charge cron). This file is what the Post-a-Task preview and the schedule
-// views read.
-//
-// One definition, because two would be a money bug rather than a display bug:
-// the Post-a-Task screen quotes "9 visits · $450 total" from this, and the
-// charge cron bills the poster's saved card from this. If the two ever
-// disagreed, the poster would be charged for a visit the app never showed them
-// — or a helper would turn up on a date nobody paid for.
-//
-// Deliberate duplicate rather than an import: the edge module is Deno source
-// with `.ts` specifiers and Deno-only globals, so it cannot go through the Vite
-// bundle. `recurringSchedule.parity.test.ts` imports BOTH and fails the build
-// if they diverge — same arrangement as posterFees / helperFees / stripeFees /
-// salesTax.
-
-/** 0 = Sunday … 6 = Saturday, matching `Date.prototype.getUTCDay()`. */
-export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 

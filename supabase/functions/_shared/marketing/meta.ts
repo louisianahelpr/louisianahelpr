@@ -32,7 +32,7 @@
 // https://developers.facebook.com/docs/graph-api/changelog for the current
 // version and whether v21.0 is still inside its support window before relying
 // on this in production.
-export const META_GRAPH_VERSION = "v21.0";
+const META_GRAPH_VERSION = "v21.0";
 
 const GRAPH_BASE = `https://graph.facebook.com/${META_GRAPH_VERSION}`;
 
@@ -44,7 +44,7 @@ const GRAPH_TIMEOUT_MS = 15_000;
  * VERIFY: Meta documents 2,200 characters for a caption. Confirm against
  * https://developers.facebook.com/docs/instagram-platform/content-publishing
  */
-export const IG_CAPTION_MAX_CHARS = 2200;
+const IG_CAPTION_MAX_CHARS = 2200;
 
 /**
  * Instagram hashtag limit, counted across the WHOLE caption (not just the
@@ -52,7 +52,7 @@ export const IG_CAPTION_MAX_CHARS = 2200;
  * VERIFY: 30 is the long-standing documented limit. Meta rejects the post
  * outright past it rather than truncating.
  */
-export const IG_HASHTAG_MAX = 30;
+const IG_HASHTAG_MAX = 30;
 
 /**
  * Facebook post body limit.
@@ -60,7 +60,7 @@ export const IG_HASHTAG_MAX = 30;
  * and is not prominently documented. It is enforced here only as a sanity
  * ceiling — nothing this system generates comes close.
  */
-export const FB_MESSAGE_MAX_CHARS = 63_206;
+const FB_MESSAGE_MAX_CHARS = 63_206;
 
 /** How long a container may take to become FINISHED before we give up. */
 const IG_CONTAINER_POLL_ATTEMPTS = 10;
@@ -124,7 +124,7 @@ export class MetaConfigError extends Error {
  * should still go out afterwards. Burning them to 'failed' on the first 190
  * would mean a token refresh silently loses a week of scheduled posts.
  */
-export class MetaApiError extends Error {
+class MetaApiError extends Error {
   readonly permanent = false;
   constructor(
     message: string,
@@ -196,7 +196,7 @@ function requireSecrets(channel: MarketingChannel, env: MetaEnv): void {
  * is normalised. A tag that is only punctuation is dropped rather than emitted
  * as a bare '#', which Meta counts as a hashtag and which reads as a typo.
  */
-export function buildCaption(row: MarketingRow): string {
+function buildCaption(row: MarketingRow): string {
   const body = (row.body ?? "").trim();
   const tags = (row.hashtags ?? [])
     .map((t) => (t ?? "").trim())
@@ -207,7 +207,7 @@ export function buildCaption(row: MarketingRow): string {
 }
 
 /** Counts hashtags the way Meta does: every '#token' anywhere in the caption. */
-export function countHashtags(caption: string): number {
+function countHashtags(caption: string): number {
   // VERIFY: Meta's exact tokenisation is not published. This counts a '#'
   // that starts a word and is followed by letters/digits/underscore, which
   // matches observed behaviour and never UNDER-counts, so the guard errs

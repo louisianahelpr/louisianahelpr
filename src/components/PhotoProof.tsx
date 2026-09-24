@@ -30,7 +30,7 @@ type PhotoProofProps = {
    *
    * The default ("Before Photos" / "After Photos") names the CATEGORY, which
    * is right in PhotoProofGroup where two columns sit side by side and the
-   * label is the only thing telling them apart. Under PhotoProofStep's own
+   * label is the only thing telling them apart. Under a step's own
    * "Add an after photo" header it was the same words twice, one above the
    * other — a button restating its heading reads as the old rival control
    * rather than the heading's action.
@@ -355,8 +355,8 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip 
  * second time, and the group keeps using it. Nothing about the gallery itself
  * changes.
  *
- * Read-only by design: the uploader is a different control (`PhotoProofStep`,
- * the step-anchored ask), and this is the surface for LOOKING at proof.
+ * Read-only by design: the uploader is a different control (`PhotoProofCaptureChip`,
+ * the row's own ask), and this is the surface for LOOKING at proof.
  */
 export const PhotoProofDialog = ({
   open,
@@ -615,49 +615,11 @@ export const PhotoProofGroup = ({
   );
 };
 
-/* ── The single, step-anchored ask ──────────────────────────────────────────
- *
- * Owner, 2026-09-11: photo uploads "tie to tracker steps instead of sitting
- * always-on… one ask at a time, at the moment it makes sense, folded INTO the
- * tracker rather than a separate card competing with it."
- *
- * PhotoProofGroup is the REVIEW surface — two columns, both uploaders, a red
- * requirement note — and it is right where a job is being looked back on. On a
- * LIVE job it was four competing controls beside a tracker that was already
- * telling the helper what to do next. This renders exactly one: the photo the
- * tracker's current step is waiting on, and nothing once it exists.
- *
- * It reuses PhotoProof (the uploader + its dialog) unchanged — only the
- * chrome around it is different, and that chrome is the shared CardSubPanel.
- */
-export const PhotoProofStep = ({
-  jobId,
-  type,
-  existingUrls,
-  onUploaded = () => {},
-  title,
-  hint,
-}: {
-  jobId: string;
-  type: "before" | "after";
-  existingUrls: string[];
-  onUploaded?: () => void;
-  title: string;
-  hint: string;
-}) => (
-  <CardSubPanel icon={Camera} title={title} tone="primary">
-    <div className="space-y-2">
-      <p className="text-ds-11 text-muted-foreground">{hint}</p>
-      <PhotoProof jobId={jobId} type={type} existingUrls={existingUrls} onUploaded={onUploaded} triggerLabel="Add Photo" />
-    </div>
-  </CardSubPanel>
-);
-
 /**
  * THE SAME UPLOAD, AS ONE CONTROL ON THE JOB CARD'S ACTION ROW.
  *
  * Owner, 2026-09-19: "before and after buttons should also be on the same
- * lines as the other buttons". {@link PhotoProofStep} — a titled panel with a
+ * lines as the other buttons". The old PhotoProofStep — a titled panel with a
  * hint line and a full-width "Add Photo" button — was the block sitting ABOVE
  * the row in their screenshot. This is the same uploader and the same dialog,
  * drawn as the row's own control.

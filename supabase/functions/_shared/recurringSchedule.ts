@@ -11,9 +11,9 @@
 // posterFees / helperFees / stripeFees / salesTax.
 
 /** 0 = Sunday … 6 = Saturday, matching `Date.prototype.getUTCDay()`. */
-export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
-export const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 /** Hard ceiling on a series, mirrored by the jobs_recurrence_weeks_range CHECK. */
 export const MAX_RECURRENCE_WEEKS = 52;
@@ -89,7 +89,7 @@ export function upcomingVisitDates(
 }
 
 /** How many visits the series runs in total, including the first. */
-export function visitCount(startDate: string, days: readonly number[], weeks: number): number {
+function visitCount(startDate: string, days: readonly number[], weeks: number): number {
   return recurringVisitDates(startDate, days, weeks).length;
 }
 

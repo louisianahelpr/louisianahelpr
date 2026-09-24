@@ -169,7 +169,7 @@ export async function getHelperFeePercent(
  *
  * Callers should take cents and convert once, rather than round twice.
  */
-export function helperCommissionCents(
+function helperCommissionCents(
   perHelperBudgetDollars: number,
   feePercent: number,
 ): number {

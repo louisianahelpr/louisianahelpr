@@ -9,7 +9,7 @@
  * Pure: no Deno or Supabase imports, so the vitest suite pins the schedule.
  */
 export const SECOND_AFTER_HOURS = 2;
-export const ESCALATE_AFTER_HOURS = 24;
+const ESCALATE_AFTER_HOURS = 24;
 /**
  * VN-33(b) near miss (wrong map pin): the poster can confirm only within 12h
  * of the Helpr's last near-miss attempt, so admin is pulled in at 10h — while

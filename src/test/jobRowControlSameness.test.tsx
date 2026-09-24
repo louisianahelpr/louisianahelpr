@@ -77,7 +77,6 @@ vi.mock("@/components/PhotoProof", async (orig) => {
   return {
     ...actual,
     PhotoProofGroup: () => <div data-testid="photo-proof" />,
-    PhotoProofStep: ({ title }: { title: string }) => <div data-testid="photo-proof-step">{title}</div>,
     PhotoProofDialog: () => null,
     PhotoProofRequirementNote: () => null,
   };

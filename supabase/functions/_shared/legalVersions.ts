@@ -14,4 +14,4 @@
 
 export const LEGAL_TERMS_VERSION = "Sep 2026";
 export const LEGAL_PRIVACY_VERSION = "Jun 2026";
-export const LEGAL_COMMUNITY_VERSION = "Jun 2026";
+const LEGAL_COMMUNITY_VERSION = "Jun 2026";

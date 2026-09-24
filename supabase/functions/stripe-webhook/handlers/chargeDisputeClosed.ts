@@ -530,7 +530,7 @@ export async function handleChargeDisputeClosed(
  * poster stamp still null, so a stamps rule would restore that completed job
  * to escrow — which auto-release-payment does not read either.
  */
-export function preChargebackPaymentStatus(job: {
+function preChargebackPaymentStatus(job: {
   status?: string | null;
   payout_scheduled_at?: string | null;
 }): "escrow" | "payout_pending" {

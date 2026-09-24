@@ -52,11 +52,6 @@ function milesBetween(lat1: number, lng1: number, lat2: number, lng2: number): n
   return 2 * 3958.8 * Math.asin(Math.min(1, Math.sqrt(a)));
 }
 
-/** Exported for tests — clears the session-level write throttle. */
-export function _resetPersistThrottle() {
-  lastWritten = null;
-}
-
 /**
  * Store a granted device fix on the signed-in user's profile.
  *

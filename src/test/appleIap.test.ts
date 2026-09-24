@@ -32,7 +32,7 @@ import {
   expectsProduction,
   type AppleTransaction,
 } from "../../supabase/functions/_shared/appleAppStore";
-import { PRO_PRICE_MAP, type ProTierKey, type ProBillingCycle } from "../lib/proTiers";
+import { PRO_PRICE_MAP, type ProTierKey, type ProBillingCycle } from "../../supabase/functions/_shared/proTiers";
 import { productIdFor, IAP_TIERS, IAP_CADENCES } from "../lib/iap";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -367,7 +367,7 @@ describe("iap.ts — never finish an unverified transaction", () => {
      * it.
      */
     const gate = SRC.slice(
-      SRC.indexOf("export async function assertMayPurchase"),
+      SRC.indexOf("async function assertMayPurchase"),
       SRC.indexOf("export async function purchaseTier"),
     );
     const at = gate.indexOf("if (error)");

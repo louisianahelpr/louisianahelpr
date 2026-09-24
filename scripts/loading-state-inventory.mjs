@@ -42,7 +42,7 @@ export const FLOORS = {
   skeletonComponent: 20,
   suspenseFallback: 30,
   pulse: 25,
-  spinner: 90,
+  spinner: 89, // 90 until 2026-09-24: AdminBroadcasts (deleted, owner MQ19) held one
   loadingBranch: 100,
   files: 90,
 };

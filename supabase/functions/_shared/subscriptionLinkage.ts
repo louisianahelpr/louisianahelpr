@@ -36,7 +36,7 @@ interface LinkageBearingSubscription {
 }
 
 /** The three cycles the product actually sells. */
-export type BillingCycle = "monthly" | "annual" | "one_time";
+type BillingCycle = "monthly" | "annual" | "one_time";
 
 const CYCLES: readonly string[] = ["monthly", "annual", "one_time"];
 
@@ -54,7 +54,7 @@ const CYCLES: readonly string[] = ["monthly", "annual", "one_time"];
  * a webhook write, and a rejected webhook write means a captured payment with
  * no entitlement. That is the failure this whole change exists to prevent.
  */
-export function normalizeBillingCycle(value: unknown): BillingCycle | null {
+function normalizeBillingCycle(value: unknown): BillingCycle | null {
   if (typeof value !== "string") return null;
   const v = value.trim().toLowerCase();
   return CYCLES.includes(v) ? (v as BillingCycle) : null;
@@ -70,7 +70,7 @@ export function normalizeBillingCycle(value: unknown): BillingCycle | null {
  * name is better left unstated than guessed at, since the UI turns it into a
  * sentence about the member's money.
  */
-export function billingCycleFromSubscription(
+function billingCycleFromSubscription(
   subscription: LinkageBearingSubscription | null | undefined,
 ): BillingCycle | null {
   for (const item of subscription?.items?.data ?? []) {

@@ -297,7 +297,7 @@ export async function failClaim(
 // transfer group and compare it with the WHOLE job's ledger.
 
 /** The subset of a Stripe transfer this check reads. */
-export interface StripeTransferLike {
+interface StripeTransferLike {
   id: string;
   amount?: number;
   amount_reversed?: number;

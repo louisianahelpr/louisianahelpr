@@ -232,7 +232,7 @@ export async function unsubscribeHeaders(recipientEmail?: string): Promise<Recor
  * transactional sender — that is the separation that keeps a digest opt-out
  * from silencing a payout email.
  */
-export const COMMERCIAL_CONSENT_COLUMNS = {
+const COMMERCIAL_CONSENT_COLUMNS = {
   profiles: 'marketing_consent',
   preferences: 'email_promotions',
 } as const

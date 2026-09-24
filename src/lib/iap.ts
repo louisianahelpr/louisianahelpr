@@ -197,7 +197,7 @@ export class IapBlockedError extends Error {
  * Apple has taken the money, refusing is strictly worse than allowing, because
  * the member is then charged and unentitled.
  */
-export async function assertMayPurchase(): Promise<void> {
+async function assertMayPurchase(): Promise<void> {
   const { data, error } = await supabase.rpc(
     "subscription_purchase_eligibility",
     { p_platform: "apple" },

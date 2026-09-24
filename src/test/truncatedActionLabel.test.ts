@@ -192,8 +192,8 @@ describe("truncated action labels (Q108)", () => {
   const { files, interactive, offenders } = scanAll();
 
   it("inventories the whole src/ surface, not an empty glob", () => {
-    expect(files).toBeGreaterThan(490); // 501 on 2026-09-23
-    expect(interactive).toBeGreaterThan(800); // 828 on 2026-09-23
+    expect(files).toBeGreaterThan(489); // 490 on 2026-09-24 (dead-code deletions Q364)
+    expect(interactive).toBeGreaterThan(797); // 798 on 2026-09-24 (Broadcasts + dead-code deletions)
   });
 
   it("the detector fires on the original Q108 markup and respects title/aria-label", () => {

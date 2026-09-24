@@ -170,4 +170,3 @@ export const GIFT_OCCASIONS: GiftOccasion[] = [
 
 
 export const DEFAULT_OCCASION = GIFT_OCCASIONS[0];
-export const DEFAULT_DESIGN = DEFAULT_OCCASION.designs[0];

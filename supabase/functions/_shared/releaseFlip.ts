@@ -41,10 +41,10 @@
  * state ('chargeback', 'refunded', 'escrow') means something else owns this
  * job's money now, and the flip must NOT happen.
  */
-export const RELEASABLE_PAYMENT_STATES = ["payout_pending", "released"] as const;
+const RELEASABLE_PAYMENT_STATES = ["payout_pending", "released"] as const;
 
 /** Postgres error codes worth another attempt. Everything else is a real refusal. */
-export const TRANSIENT_PG_CODES = new Set(["57014", "55P03", "40001", "40P01"]);
+const TRANSIENT_PG_CODES = new Set(["57014", "55P03", "40001", "40P01"]);
 
 /** Backoff between flip attempts. Four attempts total, ~5.9s worst case. */
 const FLIP_RETRY_DELAYS_MS = [400, 1500, 4000];

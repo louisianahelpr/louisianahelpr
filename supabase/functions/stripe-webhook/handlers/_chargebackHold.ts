@@ -25,7 +25,7 @@ import { checkUnsettledDispute } from "../../_shared/unsettledDispute.ts";
  */
 
 /** Every dispute_status value the card-dispute handlers write. */
-export const CHARGEBACK_DISPUTE_STATUSES = [
+const CHARGEBACK_DISPUTE_STATUSES = [
   "stripe_chargeback",
   "warning_closed",
   "dispute_won",
@@ -82,7 +82,7 @@ export function disputeStatusAsReadFilter(status: string | null | undefined): st
  * rpc_decide_dispute writes before the split executes, which only the
  * `disputes` row can tell apart (see findInternalPayoutHold).
  */
-export const INTERNAL_HOLD_DISPUTE_STATUSES = [
+const INTERNAL_HOLD_DISPUTE_STATUSES = [
   "open",
   "helper_responded",
   "escalated",

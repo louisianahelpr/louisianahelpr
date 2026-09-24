@@ -67,7 +67,7 @@ interface StorageCapableClient {
 }
 
 /** Every object path under a prefix, recursing into sub-prefixes (id === null). */
-export async function listObjectsUnder(
+async function listObjectsUnder(
   client: StorageCapableClient,
   bucket: string,
   prefix: string,

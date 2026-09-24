@@ -5,7 +5,7 @@ import {
   PRO_RECURRING_AMOUNT_CENTS,
   type ProTierKey,
   type ProBillingCycle,
-} from "./proTiers";
+} from "../../supabase/functions/_shared/proTiers";
 // The edge source lives in the Deno functions tree. It is plain TS (no Deno
 // imports at module scope), so vitest can import it directly. This test is the
 // F-MONEY-01 drift guard: it ties the consumer-subscription checkout price map

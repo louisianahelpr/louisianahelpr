@@ -84,7 +84,7 @@ const RENDERERS = ALL_TSX.filter(
 );
 
 describe("ONE review-card design (owner, 2026-09-19)", () => {
-  it("finds the review-card renderers by reading source, and there is more than one", () => {
+  it("finds the review-card renderers by reading source (exactly ReviewsSection since PublicReviewWall was deleted)", () => {
     // FLOOR. An inventory that quietly became empty would make every
     // assertion below vacuously true — the exact failure this repo's
     // vacuity gate exists to refuse.
@@ -92,9 +92,9 @@ describe("ONE review-card design (owner, 2026-09-19)", () => {
       RENDERERS.map((f) => f.file).sort(),
       "no review-card renderers found — the detector, not the app, is broken",
     ).toEqual(
-      ["src/components/profile/PublicReviewWall.tsx", "src/pages/userProfile/ReviewsSection.tsx"],
+      ["src/pages/userProfile/ReviewsSection.tsx"],
     );
-    expect(RENDERERS.length).toBeGreaterThan(1);
+    expect(RENDERERS.length).toBeGreaterThan(0);
   });
 
   it("every renderer takes its category chip and star row from the shared file", () => {

@@ -767,7 +767,6 @@ export const GAPS: Record<string, string> = {
   "src/components/profile/AvailabilityTab.tsx": "switch only",
   "src/components/profile/earningsTab/PayoutHistory.tsx": "select only",
   "src/components/postjob/detailsSection/PhotoProofToggle.tsx": "switch only",
-  "src/components/TimePickerSelect.tsx": "selects only — constrained options",
   "src/components/TimePickerWheel.tsx": "wheel picker — constrained options",
   "src/components/DatePickerField.tsx": "calendar/wheel picker — no typed date (DOB bound asserted in the targeted tests)",
   "src/components/profile/ScheduleTab.tsx": "calendar only",

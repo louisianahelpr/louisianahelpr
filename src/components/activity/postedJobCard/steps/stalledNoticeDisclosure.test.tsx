@@ -35,7 +35,6 @@ vi.mock("@/lib/haptics", () => ({
 }));
 vi.mock("@/components/PhotoProof", () => ({
   PhotoProofGroup: () => null,
-  PhotoProofStep: () => null,
   PhotoProofDialog: () => null,
   PhotoProofRequirementNote: () => null,
 }));

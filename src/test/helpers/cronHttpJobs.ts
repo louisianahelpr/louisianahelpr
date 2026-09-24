@@ -22,7 +22,7 @@ const EXPR = `${F}\\s+${F}\\s+${F}\\s+${F}\\s+${F}`;
 const TUPLE_RE = new RegExp(String.raw`\(\s*'([a-z0-9-]+)'\s*,\s*'(${EXPR})'\s*\)`, "gi");
 
 /** The text between `(` at `open` and its matching `)`, quote-aware. */
-export function argsAt(sql: string, open: number): string {
+function argsAt(sql: string, open: number): string {
   let depth = 0;
   let i = open;
   while (i < sql.length) {

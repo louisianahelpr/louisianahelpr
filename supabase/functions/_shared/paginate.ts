@@ -121,7 +121,7 @@ export const PAGE_SIZE = 500;
 export const MAX_PAGES = 400;
 
 /** Ids per `?col=in.(...)` request. Keeps the URL sane and each page uncapped. */
-export const IN_CHUNK = 200;
+const IN_CHUNK = 200;
 
 /**
  * The slice of the PostgREST builder this helper drives.

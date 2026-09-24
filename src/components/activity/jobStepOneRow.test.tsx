@@ -37,7 +37,6 @@ vi.mock("@/lib/haptics", () => ({
 // Uploaders and proof galleries are content (the `ask`), not the row's moves.
 vi.mock("@/components/PhotoProof", () => ({
   PhotoProofGroup: () => <div data-testid="photo-proof" />,
-  PhotoProofStep: ({ title }: { title: string }) => <div data-testid="photo-proof-step">{title}</div>,
   // The gallery the step cards' `Photos` chip opens (owner item 10). Closed,
   // portalled and contributing no control — stubbed to nothing so the row's
   // own count is unaffected either way.

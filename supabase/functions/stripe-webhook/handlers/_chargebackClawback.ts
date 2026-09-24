@@ -60,7 +60,7 @@ const ROW_COLS =
   "id, dispute_id, job_id, helper_id, original_transfer_id, stripe_account_id, transfer_amount_cents, reversed_cents, stripe_reversal_id, repay_transfer_id, status";
 
 /** Row statuses that mean "this transfer's money is back with the platform". */
-export const CLAWED_BACK_STATUSES = ["reversed", "repaying", "repay_failed", "kept"] as const;
+const CLAWED_BACK_STATUSES = ["reversed", "repaying", "repay_failed", "kept"] as const;
 
 const REVERSAL_SOURCE = "chargeback-clawback";
 const REPAY_SOURCE = "chargeback-repay";
@@ -81,7 +81,7 @@ function errMessage(err: unknown): string {
   return String((err as { message?: string })?.message ?? err).slice(0, 500);
 }
 
-export async function readClawbackRows(
+async function readClawbackRows(
   supabase: Db,
   disputeId: string,
 ): Promise<{ rows: ClawbackRow[]; error?: string }> {

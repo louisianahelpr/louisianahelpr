@@ -28,7 +28,7 @@ export type FramerMotion = typeof import("./framerRows");
 let loaded: FramerMotion | null = null;
 let pending: Promise<FramerMotion> | null = null;
 
-export function loadFramerMotion(): Promise<FramerMotion> {
+function loadFramerMotion(): Promise<FramerMotion> {
   if (loaded) return Promise.resolve(loaded);
   if (!pending) {
     pending = import("./framerRows").then(

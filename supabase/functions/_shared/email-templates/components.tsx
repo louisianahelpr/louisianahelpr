@@ -50,7 +50,7 @@ import { getAppUrl } from '../appUrl.ts'
  * mechanism for it — there is no component-level dark variant in email, and
  * `prefers-color-scheme` is the only thing Apple Mail / Outlook.com honour.
  */
-export const EmailHead = () => (
+const EmailHead = () => (
   <Head>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
@@ -67,7 +67,7 @@ export const EmailHead = () => (
  * the same logo rendered at two sizes depending on whether the client
  * honoured the attribute (Outlook) or the CSS (most webmail).
  */
-export const HMark = () => (
+const HMark = () => (
   <img src={LOGO_URL} alt="Louisiana Helpr" width="80" height="auto" style={logo} />
 )
 

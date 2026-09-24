@@ -123,7 +123,7 @@ const RPC_TIMEOUT_MS = 2000;
  * OVERWRITES rather than appends to, so they are usable fallbacks when no
  * forwarded-for is present at all.
  */
-export function serverDerivedIp(req: Request): string | null {
+function serverDerivedIp(req: Request): string | null {
   const xff = req.headers.get("x-forwarded-for");
   if (xff) {
     const hops = xff.split(",").map((h) => h.trim()).filter(Boolean);
@@ -148,7 +148,7 @@ const UUID_RE =
  * keys are not JWTs at all, so all three fall through to address keying rather
  * than colliding in one shared subject bucket.
  */
-export function jwtSubject(req: Request): string | null {
+function jwtSubject(req: Request): string | null {
   const auth = req.headers.get("Authorization") ?? req.headers.get("authorization");
   if (!auth) return null;
   const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : auth.trim();

@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 227 done, 27 partly done (fixed, protection pending), 104 open. Source of truth for work.
+- **Queue (this file):** 229 done, 28 partly done (fixed, protection pending), 115 open. Source of truth for work.
 - **Audit bus:** 37 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 358 items — 227 done, 27 partly done (fixed, protection pending), 104 open.**
+**Queue: 372 items — 229 done, 28 partly done (fixed, protection pending), 115 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -2923,8 +2923,8 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q361** (LOW, from ST-008, 2026-09-24): 22 manual probes under `scripts/probes/` insert `jobs` rows with no `start_time`, `is_flexible_schedule` or `is_seed`; since `jobs_start_time_required` they fail on insert if re-run. None runs in CI (only `edge-boot-sweep.mjs` does, measured by grep of `.github/`). Fix each when it is next used, or add `start_time` in one sweep.
 - [ ] **Q362** (HIGH, money, owner MQ11 2026-09-24; ME-006, CC-003): the poster pays the card fee ON TOP of a tip so the Helpr gets 100%; tip minimum rises to $3. The urgent bonus (CC-003) gets the same treatment. Layers: client tip picker, create-tip/create-payment edge fns, Terms copy. Needs an lh-money-escrow REVIEW-ONLY pass before commit.
 - [~] **Q363 CLIENT DONE 2026-09-24** (owner MQ19; S-004): BroadcastBanner (2 reads per Dashboard load) and AdminBroadcasts + its menu item and view are deleted. Guard src/test/broadcastsRemoved.test.ts (2 @mutate). STILL TO DO: drop broadcasts + broadcast_dismissals and sweep_pending_broadcast_fan_outs in a later migration.
-- [ ] **Q364** (LOW, owner MQ9(a) 2026-09-24; Q41): delete dead-code group (a) from docs/audit/dead-code-report-2026-09-23.md; lower scripts/deadcode-baseline.json in the same commit. Group (b) is still undecided.
-- [x] **Q365 DONE 2026-09-24 17:29Z** (owner MQ8): marketing_settings.auto_publish_enabled set false via SQL, read back false (Instagram on, Facebook off unchanged). The press sweep can no longer flip it (Q166 guard).
+- [x] **Q364 DONE 2026-09-24** (owner MQ9(a); Q41): group (a) a1-a7 done. Deleted PublicReviewWall (+ its test), DashboardInProgressBadge, IdVerifiedPill, TimePickerSelect (the component), PhotoProofStep and src/lib/proTiers.ts. Dropped `export` from 68 unused names, then deleted the 11 that turned out entirely unused. KEPT exported, because tests read them and knip cannot see those reads: str-ical-sync safeFetch/dates, _shared/paginate, LOGO_VERSION, DIALOG_TOP_RIGHT_RESERVE. knip measured 96 exports + 11 types before, 44 + 0 after (36 excluded mocks and email defaults, plus the 8 test-read exports above). Guard: src/test/deadcodeRatchet.test.ts (baseline 44/0/29). a8 (DB fan_out_broadcast_to_notifications) ships with the Q363 table-drop migration. Group (b) is still undecided.
+- [x] **Q365 DONE 2026-09-24 17:29Z** (owner MQ8): marketing_settings.auto_publish_enabled set false via SQL, read back false (Instagram on, Facebook off unchanged). Guard: src/test/pressNeverFlipsAdminSettings.test.ts (Q166) keeps the press sweep from flipping it again.
 - [ ] **Q366** (HIGH, owner MQ12 2026-09-24; TS-006, TS-007): Report + Block on every application card (report typed against the application), and the SOS button for the Helpr on an active job.
 - [ ] **Q367** (MEDIUM, owner MQ16 2026-09-24; TS-011): /user/<id> of someone you blocked shows "You blocked this person" + Unblock and hides their details.
 - [ ] **Q368** (MEDIUM, owner MQ17 2026-09-24; AM-012): admin Disputes/Users/Reports lists keep seed rows with a "Test" tag; admin home shows "0 (+N test)".

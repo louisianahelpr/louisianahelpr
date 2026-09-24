@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
@@ -73,10 +74,7 @@ const AdminSettings = () => {
   const [confirmRemove, setConfirmRemove] = useState<{ user_id: string; role_id: string; name: string } | null>(null);
   // DH-005: the caller's own row gets no Remove button (the server and
   // removeAdmin still refuse self-removal; this stops the confirm being offered).
-  const [selfId, setSelfId] = useState<string | null>(null);
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setSelfId(data.user?.id ?? null));
-  }, []);
+  const selfId = useAuthReady().user?.id ?? null;
 
   useEffect(() => {
     loadSettings();

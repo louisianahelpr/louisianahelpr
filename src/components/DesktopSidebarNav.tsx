@@ -353,13 +353,16 @@ const DesktopSidebarNav = () => {
                               <ItemIcon className="h-3.5 w-3.5 shrink-0" strokeWidth={on ? 2.3 : 1.8} />
                               <span className="truncate">{label}</span>
                               {!!adminBadges[id] && (
-                                <span
-                                  className="ml-auto flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full px-1 text-ds-10 font-bold"
-                                  style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
-                                  aria-label={`${adminBadges[id]} new`}
-                                >
-                                  {adminBadges[id] > 99 ? "99+" : adminBadges[id]}
-                                </span>
+                                <>
+                                  <span
+                                    className="ml-auto flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full px-1 text-ds-10 font-bold"
+                                    style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
+                                    aria-hidden="true"
+                                  >
+                                    {adminBadges[id] > 99 ? "99+" : adminBadges[id]}
+                                  </span>
+                                  <span className="sr-only">{`${adminBadges[id]} new`}</span>
+                                </>
                               )}
                             </button>
                           </li>

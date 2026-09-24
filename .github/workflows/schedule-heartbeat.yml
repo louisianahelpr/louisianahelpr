@@ -49,7 +49,7 @@ permissions:
 
 concurrency:
   group: schedule-heartbeat
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   heartbeat:

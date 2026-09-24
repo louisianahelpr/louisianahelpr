@@ -21,7 +21,7 @@
 // @mutate supabase/functions/cash-out-credits/index.ts | `cashout-${attemptId}` | `cashout-${await sha256Hex(creditIds.slice().sort().join(","))}`
 //   ME-013: dropping the ledger stamp or the transfer metadata makes a cash-out unreconcilable.
 // @mutate supabase/functions/cash-out-credits/index.ts | .update({ redeemed_at: new Date().toISOString(), stripe_transfer_id: transfer.id }) | .update({ redeemed_at: new Date().toISOString() })
-// @mutate supabase/functions/cash-out-credits/index.ts |             type: "referral_cashout", |             kind: "x",
+// @mutate supabase/functions/cash-out-credits/index.ts |             purpose: "referral_cashout", |             kind: "x",
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -108,7 +108,7 @@ describe("ME-013 · a cash-out is reconcilable", () => {
     const res = await post({ attemptId: ATTEMPT });
     expect(res.status).toBe(200);
     const params = stripeMock.transfers.create.mock.calls[0][0] as { metadata?: Record<string, string> };
-    expect(params.metadata).toMatchObject({ type: "referral_cashout", user_id: USER.id, credit_count: "2" });
+    expect(params.metadata).toMatchObject({ purpose: "referral_cashout", user_id: USER.id, credit_count: "2" });
     const stamp = scenario.writes.find(
       (w) => w.table === "referral_credits" && (w.payload as { stripe_transfer_id?: string }).stripe_transfer_id,
     );

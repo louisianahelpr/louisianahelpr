@@ -222,7 +222,7 @@ serve(async (req) => {
           // ME-013: without these the transfer could not be tied back to a
           // user or to the credits it paid.
           metadata: {
-            type: "referral_cashout",
+            purpose: "referral_cashout",
             user_id: userId,
             credit_count: String(creditIds.length),
           },

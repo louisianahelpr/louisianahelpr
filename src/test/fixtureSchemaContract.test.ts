@@ -301,6 +301,12 @@ describe("every fixture literal could be inserted", () => {
     // until admin_stalled_job_queue's return columns (types.ts, 2026-09-23)
     // stopped its jobs keys being distinctive, leaving only disputes'.
     { file: "src/test/edge/create-payment.test.ts", keys: ["execution_status", "payout_split", "headers", "body", "action"] },
+    // Mock scenario bodies whose reads hold a payout_transfers row (`rows: [{
+    // stripe_transfer_id, status: "paid" }]`) beside a disputes or clawback
+    // row; the transfer's status is graded against the other table.
+    { file: "src/test/edge/chargebackClawback.test.ts", keys: ["rows", "op", "column", "value", "stripe_reversal_id"] },
+    { file: "src/test/edge/execute-dispute-split.test.ts", keys: ["dispute", "execution_status", "rows", "stripe_transfer_id"] },
+    { file: "src/test/edge/release-payout-dispute-stamp.test.ts", keys: ["execution_transfer_id", "rows", "stripe_transfer_id"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

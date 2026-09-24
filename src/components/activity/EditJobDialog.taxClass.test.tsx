@@ -7,6 +7,7 @@
  * @mutate src/components/activity/EditJobDialog.tsx |  disabled={crossesTaxClass(c.value)}> | >
  */
 import { describe, it, expect, vi } from "vitest";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { render, screen } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -30,7 +31,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 const { EditJobDialog } = await import("./EditJobDialog");
 
 const job = (over: Partial<Job>) =>
-  ({ id: "j1", title: "Shelves", description: "", category: "cleaning", location: "", date_needed: "2026-10-01",
+  ({ id: "j1", title: "Shelves", description: "", category: "cleaning", location: "", date_needed: jobLocalDateISO(7),
      start_time: null, special_requirements: null, helper_id: null, payment_status: "unpaid", stripe_session_id: null,
      is_flexible_schedule: false, ...over }) as unknown as Job;
 

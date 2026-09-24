@@ -91,6 +91,10 @@ export const EXEMPT: Record<string, string> = {
     "aggregate queries on public.ops_alert_ledger (tens of rows) through the " +
     "Management API, once a day at 07:05 Central. Every 90-min slot in the " +
     "owner's morning is taken by a suite; the page must land before the owner wakes.",
+  "schedule-heartbeat.yml":
+    "A monitor, not a suite: its only prod touch is CJ-011's cron-detectors-alive.mjs, one read-only " +
+    "Management API query of cron.job / cron.job_run_details for four jobs, once a day. The rest " +
+    "of the workflow reads the GitHub API. Nothing it does loads prod the way a suite does.",
 };
 
 /**

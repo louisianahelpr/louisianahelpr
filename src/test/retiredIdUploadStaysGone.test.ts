@@ -175,7 +175,9 @@ describe("the retired ID-upload path stays gone (Q40)", () => {
     it("reads the real history (not vacuous)", () => {
       expect(migs.length).toBeGreaterThan(500);
       expect(bodies.size).toBeGreaterThan(300);
-      expect(bodies.get("purge_user_data")?.file).toBe("20260923145614_drop_retired_id_document_upload.sql");
+      // Newest definition, not a pinned file: AL-012 (20260924072554) redefined it after the drop.
+      expect(bodies.get("purge_user_data")?.file ?? "").toMatch(/^\d{14}_/);
+      expect((bodies.get("purge_user_data")?.file ?? "") >= "20260923145614").toBe(true);
     });
 
     it("the column is dropped, or still pinned NULL by its retired CHECK", () => {

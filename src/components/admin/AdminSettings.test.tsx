@@ -45,6 +45,10 @@ const CANDIDATE = {
 const invokeMock = vi.fn();
 const roleDeleteMock = vi.fn();
 const getUserMock = vi.fn();
+// The row's "is this me" comes from useAuthReady (a one-shot getUser() effect
+// strands it on a cold token); removeAdmin still re-checks with getUser().
+const authUser = vi.hoisted(() => ({ id: "some-other-admin" }));
+vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: authUser.id }, isReady: true }) }));
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -141,6 +145,7 @@ beforeEach(() => {
   // A DIFFERENT admin is signed in, so the self-removal guard never fires and
   // the biometric gate is the only thing standing in the way.
   getUserMock.mockResolvedValue({ data: { user: { id: "some-other-admin" } } });
+  authUser.id = "some-other-admin";
   toastError.mockReset();
   toastSuccess.mockReset();
   logAdminActionMock.mockReset();
@@ -215,6 +220,7 @@ describe("AdminSettings — removing admin", () => {
 
   it("the admin's own row offers no Remove at all — a refused action never raises a confirm or an OS sheet (DH-005)", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: ADMIN_USER_ID } } });
+    authUser.id = ADMIN_USER_ID;
     render(<AdminSettings />);
     const trash = await screen.findByRole("button", { name: /Remove admin/i });
     await waitFor(() => expect(trash).toBeDisabled());

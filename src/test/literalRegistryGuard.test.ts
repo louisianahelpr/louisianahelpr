@@ -151,6 +151,14 @@ const SOURCES_OF_TRUTH = [
  */
 const LEDGER: Array<{ file: string; vocabulary: string; reason: string }> = [
   {
+    file: "src/lib/statusLabels.ts",
+    vocabulary: "payment_status",
+    reason:
+      "PAYMENT_STATUSES (SI-013) is the union types.ts cannot generate: payment_status is text with a " +
+      "CHECK, so Constants has no enum for it. It is not checked against itself: " +
+      "paymentStatusExhaustive.test.ts parses the newest jobs_payment_status_check and requires equality.",
+  },
+  {
     file: "src/components/admin/AdminSettings.tsx",
     vocabulary: "tier",
     reason:

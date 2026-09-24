@@ -157,7 +157,7 @@ describe("useUserLocation", () => {
 
     await waitFor(() => expect(result.current.status).toBe("error"));
     if (result.current.status === "error") {
-      expect(result.current.message).toMatch(/permission denied/i);
+      expect(result.current.message).toMatch(/Location access is off.*Settings/);
     }
   });
 

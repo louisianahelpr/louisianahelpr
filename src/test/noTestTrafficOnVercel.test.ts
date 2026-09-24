@@ -63,6 +63,9 @@ export const SOURCE_EXEMPT: Record<string, string> = {
     "Three GETs of the 2 KB AASA file per run: its headers (application/json, no redirect) are set by " +
     "vercel.json and the CDN, which a local preview cannot reproduce. The other domain strings are " +
     "deep-link normalizer inputs passed to page.evaluate, never loaded.",
+  "scripts/probes/edge-boot-sweep.mjs":
+    "Sends the production domain only as the CORS Origin header of an OPTIONS preflight to Supabase edge " +
+    "functions (that allowlisted origin is what the probe checks); it never requests the Vercel site.",
 };
 
 const BASE_VARS = /^\s*-?\s*(PLAYWRIGHT_BASE_URL|HAPPY_PATH_BASE_URL|SITE_URL|BASE):\s*(.*?)\s*$/;

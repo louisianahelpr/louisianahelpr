@@ -160,6 +160,7 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
   "scripts/deadcode-baseline.json": {
     exports: "src/test/deadcodeRatchet.test.ts:FELL from",
     types: "src/test/deadcodeRatchet.test.ts:FELL from",
+    duplicates: "src/test/deadcodeRatchet.test.ts:FELL from",
   },
   "scripts/eslint-rules/button-height-legacy.json": {
     "[]": "src/test/buttonHeightLedger.test.ts:legacy ledger only lists files that still violate",

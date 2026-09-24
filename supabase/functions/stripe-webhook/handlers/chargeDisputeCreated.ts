@@ -365,6 +365,19 @@ async function applyCardDispute(
       const dueBy = dispute.evidence_details?.due_by
         ? new Date(dispute.evidence_details.due_by * 1000).toISOString().split("T")[0]
         : null;
+      // AM-002 (a): store the deadline so the admin console can show and sort
+      // on it. Informational, so best-effort and never blocking: the money
+      // writes above already landed. 42703/PGRST204 = the column's migration
+      // has not deployed yet.
+      if (dispute.evidence_details?.due_by) {
+        const { data: dueRows, error: dueErr } = await supabase
+          .from("jobs")
+          .update({ chargeback_evidence_due_by: new Date(dispute.evidence_details.due_by * 1000).toISOString() })
+          .eq("id", chargebackJob.id)
+          .select("id");
+        if (dueErr) logStep("Chargeback evidence deadline not stored", { jobId: chargebackJob.id, code: dueErr.code, error: dueErr.message });
+        else if (!dueRows?.length) logStep("Chargeback evidence deadline matched no job row", { jobId: chargebackJob.id });
+      }
       for (const adminId of chargebackAdminIds) {
         const { error: noticeErr } = await supabase.from("notifications").insert({
           user_id: adminId,
@@ -372,7 +385,8 @@ async function applyCardDispute(
           title: "Stripe chargeback filed",
           message: `A $${(dispute.amount / 100).toFixed(2)} chargeback was filed for "${chargebackJob.title}". Respond in Stripe Dashboard ${dueBy ? `by ${dueBy} (the evidence deadline)` : "before the evidence deadline"} or the dispute is auto-lost.`,
           type: "warning",
-          link: "/admin",
+          // AM-002 (b): open this job in the admin console, not the dashboard.
+          link: `/admin?view=jobs&job=${chargebackJob.id}`,
         });
         if (noticeErr) logStep("Chargeback admin notice failed", { adminId, error: noticeErr.message });
       }

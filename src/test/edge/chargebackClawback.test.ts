@@ -30,6 +30,8 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | await finalizeLostClawback({ stripe, supabase, logStep }, closedDispute, { id: closedJob.id, title: closedJob.title }); | void 0;
  * @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | } else if (ours.disputeId) { | } else if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | const found = await existingReversal(stripe, t.id, dispute.id); | const found = null;
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts |           .update({ chargeback_evidence_due_by: | .update({ chargeback_evidence_due_by_x:
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts |           link: `/admin?view=jobs&job=${chargebackJob.id}`, |           link: "/admin",
  * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | const prior = row.status === "reversed" ? null : await existingRepay(stripe, row, dispute.id); | const prior = null;
  * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts |     await markJob();\n    try { |     try {
  * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts |           status: "paid",\n          initiated_by: "system", |           status: "pending",\n          initiated_by: "system",
@@ -218,6 +220,23 @@ describe("card-dispute clawback (Q202)", () => {
       expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
       const block = writesTo("jobs", "update").find((w) => payload(w).payment_status === "chargeback");
       expect(block!.filters).toContainEqual({ op: "in", column: "payment_status", value: ["payout_pending", "escrow"] });
+    });
+  });
+
+  // AM-002: the evidence deadline is stored (not only printed into Slack and a
+  // sentence), and the admin notice opens the job, not the bare dashboard.
+  describe("AM-002 evidence deadline", () => {
+    it("stores due_by on the job and links the admin notice to that job", async () => {
+      const fn = await load();
+      event("evt_am2", "charge.dispute.created", { ...dispute("needs_response"), evidence_details: { due_by: 1790200000 } });
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "escrow", status: "in_progress" })] };
+      scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+      await post(fn);
+      const due = writesTo("jobs", "update").find((w) => "chargeback_evidence_due_by" in payload(w));
+      expect(due, "deadline write").toBeDefined();
+      expect(payload(due!).chargeback_evidence_due_by).toBe(new Date(1790200000 * 1000).toISOString());
+      const adminNotice = writesTo("notifications", "insert").map(payload).find((n) => n.user_id === "admin-1");
+      expect(adminNotice?.link).toBe("/admin?view=jobs&job=job-1");
     });
   });
 

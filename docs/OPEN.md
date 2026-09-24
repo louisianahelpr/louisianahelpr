@@ -1842,6 +1842,16 @@ sure someone hears it and closes it.
    Archive) is safe and reversible. Want me to do it through the API, or will
    you click it?
 
+26. **When was the "Sign in with Apple" website secret made? (expiry monitor, 2026-09-24).**
+    Apple sign-in on the website uses a secret that Apple lets live at most 6
+    months; when it runs out, "Sign in with Apple" on the website stops working
+    with no warning. Supabase only shows a scrambled copy of it, so the monitor
+    cannot read its date (checked today). Either (a) tell me roughly when you
+    made it with tools/apple-jwt.html and I will record its expiry so the
+    monitor warns 30 days ahead, or (b) make a fresh one now (you need the .p8
+    key from the Apple developer site) and paste it into Supabase > Auth >
+    Apple, and I will record today + 6 months.
+
 ## CARRIED — still open from the sections archived 2026-09-23
 
 Every unchecked box and every section marked OPEN / STILL OPEN / HEADS-UP /

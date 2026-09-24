@@ -153,7 +153,7 @@
       "env": ["VERCEL_TOKEN"],
       "hosts": [],
       "sourceOfTruth": "Vercel API GET /v5/user/tokens/current expiresAt",
-      "read": { "method": "vercel-token", "env": "VERCEL_TOKEN", "teamId": "team_UQHppAVoPIPQbyh2b43y21BG" },
+      "read": { "method": "vercel-token", "env": "VERCEL_TOKEN" },
       "ciReadable": true
     },
     {

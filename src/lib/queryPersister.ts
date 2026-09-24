@@ -37,6 +37,8 @@ const idbAsyncStorage = {
       const value = await get<string>(key);
       return value ?? null;
     } catch {
+      // IndexedDB unavailable (private mode, blocked site data): an empty
+      // cache is the correct answer, and reporting would fire every cold load.
       return null;
     }
   },

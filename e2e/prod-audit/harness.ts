@@ -120,7 +120,14 @@ export const SKIP_BUTTON = /back to|^back$|^close$|^×$|dismiss|skip|not now|tog
  * other `profiles` write — and nothing on any other table — is let through.
  */
 export function isConsentAcceptance(method: string, pathname: string, body: string | null): boolean {
-  return method === "PATCH" && /\/rest\/v1\/profiles$/.test(pathname) && !!body && body.includes("terms_version_accepted");
+  if (!body) return false;
+  if (method === "PATCH" && /\/rest\/v1\/profiles$/.test(pathname)) return body.includes("terms_version_accepted");
+  // OA-009: the dialog's append-only consent EVENT, written right after the pin.
+  // Refusing it left the admin test account pinned to "Sep 2026" with zero
+  // `legal_acceptances` rows (2026-09-24 01:14Z press run): the pin-without-event
+  // state OA-009 is about, manufactured by the harness.
+  if (method === "POST" && /\/rest\/v1\/legal_acceptances$/.test(pathname)) return body.includes("terms_version");
+  return false;
 }
 
 export async function writeFirewall(ctx: BrowserContext): Promise<string[]> {

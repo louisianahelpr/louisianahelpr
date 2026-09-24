@@ -28,6 +28,7 @@
  * @mutate scripts/audit/prod-seed.mjs | terms_version_accepted: "Sep 2026", | terms_version_accepted: "Jun 2026",
  * @mutate src/components/TermsReconsentDialog.tsx | privacy_version: LATEST_PRIVACY_VERSION, | privacy_version: LATEST_TERMS_VERSION,
  * @mutate src/components/TermsReconsentDialog.tsx | Terms of Service\n            </a>\n            . | Terms of Service\n            </a> and Privacy Policy.
+ * @mutate src/components/TermsReconsentDialog.tsx | await supabase.from("legal_acceptances").insert({ | await Promise.resolve({ error: null }) && ({
  * @mutate src/components/TermsReconsentDialog.tsx | const isStale = loaded && acceptedVersion !== LATEST_TERMS_VERSION; | const isStale = false;
  */
 import { MemoryRouter } from "react-router-dom";
@@ -39,22 +40,23 @@ import { blankComments } from "./helpers/blankNonCode";
 
 let acceptedVersion: string | null = "Jun 2026";
 const updates: Record<string, unknown>[] = [];
+const inserts: { table: string; row: Record<string, unknown> }[] = [];
 
 vi.mock("@/integrations/supabase/client", () => {
-  const build = () => {
+  const build = (table: string) => {
     const b: Record<string, unknown> = {};
     let pending: Record<string, unknown> | null = null;
     for (const m of ["select", "eq"]) b[m] = () => b;
     b.update = (row: Record<string, unknown>) => { pending = row; return b; };
     b.maybeSingle = async () => ({ data: { terms_version_accepted: acceptedVersion }, error: null });
-    b.insert = async () => ({ error: null });
+    b.insert = async (row: Record<string, unknown>) => { inserts.push({ table, row }); return { error: null }; };
     b.then = (res: (v: unknown) => void) => {
       if (pending) updates.push(pending);
       res({ data: pending ? [{ user_id: "u-1" }] : [], error: null });
     };
     return b;
   };
-  return { supabase: { from: () => build() } };
+  return { supabase: { from: (table: string) => build(table) } };
 });
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({
@@ -86,6 +88,7 @@ function monthKey(v: string): number {
 describe("Terms re-acceptance after the 2026-09-23 Terms change (Q210(d))", () => {
   beforeEach(() => {
     updates.length = 0;
+    inserts.length = 0;
     document.body.innerHTML = "";
   });
 
@@ -130,6 +133,13 @@ describe("Terms re-acceptance after the 2026-09-23 Terms change (Q210(d))", () =
     fireEvent.click(screen.getByRole("button", { name: "I Agree" }));
     await waitFor(() => expect(updates.length).toBe(1));
     expect(updates[0].terms_version_accepted).toBe(LATEST_TERMS_VERSION);
+    // OA-009: the append-only consent EVENT is written too, not just the pin.
+    await waitFor(() => expect(inserts.filter((i) => i.table === "legal_acceptances").length).toBe(1));
+    expect(inserts.find((i) => i.table === "legal_acceptances")?.row).toMatchObject({
+      user_id: "u-1",
+      terms_version: LATEST_TERMS_VERSION,
+      privacy_version: LATEST_PRIVACY_VERSION,
+    });
   });
 
   it("an account that never recorded a version is prompted", async () => {

@@ -10,6 +10,12 @@
  *
  * @mutate src/pages/ResetPassword.tsx | const { error: othersErr } = await supabase.auth.signOut({ scope: "others" }); | const othersErr = null;
  * @mutate src/pages/ResetPassword.tsx | setOthersSignedOut(!othersErr); | setOthersSignedOut(true);
+ *
+ * OA-014: a `#type=recovery` fragment alone no longer unlocks the form; it
+ * waits for a real session and calls the link dead if none arrives.
+ *
+ * @mutate src/pages/ResetPassword.tsx | if (hashParams.get("type") === "recovery" && !hashParams.get("error")) { | if (hashParams.get("type") === "recovery" && !hashParams.get("error")) { setReady(true);
+ * @mutate src/pages/ResetPassword.tsx | setLinkError((cur) => cur ?? "expired"); | void 0;
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
@@ -19,13 +25,17 @@ import ResetPassword from "./ResetPassword";
 const updateUserMock = vi.fn();
 const getSessionMock = vi.fn();
 const signOutMock = vi.fn();
+let authCb: ((e: string, s: unknown) => void) | null = null;
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
       updateUser: (...a: unknown[]) => updateUserMock(...a),
       getSession: (...a: unknown[]) => getSessionMock(...a),
       signOut: (...a: unknown[]) => signOutMock(...a),
-      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      onAuthStateChange: (cb: (e: string, s: unknown) => void) => {
+        authCb = cb;
+        return { data: { subscription: { unsubscribe: () => {} } } };
+      },
     },
   },
 }));
@@ -215,3 +225,44 @@ describe("a REFUSED password says why", () => {
 // /auth/v1/user anyway and comes back as a 422 this screen then has to translate —
 // the account-recovery lockout this guard exists to prevent.
 // @mutate src/pages/ResetPassword.tsx | if (problem) { fail(problem); return; } | if (problem) { fail(problem); }
+
+describe("a recovery fragment is a claim, not a session (OA-014)", () => {
+  beforeEach(() => {
+    getSessionMock.mockReset().mockResolvedValue({ data: { session: null }, error: null });
+    authCb = null;
+    window.history.replaceState(null, "", "/reset-password#type=recovery&access_token=stale");
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    window.history.replaceState(null, "", "/");
+  });
+
+  const renderPage = () =>
+    render(
+      <MemoryRouter initialEntries={["/reset-password"]}>
+        <ResetPassword />
+      </MemoryRouter>,
+    );
+
+  it("shows no form while the link is being checked", async () => {
+    renderPage();
+    expect(await screen.findByText(/Checking your reset link/i)).toBeTruthy();
+    expect(screen.queryByLabelText(/New password/i)).toBeNull();
+  });
+
+  it("calls the link expired when no session ever arrives", async () => {
+    renderPage();
+    await screen.findByText(/Checking your reset link/i);
+    await act(async () => { vi.advanceTimersByTime(9000); });
+    expect(await screen.findByText(/link has expired/i)).toBeTruthy();
+    expect(screen.queryByLabelText(/New password/i)).toBeNull();
+  });
+
+  it("opens the form once the recovery session exists", async () => {
+    renderPage();
+    await screen.findByText(/Checking your reset link/i);
+    await act(async () => { authCb?.("PASSWORD_RECOVERY", { user: { id: "u1" } }); });
+    expect(await screen.findByLabelText(/New password/i)).toBeTruthy();
+  });
+});

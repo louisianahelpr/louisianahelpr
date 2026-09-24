@@ -28,6 +28,10 @@ const Req = ({ ok, label }: { ok: boolean; label: string }) => (
   </span>
 );
 
+// How long a recovery fragment may take to become a session before the link
+// is treated as dead (OA-014). Token exchange is one round trip.
+const LINK_VERIFY_TIMEOUT_MS = 8000;
+
 const ResetPassword = () => {
   // usePageMeta, not usePageTitle: this was the one funnel page shipping a
   // bare <title> with no description/canonical/OG, so a shared or indexed
@@ -48,6 +52,7 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   // The success state is RENDERED, not implied.
   //
   // This screen used to do nothing at all on success: no toast, no copy, no
@@ -97,17 +102,38 @@ const ResetPassword = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
+    // OA-014: the fragment is a claim, not a session. `type=recovery` used to
+    // unlock the form on its own, so a stale or hand-typed fragment showed a
+    // form whose submit could only fail ("Auth session missing"). Now it only
+    // means "a link is being checked": the form waits for the session the
+    // client builds from the token, and if none arrives the link is dead.
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    let verifyTid: number | null = null;
+    if (hashParams.get("type") === "recovery" && !hashParams.get("error")) {
+      setVerifying(true);
+      verifyTid = window.setTimeout(() => {
+        setVerifying(false);
+        setLinkError((cur) => cur ?? "expired");
+      }, LINK_VERIFY_TIMEOUT_MS);
+    }
+    const settled = () => {
+      if (verifyTid !== null) window.clearTimeout(verifyTid);
+      setVerifying(false);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY") setReady(true);
-      if (event === "SIGNED_IN" && session) setReady(true);
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+        setReady(true);
+        settled();
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
+      if (session) {
+        setReady(true);
+        settled();
+      }
     });
-
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    if (hashParams.get("type") === "recovery") setReady(true);
 
     // Distinguish the three "not ready" cases when possible so the user
     // sees a specific message instead of the generic "please use the
@@ -130,7 +156,10 @@ const ResetPassword = () => {
       }
     }
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (verifyTid !== null) window.clearTimeout(verifyTid);
+    };
   }, []);
 
   // One id for every failure this form can raise, so a second and third tap
@@ -256,6 +285,10 @@ const ResetPassword = () => {
               Go to Dashboard
             </Button>
           </div>
+        ) : !ready && verifying ? (
+          <p role="status" className="text-center font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            Checking your reset link…
+          </p>
         ) : !ready ? (
           <div className="text-center space-y-4">
             <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

@@ -1,8 +1,10 @@
 {
-  "generated": "2026-09-24T03:33:50.676Z",
-  "guards": 906,
+  "generated": "2026-09-24T04:05:36.800Z",
+  "guards": 907,
   "registered": 906,
-  "unregistered": [],
+  "unregistered": [
+    "src/test/uiSweepScheduledDark.test.ts"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/activity/appliedJobCard/helperDisputeCopy.test.tsx",

@@ -103,6 +103,7 @@
     "supabase/functions/_shared/appleAppStore.ts",
     "supabase/functions/_shared/jwt.ts",
     "supabase/functions/_shared/banStatus.ts",
+    "supabase/functions/ai-job-builder/sanitize.ts",
     // The design-system scales live here, and `src/lib/utils.test.ts` reads
     // them to prove every `ds-*` token was taught to tailwind-merge. Deriving
     // the inventory from the config is the whole point — a hand-typed mirror

@@ -8,10 +8,10 @@
  * spells one of the old variants as a string literal again, or if a surface
  * that renders a nullable person id stops using the shared label.
  */
-// @mutate src/components/GroupJobHelpers.tsx | FORMER_MEMBER_LABEL | "Former Helpr"
-// @mutate src/components/admin/AdminJobs.tsx | ADMIN_DELETED_ACCOUNT_LABEL | "Deleted user"
-// @mutate src/components/activity/postedJobCard/steps/CompletedStep.tsx | || "Helpr" : FORMER_MEMBER_LABEL; | \|\| "Helpr" : "Helpr";
-// @mutate src/pages/messages/messagesData/loadConversations.ts | FORMER_MEMBER_LABEL | "Deleted account"
+// @mutate src/components/GroupJobHelpers.tsx | : FORMER_MEMBER_LABEL, | : "Former Helpr",
+// @mutate src/components/admin/AdminJobs.tsx | setPosterName(ADMIN_DELETED_ACCOUNT_LABEL) | setPosterName("Deleted user")
+// @mutate src/components/activity/postedJobCard/steps/CompletedStep.tsx | \|\| "Helpr" : FORMER_MEMBER_LABEL; | \|\| "Helpr" : "Helpr";
+// @mutate src/pages/messages/messagesData/loadConversations.ts | otherDeleted ? FORMER_MEMBER_LABEL : | otherDeleted ? "Deleted account" :
 // @mutate src/lib/deletedPerson.ts | = "Former member"; | = "Former Helpr";
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -38,8 +38,10 @@ describe("one label for a deleted person", () => {
   });
 
   it("no file under src/ spells a deleted-person label as a literal", () => {
+    const files = walk(SRC);
+    expect(files.length, "walked too few src files").toBeGreaterThan(500);
     const bad = /["'`](Former Helpr|Former member|Deleted user|Deleted account|Account deleted)["'`]/;
-    const hits = walk(SRC)
+    const hits = files
       .filter((f) => !f.endsWith(join("lib", "deletedPerson.ts")))
       .flatMap((f) =>
         readFileSync(f, "utf8")

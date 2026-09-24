@@ -46,6 +46,7 @@ function openStore(userId: string): UnreadStore {
     close: () => {},
   };
 
+  const UNREAD_ROW_CAP = 1000;
   const loadCounts = async () => {
     // Mirror the inbox's own hide rules (Messages.tsx) so the badge can't
     // claim "1" while the inbox renders empty: the inbox drops system
@@ -68,7 +69,11 @@ function openStore(userId: string): UnreadStore {
       .from("messages")
       .select("job_id, sender_id, created_at")
       .eq("receiver_id", userId)
-      .eq("read", false);
+      .eq("read", false)
+      // PD-012: bounded. The nav shows "9+" and the icon badge a number, so
+      // the newest UNREAD_ROW_CAP rows are all either can use.
+      .order("created_at", { ascending: false })
+      .limit(UNREAD_ROW_CAP); // PD-012 bounded
     // `is_system` is a real column but missing from the generated types,
     // so the dynamic .not() filters need an untyped handle.
     let query: any = base;

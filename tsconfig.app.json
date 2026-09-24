@@ -55,6 +55,7 @@
     // manifest enumerator to assert pending_approval cells are unreachable.
     "e2e/happy-path/state-matrix/stateMatrix.ts",
     "supabase/functions/_shared/businessSeatTiers.ts",
+    "supabase/functions/_shared/forEachBounded.ts",
     "supabase/functions/_shared/disputePayoutStamp.ts",
     "supabase/functions/_shared/marketing/secretGap.ts",
     "supabase/functions/_shared/notification-templates.ts",

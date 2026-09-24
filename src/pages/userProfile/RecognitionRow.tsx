@@ -212,11 +212,14 @@ function ladderSpec(
     group: "helpr",
     label: meta.label,
     title: `${meta.label} Helpr`,
-    icon: <Icon strokeWidth={2.25} />,
+    icon: <Icon strokeWidth={2.25} style={{ color: `hsl(var(${meta.colorVar}))` }} />,
     description: `Verification ladder — ${meta.description}`,
+    // Same fix as milestoneSpec: gold-warm as 11px/600 LABEL text on its own
+    // 12% tint measured 2.58:1 on "Top Rated" (a11y-prod, 2026-09-24). The
+    // label takes --foreground; the rung's colour stays in fill, border, icon.
     style: {
       background: `hsl(var(${meta.colorVar}) / 0.12)`,
-      color: `hsl(var(${meta.colorVar}))`,
+      color: "hsl(var(--foreground))",
       border: `0.5px solid hsl(var(${meta.colorVar}) / 0.32)`,
     },
     extra: (

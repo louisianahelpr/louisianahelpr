@@ -2,6 +2,9 @@
 // Bugs here silently lose user-typed content (a top-of-funnel UX
 // regression that won't surface in any error log). Test the storage
 // contract, the 7-day expiration, the debounce, and the unmount flush.
+//
+// @mutate src/hooks/useDraftJob.ts | if (!dirty.current \|\| pendingDraft.current.savedAt === 0) return; | if (pendingDraft.current.savedAt === 0) return;
+// @mutate src/hooks/useDraftJob.ts | if (e.key !== DRAFT_KEY \|\| e.newValue !== null) return; | return;
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -270,3 +273,39 @@ describe("useDraftJob — unmount flush", () => {
 // Merge against the EMPTY draft rather than the pending one, so two saves inside the
 // debounce window drop every field the second one did not name.
 // @mutate src/hooks/useDraftJob.ts | { ...pendingDraft.current, ...data, savedAt: Date.now() } | { ...emptyDraft, ...data, savedAt: Date.now() }
+
+describe("useDraftJob — a second tab never resurrects a posted draft (CC-002)", () => {
+  beforeEach(() => {
+    getItemMock.mockReset();
+    setItemMock.mockReset();
+    removeItemMock.mockReset();
+  });
+
+  const saved = () => JSON.stringify({ title: "Mow lawn", savedAt: Date.now() - 1000 });
+
+  it("a restored draft this tab never edited is not re-written on hide", () => {
+    getItemMock.mockReturnValue(saved());
+    const { unmount } = renderHook(() => useDraftJob());
+    unmount();
+    expect(setItemMock).not.toHaveBeenCalled();
+  });
+
+  it("an edit here, then another tab clears the draft: nothing is written back", () => {
+    getItemMock.mockReturnValue(saved());
+    const { result, unmount } = renderHook(() => useDraftJob());
+    act(() => result.current.saveDraft({ title: "Mow lawn and edge" }));
+    act(() => {
+      window.dispatchEvent(new StorageEvent("storage", { key: DRAFT_KEY, newValue: null }));
+    });
+    unmount();
+    expect(setItemMock).not.toHaveBeenCalled();
+  });
+
+  it("an unsaved edit here is still flushed on unmount", () => {
+    getItemMock.mockReturnValue(null);
+    const { result, unmount } = renderHook(() => useDraftJob());
+    act(() => result.current.saveDraft({ title: "Paint fence" }));
+    unmount();
+    expect(setItemMock).toHaveBeenCalledWith(DRAFT_KEY, expect.stringContaining("Paint fence"));
+  });
+});

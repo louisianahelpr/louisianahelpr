@@ -63,6 +63,10 @@ export function useDraftJob() {
   // debounce timer).
   const pendingDraft = useRef<JobDraft>(emptyDraft);
   const saveTimer = useRef<number | null>(null);
+  // CC-002: only a draft typed in THIS tab since its last write is flushed.
+  // Without it, a second /post-job tab re-wrote its stale copy on hide or
+  // unload — after the first tab posted the job and cleared the draft.
+  const dirty = useRef(false);
 
   useEffect(() => {
     try {
@@ -88,11 +92,28 @@ export function useDraftJob() {
       window.clearTimeout(saveTimer.current);
       saveTimer.current = null;
     }
-    // Nothing meaningful typed yet — don't write an empty placeholder draft.
-    if (pendingDraft.current.savedAt === 0) return;
+    // Nothing typed here since the last write (or nothing at all).
+    if (!dirty.current || pendingDraft.current.savedAt === 0) return;
+    dirty.current = false;
     try {
       safeStorage.setItem(DRAFT_KEY, JSON.stringify(pendingDraft.current));
     } catch { /* ignore */ }
+  }, []);
+
+  // Another tab cleared the draft (it posted the job): drop ours so a
+  // teardown flush here cannot bring it back.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== DRAFT_KEY || e.newValue !== null) return;
+      if (saveTimer.current !== null) {
+        window.clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+      dirty.current = false;
+      pendingDraft.current = emptyDraft;
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   // Flush before unmount AND on the events that fire when a mobile browser
@@ -118,6 +139,7 @@ export function useDraftJob() {
     // rapid successive calls within the debounce window don't drop fields.
     const updated = { ...pendingDraft.current, ...data, savedAt: Date.now() };
     pendingDraft.current = updated;
+    dirty.current = true;
     setDraft(updated);
     setHasDraft(true);
 
@@ -126,6 +148,7 @@ export function useDraftJob() {
     }
     saveTimer.current = window.setTimeout(() => {
       saveTimer.current = null;
+      dirty.current = false;
       try {
         safeStorage.setItem(DRAFT_KEY, JSON.stringify(pendingDraft.current));
       } catch { /* ignore */ }
@@ -138,6 +161,7 @@ export function useDraftJob() {
       saveTimer.current = null;
     }
     pendingDraft.current = emptyDraft;
+    dirty.current = false;
     setDraft(emptyDraft);
     setHasDraft(false);
     try { safeStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }

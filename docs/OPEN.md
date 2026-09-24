@@ -5,7 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Queue (this file):** 227 done, 27 partly done (fixed, protection pending), 102 open. Source of truth for work.
-- **Audit bus:** 56 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Audit bus:** 54 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
 - **nightly-red issues:** 8 open — `gh issue list -l nightly-red`. _(2026-09-23T06:08Z)_
@@ -1826,6 +1826,21 @@ sure someone hears it and closes it.
    signups and deletions no longer write "role granted/revoked" rows to the
    Audit Log. 742 old rows of that kind are still there (about 44% of the
    log). Should I delete them? It is audit history, so I left them.
+24. **Is the service fee taxable in Louisiana? (ME-019, 2026-09-24).** Today
+   checkout charges sales tax on the job itself (for taxable categories) but
+   NOT on the poster's service fee; the code says "non-taxable until the LA
+   Department of Revenue clarifies". In April both were taxed. If the answer is
+   "taxable", the platform owes roughly 1.3% of every job budget it did not
+   collect. This needs your CPA, not code: when they answer, I switch one line
+   (create-payment/index.ts:631) and add a check.
+25. **Archive three old Stripe products? (SC-015, 2026-09-24).** Your LIVE
+   Stripe account had (audit read 2026-09-07; I cannot re-read live Stripe
+   from here) Crew, Team and Enterprise seat plans ($20/$30/$40 a
+   month, plus yearly) from the business plans that were removed in August.
+   Nothing in the app can sell them, but a checkout on one would take money and
+   grant nothing. Archiving them in the Stripe dashboard (Products -> ... ->
+   Archive) is safe and reversible. Want me to do it through the API, or will
+   you click it?
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

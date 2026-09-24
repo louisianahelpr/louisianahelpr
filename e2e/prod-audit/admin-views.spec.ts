@@ -40,7 +40,7 @@ const VIEWS = adminViews();
  * `job_completion_nudges JOIN jobs`, and `pg_proc.provolatile = 's'`.
  */
 const READ_RPC =
-  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$))/;
+  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$))/;
 
 /**
  * Admin RPCs that WRITE. Not an allow-list — the opposite: naming one here is
@@ -48,6 +48,7 @@ const READ_RPC =
  * this one". Each verified `provolatile = 'v'` on prod, 2026-09-20.
  */
 const WRITE_RPC = new Set([
+  "rpc_settle_dispute_without_payment",
   "admin_delete_review",
   "admin_reverse_violation",
   "resolve_stalled_job_flag",
@@ -103,6 +104,20 @@ test("the read allow-list passes the support queue and still refuses writes", ()
 });
 
 /**
+ * Minting a signed URL is a POST that reads: it writes nothing and returns a
+ * link to an object the caller may already see (2026-09-24: the firewall
+ * refused it, and /admin?view=credentials showed "Couldn't load preview" on a
+ * healthy screen). Only /object/sign/ — an upload is POST /object/<bucket>/…
+ */
+const READ_STORAGE = /\/storage\/v1\/object\/sign\//;
+
+test("the storage read allow-list passes signing and still refuses uploads", () => {
+  expect(READ_STORAGE.test(`${SUPABASE_URL}/storage/v1/object/sign/user-documents/u/credentials/x.png`)).toBe(true);
+  expect(READ_STORAGE.test(`${SUPABASE_URL}/storage/v1/object/user-documents/u/credentials/x.png`)).toBe(false);
+  expect(READ_STORAGE.test(`${SUPABASE_URL}/storage/v1/object/avatars/u/avatar.png`)).toBe(false);
+});
+
+/**
  * PREVENT, DON'T CHASE (2026-09-20). `admin_stalled_job_queue` shipped on
  * 2026-09-19 and the very next run of this suite showed "We couldn't load the
  * stuck-job queue" on /admin?view=stalled — a READ the firewall above refused
@@ -144,7 +159,7 @@ for (const view of VIEWS) {
     await ctx.route(`${SUPABASE_URL}/**`, async (route) => {
       const req = route.request();
       const m = req.method();
-      if (m === "GET" || m === "HEAD" || m === "OPTIONS" || READ_RPC.test(req.url()) || /\/auth\/v1\/(token|user)/.test(req.url())) return route.continue();
+      if (m === "GET" || m === "HEAD" || m === "OPTIONS" || READ_RPC.test(req.url()) || READ_STORAGE.test(req.url()) || /\/auth\/v1\/(token|user)/.test(req.url())) return route.continue();
       // The terms re-consent acceptance, and nothing else — see
       // `isConsentAcceptance` in harness.ts. This firewall is armed before the
       // first goto, so without the exception the gate it raises can never be

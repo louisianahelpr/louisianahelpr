@@ -15,7 +15,7 @@
  * to ~/.lh-shots/q178. Real backend (prod Supabase) — the /browse cards are
  * real rows, so that number carries network variance the others do not.
  */
-import { chromium } from "playwright";
+import { chromium } from "@playwright/test";
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";

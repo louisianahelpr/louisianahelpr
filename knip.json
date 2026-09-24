@@ -38,6 +38,7 @@
     "enumMembers": "warn"
   },
   "ignoreBinaries": [
-    "supabase"
+    "supabase",
+    "gitleaks"
   ]
 }

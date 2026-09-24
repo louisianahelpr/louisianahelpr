@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/collapsible";
 import type { Tab } from "@/components/activity/activityConstants";
 import type { Bucket } from "./activityFilters";
+import { PagedActivityList } from "./PagedActivityList";
 
 /**
  * ActivitySectionedView — the grouped/collapsible Active · Completed ·
@@ -39,6 +40,8 @@ interface SectionedActivityViewProps<TItem> {
    *  Applied tab uses "Closed" instead of "Cancelled" to read as the
    *  helper-side bucket (rejected applications + cancelled jobs). */
   labels?: Partial<Record<SectionKey, string>>;
+  /** Total cards still behind a section's "Show older" (see PagedActivityList). */
+  onHiddenChange?: (hidden: number) => void;
 }
 
 const DEFAULT_LABELS: Record<SectionKey, string> = {
@@ -80,6 +83,7 @@ export function ActivitySectionedView<TItem>({
   bucketize,
   renderItem,
   labels,
+  onHiddenChange,
 }: SectionedActivityViewProps<TItem>) {
   const [openState, setOpenState] = useState<Record<SectionKey, boolean>>(() =>
     readPersistedOpen(tab),
@@ -105,6 +109,29 @@ export function ActivitySectionedView<TItem>({
     }
     return acc;
   }, [items, bucketize]);
+
+  // Per-section hidden counts, summed for the caller. A collapsed section's
+  // list is unmounted and reports nothing, so its entry is kept at its last
+  // value — the cards it hides are still hidden.
+  const [hiddenBySection, setHiddenBySection] = useState<Record<SectionKey, number>>({
+    active: 0,
+    completed: 0,
+    cancelled: 0,
+  });
+  const reportHidden = useMemo(
+    () =>
+      Object.fromEntries(
+        SECTION_ORDER.map((k) => [
+          k,
+          (n: number) => setHiddenBySection((prev) => (prev[k] === n ? prev : { ...prev, [k]: n })),
+        ]),
+      ) as Record<SectionKey, (n: number) => void>,
+    [],
+  );
+  const totalHidden = hiddenBySection.active + hiddenBySection.completed + hiddenBySection.cancelled;
+  useEffect(() => {
+    onHiddenChange?.(totalHidden);
+  }, [totalHidden, onHiddenChange]);
 
   const toggle = useCallback((key: SectionKey) => {
     hapticLight();
@@ -199,11 +226,7 @@ export function ActivitySectionedView<TItem>({
                   // into two columns; on phone width the cards otherwise
                   // stretch to ~900px and read half-empty. The grid + its
                   // space-y reset live in index.css under `.ds-activity-grid`.
-                  <div className="space-y-3 ds-activity-grid">
-                    {bucketItems.map((item) => (
-                      <div key={getKey(item)}>{renderItem(item)}</div>
-                    ))}
-                  </div>
+                  <PagedActivityList items={bucketItems} getKey={getKey} renderItem={renderItem} onHiddenChange={reportHidden[key]} />
                 )}
               </div>
             </CollapsibleContent>

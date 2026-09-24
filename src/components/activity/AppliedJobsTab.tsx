@@ -19,6 +19,7 @@ import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllus
 import { type Application, type AppliedApp, type Job } from "./activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
 import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
+import { PagedActivityList } from "@/pages/activity/PagedActivityList";
 import { bucketAppliedApp } from "@/pages/activity/activityFilters";
 import type { TrackingData } from "@/components/JobTracking";
 import { logWithdrawReason, type WithdrawReason } from "@/lib/applicationWithdrawAnalytics";
@@ -336,13 +337,11 @@ export const AppliedJobsTab = ({
     // from a fixed estimate on every remount — which is what made switching
     // "All" ↔ a single status visibly jump. Normal flow keeps the two views
     // structurally identical, so toggling between them stays stable.
-    <div className="space-y-3 ds-activity-grid">
-      {apps.map((app) => (
-        <div key={app.id}>{renderAppliedCard(app)}</div>
-      ))}
+    <>
+      <PagedActivityList items={apps} getKey={(app) => app.id} renderItem={renderAppliedCard} />
       {/* The "That's everything here." trailing line (mirrored from
           PostedJobsTab) was removed (owner, 2026-08-30). */}
-    </div>
+    </>
   );
 
   return (

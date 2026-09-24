@@ -9,6 +9,7 @@ import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllus
 import { type Job, type EnrichedApplication } from "./activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
 import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
+import { PagedActivityList } from "@/pages/activity/PagedActivityList";
 import { bucketPostedJob } from "@/pages/activity/activityFilters";
 import { useBulkDismiss } from "@/pages/activity/useBulkDismiss";
 import { BulkDismissBar } from "@/pages/activity/BulkDismissBar";
@@ -189,11 +190,15 @@ function LocationPressHint({ onDismiss }: { onDismiss: () => void }) {
  * lets the list sit at the top of the panel rather than the middle.
  */
 function ListTail({
+  moreHidden,
   statusFilter,
   statusCounts,
   statusLabels,
   onSelectStatusFilter,
 }: {
+  /** Q372: older cards are still behind "Show older", so "That's everything
+   *  under X" would be false. */
+  moreHidden?: boolean;
   statusFilter?: string;
   statusCounts?: Record<string, number>;
   statusLabels?: { key: string; label: string }[];
@@ -207,7 +212,7 @@ function ListTail({
   // normal-height block anchored to the BOTTOM of the panel, so a short list
   // reads as "list, then the footer of the screen" rather than as one card
   // floating in the middle of a box.
-  if (!onSelectStatusFilter || others.length === 0) {
+  if (moreHidden || !onSelectStatusFilter || others.length === 0) {
     return <div aria-hidden className="mt-auto" />;
   }
   const fullest = [...others].sort(
@@ -301,6 +306,8 @@ export const PostedJobsTab = ({
   // Read ONCE, on mount, from a lazy initializer — safeStorage is synchronous
   // and hydrated before React mounts, so the first paint already knows whether
   // the hint has been seen and it never flashes in and back out.
+  // Q372: cards still behind "Show older", reported by PagedActivityList.
+  const [hiddenCount, setHiddenCount] = useState(0);
   const [locationHintSeen, setLocationHintSeen] = useState(
     () => safeStorage.getItem(LOCATION_PRESS_HINT_KEY) === "1",
   );
@@ -429,6 +436,7 @@ export const PostedJobsTab = ({
       getKey={(job) => job.id}
       bucketize={bucketPostedJob}
       renderItem={renderJobCard}
+      onHiddenChange={setHiddenCount}
     />
   ) : visibleJobs.length === 0 ? (
     <EmptyState
@@ -448,14 +456,12 @@ export const PostedJobsTab = ({
     // from a fixed estimate on every remount — which is what made switching
     // "All" ↔ a single status visibly jump. Normal flow keeps the two views
     // structurally identical, so toggling between them stays stable.
-    <div className="space-y-3 ds-activity-grid">
-      {visibleJobs.map((job) => (
-        <div key={job.id}>{renderJobCard(job)}</div>
-      ))}
+    <>
+      <PagedActivityList items={visibleJobs} getKey={(job) => job.id} renderItem={renderJobCard} onHiddenChange={setHiddenCount} />
       {/* The "That's everything here." trailing line (which used to fill the
           blank space a 1-2 card bucket leaves in the fixed-height AppShell
           panel) was removed (owner, 2026-08-30). */}
-    </div>
+    </>
   );
 
   return (
@@ -493,6 +499,7 @@ export const PostedJobsTab = ({
 
       {/* Fills the panel's leftover height on a short list. */}
       <ListTail
+        moreHidden={hiddenCount > 0}
         statusFilter={statusFilter}
         statusCounts={statusCounts}
         statusLabels={statusLabels}

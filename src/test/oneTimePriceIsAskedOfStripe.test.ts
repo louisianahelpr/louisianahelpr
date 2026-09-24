@@ -16,6 +16,7 @@ const tierConfig = readFileSync("src/components/profile/subscriptionTab/tierConf
 
 describe("the one-time pass price is asked of Stripe (S-003)", () => {
   it("every one_time Price has an expected amount", () => {
+    expect(Object.keys(PRO_ONE_TIME_AMOUNT_CENTS).length).toBeGreaterThanOrEqual(4);
     expect(Object.keys(PRO_ONE_TIME_AMOUNT_CENTS).sort()).toEqual(Object.keys(PRO_PRICE_MAP.one_time).sort());
   });
   it("the expected amount is the price the UI shows beside Once", () => {

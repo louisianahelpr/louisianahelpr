@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-24T01:39:42.541Z",
+  "generated": "2026-09-24T02:01:16.365Z",
   "guards": 895,
   "registered": 895,
   "unregistered": [],
@@ -29,8 +29,7 @@
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
     "src/test/storageBucketLimits.test.ts",
-    "src/test/unknownZipIsNeverSilent.test.ts",
-    "src/test/userIdForeignKeys.test.ts"
+    "src/test/unknownZipIsNeverSilent.test.ts"
   ],
   "classD_selfReferential": [
     {

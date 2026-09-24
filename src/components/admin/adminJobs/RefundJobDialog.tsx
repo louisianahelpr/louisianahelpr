@@ -37,6 +37,11 @@ export const RefundJobDialog = ({
   onCancel,
   onConfirm,
 }: RefundJobDialogProps) => {
+  // create-payment refuses a FULL refund once the Helpr has been paid
+  // (payout_transfers holds a row); only a partial goodwill refund is allowed.
+  // So a paid-out job needs an amount before the refund can be issued.
+  const paidOut = detailJob?.payment_status === "released";
+  const needsAmount = paidOut && !(refundAmount.trim() && Number(refundAmount) > 0);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -64,7 +69,7 @@ export const RefundJobDialog = ({
           )}
           <div className="space-y-1.5">
             <label className="text-ds-11 font-medium text-foreground">
-              Refund amount <span className="text-muted-foreground font-normal">(blank = full refund)</span>
+              Refund amount <span className="text-muted-foreground font-normal">{paidOut ? "(required: already paid out, partial only)" : "(blank = full refund)"}</span>
             </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ds-13 text-muted-foreground pointer-events-none">$</span>
@@ -99,8 +104,8 @@ export const RefundJobDialog = ({
             <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">
               <p className="text-ds-11 text-[hsl(var(--destructive-ink))] font-medium mb-1">⚠️ Money already paid out</p>
               <p className="text-ds-11 text-foreground">
-                This payment has already been transferred to the Helpr.
-                Refunding the customer means the platform absorbs the loss
+                This payment has already been transferred to the Helpr, so
+                only a partial refund can be issued. The platform absorbs it
                 unless you separately reverse the transfer in Stripe.
               </p>
             </div>
@@ -116,7 +121,7 @@ export const RefundJobDialog = ({
           </DialogSecondaryAction>
           <DialogDestructiveAction
             onClick={onConfirm}
-            disabled={refunding}
+            disabled={refunding || needsAmount}
           >
             {refunding ? "Refunding…" : "Issue Refund"}
           </DialogDestructiveAction>

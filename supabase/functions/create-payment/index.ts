@@ -2318,7 +2318,7 @@ serve(async (req) => {
       // platform choosing to eat a cost, not the escrow moving twice.
       const wantsFullRefund = typeof amountCents !== "number";
       if (wantsFullRefund) {
-        const alreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund");
+        const alreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund", "admin_refund");
         if (alreadyPaidOut) return alreadyPaidOut;
       }
 
@@ -2397,7 +2397,7 @@ serve(async (req) => {
             // it here for the full-capture partial. Smaller goodwill partials
             // stay allowed (the platform choosing to eat a cost), as before.
             if (requestedCents! === capturedCents) {
-              const partialAlreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund");
+              const partialAlreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund", "admin_refund");
               if (partialAlreadyPaidOut) return partialAlreadyPaidOut;
             }
           }
@@ -2816,6 +2816,13 @@ async function escrowAlreadyMovedTheOtherWay(
   supabaseAdmin: any,
   jobId: string,
   action: "release" | "refund",
+  // "admin_refund": admin_refund_general asked for a FULL refund after the
+  // payout. That is a refused request, not a dispute that needs reconciling:
+  // no money moved and nothing is out of step, so it answers 409 and does NOT
+  // page money_at_risk. On 2026-09-24 press-every-control and the prod-audit
+  // presser pressed Refund on released SEED jobs and paged "Dispute settlement
+  // refused ... needs manual reconciliation" twice for jobs with no dispute.
+  context: "dispute" | "admin_refund" = "dispute",
 ): Promise<Response | null> {
   const table = action === "release" ? "payment_refunds" : "payout_transfers";
   // `payment_refunds` has NO status column (20260704120000; verified live
@@ -2837,6 +2844,16 @@ async function escrowAlreadyMovedTheOtherWay(
     );
   }
   if (!data || data.length === 0) return null;
+  if (context === "admin_refund") {
+    console.warn(`[create-payment] admin_refund_general full refund REFUSED for job ${jobId}: already paid out to the Helpr.`);
+    return new Response(
+      JSON.stringify({
+        error: "This job was already paid out to the Helpr, so a full refund isn't possible. Enter a partial amount instead. Nothing was moved.",
+        alreadyMoved: true,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+    );
+  }
   console.error(
     `[create-payment] ${action} REFUSED for job ${jobId}: a ${action === "release" ? "refund" : "payout"} ledger row already exists — the escrow moved the other way.`,
   );

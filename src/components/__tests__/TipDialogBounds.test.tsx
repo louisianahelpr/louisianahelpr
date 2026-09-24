@@ -3,7 +3,7 @@
  * tip round-tripped to create-payment and came back as a server error toast.
  * The dialog now refuses it with the server's own wording and sends nothing.
  *
- * @mutate src/components/TipDialog.tsx | if (tipAmount < 1 || tipAmount > 1000) { | if (false) {
+ * @mutate src/components/TipDialog.tsx | if (tipAmount < 1 \|\| tipAmount > 1000) { | if (false) {
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";

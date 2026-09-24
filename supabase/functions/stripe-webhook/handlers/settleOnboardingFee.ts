@@ -1,6 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { insertNotifications } from "../../_shared/insertNotifications.ts";
 
 /**
  * Collect the one-time account setup fee EXACTLY once — the shared enforcement
@@ -105,7 +106,7 @@ export async function settleOnboardingFee(
             },
           });
         }
-        await supabase.from("notifications").insert({
+        await insertNotifications(supabase, {
           user_id: posterId,
           type: "payment",
           title: "Duplicate fee refunded",

@@ -23,6 +23,7 @@ import { PublicError, publicErrorMessage } from "../_shared/publicError.ts";
 import { jobBudgetOutOfRange, urgentFeeOverCap, MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS } from "../_shared/jobBudgetLimits.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTiming.ts";
+import { insertNotifications } from "../_shared/insertNotifications.ts";
 
 /**
  * Tax is ADDED to `unit_amount`, never carved out of it — pinned rather than
@@ -996,7 +997,7 @@ serve(async (req) => {
       // full urgent bonus against a single fee collected, over-paying N×.
       const helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee) / helpersCount;
       if (isPoster && job.helper_id && !helperDone) {
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
           title: "Job marked complete",
           message: `The person who posted "${job.title}" marked it complete. Please confirm completion to release payment.`,
@@ -1005,7 +1006,7 @@ serve(async (req) => {
         });
       }
       if (isHelper && !posterDone) {
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: job.customer_id,
           title: "Helpr marked the job complete",
           message: `The helpr marked "${job.title}" as complete. Please confirm completion to release payment.`,
@@ -1015,7 +1016,7 @@ serve(async (req) => {
 
       if (bothDone) {
         if (job.helper_id) {
-          await supabaseAdmin.from("notifications").insert({
+          await insertNotifications(supabaseAdmin, {
             user_id: job.helper_id,
             job_id: job.id,
             title: "Job completed!",
@@ -1023,7 +1024,7 @@ serve(async (req) => {
             type: "payment", link: "/profile?tab=earnings",
           });
         }
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: job.customer_id,
           title: "Job completed!",
           message: `"${job.title}" is complete. Payment has been captured. The Helpr is paid ${STANDARD_PAYOUT_PHRASE}.`,
@@ -1084,7 +1085,7 @@ serve(async (req) => {
       }
 
       if (job.helper_id) {
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
           title: "Revision requested",
           message: `The person who posted "${job.title}" has requested revisions: ${note || "Please check the details."}`,
@@ -1142,7 +1143,7 @@ serve(async (req) => {
         throw new PublicError("No revision pending — this job has moved on. Refresh to see its current state.");
       }
 
-      await supabaseAdmin.from("notifications").insert({
+      await insertNotifications(supabaseAdmin, {
         user_id: job.customer_id,
         title: "Revision completed — review needed",
         message: `The helpr has fixed the revision for "${job.title}". You have 72 hours to accept (mark complete) or dispute. If you do nothing, payment auto-releases.`,
@@ -1896,7 +1897,7 @@ serve(async (req) => {
 
       // Notify both parties
       if (job.helper_id) {
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
           job_id: job.id,
           title: "Dispute resolved — payment released!",
@@ -1904,7 +1905,7 @@ serve(async (req) => {
           type: "payment", link: "/profile?tab=earnings",
         });
       }
-      await supabaseAdmin.from("notifications").insert({
+      await insertNotifications(supabaseAdmin, {
         user_id: job.customer_id,
         title: "Dispute resolved",
         message: `The dispute on "${job.title}" has been resolved. Payment was released to the helpr.`,
@@ -2215,14 +2216,14 @@ serve(async (req) => {
       });
 
       // Notify both parties
-      await supabaseAdmin.from("notifications").insert({
+      await insertNotifications(supabaseAdmin, {
         user_id: job.customer_id,
         title: "Dispute resolved — refund issued",
         message: `The dispute on "${job.title}" has been resolved in your favor. A refund has been issued.`,
         type: "payment", link: `/my-posts?job=${job.id}`,
       });
       if (job.helper_id) {
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
           title: "Dispute resolved",
           message: `The dispute on "${job.title}" has been resolved. The person who posted it has been refunded.`,
@@ -2542,7 +2543,7 @@ serve(async (req) => {
         ? `A partial refund of ${dollarAmount} has been issued for "${job.title}".${reason ? ` Reason: ${reason}` : ""} It should appear on your card in 5-10 business days.`
         : `A refund has been issued for "${job.title}".${reason ? ` Reason: ${reason}` : ""} It should appear on your card in 5-10 business days.`;
 
-      await supabaseAdmin.from("notifications").insert({
+      await insertNotifications(supabaseAdmin, {
         user_id: job.customer_id,
         title: isPartial ? "Partial refund issued" : "Refund issued",
         message: customerMessage,
@@ -2558,7 +2559,7 @@ serve(async (req) => {
       // refunds don't change the helper's stake; if a partial-refund scenario
       // ever needs helper notification, send a separate manual message.
       if (!isPartial && job.helper_id) {
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
           job_id: job.id,
           title: "Job cancelled",
@@ -3343,7 +3344,7 @@ async function transferToHelper(
     const { ids: transferAdminIds } = await loadAdminIds(supabaseAdmin, "create-payment.transferFailed");
     {
       for (const adminId of transferAdminIds) {
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: adminId,
           title: "Transfer failed",
           message: `Failed to transfer $${amount.toFixed(2)} to Helpr for job ${jobId}. Error: ${(e as Error).message}`,

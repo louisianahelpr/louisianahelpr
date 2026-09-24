@@ -16,6 +16,7 @@ import { flipJobToReleased, type FlipResult } from "../_shared/releaseFlip.ts";
 import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
+import { insertNotifications } from "../_shared/insertNotifications.ts";
 
 
 serve(async (req) => {
@@ -383,7 +384,7 @@ serve(async (req) => {
 
       if (!helperProfile?.stripe_account_id) {
         console.error(`Helper ${helperId} has no Stripe Connect for job ${job.id}`);
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: helperId,
           job_id: job.id,
           title: "Payout account required",
@@ -502,7 +503,7 @@ serve(async (req) => {
             const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "process-scheduled-payouts.piNotSucceeded");
             {
               for (const adminId of adminIds) {
-                await supabaseAdmin.from("notifications").insert({
+                await insertNotifications(supabaseAdmin, {
                   user_id: adminId,
                   job_id: job.id,
                   title: "Payout blocked — charge not captured",
@@ -1126,7 +1127,7 @@ serve(async (req) => {
         const feeNote = owesOnboardingFee
           ? ` (one-time $${onboardingFeeDollars.toFixed(2)} account setup fee deducted)`
           : "";
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: helperId,
           job_id: job.id,
           title: "Payout sent!",
@@ -1179,7 +1180,7 @@ serve(async (req) => {
         const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "process-scheduled-payouts.payoutFailed");
         {
           for (const adminId of adminIds) {
-            await supabaseAdmin.from("notifications").insert({
+            await insertNotifications(supabaseAdmin, {
               user_id: adminId,
               job_id: job.id,
               title: "Scheduled payout failed",

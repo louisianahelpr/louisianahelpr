@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { CONFIRM_WINDOW_HOURS, confirmDeadlineMs } from "../_shared/confirmDeadline.ts";
+import { insertNotifications } from "../_shared/insertNotifications.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -253,7 +254,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      await supabase.from("notifications").insert({
+      await insertNotifications(supabase, {
         user_id: job.customer_id,
         job_id: job.id,
         title: "Job auto-cancelled",

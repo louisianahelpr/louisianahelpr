@@ -49,6 +49,7 @@ import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 import { flipJobToReleased } from "../_shared/releaseFlip.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
+import { insertNotifications } from "../_shared/insertNotifications.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -563,7 +564,7 @@ serve(async (req) => {
       console.error(`[release-payout] PI ${paymentIntentId} for job ${job.id} status "${pi.status}" — refusing transfer.`);
       const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "release-payout");
       for (const adminId of adminIds) {
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: adminId,
           job_id: job.id,
           title: "Payout blocked — charge not captured",
@@ -583,7 +584,7 @@ serve(async (req) => {
       );
       const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "release-payout");
       for (const adminId of adminIds) {
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: adminId,
           job_id: job.id,
           title: "Payout blocked — escrow amount unverifiable",
@@ -805,7 +806,7 @@ serve(async (req) => {
     );
     const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "release-payout");
     for (const adminId of adminIds) {
-      await supabaseAdmin.from("notifications").insert({
+      await insertNotifications(supabaseAdmin, {
         user_id: adminId,
         job_id: job.id,
         title: "Payout blocked — exceeds captured amount",

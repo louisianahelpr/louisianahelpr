@@ -20,6 +20,7 @@ import {
   oneTimePassLinkage,
   subscriptionLinkage,
 } from "../../_shared/subscriptionLinkage.ts";
+import { insertNotifications } from "../../_shared/insertNotifications.ts";
 
 export async function handleCheckoutSessionCompleted(
   event: Stripe.Event,
@@ -259,7 +260,7 @@ export async function handleCheckoutSessionCompleted(
         logStep("Tip marked as paid", { jobId: tipJobId, tipper: tipperId });
         // Notify the helper — only on the delivery that actually captured the tip.
         if (tipHelperId) {
-          await supabase.from("notifications").insert({
+          await insertNotifications(supabase, {
             user_id: tipHelperId,
             job_id: tipJobId,
             title: "You received a tip!",
@@ -476,7 +477,7 @@ export async function handleCheckoutSessionCompleted(
           // Notify only on confirmed credential creation. Previously this ran
           // unconditionally so the user received "Background check started" even
           // when the credential INSERT had just failed and we threw above.
-          await supabase.from("notifications").insert({
+          await insertNotifications(supabase, {
             user_id: bgcUserId,
             title: "Background check started",
             message:
@@ -698,7 +699,7 @@ export async function handleCheckoutSessionCompleted(
 
           // In-app notify an already-registered recipient right away.
           if (recipientId) {
-            await supabase.from("notifications").insert({
+            await insertNotifications(supabase, {
               user_id: recipientId,
               title: "You received a Helpr credit!",
               message: `${donorName} sent you a $${(amountCents / 100).toFixed(0)} credit to use toward any job. Tap to redeem it.`,

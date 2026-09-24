@@ -7,6 +7,7 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
 import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTiming.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
+import { insertNotifications } from "../_shared/insertNotifications.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -467,7 +468,7 @@ serve(async (req) => {
       const helperCommission = helperCommissionDollars(perHelperBudget, helperFeePercent);
       const helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee) / helpersCount;
       if (job.helper_id) {
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
           title: "Job auto-completed!",
           message: instantIds.has(job.id)
@@ -480,7 +481,7 @@ serve(async (req) => {
         });
       }
       if (job.customer_id) {
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: job.customer_id,
           title: "Job auto-completed",
           message: instantIds.has(job.id)

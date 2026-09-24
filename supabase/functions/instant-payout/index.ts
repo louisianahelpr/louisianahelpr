@@ -11,6 +11,7 @@ import {
 import { formatPayoutCents } from "../_shared/money.ts";
 import { profileHasPerk, tiersGrantingPerkSentence } from "../_shared/tierPerks.ts";
 import { tierDisplayName } from "../_shared/tierNames.ts";
+import { insertNotifications } from "../_shared/insertNotifications.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -386,7 +387,7 @@ serve(async (req) => {
       }
 
       // Notify the helper
-      await supabaseAdmin.from("notifications").insert({
+      await insertNotifications(supabaseAdmin, {
         user_id: user.id,
         title: "Instant payout on the way",
         message: `$${formatPayoutCents(netCents)} is heading to your debit card. Arrives in ~30 min.`,

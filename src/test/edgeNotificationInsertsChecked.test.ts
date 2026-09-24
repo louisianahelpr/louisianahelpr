@@ -3,19 +3,17 @@
  * `await supabase.from("notifications").insert({...})`, result discarded, so a
  * failed insert (RLS, constraint, a renamed column) silently meant the admin
  * was never told about a chargeback. Class: every edge-function source file.
- * The chargeback handlers now check the error; the remaining bare sites are an
- * EXACT ratchet (lower BASELINE in the commit that fixes one; a stale-high
- * baseline fails too). Remaining work: docs/OPEN.md Q-line "bare notification
- * inserts".
+ * The chargeback handlers check the error inline; the other 33 sites (Q358,
+ * 2026-09-24) go through _shared/insertNotifications.ts, which logs a refusal.
+ * No bare insert may come back.
  *
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | const { error: noticeErr } = await supabase.from("notifications").insert({ | await supabase.from("notifications").insert({
+ * @mutate supabase/functions/_shared/insertNotifications.ts |     if (error) { |     if (false) {
+ * @mutate supabase/functions/auto-expire-jobs/index.ts | await insertNotifications(supabase, { | await supabase.from("notifications").insert({
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-
-// @two-way src/test/edgeNotificationInsertsChecked.test.ts:expect(bare.length).toBe(BASELINE);
-const BASELINE = 33;
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {
@@ -42,7 +40,13 @@ describe("edge-function notification inserts check their error (AM-002)", () => 
     expect(bare.filter((s) => /chargeDispute(Created|Closed)\.ts/.test(s))).toEqual([]);
   });
 
-  it("bare inserts elsewhere match the exact baseline", () => {
-    expect(bare.length).toBe(BASELINE);
+  it("no edge function inserts a notification without checking the error", () => {
+    expect(bare).toEqual([]);
+  });
+
+  it("the shared helper checks and logs the error", () => {
+    const helper = readFileSync("supabase/functions/_shared/insertNotifications.ts", "utf8");
+    expect(helper).toMatch(/const \{ error \} = await client\.from\("notifications"\)\.insert\(rows\);\s*if \(error\) \{\s*const list/);
+    expect(helper).toContain('console.error("[notifications] insert failed"');
   });
 });

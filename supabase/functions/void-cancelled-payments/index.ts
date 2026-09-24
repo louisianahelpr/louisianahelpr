@@ -10,6 +10,7 @@ import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
+import { insertNotifications } from "../_shared/insertNotifications.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -371,7 +372,7 @@ serve(async (req) => {
         });
         console.log(`Cancellation fee $${cancellationFee}: platform kept $${platformCut}, transferred $${helperPayout} to helper ${job.helper_id} for job ${job.id}`);
 
-        await supabaseAdmin.from("notifications").insert({
+        await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
           job_id: job.id,
           title: "Cancellation fee received",
@@ -390,7 +391,7 @@ serve(async (req) => {
         const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "void-cancelled-payments.feeTransferFailed");
         {
           for (const adminId of adminIds) {
-            await supabaseAdmin.from("notifications").insert({
+            await insertNotifications(supabaseAdmin, {
               user_id: adminId,
               title: "Cancellation fee transfer failed",
               message: `Failed to transfer $${cancellationFee.toFixed(2)} cancellation fee to Helpr for job ${job.id}. Error: ${transferErr.message}`,

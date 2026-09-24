@@ -1,5 +1,6 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
+import { insertNotifications } from "../../_shared/insertNotifications.ts";
 
 export async function handlePaymentIntentPaymentFailed(
   event: Stripe.Event,
@@ -39,7 +40,7 @@ export async function handlePaymentIntentPaymentFailed(
   }
 
   if (failedJob) {
-    await supabase.from("notifications").insert({
+    await insertNotifications(supabase, {
       user_id: failedJob.customer_id,
       title: "Payment failed",
       message: `Your payment for "${failedJob.title}" could not be processed. Please update your payment method and try again.`,

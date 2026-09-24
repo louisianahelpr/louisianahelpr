@@ -1,6 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { stripeIdentityVerified } from "../../_shared/stripeIdentity.ts";
+import { insertNotifications } from "../../_shared/insertNotifications.ts";
 
 export async function handleAccountUpdated(
   event: Stripe.Event,
@@ -79,7 +80,7 @@ export async function handleAccountUpdated(
       // approval_status 'pending' → 'approved' + a "Welcome in." notice). The
       // approval step is retired (Q193/Q205b) and a confirmed email already
       // left nobody 'pending', so only this notice was ever reachable.
-      await supabase.from("notifications").insert({
+      await insertNotifications(supabase, {
         user_id: helperProfile.user_id,
         title: "Payout account verified",
         message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
@@ -90,7 +91,7 @@ export async function handleAccountUpdated(
       });
       logStep("Helper payout account verified", { userId: helperProfile.user_id, email_verified: helperProfile.email_verified });
     } else if (account.requirements?.currently_due && account.requirements.currently_due.length > 0) {
-      await supabase.from("notifications").insert({
+      await insertNotifications(supabase, {
         user_id: helperProfile.user_id,
         title: "Payout account needs attention",
         message: "Your payout account requires additional information. Please update your details to continue receiving payments.",

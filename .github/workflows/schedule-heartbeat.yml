@@ -293,6 +293,18 @@ jobs:
               console.log(`Closed heartbeat issue #${issue.number}`);
             }
 
+      - name: The database cron detectors are alive (CJ-011)
+        # The four pg_cron detectors watch every other prod cron, and only
+        # sweep-dead-crons watches the other three; nothing in the database
+        # watches it. This is the watcher from outside: each must be active
+        # with a succeeded run in the last 3h. A red here fails the job, so
+        # the notify job files it as nightly-red.
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/cron-detectors-alive.mjs  # CJ-011 external watcher
+
       - name: Fail the run when a schedule has stalled
         # The issue is the durable signal; this makes the workflow itself go
         # red so it shows up in `gh run list` and the Actions tab too. It runs

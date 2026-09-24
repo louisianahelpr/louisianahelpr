@@ -25,7 +25,6 @@
  */
 
 // @mutate src/lib/routePrefetch.ts | .sort((a, b) => b.length - a.length) | .sort(() => 0)
-// @mutate src/lib/routePrefetch.ts | const pathname = path.split(/[?#]/)[0]; | const pathname = path;
 import { describe, it, expect, vi } from "vitest";
 
 const PAGES: [string, string][] = [
@@ -184,4 +183,4 @@ describe("prefetchRoute — never breaks the interaction it is attached to", () 
 // carrying an id warms nothing at all, and the chunk waterfall this module
 // exists to remove is paid in full at the tap. The old suite, being entirely
 // `not.toThrow()`, was green for that.
-// @mutate src/lib/routePrefetch.ts | : Object.keys(prefetchers).sort((a, b) => b.length - a.length).find((p) => pathname.startsWith(p)); | : undefined;
+// @mutate src/lib/routePrefetch.ts | : Object.keys(prefetchers).sort((a, b) => b.length - a.length).find((p) => path.startsWith(p)); | : undefined;

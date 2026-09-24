@@ -193,10 +193,9 @@ export function prefetchRoute(path: string): void {
   if (!path || warmed.has(path)) return;
   // Match by exact key first, then by prefix (so /user/:id, /admin/* etc still hit the right chunk).
   // Longest key first: "/jobs/<id>" is the job page ("/jobs/"), not the Jobs tab ("/jobs").
-  const pathname = path.split(/[?#]/)[0];
-  const key = prefetchers[pathname]
-    ? pathname
-    : Object.keys(prefetchers).sort((a, b) => b.length - a.length).find((p) => pathname.startsWith(p));
+  const key = prefetchers[path]
+    ? path
+    : Object.keys(prefetchers).sort((a, b) => b.length - a.length).find((p) => path.startsWith(p));
   if (!key) return;
   warmed.add(key);
   // Fire-and-forget; swallow errors so a failed prefetch never breaks navigation.

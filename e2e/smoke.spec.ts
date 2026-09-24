@@ -101,18 +101,11 @@ test.describe("static routes + tools", () => {
     await expect(page.locator("body")).toContainText(/(not found|404|home|Helpr)/i, { timeout: 10_000 });
   });
 
-  test("Apple JWT generator tool loads", async ({ page }) => {
-    // /tools/apple-jwt.html is a static file used during Apple Sign In
-    // setup + every 6 months for JWT regeneration. If this file goes
-    // missing, JWT regeneration day becomes a scramble.
+  test("Apple JWT generator is NOT served (BR-007)", async ({ page }) => {
+    // The generator asks for a .p8 private key, so it lives in tools/ and is
+    // opened as a local file; the public site must not serve it.
     await page.goto(`${BASE_URL}/tools/apple-jwt.html`, { waitUntil: "domcontentloaded" });
-    await expect(page.locator("h1")).toContainText("Apple Sign In JWT Generator");
-    // Sanity: form fields are rendered
-    await expect(page.locator("#teamId")).toBeVisible();
-    await expect(page.locator("#keyId")).toBeVisible();
-    await expect(page.locator("#servicesId")).toBeVisible();
-    await expect(page.locator("#p8")).toBeVisible();
-    await expect(page.locator("#generate")).toBeVisible();
+    await expect(page.locator("#p8")).toHaveCount(0);
   });
 
   test("/terms renders Legal directly, no redirect hop", async ({ page }) => {

@@ -21,6 +21,7 @@
 // @mutate vercel.json | script-src 'self' 'sha256-NByp | script-src 'self' 'unsafe-inline' 'sha256-NByp
 // @mutate index.html | var probeKey = "__helpr_boot_storage_probe__"; | var probeKey = "__helpr_boot_storage_probe_v2__";
 // @mutate vite.config.ts | if(k.sheet)on(); | if(k.sheet){on()}
+// @mutate public/offline.html | </title> | </title><!-- paste your .p8 here -->
 // @mutate index.html | script-src 'self' 'sha256-NByp | script-src 'self' 'unsafe-eval' 'sha256-NByp
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -58,6 +59,14 @@ describe("CSP script-src (Q13)", () => {
     expect(existsSync("public/_headers")).toBe(false);
   });
 
+  // BR-007: the Apple Sign In JWT generator asks for a .p8 PRIVATE KEY. It is
+  // an owner-only tool, opened from tools/ as a local file, never served.
+  it("no developer tool that solicits a private key ships in public/", () => {
+    expect(existsSync("tools/apple-jwt.html")).toBe(true);
+    const shipped = walk("public").filter((f) => /BEGIN PRIVATE KEY|\.p8\b/i.test(read(f)));
+    expect(shipped).toEqual([]);
+  });
+
   it("every shipped policy exists", () => {
     expect(vercelPolicy).toBeTruthy();
     expect(metaPolicy).toBeTruthy();
@@ -72,10 +81,10 @@ describe("CSP script-src (Q13)", () => {
     expect(tokens.filter((t) => FORBIDDEN_SCRIPT_SRC.includes(t))).toEqual([]);
   });
 
-  it("inventory is non-empty: the boot scripts, offline retry and apple-jwt tool are all seen", () => {
-    expect(pages.length).toBeGreaterThanOrEqual(3);
+  it("inventory is non-empty: the boot scripts and offline retry are seen", () => {
+    expect(pages.length).toBeGreaterThanOrEqual(2);
     const total = pages.reduce((n, p) => n + inlineExecutableScripts(read(p)).length, 0);
-    expect(total).toBeGreaterThanOrEqual(5);
+    expect(total).toBeGreaterThanOrEqual(4);
     expect(inlineExecutableScripts(indexHtml).length).toBeGreaterThanOrEqual(3);
     // JSON-LD is a data block: seen as a script, but never executable.
     const ld = scriptElements(indexHtml).filter((s) => s.type === "application/ld+json");

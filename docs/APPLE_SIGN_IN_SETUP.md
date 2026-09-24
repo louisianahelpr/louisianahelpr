@@ -58,11 +58,10 @@ this JWT, valid for up to 180 days; you'll regenerate it twice a year.
 
 **Use the JWT generator already committed:**
 
-URL: `https://www.louisianahelpr.com/tools/apple-jwt.html`
-
-Local fallback if the URL is blocked:
-- File location: `public/tools/apple-jwt.html`
-- Open via `file:///Users/lexilombas/Developer/louisianahelpr/public/tools/apple-jwt.html` in any browser
+It is a local file only (BR-007, 2026-09-24: it asks for the `.p8` private key,
+so the public site no longer serves it):
+- File location: `tools/apple-jwt.html`
+- Open via `open ~/louisianahelpr/tools/apple-jwt.html` (any browser)
 - Runs entirely client-side (Web Crypto API) — `.p8` never leaves the browser
 
 Inputs:
@@ -125,4 +124,4 @@ end-to-end. The current values are now reflected in the **Known IDs**
 section at the top of this doc; the **Setup steps** below are a
 runbook for the next JWT rotation. Calendar reminder: JWT expires
 ~Nov 1 2026 (180 days from generation) — regenerate via
-`https://www.louisianahelpr.com/tools/apple-jwt.html` before then.
+the local file `tools/apple-jwt.html` before then.

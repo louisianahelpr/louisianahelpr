@@ -36,8 +36,10 @@ runs:
       run: |
         set -euo pipefail
         test -d node_modules || { echo "::error::local-preview needs npm install to run first"; exit 1; }
-        # No VITE_SENTRY_DSN / VITE_POSTHOG_KEY on purpose: test sessions no
-        # longer land in production analytics or error reporting either.
+        # No VITE_POSTHOG_KEY on purpose. Sentry has a built-in DSN fallback, so
+        # leaving VITE_SENTRY_DSN unset does NOT silence it; test events are dropped
+        # in beforeSend because this build is served over http on 127.0.0.1
+        # (isLocalBuildHost in src/lib/sentry.ts, OPEN Q296).
         npm run build
 
     - name: Serve dist/ with vite preview on 127.0.0.1

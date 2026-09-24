@@ -117,6 +117,23 @@ describe("initSentry", () => {
   });
 });
 
+describe("isLocalBuildHost (Q296)", () => {
+  it("drops a prod build served locally over http", async () => {
+    const { isLocalBuildHost } = await loadFresh();
+    expect(isLocalBuildHost({ protocol: "http:", hostname: "127.0.0.1" })).toBe(true);
+    expect(isLocalBuildHost({ protocol: "http:", hostname: "localhost" })).toBe(true);
+  });
+  it("never drops the native apps (iOS capacitor://localhost, Android https://localhost)", async () => {
+    const { isLocalBuildHost } = await loadFresh();
+    expect(isLocalBuildHost({ protocol: "capacitor:", hostname: "localhost" })).toBe(false);
+    expect(isLocalBuildHost({ protocol: "https:", hostname: "localhost" })).toBe(false);
+  });
+  it("never drops the web app", async () => {
+    const { isLocalBuildHost } = await loadFresh();
+    expect(isLocalBuildHost({ protocol: "https:", hostname: "www.louisianahelpr.com" })).toBe(false);
+  });
+});
+
 describe("beforeSend noise filter", () => {
   async function getBeforeSend() {
     const { initSentry } = await loadFresh();

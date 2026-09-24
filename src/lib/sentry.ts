@@ -211,6 +211,18 @@ function isBenignEvent(event: MinimalEvent | null | undefined): boolean {
   return false;
 }
 
+/**
+ * True for a prod build served on this machine over plain http (vite preview,
+ * the CI press sweep on 127.0.0.1). The native apps also load from host
+ * "localhost" (iOS capacitor://localhost, Android https://localhost), so the
+ * old `hostname === "localhost"` check dropped every native event while letting
+ * 127.0.0.1 sweep traffic into the production project (OPEN Q296).
+ */
+export function isLocalBuildHost(loc: { protocol: string; hostname: string }): boolean {
+  if (loc.protocol !== "http:") return false;
+  return loc.hostname === "localhost" || loc.hostname === "127.0.0.1" || loc.hostname === "[::1]";
+}
+
 export function initSentry() {
   if (initialized || typeof window === "undefined" || !DSN) return;
   try {
@@ -263,8 +275,9 @@ export function initSentry() {
         "Non-Error promise rejection captured",
       ],
       beforeSend(event) {
-        // Drop events from localhost in case anyone runs prod build locally.
-        if (window.location.hostname === "localhost" && !import.meta.env.DEV) {
+        // Drop events from a prod build served locally (vite preview, the CI
+        // press/sweeps on 127.0.0.1), never from the native app.
+        if (!import.meta.env.DEV && isLocalBuildHost(window.location)) {
           return null;
         }
         return isBenignEvent(event) ? null : event;

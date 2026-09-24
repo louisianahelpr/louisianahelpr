@@ -12,7 +12,8 @@
 // only state in which the award gates let a hire through at all, i.e. the
 // state a real poster's job is in when it is hireable.
 //
-// Doors (a direct write is a bypass when it SUCCEEDS; exit 1 if any does):
+// Doors (a direct write is a bypass when it SUCCEEDS; exit 1 if any does;
+// G and H are Q357's series columns):
 //   A  poster PATCHes helper_id=<helper>, status=accepted on their own job,
 //      helper never applied.
 //   B  the direct-offer target PATCHes helper_id=self, status=accepted.
@@ -29,7 +30,7 @@ const OTHER = "f6cc3ebb-9478-473c-8eb8-62b406f0734f"; // helper (seed)
 
 async function asUser(token, path, { method = "GET", body } = {}) {
   // RETURNING * is refused for `authenticated` (offered_to_helper_id is withheld).
-  const named = /[?&]select=/.test(path) ? path : `${path}${path.includes("?") ? "&" : "?"}select=id`;
+  const named = /[?&]select=/.test(path) || path.startsWith("rpc/") ? path : `${path}${path.includes("?") ? "&" : "?"}select=id`;
   const res = await fetch(`${URL_}/rest/v1/${named}`, {
     method,
     headers: {
@@ -106,6 +107,20 @@ try {
 
   await drop(d);
 
+  // G (Q357): the poster rewrites the visit days of a job whose Helpr is hired.
+  const g = await mkJob("G", { helper_id: HELPER, status: "accepted", recurrence_days: [1] }); made.push(g);
+  const rg = await asUser(posterTok, `jobs?id=eq.${g}&select=id`, { method: "PATCH", body: { recurrence_days: [1, 3, 5] } });
+  results.G_poster_patch_recurrence_after_hire = { status: rg.status, rows: Array.isArray(rg.json) ? rg.json.length : 0, msg: rg.json?.message };
+
+  await drop(g);
+
+  // H (Q357): the poster points their job at another series.
+  const h = await mkJob("H"); made.push(h);
+  const rh = await asUser(posterTok, `jobs?id=eq.${h}&select=id`, { method: "PATCH", body: { parent_job_id: h } });
+  results.H_poster_patch_parent_job_id = { status: rh.status, rows: Array.isArray(rh.json) ? rh.json.length : 0, msg: rh.json?.message };
+
+  await drop(h);
+
   // E (control)
   const e = await mkJob("E"); made.push(e);
   const [app] = await rest("applications", { method: "POST", prefer: "return=representation", body: { job_id: e, helper_id: HELPER, status: "pending" } });
@@ -126,7 +141,7 @@ try {
 
   await drop(f);
 
-  for (const k of ["A_poster_patch_hire", "B_target_patch_hire", "C_poster_repoint_offer", "D_poster_insert_roster"]) {
+  for (const k of ["A_poster_patch_hire", "B_target_patch_hire", "C_poster_repoint_offer", "D_poster_insert_roster", "G_poster_patch_recurrence_after_hire", "H_poster_patch_parent_job_id"]) {
     const r = results[k];
     r.verdict = r.status < 300 && r.rows > 0 ? "BYPASS (write landed)" : "refused";
     if (r.verdict !== "refused") failed = true;

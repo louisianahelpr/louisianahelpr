@@ -28,7 +28,7 @@ const OTHER = "f6cc3ebb-9478-473c-8eb8-62b406f0734f"; // helper (seed)
 
 async function asUser(token, path, { method = "GET", body } = {}) {
   // RETURNING * is refused for `authenticated` (offered_to_helper_id is withheld).
-  const named = /[?&]select=/.test(path) ? path : `${path}${path.includes("?") ? "&" : "?"}select=id`;
+  const named = /[?&]select=/.test(path) || path.startsWith("rpc/") ? path : `${path}${path.includes("?") ? "&" : "?"}select=id`;
   const res = await fetch(`${URL_}/rest/v1/${named}`, {
     method,
     headers: {

@@ -5,7 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Queue (this file):** 226 done, 27 partly done (fixed, protection pending), 102 open. Source of truth for work.
-- **Audit bus:** 94 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Audit bus:** 88 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
 - **nightly-red issues:** 8 open — `gh issue list -l nightly-red`. _(2026-09-23T06:08Z)_
@@ -1733,14 +1733,16 @@ sure someone hears it and closes it.
    (run 35956432434). Cron had 0 'connection failed' runs from 23:30Z to 04:59Z. The alert
    closes once a heavy prod suite runs clean.)
 
-11. **Tips: do Helprs get 100% of a tip, or 100% minus card fees? (ME-006, 2026-09-24)**
-   The Terms say "100% of tips go to the Helpr — no platform fee on tips", but the
-   code keeps the card processing cost (2.9% + 30c) from each tip, so a $5 tip pays
-   the Helpr $4.55. Pick one: (a) we absorb the card fee so the Terms stay true
-   (costs us about 45c on a $5 tip), or (b) change the Terms to say "minus card
-   processing". I'll make whichever change you pick, with a test.
-   The same choice covers the urgent bonus (CC-003): Post Job says the bonus "goes
-   straight to the Helpr", but 2.9% comes off it too ($20 pays about $19.42).
+11. **Tips: confirm your 2026-09-02 decision before I ship it (ME-006, CC-003).**
+   The Terms say "100% of tips go to the Helpr", but today the card fee (2.9% + 30c)
+   comes out of the tip, so a $5 tip pays the Helpr $4.55. On 2026-09-02 you decided
+   the POSTER pays the card fee on top, so the Helpr gets the whole tip and we keep
+   nothing. That makes a $5 tip cost the poster $5.46, a $20 tip $20.91, and a $1 tip
+   $1.34 (34% extra, which looks like a bug). Reply: (a) ship it and raise the tip
+   minimum to $3 (my recommendation), (b) ship it and keep the $1 minimum, or
+   (c) keep today's behaviour and change the Terms to "minus card processing".
+   The urgent bonus (CC-003) has the same question: Post Job says it "goes straight
+   to the Helpr", but 2.9% comes off it ($20 pays about $19.42).
 12. **Safety buttons on bids and active jobs (TS-006, TS-007, 2026-09-24).**
    Today a bid/application has no Report or Block button (you must open the
    person's profile first), and a Helpr on an active job has no safety/SOS button
@@ -2199,6 +2201,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] Upgrade Vercel to Pro before launch (owner 2026-09-23: not before it's needed). Vercel's Hobby plan is for non-commercial use; once on Pro, optionally switch production back to deploy-on-every-push (vercel.json git.deploymentEnabled + prod-deploy.yml, Q271) and update src/test/prodDeployDebounce.test.ts in the same commit
 - [ ] After the live-key switch: delete the 12 Supabase secrets STRIPE_PRICE_{BASIC,PLUS,PRO,ELITE}_{MONTHLY,ANNUAL,ONETIME} (proTiers.ts honours them only with an sk_test_ key; Q241)
 - [ ] Hide seed/demo jobs publicly (seed_jobs_hidden_publicly()) — Hide seed/demo jobs publicly (seed_jobs_hidden_publicly()) (archive L5631)
+- [ ] OWNER (App Store Connect > App Privacy, before the next submission): mark Product Interaction and Crash Data as "Linked to You" (CS-004, 2026-09-24). The app's PrivacyInfo.xcprivacy now says linked, because PostHog identify() sends the user id and Sentry setUser() sends id + email; Apple compares the label to the manifest.
 
 ### Routine consolidation (2026-09-12)
 Reconciled 2026-09-23; detail in the archive at the line shown.

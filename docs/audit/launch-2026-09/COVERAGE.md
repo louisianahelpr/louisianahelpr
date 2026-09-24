@@ -4,10 +4,10 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: node scripts/audit-coverage.mjs -->
 
-Generated from findings.jsonl as of its newest entry: 2026-09-24T05:02:09.434Z
+Generated from findings.jsonl as of its newest entry: 2026-09-24T05:09:37.149Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 135 open (3 open launch blockers), 230 fixed, 0 wontfix, 19 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
+- **Findings:** 121 open (3 open launch blockers), 242 fixed, 0 wontfix, 21 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
 - **Surface:** 1035 auditable surfaces (449 navigable, 586 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
@@ -17,39 +17,39 @@ lane report on disk — treat it as incomplete, not as covered.
 | Wave | Lane | State | Open | Open blockers | Fixed |
 |---|---|---|---:|---:|---:|
 | 1 | `lh-generated-drift` | REPORTED | 1 | – | 10 |
-| 1 | `lh-route-walker` | REPORTED | 1 | – | 2 |
+| 1 | `lh-route-walker` | REPORTED | 0 | – | 2 |
 | 1 | `lh-schema-integrity` | REPORTED | 3 | – | 11 |
 | 1 | `lh-silent-failure` | REPORTED | 0 | – | 9 |
-| 2 | `lh-appsec` | REPORTED | 6 | – | 2 |
-| 2 | `lh-authz-rls` | REPORTED | 2 | – | 8 |
-| 2 | `lh-design-holes` | REPORTED | 4 | – | 4 |
+| 2 | `lh-appsec` | REPORTED | 5 | – | 3 |
+| 2 | `lh-authz-rls` | REPORTED | 0 | – | 9 |
+| 2 | `lh-design-holes` | REPORTED | 3 | – | 5 |
 | 2 | `lh-edge-functions` | REPORTED | 1 | – | 14 |
 | 2 | `lh-webkit-differ` | REPORTED | 0 | – | 1 |
 | 3 | `lh-cron-jobs` | REPORTED | 7 | – | 4 |
 | 3 | `lh-money-escrow` | REPORTED | 12 | – | 12 |
-| 3 | `lh-native-bridge` | REPORTED | 16 | **2** | 4 |
-| 4 | `lh-build-release` | REPORTED | 6 | – | 9 |
+| 3 | `lh-native-bridge` | REPORTED | 15 | **2** | 5 |
+| 4 | `lh-build-release` | REPORTED | 5 | – | 10 |
 | 4 | `lh-onboarding-auth` | REPORTED | 9 | – | 7 |
 | 4 | `lh-state-matrix` | REPORTED | 0 | – | 3 |
 | 5 | `lh-account-lifecycle` | REPORTED | 7 | – | 5 |
 | 5 | `lh-e2e-journeys` | REPORTED | 0 | – | 11 |
-| 5 | `lh-trust-safety` | REPORTED | 6 | – | 6 |
-| 5 | `lh-verification-credentials` | REPORTED | 3 | – | 6 |
+| 5 | `lh-trust-safety` | REPORTED | 5 | – | 7 |
+| 5 | `lh-verification-credentials` | REPORTED | 2 | – | 7 |
 | 6 | `lh-admin-moderation` | REPORTED | 4 | – | 7 |
 | 6 | `lh-concurrency-cache` | REPORTED | 3 | – | 3 |
 | 6 | `lh-notifications` | REPORTED | 2 | – | 8 |
-| 7 | `lh-input-boundary` | REPORTED | 1 | – | 2 |
+| 7 | `lh-input-boundary` | REPORTED | 0 | – | 3 |
 | 7 | `lh-scheduling-time` | REPORTED | 4 | – | 4 |
 | 7 | `lh-subscriptions-credits` | REPORTED | 2 | – | 9 |
 | 8 | `lh-a11y-sensory` | REPORTED | 0 | – | 6 |
 | 8 | `lh-browse-discovery` | REPORTED | 0 | – | 5 |
-| 8 | `lh-visual-critic` | REPORTED | 2 | – | 7 |
+| 8 | `lh-visual-critic` | REPORTED | 1 | – | 8 |
 | 9 | `lh-copy-content` | REPORTED | 1 | – | 6 |
 | 9 | `lh-email-delivery` | REPORTED | 1 | – | 1 |
 | 9 | `lh-long-tail-features` | REPORTED | 0 | – | 2 |
 | 10 | `lh-compliance-store` | REPORTED | 5 | – | 3 |
 | 10 | `lh-observability` | REPORTED | 1 | **1** | 2 |
-| 10 | `lh-perf-deps` | REPORTED | 11 | – | 4 |
+| 10 | `lh-perf-deps` | REPORTED | 9 | – | 6 |
 | 10 | `lh-seo-web` | REPORTED | 2 | – | 3 |
 | 11 | `lh-data-recovery` | REPORTED | 2 | – | 4 |
 | 11 | `lh-suggester` | REPORTED | 5 | – | 1 |

@@ -349,7 +349,11 @@ test(j7, async ({ browser, request, journey }) => {
     const save = pp.getByRole("button", { name: /^Save Helpr$|^Unsave Helpr$/ }).first();
     await expect(save).toBeVisible({ timeout: 30_000 });
     await assertHealthy(pp, "helper public profile");
-    if ((await save.getAttribute("aria-label")) === "Unsave Helpr") {
+    // The seed (scripts/audit/prod-seed.mjs fav:helper) saves this pair, and
+    // prod-audit's saved-helprs surfaces need a non-empty list: put a
+    // pre-existing save back at the end instead of leaving the tab empty.
+    const wasSaved = (await save.getAttribute("aria-label")) === "Unsave Helpr";
+    if (wasSaved) {
       const removed = favoriteWrite("DELETE");
       await save.click(); // start from a clean state
       await removed;
@@ -368,6 +372,11 @@ test(j7, async ({ browser, request, journey }) => {
     await pp.getByRole("button", { name: "Unsave Helpr" }).first().click();
     await expect(pp.getByRole("button", { name: "Save Helpr" }).first()).toBeVisible({ timeout: 20_000 });
     await unsaved;
+    if (wasSaved) {
+      const restored = favoriteWrite("POST");
+      await pp.getByRole("button", { name: "Save Helpr" }).first().click();
+      await restored;
+    }
   });
 
   await test.step("poster saves a search from Browse, sees it, deletes it", async () => {

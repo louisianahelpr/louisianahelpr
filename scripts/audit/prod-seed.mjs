@@ -992,7 +992,7 @@ async function verify() {
     }
     rows.push({ state: "helper avatar_url resolves", n: ok ? 1 : 0, min: 1, ok, source: "prod-seed", err });
   }
-  await check("helper credentials", `helper_credentials?user_id=eq.${helperId}&select=id`, 3);
+  await check("helper credentials", `helper_credentials?user_id=eq.${helperId}&select=id`, 2); // license + insurance (bond type removed, Q141)
   await check("helper availability", `helper_availability?helper_id=eq.${helperId}&select=id`, SEED_AVAILABILITY_DAYS.length);
   await check("pets", `pet_profiles?owner_id=eq.${posterId}&select=id`, 2);
   await check("saved Helprs", `favorite_helpers?customer_id=eq.${posterId}&select=id`, 2);

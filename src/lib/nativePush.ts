@@ -85,7 +85,10 @@ let currentDevicePlatform: "ios" | "android" | null = null;
  * check is async, so the native answer is pushed to it from here instead of
  * pulled.
  */
-function publishNativePermission(receive: string): void {
+function publishNativePermission(receive: string, source: "boot" | "request"): void {
+  // NB-018: the OS answer is otherwise recorded nowhere, so "0 push_tokens"
+  // could not tell "never asked" from "said no" from "said yes, token lost".
+  track("push_permission_state", { state: receive, source });
   if (receive === "granted") setNativePushPermission("granted");
   else if (receive === "denied") setNativePushPermission("denied");
   else setNativePushPermission("default"); // "prompt" | "prompt-with-rationale"
@@ -372,7 +375,7 @@ export function useNativePushSetup() {
           // without this prime it would report "default" forever on native
           // and keep offering "Turn on notifications" to users who already
           // granted it.
-          publishNativePermission(status.receive);
+          publishNativePermission(status.receive, "boot");
           if (status.receive === "granted") {
             await PushNotifications.register();
           }
@@ -519,7 +522,7 @@ export async function requestPushPermission(): Promise<boolean> {
     // Keep the synchronous accessor in step with the answer the user just
     // gave — otherwise NotificationPanel keeps showing "Turn on
     // notifications" until the next cold launch re-primes the cache.
-    publishNativePermission(status.receive);
+    publishNativePermission(status.receive, "request");
     if (status.receive === "granted") {
       await PushNotifications.register();
       return true;

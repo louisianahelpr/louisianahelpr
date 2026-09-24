@@ -36,6 +36,7 @@
 // @mutate src/lib/nativePush.ts | const status = await PushNotifications.checkPermissions(); | const status = { receive: "prompt" as string };
 // @mutate src/lib/nativePush.ts | if (event === "SIGNED_IN" && currentDeviceToken && currentDevicePlatform) { | if (event === "NEVER" && currentDeviceToken && currentDevicePlatform) {
 // @mutate src/lib/nativePush.ts | track("push_token_saved", { platform }); | void platform;
+// @mutate src/lib/nativePush.ts | track("push_permission_state", { state: receive, source }); | void source;
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { MemoryRouter, useNavigate } from "react-router-dom";
@@ -171,6 +172,14 @@ describe("useNativePushSetup — cold launch that redirects away from /", () => 
     await bootAtRootWithLaunchRedirect();
     await waitFor(() => expect(appListeners.appUrlOpen).toBeTypeOf("function"));
     expect(registerMock).not.toHaveBeenCalled();
+  });
+
+  it("records the OS permission answer at boot, denied included (NB-018)", async () => {
+    checkPermissionsMock.mockReturnValue({ receive: "denied" });
+    await bootAtRootWithLaunchRedirect();
+    await waitFor(() =>
+      expect(trackMock).toHaveBeenCalledWith("push_permission_state", { state: "denied", source: "boot" }),
+    );
   });
 
   it("still calls register() when permission is already granted", async () => {

@@ -180,6 +180,7 @@ export const NOT_MONITORED = {
   forced_logout_bounce: "error signal; zero is the good case (Sentry watches it)",
   push_token_saved: "native push plumbing; push-tokens-empty ledger item covers it",
   push_token_save_failed: "error signal; zero is the good case",
+  push_permission_state: "native only, fires once per app boot; zero until a build carrying NB-018 is installed",
   nps_prompt_shown: "survey plumbing, not a core-loop action",
   nps_prompt_dismissed: "survey plumbing",
   nps_submitted: "survey plumbing",

@@ -11,7 +11,7 @@
  *   rec.discard() → cancels in-flight recording, resets state
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const MAX_SECONDS_DEFAULT = 60;
@@ -67,6 +67,7 @@ export function useVoiceRecorder(
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
   const resolveStopRef = useRef<((blob: Blob) => void) | null>(null);
+  const unmountedRef = useRef(false);
 
   const cleanupStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -79,6 +80,24 @@ export function useVoiceRecorder(
       timerRef.current = null;
     }
   }, []);
+
+  // NB-019: leaving the chat mid-recording must release the microphone, or
+  // iOS keeps the orange mic indicator lit until the app is killed.
+  useEffect(() => {
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
+      const recorder = mediaRecorderRef.current;
+      if (recorder) {
+        recorder.onstop = null;
+        recorder.ondataavailable = null;
+        if (recorder.state !== "inactive") recorder.stop();
+      }
+      mediaRecorderRef.current = null;
+      cleanupStream();
+      clearTimer();
+    };
+  }, [cleanupStream, clearTimer]);
 
   const discard = useCallback(() => {
     mediaRecorderRef.current?.stop();
@@ -126,6 +145,11 @@ export function useVoiceRecorder(
       return;
     }
 
+    if (unmountedRef.current) {
+      // The composer went away while the permission prompt was open.
+      stream.getTracks().forEach((t) => t.stop());
+      return;
+    }
     streamRef.current = stream;
 
     const selectedMime = preferredAudioMime();

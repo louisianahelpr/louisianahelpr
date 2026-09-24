@@ -19,6 +19,9 @@ import type { Conversation, Message } from "@/components/messages/types";
  * live `activeConvo` via `activeConvoRef` and call back into the page's
  * state setters so the channel stays mounted for the page's lifetime.
  */
+/** How long both channels get to come back before the one catch-up re-read. */
+export const RECOVERY_SETTLE_MS = 750;
+
 export function useMessagesRealtime({
   userId,
   activeConvoRef,
@@ -143,12 +146,13 @@ export function useMessagesRealtime({
       setMessages((prev) => prev.map((m) => m.id === updated.id ? updated : m));
     };
     // Both drop together on a socket loss; re-read once, not once per channel.
-    let lastRecovery = 0;
+    // TRAILING, not leading: the re-read must run after the LAST channel is back.
+    // A leading throttle re-read when the first came back and ignored the second,
+    // so a message received between the two was on neither (Q105 review).
+    let recoveryTimer: ReturnType<typeof setTimeout> | undefined;
     const recover = () => {
-      const now = Date.now();
-      if (now - lastRecovery < 2000) return;
-      lastRecovery = now;
-      onRecovered();
+      clearTimeout(recoveryTimer);
+      recoveryTimer = setTimeout(onRecovered, RECOVERY_SETTLE_MS);
     };
     // Messages I RECEIVE ride the shared per-user channel
     // (src/lib/userRealtimeBus.ts, topic `messages:inbound`, one
@@ -245,6 +249,7 @@ export function useMessagesRealtime({
     );
 
     return () => {
+      clearTimeout(recoveryTimer);
       unsubscribeInbound();
       sub.close();
     };

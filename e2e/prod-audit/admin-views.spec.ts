@@ -20,6 +20,7 @@ import { expect, test } from "../prodTest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { findErrorScreen, readScreenText } from "../errorScreens";
+import { isStorageSignPath } from "../readRpc";
 import { isConsentAcceptance, newUserContext, sessionFor, settle, SUPABASE_URL } from "./harness";
 
 function adminViews(src = readFileSync(join(process.cwd(), "src/pages/Admin.tsx"), "utf8")): string[] {
@@ -107,9 +108,9 @@ test("the read allow-list passes the support queue and still refuses writes", ()
  * Minting a signed URL is a POST that reads: it writes nothing and returns a
  * link to an object the caller may already see (2026-09-24: the firewall
  * refused it, and /admin?view=credentials showed "Couldn't load preview" on a
- * healthy screen). Only /object/sign/ — an upload is POST /object/<bucket>/…
+ * healthy screen). Shared with harness.ts `writeFirewall` via `isStorageSignPath`.
  */
-const READ_STORAGE = /\/storage\/v1\/object\/sign\//;
+const READ_STORAGE = { test: (url: string) => isStorageSignPath(new URL(url).pathname) };
 
 test("the storage read allow-list passes signing and still refuses uploads", () => {
   expect(READ_STORAGE.test(`${SUPABASE_URL}/storage/v1/object/sign/user-documents/u/credentials/x.png`)).toBe(true);

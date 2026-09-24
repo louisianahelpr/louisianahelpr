@@ -38,3 +38,15 @@ export function isReadRpcPath(pathname: string): boolean {
   const name = pathname.slice("/rest/v1/rpc/".length).split("?")[0];
   return !READ_NAMED_BUT_VOLATILE.has(name);
 }
+
+/**
+ * A Storage SIGN request (`createSignedUrl`) is a POST, but it only issues a
+ * short-lived read link to an object the caller's RLS already lets it see.
+ * On 2026-09-24 both firewalls refused it: admin-views put /admin?view=credentials
+ * into "Couldn't load preview", and after that spec was fixed alone, the
+ * messy-input explore (run 35987833531) filed the same screen as a "section/data
+ * load failure" 8 times. Only `/object/sign/` — an upload is POST `/object/<bucket>/…`.
+ */
+export function isStorageSignPath(pathname: string): boolean {
+  return /^\/storage\/v1\/object\/sign\//.test(pathname);
+}

@@ -13,7 +13,7 @@ import { expect, test } from "../prodTest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { findErrorScreen, readScreenText } from "../errorScreens";
-import { isReadRpcPath } from "../readRpc";
+import { isReadRpcPath, isStorageSignPath } from "../readRpc";
 import { measureLayout } from "../happy-path/auditRoutes";
 import { ANON, SUPABASE_URL, getSession as journeySession, newUserContext, rest, type Role, type Session } from "../journeys/fixtures";
 
@@ -137,7 +137,7 @@ export async function writeFirewall(ctx: BrowserContext): Promise<string[]> {
     const m = req.method();
     const { pathname } = new URL(req.url());
     if (m === "GET" || m === "HEAD" || m === "OPTIONS" || /\/auth\/v1\/(token|user|logout)/.test(req.url())) return route.continue();
-    if (m === "POST" && isReadRpcPath(pathname)) return route.continue();
+    if (m === "POST" && (isReadRpcPath(pathname) || isStorageSignPath(pathname))) return route.continue();
     if (isConsentAcceptance(req.method(), pathname, req.postData())) return route.continue();
     blocked.push(`${m} ${pathname} ${(req.postData() ?? "").slice(0, 300)}`);
     await route.abort("blockedbyclient").catch(() => {});

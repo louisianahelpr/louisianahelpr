@@ -10,6 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { FROM_DEFAULT, POSTAL_ADDRESS, sendWithResend } from "../_shared/resend.ts";
 import { buildUnsubscribeUrl, unsubscribeHeaders } from "../_shared/unsubscribe.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
+import { htmlEscape } from "../_shared/safe-strings.ts";
 // The campaign is wrapped in the shared react-email shell, which is where the
 // branded card, the preheader, dark mode and <MarketingFooter> (unsubscribe +
 // POSTAL_ADDRESS) now come from. Both the HTML and the plaintext part are
@@ -452,7 +453,10 @@ Deno.serve(async (req) => {
       return await renderEmail(
         React.createElement(MarketingBlastEmail, {
           preheader,
-          bodyHtml: rawHtml.replaceAll("{{name}}", fullName || "neighbor"),
+          // A-008: the name is USER-controlled text going into HTML the
+          // template renders raw, so it is escaped here; only bodyHtml's own
+          // admin-authored markup is trusted.
+          bodyHtml: rawHtml.replaceAll("{{name}}", htmlEscape(fullName || "neighbor")), // A-008 escaped
           unsubscribeUrl,
         }),
       );

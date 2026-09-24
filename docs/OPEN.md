@@ -1855,6 +1855,14 @@ sure someone hears it and closes it.
     VERCEL_TOKEN secret): Vercel will not tell the monitor its expiry. What
     does Vercel > Account Settings > Tokens show as its expiration ("No
     Expiration" is a fine answer)?
+27. **The landing page shifts slightly on the CI computer (2026-09-24).** The
+   page-settle check measured a layout shift of 0.0315 at desktop width on the
+   Linux test machine (limit 0.02); on this Mac it is 0.0006. The moving piece
+   is hero text about 0.2 s after load, most likely the headline font swapping
+   in over a fallback with different letter sizes. Fixing it means changing how
+   the hero font loads (e.g. preloading Bodoni Moda or matching the fallback's
+   size). The hero font is locked, so: may I change how it LOADS, without
+   changing the font, colour or words?
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

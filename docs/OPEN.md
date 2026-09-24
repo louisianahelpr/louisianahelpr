@@ -5,7 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Queue (this file):** 227 done, 27 partly done (fixed, protection pending), 102 open. Source of truth for work.
-- **Audit bus:** 71 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Audit bus:** 61 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
 - **nightly-red issues:** 8 open — `gh issue list -l nightly-red`. _(2026-09-23T06:08Z)_
@@ -1815,6 +1815,17 @@ sure someone hears it and closes it.
    Stripe (Tax → Registrations) before launch, after checking with your
    accountant which job types are taxable; (b) collect no sales tax. I cannot
    choose this for you; it is a legal and tax call.
+22. **What to call someone who deleted their account (AL-011a, 2026-09-24).**
+   The app uses 16 different words for the same thing: "A neighbor" and "a
+   neighbor", "Helpr", "Former Helpr", "Name not on file", and in admin
+   "Unknown", "User", "Unnamed", "No name", "Deleted user", "Deleted account".
+   I fixed the two that were plainly broken (a gift card read "from A"; admin
+   referrals showed a raw ID). Pick one word for users and one for admin, e.g.
+   users see "a former member", admin sees "Deleted account"?
+23. **Old signup rows in the admin Audit Log (AM-004, 2026-09-24).** New
+   signups and deletions no longer write "role granted/revoked" rows to the
+   Audit Log. 742 old rows of that kind are still there (about 44% of the
+   log). Should I delete them? It is audit history, so I left them.
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

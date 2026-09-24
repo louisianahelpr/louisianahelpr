@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-24T07:22:04.652Z",
-  "guards": 968,
-  "registered": 968,
+  "generated": "2026-09-24T07:31:53.153Z",
+  "guards": 973,
+  "registered": 973,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -350,6 +350,7 @@
     {
       "module": "src/pages/giftCards/CreditCard.tsx",
       "tests": [
+        "src/pages/giftCards/departedDonorName.test.tsx",
         "src/pages/giftCards/giftCardSpendGate.test.tsx"
       ],
       "parents": [

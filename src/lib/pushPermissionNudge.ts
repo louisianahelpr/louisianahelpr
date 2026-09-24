@@ -172,8 +172,8 @@ async function shouldNudgeForReason(
 
 /** Copy lives next to the trigger so the toast stays grep-able.
  *  Title only — the explainer line under it was cut on the owner's call
- *  (2026-08-24): the question plus Enable / Not now says everything. */
-// Short enough to stay on one line next to the Not now / Enable buttons in
+ *  (2026-08-24): the question plus Enable / × says everything. */
+// Short enough to stay on one line next to the Enable button and × in
 // the toast's fixed-width row — "Turn on notifications?" wrapped to two
 // lines there (owner, 2026-08-30).
 const COPY: Record<NudgeReason, { title: string }> = {
@@ -191,7 +191,7 @@ const inFlight = new Set<NudgeReason>();
  * React hook → returns a `trigger(reason)` callback that:
  *   1. Runs the timing + permission guards (skips if granted, already shown
  *      for this reason, or inside the 14-day dismissal cooldown).
- *   2. Shows a branded sonner toast with "Enable" / "Not now" actions.
+ *   2. Shows a branded sonner toast with an "Enable" action and the shared ×.
  *   3. Marks the reason as shown so it never repeats.
  *
  * Designed to be called from existing post-event handlers (e.g. the
@@ -234,14 +234,11 @@ export function usePushPermissionNudge() {
           // does nothing — the kind of stale exception that survives long after
           // its reason and then gets defended. See the note in
           // src/components/ui/sonner.tsx for the full history.
-          // This toast already has a labelled "Not now" cancel — the global
-          // × (Toaster `closeButton`) would be a second, unlabelled way to
-          // do the exact same thing. Owner, 2026-09-11: "not now and x do the
-          // same thing. one or the other." Per-toast `closeButton: false`
-          // overrides the Toaster default for just this toast (sonner keeps
-          // the global value whenever the per-toast field is undefined —
-          // see node_modules/sonner/dist/index.mjs:521-526).
-          closeButton: false,
+          // Dismissed with the shared toast × (Toaster `closeButton`), like
+          // every other toast — no "Not now" button. Owner, 2026-09-24: "Not
+          // toast have not now some have the x. Pick 1" → X everywhere.
+          // sonner calls onDismiss for the × and a swipe, never for the
+          // Enable action or the timeout (node_modules/sonner/dist/index.mjs).
           action: {
             label: "Enable",
             onClick: () => {
@@ -260,14 +257,10 @@ export function usePushPermissionNudge() {
               void requestPush();
             },
           },
-          cancel: {
-            label: "Not now",
-            onClick: () => recordNudgeDismissal(),
-          },
-          // Recording the dismissal on the cancel action covers the user
-          // who taps "Not now"; the auto-dismiss after `duration` does NOT
-          // record one (treat that as ambient — the user didn't interact),
-          // so the same reason still counts as "already shown" via
+          onDismiss: () => recordNudgeDismissal(),
+          // The × (or a swipe) records the 14-day cooldown; the auto-dismiss
+          // after `duration` does NOT (treat that as ambient — the user didn't
+          // interact), so the same reason still counts as "already shown" via
           // markNudgeShown() above and won't repeat.
         });
       } catch {

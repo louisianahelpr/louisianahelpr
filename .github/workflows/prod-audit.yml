@@ -43,6 +43,10 @@ on:
         description: "Only tests whose title matches this (Playwright -g)"
         type: string
         default: ""
+      vacuity_only:
+        description: "Instead of the suites: prove these guard files able to fail (npm run vacuity -- --only), with this job's service-role key (Q89)"
+        type: string
+        default: ""
 
 concurrency:
   # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
@@ -157,6 +161,7 @@ jobs:
       # report as run by no CI job. The optional -g goes through an env var and
       # a shell branch instead.
       - name: Run the prod audit suites
+        if: ${{ inputs.vacuity_only == '' }}
         env:
           GREP: ${{ inputs.grep }}
         run: |
@@ -167,10 +172,25 @@ jobs:
             npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
           fi
 
+      # Q89 (owner pop-up 2026-09-23): five guards (a11y-prod, trailing-icon-
+      # fields, activity-tabs-visible, admin-views, messy-input) mint seeded
+      # sessions with the service-role key, which vacuity.yml deliberately does
+      # not hold. They are proven HERE, where the key already is, rather than
+      # giving another workflow the admin key.
+      - name: Prove service-role guards able to fail (Q89)
+        if: ${{ inputs.vacuity_only != '' }}
+        env:
+          # Through env, never interpolated into the script (injection-safe).
+          ONLY: ${{ inputs.vacuity_only }}
+        run: |
+          set -euo pipefail
+          npx playwright install --with-deps webkit
+          npm run vacuity -- --only "${ONLY}"
       - name: Backend request budget (Q104)
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
         # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
-        if: ${{ !cancelled() }}
+        # Not on a vacuity-only dispatch: the suites it budgets did not run.
+        if: ${{ !cancelled() && inputs.vacuity_only == '' }}
         run: node scripts/e2e/request-budget.mjs --label prod-audit
       - name: Keep failure screenshots, samples and traces
         if: always()

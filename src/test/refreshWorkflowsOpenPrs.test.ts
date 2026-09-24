@@ -45,6 +45,8 @@ const NOT_LANDED: Record<string, string> = {
     "the overlay baseline is a findings ratchet: a key may be ADDED only after a person shows the finding is not a regression (spec header), and the spec has no writer mode — auto-landing it would bless new defects",
   "vacuity.yml":
     "its committed output is the --no-mutate static report, the same generator staleness-watch.yml regenerates and lands nightly; a second committer for one file would race it, and this job mutates source for hours before the report step",
+  "prod-audit.yml":
+    "its `npm run vacuity -- --only` step runs only on a manual vacuity_only dispatch (Q89) to re-prove five service-role guards; the committed vacuity report belongs to staleness-watch.yml, and this job mutates source before any report step",
   "db-drift-detect.yml":
     "a stale types.ts means prod's schema moved: the fix is `npm run db:types` PLUS the code changes the new types force (the workflow's own FIX line), and a drift here can be a migration-ledger mismatch to investigate, not bless",
 };

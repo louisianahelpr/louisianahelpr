@@ -273,6 +273,15 @@ this list tight; project-specific trivia belongs in code comments, not here.
   everyone's half-finished work, not yours. This is how the E2E lane got a
   trustworthy 101/101 when the shared tree was red.
 
+  **A second shape (TC-001, 2026-09-02): a hard TypeError, not a timeout.**
+  `TypeError: ReactDOM.createPortal is not a function` from Radix's Portal in
+  `FormalWarningDialog.test.tsx`, 6 of 7 runs, on identical code that passes
+  7/7 alone. It reads like a real module-resolution regression in whatever you
+  just touched (the trigger was an unrelated one-line import edit that only
+  reordered the module graph). Same tell: identical code, differing results.
+  Also: a file that dies before completing SUBTRACTS its tests from the total
+  (2860 vs 2874 passed) instead of reporting them failed, so compare totals.
+
 <a id="webkit"></a>
 ## Chromium cannot see WebKit-only bugs
 

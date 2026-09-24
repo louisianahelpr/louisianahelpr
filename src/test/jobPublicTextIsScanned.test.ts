@@ -15,11 +15,11 @@ import { describe, expect, it } from "vitest";
 const PUBLIC_JOB_TEXT = ["title", "description", "special_requirements"];
 
 const dir = "supabase/migrations";
-const latest = readdirSync(dir)
+const defining = readdirSync(dir)
   .filter((f) => f.endsWith(".sql"))
   .sort()
-  .filter((f) => /CREATE TRIGGER trg_reject_contact_leak_in_job/i.test(readFileSync(`${dir}/${f}`, "utf8")))
-  .at(-1)!;
+  .filter((f) => /CREATE TRIGGER trg_reject_contact_leak_in_job/i.test(readFileSync(`${dir}/${f}`, "utf8")));
+const latest = defining[defining.length - 1];
 const sql = readFileSync(`${dir}/${latest}`, "utf8");
 
 describe("public job text is contact-scanned (IB-002)", () => {

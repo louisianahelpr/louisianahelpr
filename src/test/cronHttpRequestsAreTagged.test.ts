@@ -61,6 +61,15 @@
  * @mutate supabase/migrations/20260923215732_cron_http_untagged_close_rule.sql |   ELSIF p_source = 'cron-http-untagged' AND v_job IS NOT NULL THEN |   ELSIF p_source = 'cron-http-untagged-gone' AND v_job IS NOT NULL THEN
  * @mutate supabase/migrations/20260923215732_cron_http_untagged_close_rule.sql |          AND j.active\n |          AND true\n
  * @mutate supabase/migrations/20260923215732_cron_http_untagged_close_rule.sql |          AND j.command NOT LIKE '%cron_http_tag(%'); |          AND true);
+ *
+ * Q316 (20260924035844): ops_alert_normalise turns digits into '#', so
+ * cleanup-7d and cleanup-30d shared one 'cron-http-untagged' item and the close
+ * rule judged only the last job. The NEWEST ops_alert_apply appends the raw job
+ * name to that source's fingerprint only. Behaviour, red without the migration
+ * (4 checks): src/test/pglite/cronUntaggedFingerprint.pglite.mjs.
+ *
+ * @mutate supabase/migrations/20260924035844_q316_cron_untagged_fingerprint.sql | WHEN v_source = 'cron-http-untagged' AND | WHEN v_source = 'cron-http-untagged-gone' AND
+ * @mutate supabase/migrations/20260924035844_q316_cron_untagged_fingerprint.sql | THEN '\|job:' \|\| (p_sample_ref ->> 'job') ELSE | THEN '' ELSE
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -226,5 +235,32 @@ describe("an untagged-cron ledger item closes itself (Q287)", () => {
 
   it("'cron-missed-slot' has no branch: it stays manual by design", () => {
     expect(cond.body).not.toMatch(/'cron-missed-slot'/);
+  });
+});
+
+describe("one ledger item per untagged cron, digits kept (Q316)", () => {
+  /** Newest ops_alert_apply(...) (it takes arguments), any dollar tag, comments blanked. */
+  const apply = (() => {
+    const re = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?ops_alert_apply\s*\([\s\S]*?\)\s*RETURNS[\s\S]*?\bAS\s+(\$\w*\$)([\s\S]*?)\1/gi;
+    let found = { file: "", body: "" };
+    for (const { file, sql } of files) {
+      for (const m of blankSqlComments(sql).matchAll(re)) found = { file, body: m[2] };
+    }
+    return found;
+  })();
+
+  it("reads the newest ops_alert_apply (floor)", () => {
+    expect(apply.file >= "20260924035844", apply.file).toBe(true);
+    expect(apply.body.length).toBeGreaterThan(1500);
+    expect(apply.body).toMatch(/ON\s+CONFLICT\s*\(\s*fingerprint\s*\)/i);
+  });
+
+  it("the fingerprint carries the verbatim job name for 'cron-http-untagged' only", () => {
+    const fp = /v_fp\s*:=\s*md5\(([\s\S]*?)\);/.exec(apply.body)?.[1] ?? "";
+    // every source keeps the old prefix, so existing open items keep matching
+    expect(fp).toMatch(/^p_source_kind\s*\|\|\s*'\|'\s*\|\|\s*v_source\s*\|\|\s*'\|'\s*\|\|\s*v_title\s*\|\|/);
+    // scoped to that one source, and the raw name, not a normalised one
+    expect(fp).toMatch(/CASE\s+WHEN\s+v_source\s*=\s*'cron-http-untagged'\s+AND\s+p_sample_ref\s*->>\s*'job'\s+IS\s+NOT\s+NULL\s+THEN\s+'\|job:'\s*\|\|\s*\(\s*p_sample_ref\s*->>\s*'job'\s*\)\s+ELSE\s+''\s+END/i);
+    expect(fp).not.toMatch(/ops_alert_normalise/i);
   });
 });

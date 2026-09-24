@@ -225,6 +225,18 @@ $function$;
 
 -- 4. The columns themselves, plus their CHECK constraints (dropped implicitly
 --    with the columns, but named here so a partial state still replays).
+-- Applied on prod 2026-08-27 (schema_migrations 20260827210851); these
+-- acknowledgements were added 2026-09-24 when an address rename edited this
+-- file's strings and the per-diff scan re-read the drops as new.
+-- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.applications.applications_counter_price_check
+-- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.applications.applications_proposed_price_check
+-- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.applications.applications_negotiation_status_check
+-- DESTRUCTIVE-DDL-ACK: DROP COLUMN public.applications.proposed_price
+-- DESTRUCTIVE-DDL-ACK: DROP COLUMN public.applications.counter_price
+-- DESTRUCTIVE-DDL-ACK: DROP COLUMN public.applications.negotiation_status
+-- DESTRUCTIVE-DDL-ACK: DROP COLUMN public.applications.proposed_rate
+-- ACK-REASON: the bidding feature was removed; this ran on prod 2026-08-27 already
+-- ACK-DATA-LOSS: none now; these were dropped on 2026-08-27 and replay finds them gone
 ALTER TABLE public.applications
   DROP CONSTRAINT IF EXISTS applications_counter_price_check,
   DROP CONSTRAINT IF EXISTS applications_proposed_price_check,
@@ -234,6 +246,11 @@ ALTER TABLE public.applications
   DROP COLUMN IF EXISTS negotiation_status,
   DROP COLUMN IF EXISTS proposed_rate;
 
+-- DESTRUCTIVE-DDL-ACK: DROP COLUMN public.jobs.bid_ceiling
+-- DESTRUCTIVE-DDL-ACK: DROP COLUMN public.jobs.bid_deadline
+-- DESTRUCTIVE-DDL-ACK: DROP COLUMN public.jobs.bids_sealed
+-- ACK-REASON: the bidding feature was removed; this ran on prod 2026-08-27 already
+-- ACK-DATA-LOSS: none now; these were dropped on 2026-08-27 and replay finds them gone
 ALTER TABLE public.jobs
   DROP COLUMN IF EXISTS bid_ceiling,
   DROP COLUMN IF EXISTS bid_deadline,

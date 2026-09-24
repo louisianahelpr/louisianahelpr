@@ -422,11 +422,15 @@ function checkAck(lines, stmtLine, descriptor) {
     return { ok: false, problem: "comment block above the statement carries no DESTRUCTIVE-DDL-ACK line" };
   }
 
-  const ackLine = block.find((l) => /^DESTRUCTIVE-DDL-ACK:/i.test(l));
-  if (!ackLine) {
+  // A multi-action ALTER is one statement with several destructive actions, so
+  // its block stacks one ACK line per action: pick the one naming THIS action.
+  const ackNames = block
+    .filter((l) => /^DESTRUCTIVE-DDL-ACK:/i.test(l))
+    .map((l) => l.replace(/^DESTRUCTIVE-DDL-ACK:\s*/i, "").trim().replace(/\s+/g, " "));
+  if (ackNames.length === 0) {
     return { ok: false, problem: "DESTRUCTIVE-DDL-ACK must start its own comment line" };
   }
-  const named = ackLine.replace(/^DESTRUCTIVE-DDL-ACK:\s*/i, "").trim().replace(/\s+/g, " ");
+  const named = ackNames.find((n) => n.toLowerCase() === descriptor.toLowerCase()) ?? ackNames[0];
   if (named.toLowerCase() !== descriptor.toLowerCase()) {
     return {
       ok: false,

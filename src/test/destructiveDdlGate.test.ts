@@ -24,6 +24,7 @@ import { join, resolve } from "node:path";
 // becomes a blanket — an ack pasted from another migration opens it. Two
 // near-miss cases go red.
 // @mutate scripts/check-destructive-ddl.mjs | if (named.toLowerCase() !== descriptor.toLowerCase()) { | if (false) {
+// @mutate scripts/check-destructive-ddl.mjs | const named = ackNames.find((n) => n.toLowerCase() === descriptor.toLowerCase()) ?? ackNames[0]; | const named = ackNames[0];
 
 const SCRIPT = resolve(__dirname, "../../scripts/check-destructive-ddl.mjs");
 const REPO = resolve(__dirname, "../..");
@@ -101,6 +102,25 @@ describe("check-destructive-ddl — fires on real destruction", () => {
     const { code, out } = check(acked);
     expect(code, `expected the ack to be accepted:\n${acked}\n\ngot:\n${out}`).toBe(0);
     expect(out).toContain("acknowledged");
+  });
+});
+
+describe("check-destructive-ddl — a multi-action ALTER takes one stacked ack per action", () => {
+  const SQL = "ALTER TABLE public.jobs\n  DROP COLUMN IF EXISTS bid_a,\n  DROP COLUMN IF EXISTS bid_b;";
+  const REASON = "-- ACK-REASON: the bidding feature was removed and nothing reads these columns";
+  const LOSS = "-- ACK-DATA-LOSS: the bid amounts go; no other table holds a copy of them";
+
+  it("accepts a stack naming every dropped column", () => {
+    const sql = `-- DESTRUCTIVE-DDL-ACK: DROP COLUMN public.jobs.bid_a\n-- DESTRUCTIVE-DDL-ACK: DROP COLUMN public.jobs.bid_b\n${REASON}\n${LOSS}\n${SQL}`;
+    const { code, out } = check(sql);
+    expect(code, out).toBe(0);
+  });
+
+  it("still refuses a stack that leaves one action out", () => {
+    const sql = `-- DESTRUCTIVE-DDL-ACK: DROP COLUMN public.jobs.bid_a\n${REASON}\n${LOSS}\n${SQL}`;
+    const { code, out } = check(sql);
+    expect(code, out).toBe(1);
+    expect(out).toContain("DROP COLUMN public.jobs.bid_b");
   });
 });
 

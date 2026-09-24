@@ -1,14 +1,24 @@
 // @mutate src/components/admin/adminDisputes/DisputeCard.tsx | const noPaymentOnFile = !job.stripe_payment_intent_id && !job.stripe_session_id; | const noPaymentOnFile = false;
 // @mutate src/components/admin/adminDisputes/DisputeCard.tsx | const noPaymentOnFile = !job.stripe_payment_intent_id && !job.stripe_session_id; | const noPaymentOnFile = true;
 // @mutate src/components/admin/AdminDisputes.tsx | const ok = await requireBiometric("Confirm closing this settlement with no payment");\n    if (!ok) return; | const ok = true;
-// @mutate supabase/migrations/20260923205812_settle_dispute_without_payment.sql | IF _job.stripe_payment_intent_id IS NOT NULL\n     OR _job.stripe_session_id IS NOT NULL | IF false
-// @mutate supabase/migrations/20260923205812_settle_dispute_without_payment.sql | execution_error        = 'closed by an admin, no payment on file: ' \|\| _note_clean | execution_error        = NULL
+// @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql | IF _job.stripe_payment_intent_id IS NOT NULL\n     OR _job.stripe_session_id IS NOT NULL | IF false
+// @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql | execution_error        = 'closed by an admin, no payment on file: ' \|\| _note_clean | execution_error        = NULL
+// @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql |        SET payment_status = 'cancelled'\n     WHERE id = _job.id | SET payment_status = payment_status\n     WHERE id = _job.id
+// @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql |     AND _job.payment_status NOT IN ('unpaid', 'abandoned', 'failed', 'cancelled') | AND false
+// @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql | EXISTS (SELECT 1 FROM public.payout_transfers t WHERE t.job_id = _job.id)) | false)
+// @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql | EXISTS (SELECT 1 FROM public.gift_cards g WHERE g.restored_from_job_id = _job.id); | false;
+// @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql |       AND COALESCE(_dispute.execution_started_at, now()) >= now() - public.dispute_settlement_claim_ttl()) | )
+// @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql |   if v_job.status in ('completed', 'cancelled') then | if false then
+// @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql |         where d.job_id = p_job_id and d.status = 'decided') then | where false) then
+// @mutate supabase/functions/create-payment/index.ts |       if (decidedDisputes && decidedDisputes.length > 0) { |       if (false) {
+// @mutate supabase/functions/create-payment/index.ts |           .not("status", "in", `(${[...FUNDING_CLOSED_JOB_STATUSES].join(",")})`); | ;
+// @mutate src/components/admin/AdminDisputes.tsx |       report(err, { tags: { source: "AdminDisputes.closeWithoutPayment" } });\n      toast.error(userFacingError(err, "Couldn't close that settlement — try again")); | throw err;
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import AdminDisputes from "./AdminDisputes";
-import { blankSqlComments } from "@/test/helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "@/test/helpers/blankNonCode";
 
 /**
  * Q235: a DECIDED dispute on a job with no payment on file had no way out.
@@ -294,6 +304,27 @@ describe("Q235: closing a decided dispute whose job has no payment on file", () 
     expect(String(toastError.mock.calls[0][0])).toMatch(/has a payment on file/);
     expect(confirmConsequentialMock).not.toHaveBeenCalled();
   });
+
+  it("a thrown call (network drop) is shown and reported, not left as an unhandled rejection", async () => {
+    rpcMock.mockRejectedValue(new TypeError("Failed to fetch"));
+    await openConsole();
+    await typeNoteAndClose();
+    await waitFor(() => expect(toastError).toHaveBeenCalled());
+    expect(confirmConsequentialMock).not.toHaveBeenCalled();
+    const { report } = await import("@/lib/errorLogger");
+    expect(report).toHaveBeenCalledWith(expect.anything(), { tags: { source: "AdminDisputes.closeWithoutPayment" } });
+  });
+
+  it.each([
+    ["dispute_payment_not_unfunded", /payment record says money moved/],
+    ["dispute_money_moved", /transfer, refund or restored gift/],
+  ])("the Q235 follow-up refusal %s has designed copy", async (code, copy) => {
+    rpcMock.mockResolvedValue({ data: null, error: { message: code, code: "P0001" } });
+    await openConsole();
+    await typeNoteAndClose();
+    await waitFor(() => expect(toastError).toHaveBeenCalled());
+    expect(String(toastError.mock.calls[0][0])).toMatch(copy);
+  });
 });
 
 describe("Q235: the newest rpc_settle_dispute_without_payment refuses wherever money could exist", () => {
@@ -329,9 +360,75 @@ describe("Q235: the newest rpc_settle_dispute_without_payment refuses wherever m
     expect(body).toMatch(/c\.money_step_at IS NOT NULL/);
   });
 
+  it("closes funding: a fundable payment_status becomes 'cancelled' in the same transaction (Q235 follow-up)", () => {
+    expect(body).toMatch(/UPDATE public\.jobs\s+SET payment_status = 'cancelled'\s+WHERE id = _job\.id\s+AND \(payment_status IS NULL OR payment_status IN \('unpaid', 'abandoned', 'failed'\)\)/);
+  });
+
+  it("refuses when payment_status says money moved, or any transfer, refund or restored gift exists", () => {
+    expect(body).toMatch(/_job\.payment_status NOT IN \('unpaid', 'abandoned', 'failed', 'cancelled'\)\s+THEN\s+RAISE EXCEPTION 'dispute_payment_not_unfunded'/);
+    expect(body).toMatch(/EXISTS \(SELECT 1 FROM public\.payout_transfers t WHERE t\.job_id = _job\.id\)\)/);
+    expect(body).toMatch(/EXISTS \(SELECT 1 FROM public\.payment_refunds r WHERE r\.job_id = _job\.id\)\)/);
+    expect(body).toMatch(/EXISTS \(SELECT 1 FROM public\.gift_cards g WHERE g\.restored_from_job_id = _job\.id\);/);
+    expect(body).toMatch(/RAISE EXCEPTION 'dispute_money_moved'/);
+    expect(body).toMatch(/'payment_status', _job\.payment_status/);
+  });
+
+  it("honours 'executing' only inside the claim TTL", () => {
+    expect(body).toMatch(/_dispute\.execution_status = 'executing'\s+AND COALESCE\(_dispute\.execution_started_at, now\(\)\) >= now\(\) - public\.dispute_settlement_claim_ttl\(\)/);
+  });
+
   it("locks the job before the dispute and writes a reason, so the no-money detector stays quiet", () => {
     expect(body.indexOf("FROM public.jobs")).toBeLessThan(body.indexOf("FROM public.disputes\n   WHERE id = _dispute_id\n     FOR UPDATE"));
     expect(body).toMatch(/execution_error\s+= 'closed by an admin, no payment on file: ' \|\| _note_clean/);
     expect(body).toMatch(/INSERT INTO public\.admin_audit_log/);
+  });
+});
+
+describe("Q235 follow-up: a settled job can no longer be funded", () => {
+  const MIG = resolve(__dirname, "../../../supabase/migrations");
+  const files = readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort();
+  let redeem = "";
+  for (const f of files) {
+    const sql = blankSqlComments(readFileSync(join(MIG, f), "utf8"));
+    for (const m of sql.matchAll(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.redeem_gift_card\s*\(/gi)) {
+      const rest = sql.slice(m.index!);
+      const tag = rest.match(/AS\s+(\$[A-Za-z_]*\$)/)!;
+      const open = rest.indexOf(tag[1], tag.index!) + tag[1].length;
+      redeem = rest.slice(open, rest.indexOf(tag[1], open));
+    }
+  }
+  const createPayment = blankComments(
+    readFileSync(resolve(__dirname, "../../../supabase/functions/create-payment/index.ts"), "utf8"),
+  );
+  const escrow = createPayment.slice(
+    createPayment.indexOf('if (action === "escrow")'),
+    createPayment.indexOf('if (action === "release")'),
+  );
+
+  it("reads the newest redeem_gift_card and the escrow action (floor)", () => {
+    expect(redeem.length).toBeGreaterThan(2000);
+    expect(escrow.length).toBeGreaterThan(5000);
+  });
+
+  it("redeem_gift_card refuses a completed/cancelled job and a decided dispute, under the job lock", () => {
+    expect(redeem).toMatch(/if v_job\.status in \('completed', 'cancelled'\) then\s+raise exception/);
+    expect(redeem).toMatch(/where d\.job_id = p_job_id and d\.status = 'decided'\) then\s+raise exception/);
+    expect(redeem.indexOf("for update")).toBeLessThan(redeem.indexOf("d.status = 'decided'"));
+  });
+
+  it("create-payment's escrow action refuses a closed job or a decided dispute before any Stripe call, failing closed", () => {
+    const guard = escrow.indexOf("if (decidedDisputes && decidedDisputes.length > 0) {");
+    expect(guard).toBeGreaterThan(0);
+    expect(escrow).toMatch(/if \(decidedErr\) \{\s+console\.error\([\s\S]{0,300}?\);\s+throw new PublicError/);
+    expect(escrow).toMatch(/if \(FUNDING_CLOSED_JOB_STATUSES\.has\(String\(job\.status\)\)\) \{\s+throw new PublicError/);
+    expect(guard).toBeLessThan(escrow.indexOf('rpc("redeem_gift_card"'));
+    expect(guard).toBeLessThan(escrow.indexOf("stripe.checkout.sessions.create"));
+  });
+
+  it("create-payment's session stamp carries the closed-status guard, so a close mid-checkout stamps zero rows", () => {
+    expect(escrow).toMatch(
+      /\.or\("payment_status\.is\.null,payment_status\.in\.\(unpaid,abandoned,failed\)"\)\s*\.not\("status", "in", `\(\$\{\[\.\.\.FUNDING_CLOSED_JOB_STATUSES\]\.join\(","\)\}\)`\);/,
+    );
+    expect(createPayment).toMatch(/const FUNDING_CLOSED_JOB_STATUSES = new Set\(\["completed", "cancelled"\]\);/);
   });
 });

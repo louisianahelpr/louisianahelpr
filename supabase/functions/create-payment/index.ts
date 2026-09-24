@@ -37,6 +37,9 @@ import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTi
  */
 const TAX_BEHAVIOR = "exclusive" as const;
 
+/** Job statuses that are settled: the escrow action never funds them (Q235 follow-up). */
+const FUNDING_CLOSED_JOB_STATUSES = new Set(["completed", "cancelled"]);
+
 /**
  * NOTIFICATION LINKS: `?job=<id>`, never a fixed `?filter=`.
  *
@@ -176,6 +179,32 @@ serve(async (req) => {
       const currentPaymentStatus = job.payment_status ?? "unpaid";
       if (!RE_MINTABLE_PAYMENT_STATUSES.has(currentPaymentStatus)) {
         throw new PublicError("This job's payment has already been processed. Open the job to see its payment status.");
+      }
+
+      // ─── A settled job is never funded (Q235 follow-up) ───
+      // A completed or cancelled job, or one whose dispute an admin has
+      // decided, is settled: rpc_settle_dispute_without_payment closes a
+      // decided dispute on an unfunded job as moving nothing, and money taken
+      // afterwards would sit in escrow that no sweep pages and no path pays.
+      // The RPC also moves payment_status to 'cancelled', and stampSession's
+      // conditional write carries the same status guard, so a checkout minted
+      // just before the close is never recorded or returned. FAIL CLOSED on an
+      // unreadable dispute table.
+      if (FUNDING_CLOSED_JOB_STATUSES.has(String(job.status))) {
+        throw new PublicError("This job is closed, so it can no longer be paid for.");
+      }
+      const { data: decidedDisputes, error: decidedErr } = await supabaseAdmin
+        .from("disputes")
+        .select("id")
+        .eq("job_id", jobId)
+        .eq("status", "decided")
+        .limit(1);
+      if (decidedErr) {
+        console.error(`[create-payment] decided-dispute read failed for job ${jobId}; refusing escrow:`, decidedErr);
+        throw new PublicError("Could not check this job's dispute status. Please try again in a moment.");
+      }
+      if (decidedDisputes && decidedDisputes.length > 0) {
+        throw new PublicError("This job's dispute has been decided, so it can no longer be paid for.");
       }
 
       // ─── Price cap, enforced where the money is taken (Q202) ───
@@ -324,7 +353,11 @@ serve(async (req) => {
           .from("jobs")
           .update({ stripe_session_id: newSessionId, payment_status: "unpaid", ...extra })
           .eq("id", jobId)
-          .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)");
+          .or("payment_status.is.null,payment_status.in.(unpaid,abandoned,failed)")
+          // A job closed between the reads above and this write (a decided
+          // dispute sets status 'completed') is never stamped: zero rows, so
+          // the session URL is never returned (Q235 follow-up).
+          .not("status", "in", `(${[...FUNDING_CLOSED_JOB_STATUSES].join(",")})`);
         q = previousSessionId
           ? q.eq("stripe_session_id", previousSessionId)
           : q.is("stripe_session_id", null);

@@ -286,6 +286,10 @@ export const RPC_ERROR_COPY = {
     dispute_already_settled: "This dispute's settlement is already closed. Refresh to see it.",
     dispute_settlement_in_progress: "A settlement run holds this dispute right now. Refresh in a few minutes.",
     dispute_has_payment: "This job has a payment on file, so the split has to move it. Use Retry settlement.",
+    // 20260924013122: payment_status says money moved, or a transfer / refund /
+    // restored gift exists for the job.
+    dispute_payment_not_unfunded: "This job's payment record says money moved, so it can't be closed as unpaid. Reconcile it against Stripe.",
+    dispute_money_moved: "A transfer, refund or restored gift exists for this job, so it can't be closed as unpaid. Reconcile it against Stripe.",
     admin_is_party: "You're a party to this job, so another admin has to close its settlement.",
   },
   // DisputeTimelineDialog — adding evidence to a dispute an admin re-opened.

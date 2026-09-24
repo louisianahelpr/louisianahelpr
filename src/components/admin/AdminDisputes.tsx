@@ -450,6 +450,11 @@ const AdminDisputes = () => {
         return;
       }
       confirmConsequential("Settlement closed. No payment was on file, so nothing moved.");
+    } catch (err: unknown) {
+      // A thrown call (network drop, client fault) never reached the RPC's
+      // refusals above: say so, and report it, instead of an unhandled rejection.
+      report(err, { tags: { source: "AdminDisputes.closeWithoutPayment" } });
+      toast.error(userFacingError(err, "Couldn't close that settlement — try again"));
     } finally {
       setRetrying(null);
       loadDisputes();

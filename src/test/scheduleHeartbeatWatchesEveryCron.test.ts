@@ -21,17 +21,20 @@ const block = hb.slice(hb.indexOf('WATCHED="') + 9, hb.indexOf('"', hb.indexOf('
 const watched = block.split(/\s+/).filter(Boolean);
 // Watched another way: the heartbeat itself by staleness-watch.yml (below),
 // privacy-journey.yml by the heartbeat's month-aware marker check (Q293).
+// @two-way src/test/scheduleHeartbeatWatchesEveryCron.test.ts:stale EXEMPT entry
 const EXEMPT = ["privacy-journey.yml", "schedule-heartbeat.yml"];
 
 describe("the heartbeat watches every scheduled workflow (CJ-009)", () => {
   it("the inventory is real", () => {
     expect(withCron.length).toBeGreaterThan(30);
   });
-  // @two-way src/test/scheduleHeartbeatWatchesEveryCron.test.ts:expect(names).toEqual(withCron.filter((f) => !EXEMPT.includes(f)));
   it("WATCHED is exactly the cron workflows other than itself, each with a budget", () => {
     const names = watched.map((e) => e.split(":")[0]).sort();
     expect(names).toEqual(withCron.filter((f) => !EXEMPT.includes(f)));
     for (const e of watched) expect(e).toMatch(/^[\w.-]+\.yml:[1-9]\d*$/);
+  });
+  it("every EXEMPT entry is still a cron workflow", () => {
+    for (const f of EXEMPT) expect(withCron, `stale EXEMPT entry ${f} — remove it`).toContain(f);
   });
   it("each exemption is watched elsewhere", () => {
     expect(hb).toContain("CURRENT_MONTH=$(date -u +%Y-%m)");

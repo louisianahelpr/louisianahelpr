@@ -123,6 +123,8 @@ const RULES: Rule[] = [
       "scripts/probes/dispute-open-race.prod.mjs": "creates a bare job with no uploads (evidence urls are example.invalid strings, never storage objects); the weekly storage-orphan-sweep is the net",
       "scripts/probes/settle-dispute-race.prod.mjs": "creates a bare job with no uploads; the weekly storage-orphan-sweep is the net",
       "scripts/probes/completion-race.prod.mjs": "creates a bare job with no uploads; the weekly storage-orphan-sweep is the net",
+      "scripts/probes/direct-patch-hire.prod.mjs": "Q346 probe: creates bare seed jobs with no photo column and never touches storage; the weekly storage-orphan-sweep is the net",
+      "scripts/probes/recurring-helper-patch.prod.mjs": "Q356 probe: creates bare seed jobs with no photo column and never touches storage; the weekly storage-orphan-sweep is the net",
       "scripts/probes/messages-inbox-states.prod.mjs": "creates two bare `unpaid` jobs for the inbox screenshot states and deletes them in `restore`; the POST body carries no photo column and nothing in the file ever touches storage, so those job ids own no object. The weekly storage-orphan-sweep is the net",
     },
   },

@@ -27,7 +27,9 @@ const HELPER = "437de07d-1bd7-46c8-a451-6b46aa3bcad5"; // helper-e2e
 const OTHER = "f6cc3ebb-9478-473c-8eb8-62b406f0734f"; // helper (seed)
 
 async function asUser(token, path, { method = "GET", body } = {}) {
-  const res = await fetch(`${URL_}/rest/v1/${path}`, {
+  // RETURNING * is refused for `authenticated` (offered_to_helper_id is withheld).
+  const named = /[?&]select=/.test(path) ? path : `${path}${path.includes("?") ? "&" : "?"}select=id`;
+  const res = await fetch(`${URL_}/rest/v1/${named}`, {
     method,
     headers: {
       apikey: ANON, Authorization: `Bearer ${token}`, "Content-Type": "application/json",
@@ -45,16 +47,16 @@ const date = new Date(Date.now() + 40 * 864e5).toISOString().slice(0, 10);
 const CHILD_TABLES = ["notifications", "notification_logs", "applications", "messages"];
 async function drop(id) {
   for (const t of CHILD_TABLES) await rest(`${t}?job_id=eq.${id}`, { method: "DELETE" });
-  await rest(`jobs?id=eq.${id}`, { method: "DELETE" });
+  await rest(`jobs?id=eq.${id}&select=id`, { method: "DELETE" });
 }
 
 async function mkJob(tag, extra = {}) {
-  const [row] = await rest("jobs", {
+  const [row] = await rest("jobs?select=id", {
     method: "POST", prefer: "return=representation",
     body: {
       title: `Q356 probe ${tag}`, description: "Q356 recurring_helper_id PATCH probe; deleted by the probe.",
       date_needed: date, budget: 50, customer_id: POSTER, status: "open",
-      payment_status: "escrow", is_seed: true, category: "other", location: "Baton Rouge, LA",
+      payment_status: "escrow", is_seed: true, category: "other", location: "4412 Highland Rd, Baton Rouge, LA 70808",
       ...extra,
     },
   });
@@ -92,7 +94,7 @@ try {
 
   // C (control): clearing stays allowed. Seeded by the service role.
   const c = await mkJob("C", { recurrence_days: [4], recurrence_weeks: 4 }); made.push(c);
-  await rest(`jobs?id=eq.${c}`, { method: "PATCH", body: { recurring_helper_id: OTHER } });
+  await rest(`jobs?id=eq.${c}&select=id`, { method: "PATCH", body: { recurring_helper_id: OTHER } });
   const rc = await asUser(posterTok, `jobs?id=eq.${c}&select=id,recurring_helper_id`, {
     method: "PATCH", body: { recurring_helper_id: null },
   });

@@ -143,7 +143,7 @@ describe("offer privacy (a): no client read of jobs takes columns it did not nam
     // Not silently skipped: an unreadable literal means this guard has a hole.
     expect(unparsed, `jobs REST paths this guard could not parse — fix the guard, do not ignore:\n${unparsed.join("\n")}`).toEqual([]);
     // The exemptions are printed rather than assumed, so they stay reviewable.
-    expect(serviceRoleExempt.length, `service_role callers exempted (they keep the table grant): ${serviceRoleExempt.join(", ")}`).toBeLessThanOrEqual(8);
+    expect(serviceRoleExempt.length, `service_role callers exempted (they keep the table grant): ${serviceRoleExempt.join(", ")}`).toBe(7);
     expect(
       offenders,
       "A jobs read with no `select=` is `SELECT *`, and `return=representation` with no `select=` is " +
@@ -202,6 +202,7 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:can_message_in_job": "no-return",
     "function:can_send_message_to_in_job": "no-return",
     "function:enforce_application_job_state": "no-return",
+    "function:enforce_hire_columns_rpc_only": "no-return",
     "function:enforce_jobs_insert_column_lock": "no-return",
     "function:get_messaging_closes_at": "no-return",
     "function:get_open_jobs_for_map": "no-return",

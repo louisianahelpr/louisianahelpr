@@ -13,6 +13,7 @@ import { postRows } from "./restInsert";
 import { Capacitor } from "@capacitor/core";
 import type { Json } from "@/integrations/supabase/types";
 import { backgroundImport, getBackgroundImportFailures, onBackgroundImportFailure } from "@/lib/chunkReload";
+import { isAutomatedBrowser } from "@/lib/automatedBrowser";
 
 // ── Tunables ─────────────────────────────────────────────────────────
 const MESSAGE_MAX_CHARS = 1000;
@@ -375,7 +376,10 @@ export function report(err: unknown, opts: ReportOptions = {}) {
     stack,
     url,
     user_agent: userAgent,
-    tags: opts.tags ?? {},
+    // A test runner's browser (navigator.webdriver) is not a person: the
+    // user-error-screen alert skips rows tagged automated (3a8fb52e, a
+    // HeadlessChrome boot on a stale deploy, paged as a real guest).
+    tags: isAutomatedBrowser() ? { ...(opts.tags ?? {}), automated: true } : (opts.tags ?? {}),
     context,
   });
 

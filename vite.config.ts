@@ -448,7 +448,7 @@ export default defineConfig(({ mode }) => ({
           },
           // Static images at the site root not covered above (splash icon,
           // OG/social images, marketing PNGs like helpr-wordmark, the
-          // 800-KB app-icon-1024 used by the iOS icon generator script,
+          // BR-021: the 1024 iOS icons live in branding/, not here,
           // etc.). Same SWR + 50/30d caps.
           {
             urlPattern: ({ url, sameOrigin }) =>

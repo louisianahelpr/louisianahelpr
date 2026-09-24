@@ -1,7 +1,7 @@
 name: iOS Icon Sync
 
 # Manual-only — regenerates every iOS AppIcon size from the single source
-# of truth at public/app-icon-1024.png and lands the result through the
+# of truth at branding/app-icon-1024.png and lands the result through the
 # shared .github/actions/refresh-pr composite (Q285: this used to `git push`
 # with github.token straight to the dispatched branch, which main's branch
 # protection rejects — it never pushes directly now; it rebuilds ONE bot
@@ -51,7 +51,7 @@ jobs:
       - uses: ./.github/actions/refresh-pr
         with:
           id: ios-icons
-          title: "chore(ios): sync AppIcon set from public/app-icon-1024.png"
+          title: "chore(ios): sync AppIcon set from branding/app-icon-1024.png"
           paths: ios/App/App/Assets.xcassets/AppIcon.appiconset/
           regenerate: bundle exec fastlane ios sync_app_icon
           github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}

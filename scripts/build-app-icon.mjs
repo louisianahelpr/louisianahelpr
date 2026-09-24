@@ -7,11 +7,11 @@
  *
  * Source:      src/assets/helpr-logo-1024.png  (846×727, RGBA — transparent bg)
  * Destinations:
- *   public/app-icon-1024.png       — light: cool parchment background
- *   public/app-icon-1024-dark.png  — dark:  deep warm charcoal background
+ *   branding/app-icon-1024.png       — light: cool parchment background
+ *   branding/app-icon-1024-dark.png  — dark:  deep warm charcoal background
  *
  * Both outputs are exactly 1024×1024, no alpha (Apple rejects icons with
- * alpha). Feed `public/app-icon-1024.png` into
+ * alpha). Feed `branding/app-icon-1024.png` into
  * `scripts/generate-ios-icons.mjs` to regenerate the iOS AppIcon set.
  *
  * Design notes — keep the ornate wrought-iron "H" exactly as drawn:
@@ -227,7 +227,7 @@ console.log(`Building app icon variants from ${SRC}…`);
 // (Was #F0E7D6 warm cream, authored before the palette migrated
 // warm→cool in 9bdb3283e; the icon simply never followed.)
 await buildVariant({
-  outPath: join(repoRoot, 'public', 'app-icon-1024.png'),
+  outPath: join(repoRoot, 'branding', 'app-icon-1024.png'),
   background: { r: 0xf1, g: 0xf2, b: 0xf4 },
   // Edge vignette: #E2E4E9 — `--sand`, hsl(220 14% 90%), the cool-neutral
   // token that replaced the warm tan #D6C7AD in the same migration.
@@ -239,7 +239,7 @@ await buildVariant({
 // Dark variant — deep warm charcoal background (#24251C) with a warm
 // radial glow so the near-black iron stays visible.
 await buildVariant({
-  outPath: join(repoRoot, 'public', 'app-icon-1024-dark.png'),
+  outPath: join(repoRoot, 'branding', 'app-icon-1024-dark.png'),
   background: { r: 0x24, g: 0x25, b: 0x1c },
   // Edge vignette: go darker still at the corners.
   vignetteRgb: { r: 0x0e, g: 0x0f, b: 0x0a },

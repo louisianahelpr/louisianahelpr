@@ -53,7 +53,7 @@ Bump build, archive, upload, and submit for App Store review
 [bundle exec] fastlane ios sync_app_icon
 ```
 
-Regenerate iOS AppIcon set from public/app-icon-1024.png
+Regenerate iOS AppIcon set from branding/app-icon-1024.png
 
 ----
 

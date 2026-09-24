@@ -55,6 +55,8 @@ const CAPS = [
   // App Store Connect review material, uploaded not bundled.
   ["scripts/asc/assets/", 300],
   ["fastlane/", 300],
+  // BR-021: iOS icon sources, never deployed (public/ is the web origin).
+  ["branding/", 300],
   // Audit evidence: should be cropped or optimised, never a raw retina dump.
   ["docs/", 300],
 ];
@@ -64,8 +66,8 @@ const DEFAULT_CAP = 300;
 // Add here only for a file that ships to users and cannot be smaller.
 // @two-way scripts/check-asset-weight.mjs:const staleAllow =
 const ALLOWLIST = new Map([
-  ["public/app-icon-1024.png", "1024px PWA/App Store icon — Apple rejects recompression artefacts"],
-  ["public/app-icon-1024-dark.png", "1024px dark-variant icon, same constraint"],
+  ["branding/app-icon-1024.png", "1024px PWA/App Store icon — Apple rejects recompression artefacts"],
+  ["branding/app-icon-1024-dark.png", "1024px dark-variant icon, same constraint"],
   ["ios/App/App/Assets.xcassets/AppIcon.appiconset/icon-1024.png", "App Store marketing icon, exact size required"],
   ["scripts/asc/assets/review-screenshot.png", "App Store review screenshot, dimensions fixed by ASC"],
   // Shipped web assets already in the tree at 300-350 KB. Both are genuine

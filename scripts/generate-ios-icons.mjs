@@ -5,7 +5,7 @@
  * Usage:
  *   node scripts/generate-ios-icons.mjs
  *
- * Source:      public/app-icon-1024.png  (no alpha, no rounded corners)
+ * Source:      branding/app-icon-1024.png  (no alpha, no rounded corners)
  * Destination: ios/App/App/Assets.xcassets/AppIcon.appiconset/
  *
  * Requires:    npm i -D sharp
@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
-const SRC = join(repoRoot, 'public', 'app-icon-1024.png');
+const SRC = join(repoRoot, 'branding', 'app-icon-1024.png');
 const OUT = join(
   repoRoot,
   'ios', 'App', 'App',
@@ -80,7 +80,7 @@ for (const icon of icons) {
     // the app.
     //
     // #F1F2F4 is `--parchment` (hsl(220 14% 95%) in src/index.css) and is
-    // the exact background public/app-icon-1024.png is built on, so this
+    // the exact background branding/app-icon-1024.png is built on, so this
     // fallback is invisible even if it ever engages.
     .flatten({ background: '#F1F2F4' })
     .removeAlpha()        // Apple rejects icons with alpha

@@ -252,7 +252,9 @@ const Messages = () => {
   // from this user's list, and it resurfaces automatically if a new
   // message arrives. See `src/lib/archivedConversations.ts`.
   const archiveConversationLocal = (convo: Conversation) => {
-    if (!userId) return;
+    // Q262: a deleted-account thread offers no archive (no swipe row, not
+    // selectable), and thread_archives.other_user_id is NOT NULL.
+    if (!userId || convo.otherUserId === null) return;
     hapticHeavy();
     // No manual setConversations filter here (there used to be one): it
     // stripped the thread from the shared `allConversations` query cache
@@ -278,6 +280,8 @@ const Messages = () => {
     // setConversations filter here — it would strip these threads from
     // `allConversations` too, breaking Recently Deleted's restore path.
     for (const convo of batchArchiveConfirm) {
+      // Q262: toggleSelect never admits a deleted-account thread.
+      if (convo.otherUserId === null) continue;
       archiveConversation(userId, convo.jobId, convo.otherUserId);
     }
     hapticSuccess();

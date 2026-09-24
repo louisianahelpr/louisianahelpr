@@ -5,6 +5,7 @@ import { RichMessageInput } from "@/components/RichMessageInput";
 import { assertWritable } from "@/hooks/useImpersonation";
 import { threadClosedCopy } from "@/lib/messagingLockout";
 import { RECIPIENT_RESTRICTED_NOTICE } from "@/lib/recipientGate";
+import { DELETED_ACCOUNT_NOTICE } from "@/lib/deletedCounterparty";
 import type { Conversation, Message } from "../types";
 
 /**
@@ -113,6 +114,34 @@ export function ChatComposer({
   replyTo?: Message | null;
   onCancelReply?: () => void;
 }) {
+  if (activeConvo.otherUserId === null) {
+    /* Q262: the other party deleted their account. messages.receiver_id is
+       ON DELETE SET NULL, so what you sent them is kept and readable here,
+       but there is nobody to deliver a new message to (sendHandlers refuses
+       it too). Checked first: every other notice is about a person who still
+       exists. Role-neutral on purpose. */
+    return (
+      <div
+        className="pt-2 pb-3 glass-dock sticky bottom-0"
+        style={{ ...CHAT_GUTTER_BLEED, paddingBottom: dockPaddingBottom(keyboardInset) }}
+        data-testid="thread-other-deleted-notice"
+      >
+        <div
+          role="status"
+          className="flex items-start gap-2.5 rounded-ds-md px-3.5 py-3"
+          style={{
+            background: "hsl(var(--olivewood) / 0.06)",
+            border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+          }}
+        >
+          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} strokeWidth={2} aria-hidden="true" />
+          <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            {DELETED_ACCOUNT_NOTICE}
+          </p>
+        </div>
+      </div>
+    );
+  }
   if (threadClosed) {
     /* Thread closed — applies to everyone on the job. TWO ways in:
          - completed, 24h after completion (can_message_in_job, 20260914201350);

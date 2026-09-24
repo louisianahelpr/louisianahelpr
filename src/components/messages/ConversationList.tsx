@@ -454,7 +454,9 @@ export function ConversationList({
     const pinned: Conversation[] = [];
     const rest: Conversation[] = [];
     for (const c of conversations) {
-      if (pinnedSet.has(pinnedKey(c.jobId, c.otherUserId))) pinned.push(c);
+      // Q262: a deleted-account thread (otherUserId null) cannot be pinned —
+      // thread_pins.other_user_id is NOT NULL.
+      if (c.otherUserId !== null && pinnedSet.has(pinnedKey(c.jobId, c.otherUserId))) pinned.push(c);
       else rest.push(c);
     }
     pinned.sort(byLastAtDesc);
@@ -520,8 +522,8 @@ export function ConversationList({
                 // hamburger's "Pinned" entry just needed to read it instead
                 // of toasting "coming soon".
                 const pinnedSet = userId ? getPinnedSet(userId) : new Set<string>();
-                return orderedConversations.filter((c) =>
-                  pinnedSet.has(pinnedKey(c.jobId, c.otherUserId)),
+                return orderedConversations.filter(
+                  (c) => c.otherUserId !== null && pinnedSet.has(pinnedKey(c.jobId, c.otherUserId)),
                 );
               })()
             : inboxTab === "recentlyDeleted"
@@ -536,7 +538,11 @@ export function ConversationList({
                   // directly rather than filtering the byTab source above.
                   if (!userId || !allConversations) return [];
                   return [...allConversations]
-                    .filter((c) => isConvoArchived(userId, c.jobId, c.otherUserId, c.lastAt))
+                    .filter(
+                      (c) =>
+                        c.otherUserId !== null &&
+                        isConvoArchived(userId, c.jobId, c.otherUserId, c.lastAt),
+                    )
                     .sort(byLastAtDesc);
                 })()
               : /* ALL — the only tab the age rule trims, and only at rest. */
@@ -589,7 +595,8 @@ export function ConversationList({
     !searchQuery.trim() && conversations.length > 0 && filteredConversations.length === 0;
 
   const handleTogglePin = (convo: Conversation) => {
-    if (!userId) return;
+    // Q262: never offered for a deleted-account thread (no swipe row below).
+    if (!userId || convo.otherUserId === null) return;
     togglePinned(userId, convo.jobId, convo.otherUserId);
     setPinNonce((n) => n + 1);
   };
@@ -624,6 +631,12 @@ export function ConversationList({
   // the cap check stays out of the state updater (no double toast under
   // StrictMode's double-invoked reducers).
   const toggleSelect = (c: Conversation) => {
+    // Q262: selection only feeds batch archive, which a deleted-account
+    // thread cannot take (thread_archives.other_user_id NOT NULL).
+    if (c.otherUserId === null) {
+      toast("Conversations with a deleted account can't be hidden.");
+      return;
+    }
     const key = convoKey(c);
     const already = selectedKeys.has(key);
     if (!already && selectedKeys.size >= MAX_SELECT) {
@@ -1623,9 +1636,9 @@ export function ConversationList({
                     virtualizerRef={listHandleRef}
                     renderItem={(c) => {
                       const key = `${c.jobId}_${c.otherUserId}`;
-                      const pinned = pinnedSetForRender.has(
-                        pinnedKey(c.jobId, c.otherUserId),
-                      );
+                      const pinned =
+                        c.otherUserId !== null &&
+                        pinnedSetForRender.has(pinnedKey(c.jobId, c.otherUserId));
                       // In the desktop split, highlight the row whose thread
                       // is open in the right pane so the inbox tracks the
                       // selection. No-op on mobile (activeKey stays null).
@@ -1664,7 +1677,7 @@ export function ConversationList({
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (!userId) return;
+                                if (!userId || c.otherUserId === null) return;
                                 unarchiveConversation(userId, c.jobId, c.otherUserId);
                                 // Archive has an explicit confirm dialog
                                 // ("Hide 1 conversation?"); Restore was the
@@ -1703,7 +1716,10 @@ export function ConversationList({
                       // (Restore replaces them there) — render the bare row
                       // so a drag can't fire an archive mid-selection or
                       // re-archive an already-archived thread.
-                      return selectMode || isRecentlyDeletedView ? row : (
+                      // Q262: nor for a deleted-account thread — pin and
+                      // archive persist keyed on the other party
+                      // (thread_pins / thread_archives.other_user_id NOT NULL).
+                      return selectMode || isRecentlyDeletedView || c.otherUserId === null ? row : (
                         <SwipeableConversationRow
                           isPinned={pinned}
                           onArchive={() => handleArchive(c)}

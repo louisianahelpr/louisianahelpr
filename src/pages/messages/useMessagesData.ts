@@ -28,6 +28,7 @@ import {
   fetchConversations,
 } from "./messagesData/loadConversations";
 import { createSendHandlers } from "./messagesData/sendHandlers";
+import { threadPairFilter } from "@/lib/deletedCounterparty";
 
 /** Stable empty list so a cold cache doesn't hand consumers a new array
     identity on every render (which would defeat the memoized rows). */
@@ -195,7 +196,8 @@ export function useMessagesData({
     if (!allConversations) return NO_CONVERSATIONS;
     if (!resolvedUserId) return allConversations;
     return allConversations.filter(
-      (c) => !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt),
+      // Q262: a deleted-account thread (otherUserId null) cannot be archived.
+      (c) => c.otherUserId === null || !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt),
     );
     // archiveNonce is a dependency even though it's not read in the body —
     // bumping it forces a re-read of the archive map.
@@ -309,6 +311,10 @@ export function useMessagesData({
   // Stable reference so the memoized ConversationRow in the inbox list
   // skips re-rendering unchanged rows on parent state changes.
   const openConvo = useCallback(async (convo: Conversation) => {
+    // Conversations only exist once the identity resolved (the inbox query is
+    // enabled on it), so this is unreachable without one; the thread filter
+    // needs a real id rather than the string "null".
+    if (!resolvedUserId) return;
     setActiveConvo(convo);
     setHasMoreMessages(false);
     setChatLoadError(false);
@@ -326,7 +332,7 @@ export function useMessagesData({
         .from("messages")
         .select("*")
         .eq("job_id", convo.jobId)
-        .or(`and(sender_id.eq.${resolvedUserId},receiver_id.eq.${convo.otherUserId}),and(sender_id.eq.${convo.otherUserId},receiver_id.eq.${resolvedUserId}),is_system.eq.true`)
+        .or(threadPairFilter(resolvedUserId, convo.otherUserId))
         // Defense-in-depth: mirror the RLS SELECT policy's flagged clause
         // (visible if I'm the sender OR the row isn't hidden) so a scanner-hidden
         // message never surfaces to its receiver even if that policy regresses.
@@ -556,7 +562,7 @@ export function useMessagesData({
       .from("messages")
       .select("*")
       .eq("job_id", activeConvo.jobId)
-      .or(`and(sender_id.eq.${userId},receiver_id.eq.${activeConvo.otherUserId}),and(sender_id.eq.${activeConvo.otherUserId},receiver_id.eq.${userId}),is_system.eq.true`)
+      .or(threadPairFilter(userId, activeConvo.otherUserId))
       // Defense-in-depth mirror of the RLS flagged clause (see openConvo).
       .or(`sender_id.eq.${userId},flagged_hidden.eq.false`)
       .order("created_at", { ascending: false })
@@ -594,7 +600,7 @@ export function useMessagesData({
       .from("messages")
       .select("*")
       .eq("job_id", activeConvo.jobId)
-      .or(`and(sender_id.eq.${userId},receiver_id.eq.${activeConvo.otherUserId}),and(sender_id.eq.${activeConvo.otherUserId},receiver_id.eq.${userId}),is_system.eq.true`)
+      .or(threadPairFilter(userId, activeConvo.otherUserId))
       // Defense-in-depth mirror of the RLS flagged clause (see openConvo).
       .or(`sender_id.eq.${userId},flagged_hidden.eq.false`)
       .lt("created_at", oldestMsg.created_at)

@@ -8,7 +8,7 @@ export type Message = {
   id: string;
   job_id: string;
   sender_id: string;
-  receiver_id: string;
+  receiver_id: string | null;
   content: string;
   read: boolean;
   /** When `read` was set. Absent on older rows written before this column
@@ -54,7 +54,7 @@ export type Message = {
 };
 
 export type Conversation = {
-  otherUserId: string;
+  otherUserId: string | null;
   otherUserName: string;
   otherUserAvatarUrl?: string | null;
   jobTitle: string;

@@ -9,6 +9,7 @@ import { getMutedThreadMap, threadMuteKey } from "@/lib/threadMutes";
 import { fetchMessagingClosesAt } from "@/lib/messagingLockout";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import type { Conversation, Message } from "@/components/messages/types";
+import { DELETED_ACCOUNT_LABEL } from "@/lib/deletedCounterparty";
 
 /**
  * One person, resolved once.
@@ -36,9 +37,10 @@ const UNRESOLVED_PERSON = formatName(null);
  *
  * `profiles.id` (a standalone PK) and `profiles.user_id` (the auth id) are
  * different uuids for the same human. A message's `sender_id` / `receiver_id`
- * is supposed to be the auth id, but those columns carry no foreign key
- * (verified against prod: only `job_id` and `reply_to_id` are constrained), so
- * profile ids do occur in the wild — prod has a seeded thread keyed that way.
+ * is supposed to be the auth id. Until 2026-09-24 those columns carried no
+ * foreign key, so profile ids occurred in the wild (a seeded thread keyed that
+ * way). Both now reference auth.users (sender CASCADE, receiver SET NULL; Q262),
+ * so this second key is for history, not new rows.
  * Looking up such a thread by auth id alone found nothing, and the row fell
  * through to a literal "User" with no avatar.
  *
@@ -150,19 +152,31 @@ export async function fetchConversations(
     // semantics exactly: the SENDER still sees what they wrote (so a blocked
     // message doesn't just vanish on them), the RECIPIENT does not.
     if (m.flagged_hidden && m.sender_id !== uid) return false;
-    const other = m.sender_id === uid ? m.receiver_id : m.sender_id;
-    return !blockedSet.has(other);
+    const other: string | null = m.sender_id === uid ? m.receiver_id : m.sender_id;
+    // Q262: null = the other party deleted their account (receiver_id SET
+    // NULL). Nobody to be blocked with.
+    return other === null || !blockedSet.has(other);
   });
 
-  const convoMap = new Map<string, { otherUserId: string; jobId: string; messages: Message[] }>();
+  // Q262: `otherUserId: null` is the deleted-account thread for this job. Its
+  // map key uses a token no uuid can equal; the value keeps the real null.
+  const convoMap = new Map<string, { otherUserId: string | null; jobId: string; messages: Message[] }>();
   for (const m of filteredMsgs) {
-    const other = m.sender_id === uid ? m.receiver_id : m.sender_id;
-    const key = `${m.job_id}_${other}`;
+    const other: string | null = m.sender_id === uid ? m.receiver_id : m.sender_id;
+    const key = `${m.job_id}_${other === null ? "deleted-account" : other}`;
     if (!convoMap.has(key)) convoMap.set(key, { otherUserId: other, jobId: m.job_id, messages: [] });
     convoMap.get(key)!.messages.push(m);
   }
 
-  const otherIds = [...new Set([...convoMap.values()].map((c) => c.otherUserId))];
+  // Q262: the deleted-account thread has no person to resolve; the profile,
+  // last-active and mute reads are asked only about real ids.
+  const otherIds = [
+    ...new Set(
+      [...convoMap.values()]
+        .map((c) => c.otherUserId)
+        .filter((id): id is string => id !== null),
+    ),
+  ];
   const jobIds = [...new Set([...convoMap.values()].map((c) => c.jobId))];
 
   // Collect the image-attachment paths up-front so we can batch the
@@ -183,10 +197,9 @@ export async function fetchConversations(
   // back to a local-storage mirror inside `getMutedThreadSet` when the
   // RPC isn't deployed yet (PGRST202) — feature degrades quietly,
   // never crashes.
-  const mutePairs = [...convoMap.values()].map((v) => ({
-    jobId: v.jobId,
-    otherUserId: v.otherUserId,
-  }));
+  const mutePairs = [...convoMap.values()].flatMap((v) =>
+    v.otherUserId === null ? [] : [{ jobId: v.jobId, otherUserId: v.otherUserId }],
+  );
   // Bulk last-active lookup runs alongside the other inbox RPCs so
   // every row's "Active now" / "Active 2h ago" pill is resolved in a
   // single round-trip instead of N. The RPC was shipped in
@@ -254,13 +267,16 @@ export async function fetchConversations(
     // ONE lookup backs both the name and the face. The old code read two
     // separate maps here, which is how a row could show one person's name
     // beside another person's avatar.
-    const other = profileMap.get(v.otherUserId);
+    const otherDeleted = v.otherUserId === null;
+    const other = v.otherUserId === null ? undefined : profileMap.get(v.otherUserId);
+    const muteKey = v.otherUserId === null ? null : threadMuteKey(v.jobId, v.otherUserId);
     return {
     otherUserId: v.otherUserId,
     // Only genuinely unresolvable people (deleted, banned, never approved)
     // reach the fallback now, and they get the house label rather than the
     // bare word "User".
-    otherUserName: other?.name || UNRESOLVED_PERSON,
+    // Q262: the deleted-account thread says so plainly.
+    otherUserName: otherDeleted ? DELETED_ACCOUNT_LABEL : other?.name || UNRESOLVED_PERSON,
     otherUserAvatarUrl: other?.avatarUrl ?? null,
     jobTitle: jobMap.get(v.jobId)?.title || "a job",
     jobId: v.jobId,
@@ -300,13 +316,13 @@ export async function fetchConversations(
     // (bell-slash icon) and the chat header (Muted pill + toggle copy).
     // `muteUntil` carries the snooze TTL (or null for forever-mute) so
     // the chat header can render "Muted for 8h" without a follow-up read.
-    isMuted: mutedMap.has(threadMuteKey(v.jobId, v.otherUserId)),
-    muteUntil:
-      mutedMap.get(threadMuteKey(v.jobId, v.otherUserId))?.until ?? null,
+    isMuted: muteKey !== null && mutedMap.has(muteKey),
+    muteUntil: muteKey === null ? null : mutedMap.get(muteKey)?.until ?? null,
     // Pre-resolved last-active ISO timestamp from the batched RPC
     // above. The row renders "Active now" / "Active 2h ago" / hides
     // beyond 7d so a stale signal never masquerades as live presence.
-    otherUserLastActiveAt: lastActiveMap.get(v.otherUserId) ?? null,
+    otherUserLastActiveAt:
+      v.otherUserId === null ? null : lastActiveMap.get(v.otherUserId) ?? null,
   };
   });
 

@@ -56,25 +56,28 @@ export function useThreadMuteActions({
   // callers use `handleSnoozeMute` below.
   const handleToggleMute = useCallback(
     async (convo: Conversation) => {
-      if (!userId) return;
+      // Q262: a deleted-account thread has no mute (ChatHeader hides the
+      // menu; thread_mutes.other_user_id is NOT NULL).
+      const other = convo.otherUserId;
+      if (!userId || other === null) return;
       const prevMuted = !!convo.isMuted;
       const prevUntil = convo.muteUntil ?? null;
       hapticHeavy();
-      patchMuteState(convo.jobId, convo.otherUserId, !prevMuted, null);
+      patchMuteState(convo.jobId, other, !prevMuted, null);
       try {
         const newMuted = await toggleThreadMute(
           userId,
           convo.jobId,
-          convo.otherUserId,
+          other,
         );
-        patchMuteState(convo.jobId, convo.otherUserId, newMuted, null);
+        patchMuteState(convo.jobId, other, newMuted, null);
         hapticSuccess();
       } catch (err) {
         report(err, {
           severity: "warning",
           tags: { source: "Messages.handleToggleMute" },
         });
-        patchMuteState(convo.jobId, convo.otherUserId, prevMuted, prevUntil);
+        patchMuteState(convo.jobId, other, prevMuted, prevUntil);
         hapticError();
         toast.error("Couldn't update mute — try again?");
       }
@@ -88,7 +91,10 @@ export function useThreadMuteActions({
   // mirrors `handleToggleMute`'s recovery model.
   const handleSnoozeMute = useCallback(
     async (convo: Conversation, until: Date | null) => {
-      if (!userId) return;
+      // Q262: a deleted-account thread has no mute (ChatHeader hides the
+      // menu; thread_mutes.other_user_id is NOT NULL).
+      const other = convo.otherUserId;
+      if (!userId || other === null) return;
       const prevMuted = !!convo.isMuted;
       const prevUntil = convo.muteUntil ?? null;
       const targetIso = until ? until.toISOString() : null;
@@ -96,7 +102,7 @@ export function useThreadMuteActions({
       hapticHeavy();
       patchMuteState(
         convo.jobId,
-        convo.otherUserId,
+        other,
         targetMuted,
         targetMuted ? targetIso : null,
       );
@@ -104,7 +110,7 @@ export function useThreadMuteActions({
         const serverUntil = await snoozeThread(
           userId,
           convo.jobId,
-          convo.otherUserId,
+          other,
           until,
         );
         const finalMuted = serverUntil
@@ -112,7 +118,7 @@ export function useThreadMuteActions({
           : until === null;
         patchMuteState(
           convo.jobId,
-          convo.otherUserId,
+          other,
           finalMuted,
           finalMuted ? serverUntil : null,
         );
@@ -122,7 +128,7 @@ export function useThreadMuteActions({
           severity: "warning",
           tags: { source: "Messages.handleSnoozeMute" },
         });
-        patchMuteState(convo.jobId, convo.otherUserId, prevMuted, prevUntil);
+        patchMuteState(convo.jobId, other, prevMuted, prevUntil);
         hapticError();
         toast.error("Couldn't update mute — try again?");
       }
@@ -134,20 +140,23 @@ export function useThreadMuteActions({
   // mute picker's "Turn notifications back on" action.
   const handleUnmute = useCallback(
     async (convo: Conversation) => {
-      if (!userId) return;
+      // Q262: a deleted-account thread has no mute (ChatHeader hides the
+      // menu; thread_mutes.other_user_id is NOT NULL).
+      const other = convo.otherUserId;
+      if (!userId || other === null) return;
       const prevMuted = !!convo.isMuted;
       const prevUntil = convo.muteUntil ?? null;
       hapticHeavy();
-      patchMuteState(convo.jobId, convo.otherUserId, false, null);
+      patchMuteState(convo.jobId, other, false, null);
       try {
-        await unmuteThread(userId, convo.jobId, convo.otherUserId);
+        await unmuteThread(userId, convo.jobId, other);
         hapticSuccess();
       } catch (err) {
         report(err, {
           severity: "warning",
           tags: { source: "Messages.handleUnmute" },
         });
-        patchMuteState(convo.jobId, convo.otherUserId, prevMuted, prevUntil);
+        patchMuteState(convo.jobId, other, prevMuted, prevUntil);
         hapticError();
         toast.error("Couldn't update mute — try again?");
       }

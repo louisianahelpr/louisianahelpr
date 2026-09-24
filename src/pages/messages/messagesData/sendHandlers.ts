@@ -116,6 +116,18 @@ export function createSendHandlers({
   // its bubble with the server row (or marks it failed). Shared by the
   // first-attempt send path and the retry path so both stay in sync.
   const dispatchMessage = async (optimistic: Message) => {
+    // Q262: a thread whose other party deleted their account has no receiver
+    // (messages.receiver_id ON DELETE SET NULL). There is nobody to deliver to,
+    // so refuse locally instead of sending a row the INSERT policy rejects.
+    const receiverId = optimistic.receiver_id;
+    if (receiverId === null) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.clientId === optimistic.clientId ? { ...m, sendStatus: "refused" } : m,
+        ),
+      );
+      return;
+    }
     const insertRow = (withClientId: boolean) => supabase
       .from("messages")
       .insert({
@@ -127,7 +139,7 @@ export function createSendHandlers({
         ...(withClientId && optimistic.clientId ? { client_id: optimistic.clientId } : {}),
         job_id: optimistic.job_id,
         sender_id: optimistic.sender_id,
-        receiver_id: optimistic.receiver_id,
+        receiver_id: receiverId,
         content: optimistic.content,
         attachment_url: optimistic.attachment_url,
         attachment_mime: optimistic.attachment_mime,
@@ -237,7 +249,7 @@ export function createSendHandlers({
           /row-level security/i.test((error as { message?: string } | null)?.message ?? "") &&
           (await fetchRecipientRestricted(
             optimistic.job_id,
-            optimistic.receiver_id,
+            receiverId,
             optimistic.sender_id,
             posterId,
           ))
@@ -247,7 +259,7 @@ export function createSendHandlers({
           // the server again, so the notice cannot outlive the rule (an offer
           // accepted later makes the thread sendable again).
           setActiveConvo?.((prev) =>
-            prev && prev.jobId === optimistic.job_id && prev.otherUserId === optimistic.receiver_id
+            prev && prev.jobId === optimistic.job_id && prev.otherUserId === receiverId
               ? { ...prev, recipientRestricted: true }
               : prev,
           );
@@ -303,6 +315,9 @@ export function createSendHandlers({
   ): Promise<boolean> => {
     if (!requireOnline()) return false;
     if (!activeConvo || !userId) return false;
+    // Q262: the other party deleted their account; the composer is replaced by
+    // a read-only notice, and this refuses a send that reaches here anyway.
+    if (activeConvo.otherUserId === null) return false;
     if (!content.trim() && !attachment) return false;
 
     // Scan every piece of user-entered text — including captions on

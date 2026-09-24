@@ -321,6 +321,8 @@ export function ChatView({
     return () => clearTimeout(t);
   }, [messagingClosesAt]);
   const threadClosed = isThreadClosed(messagingClosesAt);
+  // Q262: null when the other party deleted their account.
+  const otherUserId = activeConvo.otherUserId;
 
   // Receiver gate (only the poster may message applicants and an offered
   // Helpr): asked of the server for the open thread, so an existing thread
@@ -358,9 +360,11 @@ export function ChatView({
           onBack={() => { setDraft(""); setLightboxPhoto(null); onCloseThread(); }}
           onOpenMuteSheet={() => setMuteSheetOpen(true)}
           onToggleMute={onToggleMute}
-          onReportUser={() => setReportTarget({ type: "user", id: activeConvo.otherUserId })}
-          onBlockUser={() => setBlockTarget({ id: activeConvo.otherUserId, name: activeConvo.otherUserName })}
-          onViewProfile={() => navigate(`/user/${activeConvo.otherUserId}`)}
+          // Q262: ChatHeader offers none of these for a deleted-account thread
+          // (otherUserId null); the guards keep a null out of the targets.
+          onReportUser={() => { if (otherUserId !== null) setReportTarget({ type: "user", id: otherUserId }); }}
+          onBlockUser={() => { if (otherUserId !== null) setBlockTarget({ id: otherUserId, name: activeConvo.otherUserName }); }}
+          onViewProfile={() => { if (otherUserId !== null) navigate(`/user/${otherUserId}`); }}
         />
       }
     >
@@ -557,7 +561,7 @@ export function ChatView({
         mine={actionMessage?.sender_id === userId}
         onClose={() => setActionMessage(null)}
         onReport={(id) => setReportTarget({ type: "message", id })}
-        onBlock={() => setBlockTarget({ id: activeConvo.otherUserId, name: activeConvo.otherUserName })}
+        onBlock={() => { if (otherUserId !== null) setBlockTarget({ id: otherUserId, name: activeConvo.otherUserName }); }}
         onDelete={setDeleteMessageConfirm}
         onEdit={(m) => { setEditDraft(m.content); setEditingMessage(m); }}
         onReact={react}

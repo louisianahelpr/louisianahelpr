@@ -76,6 +76,9 @@ export function ChatHeader({
   // screen reader — including the job line that now lives inside it. Wiring
   // that line up as the button's description keeps it announced.
   const subtitleId = useId();
+  // Q262: messages.receiver_id is SET NULL when the other party deletes their
+  // account, so the thread is keyed on no one (loadConversations).
+  const otherDeleted = activeConvo.otherUserId === null;
 
   return (
     /* Standard messaging-app header, one row deep: back button, then the
@@ -145,10 +148,13 @@ export function ChatHeader({
           anyway. Measured at 320/375/1440: one line each, zero overflow. */}
       <button
         type="button"
-        onClick={onViewProfile}
-        aria-label={`View ${activeConvo.otherUserName}'s profile`}
+        // Q262: the other party deleted their account, so there is no profile
+        // to open. The block stays in place (same layout) but is inert.
+        onClick={otherDeleted ? undefined : onViewProfile}
+        disabled={otherDeleted}
+        aria-label={otherDeleted ? activeConvo.otherUserName : `View ${activeConvo.otherUserName}'s profile`}
         aria-describedby={subtitleId}
-        className="min-w-0 flex-1 flex items-center gap-2 py-1 pr-1 rounded-ds-sm text-left btn-press"
+        className="min-w-0 flex-1 flex items-center gap-2 py-1 pr-1 rounded-ds-sm text-left btn-press disabled:opacity-100"
       >
         {/* The shared primitive, not a hand-rolled <img>. The old <img> had
             no onError path, so a truthy-but-dead `avatar_url` (prod row
@@ -186,7 +192,9 @@ export function ChatHeader({
                 />
               );
             })()}
-            <ChevronRight className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.65)" }} />
+            {!otherDeleted && (
+              <ChevronRight className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.65)" }} />
+            )}
             {activeConvo.jobStatus && !inboxVisible && (() => {
               const status = activeConvo.jobStatus;
               // Colors come from the canonical `jobStatusColor` map so the chat
@@ -230,6 +238,9 @@ export function ChatHeader({
       {/* The standalone Flag "report user" shortcut was removed — it
           duplicated "Report User" in the ⋮ menu below, one and the same
           handler behind two icons in the same header. One entry point now. */}
+      {/* Q262: mute, report and block all name a person who no longer has an
+          account, so a deleted-account thread has no options menu. */}
+      {!otherDeleted && (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -262,6 +273,7 @@ export function ChatHeader({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      )}
       </div>
     </div>
   );

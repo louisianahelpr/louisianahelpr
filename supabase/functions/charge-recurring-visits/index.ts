@@ -260,6 +260,8 @@ serve(async (req) => {
     funded: 0,
     skippedReleased: 0,
     skippedExisting: 0,
+    skippedUnhired: 0,
+    skippedBlocked: 0,
     declined: 0,
     errors: 0,
     capped: false,
@@ -322,7 +324,7 @@ serve(async (req) => {
     supabase
       .from("jobs")
       .select(
-        "id, customer_id, business_id, title, description, category, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, status",
+        "id, customer_id, business_id, title, description, category, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, helper_id, status",
         countOpt,
       )
       // Offset paging over an unordered result is sampling, not paging.
@@ -390,6 +392,53 @@ serve(async (req) => {
       const parentDate = parent.date_needed as string;
       const due = dates.filter((d) => d > parentDate && d > today && d <= horizon);
       if (due.length === 0) continue;
+
+      // ── Q356/Q347: the standing helper must be the one HIRED, and not blocked ──
+      //
+      // Everything below books `recurring_helper_id` onto a visit (helper_id,
+      // status accepted, an accepted application) and charges the poster for
+      // it, as the service role, past every trigger. So the column is a hire,
+      // and this cron is the last place to refuse a bad one:
+      //
+      //   * It must equal the parent's own helper_id. The only legitimate
+      //     writer (stamp_recurring_series_helper) copies helper_id, which only
+      //     a hire RPC can set. Anything else was pointed at someone who never
+      //     applied or agreed — the direct-PATCH door 20260924044812 closed, or
+      //     a row written before it. A mismatch is a defect (it pages): after
+      //     the DB fix it cannot happen honestly.
+      //   * The pair must not be blocked. Hiring RPCs refuse across a block
+      //     (Q345), but block_user_and_settle does not end a series, so without
+      //     this the cron keeps putting a blocked person on the poster's
+      //     doorstep and charging for it. Skipped quietly: a block is a real
+      //     state, not a fault.
+      //
+      // Either way: no charge, no job, no application, no notification.
+      if (!parent.helper_id || parent.recurring_helper_id !== parent.helper_id) {
+        console.warn(
+          `[charge-recurring-visits] series ${parent.id}: recurring_helper_id is not the helper hired on the series; skipping (no charge, no visit)`,
+        );
+        results.skippedUnhired++;
+        fail(`series ${parent.id}: recurring_helper_id does not match the parent helper_id; skipped`);
+        continue;
+      }
+      const { data: blocked, error: blockErr } = await supabase.rpc("are_users_blocked", {
+        _user_a: parent.customer_id,
+        _user_b: parent.recurring_helper_id,
+      });
+      if (blockErr) {
+        // No safe default: an unknown answer must not book a possibly-blocked
+        // person. The window reopens tomorrow.
+        console.error(`[charge-recurring-visits] block check failed for series ${parent.id}; skipping the series`, blockErr);
+        fail(`series ${parent.id}: block check failed (${blockErr.message})`);
+        continue;
+      }
+      if (blocked === true) {
+        console.warn(
+          `[charge-recurring-visits] series ${parent.id}: poster and standing helper are blocked; skipping (no charge, no visit)`,
+        );
+        results.skippedBlocked++;
+        continue;
+      }
 
       // ── The two pre-flight reads, and why their errors are FATAL ──────────
       //

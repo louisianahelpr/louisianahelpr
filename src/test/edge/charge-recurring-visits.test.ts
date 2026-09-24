@@ -50,6 +50,12 @@
 //   A per-call idempotency key means the retry after a no-answer failure is a
 //   SECOND real charge instead of Stripe replaying the first.
 // @mutate supabase/functions/charge-recurring-visits/index.ts | `recurring-visit:${parent.id}:${visitDate}`, | `recurring-visit:${parent.id}:${visitDate}:${Math.random()}`,
+//   Q356: the cron books a standing helper nobody hired.
+// @mutate supabase/functions/charge-recurring-visits/index.ts | if (!parent.helper_id \|\| parent.recurring_helper_id !== parent.helper_id) { | if (false) {
+//   Q347: the cron books and charges across a block.
+// @mutate supabase/functions/charge-recurring-visits/index.ts | if (blocked === true) { | if (false) {
+//   Q347: an unknown block answer books anyway.
+// @mutate supabase/functions/charge-recurring-visits/index.ts | if (blockErr) { | if (false) {
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -95,6 +101,9 @@ function seriesParent(overrides: Record<string, unknown> = {}) {
     recurrence_days: [5],
     recurrence_weeks: 4,
     recurring_helper_id: HELPER_ID,
+    // The helper hired on visit one; the cron books recurring_helper_id only
+    // when it IS this person (Q356).
+    helper_id: HELPER_ID,
     status: "accepted",
     ...overrides,
   };
@@ -148,6 +157,8 @@ function seedHappyPath() {
   // The booking notification inserts TWO rows and now checks that two came
   // back; the mock's default single-row answer would read as a half-delivery.
   scenario.writeSelectRows.notifications = [{ id: "n1" }, { id: "n2" }];
+  // Poster and standing helper are not blocked (Q347).
+  scenario.rpc.are_users_blocked = false;
 
   stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_1" }] });
   stripeMock.paymentMethods.list.mockResolvedValue({ data: [{ id: "pm_1" }] });
@@ -805,6 +816,83 @@ describe("charge-recurring-visits edge function", () => {
     expect(res.status).toBe(401);
     expect(scenario.writes).toHaveLength(0);
     expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Q356 / Q347 — the standing helper must be the one hired, and not blocked
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /** Nothing this run may do for a refused series: no charge, no job, no application, no notification. */
+  function expectNothingBooked(b: Record<string, unknown>) {
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(insertedVisits()).toHaveLength(0);
+    expect(scenario.writes.filter((w) => w.table === "applications")).toHaveLength(0);
+    expect(scenario.writes.filter((w) => w.table === "notifications")).toHaveLength(0);
+    expect(b.funded).toBe(0);
+  }
+
+  it("checks the poster/helper block pair on a normal run", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+
+    await runOn(fn, "2026-09-01");
+
+    const call = scenario.rpcCalls?.find((c) => c.name === "are_users_blocked");
+    expect(call?.args).toEqual({ _user_a: POSTER_ID, _user_b: HELPER_ID });
+  });
+
+  it("skips (and reports) a series whose recurring_helper_id is not the helper hired on it", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    // The Q356 attack shape: recurring_helper_id pointed at someone who never
+    // applied, while the parent's hired helper is someone else.
+    wireJobsReads({ series: { rows: [seriesParent({ recurring_helper_id: "stranger-9" })] } });
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expectNothingBooked(b);
+    expect(b.skippedUnhired).toBe(1);
+    expect(res.status).toBe(500);
+    expect(reasons(b)).toContain(`series ${PARENT_ID}: recurring_helper_id does not match the parent helper_id`);
+  });
+
+  it("skips a series whose parent has no hired helper at all", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ helper_id: null })] } });
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expectNothingBooked(b);
+    expect(b.skippedUnhired).toBe(1);
+  });
+
+  it("skips a series across a block: no charge, no booking, not a defect", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.rpc.are_users_blocked = true;
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expectNothingBooked(b);
+    expect(b.skippedBlocked).toBe(1);
+    expect(res.status).toBe(200);
+  });
+
+  it("skips the series when the block check itself fails — an unknown answer never books", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.rpcErrors = { are_users_blocked: { message: "connection reset", code: "08006" } };
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expectNothingBooked(b);
+    expect(res.status).toBe(500);
+    expect(reasons(b)).toContain("block check failed");
   });
 
   it("dry run reports what it would charge and touches neither Stripe nor the database", async () => {

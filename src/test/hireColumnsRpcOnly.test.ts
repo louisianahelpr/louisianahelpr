@@ -172,12 +172,12 @@ describe("Q346 layer 3: the client never writes a hire column", () => {
 });
 
 // Layer 1: each refusal and each structural property, broken one at a time.
-// @mutate supabase/migrations/20260924042503_hire_columns_rpc_only.sql | IF current_user::text NOT IN ('authenticated', 'anon') THEN | IF true THEN
-// @mutate supabase/migrations/20260924042503_hire_columns_rpc_only.sql | LANGUAGE plpgsql | LANGUAGE plpgsql SECURITY DEFINER
-// @mutate supabase/migrations/20260924042503_hire_columns_rpc_only.sql | IF NEW.helper_id IS NOT NULL AND NEW.helper_id IS DISTINCT FROM OLD.helper_id THEN | IF false THEN
-// @mutate supabase/migrations/20260924042503_hire_columns_rpc_only.sql | IF NEW.status::text = 'accepted' AND OLD.status::text IS DISTINCT FROM 'accepted' THEN | IF false THEN
-// @mutate supabase/migrations/20260924042503_hire_columns_rpc_only.sql | IF NEW.offered_to_helper_id IS NOT NULL | IF false AND NEW.offered_to_helper_id IS NOT NULL
-// @mutate supabase/migrations/20260924042503_hire_columns_rpc_only.sql | IF TG_OP = 'INSERT' THEN | IF false THEN
+// @mutate supabase/migrations/20260924044812_recurring_helper_rpc_only.sql | IF current_user::text NOT IN ('authenticated', 'anon') THEN | IF true THEN
+// @mutate supabase/migrations/20260924044812_recurring_helper_rpc_only.sql | LANGUAGE plpgsql | LANGUAGE plpgsql SECURITY DEFINER
+// @mutate supabase/migrations/20260924044812_recurring_helper_rpc_only.sql | IF NEW.helper_id IS NOT NULL AND NEW.helper_id IS DISTINCT FROM OLD.helper_id THEN | IF false THEN
+// @mutate supabase/migrations/20260924044812_recurring_helper_rpc_only.sql | IF NEW.status::text = 'accepted' AND OLD.status::text IS DISTINCT FROM 'accepted' THEN | IF false THEN
+// @mutate supabase/migrations/20260924044812_recurring_helper_rpc_only.sql | IF NEW.offered_to_helper_id IS NOT NULL | IF false AND NEW.offered_to_helper_id IS NOT NULL
+// @mutate supabase/migrations/20260924044812_recurring_helper_rpc_only.sql | IF TG_OP = 'INSERT' THEN | IF false THEN
 // @mutate supabase/migrations/20260924042503_hire_columns_rpc_only.sql | BEFORE INSERT OR UPDATE ON public.group_job_helpers | BEFORE UPDATE ON public.group_job_helpers
 // @mutate supabase/migrations/20260924042503_hire_columns_rpc_only.sql | BEFORE UPDATE ON public.jobs | AFTER UPDATE ON public.jobs
 // Layer 3: a client hire write planted.

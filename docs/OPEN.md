@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 347 items — 211 done, 26 partly done (fixed, protection pending), 110 open.**
+**Queue: 349 items — 212 done, 27 partly done (fixed, protection pending), 110 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -2724,3 +2724,5 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 
 - [ ] **Q349 One real account's avatar object is stored `Cache-Control: no-cache` and nothing I read wrote it (2026-09-24, Q329 remainder).** storage.objects avatars/7f65ef12-…/avatar.jpg (real, non-seed, not the owner; signed up 2026-05-03), written 2026-09-20 21:52Z with owner_id NULL (service-role). complete-signup is the only edge uploader and runs at signup, not months later; scripts/audit/prod-seed.mjs touches only the helper test account. Find the writer (storage API logs for that minute), then decide with the owner whether to rewrite the object's metadata. Not touched: real user data.
 - [~] **Q350 The required 'Vitest unit tests' check (vitest.yml) could not pass: 10-min job limit on a ~8-10 min suite (2026-09-24).** Measured: 36 of its last 40 runs cancelled with 'exceeded the maximum execution time of 10m0s', 2 failed, 0 passed — a hidden red on a required check. test.yml's job ran 10.0/13.2 of 15 min. FIXED ddd9c5413+: both limits 25 min. Guard: src/test/fullSuiteJobTimeoutHeadroom.test.ts (every workflow job running the full suite; vacuity 2/2 killed). TICK when a vitest.yml run on main completes green.
+- [x] **Q351 Toast dismiss controls disagreed: 'Get notified?' had a 'Not now' button, every other toast the shared x (owner 2026-09-24: 'X icon everywhere').** DONE: pushPermissionNudge uses onDismiss (the x and swipe record the dismissal) instead of a cancel button and closeButton:false. Verified LIVE 2026-09-24 at 375 light + dark on /my-posts (helper-e2e): toast buttons [Close toast, Enable]; before/after in ~/.lh-shots/dismiss-x, reviews recorded. Guard: src/test/toastDismissIsSharedX.test.ts (no `cancel: { label:` / `closeButton: false` anywhere in src; vacuity 2/2 killed).
+- [~] **Q352 Payment Breakdown: 'Your Helpr receives' line removed (owner request, 6661c8eb1, deployed).** Guard: src/test/checkoutNoHelperPayLine.test.ts. Still owed: a screenshot of the live post-job Checkout step at 375 (light + dark) showing the breakdown without the line, recorded with review:record. Needs a test account to walk /post-job to Checkout WITHOUT paying.

@@ -109,16 +109,32 @@ export function payoutStatusLabel(status: string | null | undefined): string {
  * Canonical labels for the `jobs.payment_status` column.
  * "payout_pending" and "escrow" must never render raw in UI.
  */
-const PAYMENT_STATUS_LABELS: Record<string, string> = {
+/**
+ * Every value jobs_payment_status_check allows (SI-013). payment_status is a
+ * text column with a CHECK, so types.ts types it as bare `string`; this tuple
+ * is the union the compiler cannot generate. src/test/paymentStatusExhaustive
+ * .test.ts pins it to the newest migration that defines the CHECK.
+ */
+export const PAYMENT_STATUSES = [
+  "unpaid", "escrow", "payout_pending", "released", "refunded",
+  "cancelled", "abandoned", "failed", "chargeback", "cancelling",
+] as const;
+type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   unpaid: "Unpaid",
   escrow: "In escrow",
   payout_pending: "Payout pending",
   released: "Released",
   refunded: "Refunded",
   cancelled: "Cancelled",
+  abandoned: "Abandoned",
+  failed: "Failed",
+  chargeback: "Chargeback",
+  cancelling: "Cancelling",
 };
 
 export function paymentStatusLabel(status: string | null | undefined): string {
   if (!status) return "";
-  return PAYMENT_STATUS_LABELS[status] ?? humanize(status);
+  return PAYMENT_STATUS_LABELS[status as PaymentStatus] ?? humanize(status);
 }

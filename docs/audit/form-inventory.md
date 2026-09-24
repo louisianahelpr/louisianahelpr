@@ -131,7 +131,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/activity/appliedJobCard/PendingApplicationSection.tsx` | input×1, textarea×1 | file |  | Edit your message · Remove attachment |
 | `src/components/activity/AppliedJobsTab.tsx` | textarea×1 |  |  | Withdraw reason — other |
 | `src/components/activity/CompletionChoiceSheet.tsx` | input×1, textarea×1 | file | 1000 | Back to choices · Describe what needs to be redone · Remove photo |
-| `src/components/activity/EditJobDialog.tsx` | input×3, textarea×2, select×1, checkbox/switch/radio×1, date/calendar×1 | text, date |  | Job title · Description · Category · Location · edit-date-needed · Special requirements · edit-require-photo-proof · Require before and after photos |
+| `src/components/activity/EditJobDialog.tsx` | input×3, textarea×2, select×1, checkbox/switch/radio×1, date/calendar×1 | text, date |  | Job title · Description · Category · category-tax-lock-hint · Location · edit-date-needed · Special requirements · edit-require-photo-proof |
 | `src/components/activity/postedJobs/ApplicantsPanel.tsx` | textarea×1 |  |  | Post reach · Private note |
 | `src/components/activity/postedJobs/DeclineApplicantSheet.tsx` | textarea×1 |  |  | Decline reason · decline-note |
 | `src/components/CancellationDialog.tsx` | textarea×1 |  |  | cancel-reason |

@@ -1,10 +1,11 @@
 {
-  "generated": "2026-09-24T08:20:07.615Z",
-  "guards": 984,
-  "registered": 984,
+  "generated": "2026-09-24T08:26:54.944Z",
+  "guards": 985,
+  "registered": 985,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/components/activity/EditJobDialog.taxClass.test.tsx",
     "src/components/activity/appliedJobCard/helperDisputeCopy.test.tsx",
     "src/components/admin/adminStalledJobsWiring.test.tsx",
     "src/components/analytics/analyticsContrast.test.ts",

@@ -60,6 +60,12 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
      * unaffected.
      */
     const tipAmount = Math.round(rawTip * 100) / 100;
+    // create-payment's own bound (tipCents 100..100_000), checked here so an
+    // out-of-range amount never round-trips to a server error (ME-017 #2).
+    if (tipAmount < 1 || tipAmount > 1000) {
+      toast.error("Tips must be between $1 and $1,000.");
+      return;
+    }
     hapticMedium();
     setSending(true);
     try {

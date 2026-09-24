@@ -12,7 +12,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-// @ts-expect-error -- plain Node ESM; the .d.mts sits beside it
 import { logsQueryUrl } from "../../scripts/lib/supabaseLogs.mjs";
 
 const ROOT = join(__dirname, "..", "..");

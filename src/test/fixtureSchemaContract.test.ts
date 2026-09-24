@@ -307,6 +307,9 @@ describe("every fixture literal could be inserted", () => {
     { file: "src/test/edge/chargebackClawback.test.ts", keys: ["rows", "op", "column", "value", "stripe_reversal_id"] },
     { file: "src/test/edge/execute-dispute-split.test.ts", keys: ["dispute", "execution_status", "rows", "stripe_transfer_id"] },
     { file: "src/test/edge/release-payout-dispute-stamp.test.ts", keys: ["execution_transfer_id", "rows", "stripe_transfer_id"] },
+    // Test bodies that set a jobs read (`job({ status: "completed" })`) beside
+    // a clawback row; the job's status was graded against chargeback_clawbacks.
+    { file: "src/test/edge/chargebackHeldPayoutNotice.test.ts", keys: ["rows", "stripe_transfer_id", "amount_reversed", "original_transfer_id"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

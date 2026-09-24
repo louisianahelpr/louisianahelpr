@@ -117,11 +117,13 @@ const AdminReferrals = () => {
         const profiles = unwrap(
           await supabase
             .from("profiles")
-            .select("user_id, full_name, email")
+            .select("user_id, full_name, email, anonymized_at")
             .in("user_id", idsArray),
         );
         (profiles || []).forEach(p => {
-          nameMap[p.user_id] = p.full_name || p.email || p.user_id.slice(0, 8);
+          // AL-011: an anonymised profile has no name and no email; it is a
+          // departed account, not an 8-character UUID shown as a person.
+          nameMap[p.user_id] = p.full_name || p.email || (p.anonymized_at ? "Deleted account" : "No name on file");
         });
       }
 

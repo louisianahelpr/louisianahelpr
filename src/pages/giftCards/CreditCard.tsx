@@ -22,7 +22,8 @@ export function CreditCard({
   /** "received" shows who it's from; "sent" shows who it went to. */
   perspective?: "received" | "sent";
 }) {
-  const donorFirst = (credit.donor?.full_name ?? "A neighbor").split(" ")[0];
+  // AL-011: split the NAME, never the fallback ("A neighbor" split to "from A").
+  const donorFirst = credit.donor?.full_name?.trim().split(" ")[0] || "a neighbor";
   const subline =
     perspective === "sent"
       ? `to ${credit.recipient_email ?? "your recipient"}`

@@ -81,6 +81,10 @@ for (const width of WIDTHS) {
       expect(m.error, `${r.url} failed to load: ${m.error}`).toBeUndefined();
       if ((m.cls ?? 0) >= CLS_BUDGET || m.waves > 1) {
         breaches[`${width} ${r.url}`] = `cls=${m.cls} waves=${m.waves}`;
+        // Which element moved, in the CI log: the Linux runner's fallback fonts
+        // and timing differ from a Mac, so a breach must explain itself (the
+        // 2026-09-24 "1440 /: cls=0.0315" measured 0.0006 locally).
+        console.log(`[page-settle] ${width} ${r.url} shifts: ${JSON.stringify(m.shifts ?? [])} waves: ${JSON.stringify(m.waveDetail ?? [])}`);
       }
     }
     const known = Object.fromEntries(Object.entries(KNOWN).filter(([k]) => k.startsWith(`${width} `)));

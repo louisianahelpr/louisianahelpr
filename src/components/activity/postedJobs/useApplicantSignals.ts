@@ -21,7 +21,7 @@ export function applicantSignalHelperIds(applications: ReadonlyArray<{ helper_id
  * The query options for every applicant signal, shared by the hook and by
  * `prefetchApplicantSignals` so the two can never disagree on a key (Q239).
  */
-export function applicantSignalQueries(helperIds: string[], jobId: string | undefined) {
+function applicantSignalQueries(helperIds: string[], jobId: string | undefined) {
   return {
     // Neighbor hire counts — one RPC call per applicant, keyed by helper_id.
     //

@@ -810,10 +810,11 @@ const AASA_URL = "https://www.louisianahelpr.com/.well-known/apple-app-site-asso
  * claims one day. Pinning them here would make the fix that removes them look
  * like a regression.
  */
+// Q194 (2026-09-23) deleted the short-link shapes (/j/* /u/* /m/* /messages/*
+// /legal/* /post-job/*) and their AASA claims; src/test/aasaProbeClaimsCommitted.test.ts
+// fails on main when this list names a claim the committed file no longer has.
 const REQUIRED_CLAIMS = [
-  "/jobs/*", "/j/*", "/user/*", "/u/*",
-  "/messages", "/messages/*", "/m/*",
-  "/legal", "/legal/*", "/post-job", "/post-job/*",
+  "/jobs/*", "/user/*", "/messages", "/legal", "/post-job",
 ];
 const REQUIRED_EXCLUSIONS = [
   "NOT /admin", "NOT /admin/*", "NOT /api/*", "NOT /.well-known/*", "NOT /auth/*",

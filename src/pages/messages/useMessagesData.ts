@@ -511,34 +511,44 @@ export function useMessagesData({
       // Not in the cached inbox — but the cache may simply predate the thread
       // this link points at (the common case: the user just applied and was
       // sent straight here). The pre-cache code always resolved deep links off
-      // a fresh 200-row fetch, so confirm against the server before inventing
-      // a placeholder, or a real thread would open as an empty one.
+      // a fresh 200-row fetch, so confirm against the server before opening a
+      // placeholder, or a real thread would open as an empty one.
+      //
+      // The placeholder is BUILT alongside that refetch, not after it (Q380).
+      // Serially they were two full round-trip chains, and a thread with no
+      // messages yet — every "Message Helpr" right after a hire — can never
+      // come back from the refetch, so the user always paid for both: on the
+      // slow profile the thread had not opened 30s after the tap.
       //
       // This awaits the refetch and then reads the cache directly rather than
       // waiting for re-rendered query state: a refetch that returns
       // structurally identical rows changes neither `data`'s identity nor any
       // render-visible flag, so an effect watching those could never fire
       // again and the deep link would be dropped on the floor.
-      await loadConversations(resolvedUserId);
-      const refreshed = queryClient.getQueryData<Conversation[]>(
-        queryKeys.messages.conversations(resolvedUserId),
-      );
-      if (refreshed && openIfMatch(refreshed)) return;
-
+      //
       // A placeholder needs to know WHO the thread is with. On a jobId-only
       // link (every message notification produced before the trigger started
       // sending userId) we don't know, and guessing would open a thread with
       // the wrong person. Leave them on the inbox — the conversation they want
       // is in the list, just not auto-opened.
-      if (!deepLinkUserId) return;
-      const placeholder = await buildDeepLinkPlaceholder(
-        resolvedUserId,
-        deepLinkJobId,
-        deepLinkUserId,
+      const placeholderP = deepLinkUserId
+        ? buildDeepLinkPlaceholder(resolvedUserId, deepLinkJobId, deepLinkUserId)
+        : null;
+      // Unused when the refetch finds the thread; never an unhandled rejection.
+      void placeholderP?.catch(() => {});
+      await loadConversations(resolvedUserId);
+      const refreshed = queryClient.getQueryData<Conversation[]>(
+        queryKeys.messages.conversations(resolvedUserId),
       );
-      // null = dead thread (deleted user AND deleted job); the helper already
-      // toasted, so leave the inbox untouched.
-      if (!placeholder) return;
+      if (refreshed && openIfMatch(refreshed)) return;
+      if (!placeholderP) return;
+      const placeholder = await placeholderP;
+      // A dead thread (deleted user AND deleted job) or a failed lookup: say
+      // so, and leave the inbox untouched.
+      if ("problem" in placeholder) {
+        toast.error(placeholder.problem);
+        return;
+      }
       setConversations((prev) => [placeholder, ...prev]);
       void openConvo(placeholder);
     })();

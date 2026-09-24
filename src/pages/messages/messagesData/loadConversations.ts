@@ -333,15 +333,16 @@ export async function fetchConversations(
 /**
  * Build the placeholder thread for a `?jobId=&userId=` deep link that has no
  * existing conversation, so the user can start messaging. Extracted verbatim
- * from the tail of the old `loadConversations`; returns `null` (after a toast)
- * when the link resolves to a dead thread, which is the caller's cue to leave
- * the inbox untouched.
+ * from the tail of the old `loadConversations`. Returns `{ problem }` when the
+ * link resolves to a dead thread or the lookup failed; the CALLER toasts it,
+ * because the caller builds this in parallel with the confirming inbox refetch
+ * (Q380) and a thread that refetch finds must not also show "couldn't open".
  */
 export async function buildDeepLinkPlaceholder(
   uid: string,
   deepLinkJobId: string,
   deepLinkUserId: string,
-): Promise<Conversation | null> {
+): Promise<Conversation | { problem: string }> {
   // No existing conversation — fetch profile + job to build a
   // placeholder thread so the user can start messaging.
   const [profileRes, jobRes, closesAtMap, offerTargets] = await Promise.all([
@@ -362,8 +363,7 @@ export async function buildDeepLinkPlaceholder(
       severity: "warning",
       tags: { source: "buildDeepLinkPlaceholder" },
     });
-    toast.error("Couldn't open that conversation — please try again.");
-    return null;
+    return { problem: "Couldn't open that conversation — please try again." };
   }
 
   // Guard: if neither the user profile nor the job record resolved,
@@ -375,8 +375,7 @@ export async function buildDeepLinkPlaceholder(
   const jobFound = !!(jobRes.data);
   if (!profileFound && !jobFound) {
     console.warn("[Messages] deep-link resolved to a dead thread — no profile and no job found", { deepLinkUserId, deepLinkJobId });
-    toast.error("This conversation link is no longer available.");
-    return null;
+    return { problem: "This conversation link is no longer available." };
   }
 
   // Same one-record rule as the inbox: the placeholder's name and avatar come

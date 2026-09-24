@@ -258,6 +258,7 @@ describe("useMessagesData — deep links against the cache", () => {
       otherUserName: "Sam T.",
     };
     fetchConversationsMock.mockResolvedValue([CONVO, fresh]);
+    buildDeepLinkPlaceholderMock.mockResolvedValue({ ...fresh, otherUserName: "Nobody" });
 
     const navigate = makeNavigate();
     const { result } = renderMessagesData(client, {
@@ -267,9 +268,51 @@ describe("useMessagesData — deep links against the cache", () => {
     });
 
     await waitFor(() => expect(result.current.activeConvo).toEqual(fresh));
-    // Resolved from the refetch, not invented as a placeholder.
-    expect(buildDeepLinkPlaceholderMock).not.toHaveBeenCalled();
+    // Resolved from the refetch: the placeholder built alongside it (Q380) is
+    // discarded, never inserted over the real thread.
     expect(fetchConversationsMock).toHaveBeenCalledTimes(2);
+    expect(result.current.conversations.map((c) => c.otherUserName)).not.toContain("Nobody");
+  });
+
+  // Q380 (nightly-red #1719, 2026-09-24): "Message Helpr" right after a hire
+  // links to a thread with no messages yet, which the confirming refetch can
+  // never return. The placeholder used to be built only AFTER that refetch
+  // settled, so the slow profile paid two full round-trip chains and the
+  // thread had not opened 30s after the tap. It is now built in parallel.
+  it("builds the placeholder while the confirming refetch is still in flight", async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const warm = renderMessagesData(client);
+    await waitFor(() => expect(warm.result.current.loading).toBe(false));
+    warm.unmount();
+
+    let releaseRefetch: (v: Conversation[]) => void = () => {};
+    fetchConversationsMock.mockImplementation(
+      () => new Promise<Conversation[]>((r) => { releaseRefetch = r; }),
+    );
+    const placeholder: Conversation = {
+      otherUserId: "other-9",
+      otherUserName: "New Person",
+      jobTitle: "Brand new job",
+      jobId: "job-9",
+      lastMessage: "",
+      lastAt: "2026-08-17T11:00:00.000Z",
+      unread: 0,
+    };
+    buildDeepLinkPlaceholderMock.mockResolvedValue(placeholder);
+
+    const { result } = renderMessagesData(client, {
+      deepLinkJobId: "job-9",
+      deepLinkUserId: "other-9",
+    });
+
+    await waitFor(() => expect(fetchConversationsMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(buildDeepLinkPlaceholderMock).toHaveBeenCalledTimes(1));
+    // Still before the refetch settles: nothing opened yet.
+    expect(result.current.activeConvo).toBeNull();
+    releaseRefetch([CONVO]);
+    await waitFor(() => expect(result.current.activeConvo).toEqual(placeholder));
   });
 
   it("falls back to a placeholder once the revalidation confirms there is no thread", async () => {
@@ -312,6 +355,8 @@ describe("useMessagesData — deep links against the cache", () => {
   });
 });
 
+// Q380: build the placeholder only after the refetch settles again.
+// @mutate src/pages/messages/useMessagesData.ts | const placeholderP = deepLinkUserId | await loadConversations(resolvedUserId);\n      const placeholderP = deepLinkUserId
 // Proof this guard can fail: open the deep-linked thread by hand instead of
 // through the ONE loader. The thread opens with zero messages — owner,
 // 2026-09-14, "Say hello" painted over 38 messages.

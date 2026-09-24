@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 351 items — 223 done, 27 partly done (fixed, protection pending), 101 open.**
+**Queue: 352 items — 223 done, 27 partly done (fixed, protection pending), 102 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1721,6 +1721,15 @@ sure someone hears it and closes it.
    (delete or archive? the docs overlap Q165). Background checks, idle sign-out
    and the Q40 ID-upload leftovers are listed as KEEP. Found on the way: two
    database clean-up jobs were never switched on (Q167).
+10. **Your own test report is the one critical alert left open (ledger 6c3679bc, 2026-09-24).**
+   Report 83792937 was filed from YOUR account on 2026-08-30 ("Harassment or
+   abuse", text "dfhfghjfgtj") against user 11111111-…-103, who no longer
+   exists (0 rows in auth.users and profiles, measured 04:40Z). It is still
+   'investigating', so the alert stays open. It's your record, so I didn't
+   touch it. Dismiss it on /admin?view=reports and the next hourly sync closes
+   the alert. Also still yours: Q317 (the fatal cron alert). The fix is to set
+   PostgREST db_pool=14 and the pooler pool size to 14, and it needs the
+   Supabase access token.
 
 ## CARRIED — still open from the sections archived 2026-09-23
 
@@ -2742,3 +2751,4 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [x] **Q353 Post-job submit button named the wrong blocker.** Measured on prod 2026-09-24: a Repost prefill with a 33-char title (cap 32) left 'Review & Pay' disabled and reading 'Replace the [Placeholders] to Continue' over a description with none — detailsComplete had 7 conditions, the label named 3 and called the rest placeholders (over-long title and contact details mislabelled). Fix: one function, src/pages/postjob/detailsBlocker.ts, is both the completeness test and the label. Guard: src/pages/postjob/detailsBlocker.test.ts. Tick when prod shows 'Shorten the Title to Continue' on that repost.
   2026-09-24 verified live (deploy 9f1eb0c26): same repost now reads 'Shorten the Title to Continue' (was 'Replace the [Placeholders] to Continue'). Screen ~/.lh-shots/q353-after.png, review:record ok. Guard: src/pages/postjob/detailsBlocker.test.ts (1/1 killed).
 - [x] **Q354 A migration that adds a public function without types.ts turns db-deploy red AFTER it is on prod (ops alert ledger 00fd2bd0 "db-deploy failed on main", x46; 2026-09-24).** Measured (GitHub jobs API, 2026-09-24 04:40Z): of 50 failed db-deploy runs since 2026-09-23 05:00Z, 20 failed at "Verify types.ts matches the live schema just deployed" (newest 35955021149: ops_alert_fingerprint missing, fixed by 42b9ff6dc; run 35955346261 green 04:22Z). The rest: 16 "every prod migration was applied by db-deploy", 6 banned-account write paths, 4 migration lint, 3 destructive-DDL pre-flight, 1 default privileges (all older, last green run is newer). check-types-fresh can only run post-deploy, so the class now fails pre-push. GUARD: src/test/typesCoverMigrationFunctions.test.ts (replays migrations, every public non-trigger function must be a types.ts Functions key; red on 42b9ff6dc^ and by its @mutate). Ledger item closed with that run as the re-run evidence.
+- [ ] **Q355 Admin-notification Slack items (verify kind 'companions') can never close themselves (ops alert ledger, 2026-09-24).** "ban review needed" (1d617a04, x3 from 2026-09-22 16:35Z) stayed open 36h. Its only error_logs rows are source ops-alert, and the companions rule in ops_alert_verify() (20260924005818) excludes that source, so v_comp = 0 and it never closes. The real question was answerable: user_violations with action_taken = 'pending_ban_review' = 0 rows (04:41Z; the subject was a deleted strike-probe fixture). Closed by hand with that evidence. Fix: give 'Ban review needed' (and the other admin-queue posts) a sql_condition that re-asks its queue, e.g. pending_ban_review rows for the named user. Guard to name when fixed: a PGlite case where a ban-review item closes once its violation leaves pending_ban_review and stays open while it is pending.

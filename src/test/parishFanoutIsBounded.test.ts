@@ -21,9 +21,9 @@ describe("the parish job-match fan-out is bounded (N-007)", () => {
     expect(defining.length).toBeGreaterThan(1);
   });
   it("skips a Helpr already told about this job", () => {
-    expect(newest).toMatch(/AND NOT EXISTS \(\s*SELECT 1 FROM public\.notifications n\s+WHERE n\.user_id = c\.user_id AND n\.job_id = NEW\.id AND n\.type = 'job_match'\s*\)  -- N-007 once per job/);
+    expect(newest).toMatch(/AND NOT EXISTS \(\s*SELECT 1 FROM public\.notifications n\s+WHERE n\.user_id = c\.user_id AND n\.job_id = NEW\.id AND n\.type = 'job_match'\s*\) {2}-- N-007 once per job/);
   });
   it("caps job_match notifications per Helpr per hour", () => {
-    expect(newest).toMatch(/n\.created_at > now\(\) - interval '1 hour'\s*\) < 10  -- N-007 hourly cap/);
+    expect(newest).toMatch(/n\.created_at > now\(\) - interval '1 hour'\s*\) < 10 {2}-- N-007 hourly cap/);
   });
 });

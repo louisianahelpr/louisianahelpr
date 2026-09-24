@@ -40,7 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 350 items — 214 done, 26 partly done (fixed, protection pending), 110 open.**
+**Queue: 350 items — 215 done, 25 partly done (fixed, protection pending), 110 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -147,7 +147,7 @@ sure someone hears it and closes it.
   of truth, and add a check for this class.
 - [ ] **Q7 WebKit only: the bottom nav isn't frosted.** Verify on the iOS 26.1
   simulator or a device; fix it if it's real.
-- [~] **Q8 Unused exports — ratchet DONE (baseline now 97 exports / 11 types, enforced by deadcodeRatchet.test.ts; red if it rises). Remaining: review the 97 with the owner.** Was: 160 at baseline, 63 dropped by e16ebdcc3.
+- [~] **Q8 Unused exports — ratchet DONE (baseline 96 exports / 11 types on 2026-09-24, scripts/deadcode-baseline.json, enforced by deadcodeRatchet.test.ts; red if it rises). Remaining: review them with the owner.** Was: 160 at baseline, 63 dropped by e16ebdcc3.
   Lower scripts/deadcode-baseline.json to match. The ratchet test fails if the
   count rises. Review the rest with the owner (a report, not auto-delete).
 - [ ] **Q9 The required review of money/authz/data-model diffs is skipped.**
@@ -1238,6 +1238,7 @@ sure someone hears it and closes it.
   "Allow GitHub Actions to create and approve pull requests". Then wire the
   refresh workflows to open an auto-merging PR with the regenerated files.
   **2026-09-24 re-measured:** no bot PR has merged. #1722 (scoreboard) sat with auto-merge on for 5 h: its pull_request runs are parked 'action_required' (github.token), and the default dispatch list (test.yml vitest.yml) produced only 1 of main's 3 required checks — and that one (Vitest) was cancelled on its 10-min limit (Q350), Test failed on a then-main lint error. FIXED: default now adds e2e-happy-path.yml + mobile-viewports.yml; guard src/test/refreshPrDispatchCoversRequiredChecks.test.ts (hosting workflow derived from required job names; vacuity 1/1 killed). Still TICK when the first bot PR auto-merges.
+  2026-09-24 03:23Z bot PR #1722: dispatch now produced all 3 required checks (Mobile green; Vitest red on deadcode 97; E2E red on stale AASA pins). Both fixed on main in the commit after 7b13b7da9. Tick when the next refresh run's PR auto-merges.
 3. **Let GitHub Actions commit the nightly re-measurements (Q57).** One
    setting: Settings -> Actions -> General -> Workflow permissions -> "Read
    and write permissions" + tick "Allow GitHub Actions to create and approve
@@ -2728,4 +2729,5 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [x] **Q351 Toast dismiss controls disagreed: 'Get notified?' had a 'Not now' button, every other toast the shared x (owner 2026-09-24: 'X icon everywhere').** DONE: pushPermissionNudge uses onDismiss (the x and swipe record the dismissal) instead of a cancel button and closeButton:false. Verified LIVE 2026-09-24 at 375 light + dark on /my-posts (helper-e2e): toast buttons [Close toast, Enable]; before/after in ~/.lh-shots/dismiss-x, reviews recorded. Guard: src/test/toastDismissIsSharedX.test.ts (no `cancel: { label:` / `closeButton: false` anywhere in src; vacuity 2/2 killed).
 - [x] **Q352 Payment Breakdown: 'Your Helpr receives' line removed (owner request, 6661c8eb1, deployed).** Guard: src/test/checkoutNoHelperPayLine.test.ts. Still owed: a screenshot of the live post-job Checkout step at 375 (light + dark) showing the breakdown without the line, recorded with review:record. Needs a test account to walk /post-job to Checkout WITHOUT paying.
   2026-09-24: verified live — poster-e2e Repost → Checkout (no payment) at 375; breakdown shows Job Budget/Service Fee/Total only, no Helpr line, light + dark. Screens ~/.lh-shots/q352-checkout-{light,dark}.png, review:record ok. Guard: src/test/checkoutNoHelperPayLine.test.ts.
-- [~] **Q353 Post-job submit button named the wrong blocker.** Measured on prod 2026-09-24: a Repost prefill with a 33-char title (cap 32) left 'Review & Pay' disabled and reading 'Replace the [Placeholders] to Continue' over a description with none — detailsComplete had 7 conditions, the label named 3 and called the rest placeholders (over-long title and contact details mislabelled). Fix: one function, src/pages/postjob/detailsBlocker.ts, is both the completeness test and the label. Guard: src/pages/postjob/detailsBlocker.test.ts. Tick when prod shows 'Shorten the Title to Continue' on that repost.
+- [x] **Q353 Post-job submit button named the wrong blocker.** Measured on prod 2026-09-24: a Repost prefill with a 33-char title (cap 32) left 'Review & Pay' disabled and reading 'Replace the [Placeholders] to Continue' over a description with none — detailsComplete had 7 conditions, the label named 3 and called the rest placeholders (over-long title and contact details mislabelled). Fix: one function, src/pages/postjob/detailsBlocker.ts, is both the completeness test and the label. Guard: src/pages/postjob/detailsBlocker.test.ts. Tick when prod shows 'Shorten the Title to Continue' on that repost.
+  2026-09-24 verified live (deploy 9f1eb0c26): same repost now reads 'Shorten the Title to Continue' (was 'Replace the [Placeholders] to Continue'). Screen ~/.lh-shots/q353-after.png, review:record ok. Guard: src/pages/postjob/detailsBlocker.test.ts (1/1 killed).

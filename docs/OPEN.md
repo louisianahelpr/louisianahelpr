@@ -642,7 +642,8 @@ sure someone hears it and closes it.
    longer press admin switches (Q166). Live now: auto_publish_enabled = true,
    Instagram on, Facebook off; the Meta secrets are missing, so nothing posts
    and marketing-publish now reports this once a day as an owner to-do instead
-   of a critical page every 15 minutes. Pick one: (a) **off** until you add the
+   of a critical page every 15 minutes. (2026-09-24: marketing-token-health also stopped
+   paging CRITICAL + 500 for the same missing secret; it defers to that to-do.) Pick one: (a) **off** until you add the
    Meta secrets (I switch it off in Admin -> Social); (b) leave it on, so
    scheduled Instagram rows post as soon as the secrets exist.
 - [~] **Q41 REPORTED 2026-09-23: docs/audit/dead-code-report-2026-09-23.md (NO-GUARD: a report; deletions wait on MORNING QUESTIONS 9).** Measured: knip 0 unused files, 97 exports + 11 types; 5 files only tests reach (production-entry knip); 4 unrendered components; 2 routes with no link; 1 edge function nothing calls (helpr-pass-wallet); 5 DB functions with 0 callers anywhere (+4 test-only group-job RPCs); 2 tables with no writer; 9 unreferenced scripts, 12 docs-only scripts, 12 unlinked top-level docs (overlaps Q165). Grouped (a) safe / (b) owner call / (c) keep. Was: **Q41 Morning report: everything the design no longer uses (owner,

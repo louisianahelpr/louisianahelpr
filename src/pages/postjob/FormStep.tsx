@@ -9,6 +9,7 @@ import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 // silently understated every total whose fee carried cents.
 import { formatPriceExact } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
+import { detailsBlocker } from "./detailsBlocker";
 
 interface FormStepProps {
   form: ReturnType<typeof usePostJobForm>;
@@ -37,10 +38,7 @@ export function FormStep({ form }: FormStepProps) {
   // section) so the poster knows exactly what's blocking the button.
   let submitLabel = "Review & Pay";
   if (!form.detailsComplete) {
-    if (!form.title.trim()) submitLabel = "Add a Title to Continue";
-    else if (!form.description.trim()) submitLabel = "Add a Description to Continue";
-    else if (!form.category) submitLabel = "Pick a Category to Continue";
-    else submitLabel = "Replace the [Placeholders] to Continue";
+    submitLabel = detailsBlocker(form) ?? submitLabel;
   } else if (!form.logisticsComplete) {
     if (!form.streetAddress.trim() || !form.city.trim() || !form.addrState.trim() || !form.zipCode.trim())
       submitLabel = "Add the Address to Continue";

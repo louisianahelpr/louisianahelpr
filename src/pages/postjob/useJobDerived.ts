@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { categoryPricing } from "@/lib/pricingGuide";
 import { categories } from "@/components/postjob/DetailsSection";
-import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
-import { TITLE_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { posterServiceFeeCents } from "@/lib/posterFees";
 import { MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS } from "@/lib/moneyLimits";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
@@ -10,7 +8,7 @@ import { useHelprActivity } from "@/hooks/useHelprActivity";
 import { computeBudgetPresets } from "./postJobFormHelpers";
 import { isScheduleInThePast } from "@/lib/jobExpiry";
 import { jobStartDateTime } from "@/lib/dateUtils";
-import { contactLeakFieldError } from "@/lib/contactLeakField";
+import { detailsBlocker } from "./detailsBlocker";
 
 /**
  * useJobDerived — derived values for the Post-a-Task form: checkout
@@ -193,7 +191,7 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // Section completion for the 3-step progress bar. Photos are optional
   // (strongly nudged, never required), so the Details chapter is "done"
   // once title, description, and category are set.
-  // `title.length <= TITLE_MAX` is part of COMPLETE, not just of valid. A
+  // `title.length <= TITLE_MAX` (in detailsBlocker) is part of COMPLETE. A
   // Repost prefill can hand this form a title longer than the field allows
   // (prod holds titles up to 45 chars from before TITLE_MAX existed), and
   // without this the Details header showed a green tick and the word DONE
@@ -201,15 +199,7 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // while the field it contains says otherwise. Same for a title or
   // description carrying contact details: the database rejects the row
   // (20260913020635), the field says so inline, so the section is not DONE.
-  const detailsComplete = !!(
-    title.trim() &&
-    title.length <= TITLE_MAX &&
-    description.trim() &&
-    category &&
-    !hasUnfilledPlaceholders(description) &&
-    !contactLeakFieldError(title, "job title") &&
-    !contactLeakFieldError(description, "job description")
-  );
+  const detailsComplete = detailsBlocker({ title, description, category }) === null;
   // A schedule that has already gone by is INCOMPLETE, not merely invalid —
   // same doctrine as the over-length title above. The alternative is a
   // Logistics header showing a green tick and the word DONE over a start time

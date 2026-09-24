@@ -3,6 +3,13 @@
  * `:104-107` rendered nothing on success and just `setTimeout`-ed 800ms into
  * /dashboard. Measured 2026-09-01 in Chrome: 400ms after submit the form was
  * still on screen, untouched, and the URL was already /dashboard.
+ *
+ * OA-006: the panel promises other devices must re-authenticate; the page now
+ * revokes every other session (signOut scope "others") and says so honestly
+ * when that fails.
+ *
+ * @mutate src/pages/ResetPassword.tsx | const { error: othersErr } = await supabase.auth.signOut({ scope: "others" }); | const othersErr = null;
+ * @mutate src/pages/ResetPassword.tsx | setOthersSignedOut(!othersErr); | setOthersSignedOut(true);
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
@@ -11,11 +18,13 @@ import ResetPassword from "./ResetPassword";
 
 const updateUserMock = vi.fn();
 const getSessionMock = vi.fn();
+const signOutMock = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
       updateUser: (...a: unknown[]) => updateUserMock(...a),
       getSession: (...a: unknown[]) => getSessionMock(...a),
+      signOut: (...a: unknown[]) => signOutMock(...a),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     },
   },
@@ -58,6 +67,7 @@ async function submitNewPassword() {
 describe("a successful password change leaves visible evidence", () => {
   beforeEach(() => {
     updateUserMock.mockReset().mockResolvedValue({ error: null });
+    signOutMock.mockReset().mockResolvedValue({ error: null });
     // A live recovery session, so the form (not the "use your email link"
     // branch) renders.
     getSessionMock.mockReset().mockResolvedValue({ data: { session: { user: { id: "u1" } } }, error: null });
@@ -73,6 +83,21 @@ describe("a successful password change leaves visible evidence", () => {
     // The form is gone — the old screen left it on display, filled in, as if
     // the tap had not registered.
     expect(screen.queryByRole("button", { name: /Update Password/i })).toBeNull();
+  });
+
+  it("revokes every other session, so the promise on the panel is kept (OA-006)", async () => {
+    await submitNewPassword();
+    await screen.findByText(/Password updated\./i);
+    expect(signOutMock).toHaveBeenCalledWith({ scope: "others" });
+    expect(screen.getByText(/Anywhere else you were signed in will ask/i)).toBeTruthy();
+  });
+
+  it("says so instead of promising it when revoking the other sessions fails", async () => {
+    signOutMock.mockResolvedValue({ error: { message: "boom" } });
+    await submitNewPassword();
+    await screen.findByText(/Password updated\./i);
+    expect(screen.queryByText(/Anywhere else you were signed in will ask/i)).toBeNull();
+    expect(screen.getByText(/couldn.t sign out your other devices/i)).toBeTruthy();
   });
 
   it("announces it, so a screen-reader user gets the same evidence", async () => {

@@ -62,6 +62,7 @@ const ResetPassword = () => {
   // Shape is lifted from the canonical sibling, ForgotPassword's `sent` state
   // (tinted 64px disc → `text-page-title` h2 → ds-13 body → primary button), so
   // the two halves of the reset flow confirm themselves the same way.
+  const [othersSignedOut, setOthersSignedOut] = useState(true);
   const [done, setDone] = useState(false);
   // When a link is invalid/expired/used, Supabase forwards `error=`,
   // `error_description=` in the URL hash and we surface the specific
@@ -179,6 +180,14 @@ const ResetPassword = () => {
       // is announced (role="status"), and the hand-off is long enough to read
       // rather than the old 800ms flicker. The panel's own button goes to the
       // same place, so nobody has to wait out the timer.
+      // OA-006: the success copy promises other devices must re-authenticate,
+      // and GoTrue does not revoke them on a password change by itself. Revoke
+      // every other session here; if that fails, the copy says so instead.
+      // The recovery token is spent, so drop it from the URL (history, logs,
+      // a shoulder-surfed address bar).
+      const { error: othersErr } = await supabase.auth.signOut({ scope: "others" });
+      setOthersSignedOut(!othersErr);
+      window.history.replaceState(null, "", window.location.pathname);
       setSubmitError(null);
       setDone(true);
       redirectTidRef.current = window.setTimeout(() => navigate("/dashboard", { replace: true }), 2200);
@@ -230,7 +239,9 @@ const ResetPassword = () => {
               &mdash; taking you to your dashboard.
             </p>
             <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Anywhere else you were signed in will ask for the new password next time.
+              {othersSignedOut
+                ? "Anywhere else you were signed in will ask for the new password next time."
+                : "We couldn\u2019t sign out your other devices. Use \u201cSign Out Everywhere\u201d on your profile\u2019s Security tab."}
             </p>
             <Button
               variant="primary"

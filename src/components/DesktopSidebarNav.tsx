@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
+import { useAdminBadges } from "@/components/admin/adminBadgeStore";
 import { useSidePanel } from "@/components/sidePanelOpen";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
@@ -102,6 +103,9 @@ const DesktopSidebarNav = () => {
   // The SAME shared store MobileNav reads (Q103): one unread query and one
   // realtime channel per user, however many navs are mounted.
   const { unreadCount } = useNavUnreadCount(user);
+  // AM-011: /admin's queue counts (published by Admin.tsx from getBadge).
+  const adminBadges = useAdminBadges();
+  const adminTotal = Object.values(adminBadges).reduce((a, n) => a + n, 0);
 
 
   // Render nothing unless we're on the wide desktop website. This is the same
@@ -293,6 +297,14 @@ const DesktopSidebarNav = () => {
             >
               <span className="relative inline-flex">
                 <ShieldAlert className="h-5 w-5" strokeWidth={adminActive ? 2.3 : 1.8} />
+                {!adminOpen && adminTotal > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-ds-10 font-bold"
+                    style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
+                  >
+                    {adminTotal > 9 ? "9+" : adminTotal}
+                  </span>
+                )}
               </span>
               <span className="flex-1 text-ds-14 font-semibold">Admin</span>
               <ChevronDown
@@ -340,6 +352,15 @@ const DesktopSidebarNav = () => {
                             >
                               <ItemIcon className="h-3.5 w-3.5 shrink-0" strokeWidth={on ? 2.3 : 1.8} />
                               <span className="truncate">{label}</span>
+                              {!!adminBadges[id] && (
+                                <span
+                                  className="ml-auto flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full px-1 text-ds-10 font-bold"
+                                  style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
+                                  aria-label={`${adminBadges[id]} new`}
+                                >
+                                  {adminBadges[id] > 99 ? "99+" : adminBadges[id]}
+                                </span>
+                              )}
                             </button>
                           </li>
                         );

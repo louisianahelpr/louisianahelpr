@@ -50,6 +50,7 @@ type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" |
 
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
+import { publishAdminBadges } from "@/components/admin/adminBadgeStore";
 import { AdminCommandPalette } from "@/components/admin/AdminCommandPalette";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
@@ -79,6 +80,15 @@ const VIEW_LABELS: Record<View, string> = {
     banreview: "Ban Review",
     stalled: "Stuck Jobs",
   };
+
+function adminBadgeFor(id: string, unreadCounts: Record<string, number>, stats: Stats): number | undefined {
+  const uc = unreadCounts[id];
+  if (uc && uc > 0) return uc;
+  if (id === "disputes" && stats.disputedJobs > 0) return stats.disputedJobs;
+  if (id === "reports" && stats.openReports > 0) return stats.openReports;
+  if (id === "support" && stats.supportTickets > 0) return stats.supportTickets;
+  return undefined;
+}
 
 const Admin = () => {
   // Which chrome this page owns — see the two render sites below.
@@ -464,6 +474,16 @@ const Admin = () => {
     return () => window.removeEventListener("admin:view-user-history", handler as EventListener);
   }, [handleViewChange]);
 
+  // AM-011: the desktop sidebar (DesktopSidebarNav) shows these same counts.
+  useEffect(() => {
+    const next: Record<string, number> = {};
+    for (const g of adminNavGroups) for (const { id } of g.items) {
+      const n = adminBadgeFor(id, unreadCounts, stats);
+      if (n) next[id] = n;
+    }
+    publishAdminBadges(next);
+  }, [unreadCounts, stats]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-premium-page">
@@ -472,14 +492,7 @@ const Admin = () => {
     );
   }
 
-  const getBadge = (id: string): number | undefined => {
-    const uc = unreadCounts[id];
-    if (uc && uc > 0) return uc;
-    if (id === "disputes" && stats.disputedJobs > 0) return stats.disputedJobs;
-    if (id === "reports" && stats.openReports > 0) return stats.openReports;
-    if (id === "support" && stats.supportTickets > 0) return stats.supportTickets;
-    return undefined;
-  };
+  const getBadge = (id: string): number | undefined => adminBadgeFor(id, unreadCounts, stats);
 
   const getBadgeColor = (id: string): string => {
     if (["disputes", "reports"].includes(id)) return "bg-destructive text-destructive-foreground";

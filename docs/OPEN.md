@@ -5,7 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Queue (this file):** 225 done, 27 partly done (fixed, protection pending), 102 open. Source of truth for work.
-- **Audit bus:** 115 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Audit bus:** 113 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
 - **nightly-red issues:** 8 open — `gh issue list -l nightly-red`. _(2026-09-23T06:08Z)_
@@ -1758,6 +1758,13 @@ sure someone hears it and closes it.
    a deleted account from a missing name. Options: (a) users see "Former member"
    and admin sees "Deleted account", everywhere; (b) pick different words. I
    recommend (a). It changes copy on about 15 screens.
+
+15. **Tax forms (W-9) after a Helpr deletes their account (CS-003, 2026-09-24).**
+   Deleting an account leaves the Helpr's W-9 record (typed legal name, signing IP)
+   in place forever. The IRS expects a business to keep W-9s for about 4 years, so
+   deleting them at once may be wrong too. Options: (a) keep them 4 years after
+   deletion, then delete automatically; (b) delete them with the account; (c) keep
+   forever. I recommend (a), but it is a legal call. No W-9s exist in prod yet.
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

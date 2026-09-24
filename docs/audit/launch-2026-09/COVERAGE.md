@@ -4,10 +4,10 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: node scripts/audit-coverage.mjs -->
 
-Generated from findings.jsonl as of its newest entry: 2026-09-24T05:20:49.700Z
+Generated from findings.jsonl as of its newest entry: 2026-09-24T05:23:03.346Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 115 open (3 open launch blockers), 248 fixed, 0 wontfix, 21 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
+- **Findings:** 113 open (3 open launch blockers), 250 fixed, 0 wontfix, 21 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
 - **Surface:** 1036 auditable surfaces (449 navigable, 587 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
@@ -45,14 +45,14 @@ lane report on disk — treat it as incomplete, not as covered.
 | 8 | `lh-browse-discovery` | REPORTED | 0 | – | 5 |
 | 8 | `lh-visual-critic` | REPORTED | 1 | – | 8 |
 | 9 | `lh-copy-content` | REPORTED | 1 | – | 6 |
-| 9 | `lh-email-delivery` | REPORTED | 1 | – | 1 |
+| 9 | `lh-email-delivery` | REPORTED | 0 | – | 2 |
 | 9 | `lh-long-tail-features` | REPORTED | 0 | – | 2 |
 | 10 | `lh-compliance-store` | REPORTED | 4 | – | 4 |
 | 10 | `lh-observability` | REPORTED | 1 | **1** | 2 |
 | 10 | `lh-perf-deps` | REPORTED | 9 | – | 6 |
 | 10 | `lh-seo-web` | REPORTED | 2 | – | 3 |
 | 11 | `lh-data-recovery` | REPORTED | 2 | – | 4 |
-| 11 | `lh-suggester` | REPORTED | 5 | – | 1 |
+| 11 | `lh-suggester` | REPORTED | 4 | – | 2 |
 | 11 | `lh-test-ci` | REPORTED | 1 | – | 3 |
 | 12 | `lh-verifier` | RAN — no report | 1 | – | 7 |
 | — | `lh-mkt-analyst` | NOT STARTED | – | – | – |

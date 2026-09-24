@@ -55,6 +55,11 @@ export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
   // user-facing backend string). What stays is read only by admins, operators
   // or logs, never by the two parties to a job.
   {
+    file: "supabase/functions/ai-job-builder/index.ts",
+    text: 'never "customer"',
+    reason: "the Gemini system prompt forbidding the word; the model reads it, no user ever does, and the rule it states is the role-neutral one.",
+  },
+  {
     file: "supabase/functions/arrival-confirm-reminder/index.ts",
     text: "the poster hasn't confirmed",
     reason: "the 24h admin_alert notification sent only to user_roles admins, who triage by side of the job.",

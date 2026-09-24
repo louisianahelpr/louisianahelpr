@@ -380,8 +380,9 @@ describe("client writes to profiles columns that prevent_self_escalation resets"
   });
 
   it("finds the profiles writes it claims to check (inventory floor)", () => {
-    expect(writes.length).toBeGreaterThan(15);
-    expect(writes.filter((w) => !ADMIN_SURFACE.test(w.file)).length).toBeGreaterThan(8);
+    // EXACT, both directions (measured 2026-09-24): a new write must be counted
+    // here on purpose, and a moved-server-side one lowers it (Q304/Q99/Q40 did).
+    expect({ all: writes.length, nonAdmin: writes.filter((w) => !ADMIN_SURFACE.test(w.file)).length }).toEqual({ all: 12, nonAdmin: 12 });
   });
 
   it("resolves every payload it inspects — unresolved is a failure, never clean", () => {

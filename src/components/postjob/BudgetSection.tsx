@@ -388,7 +388,7 @@ export function BudgetSection({
             <p className="text-ds-11 text-muted-foreground">
               ⚡ For jobs that need doing right away. Nearby Helprs are notified the moment you post, and your bonus goes straight to the Helpr who takes it — no platform fee applied. (To reach more Helprs over time, Boost the post after publishing instead.)
             </p>
-            <Label className="text-ds-11">Urgent Bonus ({formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum, {formatDollarsWhole(MAX_URGENT_FEE_DOLLARS)} maximum)</Label>
+            <Label className="text-ds-11">Urgent Bonus ({formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} Minimum, {formatDollarsWhole(MAX_URGENT_FEE_DOLLARS)} Maximum)</Label>
             <div className="flex flex-wrap gap-2">
               {["5", "10", "15", "20"].map((amt) => (
                 <button

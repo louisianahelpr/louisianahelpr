@@ -442,8 +442,8 @@ const AdminDisputes = () => {
     setRetrying(job.id);
     try {
       const { error } = await supabase.rpc(
-        "rpc_settle_dispute_without_payment" as never,
-        { _dispute_id: disputeId, _note: note.trim() } as never,
+        "rpc_settle_dispute_without_payment",
+        { _dispute_id: disputeId, _note: note.trim() },
       );
       if (error) {
         toast.error(rpcErrorMessage("rpc_settle_dispute_without_payment", error) ?? userFacingError(error, "Couldn't close that settlement — try again"));

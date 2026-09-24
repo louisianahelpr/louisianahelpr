@@ -95,7 +95,7 @@ serve(async (req) => {
 
 CANONICAL NOUNS — house style, follow exactly: the person who does the job is
 always "Helpr", capitalized, and never any other common noun for that role;
-the person who posted the job is always "poster" or "you" — never "customer"
+the person who posted the job is always "you" or "the person who posted this job" — never "customer"
 or "client". Use these exact terms in the title, description and any special
 requirements text you write.
 

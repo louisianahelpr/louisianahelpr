@@ -4,6 +4,7 @@ import { JobStepCard } from "@/components/activity/JobStepCard";
 import { JobActionChip } from "../../JobActionRow";
 import { PhotoProofDialog } from "@/components/PhotoProof";
 import type { PosterStepCtx } from "./posterStepContract";
+import { reviewWindowOpen } from "@/lib/reviewWindow";
 
 /**
  * POSTER STEP 4 — done.
@@ -40,7 +41,11 @@ export function CompletedStep({
   // Approving completion leaves the job at 'payout_pending' until the transfer
   // settles, so gating Review on 'released' hid it during exactly the window
   // when the app auto-opens the rating sheet. Matches the reviews INSERT policy.
-  const canReview = job.payment_status === "released" || job.payment_status === "payout_pending";
+  // DH-003: once the review window has closed, "Reviewed" still shows but an
+  // unreviewed job no longer offers a Review the server would refuse.
+  const canReview =
+    (job.payment_status === "released" || job.payment_status === "payout_pending") &&
+    (!!hasReviewed || reviewWindowOpen(job));
 
   return (
     <JobStepCard

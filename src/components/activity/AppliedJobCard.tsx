@@ -28,6 +28,7 @@ import { DisputedSection } from "./appliedJobCard/DisputedSection";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "./jobCardPerson";
 import { JobStatusStrip } from "./JobStatusStrip";
 import { helperStatusLine } from "./jobStatusLine";
+import { reviewWindowOpen } from "@/lib/reviewWindow";
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -164,7 +165,9 @@ function AppliedJobCardInner({
    *  are unchanged, just named once now that this gate decides a chip in a
    *  shared row rather than a row of its own. See the notes at the call site. */
   const canLeaveReview =
-    (job.payment_status === "released" || job.payment_status === "payout_pending") && !!posterId;
+    (job.payment_status === "released" || job.payment_status === "payout_pending") && !!posterId &&
+    // DH-003: past the 30-day window only "Reviewed" is left to show.
+    (helperReviewedJobIds.has(app.job_id) || reviewWindowOpen(job));
 
   /** Does the description say anything the TITLE hasn't already said? A job
    *  whose description is its own title back again is one line of duplication. */

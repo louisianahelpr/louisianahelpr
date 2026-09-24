@@ -4,9 +4,10 @@
 // Why a new function instead of reusing something:
 //   • The signed-in support form (src/components/profile/SupportInline.tsx)
 //     writes straight to `public.reports`, whose RLS insert policy is
-//     `TO authenticated WITH CHECK (auth.uid() = reporter_id)` and whose
-//     `reporter_id` / `reported_id` are NOT NULL uuids. A guest has no uuid,
-//     so that path structurally cannot serve one — and opening it to `anon`
+//     `TO authenticated WITH CHECK (auth.uid() = reporter_id)`. `reporter_id`
+//     is nullable (account deletion anonymises it), so the POLICY is what
+//     refuses a guest: auth.uid() is NULL and the check fails. That path
+//     cannot serve one — and opening it to `anon`
 //     would mean an unauthenticated public INSERT into a moderation table.
 //   • send-notification-email is service-role-only and emails a *platform
 //     user* about a notification row; send-account-status-email is admin /
@@ -312,7 +313,7 @@ Deno.serve(async (req) => {
 
     // Signed-in senders also get a row in the admin `reports` queue so
     // /support and the in-app Profile support tab land in the SAME place.
-    // Guests cannot: reports.reporter_id is a NOT NULL user uuid.
+    // Guests cannot: the INSERT policy needs auth.uid() = reporter_id.
     let reportLogged = false
     if (userId) {
       const { error: reportErr } = await admin.from('reports').insert({

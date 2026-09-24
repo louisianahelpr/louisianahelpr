@@ -52,7 +52,8 @@ import {
  *     via `src/lib/supportTopics.ts`, so the two surfaces read as one system.
  *
  * Backend: `supabase.functions.invoke("contact-support")`. A guest cannot
- * write to `reports` (RLS + NOT NULL uuid `reporter_id`), so the edge function
+ * write to `reports` (its only INSERT policy checks `auth.uid() = reporter_id`,
+ * which is NULL for a guest, so the check fails), so the edge function
  * emails the support inbox instead — and, when the sender IS signed in, also
  * files the same `reports` row the Profile tab writes so both land in one
  * admin queue.

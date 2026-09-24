@@ -78,6 +78,10 @@ const DEFERRED_PACKAGES = [
     pkg: "framer-motion",
     why: "only animated surfaces need it; NotificationPanel loads it on open via useFramerMotion",
   },
+  {
+    pkg: "@capgo/capacitor-social-login",
+    why: "PD-011: web never uses it and native only on an Apple/Google tap; src/lib/socialAuth.ts loads it with import()",
+  },
 ];
 
 const json = process.argv.includes("--json");

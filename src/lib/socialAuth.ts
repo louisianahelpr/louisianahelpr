@@ -12,7 +12,12 @@
 // vitest suite (src/lib/socialLogin.test.ts) still covers the native path
 // without any churn.
 import { Capacitor } from "@capacitor/core";
-import { SocialLogin } from "@capgo/capacitor-social-login";
+// PD-011: loaded on demand, never statically. A static import put the plugin
+// (41 KB raw) in main.tsx's cold-start closure via nativeInit, on the web where
+// it is dead weight. Destructure from the module, never await/return the plugin
+// object itself (thenable assimilation, CLAUDE.md "Platform gotchas").
+const loadSocialLogin = () => import("@capgo/capacitor-social-login");
+type SocialLoginPlugin = typeof import("@capgo/capacitor-social-login").SocialLogin;
 import { supabase } from "@/integrations/supabase/client";
 import { recognizedAuthError } from "@/lib/authErrors";
 import { setLastAuthMethod } from "@/lib/lastAuthMethod";
@@ -35,6 +40,7 @@ let initialized = false;
 export async function initSocialLogin(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
   if (initialized) return;
+  const { SocialLogin } = await loadSocialLogin();
   await SocialLogin.initialize({
     apple: { clientId: "com.Helpr.signin" },
     google: {
@@ -110,8 +116,9 @@ async function nativeSignIn(provider: SocialProvider): Promise<void> {
     provider === "apple"
       ? { scopes: ["email", "name"] }
       : { scopes: ["email", "profile"] };
+  const { SocialLogin } = await loadSocialLogin();
   const { result } = await SocialLogin.login({ provider, options } as Parameters<
-    typeof SocialLogin.login
+    SocialLoginPlugin["login"]
   >[0]);
   const idToken = (result as { idToken?: string })?.idToken;
   if (!idToken) throw new Error(`${providerLabel(provider)} sign-in returned no idToken`);

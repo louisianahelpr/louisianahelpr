@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { verifyCronSecret } from '../_shared/cron-auth.ts'
 import { cronError, cronResult, defectTracker } from '../_shared/cron-result.ts'
 import { FROM_DEFAULT, htmlToPlainText, SEND_TIMEOUT_MS, sendWithResend } from '../_shared/resend.ts'
+import { isReservedRecipient } from '../_shared/reservedRecipient.ts'
 
 // Email delivery is via Resend exclusively. Helpr's auth-email-hook
 // renders templates locally with @react-email/components and enqueues
@@ -254,6 +255,23 @@ Deno.serve(async (req) => {
           }
           continue
         }
+      }
+
+      // A reserved-domain recipient (example.com, *.test, ...) can never be
+      // delivered and Resend rejects it with a permanent 422. Retrying it five
+      // times only files a DLQ alert for a test account (ledger 2b794ca3).
+      if (isReservedRecipient(payload.to)) {
+        const { error: supLogError } = await supabase.from('email_send_log').insert({
+          message_id: payload.message_id,
+          template_name: payload.label || queue,
+          recipient_email: payload.to,
+          status: 'suppressed',
+          error_message: 'reserved recipient domain (RFC 2606); never deliverable',
+        })
+        if (supLogError) defects.record(`suppressed log ${msg.msg_id}: ${supLogError.message}`)
+        const { error: supDelError } = await supabase.rpc('delete_email', { queue_name: queue, message_id: msg.msg_id })
+        if (supDelError) defects.record(`dequeue suppressed ${msg.msg_id}: ${supDelError.message}`)
+        continue
       }
 
       try {

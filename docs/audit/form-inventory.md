@@ -16,7 +16,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/admin/AdminExceptionQueue.tsx` | input×1, textarea×2 | checkbox |  | Resolution note |
 | `src/components/admin/AdminFraudDashboard.tsx` | select×1 |  |  | Flag type |
 | `src/components/admin/AdminIDVReview.tsx` | input×1, textarea×1 | checkbox |  | Note or reason |
-| `src/components/admin/adminJobs/JobDetailDialog.tsx` | date/calendar×1 |  |  |  |
+| `src/components/admin/adminJobs/JobDetailDialog.tsx` | date/calendar×1 |  |  | chargeback-evidence-due |
 | `src/components/admin/adminJobs/RefundJobDialog.tsx` | input×1, textarea×1 | number |  | Refund amount · Refund reason (optional) |
 | `src/components/admin/adminJobs/RemoveJobDialog.tsx` | textarea×1 |  |  | Reason for cancelling job |
 | `src/components/admin/adminJobs/StatusOverrideDialog.tsx` | textarea×1 |  |  | Reason for status override |

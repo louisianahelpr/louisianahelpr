@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -83,6 +83,11 @@ const Signup = () => {
     return n === 2 ? 2 : 1;
   });
   const [loading, setLoading] = useState(false);
+  // OA-002: one tap, one signUp(). `loading` is only set inside
+  // createAccountAndFinish, AFTER the awaited validateAboutYouStep, so a second
+  // tap during validation got through the disabled check and fired a second
+  // concurrent auth.signUp().
+  const submittingRef = useRef(false);
 
   // Step 1 fields
   const [firstName, setFirstName] = useState("");
@@ -636,10 +641,16 @@ const Signup = () => {
             clearFieldError={(key) => setStep2Errors((prev) => { const next = { ...prev }; delete next[key]; return next; })}
             loading={loading}
             onContinue={async () => {
-              if (!(await validateAboutYouStep())) return;
-              setStep2Errors({});
-              track(AhaEvent.SignupStepCompleted, { step: 2, ...ppoTrackingProps() });
-              await createAccountAndFinish();
+              if (submittingRef.current) return;
+              submittingRef.current = true;
+              try {
+                if (!(await validateAboutYouStep())) return;
+                setStep2Errors({});
+                track(AhaEvent.SignupStepCompleted, { step: 2, ...ppoTrackingProps() });
+                await createAccountAndFinish();
+              } finally {
+                submittingRef.current = false;
+              }
             }}
           />
         )}

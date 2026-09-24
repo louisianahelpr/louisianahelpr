@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-24T04:57:58.062Z",
-  "guards": 919,
-  "registered": 919,
+  "generated": "2026-09-24T05:02:12.322Z",
+  "guards": 922,
+  "registered": 922,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -24,10 +24,12 @@
     "src/test/e2eNoSupabaseMocks.test.ts",
     "src/test/expiryFormatterClass.test.ts",
     "src/test/jobMatchPreferenceGate.test.ts",
+    "src/test/jobPublicTextIsScanned.test.ts",
     "src/test/jobsStateColumnGuard.test.ts",
     "src/test/messageToneInvariant.test.ts",
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
+    "src/test/sentryLoadSitesAreGated.test.ts",
     "src/test/storageBucketLimits.test.ts",
     "src/test/unknownZipIsNeverSilent.test.ts"
   ],

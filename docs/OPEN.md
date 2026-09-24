@@ -5,7 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Queue (this file):** 223 done, 29 partly done (fixed, protection pending), 102 open. Source of truth for work.
-- **Audit bus:** 138 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Audit bus:** 135 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
 - **nightly-red issues:** 8 open — `gh issue list -l nightly-red`. _(2026-09-23T06:08Z)_
@@ -1732,6 +1732,23 @@ sure someone hears it and closes it.
    Management API, re-read 14/14, and quota-monitor's connection-budget job then went green
    (run 35956432434). Cron had 0 'connection failed' runs from 23:30Z to 04:59Z. The alert
    closes once a heavy prod suite runs clean.)
+
+11. **Tips: do Helprs get 100% of a tip, or 100% minus card fees? (ME-006, 2026-09-24)**
+   The Terms say "100% of tips go to the Helpr — no platform fee on tips", but the
+   code keeps the card processing cost (2.9% + 30c) from each tip, so a $5 tip pays
+   the Helpr $4.55. Pick one: (a) we absorb the card fee so the Terms stay true
+   (costs us about 45c on a $5 tip), or (b) change the Terms to say "minus card
+   processing". I'll make whichever change you pick, with a test.
+12. **Safety buttons on bids and active jobs (TS-006, TS-007, 2026-09-24).**
+   Today a bid/application has no Report or Block button (you must open the
+   person's profile first), and a Helpr on an active job has no safety/SOS button
+   at all (only the poster has one). Want me to add Report + Block on every
+   bid card, and the same SOS button for the Helpr on an active job? Yes/no is enough.
+13. **Backups for photos and settings (DR-004, 2026-09-24).** A database restore
+   brings back the rows but not the 24 uploaded files (~19 MB: photos, IDs,
+   documents) or the edge-function secrets. Options: (a) a nightly GitHub job
+   copies the files to a private GitHub artifact (free, 90-day keep), or (b) leave
+   as-is until launch. I recommend (a).
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

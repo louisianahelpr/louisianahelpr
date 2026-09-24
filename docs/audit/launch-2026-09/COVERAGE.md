@@ -4,10 +4,10 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: node scripts/audit-coverage.mjs -->
 
-Generated from findings.jsonl as of its newest entry: 2026-09-24T04:56:53.249Z
+Generated from findings.jsonl as of its newest entry: 2026-09-24T05:02:09.434Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 138 open (3 open launch blockers), 227 fixed, 0 wontfix, 19 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
+- **Findings:** 135 open (3 open launch blockers), 230 fixed, 0 wontfix, 19 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
 - **Surface:** 1035 auditable surfaces (449 navigable, 586 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
@@ -19,7 +19,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 1 | `lh-generated-drift` | REPORTED | 1 | – | 10 |
 | 1 | `lh-route-walker` | REPORTED | 1 | – | 2 |
 | 1 | `lh-schema-integrity` | REPORTED | 3 | – | 11 |
-| 1 | `lh-silent-failure` | REPORTED | 1 | – | 8 |
+| 1 | `lh-silent-failure` | REPORTED | 0 | – | 9 |
 | 2 | `lh-appsec` | REPORTED | 6 | – | 2 |
 | 2 | `lh-authz-rls` | REPORTED | 2 | – | 8 |
 | 2 | `lh-design-holes` | REPORTED | 4 | – | 4 |
@@ -47,9 +47,9 @@ lane report on disk — treat it as incomplete, not as covered.
 | 9 | `lh-copy-content` | REPORTED | 1 | – | 6 |
 | 9 | `lh-email-delivery` | REPORTED | 1 | – | 1 |
 | 9 | `lh-long-tail-features` | REPORTED | 0 | – | 2 |
-| 10 | `lh-compliance-store` | REPORTED | 6 | – | 2 |
+| 10 | `lh-compliance-store` | REPORTED | 5 | – | 3 |
 | 10 | `lh-observability` | REPORTED | 1 | **1** | 2 |
-| 10 | `lh-perf-deps` | REPORTED | 12 | – | 3 |
+| 10 | `lh-perf-deps` | REPORTED | 11 | – | 4 |
 | 10 | `lh-seo-web` | REPORTED | 2 | – | 3 |
 | 11 | `lh-data-recovery` | REPORTED | 2 | – | 4 |
 | 11 | `lh-suggester` | REPORTED | 5 | – | 1 |

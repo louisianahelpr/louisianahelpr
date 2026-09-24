@@ -294,8 +294,10 @@ export function initSentry() {
     // - maskAllText: true — every text node (incl. <input> values) is
     //   redacted. Critical for Stripe PCI scope (card numbers, CVCs)
     //   and Supabase magic-link tokens that may appear inline.
-    // - blockAllMedia: false — we DO want to see images/icons/SVGs
-    //   so the replay is legible enough to debug the UI surface.
+    // - blockAllMedia: false, but `block: REPLAY_BLOCKED_MEDIA` — every
+    //   <img>/<video>/<picture> is blocked, because that is where user content
+    //   lives (ID documents, credential uploads, job photos, avatars; CS-001).
+    //   The app's icons are inline SVG, so the replay stays legible.
     // - networkDetailAllowUrls left at its default (empty) — replay
     //   captures request URLs but NOT bodies/headers, so auth tokens
     //   in Supabase responses or Stripe payloads can't leak.
@@ -315,6 +317,7 @@ export function initSentry() {
                 replayIntegration({
                   maskAllText: true,
                   blockAllMedia: false,
+                  block: REPLAY_BLOCKED_MEDIA,
                 }),
               );
             } catch {
@@ -416,6 +419,9 @@ function markColdLaunchStart() {
  *   - "first-route-rendered"— `<App>` rendered its first non-Suspense child
  *   - "native-redirect-decided" — `NativeRedirect` picked /dashboard or /browse
  */
+/** Replay never records user-supplied media (CS-001). */
+export const REPLAY_BLOCKED_MEDIA = ["img", "video", "picture"];
+
 export function markColdLaunchPhase(phase: string, timestampSeconds: number = Date.now() / 1000) {
   if (!initialized) return;
   try {

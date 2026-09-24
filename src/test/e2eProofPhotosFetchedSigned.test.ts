@@ -26,6 +26,7 @@ const specs = walk(join(ROOT, "e2e"))
 
 describe("e2e proof-photo byte checks go through a signed link", () => {
   it("finds the specs that fetch proof-photo bytes", () => {
+    expect(specs.length).toBeGreaterThan(0);
     expect(specs.map((s) => s.f)).toContain("e2e/prod-lifecycle.spec.ts");
   });
 

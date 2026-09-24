@@ -80,6 +80,7 @@ import {
 } from '../_shared/alertPolicy.ts'
 import { logPush } from '../_shared/notificationLog.ts'
 import { inferCategoryFromLink, type PushCategory } from './category.ts'
+import { isInQuietHours, QUIET_HOURS_TIME_ZONE } from './quietHours.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -346,41 +347,6 @@ async function mapWithConcurrency<T, R>(
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Quiet hours
-// ─────────────────────────────────────────────────────────────────────
-
-// Parse a Postgres `time` value (typically `HH:MM:SS` or `HH:MM`) into
-// minutes-since-midnight. Returns NaN for unparseable input so the
-// caller can fail-open.
-function timeToMinutes(t: string): number {
-  const parts = t.split(':')
-  if (parts.length < 2) return NaN
-  const h = Number(parts[0])
-  const m = Number(parts[1])
-  if (!Number.isFinite(h) || !Number.isFinite(m)) return NaN
-  return h * 60 + m
-}
-
-// Test whether `now` falls inside the [quietStart, quietEnd) window.
-// The window may cross midnight (e.g. 22:00 → 07:00), in which case
-// "inside" means now >= start OR now < end. Times are evaluated in UTC
-// since no per-user timezone is stored.
-export function isInQuietHours(quietStart: string, quietEnd: string, now: Date): boolean {
-  const startMin = timeToMinutes(quietStart)
-  const endMin = timeToMinutes(quietEnd)
-  if (!Number.isFinite(startMin) || !Number.isFinite(endMin)) return false
-  // Equal start/end → empty window (no quiet hours).
-  if (startMin === endMin) return false
-  const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes()
-  if (startMin < endMin) {
-    // Same-day window, e.g. 13:00 → 14:00.
-    return nowMin >= startMin && nowMin < endMin
-  }
-  // Crosses midnight, e.g. 22:00 → 07:00.
-  return nowMin >= startMin || nowMin < endMin
-}
-
-// ─────────────────────────────────────────────────────────────────────
 // Main handler
 // ─────────────────────────────────────────────────────────────────────
 
@@ -472,9 +438,10 @@ Deno.serve(async (req) => {
   // user still sees the notification when they open the app — we're
   // only suppressing the device push.
   //
-  // Timezone: no per-user timezone is stored, so we evaluate the
-  // window in UTC (per the task spec). If reading prefs fails, we
-  // fail-open and send the push rather than swallow it.
+  // Timezone: the stored times are the user's wall clock; with no
+  // per-user timezone stored, quietHours.ts evaluates them in
+  // America/Chicago (every user is in Louisiana) — N-003. If reading
+  // prefs fails, we fail-open and send the push rather than swallow it.
   const { data: quietPrefs, error: quietErr } = await supabase
     .from('notification_preferences')
     .select('quiet_start, quiet_end')
@@ -494,7 +461,7 @@ Deno.serve(async (req) => {
       // and completely different problems for us.
       await logOutcome(
         'skipped',
-        `quiet_hours ${quietPrefs.quiet_start}–${quietPrefs.quiet_end} UTC`,
+        `quiet_hours ${quietPrefs.quiet_start}–${quietPrefs.quiet_end} ${QUIET_HOURS_TIME_ZONE}`,
       )
       return new Response(
         JSON.stringify({ sent: 0, failed: 0, no_tokens: false, skipped: 'quiet_hours' }),

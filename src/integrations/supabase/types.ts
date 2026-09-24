@@ -5210,19 +5210,14 @@ export type Database = {
         Args: { _action: string; _admin_id?: string; _job_id: string }
         Returns: Json
       }
-      claim_idv_attempt:
-        | {
-            Args: { p_max_attempts?: number; p_user_id: string }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_max_attempts?: number
-              p_skip_fee_gate?: boolean
-              p_user_id: string
-            }
-            Returns: Json
-          }
+      claim_idv_attempt: {
+        Args: {
+          p_max_attempts?: number
+          p_skip_fee_gate?: boolean
+          p_user_id: string
+        }
+        Returns: Json
+      }
       claim_marketing_content: {
         Args: { p_limit?: number }
         Returns: {

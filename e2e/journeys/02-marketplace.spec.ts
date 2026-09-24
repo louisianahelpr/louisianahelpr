@@ -376,7 +376,10 @@ test.describe.serial("marketplace chain", () => {
       expect(await aged.json(), "ageing the job matched zero rows").toHaveLength(1);
       const hp = S.helperPage;
       await hp.goto("/dashboard");
-      await hp.getByRole("button", { name: "Search jobs" }).first().click();
+      // Browse renders its toolbar (search included) with the feed, not over the
+      // skeleton; on the `slow` row (every backend call held 3-8s) it was still
+      // skeleton at the old 20s click timeout (run 35957628804).
+      await hp.getByRole("button", { name: "Search jobs" }).first().click({ timeout: 60_000 });
       // The Browse search field is an ARIA combobox now, not a searchbox:
       // `useComboboxKeyboard`'s comboboxProps sets role="combobox" on the input
       // for the recent-searches popup, which overrides type="search"'s implicit
@@ -400,7 +403,7 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("helper opens the job and applies with a note", async () => {
       await hp.goto("/dashboard");
-      await hp.getByRole("button", { name: "Search jobs" }).first().click();
+      await hp.getByRole("button", { name: "Search jobs" }).first().click({ timeout: 60_000 });
       await hp.getByRole("combobox", { name: "Search jobs" }).fill(RUN);
       await hp.getByRole("button", { name: new RegExp(`View .*${RUN}`) }).click();
       const dialog = hp.getByRole("dialog").first();

@@ -1864,6 +1864,13 @@ What was fixed or obsolete is closed in the archive's reconcile log with
 evidence; what follows is still open ("not reached" means nobody could settle
 it read-only; treat it as open).
 
+### REPORT (not a task) — Browse hides search + filters until the feed loads (2026-09-24)
+e2e-journeys run 35957628804 (slow row: every backend call held 3-8s, 1440): at 20s after
+/dashboard the helper's Browse card was still four skeleton rows with an EMPTY header: no
+job count, no search, no filters (screenshot ~/.lh-shots/2026-09-24/journeys-35957628804/…/test-failed-2.png).
+The journey now waits 60s like its other slow-row steps. Showing the toolbar over the skeleton
+would be a visual change, so it is left for the owner to ask for.
+
 ### NEXT TOP 10 (lead, 2026-09-23 ~22:45Z; after the partly-done items). Live defects first.
 1. Q311 Sentry recorded zero errors for about 17h (monitoring blind).
 2. Q294 /jobs/:id "Done" timeline buttons not clickable.

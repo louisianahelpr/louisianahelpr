@@ -54,6 +54,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { STUCK_SEED_SPLIT_QUERY, isStuckSeedSplit, retireStuckSplitPatch, stuckSplitCasFilter } from "./seedDisputeFixture.mjs";
 import { removeJobMediaRest, removeUserStorageRest } from "../lib/jobMediaRest.mjs";
+import { latestConsentVersions } from "../lib/acceptCurrentTerms.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MODE = ["--apply", "--verify", "--teardown", "--avatar", "--group-job"].find((f) => process.argv.includes(f));
@@ -264,7 +265,7 @@ async function ensureOwnedAccount(key, spec) {
     date_of_birth: "1990-01-01",
     // Pre-accept the current Terms (src/lib/consent.ts LATEST_TERMS_VERSION) so
     // TermsReconsentDialog does not cover every screen the sweep opens.
-    terms_version_accepted: "Sep 2026",
+    terms_version_accepted: latestConsentVersions().terms,
     terms_accepted_at: new Date().toISOString(),
     location: "Lafayette, LA",
     avatar_url: PIXEL,

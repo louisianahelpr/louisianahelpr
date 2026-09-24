@@ -21,6 +21,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { latestConsentVersions } from "./lib/acceptCurrentTerms.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -171,7 +172,7 @@ async function main() {
     idv_status: "verified",
     id_verification_status: "verified",
     stripe_identity_verified: true,
-    terms_version_accepted: "Sep 2026",
+    terms_version_accepted: latestConsentVersions().terms,
     is_seed: true,
   };
   if (profileRows.length === 0) {

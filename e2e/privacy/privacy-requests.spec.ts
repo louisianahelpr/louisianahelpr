@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import type { APIRequestContext } from "@playwright/test";
+import { LATEST_TERMS_VERSION } from "../../src/lib/consent";
 import {
   test,
   expect,
@@ -199,7 +200,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
       bio: MARK,
       phone: "5045550199",
       date_of_birth: "1990-01-01",
-      terms_version_accepted: "Jun 2026",
+      terms_version_accepted: LATEST_TERMS_VERSION,
       terms_accepted_at: new Date().toISOString(),
       location: "Lafayette, LA",
       email_verified: true,
@@ -426,7 +427,7 @@ test("privacy requests: an INCOMPLETE profile deletes itself from /complete-prof
       await srWrite(request, "PATCH", "profiles", `user_id=eq.${userId}`, {
         is_seed: true,
         full_name: "SEED Privacy Incomplete",
-        terms_version_accepted: "Jun 2026",
+        terms_version_accepted: LATEST_TERMS_VERSION,
         terms_accepted_at: new Date().toISOString(),
         email_verified: true,
       });

@@ -348,8 +348,12 @@ async function readAsc(read, env, fetchFn) {
 async function readVercel(read, env, fetchFn) {
   if (!env[read.env]) return { expiresAt: null, detail: `unreadable here: env ${read.env} not set` };
   try {
-    const r = await getJson(fetchFn, "https://api.vercel.com/v5/user/tokens/current", { headers: { authorization: `Bearer ${env[read.env]}` } });
-    if (r.status !== 200) return { expiresAt: null, detail: `unreadable here: Vercel answered ${r.status}` };
+    const url = "https://api.vercel.com/v5/user/tokens/current";
+    const init = { headers: { authorization: `Bearer ${env[read.env]}` } };
+    let r = await getJson(fetchFn, url, init);
+    // A team-scoped token is looked up on behalf of its team.
+    if (r.status === 404 && read.teamId) r = await getJson(fetchFn, `${url}?teamId=${read.teamId}`, init);
+    if (r.status !== 200) return { expiresAt: null, detail: `unreadable here: Vercel answered ${r.status}${r.json?.error?.code ? ` (${r.json.error.code}: ${String(r.json.error.message ?? "").slice(0, 120)})` : ""}` };
     const t = r.json?.token;
     if (t && t.expiresAt == null && "expiresAt" in t) return { noExpiry: true, detail: `Vercel reports no expiresAt for token "${t.name ?? t.id}" (measured)` };
     return t?.expiresAt ? { expiresAt: new Date(t.expiresAt).toISOString(), detail: `token "${t.name ?? t.id}"` } : { expiresAt: null, detail: "unreadable here: unexpected Vercel response shape" };

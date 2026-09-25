@@ -190,6 +190,7 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
 const OUT_OF_SCOPE: Record<string, string> = {
   "e2e/happy-path/error-state-sweep.spec.ts::EXEMPT_TABLES": "sweep scope config: tables never failed so the authed surface still renders; excuses no offender",
   "scripts/audit/press-every-control.mjs::DOCUMENTED_SKIPS": "vocabulary of skip dispositions the press script itself emits, not a list of offending controls",
+  "scripts/audit/press-every-control.mjs::GATE_SKIPS": "derived at runtime from the SKIP_* exports of pressProdSafety.mjs (the gate's own reasons), not a list of offending controls",
   "scripts/audit/pressProdSafety.mjs::PROFILE_SKIP": "profile columns a prod-safety snapshot ignores (timestamps, counters); config, not offenders",
   "scripts/check-agent-refs.mjs::KNOWN_DEAD": "not an exemption: dead agent names mapped to a specific ERROR message",
   "scripts/check-discarded-query-filters.mjs::SKIP_DIRS": "directory-walk skip set (node_modules, dist, …)",

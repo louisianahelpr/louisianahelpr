@@ -24,7 +24,6 @@ import { blankComments } from "./helpers/blankNonCode";
 import * as safety from "../../scripts/audit/pressProdSafety.mjs";
 // @ts-expect-error - plain .mjs tool script, no types
 import * as harness from "../../scripts/audit/press-every-control.mjs";
-// @ts-expect-error - plain .mjs tool script, no types
 import * as failureClass from "../../scripts/audit/pressFailureClass.mjs";
 
 const ROOT = resolve(__dirname, "..", "..");

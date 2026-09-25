@@ -14,7 +14,6 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
-// @ts-expect-error - plain .mjs tool script, no types
 import { ceilingWaitMs } from "../../scripts/audit/pressFailureClass.mjs";
 
 const ROOT = resolve(__dirname, "..", "..");

@@ -21,6 +21,10 @@ import { test, expect, type BrowserContext, type Page } from "./prodTest";
 //         start_time 2–24h out (so the day-of window is open and the T-2h
 //         action gate is closed → this spec asserts the gate, then moves the
 //         clock's side of the bargain by asserting the day-of confirm).
+//         HOLD IT: its title must carry "[E2E HOLD]" (E2E_HOLD_MARKER in
+//         scripts/e2e/settleForward.mjs) beside "[E2E DO NOT ACCEPT]", or the
+//         next CI sweep reopens and deletes it (unfunded) or settles it forward
+//         (funded, older than 6h). A held row is listed and never touched.
 //
 // What it asserts, cross-role:
 //   1. Helper sees the day-before "Still on?" card and confirms — the write

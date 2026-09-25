@@ -27,6 +27,7 @@ import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdown";
 import { recordReviewInActivityCache } from "@/lib/reviewActivityCache";
+import { unwrapMutation, WriteRejectedError } from "@/lib/mutationResult";
 
 // NpsPrompt is mounted as the final step in the post-completion sequence —
 // after review/tip/share. It self-gates on eligibility (2nd qualifying job
@@ -153,14 +154,36 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     if (rating === 0) { hapticError(); toast.error("Please select a rating."); return; }
     hapticMedium();
     setSaving(true);
-    const { error } = await supabase.from("reviews").insert({
-      job_id: jobId, reviewer_id: userId, reviewee_id: revieweeId,
-      rating, feedback: feedback.trim() || null,
-    });
+    // `.select("id")` + unwrapMutation: a null error is not a review. An
+    // RLS-filtered insert answers { data: [], error: null }, and only a row
+    // proven to exist may mark the job Reviewed in the cache below
+    // (src/test/reviewWritesUpdateActivityCache.test.ts).
+    let error: (Error & { code?: string }) | null = null;
+    try {
+      unwrapMutation(
+        await supabase
+          .from("reviews")
+          .insert({
+            job_id: jobId, reviewer_id: userId, reviewee_id: revieweeId,
+            rating, feedback: feedback.trim() || null,
+          })
+          .select("id"),
+        {
+          action: "post your review",
+          rejectedMessage: "We couldn't post your review — this job may no longer be open for reviews. Refresh and try again.",
+          context: { jobId },
+        },
+      );
+    } catch (err) {
+      // Not swallowed: every branch below toasts it, and unwrapMutation has
+      // already report()ed a silent (zero-row) rejection.
+      error = err instanceof Error ? err : new Error(String(err));
+    }
     setSaving(false);
     if (error) {
       if (error.code === "23505") { recordReviewInActivityCache(jobId); setStep("tip"); }
       else if (error.code === "23514" && error.message) { hapticError(); toast.error(error.message); } // server contact-leak refusal (TS-010)
+      else if (error instanceof WriteRejectedError) { hapticError(); toast.error(error.userMessage); }
       else { hapticError(); toast.error("We couldn't submit your review — please try again."); }
     } else {
       hapticSuccess();

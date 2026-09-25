@@ -53,12 +53,39 @@ import {
   cancelEscrowAnswerFromColumns,
   createPaymentWindowWaitMs,
 } from "./sweepSummary.mjs";
-import { settleJobForward } from "./settleForward.mjs";
+import { settleJobForward, E2E_HOLD_MARKER } from "./settleForward.mjs";
 
 const BASE = (process.env.SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
 const ANON = process.env.SUPABASE_ANON_KEY || "";
 const TOKEN = process.env.POSTER_ACCESS_TOKEN || "";
 const DRY = process.argv.includes("--dry-run");
+
+/*
+ * WHICH SWEEP THIS IS. `pre` runs before a suite and must not block it; a
+ * `teardown` is the step that says whether the run left prod clean, so it is
+ * the one that fails when the sweep could not do its job (lh-money-escrow
+ * review M1, 2026-09-25: a failed helper sign-in or a failed settle used to
+ * leave every sweep step green). Unset means a hand run: judged as strictly
+ * as a teardown. scripts/e2e/sweep-both-seats.sh requires it.
+ */
+const PHASE = process.env.SWEEP_PHASE || "teardown";
+if (PHASE !== "pre" && PHASE !== "teardown") {
+  console.error(`FAIL: SWEEP_PHASE must be "pre" or "teardown", got "${PHASE}".`);
+  process.exit(1);
+}
+
+/*
+ * STRIPE MUST BE IN TEST MODE BEFORE THIS SWEEP MOVES MONEY (review L2). The
+ * settle-forward walk ends on create-payment's release, which pays the Helpr
+ * with whatever key prod holds NOW. CI cannot read that key and must not, so
+ * the switch that changes it records the mode as well: stripe-sandbox-on.sh
+ * sets the repo variable E2E_STRIPE_MODE=test, stripe-sandbox-off.sh sets it to
+ * live BEFORE it swaps the key (launch checklist, docs/OPEN.md). Anything but
+ * "test" (unset included) means no settling forward. settleRefusalReason also
+ * refuses a row whose Checkout Session is not cs_test_ (the mode it was funded in).
+ */
+const STRIPE_MODE = process.env.E2E_STRIPE_MODE || "";
+const STRIPE_TEST_MODE = STRIPE_MODE === "test";
 
 // Every job this suite creates carries this marker in its title. It is the only
 // thing that identifies a run's rows, so it is asserted on write as well as
@@ -121,13 +148,36 @@ function subjectOf(jwt) {
 }
 const POSTER_ID = subjectOf(TOKEN);
 const HELPER_ID = HELPER_TOKEN ? subjectOf(HELPER_TOKEN) : null;
-const CAN_SETTLE_FORWARD = Boolean(POSTER_ID && HELPER_ID);
+if (!POSTER_ID) {
+  console.error("FAIL: POSTER_ACCESS_TOKEN has no readable `sub`; the listing is scoped to the poster and cannot run.");
+  process.exit(1);
+}
+if (HELPER_TOKEN && !HELPER_ID) {
+  // A helper token was handed over and is unreadable: the caller meant this
+  // sweep to settle forward, and silently falling back to deferring is the
+  // green-on-nothing this replaces (review M1).
+  console.error("FAIL: HELPER_ACCESS_TOKEN is set but its `sub` cannot be read; refusing to sweep as if only the poster seat were held.");
+  process.exit(1);
+}
+const HOLDS_BOTH_SEATS = Boolean(POSTER_ID && HELPER_ID);
+const CAN_SETTLE_FORWARD = HOLDS_BOTH_SEATS && STRIPE_TEST_MODE;
+if (HOLDS_BOTH_SEATS && !STRIPE_TEST_MODE) {
+  console.log(
+    `::warning title=Sweep will not settle forward::E2E_STRIPE_MODE is "${STRIPE_MODE || "(unset)"}", not "test". ` +
+      `Hired+funded leftovers are deferred until the repo variable says Stripe is in test mode (stripe-sandbox-on.sh sets it).`,
+  );
+}
 
-/** Jobs this suite created that are not settled. */
+/**
+ * Jobs this suite created that are not settled. Scoped to THIS poster's seed
+ * rows (review L3): the marker alone is a title anyone can type, and the
+ * poster can read other accounts' open jobs through browse.
+ */
 async function strandedJobs() {
   const url =
     `${BASE}/rest/v1/jobs?select=id,title,status,payment_status,stripe_session_id,created_at,customer_id,helper_id,disputed_at` +
     `&title=like.*${encodeURIComponent(E2E_TITLE_MARKER)}*` +
+    `&customer_id=eq.${POSTER_ID}&is_seed=is.true` +
     `&payment_status=not.in.(released,refunded,cancelled)` +
     `&order=created_at.asc`;
   const r = await fetch(url, { headers: H });
@@ -163,7 +213,15 @@ async function reopenJob(jobId) {
     headers: { ...H, Prefer: "return=representation" },
     body: JSON.stringify({ status: "open", helper_id: null }),
   });
-  return r.ok;
+  // A PATCH that matches zero rows is 200 with [] (review L3): only one row
+  // back is a reopen.
+  if (!r.ok) return false;
+  try {
+    const rows = JSON.parse(await r.text());
+    return Array.isArray(rows) && rows.length === 1;
+  } catch {
+    return false; // a non-array body is not proof of a write
+  }
 }
 
 /**
@@ -220,6 +278,9 @@ const failures = [];
    forward in five days, and every nightly log had reported OK. */
 const deferred = [];
 const disputed = [];
+/* Rows a lane is deliberately holding (E2E_HOLD_MARKER in the title): never
+   settled, cancelled, reopened or deleted by this sweep (review M3). */
+const held = [];
 const throttled = [];
 for (const job of jobs) {
   /* A Checkout Session id proves a session was MINTED, not that it was paid —
@@ -267,6 +328,15 @@ for (const job of jobs) {
      to cancel and died on — and a failed PRE-sweep skips the whole money loop.
      So one SUCCESSFUL run would block every run after it. */
   const settled = ["payout_pending", "released", "refunded"].includes(job.payment_status);
+  /* HELD ON PURPOSE. A lane that needs a hired+funded (or hired) marker job to
+     outlive one run puts E2E_HOLD_MARKER in its title, and this sweep leaves
+     it exactly as it is: the 6h age gate only bounds CI job timeouts, not a
+     fixture someone is keeping on purpose (review M3). Listed, never touched. */
+  if (typeof job.title === "string" && job.title.includes(E2E_HOLD_MARKER)) {
+    console.log(`  ${job.id}  status=${job.status} payment=${job.payment_status} → held (${E2E_HOLD_MARKER}) — not touched`);
+    held.push(job);
+    continue;
+  }
   const alreadyUnwound = job.status === "cancelled" || settled;
   const abandonedCheckout =
     !alreadyUnwound &&
@@ -337,6 +407,8 @@ for (const job of jobs) {
         console.log(`    too young to settle forward: ${job.id} (${Math.round(ageMs / 60000)} min) may be a live run's job`);
       }
       if (CAN_SETTLE_FORWARD && oldEnough) {
+        // Every exit from this walk (settled, refused, thrown) may have spent
+        // create-payment calls, so the window is stamped in the finally (review L1).
         try {
           const out = await settleJobForward({
             base: BASE,
@@ -348,14 +420,15 @@ for (const job of jobs) {
             jobId: job.id,
             log: (line) => console.log(line),
           });
-          // The forward walk ends on create-payment's release, in the same window.
-          lastCreatePaymentAt = Date.now();
           if (out.settled) continue;
           console.log(`    could not settle ${job.id} forward: ${out.reason}`);
         } catch (err) {
-          // Never fatal: a sweep that could not settle a row forward is the
-          // state this branch has always been in, not a new defect.
+          // Not fatal for THIS row on its own: it joins `deferred`, and a
+          // deferred row past 48h fails a teardown sweep below (review M1).
           console.log(`    could not settle ${job.id} forward: ${String(err).slice(0, 200)}`);
+        } finally {
+          // The forward walk ends on create-payment's release, in the same window.
+          lastCreatePaymentAt = Date.now();
         }
       }
       console.log(
@@ -412,6 +485,23 @@ for (const job of jobs) {
   }
 }
 
+const summary = summariseSweep({ listed: jobs.length, deferred });
+/*
+ * A ROW PAST 48H THAT THIS SWEEP COULD HAVE SETTLED IS A FAILURE (review M1).
+ * With both seats and test-mode Stripe, a deferred row that old is not waiting
+ * on anything but a settle that keeps failing, and a warning is how seven of
+ * them sat unread for days (nightly-red #1719). Only a teardown fails on it: a
+ * pre-sweep must not block the suite, and the same job's teardown runs
+ * `if: always()`, so the run still goes red.
+ */
+if (!DRY && CAN_SETTLE_FORWARD && summary.stale.length) {
+  const msg =
+    `${summary.stale.length} hired+funded test job(s) past 48h were NOT settled forward although this sweep ` +
+    `held both seats in Stripe test mode: ${summary.stale.map((r) => r.id).join(", ")}`;
+  if (PHASE === "teardown") failures.push(`settle forward: ${msg}`);
+  else console.log(`::warning title=Stale escrow rows did not settle (the teardown sweep will fail on them)::${msg}`);
+}
+
 if (failures.length) {
   console.error(`\nFAIL (${failures.length}):\n  ${failures.join("\n  ")}`);
   console.error(
@@ -421,8 +511,10 @@ if (failures.length) {
   );
   process.exit(1);
 }
-const summary = summariseSweep({ listed: jobs.length, deferred });
 console.log(`\n${summary.line}`);
+if (held.length) {
+  console.log(`Held on purpose (${E2E_HOLD_MARKER}), not touched: ${held.map((j) => `${j.id} (${j.status}/${j.payment_status}, created ${j.created_at})`).join(", ")}`);
+}
 if (!summary.ok) {
   // A warning, never an exit code: the rows are real residue, but the sweeper
   // is deliberately not allowed to unwind them (a poster_cancel_job here

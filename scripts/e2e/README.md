@@ -56,6 +56,17 @@ tour.
   trigger (500). Use the Audit Helper identity for driving, and the seed graph
   read-only.
 
+## Holding a marker job on purpose (`[E2E HOLD]`)
+Every CI sweep (`scripts/e2e/sweep-both-seats.sh` → `prod-lifecycle-sweeper.mjs`)
+unwinds `[E2E DO NOT ACCEPT]` rows owned by the test poster: an unfunded one is
+reopened and deleted, a hired+funded one older than 6h is settled forward
+(arrival → Done → release). A lane that needs such a job to outlive one run
+(the two-role harness's `PLAYWRIGHT_LIFECYCLE_JOB_ID`, or any hired/funded
+fixture a later leg reuses) must put `[E2E HOLD]` in the title as well
+(`E2E_HOLD_MARKER`, `scripts/e2e/settleForward.mjs`). The sweep lists a held
+row and never touches it, and `settleJobForward` refuses it. Unwind a held row
+yourself when the lane is done with it: nothing else will.
+
 ## Two-origin trick
 The dev server is one process, three origins — `localhost`, `127.0.0.1`, and
 `[::1]` — each with isolated storage. Poster on localhost, helper on

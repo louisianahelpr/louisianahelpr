@@ -51,6 +51,7 @@ import {
   LONG_WORD,
   MARKER,
   NEVER_PRESS,
+  RUN_MARKER,
   SKIP_BUTTON,
   SUPABASE_URL,
   TEXTLIKE,
@@ -82,7 +83,7 @@ import {
   type Fixtures,
   type Session,
 } from "./harness";
-import { FORMS, GAPS } from "./messyInputForms";
+import { EXPLORE_CREDITED, FORMS, GAPS } from "./messyInputForms";
 
 const test = base;
 const CREDITS = join("test-results", "messy-input-prod", "credits");
@@ -487,15 +488,16 @@ test.describe("targeted rules", () => {
     expect(writes.length, "a whitespace-only message was sent").toBe(0);
     await box.fill("x".repeat(4001));
     expect((await box.inputValue()).length, "the composer accepted more than MESSAGE_MAX_LENGTH").toBeLessThanOrEqual(4000);
-    const text = `${MARKER} Ça va 🦞 日本 <b>bold</b> <img src=x onerror="window.__lhXss=1">`;
+    const text = `${RUN_MARKER} Ça va 🦞 日本 <b>bold</b> <img src=x onerror="window.__lhXss=1">`;
     await box.fill(text);
     await send.click();
     await expect(page.getByText(text).first()).toBeVisible({ timeout: 20_000 });
     await page.waitForTimeout(1_000);
     await assertHealthy(page, info, "chat-multibyte-html");
     expect(writes.filter((w) => w.method() === "POST").length).toBe(1);
-    // Cleanup as the sender.
-    const enc = encodeURIComponent(`*${MARKER}*`);
+    // Cleanup as the sender: this process's rows only (RUN_MARKER), never
+    // another run's still in flight on the same account.
+    const enc = encodeURIComponent(`*${RUN_MARKER}*`);
     const r = await restAs(request, helper, "delete", `messages?content=like.${enc}&sender_id=eq.${helper.user.id}&select=id`);
     expect(r.ok(), `cleanup: ${r.status()} ${await r.text()}`).toBe(true);
     /* AND THE NOTIFICATION IT GENERATED, which this did not delete.
@@ -810,4 +812,5 @@ scoped("coverage: every inventory file was swept, explored, or has a stated gap"
   // Soft, so a run missing explore credits still reports its stale gaps too.
   expect.soft(unaccounted, `no sweep, no explore credit and no stated gap:\n${unaccounted.join("\n")}`).toEqual([]);
   expect.soft(staleGaps, "listed as a gap but actually exercised — remove the gap").toEqual([]);
+  expect.soft(EXPLORE_CREDITED.filter((f) => !covered.has(f)), "EXPLORE_CREDITED files the explore did not credit this run").toEqual([]);
 });

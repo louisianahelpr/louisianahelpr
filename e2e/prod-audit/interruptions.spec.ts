@@ -6,8 +6,10 @@
  * per intent, an honest message when it did not go through, a retry that
  * works, and never an error screen.
  *
- * Every row this file creates carries MARKER and is deleted in afterEach as the
- * account that wrote it (service role is never used from a spec).
+ * Every row this file creates carries RUN_MARKER (MARKER plus this process's
+ * token) and is deleted in afterEach as the account that wrote it (service role
+ * is never used from a spec). Only this process's rows: another run driving the
+ * same accounts at the same time keeps its own.
  *
  * ── Shown able to fail ────────────────────────────────────────────────────
  * The registered mutation restores the defect measured on prod 2026-09-13:
@@ -59,7 +61,9 @@ import type { APIRequestContext, BrowserContext, Page } from "@playwright/test";
 import { test as base, expect } from "../prodTest";
 import { isoDayIn, pickCalendarDay } from "../calendarPicker";
 import {
+  LEFTOVER_AGE_MS,
   MARKER,
+  RUN_MARKER,
   SUPABASE_URL,
   assertHealthy,
   cleanupMarked,
@@ -93,13 +97,18 @@ test.beforeAll(async ({ request, browser }, info) => {
   const funded = await ensureFundedOpenJob(request, browser, poster, helper);
   info.annotations.push({ type: "funded-fixture", description: funded.log.join("; ") });
   fx = await resolveFixtures(request, poster, helper);
-  // A previous run that died mid-spec may have left marked rows behind.
-  await cleanupMarked(request, helper);
-  await cleanupMarked(request, poster);
+  // A run that died mid-spec may have left marked rows behind. Only rows older
+  // than any live run: another run driving these accounts right now owns the rest.
+  const leftoverBefore = Date.now() - LEFTOVER_AGE_MS;
+  await cleanupMarked(request, helper, { leftoverBefore });
+  await cleanupMarked(request, poster, { leftoverBefore });
 });
 
 test.afterEach(async ({ request }, info) => {
-  const removed = [...(await cleanupMarked(request, helper)), ...(await cleanupMarked(request, poster))];
+  const removed = [
+    ...(await cleanupMarked(request, helper, { run: RUN_MARKER })),
+    ...(await cleanupMarked(request, poster, { run: RUN_MARKER })),
+  ];
   if (removed.length) info.annotations.push({ type: "cleanup", description: removed.join(", ") });
 });
 
@@ -120,7 +129,7 @@ async function openApply(page: Page, jobId: string) {
   const apply = sheet.getByRole("button", { name: /^(apply now|book now)$/i });
   await expect(apply).toBeVisible({ timeout: 30_000 });
   const pitch = sheet.getByRole("textbox").first();
-  await pitch.fill(`${MARKER} interruption test ${nonce()}`);
+  await pitch.fill(`${RUN_MARKER} interruption test ${nonce()}`);
   return { sheet, apply, pitch };
 }
 
@@ -383,7 +392,7 @@ test.describe("send message", () => {
   test("double-tap Send delivers exactly one message", async ({ browser, request }, info) => {
     const { ctx, page } = await helperContext(browser);
     const { box, send } = await openThread(page);
-    const text = `${MARKER} double-tap ${nonce()}`;
+    const text = `${RUN_MARKER} double-tap ${nonce()}`;
     await box.fill(text);
     const writes = watchWrites(page, MESSAGE_WRITE);
     await send.dblclick({ force: true });
@@ -399,7 +408,7 @@ test.describe("send message", () => {
   test("offline mid-send: message shows as not sent (not as sent), and goes through once back online", async ({ browser, request }, info) => {
     const { ctx, page } = await helperContext(browser);
     const { box, send } = await openThread(page);
-    const text = `${MARKER} offline ${nonce()}`;
+    const text = `${RUN_MARKER} offline ${nonce()}`;
     await box.fill(text);
     const writes = watchWrites(page, MESSAGE_WRITE);
     await ctx.setOffline(true);
@@ -431,7 +440,7 @@ test.describe("send message", () => {
       await new Promise((r) => setTimeout(r, 6_000));
       await route.continue().catch(() => {});
     });
-    const text = `${MARKER} slow ${nonce()}`;
+    const text = `${RUN_MARKER} slow ${nonce()}`;
     await box.fill(text);
     const writes = watchWrites(page, MESSAGE_WRITE);
     await send.click();
@@ -606,7 +615,7 @@ test.describe("post a job", () => {
 
   test("refresh mid-form keeps or clearly restarts the draft, never an error screen", async ({ browser, request }, info) => {
     const { ctx, page } = await posterPage(browser);
-    const title = `${MARKER} refresh ${nonce()}`;
+    const title = `${RUN_MARKER} refresh ${nonce()}`;
     await page.goto("/post-job");
     await settle(page);
     const fresh = page.getByRole("button", { name: /start fresh/i });

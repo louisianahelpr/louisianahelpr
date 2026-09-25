@@ -1383,6 +1383,7 @@ sure someone hears it and closes it.
   (`select count(*) from ops_alert_ledger where source_kind='user-report'`) equals the open real
   reports of the last 90 days, and one /support guest message lands as a 'contact-support-guest'
   item after functions-deploy. App Store reviews are NOT ingested anywhere in source: Q289.
+  LIVE PASS 2026-09-25 ~14:00Z (queue lane, read-only SQL): pg_get_functiondef(ops_alert_condition) has the 'user-report' branch; trigger trg_reports_zz_ledger on reports (fn ops_alert_ledger_from_report) present; all six new functions (that one, ops_alert_record_user_report, user_report_is_open/_is_real/_severity/_title) proacl = postgres + service_role only; backfill: 1 user-report ledger item (closed) and 0 open real reports in 90 days, which agree; contact-support deployed v2069 contains the 'contact-support-guest' path (get_edge_function). STILL OPEN: the end-to-end guest /support message (not sent: it emails the real support inbox and opens a ledger item; the lead or owner should send one and watch the item open and close).
 - [ ] **Q65 Test-data hygiene on prod.** E2E/press/prod-audit write to prod by
   design. Measure how many is_seed jobs, users, messages, notifications and
   storage objects have built up; purge anything past a retention window on
@@ -1591,6 +1592,7 @@ sure someone hears it and closes it.
   row lands, which needs the owner (MORNING QUESTIONS 5). Scoreboard: Q59
   doesn't exist yet. When it does, it reads check_push_token_health()
   (tokens, registered_14d, native_users_14d, skipped_no_device_7d).
+  RE-MEASURED 2026-09-25 13:59Z (queue lane): check_push_token_health() = tokens 0, registered_14d 0, native_users_14d 0, skipped_no_device_7d 427. No native build has signed in for 14 days, and Q387 shows the one installed on the owner's iPhone predates months of fixes. OWNER: install the current TestFlight build on the iPhone, sign in, allow notifications; then push_tokens should hold a row (the push-tokens-empty ledger item closes itself).
 4. **FYI, found overnight, a launch blocker: push notifications reach nobody.**
    push_tokens has 0 rows and thousands of pushes were skipped for having no
    device. CLAUDE.md's "push-token bug is FIXED" was only true for the native

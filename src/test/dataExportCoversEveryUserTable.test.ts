@@ -12,7 +12,8 @@
  * client, the edge function and the privacy journey all agree on the sections.
  *
  * @mutate supabase/migrations/20260925232153_export_my_data.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
- * @mutate supabase/migrations/20260925232153_export_my_data.sql |       WHERE t.reviewer_id = v_uid OR t.reviewee_id = v_uid)); |       WHERE t.reviewer_id = v_uid));
+ * @mutate supabase/migrations/20260925232153_export_my_data.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
+ * @mutate supabase/migrations/20260925232153_export_my_data.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
  * @mutate supabase/migrations/20260925232153_export_my_data.sql | to_jsonb(t) - 'flag_reason' | to_jsonb(t)
  * @mutate supabase/migrations/20260925232153_export_my_data.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
  * @mutate supabase/migrations/20260925232153_export_my_data.sql | REVOKE ALL ON FUNCTION public.export_my_data() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.export_my_data() FROM PUBLIC;
@@ -112,6 +113,7 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
         .replace(/\(SELECT[^()]*WHERE[^()]*v_uid[^()]*\)/gi, "")
         .replace(/(?:lower\()?\bt\.\w+\)?\s*=\s*v_(?:uid|email)\b/g, "")
         .replace(/NOT coalesce\(t\.flagged_hidden, false\)/g, "")
+        .replace(/AND t\.status = 'published'\s+AND t\.feedback_visible_at IS NOT NULL AND t\.feedback_visible_at <= now\(\)/g, "")
         .replace(/\bt\.id IN\b|\bt\.job_id IN\b/g, "");
       return /\bt\.\w+|\btrue\b/i.test(residue.replace(/^WHERE/i, ""));
     });
@@ -133,6 +135,20 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     for (const [t, c] of [["push_tokens", "token"], ["gift_cards", "claim_token"], ["messages", "flag_reason"], ["jobs", "offered_to_helper_id"]]) {
       expect(sections.find((x) => x.table === t)?.text, `${t}.${c} must be stripped`).toMatch(new RegExp(`-\\s*'${c}'`));
     }
+  });
+
+  it("never wider than the app's own SELECT rules (lh-authz-rls review)", () => {
+    const flat = (name: string) => (sections.find((x) => x.name === name)?.text ?? "").replace(/\s+/g, " ");
+    // A review ABOUT the caller only once published and past the double-blind
+    // reveal ("Published reviews visible after reveal", 20260824210000).
+    expect(flat("reviews")).toContain(
+      "t.reviewer_id = v_uid OR (t.reviewee_id = v_uid AND t.status = 'published' AND t.feedback_visible_at IS NOT NULL AND t.feedback_visible_at <= now())",
+    );
+    // A full jobs row only to the poster or whoever user_may_see_job_address
+    // admits; every other tie gets the limited row.
+    expect(flat("jobs")).toMatch(
+      /CASE WHEN t\.customer_id = v_uid OR public\.user_may_see_job_address\(t\.id, v_uid\) THEN CASE .*? ELSE jsonb_build_object\( 'id', t\.id, .*'row_limited', true/,
+    );
   });
 
   it("anon cannot execute it", () => {

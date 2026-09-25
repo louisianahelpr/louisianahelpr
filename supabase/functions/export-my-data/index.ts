@@ -10,9 +10,10 @@
 //      src/test/dataExportCoversEveryUserTable.test.ts.
 //   2. The files. The person's stored objects (the identity buckets under
 //      `<uid>/`, and the chat attachments on the messages in their export) are
-//      handed over as signed links. Signing needs the service role: several of
-//      those buckets are private and a user-JWT sign depends on per-bucket
-//      SELECT policies.
+//      handed over as signed links. The identity buckets are listed and signed
+//      with the service role under the caller's own <uid>/ prefix; chat
+//      attachments (paths read from client-written message rows) are signed
+//      with the caller's JWT so message-attachments' read policy applies.
 //
 // Fail closed: if any table read, any listing or any signature fails, the
 // caller gets an error, never a file that silently leaves something out.
@@ -39,12 +40,18 @@ function attachmentPath(url: string): string | null {
   const idx = url.indexOf(marker);
   const raw = idx >= 0 ? url.slice(idx + marker.length).split("?")[0] : url;
   if (!raw || /^https?:/i.test(raw)) return null;
+  let path: string;
   try {
-    return decodeURIComponent(raw);
+    path = decodeURIComponent(raw);
   } catch {
     // A malformed `%` escape in client-supplied text: use the path as stored.
-    return raw;
+    path = raw;
   }
+  // The row's INSERT policy checked the RAW text; a decoded `..` or `\` is a
+  // path it never saw. Refuse those outright. Everything else is signed as the
+  // user (below), so message-attachments' read policy has the final say.
+  if (/(^|\/)\.\.(\/|$)|\\/.test(path)) return null;
+  return path;
 }
 
 serve(async (req) => {
@@ -90,11 +97,18 @@ serve(async (req) => {
     const storageObjects: { bucket: string; path: string; signed_url: string; expires_at: string }[] = [];
     for (const { bucket, paths } of targets) {
       if (paths.length === 0) continue;
-      const { data, error } = await admin.storage.from(bucket).createSignedUrls(paths, SIGNED_URL_SECONDS);
+      // Chat attachments are signed AS THE USER, so the bucket's own read policy
+      // (job + sender segments, 20260914200051) decides; a legacy or forged
+      // attachment_url naming someone else's object gets no link. The identity
+      // buckets were listed under the caller's own <uid>/ prefix above, so the
+      // service role signs those.
+      const signer = bucket === MESSAGE_BUCKET ? asUser : admin;
+      const { data, error } = await signer.storage.from(bucket).createSignedUrls(paths, SIGNED_URL_SECONDS);
       if (error || !data) throw new Error(`sign ${bucket}: ${error?.message ?? "no data"}`);
       for (const row of data as { path: string | null; signedUrl: string | null; error: string | null }[]) {
-        // A chat attachment whose object is already gone is not the person's
-        // data any more; every other signing failure fails the export.
+        // A chat attachment whose object is gone, or that the read policy
+        // refuses, is not handed over; every other signing failure fails the
+        // export.
         if (!row.signedUrl) {
           if (bucket === MESSAGE_BUCKET) continue;
           throw new Error(`sign ${bucket}/${row.path}: ${row.error ?? "no url"}`);

@@ -29,6 +29,14 @@
 --   - moderation internals: messages.flag_reason, and messages sent TO the
 --     person that moderation hid from them (flagged_hidden), which they never
 --     received.
+--   - anything wider than the app's own SELECT rules (lh-authz-rls review,
+--     2026-09-25): a review ABOUT the person only once published and past the
+--     double-blind reveal (policy "Published reviews visible after reveal",
+--     20260824210000); a full jobs row only to the poster or someone
+--     user_may_see_job_address() admits (20260901033219). A job the person is
+--     tied to only by a declined/expired offer, a cancellation or a dispute on
+--     an earlier hire comes back as a limited row: title, category, parish,
+--     status, and which of those ties is theirs.
 --
 -- plpgsql (not LANGUAGE sql) so a from-scratch replay does not resolve the
 -- table names at CREATE time; every table named here exists in the generated
@@ -56,15 +64,27 @@ BEGIN
 
   v_out := v_out || jsonb_build_object('profile', (SELECT to_jsonb(t) - 'insurance_reviewed_by' - 'license_reviewed_by' FROM public.profiles t
       WHERE t.user_id = v_uid));
-  v_out := v_out || jsonb_build_object('jobs', (SELECT coalesce(jsonb_agg(CASE WHEN t.customer_id = v_uid OR t.offered_to_helper_id = v_uid THEN to_jsonb(t)
-                 ELSE to_jsonb(t) - 'offered_to_helper_id' END - 'removed_by'), '[]'::jsonb) FROM public.jobs t
+  v_out := v_out || jsonb_build_object('jobs', (SELECT coalesce(jsonb_agg(
+        CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid)
+          THEN CASE WHEN t.customer_id = v_uid OR t.offered_to_helper_id = v_uid THEN to_jsonb(t)
+                 ELSE to_jsonb(t) - 'offered_to_helper_id' END - 'removed_by'
+          ELSE jsonb_build_object(
+                 'id', t.id, 'title', t.title, 'category', t.category, 'parish', t.parish,
+                 'status', t.status, 'created_at', t.created_at, 'row_limited', true,
+                 'offered_to_you', t.offered_to_helper_id IS NOT DISTINCT FROM v_uid,
+                 'cancelled_by_you', t.cancelled_by IS NOT DISTINCT FROM v_uid,
+                 'disputed_by_you', t.disputed_by IS NOT DISTINCT FROM v_uid,
+                 'recurring_helper_is_you', t.recurring_helper_id IS NOT DISTINCT FROM v_uid)
+        END), '[]'::jsonb) FROM public.jobs t
       WHERE t.customer_id = v_uid OR t.helper_id = v_uid OR t.recurring_helper_id = v_uid
         OR t.offered_to_helper_id = v_uid OR t.cancelled_by = v_uid OR t.disputed_by = v_uid
         OR t.id IN (SELECT g.job_id FROM public.group_job_helpers g WHERE g.helper_id = v_uid)));
   v_out := v_out || jsonb_build_object('applications', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.applications t
       WHERE t.helper_id = v_uid));
   v_out := v_out || jsonb_build_object('reviews', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.reviews t
-      WHERE t.reviewer_id = v_uid OR t.reviewee_id = v_uid));
+      WHERE t.reviewer_id = v_uid
+        OR (t.reviewee_id = v_uid AND t.status = 'published'
+            AND t.feedback_visible_at IS NOT NULL AND t.feedback_visible_at <= now())));
   v_out := v_out || jsonb_build_object('messages', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'flag_reason'), '[]'::jsonb) FROM public.messages t
       WHERE t.sender_id = v_uid
         OR (t.receiver_id = v_uid AND NOT coalesce(t.flagged_hidden, false))));

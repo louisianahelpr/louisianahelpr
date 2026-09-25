@@ -401,7 +401,7 @@ const screenPanelSurfaceStyle = {
 } as React.CSSProperties;
 
 /**
- * The desktop-web dropdown's surface — a real card: opaque `--background`,
+ * The desktop-web dropdown's surface — a real card: opaque `--popover`,
  * a full border, a rounded-lg radius (the app's standard card radius token)
  * and `--elev-sheet`'s floating-surface shadow (same recipe named
  * `--shadow-elevated` elsewhere). No `--tw-enter-scale` override here, unlike
@@ -410,7 +410,10 @@ const screenPanelSurfaceStyle = {
  * dropdown is exactly the size a small `zoom-in-95` pop is meant for.
  */
 const desktopPanelSurfaceStyle = {
-  background: "hsl(var(--background))",
+  // Card tone, not the page canvas: the Filters and Notifications panels sit
+  // ON TOP of the page (owner, 2026-09-25: "Filters and notification should
+  // have a background so they don't blend in with the info behind it").
+  background: "hsl(var(--popover))",
   border: "1px solid hsl(var(--olivewood) / 0.14)",
   boxShadow: "var(--elev-sheet)",
 } as React.CSSProperties;

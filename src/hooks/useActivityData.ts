@@ -12,6 +12,7 @@ import { checkDrift } from "@/lib/checkDrift";
 import { report } from "@/lib/errorLogger";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
+import { fetchJobSeriesState } from "@/lib/jobSeriesState";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 
 /* ============================================================================
@@ -213,8 +214,17 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
   });
 
   // Cast, not `.overrideTypes()`: see the note in src/lib/jobColumns.ts.
-  const postedJobs: Job[] = readableJobRows(jobsRes.data).map((j) => ({
+  const rows = readableJobRows(jobsRes.data);
+  // The series state rides on its own read (JOB_SERIES_STATE_COLUMNS: a
+  // column the web deploy selects before db-deploy adds it must not fail the
+  // whole list). Series parents only; never throws.
+  const seriesState = await fetchJobSeriesState(
+    rows.filter((j) => !j.parent_job_id && (j.recurrence_days?.length ?? 0) > 0).map((j) => j.id),
+  );
+  const postedJobs: Job[] = rows.map((j) => ({
     ...j,
+    series_ended_on: null,
+    ...seriesState.get(j.id),
     offered_to_helper_id: offerTargets.get(j.id) ?? null,
   }));
 

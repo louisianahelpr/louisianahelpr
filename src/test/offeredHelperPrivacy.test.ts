@@ -52,7 +52,7 @@ import {
   returnsOffereeColumn,
   type DbObject,
 } from "./helpers/jobsPrivacySource";
-import { JOB_PRIVATE_COLUMNS, JOB_READABLE_COLUMN_LIST } from "@/lib/jobColumns";
+import { JOB_PRIVATE_COLUMNS, JOB_READABLE_COLUMN_LIST, JOB_SERIES_STATE_COLUMNS } from "@/lib/jobColumns";
 
 /** The migration that took the table-level SELECT off `public.jobs`. */
 const FIX_MIGRATION = "20260915045110_hide_offered_helper_from_non_posters.sql";
@@ -316,7 +316,9 @@ describe("offer privacy (c): JOB_READABLE_COLUMN_LIST is the jobs columns minus 
   // @two-way src/test/offeredHelperPrivacy.test.ts:).toEqual(KNOWN_UNMIGRATED_COLUMNS.slice().sort())
   const KNOWN_UNMIGRATED_COLUMNS = ["boost_auto_extended"];
 
-  const readable = [...JOB_READABLE_COLUMN_LIST] as string[];
+  // The series-state columns are read by fetchJobSeriesState on their own
+  // (deploy order: see JOB_SERIES_STATE_COLUMNS), so they count as covered.
+  const readable = [...JOB_READABLE_COLUMN_LIST, ...JOB_SERIES_STATE_COLUMNS] as string[];
   const priv = [...JOB_PRIVATE_COLUMNS] as string[];
 
   it("the private column is the offeree, and it is not in the readable list", () => {

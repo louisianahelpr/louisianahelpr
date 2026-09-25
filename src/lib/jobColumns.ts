@@ -123,7 +123,6 @@ export const JOB_READABLE_COLUMN_LIST = [
   "sales_tax_amount",
   "sales_tax_rate",
   "scope_video_url",
-  "series_ended_on",
   "special_requirements",
   "start_reminder_sent_at",
   "start_time",
@@ -135,6 +134,21 @@ export const JOB_READABLE_COLUMN_LIST = [
   "urgent_fee",
   "zip_code",
 ] as const;
+
+/**
+ * Readable jobs columns that are NOT in JOB_READABLE_COLUMN_LIST on purpose:
+ * the recurring-series state, read by `fetchJobSeriesState()`
+ * (src/lib/jobSeriesState.ts) as a separate, non-fatal enrichment.
+ *
+ * WHY SEPARATE (deploy order, money/authz review 2026-09-25). A push to main
+ * ships the web app (prod-deploy) and the migrations (db-deploy) in parallel.
+ * A column in JOB_READABLE_COLUMN_LIST that the web app selects before
+ * db-deploy has added it 42703s EVERY read that uses the list (Activity,
+ * profile tabs, admin, data export), not just the series cards. Read on its
+ * own, a missing column degrades to "no series state" for a few minutes.
+ * src/test/offeredHelperPrivacy.test.ts counts these as covered.
+ */
+export const JOB_SERIES_STATE_COLUMNS = ["series_ended_on"] as const;
 
 /**
  * Comma-joined, ready for `.select(JOB_READABLE_COLUMNS)`.

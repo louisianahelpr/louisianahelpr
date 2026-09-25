@@ -188,7 +188,14 @@ describe("3. every helpr:// address the app mints is a real route", () => {
   const patterns = [...appCode.matchAll(/<Route\s+path="([^"]+)"/g)]
     .map((m) => m[1])
     .filter((p) => p !== "*")
-    .map((p) => new RegExp(`^${p.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\/\*$/, "(?:/.*)?").replace(/:[A-Za-z0-9_]+/g, "[^/]+")}$`));
+    .map((p) => {
+      // A trailing "/*" wildcard matches the bare path and anything below it.
+      const wild = p.endsWith("/*");
+      const base = (wild ? p.slice(0, -2) : p)
+        .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+        .replace(/:[A-Za-z0-9_]+/g, "[^/]+");
+      return new RegExp(`^${base}${wild ? "(?:/.*)?" : ""}$`);
+    });
   const served = (pathname: string) => patterns.some((re) => re.test(pathname));
 
   // buildRedirectUrl(<first arg>, ...) in every edge function (tests excluded).

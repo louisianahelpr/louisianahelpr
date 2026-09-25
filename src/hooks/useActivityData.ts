@@ -224,6 +224,7 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
   const postedJobs: Job[] = rows.map((j) => ({
     ...j,
     series_ended_on: null,
+    series_split_ok: false,
     ...seriesState.get(j.id),
     offered_to_helper_id: offerTargets.get(j.id) ?? null,
   }));

@@ -281,7 +281,9 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
   it("open_jobs_browse nulls the offeree for everyone but the poster and the offeree", () => {
     const def = latestDefinitions().get("view:open_jobs_browse");
     const text = def!.code.replace(/\s+/g, " ");
-    expect(def!.file, "the latest view definition must be the offer-privacy one").toBe(FIX_MIGRATION);
+    // The offer-privacy migration or a later restatement of it (20260925160645
+    // appended the series terms and restated the CASE verbatim).
+    expect(def!.file >= FIX_MIGRATION, "the latest view definition must be the offer-privacy one or later").toBe(true);
     expect(
       text,
       "the browse view projects the column, so it must CASE-null it",
@@ -291,7 +293,7 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     // the view restates the REVOKE.
     // Comment-blanked for the same reason: a `-- DROP VIEW …` line must not
     // fail this, and a commented-out REVOKE must not satisfy it.
-    const migration = maskComments(readSource(`supabase/migrations/${FIX_MIGRATION}`)!);
+    const migration = maskComments(readSource(`supabase/migrations/${def!.file}`)!);
     expect(migration, "a redefinition of open_jobs_browse must use CREATE OR REPLACE, never DROP + CREATE")
       .not.toMatch(/DROP\s+VIEW\s+(IF\s+EXISTS\s+)?(public\.)?open_jobs_browse/i);
     const flat = migration.replace(/\s+/g, " ");

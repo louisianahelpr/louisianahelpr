@@ -143,6 +143,7 @@ rpc_exempt(fn, why) AS (
   ('accept_group_application', 'writes group_job_helpers, applications, jobs: all ban-gated'),
   ('apply_to_job', 'writes applications INSERT, ban-gated'),
   ('decline_job_offer', 'writes applications + jobs UPDATE, both ban-gated'),
+  ('give_up_series_dates', 'handing recurring visit dates back only reduces activity (owner decision 6, 2026-09-25); a banned Helpr may still give dates up'),
   ('end_recurring_series', 'ending a series only reduces activity: a banned party may still end one (review 2026-09-25); enforce_ban_gate passes under app.series_end_rpc, set only around its party-checked UPDATE'),
   ('helper_abort_job', 'writes applications + jobs UPDATE, both ban-gated'),
   ('helper_cancel_booking', 'writes applications + jobs UPDATE, both ban-gated'),

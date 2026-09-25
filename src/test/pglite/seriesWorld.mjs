@@ -101,7 +101,7 @@ export function baseSchema(before) {
     auto_suspended_until timestamptz);
   insert into public.profiles (user_id, full_name) select id, 'User ' || left(id::text, 1) from auth.users;
   create table public.applications (id uuid primary key default gen_random_uuid(), job_id uuid, helper_id uuid,
-    status text not null default 'pending', unique (job_id, helper_id));
+    status text not null default 'pending', message text, unique (job_id, helper_id));
   create table public.notifications (id serial primary key, user_id uuid not null, job_id uuid,
     title text not null, message text not null, type text not null default 'info', link text);
   create table public.group_job_helpers (id uuid primary key default gen_random_uuid(), job_id uuid, helper_id uuid, status text default 'accepted');

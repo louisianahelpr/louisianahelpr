@@ -148,7 +148,7 @@ export const JOB_READABLE_COLUMN_LIST = [
  * own, a missing column degrades to "no series state" for a few minutes.
  * src/test/offeredHelperPrivacy.test.ts counts these as covered.
  */
-export const JOB_SERIES_STATE_COLUMNS = ["series_ended_on"] as const;
+export const JOB_SERIES_STATE_COLUMNS = ["series_ended_on", "series_split_ok"] as const;
 
 /**
  * Comma-joined, ready for `.select(JOB_READABLE_COLUMNS)`.

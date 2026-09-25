@@ -1911,6 +1911,7 @@ export type Database = {
           sales_tax_rate: number | null
           scope_video_url: string | null
           series_ended_on: string | null
+          series_split_ok: boolean
           special_requirements: string | null
           start_reminder_sent_at: string | null
           start_time: string | null
@@ -2026,6 +2027,7 @@ export type Database = {
           sales_tax_rate?: number | null
           scope_video_url?: string | null
           series_ended_on?: string | null
+          series_split_ok?: boolean
           special_requirements?: string | null
           start_reminder_sent_at?: string | null
           start_time?: string | null
@@ -2141,6 +2143,7 @@ export type Database = {
           sales_tax_rate?: number | null
           scope_video_url?: string | null
           series_ended_on?: string | null
+          series_split_ok?: boolean
           special_requirements?: string | null
           start_reminder_sent_at?: string | null
           start_time?: string | null
@@ -4113,6 +4116,95 @@ export type Database = {
         }
         Relationships: []
       }
+      series_date_offers: {
+        Row: {
+          helper_id: string
+          id: string
+          offered_at: string
+          parent_job_id: string
+        }
+        Insert: {
+          helper_id: string
+          id?: string
+          offered_at?: string
+          parent_job_id: string
+        }
+        Update: {
+          helper_id?: string
+          id?: string
+          offered_at?: string
+          parent_job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_date_offers_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "series_date_offers_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "series_date_offers_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      series_visit_holds: {
+        Row: {
+          claimed_at: string
+          helper_id: string
+          id: string
+          parent_job_id: string
+          visit_date: string
+        }
+        Insert: {
+          claimed_at?: string
+          helper_id: string
+          id?: string
+          parent_job_id: string
+          visit_date: string
+        }
+        Update: {
+          claimed_at?: string
+          helper_id?: string
+          id?: string
+          parent_job_id?: string
+          visit_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_visit_holds_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "series_visit_holds_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "series_visit_holds_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       str_calendar_connections: {
         Row: {
           auto_create_cleaning: boolean
@@ -5006,9 +5098,12 @@ export type Database = {
           payment_status: string | null
           photos: string[] | null
           pricing_mode: string | null
+          recurrence_days: number[] | null
           recurrence_end_date: string | null
           recurrence_interval: string | null
+          recurrence_weeks: number | null
           require_photo_proof: boolean | null
+          series_split_ok: boolean | null
           special_requirements: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["job_status"] | null
@@ -5336,6 +5431,10 @@ export type Database = {
           credits_used: number
         }[]
       }
+      claim_series_dates: {
+        Args: { p_dates: string[]; p_job_id: string }
+        Returns: Json
+      }
       cleanup_observability_tables: { Args: never; Returns: undefined }
       cleanup_stripe_webhook_events: { Args: never; Returns: undefined }
       clear_available_now: { Args: never; Returns: undefined }
@@ -5660,6 +5759,7 @@ export type Database = {
           sales_tax_rate: number | null
           scope_video_url: string | null
           series_ended_on: string | null
+          series_split_ok: boolean
           special_requirements: string | null
           start_reminder_sent_at: string | null
           start_time: string | null
@@ -5800,6 +5900,7 @@ export type Database = {
           sales_tax_rate: number | null
           scope_video_url: string | null
           series_ended_on: string | null
+          series_split_ok: boolean
           special_requirements: string | null
           start_reminder_sent_at: string | null
           start_time: string | null
@@ -6062,6 +6163,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      give_up_series_dates: {
+        Args: { p_dates: string[]; p_job_id: string }
+        Returns: Json
+      }
       group_member_slot: {
         Args: { _job_id: string; _user_id: string }
         Returns: string
@@ -6129,6 +6234,10 @@ export type Database = {
       }
       is_safe_media_url: { Args: { v: string }; Returns: boolean }
       is_seed_email: { Args: { p_email: string }; Returns: boolean }
+      is_series_party: {
+        Args: { p_parent: string; p_uid: string }
+        Returns: boolean
+      }
       is_server_context: { Args: never; Returns: boolean }
       is_submitted_credential_object: {
         Args: { p_name: string }
@@ -6143,6 +6252,7 @@ export type Database = {
         Args: { p_date_needed: string; p_start_time: string }
         Returns: string
       }
+      job_has_crew: { Args: { p_job: string }; Returns: boolean }
       job_hours_until_start: {
         Args: { p_at: string; p_date_needed: string; p_start_time: string }
         Returns: number
@@ -6249,6 +6359,10 @@ export type Database = {
           _refiled?: boolean
         }
         Returns: undefined
+      }
+      offer_series_dates: {
+        Args: { p_helper_id: string; p_job_id: string }
+        Returns: Json
       }
       open_dispute_as: {
         Args: {
@@ -6518,6 +6632,10 @@ export type Database = {
       }
       seed_jobs_hidden_publicly: { Args: never; Returns: boolean }
       send_ops_daily_digest: { Args: never; Returns: Json }
+      series_visit_dates: {
+        Args: { p_days: number[]; p_start: string; p_weeks: number }
+        Returns: string[]
+      }
       set_available_now: { Args: { p_hours?: number }; Returns: string }
       set_thread_snooze: {
         Args: { _job_id: string; _other_user_id: string; _until: string }

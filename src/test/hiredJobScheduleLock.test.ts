@@ -14,9 +14,9 @@
  * Executable proof: src/test/pglite/hiredJobScheduleLock.pglite.mjs (OLD STATE
  * RED on all four job kinds; migration 3x GREEN).
  *
- * @mutate supabase/migrations/20260925160644_hired_job_schedule_lock.sql |           OR OLD.status::text = 'cancelled'\n          OR public.job_has_crew(OLD.id)) THEN | ) THEN
- * @mutate supabase/migrations/20260925160644_hired_job_schedule_lock.sql |   IF (NEW.date_needed IS DISTINCT FROM OLD.date_needed OR NEW.start_time IS DISTINCT FROM OLD.start_time)\n     AND (OLD.helper_id IS NOT NULL | IF (NEW.date_needed IS DISTINCT FROM OLD.date_needed)\n     AND (OLD.helper_id IS NOT NULL
- * @mutate supabase/migrations/20260925160644_hired_job_schedule_lock.sql |      AND (OLD.helper_id IS NOT NULL\n          OR OLD.parent_job_id IS NOT NULL | AND (OLD.helper_id IS NOT NULL
+ * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |           OR OLD.status::text = 'cancelled'\n          OR public.job_has_crew(OLD.id)) THEN | ) THEN
+ * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   IF (NEW.date_needed IS DISTINCT FROM OLD.date_needed OR NEW.start_time IS DISTINCT FROM OLD.start_time)\n     AND (OLD.helper_id IS NOT NULL | IF (NEW.date_needed IS DISTINCT FROM OLD.date_needed)\n     AND (OLD.helper_id IS NOT NULL
+ * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |      AND (OLD.helper_id IS NOT NULL\n          OR OLD.parent_job_id IS NOT NULL | AND (OLD.helper_id IS NOT NULL
  * @mutate supabase/functions/_shared/cancellationFee.ts |   const hours = hoursUntilJob(job.date_needed, job.cancelled_at, job.start_time); |   const hours = hoursUntilJob(job.date_needed, job.cancelled_at, job.start_time ?? job.helper_confirmed_at);
  */
 import { readdirSync, readFileSync } from "node:fs";

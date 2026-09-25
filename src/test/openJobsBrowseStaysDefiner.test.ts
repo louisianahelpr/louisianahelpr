@@ -98,6 +98,9 @@ const PINNED_COLUMNS = [
   "customer_id", "offered_to_helper_id", "direct_offer_status", "direct_offer_expires_at",
   "applicant_count", "pricing_mode", "latitude", "longitude", "parish", "credential_tier",
   "require_photo_proof",
+  // 20260925160645 (Q407 4): the series terms a Helpr reads before applying.
+  // Published by the poster with the listing; nothing personal.
+  "recurrence_days", "recurrence_weeks", "series_split_ok",
 ];
 
 /** Live jobs SELECT policies, replayed from the ledger. */

@@ -52,10 +52,10 @@ describe("the Activity placeholder reserves the phone tab row only when it will 
  * 128px bar alone in a 44px box where PostsHeader / JobsHeader render a
  * ScreenHeaderRow: the screen's name, then a cluster of two 44px controls
  * (search, filter chevron). It is now that same ScreenHeaderRow, with the name
- * (known before any data) and one bone per control, and the screen keeps ONE
+ * (known before any data) and one 44px box per control holding a bone the size of its 16px glyph (a filled 44px bone merged the row into the list cluster, run 36165226511), and the screen keeps ONE
  * h1 while pending (LoadingHeading's; the row's title is decorative).
  *
- * @mutate src/components/ActivityPageSkeleton.tsx |             <Skeleton className="h-11 w-11 rounded-ds-md" />\n            <Skeleton className="h-11 w-11 rounded-ds-md" />\n | \n
+ * @mutate src/components/ActivityPageSkeleton.tsx | <Skeleton className="h-4 w-4 rounded" />\n            </span>\n            <span | <Skeleton className="h-11 w-11 rounded-ds-md" />\n            </span>\n            <span
  * @mutate src/components/ActivityPageSkeleton.tsx |         decorativeTitle\n | \n
  */
 describe("the Activity placeholder's title row is the loaded header row", () => {
@@ -71,7 +71,11 @@ describe("the Activity placeholder's title row is the loaded header row", () => 
       const row = name!.parentElement!.parentElement!;
       const cluster = row.lastElementChild!;
       expect(cluster.children).toHaveLength(2);
-      for (const bone of cluster.children) expect(bone.className).toMatch(/\bh-11\b.*\bw-11\b/);
+      for (const box of cluster.children) {
+        expect(box.className).toMatch(/\bh-11\b.*\bw-11\b/);
+        expect(box.children).toHaveLength(1);
+        expect(box.firstElementChild!.className).toMatch(/\bh-4\b.*\bw-4\b/);
+      }
       expect(container.querySelectorAll("h1")).toHaveLength(1);
     });
   }

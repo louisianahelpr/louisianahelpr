@@ -3,24 +3,9 @@
   "generated": "2026-09-24T07:40:24.852Z",
   "allow": [
     {
-      "key": "anon /account-banned #0",
-      "kind": "jump",
-      "was": "row 256px → 533px (+277px)"
-    },
-    {
       "key": "helper /profile #0",
       "kind": "rows",
       "was": "4 placeholder row(s) → 3 real row(s)"
-    },
-    {
-      "key": "customer /profile?tab=earnings #0",
-      "kind": "media",
-      "was": "5 avatar/media bone(s) → 10 real"
-    },
-    {
-      "key": "helper /profile?tab=earnings #0",
-      "kind": "media",
-      "was": "5 avatar/media bone(s) → 34 real"
     },
     {
       "key": "customer /profile?tab=reviews #1",
@@ -88,21 +73,6 @@
       "was": "row 736px → 400px (-336px)"
     },
     {
-      "key": "helper /profile?tab=work_record #0",
-      "kind": "jump",
-      "was": "row 740px → 752px (+12px)"
-    },
-    {
-      "key": "customer /profile?tab=home_history #0",
-      "kind": "media",
-      "was": "0 avatar/media bone(s) → 45 real"
-    },
-    {
-      "key": "helper /profile?tab=home_history #0",
-      "kind": "jump",
-      "was": "row 736px → 384px (-352px)"
-    },
-    {
       "key": "customer /profile?tab=analytics #2",
       "kind": "jump",
       "was": "row 614px → 447px (-167px)"
@@ -138,39 +108,9 @@
       "was": "row 52px → 154px (+102px)"
     },
     {
-      "key": "helper /jobs #1",
-      "kind": "jump",
-      "was": "row 52px → 28px (-24px)"
-    },
-    {
-      "key": "customer /posts #1",
-      "kind": "rows",
-      "was": "2 placeholder row(s) → 5 real row(s)"
-    },
-    {
-      "key": "helper /payment-success #0",
-      "kind": "rows",
-      "was": "0 placeholder row(s) → 4 real row(s)"
-    },
-    {
-      "key": "helper /payment-success #0",
-      "kind": "media",
-      "was": "0 avatar/media bone(s) → 4 real"
-    },
-    {
-      "key": "customer /user/437de07d-1bd7-46c8-a451-6b46aa3bcad5 #0",
-      "kind": "jump",
-      "was": "row 487px → 812px (+325px)"
-    },
-    {
       "key": "customer /user/437de07d-1bd7-46c8-a451-6b46aa3bcad5 #0",
       "kind": "media",
       "was": "4 avatar/media bone(s) → 8 real"
-    },
-    {
-      "key": "helper /user/437de07d-1bd7-46c8-a451-6b46aa3bcad5 #0",
-      "kind": "jump",
-      "was": "row 487px → 812px (+325px)"
     },
     {
       "key": "helper /user/437de07d-1bd7-46c8-a451-6b46aa3bcad5 #0",
@@ -179,68 +119,13 @@
     },
     {
       "key": "customer /user/71c56dfb-b326-4010-b960-b18dd3966e7f #0",
-      "kind": "jump",
-      "was": "row 487px → 812px (+325px)"
-    },
-    {
-      "key": "customer /user/71c56dfb-b326-4010-b960-b18dd3966e7f #0",
       "kind": "media",
       "was": "4 avatar/media bone(s) → 8 real"
     },
     {
       "key": "helper /user/71c56dfb-b326-4010-b960-b18dd3966e7f #0",
-      "kind": "jump",
-      "was": "row 487px → 812px (+325px)"
-    },
-    {
-      "key": "helper /user/71c56dfb-b326-4010-b960-b18dd3966e7f #0",
       "kind": "media",
       "was": "4 avatar/media bone(s) → 8 real"
-    },
-    {
-      "key": "customer /messages #0",
-      "kind": "media",
-      "was": "1 avatar/media bone(s) → 4 real"
-    },
-    {
-      "key": "helper /messages #0",
-      "kind": "media",
-      "was": "1 avatar/media bone(s) → 4 real"
-    },
-    {
-      "key": "customer /legal?tab=terms #0",
-      "kind": "rows",
-      "was": "0 placeholder row(s) → 2 real row(s)"
-    },
-    {
-      "key": "customer /legal?tab=terms #0",
-      "kind": "media",
-      "was": "0 avatar/media bone(s) → 5 real"
-    },
-    {
-      "key": "customer /terms #0",
-      "kind": "rows",
-      "was": "0 placeholder row(s) → 2 real row(s)"
-    },
-    {
-      "key": "customer /terms #0",
-      "kind": "media",
-      "was": "0 avatar/media bone(s) → 5 real"
-    },
-    {
-      "key": "customer /privacy #0",
-      "kind": "rows",
-      "was": "0 placeholder row(s) → 2 real row(s)"
-    },
-    {
-      "key": "customer /privacy #0",
-      "kind": "media",
-      "was": "0 avatar/media bone(s) → 6 real"
-    },
-    {
-      "key": "customer /jobs/:id #0",
-      "kind": "jump",
-      "was": "row 487px → 120px (-367px)"
     }
   ],
   "byDesign": [

@@ -230,8 +230,11 @@ const PROTECTED_NOINDEX = ["/complete-profile", "/payment-success"];
 const noindexPaths = Object.keys(NOINDEX_PAGE_META) as Array<keyof typeof NOINDEX_PAGE_META>;
 
 /** The page component file a route renders, derived from App.tsx (route element -> lazy import). */
+/** Every RegExp metacharacter, backslash included, escaped. */
+const escapeRe = (s: string) => s.replace(/[\\^$.*+?()[\]{}|/-]/g, "\\$&");
+
 function pageFileFor(path: string): string {
-  const route = APP.match(new RegExp(`<Route path="${path.replace(/[/-]/g, "\\$&")}" element=\\{[^\\n]*?<(\\w+) />`));
+  const route = APP.match(new RegExp(`<Route path="${escapeRe(path)}" element=\\{[^\\n]*?<(\\w+) />`));
   expect(route, `no <Route path="${path}"> in App.tsx`).toBeTruthy();
   const imp = APP.match(new RegExp(`const ${route![1]} = lazyWithPreload\\(\\(\\) => import\\("\\./([^"]+)"\\)\\)`));
   expect(imp, `no lazy import for ${route![1]}`).toBeTruthy();
@@ -244,7 +247,7 @@ describe("Q401a: every public noindex page serves noindex, its own title and a s
     expect([...noindexPaths, ...PROTECTED_NOINDEX].sort()).toEqual(Object.keys(SITEMAP_NOINDEX).sort());
     for (const p of PROTECTED_NOINDEX) {
       expect(APP, `${p} is exempt only while it is behind <ProtectedRoute>`).toMatch(
-        new RegExp(`<Route path="${p}" element=\\{[^\\n]*<ProtectedRoute>`),
+        new RegExp(`<Route path="${escapeRe(p)}" element=\\{[^\\n]*<ProtectedRoute>`),
       );
     }
     const rewrites = vercel.rewrites

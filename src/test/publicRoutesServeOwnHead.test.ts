@@ -134,7 +134,7 @@ function head(html: string) {
 }
 
 const decode = (s: string | null) =>
-  s === null ? null : s.replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+  s === null ? null : s.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
 
 /* ── the guard ─────────────────────────────────────────────────────────── */
 

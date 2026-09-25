@@ -187,6 +187,12 @@ const noViolations = (label: string, violations: string[]) =>
   expect(violations, `${label}:\n  ${violations.join("\n  ")}`).toEqual([]);
 
 test.describe.serial("gift card journey against production", () => {
+  // NEVER retried. CI's default retry re-runs a serial group from its first
+  // test, i.e. buys a SECOND gift card and funds two more jobs; on run
+  // 36201581770 the retry only stopped because create-gift-card-checkout's
+  // 5/min limit answered 429. A red money journey is diagnosed from its first
+  // attempt's trace, never re-run blind.
+  test.describe.configure({ retries: 0 });
   test.skip(
     !READY,
     "Set PLAYWRIGHT_POSTER_EMAIL / _PASSWORD and PLAYWRIGHT_HELPER_EMAIL / _PASSWORD. Until then the gift " +

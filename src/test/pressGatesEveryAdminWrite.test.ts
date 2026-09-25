@@ -19,7 +19,7 @@
  * any other missing page control still fails.
  *
  * @mutate scripts/audit/pressProdSafety.mjs | dismiss\|investigat\w*\|assign\w*\| | 
- * @mutate scripts/audit/press-every-control.mjs | isAdminWrite({ persona, label }) \|\| isAccountSettingToggle | isAccountSettingToggle
+ * @mutate scripts/audit/press-every-control.mjs | DESTRUCTIVE_RX.test(label) \|\| isAdminWrite({ persona, label }) \|\| meta.type | DESTRUCTIVE_RX.test(label) \|\| meta.type
  * @mutate scripts/audit/press-every-control.mjs |   if (rowConsumed) return ROW_CONSUMED_SKIP; | 
  * @mutate scripts/audit/press-every-control.mjs |   return !(now ?? []).some((c) => c.rowText === rowText); |   return true;
  */

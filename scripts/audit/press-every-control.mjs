@@ -1367,7 +1367,7 @@ async function main() {
           const ckey = chromeKey({ persona, chain: entry.chain.slice(0, -1), sig: meta.sig });
           const chromeWhy = chromeDisposition({ fromChrome: item.fromChrome, depth: item.depth, key: ckey, passedOn: chromePassedOn });
           if (chromeWhy) { entry.pressedOn = chromePassedOn.get(ckey); skip(chromeWhy); continue; }
-          if (DESTRUCTIVE_RX.test(label) || meta.type === "submit" || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAdminWrite({ persona, label }) || isAccountSettingToggle({ persona, meta, label })) {
+          if (DESTRUCTIVE_RX.test(label) || isAdminWrite({ persona, label }) || meta.type === "submit" || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAccountSettingToggle({ persona, meta, label })) {
             const why = await gate(label, meta, item.chainOwned);
             if (why) { skip(why); continue; }
             entry.mutating = true;

@@ -22,8 +22,10 @@
 
 import { STRIPE_FLAT_CENTS, STRIPE_PCT, stripeProcessingCostCents } from "./stripeFees.ts";
 
-/** Smallest tip create-payment accepts, in cents ($1). */
-export const TIP_MIN_CENTS = 100;
+/** Smallest tip, in cents ($3; owner 2026-09-24/25). create-payment, the tip
+ *  dialogs and auto-tip-charge all read this; below it the card fee would be a
+ *  third of the tip. */
+export const TIP_MIN_CENTS = 300;
 /** Largest tip create-payment accepts, in cents ($1,000; `tips.amount` CHECK is <= 1000). */
 export const TIP_MAX_CENTS = 100_000;
 

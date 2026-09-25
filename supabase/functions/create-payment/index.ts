@@ -1181,7 +1181,7 @@ serve(async (req) => {
       }
       const tipCents = Math.round(amount * 100);
       if (tipCents < TIP_MIN_CENTS || tipCents > TIP_MAX_CENTS) {
-        throw new PublicError("Tips must be between $1 and $1,000");
+        throw new PublicError(`Tips must be between $${TIP_MIN_CENTS / 100} and $${(TIP_MAX_CENTS / 100).toLocaleString("en-US")}`);
       }
 
       const { data: job, error: jobError } = await supabaseAdmin

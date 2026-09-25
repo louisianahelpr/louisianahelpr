@@ -28,7 +28,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { tipChargeBreakdown } from "../_shared/tipFees.ts";
+import { TIP_MIN_CENTS, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 
 /** ME-011: a charge whose outcome is unknown (lost response, Stripe 5xx). */
@@ -262,7 +262,7 @@ serve(async (req) => {
       // someone "your tip failed" when the cause is the helper's missing
       // payout account is noise they can do nothing with, and it leaks the
       // other party's account state.
-      const giveUp = async (reason: string, notify: boolean) => {
+      const giveUp = async (reason: string, notify: boolean, message?: string) => {
         // A no-op here is the more insidious half of the pair the claim-release
         // guard fixes: it tells the system the tip is permanently resolved when
         // it may have written nothing at all. The row stays `pending` with no
@@ -290,6 +290,7 @@ serve(async (req) => {
           type: "payment",
           title: "Your tip didn't go through",
           message:
+            message ??
             "We couldn't charge your automatic tip — usually because there's no saved card on file. You can send it in a tap.",
           // Straight to the finished job the tip was for. A bare "/posts"
           // opened on "Needs you", which a completed job is never in — so the
@@ -308,6 +309,18 @@ serve(async (req) => {
       // destination transfer = the tip, to the cent. Computed before the try so
       // the ambiguous-outcome branch below can name the idempotency key too.
       const tipQuote = tipChargeBreakdown(tipCents);
+
+      // A percent auto-tip on a small job can come to less than the $3 tip
+      // minimum. Nothing is charged; the poster is asked to tip by hand.
+      if (tipCents < TIP_MIN_CENTS) {
+        await giveUp(
+          "below_tip_minimum",
+          true,
+          `Your automatic tip came to $${tipDollars.toFixed(2)}, under the $${(TIP_MIN_CENTS / 100).toFixed(0)} tip minimum, so nothing was charged. You can send your Helpr a tip in a tap.`,
+        );
+        results.prompted++;
+        continue;
+      }
 
       try {
         const { data: helperProfile, error: helperProfileErr } = await supabase

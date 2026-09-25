@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Star, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
+import { TIP_MAX_CENTS, TIP_MIN_CENTS } from "../../supabase/functions/_shared/tipFees";
 import { fetchReferralData } from "@/hooks/useReferralData";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
@@ -225,6 +226,14 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
      * number. Whole-dollar presets are unaffected.
      */
     const amount = Math.round(rawAmount * 100) / 100;
+    // create-payment's bound, checked here so it never round-trips to a
+    // server error.
+    if (amount * 100 < TIP_MIN_CENTS || amount * 100 > TIP_MAX_CENTS) {
+      toast.error(`Tips must be between $${TIP_MIN_CENTS / 100} and $${(TIP_MAX_CENTS / 100).toLocaleString("en-US")}.`);
+      savingRef.current = false;
+      setSaving(false);
+      return;
+    }
     try {
       const { data, error } = await supabase.functions.invoke("create-payment", {
         body: { action: "tip", jobId, amount, tipAttemptId: tipAttemptIdRef.current, native: isNativePlatform },
@@ -310,7 +319,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                   className="flex-1 text-ds-17 font-semibold"
                   value={customTip}
                   onChange={setCustomTip}
-                  min={1}
+                  min={TIP_MIN_CENTS / 100}
                   aria-label="Custom tip amount in dollars"
                 />
                 <Button
@@ -321,7 +330,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                   {saving ? "Sending…" : "Send"}
                 </Button>
               </div>
-              {customTip !== undefined && customTip >= 1 && customTip <= 1000 && <TipCostBreakdown tipDollars={customTip} />}
+              {customTip !== undefined && customTip * 100 >= TIP_MIN_CENTS && customTip * 100 <= TIP_MAX_CENTS && <TipCostBreakdown tipDollars={customTip} />}
             </div>
             <div className="flex items-center gap-2">
               <div className="h-px flex-1 bg-border" />

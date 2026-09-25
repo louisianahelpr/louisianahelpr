@@ -162,6 +162,22 @@ describe("auto-tip-charge edge function", () => {
    * source='auto')` — the row's existence, never its status — so the job leaves
    * the candidate list either way and no tick ever revisits it to notice.
    */
+  // @mutate supabase/functions/auto-tip-charge/index.ts | if (tipCents < TIP_MIN_CENTS) { | if (false) {
+  it("a percent auto-tip under the $3 minimum is never charged; the poster is asked to tip by hand", async () => {
+    const fn = await loadConfigured();
+    scenario.rpc.auto_tip_candidates = [
+      { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 20, tip_amount: 2.5 },
+    ];
+    scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+    const res = await fn.fetch(cronRequest(fn));
+    expect(res.status).toBe(200);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    const patch = scenario.writes.find((w) => w.table === "tips" && w.op === "update")?.payload as Record<string, unknown>;
+    expect(patch.failure_reason).toBe("below_tip_minimum");
+    const notice = scenario.writes.find((w) => w.table === "notifications")?.payload as Record<string, unknown>;
+    expect(String(notice.message)).toMatch(/\$2\.50, under the \$3 tip minimum, so nothing was charged/);
+  });
+
   describe("giveUp() — the terminal failure write", () => {
     /** Helper profile reads fine but has no connected account → giveUp(). */
     async function runGiveUp(): Promise<Response> {

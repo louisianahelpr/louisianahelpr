@@ -26,7 +26,7 @@ describe("TipDialog custom amount bounds (ME-017 #2)", () => {
     render(<TipDialog jobId="job-1" open onClose={() => {}} />);
     fireEvent.change(screen.getByLabelText("Tip amount in dollars"), { target: { value: "5000" } });
     fireEvent.click(screen.getByRole("button", { name: "Send Tip" }));
-    expect(toastError).toHaveBeenCalledWith("Tips must be between $1 and $1,000.");
+    expect(toastError).toHaveBeenCalledWith("Tips must be between $3 and $1,000.");
     expect(invoke).not.toHaveBeenCalled();
   });
 

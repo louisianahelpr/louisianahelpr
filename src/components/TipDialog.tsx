@@ -17,6 +17,7 @@ import { userFacingError } from "@/lib/userFacingError";
 import { report } from "@/lib/errorLogger";
 import { currentScreen } from "@/lib/currentScreen";
 import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdown";
+import { TIP_MAX_CENTS, TIP_MIN_CENTS } from "../../supabase/functions/_shared/tipFees";
 
 interface TipDialogProps {
   jobId: string;
@@ -56,15 +57,15 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
      * That is the same defect found in the gift-card flow on 2026-09-20
      * (GiftCard.tsx:134), from the same cause: the client sent a fractional
      * cent and let the server silently resolve it. Rounding here means the
-     * number on screen, the number the $1/$1,000 bounds are checked against,
+     * number on screen, the number the tip bounds are checked against,
      * and the number Stripe charges are one number. Whole-dollar presets are
      * unaffected.
      */
     const tipAmount = Math.round(rawTip * 100) / 100;
-    // create-payment's own bound (tipCents 100..100_000), checked here so an
-    // out-of-range amount never round-trips to a server error (ME-017 #2).
-    if (tipAmount < 1 || tipAmount > 1000) {
-      toast.error("Tips must be between $1 and $1,000.");
+    // create-payment's own bound (TIP_MIN_CENTS..TIP_MAX_CENTS), checked here
+    // so an out-of-range amount never round-trips to a server error (ME-017 #2).
+    if (tipAmount * 100 < TIP_MIN_CENTS || tipAmount * 100 > TIP_MAX_CENTS) {
+      toast.error(`Tips must be between $${TIP_MIN_CENTS / 100} and $${(TIP_MAX_CENTS / 100).toLocaleString("en-US")}.`);
       return;
     }
     hapticMedium();
@@ -156,7 +157,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
               className="flex-1"
               value={amount}
               onChange={setAmount}
-              min={1}
+              min={TIP_MIN_CENTS / 100}
               aria-label="Tip amount in dollars"
             />
             <Button

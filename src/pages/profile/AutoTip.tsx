@@ -18,7 +18,9 @@ const PERCENT_PRESETS = [10, 15, 20];
 const FIXED_PRESETS = [5, 10, 20];
 /** Mirrors the CHECK constraint in 20260811180000. Kept in sync deliberately:
  *  the form should refuse a bad value before the database has to. */
-const LIMITS = { percent: { min: 1, max: 50 }, fixed: { min: 1, max: 500 }, cap: { min: 1, max: 500 } };
+// Fixed amounts and caps start at the $3 tip minimum (TIP_MIN_CENTS); a
+// percent tip that works out under it is not charged and the poster is asked.
+const LIMITS = { percent: { min: 1, max: 50 }, fixed: { min: 3, max: 500 }, cap: { min: 3, max: 500 } };
 
 /** SELECTED = the app's shared glossy primary surface, never a flat tint.
  *  Standing project rule (see `glossyPrimaryInvariant.test.ts` and the note in

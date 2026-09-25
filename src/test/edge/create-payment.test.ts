@@ -1018,18 +1018,18 @@ describe("create-payment edge function", () => {
       expect((await json(res)).error).toMatch(/invalid tip amount/i);
     });
 
-    it("rejects a sub-$1 tip below the $1 floor", async () => {
+    it("rejects a tip below the $3 minimum", async () => {
       seedAuth(scenario, POSTER);
       const fn = await load();
-      // A $0.25 tip would cost the poster $0.57 once the card fee is added on
-      // top; the $1 floor keeps tips where that fee is a small share.
+      // A $2.99 tip is under TIP_MIN_CENTS; below $3 the card fee added on top
+      // is a large share of the tip (owner, 2026-09-24/25).
       const res = await fn.fetch(
         fn.request({
           headers: AUTH,
-          body: { action: "tip", jobId: "job-1", amount: 0.25 },
+          body: { action: "tip", jobId: "job-1", amount: 2.99 },
         }),
       );
-      expect((await json(res)).error).toMatch(/between \$1 and \$1,000/i);
+      expect((await json(res)).error).toMatch(/between \$3 and \$1,000/i);
       expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
     });
 
@@ -1042,7 +1042,7 @@ describe("create-payment edge function", () => {
           body: { action: "tip", jobId: "job-1", amount: 5000 },
         }),
       );
-      expect((await json(res)).error).toMatch(/between \$1 and \$1,000/i);
+      expect((await json(res)).error).toMatch(/between \$3 and \$1,000/i);
       expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
     });
 

@@ -80,8 +80,8 @@ describe("crew shares split the budget exactly", () => {
       3,
       10,
     );
-    // The owner rule's default counts the unconfirmed member too.
-    expect(q.total).toBe(25);
-    expect(q.counted).toBe(3);
+    // The owner's rule (Q407 addendum 13): only the two CONFIRMED members count.
+    expect(q.total).toBe(16.67);
+    expect(q.counted).toBe(2);
   });
 });

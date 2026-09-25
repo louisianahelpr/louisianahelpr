@@ -73,10 +73,9 @@
 --   7. poster_cancel_job crew branch: each hired member's share is THEIR
 --      frozen slice of the budget (2b) priced on the SAME ladder as a single
 --      booking. Who counts as committed is ONE owner rule,
---      crew_fee_pays_unconfirmed() (2c): true (the default until the owner
---      answers) counts every hired member, so the fee is split evenly across
---      the hired crew; false prices each member on their own confirmation, as
---      a single Helpr is. jobs.cancellation_fee is the sum. A crew with any
+--      crew_fee_pays_unconfirmed() (2c): false (owner, Q407 addendum 13)
+--      prices each member on their own confirmation, as a single Helpr is,
+--      so only confirmed members share the fee. jobs.cancellation_fee is the sum. A crew with any
 --      member's part marked done cannot be cancelled (as a single job cannot
 --      once the Helpr marked it done). Each member is told their own share.
 --   8. apply_cancellation_violation_consequence: a crew with a committed
@@ -283,11 +282,11 @@ CREATE TRIGGER trg_freeze_crew_member_share
   FOR EACH ROW EXECUTE FUNCTION public.freeze_crew_member_share();
 
 -- ── 2c. THE OWNER RULES, ONE PLACE EACH (easy to flip) ──────────────────────
--- Q407 says a late cancellation's fee is "split EVENLY across the hired crew".
--- Until the owner confirms whether a member who never confirmed their spot is
--- "hired" for that purpose, every hired member counts (the money review's
--- default). Flip this to false and a member is priced on their own
--- confirmation, exactly as a single Helpr is. _shared/crewShares.ts
+-- Q407 says a late cancellation's fee is "split EVENLY across the hired crew";
+-- the owner then ruled (Q407 addendum 13, 2026-09-25) that only members who
+-- CONFIRMED their spot share it: false prices each member on their own
+-- confirmation, exactly as a single Helpr is, so a member who never confirmed
+-- gets nothing and a crew with no confirmed member pays no fee. _shared/crewShares.ts
 -- CREW_FEE_PAYS_UNCONFIRMED is its twin (src/test/groupCrewNoLead.test.ts
 -- fails if they disagree).
 CREATE OR REPLACE FUNCTION public.crew_fee_pays_unconfirmed()
@@ -295,7 +294,7 @@ RETURNS boolean
 LANGUAGE sql
 STABLE
 SET search_path TO 'public'
-AS $function$ SELECT true $function$;
+AS $function$ SELECT false $function$;
 
 -- MEDIUM-4 (owner being asked): an under-filled crew completes once every
 -- HIRED member is done, and the unfilled slots' shares go back to the poster
@@ -758,7 +757,7 @@ BEGIN
         USING HINT = 'A Helpr on this crew already marked their part done. Approve it, ask for a change, or open a dispute.';
     END IF;
     -- The owner rule decides whether a hired member who never confirmed
-    -- counts (crew_fee_pays_unconfirmed, default true: every hired member).
+    -- counts (crew_fee_pays_unconfirmed, false: confirmed members only).
     v_committed := EXISTS (
       SELECT 1 FROM public.group_job_helpers g
        WHERE g.job_id = v_job.id

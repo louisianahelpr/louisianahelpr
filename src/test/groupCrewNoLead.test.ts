@@ -43,6 +43,7 @@ import {
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |   IF NEW.is_group_job IS TRUE AND NEW.helper_id IS NOT NULL THEN | IF public.is_server_context() THEN RETURN NEW; END IF;\n  IF NEW.is_group_job IS TRUE AND NEW.helper_id IS NOT NULL THEN
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |   BEFORE INSERT OR UPDATE OF helper_id, is_group_job, helpers_needed ON public.jobs |   BEFORE INSERT OR UPDATE OF helper_id ON public.jobs
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND NOT public.is_server_context()\n     AND (OLD.payment_status IS DISTINCT FROM 'unpaid' |     AND false\n     AND (OLD.payment_status IS DISTINCT FROM 'unpaid'
+// @mutate supabase/functions/_shared/crewShares.ts | export const CREW_FEE_PAYS_UNCONFIRMED = false; | export const CREW_FEE_PAYS_UNCONFIRMED = true;
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |   INSERT INTO public.group_job_helpers (job_id, helper_id, slot_no, share_cents) |   UPDATE public.jobs SET helper_id = v_helper_id WHERE id = v_job_id;\n  INSERT INTO public.group_job_helpers (job_id, helper_id, slot_no, share_cents)
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |         status = (CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END)::job_status |         status = CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql | AS $function$ SELECT true $function$;\n\n-- MEDIUM-4 | AS $function$ SELECT false $function$;\n\n-- MEDIUM-4
@@ -156,6 +157,9 @@ describe("a crew has no lead (Q407)", () => {
       return m![1] === "true";
     };
     expect(sqlRule("crew_fee_pays_unconfirmed")).toBe(CREW_FEE_PAYS_UNCONFIRMED);
+    // The owner's answer (Q407 addendum 13): only CONFIRMED members share a
+    // late-cancel fee. Pinned, so the twins cannot drift back together.
+    expect(CREW_FEE_PAYS_UNCONFIRMED, "owner ruled: unconfirmed crew members get no fee share").toBe(false);
     expect(sqlRule("crew_completes_when_hired_done")).toBe(CREW_COMPLETES_WHEN_HIRED_DONE);
     expect(body("rpc_group_member_mark_done")).toMatch(/public\.crew_completes_when_hired_done\(\) AND v_filled >= 1/);
   });

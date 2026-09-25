@@ -26,7 +26,8 @@
  *
  * ── WHAT IS PINNED, AND WHAT IS DELIBERATELY NOT ─────────────────────────
  * Pinned: both screens have a ChevronDown disclosure button; both start
- * OPEN (`useState(true)`); both emit `aria-expanded` and a conditional
+ * FOLDED on the default filter (`useState(!isDefault…)`, owner 2026-09-25;
+ * it was `useState(true)` from 2026-09-20); both emit `aria-expanded` and a conditional
  * `aria-controls`; both re-open the strip when a non-default filter arrives;
  * both fire a haptic on press; both suppress the chevron on the wide screen.
  *
@@ -39,9 +40,9 @@
  * open-state at all, so every assertion in the parity block below fails.
  * Re-prove with the @mutate lines.
  *
- * @mutate src/components/messages/ConversationList.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(true); | const [tabsOpenPhone, setTabsOpenPhone] = useState(false);
+ * @mutate src/components/messages/ConversationList.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultInboxFilter); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
  * @mutate src/components/messages/ConversationList.tsx | aria-expanded={tabsOpen} | data-expanded={tabsOpen}
- * @mutate src/components/job-card/ActivityHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(true); | const [tabsOpenPhone, setTabsOpenPhone] = useState(false);
+ * @mutate src/components/job-card/ActivityHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -82,9 +83,9 @@ const TRAITS: Array<{ trait: string; pattern: RegExp; why: string }> = [
     why: "the rotation IS the state indicator — neither screen wears a filled pill for it",
   },
   {
-    trait: "the strip STARTS OPEN",
-    pattern: /useState\(true\)/,
-    why: "shipping Activity closed-by-default hid ALL FIVE tab words at 320/375/414 — the same complaint it was meant to fix, worse",
+    trait: "starts folded on the default filter, open on any other (owner, 2026-09-25)",
+    pattern: /const \[tabsOpenPhone, setTabsOpenPhone\] = useState\(!isDefault[A-Za-z]*\);/,
+    why: "the owner asked for My Posts, My Jobs and Messages to open with the chevron collapsed; an active non-default filter must still arrive visible",
   },
   {
     trait: "emits aria-expanded",

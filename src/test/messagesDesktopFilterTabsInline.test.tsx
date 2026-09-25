@@ -54,12 +54,12 @@
  * ActivityHeader's does. Desktop still has no chevron at all.
  * See src/test/filterDisclosureParity.test.ts for the cross-screen guard.
  *
- * @mutate src/components/messages/ConversationList.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(true); | const [tabsOpenPhone, setTabsOpenPhone] = useState(false);
+ * @mutate src/components/messages/ConversationList.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultInboxFilter); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
  * @mutate src/components/messages/ConversationList.tsx | const headerMeta = isWebDesktop ? <div id={INBOX_TABS_ID}>{inboxTabs}</div> : undefined; | const headerMeta = undefined;
  * @mutate src/lib/inboxDefault.ts | active: "Active", | active: "Unread",
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
-import { render, screen, cleanup, within } from "@testing-library/react";
+import { render, screen, cleanup, within, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -160,6 +160,12 @@ function disclosure() {
   );
 }
 
+/** Phone only: press the chevron if the strip is folded (it starts folded, owner 2026-09-25). */
+function openPhoneStrip() {
+  const chevron = disclosure();
+  if (chevron && chevron.getAttribute("aria-expanded") === "false") fireEvent.click(chevron);
+}
+
 afterEach(() => {
   cleanup();
   setWebDesktop(false);
@@ -194,9 +200,20 @@ describe("Messages inbox filter tabs — always visible, never behind a disclosu
   });
 
   for (const [label, webDesktop] of WIDTHS) {
-    it(`${label}: Active / All are visible on FIRST PAINT, no click required`, () => {
+    it(`${label}: desktop shows Active / All at once; phone opens folded and one press shows them`, () => {
       setWebDesktop(webDesktop);
       renderInbox();
+
+      // OWNER, 2026-09-25 (iPhone screenshots): "This should open with the
+      // chevrons collapsed. Not expanded." So on phone the strip starts
+      // folded and the chevron reveals it; desktop is unchanged.
+      if (!webDesktop) {
+        const folded = disclosure();
+        expect(folded, "phone must offer the fold My Posts / My Jobs do").toBeTruthy();
+        expect(folded!.getAttribute("aria-expanded"), "the phone strip starts FOLDED (owner, 2026-09-25)").toBe("false");
+        expect(tabGroup(), "a folded strip is not rendered").toBeNull();
+        openPhoneStrip();
+      }
 
       // On FIRST PAINT, with no click. This is the assertion that survived the
       // 2026-09-22 reversal intact, and it is the one that actually mattered:
@@ -222,16 +239,14 @@ describe("Messages inbox filter tabs — always visible, never behind a disclosu
           chevron,
           "phone must offer the same fold My Posts / My Jobs do (owner, 2026-09-22)",
         ).toBeTruthy();
-        expect(
-          chevron!.getAttribute("aria-expanded"),
-          "STARTS OPEN. Shipping this closed-by-default on Activity cost the phone all five tab words",
-        ).toBe("true");
+        expect(chevron!.getAttribute("aria-expanded"), "one press opens it").toBe("true");
       }
     });
 
     it(`${label}: exactly ONE strip renders — never both placements, never neither`, () => {
       setWebDesktop(webDesktop);
       const { container } = renderInbox();
+      if (!webDesktop) openPhoneStrip();
       expect(
         container.querySelectorAll('[role="group"][aria-label="Filter conversations"]'),
       ).toHaveLength(1);
@@ -260,6 +275,7 @@ describe("Messages inbox filter tabs — always visible, never behind a disclosu
   it("phone / native: the strip is on its OWN line, not crammed into the header row", () => {
     setWebDesktop(false);
     renderInbox();
+    openPhoneStrip();
     const h1 = screen.getByRole("heading", { level: 1, name: "Messages" });
     const row = h1.closest("div.flex.items-center");
     expect(row).not.toBeNull();

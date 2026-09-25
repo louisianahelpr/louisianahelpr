@@ -257,8 +257,25 @@ async function openActivity(page: Page, url: string) {
 }
 
 /**
- * THE CLAIM, at one width on one screen: the row is there, with no
- * interaction, and every one of its labels has been painted.
+ * OWNER, 2026-09-25 (iPhone screenshots of My Posts, My Jobs, Messages): "This
+ * should open with the chevrons collapsed. Not expanded." On a phone the row
+ * now arrives FOLDED on the default filter and one press on the chevron opens
+ * it; a non-default filter still arrives open. This presses it open.
+ */
+async function unfold(page: Page, closedLabel: string) {
+  const chevron = page.locator(`button[aria-expanded="false"][aria-label="${closedLabel}"]`);
+  if (await chevron.count()) {
+    await chevron.first().click();
+    await page.waitForTimeout(250);
+  }
+}
+
+/** The default Activity bucket — the one a plain /posts or /jobs lands on. */
+const DEFAULT_BUCKET = "needs_you";
+
+/**
+ * THE CLAIM, at one width on one screen: the row is there and every one of
+ * its labels has been painted.
  */
 function assertVisible(shot: TabShot, tag: string, expectedTabs: number) {
   expect(
@@ -289,13 +306,24 @@ function assertVisible(shot: TabShot, tag: string, expectedTabs: number) {
 // ── 1. THE OWNER'S OWN REPRO: the plain route, no query string, no press ────
 for (const vw of [320, 375, 414, 1440] as const) {
   for (const route of ROUTES) {
-    test(`${route.name}: the status tabs are on the screen without a press @${vw}`, async ({
+    test(`${route.name}: phone arrives folded, one press shows every tab; desktop shows them @${vw}`, async ({
       browser,
     }, info) => {
       const ctx = await authedContext(browser, vw, info.project.use.baseURL);
       const page = await ctx.newPage();
       try {
         await openActivity(page, route.url);
+        if (vw < 900) {
+          // Owner, 2026-09-25: the phone row arrives FOLDED on the default filter.
+          const arrived = await readTabs(page);
+          note(info, `${route.name}@${vw} on arrival collapsedBy=${arrived.collapsedBy ?? "—"}`);
+          expect(
+            arrived.collapsedBy,
+            `${route.name}@${vw}: the status tabs arrived OPEN; the owner asked on 2026-09-25 ` +
+              `for My Posts / My Jobs to open with the chevron collapsed`,
+          ).not.toBeNull();
+          await unfold(page, "Filter by status");
+        }
         const shot = await readTabs(page);
         note(
           info,
@@ -374,6 +402,10 @@ test("every bucket on both Activity screens keeps its tabs, empty or full @375",
     for (const route of ROUTES) {
       for (const key of BUCKETS) {
         await openActivity(page, `${route.url}?filter=${key}`);
+        // The default bucket arrives folded on a phone (owner, 2026-09-25);
+        // every OTHER bucket must arrive open, so an active filter is never
+        // hidden. Only the default one is pressed open.
+        if (key === DEFAULT_BUCKET) await unfold(page, "Filter by status");
         const shot = await readTabs(page);
         // "Populated" is read off the row itself, in the SAME DOM snapshot as
         // the boxes above (a second evaluate later races the count query and
@@ -457,13 +489,15 @@ test.beforeAll(async ({ request }) => {
 });
 
 for (const vw of INBOX_WIDTHS) {
-  test(`messages: the tabs and search are on an EMPTY inbox without a press @${vw}`, async ({
+  test(`messages: the tabs and search are on an EMPTY inbox @${vw}`, async ({
     browser,
   }, info) => {
     const ctx = await authedContext(browser, vw, info.project.use.baseURL, emptyInbox);
     const page = await ctx.newPage();
     try {
       await openInbox(page);
+      // The inbox strip arrives folded on a phone (owner, 2026-09-25).
+      if (vw < 900) await unfold(page, "Filter conversations");
       const inbox = await readInbox(page);
       const shot = await readTabs(page, INBOX_GROUP);
       note(

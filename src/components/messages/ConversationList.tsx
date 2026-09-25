@@ -384,7 +384,9 @@ export function ConversationList({
      What IS shared is the real chrome: ScreenHeaderRow, UnderlineTabs and the
      icon-button class, all imported, and the parity test that pins the rest. */
   const isDefaultInboxFilter = inboxTab === defaultInboxTab(0);
-  const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
+  // OWNER, 2026-09-25: "open with the chevrons collapsed" — folded on the
+  // default filter, like ActivityHeader; a non-default filter arrives open.
+  const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultInboxFilter);
   /* On the desktop website the strip simply STAYS UP — it rides inline in the
      header row, where there is width to spare, so folding two short words
      behind a chevron buys nothing and costs a press. Same call ActivityHeader

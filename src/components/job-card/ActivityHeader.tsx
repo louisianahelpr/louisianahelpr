@@ -153,7 +153,12 @@ export function ActivityHeader({
   };
 
   const isDefaultFilter = statusFilter === DEFAULT_STATUS_FILTER;
-  const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
+  // OWNER, 2026-09-25 (screenshots of My Posts, My Jobs and Messages on
+  // iPhone): "This should open with the chevrons collapsed. Not expanded."
+  // The phone row now starts FOLDED on the default filter, reversing the
+  // 2026-09-20 "starts open" note above (kept as history). A non-default
+  // filter still arrives OPEN, so an active filter is never hidden.
+  const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter);
   // On the wide screen the tabs simply STAY UP — there is room for them beside
   // the title, so hiding four short words behind a chevron buys nothing and
   // costs a press (owner: "drop down not needed on the wide screen, the

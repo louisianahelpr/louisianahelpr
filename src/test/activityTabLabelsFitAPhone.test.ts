@@ -91,7 +91,7 @@ import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
 // @mutate src/components/job-card/ActivityHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | triggerWidth: inlineFilters ? "28px" : "88px",
 // @mutate src/components/job-card/JobListPage.tsx | activeStatusFilters={activeStatusFilters} | activeStatusFilters={[]}
 // @mutate src/components/job-card/ActivityHeader.tsx | style={tabFadeStyle} | style={undefined}
-// @mutate src/components/job-card/ActivityHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(true); | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter);
+// @mutate src/components/job-card/ActivityHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
 
 const ROOT = resolve(__dirname, "../..");
 const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
@@ -474,7 +474,7 @@ describe("an empty Activity list still shows its tabs", () => {
  * the build uses, not a restatement of what it ought to do.
  */
 describe("the status tabs survive first paint, and their breakpoint is a real rule", () => {
-  it("the phone disclosure starts OPEN, so arriving on the screen shows the tabs", () => {
+  it("the phone disclosure starts FOLDED on the default filter (owner, 2026-09-25)", () => {
     const SEED_RE = /const \[tabsOpenPhone, setTabsOpenPhone\] = useState\(([^)]*)\)/;
     expect(
       HEADER,
@@ -482,16 +482,16 @@ describe("the status tabs survive first paint, and their breakpoint is a real ru
         "useState behind `tabsOpenPhone`.",
     ).toMatch(SEED_RE);
     const seed = HEADER.match(SEED_RE)![1].trim();
+    // History: 2026-09-20 this asserted `true` (tabs open on arrival). The
+    // owner reversed it on 2026-09-25 from iPhone screenshots: "This should
+    // open with the chevrons collapsed. Not expanded." A NON-default filter
+    // still seeds open, so an active filter is never folded away unseen.
     expect(
       seed,
-      `ActivityHeader opens the phone status tabs collapsed (useState(${seed})). ` +
-        "That is the screen the owner reported on 2026-09-20: plain /posts at 375 and " +
-        "414 painted \"My Posts · 🔍 · ⌄\" and no tab row, because the seed was " +
-        "`!isDefaultFilter` and the default filter is what every arrival lands on. Note " +
-        "the obvious wrong guess, ruled out by measurement that day: it was never about " +
-        "the bucket being EMPTY — /jobs' default bucket had rows and hid its tabs too. " +
-        "The tabs are navigation; they open with the screen.",
-    ).toBe("true");
+      `ActivityHeader seeds the phone status tabs with useState(${seed}). The owner asked ` +
+        "on 2026-09-25 for My Posts / My Jobs to open with the chevron collapsed on the " +
+        "default filter, and open when a non-default filter is active.",
+    ).toBe("!isDefaultFilter");
   });
 
   /* AND THE OTHER HALF OF (b) IS NOT HERE ON PURPOSE.

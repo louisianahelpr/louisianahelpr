@@ -32,7 +32,9 @@
  *   R3  the poster cannot review crew member #2.
  *   R4  a hire (the RPC's own roster INSERT: the poster's uid, a definer
  *       role) lands on a crew whose escrow was refunded.
- * AFTER: A1..A24 below.
+ *   R5  a crew member who is not the lead cannot upload a proof photo to the
+ *       job's folder (the before photo their own Working step needs).
+ * AFTER: A1..A30 below.
  */
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${process.env.HOME}/.lh-pglite-probe`;
 let PGlite;
@@ -61,7 +63,8 @@ const PATH_FUNCTIONS = [
   "group_member_slot", "accept_group_application", "enforce_group_roster_award_gate",
   "poster_cancel_job", "job_hours_until_start", "cancellation_fee_percent", "is_late_cancellation",
   "apply_cancellation_violation_consequence", "notify_on_job_update", "notify_on_payment_escrowed",
-  "enforce_review_validity", "set_review_visibility", "get_helper_tiers",
+  "enforce_review_validity", "set_review_visibility", "get_helper_tiers", "is_party_to_job_folder",
+  "rpc_group_member_set_proof",
 ];
 const defRe = (name) => new RegExp(`CREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\s+public\\.${name}\\s*\\(`, "gi");
 function cutFunction(sql, name) {
@@ -238,7 +241,28 @@ BEGIN
   RETURN jsonb_build_object('action', 'warning', 'prior_count', p_prior_count);
 END $$;
 
+-- Supabase storage, the two pieces the proof-photos policies read.
+CREATE SCHEMA IF NOT EXISTS storage;
+CREATE TABLE storage.objects (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), bucket_id text, name text);
+CREATE FUNCTION storage.foldername(name text) RETURNS text[] LANGUAGE sql IMMUTABLE AS
+  $$ SELECT (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
+GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON storage.objects TO authenticated;
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
 ${BEFORE_FUNCTIONS}
+
+-- The live proof-photos policies: INSERT/SELECT from 20260831171658, UPDATE/DELETE from 20260925141905.
+CREATE POLICY "Users can upload proof photos to own folder" ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'proof-photos' AND ((auth.uid())::text = (storage.foldername(name))[1] OR public.is_party_to_job_folder(name)));
+CREATE POLICY "Users can read proof photos for their jobs" ON storage.objects FOR SELECT TO authenticated
+  USING (bucket_id = 'proof-photos' AND ((auth.uid())::text = (storage.foldername(name))[1] OR public.is_party_to_job_folder(name)));
+CREATE POLICY "Users can update their own proof photos" ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'proof-photos' AND (storage.foldername(name))[2] IS DISTINCT FROM 'disputes'
+         AND (((select auth.uid()))::text = (storage.foldername(name))[1] OR public.is_party_to_job_folder(name)));
+CREATE POLICY "Users can delete their own proof photos" ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'proof-photos' AND (storage.foldername(name))[2] IS DISTINCT FROM 'disputes'
+         AND (((select auth.uid()))::text = (storage.foldername(name))[1] OR public.is_party_to_job_folder(name)));
 
 REVOKE ALL ON FUNCTION public.helper_cancel_booking(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.helper_cancel_booking(uuid) TO authenticated, service_role;
@@ -406,6 +430,10 @@ await seed({ apps: [] });
 await db.exec(`UPDATE public.jobs SET payment_status='refunded' WHERE id='${GJOB}'`);
 const r4 = await rosterInsertAsHireRpc(M2);
 check("R4 a hire lands on a crew whose escrow was refunded", r4.ok, r4.error ?? "allowed");
+
+await seedCrewAsBefore([M1, M2]);
+const r5 = await asUser(M2, `INSERT INTO storage.objects (bucket_id, name) VALUES ('proof-photos', '${GJOB}/before-m2.jpg');`);
+check("R5 crew member #2 (not the lead) cannot upload a proof photo to the job's folder", !r5.ok, r5.error ?? "allowed");
 
 // Legacy rows for the backfill: a lead with no roster slot, and a lead with one.
 await db.exec(`
@@ -658,6 +686,29 @@ check("A26 completion and payout release reach every crew member, once each", a2
 const tiers = await asUserRows(ADMIN, `SELECT user_id, completed_jobs, total_reviews FROM public.get_helper_tiers(50)`);
 const m3tier = tiers.find((t) => t.user_id === M3);
 check("A27 a Helpr who has only worked a crew is ranked, their crew job counted", !!m3tier && m3tier.completed_jobs === 1, JSON.stringify(m3tier ?? "absent"));
+
+// ── Proof photos: every member files and reads; nobody touches another's ───
+await seed();
+for (const m of [M1, M2]) await hire(m);
+const up1 = await asUser(M1, `INSERT INTO storage.objects (bucket_id, name) VALUES ('proof-photos', '${GJOB}/before-m1.jpg');`);
+const up2 = await asUser(M2, `INSERT INTO storage.objects (bucket_id, name) VALUES ('proof-photos', '${GJOB}/before-m2.jpg');`);
+const upOut = await asUser(OUTSIDER, `INSERT INTO storage.objects (bucket_id, name) VALUES ('proof-photos', '${GJOB}/before-x.jpg');`);
+const posterSees = (await asUserRows(POSTER, `SELECT name FROM storage.objects WHERE bucket_id='proof-photos'`)).length;
+const m1Sees = (await asUserRows(M1, `SELECT name FROM storage.objects WHERE bucket_id='proof-photos'`)).length;
+await asUser(M1, `DELETE FROM storage.objects WHERE name = '${GJOB}/before-m2.jpg';`);
+const m2Left = (await one(`SELECT count(*)::int AS n FROM storage.objects WHERE name = '${GJOB}/before-m2.jpg'`)).n;
+check(
+  "A29 every crew member uploads to the job's proof folder and reads it, the poster reads it; an outsider cannot upload; a member cannot delete another member's photo",
+  up1.ok && up2.ok && !upOut.ok && posterSees === 2 && m1Sees === 2 && m2Left === 1,
+  JSON.stringify({ m1: up1.error ?? "ok", m2: up2.error ?? "ok", outsider: upOut.error ?? "allowed", posterSees, m1Sees, m2Left }),
+);
+const setProof = await asUser(M2, `SELECT public.rpc_group_member_set_proof('${GJOB}', ARRAY['${GJOB}/before-m2.jpg'], NULL);`);
+const slot = await one(`SELECT proof_before_urls FROM public.group_job_helpers WHERE job_id='${GJOB}' AND helper_id='${M2}'`);
+check(
+  "A30 the member's before photo lands on THEIR roster row through rpc_group_member_set_proof (the PhotoProof crew path)",
+  setProof.ok && JSON.stringify(slot?.proof_before_urls) === JSON.stringify([`${GJOB}/before-m2.jpg`]),
+  setProof.error ?? JSON.stringify(slot),
+);
 
 const acl = await one(`SELECT
   has_function_privilege('authenticated', 'public.enforce_group_job_has_no_lead()', 'EXECUTE') AS auth_lead,

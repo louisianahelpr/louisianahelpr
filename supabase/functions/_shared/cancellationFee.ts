@@ -209,3 +209,66 @@ export function computeCancellationFee(job: CancellationFeeJob): number {
   // round(budget * percent) / 100 mirrors the client's cent-accurate math.
   return Math.round(budget * percent) / 100;
 }
+
+// ── A crew has no lead (Q407, 2026-09-25) ────────────────────────────────────
+//
+// A late poster cancellation of a group job pays every hired member their OWN
+// share, recorded by poster_cancel_job in public.crew_cancellation_fee_shares
+// (one row per member; migration 20260925154606). Each share is the same slice
+// of the budget (budget / helpers_needed) on the same ladder as a single
+// booking, priced on that member's own commitment: a member who confirmed is
+// committed exactly as a single Helpr who confirmed is. When every hired
+// member confirmed, every share is equal.
+
+/** The job fields a crew share is priced from. */
+export interface CrewCancellationFeeJob {
+  budget: number | null;
+  helpers_needed: number | null;
+  date_needed: string | null;
+  start_time: string | null;
+  cancelled_at: string | null;
+}
+
+/**
+ * One crew member's share in DOLLARS. The SQL twin is the INSERT in
+ * poster_cancel_job's crew branch:
+ *   round(budget * cancellation_fee_percent(committed, hours) / helpers_needed) / 100
+ * with helpers_needed floored at 1.
+ */
+export function crewMemberCancellationShare(job: CrewCancellationFeeJob, committed: boolean): number {
+  const budget = job.budget ?? 0;
+  if (!(budget > 0) || !committed || !job.date_needed) return 0;
+  const hours = hoursUntilJob(job.date_needed, job.cancelled_at, job.start_time);
+  const percent = cancellationFeePercent(committed, hours);
+  const needed = Math.max(1, Math.floor(job.helpers_needed ?? 1));
+  return Math.round((budget * percent) / needed) / 100;
+}
+
+/** A ledger row as void-cancelled-payments and money-reconciliation read it. */
+export interface CrewFeeShareRow {
+  helper_id: string | null;
+  committed: boolean;
+  share_amount: number | string | null;
+}
+
+/**
+ * Re-price every ledger row from trusted job fields (F-MONEY-32). Returns the
+ * total to charge, or `mismatch` naming the first row whose stored share is
+ * more than a cent away from its recomputation — the caller then moves no
+ * money for this job and pages.
+ */
+export function crewCancellationFee(
+  job: CrewCancellationFeeJob,
+  shares: CrewFeeShareRow[],
+): { total: number; mismatch: null | { helper_id: string | null; stored: number; expected: number } } {
+  let totalCents = 0;
+  for (const s of shares) {
+    const stored = Number(s.share_amount ?? 0);
+    const expected = crewMemberCancellationShare(job, !!s.committed);
+    if (!Number.isFinite(stored) || Math.abs(stored - expected) > 0.011) {
+      return { total: 0, mismatch: { helper_id: s.helper_id, stored, expected } };
+    }
+    totalCents += Math.round(stored * 100);
+  }
+  return { total: totalCents / 100, mismatch: null };
+}

@@ -1339,6 +1339,48 @@ describe("create-payment edge function", () => {
       expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
     });
 
+    // A crew has no lead (20260925154606): jobs.helper_id is NULL on every
+    // group job, so the claim's `helper_id IS NULL` no longer means "nobody
+    // hired". A hire that commits between the first roster read and the claim
+    // is caught by the post-claim read (final: the claimed job is 'cancelling',
+    // which the roster funding gate refuses to hire onto).
+    // @mutate supabase/functions/create-payment/index.ts | if (crewNowErr \|\| (crewNow?.length ?? 0) > 0) { | if (false) {
+    it("a crew hire that lands between the roster read and the claim: claim put back, 409, no refund", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", helper_id: null, is_group_job: true, payment_status: "escrow", stripe_payment_intent_id: "pi_live", budget: 100, customer_fee_amount: 10 }] };
+      scenario.reads.group_job_helpers = {
+        rows: [],
+        selectOverrides: [{ includes: "helper_id", result: { rows: [{ id: "slot-1", helper_id: "helper-late" }] } }],
+      };
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(409);
+      expect((await json(res)).useCancelJob).toBe(true);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+      const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect(jobUpdates.map((w) => (w.payload as Record<string, unknown>).payment_status)).toEqual(["cancelling", "escrow"]);
+      expect(jobUpdates[1].filters).toEqual(expect.arrayContaining([expect.objectContaining({ column: "payment_status", value: "cancelling" })]));
+    });
+
+    it("fails CLOSED after the claim too: a post-claim roster read error puts the claim back, 503, no refund", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", helper_id: null, is_group_job: true, payment_status: "escrow", stripe_payment_intent_id: "pi_live", budget: 100, customer_fee_amount: 10 }] };
+      scenario.reads.group_job_helpers = {
+        rows: [],
+        selectOverrides: [{ includes: "helper_id", result: { error: { message: "read blew up" } } }],
+      };
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(503);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect(jobUpdates.map((w) => (w.payload as Record<string, unknown>).payment_status)).toEqual(["cancelling", "escrow"]);
+    });
+
     it("non-owner cannot cancel another poster's escrow", async () => {
       seedAuth(scenario, HELPER);
       scenario.reads.jobs = {

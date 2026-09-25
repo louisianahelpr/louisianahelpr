@@ -94,6 +94,8 @@
 --      the poster's hidden review of a different member).
 --  11. get_helper_tiers counts a crew member's jobs, so a Helpr who has only
 --      worked crews is ranked on their own reviews.
+--  12. proof-photos: every crew member may upload to and read the job's proof
+--      folder (INSERT and SELECT policies); UPDATE and DELETE are unchanged.
 --
 -- REPLAY-SAFETY: every object touched is created by an earlier migration
 -- (group_job_helpers 20260311041556; roster lifecycle 20260919192559; the
@@ -1195,3 +1197,54 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.get_helper_tiers(integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_helper_tiers(integer) TO authenticated;
+
+-- ── 12. EVERY CREW MEMBER MAY FILE AND READ THE JOB'S PROOF PHOTOS ───────────
+-- PhotoProof uploads to proof-photos under `<job_id>/…`, which the INSERT and
+-- SELECT policies admit for the uploader's own folder or a party to the job
+-- (is_party_to_job_folder: the poster or jobs.helper_id). With no lead, no
+-- crew member was a party, so no member could upload the roster before photo
+-- their Working step needs, and the poster could not read a member's photos.
+-- is_crew_member_of_job_folder admits every member of the job's roster, and
+-- only INSERT and SELECT take it: UPDATE and DELETE (20260925141905) stay the
+-- uploader's own folder or the job's parties, so one member cannot overwrite
+-- or delete another member's evidence.
+CREATE OR REPLACE FUNCTION public.is_crew_member_of_job_folder(object_name text)
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+  SELECT EXISTS (
+    SELECT 1 FROM public.group_job_helpers g
+    WHERE g.job_id::text = (storage.foldername(object_name))[1]
+      AND g.helper_id IS NOT NULL
+      AND g.helper_id = auth.uid()
+  );
+$function$;
+
+REVOKE ALL ON FUNCTION public.is_crew_member_of_job_folder(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_crew_member_of_job_folder(text) TO authenticated, service_role;
+
+DROP POLICY IF EXISTS "Users can upload proof photos to own folder" ON storage.objects;
+CREATE POLICY "Users can upload proof photos to own folder"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'proof-photos'
+    AND (
+      ((select auth.uid()))::text = (storage.foldername(name))[1]
+      OR public.is_party_to_job_folder(name)
+      OR public.is_crew_member_of_job_folder(name)
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can read proof photos for their jobs" ON storage.objects;
+CREATE POLICY "Users can read proof photos for their jobs"
+  ON storage.objects FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'proof-photos'
+    AND (
+      ((select auth.uid()))::text = (storage.foldername(name))[1]
+      OR public.is_party_to_job_folder(name)
+      OR public.is_crew_member_of_job_folder(name)
+    )
+  );

@@ -46,7 +46,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
-import { computeCancellationFee, helperIsCommitted, hoursUntilJob } from "../_shared/cancellationFee.ts";
+import { computeCancellationFee, crewCancellationFee, helperIsCommitted, hoursUntilJob, type CrewFeeShareRow } from "../_shared/cancellationFee.ts";
 import { helperCommissionDollars, feePercentForTier } from "../_shared/helperFees.ts";
 import { AUTO_COMPLETE_HOURS } from "../_shared/escrowTiming.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -438,17 +438,43 @@ serve(async (req) => {
     const jobRows = jobScan.rows;
     const jobById = new Map(jobRows.map((j) => [j.id as string, j]));
 
-    // ── Cancelled-job checks ─────────────────────────────────────────────────
-    for (const job of jobRows) {
-      if (job.status !== "cancelled") continue;
-      // A dispute decided for the poster (rpc_decide_dispute) sets 'cancelled'
-      // with dispute_status 'resolved' and never stamps cancelled_at. The
-      // decision governs its money, not the cancellation ladder: read as a
-      // cancellation it "owes" a 50% fee and pages critical (Q336).
-      if (job.dispute_status === "resolved" && !job.cancelled_at) continue;
-
-      // Recompute from the SAME module void-cancelled-payments settles with.
-      const expectedFee = computeCancellationFee({
+    // A crew has no lead (Q407, 20260925154606): a cancelled group job's fee
+    // is the sum of its crew_cancellation_fee_shares rows, each re-priced from
+    // the job's own fields exactly as void-cancelled-payments settles it. A
+    // row that does not match its recomputation makes the expectation NaN, so
+    // the stored fee is always flagged against it.
+    const cancelledCrewIds = jobRows
+      .filter((j) => j.status === "cancelled" && j.is_group_job === true)
+      .map((j) => j.id as string);
+    const crewSharesByJob = new Map<string, CrewFeeShareRow[]>();
+    if (cancelledCrewIds.length > 0) {
+      const { data: shareRows, error: shareErr } = await admin
+        .from("crew_cancellation_fee_shares")
+        .select("job_id, helper_id, committed, share_amount")
+        .in("job_id", cancelledCrewIds);
+      if (shareErr) throw new Error(`crew_cancellation_fee_shares read failed: ${shareErr.message}`);
+      for (const r of (shareRows ?? []) as Array<CrewFeeShareRow & { job_id: string }>) {
+        const list = crewSharesByJob.get(r.job_id) ?? [];
+        list.push(r);
+        crewSharesByJob.set(r.job_id, list);
+      }
+    }
+    /** What this cancelled job's fee must be: the single ladder, or the crew's re-priced ledger. */
+    const expectedCancellationFee = (job: Record<string, unknown>): number => {
+      if (job.is_group_job === true) {
+        const priced = crewCancellationFee(
+          {
+            budget: money(job.budget),
+            helpers_needed: (job.helpers_needed as number | null) ?? null,
+            date_needed: job.date_needed as string | null,
+            start_time: job.start_time as string | null,
+            cancelled_at: job.cancelled_at as string | null,
+          },
+          crewSharesByJob.get(job.id as string) ?? [],
+        );
+        return priced.mismatch ? Number.NaN : priced.total;
+      }
+      return computeCancellationFee({
         budget: money(job.budget),
         date_needed: job.date_needed as string | null,
         // Required by CancellationFeeJob: without it the recomputation
@@ -463,9 +489,22 @@ serve(async (req) => {
         // reconciliation flag every correctly-zeroed row as a mismatch.
         helper_confirmed_at: job.helper_confirmed_at as string | null,
       });
+    };
+
+    // ── Cancelled-job checks ─────────────────────────────────────────────────
+    for (const job of jobRows) {
+      if (job.status !== "cancelled") continue;
+      // A dispute decided for the poster (rpc_decide_dispute) sets 'cancelled'
+      // with dispute_status 'resolved' and never stamps cancelled_at. The
+      // decision governs its money, not the cancellation ladder: read as a
+      // cancellation it "owes" a 50% fee and pages critical (Q336).
+      if (job.dispute_status === "resolved" && !job.cancelled_at) continue;
+
+      // Recompute from the SAME module void-cancelled-payments settles with.
+      const expectedFee = expectedCancellationFee(job);
       const storedFee = money(job.cancellation_fee);
 
-      if (Math.abs(storedFee - expectedFee) > EPSILON) {
+      if (!(Math.abs(storedFee - expectedFee) <= EPSILON)) {
         checks.cancellationFee.add({
           job_id: job.id,
           stored_fee: storedFee,
@@ -1052,14 +1091,7 @@ serve(async (req) => {
           // decidedBySplit above.
           if (job.status !== "cancelled") return;
           if (decidedBySplit === null ? job.dispute_status != null : decidedBySplit.has(job.id as string)) return;
-          const feeCents = Math.round(computeCancellationFee({
-            budget: money(job.budget),
-            date_needed: job.date_needed as string | null,
-            start_time: job.start_time as string | null,
-            cancelled_at: job.cancelled_at as string | null,
-            helper_id: job.helper_id as string | null,
-            helper_confirmed_at: job.helper_confirmed_at as string | null,
-          }) * 100);
+          const feeCents = Math.round(expectedCancellationFee(job) * 100);
           const nonRefundableCents = Math.max(
             Math.round(money(job.customer_fee_amount) * 100),
             actualOrEstimatedFeeCents(pi, capturedCents),

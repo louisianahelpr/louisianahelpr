@@ -3,7 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
-import { computeCancellationFee } from "../_shared/cancellationFee.ts";
+import { computeCancellationFee, crewCancellationFee } from "../_shared/cancellationFee.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
@@ -403,10 +403,167 @@ serve(async (req) => {
       }
     };
 
+    // ── A crew's cancellation fee: one transfer per member (Q407) ──────────
+    // A crew has no lead (20260925154606): poster_cancel_job writes one
+    // crew_cancellation_fee_shares row per hired member, and each member is
+    // paid THEIR share with its own transfer, idempotency key and ledger flip.
+    // Double pay is stopped twice: a row already 'paid' is skipped, and before
+    // any transfer Stripe is asked (once per job, fail closed) which members'
+    // fee transfers already exist in the job's transfer group; one that exists
+    // repairs the ledger instead of paying again.
+    type CrewShare = {
+      id: string;
+      helper_id: string | null;
+      committed: boolean;
+      share_amount: number | string | null;
+      status: string;
+      stripe_transfer_id: string | null;
+    };
+    const payCrewCancellationFees = async (
+      job: { id: string; title: string; helper_fee_percent?: number | string | null },
+      shares: CrewShare[],
+      pi: Stripe.PaymentIntent,
+    ) => {
+      const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0 && s.status !== "paid");
+      if (owed.length === 0) return;
+      const feeGroup = `job_${job.id}`;
+      let priorByHelper: Map<string, string>;
+      try {
+        const prior = await stripe.transfers.list({ transfer_group: feeGroup, limit: 100 });
+        priorByHelper = new Map(
+          prior.data
+            .filter((t) => t.metadata?.type === "cancellation_fee" && !t.reversed && t.metadata?.helper_id)
+            .map((t) => [String(t.metadata.helper_id), t.id]),
+        );
+      } catch (listErr) {
+        // Fail CLOSED, as the single path does: without knowing which shares
+        // already went out, any transfer is a coin flip on a second one.
+        console.error(`[void-cancelled-payments] could not list prior crew fee transfers for job ${job.id}:`, listErr);
+        defects.record(`crew fee-transfer dedupe list ${job.id}: ${(listErr as Error).message}`);
+        return;
+      }
+      const frozenPercent =
+        job.helper_fee_percent === null || job.helper_fee_percent === undefined
+          ? null
+          : Number(job.helper_fee_percent);
+
+      const markShare = async (share: CrewShare, patch: Record<string, unknown>, stage: string) => {
+        const { data, error } = await supabaseAdmin
+          .from("crew_cancellation_fee_shares")
+          .update(patch)
+          .eq("id", share.id)
+          .neq("status", "paid")
+          .select("id");
+        if (error || !data || data.length === 0) {
+          console.error(
+            `CRITICAL: [void-cancelled-payments] crew fee share ${share.id} (job ${job.id}) ${stage} but the ledger flip ${error ? `failed: ${error.message}` : "matched zero rows"}.`,
+          );
+          defects.record(`crew fee ledger ${share.id} ${stage}: ${error?.message ?? "zero rows"}`);
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            severity: "critical",
+            title: "Crew cancellation-fee ledger out of step with Stripe",
+            message: `A crew member's cancellation-fee share for job ${job.id} ${stage}, but crew_cancellation_fee_shares was not updated. The Stripe transfer-group check still stops a second payment; reconcile the row by hand.`,
+            fields: { job_id: job.id, share_id: share.id, stage, db_error: (error?.message ?? "zero rows").slice(0, 200) },
+          });
+        }
+      };
+
+      for (const share of owed) {
+        const shareAmount = Number(share.share_amount);
+        if (!share.helper_id) {
+          // Anonymised by account deletion: nobody left to route it to.
+          defects.record(`crew fee share ${share.id} (job ${job.id}): member account deleted, $${shareAmount.toFixed(2)} unpaid`);
+          await postSlackOpsAlert({
+            kind: "payout_failed",
+            severity: "warning",
+            title: "Crew cancellation-fee share has no recipient",
+            message: "A cancelled crew's fee share belongs to a member whose account was deleted. The poster's fee is captured; decide where it goes.",
+            fields: { job_id: job.id, share_id: share.id, amount: shareAmount },
+          });
+          continue;
+        }
+        const existing = priorByHelper.get(share.helper_id);
+        if (existing) {
+          console.log(`[void-cancelled-payments] crew fee for ${share.helper_id} on job ${job.id} already transferred (${existing}); repairing the ledger, not paying again.`);
+          await markShare(share, { status: "paid", stripe_transfer_id: existing, paid_at: new Date().toISOString() }, "was already paid in Stripe");
+          continue;
+        }
+        const commissionPercent = await getHelperFeePercent(
+          supabaseAdmin,
+          share.helper_id,
+          (frozenPercent !== null && Number.isFinite(frozenPercent) ? frozenPercent : undefined) ??
+            DEFAULT_TIER_FEE_PERCENT,
+        );
+        const platformCut = Math.round(shareAmount * (commissionPercent / 100) * 100) / 100;
+        const memberPayout = Math.round((shareAmount - platformCut) * 100) / 100;
+
+        const { data: memberProfile, error: memberProfileErr } = await supabaseAdmin
+          .from("profiles")
+          .select("stripe_account_id")
+          .eq("user_id", share.helper_id)
+          .single();
+        if (memberProfileErr || !memberProfile?.stripe_account_id || !(memberPayout > 0)) {
+          const why = memberProfileErr ? `profile read failed: ${memberProfileErr.message}` : !memberProfile?.stripe_account_id ? "no payout account" : "nothing left after commission";
+          console.error(`[void-cancelled-payments] crew fee share ${share.id} (job ${job.id}, member ${share.helper_id}) not paid: ${why}`);
+          defects.record(`crew fee share ${share.id}: ${why}`);
+          await markShare(share, { status: "failed" }, `could not be paid (${why})`);
+          await postSlackOpsAlert({
+            kind: "payout_failed",
+            severity: "warning",
+            title: "Crew cancellation-fee share not paid",
+            message: "A crew member's cancellation-fee share could not be sent. The poster's fee is already captured — pay it by hand.",
+            fields: { job_id: job.id, share_id: share.id, helper_id: share.helper_id, amount: memberPayout, reason: why.slice(0, 200) },
+          });
+          continue;
+        }
+
+        try {
+          const transferParams: Record<string, unknown> = {
+            amount: Math.round(memberPayout * 100),
+            currency: "usd",
+            destination: memberProfile.stripe_account_id,
+            transfer_group: feeGroup,
+            metadata: { job_id: job.id, helper_id: share.helper_id, share_id: share.id, type: "cancellation_fee", platform_cut: platformCut },
+          };
+          if (pi.latest_charge) {
+            transferParams.source_transaction = typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge.id;
+          }
+          const transfer = await stripe.transfers.create(transferParams as unknown as Stripe.TransferCreateParams, {
+            idempotencyKey: `cancel-fee-${job.id}-${share.helper_id}`,
+          });
+          console.log(`Crew cancellation fee share $${shareAmount}: platform kept $${platformCut}, transferred $${memberPayout} to ${share.helper_id} for job ${job.id}`);
+          await markShare(share, { status: "paid", stripe_transfer_id: transfer.id, paid_at: new Date().toISOString() }, `was paid (${transfer.id})`);
+          await insertNotifications(supabaseAdmin, {
+            user_id: share.helper_id,
+            job_id: job.id,
+            title: "Cancellation fee received",
+            message: `You received a $${formatPayoutDollars(memberPayout)} cancellation fee for "${job.title}" (${commissionPercent}% commission deducted).`,
+            type: "payment",
+            link: "/profile?tab=earnings",
+          });
+        } catch (transferErr) {
+          console.error(`Failed to transfer crew cancellation fee share ${share.id} to ${share.helper_id}:`, transferErr);
+          defects.record(`crew cancellation fee transfer ${share.id}: ${(transferErr as Error)?.message ?? transferErr}`);
+          await markShare(share, { status: "failed" }, `transfer failed (${((transferErr as Error)?.message ?? "").slice(0, 80)})`);
+          const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "void-cancelled-payments.crewFeeTransferFailed");
+          for (const adminId of adminIds) {
+            await insertNotifications(supabaseAdmin, {
+              user_id: adminId,
+              title: "Cancellation fee transfer failed",
+              message: `Failed to transfer a $${shareAmount.toFixed(2)} crew cancellation-fee share for job ${job.id}. Error: ${(transferErr as Error)?.message ?? transferErr}`,
+              type: "admin_alert",
+              link: `/admin?view=jobs&job=${job.id}`,
+            });
+          }
+        }
+      }
+    };
+
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, is_group_job, helpers_needed")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
@@ -687,6 +844,47 @@ serve(async (req) => {
         continue;
       }
 
+      // ── What this cancellation owes, priced before any money moves ───────
+      // A single job: recomputed from trusted job fields (F-MONEY-32). A crew
+      // (Q407): the sum of its ledger shares, each re-priced from the same job
+      // fields; a share that does not match its recomputation, or a ledger that
+      // cannot be read, moves NO money for this job (it stays in escrow and the
+      // next run retries).
+      let crewShares: CrewShare[] | null = null;
+      let jobCancellationFee: number;
+      if (job.is_group_job) {
+        const { data: shareRows, error: shareErr } = await supabaseAdmin
+          .from("crew_cancellation_fee_shares")
+          .select("id, helper_id, committed, share_amount, status, stripe_transfer_id")
+          .eq("job_id", job.id);
+        if (shareErr) {
+          console.error(`[void-cancelled-payments] crew fee ledger read failed for job ${job.id}; not settling:`, shareErr.message);
+          defects.record(`crew fee ledger read ${job.id}: ${shareErr.message} — not settled`);
+          results.push({ job_id: job.id, title: job.title, status: "crew_shares_read_failed" });
+          continue;
+        }
+        const priced = crewCancellationFee(job, (shareRows ?? []) as CrewShare[]);
+        if (priced.mismatch) {
+          console.error(`CRITICAL: [void-cancelled-payments] crew fee share for ${priced.mismatch.helper_id} on job ${job.id} is $${priced.mismatch.stored}, recomputed $${priced.mismatch.expected}; not settling.`);
+          defects.record(`crew fee share mismatch ${job.id}: stored ${priced.mismatch.stored} vs ${priced.mismatch.expected}`);
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            severity: "critical",
+            title: "Crew cancellation-fee share does not match its price",
+            message: `A crew_cancellation_fee_shares row for job ${job.id} disagrees with the fee ladder. No money moved; the job stays in escrow until a person reconciles it.`,
+            fields: { job_id: job.id, helper_id: priced.mismatch.helper_id ?? "(anonymised)", stored: priced.mismatch.stored, expected: priced.mismatch.expected },
+          });
+          results.push({ job_id: job.id, title: job.title, status: "crew_share_mismatch" });
+          continue;
+        }
+        crewShares = (shareRows ?? []) as CrewShare[];
+        jobCancellationFee = priced.total;
+      } else {
+        jobCancellationFee = computeCancellationFee(job);
+      }
+      const payCancellationFee = (fee: number, pi: Stripe.PaymentIntent) =>
+        crewShares ? payCrewCancellationFees(job, crewShares, pi) : payHelperCancellationFee(job, fee, pi);
+
       let paymentIntentId = job.stripe_payment_intent_id;
 
       // Resolve payment intent from session if not stored
@@ -729,7 +927,7 @@ serve(async (req) => {
           // job fields (F-MONEY-32) — never trust the persisted, client-writable
           // `job.cancellation_fee`, which an assigned helper could inflate to
           // capture more of the poster's hold than the schedule allows.
-          const cancellationFee = computeCancellationFee(job);
+          const cancellationFee = jobCancellationFee;
           if (cancellationFee > 0) {
             // Capture ONLY the fee — Stripe auto-releases the uncaptured
             // remainder (budget + customer fee) back to the poster. Charging
@@ -740,7 +938,7 @@ serve(async (req) => {
             // Re-fetch so latest_charge is populated for the helper transfer's
             // source_transaction link.
             const captured = await stripe.paymentIntents.retrieve(paymentIntentId);
-            await payHelperCancellationFee(job, cancellationFee, captured);
+            await payCancellationFee(cancellationFee, captured);
             const settledFee = await settleCancelledJob(job, {
               payment_status: "refunded",
               cancellation_fee_status: "charged",
@@ -763,7 +961,7 @@ serve(async (req) => {
           // cancel time, so this still equals the amount the poster was shown on
           // the "Cancel · pay $X" button (both derive from the same ladder),
           // while removing the ability for a helper to skim the refund.
-          const cancellationFee = computeCancellationFee(job);
+          const cancellationFee = jobCancellationFee;
           // Refund the entire captured amount minus the cancellation fee AND the
           // non-refundable poster service fee.
           // pi.amount_received is what Stripe actually collected, which is
@@ -896,7 +1094,7 @@ serve(async (req) => {
           }
 
           // Transfer the agreed fee to the helper (minus platform commission).
-          await payHelperCancellationFee(job, cancellationFee, pi);
+          await payCancellationFee(cancellationFee, pi);
 
           const settledRefund = await settleCancelledJob(job, {
             payment_status: "refunded",

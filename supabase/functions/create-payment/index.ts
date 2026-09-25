@@ -1423,6 +1423,49 @@ serve(async (req) => {
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
       }
 
+      // ── A crew is hired through its roster, never through helper_id ──
+      // The claim's `helper_id IS NULL` stands for "nobody is hired", which is
+      // not true of a group job: a crew has no lead and jobs.helper_id is NULL
+      // on every group job (20260925154606). The roster read above can be
+      // overtaken by a hire that commits before this claim, so read it again
+      // NOW. It is final: the claimed job reads payment_status 'cancelling',
+      // and enforce_group_roster_award_gate refuses to add a crew member to an
+      // unfunded job, so no hire can land after this line. Anyone hired puts
+      // the claim back and sends the poster to Cancel job; a read error does
+      // the same and moves no money (fail closed).
+      if (job.is_group_job) {
+        const { data: crewNow, error: crewNowErr } = await supabaseAdmin
+          .from("group_job_helpers")
+          .select("id, helper_id")
+          .eq("job_id", jobId)
+          .limit(1);
+        if (crewNowErr || (crewNow?.length ?? 0) > 0) {
+          const { data: restored, error: restoreErr } = await supabaseAdmin
+            .from("jobs")
+            .update({ payment_status: job.payment_status })
+            .eq("id", jobId)
+            .eq("status", job.status)
+            .eq("payment_status", "cancelling")
+            .select("id");
+          if (restoreErr || !restored || restored.length === 0) {
+            console.error(
+              `CRITICAL: [create-payment] cancel_escrow on crew job ${jobId} could not put its claim back (payment_status stays 'cancelling'; no money moved): ${restoreErr?.message ?? "zero rows"}`,
+            );
+          }
+          if (crewNowErr) {
+            console.error(`[create-payment] cancel_escrow post-claim roster check failed for job ${jobId}: ${crewNowErr.message}`);
+            return new Response(JSON.stringify({
+              error: "Couldn't check who is hired on this job. No money was moved — try again.",
+            }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+          }
+          console.error(`[create-payment] cancel_escrow REFUSED after claim on job ${jobId} (caller ${user.id}): crew member ${crewNow?.[0]?.helper_id ?? "(anonymised)"} was hired`);
+          return new Response(JSON.stringify({
+            error: "This job has a Helpr or has already started, so it has to be cancelled with Cancel job — that applies the cancellation rules and refunds you. No money was moved.",
+            useCancelJob: true,
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+        }
+      }
+
       // With immediate capture, we need to refund instead of cancel.
       // Errors propagate to the outer catch so the job is NOT silently
       // marked "cancelled" when the refund fails — the customer would

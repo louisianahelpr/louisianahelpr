@@ -1,7 +1,9 @@
 /**
- * When a cancelled recurring-series visit is refunded IN FULL, service fee
- * included, and carries no cancellation fee (money audit 2026-09-25 MEDIUM-9;
- * owner decisions Q407 (5) and (9)).
+ * When a cancelled recurring-series visit carries no cancellation fee and gets
+ * its service fee back (money audit 2026-09-25 MEDIUM-9; owner decisions
+ * Q407 (5) and (9)). What is withheld then is only Stripe's processing fee on
+ * the charge: the platform never absorbs a fee and never refunds more than it
+ * netted (owner decision Q407 (12); void-cancelled-payments).
  *
  *   - An UNFILLED visit: a series visit (parent_job_id set) cancelled with no
  *     Helpr on it. It was funded for a Helpr who then gave it up, and nobody
@@ -15,9 +17,7 @@
  *     verbatim, so any poster could type it (money review HIGH-1). The marker
  *     counts only on a series job (a visit, or visit one = the parent).
  *
- * The platform absorbs the Stripe processing cost on these refunds; the owner
- * has not said who should (docs/OPEN.md). Zero imports on purpose (the edge
- * harness points at the real module).
+ * Zero imports on purpose (the edge harness points at the real module).
  */
 
 export interface SeriesRefundJob {

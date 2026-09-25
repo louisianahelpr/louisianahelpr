@@ -1075,9 +1075,10 @@ serve(async (req) => {
           // cancel time, so this still equals the amount the poster was shown on
           // the "Cancel · pay $X" button (both derive from the same ladder),
           // while removing the ability for a helper to skim the refund.
-          // An unfilled or ban-ended series visit is refunded IN FULL, the
-          // service fee included (money audit MEDIUM-9, Q407 (5)/(9);
-          // _shared/seriesRefund.ts). Its fee is priced as 0 above.
+          // An unfilled or ban-ended series visit carries no cancellation fee
+          // and gets its service fee back, less Stripe's processing fee
+          // (money audit MEDIUM-9, Q407 (5)/(9)/(12); _shared/seriesRefund.ts).
+          // Its fee is priced as 0 above.
           const fullSeriesRefund = refundsSeriesVisitInFull(job);
           const cancellationFee = jobCancellationFee;
           // Refund the entire captured amount minus the cancellation fee AND the
@@ -1097,8 +1098,12 @@ serve(async (req) => {
           // never loses money regardless of payment method — cards, Klarna/
           // Affirm/Afterpay, and ACH all carry different real rates.
           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
+          // An unfilled or ban-ended series visit gets the service fee back
+          // too, but never Stripe's processing fee: the platform never absorbs
+          // a fee and never refunds more than it netted (owner decision
+          // Q407 (12), 2026-09-25).
           const nonRefundableCents = fullSeriesRefund
-            ? 0
+            ? actualOrEstimatedFeeCents(pi, capturedCents)
             : Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
           const refundAmount = capturedCents - Math.round(cancellationFee * 100) - nonRefundableCents;
           // ── Ledger guard against a SECOND real refund ────────────────────

@@ -1,10 +1,14 @@
 /**
  * A cancelled recurring-series visit that was never filled, or that a
- * PERMANENT BAN ended, is refunded IN FULL, the service fee included, with no
- * cancellation fee (money audit 2026-09-25 MEDIUM-9; owner decisions Q407 (5)
- * "a date still unfilled when it arrives is not charged" and (9) "future
- * visits are cancelled and not charged"). Every other cancellation keeps its
- * rule: the service fee is withheld.
+ * PERMANENT BAN ended, is refunded with no cancellation fee and the service fee
+ * returned, LESS Stripe's processing fee on that charge (money audit
+ * 2026-09-25 MEDIUM-9; owner decisions Q407 (5), (9) and (12): "the platform
+ * NEVER absorbs a fee: a refund of an already-charged visit returns the amount
+ * paid minus Stripe's processing fee, never more than the platform received
+ * net"). The processing fee is the charge's own balance-transaction fee, the
+ * card-rate estimate only when Stripe has not reported it. Every other
+ * cancellation keeps its rule: the service fee (at least the processing fee)
+ * is withheld.
  *
  * WHICH visit a ban ended is read from a SERVER-OWNED marker,
  * jobs.series_ban_cancelled_at (set only by end_series_for_banned_account,
@@ -20,7 +24,8 @@
  *
  * @mutate supabase/functions/_shared/seriesRefund.ts |   return !!job.parent_job_id && !job.helper_id; |   return false;
  * @mutate supabase/functions/_shared/seriesRefund.ts |   if (inSeries && !!job.series_ban_cancelled_at) return true; |   if (!!job.series_ban_cancelled_at) return true;
- * @mutate supabase/functions/void-cancelled-payments/index.ts |           const nonRefundableCents = fullSeriesRefund\n            ? 0 |           const nonRefundableCents = false\n            ? 0
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |           const nonRefundableCents = fullSeriesRefund\n            ? actualOrEstimatedFeeCents(pi, capturedCents) |           const nonRefundableCents = false\n            ? actualOrEstimatedFeeCents(pi, capturedCents)
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |             ? actualOrEstimatedFeeCents(pi, capturedCents)\n            : Math.max | ? 0\n            : Math.max
  * @mutate supabase/functions/void-cancelled-payments/index.ts |         if (markerErr && !isMissingColumn(markerErr)) { |         if (false) {
  * @mutate supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql |              series_ban_cancelled_at = now(), |              series_ban_cancelled_at = NULL,
  */
@@ -53,7 +58,10 @@ const cronReq = () =>
   });
 
 /** A $100 visit + $10 service fee captured, cancelled, in escrow. */
-function seed(job: Record<string, unknown>, marker: string | null | Error = null) {
+/** Stripe's card-rate estimate on an $110.00 charge: 2.9% + 30c. */
+const EST_FEE = Math.round(11000 * 0.029) + 30;
+
+function seed(job: Record<string, unknown>, marker: string | null | Error = null, balanceFee: number | null = null) {
   scenario.reads.jobs = {
     selectOverrides: [
       {
@@ -82,7 +90,8 @@ function seed(job: Record<string, unknown>, marker: string | null | Error = null
     rows: [],
   };
   stripeMock.paymentIntents.retrieve.mockResolvedValue({
-    id: "pi_visit", status: "succeeded", amount: 11000, amount_received: 11000, latest_charge: null,
+    id: "pi_visit", status: "succeeded", amount: 11000, amount_received: 11000,
+    latest_charge: balanceFee === null ? null : { id: "ch_visit", balance_transaction: { fee: balanceFee } },
   });
   stripeMock.refunds.create.mockResolvedValue({ id: "re_visit", amount: 11000 });
 }
@@ -100,7 +109,7 @@ async function refundedCents(): Promise<number | null> {
   return call ? (call[0] as { amount?: number }).amount ?? null : null;
 }
 
-describe("void-cancelled-payments: an unfilled or ban-ended series visit is refunded in full", () => {
+describe("void-cancelled-payments: an unfilled or ban-ended series visit is refunded less only Stripe's fee", () => {
   beforeEach(() => {
     resetEnv();
     resetSupabaseMock();
@@ -115,19 +124,24 @@ describe("void-cancelled-payments: an unfilled or ban-ended series visit is refu
     expect(cents!).toBeLessThan(11000 - 1000 + 1);
   });
 
-  it("an UNFILLED series visit (no Helpr on it) gets every cent back", async () => {
+  it("an UNFILLED series visit (no Helpr on it) gets everything back but Stripe's fee (Q407 12)", async () => {
     seed({ parent_job_id: "series-1", helper_id: null, helper_confirmed_at: null });
-    expect(await refundedCents()).toBe(11000);
+    expect(await refundedCents()).toBe(11000 - EST_FEE);
+  });
+
+  it("the withheld fee is the charge's REAL processing fee when Stripe reports it (never more than the platform netted)", async () => {
+    seed({ parent_job_id: "series-1", helper_id: null, helper_confirmed_at: null }, null, 612);
+    expect(await refundedCents()).toBe(11000 - 612);
   });
 
   it("a visit a PERMANENT BAN cancelled (server marker) gets every cent back, with no late fee though a Helpr was booked", async () => {
     seed({ parent_job_id: "series-1" }, "2032-09-05T16:00:00Z");
-    expect(await refundedCents()).toBe(11000);
+    expect(await refundedCents()).toBe(11000 - EST_FEE);
   });
 
   it("visit one of a ban-ended series (the parent itself) is marked the same way", async () => {
     seed({ recurrence_days: [1, 3] }, "2032-09-05T16:00:00Z");
-    expect(await refundedCents()).toBe(11000);
+    expect(await refundedCents()).toBe(11000 - EST_FEE);
   });
 
   it("HIGH-1: a ONE-TIME job whose poster typed the ban reason keeps the late fee AND the service fee", async () => {

@@ -1,6 +1,8 @@
 // @mutate scripts/check-staleness.mjs | if (hours > MAX_EVIDENCE_HOURS) { | if (hours > MAX_EVIDENCE_HOURS * 1000) {
 // @mutate scripts/check-staleness.mjs |     if (days > MAX_REPORT_DAYS) { |     if (days > MAX_REPORT_DAYS * 1000) {
 // @mutate scripts/check-staleness.mjs | && !recordDirs.some((d) => f.startsWith(d)) && !exempt.has(f) | && false
+// @mutate scripts/check-staleness.mjs | workflow: "loading-states-refresh.yml", branch: "main", maxDays: 2 | workflow: "loading-states-refresh.yml", maxDays: 2
+// @mutate scripts/check-staleness.mjs | "--workflow", workflow, "--branch", branch, "--status" | "--workflow", workflow, "--status"
 /*
  * The staleness watch (scripts/check-staleness.mjs, run nightly by
  * staleness-watch.yml) must itself be able to fail — a freshness check that
@@ -13,6 +15,8 @@ import { checkEvidence, checkLedger, checkReports, checkWorkflowBound, evidenceT
 import { RECORD_DIRS } from "../../scripts/check-stated-counts.mjs";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 const NOW = new Date("2026-09-23T12:00:00Z");
 const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 36e5);
@@ -67,6 +71,15 @@ describe("staleness watch — currency proven by something better than age", () 
     expect(checkWorkflowBound(b, () => hoursAgo(24 * 9), NOW)).toHaveLength(1);
     expect(checkWorkflowBound(b, () => null, NOW)).toHaveLength(1);
     expect(checkWorkflowBound(b, () => hoursAgo(24 * 2), NOW)).toHaveLength(0);
+  });
+
+  it("binds every workflow-bound baseline to main's runs, not a branch dispatch's (#1773)", () => {
+    const bound = WORKFLOW_BOUND as { file: string; branch?: string }[];
+    expect(bound.length).toBeGreaterThan(1);
+    for (const b of bound) expect(b, b.file).toMatchObject({ branch: "main" });
+    // and the gh query actually filters by it
+    const src = readFileSync(resolve(__dirname, "../../scripts/check-staleness.mjs"), "utf8");
+    expect(blankComments(src)).toMatch(/"--branch",\s*branch\b/);
   });
 
   it("binds the overlay baseline to the Friday overlay cron, not any green ui-sweep run", () => {

@@ -633,9 +633,19 @@ async function main() {
   // simultaneous bursts inside the whole ceiling.
   requestMeter.paceTo(ceilingFor("loading-states", resolve(REPO, "e2e", "request-budgets.json")), { workers: CONCURRENCY });
   const results = [];
-  const byPersona = new Map();
-  const contextFor = async (persona) => {
-    if (byPersona.has(persona)) return byPersona.get(persona);
+  // ONE FRESH CONTEXT PER SURFACE, closed after it is measured. The app
+  // persists its React Query cache to IndexedDB (src/lib/queryPersister.ts),
+  // and IndexedDB lives for the whole browser context. With one context per
+  // persona, a surface measured after a sibling that had already fetched the
+  // same queries rehydrated that data and drew no skeleton, or a different
+  // subset of it, and which sibling ran first depended on the two workers'
+  // timing. Runs 36158775025 and 36186004139 (2026-09-25) on the SAME commit (3569359)
+  // disagreed on 21 of 139 surface lines (78 vs 73 measured; `helper /profile`
+  // measured `cl=2/2` in one and `no-placeholder` in the other), so the
+  // two-way baseline could never settle. A fresh context is a cold first
+  // visit every time, which is the loading state a person actually sees.
+  // Guarded by src/test/loadingStatesColdContext.test.ts.
+  const freshContext = async (persona) => {
     const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
     await ctx.addInitScript(CLS_INIT);
     const s = sessions[persona];
@@ -647,7 +657,6 @@ async function main() {
         } catch { /* storage blocked — the run reports signed-out, never a fake pass */ }
       }, [s.key, s.value]);
     }
-    byPersona.set(persona, ctx);
     return ctx;
   };
 
@@ -657,8 +666,8 @@ async function main() {
       const i = cursor++;
       if (i >= targets.length) return;
       const t = targets[i];
-      const ctx = await contextFor(t.persona);
-      const r = await measureOne(ctx, t);
+      const ctx = await freshContext(t.persona);
+      const r = await measureOne(ctx, t).finally(() => ctx.close().catch(() => {}));
       results.push(r);
       const tag = r.status === "measured"
         ? `cl=${String(r.clustersMeasured ?? 0)}/${String(r.clusters?.length ?? 0)}  worstΔrow=${String(r.worstDeltaRowPx ?? "?").padStart(7)}px  ` +
@@ -668,11 +677,7 @@ async function main() {
       console.log(`${t.persona.padEnd(9)} ${t.url.padEnd(44)} ${tag}`);
     }
   };
-  // Contexts are created lazily inside the workers, so seed them serially
-  // first: two workers racing to create the same persona context made two.
-  for (const p of new Set(targets.map((t) => t.persona))) await contextFor(p);
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-  for (const ctx of byPersona.values()) await ctx.close();
   requestMeter.flush();
   await browser.close();
 

@@ -141,7 +141,11 @@ jobs:
   land:
     name: Land the fresh measurement (Q57 refresh PR)
     needs: [measure]
-    if: needs.measure.result == 'success'
+    # Main only. A dispatch on a branch measures THAT branch's build; landing
+    # it would put a branch's measurement on main (refresh-pr rebuilds from
+    # latest main and copies the file in). #1773: branch dispatches are how a
+    # fix to this workflow is proven, so they must not land or sync issues.
+    if: needs.measure.result == 'success' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # The ONLY write grant in this workflow (Q57): push the bot branch, open or
@@ -168,7 +172,9 @@ jobs:
   notify:
     name: Report nightly result
     needs: [measure, land]
-    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    # Main only, like `land`: the nightly-red issue is about main, and a branch
+    # run (whose `land` is skipped) must neither open nor close it.
+    if: always() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

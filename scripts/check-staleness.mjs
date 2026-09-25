@@ -182,10 +182,13 @@ export const WORKFLOW_BOUND = [
   // ui-sweep.yml runs on every push too, in a DIFFERENT mode (empty-state);
   // any green run is a proxy, not the thing. Only the Friday 05:00 UTC cron
   // resolves to the overlay sweep, so only a scheduled Friday success counts.
-  { file: "e2e/happy-path/overlay-sweep.baseline.json", workflow: "ui-sweep.yml", event: "schedule", weekdayUtc: 5, maxDays: 8 },
+  { file: "e2e/happy-path/overlay-sweep.baseline.json", workflow: "ui-sweep.yml", branch: "main", event: "schedule", weekdayUtc: 5, maxDays: 8 },
   // Re-measured daily on prod and re-proved two ways against the baseline in
   // the same run; the committed file is a snapshot of the last one landed.
-  { file: "docs/audit/loading-states/measurements.json", workflow: "loading-states-refresh.yml", maxDays: 2 },
+  // `branch: "main"`: a dispatch on a branch measures that branch's build, so
+  // its green says nothing about main's baseline (#1773). Every entry names
+  // its branch (src/test/stalenessWatch.test.ts).
+  { file: "docs/audit/loading-states/measurements.json", workflow: "loading-states-refresh.yml", branch: "main", maxDays: 2 },
 ];
 
 export function checkWorkflowBound(bound, lastSuccess, now) {
@@ -201,9 +204,9 @@ export function checkWorkflowBound(bound, lastSuccess, now) {
   return stale;
 }
 
-function lastSuccessFromGh({ workflow, event, weekdayUtc }) {
+function lastSuccessFromGh({ workflow, branch, event, weekdayUtc }) {
   try {
-    const args = ["run", "list", "--workflow", workflow, "--status", "success", "--limit", "40", "--json", "createdAt"];
+    const args = ["run", "list", "--workflow", workflow, "--branch", branch, "--status", "success", "--limit", "40", "--json", "createdAt"];
     if (event) args.push("--event", event);
     const rows = JSON.parse(execFileSync("gh", args, { encoding: "utf8" }))
       .map((r) => new Date(r.createdAt))

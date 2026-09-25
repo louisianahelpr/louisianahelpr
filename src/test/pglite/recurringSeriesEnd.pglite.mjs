@@ -33,6 +33,22 @@ const repo = fileURLToPath(new URL("../../../supabase/migrations/", import.meta.
 const read = (f) => readFileSync(repo + f, "utf8");
 
 const MIGRATION = read("20260925052841_recurring_series_end.sql");
+/** The newest CREATE of public.<name>() in a migration file, verbatim. */
+const fnFrom = (file, name) => {
+  const src = read(file);
+  const start = src.lastIndexOf(`CREATE OR REPLACE FUNCTION public.${name}(`);
+  if (start < 0) throw new Error(`${name} not found in ${file}`);
+  const tag = /AS\s+(\$[A-Za-z_]*\$)/.exec(src.slice(start))[1];
+  const open = src.indexOf(tag, start);
+  const close = src.indexOf(tag, open + tag.length);
+  return src.slice(start, close + tag.length) + ";";
+};
+// The REAL ban gate chain: is_caller_banned (newest, 20260824245000's shape as
+// restated in 20260923185224) and the pre-fix enforce_ban_gate from
+// 20260923185224, which the migration replaces.
+const BAN_FILE = "20260923185224_ban_enforcement_everywhere.sql";
+const IS_CALLER_BANNED = fnFrom("20260824245000_ban_enforcement_data_layer.sql", "is_caller_banned");
+const PREFIX_BAN_GATE = fnFrom(BAN_FILE, "enforce_ban_gate");
 const Q357 = read("20260924053706_jobs_series_columns_client_lock.sql");
 const oldWhitelistSrc = read("20260915101102_null_uid_is_not_server.sql");
 const OLD_WHITELIST = (() => {
@@ -70,6 +86,12 @@ const SETUP = `
   create table public.notifications (id serial primary key, user_id uuid not null, job_id uuid,
     title text not null, message text not null, type text not null default 'info', link text);
   grant usage on schema public to authenticated, anon, service_role;
+  create table public.profiles (user_id uuid primary key, ban_status text not null default 'active', auto_suspended_until timestamptz);
+  grant select on public.profiles to authenticated;
+  ${IS_CALLER_BANNED}
+  ${PREFIX_BAN_GATE}
+  create trigger trg_ban_gate_jobs_update before update on public.jobs
+    for each row execute function public.enforce_ban_gate();
   create function public.sync_jobs_select_grants() returns void language sql as $f$ select $f$;
   grant select, insert, update on public.jobs to authenticated, service_role;
   grant select on public.notifications to authenticated;
@@ -193,6 +215,30 @@ check("the Helpr is told the poster ended it", n.length === 1 && n[0].user_id ==
 
 r = await server(db, `update public.jobs set series_ended_on = null where id='${J(3)}'`);
 check("service_role is not client-locked", r.ok, r.err);
+
+// ── Review 2026-09-25 (MEDIUM): a BANNED party can still end a series ──────
+// The real enforce_ban_gate (BEFORE UPDATE on jobs) is loaded above; the
+// migration restates it with the app.series_end_rpc carve-out.
+await db.exec(`
+  insert into public.jobs (id, title, customer_id, helper_id, recurring_helper_id, status, date_needed, start_time, recurrence_days, recurrence_weeks)
+  values ('${J(6)}', 'banned poster series', '${P}', '${H}', '${H}', 'accepted', ${d(10)}, '09:00', '{2}', 4),
+         ('${J(7)}', 'banned Helpr series', '${X}', '${H}', '${H}', 'accepted', ${d(10)}, '09:00', '{2}', 4);
+  insert into public.profiles (user_id, ban_status) values ('${P}', 'permanently_banned'), ('${H}', 'active'), ('${X}', 'active');
+`);
+r = await as(db, "authenticated", P, `update public.jobs set title = 'x' where id='${J(6)}'`);
+check("the ban gate still refuses a banned poster's ordinary jobs write", refused(r, /account_restricted/), r.err);
+r = await as(db, "authenticated", P, `select public.end_recurring_series('${J(6)}') as v`);
+check("a BANNED poster can end their series (ban gate passes under app.series_end_rpc)", r.ok && r.rows[0].v.action === "ended", r.err);
+r = await as(db, "authenticated", P, `select current_setting('app.series_end_rpc', true) as f`);
+check("the flag is not left set for the rest of the transaction", r.ok && r.rows[0].f !== "1", JSON.stringify(r.rows?.[0]));
+await db.exec(`update public.profiles set ban_status = 'temp_banned', auto_suspended_until = now() + interval '7 days' where user_id = '${H}'`);
+r = await as(db, "authenticated", H, `select public.end_recurring_series('${J(7)}') as v`);
+check("a temp-banned standing Helpr can end the series too", r.ok && r.rows[0].v.action === "ended", r.err);
+// Pre-fix red: put the previous enforce_ban_gate back and the banned end fails.
+await db.exec(PREFIX_BAN_GATE);
+await db.exec(`update public.jobs set series_ended_on = null where id='${J(6)}'`);
+r = await as(db, "authenticated", P, `select public.end_recurring_series('${J(6)}') as v`);
+check("PRE-FIX RED: with the previous enforce_ban_gate a banned poster could not end the series", refused(r, /account_restricted/), r.err);
 
 await db.close();
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");

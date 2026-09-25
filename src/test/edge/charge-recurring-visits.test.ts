@@ -54,6 +54,10 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts | if (!parent.helper_id \|\| parent.recurring_helper_id !== parent.helper_id) { | if (false) {
 //   Q347: the cron books and charges across a block.
 // @mutate supabase/functions/charge-recurring-visits/index.ts | if (blocked === true) { | if (false) {
+//   Review 2026-09-25: the cron charges a banned poster / books a banned Helpr.
+// @mutate supabase/functions/charge-recurring-visits/index.ts |       if (banned.ids.size > 0) { |       if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |       if (banned.error) { |       if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |     if (status === "temp_banned" && row.auto_suspended_until && Date.parse(row.auto_suspended_until) <= now) continue; |     if (false) continue;
 //   Q347: an unknown block answer books anyway.
 // @mutate supabase/functions/charge-recurring-visits/index.ts | if (blockErr) { | if (false) {
 //   ME-014: tax charged on a visit never reaches Stripe Tax's filing reports.
@@ -889,6 +893,61 @@ describe("charge-recurring-visits edge function", () => {
     expectNothingBooked(b);
     expect(b.skippedBlocked).toBe(1);
     expect(res.status).toBe(200);
+  });
+
+  it("skips a series whose poster or standing Helpr is banned: no charge, no booking, not a defect (review 2026-09-25)", async () => {
+    for (const who of [POSTER_ID, HELPER_ID]) {
+      resetStripeMock();
+      resetSupabaseMock();
+      const fn = await loadConfigured();
+      seedHappyPath();
+      scenario.reads.profiles = {
+        ...scenario.reads.profiles,
+        selectOverrides: [
+          { includes: "ban_status", result: { rows: [{ user_id: who, ban_status: "permanently_banned", auto_suspended_until: null }] } },
+        ],
+      };
+
+      const res = await runOn(fn, "2026-09-01");
+      const b = await body(res);
+
+      expectNothingBooked(b);
+      expect(b.skippedBanned).toBe(1);
+      expect(res.status).toBe(200);
+    }
+  });
+
+  it("a LAPSED temp ban does not skip the series", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.reads.profiles = {
+      ...scenario.reads.profiles,
+      selectOverrides: [
+        { includes: "ban_status", result: { rows: [{ user_id: HELPER_ID, ban_status: "temp_banned", auto_suspended_until: "2026-08-01T00:00:00Z" }] } },
+      ],
+    };
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(b.funded).toBe(1);
+    expect(b.skippedBanned).toBe(0);
+  });
+
+  it("skips the series when the ban check itself fails — an unknown answer never books", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.reads.profiles = {
+      ...scenario.reads.profiles,
+      selectOverrides: [{ includes: "ban_status", result: { error: { message: "connection reset", code: "08006" } } }],
+    };
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expectNothingBooked(b);
+    expect(res.status).toBe(500);
+    expect(reasons(b)).toContain("ban check failed");
   });
 
   it("skips the series when the block check itself fails — an unknown answer never books", async () => {

@@ -36,6 +36,16 @@
 --    recurrence_end_date are refused for client roles, and series_ended_on is
 --    never client-writable.
 --
+-- 3. A banned party could not end a series (money/authz review 2026-09-25):
+--    enforce_ban_gate (BEFORE UPDATE on jobs) sees the caller's auth.uid()
+--    inside this definer RPC and raised account_restricted, while the cron
+--    kept charging. Ending a series only REDUCES activity, so enforce_ban_gate
+--    is restated from its newest definition (20260923185224) with one
+--    carve-out: app.series_end_rpc = '1', which end_recurring_series sets
+--    transaction-locally around its one UPDATE (after its party check) and
+--    clears again. The ban itself also ends every series (owner decision 9,
+--    a later migration), and the cron skips a banned poster or Helpr.
+--
 -- enforce_helper_jobs_column_whitelist is restated from its newest definition
 -- (20260915101102, identical to live pg_get_functiondef 2026-09-25) with one
 -- carve-out: series_ended_on under app.series_end_rpc, which only
@@ -247,6 +257,43 @@ BEGIN
   RETURN NEW;
 END;
 $function$;
+
+-- ── Ban gate: a banned party may still END a series ─────────────────────────
+-- Restated from 20260923185224 (newest definition) with the series-end
+-- carve-out. Everything else is verbatim, the same-transaction ban carve-out
+-- included (scripts/ci/ban-gate-coverage.sql gate:no-same-txn-carveout).
+CREATE OR REPLACE FUNCTION public.enforce_ban_gate()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  -- A ban that THIS transaction started does not refuse the rest of it (see
+  -- 2d): the 3rd reliability strike inside helper_cancel_booking bans the
+  -- caller and then writes jobs/applications; refusing those rolled the whole
+  -- transaction back, ban included, so the ladder could never suspend.
+  -- app.series_end_rpc: end_recurring_series sets it around its one UPDATE of
+  -- the series parent after checking the caller is a party. Ending a series
+  -- only reduces activity, so a banned party may still do it (review
+  -- 2026-09-25); the flag is cleared again right after that UPDATE.
+  IF auth.uid() IS NOT NULL AND public.is_caller_banned()
+     AND current_setting('app.ban_started_in_txn', true) IS DISTINCT FROM auth.uid()::text
+     AND current_setting('app.series_end_rpc', true) IS DISTINCT FROM '1' THEN
+    RAISE EXCEPTION 'account_restricted'
+      USING ERRCODE = '42501',
+            HINT = 'This account is suspended or banned. See /account-banned for details.';
+  END IF;
+  -- A BEFORE DELETE row trigger must return OLD: NEW is NULL there, and
+  -- returning NULL silently cancels the delete for every caller.
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.enforce_ban_gate() FROM PUBLIC, anon, authenticated;
 
 -- ── end_recurring_series ──────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.end_recurring_series(p_job_id uuid)

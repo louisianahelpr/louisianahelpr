@@ -263,6 +263,7 @@ serve(async (req) => {
     skippedUnhired: 0,
     skippedBlocked: 0,
     skippedEnded: 0,
+    skippedBanned: 0,
     declined: 0,
     errors: 0,
     capped: false,
@@ -457,6 +458,27 @@ serve(async (req) => {
           `[charge-recurring-visits] series ${parent.id}: poster and standing helper are blocked; skipping (no charge, no visit)`,
         );
         results.skippedBlocked++;
+        continue;
+      }
+      // A banned poster or standing Helpr: the same shape as a block (review
+      // 2026-09-25). The ban itself ends every series the account is on (owner
+      // decision 9), but until that has run, and for a ban written by a path
+      // that does not, this cron must not charge a banned poster's card or
+      // book a banned Helpr. An unreadable answer skips the series (fail closed).
+      const banned = await bannedAmong(supabase, [
+        parent.customer_id as string,
+        parent.recurring_helper_id as string,
+      ]);
+      if (banned.error) {
+        console.error(`[charge-recurring-visits] ban check failed for series ${parent.id}; skipping the series`, banned.error);
+        fail(`series ${parent.id}: ban check failed (${banned.error})`);
+        continue;
+      }
+      if (banned.ids.size > 0) {
+        console.warn(
+          `[charge-recurring-visits] series ${parent.id}: a party is suspended or banned; skipping (no charge, no visit)`,
+        );
+        results.skippedBanned++;
         continue;
       }
 
@@ -1224,6 +1246,33 @@ serve(async (req) => {
     corsHeaders,
   );
 });
+
+/**
+ * Which of `ids` are suspended or banned RIGHT NOW: the same predicate as
+ * public.is_caller_banned() (a temp ban counts until auto_suspended_until).
+ * `error` is set when the answer cannot be read; the caller fails closed.
+ */
+async function bannedAmong(
+  supabase: AdminClient,
+  ids: string[],
+): Promise<{ ids: Set<string>; error: string | null }> {
+  const wanted = [...new Set(ids.filter(Boolean))];
+  if (wanted.length === 0) return { ids: new Set(), error: null };
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("user_id, ban_status, auto_suspended_until")
+    .in("user_id", wanted);
+  if (error) return { ids: new Set(), error: error.message };
+  const now = Date.now();
+  const out = new Set<string>();
+  for (const row of (data ?? []) as Array<{ user_id: string; ban_status: string | null; auto_suspended_until: string | null }>) {
+    const status = row.ban_status ?? "";
+    if (!["banned", "temp_banned", "permanently_banned"].includes(status)) continue;
+    if (status === "temp_banned" && row.auto_suspended_until && Date.parse(row.auto_suspended_until) <= now) continue;
+    out.add(row.user_id);
+  }
+  return { ids: out, error: null };
+}
 
 /**
  * A declined card means no visit. Say so while there is still time to fix it —

@@ -20,6 +20,7 @@
  * @mutate supabase/migrations/20260925052841_recurring_series_end.sql | REVOKE ALL ON FUNCTION public.end_recurring_series(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.end_recurring_series(uuid) FROM PUBLIC;
  * @mutate supabase/migrations/20260925052841_recurring_series_end.sql |   IF v_ended IS NOT NULL THEN | IF v_ended IS NOT NULL AND NEW.date_needed > v_ended THEN
  * @mutate supabase/migrations/20260925052841_recurring_series_end.sql |    FOR SHARE; |    ;
+ * @mutate supabase/migrations/20260925052841_recurring_series_end.sql |      AND current_setting('app.series_end_rpc', true) IS DISTINCT FROM '1' THEN |      THEN
  * @mutate supabase/functions/charge-recurring-visits/index.ts | .not("customer_id", "is", null) | .not("id", "is", null)
  * @mutate supabase/functions/charge-recurring-visits/index.ts | recurring_helper_id, helper_id, status, series_ended_on", | recurring_helper_id, helper_id, status",
  * @mutate supabase/functions/charge-recurring-visits/index.ts | Can't make it? Cancel this visit from My Jobs. | Can't make it? Release the date from My Jobs.
@@ -55,7 +56,7 @@ const allSql = files.map((f) => blankSqlComments(readFileSync(`${dir}/${f}`, "ut
 
 describe("recurring series: end + schedule lock", () => {
   it("inventory: the objects exist in a migration", () => {
-    const names = ["enforce_series_columns_client_lock", "enforce_series_visit_within_end", "end_recurring_series", "enforce_helper_jobs_column_whitelist"];
+    const names = ["enforce_series_columns_client_lock", "enforce_series_visit_within_end", "end_recurring_series", "enforce_helper_jobs_column_whitelist", "enforce_ban_gate"];
     const found = names.filter((n) => newestFunction(n).body.length > 0);
     expect(found).toEqual(names);
     expect(found.length).toBeGreaterThan(3);
@@ -88,6 +89,18 @@ describe("recurring series: end + schedule lock", () => {
     expect(mig).toContain("REVOKE ALL ON FUNCTION public.end_recurring_series(uuid) FROM PUBLIC, anon;");
     const wl = newestFunction("enforce_helper_jobs_column_whitelist").body;
     expect(wl).toMatch(/IF changed_col = 'series_ended_on'\s+AND current_setting\('app\.series_end_rpc', true\) = '1' THEN\s+CONTINUE;/);
+  });
+
+  it("a banned party can still end a series: the newest enforce_ban_gate passes under app.series_end_rpc", () => {
+    const gate = newestFunction("enforce_ban_gate").body;
+    expect(gate).toMatch(/AND current_setting\('app\.series_end_rpc', true\) IS DISTINCT FROM '1' THEN\s+RAISE EXCEPTION 'account_restricted'/);
+    // The same-transaction ban carve-out survives the restatement.
+    expect(gate).toContain("current_setting('app.ban_started_in_txn', true) IS DISTINCT FROM auth.uid()::text");
+    const rpc = newestFunction("end_recurring_series").body;
+    const on = rpc.indexOf("set_config('app.series_end_rpc', '1', true)");
+    const off = rpc.indexOf("set_config('app.series_end_rpc', '0', true)");
+    expect(on).toBeGreaterThan(rpc.indexOf("RAISE EXCEPTION 'not_authorized'"));
+    expect(off).toBeGreaterThan(on);
   });
 
   it("no new visit of an ENDED series is inserted, whatever its date (DB belt, race-safe)", () => {

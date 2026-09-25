@@ -375,7 +375,7 @@ BEGIN
   -- The queue holds at most ~20 minutes of matches.
   FOR r IN
     SELECT q.id, q.user_id, q.job_id, q.notify_at, q.search_name, q.matched_search_ids,
-           j.created_at AS job_created_at
+           j.created_at AS job_created_at, COALESCE(j.is_seed, false) AS job_is_seed
       FROM public.saved_search_alert_queue q
       JOIN public.jobs j ON j.id = q.job_id
      ORDER BY q.notify_at
@@ -403,10 +403,13 @@ BEGIN
       -- One row that raises must not roll back every other send in this run
       -- and then raise again every minute. Only this send's writes roll back;
       -- its row stays deleted (the DELETE is outside this block), so the
-      -- alert is dropped and the failure goes to error_logs.
+      -- alert is dropped and the failure goes to error_logs. A seed (E2E)
+      -- job's failure is logged under a '-seed' source with tags.seed, so a
+      -- fixture never reads as a real delivery failure.
       INSERT INTO public.error_logs (severity, message, tags)
       VALUES ('error', 'saved-search alert not sent: ' || SQLERRM,
-              jsonb_build_object('source', 'saved-search-alert-queue', 'area', 'notifications',
+              jsonb_build_object('source', 'saved-search-alert-queue' || CASE WHEN r.job_is_seed THEN '-seed' ELSE '' END,
+                                 'area', 'notifications', 'seed', r.job_is_seed,
                                  'job_id', r.job_id, 'user_id', r.user_id));
     END;
   END LOOP;

@@ -129,7 +129,7 @@ describe("saved-search alerts wait for early access (V-008)", () => {
     const { file, body } = get("sweep_saved_search_alert_queue");
     const b = ws(body);
     expect(b, file).toMatch(
-      /DELETE FROM public\.saved_search_alert_queue WHERE id = r\.id; BEGIN IF public\.deliver_saved_search_alert\([^;]*; END IF; EXCEPTION WHEN OTHERS THEN INSERT INTO public\.error_logs \(severity, message, tags\) VALUES \('error', 'saved-search alert not sent: ' \|\| SQLERRM, jsonb_build_object\('source', 'saved-search-alert-queue'/,
+      /DELETE FROM public\.saved_search_alert_queue WHERE id = r\.id; BEGIN IF public\.deliver_saved_search_alert\([^;]*; END IF; EXCEPTION WHEN OTHERS THEN INSERT INTO public\.error_logs \(severity, message, tags\) VALUES \('error', 'saved-search alert not sent: ' \|\| SQLERRM, jsonb_build_object\('source', 'saved-search-alert-queue' \|\| CASE WHEN r\.job_is_seed THEN '-seed' ELSE '' END/,
     );
   });
 

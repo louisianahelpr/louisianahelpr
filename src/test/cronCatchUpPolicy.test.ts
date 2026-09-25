@@ -30,8 +30,8 @@
  *     runs the job under the session's lock_timeout (not the tick's 200ms),
  *     and catches query_canceled per command.
  *
- * @mutate supabase/migrations/20260923145117_weekly_report_catch_up_safe.sql | ('charge-recurring-visits',         false, | ('charge-recurring-visits',         true,
- * @mutate supabase/migrations/20260923145117_weekly_report_catch_up_safe.sql | ('ops-daily-digest',                true, | ('ops-daily-digest-gone',           true,
+ * @mutate supabase/migrations/20260925052618_prune_retention_tables.sql | ('charge-recurring-visits',         false, | ('charge-recurring-visits',         true,
+ * @mutate supabase/migrations/20260925052618_prune_retention_tables.sql | ('ops-daily-digest',                true, | ('ops-daily-digest-gone',           true,
  * @mutate supabase/migrations/20260925155322_catch_up_candidates_one_scan.sql | IF NOT pg_try_advisory_xact_lock(hashtext( | IF NOT pg_advisory_xact_lock(hashtext(
  * @mutate supabase/migrations/20260925155322_catch_up_candidates_one_scan.sql | WHERE NOT EXISTS (SELECT 1 FROM public.cron_catchup_runs c | WHERE EXISTS (SELECT 1 FROM public.cron_catchup_runs c
  * @mutate supabase/migrations/20260925155322_catch_up_candidates_one_scan.sql | ELSIF r.catch_up IS NOT TRUE THEN | ELSIF false THEN

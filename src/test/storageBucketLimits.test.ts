@@ -18,10 +18,12 @@ import { resolve } from "node:path";
 
 const MIGRATIONS_DIR = resolve(__dirname, "..", "..", "supabase", "migrations");
 
-interface BucketState {
+export interface BucketState {
   isPublic: boolean;
   hasSize: boolean;
   hasMime: boolean;
+  /** The declared file_size_limit in bytes, when it is a plain integer or product of integers. */
+  size?: number;
 }
 
 /** Split `s` on top-level occurrences of `sep`, ignoring separators inside
@@ -79,6 +81,12 @@ function parenGroups(s: string): string[] {
 
 const unquote = (v: string) => v.trim().replace(/^'(.*)'$/s, "$1");
 const isNonNull = (v: string) => v.trim().toLowerCase() !== "null" && v.trim() !== "";
+/** `10485760` or `50 * 1024 * 1024` (optionally `::bigint`) as a number; anything else undefined. */
+const bytes = (v: string): number | undefined => {
+  const t = v.trim().replace(/::\w+$/, "");
+  if (!/^\d+(?:\s*\*\s*\d+)*$/.test(t)) return undefined;
+  return t.split("*").reduce((n, x) => n * Number(x.trim()), 1);
+};
 
 /** Apply every `INSERT INTO storage.buckets` and `UPDATE storage.buckets` in a
  * migration file to the running state map. */
@@ -106,7 +114,7 @@ function applyMigration(sql: string, state: Map<string, BucketState>): void {
       if (pubIdx >= 0 && pubIdx < fields.length) {
         b.isPublic = fields[pubIdx].trim().toLowerCase() === "true";
       }
-      if (sizeIdx >= 0 && sizeIdx < fields.length && isNonNull(fields[sizeIdx])) b.hasSize = true;
+      if (sizeIdx >= 0 && sizeIdx < fields.length && isNonNull(fields[sizeIdx])) { b.hasSize = true; b.size = bytes(fields[sizeIdx]); }
       if (mimeIdx >= 0 && mimeIdx < fields.length && isNonNull(fields[mimeIdx])) b.hasMime = true;
     }
   }
@@ -124,7 +132,7 @@ function applyMigration(sql: string, state: Map<string, BucketState>): void {
     for (const id of ids) {
       const b = ensure(id);
       if (pub) b.isPublic = pub[1].toLowerCase() === "true";
-      if (size && isNonNull(size[1])) b.hasSize = true;
+      if (size && isNonNull(size[1])) { b.hasSize = true; b.size = bytes(size[1]); }
       if (mime && isNonNull(mime[1])) b.hasMime = true;
     }
   }
@@ -132,7 +140,7 @@ function applyMigration(sql: string, state: Map<string, BucketState>): void {
 
 /** Replay the migrations (optionally excluding one filename) into a final
  * per-bucket state map. */
-function computeState(excludeFile?: string): Map<string, BucketState> {
+export function computeState(excludeFile?: string): Map<string, BucketState> {
   const state = new Map<string, BucketState>();
   const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql")).sort();
   for (const f of files) {

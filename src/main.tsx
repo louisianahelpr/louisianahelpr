@@ -10,6 +10,7 @@ import { USER_ERROR_SCREEN } from "./lib/currentScreen";
 import { initShakeToReport } from "./lib/shakeToReport";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
 import { backgroundImport, handleVitePreloadError } from "./lib/chunkReload";
+import { blockReplayIfTestProfile } from "./lib/replayTestProfile";
 import { initSimpleMode } from "./lib/simpleMode";
 import { applyToastPolicy } from "./lib/toastPolicy";
 import { applyPrePaintShellClasses } from "./lib/prePaintShellClasses";
@@ -309,7 +310,7 @@ void hydrateStorage();
     void (async () => {
       try {
         const [
-          { initSentry, setSentryUser },
+          { initSentry, setSentryUser, blockReplayForTestProfile },
           { initPostHog, identifyUser, resetUser },
           { supabase },
         ] = await Promise.all([
@@ -317,6 +318,12 @@ void hydrateStorage();
           backgroundImport(() => import("./lib/posthog"), "posthog"),
           backgroundImport(() => import("./integrations/supabase/client"), "boot-analytics-client"),
         ]);
+        // Q379: a test profile (is_seed) records no Session Replay.
+        const replayPolicy = (userId: string) => {
+          blockReplayIfTestProfile(supabase, userId, blockReplayForTestProfile).catch(() => {
+            /* a failed is_seed read leaves replay on — diagnostics only, never break boot */
+          });
+        };
 
         initSentry();
         initPostHog();
@@ -334,12 +341,14 @@ void hydrateStorage();
           if (data.session?.user) {
             identifyUser(data.session.user.id);
             setSentryUser({ id: data.session.user.id, email: data.session.user.email });
+            replayPolicy(data.session.user.id);
           }
         });
         supabase.auth.onAuthStateChange((event, session) => {
           if (event === "SIGNED_IN" && session?.user) {
             identifyUser(session.user.id);
             setSentryUser({ id: session.user.id, email: session.user.email });
+            replayPolicy(session.user.id);
           } else if (event === "SIGNED_OUT") {
             resetUser();
             setSentryUser(null);

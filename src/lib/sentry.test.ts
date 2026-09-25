@@ -10,6 +10,8 @@ const setUserMock = vi.fn();
 const captureExceptionMock = vi.fn();
 const addIntegrationMock = vi.fn();
 const setTagMock = vi.fn();
+const replayStopMock = vi.fn(async (_opts?: unknown) => {});
+const getReplayMock = vi.fn((): { stop: typeof replayStopMock } | undefined => undefined);
 
 vi.mock("@sentry/react", () => ({
   init: (...args: unknown[]) => initMock(...args),
@@ -22,6 +24,7 @@ vi.mock("@sentry/react", () => ({
   // but the symbol must exist for the named import to resolve.
   addIntegration: (...args: unknown[]) => addIntegrationMock(...args),
   setTag: (...args: unknown[]) => setTagMock(...args),
+  getReplay: () => getReplayMock(),
   // Stub the integration helpers — the real ones return objects but the
   // init mock doesn't actually wire them so just return placeholders.
   breadcrumbsIntegration: () => ({ name: "breadcrumbs" }),
@@ -42,6 +45,9 @@ beforeEach(() => {
   captureExceptionMock.mockReset();
   addIntegrationMock.mockReset();
   setTagMock.mockReset();
+  replayStopMock.mockClear();
+  getReplayMock.mockReset();
+  getReplayMock.mockReturnValue(undefined);
 });
 
 async function loadFresh() {
@@ -484,5 +490,67 @@ describe("Session Replay in automated browsers (Q275)", () => {
     expect(config.replaysOnErrorSampleRate).toBe(0);
     expect(addIntegrationMock).not.toHaveBeenCalled();
     expect(setTagMock).toHaveBeenCalledWith("automated", "true");
+  });
+});
+
+// Q379: a test profile (is_seed) records no Session Replay. Playwright attached
+// over CDP to a normally launched Chrome reports webdriver=false, so the Q275
+// gate above cannot see it; the boot path calls blockReplayForTestProfile()
+// once the signed-in profile reads is_seed.
+// @mutate src/lib/sentry.ts |             if (replayBlocked) return; |             void replayBlocked;
+// @mutate src/lib/sentry.ts |     void getReplay()?.stop({ flush: false }) |     void getReplay()?.stop({ flush: true })
+describe("Session Replay for a test profile (Q379)", () => {
+  async function initProdDeferred() {
+    vi.stubEnv("PROD", true);
+    vi.stubEnv("DEV", false);
+    let pending: (() => void) | undefined;
+    vi.stubGlobal("requestIdleCallback", (cb: () => void) => { pending = cb; return 1; });
+    const mod = await loadFresh();
+    mod.initSentry();
+    return {
+      mod,
+      async runIdle() {
+        pending?.();
+        await new Promise((r) => setTimeout(r, 50));
+      },
+    };
+  }
+
+  it("blocked before the idle tick: Replay is never registered, errors still init", async () => {
+    try {
+      const { mod, runIdle } = await initProdDeferred();
+      mod.blockReplayForTestProfile();
+      await runIdle();
+      expect(initMock).toHaveBeenCalledOnce();
+      expect(addIntegrationMock).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("blocked after Replay started: it is stopped without sending the pending segment", async () => {
+    try {
+      const { mod, runIdle } = await initProdDeferred();
+      await runIdle();
+      expect(addIntegrationMock).toHaveBeenCalledOnce();
+      getReplayMock.mockReturnValue({ stop: replayStopMock });
+      mod.blockReplayForTestProfile();
+      expect(replayStopMock).toHaveBeenCalledWith({ flush: false });
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("a real profile (never blocked) still registers Replay", async () => {
+    try {
+      const { runIdle } = await initProdDeferred();
+      await runIdle();
+      expect(addIntegrationMock).toHaveBeenCalledOnce();
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
   });
 });

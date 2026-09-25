@@ -185,10 +185,11 @@ export const QUOTAS = [
   {
     id: "sentry.replays_30d",
     service: "Sentry",
-    name: "Session replays sent: accepted + dropped by quota (last 30 days)",
+    name: "Session replays sent: accepted + dropped by quota (this usage period)",
     limit: PLAN_LIMITS.sentry_replays_month.value,
     unit: "replays/month",
-    window: "trailing 30 days",
+    // The reader replaces this with the period it actually read (Q379).
+    window: "Sentry usage period (trailing 30 days when the period is unreadable)",
     read: "sentry",
     env: "LH_QUOTA_SENTRY_REPLAYS",
     limitSource: "Sentry Developer plan: 50 replays/month (ASSUMED; override with LH_QUOTA_SENTRY_REPLAYS). Measured: org stats_v2 category=replay, outcomes accepted + rate_limited, so a quota that is already refusing replays reads OVER instead of looking flat at the cap (Q275).",
@@ -250,6 +251,9 @@ export function evaluateQuotas(readings, opts = {}) {
     const g = grade(r.value, limit, warnAt);
     rows.push({
       q, limit, used: r.value, status: g.status, pct: g.pct,
+      // A reading may name the window it really measured (the Sentry replay
+      // reader: this usage period, or its trailing-30-day fallback; Q379).
+      window: typeof r.window === "string" && r.window ? r.window : q.window,
       note: g.status === "unreadable" ? `bad reading (used=${r.value}, limit=${limit})` : r.note ?? "",
     });
   }
@@ -275,7 +279,7 @@ export function evaluateQuotas(readings, opts = {}) {
     "| --- | --- | --- | --- | --- | --- | --- | --- |",
     ...rows.map((r) =>
       `| ${r.q.service} | ${esc(r.q.name)} | ${fmt(r.used, r.q.unit)} | ${fmt(r.limit, r.q.unit)} ${r.q.unit.replace(/^bytes/, "")} | ` +
-      `${r.pct == null ? "—" : `${r.pct}%`} | **${r.status.toUpperCase()}** | ${esc(r.q.window)} | ${esc(r.note)} |`),
+      `${r.pct == null ? "—" : `${r.pct}%`} | **${r.status.toUpperCase()}** | ${esc(r.window ?? r.q.window)} | ${esc(r.note)} |`),
     "",
     "### Where each limit comes from",
     "",

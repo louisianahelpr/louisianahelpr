@@ -413,6 +413,10 @@ serve(async (req) => {
     // any transfer Stripe is asked (once per job, fail closed) which members'
     // fee transfers already exist in the job's transfer group; one that exists
     // repairs the ledger instead of paying again.
+    /** jobs.series_ban_cancelled_at is not deployed yet (42703 / PGRST204). */
+    const isMissingColumn = (e: { code?: string; message?: string } | null) =>
+      !!e && (e.code === "42703" || e.code === "PGRST204" ||
+        (!e.code && /series_ban_cancelled_at[^"]*does not exist|could not find the 'series_ban_cancelled_at' column/i.test(e.message ?? "")));
     /** The crew ledger table is not deployed yet (42P01 / PGRST205). */
     const isMissingTable = (e: { code?: string; message?: string } | null) =>
       // Table-missing only: a column error (42703, `column "x" does not exist`)
@@ -576,7 +580,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, is_group_job, helpers_needed, parent_job_id, cancellation_reason")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, is_group_job, helpers_needed, parent_job_id, recurrence_days")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
@@ -920,6 +924,28 @@ serve(async (req) => {
         });
         results.push({ job_id: job.id, title: job.title, status: "escrow_already_released" });
         continue;
+      }
+
+      // ── Was this visit cancelled by a permanent ban? ─────────────────────
+      // jobs.series_ban_cancelled_at is server-owned (20260925170555): only
+      // end_series_for_banned_account sets it. Read apart from the sweep's
+      // select so a function deployed before that migration still settles
+      // every other job: before the column exists no visit can carry it
+      // (42703 = "not ban-ended"). Any other read error moves no money for
+      // this job; the next run retries.
+      if (job.parent_job_id || (Array.isArray(job.recurrence_days) && job.recurrence_days.length > 0)) {
+        const { data: markerRow, error: markerErr } = await supabaseAdmin
+          .from("jobs")
+          .select("series_ban_cancelled_at")
+          .eq("id", job.id)
+          .maybeSingle();
+        if (markerErr && !isMissingColumn(markerErr)) {
+          console.error(`[void-cancelled-payments] series ban marker read failed for job ${job.id}; not settling:`, markerErr.message);
+          defects.record(`series ban marker read ${job.id}: ${markerErr.message} — not settled`);
+          results.push({ job_id: job.id, title: job.title, status: "series_marker_read_failed" });
+          continue;
+        }
+        job.series_ban_cancelled_at = markerErr ? null : (markerRow?.series_ban_cancelled_at ?? null);
       }
 
       // ── What this cancellation owes, priced before any money moves ───────

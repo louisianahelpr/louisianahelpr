@@ -6,14 +6,23 @@
  * visits are cancelled and not charged"). Every other cancellation keeps its
  * rule: the service fee is withheld.
  *
+ * WHICH visit a ban ended is read from a SERVER-OWNED marker,
+ * jobs.series_ban_cancelled_at (set only by end_series_for_banned_account,
+ * 20260925170555), never from the free-text cancellation_reason: a poster's
+ * poster_cancel_job copies their own p_reason verbatim, so a reason-based
+ * rule let ANY poster type the ban reason and take a full refund off a
+ * committed Helpr's late fee (money review 2026-09-25 HIGH-1). The class
+ * guard that no settlement path branches on cancellation_reason is
+ * src/test/settlementIgnoresCancellationReason.test.ts.
+ *
  * Runs the REAL function source via the edge harness, with the real
  * `_shared/seriesRefund.ts`.
  *
  * @mutate supabase/functions/_shared/seriesRefund.ts |   return !!job.parent_job_id && !job.helper_id; |   return false;
- * @mutate supabase/functions/_shared/seriesRefund.ts |   if (job.cancellation_reason === SERIES_BAN_CANCEL_REASON) return true; |   if (false) return true;
+ * @mutate supabase/functions/_shared/seriesRefund.ts |   if (inSeries && !!job.series_ban_cancelled_at) return true; |   if (!!job.series_ban_cancelled_at) return true;
  * @mutate supabase/functions/void-cancelled-payments/index.ts |           const nonRefundableCents = fullSeriesRefund\n            ? 0 |           const nonRefundableCents = false\n            ? 0
- * @mutate supabase/functions/void-cancelled-payments/index.ts | helper_fee_percent, parent_job_id, cancellation_reason") | helper_fee_percent")
- * @mutate supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql |              cancellation_reason = 'series_ended_account_banned', |              cancellation_reason = 'series ended',
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |         if (markerErr && !isMissingColumn(markerErr)) { |         if (false) {
+ * @mutate supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql |              series_ban_cancelled_at = now(), |              series_ban_cancelled_at = NULL,
  */
 import { readFileSync } from "node:fs";
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -44,7 +53,7 @@ const cronReq = () =>
   });
 
 /** A $100 visit + $10 service fee captured, cancelled, in escrow. */
-function seed(job: Record<string, unknown>) {
+function seed(job: Record<string, unknown>, marker: string | null | Error = null) {
   scenario.reads.jobs = {
     selectOverrides: [
       {
@@ -58,10 +67,16 @@ function seed(job: Record<string, unknown>) {
             date_needed: "2032-09-06", start_time: "09:00:00", cancelled_at: "2032-09-05T17:00:00Z",
             helper_id: "helper-1", helper_confirmed_at: "2032-09-01T00:00:00Z",
             customer_id: "poster-1", helper_fee_percent: 10,
-            parent_job_id: null, cancellation_reason: null,
+            parent_job_id: null, recurrence_days: null, cancellation_reason: null,
             ...job,
           }],
         },
+      },
+      {
+        includes: "series_ban_cancelled_at",
+        result: marker instanceof Error
+          ? { error: { message: marker.message, code: (marker as Error & { code?: string }).code } }
+          : { rows: [{ series_ban_cancelled_at: marker }] },
       },
     ],
     rows: [],
@@ -105,24 +120,62 @@ describe("void-cancelled-payments: an unfilled or ban-ended series visit is refu
     expect(await refundedCents()).toBe(11000);
   });
 
-  it("a visit a PERMANENT BAN cancelled gets every cent back, with no late fee though a Helpr was booked", async () => {
-    seed({ parent_job_id: "series-1", cancellation_reason: "series_ended_account_banned" });
+  it("a visit a PERMANENT BAN cancelled (server marker) gets every cent back, with no late fee though a Helpr was booked", async () => {
+    seed({ parent_job_id: "series-1" }, "2032-09-05T16:00:00Z");
     expect(await refundedCents()).toBe(11000);
   });
 
-  it("the sweep reads the two columns the decision needs", async () => {
-    seed({});
-    await refundedCents();
-    const partA = (scenario.readQueries ?? []).find((q) => q.table === "jobs" && q.cols.includes("cancellation_fee"));
-    expect(partA?.cols).toContain("parent_job_id");
-    expect(partA?.cols).toContain("cancellation_reason");
+  it("visit one of a ban-ended series (the parent itself) is marked the same way", async () => {
+    seed({ recurrence_days: [1, 3] }, "2032-09-05T16:00:00Z");
+    expect(await refundedCents()).toBe(11000);
   });
 
-  it("the ban migration writes exactly the reason the refund reads", async () => {
+  it("HIGH-1: a ONE-TIME job whose poster typed the ban reason keeps the late fee AND the service fee", async () => {
+    seed({});
+    const control = await refundedCents();
+    resetSupabaseMock();
+    resetStripeMock();
+    seed({ cancellation_reason: "series_ended_account_banned" });
+    expect(await refundedCents()).toBe(control);
+    expect(control!).toBeLessThan(11000 - 1000 + 1);
+  });
+
+  it("HIGH-1: a SERIES visit with the typed reason but no server marker keeps its fees", async () => {
+    seed({ parent_job_id: "series-1", cancellation_reason: "series_ended_account_banned" });
+    expect(await refundedCents()).toBeLessThan(11000 - 1000 + 1);
+  });
+
+  it("a marker on a job outside any series grants nothing", async () => {
+    seed({}, "2032-09-05T16:00:00Z");
+    expect(await refundedCents()).toBeLessThan(11000 - 1000 + 1);
+  });
+
+  it("the rule itself: a marker outside a series grants nothing; the typed reason grants nothing", async () => {
     // By path: seriesRefund.ts is Deno source, outside the app tsconfig.
     const mod = new URL("../../../supabase/functions/_shared/seriesRefund.ts", import.meta.url).pathname;
-    const { SERIES_BAN_CANCEL_REASON } = (await import(/* @vite-ignore */ mod)) as { SERIES_BAN_CANCEL_REASON: string };
+    const { refundsSeriesVisitInFull } = (await import(/* @vite-ignore */ mod)) as {
+      refundsSeriesVisitInFull: (j: Record<string, unknown>) => boolean;
+    };
+    expect(refundsSeriesVisitInFull({ helper_id: "h", series_ban_cancelled_at: "2032-09-05T16:00:00Z" })).toBe(false);
+    expect(refundsSeriesVisitInFull({ helper_id: "h", parent_job_id: "s", cancellation_reason: "series_ended_account_banned" })).toBe(false);
+    expect(refundsSeriesVisitInFull({ helper_id: "h", parent_job_id: "s", series_ban_cancelled_at: "2032-09-05T16:00:00Z" })).toBe(true);
+    expect(refundsSeriesVisitInFull({ helper_id: "h", recurrence_days: [1], series_ban_cancelled_at: "2032-09-05T16:00:00Z" })).toBe(true);
+    expect(refundsSeriesVisitInFull({ helper_id: null, parent_job_id: "s" })).toBe(true);
+    expect(refundsSeriesVisitInFull({ helper_id: null })).toBe(false);
+  });
+
+  it("deploy order: before the marker column exists (42703) nothing is ban-ended, and the visit still settles", async () => {
+    seed({ parent_job_id: "series-1" }, Object.assign(new Error('column jobs.series_ban_cancelled_at does not exist'), { code: "42703" }));
+    expect(await refundedCents()).toBeLessThan(11000 - 1000 + 1);
+  });
+
+  it("any other marker read error moves no money for that visit (fail closed)", async () => {
+    seed({ parent_job_id: "series-1" }, Object.assign(new Error("connection reset"), { code: "08006" }));
+    expect(await refundedCents()).toBeNull();
+  });
+
+  it("the ban migration sets the marker on every visit it cancels", () => {
     const sql = blankSqlComments(readFileSync("supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql", "utf8"));
-    expect(sql).toContain(`cancellation_reason = '${SERIES_BAN_CANCEL_REASON}',`);
+    expect(sql).toMatch(/SET status = 'cancelled',[\s\S]{0,200}series_ban_cancelled_at = now\(\),/);
   });
 });

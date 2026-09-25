@@ -7915,6 +7915,7 @@
       "sales_tax_amount",
       "sales_tax_rate",
       "scope_video_url",
+      "series_ban_cancelled_at",
       "series_ended_on",
       "series_split_ok",
       "special_requirements",
@@ -8657,6 +8658,13 @@
      "hasDefault": false,
      "notNull": false,
      "type": "text"
+    },
+    "series_ban_cancelled_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
     },
     "series_ended_on": {
      "enum": null,

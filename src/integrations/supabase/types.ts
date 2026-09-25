@@ -1977,6 +1977,7 @@ export type Database = {
           sales_tax_amount: number | null
           sales_tax_rate: number | null
           scope_video_url: string | null
+          series_ban_cancelled_at: string | null
           series_ended_on: string | null
           series_split_ok: boolean
           special_requirements: string | null
@@ -2093,6 +2094,7 @@ export type Database = {
           sales_tax_amount?: number | null
           sales_tax_rate?: number | null
           scope_video_url?: string | null
+          series_ban_cancelled_at?: string | null
           series_ended_on?: string | null
           series_split_ok?: boolean
           special_requirements?: string | null
@@ -2209,6 +2211,7 @@ export type Database = {
           sales_tax_amount?: number | null
           sales_tax_rate?: number | null
           scope_video_url?: string | null
+          series_ban_cancelled_at?: string | null
           series_ended_on?: string | null
           series_split_ok?: boolean
           special_requirements?: string | null
@@ -5826,6 +5829,7 @@ export type Database = {
           sales_tax_amount: number | null
           sales_tax_rate: number | null
           scope_video_url: string | null
+          series_ban_cancelled_at: string | null
           series_ended_on: string | null
           series_split_ok: boolean
           special_requirements: string | null
@@ -5967,6 +5971,7 @@ export type Database = {
           sales_tax_amount: number | null
           sales_tax_rate: number | null
           scope_video_url: string | null
+          series_ban_cancelled_at: string | null
           series_ended_on: string | null
           series_split_ok: boolean
           special_requirements: string | null

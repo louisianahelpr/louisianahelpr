@@ -9,8 +9,11 @@
 --   - every visit dated after today that has not started (open or accepted,
 --     not marked done), visit one included, is cancelled with
 --     cancellation_reason = 'series_ended_account_banned', no late flag and no
---     fee. void-cancelled-payments refunds each IN FULL, the service fee
---     included (_shared/seriesRefund.ts): "cancelled and not charged";
+--     fee, and the SERVER-OWNED marker jobs.series_ban_cancelled_at.
+--     void-cancelled-payments refunds each IN FULL, the service fee included
+--     (_shared/seriesRefund.ts), reading the MARKER, never the reason text
+--     (money review 2026-09-25 HIGH-1: poster_cancel_job copies the caller's
+--     own p_reason, so the reason is client-controlled);
 --   - the dates held after today and the open offers are removed;
 --   - the other people on the series are told (the poster, every Helpr with a
 --     date on it, the standing Helpr), never the banned account, and never
@@ -27,6 +30,57 @@
 -- path can skip it. SECURITY DEFINER; the sanctioned-cancel and series-end
 -- flags let its writes through the client locks (it runs inside whoever set
 -- the ban, which may be the banned user's own request when the ladder bans).
+
+-- ── The server-owned marker (money review HIGH-1) ─────────────────────────
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS series_ban_cancelled_at timestamptz;
+COMMENT ON COLUMN public.jobs.series_ban_cancelled_at IS
+  'Set only by end_series_for_banned_account (20260925170555) on a series visit a permanent ban cancelled; void-cancelled-payments refunds such a visit in full. No client role writes it (trg_series_ban_marker_server_owned).';
+
+-- No client writes the marker, and no client writes the reason the ban path
+-- uses (it is reserved): a direct PATCH, poster_cancel_job's p_reason and any
+-- other cancel RPC's reason all pass through this trigger. The ban path sets
+-- app.series_end_rpc; a server context (service_role) is trusted.
+CREATE OR REPLACE FUNCTION public.enforce_series_ban_marker_server_owned()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $fn$
+BEGIN
+  IF public.is_server_context()
+     OR current_setting('app.series_end_rpc', true) = '1' THEN
+    RETURN NEW;
+  END IF;
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.series_ban_cancelled_at IS NOT NULL THEN
+      RAISE EXCEPTION 'series_locked: jobs.series_ban_cancelled_at is set only by the ban path'
+        USING ERRCODE = '42501';
+    END IF;
+    IF NEW.cancellation_reason = 'series_ended_account_banned' THEN
+      RAISE EXCEPTION 'reserved_cancellation_reason'
+        USING ERRCODE = '42501', HINT = 'That reason is reserved.';
+    END IF;
+    RETURN NEW;
+  END IF;
+  IF NEW.series_ban_cancelled_at IS DISTINCT FROM OLD.series_ban_cancelled_at THEN
+    RAISE EXCEPTION 'series_locked: jobs.series_ban_cancelled_at is set only by the ban path (job_id=%)', OLD.id
+      USING ERRCODE = '42501';
+  END IF;
+  IF NEW.cancellation_reason = 'series_ended_account_banned'
+     AND NEW.cancellation_reason IS DISTINCT FROM OLD.cancellation_reason THEN
+    RAISE EXCEPTION 'reserved_cancellation_reason'
+      USING ERRCODE = '42501', HINT = 'That reason is reserved.';
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+
+REVOKE ALL ON FUNCTION public.enforce_series_ban_marker_server_owned() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_series_ban_marker_server_owned ON public.jobs;
+CREATE TRIGGER trg_series_ban_marker_server_owned
+  BEFORE INSERT OR UPDATE ON public.jobs
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_series_ban_marker_server_owned();
 
 CREATE OR REPLACE FUNCTION public.end_series_for_banned_account(p_user uuid)
 RETURNS integer
@@ -71,6 +125,7 @@ BEGIN
          SET status = 'cancelled',
              cancelled_at = now(),
              cancellation_reason = 'series_ended_account_banned',
+             series_ban_cancelled_at = now(),
              late_cancellation = false,
              cancellation_fee = 0,
              cancellation_fee_status = NULL

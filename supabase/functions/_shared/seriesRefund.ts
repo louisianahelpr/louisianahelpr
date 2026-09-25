@@ -7,25 +7,29 @@
  *     Helpr on it. It was funded for a Helpr who then gave it up, and nobody
  *     took it before it arrived (owner: a date still unfilled when it arrives
  *     is not charged).
- *   - A visit cancelled because the series was ENDED BY A PERMANENT BAN
- *     (20260925170555 writes SERIES_BAN_CANCEL_REASON): "future visits are
- *     cancelled and not charged".
+ *   - A visit a PERMANENT BAN cancelled: jobs.series_ban_cancelled_at, a
+ *     SERVER-OWNED marker that only end_series_for_banned_account
+ *     (20260925170555) sets and no client role can write
+ *     (trg_series_ban_marker_server_owned). Never the free-text
+ *     cancellation_reason: poster_cancel_job copies the caller's p_reason
+ *     verbatim, so any poster could type it (money review HIGH-1). The marker
+ *     counts only on a series job (a visit, or visit one = the parent).
  *
  * The platform absorbs the Stripe processing cost on these refunds; the owner
  * has not said who should (docs/OPEN.md). Zero imports on purpose (the edge
  * harness points at the real module).
  */
 
-/** cancellation_reason 20260925170555 writes on every visit a permanent ban cancels. */
-export const SERIES_BAN_CANCEL_REASON = "series_ended_account_banned";
-
 export interface SeriesRefundJob {
   parent_job_id?: string | null;
+  recurrence_days?: unknown[] | null;
   helper_id?: string | null;
-  cancellation_reason?: string | null;
+  /** Server-owned; read separately from the job (deploy order). */
+  series_ban_cancelled_at?: string | null;
 }
 
 export function refundsSeriesVisitInFull(job: SeriesRefundJob): boolean {
-  if (job.cancellation_reason === SERIES_BAN_CANCEL_REASON) return true;
+  const inSeries = !!job.parent_job_id || (Array.isArray(job.recurrence_days) && job.recurrence_days.length > 0);
+  if (inSeries && !!job.series_ban_cancelled_at) return true;
   return !!job.parent_job_id && !job.helper_id;
 }

@@ -106,6 +106,22 @@ check("the poster is told (\"won't be charged\"), the banned Helpr is not", n.le
 r = await server(db, `insert into public.jobs (title, customer_id, helper_id, status, date_needed, parent_job_id) values ('v', '${C}', '${B}', 'accepted', current_date + 3, '${J(2)}')`);
 check("no new visit can be created on the ended series", !r.ok && /series_ended/.test(r.err), r.err);
 
+// HIGH-1 (money review 2026-09-25): the refund reads a SERVER-OWNED marker,
+// and the ban reason is reserved.
+r = await as(db, "postgres", null, `select series_ban_cancelled_at is not null as m from public.jobs where id='${J(10)}'`);
+check("the ban path stamps the server-owned marker on the visit it cancels", r.ok && r.rows[0].m === true, r.err ?? JSON.stringify(r.rows));
+await db.exec(`insert into public.jobs (id, title, customer_id, helper_id, status, date_needed, start_time) values ('${J(20)}', 'one-off', '${C}', '${A}', 'accepted', current_date + 1, '09:00')`);
+r = await as(db, "authenticated", C, `do $$ begin perform set_config('app.sanctioned_cancel', 'on', true);
+  update public.jobs set status = 'cancelled', cancelled_at = now(), cancellation_reason = 'series_ended_account_banned' where id = '${J(20)}'; end $$`);
+check("a poster's cancel (the RPC's sanctioned path) cannot use the reserved ban reason", !r.ok && /reserved_cancellation_reason/.test(r.err), r.err);
+r = await as(db, "authenticated", C, `do $$ begin perform set_config('app.sanctioned_cancel', 'on', true);
+  update public.jobs set status = 'cancelled', cancelled_at = now(), cancellation_reason = 'plans changed' where id = '${J(20)}'; end $$`);
+check("... any other reason still cancels", r.ok, r.err);
+r = await as(db, "authenticated", C, `update public.jobs set series_ban_cancelled_at = now() where id = '${J(20)}'`);
+check("a client cannot write the marker", !r.ok && /series_ban_cancelled_at/.test(r.err), r.err);
+r = await as(db, "authenticated", C, `insert into public.jobs (title, customer_id, status, date_needed, series_ban_cancelled_at) values ('x', '${C}', 'open', current_date + 4, now())`);
+check("... nor insert a job carrying it", !r.ok && /series_ban_cancelled_at/.test(r.err), r.err);
+
 r = await as(db, "authenticated", A, `select has_function_privilege('authenticated', 'public.end_series_for_banned_account(uuid)', 'execute') as x`);
 check("clients cannot call end_series_for_banned_account", r.ok && r.rows[0].x === false, r.err);
 

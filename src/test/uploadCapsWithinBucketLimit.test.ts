@@ -47,7 +47,7 @@ export type ClientCap = { file: string; line: number; bucket: string; bytes: num
 /** Byte caps in one file's code, bound to the one bucket the file names. */
 export function capsIn(rel: string, text: string, bucketIds: string[]): ClientCap[] {
   const code = blankComments(text);
-  const named = bucketIds.filter((id) => new RegExp(`["'\`]${id.replace(/-/g, "\\-")}["'\`]`).test(code));
+  const named = bucketIds.filter((id) => new RegExp(`["'\`]${id.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")}["'\`]`).test(code));
   if (named.length !== 1) return [];
   const caps: ClientCap[] = [];
   for (const m of code.matchAll(/\b(\d+)\s*\*\s*1024\s*\*\s*1024\b/g)) {

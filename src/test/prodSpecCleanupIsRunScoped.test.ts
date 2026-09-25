@@ -34,6 +34,13 @@ const files = readdirSync(join(ROOT, DIR))
 const harness = read(`${DIR}/harness.ts`);
 
 describe("prod-audit cleanup is scoped to the run that wrote the rows", () => {
+  it("reads a real inventory (floor)", () => {
+    // 19 .ts files in e2e/prod-audit on 2026-09-25; an empty or moved directory
+    // would make every per-file scan below pass on nothing.
+    expect(files.length, `${DIR} holds almost no .ts files — the scan is broken`).toBeGreaterThan(10);
+    expect(files).toContain(`${DIR}/harness.ts`);
+  });
+
   it("RUN_MARKER is MARKER plus a letters-only token, so every MARKER sweeper still finds a leftover", () => {
     expect(harness).toMatch(/export const MARKER = "\[E2E-PRODAUDIT\]";/);
     expect(harness).toMatch(/export const RUN_MARKER = `\$\{MARKER\} run\$\{Array\.from\(\{ length: 8 \}, \(\) => "abcdefghijklmnopqrstuvwxyz"\[/);

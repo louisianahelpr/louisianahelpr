@@ -3,7 +3,7 @@ import { report } from "@/lib/errorLogger";
 import { JOB_SERIES_STATE_COLUMNS } from "@/lib/jobColumns";
 
 /** The recurring-series state of one jobs row (see JOB_SERIES_STATE_COLUMNS). */
-export type JobSeriesState = { series_ended_on?: string | null; series_split_ok?: boolean };
+export type JobSeriesState = { series_ended_on?: string | null; series_split_ok?: boolean; series_ban_cancelled_at?: string | null };
 
 /**
  * A column the database does not have yet: Postgres 42703 through PostgREST,

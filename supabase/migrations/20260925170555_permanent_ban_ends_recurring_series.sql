@@ -200,3 +200,7 @@ BEGIN
     EXECUTE FUNCTION public.end_series_on_permanent_ban();
 END
 $trg$;
+
+-- The marker column is readable like every other non-private jobs column
+-- (authenticated holds column-level SELECT grants on jobs).
+SELECT public.sync_jobs_select_grants();

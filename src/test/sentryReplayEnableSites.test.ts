@@ -74,7 +74,7 @@ function walk(dir: string, keep: (name: string) => boolean): string[] {
   });
 }
 
-function inventory(): { scanned: number; sites: Record<string, Record<string, number>> } {
+function inventory(): { files: string[]; sites: Record<string, Record<string, number>> } {
   const files = [
     ...walk(join(REPO, "src"), (n) => /\.(ts|tsx|js|jsx|mjs)$/.test(n) && !/\.test\.tsx?$/.test(n)),
     ...walk(join(REPO, "public"), (n) => /\.(js|html)$/.test(n)),
@@ -90,15 +90,16 @@ function inventory(): { scanned: number; sites: Record<string, Record<string, nu
       if (n > 0) (sites[rel] ??= {})[hook] = n;
     }
   }
-  return { scanned: files.length, sites };
+  return { files, sites };
 }
 
 const SENTRY = blankComments(readFileSync(join(REPO, "src/lib/sentry.ts"), "utf8"));
 
 describe("Session Replay: every enable site and the configured rates (Q386)", () => {
   it("the replay hooks live exactly where the table says, and nowhere else", () => {
-    const { scanned, sites } = inventory();
-    expect(scanned).toBeGreaterThan(500);
+    const { files, sites } = inventory();
+    expect(files.length).toBeGreaterThan(500);
+    expect(Object.keys(sites).length).toBeGreaterThan(0);
     expect(sites).toEqual(REPLAY_SITES);
   });
 

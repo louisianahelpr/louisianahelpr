@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-25T16:03:53.420Z",
+  "generated": "2026-09-25T16:07:05.638Z",
   "guards": 1048,
   "registered": 1048,
   "unregistered": [],
@@ -28,8 +28,6 @@
     "src/test/messageToneInvariant.test.ts",
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
-    "src/test/prodSpecCleanupIsRunScoped.test.ts",
-    "src/test/sentryReplayEnableSites.test.ts",
     "src/test/storageBucketLimits.test.ts",
     "src/test/unknownZipIsNeverSilent.test.ts"
   ],

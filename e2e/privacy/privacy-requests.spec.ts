@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import type { APIRequestContext } from "@playwright/test";
 import { LATEST_TERMS_VERSION } from "../../src/lib/consent";
+import { strongTestPassword } from "../../src/test/strongTestPassword";
 import {
   test,
   expect,
@@ -88,7 +89,7 @@ const SR: Record<string, string> = svc ? { apikey: svc.key, Authorization: `Bear
 const RUN_TAG = `${Date.now().toString(36)}${randomBytes(3).toString("hex")}`.slice(0, 16);
 const RUN_STARTED = Date.now();
 const EMAIL = disposableEmail(RUN_TAG);
-const PASSWORD = randomBytes(24).toString("base64url");
+const PASSWORD = strongTestPassword();
 const MARK = `${E2E_TITLE_MARKER} privacy-journey ${RUN_TAG}`;
 
 test.describe.configure({ mode: "serial" });

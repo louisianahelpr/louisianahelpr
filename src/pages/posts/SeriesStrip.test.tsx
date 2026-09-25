@@ -7,10 +7,11 @@
  * pointed at a date three days after the charge had already left their account.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SeriesStrip } from "./SeriesStrip";
 
+const rpc = vi.hoisted(() => vi.fn());
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({
@@ -18,8 +19,10 @@ vi.mock("@/integrations/supabase/client", () => ({
         eq: () => Promise.resolve({ count: 0, error: null }),
       }),
     }),
+    rpc,
   },
 }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 function renderStrip(props: Partial<React.ComponentProps<typeof SeriesStrip>> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -90,3 +93,56 @@ describe("SeriesStrip quotes the funding date, not the visit date", () => {
 // Zeroing it reproduces the original defect exactly: the strip names the
 // visit date on the one line of the card that is about money.
 // @mutate src/pages/posts/SeriesStrip.tsx | const FUND_LEAD_DAYS = 3; | const FUND_LEAD_DAYS = 0;
+
+describe("SeriesStrip reads today on the platform's calendar (America/Chicago)", () => {
+  beforeEach(() => vi.useFakeTimers({ toFake: ["Date"] }));
+  afterEach(() => vi.useRealTimers());
+
+  it("names tomorrow's charge in the evening, when the UTC date has already rolled over", () => {
+    // 20:00 CST Mon Nov 9 = 02:00Z Tue Nov 10. Weekly Friday series from Oct 30:
+    // the Fri Nov 13 visit is charged by the cron run dated Tue Nov 10 (06:06Z,
+    // 00:06 CST), which has NOT run yet. On the UTC date the strip treated that
+    // charge as past and named Tue Nov 17 instead.
+    vi.setSystemTime(new Date("2026-11-10T02:00:00Z"));
+    renderStrip({ recurrenceDays: [5], recurrenceWeeks: 6, dateNeeded: "2026-10-30" });
+    expect(screen.getByText(/next funds Tue, Nov 10/)).toBeTruthy();
+    expect(screen.queryByText(/next funds Tue, Nov 17/)).toBeNull();
+  });
+});
+
+describe("SeriesStrip: an ended series, and the way to end one", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-01T17:00:00Z"));
+    rpc.mockReset();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("an ended series counts only the visits through its end and names the last one", () => {
+    // Wednesdays from Sep 2 for 6 weeks, ended on Sep 16: Sep 2, 9, 16 = 3 visits.
+    renderStrip({ recurrenceDays: [3], recurrenceWeeks: 6, dateNeeded: "2026-09-02", seriesEndedOn: "2026-09-16", canEnd: true });
+    expect(screen.getByText(/1\/3 visits/)).toBeTruthy();
+    expect(screen.getByText(/ended — last visit Wed, Sep 16/)).toBeTruthy();
+    expect(screen.queryByText(/next funds/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "End series" })).toBeNull();
+  });
+
+  it("a running series the viewer is a party to offers End series, which calls end_recurring_series", async () => {
+    rpc.mockResolvedValue({ data: { action: "ended", ended_on: "2026-09-02", booked_visits_remaining: 0 }, error: null });
+    renderStrip({ recurrenceDays: [3], recurrenceWeeks: 6, dateNeeded: "2026-09-02", canEnd: true, userId: "u1", jobTitle: "Yard" });
+    fireEvent.click(screen.getByRole("button", { name: "End series" }));
+    const confirm = await screen.findAllByRole("button", { name: "End series" });
+    fireEvent.click(confirm[confirm.length - 1]);
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith("end_recurring_series", { p_job_id: "j1" }));
+  });
+
+  it("no End series control when the viewer cannot end it", () => {
+    renderStrip({ recurrenceDays: [3], recurrenceWeeks: 6, dateNeeded: "2026-09-02", canEnd: false });
+    expect(screen.queryByRole("button", { name: "End series" })).toBeNull();
+  });
+});
+
+// D4: the UTC date instead of the platform's names the wrong charge in the evening.
+// @mutate src/pages/posts/SeriesStrip.tsx | const today = todayYmd(); | const today = new Date().toISOString().slice(0, 10);
+// An ended series still counted and dated as if it ran its full length.
+// @mutate src/pages/posts/SeriesStrip.tsx | (d, i) => i === 0 \|\| seriesEndedOn === null \|\| d <= seriesEndedOn, | () => true,

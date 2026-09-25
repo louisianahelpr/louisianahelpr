@@ -357,6 +357,10 @@ function PostedJobCardInner({
                 recurrenceWeeks={job.recurrence_weeks}
                 dateNeeded={job.date_needed}
                 seriesHelperCommitted={!!job.recurring_helper_id}
+                seriesEndedOn={job.series_ended_on}
+                canEnd={!!job.recurring_helper_id && job.status !== "cancelled"}
+                jobTitle={job.title}
+                userId={userId}
               />
             )}
 

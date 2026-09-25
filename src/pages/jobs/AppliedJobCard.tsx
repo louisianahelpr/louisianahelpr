@@ -31,6 +31,8 @@ import { helperStatusLine } from "../../components/job-card/jobStatusLine";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
 import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
+import { EndSeriesControl } from "@/components/series/EndSeriesControl";
+import { formatJobDate } from "@/lib/dateUtils";
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -844,7 +846,15 @@ function AppliedJobCardInner({
               {job.is_recurring && (
                 <div className="flex items-center gap-1.5 text-ds-11 text-muted-foreground">
                   <RefreshCw className="w-3 h-3 text-primary" />
-                  <span>{formatRecurrenceInterval(job.recurrence_interval)}{job.recurrence_end_date && ` until ${formatShortDate(job.recurrence_end_date)}`}</span>
+                  <span>{formatRecurrenceInterval(job.recurrence_interval)}{job.recurrence_end_date && ` until ${formatShortDate(job.recurrence_end_date)}`}{job.series_ended_on && ` · ended ${formatJobDate(job.series_ended_on)}`}</span>
+                  {/* The standing Helpr's way out of a running series parent
+                      (end_recurring_series accepts the poster or this Helpr). */}
+                  {!job.parent_job_id && (job.recurrence_days?.length ?? 0) > 0 && !!userId &&
+                    job.recurring_helper_id === userId && !job.series_ended_on && job.status !== "cancelled" && (
+                    <span className="ml-auto">
+                      <EndSeriesControl jobId={job.id} jobTitle={job.title} userId={userId} />
+                    </span>
+                  )}
                 </div>
               )}
             </div>

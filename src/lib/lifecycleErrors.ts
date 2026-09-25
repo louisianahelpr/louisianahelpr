@@ -195,6 +195,13 @@ export const RPC_ERROR_COPY = {
     job_not_found: JOB_GONE,
     not_authenticated: "Please sign in again to cancel this job.",
   },
+  // EndSeriesControl — ending a recurring series (poster or standing Helpr).
+  end_recurring_series: {
+    not_authorized: "Only the two people on this series can end it.",
+    not_a_series: "This job isn't a recurring series, so there is nothing to end. Refresh and check.",
+    job_not_found: JOB_GONE,
+    not_authenticated: "Please sign in again to end this series.",
+  },
   // ConfirmedSection — cancelling a booking before the start.
   helper_cancel_booking: {
     job_already_started:

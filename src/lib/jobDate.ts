@@ -92,18 +92,23 @@ export function jobDateMs(dateNeeded: string | null | undefined): number | null 
   return jobLocalMidnightMs(dateNeeded);
 }
 
-/** Midnight TODAY in the platform's zone — the correct thing to compare
- *  `jobDateMs` against. Both sides resolve in the same zone, which is the bug
- *  the admin queue had. */
-export function todayMs(): number {
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat("en-CA", {
+/** Today's date (YYYY-MM-DD) in the platform's zone, America/Chicago — the
+ *  calendar `date_needed` is written in, and the one the server uses for
+ *  "today" (end_recurring_series). */
+export function todayYmd(): string {
+  return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Chicago",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(now); // en-CA yields YYYY-MM-DD
-  return jobLocalMidnightMs(parts);
+  }).format(new Date()); // en-CA yields YYYY-MM-DD
+}
+
+/** Midnight TODAY in the platform's zone — the correct thing to compare
+ *  `jobDateMs` against. Both sides resolve in the same zone, which is the bug
+ *  the admin queue had. */
+export function todayMs(): number {
+  return jobLocalMidnightMs(todayYmd());
 }
 
 /** Is this job's day strictly before today, in the platform's zone? */

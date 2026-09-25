@@ -28,3 +28,55 @@ export async function openCardFields(page: Page, attempts = 3): Promise<Locator>
   await card.waitFor({ state: "visible", timeout: 10_000 });
   return card;
 }
+
+/**
+ * Pay a TEST-mode hosted Checkout Session with 4242 4242 4242 4242 and wait to
+ * leave Stripe. The same field-by-field fill e2e/prod-lifecycle.spec.ts does
+ * inline (its comments record why each step exists: the collapsed accordion,
+ * every billing field Stripe renders, the Link opt-in that silently blocks Pay),
+ * shared here so a new money journey does not grow a fourth copy.
+ *
+ * Refuses anything that is not a `cs_test_` session: the card only exists in
+ * test mode, and a live session must never reach the submit button.
+ * The caller proves the charge from the database (the webhook), not from where
+ * the browser lands.
+ */
+export async function payWithTestCard(page: Page, checkoutUrl: string): Promise<void> {
+  if (!/\/cs_test_[A-Za-z0-9]+/.test(checkoutUrl)) {
+    throw new Error(`refusing to pay a Checkout Session that is not test mode: ${checkoutUrl.slice(0, 80)}`);
+  }
+  await page.goto(checkoutUrl, { waitUntil: "domcontentloaded" });
+  const cardNumber = page.locator("#cardNumber");
+  await cardNumber.or(page.getByRole("radio").first()).first().waitFor({ state: "visible", timeout: 60_000 });
+  await openCardFields(page);
+  await cardNumber.fill("4242 4242 4242 4242");
+  await page.locator("#cardExpiry").fill("12 / 34");
+  await page.locator("#cardCvc").fill("123");
+  for (const [id, value] of [
+    ["#billingName", "Gift Card Journey Test"],
+    ["#billingAddressLine1", "100 Audit Way"],
+    ["#billingLocality", "Baton Rouge"],
+    ["#billingPostalCode", "70801"],
+  ] as const) {
+    const field = page.locator(id);
+    if ((await field.count()) && (await field.isVisible().catch(() => false))) {
+      // An optional billing field that will not take a value is reported by
+      // Stripe inline on submit; the webhook poll after this is the verdict.
+      await field.fill(value).catch(() => undefined);
+      await page.keyboard.press("Escape").catch(() => undefined);
+    }
+  }
+  const linkOptIn = page.locator("#enableStripePass");
+  if ((await linkOptIn.count()) && (await linkOptIn.isChecked().catch(() => false))) {
+    await linkOptIn.uncheck({ force: true }).catch(() => undefined);
+  }
+  await page.getByTestId("hosted-payment-submit-button").click();
+  await page.waitForURL((url) => !url.host.endsWith("checkout.stripe.com"), { timeout: 120_000 }).catch(async (err) => {
+    const complaints = await page
+      .locator('[role="alert"], .FieldError, [class*="Error"]')
+      .allInnerTexts()
+      .catch(() => [] as string[]);
+    const unique = [...new Set(complaints.map((t) => t.replace(/\s+/g, " ").trim()).filter(Boolean))];
+    throw new Error(`Stripe Checkout did not submit (${String(err).slice(0, 80)}): ${unique.join(" | ") || "no inline error text"}`);
+  });
+}

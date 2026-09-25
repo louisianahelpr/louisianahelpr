@@ -17,11 +17,24 @@
  * `hapticSuccess();` (the success branch, both writers) must be
  * `recordReviewInActivityCache(`. Then the helper itself is exercised against a
  * real QueryClient.
+ *
+ * AND ONLY A PROVEN ROW MAY MARK A JOB REVIEWED (lh-money-escrow review L4/L5,
+ * 2026-09-25). CompletionPrompts inserted without `.select("id")`, so an
+ * RLS-filtered insert ({ data: [], error: null }) took the success branch and
+ * wrote "Reviewed" into the cache for a review that does not exist. So each
+ * write must (a) end its chain in `.select("id")`, (b) treat an empty result as
+ * a failure (`unwrapMutation(` or an explicit `.length === 0`), and (c) call
+ * `recordReviewInActivityCache(` in its failure handling only inside the
+ * branch that tested 23505 (the server already holds this review).
  */
 
 // @mutate src/components/reviewPanel/ReviewForm.tsx | recordReviewInActivityCache(jobId);\n      // Brand-tinted | // Brand-tinted
 // @mutate src/components/CompletionPrompts.tsx | recordReviewInActivityCache(jobId);\n\n      // Repeat low ratings | // Repeat low ratings
 // @mutate src/lib/reviewActivityCache.ts | if (!old \|\| !meta \|\| meta.reviewed) return old; | return old;
+// @mutate src/components/CompletionPrompts.tsx | rating, feedback: feedback.trim() \|\| null,\n          })\n          .select("id"), | rating, feedback: feedback.trim() \|\| null,\n          }),
+// @mutate src/components/reviewPanel/ReviewForm.tsx | photo_urls: uploadedPhotoUrls,\n      })\n      .select("id"); | photo_urls: uploadedPhotoUrls,\n      });
+// @mutate src/components/reviewPanel/ReviewForm.tsx | } else if (!error) {\n        toast.error( | } else if (!error) {\n        recordReviewInActivityCache(jobId);\n        toast.error(
+// @mutate src/components/CompletionPrompts.tsx | else { hapticError(); toast.error("We couldn't submit your review — please try again."); } | else { recordReviewInActivityCache(jobId); hapticError(); toast.error("We couldn't submit your review — please try again."); }
 
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -78,6 +91,82 @@ describe("every client review write updates the activity cache", () => {
       ).toBe(true);
     },
   );
+});
+
+/** The statement from the write to its terminating `;` (the whole PostgREST chain). */
+function writeStatement(site: Site): string {
+  const after = site.code.slice(site.index);
+  return after.slice(0, after.indexOf(";") + 1);
+}
+
+/**
+ * From the start of the statement holding the write (so a wrapping
+ * `unwrapMutation(` counts) to the success branch's `hapticSuccess();`.
+ */
+function failureRegion(site: Site): string {
+  const before = site.code.slice(0, site.index);
+  const start = Math.max(before.lastIndexOf(";"), before.lastIndexOf("{"), before.lastIndexOf("}")) + 1;
+  const after = site.code.slice(start);
+  const ok = after.search(/hapticSuccess\(\);/);
+  return ok < 0 ? after : after.slice(0, ok);
+}
+
+/** The head of the block that immediately encloses `pos` (its `if (…)` / `else`, up to the `{`). */
+function enclosingCondition(text: string, pos: number): string {
+  let depth = 0;
+  for (let i = pos - 1; i >= 0; i--) {
+    const c = text[i];
+    if (c === "}") depth++;
+    else if (c === "{") {
+      if (depth === 0) {
+        // The block's own head: back to the previous `}`, `;` or `{`, so a bare
+        // `} else {` yields " else ", never the sibling `if` before it.
+        const head = text.slice(0, i);
+        const cut = Math.max(head.lastIndexOf("}"), head.lastIndexOf(";"), head.lastIndexOf("{"));
+        return head.slice(cut + 1);
+      }
+      depth--;
+    }
+  }
+  return "";
+}
+
+describe("only a proven review row marks a job Reviewed", () => {
+  it.each(sites.map((s) => [`${s.file}@${s.index}`, s] as const))(
+    "%s: the insert carries .select(\"id\") and an empty result is a failure",
+    (_name, site) => {
+      expect(writeStatement(site), `${site.file}: the review write has no .select("id"), so zero rows look like success`).toMatch(
+        /\.select\(\s*["']id["']\s*\)/,
+      );
+      expect(
+        failureRegion(site),
+        `${site.file}: an empty insert result is not treated as a failure (unwrapMutation or .length === 0)`,
+      ).toMatch(/unwrapMutation\(|\.length\s*===\s*0/);
+    },
+  );
+
+  it.each(sites.map((s) => [`${s.file}@${s.index}`, s] as const))(
+    "%s: no failure branch but 23505 records the review",
+    (_name, site) => {
+      const region = failureRegion(site);
+      const calls = [...region.matchAll(/recordReviewInActivityCache\(/g)].map((m) => m.index ?? 0);
+      // Both writers treat "already reviewed" as reviewed: the floor proves the scan sees them.
+      expect(calls.length, `${site.file}: the 23505 branch no longer records the review`).toBeGreaterThan(0);
+      for (const at of calls) {
+        expect(
+          enclosingCondition(region, at),
+          `${site.file}: recordReviewInActivityCache is called on a failure that is not 23505`,
+        ).toMatch(/23505/);
+      }
+    },
+  );
+
+  it("the scanner is not vacuous: a generic failure branch that records is caught", () => {
+    const planted = `if (error) { if (error.code === "23505") { recordReviewInActivityCache(jobId); } else { recordReviewInActivityCache(jobId); toast.error("x"); } }`;
+    const calls = [...planted.matchAll(/recordReviewInActivityCache\(/g)].map((m) => m.index ?? 0);
+    expect(enclosingCondition(planted, calls[0])).toMatch(/23505/);
+    expect(enclosingCondition(planted, calls[1])).not.toMatch(/23505/);
+  });
 });
 
 describe("recordReviewInActivityCache", () => {

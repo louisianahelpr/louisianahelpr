@@ -63,6 +63,16 @@ const PNG_1PX = Buffer.from(
 const MIN_JOB_TIME_MS = 30 * 60 * 1000;
 const WORK_BACKDATE_MS = 40 * 60 * 1000;
 
+/**
+ * A lane that must keep a marker job alive past one run (a hired or funded
+ * fixture held for a later leg, e.g. two-role-lifecycle's
+ * PLAYWRIGHT_LIFECYCLE_JOB_ID) puts this in the title beside
+ * "[E2E DO NOT ACCEPT]". Nothing here settles it, and prod-lifecycle-sweeper
+ * does not touch it at all (lh-money-escrow review M3, 2026-09-25): the 6h age
+ * gate bounds CI job timeouts, not a fixture held on purpose.
+ */
+export const E2E_HOLD_MARKER = "[E2E HOLD]";
+
 /** Statuses a hired, funded job can still be settled forward from. */
 export const SETTLEABLE_STATUSES = ["accepted", "in_progress", "revision_requested"];
 /** Statuses that mean the money already moved — nothing left to settle. */
@@ -86,6 +96,7 @@ export function isSettleForwardRefusal(status, body = "") {
 const JOB_COLUMNS = [
   "id",
   "title",
+  "stripe_session_id",
   "status",
   "payment_status",
   "customer_id",
@@ -147,6 +158,13 @@ export function settleRefusalReason(job, seats) {
   // `cancel_escrow` refuses it for this reason and so does this.
   if (job.disputed_at || job.has_active_dispute) return "under dispute — the escrow is an admin's to place";
   if (SETTLED_PAYMENT_STATUSES.includes(job.payment_status)) return "already settled";
+  if (typeof job.title === "string" && job.title.includes(E2E_HOLD_MARKER)) return `held on purpose (${E2E_HOLD_MARKER} in the title)`;
+  // Funded in Stripe TEST mode, proven by the row's own Checkout Session id
+  // (lh-money-escrow review L2). A cs_live_ row, or one funded without a
+  // session (a gift card), is real money or unprovable: never released here.
+  if (typeof job.stripe_session_id !== "string" || !job.stripe_session_id.startsWith("cs_test_")) {
+    return `not funded through a test-mode Checkout Session (stripe_session_id ${job.stripe_session_id ? job.stripe_session_id.slice(0, 8) + "…" : "null"})`;
+  }
   if (job.payment_status !== "escrow") return `payment_status is ${job.payment_status}, not escrow`;
   if (!SETTLEABLE_STATUSES.includes(job.status)) return `status is ${job.status}`;
   return null;

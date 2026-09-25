@@ -150,7 +150,7 @@ describe("Priority Placement — every SQL tier ladder ↔ the perk it enforces"
    */
   const TIER_LADDER_PERK: Record<string, TierPerkKey> = {
     get_ranked_open_jobs: "priorityPlacement", // poster placement in the browse feed
-    early_access_cutoff: "earlyAccess", // head-start minutes
+    early_access_delay_minutes: "earlyAccess", // head-start minutes (early_access_cutoff and early_access_visible_at read it)
   };
 
   /** name → newest body, over every migration. A later DROP with no redefinition removes it. */

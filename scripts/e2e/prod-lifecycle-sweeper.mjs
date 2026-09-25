@@ -86,12 +86,30 @@ const H = {
  * arrival and the Done belong to the Helpr and cannot be forged from the
  * poster's token (`enforce_helper_jobs_column_whitelist`,
  * `enforce_job_completion_server_owned`). So when only the poster's token is
- * present — every CI caller today — this sweep keeps doing what it has always
- * done: DEFER, and say so. Give it `HELPER_ACCESS_TOKEN` as well and it settles
- * those rows instead of leaving them to a "settles forward" that, measured
- * 2026-09-22, had not happened for a single one of sixteen rows.
+ * present this sweep keeps doing what it has always done: DEFER, and say so.
+ * Give it `HELPER_ACCESS_TOKEN` as well and it settles those rows instead of
+ * leaving them to a "settles forward" that, measured 2026-09-22, had not
+ * happened for a single one of sixteen rows.
+ *
+ * Until 2026-09-25 NO CI caller passed the helper token, so the settle-forward
+ * branch below never ran in CI and the pile came back: ten hired+funded rows,
+ * seven past 48h, in e2e-journeys run 36164148002 (nightly-red #1719). Every
+ * workflow step that runs this sweeper now mints both seats
+ * (src/test/sweeperHoldsBothSeats.test.ts).
  */
 const HELPER_TOKEN = process.env.HELPER_ACCESS_TOKEN || "";
+
+/*
+ * NEVER SETTLE A LIVE RUN'S JOB. With both seats, this sweep walks a hired job
+ * all the way to release, and several workflows run it. A row younger than
+ * this may belong to a run that is still driving it, so it is deferred, not
+ * walked. The bound is longer than the longest `timeout-minutes` of any CI job
+ * that holds the helper seat (prod-audit, 300 min on 2026-09-25; checked by
+ * src/test/sweeperHoldsBothSeats.test.ts). A crashed run's row is settled by
+ * the next sweep that finds it old enough; 02-marketplace's afterAll settles
+ * its own job directly.
+ */
+export const SETTLE_FORWARD_MIN_AGE_MS = 6 * 60 * 60 * 1000;
 
 /** The `sub` claim of an already-gateway-verified token; a read, not an act of trust. */
 function subjectOf(jwt) {
@@ -313,7 +331,12 @@ for (const job of jobs) {
          so the row lands in `payout_pending` exactly as a SUCCESSFUL run's
          does, and no strike is recorded on any leg. Without the helper token it
          is still deferred and still reported. */
-      if (CAN_SETTLE_FORWARD) {
+      const ageMs = Date.now() - Date.parse(job.created_at);
+      const oldEnough = Number.isFinite(ageMs) && ageMs >= SETTLE_FORWARD_MIN_AGE_MS;
+      if (CAN_SETTLE_FORWARD && !oldEnough) {
+        console.log(`    too young to settle forward: ${job.id} (${Math.round(ageMs / 60000)} min) may be a live run's job`);
+      }
+      if (CAN_SETTLE_FORWARD && oldEnough) {
         try {
           const out = await settleJobForward({
             base: BASE,

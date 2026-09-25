@@ -121,13 +121,15 @@ jobs:
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
           POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
           POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
         run: |
           set -euo pipefail
           URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
           KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
           TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a poster token"; exit 1; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
-            node scripts/e2e/prod-lifecycle-sweeper.mjs
+            bash scripts/e2e/sweep-both-seats.sh
 
       - name: Run the abuse & notification suites
         run: >
@@ -158,13 +160,15 @@ jobs:
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
           POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
           POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
         run: |
           set -euo pipefail
           URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
           KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
           TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a token for teardown (Q52: an unwind that did not run is not green)"; exit 1; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
-            node scripts/e2e/prod-lifecycle-sweeper.mjs
+            bash scripts/e2e/sweep-both-seats.sh
 
   # A RED RUN HAS TO LAND SOMEWHERE. Added 2026-09-23 after e2e-abuse-notifications — along
   # with 13 other scheduled workflows — was found failing with nobody told.

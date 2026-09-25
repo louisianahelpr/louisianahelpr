@@ -282,7 +282,9 @@ describe("auto-tip-charge edge function", () => {
       // The charge is idempotency-keyed on the claim row, so a Stripe-level
       // retry of this exact call can never mint a second charge.
       expect(stripeMock.paymentIntents.create).toHaveBeenCalledWith(
-        expect.objectContaining({ off_session: true, confirm: true, amount: 1000 }),
+        // $10 tip: the poster is charged 1000 + 61 card fee, the application
+        // fee is 61, so the Helpr's destination transfer is exactly 1000.
+        expect.objectContaining({ off_session: true, confirm: true, amount: 1061, application_fee_amount: 61 }),
         { idempotencyKey: "auto-tip:mock-matched-row" },
       );
       expect((settleWrite()?.payload as { stripe_payment_intent_id: string }).stripe_payment_intent_id)

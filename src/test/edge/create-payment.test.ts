@@ -1018,11 +1018,11 @@ describe("create-payment edge function", () => {
       expect((await json(res)).error).toMatch(/invalid tip amount/i);
     });
 
-    it("rejects a sub-$1 tip below the fee-crossover floor", async () => {
+    it("rejects a sub-$1 tip below the $1 floor", async () => {
       seedAuth(scenario, POSTER);
       const fn = await load();
-      // A $0.25 tip would make the application_fee_amount (≥30¢) exceed the
-      // charge, which Stripe rejects — the floor turns that into a clean error.
+      // A $0.25 tip would cost the poster $0.57 once the card fee is added on
+      // top; the $1 floor keeps tips where that fee is a small share.
       const res = await fn.fetch(
         fn.request({
           headers: AUTH,
@@ -1095,14 +1095,20 @@ describe("create-payment edge function", () => {
       );
       expect(res.status).toBe(200);
       const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
-      expect(args.line_items[0].price_data.unit_amount).toBe(1500);
       expect(args.payment_intent_data.transfer_data.destination).toBe(
         "acct_helper",
       );
-      // The tip covers its own Stripe fee: the platform retains exactly the
-      // processing cost as the application fee (round(1500*0.029)+30 = 74),
-      // so the helper nets tip-minus-fee and the platform never subsidizes it.
-      expect(args.payment_intent_data.application_fee_amount).toBe(74);
+      // The Helpr receives 100% of the tip; the poster pays the card fee on
+      // top. A $15 tip charges 1500 + 76 = 1576 (Stripe's 2.9% + 30c on 1576
+      // is round(45.7) + 30 = 76), the application fee is 76, and Stripe's
+      // destination transfer (charge - application fee) is exactly 1500.
+      const units = args.line_items.map(
+        (li: { price_data: { unit_amount: number } }) => li.price_data.unit_amount,
+      );
+      expect(units).toEqual([1500, 76]);
+      expect(args.payment_intent_data.application_fee_amount).toBe(76);
+      const charged = units.reduce((a: number, b: number) => a + b, 0);
+      expect(charged - args.payment_intent_data.application_fee_amount).toBe(1500);
       // tips ledger row written
       expect(
         scenario.writes.some((w) => w.table === "tips" && w.op === "insert"),

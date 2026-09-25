@@ -30,6 +30,16 @@ describe("TipDialog custom amount bounds (ME-017 #2)", () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 
+  it("shows what the poster pays before sending: tip, card processing, total, Helpr receives", () => {
+    render(<TipDialog jobId="job-1" open onClose={() => {}} />);
+    // Quick-picks carry their total (a $5 tip is $5.46 with the card fee on top).
+    expect(screen.getByRole("button", { name: /\$5\s*You pay \$5\.46/ })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Tip amount in dollars"), { target: { value: "10" } });
+    const breakdown = screen.getByLabelText("Tip cost breakdown");
+    expect(breakdown.textContent).toBe("Tip$10.00Card processing$0.61You pay$10.61Your Helpr receives$10.00");
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
   it("still sends an in-range amount", () => {
     invoke.mockReturnValue(new Promise(() => {}));
     render(<TipDialog jobId="job-1" open onClose={() => {}} />);

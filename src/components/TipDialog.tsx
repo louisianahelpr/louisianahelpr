@@ -16,6 +16,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { userFacingError } from "@/lib/userFacingError";
 import { report } from "@/lib/errorLogger";
 import { currentScreen } from "@/lib/currentScreen";
+import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdown";
 
 interface TipDialogProps {
   jobId: string;
@@ -105,7 +106,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
             hero above rather than left sr-only, so screen readers hear it
             once, here, instead of twice. */}
         <DialogBody>
-          <p>Pure thanks — no platform cut, just the small card-processing fee.</p>
+          <p>Your Helpr receives 100% of your tip. The card-processing fee is added on top, so each amount shows what you pay.</p>
         </DialogBody>
         <div className="space-y-4">
           {/* Suggested amounts — celebratory tier-styled pills first
@@ -134,6 +135,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
                   disabled={sending}
                 >
                   ${amt}
+                  <TipTotalHint tipDollars={amt} />
                 </button>
               ))}
             </div>
@@ -166,6 +168,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
               {sending ? "Sending…" : "Send Tip"}
             </Button>
           </div>
+          {amount !== undefined && amount >= 1 && amount <= 1000 && <TipCostBreakdown tipDollars={amount} />}
         </div>
       </DialogContent>
     </Dialog>

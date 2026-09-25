@@ -10,6 +10,7 @@ import { report } from "@/lib/errorLogger";
 import { hapticLight } from "@/lib/haptics";
 import { formatPrice, formatPriceExact } from "@/lib/format";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { centsLabel, tipQuoteForDollars } from "@/components/TipCostBreakdown";
 
 type Mode = "off" | "percent" | "fixed";
 
@@ -233,8 +234,8 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
           >
             Tip automatically once a job is finished, without having to remember.
             Charged after completion — never before — so you only ever tip for
-            work that actually happened, and the whole tip goes to your Helpr:
-            Helpr takes no cut, only the card processing fee applies. If you
+            work that actually happened. Your Helpr receives 100% of the tip; the
+            card-processing fee is added on top of it for you. If you
             haven't saved a card, we'll ask you to confirm the tip instead of
             charging it automatically.
           </p>
@@ -420,6 +421,12 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
                   <> — {numericValue}% would be ${formatPriceExact(uncapped!)}, held to your ${formatPrice(numericCap!)} maximum.</>
                 ) : (
                   "."
+                )}
+                {example > 0 && (
+                  <>
+                    {" "}Your Helpr receives all ${formatPriceExact(example)}; with card processing you pay{" "}
+                    <span className="font-semibold">{centsLabel(tipQuoteForDollars(example).chargeCents)}</span>.
+                  </>
                 )}
               </p>
             </div>

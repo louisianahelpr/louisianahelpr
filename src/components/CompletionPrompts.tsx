@@ -24,6 +24,7 @@ import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { report } from "@/lib/errorLogger";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdown";
 
 // NpsPrompt is mounted as the final step in the post-completion sequence —
 // after review/tip/share. It self-gates on eligibility (2nd qualifying job
@@ -300,7 +301,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             title="Say Thanks with a Tip?"
           />
           <div className="space-y-4">
-            <DialogBody><p>Tips go directly to {revieweeName}. Totally optional!</p></DialogBody>
+            <DialogBody><p>{revieweeName} receives 100% of your tip. The card-processing fee is added on top, and each amount shows what you pay. Totally optional!</p></DialogBody>
             <div className="space-y-2">
               <label htmlFor="custom-tip-amount" className="text-ds-13 font-medium text-foreground">Enter your tip</label>
               <div className="flex gap-2">
@@ -320,6 +321,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                   {saving ? "Sending…" : "Send"}
                 </Button>
               </div>
+              {customTip !== undefined && customTip >= 1 && customTip <= 1000 && <TipCostBreakdown tipDollars={customTip} />}
             </div>
             <div className="flex items-center gap-2">
               <div className="h-px flex-1 bg-border" />
@@ -328,8 +330,9 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             </div>
             <div className="flex gap-3 justify-center">
               {[5, 10, 20].map((amt) => (
-                <Button key={amt} variant="outline" size="lg" onClick={() => sendTip(amt)} disabled={saving} className="text-ds-17 font-bold">
+                <Button key={amt} variant="outline" size="lg" onClick={() => sendTip(amt)} disabled={saving} className="h-auto py-2 flex-col text-ds-17 font-bold">
                   ${amt}
+                  <TipTotalHint tipDollars={amt} />
                 </Button>
               ))}
             </div>

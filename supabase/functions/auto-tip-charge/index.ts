@@ -9,10 +9,11 @@
 // Invoked by pg_cron. Never by a user: this moves money without a tap, so the
 // only caller is the scheduler holding the service key.
 //
-// Money shape matches the MANUAL tip exactly (create-payment, action="tip"):
-// the full tip transfers to the helper's connected account and the platform
-// takes an application fee equal to Stripe's processing cost — "no platform
-// cut, just the card-processing fee". Same deal, no surprises for the helper.
+// Money shape matches the MANUAL tip exactly (create-payment, action="tip"),
+// both computed by `tipChargeBreakdown` (_shared/tipFees.ts): the poster's
+// card is charged tip + card-processing fee, the application fee is that
+// card-processing fee, and the Helpr's connected account receives exactly the
+// tip. The Helpr gets 100%; the poster covers the card fee.
 //
 // Safety properties, in order of how much they matter:
 //   1. At most ONE automatic tip per job, enforced by a UNIQUE index, not by
@@ -27,7 +28,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { stripeProcessingCostCents } from "../_shared/stripeFees.ts";
+import { tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 
 /** ME-011: a charge whose outcome is unknown (lost response, Stripe 5xx). */
@@ -408,18 +409,22 @@ serve(async (req) => {
           continue;
         }
 
-        const feeCents = stripeProcessingCostCents(tipCents);
+        // Charge = tip + card fee; application fee = card fee; the Helpr's
+        // destination transfer = the tip, to the cent.
+        const tipQuote = tipChargeBreakdown(tipCents);
 
         const createIntent = () => stripe.paymentIntents.create(
           {
-            amount: tipCents,
+            amount: tipQuote.chargeCents,
             currency: "usd",
             customer: customerId,
             payment_method: paymentMethodId,
             // The whole point: no redirect, no user present.
             off_session: true,
             confirm: true,
-            description: `Auto-tip — job ${jobId}`,
+            description:
+              `Auto-tip — job ${jobId}: $${(tipQuote.tipCents / 100).toFixed(2)} tip to your Helpr + ` +
+              `$${(tipQuote.feeCents / 100).toFixed(2)} card processing`,
             // The asymmetry this closes: a FAILED auto-tip already gets a
             // notification (giveUp, above) — a successful one, the card
             // actually being charged off-session with no confirmation step
@@ -428,10 +433,13 @@ serve(async (req) => {
             // present to show a success toast to.
             receipt_email: email,
             transfer_data: { destination: helperProfile.stripe_account_id as string },
-            application_fee_amount: feeCents,
+            application_fee_amount: tipQuote.feeCents,
             metadata: {
               type: "tip",
               source: "auto",
+              tip_cents: String(tipQuote.tipCents),
+              fee_cents: String(tipQuote.feeCents),
+              helper_cents: String(tipQuote.helperCents),
               job_id: jobId,
               tipper_id: String(c.customer_id),
               helper_id: String(c.helper_id),
@@ -488,10 +496,10 @@ serve(async (req) => {
           await settleTip(
             { payment_status: "paid", stripe_payment_intent_id: intent.id },
             "tip paid-settlement write",
-            `the poster WAS charged (payment_intent ${intent.id}, ${tipCents}c) but the tips row still reads 'pending' with no stripe_payment_intent_id, leaving the charge unreconcilable`,
+            `the poster WAS charged (payment_intent ${intent.id}, ${tipQuote.chargeCents}c for a ${tipQuote.tipCents}c tip) but the tips row still reads 'pending' with no stripe_payment_intent_id, leaving the charge unreconcilable`,
           );
           results.charged++;
-          log("charged", { jobId, tipCents });
+          log("charged", { jobId, tipCents, feeCents: tipQuote.feeCents, chargeCents: tipQuote.chargeCents });
 
           // SC-003: the failure path (giveUp, above) has told the poster for
           // as long as this function has existed. The success path — a card
@@ -503,7 +511,7 @@ serve(async (req) => {
             user_id: c.customer_id,
             type: "payment",
             title: "Your auto-tip was sent",
-            message: `We sent a $${(tipCents / 100).toFixed(2)} tip to your Helpr for this job — no action needed.`,
+            message: `We sent your Helpr a $${(tipQuote.tipCents / 100).toFixed(2)} tip for this job — they receive all of it. Your card was charged $${(tipQuote.chargeCents / 100).toFixed(2)}, including $${(tipQuote.feeCents / 100).toFixed(2)} card processing. No action needed.`,
             link: `/posts?job=${c.job_id}`,
           });
           if (successNotifyErr) {

@@ -444,6 +444,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/stripeFees.ts";`,
   );
 
+  // Tip charge breakdown: `_shared/tipFees.ts` is pure arithmetic over
+  // stripeFees, so the generated file points at the REAL module — the tip
+  // amount, card fee and application fee the tip paths send stay under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/tipFees\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/tipFees.ts";`,
+  );
+
   // Poster tier service fee + Stripe floor: `_shared/posterFees.ts` is pure
   // TypeScript too (it only re-exports the helper ladder + the floor helper), so
   // the generated file points at the REAL module — the poster fee the checkout

@@ -83,9 +83,9 @@ export function CompletedStep({
            helper has no `profiles.stripe_account_id`, and nothing in scope here
            carries that fact. Gating it needs a `helperPayoutReady` map built
            beside `helperNames`. Not guessed at here. */
-        /* No Tip on a crew yet: create-payment's tip pays jobs.helper_id,
-           which a crew never has (Q407), so the chip would only ever fail.
-           Per-member tips are docs/OPEN.md Q408. */
+        /* A crew (Q407) is tipped member by member, from each member's review
+           (ReviewForm's tip prompt names the member). This chip has no member
+           to name, so it is not drawn on a crew. */
         crew ? null : !hasTipped ? (
           <JobActionChip
             key="tip"

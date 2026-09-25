@@ -1189,9 +1189,32 @@ serve(async (req) => {
       if (jobError || !job) throw new PublicError("Job not found");
       if (job.status !== "completed") throw new PublicError("Job must be completed to tip");
       if (user.id !== job.customer_id) throw new PublicError("Only the person who posted this job can tip the Helpr");
-      if (!job.helper_id) throw new PublicError("No Helpr assigned to this job");
 
-      const helperId = job.helper_id;
+      // A crew has no lead (Q407): the poster tips a MEMBER, named in the
+      // request, who must be on this job's roster. A single-helper job tips its
+      // hired Helpr exactly as before (a named helper is ignored there).
+      let helperId: string;
+      if (job.is_group_job) {
+        const named = (body as { helperId?: unknown }).helperId;
+        if (typeof named !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(named)) {
+          throw new PublicError("Choose which Helpr on the crew to tip");
+        }
+        const { data: slot, error: slotErr } = await supabaseAdmin
+          .from("group_job_helpers")
+          .select("id")
+          .eq("job_id", jobId)
+          .eq("helper_id", named)
+          .limit(1);
+        if (slotErr) {
+          console.error(`[create-payment] tip — crew roster read failed for job ${jobId}:`, slotErr);
+          throw new PublicError("Could not verify who worked this job — please try again");
+        }
+        if ((slot?.length ?? 0) === 0) throw new PublicError("That Helpr didn't work this job");
+        helperId = named;
+      } else {
+        if (!job.helper_id) throw new PublicError("No Helpr assigned to this job");
+        helperId = job.helper_id;
+      }
 
       // Check if helper has a connected Stripe account for direct tip transfer.
       // A read ERROR must fail the request — treating it as "no Connect account"
@@ -1279,9 +1302,11 @@ serve(async (req) => {
         // field, so an older app build still gets partial protection.
         // The key names the charged total as well as the tip, so a retry can
         // only replay a session whose money fields are identical.
+        // A crew tip names its member too, so tipping two members the same
+        // amount in one attempt window is two sessions, not one replayed.
         idempotencyKey: tipAttemptId
-          ? `tip-${jobId}-${user.id}-${tipCents}-c${tipQuote.chargeCents}-${tipAttemptId}`
-          : `tip-${jobId}-${user.id}-${tipCents}-c${tipQuote.chargeCents}-${Math.floor(Date.now() / 600_000)}`,
+          ? `tip-${jobId}-${user.id}${job.is_group_job ? `-${helperId}` : ""}-${tipCents}-c${tipQuote.chargeCents}-${tipAttemptId}`
+          : `tip-${jobId}-${user.id}${job.is_group_job ? `-${helperId}` : ""}-${tipCents}-c${tipQuote.chargeCents}-${Math.floor(Date.now() / 600_000)}`,
       });
 
       // Ledger row for the webhook to reconcile against. The idempotency key

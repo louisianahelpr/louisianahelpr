@@ -107,7 +107,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           {/* `canTip`: only the POSTER may tip, and only this mount is the
               poster. The helper-side mount below leaves it off — see
               ReviewFormProps.canTip. */}
-          <ReviewForm canTip={!props.reviewJob.is_group_job} revieweeRole="helper" open={!!props.reviewJob} onClose={() => { props.setReviewJob(null); props.setReviewTarget(null); props.onRefresh(); }} jobId={props.reviewJob.id} revieweeId={props.reviewTarget.id} revieweeName={props.reviewTarget.name} />
+          <ReviewForm canTip revieweeRole="helper" open={!!props.reviewJob} onClose={() => { props.setReviewJob(null); props.setReviewTarget(null); props.onRefresh(); }} jobId={props.reviewJob.id} revieweeId={props.reviewTarget.id} revieweeName={props.reviewTarget.name} />
         </Suspense>
       )}
 

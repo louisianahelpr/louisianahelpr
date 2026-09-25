@@ -130,15 +130,16 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
   };
 
   useEffect(() => {
-    // Check if already reviewed
-    supabase.from("reviews").select("id").eq("job_id", jobId).eq("reviewer_id", userId).then(({ data, error }) => {
+    // Check if already reviewed — THIS person: one review per Helpr on a crew
+    // (Q407), so a review of another member does not count.
+    supabase.from("reviews").select("id").eq("job_id", jobId).eq("reviewer_id", userId).eq("reviewee_id", revieweeId).then(({ data, error }) => {
       if (error) report(error, { tags: { source: "CompletionPrompts.alreadyReviewed" } });
       if (data && data.length > 0) {
         setAlreadyReviewed(true);
         setStep("tip");
       }
     });
-  }, [jobId, userId]);
+  }, [jobId, userId, revieweeId]);
 
   // Synchronous in-flight guard: `disabled={state}` cannot stop two clicks in one frame (see useApplyFlow).
   const savingRef = useRef(false);

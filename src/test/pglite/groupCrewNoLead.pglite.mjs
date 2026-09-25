@@ -34,7 +34,7 @@
  *       role) lands on a crew whose escrow was refunded.
  *   R5  a crew member who is not the lead cannot upload a proof photo to the
  *       job's folder (the before photo their own Working step needs).
- * AFTER: A1..A37 below.
+ * AFTER: A1..A38 below.
  */
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${process.env.HOME}/.lh-pglite-probe`;
 let PGlite;
@@ -64,7 +64,7 @@ const PATH_FUNCTIONS = [
   "poster_cancel_job", "job_hours_until_start", "cancellation_fee_percent", "is_late_cancellation",
   "apply_cancellation_violation_consequence", "notify_on_job_update", "notify_on_payment_escrowed",
   "enforce_review_validity", "set_review_visibility", "get_helper_tiers", "is_party_to_job_folder",
-  "rpc_group_member_set_proof", "rpc_group_member_mark_done",
+  "rpc_group_member_set_proof", "rpc_group_member_mark_done", "resolve_auto_tip", "auto_tip_candidates",
 ];
 const defRe = (name) => new RegExp(`CREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\s+public\\.${name}\\s*\\(`, "gi");
 function cutFunction(sql, name) {
@@ -136,8 +136,14 @@ CREATE TYPE job_status AS ENUM ('open','pending_approval','accepted','in_progres
 CREATE TABLE public.profiles (
   user_id uuid PRIMARY KEY, stripe_account_id text, stripe_payouts_enabled boolean,
   stripe_identity_verified boolean, idv_status text, is_seed boolean DEFAULT false,
-  full_name text, parish text, avatar_url text, email_verified boolean DEFAULT true, ban_status text
+  full_name text, parish text, avatar_url text, email_verified boolean DEFAULT true, ban_status text,
+  auto_tip_mode text DEFAULT 'off', auto_tip_value numeric, auto_tip_cap numeric, auto_tip_enabled_at timestamptz
 );
+CREATE TABLE public.tips (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, tipper_id uuid, helper_id uuid,
+  amount numeric, source text DEFAULT 'manual', payment_status text
+);
+CREATE UNIQUE INDEX tips_one_auto_per_job ON public.tips (job_id) WHERE source = 'auto';
 CREATE TABLE public.jobs (
   id uuid PRIMARY KEY, customer_id uuid, helper_id uuid, title text,
   status job_status NOT NULL DEFAULT 'open',
@@ -157,7 +163,7 @@ CREATE TABLE public.jobs (
   helper_arrived_at timestamptz, poster_confirmed_arrival_at timestamptz,
   poster_completed_at timestamptz, helper_completed_at timestamptz,
   has_active_dispute boolean NOT NULL DEFAULT false, dispute_resolved_at timestamptz,
-  updated_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(), completed_at timestamptz,
   payment_status text
 );
 CREATE TABLE public.group_job_helpers (
@@ -797,6 +803,30 @@ await asUser(M2, `SELECT public.rpc_group_member_mark_done('${GJOB}');`);
 const notDone = await one(`SELECT status::text AS status, helper_completed_at FROM public.jobs WHERE id='${GJOB}'`);
 check("A37 rule flipped to false: the under-filled crew does not complete", notDone.status === "open" && notDone.helper_completed_at === null, JSON.stringify(notDone));
 await db.exec(`CREATE OR REPLACE FUNCTION public.crew_completes_when_hired_done() RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT true $f$;`);
+
+// ── Auto-tip, split evenly across the crew ──────────────────────────────────
+await seed({ budget: 300 });
+for (const m of [M1, M2, M3]) await hire(m);
+await db.exec(`UPDATE public.profiles SET auto_tip_mode='percent', auto_tip_value=10, auto_tip_enabled_at=now() - interval '1 day' WHERE user_id='${POSTER}';
+               UPDATE public.jobs SET status='in_progress' WHERE id='${GJOB}';
+               UPDATE public.jobs SET status='completed', completed_at=now() WHERE id='${GJOB}';`);
+const tipsOwed = await all(`SELECT helper_id, tip_amount::text AS tip FROM public.auto_tip_candidates(336) WHERE job_id='${GJOB}' ORDER BY helper_id`);
+await db.exec(`INSERT INTO public.tips (job_id, tipper_id, helper_id, amount, source, payment_status) VALUES ('${GJOB}', '${POSTER}', '${M1}', 10, 'auto', 'pending')`);
+let secondClaim = "allowed";
+try {
+  await db.exec(`INSERT INTO public.tips (job_id, tipper_id, helper_id, amount, source, payment_status) VALUES ('${GJOB}', '${POSTER}', '${M2}', 10, 'auto', 'pending')`);
+} catch (e) { secondClaim = String(e.message); }
+let dupClaim = "allowed";
+try {
+  await db.exec(`INSERT INTO public.tips (job_id, tipper_id, helper_id, amount, source, payment_status) VALUES ('${GJOB}', '${POSTER}', '${M1}', 10, 'auto', 'pending')`);
+} catch (e) { dupClaim = String(e.message); }
+const after = await all(`SELECT helper_id FROM public.auto_tip_candidates(336) WHERE job_id='${GJOB}' ORDER BY helper_id`);
+check(
+  "A38 a 10% auto-tip on a $300 crew of 3 is $10.00 to each member; each member's claim is its own and can land once",
+  JSON.stringify(tipsOwed.map((t) => t.tip)) === JSON.stringify(["10.00", "10.00", "10.00"]) &&
+    secondClaim === "allowed" && /duplicate key|unique/i.test(dupClaim) && after.length === 1 && after[0].helper_id === M3,
+  JSON.stringify({ tipsOwed, secondClaim, dupClaim: dupClaim.slice(0, 40), after: after.length }),
+);
 
 const acl = await one(`SELECT
   has_function_privilege('authenticated', 'public.enforce_group_job_has_no_lead()', 'EXECUTE') AS auth_lead,

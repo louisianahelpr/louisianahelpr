@@ -187,7 +187,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
     if (error || !inserted || inserted.length === 0) {
       hapticError();
       if (error?.code === "23505") {
-        toast.error("You've already reviewed this job.");
+        toast.error("You've already reviewed this person for this job.");
       } else if (error?.code === "23514" && error.message) {
         // The validity trigger raises check_violation with a HUMAN sentence —
         // "Reviews can only be left after the job is marked completed.",
@@ -474,6 +474,9 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
         onClose={() => { setTipDialogOpen(false); onClose(); }}
         jobId={jobId}
         helperName={revieweeName}
+        // The Helpr just reviewed: on a crew (no lead) the server needs the
+        // member named; on a single-helper job it is the hired Helpr anyway.
+        helperId={revieweeId}
       />
     </Dialog>
   );

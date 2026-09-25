@@ -1548,3 +1548,72 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.rpc_group_member_mark_done(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rpc_group_member_mark_done(uuid) TO authenticated, service_role;
+
+-- ── 14. AUTO-TIP: SPLIT EVENLY ACROSS THE CREW ───────────────────────────────
+-- (money review: tips.) auto_tip_candidates required jobs.helper_id, which no
+-- crew has, so an auto-tipping poster's crew got nothing. A crew job now
+-- yields one candidate per hired member: the poster's auto-tip for the whole
+-- job (resolve_auto_tip on the budget), split by the same largest remainder as
+-- the budget (crew_slot_share_cents on the tip's cents and the member's slot).
+-- An unfilled slot's part is simply not charged. The claim index moves from
+-- one auto tip per JOB to one per (job, member), so each member's charge still
+-- runs at most once; a single-helper job has one member, so for it the rule is
+-- unchanged. Restated from 20260925053956; the single-helper half is verbatim.
+DROP INDEX IF EXISTS public.tips_one_auto_per_job;
+CREATE UNIQUE INDEX IF NOT EXISTS tips_one_auto_per_job_member
+  ON public.tips (job_id, helper_id)
+  WHERE source = 'auto';
+
+CREATE OR REPLACE FUNCTION public.auto_tip_candidates(_since_hours integer DEFAULT 336)
+RETURNS TABLE (
+  job_id uuid,
+  customer_id uuid,
+  helper_id uuid,
+  budget numeric,
+  tip_amount numeric
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT j.id, j.customer_id, j.helper_id, j.budget,
+         public.resolve_auto_tip(j.customer_id, j.budget)
+  FROM public.jobs j
+  JOIN public.profiles p ON p.user_id = j.customer_id
+  WHERE j.status = 'completed'::job_status
+    AND j.helper_id IS NOT NULL
+    AND p.auto_tip_mode <> 'off'
+    AND p.auto_tip_enabled_at IS NOT NULL
+    AND j.completed_at >= p.auto_tip_enabled_at
+    AND j.completed_at > now() - make_interval(hours => _since_hours)
+    AND public.resolve_auto_tip(j.customer_id, j.budget) > 0
+    AND NOT EXISTS (
+      SELECT 1 FROM public.tips t
+      WHERE t.job_id = j.id AND t.source = 'auto'
+    )
+  UNION ALL
+  -- A crew (Q407): one candidate per hired member, their slot's part of the tip.
+  SELECT j.id, j.customer_id, g.helper_id,
+         round(COALESCE(g.share_cents, 0) / 100.0, 2),
+         round(public.crew_slot_share_cents(
+           round(public.resolve_auto_tip(j.customer_id, j.budget) * 100)::bigint,
+           GREATEST(COALESCE(j.helpers_needed, 1), 1),
+           COALESCE(g.slot_no, 0)) / 100.0, 2)
+  FROM public.jobs j
+  JOIN public.profiles p ON p.user_id = j.customer_id
+  JOIN public.group_job_helpers g ON g.job_id = j.id AND g.helper_id IS NOT NULL
+  WHERE j.status = 'completed'::job_status
+    AND j.is_group_job IS TRUE
+    AND p.auto_tip_mode <> 'off'
+    AND p.auto_tip_enabled_at IS NOT NULL
+    AND j.completed_at >= p.auto_tip_enabled_at
+    AND j.completed_at > now() - make_interval(hours => _since_hours)
+    AND public.resolve_auto_tip(j.customer_id, j.budget) > 0
+    AND NOT EXISTS (
+      SELECT 1 FROM public.tips t
+      WHERE t.job_id = j.id AND t.helper_id = g.helper_id AND t.source = 'auto'
+    );
+$$;
+
+REVOKE ALL ON FUNCTION public.auto_tip_candidates(integer) FROM PUBLIC, anon, authenticated;

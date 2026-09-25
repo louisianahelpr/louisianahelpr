@@ -1116,6 +1116,51 @@ describe("create-payment edge function", () => {
     });
   });
 
+  // A crew has no lead (Q407): the poster tips a named MEMBER of the roster.
+  describe("action: tip on a crew", () => {
+    const MEMBER = "11111111-2222-3333-4444-555555555555";
+    const crewJob = () => {
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: null, is_group_job: true, status: "completed", title: "Move a piano" }] };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_member" }] };
+      stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_tip", url: "https://checkout.stripe.test/tip" });
+    };
+
+    it("refuses a crew tip that names nobody", async () => {
+      seedAuth(scenario, POSTER);
+      crewJob();
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "tip", jobId: "job-1", amount: 15 } }));
+      expect((await json(res)).error).toMatch(/choose which helpr/i);
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
+    // @mutate supabase/functions/create-payment/index.ts | if ((slot?.length ?? 0) === 0) throw new PublicError("That Helpr didn't work this job"); | if (false) throw new PublicError("That Helpr didn't work this job");
+    it("refuses a crew tip to someone not on the roster", async () => {
+      seedAuth(scenario, POSTER);
+      crewJob();
+      scenario.reads.group_job_helpers = { rows: [] };
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "tip", jobId: "job-1", amount: 15, helperId: MEMBER } }));
+      expect((await json(res)).error).toMatch(/didn't work this job/i);
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
+    it("tips the named member: their account, their ledger row, a key that names them", async () => {
+      seedAuth(scenario, POSTER);
+      crewJob();
+      scenario.reads.group_job_helpers = { rows: [{ id: "slot-1" }] };
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "tip", jobId: "job-1", amount: 15, helperId: MEMBER } }));
+      expect(res.status).toBe(200);
+      const [args, opts] = stripeMock.checkout.sessions.create.mock.calls[0];
+      expect(args.payment_intent_data.transfer_data.destination).toBe("acct_member");
+      expect(args.metadata.helper_id).toBe(MEMBER);
+      expect((opts as { idempotencyKey: string }).idempotencyKey).toContain(`-${MEMBER}-`);
+      const tip = scenario.writes.find((w) => w.table === "tips" && w.op === "insert");
+      expect((tip?.payload as Record<string, unknown>).helper_id).toBe(MEMBER);
+    });
+  });
+
   describe("action: cancel_escrow", () => {
     // @mutate supabase/functions/create-payment/index.ts | if ((crew?.length ?? 0) > 0) { | if (false) {
     it("refunds a succeeded payment intent minus the non-refundable service fee and cancels the job", async () => {

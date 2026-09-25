@@ -52,6 +52,8 @@ import {
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |       OR public.is_crew_member_of_job_folder(name)\n    )\n  );\n\nDROP POLICY IF EXISTS "Users can read | \n    )\n  );\n\nDROP POLICY IF EXISTS "Users can read
 // @mutate src/components/PhotoProof.tsx |   if (crew) {\n    const { data, error } = await supabase.rpc( |   if (false) {\n    const { data, error } = await supabase.rpc(
 // @mutate src/pages/jobs/appliedJobCard/steps/HelperPhotoAsk.tsx |       label="Before Photo"\n      crew={crew} |       label="Before Photo"
+// @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |   ON public.tips (job_id, helper_id)\n  WHERE source = 'auto'; |   ON public.tips (job_id)\n  WHERE source = 'auto';
+// @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |   JOIN public.group_job_helpers g ON g.job_id = j.id AND g.helper_id IS NOT NULL\n  WHERE j.status = 'completed'::job_status\n    AND j.is_group_job IS TRUE |   JOIN public.group_job_helpers g ON g.job_id = j.id AND g.helper_id IS NOT NULL\n  WHERE j.status = 'completed'::job_status\n    AND j.is_group_job IS NOT TRUE
 // @mutate supabase/functions/create-payment/index.ts |             await postSlackOpsAlert({\n              kind: "money_at_risk",\n              severity: "critical",\n              title: "Crew job stuck in 'cancelling' | console.log({\n              kind: "money_at_risk",\n              severity: "critical",\n              title: "Crew job stuck in 'cancelling'
 
 const root = resolve(__dirname, "../..");
@@ -212,6 +214,16 @@ describe("a crew has no lead (Q407)", () => {
     const chips = [...ask.matchAll(/<PhotoProofCaptureChip[\s\S]*?\/>/g)].map((m) => m[0]);
     expect(chips.length).toBeGreaterThanOrEqual(2);
     for (const c of chips) expect(c, "a photo ask that writes the JOB's photos on a crew").toMatch(/crew=\{crew\}/);
+  });
+
+  it("4e. tips: a crew is tipped member by member, and auto-tip splits across the crew", () => {
+    const sql = allMigrationSql();
+    const lastIndex = sql.flatMap(({ sql: s }) => [...s.matchAll(/CREATE UNIQUE INDEX IF NOT EXISTS (tips_one_auto_per_job\w*)\s+ON public\.tips \(([^)]*)\)/g)].map((m) => m)).slice(-1)[0];
+    expect(lastIndex?.[2], "one auto tip per JOB: a crew's second member can never be auto-tipped").toBe("job_id, helper_id");
+    const cand = body("auto_tip_candidates");
+    expect(cand).toMatch(/crew_slot_share_cents[\s\S]*JOIN public\.group_job_helpers g ON g\.job_id = j\.id[\s\S]*j\.is_group_job IS TRUE/);
+    const pay = blankComments(read("supabase/functions/create-payment/index.ts"));
+    expect(pay).toMatch(/if \(job\.is_group_job\) \{\s*const named = \(body as \{ helperId\?: unknown \}\)\.helperId;[\s\S]{0,900}from\("group_job_helpers"\)/);
   });
 
   it("5. create-payment's escrow refund re-reads the crew after its claim, and a stuck claim pages", () => {

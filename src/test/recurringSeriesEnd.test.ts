@@ -18,7 +18,7 @@
  * @mutate supabase/migrations/20260925052841_recurring_series_end.sql |   IF v_uid IS DISTINCT FROM v_job.customer_id | IF false
  * @mutate supabase/migrations/20260925052841_recurring_series_end.sql |  OR v_uid IS DISTINCT FROM v_job.helper_id) THEN | ) THEN
  * @mutate supabase/migrations/20260925052841_recurring_series_end.sql | REVOKE ALL ON FUNCTION public.end_recurring_series(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.end_recurring_series(uuid) FROM PUBLIC;
- * @mutate supabase/migrations/20260925052841_recurring_series_end.sql |   IF v_ended IS NOT NULL AND NEW.date_needed > v_ended THEN | IF false THEN
+ * @mutate supabase/migrations/20260925052841_recurring_series_end.sql |   IF v_ended IS NOT NULL THEN | IF v_ended IS NOT NULL AND NEW.date_needed > v_ended THEN
  * @mutate supabase/migrations/20260925052841_recurring_series_end.sql |    FOR SHARE; |    ;
  * @mutate supabase/functions/charge-recurring-visits/index.ts | .not("customer_id", "is", null) | .not("id", "is", null)
  * @mutate supabase/functions/charge-recurring-visits/index.ts | recurring_helper_id, helper_id, status, series_ended_on", | recurring_helper_id, helper_id, status",
@@ -90,10 +90,13 @@ describe("recurring series: end + schedule lock", () => {
     expect(wl).toMatch(/IF changed_col = 'series_ended_on'\s+AND current_setting\('app\.series_end_rpc', true\) = '1' THEN\s+CONTINUE;/);
   });
 
-  it("no visit is inserted after the end (DB belt, race-safe)", () => {
+  it("no new visit of an ENDED series is inserted, whatever its date (DB belt, race-safe)", () => {
     const { body } = newestFunction("enforce_series_visit_within_end");
     expect(body).toMatch(/FOR SHARE;/);
-    expect(body).toMatch(/IF v_ended IS NOT NULL AND NEW\.date_needed > v_ended THEN\s+RAISE EXCEPTION 'series_ended/);
+    // Review 2026-09-25: a date-bounded refusal let a GAP on or before the end
+    // be funded after the series ended.
+    expect(body).toMatch(/IF v_ended IS NOT NULL THEN\s+RAISE EXCEPTION 'series_ended/);
+    expect(body).not.toMatch(/NEW\.date_needed > v_ended/);
     expect(allSql).toMatch(/CREATE TRIGGER trg_series_visit_within_end\s+BEFORE INSERT ON public\.jobs/);
   });
 
@@ -102,6 +105,8 @@ describe("recurring series: end + schedule lock", () => {
     const scan = src.slice(src.indexOf('scanAll<SeriesRow>("recurring series"'), src.indexOf("const seriesDefect"));
     expect(scan).toContain('.not("customer_id", "is", null)');
     expect(scan).toMatch(/select\(\s*"[^"]*\bseries_ended_on\b[^"]*"/);
+    // An ended series funds nothing at all (not "nothing after the end date").
+    expect(src).toMatch(/if \(parent\.series_ended_on\) \{\s+results\.skippedEnded\+\+;\s+continue;/);
   });
 
   it("the executable PGlite proof exists and runs this migration", () => {

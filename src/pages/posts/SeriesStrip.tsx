@@ -86,14 +86,15 @@ export function SeriesStrip({
 
   if (!isSeries || !dateNeeded) return null;
 
-  // An ended series runs only through series_ended_on; the cron funds nothing
-  // after it.
-  const allDates = recurringVisitDates(dateNeeded, recurrenceDays!, recurrenceWeeks!).filter(
-    (d, i) => i === 0 || seriesEndedOn === null || d <= seriesEndedOn,
-  );
-  const total = allDates.length;
+  const allDates = recurringVisitDates(dateNeeded, recurrenceDays!, recurrenceWeeks!);
   // +1: the parent row IS the first visit; children are the rest.
-  const created = Math.min(total, (createdCount ?? 0) + 1);
+  const createdVisits = (createdCount ?? 0) + 1;
+  // An ENDED series gets no new visit at all (the cron skips it and the DB
+  // refuses the insert), so its total is the visits that exist — not the
+  // schedule's dates through series_ended_on, which would count a gap the
+  // cron failed to fund earlier as a visit still to come.
+  const total = seriesEndedOn ? createdVisits : allDates.length;
+  const created = Math.min(total, createdVisits);
   // Today in America/Chicago. The cron runs at 06:06 UTC (00:06 CST / 01:06
   // CDT), so the run for date D happens early on Chicago day D: a charge dated
   // today has run, one dated tomorrow has not. The UTC date runs ahead of that
@@ -127,9 +128,7 @@ export function SeriesStrip({
           <span className="font-semibold">{dayList} × {recurrenceWeeks} wk{recurrenceWeeks === 1 ? "" : "s"}</span>
           {" · "}{created}/{total} visits
           {seriesEndedOn
-            ? next
-              ? ` · ended — last visit ${formatJobDate(allDates[allDates.length - 1])}`
-              : " · ended"
+            ? " · ended, no new visits"
             : next
             ? seriesHelperCommitted
               ? nextFundDate

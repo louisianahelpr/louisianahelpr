@@ -397,15 +397,20 @@ serve(async (req) => {
       // checkout.
       const parentDate = parent.date_needed as string;
       //
-      // `series_ended_on` is the last date an ENDED series runs
-      // (end_recurring_series, called by the poster or the standing Helpr). No
-      // visit after it is funded; trg_series_visit_within_end refuses the insert
-      // too, so a run that read the series just before it ended is refunded by
-      // the insert-failure branch below rather than booking past the end.
-      const endedOn = (parent.series_ended_on as string | null) ?? null;
-      const due = dates.filter((d) =>
-        d > parentDate && d > today && d <= horizon && (endedOn === null || d <= endedOn)
-      );
+      // An ENDED series (end_recurring_series set `series_ended_on`) gets no new
+      // visit at all, whatever the date. Not "nothing after the end date": the
+      // end date is at or after the last created visit, so the only dates at or
+      // before it with no visit are GAPS this cron failed to fund earlier (a
+      // declined card, no saved card), and funding one after the end charged the
+      // poster for a series they had just ended (money/authz review
+      // 2026-09-25). trg_series_visit_within_end refuses any new visit of an
+      // ended series too, so a run that read the series just before it ended is
+      // refunded by the insert-failure branch below.
+      if (parent.series_ended_on) {
+        results.skippedEnded++;
+        continue;
+      }
+      const due = dates.filter((d) => d > parentDate && d > today && d <= horizon);
       if (due.length === 0) continue;
 
       // ── Q356/Q347: the standing helper must be the one HIRED, and not blocked ──

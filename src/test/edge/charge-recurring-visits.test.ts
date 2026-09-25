@@ -60,8 +60,8 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (taxCalculationId && taxCents > 0) { |         if (false) {
 //   ME-014: the fee floor ignores the tax on the same charge.
 // @mutate supabase/functions/charge-recurring-visits/index.ts | posterServiceFeeCents(budgetCents, feePercent, taxCents); | posterServiceFeeCents(budgetCents, feePercent, 0);
-// Ended series: dropping the series_ended_on term funds a visit after the end.
-// @mutate supabase/functions/charge-recurring-visits/index.ts | d <= horizon && (endedOn === null \|\| d <= endedOn) | d <= horizon
+// Ended series: dropping the ended check funds a gap (or any date) after the series ended.
+// @mutate supabase/functions/charge-recurring-visits/index.ts |       if (parent.series_ended_on) { |       if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts | Can't make it? Cancel this visit from My Jobs. | Can't make it? Release the date from My Jobs.
 // Ended mid-run: a refunded series_ended refusal is reported as a defect (red run for a designed outcome).
 // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (seriesEndedMidRun) { |           if (false) {
@@ -961,18 +961,22 @@ describe("charge-recurring-visits edge function", () => {
     expect(insertedVisits()).toHaveLength(0);
   });
 
-  it("still funds a visit ON the ended series' last date", async () => {
+  it("funds NOTHING for an ended series, even a gap dated on or before its end (review 2026-09-25)", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
+    // The end date is at or after the last created visit, so VISIT_DATE with no
+    // visit is a gap the cron failed to fund earlier. Ending must stop it too.
     wireJobsReads({ series: { rows: [seriesParent({ series_ended_on: VISIT_DATE })] } });
 
     const res = await runOn(fn, "2026-09-01");
     const b = await body(res);
 
     expect(res.status).toBe(200);
-    expect(b.funded).toBe(1);
-    expect(stripeMock.paymentIntents.create).toHaveBeenCalledTimes(1);
-    expect((insertedVisits()[0]?.payload as Record<string, unknown>).date_needed).toBe(VISIT_DATE);
+    expect(b.funded).toBe(0);
+    expect(b.skippedEnded).toBe(1);
+    expect(b.errors).toBe(0);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(insertedVisits()).toHaveLength(0);
   });
 
   it("a series ended after this run read it: the refused visit is refunded and the run stays green", async () => {
@@ -980,7 +984,7 @@ describe("charge-recurring-visits edge function", () => {
     seedHappyPath();
     // trg_series_visit_within_end's refusal, as PostgREST returns it.
     scenario.writeErrors.jobs = {
-      message: "series_ended: the series ended on 2026-09-03; no visit on 2026-09-04",
+      message: "series_ended: the series ended on 2026-09-03; no new visit (2026-09-04)",
       code: "23514",
     };
 
@@ -999,7 +1003,7 @@ describe("charge-recurring-visits edge function", () => {
     const fn = await loadConfigured();
     seedHappyPath();
     scenario.writeErrors.jobs = {
-      message: "series_ended: the series ended on 2026-09-03; no visit on 2026-09-04",
+      message: "series_ended: the series ended on 2026-09-03; no new visit (2026-09-04)",
       code: "23514",
     };
     stripeMock.refunds.create.mockRejectedValue(new Error("stripe down"));

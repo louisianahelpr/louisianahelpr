@@ -118,11 +118,12 @@ describe("SeriesStrip: an ended series, and the way to end one", () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it("an ended series counts only the visits through its end and names the last one", () => {
-    // Wednesdays from Sep 2 for 6 weeks, ended on Sep 16: Sep 2, 9, 16 = 3 visits.
+  it("an ended series counts only the visits that exist (a gap before the end is not a visit to come)", () => {
+    // Wednesdays from Sep 2 for 6 weeks, ended on Sep 16, and only visit one
+    // exists: Sep 9 and 16 are gaps the cron will never fund now.
     renderStrip({ recurrenceDays: [3], recurrenceWeeks: 6, dateNeeded: "2026-09-02", seriesEndedOn: "2026-09-16", canEnd: true });
-    expect(screen.getByText(/1\/3 visits/)).toBeTruthy();
-    expect(screen.getByText(/ended — last visit Wed, Sep 16/)).toBeTruthy();
+    expect(screen.getByText(/1\/1 visits/)).toBeTruthy();
+    expect(screen.getByText(/ended, no new visits/)).toBeTruthy();
     expect(screen.queryByText(/next funds/)).toBeNull();
     expect(screen.queryByRole("button", { name: "End series" })).toBeNull();
   });
@@ -144,5 +145,5 @@ describe("SeriesStrip: an ended series, and the way to end one", () => {
 
 // D4: the UTC date instead of the platform's names the wrong charge in the evening.
 // @mutate src/pages/posts/SeriesStrip.tsx | const today = todayYmd(); | const today = new Date().toISOString().slice(0, 10);
-// An ended series still counted and dated as if it ran its full length.
-// @mutate src/pages/posts/SeriesStrip.tsx | (d, i) => i === 0 \|\| seriesEndedOn === null \|\| d <= seriesEndedOn, | () => true,
+// An ended series still counted the schedule's dates (gaps included) as visits.
+// @mutate src/pages/posts/SeriesStrip.tsx | const total = seriesEndedOn ? createdVisits : allDates.length; | const total = allDates.length;

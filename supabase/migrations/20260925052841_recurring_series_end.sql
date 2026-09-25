@@ -15,11 +15,17 @@
 --    the poster OR the standing Helpr may call. It sets the last date the series
 --    runs to the latest of: visit one, today in America/Chicago, and the last
 --    visit already created (created visits are funded and booked; each keeps its
---    own cancel path). The cron funds no visit after that date, and a BEFORE
---    INSERT trigger refuses a visit dated after it, so a cron run that read the
---    series before it ended cannot book past the end (its insert fails and the
---    cron's insert-failure branch refunds the charge). Ending carries no fee and
---    no strike: every visit it removes is unfunded and was never booked.
+--    own cancel path). Once a series is ended NO new visit is created at all:
+--    the cron skips it, and a BEFORE INSERT trigger refuses any new visit of an
+--    ended series, so a cron run that read the series before it ended cannot
+--    book it (its insert fails and the cron's insert-failure branch refunds the
+--    charge). Not "no visit after the end date": the end date is at or after
+--    the last created visit, so the only dates at or before it that have no
+--    visit are GAPS (a date whose charge failed earlier, which the cron retries
+--    for three days), and funding a gap after the end charged the poster for a
+--    series they had just ended (money/authz review 2026-09-25, reproduced in
+--    PGlite). Ending carries no fee and no strike: every visit it removes is
+--    unfunded and was never booked.
 --
 -- 2. The visit schedule was client-writable after hire. The Q357 lock covered
 --    recurrence_days only; the probe changed recurrence_weeks 4 -> 52 and moved
@@ -103,7 +109,10 @@ CREATE TRIGGER trg_enforce_series_columns_client_lock
   BEFORE INSERT OR UPDATE OF parent_job_id, recurrence_days, recurrence_weeks, date_needed, start_time, recurrence_end_date, series_ended_on ON public.jobs
   FOR EACH ROW EXECUTE FUNCTION public.enforce_series_columns_client_lock();
 
--- ── No visit after the end ────────────────────────────────────────────────
+-- ── No new visit once the series has ended ────────────────────────────────
+-- ANY new visit of an ended series is refused, whatever its date: a date at or
+-- before the end with no visit is a gap the cron failed to fund earlier, and
+-- funding it now would charge for a series that was ended (see the header).
 -- FOR SHARE on the parent: an end_recurring_series still in flight holds FOR
 -- UPDATE on it, so this waits for that commit and then reads the new end date.
 -- In the other order the RPC waits for this insert and counts the new visit
@@ -123,8 +132,8 @@ BEGIN
     FROM public.jobs j
    WHERE j.id = NEW.parent_job_id
    FOR SHARE;
-  IF v_ended IS NOT NULL AND NEW.date_needed > v_ended THEN
-    RAISE EXCEPTION 'series_ended: the series ended on %; no visit on %', v_ended, NEW.date_needed
+  IF v_ended IS NOT NULL THEN
+    RAISE EXCEPTION 'series_ended: the series ended on %; no new visit (%)', v_ended, NEW.date_needed
       USING ERRCODE = '23514';
   END IF;
   RETURN NEW;
@@ -328,10 +337,9 @@ BEGIN
       v_other,
       v_job.id,
       'Recurring series ended',
-      format('%s ended the recurring series "%s". No visits after %s will be booked or charged.%s',
+      format('%s ended the recurring series "%s". No new visits will be booked or charged.%s',
              CASE WHEN v_by_poster THEN 'The person who posted it' ELSE 'Your Helpr' END,
              COALESCE(v_job.title, 'A job'),
-             to_char(v_end, 'FMMon FMDD'),
              CASE WHEN v_booked > 0
                   THEN format(' %s visit%s already booked still go%s ahead unless cancelled.',
                               v_booked, CASE WHEN v_booked = 1 THEN '' ELSE 's' END,

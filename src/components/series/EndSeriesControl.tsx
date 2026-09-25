@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
-import { formatJobDate } from "@/lib/dateUtils";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticError } from "@/lib/haptics";
 
@@ -14,8 +13,8 @@ import { hapticError } from "@/lib/haptics";
  * of the two). It works at every status of the parent, including after visit
  * one is completed, which is when poster_cancel_job no longer applies.
  *
- * Ending stops new visits: charge-recurring-visits funds nothing after
- * `series_ended_on`. Visits already created are funded and booked; each keeps
+ * Ending stops new visits: charge-recurring-visits funds no new visit of a
+ * series with `series_ended_on` set, and the DB refuses one. Visits already created are funded and booked; each keeps
  * its own cancel path on its own card.
  */
 export function EndSeriesControl({
@@ -48,11 +47,12 @@ export function EndSeriesControl({
           rpcErrorMessage("end_recurring_series", error) ?? error.message ?? "Couldn't end the series — please try again",
         );
       }
-      const result = (data ?? {}) as { ended_on?: string | null; booked_visits_remaining?: number | null };
+      const result = (data ?? {}) as { booked_visits_remaining?: number | null };
       const booked = result.booked_visits_remaining ?? 0;
-      const last = result.ended_on ? formatJobDate(result.ended_on) : null;
+      // "No new visits", not "nothing after <end date>": an ended series gets
+      // no new visit at all, a gap before the end date included.
       toast.success(
-        last ? `Series ended. Nothing after ${last} will be booked or charged.` : "Series ended.",
+        "Series ended. No new visits will be booked or charged.",
         booked > 0
           ? {
               description: `${booked} visit${booked === 1 ? " is" : "s are"} already booked and still on the calendar — cancel ${booked === 1 ? "it" : "any of them"} from ${booked === 1 ? "its" : "their"} own card.`,

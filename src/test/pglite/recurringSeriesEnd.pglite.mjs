@@ -19,8 +19,8 @@
  * series_ended_on is never client-writable; end_recurring_series works for the
  * poster and the standing Helpr, refuses a stranger and a non-series, is
  * idempotent, ends on the latest of visit one / today (Chicago) / the last
- * created visit, and notifies the other party; a visit dated after the end is
- * refused on insert, one on or before it is not; a pre-hire date edit and an
+ * created visit, and notifies the other party; once ended, ANY new visit is
+ * refused on insert, a gap dated on or before the end included; a pre-hire date edit and an
  * unrelated edit still work; anon cannot execute the RPC.
  */
 import os from "node:os";
@@ -182,7 +182,7 @@ check("idempotent call sends nothing", n === 1, String(n));
 r = await server(db, `insert into public.jobs (title, customer_id, helper_id, status, date_needed, parent_job_id) values ('visit', '${P}', '${H}', 'accepted', ${d(14)}, '${J(1)}')`);
 check("server cannot create a visit after the end", refused(r, /series_ended/), r.err);
 r = await server(db, `insert into public.jobs (title, customer_id, helper_id, status, date_needed, parent_job_id) values ('visit', '${P}', '${H}', 'accepted', ${d(11)}, '${J(1)}')`);
-check("a visit on or before the end still inserts", r.ok, r.err);
+check("a GAP dated on or before the end is refused too (review 2026-09-25: no new visit once ended)", refused(r, /series_ended/), r.err);
 
 r = await as(db, "authenticated", P, `select public.end_recurring_series('${J(3)}') as v`);
 const today = (await db.query(`select (now() at time zone 'America/Chicago')::date::text as t`)).rows[0].t;

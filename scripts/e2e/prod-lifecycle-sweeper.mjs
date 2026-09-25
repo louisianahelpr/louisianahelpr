@@ -47,7 +47,12 @@
 //   SUPABASE_URL=… SUPABASE_ANON_KEY=… POSTER_ACCESS_TOKEN=… \
 //     node scripts/e2e/prod-lifecycle-sweeper.mjs [--dry-run]
 import { removeJobMediaRest } from "../lib/jobMediaRest.mjs";
-import { summariseSweep, classifyCancelEscrow } from "./sweepSummary.mjs";
+import {
+  summariseSweep,
+  classifyCancelEscrow,
+  cancelEscrowAnswerFromColumns,
+  createPaymentWindowWaitMs,
+} from "./sweepSummary.mjs";
 import { settleJobForward } from "./settleForward.mjs";
 
 const BASE = (process.env.SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
@@ -112,7 +117,11 @@ async function strandedJobs() {
   return r.json();
 }
 
+/** When this sweep last called create-payment (its rate-limit window is the money loop's too). */
+let lastCreatePaymentAt = null;
+
 async function cancelEscrow(jobId) {
+  lastCreatePaymentAt = Date.now(); // before the call: a refusal counts against the window too
   const r = await fetch(`${BASE}/functions/v1/create-payment`, {
     method: "POST",
     headers: H,
@@ -267,11 +276,18 @@ for (const job of jobs) {
     const r = await cancelJob(job.id);
     if (!r.ok) failures.push(`cancel ${job.id}: HTTP ${r.status} ${r.body}`);
   } else if (funded) {
-    /* Retried on 429 with backoff before any verdict is drawn. The limiter
-       answers per-caller, so a queue of stranded rows trips it on the rows
-       themselves — waiting is the whole remedy. */
-    let r = await cancelEscrow(job.id);
-    let verdict = classifyCancelEscrow(r.status, r.body);
+    /* A row whose columns already decide the answer is not asked: create-payment
+       refuses every hired, started or disputed job, and each refusal still
+       spends one of the poster's 10 create-payment calls a minute, the same
+       window the money loop's escrow and release need next (nine refusals
+       here left the loop one call, and its release came back 429). Only an
+       open, unhired row is asked. Retried on 429 with backoff before any
+       verdict is drawn. The limiter answers per-caller, so a queue of
+       stranded rows trips it on the rows themselves — waiting is the whole
+       remedy. */
+    const known = cancelEscrowAnswerFromColumns(job);
+    let r = known ? null : await cancelEscrow(job.id);
+    let verdict = known ?? classifyCancelEscrow(r.status, r.body);
     for (let attempt = 0; verdict === "throttled" && attempt < 3; attempt++) {
       const waitMs = 2000 * 2 ** attempt;
       console.log(`    throttled on ${job.id}; waiting ${waitMs}ms before asking again`);
@@ -309,6 +325,8 @@ for (const job of jobs) {
             jobId: job.id,
             log: (line) => console.log(line),
           });
+          // The forward walk ends on create-payment's release, in the same window.
+          lastCreatePaymentAt = Date.now();
           if (out.settled) continue;
           console.log(`    could not settle ${job.id} forward: ${out.reason}`);
         } catch (err) {
@@ -317,7 +335,9 @@ for (const job of jobs) {
           console.log(`    could not settle ${job.id} forward: ${String(err).slice(0, 200)}`);
         }
       }
-      console.log(`    left to settle forward: ${job.id} is hired and funded (cancel_escrow 409 useCancelJob)`);
+      console.log(
+        `    left to settle forward: ${job.id} is hired and funded (cancel_escrow ${known ? "refuses a hired or started job; not asked" : "409 useCancelJob"})`,
+      );
       deferred.push(job);
     } else if (verdict === "disputed") {
       /* A DISPUTED JOB IS NOT A STRANDED ROW, and treating it as one turned
@@ -417,4 +437,16 @@ if (disputed.length) {
       `oldest ${oldest.id} at ${Number.isFinite(oldest.days) ? oldest.days.toFixed(1) : "?"} day(s). ` +
       `Resolve it in the admin console — until then this job cannot be cleaned up.`,
   );
+}
+
+/*
+ * The money loop runs next, as the same poster, and needs create-payment for
+ * its escrow and its release. The limiter counts this sweep's calls (refusals
+ * included) for a full window, so the sweep ends only once its last call has
+ * aged out of it.
+ */
+const windowWait = createPaymentWindowWaitMs(lastCreatePaymentAt);
+if (windowWait > 0) {
+  console.log(`Waiting ${Math.ceil(windowWait / 1000)}s so the next step starts with the poster's whole create-payment window.`);
+  await new Promise((res) => setTimeout(res, windowWait));
 }

@@ -107,3 +107,49 @@ export function classifyCancelEscrow(status, body = "") {
   if (status === 429) return "throttled";
   return "failure";
 }
+
+/**
+ * create-payment's rate-limit window for one caller: `checkRateLimit(req, {
+ * windowMs: 60_000, maxRequests: 10, keyPrefix: "create-payment" })` in
+ * supabase/functions/create-payment/index.ts, keyed on the JWT subject, and a
+ * REFUSAL counts against it like a success. The sweep and the money loop sign
+ * in as the same poster, so every create-payment call the sweep makes is one
+ * the loop cannot make in the next minute.
+ * src/test/sweepSparesCreatePaymentWindow.test.ts holds these two numbers
+ * equal to the function's own.
+ */
+export const CREATE_PAYMENT_WINDOW_MS = 60_000;
+export const CREATE_PAYMENT_MAX_PER_WINDOW = 10;
+
+/**
+ * The cancel_escrow answer a row gets WITHOUT asking, when its own columns
+ * already decide it. create-payment refuses every job that is not `open` or
+ * has a Helpr (`job.status !== "open" || job.helper_id || settlement.blocked`
+ * → 409): `disputed` status answers "under dispute", any other hired or
+ * started row answers useCancelJob. Returns null when only the server can say
+ * (an open, unhired row: its dispute-settlement read decides), so that row is
+ * still asked.
+ *
+ * A hired row whose DECIDED dispute has not executed yet is answered "under
+ * dispute" by the server; read from its columns it is a hired row, so it lands
+ * with the settle-forward rows. Both are reported, neither is fatal.
+ *
+ * @param {{ status: string, helper_id: string | null }} job
+ * @returns {"disputed" | "settle-forward" | null}
+ */
+export function cancelEscrowAnswerFromColumns(job) {
+  if (job.status === "disputed") return "disputed";
+  if (job.status !== "open" || job.helper_id) return "settle-forward";
+  return null;
+}
+
+/**
+ * How long to wait after the sweep's last create-payment call so the next
+ * step starts with the caller's whole window. 0 when the sweep made none.
+ * @param {number | null} lastCallAt epoch ms of the last call, null for none
+ * @param {number} now
+ */
+export function createPaymentWindowWaitMs(lastCallAt, now = Date.now()) {
+  if (lastCallAt === null) return 0;
+  return Math.max(0, lastCallAt + CREATE_PAYMENT_WINDOW_MS + 1_000 - now);
+}

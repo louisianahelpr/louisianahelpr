@@ -1,0 +1,87 @@
+name: Restore reconciliation
+
+permissions:
+  contents: read
+
+# DR-004 / DR-006: the two checks docs/runbooks/restore-from-backup.md §4-§5
+# runs after a database restore, before any money cron is switched back on.
+#
+#   storage-refs   every row whose Storage file is missing or lives on another
+#                  project (scripts/check-storage-refs.mjs)
+#   stripe-drift   every Stripe PaymentIntent / transfer / refund created since
+#                  the restore point that has no database row
+#                  (scripts/check-stripe-restore-drift.mjs)
+#
+# Both are READ-ONLY. Manual only: there is no restore to reconcile on a
+# schedule. It reads whatever project SUPABASE_PROJECT_REF /
+# SUPABASE_SERVICE_ROLE_KEY name, so after a restore into a new project, update
+# those secrets first (runbook §6 step 1). Run it on prod with any `since` to
+# see what the checks say about today's data.
+
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "Restore point: when the restored backup was taken (ISO-8601, e.g. 2026-09-24T09:37:00Z)"
+        required: true
+      stripe_mode:
+        description: "Stripe mode to read (test until launch)"
+        required: false
+        default: "test"
+
+jobs:
+  reconcile:
+    name: Reconcile a restored database
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Storage references
+        id: storage
+        continue-on-error: true
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/check-storage-refs.mjs --json storage-refs.json
+
+      - name: Stripe money since the restore point
+        id: stripe
+        continue-on-error: true
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          SINCE: ${{ inputs.since }}
+          MODE: ${{ inputs.stripe_mode }}
+        run: node scripts/check-stripe-restore-drift.mjs --since "$SINCE" --mode "$MODE" --json stripe-drift.json
+
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: restore-reconcile
+          path: |
+            storage-refs.json
+            stripe-drift.json
+          if-no-files-found: warn
+
+      # Both checks run even when the first is red (each step above is
+      # continue-on-error), and this step makes the RUN red if either was.
+      - name: Verdict
+        if: always()
+        env:
+          STORAGE: ${{ steps.storage.outcome }}
+          STRIPE: ${{ steps.stripe.outcome }}
+        run: |
+          echo "storage references: $STORAGE"
+          echo "stripe since restore point: $STRIPE"
+          if [ "$STORAGE" != "success" ] || [ "$STRIPE" != "success" ]; then
+            echo "::error::Restore reconciliation is not clean — read the step logs above before switching any money cron on."
+            exit 1
+          fi

@@ -19,8 +19,9 @@
  * Env: SUPABASE_URL, or SUPABASE_PROJECT_REF (-> https://<ref>.supabase.co).
  *      Optional VITE_SUPABASE_PUBLISHABLE_KEY (sent as apikey; the probe does
  *      not need it: the gateway passes OPTIONS through unauthenticated).
- * Exit: 0 every function answered HEAD's stamp; 1 otherwise (names written to
- *       --mismatch-file, one per line, for the workflow to redeploy).
+ * Exit: success only when every function answered HEAD's stamp; otherwise
+ *       non-zero, with the names written to --mismatch-file, one per line, for
+ *       the workflow to redeploy.
  */
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";

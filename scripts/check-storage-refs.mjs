@@ -67,7 +67,8 @@ async function req(method, path, body) {
   }
 }
 
-// 1. Every reference, every column. PostgREST caps a page at 1000 rows.
+// 1. Every reference, every column. PostgREST caps each page (db-max-rows,
+// measured 2026-09-01 in supabase/functions/money-reconciliation/index.ts).
 const refs = [];
 const perColumn = [];
 for (const col of STORAGE_REFERENCE_COLUMNS) {

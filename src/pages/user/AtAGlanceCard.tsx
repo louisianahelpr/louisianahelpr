@@ -54,18 +54,6 @@ import type { ProfileStatsShape, ReplyLatency } from "./types";
  * below.
  */
 
-/**
- * The record strip's geometry, in ONE place, exported for the /user/:id
- * loading placeholder (UserProfile.tsx). That placeholder hand-drew its tiles
- * as `p-3` boxes of two bones in a plain `grid-cols-2`: 64px tiles against
- * these 58px ones at 375, and a 2x2 block at 1440 where this grid is one row
- * of four. Shared, so the two cannot drift apart again.
- */
-export const METRIC_CELL_FRAME =
-  "flex flex-col gap-0.5 rounded-ds-md px-3 py-2.5 sm:py-3.5 min-w-0 min-h-[58px] justify-center";
-/** Two-up on a phone, one row of four from `sm` (see the note at the grid). */
-export const AT_A_GLANCE_GRID = "grid grid-cols-2 auto-rows-fr gap-2 sm:grid-cols-4";
-
 type Cell = {
   key: string;
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
@@ -117,7 +105,7 @@ const MetricCell = ({ cell, className }: { cell: Cell; className?: string }) => 
   if (!interactive) {
     return (
       <div
-        className={cn(METRIC_CELL_FRAME, className)}
+        className={cn("flex flex-col gap-0.5 rounded-ds-md px-3 py-2.5 sm:py-3.5 min-w-0 min-h-[58px] justify-center", className)}
         style={{ background: "hsl(var(--olivewood) / 0.05)" }}
       >
         {body}
@@ -132,8 +120,7 @@ const MetricCell = ({ cell, className }: { cell: Cell; className?: string }) => 
       aria-pressed={!!cell.selected}
       className={cn(
         // min-h-[58px] clears the 44px tap-target floor with room to spare.
-        METRIC_CELL_FRAME,
-        "text-left",
+        "flex flex-col gap-0.5 rounded-ds-md px-3 py-2.5 sm:py-3.5 min-w-0 min-h-[58px] justify-center text-left",
         className,
         // Outline, not ring: the selected state below paints an inline
         // boxShadow, which is the property Tailwind's ring lives in, so a
@@ -445,7 +432,7 @@ export const AtAGlanceCard = ({
           Cancelled tile's and is gone, but the invariant stays: the four
           labels are all one or two words, so no tile wraps past the two lines
           its neighbours use. */}
-      <div className={AT_A_GLANCE_GRID}>
+      <div className="grid grid-cols-2 auto-rows-fr gap-2 sm:grid-cols-4">
         {cells.map((c) => (
           <MetricCell key={c.key} cell={c} />
         ))}

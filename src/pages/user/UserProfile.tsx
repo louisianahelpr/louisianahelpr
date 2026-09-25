@@ -18,8 +18,14 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
-import { ProfileHeaderCard } from "./ProfileHeaderCard";
-import { ProfileHeroSkeleton } from "./ProfileHeroSkeleton";
+import {
+  ProfileHeaderCard,
+  PROFILE_HERO_AVATAR,
+  PROFILE_HERO_CARD,
+  PROFILE_HERO_PAD,
+  PROFILE_HERO_RECORD,
+  PROFILE_HERO_ROW,
+} from "./ProfileHeaderCard";
 import BackgroundCheckCard from "@/components/profile/BackgroundCheckCard";
 import { AtAGlanceCard } from "./AtAGlanceCard";
 import { RecognitionRow } from "./RecognitionRow";
@@ -210,12 +216,9 @@ const UserProfile = () => {
   // the header keeps the same layout (one title row, actions flush right)
   // before and after the fetch resolves — no height jump.
   const headerHasActions = !isOwnProfile && !!currentUserId;
-  // TWO bones, one per control the loaded header carries: SaveHelperButton
-  // and the overflow menu (both `h-10 w-10`). The third stood in for the
-  // Message button, which the owner removed from this page ("only the poster
-  // can message"), so the placeholder promised a control that never arrives.
   const headerActionPlaceholder = headerHasActions ? (
     <div className="flex items-center gap-1" aria-hidden>
+      <div className="h-10 w-10 rounded-ds-md bg-muted motion-safe:animate-pulse" />
       <div className="h-10 w-10 rounded-ds-md bg-muted motion-safe:animate-pulse" />
       <div className="h-10 w-10 rounded-ds-md bg-muted motion-safe:animate-pulse" />
     </div>
@@ -314,15 +317,52 @@ const UserProfile = () => {
                 </p>
               </div>
             )}
-            <ProfileHeroSkeleton />
-            {/* NO bone below the card any more. It held space for
-                "endorsements, availability and portfolio", but endorsements
-                (migration 20260904034410) and the public availability section
-                (VN-12) are gone; what can still render there is work photos
-                and the Pro+ portfolio, which most profiles do not have. So a
-                160px card sat where, for most members, nothing arrives, and
-                the page shrank when the data landed. Those that have photos
-                grow below the fold instead. */}
+            {/* The hero card's frame is IMPORTED from ProfileHeaderCard, not
+                restated. These bones used to carry their own copy of it under
+                a comment claiming they mirrored that card — and the copy had
+                drifted: `flex flex-col sm:flex-row` here (a centred stack at
+                375, with a 96px avatar) against `flex flex-row` and an 80px
+                avatar there, at every width. Measured at 375 the whole
+                identity block relaid out on arrival and the card went 326px
+                to 309px. Same fix JobCardSkeleton got from cardGeometry:
+                share the declaration so neither side can move alone. */}
+            <div className={PROFILE_HERO_CARD}>
+              <div className={PROFILE_HERO_PAD}>
+                <div className={PROFILE_HERO_ROW}>
+                  <div className={`${PROFILE_HERO_AVATAR} shrink-0 bg-muted motion-safe:animate-pulse`} />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="h-6 w-40 max-w-full bg-muted motion-safe:animate-pulse rounded" />
+                    <div className="h-4 w-32 max-w-full bg-muted motion-safe:animate-pulse rounded" />
+                    <div className="h-4 w-28 max-w-full bg-muted motion-safe:animate-pulse rounded" />
+                  </div>
+                </div>
+              </div>
+              {/* THE RECORD strip, inside the same card and behind the same
+                  hairline the card draws it behind — a 2x2 stat grid. It used
+                  to be a 3-up row of separate cards BELOW the hero, standing
+                  in for something this page does not have: the stats live
+                  inside the masthead. */}
+              <div
+                className={PROFILE_HERO_RECORD}
+                style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.14)" }}
+              >
+                <div className="grid grid-cols-2 gap-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="rounded-ds-md p-3 space-y-2" style={{ background: "hsl(var(--olivewood) / 0.05)" }}>
+                      <div className="h-5 w-16 bg-muted motion-safe:animate-pulse rounded" />
+                      <div className="h-3 w-20 bg-muted motion-safe:animate-pulse rounded" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="space-y-section">
+              {/* Endorsements, availability and portfolio each run their OWN
+                  fetch and return null until it lands, so they arrive in a
+                  second wave after this skeleton is already gone. One bone
+                  holds that space instead of letting the page jump twice. */}
+              <div className="h-40 rounded-2xl liquid-glass motion-safe:animate-pulse" />
+            </div>
           </div>
         </div>
       </>

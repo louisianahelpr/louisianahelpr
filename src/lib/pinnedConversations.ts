@@ -71,6 +71,13 @@ function isMissingTable(error: unknown): boolean {
   return code === "PGRST205" || code === "42P01";
 }
 
+/** True when a write was rejected because the referenced job no longer exists. */
+function isForeignKeyViolation(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code = (error as { code?: string }).code;
+  return code === "23503";
+}
+
 function readLocal(userId: string): Set<string> {
   try {
     const raw = safeStorage.getItem(storageKey(userId));
@@ -150,6 +157,27 @@ export async function loadPins(userId: string): Promise<Set<string>> {
         .from("thread_pins")
         .upsert(rows, { onConflict: "user_id,job_id,other_user_id", ignoreDuplicates: true });
       if (mergeError && !isMissingTable(mergeError)) {
+        if (isForeignKeyViolation(mergeError)) {
+          // Bulk upsert hit at least one deleted job. Retry one row at a time:
+          // keep the valid pins and silently discard the stale ones so they get
+          // pruned from local storage and stop triggering this path on reload.
+          for (const row of rows) {
+            const { error: rowErr } = await supabase
+              .from("thread_pins")
+              .upsert(row, { onConflict: "user_id,job_id,other_user_id", ignoreDuplicates: true });
+            if (!rowErr || isMissingTable(rowErr)) {
+              server.add(pinnedKey(row.job_id, row.other_user_id));
+            } else if (!isForeignKeyViolation(rowErr)) {
+              server.add(pinnedKey(row.job_id, row.other_user_id));
+              report(rowErr, { severity: "warning", tags: { source: "pinnedConversations.mergeLocalPins" } });
+            }
+            // FK violation on this row: job was deleted — leave out of server set
+            // so writeLocal below prunes it from durable storage.
+          }
+          cache.set(userId, server);
+          writeLocal(userId, server);
+          return server;
+        }
         report(mergeError, { severity: "warning", tags: { source: "pinnedConversations.mergeLocalPins" } });
       }
     }
@@ -215,7 +243,11 @@ export function togglePinned(userId: string, jobId: string, otherUserId: string)
       else rollback.add(k);
       cache.set(userId, rollback);
       writeLocal(userId, rollback);
-      report(error, { severity: "warning", tags: { source: "pinnedConversations.togglePinned" } });
+      if (!isForeignKeyViolation(error)) {
+        // FK violation means the job was deleted — the rollback is correct, but
+        // there is no bug to report.
+        report(error, { severity: "warning", tags: { source: "pinnedConversations.togglePinned" } });
+      }
     }
   })();
 

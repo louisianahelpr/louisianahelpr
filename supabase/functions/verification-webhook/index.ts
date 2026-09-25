@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { serve } from "../_shared/buildStamp.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -38,7 +39,7 @@ async function hmacSha256Hex(secret: string, payload: string): Promise<string> {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
   const vendor = req.headers.get("x-vendor") ?? "unknown";

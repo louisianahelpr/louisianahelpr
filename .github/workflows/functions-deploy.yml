@@ -276,6 +276,10 @@ jobs:
           for fn in ${{ steps.targets.outputs.functions }}; do
             echo ""
             echo "::group::Deploying $fn"
+            # BR-024: stamp THIS function's build hash into _shared/buildStamp.ts
+            # right before the CLI bundles it; the "serves HEAD's build" step
+            # below reads it back from the running function.
+            node scripts/edge-build-stamp.mjs write "$fn"
             # --no-verify-jwt is set per-function in supabase/config.toml
             # so we don't need to pass it here. The CLI reads config.toml.
             if supabase functions deploy "$fn" --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" 2>&1 | tee -a functions-deploy.log; then
@@ -374,9 +378,55 @@ jobs:
             LOG="functions-deploy-retry-$ATTEMPT.log"
             : > "$LOG"
             for fn in $RETRY; do
+              node scripts/edge-build-stamp.mjs write "$fn"
               supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" 2>&1 | tee -a "$LOG"
             done
             TARGETS="$RETRY"
+          done
+
+      # EVERY FUNCTION SERVES HEAD'S BUILD. Added 2026-09-25 (BR-024).
+      #
+      # The step above can prove a lost deploy only where ezbr_sha256 is
+      # stable. About forty functions have it re-stamped by the platform with
+      # no deploy (health-check 1305 -> 1307 in nine minutes, 2026-09-22), so a
+      # lost upload there can pass it. This step asks each RUNNING function
+      # instead: _shared/buildStamp.ts answers an OPTIONS probe with the stamp
+      # the loop above wrote into its bundle, and
+      # scripts/check-edge-build-stamps.mjs compares that with the stamp HEAD
+      # computes, for EVERY directory under supabase/functions (not only this
+      # run's targets, so a function an earlier run failed to land is caught).
+      # Mismatches are redeployed up to twice; then the run fails.
+      # src/test/edgeBuildStamp.test.ts keeps this step always(), never
+      # continue-on-error, and every function behind the wrapper.
+      - name: Verify every function serves HEAD's build
+        if: always() && steps.precheck.outputs.skip != 'true' && steps.targets.outputs.skip_deploy != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          MAX_RETRIES=2
+          ATTEMPT=0
+          while :; do
+            if node scripts/check-edge-build-stamps.mjs --wait-seconds 120 --mismatch-file stale.txt; then
+              exit 0
+            fi
+            ATTEMPT=$((ATTEMPT + 1))
+            if [ "$ATTEMPT" -gt "$MAX_RETRIES" ]; then
+              echo "::error::Still serving another build after $MAX_RETRIES redeploys. Prod is running code that is not HEAD's for the function(s) named above — do not treat this run as deployed."
+              exit 1
+            fi
+            STALE="$(tr '\n' ' ' < stale.txt)"
+            if [ -z "${STALE// /}" ]; then
+              echo "::error::The stamp check failed but named no function to redeploy. Failing rather than looping."
+              exit 1
+            fi
+            echo "::warning::Attempt $ATTEMPT: not serving HEAD's build:$STALE — redeploying just those."
+            for fn in $STALE; do
+              node scripts/edge-build-stamp.mjs write "$fn"
+              supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF"
+            done
           done
 
       - name: Notify on failure

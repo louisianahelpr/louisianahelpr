@@ -103,6 +103,15 @@ function rewriteExternalImports(src: string): string {
     "",
   );
 
+  // serve (BR-024): every function now imports `serve` from
+  // `_shared/buildStamp.ts`, which wraps Deno.serve to answer the deploy build
+  // probe before the handler. Drop it the same way: the handler under test is
+  // the function's own, and the wrapper is tested in edgeBuildStamp.test.ts.
+  out = out.replace(
+    /import\s+\{\s*serve\s*\}\s+from\s+["'](?:\.\.\/)+_shared\/buildStamp\.ts["'];?/g,
+    "",
+  );
+
   // Shared helpers: `_shared/rate-limit.ts`, `_shared/slack-alerts.ts`,
   // `_shared/cors.ts`, `_shared/appUrl.ts`, `_shared/giftCardEmail.ts` — at ANY
   // `../` depth (index.ts uses `../_shared/...`; nested handlers use

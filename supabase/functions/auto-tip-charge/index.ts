@@ -86,9 +86,11 @@ serve(async (req) => {
     });
     const stripe = new Stripe(stripeSecretKey!, { apiVersion: "2025-08-27.basil" });
 
-    const { data: candidates, error: candErr } = await supabase.rpc("auto_tip_candidates", {
-      _since_hours: 24,
-    });
+    // No window argument: the function's own default (14 days, anchored on
+    // completed_at and on the poster's auto_tip_enabled_at) is the policy, so
+    // a missed run drains on the next one and no job finished before the
+    // poster opted in is ever tipped (migration 20260925053956, CJ-008).
+    const { data: candidates, error: candErr } = await supabase.rpc("auto_tip_candidates");
     if (candErr) {
       log("ERROR loading candidates", { error: candErr.message });
       throw new Error(`auto_tip_candidates failed: ${candErr.message}`);

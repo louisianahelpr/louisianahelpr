@@ -3258,6 +3258,7 @@ export type Database = {
           auto_release_on_complete: boolean
           auto_suspended_until: string | null
           auto_tip_cap: number | null
+          auto_tip_enabled_at: string | null
           auto_tip_mode: Database["public"]["Enums"]["auto_tip_mode"]
           auto_tip_value: number | null
           availability: string | null
@@ -3360,6 +3361,7 @@ export type Database = {
           auto_release_on_complete?: boolean
           auto_suspended_until?: string | null
           auto_tip_cap?: number | null
+          auto_tip_enabled_at?: string | null
           auto_tip_mode?: Database["public"]["Enums"]["auto_tip_mode"]
           auto_tip_value?: number | null
           availability?: string | null
@@ -3462,6 +3464,7 @@ export type Database = {
           auto_release_on_complete?: boolean
           auto_suspended_until?: string | null
           auto_tip_cap?: number | null
+          auto_tip_enabled_at?: string | null
           auto_tip_mode?: Database["public"]["Enums"]["auto_tip_mode"]
           auto_tip_value?: number | null
           availability?: string | null

@@ -384,6 +384,29 @@ describe("stripe-webhook edge function", () => {
       expect((notif?.payload as Record<string, unknown>).type).toBe("warning");
     });
 
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (pi.metadata?.type === "tip") return; | 
+    it("a declined TIP never touches the job or tells the poster their job payment failed", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_tip_fail",
+        type: "payment_intent.payment_failed",
+        data: {
+          object: {
+            id: "pi_tip_failed",
+            receipt_email: "poster@test.com",
+            // auto-tip-charge carries job_id on its PaymentIntent for the receipt.
+            metadata: { type: "tip", source: "auto", job_id: "job-1" },
+          },
+        },
+      });
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job" }],
+      };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(scenario.writes.find((w) => w.table === "jobs" && w.op === "update")).toBeUndefined();
+      expect(scenario.writes.find((w) => w.table === "notifications")).toBeUndefined();
+    });
+
     it("ME-040: does nothing (no crash, no write) for a PI with no job_id metadata, rather than falling back to a column the decline path never wrote", async () => {
       // Before the fix this branch looked up `jobs.stripe_payment_intent_id`,
       // a column ONLY the success path writes — a declined-at-Checkout PI

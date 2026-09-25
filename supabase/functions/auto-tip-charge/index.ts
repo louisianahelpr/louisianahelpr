@@ -304,6 +304,11 @@ serve(async (req) => {
         }
       };
 
+      // Charge = tip + card fee; application fee = card fee; the Helpr's
+      // destination transfer = the tip, to the cent. Computed before the try so
+      // the ambiguous-outcome branch below can name the idempotency key too.
+      const tipQuote = tipChargeBreakdown(tipCents);
+
       try {
         const { data: helperProfile, error: helperProfileErr } = await supabase
           .from("profiles")
@@ -409,9 +414,6 @@ serve(async (req) => {
           continue;
         }
 
-        // Charge = tip + card fee; application fee = card fee; the Helpr's
-        // destination transfer = the tip, to the cent.
-        const tipQuote = tipChargeBreakdown(tipCents);
 
         const createIntent = () => stripe.paymentIntents.create(
           {
@@ -446,10 +448,11 @@ serve(async (req) => {
             },
           },
           {
-            // Keyed on the tips row id, which is unique per job by the index
-            // above. A Stripe-level retry of this exact call can never mint a
-            // second charge.
-            idempotencyKey: `auto-tip:${tipRow.id}`,
+            // Keyed on the tips row id (unique per job by the index above) and
+            // the amount charged, so a Stripe-level retry of this exact call
+            // can never mint a second charge, and a retry with a different
+            // charge total is a new request rather than a parameter mismatch.
+            idempotencyKey: `auto-tip:${tipRow.id}:c${tipQuote.chargeCents}`,
           },
         );
 
@@ -529,14 +532,14 @@ serve(async (req) => {
         if (err instanceof AmbiguousCharge) {
           // The poster may have been charged. Do not tell them it failed and do
           // not mark it failed; leave the row 'pending' with the reason and turn
-          // the run red so someone checks Stripe for auto-tip:<tips.id>.
+          // the run red so someone checks Stripe for auto-tip:<tips.id>:c<charge cents>.
           await settleTip(
             { failure_reason: `ambiguous: ${message}`.slice(0, 200) },
             "tip ambiguous-outcome write",
             "the charge outcome is unknown and the row carries no reason",
           );
           defects.record(
-            `auto-tip ${jobId}: charge outcome UNKNOWN after retry (${message.slice(0, 120)}) — check Stripe for idempotency key auto-tip:${tipRow.id} before telling the poster anything`,
+            `auto-tip ${jobId}: charge outcome UNKNOWN after retry (${message.slice(0, 120)}) — check Stripe for idempotency key auto-tip:${tipRow.id}:c${tipQuote.chargeCents} before telling the poster anything`,
           );
           results.failed++;
           log("charge outcome unknown", { jobId, error: message });

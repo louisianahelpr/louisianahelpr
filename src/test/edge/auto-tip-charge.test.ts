@@ -285,7 +285,7 @@ describe("auto-tip-charge edge function", () => {
         // $10 tip: the poster is charged 1000 + 61 card fee, the application
         // fee is 61, so the Helpr's destination transfer is exactly 1000.
         expect.objectContaining({ off_session: true, confirm: true, amount: 1061, application_fee_amount: 61 }),
-        { idempotencyKey: "auto-tip:mock-matched-row" },
+        { idempotencyKey: "auto-tip:mock-matched-row:c1061" },
       );
       expect((settleWrite()?.payload as { stripe_payment_intent_id: string }).stripe_payment_intent_id)
         .toBe("pi_auto_1");

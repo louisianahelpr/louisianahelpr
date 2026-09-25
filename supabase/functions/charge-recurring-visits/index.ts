@@ -262,6 +262,7 @@ serve(async (req) => {
     skippedExisting: 0,
     skippedUnhired: 0,
     skippedBlocked: 0,
+    skippedEnded: 0,
     declined: 0,
     errors: 0,
     capped: false,
@@ -324,7 +325,7 @@ serve(async (req) => {
     supabase
       .from("jobs")
       .select(
-        "id, customer_id, business_id, title, description, category, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, helper_id, status",
+        "id, customer_id, business_id, title, description, category, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, helper_id, status, series_ended_on",
         countOpt,
       )
       // Offset paging over an unordered result is sampling, not paging.
@@ -333,6 +334,11 @@ serve(async (req) => {
       .not("recurrence_days", "is", null)
       .not("recurring_helper_id", "is", null)
       .is("parent_job_id", null)
+      // A series whose poster deleted their account has customer_id NULL
+      // (purge_user_data anonymises, it does not cancel). Nobody is left to
+      // charge or to notify, so it is out of scope rather than a daily
+      // "poster profile unreadable" defect.
+      .not("customer_id", "is", null)
       // jobs.status is the `job_status` ENUM, and its ONLY members are: open,
       // accepted, in_progress, completed, cancelled, revision_requested,
       // disputed, pending_approval. This filter previously named 'expired',
@@ -390,7 +396,16 @@ serve(async (req) => {
       // second, separately-charged job for a visit the poster already funded at
       // checkout.
       const parentDate = parent.date_needed as string;
-      const due = dates.filter((d) => d > parentDate && d > today && d <= horizon);
+      //
+      // `series_ended_on` is the last date an ENDED series runs
+      // (end_recurring_series, called by the poster or the standing Helpr). No
+      // visit after it is funded; trg_series_visit_within_end refuses the insert
+      // too, so a run that read the series just before it ended is refunded by
+      // the insert-failure branch below rather than booking past the end.
+      const endedOn = (parent.series_ended_on as string | null) ?? null;
+      const due = dates.filter((d) =>
+        d > parentDate && d > today && d <= horizon && (endedOn === null || d <= endedOn)
+      );
       if (due.length === 0) continue;
 
       // ── Q356/Q347: the standing helper must be the one HIRED, and not blocked ──
@@ -972,6 +987,10 @@ serve(async (req) => {
           // holding a poster's money for a visit that does not exist is the
           // worst outcome available here, and it is silent unless we act.
           console.error(`[charge-recurring-visits] insert failed after charge ${intent.id}`, childErr);
+          // trg_series_visit_within_end refused the row: the series was ended
+          // (end_recurring_series) after this run read it. Once the refund
+          // below goes through that is the designed outcome, not a defect.
+          const seriesEndedMidRun = String(childErr?.message ?? "").startsWith("series_ended:");
           try {
             await stripe.refunds.create(
               { payment_intent: intent.id },
@@ -993,6 +1012,17 @@ serve(async (req) => {
               message: `PaymentIntent ${intent.id} is holding a poster's money for a visit that was never created. Refund by hand.`,
               fields: { parentJobId: String(parent.id), visitDate, intent: intent.id, error: String(refundErr) },
             });
+            fail(
+              `series ${parent.id} ${visitDate}: visit insert failed after charge ${intent.id} (${childErr?.message ?? "no row returned"})`,
+            );
+            continue;
+          }
+          if (seriesEndedMidRun) {
+            console.log(
+              `[charge-recurring-visits] series ${parent.id} ended before ${visitDate} was booked; charge ${intent.id} refunded.`,
+            );
+            results.skippedEnded++;
+            continue;
           }
           fail(
             `series ${parent.id} ${visitDate}: visit insert failed after charge ${intent.id} (${childErr?.message ?? "no row returned"})`,
@@ -1066,7 +1096,7 @@ serve(async (req) => {
             user_id: parent.recurring_helper_id,
             job_id: child.id,
             title: "Your next visit is booked",
-            message: `"${parent.title}" on ${visitDate} is confirmed and paid. Can't make it? Release the date from My Jobs.`,
+            message: `"${parent.title}" on ${visitDate} is confirmed and paid. Can't make it? Cancel this visit from My Jobs.`,
             type: "job_updates",
             // THIS visit, not the My Jobs default bucket — a confirmed booking
             // is `scheduled`, and /jobs opens on "Needs you".

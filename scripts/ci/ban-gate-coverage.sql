@@ -143,6 +143,7 @@ rpc_exempt(fn, why) AS (
   ('accept_group_application', 'writes group_job_helpers, applications, jobs: all ban-gated'),
   ('apply_to_job', 'writes applications INSERT, ban-gated'),
   ('decline_job_offer', 'writes applications + jobs UPDATE, both ban-gated'),
+  ('end_recurring_series', 'writes jobs UPDATE, ban-gated'),
   ('helper_abort_job', 'writes applications + jobs UPDATE, both ban-gated'),
   ('helper_cancel_booking', 'writes applications + jobs UPDATE, both ban-gated'),
   ('helper_mark_on_the_way', 'writes job_tracking + jobs, both ban-gated'),

@@ -60,6 +60,11 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (taxCalculationId && taxCents > 0) { |         if (false) {
 //   ME-014: the fee floor ignores the tax on the same charge.
 // @mutate supabase/functions/charge-recurring-visits/index.ts | posterServiceFeeCents(budgetCents, feePercent, taxCents); | posterServiceFeeCents(budgetCents, feePercent, 0);
+// Ended series: dropping the series_ended_on term funds a visit after the end.
+// @mutate supabase/functions/charge-recurring-visits/index.ts | d <= horizon && (endedOn === null \|\| d <= endedOn) | d <= horizon
+// @mutate supabase/functions/charge-recurring-visits/index.ts | Can't make it? Cancel this visit from My Jobs. | Can't make it? Release the date from My Jobs.
+// Ended mid-run: a refunded series_ended refusal is reported as a defect (red run for a designed outcome).
+// @mutate supabase/functions/charge-recurring-visits/index.ts |           if (seriesEndedMidRun) { |           if (false) {
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -932,5 +937,88 @@ describe("charge-recurring-visits edge function", () => {
     const [charge] = stripeMock.paymentIntents.create.mock.calls[0];
     expect(posterServiceFeeCents(200, pct, 20)).not.toBe(posterServiceFeeCents(200, pct, 0));
     expect(charge.amount).toBe(200 + 20 + posterServiceFeeCents(200, pct, 20));
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Ended series — end_recurring_series sets series_ended_on
+  // ═══════════════════════════════════════════════════════════════════════
+
+  it("funds nothing after an ENDED series' last date: no charge, no visit, not a defect", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    // Ended the day before the one due visit.
+    wireJobsReads({ series: { rows: [seriesParent({ series_ended_on: "2026-09-03" })] } });
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(res.status).toBe(200);
+    expect(b.ok).toBe(true);
+    expect(b.seriesConsidered).toBe(1);
+    expect(b.funded).toBe(0);
+    expect(b.errors).toBe(0);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(insertedVisits()).toHaveLength(0);
+  });
+
+  it("still funds a visit ON the ended series' last date", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ series_ended_on: VISIT_DATE })] } });
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(res.status).toBe(200);
+    expect(b.funded).toBe(1);
+    expect(stripeMock.paymentIntents.create).toHaveBeenCalledTimes(1);
+    expect((insertedVisits()[0]?.payload as Record<string, unknown>).date_needed).toBe(VISIT_DATE);
+  });
+
+  it("a series ended after this run read it: the refused visit is refunded and the run stays green", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    // trg_series_visit_within_end's refusal, as PostgREST returns it.
+    scenario.writeErrors.jobs = {
+      message: "series_ended: the series ended on 2026-09-03; no visit on 2026-09-04",
+      code: "23514",
+    };
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][1].idempotencyKey).toBe("recurring-visit-refund:pi_day1");
+    expect(res.status).toBe(200);
+    expect(b.errors).toBe(0);
+    expect(b.skippedEnded).toBe(1);
+    expect(b.funded).toBe(0);
+  });
+
+  it("a series ended mid-run whose refund FAILS is still a defect", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.writeErrors.jobs = {
+      message: "series_ended: the series ended on 2026-09-03; no visit on 2026-09-04",
+      code: "23514",
+    };
+    stripeMock.refunds.create.mockRejectedValue(new Error("stripe down"));
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(res.status).toBe(500);
+    expect(reasons(b)).toContain("visit insert failed after charge");
+  });
+
+  it("the booking notification names the Helpr's real way out (no per-date release control exists)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+
+    await runOn(fn, "2026-09-01");
+    const notes = scenario.writes.filter((w) => w.table === "notifications" && w.op === "insert");
+    const text = JSON.stringify(notes.map((n) => n.payload));
+    expect(text).toContain("Cancel this visit from My Jobs");
+    expect(text).not.toMatch(/Release the date/i);
   });
 });

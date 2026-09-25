@@ -1910,6 +1910,7 @@ export type Database = {
           sales_tax_amount: number | null
           sales_tax_rate: number | null
           scope_video_url: string | null
+          series_ended_on: string | null
           special_requirements: string | null
           start_reminder_sent_at: string | null
           start_time: string | null
@@ -2024,6 +2025,7 @@ export type Database = {
           sales_tax_amount?: number | null
           sales_tax_rate?: number | null
           scope_video_url?: string | null
+          series_ended_on?: string | null
           special_requirements?: string | null
           start_reminder_sent_at?: string | null
           start_time?: string | null
@@ -2138,6 +2140,7 @@ export type Database = {
           sales_tax_amount?: number | null
           sales_tax_rate?: number | null
           scope_video_url?: string | null
+          series_ended_on?: string | null
           special_requirements?: string | null
           start_reminder_sent_at?: string | null
           start_time?: string | null
@@ -5410,6 +5413,7 @@ export type Database = {
         Args: { p_created_at: string; p_user_id: string }
         Returns: string
       }
+      end_recurring_series: { Args: { p_job_id: string }; Returns: Json }
       enforce_retained_ban: {
         Args: {
           p_email?: string
@@ -5655,6 +5659,7 @@ export type Database = {
           sales_tax_amount: number | null
           sales_tax_rate: number | null
           scope_video_url: string | null
+          series_ended_on: string | null
           special_requirements: string | null
           start_reminder_sent_at: string | null
           start_time: string | null
@@ -5794,6 +5799,7 @@ export type Database = {
           sales_tax_amount: number | null
           sales_tax_rate: number | null
           scope_video_url: string | null
+          series_ended_on: string | null
           special_requirements: string | null
           start_reminder_sent_at: string | null
           start_time: string | null

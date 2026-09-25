@@ -720,6 +720,17 @@
     "nargs": 0
    }
   ],
+  "end_recurring_series": [
+   {
+    "anon": false,
+    "args": [
+     "p_job_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "enforce_application_credential_tier": [
    {
     "anon": false,
@@ -7733,6 +7744,7 @@
       "sales_tax_amount",
       "sales_tax_rate",
       "scope_video_url",
+      "series_ended_on",
       "special_requirements",
       "start_reminder_sent_at",
       "start_time",
@@ -8473,6 +8485,13 @@
      "hasDefault": false,
      "notNull": false,
      "type": "text"
+    },
+    "series_ended_on": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "date"
     },
     "special_requirements": {
      "enum": null,

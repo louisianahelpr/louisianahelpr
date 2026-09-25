@@ -123,6 +123,7 @@ export const JOB_READABLE_COLUMN_LIST = [
   "sales_tax_amount",
   "sales_tax_rate",
   "scope_video_url",
+  "series_ended_on",
   "special_requirements",
   "start_reminder_sent_at",
   "start_time",

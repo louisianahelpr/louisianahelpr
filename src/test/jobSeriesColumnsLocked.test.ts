@@ -5,9 +5,9 @@
  * of both columns, and scripts/probes/direct-patch-hire.prod.mjs (doors G, H)
  * shows it on prod.
  *
- * @mutate supabase/migrations/20260924053706_jobs_series_columns_client_lock.sql | IF NEW.recurrence_days IS DISTINCT FROM OLD.recurrence_days AND OLD.helper_id IS NOT NULL THEN | IF false THEN
- * @mutate supabase/migrations/20260924053706_jobs_series_columns_client_lock.sql |   IF NEW.parent_job_id IS DISTINCT FROM OLD.parent_job_id THEN | IF false THEN
- * @mutate supabase/migrations/20260924053706_jobs_series_columns_client_lock.sql | BEFORE INSERT OR UPDATE OF parent_job_id, recurrence_days | BEFORE UPDATE OF parent_job_id
+ * @mutate supabase/migrations/20260925052841_recurring_series_end.sql | IF NEW.recurrence_days IS DISTINCT FROM OLD.recurrence_days AND OLD.helper_id IS NOT NULL THEN | IF false THEN
+ * @mutate supabase/migrations/20260925052841_recurring_series_end.sql |   IF NEW.parent_job_id IS DISTINCT FROM OLD.parent_job_id THEN | IF false THEN
+ * @mutate supabase/migrations/20260925052841_recurring_series_end.sql | BEFORE INSERT OR UPDATE OF parent_job_id, recurrence_days, | BEFORE UPDATE OF parent_job_id,
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -30,7 +30,7 @@ describe("jobs series columns are locked for clients (Q357)", () => {
     expect(sql).toMatch(/TG_OP = 'INSERT' THEN\s+IF NEW\.parent_job_id IS NOT NULL THEN\s+RAISE/);
   });
   it("fires on insert and on update of both columns", () => {
-    expect(sql).toMatch(/BEFORE INSERT OR UPDATE OF parent_job_id, recurrence_days ON public\.jobs/);
+    expect(sql).toMatch(/BEFORE INSERT OR UPDATE OF parent_job_id, recurrence_days[, a-z_]* ON public\.jobs/);
   });
   it("the live probe covers both doors", () => {
     const probe = readFileSync("scripts/probes/direct-patch-hire.prod.mjs", "utf8");

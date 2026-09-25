@@ -21,6 +21,9 @@
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   IF NEW.series_split_ok IS DISTINCT FROM OLD.series_split_ok | IF false
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   WHEN (OLD.recurring_helper_id IS DISTINCT FROM NEW.recurring_helper_id) |   WHEN (false)
+ * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |         PERFORM set_config('app.series_claim_rpc', '1', true);\n        INSERT INTO public.applications | INSERT INTO public.applications
+ * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |         PERFORM set_config('app.series_claim_rpc', '0', true); | NULL;
+ * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   IF current_setting('app.series_claim_rpc', true) = '1' THEN\n    RETURN NEW;\n  END IF;\n\n  -- C1. | -- C1.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -95,6 +98,25 @@ describe("recurring split days (Q407 4-6)", () => {
     expect(cancel).toMatch(/\n {2}IF public\.is_late_cancellation\(true, EXTRACT\(EPOCH FROM \(v_starts_at - now\(\)\)\) \/ 3600\.0\) THEN/);
     // A cancelled series visit goes back to the series, not to the public.
     expect(cancel).toMatch(/IF v_job\.parent_job_id IS NOT NULL THEN\s+PERFORM public\.series_release_dates\(/);
+  });
+
+  it("MEDIUM-1: the takeover's application passes enforce_application_job_state by a flag only the claim sets, around that one INSERT", () => {
+    const claim = newestFunction("claim_series_dates").body;
+    expect(claim).toMatch(
+      /PERFORM set_config\('app\.series_claim_rpc', '1', true\);\s+INSERT INTO public\.applications \(job_id, helper_id, status, message\)\s+VALUES \(v_child_id, v_uid, 'accepted', NULL\)\s+ON CONFLICT \(job_id, helper_id\) DO UPDATE SET status = 'accepted';\s+PERFORM set_config\('app\.series_claim_rpc', '0', true\);/,
+    );
+    const gate = newestFunction("enforce_application_job_state");
+    expect(gate.file).toBe("20260925160645_recurring_split_days.sql");
+    const flag = gate.body.indexOf("current_setting('app.series_claim_rpc', true) = '1'");
+    expect(flag).toBeGreaterThan(-1);
+    // Honoured only AFTER the self-application (C3) and block (C10) refusals.
+    expect(gate.body.indexOf("cannot_apply_to_own_job")).toBeLessThan(flag);
+    expect(gate.body.indexOf("applicant_blocked")).toBeLessThan(flag);
+    expect(gate.body.indexOf("job_not_open")).toBeGreaterThan(flag);
+    // Exactly one writer of the flag in the whole tree.
+    const setters = files.filter((f) => /set_config\('app\.series_claim_rpc',\s*'1'/.test(blankSqlComments(readFileSync(`${dir}/${f}`, "utf8"))));
+    expect(setters).toEqual(["20260925160645_recurring_split_days.sql"]);
+    expect((allSql.match(/set_config\('app\.series_claim_rpc',\s*'1'/g) ?? []).length).toBe(1);
   });
 
   it("the split choice is locked after hire, and hire seeds the holds", () => {

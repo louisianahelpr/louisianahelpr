@@ -31,7 +31,9 @@ const RESTATES_FIX = "20260915101102";
 // well or "pre-fix" quietly stops meaning pre-fix and the first assertion below
 // goes hollow. 20260921190002 added the self-application guard C3;
 // 20260924020956 (Q341) added the block refusal.
-const RESTATES_APP_JOB_STATE_FIX = [RESTATES_FIX, "20260921190002", "20260924020956"];
+// 20260925160645 (recurring split days, review MEDIUM-1) restates it with the
+// claim's takeover flag, keeping the FOR SHARE.
+const RESTATES_APP_JOB_STATE_FIX = [RESTATES_FIX, "20260921190002", "20260924020956", "20260925160645"];
 const FIXTURES = resolve(__dirname, "fixtures/raceClass");
 const OFFER_HANDLERS = "src/components/job-card/activityActions/useOfferHandlers.ts";
 

@@ -253,6 +253,9 @@ check("a new one-person hire takes every open date back", held.length === expect
   check("... the funded visit row is reassigned to them (escrow and payout follow helper_id)", taken.status === "accepted" && taken.helper_id === C, JSON.stringify(taken));
   n = (await db.query(`select status from public.applications where job_id='${V}' and helper_id='${C}'`)).rows;
   check("... with an accepted application row", n.length === 1 && n[0].status === "accepted", JSON.stringify(n));
+  // MEDIUM-1: the takeover's application bypass is the claim's alone.
+  r = await as(db, "authenticated", X, `insert into public.applications (job_id, helper_id) values ('${V}', '${X}')`);
+  check("a client cannot apply to the booked visit (the claim's flag is not theirs)", refused(r, /job_not_open/), r.err);
   // Within 24 hours: the strike applies to a series visit too.
   const W = J(21);
   await server(db, `insert into public.series_visit_holds (parent_job_id, visit_date, helper_id) values ('${J(4)}', current_date + 20, '${C}') on conflict do nothing`);

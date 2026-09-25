@@ -6,7 +6,8 @@
  * each function (read, not retyped): stamp_recurring_series_helper,
  * enforce_hire_columns_rpc_only, enforce_helper_jobs_column_whitelist,
  * enforce_cancellation_requires_rpc, enforce_ban_gate, is_caller_banned,
- * is_server_context, is_late_cancellation. The migrations under test then run
+ * is_server_context, is_late_cancellation, and on applications
+ * enforce_application_job_state. The migrations under test then run
  * verbatim on top (3x for replay safety). Stubbed, and said so: auth.uid()
  * (the JWT claim), has_role (no admins), are_users_blocked (a table), and
  * apply_job_denial_consequence (records the strike; the ladder itself is not
@@ -63,6 +64,9 @@ export function baseSchema(before) {
     "enforce_hire_columns_rpc_only",
     "enforce_helper_jobs_column_whitelist",
     "enforce_cancellation_requires_rpc",
+    // On applications: claim_series_dates' takeover of a vacated visit writes
+    // an accepted application (money review MEDIUM-1).
+    "enforce_application_job_state",
   ].map((n) => newestFunctionSql(n, before).sql);
   const users = Object.values(USERS).map((u) => `('${u}')`).join(",");
   return `
@@ -122,6 +126,7 @@ export function baseSchema(before) {
   grant select on public.open_jobs_browse to anon, authenticated;
   grant select, insert, update on public.jobs to authenticated, service_role;
   grant select on public.profiles, public.applications to authenticated;
+  grant insert on public.applications to authenticated;
   grant all on public.profiles, public.applications, public.notifications to service_role;
   grant select on public.notifications to authenticated;
   -- recurring_visit_releases as 20260820010000 created it (policies included).
@@ -150,6 +155,8 @@ export function baseSchema(before) {
     for each row execute function public.enforce_cancellation_requires_rpc();
   create trigger trg_ban_gate_jobs_update before update on public.jobs
     for each row execute function public.enforce_ban_gate();
+  create trigger trg_application_job_state before insert on public.applications
+    for each row execute function public.enforce_application_job_state();
   create trigger trg_ban_gate_releases_insert before insert on public.recurring_visit_releases
     for each row execute function public.enforce_ban_gate();
   create trigger trg_ban_gate_releases_delete before delete on public.recurring_visit_releases

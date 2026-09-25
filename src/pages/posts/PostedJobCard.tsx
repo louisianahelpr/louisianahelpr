@@ -22,6 +22,8 @@ import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
 import { PostedJobActions } from "./postedJobCard/PostedJobActions";
 import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
 import { UnfundedJobNotice, shouldShowUnfundedNotice } from "./postedJobCard/UnfundedJobNotice";
+import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
+import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import { useFundExistingJob } from "@/hooks/useFundExistingJob";
 
 /**
@@ -719,6 +721,15 @@ function PostedJobCardInner({
                 on arrival. No action was removed — they all live one tap in. */}
             {isExpanded && (
             <div>
+              {/* Q360: the money problem jobs.status cannot show (bank took the
+                  payment back / card declined), first thing in the open card.
+                  A declined card on an open job is already said, with its
+                  Finish Paying button, by UnfundedJobNotice below. */}
+              {!shouldShowUnfundedNotice(job) && cardPaymentProblem(job) && (
+                <div className="px-4 pt-3 pb-3 border-t border-border/30">
+                  <PaymentProblemNotice job={job} />
+                </div>
+              )}
               {(job.photos || []).length > 0 && (
                 <div className="px-4 py-3 space-y-3 border-t border-border/30">
                   <div>

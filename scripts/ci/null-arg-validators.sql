@@ -75,7 +75,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_caller_banned',              'noarg',    'reads auth.uid() only'),
   ('is_server_context',             'noarg',    'reads the session only'),
   ('seed_jobs_hidden_publicly',     'noarg',    'reads the launch switch only'),
-  ('crew_fee_pays_unconfirmed',     'noarg',    'owner rule constant (Q407 addendum 13): only confirmed crew members share the late fee'),
+  ('crew_fee_pays_unconfirmed',     'noarg',    'owner rule constant (Q407): unconfirmed crew members share the late fee'),
   ('crew_completes_when_hired_done','noarg',    'owner rule constant (Q407): an under-filled crew completes when every hired member is done'),
   ('clear_thread_mute',             'action',   'RPC'),
   ('delete_email',                  'action',   'pgmq wrapper'),

@@ -542,36 +542,35 @@ check(
 );
 check("A8 one cancelled crew is ONE strike on the poster", (await strikes()) === 1, `strikes=${await strikes()}`);
 
-// The owner's rule (Q407 addendum 13): only members who CONFIRMED share the fee.
 await seed({ start: "+10 hours" });
 for (const m of [M1, M2, M3]) await hire(m);
 await confirm([M1, M2]);
 const a9 = await cancel();
-const a9s = await all(`SELECT share_amount::text AS share FROM public.crew_cancellation_fee_shares WHERE job_id='${GJOB}' ORDER BY helper_id`);
-const m3note = (await noticesFor(M3)).map((n) => n.message).join("");
+const a9s = await all(`SELECT helper_id, share_amount::text AS share, committed FROM public.crew_cancellation_fee_shares WHERE job_id='${GJOB}' ORDER BY helper_id`);
 check(
-  "A9 (<24h, 25%) the owner's rule: only CONFIRMED members share the fee: $25.00, $25.00, $0.00, and the unconfirmed member is told no fee applies",
-  a9.ok && a9s.map((s) => s.share).join(",") === "25.00,25.00,0.00" && Number((await job()).fee) === 50 && /before you confirmed your spot/.test(m3note),
-  a9.ok ? JSON.stringify({ shares: a9s.map((s) => s.share), fee: (await job()).fee, m3: m3note.slice(0, 70) }) : a9.error,
+  "A9 (<24h, 25%) the owner rule's default: every HIRED member counts, confirmed or not: three equal $25.00 shares",
+  a9.ok && a9s.map((s) => s.share).join(",") === "25.00,25.00,25.00" && Number((await job()).fee) === 75,
+  a9.ok ? JSON.stringify({ shares: a9s.map((s) => s.share), fee: (await job()).fee }) : a9.error,
 );
-await seed({ start: "+1 hour" });
-for (const m of [M1, M2]) await hire(m);
-await cancel();
-check("A12 nobody on the crew confirmed: no fee, no strike", Number((await job()).fee) === 0 && (await strikes()) === 0, `fee=${(await job()).fee}, strikes=${await strikes()}`);
 
-// The rule is ONE function: flipped to true, every HIRED member counts.
-await db.exec(`CREATE OR REPLACE FUNCTION public.crew_fee_pays_unconfirmed() RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT true $f$;`);
+// The rule is ONE function: flipped, a member is priced on their own confirmation.
+await db.exec(`CREATE OR REPLACE FUNCTION public.crew_fee_pays_unconfirmed() RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT false $f$;`);
 await seed({ start: "+10 hours" });
 for (const m of [M1, M2, M3]) await hire(m);
 await confirm([M1, M2]);
 const a9f = await cancel();
 const a9fs = await all(`SELECT share_amount::text AS share FROM public.crew_cancellation_fee_shares WHERE job_id='${GJOB}' ORDER BY helper_id`);
+const m3note = (await noticesFor(M3)).map((n) => n.message).join("");
 check(
-  "A9b rule flipped to true: every hired member counts, confirmed or not: three equal $25.00 shares",
-  a9f.ok && a9fs.map((s) => s.share).join(",") === "25.00,25.00,25.00" && Number((await job()).fee) === 75,
-  a9f.ok ? JSON.stringify({ shares: a9fs.map((s) => s.share), fee: (await job()).fee }) : a9f.error,
+  "A9b rule flipped to false: $25.00, $25.00, $0.00, and the unconfirmed member is told no fee applies",
+  a9f.ok && a9fs.map((s) => s.share).join(",") === "25.00,25.00,0.00" && /before you confirmed your spot/.test(m3note),
+  a9f.ok ? JSON.stringify({ shares: a9fs.map((s) => s.share), m3: m3note.slice(0, 70) }) : a9f.error,
 );
-await db.exec(`CREATE OR REPLACE FUNCTION public.crew_fee_pays_unconfirmed() RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT false $f$;`);
+await seed({ start: "+1 hour" });
+for (const m of [M1, M2]) await hire(m);
+await cancel();
+check("A12 rule false and nobody on the crew confirmed: no fee, no strike", Number((await job()).fee) === 0 && (await strikes()) === 0, `fee=${(await job()).fee}, strikes=${await strikes()}`);
+await db.exec(`CREATE OR REPLACE FUNCTION public.crew_fee_pays_unconfirmed() RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT true $f$;`);
 
 await seed({ start: "+10 hours", budget: 100 });
 for (const m of [M1, M2, M3]) await hire(m);
@@ -596,6 +595,11 @@ check(
   Number(a11j.fee) === 0 && a11j.cancellation_fee_status === null && (await strikes()) === 1,
   JSON.stringify({ fee: a11j.fee, status: a11j.cancellation_fee_status, strikes: await strikes() }),
 );
+
+await seed({ start: "+1 hour" });
+for (const m of [M1, M2]) await hire(m);
+await cancel();
+check("A12a rule default and nobody confirmed: the hired crew is still paid ($50 each on $300/3 at 50%) and it is one strike", Number((await job()).fee) === 100 && (await strikes()) === 1, `fee=${(await job()).fee}, strikes=${await strikes()}`);
 
 await seed({ start: "+1 hour" });
 for (const m of [M1, M2, M3]) await hire(m);

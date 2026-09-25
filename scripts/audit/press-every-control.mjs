@@ -60,6 +60,7 @@ import {
   cleanup, createPressJob, loadTestOwners, makeStripeProbe, mintAccounts, mutationGate, prodSelect,
   remintSession, rowNamesTestOwner, sessionStillAlive, snapshotProfile, urlOwnership,
 } from "./pressProdSafety.mjs";
+import * as pressSafety from "./pressProdSafety.mjs";
 import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
   FOREIGN_FIXTURE_SKIP, NOT_REACHED_STATUS, classifyConsoleError, classifyFailedResponse, clickFailureReason,
@@ -488,8 +489,16 @@ const CONSOLE_NOISE = [
   /status of 406/i,
 ];
 
+/**
+ * Every reason mutationGate can return: each `SKIP_*` export of
+ * pressProdSafety.mjs, read from the module rather than retyped here, so a new
+ * gate reason is documented the moment it exists.
+ */
+export const GATE_SKIPS = Object.entries(pressSafety).filter(([name]) => name.startsWith("SKIP_")).map(([, why]) => why);
+
 /** Documented skip reasons. Anything else unpressed FAILS the coverage gate. */
 export const DOCUMENTED_SKIPS = new Set([
+  ...GATE_SKIPS,
   "disabled (inert by design)",
   // The same disposition, re-read at press time. `disabled (inert by design)`
   // is decided from the ENUMERATION snapshot; a control that was enabled then

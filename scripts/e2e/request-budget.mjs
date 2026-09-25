@@ -34,8 +34,9 @@ export const STALE_FRACTION = 0.5;
 export function aggregate(samples) {
   const by = {};
   for (const s of samples) {
-    const a = (by[s.label] ??= { label: s.label, total: 0, byClass: {}, signIns: 0, duplicates: 0, tests: 0, minutes: {}, topDuplicates: {}, samples: 0 });
+    const a = (by[s.label] ??= { label: s.label, total: 0, byClass: {}, signIns: 0, duplicates: 0, tests: 0, minutes: {}, topDuplicates: {}, samples: 0, paceWaitMs: 0 });
     a.samples++;
+    a.paceWaitMs += s.paceWaitMs ?? 0;
     a.total += s.total;
     a.signIns += s.signIns;
     a.duplicates += s.duplicates;
@@ -163,6 +164,7 @@ function main(argv) {
       continue;
     }
     aggs.push(a);
+    if (a.paceWaitMs > 0) notes.push(`${label}: paced by e2e/requestMeter.mjs, navigations held ${Math.round(a.paceWaitMs / 1000)}s in total to stay under the ceiling`);
     const j = judge(a, budgetFor(budgets, label));
     failures.push(...j.failures);
     notes.push(...j.notes);

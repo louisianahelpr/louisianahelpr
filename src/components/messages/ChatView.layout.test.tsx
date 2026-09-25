@@ -30,6 +30,8 @@ vi.mock("./MuteSheet", () => ({ MuteSheet: () => null }));
 vi.mock("./MessageActionSheet", () => ({ MessageActionSheet: () => null }));
 vi.mock("@/components/dashboard/PhotoLightbox", () => ({ PhotoLightbox: () => null }));
 vi.mock("@/components/ui/BrandConfirmDialog", () => ({ BrandConfirmDialog: () => null }));
+// The off-the-job read is a server RPC; a layout test has no thread state.
+vi.mock("@/lib/offJobGate", () => ({ useOffJobState: () => null }));
 vi.mock("./useMessageReactions", () => ({
   useMessageReactions: () => ({ reactions: new Map(), react: vi.fn() }),
 }));

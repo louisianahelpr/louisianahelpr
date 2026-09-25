@@ -81,6 +81,12 @@ export type Conversation = {
       and an offered Helpr). Flips the composer to its read-only notice.
       See src/lib/recipientGate.ts. */
   recipientRestricted?: boolean;
+  /** Set when a send in this thread was refused because someone in it is no
+      longer on the job ('self': the viewer; 'other': the person they are
+      talking to). Owner decision 2026-09-25: messaging closes both ways once
+      someone is off a job. Flips the composer to its read-only notice.
+      See src/lib/offJobGate.ts. */
+  offJobState?: "self" | "other" | null;
   /** The job's poster (`jobs.customer_id`); null for an ownerless job. The
       receiver gate asks "may I reach the poster?" as its control, so a false
       answer is only blamed on the recipient rule when the caller can still

@@ -111,9 +111,13 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
     )
+    // HTTP answers only (response_id set). Since CJ-007 (20260925231818) SQL
+    // crons record their own runs here too, every minute; counting those would
+    // keep this fresh while the pg_net ingest this check exists for is dead.
     const { data, error } = await supabase
       .from('cron_run_log')
       .select('occurred_at')
+      .not('response_id', 'is', null)
       .order('occurred_at', { ascending: false })
       .limit(1)
       .maybeSingle()

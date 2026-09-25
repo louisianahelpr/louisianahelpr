@@ -13,6 +13,7 @@
  * a MANUAL entry that is scheduled, or no longer defined, fails too.
  *
  * @mutate supabase/migrations/20260923143321_schedule_unscheduled_pruners.sql | PERFORM cron.schedule('cleanup-stripe-webhook-events', | PERFORM cron.unschedule_x('cleanup-stripe-webhook-events',
+ * @mutate supabase/migrations/20260925231818_cron_work_visibility.sql | CREATE FUNCTION public.cleanup_stripe_webhook_events() | CREATE FUNCTION public.cleanup_stripe_webhook_events_gone()
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -33,9 +34,17 @@ const MANUAL: Record<string, string> = {};
 const NAME = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?((?:cleanup|prune|sweep)_\w+)\s*\(/gi;
 const DROP = /DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?(?:public\.)?((?:cleanup|prune|sweep)_\w+)/gi;
 
-const dropped = new Set([...sql.matchAll(DROP)].map((m) => m[1].toLowerCase()));
-const pruners = [...new Set([...sql.matchAll(NAME)].map((m) => m[1].toLowerCase()))]
-  .filter((n) => !dropped.has(n))
+// Dropped = its last DROP comes after its last CREATE. A DROP followed by a
+// CREATE is a return-type change (CJ-007, 20260925231818), not a removal.
+const lastAt = (re: RegExp) => {
+  const at = new Map<string, number>();
+  for (const m of sql.matchAll(re)) at.set(m[1].toLowerCase(), m.index!);
+  return at;
+};
+const created = lastAt(NAME);
+const droppedAt = lastAt(DROP);
+const pruners = [...created.keys()]
+  .filter((n) => !((droppedAt.get(n) ?? -1) > created.get(n)!))
   .sort();
 const scheduled = (name: string) => new RegExp(`cron\\.schedule\\s*\\([^;]*\\b${name}\\b`, "i").test(sql);
 

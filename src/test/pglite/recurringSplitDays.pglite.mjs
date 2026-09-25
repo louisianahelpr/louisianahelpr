@@ -264,14 +264,22 @@ check("a new one-person hire takes every open date back", held.length === expect
   r = await as(db, "authenticated", C, `select public.helper_cancel_booking('${W}') as v`);
   n = (await db.query(`select count(*)::int c from public.strikes where user_id='${C}'`)).rows[0].c;
   check("cancelling a series visit within 24h IS a strike", r.ok && n === before + 1, r.err ?? `${before} -> ${n}`);
-  // A one-off job keeps its unconditional strike.
+  // A one-time job: the same 24-hour rule (owner decision Q407 (11)).
   const O = J(22);
   await server(db, `insert into public.jobs (id, title, customer_id, helper_id, status, date_needed, start_time) values ('${O}', 'one-off', '${P}', '${A}', 'accepted', current_date + 20, '09:00')`);
   await db.exec(`update public.profiles set ban_status = 'active' where user_id = '${A}'`);
   const aBefore = (await db.query(`select count(*)::int c from public.strikes where user_id='${A}'`)).rows[0].c;
   r = await as(db, "authenticated", A, `select public.helper_cancel_booking('${O}') as v`);
   n = (await db.query(`select count(*)::int c from public.strikes where user_id='${A}'`)).rows[0].c;
-  check("a one-off job cancelled 20 days out still strikes (unchanged)", r.ok && n === aBefore + 1, r.err ?? `${aBefore} -> ${n}`);
+  check("a one-time job cancelled 20 days out is NO strike (Q407 11)", r.ok && n === aBefore && r.rows[0].v.action === "none", r.err ?? `${aBefore} -> ${n}`);
+  const O2 = J(23);
+  await server(db, `insert into public.jobs (id, title, customer_id, helper_id, status, date_needed, start_time) values ('${O2}', 'one-off soon', '${P}', '${A}', 'accepted',
+    (now() at time zone 'America/Chicago' + interval '3 hours')::date, (now() at time zone 'America/Chicago' + interval '3 hours')::time)`);
+  r = await as(db, "authenticated", A, `select public.helper_cancel_booking('${O2}') as v`);
+  n = (await db.query(`select count(*)::int c from public.strikes where user_id='${A}'`)).rows[0].c;
+  check("a one-time job cancelled within 24h IS a strike", r.ok && n === aBefore + 1, r.err ?? `${aBefore} -> ${n}`);
+  n = (await db.query(`select count(*)::int c from public.notifications where user_id='${P}' and title='Your Helpr cancelled'`)).rows[0].c;
+  check("... and the poster of a one-time job gets the single-job notice", n === 2, String(n));
 }
 
 // 10c. An uncreated date the cron can no longer fund is not claimable.

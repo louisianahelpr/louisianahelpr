@@ -871,16 +871,23 @@ $fn$;
 
 REVOKE ALL ON FUNCTION public.enforce_series_visit_within_end() FROM PUBLIC, anon, authenticated;
 
--- ── A Helpr cancelling a booked series visit ───────────────────────────────
--- Restated from 20260924220318 (newest) with two changes for series visits
--- (visit one included):
---   - the reliability strike applies ONLY within 24 hours of the visit
---     (owner decision 6; a one-off job keeps its unconditional strike, which
---     the owner is being asked about separately);
---   - the vacated visit goes back to the SERIES, not to the public: the hold
---     is released (series_release_dates tells the poster and the other Helprs
---     on the series, who can pick it up; the poster can offer it), and the
---     visit row (still funded) waits for the next holder. open_jobs_browse
+-- ── A Helpr cancelling a booking: the crew branch, series visits, 24h strike
+-- ONE combined definition, restated from the newest text of BOTH earlier
+-- restatements, so neither undoes the other:
+--   - 20260925140148_group_roster_departure (Q393): THE CREW BRANCH (a crew
+--     member leaves through their roster slot), with the copy rewrites
+--     20260925143327 applies to it in place ("the person who posted it");
+--   - the single-helper path as 20260924220318 left it.
+-- Changes on top of both:
+--   - the reliability strike applies ONLY within 24 hours of the start, on
+--     EVERY booking: a series visit (owner decision Q407 (6)), a one-time job
+--     and a crew slot (owner decision Q407 (11), 2026-09-25: "a Helpr
+--     cancelling a ONE-TIME job gets a reliability strike ONLY within 24h of
+--     the start, the same rule as series visits");
+--   - a vacated series visit goes back to the SERIES, not to the public: the
+--     hold is released (series_release_dates tells the poster and the other
+--     Helprs on the series, who can pick it up; the poster can offer it), and
+--     the visit row (still funded) waits for the next holder. open_jobs_browse
 --     does not list a series visit (below).
 CREATE OR REPLACE FUNCTION public.helper_cancel_booking(p_job_id uuid)
  RETURNS jsonb
@@ -892,10 +899,13 @@ DECLARE
   v_job record;
   v_starts_at timestamptz;
   v_result jsonb;
-  v_series_visit boolean;
+  v_slot_id uuid;
+  v_slot_completed_at timestamptz;
+  v_remaining int;
 BEGIN
   SELECT j.id, j.title, j.customer_id, j.helper_id, j.status,
          j.date_needed, j.start_time, j.helper_completed_at,
+         j.is_group_job, j.helpers_needed,
          j.parent_job_id, j.recurrence_days
     INTO v_job
     FROM public.jobs j
@@ -905,6 +915,84 @@ BEGIN
   IF v_job.id IS NULL THEN
     RAISE EXCEPTION 'job_not_found';
   END IF;
+
+  IF v_job.is_group_job IS TRUE THEN
+    SELECT g.id, g.helper_completed_at
+      INTO v_slot_id, v_slot_completed_at
+      FROM public.group_job_helpers g
+     WHERE g.job_id = v_job.id AND g.helper_id = auth.uid()
+     FOR UPDATE;
+  END IF;
+
+  v_starts_at := ((v_job.date_needed + COALESCE(v_job.start_time, '00:00'::time))
+                    AT TIME ZONE 'America/Chicago');
+
+  -- ── THE CREW BRANCH (20260925140148) ─────────────────────────────────────
+  -- Membership is the caller's roster slot, not jobs.helper_id (the lead). A
+  -- group job's lead with no slot (hired before the roster existed) falls
+  -- through to the single-helper path below, which is the job they hold.
+  IF v_job.is_group_job IS TRUE
+     AND (v_slot_id IS NOT NULL OR v_job.helper_id IS DISTINCT FROM auth.uid()) THEN
+    IF v_slot_id IS NULL THEN
+      RAISE EXCEPTION 'not_authorized';
+    END IF;
+    -- 'open' included: a crew that is still staffing already holds the
+    -- members hired so far, and each of them has committed.
+    IF v_job.status::text NOT IN ('open', 'accepted') THEN
+      RAISE EXCEPTION 'not_cancellable'
+        USING HINT = 'Only a booked job that has not started can be cancelled this way.';
+    END IF;
+    -- Leaving would drop a part this Helpr already marked done out of the
+    -- roll-up that pays the crew.
+    IF v_slot_completed_at IS NOT NULL THEN
+      RAISE EXCEPTION 'not_cancellable'
+        USING HINT = 'You already marked your part done, so you can''t leave this job. Message the person who posted it or open a dispute.';
+    END IF;
+
+    IF v_starts_at IS NOT NULL AND now() >= v_starts_at THEN
+      RAISE EXCEPTION 'job_already_started'
+        USING HINT = 'The scheduled start has passed — contact the person who posted it or support.';
+    END IF;
+
+    -- Owner decision Q407 (11): a strike only within 24 hours of the start.
+    IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN
+      v_result := public.apply_job_denial_consequence(
+        auth.uid(), v_job.id,
+        'Cancelled after committing to: "' || COALESCE(v_job.title, 'Unknown') || '"');
+    ELSE
+      v_result := jsonb_build_object('action', 'none', 'reason', 'more_than_24h_before_start');
+    END IF;
+
+    -- trg_sync_job_after_roster_departure rejects this Helpr's application
+    -- and, when they were the lead, moves or clears the lead together with
+    -- its confirmation stamps, response deadline and reminder sent-ats.
+    DELETE FROM public.group_job_helpers WHERE id = v_slot_id;
+
+    SELECT count(*) INTO v_remaining
+      FROM public.group_job_helpers g
+     WHERE g.job_id = v_job.id;
+
+    IF v_job.status::text = 'accepted' AND v_remaining < COALESCE(v_job.helpers_needed, 1) THEN
+      UPDATE public.jobs
+         SET status = 'open'
+       WHERE id = v_job.id;
+    END IF;
+
+    INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
+    VALUES (
+      v_job.customer_id,
+      'A Helpr left your crew',
+      'One of your Helprs can''t make "' || COALESCE(v_job.title, 'your job')
+        || '" — their spot is open to everyone again.',
+      'warning',
+      '/posts?job=' || v_job.id::text,
+      v_job.id
+    );
+
+    RETURN v_result;
+  END IF;
+
+  -- ── THE SINGLE-HELPER PATH ───────────────────────────────────────────────
   IF v_job.helper_id IS DISTINCT FROM auth.uid() THEN
     RAISE EXCEPTION 'not_authorized';
   END IF;
@@ -912,30 +1000,26 @@ BEGIN
     RAISE EXCEPTION 'not_cancellable'
       USING HINT = 'Only a booked job that has not started can be cancelled this way.';
   END IF;
-  -- ADDED 2026-09-14: reopening would hand the next Helpr this one's done stamp.
+  -- Reopening would hand the next Helpr this one's done stamp.
   IF v_job.helper_completed_at IS NOT NULL THEN
     RAISE EXCEPTION 'not_cancellable'
       USING HINT = 'You already marked this job done, so it can''t be cancelled. Message the person who posted it or open a dispute.';
   END IF;
 
   -- Once the start has passed this is a no-show question, not a cancellation.
-  v_starts_at := ((v_job.date_needed + COALESCE(v_job.start_time, '00:00'::time))
-                    AT TIME ZONE 'America/Chicago');
   IF v_starts_at IS NOT NULL AND now() >= v_starts_at THEN
     RAISE EXCEPTION 'job_already_started'
       USING HINT = 'The scheduled start has passed — contact the person who posted it or support.';
   END IF;
 
-  v_series_visit := v_job.parent_job_id IS NOT NULL OR v_job.recurrence_days IS NOT NULL;
-
-  IF NOT v_series_visit
-     OR public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN
+  -- Owner decisions Q407 (6) and (11): a strike only within 24 hours of the
+  -- start, for a series visit and a one-time job alike.
+  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN
     v_result := public.apply_job_denial_consequence(
       auth.uid(), v_job.id,
       'Cancelled after committing to: "' || COALESCE(v_job.title, 'Unknown') || '"');
   ELSE
-    -- A series visit more than 24 hours out: no strike (owner decision 6).
-    v_result := jsonb_build_object('action', 'none', 'reason', 'series_visit_more_than_24h');
+    v_result := jsonb_build_object('action', 'none', 'reason', 'more_than_24h_before_start');
   END IF;
 
   UPDATE public.applications

@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   IF v_holder IS NULL OR v_holder IS DISTINCT FROM NEW.helper_id THEN |   IF false THEN
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n\n  -- One claim at a time | IF false THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n\n  -- One claim at a time
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |        AND v_d < v_min_fundable THEN |        AND false THEN
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   IF NOT v_series_visit\n     OR public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   IF true THEN
+ * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   -- start, for a series visit and a one-time job alike.\n  IF true THEN
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   WHERE public.is_late_cancellation(\n           true, |   WHERE (true OR public.is_late_cancellation(\n           true,
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   WHERE status = 'open'::job_status AND parent_job_id IS NULL AND customer_id | WHERE status = 'open'::job_status AND customer_id
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon;
@@ -91,7 +91,8 @@ describe("recurring split days (Q407 4-6)", () => {
     expect(strike).toMatch(/WHERE public\.is_late_cancellation\(\s+true,/);
     expect(strike).toContain("public.apply_job_denial_consequence(");
     const cancel = newestFunction("helper_cancel_booking").body;
-    expect(cancel).toMatch(/IF NOT v_series_visit\s+OR public\.is_late_cancellation\(true, EXTRACT\(EPOCH FROM \(v_starts_at - now\(\)\)\) \/ 3600\.0\) THEN/);
+    // Every booking alike since Q407 (11); the class guard is helperCancelStrikeWithin24h.test.ts.
+    expect(cancel).toMatch(/\n {2}IF public\.is_late_cancellation\(true, EXTRACT\(EPOCH FROM \(v_starts_at - now\(\)\)\) \/ 3600\.0\) THEN/);
     // A cancelled series visit goes back to the series, not to the public.
     expect(cancel).toMatch(/IF v_job\.parent_job_id IS NOT NULL THEN\s+PERFORM public\.series_release_dates\(/);
   });

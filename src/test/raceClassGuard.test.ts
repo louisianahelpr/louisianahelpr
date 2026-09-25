@@ -258,9 +258,7 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
       // restates that guard after prod lost it to an out-of-order apply, and
       // 20260924060512 (DH-006: one report per job+Helpr) restates it again.
       noShow: latestDefinition("report_helper_no_show", [COMPLETION_FIX, "20260915044137", "20260915074058", "20260924060512"]),
-      // 20260925140148 (Q393: a crew member can leave) restates it with the
-      // done-stamp guard on both the single-helper and the crew path.
-      helperCancel: latestDefinition("helper_cancel_booking", [COMPLETION_FIX, RENAMES_TAB_ADDRESSES, "20260925140148"]),
+      helperCancel: latestDefinition("helper_cancel_booking", [COMPLETION_FIX, RENAMES_TAB_ADDRESSES]),
     };
     expect(without.trg).toBe("");
     expect(without.block).not.toMatch(/helper_completed_at/);

@@ -8,7 +8,7 @@
  *
  * @mutate src/pages/posts/postedJobCard/steps/InProgressStep.tsx | navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages") | navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)
  * @mutate src/pages/jobs/appliedJobCard/DisputedSection.tsx | navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages") | navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)
- * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx | !!job.helper_id && | true &&
+ * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx | : !!job.helper_id) && | : true) &&
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";

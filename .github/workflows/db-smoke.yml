@@ -35,6 +35,8 @@ on:
       - ".github/workflows/db-smoke.yml"
       - "scripts/ci/replay-migrations.sh"
       - "scripts/ci/null-arg-validators.sql"
+      - "scripts/sql/identity-linking-scenarios.sql"
+      - "scripts/check-identity-linking.mjs"
   workflow_dispatch:
     inputs:
       exclude_migrations:
@@ -241,6 +243,14 @@ jobs:
           ROLLBACK;
           SELECT '✅ post-job triggers ran cleanly — no column-does-not-exist errors';
           SQL
+
+      # OA-018: GoTrue's row writes for an existing email account signing in
+      # with Apple/Google (link a verified email; link + confirm an unverified
+      # one; Apple private relay; an email-less provider user), run against
+      # every trigger the migrations define. Rolled back by construction.
+      # The same SQL runs live on prod nightly in db-drift-detect.yml.
+      - name: Smoke — identity linking keeps one account and its data
+        run: node scripts/check-identity-linking.mjs --psql
 
       - name: Smoke — notifications.type CHECK accepts every emitted type
         # The 2026-05-04 hidden P0: a trigger inserted notifications.type='work_status'

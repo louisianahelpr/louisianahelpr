@@ -238,6 +238,15 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "Management API 500", env: MGMT("fail"), says: /could not read analytics_events: Management API SQL 500/ },
     { label: "Management API []", env: MGMT("empty"), says: /expected \d+ rows, got 0 — refusing to report clean/ },
   ],
+  // OA-018 (db-drift-detect.yml nightly; db-smoke.yml with --psql): reads
+  // /config/auth and runs a rolled-back scenario block through the Management
+  // API. The block ALWAYS raises, so a 2xx or a reply without its verdict is
+  // "could not run", never clean.
+  "scripts/check-identity-linking.mjs": [
+    { label: "no credentials", says: /could not run the identity-linking scenarios: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
+    { label: "Management API 500", env: MGMT("fail"), says: /could not run the identity-linking scenarios: auth config: Management API 500/ },
+    { label: "Management API []", env: MGMT("empty"), says: /could not run the identity-linking scenarios: query: Management API 200/ },
+  ],
   "scripts/check-test-account-strikes.mjs": [
     { label: "REST read fails", env: { SUPABASE_URL: "@HTTP@/fail", SUPABASE_SERVICE_ROLE_KEY: "stub" }, says: /could not check: GET profiles → 500/ },
     { label: "REST read is empty", env: { SUPABASE_URL: "@HTTP@/empty", SUPABASE_SERVICE_ROLE_KEY: "stub" }, says: /no shared test account profiles found/ },

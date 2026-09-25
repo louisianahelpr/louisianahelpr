@@ -197,6 +197,22 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-live-privileges.mjs
 
+      # OA-018 (docs/OPEN.md Q424): an existing email account signing in with
+      # Apple/Google. Performs GoTrue's own row writes for the four linking
+      # cases on PROD inside one transaction that always rolls back, and checks
+      # no second profile / no lost signup data / no 500 on an email-less user,
+      # plus the auth config linking rests on (mailer_autoconfirm off, both
+      # providers on). LIVE, because a trigger added by a dashboard edit or an
+      # MCP apply would change it without a migration. Same shape as above.
+      - name: Identity linking keeps one account and its data
+        id: identity_linking
+        continue-on-error: true
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-identity-linking.mjs
+
       # The TABLE half of the excess-anon-grant class (updatable_views is the
       # view half). anon held UPDATE/INSERT/DELETE on public.jobs (H-004) and
       # SELECT on admin/money/trust tables (AUTHZ-02) — RLS the only gate. Prod's
@@ -492,6 +508,7 @@ jobs:
           UPDATABLE_VIEWS: ${{ steps.updatable_views.outcome }}
           JOBS_DYNAMIC_WRITERS: ${{ steps.jobs_dynamic_writers.outcome }}
           LIVE_PRIVILEGES: ${{ steps.live_privileges.outcome }}
+          IDENTITY_LINKING: ${{ steps.identity_linking.outcome }}
           ANON_TABLE_GRANTS: ${{ steps.anon_table_grants.outcome }}
           BAN_GATE_COVERAGE: ${{ steps.ban_gate_coverage.outcome }}
           FUNCTION_BODY_DRIFT: ${{ steps.function_body_drift.outcome }}
@@ -515,6 +532,10 @@ jobs:
           fi
           if [ "${LIVE_PRIVILEGES:-success}" = "failure" ]; then
             echo "::error::Prod's default privileges grant clients new relations in public, or a function trusts a bare NULL auth.uid() as the service role (or the live read failed) — see 'No client default privileges and no NULL-uid trust' above."
+            failed=1
+          fi
+          if [ "${IDENTITY_LINKING:-success}" = "failure" ]; then
+            echo "::error::Signing an existing email account in with Apple/Google would duplicate the account, lose its data or 500 — or the auth config it rests on drifted, or the live run failed. See 'Identity linking keeps one account and its data' above (OA-018)."
             failed=1
           fi
           if [ "${ANON_TABLE_GRANTS:-success}" = "failure" ]; then

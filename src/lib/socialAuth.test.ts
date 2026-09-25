@@ -219,3 +219,61 @@ describe("isSocialLoginPluginAvailable", () => {
 // opens an in-app browser sheet rendering Helpr's OWN login page inside browser
 // chrome — the screen the owner hit on device and did not recognise as theirs.
 // @mutate src/lib/socialAuth.ts | if (Capacitor.isNativePlatform()) { | if (false) {
+
+// OA-018: GoTrue's identity-linking refusals are permanent for the attempt,
+// so they get their own copy instead of "give it another try?".
+describe("signInWithProvider — linking refusals (OA-018)", () => {
+  it("native: provider_email_needs_verification names the provider and the fix", async () => {
+    isNativePlatformMock.mockReturnValue(true);
+    isPluginAvailableMock.mockReturnValue(true);
+    initializeMock.mockResolvedValue(undefined);
+    loginMock.mockResolvedValue({ result: { idToken: "google-jwt" } });
+    signInWithIdTokenMock.mockResolvedValue({
+      error: {
+        code: "provider_email_needs_verification",
+        message: "Unverified email with google. A confirmation email has been sent to your google email",
+      },
+    });
+
+    const { signInWithProvider } = await load();
+    const result = await signInWithProvider("google");
+    expect(result.kind).toBe("error");
+    if (result.kind === "error") {
+      expect(result.message).toMatch(/isn't verified yet/);
+      expect(result.message).toMatch(/Verify it with Google/);
+      expect(result.message).not.toMatch(/give it another try/);
+    }
+  });
+
+  it("native: two accounts on one address (no GoTrue code) is named, not retried", async () => {
+    isNativePlatformMock.mockReturnValue(true);
+    isPluginAvailableMock.mockReturnValue(true);
+    initializeMock.mockResolvedValue(undefined);
+    loginMock.mockResolvedValue({ result: { idToken: "apple-jwt" } });
+    signInWithIdTokenMock.mockResolvedValue({
+      error: {
+        code: "unexpected_failure",
+        message: "Multiple accounts with the same email address in the same linking domain detected: default",
+      },
+    });
+
+    const { signInWithProvider } = await load();
+    const result = await signInWithProvider("apple");
+    expect(result.kind === "error" && result.message).toMatch(/More than one Helpr account uses this email/);
+  });
+
+  it("web: marks the round trip as pending before leaving the page", async () => {
+    isNativePlatformMock.mockReturnValue(false);
+    isPluginAvailableMock.mockReturnValue(false);
+    sessionStorage.clear();
+    signInWithOAuthMock.mockImplementation(async () => {
+      // The marker must already be written when the browser navigates away.
+      expect(JSON.parse(sessionStorage.getItem("helpr_oauth_pending") ?? "{}").provider).toBe("apple");
+      return { error: null };
+    });
+
+    const { signInWithProvider } = await load();
+    expect(await signInWithProvider("apple")).toEqual({ kind: "redirecting" });
+    expect(signInWithOAuthMock).toHaveBeenCalledTimes(1);
+  });
+});

@@ -1,6 +1,10 @@
 // FIRST import, on purpose: arms the splash safety net before any module with a
 // top-level await evaluates (NB-009).
 import "./lib/splashSafetyNet";
+// SECOND, on purpose (OA-018): reads a failed web Apple/Google sign-in's
+// error off the URL before the Supabase client or the router can see or drop
+// it, and hands it to Login. See src/lib/oauthRedirectError.ts.
+import "./lib/oauthRedirectError";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";

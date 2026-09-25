@@ -23,6 +23,7 @@ import { recognizedAuthError } from "@/lib/authErrors";
 import { setLastAuthMethod } from "@/lib/lastAuthMethod";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { report } from "@/lib/errorLogger";
+import { markOAuthPending, socialAuthErrorCopy } from "@/lib/oauthRedirectError";
 
 export type SocialProvider = "apple" | "google";
 
@@ -97,7 +98,15 @@ function isCancelError(err: unknown): boolean {
 // flow shows the same warm copy as the email/password flow, with a final
 // fallback that names the provider.
 function friendlyProviderError(provider: SocialProvider, err: unknown): string {
-  const raw = err instanceof Error ? err.message : String(err ?? "");
+  const objMessage = (err as { message?: unknown } | null)?.message;
+  const raw = err instanceof Error ? err.message : typeof objMessage === "string" ? objMessage : String(err ?? "");
+  // OA-018: GoTrue's own error code first. "Unverified email with google",
+  // "Multiple accounts with the same email" and "User is banned" are permanent
+  // for this attempt, and the generic "give it another try?" below sent the
+  // person round the same loop. Same copy as the web redirect path.
+  const code = (err as { code?: unknown } | null)?.code;
+  const specific = socialAuthErrorCopy(provider, typeof code === "string" ? code : null, raw);
+  if (specific) return specific;
   if (!raw) return `${providerLabel(provider)} sign-in didn't work — give it another try?`;
   // OA-010: recognition is recognizedAuthError's null, never a comparison
   // against the generic fallback's wording (a copy edit silently broke that).
@@ -196,6 +205,9 @@ export async function signInWithProvider(
     // *intent* — still useful as a "last time you tried Google" cue, and
     // gets overwritten the next time any auth method succeeds.
     setLastAuthMethod(provider);
+    // OA-018: lets the boot-time capture (oauthRedirectError.ts) recognise a
+    // failed round trip and explain it on Login instead of dropping it.
+    markOAuthPending(provider);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {

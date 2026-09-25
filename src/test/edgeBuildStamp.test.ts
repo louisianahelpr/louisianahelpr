@@ -72,58 +72,51 @@ describe("every edge function answers the build probe (class)", () => {
 
 describe("the wrapper", () => {
   // A variable specifier: buildStamp.ts uses the Deno global, so it is loaded
-  // at runtime by vitest rather than compiled into the app's tsconfig.
-  const load = async () => {
+  // at runtime by vitest rather than compiled into the app's tsconfig. Only
+  // `serve` is exported; the stamp and header names are read from the source.
+  const src = readFileSync(join(ROOT, STAMP_FILE), "utf8");
+  const committedStamp = src.match(/^const BUILD_STAMP = "([^"]*)";$/m)?.[1];
+  type Handler = (req: Request, info: unknown) => Response | Promise<Response>;
+
+  async function wrap(handler: Handler): Promise<Handler> {
     const spec = join(ROOT, STAMP_FILE);
-    return (await import(/* @vite-ignore */ spec)) as {
-      BUILD_STAMP: string;
-      BUILD_HEADER: string;
-      BUILD_PROBE_HEADER: string;
-      buildProbeResponse: (req: Request) => Response | null;
-      serve: (h: (req: Request, info: unknown) => Response | Promise<Response>) => unknown;
-    };
-  };
-
-  it("agrees with the script on header names, and the committed stamp is the placeholder", async () => {
-    const m = await load();
-    expect(m.BUILD_HEADER).toBe(BUILD_HEADER);
-    expect(m.BUILD_PROBE_HEADER).toBe(BUILD_PROBE_HEADER);
-    // A committed real stamp would make every function claim that one build.
-    expect(m.BUILD_STAMP).toBe(PLACEHOLDER);
-  });
-
-  it("answers only an OPTIONS request that carries the probe header", async () => {
-    const m = await load();
-    const probe = m.buildProbeResponse(new Request("https://x/f", { method: "OPTIONS", headers: { [BUILD_PROBE_HEADER]: "1" } }));
-    expect(probe?.status).toBe(204);
-    expect(probe?.headers.get(BUILD_HEADER)).toBe(m.BUILD_STAMP);
-    expect(m.buildProbeResponse(new Request("https://x/f", { method: "OPTIONS" }))).toBeNull();
-    // A POST with the header is a real request: it must reach the handler.
-    expect(m.buildProbeResponse(new Request("https://x/f", { method: "POST", headers: { [BUILD_PROBE_HEADER]: "1" } }))).toBeNull();
-  });
-
-  it("never runs the function's handler for a probe, and runs it for everything else", async () => {
-    const m = await load();
-    let captured: ((req: Request, info: unknown) => Response | Promise<Response>) | null = null;
+    const m = (await import(/* @vite-ignore */ spec)) as { serve: (h: Handler) => unknown };
+    let captured: Handler | null = null;
     const g = globalThis as unknown as { Deno?: unknown };
     const before = g.Deno;
-    g.Deno = { serve: (h: typeof captured) => (captured = h) };
+    g.Deno = { serve: (h: Handler) => (captured = h) };
     try {
-      let calls = 0;
-      m.serve(() => {
-        calls++;
-        return new Response("handled");
-      });
-      expect(captured).not.toBeNull();
-      const probed = await captured!(new Request("https://x/f", { method: "OPTIONS", headers: { [BUILD_PROBE_HEADER]: "1" } }), {});
-      expect(probed.headers.get(BUILD_HEADER)).toBe(m.BUILD_STAMP);
-      expect(calls).toBe(0);
-      const real = await captured!(new Request("https://x/f", { method: "OPTIONS" }), {});
-      expect(await real.text()).toBe("handled");
-      expect(calls).toBe(1);
+      m.serve(handler);
     } finally {
       g.Deno = before;
     }
+    expect(captured).not.toBeNull();
+    return captured!;
+  }
+
+  it("agrees with the script on header names, and the committed stamp is the placeholder", () => {
+    expect(src).toContain(`const BUILD_HEADER = "${BUILD_HEADER}";`);
+    expect(src).toContain(`const BUILD_PROBE_HEADER = "${BUILD_PROBE_HEADER}";`);
+    // A committed real stamp would make every function claim that one build.
+    expect(committedStamp).toBe(PLACEHOLDER);
+  });
+
+  it("answers only an OPTIONS request carrying the probe header, without running the handler", async () => {
+    let calls = 0;
+    const served = await wrap(() => {
+      calls++;
+      return new Response("handled");
+    });
+    const probed = await served(new Request("https://x/f", { method: "OPTIONS", headers: { [BUILD_PROBE_HEADER]: "1" } }), {});
+    expect(probed.status).toBe(204);
+    expect(probed.headers.get(BUILD_HEADER)).toBe(committedStamp);
+    expect(calls).toBe(0);
+
+    // A normal CORS preflight reaches the function's own handler.
+    expect(await (await served(new Request("https://x/f", { method: "OPTIONS" }), {})).text()).toBe("handled");
+    // A POST with the header is a real request: it must reach the handler.
+    expect(await (await served(new Request("https://x/f", { method: "POST", headers: { [BUILD_PROBE_HEADER]: "1" } }), {})).text()).toBe("handled");
+    expect(calls).toBe(2);
   });
 });
 
@@ -150,7 +143,7 @@ describe("the stamp", () => {
       expect(expectedStamp(dir, "a")).toBe(a0);
 
       writeStamp(dir, "a");
-      expect(readFileSync(join(dir, STAMP_FILE), "utf8")).toContain(`export const BUILD_STAMP = "${a0}";`);
+      expect(readFileSync(join(dir, STAMP_FILE), "utf8")).toContain(`const BUILD_STAMP = "${a0}";`);
       expect(expectedStamp(dir, "a"), "writing the stamp must not change the stamp").toBe(a0);
 
       writeFileSync(join(dir, "supabase/functions/_shared/lib.ts"), "s2");
@@ -186,8 +179,8 @@ describe("the stamp", () => {
   });
 
   it("the writer refuses a stamp file it cannot rewrite exactly once, and unsafe values", () => {
-    const one = 'x\nexport const BUILD_STAMP = "unstamped";\ny';
-    expect(withStamp(one, "a@0123")).toContain('export const BUILD_STAMP = "a@0123";');
+    const one = 'x\nconst BUILD_STAMP = "unstamped";\ny';
+    expect(withStamp(one, "a@0123")).toContain('const BUILD_STAMP = "a@0123";');
     expect(() => withStamp("nothing here", "a@1")).toThrow(/exactly one/);
     expect(() => withStamp(`${one}\n${one}`, "a@1")).toThrow(/exactly one/);
     expect(() => withStamp(one, 'a"; evil()')).toThrow(/unsafe/);

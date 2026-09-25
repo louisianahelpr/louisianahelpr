@@ -34,18 +34,18 @@
 
 // Rewritten at deploy time by scripts/edge-build-stamp.mjs. Keep it on ONE
 // line in exactly this shape; the writer replaces the string literal.
-export const BUILD_STAMP = "unstamped";
+const BUILD_STAMP = "unstamped";
 
 /** Response header that carries the stamp. */
-export const BUILD_HEADER = "x-lh-build";
+const BUILD_HEADER = "x-lh-build";
 /** Request header that asks for the stamp. Only meaningful on OPTIONS. */
-export const BUILD_PROBE_HEADER = "x-lh-build-probe";
+const BUILD_PROBE_HEADER = "x-lh-build-probe";
 
 // deno-lint-ignore no-explicit-any
 type Handler = (req: Request, info: any) => Response | Promise<Response>;
 
 /** The build-probe answer for `req`, or null when `req` is not a probe. */
-export function buildProbeResponse(req: Request): Response | null {
+function buildProbeResponse(req: Request): Response | null {
   if (req.method !== "OPTIONS" || !req.headers.has(BUILD_PROBE_HEADER)) return null;
   return new Response(null, {
     status: 204,

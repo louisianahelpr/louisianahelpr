@@ -24,7 +24,7 @@ export const PLACEHOLDER = "unstamped";
 export const BUILD_HEADER = "x-lh-build";
 export const BUILD_PROBE_HEADER = "x-lh-build-probe";
 
-const STAMP_LINE = /^export const BUILD_STAMP = "[^"\n]*";$/m;
+const STAMP_LINE = /^const BUILD_STAMP = "[^"\n]*";$/m;
 
 /** Every deployable function: each directory under supabase/functions except `_shared`. */
 export function listFunctions(root) {
@@ -99,7 +99,7 @@ export function withStamp(source, stamp) {
   if (!/^[A-Za-z0-9_.@-]+$/.test(stamp)) throw new Error(`refusing to write an unsafe stamp: ${JSON.stringify(stamp)}`);
   const hits = source.match(new RegExp(STAMP_LINE.source, "gm")) ?? [];
   if (hits.length !== 1) throw new Error(`${STAMP_FILE} must contain exactly one BUILD_STAMP line; found ${hits.length}`);
-  return source.replace(STAMP_LINE, `export const BUILD_STAMP = "${stamp}";`);
+  return source.replace(STAMP_LINE, `const BUILD_STAMP = "${stamp}";`);
 }
 
 /** Write `stamp` (default: the function's expected stamp) into the stamp file. Returns the stamp. */

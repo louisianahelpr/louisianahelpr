@@ -3,6 +3,8 @@ import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
+import { blankSqlComments } from "./helpers/blankNonCode";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 /**
  * THE CLASS: a crew member's lifecycle stamp that no gate judges.
@@ -38,27 +40,55 @@ import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
 // @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql |   IF OLD.is_group_job IS TRUE\n     AND COALESCE(current_setting |   IF COALESCE(current_setting
 // @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql |     'helper_completed_at',\n    'poster_confirmed_completion_at', |     'poster_confirmed_completion_at',
 // @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql | REVOKE INSERT, UPDATE, DELETE ON public.group_job_helpers FROM PUBLIC, anon; | REVOKE INSERT ON public.group_job_helpers FROM PUBLIC;
-// @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql |     IF NEW.status = 'arrived' AND v_slot_arrived_at IS NULL THEN |     IF NEW.status = 'arrived' AND v_job.helper_arrived_at IS NULL THEN
+// @mutate supabase/migrations/20260919195158_before_photo_gates_working_step.sql |     IF NEW.status = 'arrived' AND v_slot_arrived_at IS NULL THEN |     IF NEW.status = 'arrived' AND v_job.helper_arrived_at IS NULL THEN
 
 const root = resolve(__dirname, "../..");
+const MIGRATIONS = resolve(root, "supabase/migrations");
 const read = (rel: string) => readFileSync(resolve(root, rel), "utf8");
-const migrationNames = () =>
-  readdirSync(resolve(root, "supabase/migrations")).filter((f) => f.endsWith(".sql"));
+const migrationNames = () => readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql"));
 
-const ROSTER_MIGRATION = "supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql";
+/**
+ * Every function body is the one the migrations leave in the database: the
+ * NEWEST definition (any dollar-quote tag), with later pg_get_functiondef
+ * rewrites replayed — src/test/helpers/effectiveFunctionDefs.ts. A later
+ * migration that restates one of these functions is what this file grades.
+ */
+const EFFECTIVE = effectiveDefs(MIGRATIONS);
+function functionBody(name: string): string {
+  return EFFECTIVE.get(name.toLowerCase())?.stmt ?? "";
+}
 
-/** The body of one `CREATE OR REPLACE FUNCTION public.<name>` block. */
-function functionBody(sql: string, name: string): string {
-  const start = sql.indexOf(`CREATE OR REPLACE FUNCTION public.${name}`);
-  if (start < 0) return "";
-  const rest = sql.slice(start);
-  // Each function in this file is terminated by its own `$function$;`.
-  const end = rest.indexOf("$function$;");
-  return end < 0 ? rest : rest.slice(0, end + "$function$;".length);
+/** `ALTER TABLE public.group_job_helpers …;` statements, comments blanked. */
+const rosterAlters = (sql: string) =>
+  [...blankSqlComments(sql).matchAll(/ALTER TABLE (?:public\.)?group_job_helpers[\s\S]*?;/gi)].map((m) => m[0]);
+
+/**
+ * The migration that gives the roster its per-member lifecycle, found by what
+ * it DOES (it adds `helper_completed_at` to group_job_helpers), never by name.
+ * Its DDL — columns, grants, replay guards — is a property of that file; its
+ * FUNCTIONS are graded through `functionBody` above.
+ */
+function rosterLifecycleMigration(): string {
+  const hits = migrationNames().filter((f) =>
+    rosterAlters(read(`supabase/migrations/${f}`)).some((a) => /ADD COLUMN IF NOT EXISTS\s+helper_completed_at\b/.test(a)),
+  );
+  expect(hits, "exactly one migration adds the per-member lifecycle columns").toHaveLength(1);
+  return read(`supabase/migrations/${hits[0]}`);
+}
+
+/** Every column any migration ever ADDs to group_job_helpers (the world's inventory). */
+function rosterAddedColumns(): string[] {
+  const out = new Set<string>();
+  for (const f of migrationNames()) {
+    for (const a of rosterAlters(read(`supabase/migrations/${f}`))) {
+      for (const m of a.matchAll(/ADD COLUMN(?: IF NOT EXISTS)?\s+(\w+)/gi)) out.add(m[1]);
+    }
+  }
+  return [...out];
 }
 
 describe("group jobs — per-member roster lifecycle (breakage (b))", () => {
-  const sql = read(ROSTER_MIGRATION);
+  const sql = rosterLifecycleMigration();
 
   it("gives the roster a per-member mirror of every jobs lifecycle scalar named in the withdrawal", () => {
     // The FLOOR is the inventory from the withdrawal note itself, not a list
@@ -85,10 +115,10 @@ describe("group jobs — per-member roster lifecycle (breakage (b))", () => {
     // Inventory derived from the world (what the migration actually adds),
     // minus what the lock covers, must be empty. A column added later without
     // being listed is a PATCH-able stamp, which is the whole hole.
-    const added = [...sql.matchAll(/ADD COLUMN IF NOT EXISTS\s+(\w+)/g)].map((m) => m[1]);
+    const added = rosterAddedColumns();
     expect(added.length).toBeGreaterThanOrEqual(8);
 
-    const lock = functionBody(sql, "enforce_group_member_lifecycle_server_owned");
+    const lock = functionBody("enforce_group_member_lifecycle_server_owned");
     expect(lock, "the server-owned lock function is gone").not.toHaveLength(0);
     expect(lock, "the lock must test membership of its own owned-column list").toContain(
       "IF changed_col = ANY (server_owned) THEN",
@@ -106,7 +136,7 @@ describe("group jobs — per-member roster lifecycle (breakage (b))", () => {
   });
 
   it("judges the per-member completion gate on the ROW, never on who is writing", () => {
-    const gate = functionBody(sql, "enforce_group_member_completion_gates");
+    const gate = functionBody("enforce_group_member_completion_gates");
     expect(gate, "the per-member completion gate is gone").not.toHaveLength(0);
 
     // THE DEFECT THIS EXISTS FOR. Any `OLD.helper_id` / `NEW.helper_id` test in
@@ -130,7 +160,7 @@ describe("group jobs — per-member roster lifecycle (breakage (b))", () => {
   });
 
   it("scopes the single-helper carve-out to group jobs, so the 1-helper path cannot reach it", () => {
-    const gate = functionBody(sql, "enforce_helper_completion_gates");
+    const gate = functionBody("enforce_helper_completion_gates");
     expect(gate, "enforce_helper_completion_gates is no longer restated here").not.toHaveLength(0);
 
     // The roll-up early return must be conjoined with is_group_job. Without
@@ -153,7 +183,7 @@ describe("group jobs — per-member roster lifecycle (breakage (b))", () => {
     // FOUND LIVE, not in a migration file: a SECURITY DEFINER RPC called by a
     // crew member is NOT a server context, so `enforce_job_tracking_arrival_gate`
     // refused every tracker row for members 2..N on `jobs.helper_id`.
-    const gate = functionBody(sql, "enforce_job_tracking_arrival_gate");
+    const gate = functionBody("enforce_job_tracking_arrival_gate");
     expect(gate, "the tracker gate is no longer restated here").not.toHaveLength(0);
 
     // ORDER MATTERS, and is asserted. The standing parity guard
@@ -217,7 +247,7 @@ describe("group jobs — per-member roster lifecycle (breakage (b))", () => {
     // Inventory from the file, oracle from each definition.
     const defs = [...sql.matchAll(/CREATE OR REPLACE FUNCTION public\.(\w+)/g)].map((m) => m[1]);
     expect(defs.length).toBeGreaterThanOrEqual(8);
-    const missingPath = defs.filter((n) => !/SET search_path TO 'public'/.test(functionBody(sql, n)));
+    const missingPath = defs.filter((n) => !/SET search_path TO 'public'/.test(functionBody(n)));
     expect(missingPath, `no pinned search_path: ${missingPath.join(", ")}`).toEqual([]);
 
     // Every client-callable RPC is revoked BY ROLE NAME (FROM PUBLIC alone

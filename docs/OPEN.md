@@ -90,7 +90,7 @@ sure someone hears it and closes it.
   after that alert's own detector has been re-run and shows it cleared. A
   guard ensures no code path posts to Slack without a ledger entry. The
   session-start check reads it first.
-- [ ] **Q2 Test runs raise real alerts.** E2E/seed jobs trigger stuck-payment
+- [~] **Q2 Test runs raise real alerts.** E2E/seed jobs trigger stuck-payment
   alerts, the ec3428da "refund refused" alert (a test job paid 09-12, no
   dispute, where something keeps retrying a refund), and user-facing
   notification copy posting into #ops-alerts. Fix it where it starts: tests
@@ -133,6 +133,18 @@ sure someone hears it and closes it.
   the mirror cannot tell a seed one — "Ban review needed" (/admin?view=banreview,
   apply_consequence_ladder) and "Scheduled payout failed" (/admin,
   process-scheduled-payouts). They still page for seed (fail loud).
+  FOLLOW-UP DONE 2026-09-25 (queue lane, branch queue-fix, not yet deployed):
+  "Ban review needed" already links /admin?view=banreview&user=<id> (restated by
+  20260923205635). The TS side had SIX operator alerts linking bare "/admin":
+  release-payout x3 and process-scheduled-payouts x2 (payout blocked / failed)
+  and auto-resolve-disputes "Dispute auto-resolved"; with title+link as the
+  mirror's once-per-day key, two different failed payouts on one day also posted
+  ONCE. All six now link /admin?view=jobs&job=<id> (AdminJobs opens that job).
+  GUARD: src/test/operatorAlertsNameTheirSubject.test.ts (AST of src/ +
+  supabase/functions: every admin_alert/system_alert object's link names a
+  job/user, or is a parameter every same-file call fills with one; red on the
+  pre-fix code with exactly those 6 sites; vacuity 3/3 killed). SQL producers
+  stay with Q139. Tick after functions-deploy ships the three functions.
 - [x] **Q3 DONE 2026-09-23: balance monitor BUILT and its first prod run GREEN (quota-monitor run 35900057895, job 'Stripe TEST balance vs payouts due (Q3)' = success, 2026-09-23). Top-up DONE 2026-09-23 (Q145: $500 TEST charge, available $0 -> $485.20).** Monitor: scripts/check-stripe-balance.mjs (maths/text in scripts/lib/stripeBalanceMonitor.mjs), the new `stripe-balance` job in .github/workflows/quota-monitor.yml (daily 23:17 UTC, prod-load slot, already watched by schedule-heartbeat.yml). It reads GET /v1/balance with STRIPE_TEST_SECRET_KEY (refused unless sk_test_/rk_test_; answer must be livemode=false) and the payouts due within 72h (overdue included) from public.jobs (payout_pending, payout_scheduled_at; upper bound = budget + urgent_fee, seeds included) via read-only Management API SQL. available < max($100, 1.5 x due) -> ops-alert-ledger error "Stripe TEST balance below payout threshold" whose text says how to top up in TEST mode (0077 card, pm_card_bypassPending); due unreadable -> ::warning and the $100 floor alone; balance unreadable/empty/live -> ledger error AND red run. Guard: src/test/stripeBalanceMonitor.test.ts (threshold maths, parser, stub Stripe + Management API CLI runs, workflow wiring; 8 @mutate lines, each run red) + src/test/liveCheckScriptsFailClosed.test.ts (no key / Stripe 500 / Stripe [] -> non-zero). MEASURED 2026-09-23 17:2xZ in a cloud session (read-only, sk_test_ key): available $428.00 (matches Q145's 42800c), status OK against the $100 floor. NOT measured: the 72h due SQL against prod (no DB credentials there) and whether the repo secret STRIPE_TEST_SECRET_KEY (described in stripe-webhook-guard.yml as a restricted key with Webhook Endpoints read) also has "Balance: read"; if not, the first run is red with "Stripe GET /v1/balance 403" and the key needs that permission. Was: Scheduled payouts and transfers fail
   with "insufficient available funds" (09-22). Top it up with the 0077 test
   card, then add a balance monitor so this alerts BEFORE the payouts fail.

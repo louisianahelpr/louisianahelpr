@@ -569,7 +569,7 @@ serve(async (req) => {
           job_id: job.id,
           title: "Payout blocked — charge not captured",
           message: `Job ${job.id} ("${job.title}") payout blocked. PaymentIntent status: ${pi.status}.`,
-          type: "admin_alert", link: "/admin",
+          type: "admin_alert", link: `/admin?view=jobs&job=${job.id}`,
         });
       }
       return jsonResponse({ error: `escrow charge not captured (PI status: ${pi.status}) — payout refused`, pi_status: pi.status }, 409);
@@ -589,7 +589,7 @@ serve(async (req) => {
           job_id: job.id,
           title: "Payout blocked — escrow amount unverifiable",
           message: `Job ${job.id} ("${job.title}") payout blocked: ${captured.reason}. This is an integration fault, not a poster problem — the charge may well be fine.`,
-          type: "admin_alert", link: "/admin",
+          type: "admin_alert", link: `/admin?view=jobs&job=${job.id}`,
         });
       }
       return jsonResponse(
@@ -811,7 +811,7 @@ serve(async (req) => {
         job_id: job.id,
         title: "Payout blocked — exceeds captured amount",
         message: `Job ${job.id} ("${job.title}") tried to pay out $${(payoutCents / 100).toFixed(2)} against $${(escrowValueCents / 100).toFixed(2)} of escrow ($${((escrowAmountReceivedCents ?? 0) / 100).toFixed(2)} captured + $${(giftAppliedCents / 100).toFixed(2)} gift). Budget may have been altered after checkout.`,
-        type: "admin_alert", link: "/admin",
+        type: "admin_alert", link: `/admin?view=jobs&job=${job.id}`,
       });
     }
     // This refusal sits AFTER the onboarding-fee claim, so it is one of the

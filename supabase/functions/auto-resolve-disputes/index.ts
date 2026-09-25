@@ -707,7 +707,7 @@ Deno.serve(async (req) => {
             title: "Dispute auto-resolved",
             message: `Dispute on "${job.title}" expired without poster action. Payment auto-released to helpr.`,
             type: "admin_alert",
-            link: "/admin",
+            link: `/admin?view=jobs&job=${job.id}`,
           });
         }
       }

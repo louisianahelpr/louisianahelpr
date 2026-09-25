@@ -508,7 +508,7 @@ serve(async (req) => {
                   job_id: job.id,
                   title: "Payout blocked — charge not captured",
                   message: `Job ${job.id} ("${job.title}") payout cannot proceed. PI status: ${pi.status}.`,
-                  type: "admin_alert", link: "/admin",
+                  type: "admin_alert", link: `/admin?view=jobs&job=${job.id}`,
                 });
               }
             }
@@ -1185,7 +1185,7 @@ serve(async (req) => {
               job_id: job.id,
               title: "Scheduled payout failed",
               message: `Failed to pay $${helperPayout.toFixed(2)} to helpr for job ${job.id}. Error: ${(e as Error).message}`,
-              type: "admin_alert", link: "/admin",
+              type: "admin_alert", link: `/admin?view=jobs&job=${job.id}`,
             });
           }
         }

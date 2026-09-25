@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
     // Find disputed jobs past their 72-hour deadline
     const { data: expiredDisputes, error: fetchErr } = await supabase
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, dispute_reason, disputed_at, dispute_deadline, dispute_status, payment_status, stripe_payment_intent_id, stripe_session_id, disputed_by")
+      .select("id, title, helper_id, customer_id, budget, dispute_reason, disputed_at, dispute_deadline, dispute_status, payment_status, stripe_payment_intent_id, stripe_session_id, disputed_by, is_group_job")
       .eq("status", "disputed")
       .not("dispute_deadline", "is", null)
       .lte("dispute_deadline", new Date().toISOString());
@@ -364,7 +364,16 @@ Deno.serve(async (req) => {
       // Written on `jobs.dispute_status`, never `disputes.status` — the
       // latter's CHECK admits only open/decided/withdrawn/superseded, so mirroring it
       // there would throw and abort the sweep.
-      if (job.disputed_by && job.helper_id && job.disputed_by === job.helper_id) {
+      // A CREW has no helper_id (Q407): its Helpr side is every hired member,
+      // and a member can file (open_dispute_as, 20260925234055). A crew
+      // dispute filed by anyone but the poster is the Helpr side's filing, and
+      // must escalate exactly like a single Helpr's (docs/OPEN.md Q409):
+      // otherwise one member's silence would auto-release the whole crew's pay.
+      const helprSideFiled = !!job.disputed_by && (
+        (!!job.helper_id && job.disputed_by === job.helper_id) ||
+        (job.is_group_job === true && job.disputed_by !== job.customer_id)
+      );
+      if (helprSideFiled) {
         // Guarded on payment_status="escrow" for the same chargeback race the
         // release path below guards, and `.select("id")` because a null error
         // on a zero-row update would read as "escalated" while the deadline

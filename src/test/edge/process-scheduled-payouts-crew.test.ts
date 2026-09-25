@@ -103,7 +103,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     expect(gross.reduce((a, b) => a + b, 0)).toBe(10000);
   });
 
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (!refunded) allRosterPaid = false; | if (false) allRosterPaid = false;
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | return { ready: refund.ok, paidCents, | return { ready: true, paidCents,
   it("an under-filled crew (2 of 3), all paid: the unfilled slot's $33.33 is refunded to the poster once, recorded, then the job releases", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     await run();
@@ -148,5 +148,83 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     stripeMock.refunds.create.mockRejectedValue(new Error("stripe down"));
     await run();
     expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(false);
+  });
+
+  // ── docs/OPEN.md Q409 + Q396(c): a crew dispute decided member by member ──
+  /** A live crew decision on job-crew: `refunded` members' shares go back to the poster. */
+  function seedCrewDecision(refunded: string[], outcomesFor: string[]) {
+    scenario.reads.disputes = {
+      rows: [{ id: "disp-1" }],
+      // checkUnsettledDispute's read (it asks for payout_split): a crew_fanout
+      // decision is not "unsettled" to this cron, which is its executor.
+      selectOverrides: [{ includes: "payout_split", result: { rows: [] } }],
+    };
+    scenario.reads.crew_dispute_member_outcomes = {
+      rows: outcomesFor.map((helper_id) => ({ helper_id, outcome: refunded.includes(helper_id) ? "refund" : "pay" })),
+    };
+    scenario.rpc.mark_crew_dispute_executed = true;
+  }
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | .or("disputed_at.is.null,dispute_status.in.(resolved,auto_resolved)") | .is("disputed_at", null)
+  it("Q396(c): the payout query admits a job whose dispute CLOSED (resolved / auto_resolved), not only a never-disputed one", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333], ["m3", 2, 3333]]);
+    await run();
+    const q = scenario.readQueries.find((r) => r.table === "jobs" && r.cols.includes("sales_tax_rate"));
+    expect(q?.filters).toEqual(
+      expect.arrayContaining([expect.objectContaining({ op: "or", value: "disputed_at.is.null,dispute_status.in.(resolved,auto_resolved)" })]),
+    );
+    expect(q?.filters.some((f) => f.op === "is" && f.column === "disputed_at")).toBe(false);
+    // A group job reads the unsettled-dispute hold WITHOUT its own crew
+    // decision; a single-helper job would still see a crew_fanout row as unsettled.
+    const hold = scenario.readQueries.find((r) => r.table === "disputes" && r.cols.includes("payout_split"));
+    expect(JSON.stringify(hold?.filters)).toContain("execution_status.neq.crew_fanout");
+  });
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |           if (refundedByDecision.has(helperId)) continue; |           if (false) continue;
+  it("a crew decision paying m1, m2 and refunding m3: two transfers, m3's frozen $33.33 refunded once on the dispute's key, the job released, the dispute closed through its one writer", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333], ["m3", 2, 3333]]);
+    seedCrewDecision(["m3"], ["m1", "m2", "m3"]);
+    (scenario.reads.payout_transfers as { selectOverrides: Array<{ includes: string; result: { rows: unknown[] } }> })
+      .selectOverrides[0].result.rows = [{ helper_id: "m1", amount_cents: 2934 }, { helper_id: "m2", amount_cents: 2933 }];
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_crew_dispute", amount: 3333, currency: "usd" });
+    await run();
+    expect(stripeMock.transfers.create).toHaveBeenCalledTimes(2);
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_1", amount: 3333 },
+      { idempotencyKey: "crew-dispute-refund-disp-1" },
+    );
+    const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
+    expect(ledger?.payload).toEqual(expect.objectContaining({ source: "crew_dispute_refund", amount_cents: 3333 }));
+    expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(true);
+    const close = (scenario.rpcCalls ?? []).filter((c) => c.name === "mark_crew_dispute_executed");
+    expect(close).toHaveLength(1);
+    expect(close[0].args).toEqual({ _dispute_id: "disp-1", _helper_cents: 5867, _refund_cents: 3333, _refund_id: "re_crew_dispute" });
+  });
+
+  it("a crew decision whose outcomes cannot be read pays NOBODY (fail closed: a refunded member must never be paid)", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333], ["m3", 2, 3333]]);
+    seedCrewDecision(["m3"], []);
+    await run();
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+  });
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |         if (job.is_group_job && !crewSettled.has(job.id)) { |         if (false) {
+  it("every member already paid but the refund never went out (it failed on the last member's run): the next run refunds and releases — before, nothing ever asked again", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    // Each member's own ledger read finds their settled transfer.
+    (scenario.reads.payout_transfers as { selectOverrides: Array<{ includes: string; result: { rows: unknown[] } }> }).selectOverrides.push({
+      includes: "stripe_transfer_id, status, created_at",
+      result: { rows: [{ id: "pt-1", stripe_transfer_id: "tr_prev", status: "paid", created_at: "2026-09-25T00:00:00Z" }] },
+    });
+    await run();
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_1", amount: 3333 },
+      { idempotencyKey: "crew-unfilled-refund-job-crew" },
+    );
+    expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(true);
   });
 });

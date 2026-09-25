@@ -352,6 +352,28 @@ describe("auto-resolve-disputes", () => {
       const res = await h.fetch(cronReq());
       expect((await json(res)).escalated_helper_filed).toBe(0);
     });
+
+    // docs/OPEN.md Q409: a crew has no helper_id (Q407), so `disputed_by ===
+    // helper_id` never matched a crew member's filing and one member's silence
+    // auto-released the whole crew's pay.
+    // @mutate supabase/functions/auto-resolve-disputes/index.ts | (job.is_group_job === true && job.disputed_by !== job.customer_id) | false
+    it("a CREW MEMBER's dispute escalates like a single Helpr's; the poster's on a crew still auto-resolves", async () => {
+      seedExpiredDispute(scenario, { helper_id: null, is_group_job: true, disputed_by: "crew-member-2" });
+      let h = await load();
+      let body = await json(await h.fetch(cronReq()));
+      expect(body.escalated_helper_filed).toBe(1);
+      expect(body.resolved).toBe(0);
+      expect(writesTo("jobs")[0].payload).toEqual({ dispute_status: "escalated" });
+
+      resetSupabaseMock();
+      resetStripeMock();
+      resetSharedMocks();
+      seedExpiredDispute(scenario, { helper_id: null, is_group_job: true, disputed_by: "poster-1" });
+      h = await load();
+      body = await json(await h.fetch(cronReq()));
+      expect(body.escalated_helper_filed).toBe(0);
+      expect(body.resolved).toBe(1);
+    });
   });
 
   // ── 2. Reminder dedupe ───────────────────────────────────────────────────

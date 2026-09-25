@@ -3,7 +3,7 @@
 // drop errors (regression — Sentry is the long-term archive) or
 // crash on SSR / init failure.
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const initMock = vi.fn();
 const setUserMock = vi.fn();
@@ -38,7 +38,25 @@ vi.mock("@sentry/react", () => ({
   replayIntegration: (opts: unknown) => ({ name: "replay", opts }),
 }));
 
+// jsdom serves the tests from http://localhost:3000, which isLocalBuildHost
+// reads as a prod build served locally (Q386: no replay there). Every test runs
+// from the real web origin unless it places itself elsewhere.
+const JSDOM_LOCATION = window.location;
+function placeAt(href: string) {
+  const u = new URL(href);
+  Object.defineProperty(window, "location", {
+    configurable: true,
+    writable: true,
+    value: { ...JSDOM_LOCATION, href: u.href, protocol: u.protocol, hostname: u.hostname, host: u.host, origin: u.origin },
+  });
+}
+
+afterEach(() => {
+  Object.defineProperty(window, "location", { configurable: true, writable: true, value: JSDOM_LOCATION });
+});
+
 beforeEach(() => {
+  placeAt("https://www.louisianahelpr.com/");
   vi.resetModules();
   initMock.mockReset();
   setUserMock.mockReset();
@@ -449,7 +467,7 @@ describe("setSentryUser", () => {
 // descriptors), and none were recorded after 2026-09-14 ("Replay Quota
 // Exceeded"). An automated browser (navigator.webdriver) records no replay in a
 // PROD build; a person's browser still does. Errors still report, tagged.
-// @mutate src/lib/sentry.ts |     const recordReplays = import.meta.env.PROD && !automated; |     const recordReplays = import.meta.env.PROD;
+// @mutate src/lib/sentry.ts |     const recordReplays = import.meta.env.PROD && !automated && !localBuild; |     const recordReplays = import.meta.env.PROD && !localBuild;
 // @mutate src/lib/automatedBrowser.ts |     return typeof navigator !== "undefined" && navigator.webdriver === true; |     return false;
 // @mutate src/lib/sentry.ts |     if (recordReplays) { |     if (import.meta.env.PROD) {
 describe("Session Replay in automated browsers (Q275)", () => {
@@ -553,4 +571,50 @@ describe("Session Replay for a test profile (Q379)", () => {
       vi.unstubAllGlobals();
     }
   });
+});
+
+// Q386: a prod build served on this machine (vite preview; Lighthouse CI and
+// the press sweeps on http://127.0.0.1:4173) records no replay. beforeSend
+// already dropped its errors, but session sampling still sent 10% of those
+// page loads' replays. The native apps load from capacitor://localhost (iOS)
+// and https://localhost (Android): they are not a local build and still record.
+// @mutate src/lib/sentry.ts |     const recordReplays = import.meta.env.PROD && !automated && !localBuild; |     const recordReplays = import.meta.env.PROD && !automated;
+// @mutate src/lib/sentry.ts |     const localBuild = isLocalBuildHost(window.location); |     const localBuild = false;
+describe("Session Replay on a prod build served locally (Q386)", () => {
+  async function initProdAt(href: string) {
+    placeAt(href);
+    vi.stubEnv("PROD", true);
+    vi.stubEnv("DEV", false);
+    vi.stubGlobal("requestIdleCallback", (cb: () => void) => { cb(); return 1; });
+    try {
+      const { initSentry } = await loadFresh();
+      initSentry();
+      await new Promise((r) => setTimeout(r, 50));
+      return initMock.mock.calls[0][0] as { replaysSessionSampleRate: number; replaysOnErrorSampleRate: number };
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
+  }
+
+  it.each(["http://127.0.0.1:4173/", "http://localhost:4173/browse", "http://[::1]:4173/"])(
+    "%s: both replay rates 0 and Replay never registered; errors still init",
+    async (href) => {
+      const config = await initProdAt(href);
+      expect(initMock).toHaveBeenCalledOnce();
+      expect(config.replaysSessionSampleRate).toBe(0);
+      expect(config.replaysOnErrorSampleRate).toBe(0);
+      expect(addIntegrationMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["capacitor://localhost/", "https://localhost/", "https://www.louisianahelpr.com/"])(
+    "%s (native iOS, native Android, web): records at the configured rates",
+    async (href) => {
+      const config = await initProdAt(href);
+      expect(config.replaysSessionSampleRate).toBe(0.1);
+      expect(config.replaysOnErrorSampleRate).toBe(1.0);
+      expect(addIntegrationMock).toHaveBeenCalledOnce();
+    },
+  );
 });

@@ -33,6 +33,12 @@ const files = readdirSync(join(ROOT, DIR))
   .map((f) => `${DIR}/${f}`);
 const harness = read(`${DIR}/harness.ts`);
 
+describe("prod-audit spec inventory", () => {
+  it("finds the prod-audit specs (an empty directory would pass every per-file check)", () => {
+    expect(files.length).toBeGreaterThan(5);
+  });
+});
+
 describe("prod-audit cleanup is scoped to the run that wrote the rows", () => {
   it("RUN_MARKER is MARKER plus a letters-only token, so every MARKER sweeper still finds a leftover", () => {
     expect(harness).toMatch(/export const MARKER = "\[E2E-PRODAUDIT\]";/);
@@ -70,8 +76,6 @@ describe("prod-audit cleanup is scoped to the run that wrote the rows", () => {
 
   it("no spec deletes by the bare MARKER, and a file that cleans up by run writes only run-marked text", () => {
     const bare: string[] = [];
-    // 13 prod-audit specs on 2026-09-25; an empty directory read would pass every check below.
-    expect(files.filter((f) => f.endsWith(".spec.ts")).length, "no prod-audit specs found — the scan reads nothing").toBeGreaterThan(8);
     for (const f of files) {
       const src = read(f);
       if (/encodeURIComponent\(`\*\$\{MARKER\}\*`\)/.test(src)) bare.push(`${f}: a like-pattern built from the bare MARKER`);

@@ -18,9 +18,11 @@ name: Loading states refresh
 # a nightly-red issue. scripts/check-staleness.mjs binds measurements.json's
 # currency to this workflow's last scheduled success (WORKFLOW_BOUND).
 #
-# LANDING (Q57): when the fresh measurement re-proves the baseline, the `land`
-# job copies measurements.json onto latest main and lands it through
-# .github/actions/refresh-pr (one bot branch, one PR, auto-merge on green).
+# LANDING (Q57, Q408): whenever a fresh measurement was produced, green or red,
+# the `land` job copies measurements.json onto latest main and lands it through
+# .github/actions/refresh-pr (one bot branch, one PR, auto-merge on green). A
+# red one cannot auto-merge (loadingStateShape.test.ts grades it against
+# main's baseline); it waits on bot/refresh/loading-states for the baseline fix.
 # Only measurements.json: the screenshots are re-taken every run and stay in
 # the artifact, and baseline.json is a two-way ratchet a person lowers.
 
@@ -56,6 +58,10 @@ jobs:
     concurrency:
       group: prod-lifecycle-shared-accounts
       cancel-in-progress: false
+    # Whether a fresh measurement EXISTS, separate from whether it passed: the
+    # land job ships it either way (see LANDING above).
+    outputs:
+      measured: ${{ steps.measure.outcome }}
     steps:
       - uses: actions/checkout@v7
 
@@ -141,7 +147,15 @@ jobs:
   land:
     name: Land the fresh measurement (Q57 refresh PR)
     needs: [measure]
-    if: needs.measure.result == 'success'
+    # Whenever a measurement was PRODUCED, not only when it re-proved the
+    # baseline. A red measurement is the one a person needs in hand to fix the
+    # baseline, and CI artifacts are not reachable from every place that work
+    # happens (the lead's container cannot download from the artifact blob
+    # host, 2026-09-25), while a git branch is. The PR still auto-merges only
+    # through main's required checks, and src/test/loadingStateShape.test.ts
+    # grades the file against main's baseline, so a red measurement waits on
+    # bot/refresh/loading-states until the baseline fix joins it.
+    if: always() && needs.measure.outputs.measured == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # The ONLY write grant in this workflow (Q57): push the bot branch, open or
@@ -162,6 +176,9 @@ jobs:
           title: "chore(refresh): loading-state measurements re-measured on prod"
           paths: docs/audit/loading-states/measurements.json
           measured-dir: ${{ runner.temp }}/measured
+          body: |
+            Measured from `${{ github.ref_name }}` at ${{ github.sha }}; the measure job ended `${{ needs.measure.result }}`.
+            If that is not `success`, this file is the evidence for the baseline fix: fetch `bot/refresh/loading-states`, delete the stale entries and fix the new breaches it shows, and land them with it. If it was measured from a branch other than main, it describes that branch's code: merge the branch first.
           github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
           check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}
 

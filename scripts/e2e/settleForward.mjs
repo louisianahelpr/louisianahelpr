@@ -73,6 +73,33 @@ const WORK_BACKDATE_MS = 40 * 60 * 1000;
  */
 export const E2E_HOLD_MARKER = "[E2E HOLD]";
 
+/**
+ * Why a row is held and must not be touched, or null.
+ *
+ * The title marker is the opt-in; the id is the fail-closed half. The two-role
+ * harness's seeded job (secret PLAYWRIGHT_LIFECYCLE_JOB_ID) is held by id
+ * whether or not its live title carries the marker, because nobody could read
+ * that title when this was written (re-review of 5a22b3e10, 2026-09-25). Unset
+ * or blank env holds nothing extra.
+ *
+ * @param {{ id?: string, title?: unknown }} job
+ * @param {Record<string, string | undefined>} [env]
+ */
+export function heldReason(job, env = process.env) {
+  const lifecycleId = (env.PLAYWRIGHT_LIFECYCLE_JOB_ID || "").trim();
+  if (lifecycleId && job?.id === lifecycleId) return "the two-role fixture (PLAYWRIGHT_LIFECYCLE_JOB_ID)";
+  if (typeof job?.title === "string" && job.title.includes(E2E_HOLD_MARKER)) return `${E2E_HOLD_MARKER} in the title`;
+  return null;
+}
+
+/**
+ * The refusal for a funded row with NO Checkout Session: create-payment's
+ * gift-card path (redeem_gift_card) moves a job to escrow without one. Its
+ * Stripe mode cannot be proven from the row, so it is never settled here, and
+ * a sweep reports it as held rather than counting it as a failed settle.
+ */
+export const NO_CHECKOUT_SESSION = "no Checkout Session (funded another way, e.g. a gift card) — mode unprovable, never settled here";
+
 /** Statuses a hired, funded job can still be settled forward from. */
 export const SETTLEABLE_STATUSES = ["accepted", "in_progress", "revision_requested"];
 /** Statuses that mean the money already moved — nothing left to settle. */
@@ -158,12 +185,14 @@ export function settleRefusalReason(job, seats) {
   // `cancel_escrow` refuses it for this reason and so does this.
   if (job.disputed_at || job.has_active_dispute) return "under dispute — the escrow is an admin's to place";
   if (SETTLED_PAYMENT_STATUSES.includes(job.payment_status)) return "already settled";
-  if (typeof job.title === "string" && job.title.includes(E2E_HOLD_MARKER)) return `held on purpose (${E2E_HOLD_MARKER} in the title)`;
+  const held = heldReason(job);
+  if (held) return `held on purpose (${held})`;
   // Funded in Stripe TEST mode, proven by the row's own Checkout Session id
-  // (lh-money-escrow review L2). A cs_live_ row, or one funded without a
-  // session (a gift card), is real money or unprovable: never released here.
+  // (lh-money-escrow review L2). A cs_live_ row is real money; a row funded
+  // without a session (a gift card) is unprovable: neither is released here.
+  if (job.stripe_session_id == null) return NO_CHECKOUT_SESSION;
   if (typeof job.stripe_session_id !== "string" || !job.stripe_session_id.startsWith("cs_test_")) {
-    return `not funded through a test-mode Checkout Session (stripe_session_id ${job.stripe_session_id ? job.stripe_session_id.slice(0, 8) + "…" : "null"})`;
+    return `not funded through a test-mode Checkout Session (stripe_session_id ${String(job.stripe_session_id).slice(0, 8)}…)`;
   }
   if (job.payment_status !== "escrow") return `payment_status is ${job.payment_status}, not escrow`;
   if (!SETTLEABLE_STATUSES.includes(job.status)) return `status is ${job.status}`;

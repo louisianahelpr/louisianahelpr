@@ -53,7 +53,7 @@ import {
   cancelEscrowAnswerFromColumns,
   createPaymentWindowWaitMs,
 } from "./sweepSummary.mjs";
-import { settleJobForward, E2E_HOLD_MARKER } from "./settleForward.mjs";
+import { settleJobForward, heldReason } from "./settleForward.mjs";
 
 const BASE = (process.env.SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
 const ANON = process.env.SUPABASE_ANON_KEY || "";
@@ -278,8 +278,10 @@ const failures = [];
    forward in five days, and every nightly log had reported OK. */
 const deferred = [];
 const disputed = [];
-/* Rows a lane is deliberately holding (E2E_HOLD_MARKER in the title): never
-   settled, cancelled, reopened or deleted by this sweep (review M3). */
+/* Rows this sweep must leave alone, each with why: a lane holding it
+   (E2E_HOLD_MARKER in the title, or the two-role fixture's id), or a funded row
+   with no Checkout Session whose mode it cannot prove. Never settled,
+   cancelled, reopened or deleted, and never counted as a failed settle. */
 const held = [];
 const throttled = [];
 for (const job of jobs) {
@@ -332,9 +334,10 @@ for (const job of jobs) {
      outlive one run puts E2E_HOLD_MARKER in its title, and this sweep leaves
      it exactly as it is: the 6h age gate only bounds CI job timeouts, not a
      fixture someone is keeping on purpose (review M3). Listed, never touched. */
-  if (typeof job.title === "string" && job.title.includes(E2E_HOLD_MARKER)) {
-    console.log(`  ${job.id}  status=${job.status} payment=${job.payment_status} → held (${E2E_HOLD_MARKER}) — not touched`);
-    held.push(job);
+  const holdWhy = heldReason(job);
+  if (holdWhy) {
+    console.log(`  ${job.id}  status=${job.status} payment=${job.payment_status} → held (${holdWhy}) — not touched`);
+    held.push({ ...job, why: holdWhy });
     continue;
   }
   const alreadyUnwound = job.status === "cancelled" || settled;
@@ -383,7 +386,19 @@ for (const job of jobs) {
       r = await cancelEscrow(job.id);
       verdict = classifyCancelEscrow(r.status, r.body);
     }
-    if (verdict === "settle-forward") {
+    if (verdict === "settle-forward" && job.stripe_session_id == null) {
+      /* Hired and funded with NO Checkout Session: create-payment's gift-card
+         path funds escrow without one (re-review of 5a22b3e10). Its Stripe
+         mode cannot be proven, so settleForward refuses it forever; deferring
+         it would fail every teardown once it is 48h old for a row no sweep may
+         settle. Held, with a warning naming it for a human. */
+      console.log(`    held (no Checkout Session): ${job.id} is hired and funded without one; its mode is unprovable, not settled`);
+      console.log(
+        `::warning title=Funded test job with no Checkout Session::${job.id} is hired+funded in escrow with no ` +
+          `stripe_session_id (gift card?); the sweep will not settle it. Unwind it by hand.`,
+      );
+      held.push({ ...job, why: "no Checkout Session" });
+    } else if (verdict === "settle-forward") {
       /* cancel_escrow only refunds an OPEN job with no Helpr since the
          dispute-races branch (a hired job has a cancellation-fee ladder the
          direct refund skipped). It is deliberately NOT cancelled here instead:
@@ -408,7 +423,10 @@ for (const job of jobs) {
       }
       if (CAN_SETTLE_FORWARD && oldEnough) {
         // Every exit from this walk (settled, refused, thrown) may have spent
-        // create-payment calls, so the window is stamped in the finally (review L1).
+        // create-payment calls, so the window is stamped in the finally (review
+        // L1) — unless settleJobForward refused the row before its first leg
+        // (steps: []), which makes no call at all.
+        let refusedUnwalked = false;
         try {
           const out = await settleJobForward({
             base: BASE,
@@ -420,6 +438,7 @@ for (const job of jobs) {
             jobId: job.id,
             log: (line) => console.log(line),
           });
+          refusedUnwalked = out.steps.length === 0;
           if (out.settled) continue;
           console.log(`    could not settle ${job.id} forward: ${out.reason}`);
         } catch (err) {
@@ -428,7 +447,7 @@ for (const job of jobs) {
           console.log(`    could not settle ${job.id} forward: ${String(err).slice(0, 200)}`);
         } finally {
           // The forward walk ends on create-payment's release, in the same window.
-          lastCreatePaymentAt = Date.now();
+          if (!refusedUnwalked) lastCreatePaymentAt = Date.now();
         }
       }
       console.log(
@@ -494,10 +513,15 @@ const summary = summariseSweep({ listed: jobs.length, deferred });
  * pre-sweep must not block the suite, and the same job's teardown runs
  * `if: always()`, so the run still goes red.
  */
-if (!DRY && CAN_SETTLE_FORWARD && summary.stale.length) {
+/* Only rows the sweep could LEGALLY settle count: a test-mode Checkout Session
+   (a cs_live_ row is refused by settleRefusalReason and reported in the
+   warning below, not failed on). Held rows never reach `deferred`. */
+const sessionOf = new Map(deferred.map((j) => [j.id, j.stripe_session_id]));
+const staleSettleable = summary.stale.filter((r) => String(sessionOf.get(r.id) ?? "").startsWith("cs_test_"));
+if (!DRY && CAN_SETTLE_FORWARD && staleSettleable.length) {
   const msg =
-    `${summary.stale.length} hired+funded test job(s) past 48h were NOT settled forward although this sweep ` +
-    `held both seats in Stripe test mode: ${summary.stale.map((r) => r.id).join(", ")}`;
+    `${staleSettleable.length} hired+funded test job(s) past 48h were NOT settled forward although this sweep ` +
+    `held both seats in Stripe test mode: ${staleSettleable.map((r) => r.id).join(", ")}`;
   if (PHASE === "teardown") failures.push(`settle forward: ${msg}`);
   else console.log(`::warning title=Stale escrow rows did not settle (the teardown sweep will fail on them)::${msg}`);
 }
@@ -513,7 +537,7 @@ if (failures.length) {
 }
 console.log(`\n${summary.line}`);
 if (held.length) {
-  console.log(`Held on purpose (${E2E_HOLD_MARKER}), not touched: ${held.map((j) => `${j.id} (${j.status}/${j.payment_status}, created ${j.created_at})`).join(", ")}`);
+  console.log(`Held, not touched: ${held.map((j) => `${j.id} (${j.why}; ${j.status}/${j.payment_status}, created ${j.created_at})`).join(", ")}`);
 }
 if (!summary.ok) {
   // A warning, never an exit code: the rows are real residue, but the sweeper

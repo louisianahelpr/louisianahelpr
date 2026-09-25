@@ -370,19 +370,24 @@ export function screenPanelContentProps(band: ScreenPanelBand): {
 }
 
 /**
- * The band's surface. OPAQUE, square, with a hairline bottom edge and a soft
- * downward shadow — the panel separates from the feed by its edge, not by
- * dimming or blurring what is behind it.
+ * The band's surface: a sheet ON TOP of the page. Owner, 2026-09-25 (iPhone,
+ * Refine Your Search): "This should be like on top of the stuff behind it it
+ * looks like it's blends all together." So the band is the card tone
+ * (`--popover`, lighter than the `--background` canvas the page is painted
+ * in, with its own dark-mode value), carries the app's floating-surface
+ * elevation (`--elev-sheet`) plus a deeper drop under its edge, and rounds
+ * its two bottom corners so its lower edge reads as the edge of a sheet.
  *
- * Not `.glass-modal`: that surface is 95% `--background` over a 40px
- * `backdrop-filter`, which is a blur, which is the thing the owner asked to
- * remove. Its 28px radius is wrong here too — a band that reaches both screen
- * edges has no corners to round on the sides.
+ * Still OPAQUE and still no blur or dimming behind it (owner, 2026-08-31:
+ * "remove the blur"): it separates from the feed by colour, shadow and edge.
+ * The sides stay square because the band reaches both screen edges.
  */
 const screenPanelSurfaceStyle = {
-  background: "hsl(var(--background))",
-  borderBottom: "1px solid hsl(var(--olivewood) / 0.14)",
-  boxShadow: "0 18px 40px -22px hsl(160 10% 12% / 0.45)",
+  background: "hsl(var(--popover))",
+  borderBottom: "1px solid hsl(var(--olivewood) / 0.18)",
+  borderBottomLeftRadius: "20px", // ds-lg
+  borderBottomRightRadius: "20px", // ds-lg
+  boxShadow: "var(--elev-sheet), 0 24px 48px -16px hsl(160 10% 12% / 0.35)",
   // `PopoverContent`'s shared class enters with `zoom-in-95`, which on a
   // 1440px-wide band is a visible sideways stretch rather than the small pop a
   // dropdown gets. tailwindcss-animate drives that scale from a custom

@@ -1,6 +1,10 @@
 // @mutate supabase/migrations/20260923205811_close_pending_applications_on_job_cancel.sql | WHEN (NEW.status = 'cancelled' AND OLD.status IS DISTINCT FROM NEW.status) | WHEN (NEW.status = 'completed' AND OLD.status IS DISTINCT FROM NEW.status)
 // @mutate supabase/migrations/20260923205811_close_pending_applications_on_job_cancel.sql | SET status = 'rejected',\n         closed_reason = 'job_cancelled'\n   WHERE job_id = NEW.id | SET status = 'rejected'\n   WHERE job_id = NEW.id
-// @mutate supabase/migrations/20260923205811_close_pending_applications_on_job_cancel.sql | IF NEW.closed_reason = 'job_cancelled' THEN | IF false THEN
+// notify_on_application was redefined by 20260924023843 and again by 20260924220318;
+// the guard reads the NEWEST, so its mutation must break the newest (pointing it at
+// 20260923205811 left the guard green: it SURVIVED, 2026-09-25). Re-point this line
+// whenever a later migration redefines notify_on_application.
+// @mutate supabase/migrations/20260924220318_rename_tab_addresses.sql | IF NEW.closed_reason = 'job_cancelled' THEN | IF false THEN
 // @mutate src/components/job-card/jobStatusLine.ts | if (app.status === "rejected" && app.closed_reason !== "job_cancelled") return "not_selected"; | if (app.status === "rejected") return "not_selected";
 // @mutate src/pages/jobs/AppliedJobCard.tsx | {app.closed_reason === "job_cancelled" | {app.closed_reason === "never"
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {app.status === "rejected" && app.closed_reason !== "job_cancelled" && ( | {app.status === "rejected" && (

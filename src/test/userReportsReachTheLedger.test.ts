@@ -150,7 +150,19 @@ describe("every user-reported problem reaches the ops alert ledger (Q64)", () =>
 
   it("reports-table: ops_alert_record_user_report records a 'user-report' item with a link back and a close rule", () => {
     const body = (defs.get("ops_alert_record_user_report")?.body ?? "").replace(/\s+/g, " ");
-    expect(body).toMatch(/ops_alert_record\( 'user-report', 'user-report',/);
+    // EVERY ops_alert_record call is a 'user-report' item, not just one of
+    // them. The body has two (the per-report item and the flood-cap overflow
+    // item); a single toMatch was satisfied by the overflow call alone, so
+    // re-sourcing the per-report item (the one every normal report takes)
+    // stayed green: the vacuity harness's mutation SURVIVED (2026-09-25).
+    const calls = Array.from(body.matchAll(/ops_alert_record\( ([^,]+), ([^,]+), ([^,]+),/g));
+    expect(calls.length, "ops_alert_record_user_report records a per-report item and an overflow item").toBeGreaterThanOrEqual(2);
+    const notUserReport = calls
+      .filter((c) => c[1] !== "'user-report'" || c[2] !== "'user-report'")
+      .map((c) => `ops_alert_record(${c[1]}, ${c[2]}, ${c[3]}, …)`);
+    expect(notUserReport, "every ledger record from a user report is source_kind/source 'user-report'").toEqual([]);
+    // The per-report item itself (titled by v_title), not only the overflow one.
+    expect(calls.some((c) => c[3] === "v_title"), "no per-report ops_alert_record(..., v_title, ...) call").toBe(true);
     expect(body).toContain("'report_id'");
     expect(body).toContain("'link'");
     expect(body).toMatch(/'sql_condition', 'user-report'/);

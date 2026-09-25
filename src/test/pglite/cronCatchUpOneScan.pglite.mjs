@@ -29,7 +29,7 @@
  * schedule (with and without a run at the new time one period earlier), the
  * same schedule seen before the slot, inside grace, hourly, weekly, the newest
  * of several runs quoted, NULL status / message / start_time. (2) a seeded
- * random history for 60 jobs x ROUNDS rounds, every run placed on or one
+ * random history for JOBS jobs x ROUNDS rounds, every run placed on or one
  * second either side of a boundary the query tests. Then: the new body's tie
  * order on a shared slot is (slot, jobid); two runs with the same start_time
  * change only which is quoted; anon/authenticated cannot execute.
@@ -54,6 +54,7 @@ if (process.env.MUTATE) {
   console.log(`MUTATE set: the new body's at-slot window is inclusive of slot + grace (${before !== NEW ? "planted" : "NOT FOUND"})`);
 }
 const ROUNDS = Number(process.env.ROUNDS ?? 150);
+const JOBS = 60; // random jobs per round
 
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -303,7 +304,7 @@ const firstDiff = [];
 for (let round = 0; round < ROUNDS; round++) {
   const lines = ["SELECT public._healthy();"];
   const agos = new Set();
-  for (let j = 0; j < 60; j++) {
+  for (let j = 0; j < JOBS; j++) {
     const name = `r${round}-j${j}`;
     let ago;
     do { ago = 11 + Math.floor(rand() * 1400); } while (agos.has(ago)); // unique slot, past grace, < 1 day
@@ -341,10 +342,10 @@ for (let round = 0; round < ROUNDS; round++) {
       jobs: Object.keys({ ...o, ...n }).filter((j) => o[j] !== n[j]).map((j) => ({ job: j, old: o[j], new: n[j] })) });
   }
   candidates += r.none.b.ret.decided.length;
-  nonCandidates += 61 - r.none.b.ret.decided.length;
+  nonCandidates += JOBS + 1 - r.none.b.ret.decided.length; // + the healthbeat job
   runs += r.safe.b.fx.length;
 }
-check(`random histories: old and new identical in ${identical}/${ROUNDS} rounds (60 jobs each, both policies)`,
+check(`random histories: old and new identical in ${identical}/${ROUNDS} rounds (${JOBS} jobs each, both policies)`,
   identical === ROUNDS, JSON.stringify(firstDiff).slice(0, 800));
 check("random histories reach both outcomes (not vacuous)", candidates > ROUNDS * 5 && nonCandidates > ROUNDS * 20 && runs === ROUNDS * 3,
   `${candidates} candidates, ${nonCandidates} not, ${runs} runs`);

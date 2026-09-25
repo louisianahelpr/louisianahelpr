@@ -3876,6 +3876,30 @@ export type Database = {
         }
         Relationships: []
       }
+      retired_client_relations: {
+        Row: {
+          first_stale_read_at: string | null
+          last_stale_read_at: string | null
+          relation: string
+          retired_by: string
+          stale_reads: number
+        }
+        Insert: {
+          first_stale_read_at?: string | null
+          last_stale_read_at?: string | null
+          relation: string
+          retired_by: string
+          stale_reads?: number
+        }
+        Update: {
+          first_stale_read_at?: string | null
+          last_stale_read_at?: string | null
+          relation?: string
+          retired_by?: string
+          stale_reads?: number
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           created_at: string

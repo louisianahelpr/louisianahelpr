@@ -324,41 +324,21 @@ export function ConversationList({
      `null` means "not chosen yet" so the effect below can seed it as soon as
      the first page of threads lands. */
   const [inboxFilter, setInboxFilter] = useState<string | null>(null);
-  /* ── THE FILTER STRIP IS ALWAYS VISIBLE. THERE IS NO DISCLOSURE ───────
-     OWNER, 2026-09-19 (after the Unread tab was cut): the desktop website
-     showed `Active · All` inline in the header row while phone hid the SAME
-     control behind a chevron — and the one the reader has to discover was the
-     phone's. The chevron is gone at every width. The strip is always on
-     screen, and `pinnedFilterChip` aside there is no longer any way for this
-     inbox to be filtered without the filter being visible.
-
-     WHERE IT SITS IS DECIDED BY MEASUREMENT, NOT BY TASTE, and the header row
-     does not have the width on a phone. Measured on the production build
-     (`vite preview`), poster-e2e, 31 threads, with the chevron already
-     removed so the cluster is two buttons and not three:
+  /* ── WHERE THE FILTER STRIP SITS ───────────────────────────────────────
+     On the desktop website `Active · All` rides inline in the header row. On
+     a phone the header row has no room for it (measured on the production
+     build, poster-e2e, 31 threads):
 
                      row    actions  gaps  strip   left for "Messages"  needs
        320 (title card 238px)   92     20    106            20            88  ✗
        375 (title card 293px)   92     20    106            75            88  ✗
        1440 (in-panel 1102px)   92     20    106           884            78  ✓
 
-     At 375 the screen's own name rendered "Messa…"; at 320 it rendered "M.".
-     Dropping the tab COUNTS buys ~25px and still misses 320 by 43. So on
-     phone the strip keeps its own line under the toolbar, which is the only
-     placement with room — the same split PostsHeader and JobsHeader make under
-     `inlineFilters`, not a Messages-only invention.
-
-     WHAT THAT COSTS, stated plainly: this title card is ~118px on phone in
-     every state now, where the disclosure made it 62px closed and 118px open
-     (owner, from a device: "Messages should also be collapsed when opened").
-     The always-visible strip is the newer instruction and it wins; the older
-     one is what the 62px bought.
-
-     WHAT WENT WITH THE CHEVRON: `tabsOpenPhone` / `tabsOpen`, the effect that
-     force-opened the row when a non-default filter arrived (an always-visible
-     strip can never be "silently filtered"), `isDefaultInboxFilter`, which
-     existed only to darken the chevron's ink, and `INBOX_TABS_ID`, its
-     `aria-controls` target. */
+     so on a phone the strip has its own line under the toolbar, behind the
+     chevron, and opens FOLDED on the default filter (owner, 2026-09-25: "open
+     with the chevrons collapsed"; earlier, from a device: "Messages should
+     also be collapsed when opened"). A non-default filter opens the strip, so
+     the inbox is never filtered without the filter showing. */
   /* EVERY read of the filter goes through the coercion, never through the raw
      state. `inboxFilter` is component-local and un-persisted, so today the
      only writers are the tab strip, the overflow menu and the seeding effect

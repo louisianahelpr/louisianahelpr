@@ -6,6 +6,7 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { POSTS_HEADER_PADDING } from "@/pages/posts/PostsHeader";
 import { JOBS_HEADER_PADDING } from "@/pages/jobs/JobsHeader";
+import { defaultStatusFilterFor } from "@/components/job-card/activityConstants";
 
 /**
  * ONE loading silhouette for My Jobs / My Posts, shared by the route fallback
@@ -27,8 +28,16 @@ import { JOBS_HEADER_PADDING } from "@/pages/jobs/JobsHeader";
  */
 export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
   const isWebDesktop = useIsWebDesktop();
+  /* The phone tab row opens FOLDED on the default filter and OPEN on any
+     other `?filter=` (owner, 2026-09-25: "open with the chevrons
+     collapsed"). The placeholder reserves the row exactly when the loaded
+     header will show it, so the list does not move when the data lands. */
+  const urlFilter =
+    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("filter");
+  const tabRowOpens = urlFilter !== null && urlFilter !== defaultStatusFilterFor(tab);
   /**
-   * THE TAB ROW IS PART OF THE TITLE CARD, so the placeholder reserves it.
+   * THE TAB ROW IS PART OF THE TITLE CARD, so the placeholder reserves it
+   * whenever the loaded header shows it (`tabRowOpens`).
    *
    * Owner, 2026-09-21: "/jobs … jumps really bad". Measured on prod
    * (helper-e2e, Chromium at 375, this checkout's local build, 2026-09-21):
@@ -57,7 +66,7 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
       <div className="flex items-center" style={{ minHeight: "44px" }}>
         <Skeleton className="h-4 w-32 rounded" />
       </div>
-      {!isWebDesktop && (
+      {!isWebDesktop && tabRowOpens && (
         // The real scroller's box, class for class (`-mx-5 px-5 … pb-0.5`), so
         // the reserved line cannot drift from the line it reserves.
         <div className="-mx-5 px-5 pb-0.5 overflow-hidden">

@@ -879,40 +879,21 @@ test.describe("My Posts — card density + header", () => {
       await page.waitForSelector("h1");
       await settle(page);
       await dismissNudge(page);
-      /* The bucket is now a TAB, not a caption. It used to render as
-         "· 2 Needs you" beside the h1 while the actual control hid behind a
-         sliders icon and a "Refine your search" sheet — a label naming
-         whichever bucket the hidden sheet had selected. The sheet is gone and
-         the four tabs sit above the cards on every surface (owner: "put the
-         needs you etc at the top oiver the job card same for search and remove
-         the filter since they will all be ther"), so what has to be true is
-         that the deep link SELECTS the right tab.
-
-         The tabs then went BEHIND A CHEVRON next to search (owner: "add a
-         dropdown arrow next to search so these aren't always showing, but then
-         always open to needs you").
-
-         THE ROW NOW SEEDS OPEN AT EVERY WIDTH IN EVERY BUCKET (owner,
-         2026-09-20).
-         This used to assert the opposite — open only for a NON-default
-         `?filter=`, so `needs_you` had to be clicked open here. That rule
-         shipped and measured: at 320/375/414 a plain /posts painted ZERO of
-         the five words until the reader found a chevron. The owner's original
-         complaint was "Cancelled" clipping to "Ca…" — four of five readable —
-         so the disclosure made the reported bug worse.
-
-         Asserting the state BEFORE touching anything is still the point, and
-         it is now a strictly stronger claim than it was: the row must be open
-         for EVERY filter, where the old assertion let the default arrive
-         folded. Nothing is skipped — a regression back to seeding closed goes
-         red here, on all four buckets. The click is gone because there is
-         nothing left to open, and pressing the toggle now would CLOSE the row
-         and hide the tab this test exists to read. */
+      /* The tab row sits behind a chevron next to search. On a phone it opens
+         FOLDED on the default filter (`needs_you`) and OPEN on every other
+         filter (owner, 2026-09-25: "This should open with the chevrons
+         collapsed. Not expanded."), so an active non-default filter is never
+         hidden. The state is asserted BEFORE touching anything, then the
+         default is pressed open to read its tab. At desktop width the tabs
+         sit in the header row and there is no chevron. */
       const toggle = page.getByRole("button", { name: /Filter by status|Hide status filters/ }).first();
-      expect(
-        await toggle.getAttribute("aria-expanded"),
-        `filter=${filter}: the tab row must already be open — no interaction, at every width`,
-      ).toBe("true");
+      if (await toggle.count()) {
+        expect(
+          await toggle.getAttribute("aria-expanded"),
+          `filter=${filter}: the phone tab row opens ${filter === "needs_you" ? "folded on the default filter" : "open on a non-default filter"}`,
+        ).toBe(filter === "needs_you" ? "false" : "true");
+        if (filter === "needs_you") await toggle.click();
+      }
 
       const tab = page.getByRole("group", { name: "Filter by status" }).getByRole("button", { name: new RegExp(`^${label}`) });
       await expect(tab, `filter=${filter} tab is present`).toBeVisible();

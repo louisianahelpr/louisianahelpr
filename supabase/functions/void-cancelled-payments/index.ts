@@ -414,7 +414,10 @@ serve(async (req) => {
     // repairs the ledger instead of paying again.
     /** The crew ledger table is not deployed yet (42P01 / PGRST205). */
     const isMissingTable = (e: { code?: string; message?: string } | null) =>
-      !!e && (e.code === "42P01" || e.code === "PGRST205" || /does not exist|could not find the table/i.test(e.message ?? ""));
+      // Table-missing only: a column error (42703, `column "x" does not exist`)
+      // on an existing ledger must fail closed, never read as "no shares".
+      !!e && (e.code === "42P01" || e.code === "PGRST205" ||
+        (!e.code && /relation "[^"]*crew_cancellation_fee_shares[^"]*" does not exist|could not find the table '[^']*crew_cancellation_fee_shares'/i.test(e.message ?? "")));
     type CrewShare = {
       id: string;
       helper_id: string | null;

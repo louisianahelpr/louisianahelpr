@@ -656,7 +656,7 @@ serve(async (req) => {
       );
       // Before 20260925154606 there are no frozen shares: read the roster
       // without them (the per-member tier check then has nothing to grade).
-      if (rosterScan.error && ((rosterScan.error as { code?: string }).code === "42703" || /share_cents/.test(rosterScan.error.message))) {
+      if (rosterScan.error && ((rosterScan.error as { code?: string }).code === "42703" || /column [^ ]*(share_cents|slot_no)[^ ]* does not exist/i.test(rosterScan.error.message))) {
         rosterScan = await scanAllIn<Record<string, unknown>>(
           "group_job_helpers",
           crewJobIds,

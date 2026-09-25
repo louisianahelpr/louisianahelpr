@@ -107,6 +107,7 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
   });
 
   // @mutate supabase/functions/void-cancelled-payments/index.ts | crewShares ? payCrewCancellationFees(job, crewShares, pi) : payHelperCancellationFee(job, fee, pi) | payHelperCancellationFee(job, fee, pi)
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | (!e.code && /relation "[^"]*crew_cancellation_fee_shares[^"]*" does not exist | /does not exist/i.test(e.message ?? "") \|\| (!e.code && /relation "[^"]*crew_cancellation_fee_shares[^"]*" does not exist
   it("pays every member their own $50.00 share (minus commission) with its own idempotency key, and marks each paid", async () => {
     seedCancelledCrew();
     // Commission is each member's LIVE tier (getHelperFeePercent), as on the
@@ -242,6 +243,21 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     const h = await load();
     await h.fetch(cronReq());
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+  });
+
+  it("fails CLOSED on a COLUMN error on an existing ledger (42703 is not 'table missing')", async () => {
+    // Money review of daf5f8870: `column ... does not exist` matched the old
+    // message-regex for a missing table, read as "no shares", refunded the
+    // poster in full and dropped the crew's committed fee with no page.
+    seedCancelledCrew();
+    scenario.reads.crew_cancellation_fee_shares = {
+      error: { code: "42703", message: "column crew_cancellation_fee_shares.stripe_transfer_id does not exist" },
+    };
+    const h = await load();
+    const res = await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(res.status).toBe(500);
   });
 
   it("fails CLOSED when the crew ledger cannot be read: no refund, no transfer", async () => {

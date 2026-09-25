@@ -2,6 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
 import { LoadingHeading } from "@/components/ui/LoadingHeading";
+import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { POSTS_HEADER_PADDING } from "@/pages/posts/PostsHeader";
@@ -63,9 +64,23 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
    */
   const headerRow = (
     <div aria-hidden>
-      <div className="flex items-center" style={{ minHeight: "44px" }}>
-        <Skeleton className="h-4 w-32 rounded" />
-      </div>
+      {/* THE LOADED ROW ITSELF, not a drawing of it: the same ScreenHeaderRow
+          PostsHeader / JobsHeader render, with the screen's name (known before
+          any data) and a bone where each of its two phone controls sits
+          (search, filter chevron — both `h-11 w-11 rounded-ds-md`). It used
+          to be one 128px bar alone in a 44px box: the title card measured as
+          a single leaf standing in for a two-part row, "0 placeholder rows ->
+          2 real" on customer /jobs in loading-states-refresh 36158775025. */}
+      <ScreenHeaderRow
+        title={tab === "posted" ? "My Posts" : "My Jobs"}
+        decorativeTitle
+        actions={
+          <>
+            <Skeleton className="h-11 w-11 rounded-ds-md" />
+            <Skeleton className="h-11 w-11 rounded-ds-md" />
+          </>
+        }
+      />
       {!isWebDesktop && tabRowOpens && (
         // The real scroller's box, class for class (`-mx-5 px-5 … pb-0.5`), so
         // the reserved line cannot drift from the line it reserves.

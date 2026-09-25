@@ -119,6 +119,14 @@ export interface ScreenHeaderRowProps {
    */
   titleSrOnly?: boolean;
   /**
+   * Paint the title with the same box and type, but as an `aria-hidden` span
+   * rather than an `<h1>`. For a LOADING placeholder of this row only: while
+   * a screen is pending its single h1 is `<LoadingHeading>`'s, so a visible h1
+   * here would give it two. The row's geometry is unchanged, which is the
+   * point: the placeholder IS this row, not a drawing of it.
+   */
+  decorativeTitle?: boolean;
+  /**
    * Small live-state label placed to the right of the title, on its baseline
    * — "· 2 Active" on My Posts, "Filtered · 3 active" on Browse. Fully styled
    * by the caller; this row only positions it (and keeps it `shrink-0`, so a
@@ -210,6 +218,7 @@ export interface ScreenHeaderRowProps {
 export function ScreenHeaderRow({
   title,
   titleSrOnly = false,
+  decorativeTitle = false,
   meta,
   actions,
   children,
@@ -273,15 +282,24 @@ export function ScreenHeaderRow({
               `items-baseline` so the small italic label sits on the wordmark's
               baseline rather than centring against a much larger cap-height. */}
           <div className="flex items-baseline min-w-0 flex-1 gap-2 py-2.5">
-            <h1
-              className={
-                titleSrOnly
-                  ? "sr-only"
-                  : "font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none min-w-0"
-              }
-            >
-              {title}
-            </h1>
+            {decorativeTitle ? (
+              <span
+                aria-hidden
+                className="font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none min-w-0"
+              >
+                {title}
+              </span>
+            ) : (
+              <h1
+                className={
+                  titleSrOnly
+                    ? "sr-only"
+                    : "font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none min-w-0"
+                }
+              >
+                {title}
+              </h1>
+            )}
             {meta}
           </div>
           <div className="flex items-center gap-1 shrink-0">{actions}</div>

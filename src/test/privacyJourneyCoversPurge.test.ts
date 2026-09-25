@@ -6,7 +6,8 @@
  * Two-way against source, so the journey cannot silently fall behind:
  *   - every `step: "<name>"` accountPurge.ts reports  ==  EXPECTED_PURGE_STEPS;
  *   - purgeBuckets.ts IDENTITY_BUCKETS (accountPurge's)  ==  the journey's list;
- *   - the keys of DataExportCard's export payload       ==  EXPORT_SECTIONS;
+ *   - the card downloads export-my-data's payload (its keys == EXPORT_SECTIONS
+ *     is dataExportCoversEveryUserTable.test.ts, Q290);
  *   - every EXPECTED_DB_COUNTS key is a counter the NEWEST purge_user_data()
  *     returns.
  * The spec itself (e2e/privacy/privacy-requests.spec.ts) must assert each of
@@ -18,7 +19,7 @@
  *
  * @mutate supabase/functions/_shared/accountPurge.ts | steps.push({ step: "avatar_pointer", ok: false, | steps.push({ step: "avatar_ptr", ok: false,
  * @mutate supabase/functions/_shared/purgeBuckets.ts |   "user-documents",\n |
- * @mutate src/pages/info/legal/DataExportCard.tsx |         reviews: reviewsRes.data,\n |
+ * @mutate src/pages/info/legal/DataExportCard.tsx | functions.invoke("export-my-data") | functions.invoke("export-my-dat")
  * @mutate scripts/lib/privacyJourney.mjs |   if (subject.isSeed !== true) throw | if (false) throw
  * @mutate scripts/lib/privacyJourney.mjs |   if (m[1] !== subject.runTag) throw | if (false) throw
  * @mutate scripts/lib/privacyJourney.mjs | created < subject.runStartedAt - 5 * 60_000) | false)
@@ -64,13 +65,17 @@ describe("privacy journey covers every purge step (Q70)", () => {
     expect(inSource).toEqual([...IDENTITY_BUCKETS].sort());
   });
 
-  it("export sections: DataExportCard's payload keys == EXPORT_SECTIONS", () => {
+  it("export sections: the card saves export-my-data's payload as is (sections: dataExportCoversEveryUserTable)", () => {
+    // Q290 moved the export server-side. Which keys the payload has is the
+    // export_my_data() section list, kept equal to EXPORT_SECTIONS by
+    // src/test/dataExportCoversEveryUserTable.test.ts; here: the card really
+    // downloads that payload, and nothing the journey seeds is left out.
     const card = blankComments(read("src/pages/info/legal/DataExportCard.tsx"));
-    const payload = /const payload = \{([\s\S]*?)\};/.exec(card)?.[1] ?? "";
-    const keys = [...payload.matchAll(/^\s*(\w+):/gm)].map((m) => m[1]).sort();
-    expect(keys.length).toBeGreaterThan(3);
-    expect(keys).toEqual([...EXPORT_SECTIONS].sort());
-    for (const t of KNOWN_NOT_EXPORTED) expect(keys, `${t} is exported now: shrink KNOWN_NOT_EXPORTED`).not.toContain(t);
+    expect(card).toMatch(/functions\.invoke\("export-my-data"\)/);
+    expect(card).toMatch(/const payload = \{ \.\.\.\(data as Record<string, unknown>\) \};/);
+    expect(card).toMatch(/JSON\.stringify\(payload, null, 2\)/);
+    expect(EXPORT_SECTIONS.length).toBeGreaterThan(50);
+    for (const t of KNOWN_NOT_EXPORTED) expect(EXPORT_SECTIONS, `${t} is exported now: shrink KNOWN_NOT_EXPORTED`).not.toContain(t);
   });
 
   it("every purge_user_data counter the journey checks is one the NEWEST definition returns", () => {

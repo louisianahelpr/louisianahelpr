@@ -86,7 +86,7 @@ export function baseSchema(before) {
     id uuid primary key default gen_random_uuid(), title text, description text, category text, budget numeric,
     customer_id uuid, helper_id uuid, recurring_helper_id uuid, offered_to_helper_id uuid, direct_offer_status text,
     direct_offer_expires_at timestamptz,
-    status public.job_status not null default 'open', payment_status text default 'escrow',
+    status public.job_status not null default 'open', payment_status text default 'escrow', stripe_session_id text,
     date_needed date, start_time time, recurrence_days smallint[], recurrence_weeks smallint,
     recurrence_end_date date, recurrence_interval text, is_recurring boolean default false,
     parent_job_id uuid references public.jobs(id), helper_confirmed_at timestamptz,

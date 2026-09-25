@@ -91,8 +91,17 @@ const HELPERS = [
 ];
 // Trigger functions replaced by a pass-through: they fire only on columns this
 // proof never writes, or read tables that are not under test.
-const STUBS = new Set(["reject_contact_leak_in_job", "validate_job_budget", "enforce_ban_gate", "enforce_jobs_dispute_evidence_append_only"]);
+// enforce_series_columns_client_lock: the recurring-fix branch's own schedule
+// lock (20260925160644, docs/OPEN.md Q414) refuses R3/R4/R6 for a booked job
+// too; it is passed through so this proof isolates what the poster lock adds
+// (its own proof is src/test/pglite/hiredJobScheduleLock.pglite.mjs).
+const STUBS = new Set(["reject_contact_leak_in_job", "validate_job_budget", "enforce_ban_gate", "enforce_jobs_dispute_evidence_append_only",
+  "enforce_series_columns_client_lock"]);
 const defRe = (name) => new RegExp(`CREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\s+public\\.${name}\\s*\\(`, "gi");
+// 20260925160644 (the recurring-fix branch, docs/OPEN.md Q414) adds
+// job_has_crew, which its series client lock (a standing BEFORE trigger on
+// jobs) calls. Loaded when the tree defines it.
+if (BEFORE_FILES.some((f) => defRe("job_has_crew").test(mig(f)))) HELPERS.push("job_has_crew");
 function cutFunction(sql, name) {
   const m = [...sql.matchAll(defRe(name))].at(-1);
   const open = /\bAS\s+(\$\w*\$)/i.exec(sql.slice(m.index));

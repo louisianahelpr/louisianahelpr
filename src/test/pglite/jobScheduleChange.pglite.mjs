@@ -16,7 +16,7 @@
  * whitelist); decline and expiry leave it; one pending request per job, a new
  * one replaces the old and the other party is told; scope is one-time jobs.
  */
-import { PGlite, readMigration, baseSchema, as, checker, refused, USERS } from "./seriesWorld.mjs";
+import { PGlite, readMigration, baseSchema, newestFunctionSql, as, checker, refused, USERS } from "./seriesWorld.mjs";
 
 const CHAIN = [
   "20260925052841_recurring_series_end.sql",
@@ -127,5 +127,52 @@ r = await as(db, "authenticated", A, `update public.jobs set date_needed = date_
 check("the Helpr's own PATCH of the date is still refused", !r.ok, r.err);
 
 await db.close();
+
+// ── The Q423 poster lock (20260925231810) and the accept carve-out ────────
+// (20260925233954). The poster lock's locked_when_booked judged the POSTER'S
+// accept of a change the Helpr asked for like a bare PATCH.
+{
+  const CARVE = "20260925233954_poster_lock_lets_accepted_schedule_change.sql";
+  const pdb = new PGlite();
+  await pdb.exec(baseSchema("20260925052841"));
+  for (const m of CHAIN) await pdb.exec(m);
+  const lock = newestFunctionSql("enforce_poster_jobs_money_lock", CARVE);
+  check(`the poster lock before the carve-out is 20260925231810's (${lock.file})`, lock.file === "20260925231810_poster_cannot_move_fee_inputs.sql");
+  await pdb.exec(lock.sql);
+  await pdb.exec(`create trigger trg_poster_jobs_money_lock before update on public.jobs for each row execute function public.enforce_poster_jobs_money_lock();`);
+  const F = J(20), G = J(21);
+  await pdb.exec(`insert into public.jobs (id, title, customer_id, helper_id, status, date_needed, start_time, helper_confirmed_at, payment_status)
+    values ('${F}', 'Funded booking', '${P}', '${A}', 'accepted', current_date + 5, '09:00', now(), 'escrow'),
+           ('${G}', 'Funded booking 2', '${P}', '${A}', 'accepted', current_date + 5, '09:00', now(), 'escrow')`);
+  const ask = async (dbx, job, days) => {
+    const q = await as(dbx, "authenticated", A, `select public.request_job_schedule_change('${job}', current_date + ${days}, '11:00') as v`);
+    return (await dbx.query(`select id from public.job_schedule_change_requests where job_id='${job}' and status='pending'`)).rows[0]?.id ?? q.err;
+  };
+  let q = await as(pdb, "authenticated", P, `select public.respond_job_schedule_change('${await ask(pdb, F, 7)}', true) as v`);
+  const redAccept = !q.ok && /Posters may not move jobs\.(date_needed|start_time)/.test(q.err);
+  console.log(`-- 231810 ALONE ${redAccept ? "RED" : "NOT RED"}: the poster accepting the Helpr's request on a funded booking -> ${q.err ?? JSON.stringify(q.rows)}`);
+  if (!redAccept) fail();
+  for (let i = 0; i < 3; i++) await pdb.exec(readMigration(CARVE));
+  check("the carve-out migration applies 3x (replay-safe)", true);
+  q = await as(pdb, "authenticated", P, `select public.respond_job_schedule_change('${await ask(pdb, F, 7)}', true) as v`);
+  const moved = await job(pdb, F);
+  check("the poster accepting the Helpr's request on a funded booking moves it", q.ok && q.rows[0].v.status === "accepted" && moved.t === "11:00:00", `${q.err ?? JSON.stringify(q.rows)} ${JSON.stringify(moved)}`);
+  // The poster lock alone (the series client lock, 20260925160644, refuses
+  // these too; switched off here so this proves the carve-out opened nothing).
+  await pdb.exec(`alter table public.jobs disable trigger trg_enforce_series_columns_client_lock`);
+  q = await as(pdb, "authenticated", P, `update public.jobs set date_needed = date_needed + 3 where id='${G}'`);
+  check("a bare poster PATCH of a booked job's date is still refused by the poster lock", !q.ok && /Posters may not move jobs\.date_needed/.test(q.err), q.err);
+  q = await as(pdb, "authenticated", P, `update public.jobs set start_time = '20:00' where id='${G}'`);
+  check("... and of its start time", !q.ok && /Posters may not move jobs\.start_time/.test(q.err), q.err);
+  // A client's own request is ONE statement (PostgREST); a flag set in an
+  // earlier statement with is_local = true is gone by the next.
+  q = await as(pdb, "authenticated", P, `select set_config('app.schedule_change_rpc', '1', true) as f`);
+  const after = await as(pdb, "authenticated", P, `update public.jobs set date_needed = date_needed + 3 where id='${G}'`);
+  check("a flag the poster sets in an earlier statement does not unlock the date", q.ok && !after.ok && /Posters may not move/.test(after.err), after.err);
+  q = await as(pdb, "authenticated", P, `update public.jobs set helper_confirmed_at = null where id='${G}'`);
+  check("the carve-out opens nothing else (helper_confirmed_at stays locked)", !q.ok && /helper_confirmed_at/.test(q.err), q.err);
+  await pdb.close();
+}
+
 console.log(failures() ? `\n${failures()} FAILED` : "\nALL PASS");
 process.exit(failures() ? 1 : 0);

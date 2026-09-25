@@ -6,12 +6,16 @@
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 Generated from findings.jsonl as of its newest entry: 2026-09-25T05:30:58.028Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
 - **Findings:** 27 open (3 open launch blockers), 334 fixed, 1 wontfix, 22 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
 =======
 Generated from findings.jsonl as of its newest entry: 2026-09-25T05:45:13.093Z
+=======
+Generated from findings.jsonl as of its newest entry: 2026-09-25T05:47:10.977Z
+>>>>>>> 3fa8d8f2f (chore(audit-bus): re-verification notes for the open findings; OA-004 follow-up is Q389)
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
 - **Findings:** 25 open (3 open launch blockers), 336 fixed, 1 wontfix, 22 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md

@@ -78,11 +78,9 @@ const DaySection = ({
 /**
  * Needles for "this job was cancelled by whoever posted it" in a STORED
  * notification body. These are not copy this file prints — the bodies are
- * written by Postgres triggers (`poster_cancel_job`, `notify_on_job_update`;
- * migrations 20260905021859, 20260908155425 and earlier), which say "cancelled
- * by the poster". Every row already in the table says that and always will, so
- * the legacy phrasing is load-bearing; the second entry is here for whenever a
- * migration rewords the trigger.
+ * written by Postgres (`poster_cancel_job`, `notify_on_job_update`). Since
+ * 20260925143327 they say "cancelled by the person who posted it"; rows stored
+ * before it say "cancelled by the poster" and always will, so both match.
  */
 const CANCELLED_BY_POSTER_NEEDLES = [
   "cancelled by the poster",
@@ -936,15 +934,10 @@ const NotificationPanel = () => {
                               } else if (
                                 n.type === "warning" &&
                                 // MATCHES STORED TEXT, not copy this file owns.
-                                // Postgres triggers write these bodies
-                                // (20260905021859, 20260908155425 and older),
-                                // so the row says "cancelled by the poster" and
-                                // rows already in the table always will. The
-                                // 2026-09-15 role-word pass could not rewrite
-                                // history, and changing this needle alone would
-                                // silently drop the pill off every one of them.
-                                // Both phrasings match until a migration
-                                // rewords the trigger copy.
+                                // Postgres writes these bodies; rows from before
+                                // 20260925143327 say "cancelled by the poster",
+                                // later ones "cancelled by the person who posted
+                                // it", and both keep the pill.
                                 CANCELLED_BY_POSTER_NEEDLES.some((needle) =>
                                   n.message.toLowerCase().includes(needle),
                                 )

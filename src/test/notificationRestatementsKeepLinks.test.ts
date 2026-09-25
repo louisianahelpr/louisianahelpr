@@ -207,6 +207,8 @@ describe("Q139: a restated notification producer keeps the links the database wr
     expect(withTuples).toEqual([
       "20260831232514_notification_links_land_on_the_right_spot.sql",
       "20260901021929_notification_links_never_carry_a_fixed_filter.sql",
+      // Copy, not links: the same mechanism rewording SQL notification copy.
+      "20260925143327_notification_copy_names_the_person.sql",
     ]);
     expect(tuples).toBeGreaterThan(28);
     expect(unparsed.sort()).toEqual([...NOT_LINK_REWRITES].sort());

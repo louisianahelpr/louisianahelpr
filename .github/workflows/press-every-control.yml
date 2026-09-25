@@ -234,6 +234,10 @@ jobs:
           PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
           PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
           PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+          # The sweep signs in as every persona the presses used, so it carries
+          # every persona's credentials (src/test/pressCleanupPersonas.test.ts).
+          PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }} # swept persona
+          PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }} # swept persona
         run: |
           # Everything created since this run started; the marker-titled
           # fixture jobs regardless of age. Q317: with max-parallel 2 the shards

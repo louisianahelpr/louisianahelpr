@@ -92,7 +92,7 @@ const Legal = () => {
   // filter, so we can show a clean empty state when nothing matches.
   const [query, setQuery] = useState("");
   // The search field collapses to an icon by default (owner, 2026-08-23),
-  // matching HelpCenter/BrowseTasksActions/ActivityHeader's icon-that-expands
+  // matching HelpCenter/BrowseTasksActions/PostsHeader's icon-that-expands
   // pattern elsewhere in this app. It PREVIOUSLY collapsed the same way and
   // was changed to always-visible because the collapse/expand made the
   // control row change SHAPE: the tabs went from three equal 292px columns
@@ -117,7 +117,7 @@ const Legal = () => {
     setQuery("");
   };
   /* ONE PRESS OUT, AND THE FOCUS COMES BACK — the dismiss contract every
-     expanding search in this app shares (ActivityHeader states it in full,
+     expanding search in this app shares (PostsHeader states it in full,
      owner 2026-09-19). Measured here at 320 / 375 / 1440 before this:
      pressing the field's ✕ closed the field in a single press and dropped
      `document.activeElement` on <body>, so a keyboard reader was returned to
@@ -506,7 +506,7 @@ const Legal = () => {
   const controlRow = (
     <div className="flex items-center gap-2 p-1 sm:gap-4">
       {/* THE TAB GROUP STEPS ASIDE WHILE THE FIELD IS OPEN, BELOW 500px.
-          Same behaviour as ActivityHeader's `narrowTitleStepsAside`, reached by
+          Same behaviour as PostsHeader's `narrowTitleStepsAside`, reached by
           the same arithmetic — but not the same prop; see below for why it
           cannot be.
 

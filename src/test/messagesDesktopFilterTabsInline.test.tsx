@@ -28,7 +28,7 @@
  *     1440 (panel 1102) 92      20    106           884            78   ✓
  *
  * So the phone strip keeps its own line under the toolbar — the same split
- * ActivityHeader makes under `inlineFilters`. What this file forbids is the
+ * PostsHeader and JobsHeader make under `inlineFilters`. What this file forbids is the
  * DISCLOSURE, at either width, and it asserts the exact same tab set and
  * order at both.
  *
@@ -51,7 +51,7 @@
  * is no longer the rule; what it was PROTECTING is, and that survives
  * verbatim: the tabs must be on screen on FIRST PAINT, with no click, at
  * every width. The chevron is an opt-in fold that starts open, exactly as
- * ActivityHeader's does. Desktop still has no chevron at all.
+ * PostsHeader's and JobsHeader's do. Desktop has no chevron at all.
  * See src/test/filterDisclosureParity.test.ts for the cross-screen guard.
  *
  * @mutate src/components/messages/ConversationList.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultInboxFilter); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
@@ -227,7 +227,7 @@ describe("Messages inbox filter tabs — always visible, never behind a disclosu
       if (webDesktop) {
         // Desktop keeps NO chevron: the strip rides inline in the header row
         // where there are 884px to spare, so folding two short words behind a
-        // press buys nothing. Same call ActivityHeader makes under
+        // press buys nothing. Same call PostsHeader and JobsHeader make under
         // `inlineFilters`.
         expect(
           disclosure(),

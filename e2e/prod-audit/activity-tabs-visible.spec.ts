@@ -85,7 +85,8 @@
 // a shortLabel below 390px to fit five tabs, a title and a search button into
 // 320-414px, and "it fits" is worthless if the words are gone. Blanking them
 // reds "a tab button painted no word at all".
-// @mutate src/components/job-card/ActivityHeader.tsx |         label: f.label, |         label: "",
+// @mutate src/pages/posts/PostsHeader.tsx |         label: f.label, |         label: "",
+// @mutate src/pages/jobs/JobsHeader.tsx |         label: f.label, |         label: "",
 import { test, expect, type Browser, type Page, type TestInfo } from "../prodTest";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -96,7 +97,7 @@ import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
 import { INBOX_TAB_LABEL, INBOX_TAB_ORDER } from "../../src/lib/inboxDefault";
 import { SHORT_LABEL_BELOW_PX } from "../../src/lib/shortLabelBreakpoint";
 /* The bucket inventory comes from the app's own leaf module — the same list
-   ActivityHeader builds its tabs from, never a copy. activityFilters.ts
+   PostsHeader and JobsHeader build their tabs from, never a copy. activityFilters.ts
    re-exports these three; this spec imports the leaf directly because that one
    has no React/runtime dependencies for the e2e tsconfig to pull in. */
 import {

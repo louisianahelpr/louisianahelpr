@@ -893,7 +893,7 @@ test.describe("My Posts — card density + header", () => {
          always open to needs you").
 
          THE ROW NOW SEEDS OPEN AT EVERY WIDTH IN EVERY BUCKET (owner,
-         2026-09-20; ActivityHeader's `tabsOpenPhone` is `useState(true)`).
+         2026-09-20).
          This used to assert the opposite — open only for a NON-default
          `?filter=`, so `needs_you` had to be clicked open here. That rule
          shipped and measured: at 320/375/414 a plain /posts painted ZERO of

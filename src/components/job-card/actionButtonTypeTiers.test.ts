@@ -64,8 +64,9 @@ const NOT_ACTION_ROWS = new Set([
   "src/pages/posts/postedJobs/ApplicantsPanel.tsx",
   "src/pages/posts/postedJobs/applicantsPanel/ApplicantSortControls.tsx",
   // Controls for the whole LIST, drawn above or below the cards, never in a
-  // card's row: the tab header, the Show older pager, the bulk-dismiss bar.
-  "src/components/job-card/ActivityHeader.tsx",
+  // card's row: each tab's header, the Show older pager, the bulk-dismiss bar.
+  "src/pages/posts/PostsHeader.tsx",
+  "src/pages/jobs/JobsHeader.tsx",
   "src/components/job-card/PagedActivityList.tsx",
   "src/pages/posts/BulkDismissBar.tsx",
 ]);

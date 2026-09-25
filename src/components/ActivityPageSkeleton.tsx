@@ -4,7 +4,8 @@ import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCa
 import { LoadingHeading } from "@/components/ui/LoadingHeading";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { ACTIVITY_HEADER_PADDING } from "@/components/job-card/ActivityHeader";
+import { POSTS_HEADER_PADDING } from "@/pages/posts/PostsHeader";
+import { JOBS_HEADER_PADDING } from "@/pages/jobs/JobsHeader";
 
 /**
  * ONE loading silhouette for My Jobs / My Posts, shared by the route fallback
@@ -33,12 +34,12 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
    * (helper-e2e, Chromium at 375, this checkout's local build, 2026-09-21):
    * the first PLACEHOLDER card's top sat at y=95 and the first REAL card's at
    * y=138 — the whole list, every card, slid 43px DOWN the instant the data
-   * landed. The 43px is this row: `ActivityHeader` renders the five status
-   * tabs (`You · Waiting · Soon · Done · Cancel`) on their own line under the
-   * title on phone, OPEN by default at every width since 2026-09-20 — and the
-   * placeholder drew only the 44px title line, so it described a screen that
-   * has not existed since that change. ActivityHeader's own note puts the row
-   * at "the extra 41px of cards"; the arithmetic below agrees.
+   * landed. The 43px is this row: the page header (PostsHeader on My Posts,
+   * JobsHeader on My Jobs) renders the five status tabs
+   * (`You · Waiting · Soon · Done · Cancel`) on their own line under the
+   * title on phone whenever that row is open, and a placeholder that draws
+   * only the 44px title line describes a different screen. The row is 41px;
+   * the arithmetic below agrees.
    *
    * Sized from the real row's own box rather than by eye: `py-[13px]` on a
    * `text-ds-11 leading-none` label (UnderlineTabs, phone = not `dense`) is
@@ -76,7 +77,7 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
     </div>
   );
   return (
-    <PageScaffold titleCard={isWebDesktop ? undefined : headerRow} titleCardClassName={ACTIVITY_HEADER_PADDING}>
+    <PageScaffold titleCard={isWebDesktop ? undefined : headerRow} titleCardClassName={tab === "posted" ? POSTS_HEADER_PADDING : JOBS_HEADER_PADDING}>
       <LoadingHeading
         title={tab === "posted" ? "My Posts" : "My Jobs"}
         message={tab === "posted" ? "Loading your posts…" : "Loading your jobs…"}

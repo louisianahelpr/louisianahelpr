@@ -320,7 +320,7 @@ async function expandFirstCard(page: Page): Promise<boolean> {
   // Two bugs are fixed here, both found by reading records rather than trusting
   // a green result:
   //
-  //  1. A bare `button[aria-expanded]` matched ActivityHeader's filter chevron
+  //  1. A bare `button[aria-expanded]` matched the page header's filter chevron
   //     first, so every "expanded" cell collapsed the page header instead of
   //     opening the card — and still recorded `driven: true`. Caught by seeing
   //     "Expand Job Details" in the `copy` of a cell that was meant to be open.

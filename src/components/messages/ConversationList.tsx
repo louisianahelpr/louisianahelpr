@@ -117,10 +117,10 @@ function byLastAtDesc(a: Conversation, b: Conversation): number {
 }
 
 /**
- * Title-card padding. The SAME value as ActivityHeader's
- * ACTIVITY_HEADER_PADDING — that identity is the whole point: this card is
+ * Title-card padding. The SAME value as PostsHeader's POSTS_HEADER_PADDING
+ * and JobsHeader's JOBS_HEADER_PADDING — that identity is the whole point: this card is
  * supposed to have My Posts' exact geometry. Copied rather than imported
- * because importing it pulls the Activity page module into the Messages
+ * because importing it pulls the My Posts / My Jobs header module into the Messages
  * chunk for two utility classes. `!` because PageScaffold concatenates
  * rather than merges. If one moves, move the other.
  */
@@ -167,25 +167,21 @@ const MESSAGES_HEADER_PADDING = "!py-1.5 lg:!py-2";
  *     messagess hould collpase and expand all the same" / "no it needs to be
  *     a drop down like post an djobs to show active and all".
  *
- * This is a deliberate reversal of a three-day-old decision, not a
- * regression. What makes the two asks compatible is the DEFAULT: the strip
- * still STARTS OPEN at every width, exactly as ActivityHeader's does, so
- * nothing is hidden from a reader who never presses anything and the
- * 2026-09-19 complaint (the phone's filter was the undiscoverable one) does
- * not come back. The chevron is an opt-in fold, not a closed drawer.
+ * The phone strip starts FOLDED on the default filter and OPEN on any other
+ * (owner, 2026-09-25: "This should open with the chevrons collapsed. Not
+ * expanded."), exactly as My Posts' and My Jobs' do, so an active filter is
+ * never hidden.
  *
- * ActivityHeader (src/components/job-card/ActivityHeader.tsx) is the SOURCE OF
- * TRUTH for this affordance's behaviour — read the long docblock at its
- * `tabsOpenPhone` before changing anything here. Do not ship it
- * closed-by-default on either screen: that shipped once on Activity and cost
- * the phone ALL five tab words (measured, 320/375/414). The two screens are
- * held together by src/test/filterDisclosureParity.test.ts.
+ * My Posts and My Jobs each own their header (src/pages/posts/PostsHeader.tsx,
+ * src/pages/jobs/JobsHeader.tsx); read the note at their `tabsOpenPhone`
+ * before changing anything here. The three screens are held together by
+ * src/test/filterDisclosureParity.test.ts.
  */
 
 /**
  * The header row's icon buttons — search, the tab disclosure, the overflow
- * menu — as ONE class, copied verbatim from ActivityHeader's non-inline
- * buttons.
+ * menu — as ONE class, copied verbatim from PostsHeader's / JobsHeader's
+ * non-inline buttons.
  *
  * Cross-screen: My Posts / My Jobs put the same search + chevron pair in the
  * same corner of the same card, and two identical clusters in two different
@@ -210,7 +206,7 @@ const HEADER_ICON_BUTTON_CLASS =
  *  chevron on 2026-09-22. Only ONE of the two placements (desktop header-row
  *  `meta`, phone line below) ever renders, so the id stays unique and the
  *  reference resolves on both surfaces — the same arrangement, and the same
- *  reason, as ActivityHeader's "activity-status-tabs". */
+ *  reason, as PostsHeader's "posts-status-tabs" and JobsHeader's "jobs-status-tabs". */
 const INBOX_TABS_ID = "inbox-filter-tabs";
 
 /**
@@ -304,7 +300,7 @@ export function ConversationList({
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   /* ONE PRESS OUT, AND THE FOCUS COMES BACK — the same dismiss contract
-     ActivityHeader states (see the note there, owner 2026-09-19). The field
+     PostsHeader states (see the note there, owner 2026-09-19). The field
      unmounts under the caret, so without this `document.activeElement` falls
      to <body>: the keyboard user who pressed the X is dropped at the top of
      the document with the inbox they were filtering gone. Escape is wired to
@@ -349,7 +345,7 @@ export function ConversationList({
      At 375 the screen's own name rendered "Messa…"; at 320 it rendered "M.".
      Dropping the tab COUNTS buys ~25px and still misses 320 by 43. So on
      phone the strip keeps its own line under the toolbar, which is the only
-     placement with room — the same split ActivityHeader makes under
+     placement with room — the same split PostsHeader and JobsHeader make under
      `inlineFilters`, not a Messages-only invention.
 
      WHAT THAT COSTS, stated plainly: this title card is ~118px on phone in
@@ -373,9 +369,9 @@ export function ConversationList({
      effect below, which owns the "not chosen yet" distinction. */
   const inboxTab = coerceInboxView(inboxFilter);
 
-  /* THE FILTER STRIP STARTS OPEN. ALWAYS, AT EVERY WIDTH.
-     Behaviour copied faithfully from ActivityHeader (the source of truth —
-     see the docblock at its `tabsOpenPhone`, and the one above
+  /* THE PHONE FILTER STRIP STARTS FOLDED ON THE DEFAULT FILTER.
+     Same behaviour as PostsHeader and JobsHeader (see the note at their
+     `tabsOpenPhone`, and the one above
      MESSAGES_HEADER_PADDING for why this screen has a chevron again). Not
      lifted into a shared hook: the two headers differ in their whole row
      composition (select-mode takeover, overflow menu, a different search
@@ -385,12 +381,12 @@ export function ConversationList({
      icon-button class, all imported, and the parity test that pins the rest. */
   const isDefaultInboxFilter = inboxTab === defaultInboxTab(0);
   // OWNER, 2026-09-25: "open with the chevrons collapsed" — folded on the
-  // default filter, like ActivityHeader; a non-default filter arrives open.
+  // default filter, like PostsHeader / JobsHeader; a non-default filter arrives open.
   const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultInboxFilter);
   /* On the desktop website the strip simply STAYS UP — it rides inline in the
      header row, where there is width to spare, so folding two short words
-     behind a chevron buys nothing and costs a press. Same call ActivityHeader
-     makes under `inlineFilters`; the chevron is a phone affordance. */
+     behind a chevron buys nothing and costs a press. Same call PostsHeader and
+     JobsHeader make under `inlineFilters`; the chevron is a phone affordance. */
   const tabsOpen = isWebDesktop || tabsOpenPhone;
   /* A FILTER ARRIVING LATER RE-OPENS A ROW THE READER FOLDED AWAY. The
      disclosure may hide a control; it may never hide an ACTIVE filter —
@@ -998,7 +994,7 @@ export function ConversationList({
      reverses the earlier search · chevron · hamburger order, which had put
      the chevron next to search to mirror Activity.
 
-     All three share ONE class, and it is ActivityHeader's: the chevron cannot
+     All three share ONE class, and it is PostsHeader's / JobsHeader's: the chevron cannot
      be a different ink from the search glyph beside it, and Messages' cluster
      should not be a different ink from the identical cluster on My Jobs. */
   /* THE MAGNIFIER, kept separate from the rest of the cluster.
@@ -1096,10 +1092,10 @@ export function ConversationList({
           hamburger (owner, 2026-09-14, VN-35: "on messages, move the chevron
           to the right of the hamburger"). Restored 2026-09-22 after its
           2026-09-19 removal; the history and the owner's words are in the
-          docblock above MESSAGES_HEADER_PADDING, and ActivityHeader is the
-          source of truth for how it behaves.
+          docblock above MESSAGES_HEADER_PADDING, and it behaves as
+          PostsHeader's and JobsHeader's do.
 
-          Phone only, and identical to ActivityHeader's: haptic on press,
+          Phone only, and identical to PostsHeader's / JobsHeader's: haptic on press,
           `aria-expanded` on the state, `aria-controls` only while the panel
           EXISTS (the strip unmounts when collapsed, and pointing at a missing
           id is `aria-valid-attr-value` critical in axe and a real lie to a
@@ -1203,7 +1199,7 @@ export function ConversationList({
     <>
           <ScreenHeaderRow
             /* THE SHARED ROW — literally the component My Posts / My Jobs
-               render through ActivityHeader, and the Browse feed through
+               render through PostsHeader / JobsHeader, and the Browse feed through
                BrowseTasksToolbar. This row used to be a hand-rolled copy of it
                (same `flex items-center gap-3`, same `min-w-0 flex-1 gap-2
                py-2.5` title block, same `gap-1 shrink-0` action cluster), which
@@ -1315,7 +1311,7 @@ export function ConversationList({
               same y as the populated one's (127 either way, measured; it used
               to be 83 against 127). */}
           {!isWebDesktop && tabsOpen && !searchOpen && !selectMode && (
-            /* `-mx-1 px-1 pb-0.5` are ActivityHeader's exact classes, so this
+            /* `-mx-1 px-1 pb-0.5` are PostsHeader's / JobsHeader's exact classes, so this
                card matches My Posts / My Jobs. The negative margin keeps the
                tabs' focus rings inside the scroller rather than clipped by it;
                the scroller itself is insurance for 320px, where two labels are

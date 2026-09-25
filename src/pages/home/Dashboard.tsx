@@ -640,7 +640,7 @@ const Dashboard = () => {
                           came from. And the magnifier's own 40px slot inside
                           BrowseTasksActions is held open while the field is up,
                           which is what keeps the ✕ off the box it comes back
-                          to. Same geometry ActivityHeader has carried since
+                          to. Same geometry PostsHeader / JobsHeader carry since
                           VN-31, so Browse stops being the screen that does it
                           differently. */}
                       {/* THE ROW EARNS ITS HEIGHT. With the emblem hidden

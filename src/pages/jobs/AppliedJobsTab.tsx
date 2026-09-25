@@ -53,7 +53,7 @@ interface AppliedJobsTabProps {
   /** When true, render items grouped into collapsible Active /
    *  Completed / Closed sections instead of a flat list.
    *  Driven by the page-level "All" status filter. The page's outer
-   *  header (ActivityHeader) is the sole source of truth for filter +
+   *  header (JobsHeader) is the sole source of truth for filter +
    *  search in both modes. */
   groupByStatus?: boolean;
 }
@@ -312,7 +312,7 @@ export const AppliedJobsTab = ({
     );
   }
 
-  // The page header (ActivityHeader) owns the only search + status
+  // The page header (JobsHeader) owns the only search + status
   // filter — both modes render the already-filtered list. "All" routes
   // through the grouped Sectioned view ("Closed" labels the third
   // section since helper-side rejections and cancelled jobs collapse

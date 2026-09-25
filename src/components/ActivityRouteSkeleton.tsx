@@ -19,11 +19,10 @@ import { ActivityPageSkeleton } from "@/components/ActivityPageSkeleton";
  * the same order. The chunk therefore lands INTO the frame it is going to
  * keep, and the only remaining visible change is bones → content.
  *
- * Built only from pieces already cheap to import eagerly (Skeleton
- * primitives + PageScaffold, which App.tsx already pulls in for
- * DashboardRouteSkeleton). It deliberately does NOT import `ActivityHeader`
- * — that module drags lucide icons, UnderlineTabs, ScreenHeaderRow and the
- * haptics bridge onto the entry chunk for a padding string.
+ * Built from Skeleton primitives + PageScaffold, through ActivityPageSkeleton,
+ * which reads the title-card padding from each tab's own header module
+ * (src/pages/posts/PostsHeader, src/pages/jobs/JobsHeader). App.tsx imports
+ * this file through `skeletonOnDemand`.
  *
  * `/jobs` and `/posts` are AppShell (via PageScaffold) routes and are
  * correctly ABSENT from DOCUMENT_SCROLL_ROUTES; this fallback uses the same

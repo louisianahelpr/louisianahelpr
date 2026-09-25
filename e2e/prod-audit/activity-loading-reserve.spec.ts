@@ -29,9 +29,9 @@
  *
  * The /jobs numbers come from two fixes: `ApplicationCardSkeleton` now
  * draws the collapsed card's two blocks instead of six bone rows and a footer
- * button, and `ActivityPageSkeleton` reserves the status-tab line that
- * `ActivityHeader` has rendered open-by-default since 2026-09-20 (and uses the
- * lists' own `space-y-3`, not `space-y-2.5`).
+ * button, and `ActivityPageSkeleton` reserves the status-tab line that the
+ * page header (PostsHeader / JobsHeader) renders on phone when the row is
+ * open (and uses the lists' own `space-y-3`, not `space-y-2.5`).
  *
  * The /posts row height comes from one more: `ActivityCardSkeleton` is no
  * longer a hand-drawn box but `CollapsedActivityCardSkeleton`, the same

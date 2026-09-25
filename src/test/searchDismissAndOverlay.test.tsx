@@ -40,15 +40,18 @@
  * tree, and the reviewed set below must equal it EXACTLY — a new expanding
  * search fails here until someone reviews it, and a deleted one fails too.
  *
- * @mutate src/components/job-card/ActivityHeader.tsx | if (wasOpenRef.current && !searchOpen) searchTriggerRef.current?.focus(); | if (false) searchTriggerRef.current?.focus();
- * @mutate src/components/job-card/ActivityHeader.tsx | if (e.key === "Escape") { e.preventDefault(); closeSearch(); } | if (e.key === "EscapeNope") { e.preventDefault(); closeSearch(); }
+ * @mutate src/pages/posts/PostsHeader.tsx | if (wasOpenRef.current && !searchOpen) searchTriggerRef.current?.focus(); | if (false) searchTriggerRef.current?.focus();
+ * @mutate src/pages/jobs/JobsHeader.tsx | if (wasOpenRef.current && !searchOpen) searchTriggerRef.current?.focus(); | if (false) searchTriggerRef.current?.focus();
+ * @mutate src/pages/posts/PostsHeader.tsx | if (e.key === "Escape") { e.preventDefault(); closeSearch(); } | if (e.key === "EscapeNope") { e.preventDefault(); closeSearch(); }
+ * @mutate src/pages/jobs/JobsHeader.tsx | if (e.key === "Escape") { e.preventDefault(); closeSearch(); } | if (e.key === "EscapeNope") { e.preventDefault(); closeSearch(); }
  * @mutate src/components/messages/ConversationList.tsx | if (wasSearchOpenRef.current && !searchOpen) searchTriggerRef.current?.focus(); | if (false) searchTriggerRef.current?.focus();
  * @mutate src/components/profile/SavedHelpersTab.tsx | searchTriggerRef.current?.focus(); | void 0;
  * @mutate src/components/dashboard/DashboardTitleBar.tsx | ?.querySelector<HTMLElement>("[data-search-trigger]") | ?.querySelector<HTMLElement>("[data-no-such-trigger]")
  * @mutate src/components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx | data-search-trigger | data-search-trigger-renamed
  * @mutate src/components/ui/ScreenHeaderRow.tsx | data-search-trigger-slot | data-search-trigger-slot-renamed
  * @mutate src/components/ui/ScreenHeaderRow.tsx | className="shrink-0 pointer-events-none" | className="shrink-0"
- * @mutate src/components/job-card/ActivityHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | 
+ * @mutate src/pages/posts/PostsHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | 
+ * @mutate src/pages/jobs/JobsHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | 
  * @mutate src/components/messages/ConversationList.tsx | triggerWidth: "44px", | 
  * @mutate src/components/profile/SavedHelpersTab.tsx | <SearchTriggerSlot /> | <span />
  * NO @mutate FOR pages/info/Legal.tsx. There was one — deleting the page's
@@ -111,7 +114,8 @@ vi.mock("@/lib/haptics", () => ({
   hapticMedium: vi.fn(), hapticSelection: vi.fn(), hapticWarning: vi.fn(), hapticHeavy: vi.fn(),
 }));
 
-import { ActivityHeader } from "@/components/job-card/ActivityHeader";
+import { PostsHeader } from "@/pages/posts/PostsHeader";
+import { JobsHeader } from "@/pages/jobs/JobsHeader";
 import { ConversationList } from "@/components/messages/ConversationList";
 import type { Conversation } from "@/components/messages/types";
 import { blankComments } from "./helpers/blankNonCode";
@@ -166,7 +170,8 @@ function deriveExpandingSearchFiles(): string[] {
  *   components/job-card/JobListPage.tsx                                owns My Posts / My Jobs state
  *   pages/home/Dashboard.tsx                               desktop Browse strip — OPEN, see below
  *   pages/info/Legal.tsx                                   policy search
- *   components/job-card/ActivityHeader.tsx                 My Posts / My Jobs field
+ *   pages/posts/PostsHeader.tsx                            My Posts field
+ *   pages/jobs/JobsHeader.tsx                              My Jobs field
  *
  * The admin tables (AdminUsers, AdminSubscriptions, AdminReferrals,
  * AdminNotificationLogs, AdminSettings) are deliberately absent: their fields
@@ -184,7 +189,8 @@ const REVIEWED_EXPANDING_SEARCHES = [
   "components/job-card/JobListPage.tsx",
   "pages/home/Dashboard.tsx",
   "pages/info/Legal.tsx",
-  "components/job-card/ActivityHeader.tsx",
+  "pages/posts/PostsHeader.tsx",
+  "pages/jobs/JobsHeader.tsx",
 ].sort();
 
 // The exact gate useIsWebDesktop reads (min-width: 900px, non-native).
@@ -274,15 +280,18 @@ function assertFieldStaysInFlow(field: HTMLElement, stopAt: HTMLElement) {
 /* ───────────────────────── My Posts / My Jobs ───────────────────────── */
 
 /**
- * Activity.tsx's own wiring, minus the data: plain `useState` for the two
+ * JobListPage's own wiring, minus the data: plain `useState` for the two
  * search values, exactly as the page holds them. Stubbing the setters would
  * make "one activation" untestable — the whole report is about how many
- * activations the real transitions take.
+ * activations the real transitions take. Each tab owns its header, so the
+ * harness renders whichever header it is handed (PostsHeader or JobsHeader).
  */
-function ActivityHarness({
+function TabHeaderHarness({
+  Header,
   inlineFilters,
   seen,
 }: {
+  Header: typeof PostsHeader | typeof JobsHeader;
   inlineFilters: boolean;
   seen: { query: string };
 }) {
@@ -290,8 +299,7 @@ function ActivityHarness({
   const [searchQuery, setSearchQuery] = useState("");
   seen.query = searchQuery;
   return (
-    <ActivityHeader
-      title="My Posts"
+    <Header
       titleSrOnly={inlineFilters}
       inlineFilters={inlineFilters}
       activeStatusFilters={[
@@ -310,14 +318,16 @@ function ActivityHarness({
 }
 
 describe.each([
-  ["phone / native", false],
-  ["desktop website (>=900px)", true],
-])("My Posts search — %s", (_label, inlineFilters) => {
+  ["My Posts", "phone / native", PostsHeader, false],
+  ["My Posts", "desktop website (>=900px)", PostsHeader, true],
+  ["My Jobs", "phone / native", JobsHeader, false],
+  ["My Jobs", "desktop website (>=900px)", JobsHeader, true],
+] as const)("%s search — %s", (title, _label, Header, inlineFilters) => {
   function mount() {
     const seen = { query: "" };
     render(
       <MemoryRouter>
-        <ActivityHarness inlineFilters={inlineFilters} seen={seen} />
+        <TabHeaderHarness Header={Header} inlineFilters={inlineFilters} seen={seen} />
       </MemoryRouter>,
     );
     return seen;
@@ -341,11 +351,11 @@ describe.each([
   it("the screen KEEPS ITS NAME while search is open — the field takes free space, not the title's", () => {
     mount();
     fireEvent.click(screen.getByRole("button", { name: "Search jobs" }));
-    expect(screen.getByRole("heading", { level: 1, name: "My Posts" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: title })).toBeTruthy();
     // The desktop row's name is already sr-only at rest, so only the phone
     // placement has a visible one to keep.
     if (!inlineFilters) {
-      expect(screen.getByText("My Posts", { selector: "span" })).toBeTruthy();
+      expect(screen.getByText(title, { selector: "span" })).toBeTruthy();
     }
   });
 
@@ -585,7 +595,8 @@ const EXERCISED = [
   "components/dashboard/DashboardTitleBar.tsx",
   "components/messages/ConversationList.tsx",
   "components/profile/SavedHelpersTab.tsx",
-  "components/job-card/ActivityHeader.tsx",
+  "pages/posts/PostsHeader.tsx",
+  "pages/jobs/JobsHeader.tsx",
 ];
 const NOT_EXERCISED: Record<string, string> = {
   "components/dashboard/BrowseTasksToolbar.tsx":
@@ -595,7 +606,7 @@ const NOT_EXERCISED: Record<string, string> = {
   "components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx":
     "trigger only — asserted by source for the data-search-trigger marker above",
   "components/job-card/JobListPage.tsx":
-    "owns the state ActivityHeader renders; the transitions are exercised through the header",
+    "owns the state PostsHeader / JobsHeader render; the transitions are exercised through each header",
   "pages/home/Dashboard.tsx":
     "the desktop feed strip — pinned by its own describe block below, from source, because the page is 900 lines behind a dozen data hooks and the fact under test is structural",
   "pages/info/Legal.tsx":
@@ -759,7 +770,7 @@ const NO_SLOT_NEEDED: Record<string, string> = {
   "components/dashboard/DashboardTitleBar.tsx":
     "the phone brand row gives the WHOLE bar to the field, so the entire cluster — magnifier included — is unmounted and none of it is adjacent to the ✕. Measured at 375: the magnifier returns third from the right, clear of the ✕ by 50px",
   "components/job-card/JobListPage.tsx":
-    "owns the state ActivityHeader renders; it holds no row of its own",
+    "owns the state PostsHeader / JobsHeader render; it holds no row of its own",
   "pages/home/Dashboard.tsx":
     "renders the strip whose slot BrowseTasksActions supplies — pinned by the describe block above",
 };

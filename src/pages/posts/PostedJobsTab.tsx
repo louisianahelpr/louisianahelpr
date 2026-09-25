@@ -80,7 +80,7 @@ interface PostedJobsTabProps {
   /** When true, render items grouped into collapsible Active /
    *  Completed / Cancelled sections instead of a flat list.
    *  Driven by the page-level "All" status filter. The page's
-   *  outer header (ActivityHeader) is the sole source of truth for
+   *  outer header (PostsHeader) is the sole source of truth for
    *  filter + search in both modes. */
   groupByStatus?: boolean;
   /** Active status filter key, its per-bucket counts, the filter labels, and
@@ -424,7 +424,7 @@ export const PostedJobsTab = ({
     );
   }
 
-  // The page header (ActivityHeader) owns the only search + status
+  // The page header (PostsHeader) owns the only search + status
   // filter — both modes render the already-filtered list. "All" routes
   // through the collapsible 3-section grouped shell; a specific status
   // renders a flat list. The applicants full-screen modal renders below

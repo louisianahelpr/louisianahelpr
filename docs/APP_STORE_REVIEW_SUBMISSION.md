@@ -1,6 +1,6 @@
 # App Store Review Submission — Build 18 (CFBundleVersion 2030)
 
-Ready-to-paste copy for App Store Connect when submitting build 18 for App Store review. Submission gated on TestFlight smoke-test passing (Apple+Google native sign-in, push token registration, Keychain-backed session survival).
+Ready-to-paste copy for App Store Connect when submitting build 18 for App Store review. Submission gated on TestFlight smoke-test passing (Apple+Google native sign-in, push token registration, session survival across relaunch via the @capacitor/preferences mirror).
 
 ## What's New in This Version
 

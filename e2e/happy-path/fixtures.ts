@@ -77,7 +77,7 @@ export const FAKE_HELPER: FakeUser = {
 // localStorage encoding) or the session shape directly. We write the
 // flatter session shape that newer @supabase/supabase-js (>=2.x) reads
 // from `getSession()` — verified against
-// `src/integrations/supabase/keychainStorageAdapter.test.ts`.
+// `src/integrations/supabase/preferencesStorageAdapter.test.ts`.
 function buildFakeSession(user: FakeUser) {
   const nowSec = Math.floor(Date.now() / 1000);
   // 1h validity — plenty for the smoke run, short enough that a leaked

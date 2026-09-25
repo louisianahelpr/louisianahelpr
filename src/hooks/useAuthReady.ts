@@ -31,7 +31,7 @@ const authListeners = new Set<(snapshot: AuthSnapshot) => void>();
  * out of storage: `__loadSession` checks that a session object exists and that
  * `expires_at` has not passed, then hands the stored `user` straight through
  * (@supabase/auth-js GoTrueClient `__loadSession`). This app supplies a CUSTOM
- * storage adapter on both platforms — the iOS keychain adapter natively,
+ * storage adapter on both platforms — the @capacitor/preferences adapter natively,
  * `getWebAuthStorage()`'s localStorage-or-in-memory fallback on the web — so
  * the bytes that become `session.user` have travelled through code that can
  * return a partial value, and nothing between there and here would notice.

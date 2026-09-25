@@ -5,6 +5,15 @@ import { Preferences } from '@capacitor/preferences';
 // localStorage under memory pressure on iOS, silently logging users out.
 // Mirror auth-token writes to NSUserDefaults so a hydrate-on-boot step
 // can restore them. NSUserDefaults survives Offload App + reinstall.
+//
+// WHAT THIS IS NOT: the iOS Keychain. @capacitor/preferences is
+// UserDefaults.standard (its Preferences.swift), an unencrypted plist in the
+// app container that is included in device backups and is not gated by the
+// device passcode. The session (access + refresh token) therefore sits in
+// that plist and in WKWebView localStorage (OA-004). The file is named for
+// the store it really uses; src/test/secureStorageNamesAreTrue.test.ts fails
+// if any source file or export claims Keychain/secure storage without
+// importing a Keychain-backed plugin.
 
 const cache = new Map<string, string>();
 const isAuthTokenKey = (key: string): boolean => key.startsWith('sb-') && key.endsWith('-auth-token');
@@ -84,7 +93,7 @@ export const hydratePromise: Promise<void> = (async () => {
 // after a Stripe gift-card return round-trip, 2026-08-30). Awaiting the
 // native write here means `_saveSession` doesn't consider the rotation
 // complete until the durable copy is actually on disk, closing that window.
-export const keychainStorageAdapter = {
+export const preferencesStorageAdapter = {
   getItem(key: string): string | null {
     if (cache.has(key)) return cache.get(key) ?? null;
     try { return localStorage.getItem(key); } catch { return null; }

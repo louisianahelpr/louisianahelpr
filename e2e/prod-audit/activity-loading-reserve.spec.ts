@@ -185,9 +185,17 @@ const SURFACES: Surface[] = [
  */
 async function rows(page: Page) {
   return page.evaluate(() => {
+    // `list`: which LIST the row sits in — its nearest `space-y-*` ancestor,
+    // numbered in document order. The grouped view (ActivitySectionedView,
+    // /jobs' default "All" and the poster's buckets) is several lists, one per
+    // section, with the section's heading button between them; see `pitch`.
+    const lists: Element[] = [];
     const box = (e: Element) => {
       const r = e.getBoundingClientRect();
-      return { h: Math.round(r.height), y: Math.round(r.top) };
+      const l = e.parentElement?.closest('[class*="space-y-"]') ?? null;
+      let list = l ? lists.indexOf(l) : -1;
+      if (l && list < 0) list = lists.push(l) - 1;
+      return { h: Math.round(r.height), y: Math.round(r.top), list };
     };
     const cardSized = (e: Element) => {
       const r = e.getBoundingClientRect();
@@ -319,17 +327,36 @@ for (const surface of SURFACES) {
          placeholder reserves the row a list of cards mostly IS, so that is
          what it is judged against. */
       const heights = (r: { h: number }[]) => median(r.map((x) => x.h));
-      const pitch = (r: { y: number }[]) =>
-        r.length < 2 ? 0 : median(r.slice(1).map((x, i) => x.y - r[i].y));
+      /* PITCH WITHIN A LIST. The grouped view is one list per section, with
+         the section's heading between them, so the step from the last card
+         of one section to the first card of the next is heading + gaps, not
+         a row pitch the placeholder could reserve. A median over EVERY
+         adjacent pair lets that step decide the verdict whenever most pairs
+         straddle a section (a few cards spread over ACTIVE / COMPLETED /
+         CLOSED). /jobs went red on PITCH in the vacuity run of PR #1797
+         (job 108188068045; its numbers were cut from the log) while the
+         placeholder's rows measure 150px at a 162px pitch on every build
+         involved, the same as when /jobs passed in prod-audit 36069316906
+         (real 151px / 162px, 15 rows). That the straddling pairs are the
+         cause is INFERRED, not measured; the note now prints every row's
+         y, height and list so the next run says. Only same-list pairs
+         count, and the floor below demands at least one per frame. */
+      const pairs = (r: { y: number; list: number }[]) =>
+        r.slice(1).flatMap((x, i) => (x.list === r[i].list ? [x.y - r[i].y] : []));
+      const pitch = (r: { y: number; list: number }[]) => (pairs(r).length ? median(pairs(r)) : 0);
       const loadingH = heights(loading);
       const loadedH = heights(loaded);
+      const trail = (r: { h: number; y: number; list: number }[]) => r.map((x) => `${x.y}+${x.h}@L${x.list}`).join(" ");
       note(
         info,
         surface.name,
         `placeholder row ${loadingH}px pitch ${pitch(loading)}px first-y ${loading[0].y} (${loading.length} rows) · ` +
           `real row ${loadedH}px pitch ${pitch(loaded)}px first-y ${loaded[0].y} (${loaded.length} rows)` +
-          (surface.pinnedRow ? ` · PINNED at ${surface.pinnedRow}px (see POSTED_ROW_PIN)` : ""),
+          (surface.pinnedRow ? ` · PINNED at ${surface.pinnedRow}px (see POSTED_ROW_PIN)` : "") +
+          ` · rows y+h@list: placeholder [${trail(loading)}] real [${trail(loaded)}]`,
       );
+      expect(pairs(loading).length, `${surface.name}: no two placeholder rows share a list — no pitch to compare`).toBeGreaterThanOrEqual(1);
+      expect(pairs(loaded).length, `${surface.name}: no two real rows share a list — no pitch to compare`).toBeGreaterThanOrEqual(1);
 
       if (surface.pinnedRow !== undefined) {
         // A pin records the measurement, so it can only be held or improved.

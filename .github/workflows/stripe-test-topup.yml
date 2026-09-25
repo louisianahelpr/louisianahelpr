@@ -1,0 +1,37 @@
+name: Stripe TEST balance top-up
+
+# Dispatch only. Adds TEST-mode money to the platform balance when the Q3
+# balance monitor (quota-monitor.yml) reports it below the payout threshold.
+# scripts/stripe-test-topup.mjs refuses any key that is not sk_test_/rk_test_
+# and caps the amount; it never touches live mode.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dollars:
+        description: "Whole dollars to add to the TEST platform balance (1-2000)"
+        type: string
+        default: "500"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stripe-test-topup
+  cancel-in-progress: false
+
+jobs:
+  topup:
+    name: Top up the TEST balance
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Charge the platform with the 0077 test card
+        env:
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          TOPUP_DOLLARS: ${{ inputs.dollars }}
+        run: node scripts/stripe-test-topup.mjs

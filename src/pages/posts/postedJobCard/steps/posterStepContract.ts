@@ -23,7 +23,7 @@ export interface PosterStepCtx {
   job: Job;
   userId: string;
   helperNames: Record<string, string>;
-  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
+  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }> }>;
   unfunded: boolean;
   completingJobId: string | null;
   confirmingArrivalJobId: string | null;

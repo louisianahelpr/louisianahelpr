@@ -16,6 +16,8 @@ import { formatName } from "@/lib/utils";
 // moved the top rung to a reversible 7-day restriction pending admin review.
 import { NO_SHOW_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 import { helperIsCommitted } from "../../../supabase/functions/_shared/cancellationFee";
+import { crewMemberCommitted } from "../../../supabase/functions/_shared/crewShares";
+import type { GroupHelperLite } from "@/hooks/useActivityData";
 import type { Job, EnrichedApplication } from "./activityConstants";
 
 // Dialogs are conditionally rendered — none are visible on first paint. Each
@@ -82,8 +84,18 @@ interface ActivityDialogsProps {
   setHelperReviewJob: (v: { jobId: string; posterId: string; posterName: string } | null) => void;
   // Helper names lookup
   helperNames?: Record<string, string>;
+  /** Each active group job's roster, with every member's own confirmation:
+   *  a crew's cancellation quote counts the members who confirmed (Q407). */
+  groupHelpersByJob?: Record<string, GroupHelperLite[]>;
   // Refresh
   onRefresh: () => void;
+}
+
+/** A crew has no lead (Q407): its hired members, each with their frozen share. */
+function crewMembers(roster: GroupHelperLite[] | undefined): Array<{ share_cents: number | null; confirmed: boolean }> {
+  return (roster ?? [])
+    .filter((m) => !!m.helper_id)
+    .map((m) => ({ share_cents: m.share_cents ?? null, confirmed: !!m.helper_confirmed_at }));
 }
 
 export function ActivityDialogs(props: ActivityDialogsProps) {
@@ -95,7 +107,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           {/* `canTip`: only the POSTER may tip, and only this mount is the
               poster. The helper-side mount below leaves it off — see
               ReviewFormProps.canTip. */}
-          <ReviewForm canTip revieweeRole="helper" open={!!props.reviewJob} onClose={() => { props.setReviewJob(null); props.setReviewTarget(null); props.onRefresh(); }} jobId={props.reviewJob.id} revieweeId={props.reviewTarget.id} revieweeName={props.reviewTarget.name} />
+          <ReviewForm canTip={!props.reviewJob.is_group_job} revieweeRole="helper" open={!!props.reviewJob} onClose={() => { props.setReviewJob(null); props.setReviewTarget(null); props.onRefresh(); }} jobId={props.reviewJob.id} revieweeId={props.reviewTarget.id} revieweeName={props.reviewTarget.name} />
         </Suspense>
       )}
 
@@ -179,10 +191,22 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           jobDate={props.cancelDialogJob.date_needed}
           jobStartTime={props.cancelDialogJob.start_time ?? null}
           jobBudget={props.cancelDialogJob.budget}
-          hasHelper={helperIsCommitted({
-            helper_id: props.cancelDialogJob.helper_id,
-            helper_confirmed_at: props.cancelDialogJob.helper_confirmed_at ?? null,
-          })}
+          hasHelper={
+            props.cancelDialogJob.is_group_job
+              ? crewMembers(props.groupHelpersByJob?.[props.cancelDialogJob.id]).some((m) => crewMemberCommitted(m.confirmed))
+              : helperIsCommitted({
+                  helper_id: props.cancelDialogJob.helper_id,
+                  helper_confirmed_at: props.cancelDialogJob.helper_confirmed_at ?? null,
+                })
+          }
+          crew={
+            props.cancelDialogJob.is_group_job
+              ? {
+                  needed: props.cancelDialogJob.helpers_needed ?? 1,
+                  members: crewMembers(props.groupHelpersByJob?.[props.cancelDialogJob.id]),
+                }
+              : undefined
+          }
           wasFunded={
             props.cancelDialogJob.payment_status !== "unpaid" &&
             props.cancelDialogJob.payment_status !== "abandoned"

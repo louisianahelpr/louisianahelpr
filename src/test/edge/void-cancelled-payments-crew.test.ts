@@ -46,7 +46,7 @@ const MEMBERS = ["member-a", "member-b", "member-c"];
  * so each confirmed member's share is $300 * 50% / 3 = $50.00.
  */
 function seedCancelledCrew(shares: Array<Record<string, unknown>> = MEMBERS.map((m, i) => ({
-  id: `share-${i + 1}`, helper_id: m, committed: true, share_amount: "50.00", status: "pending", stripe_transfer_id: null,
+  id: `share-${i + 1}`, helper_id: m, committed: true, share_basis_cents: 10000, share_amount: "50.00", status: "pending", stripe_transfer_id: null,
 }))) {
   scenario.reads.jobs = {
     selectOverrides: [
@@ -129,7 +129,7 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
   // @mutate supabase/functions/void-cancelled-payments/index.ts | const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0 && s.status !== "paid"); | const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0);
   it("never pays a share the ledger already marks paid", async () => {
     seedCancelledCrew(MEMBERS.map((m, i) => ({
-      id: `share-${i + 1}`, helper_id: m, committed: true, share_amount: "50.00",
+      id: `share-${i + 1}`, helper_id: m, committed: true, share_basis_cents: 10000, share_amount: "50.00",
       status: i === 0 ? "paid" : "pending", stripe_transfer_id: i === 0 ? "tr_earlier" : null,
     })));
     const h = await load();
@@ -152,7 +152,7 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
   // @mutate supabase/functions/void-cancelled-payments/index.ts | if (priced.mismatch) { | if (false) {
   it("a share that does not match its recomputation moves NO money and pages critical", async () => {
     seedCancelledCrew(MEMBERS.map((m, i) => ({
-      id: `share-${i + 1}`, helper_id: m, committed: true, share_amount: i === 2 ? "99.00" : "50.00", status: "pending", stripe_transfer_id: null,
+      id: `share-${i + 1}`, helper_id: m, committed: true, share_basis_cents: 10000, share_amount: i === 2 ? "99.00" : "50.00", status: "pending", stripe_transfer_id: null,
     })));
     const h = await load();
     await h.fetch(cronReq());
@@ -164,9 +164,9 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     )).toBe(true);
   });
 
-  it("an uncommitted member's $0 share is not paid, and the committed members still are", async () => {
+  it("a member recorded as not committed (the owner rule flipped) gets a $0 share, not paid; the rest still are", async () => {
     seedCancelledCrew(MEMBERS.map((m, i) => ({
-      id: `share-${i + 1}`, helper_id: m, committed: i !== 2, share_amount: i === 2 ? "0.00" : "50.00", status: "pending", stripe_transfer_id: null,
+      id: `share-${i + 1}`, helper_id: m, committed: i !== 2, share_basis_cents: 10000, share_amount: i === 2 ? "0.00" : "50.00", status: "pending", stripe_transfer_id: null,
     })));
     const h = await load();
     await h.fetch(cronReq());
@@ -175,6 +175,56 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
       { payment_intent: "pi_crew", amount: 33000 - 10000 - 3000 },
       { idempotencyKey: "cancel-refund-job-crew" },
     );
+  });
+
+  // @mutate supabase/functions/_shared/crewShares.ts | if (basisTotal > budgetCents) { | if (false) {
+  it("shares whose frozen bases add up to more than the budget move NO money", async () => {
+    seedCancelledCrew(MEMBERS.map((m, i) => ({
+      id: `share-${i + 1}`, helper_id: m, committed: true, share_basis_cents: 20000, share_amount: "100.00", status: "pending", stripe_transfer_id: null,
+    })));
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+  });
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if (job.is_group_job && !job.helper_id) { | if (job.is_group_job) {
+  it("a crew cancelled before the no-lead migration (lead in helper_id, no ledger) settles on the single path, as deployed", async () => {
+    seedCancelledCrew([]);
+    const jobs = scenario.reads.jobs as { selectOverrides: Array<{ result: { rows: Array<Record<string, unknown>> } }> };
+    Object.assign(jobs.selectOverrides[0].result.rows[0], { helper_id: "old-lead", helper_confirmed_at: "2026-09-24T12:00:00Z", budget: 300 });
+    const h = await load();
+    await h.fetch(cronReq());
+    // 50% of $300 to the lead, one transfer with the single path's key.
+    expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.transfers.create.mock.calls[0][1]).toEqual({ idempotencyKey: "cancel-fee-job-crew" });
+  });
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | .in("status", ["pending", "failed"]) | .in("status", ["pending"])
+  it("Part D retries a FAILED share on a crew job that already settled, without paging again", async () => {
+    scenario.reads.jobs = {
+      selectOverrides: [
+        { includes: "cancellation_fee,", result: { rows: [] } },
+        { includes: "cancellation_fee_status", result: { rows: [{ id: "job-crew", title: "Move a piano", helper_fee_percent: 10, payment_status: "refunded", cancellation_fee_status: "charged", stripe_payment_intent_id: "pi_crew" }] } },
+      ],
+      rows: [],
+    };
+    scenario.reads.crew_cancellation_fee_shares = {
+      rows: [{ id: "share-2", job_id: "job-crew", helper_id: "member-b", committed: true, share_basis_cents: 10000, share_amount: "50.00", status: "failed", stripe_transfer_id: null }],
+    };
+    scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_member", subscription_tier: null }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_crew", status: "succeeded", latest_charge: "ch_crew" });
+    stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string } }) => ({ id: `tr_${params.metadata.helper_id}` }));
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeTransfers()).toEqual([{ helper: "member-b", cents: 4400, key: "cancel-fee-job-crew-member-b" }]);
+    expect(ledgerFlips()[0]).toEqual(expect.objectContaining({ status: "paid", stripe_transfer_id: "tr_member-b" }));
+    // The sweep asks for FAILED shares as well as pending ones.
+    const sweep = (scenario.readQueries ?? []).find(
+      (q) => q.table === "crew_cancellation_fee_shares" && q.filters.some((f) => f.column === "status"),
+    );
+    expect(sweep?.filters.find((f) => f.column === "status")?.value).toEqual(["pending", "failed"]);
+    expect(slackAlerts).toHaveLength(0);
   });
 
   it("fails CLOSED when the crew ledger cannot be read: no refund, no transfer", async () => {

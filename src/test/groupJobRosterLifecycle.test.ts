@@ -40,15 +40,11 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql |   IF OLD.is_group_job IS TRUE\n     AND COALESCE(current_setting |   IF COALESCE(current_setting
 // @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql |     'helper_completed_at',\n    'poster_confirmed_completion_at', |     'poster_confirmed_completion_at',
 // @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql | REVOKE INSERT, UPDATE, DELETE ON public.group_job_helpers FROM PUBLIC, anon; | REVOKE INSERT ON public.group_job_helpers FROM PUBLIC;
-// @mutate supabase/migrations/20260919195158_before_photo_gates_working_step.sql |     IF NEW.status = 'arrived' AND v_slot_arrived_at IS NULL THEN |     IF NEW.status = 'arrived' AND v_job.helper_arrived_at IS NULL THEN
+// @mutate supabase/migrations/20260925140148_group_roster_departure.sql |     IF NEW.status = 'arrived' AND v_slot_arrived_at IS NULL THEN |     IF NEW.status = 'arrived' AND v_job.helper_arrived_at IS NULL THEN
 // @mutate supabase/migrations/20260925140148_group_roster_departure.sql |   AFTER DELETE ON public.group_job_helpers |   AFTER INSERT ON public.group_job_helpers
-// @mutate supabase/migrations/20260925140148_group_roster_departure.sql |      SET status = 'rejected'\n   WHERE job_id = OLD.job_id |      SET status = 'accepted'\n   WHERE job_id = OLD.job_id
-// @mutate supabase/migrations/20260925140148_group_roster_departure.sql |   IF public.job_payment_is_funded(v_payment) THEN |   IF true THEN
-// @mutate supabase/migrations/20260925140148_group_roster_departure.sql |   UPDATE public.jobs\n     SET helper_id = NULL\n   WHERE id = OLD.job_id; |   SELECT 1;
-// @mutate supabase/migrations/20260925140148_group_roster_departure.sql |          helper_confirmed_at = v_next_confirmed, |          helper_confirmed_at = helper_confirmed_at,
-// @mutate supabase/migrations/20260925140148_group_roster_departure.sql |          start_reminder_sent_at = NULL\n   WHERE id = OLD.job_id; |          start_reminder_sent_at = start_reminder_sent_at\n   WHERE id = OLD.job_id;
-// @mutate supabase/migrations/20260925140148_group_roster_departure.sql |            AND current_setting('app.roster_departure', true) = 'on' THEN |            AND true THEN
-// @mutate supabase/migrations/20260925140148_group_roster_departure.sql |   PERFORM set_config('app.roster_departure', COALESCE(v_prior_flag, ''), true); |   SELECT 1;
+// @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     SET status = 'rejected'\n   WHERE job_id = OLD.job_id |     SET status = 'accepted'\n   WHERE job_id = OLD.job_id
+// @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND status = 'accepted';\n\n  RETURN OLD; |     AND status = 'accepted';\n  UPDATE public.jobs SET helper_id = NULL WHERE id = OLD.job_id;\n\n  RETURN OLD;
+// @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     IF (NEW.slot_no IS DISTINCT FROM OLD.slot_no OR NEW.share_cents IS DISTINCT FROM OLD.share_cents) |     IF (NEW.slot_no IS DISTINCT FROM OLD.slot_no)
 // @mutate supabase/migrations/20260925140148_group_roster_departure.sql |     DELETE FROM public.group_job_helpers WHERE id = v_slot_id; |     PERFORM v_slot_id;
 // @mutate supabase/migrations/20260925140148_group_roster_departure.sql |      AND (v_slot_id IS NOT NULL OR v_job.helper_id IS DISTINCT FROM auth.uid()) THEN |      THEN
 // @mutate supabase/migrations/20260925140148_group_roster_departure.sql |     AND COALESCE(array_length(v_slot_proof_before, 1), 0) = 0; |     AND COALESCE(array_length(v_slot_proof_before, 1), 0) = 0\n    AND v_needs_before_photo;
@@ -135,7 +131,12 @@ describe("group jobs — per-member roster lifecycle (breakage (b))", () => {
       "IF changed_col = ANY (server_owned) THEN",
     );
     const owned = [...lock.matchAll(/'(\w+)'/g)].map((m) => m[1]);
-    const unguarded = added.filter((c) => !owned.includes(c));
+    // The crew's money columns (slot_no, share_cents; 20260925154606) are
+    // frozen by their own trigger, which refuses ANY change outside a server
+    // context — stricter than the lifecycle lock, never looser.
+    const freeze = functionBody("freeze_crew_member_share");
+    const frozen = [...blankSqlComments(freeze).matchAll(/NEW\.(\w+) IS DISTINCT FROM OLD\.\1/g)].map((m) => m[1]);
+    const unguarded = added.filter((c) => !owned.includes(c) && !frozen.includes(c));
     expect(
       unguarded,
       `these roster columns are writable by a plain client PATCH: ${unguarded.join(", ")}`,
@@ -352,59 +353,32 @@ describe("group jobs — leaving the crew leaves the job (D1, D2, D3)", () => {
     expect(deleters.length + deletePolicies.length).toBeGreaterThanOrEqual(2);
 
     const after = [...rosterTriggers().values()].filter((t) => /AFTER DELETE/i.test(t));
-    expect(after, "no AFTER DELETE trigger on group_job_helpers: a removed Helpr keeps jobs.helper_id and an accepted application").toHaveLength(1);
+    expect(after, "no AFTER DELETE trigger on group_job_helpers: a removed Helpr keeps an accepted application").toHaveLength(1);
     const fn = after[0].split(" -> ")[1];
     const body = blankSqlComments(functionBody(fn));
     expect(body, `${fn} is not restated anywhere`).not.toHaveLength(0);
 
     // The departed Helpr's accepted application ends.
     expect(body).toMatch(/UPDATE public\.applications\s+SET status = 'rejected'\s+WHERE job_id = OLD\.job_id\s+AND helper_id = OLD\.helper_id\s+AND status = 'accepted'/);
-    // jobs.helper_id stops naming them, and only a funded job is re-pointed,
-    // to a member the award gate would accept.
-    expect(body).toMatch(/SET helper_id = NULL\s+WHERE id = OLD\.job_id/);
-    expect(body).toMatch(/IF public\.job_payment_is_funded\(v_payment\) THEN[\s\S]*helper_award_block_reason\(g\.helper_id\) IS NULL[\s\S]*END IF;/);
-    // The clear comes before the re-point: the column whitelist refuses a lead
-    // who is leaving any move of helper_id to another account in one statement.
-    expect(body.indexOf("SET helper_id = NULL")).toBeLessThan(body.indexOf("SET helper_id = v_next_lead"));
-    // The clear runs under app.roster_departure (the poster's money lock
-    // refuses a funded job's helper_id -> NULL otherwise), set just before it
-    // and put back just after.
-    const on = body.indexOf("set_config('app.roster_departure', 'on', true)");
-    const clear = body.indexOf("SET helper_id = NULL");
-    const off = body.indexOf("set_config('app.roster_departure', COALESCE(v_prior_flag, ''), true)");
-    expect(on, "the departure trigger does not announce itself to the money lock").toBeGreaterThan(-1);
-    expect(on).toBeLessThan(clear);
-    expect(off, "app.roster_departure is left on after the clear").toBeGreaterThan(clear);
-    expect(off).toBeLessThan(body.indexOf("SET helper_id = v_next_lead"));
-    // Money: the commitment stamps follow the lead. poster_cancel_job prices
-    // the late fee from helper_confirmed_at and void-cancelled-payments pays
-    // helper_id, so a new lead never inherits the old lead's confirmation.
-    const repoint = /SET helper_id = v_next_lead,([\s\S]*?)WHERE id = OLD\.job_id/.exec(body)?.[1] ?? "";
-    for (const stamp of [
-      "helper_confirmed_at = v_next_confirmed",
-      "helper_dayof_confirmed_at = v_next_dayof",
-      "response_deadline = NULL",
-      "dayof_confirm_reminder_sent_at = NULL",
-      "dayof_unanswered_poster_alert_sent_at = NULL",
-      "start_reminder_sent_at = NULL",
-    ]) {
-      expect(repoint, `a lead change keeps the previous lead's ${stamp.split(" ")[0]}`).toContain(stamp);
-    }
-    expect(body).toMatch(/SELECT g\.helper_id, g\.helper_confirmed_at, g\.helper_dayof_confirmed_at\s+INTO v_next_lead, v_next_confirmed, v_next_dayof/);
+    // A crew has no lead (Q407, 20260925154606): a departure moves nobody's
+    // lead, so the trigger writes no jobs row at all and needs no way past the
+    // poster's money lock.
+    expect(body, "the departure trigger writes jobs again (a lead to move?)").not.toMatch(/UPDATE public\.jobs/i);
+    expect(body).not.toContain("app.roster_departure");
     expect(body).toContain("SET search_path TO 'public'");
     expect(body).toContain("SECURITY DEFINER");
   });
 
-  it("lets the departure trigger, and only it, past the poster money lock — for helper_id -> NULL only", () => {
+  it("keeps no roster-departure door in the poster money lock, and nothing sets the flag", () => {
+    // 20260925140148 let the departure trigger clear a funded crew's LEAD past
+    // the lock under app.roster_departure. A crew has no lead now, so the
+    // carve-out is gone and nothing may announce a roster departure.
     const lock = blankSqlComments(functionBody("enforce_poster_jobs_money_lock"));
-    expect(lock).toMatch(
-      /changed_col = 'helper_id'\s+AND NEW\.helper_id IS NULL\s+AND current_setting\('app\.roster_departure', true\) = 'on' THEN\s+CONTINUE;/,
-    );
-    // Inventory from the world: every function that sets the flag.
+    expect(lock).not.toContain("app.roster_departure");
     const setters = [...EFFECTIVE.entries()]
       .filter(([, d]) => /set_config\('app\.roster_departure'/.test(blankSqlComments(d.stmt)))
       .map(([n]) => n);
-    expect(setters, "only the roster departure trigger may announce a roster departure").toEqual(["sync_job_after_roster_departure"]);
+    expect(setters, "a function announces a roster departure to a money lock that no longer honours one").toEqual([]);
   });
 
   it("lets every crew member leave through helper_cancel_booking, not only the lead", () => {

@@ -283,6 +283,56 @@ export type Database = {
           },
         ]
       }
+      crew_cancellation_fee_shares: {
+        Row: {
+          committed: boolean
+          created_at: string
+          fee_percent: number
+          helper_id: string | null
+          id: string
+          job_id: string
+          paid_at: string | null
+          share_amount: number
+          share_basis_cents: number
+          status: string
+          stripe_transfer_id: string | null
+        }
+        Insert: {
+          committed: boolean
+          created_at?: string
+          fee_percent: number
+          helper_id?: string | null
+          id?: string
+          job_id: string
+          paid_at?: string | null
+          share_amount: number
+          share_basis_cents: number
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Update: {
+          committed?: boolean
+          created_at?: string
+          fee_percent?: number
+          helper_id?: string | null
+          id?: string
+          job_id?: string
+          paid_at?: string | null
+          share_amount?: number
+          share_basis_cents?: number
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_cancellation_fee_shares_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cron_catchup_policy: {
         Row: {
           catch_up: boolean
@@ -1087,6 +1137,8 @@ export type Database = {
           poster_confirmed_working_at: string | null
           proof_after_urls: string[] | null
           proof_before_urls: string[] | null
+          share_cents: number | null
+          slot_no: number | null
           status: string
         }
         Insert: {
@@ -1107,6 +1159,8 @@ export type Database = {
           poster_confirmed_working_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
+          share_cents?: number | null
+          slot_no?: number | null
           status?: string
         }
         Update: {
@@ -1127,6 +1181,8 @@ export type Database = {
           poster_confirmed_working_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
+          share_cents?: number | null
+          slot_no?: number | null
           status?: string
         }
         Relationships: [
@@ -5265,6 +5321,12 @@ export type Database = {
         Args: { p_kind: string; p_path: string; p_user_id: string }
         Returns: boolean
       }
+      crew_completes_when_hired_done: { Args: never; Returns: boolean }
+      crew_fee_pays_unconfirmed: { Args: never; Returns: boolean }
+      crew_slot_share_cents: {
+        Args: { p_needed: number; p_slot: number; p_total_cents: number }
+        Returns: number
+      }
       cron_catchup_last_slot: {
         Args: { p_at: string; p_schedule: string }
         Returns: {
@@ -6016,6 +6078,7 @@ export type Database = {
         Args: { _category: Database["public"]["Enums"]["job_category"] }
         Returns: boolean
       }
+      is_crew_member_of_job_folder: { Args: { object_name: string }; Returns: boolean }
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
       is_late_cancellation: {
         Args: { p_has_helper: boolean; p_hours_until: number }

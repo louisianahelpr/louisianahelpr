@@ -30,7 +30,7 @@ export interface LifecycleHandlersDeps extends OptimisticJobCache {
   refresh: () => void | Promise<unknown>;
   setStatusFilter: (filter: string) => void;
   helperNames: Record<string, string>;
-  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
+  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }> }>;
   setCompletingJobId: Dispatch<SetStateAction<string | null>>;
   setReportingNoShow: (v: boolean) => void;
   setNoShowJobId: (id: string | null) => void;
@@ -424,6 +424,16 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
   };
 
   const openReviewForPosted = async (job: Job) => {
+    // A crew has no lead (Q407): one review per member. The next member the
+    // poster has not reviewed yet, in hire order; the chip stays until none
+    // is left (useActivityData `crewToReview`).
+    if (job.is_group_job) {
+      const next = completedJobMeta[job.id]?.crewToReview?.[0];
+      if (!next) return;
+      setReviewTarget({ id: next.id, name: next.name });
+      setReviewJob(job);
+      return;
+    }
     if (!job.helper_id) return;
     // The helper's NAME comes from `helperNames`, which useActivityData
     // already loaded through the safe-profiles RPC for every assigned helper

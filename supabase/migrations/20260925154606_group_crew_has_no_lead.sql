@@ -70,15 +70,15 @@
 --   6. crew_cancellation_fee_shares: one server-owned row per hired member of a
 --      cancelled crew, written only by poster_cancel_job, paid (one Stripe
 --      transfer each) and marked paid only by void-cancelled-payments.
---   7. poster_cancel_job crew branch: each hired member's share is the same
---      slice of the budget (budget / helpers_needed) priced on the SAME ladder
---      as a single booking, on that member's own commitment
---      (group_job_helpers.helper_confirmed_at): a member who confirmed is
---      committed exactly as a single Helpr who confirmed is. When every hired
---      member confirmed, as a crew booked for tomorrow has, every share is
---      equal. jobs.cancellation_fee is the sum. A crew with any member's part
---      marked done cannot be cancelled (as a single job cannot once the Helpr
---      marked it done). Each member is told their own share.
+--   7. poster_cancel_job crew branch: each hired member's share is THEIR
+--      frozen slice of the budget (2b) priced on the SAME ladder as a single
+--      booking. Who counts as committed is ONE owner rule,
+--      crew_fee_pays_unconfirmed() (2c): true (the default until the owner
+--      answers) counts every hired member, so the fee is split evenly across
+--      the hired crew; false prices each member on their own confirmation, as
+--      a single Helpr is. jobs.cancellation_fee is the sum. A crew with any
+--      member's part marked done cannot be cancelled (as a single job cannot
+--      once the Helpr marked it done). Each member is told their own share.
 --   8. apply_cancellation_violation_consequence: a crew with a committed
 --      member is a committed booking (it read helper_id alone).
 --   9. notify_on_job_update / notify_on_payment_escrowed: the completed,
@@ -96,6 +96,25 @@
 --      worked crews is ranked on their own reviews.
 --  12. proof-photos: every crew member may upload to and read the job's proof
 --      folder (INSERT and SELECT policies); UPDATE and DELETE are unchanged.
+--  13. rpc_group_member_mark_done: under crew_completes_when_hired_done() an
+--      under-filled crew completes when every HIRED member is done.
+--
+-- MONEY REVIEW (lh-money-escrow on d26053876, folded in):
+--   HIGH-1  helpers_needed / is_group_job lock (trg_group_job_has_no_lead) and
+--           each member's share frozen in cents at hire (2b).
+--   MEDIUM-3 largest-remainder split in cents (crew_slot_share_cents).
+--   MEDIUM-4 crew_completes_when_hired_done() (2c, 13).
+--   MEDIUM-5 DEPLOY ORDER: the edge functions ship in the SAME push and are
+--           tolerant of both shapes: void-cancelled-payments settles a crew
+--           cancelled before this migration (lead in helper_id, no ledger
+--           rows) on the single path, as the deployed code did; a crew
+--           cancelled after it (no lead, ledger rows) on the ledger. The
+--           deployed (old) void-cancelled-payments reading a NEW-shape crew
+--           would compute a $0 fee (helper_id NULL) and refund the poster in
+--           full: that window is closed by group jobs being off
+--           (GROUP_JOBS_ENABLED=false, reject_new_group_jobs), so no crew can
+--           be hired or cancelled between the two deploys. Deploy the edge
+--           functions first all the same.
 --
 -- REPLAY-SAFETY: every object touched is created by an earlier migration
 -- (group_job_helpers 20260311041556; roster lifecycle 20260919192559; the
@@ -127,6 +146,7 @@ UPDATE public.jobs
 CREATE OR REPLACE FUNCTION public.enforce_group_job_has_no_lead()
 RETURNS trigger
 LANGUAGE plpgsql
+SECURITY DEFINER
 SET search_path TO 'public'
 AS $function$
 BEGIN
@@ -138,6 +158,25 @@ BEGIN
       USING ERRCODE = 'check_violation',
             HINT = 'Hire each crew member with accept_group_application.';
   END IF;
+
+  -- THE SHAPE LOCK (money review HIGH-1). helpers_needed is the denominator
+  -- of every crew share and is_group_job decides which money path a job takes;
+  -- neither sat in enforce_poster_jobs_money_lock. A poster who raised
+  -- helpers_needed before a late cancel cut the crew's fee (3 -> 100 took a
+  -- $150 fee to $4.50), and one who cleared is_group_job cancelled with no fee
+  -- and no strike. Once checkout has opened or anyone is on the roster, only a
+  -- server context may change either.
+  IF TG_OP = 'UPDATE'
+     AND (NEW.helpers_needed IS DISTINCT FROM OLD.helpers_needed
+          OR NEW.is_group_job IS DISTINCT FROM OLD.is_group_job)
+     AND NOT public.is_server_context()
+     AND (OLD.payment_status IS DISTINCT FROM 'unpaid'
+          OR OLD.stripe_session_id IS NOT NULL
+          OR EXISTS (SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = OLD.id)) THEN
+    RAISE EXCEPTION 'crew_shape_locked: a job''s crew size and group setting are fixed once checkout has opened or anyone is hired (job_id=%)', OLD.id
+      USING ERRCODE = '42501',
+            HINT = 'Cancel and post a new job to change how many Helprs it needs.';
+  END IF;
   RETURN NEW;
 END;
 $function$;
@@ -146,8 +185,134 @@ REVOKE ALL ON FUNCTION public.enforce_group_job_has_no_lead() FROM PUBLIC, anon,
 
 DROP TRIGGER IF EXISTS trg_group_job_has_no_lead ON public.jobs;
 CREATE TRIGGER trg_group_job_has_no_lead
-  BEFORE INSERT OR UPDATE OF helper_id, is_group_job ON public.jobs
+  BEFORE INSERT OR UPDATE OF helper_id, is_group_job, helpers_needed ON public.jobs
   FOR EACH ROW EXECUTE FUNCTION public.enforce_group_job_has_no_lead();
+
+-- ── 2b. EVERY MEMBER'S SHARE IS FROZEN AT HIRE, TO THE CENT ─────────────────
+-- (money review HIGH-1 + MEDIUM-3). A member's share of the budget used to be
+-- recomputed as budget / helpers_needed wherever money moved, from columns the
+-- poster could still edit, and in floating dollars: $100 across 3 paid $99.99.
+-- Each roster row now carries its slot (0..helpers_needed-1) and that slot's
+-- share in cents, fixed by accept_group_application with the largest-remainder
+-- split: floor(T / N), plus 1 cent for the first (T mod N) slots, so the N
+-- shares add up to T exactly. Payouts and cancellation fees read the frozen
+-- share; only a server context may change it.
+ALTER TABLE public.group_job_helpers
+  ADD COLUMN IF NOT EXISTS slot_no integer,
+  ADD COLUMN IF NOT EXISTS share_cents integer;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                  WHERE conrelid = 'public.group_job_helpers'::regclass
+                    AND conname = 'group_job_helpers_share_cents_nonneg') THEN
+    ALTER TABLE public.group_job_helpers
+      ADD CONSTRAINT group_job_helpers_share_cents_nonneg CHECK (share_cents IS NULL OR share_cents >= 0);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                  WHERE conrelid = 'public.group_job_helpers'::regclass
+                    AND conname = 'group_job_helpers_slot_no_nonneg') THEN
+    ALTER TABLE public.group_job_helpers
+      ADD CONSTRAINT group_job_helpers_slot_no_nonneg CHECK (slot_no IS NULL OR slot_no >= 0);
+  END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS group_job_helpers_one_member_per_slot
+  ON public.group_job_helpers (job_id, slot_no) WHERE slot_no IS NOT NULL;
+
+-- The split. _shared/crewShares.ts allocateCents() is its twin, cent for cent
+-- (src/test/crewShareAllocation.test.ts proves the TS sums; the PGlite proof
+-- compares the two).
+CREATE OR REPLACE FUNCTION public.crew_slot_share_cents(p_total_cents bigint, p_needed integer, p_slot integer)
+RETURNS integer
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+SET search_path TO 'public'
+AS $function$
+  SELECT CASE
+    WHEN COALESCE(p_total_cents, 0) <= 0 OR p_slot IS NULL OR p_slot < 0 THEN 0
+    ELSE (p_total_cents / GREATEST(COALESCE(p_needed, 1), 1)
+          + CASE WHEN p_slot < p_total_cents % GREATEST(COALESCE(p_needed, 1), 1) THEN 1 ELSE 0 END)::integer
+  END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.crew_slot_share_cents(bigint, integer, integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.crew_slot_share_cents(bigint, integer, integer) TO authenticated, service_role;
+
+-- Backfill: existing roster rows take slots in hire order, and their shares.
+WITH ordered AS (
+  SELECT g.id,
+         (row_number() OVER (PARTITION BY g.job_id ORDER BY g.joined_at NULLS LAST, g.id) - 1)::integer AS slot,
+         j.budget, j.helpers_needed
+    FROM public.group_job_helpers g
+    JOIN public.jobs j ON j.id = g.job_id
+   WHERE g.slot_no IS NULL
+     AND NOT EXISTS (SELECT 1 FROM public.group_job_helpers x WHERE x.job_id = g.job_id AND x.slot_no IS NOT NULL)
+)
+UPDATE public.group_job_helpers g
+   SET slot_no = o.slot,
+       share_cents = public.crew_slot_share_cents(round(COALESCE(o.budget, 0) * 100)::bigint, o.helpers_needed, o.slot)
+  FROM ordered o
+ WHERE g.id = o.id;
+
+CREATE OR REPLACE FUNCTION public.freeze_crew_member_share()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+BEGIN
+  -- The roster's UPDATE policy lets the poster write roster rows; a share or a
+  -- slot is money and never theirs to move. Only a server context (a repair
+  -- by the service role or a migration) may.
+  IF (NEW.slot_no IS DISTINCT FROM OLD.slot_no OR NEW.share_cents IS DISTINCT FROM OLD.share_cents)
+     AND NOT public.is_server_context() THEN
+    RAISE EXCEPTION 'crew_share_frozen: a crew member''s slot and share are fixed at hire (job_id=%)', OLD.job_id
+      USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.freeze_crew_member_share() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_freeze_crew_member_share ON public.group_job_helpers;
+CREATE TRIGGER trg_freeze_crew_member_share
+  BEFORE UPDATE ON public.group_job_helpers
+  FOR EACH ROW EXECUTE FUNCTION public.freeze_crew_member_share();
+
+-- ── 2c. THE OWNER RULES, ONE PLACE EACH (easy to flip) ──────────────────────
+-- Q407 says a late cancellation's fee is "split EVENLY across the hired crew".
+-- Until the owner confirms whether a member who never confirmed their spot is
+-- "hired" for that purpose, every hired member counts (the money review's
+-- default). Flip this to false and a member is priced on their own
+-- confirmation, exactly as a single Helpr is. _shared/crewShares.ts
+-- CREW_FEE_PAYS_UNCONFIRMED is its twin (src/test/groupCrewNoLead.test.ts
+-- fails if they disagree).
+CREATE OR REPLACE FUNCTION public.crew_fee_pays_unconfirmed()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SET search_path TO 'public'
+AS $function$ SELECT true $function$;
+
+-- MEDIUM-4 (owner being asked): an under-filled crew completes once every
+-- HIRED member is done, and the unfilled slots' shares go back to the poster
+-- (process-scheduled-payouts, payment_refunds source 'crew_unfilled_refund').
+-- false restores "every slot filled and done". _shared/crewShares.ts
+-- CREW_COMPLETES_WHEN_HIRED_DONE is its twin.
+CREATE OR REPLACE FUNCTION public.crew_completes_when_hired_done()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SET search_path TO 'public'
+AS $function$ SELECT true $function$;
+
+REVOKE ALL ON FUNCTION public.crew_fee_pays_unconfirmed() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.crew_fee_pays_unconfirmed() TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.crew_completes_when_hired_done() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.crew_completes_when_hired_done() TO authenticated, service_role;
 
 -- ── 3. accept_group_application: a hire adds a member, never a lead ─────────
 CREATE OR REPLACE FUNCTION public.accept_group_application(p_application_id uuid, p_deadline timestamp with time zone DEFAULT NULL::timestamp with time zone, p_offer_message text DEFAULT NULL::text)
@@ -165,6 +330,8 @@ DECLARE
   v_is_group      boolean;
   v_needed        int;
   v_current       int;
+  v_budget        numeric;
+  v_slot          int;
 BEGIN
   SELECT a.job_id, a.helper_id, a.status
     INTO v_job_id, v_helper_id, v_app_status
@@ -177,8 +344,8 @@ BEGIN
 
   -- Lock the job row — concurrent accepts serialize here, which is what makes
   -- the slot count below trustworthy.
-  SELECT j.status, j.customer_id, j.is_group_job, j.helpers_needed
-    INTO v_job_status, v_job_customer, v_is_group, v_needed
+  SELECT j.status, j.customer_id, j.is_group_job, j.helpers_needed, j.budget
+    INTO v_job_status, v_job_customer, v_is_group, v_needed, v_budget
   FROM public.jobs j
   WHERE j.id = v_job_id
   FOR UPDATE;
@@ -226,11 +393,22 @@ BEGIN
          offer_message = COALESCE(p_offer_message, offer_message)
    WHERE id = p_application_id;
 
+  -- The lowest free slot, and its frozen share of the budget in cents
+  -- (largest remainder; see crew_slot_share_cents). A slot a departed member
+  -- left is reused, so the N shares always add up to the budget.
+  SELECT min(s) INTO v_slot
+    FROM generate_series(0, v_needed - 1) AS s
+   WHERE NOT EXISTS (SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = v_job_id AND g.slot_no = s);
+  IF v_slot IS NULL THEN
+    RAISE EXCEPTION 'roster_full';
+  END IF;
+
   -- UNIQUE (job_id, helper_id) turns a double-accept of the SAME helper into a
   -- 23505 rather than a silently duplicated slot. group_job_helpers_award_gate
   -- judges THIS member: award gate and, since 20260925154606, a funded job.
-  INSERT INTO public.group_job_helpers (job_id, helper_id)
-  VALUES (v_job_id, v_helper_id);
+  INSERT INTO public.group_job_helpers (job_id, helper_id, slot_no, share_cents)
+  VALUES (v_job_id, v_helper_id, v_slot,
+          public.crew_slot_share_cents(round(COALESCE(v_budget, 0) * 100)::bigint, v_needed, v_slot));
 
   v_current := v_current + 1;
 
@@ -449,7 +627,12 @@ CREATE TABLE IF NOT EXISTS public.crew_cancellation_fee_shares (
   -- ON DELETE SET NULL: account deletion anonymises the row, and the money
   -- path refuses (and pages) a share it can no longer route.
   helper_id          uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  -- Whether this member counts as committed (crew_fee_pays_unconfirmed() OR
+  -- their own confirmation), their frozen budget share in cents
+  -- (group_job_helpers.share_cents), the ladder percent, and the fee:
+  -- round(share_basis_cents * fee_percent / 100) cents.
   committed          boolean NOT NULL,
+  share_basis_cents  integer NOT NULL CHECK (share_basis_cents >= 0),
   fee_percent        integer NOT NULL CHECK (fee_percent IN (0, 25, 50)),
   share_amount       numeric(10,2) NOT NULL CHECK (share_amount >= 0),
   status             text NOT NULL DEFAULT 'pending'
@@ -574,11 +757,13 @@ BEGIN
       RAISE EXCEPTION 'not_cancellable'
         USING HINT = 'A Helpr on this crew already marked their part done. Approve it, ask for a change, or open a dispute.';
     END IF;
+    -- The owner rule decides whether a hired member who never confirmed
+    -- counts (crew_fee_pays_unconfirmed, default true: every hired member).
     v_committed := EXISTS (
       SELECT 1 FROM public.group_job_helpers g
        WHERE g.job_id = v_job.id
          AND g.helper_id IS NOT NULL
-         AND g.helper_confirmed_at IS NOT NULL
+         AND (public.crew_fee_pays_unconfirmed() OR g.helper_confirmed_at IS NOT NULL)
     );
   ELSE
     -- ADDED 2026-09-08: the one question both the fee and the strike turn on.
@@ -595,30 +780,40 @@ BEGIN
   v_percent := public.cancellation_fee_percent(v_committed, v_hours);
 
   IF v_crew THEN
-    -- One share per hired member: the same slice of the budget
-    -- (budget / helpers_needed) on the same ladder as a single booking, priced
-    -- on THAT member's own commitment. _shared/cancellationFee.ts
-    -- crewMemberCancellationShare() is the same formula, cent for cent.
+    -- One share per hired member: that member's frozen slice of the budget
+    -- (group_job_helpers.share_cents, largest remainder at hire) on the same
+    -- ladder as a single booking. _shared/crewShares.ts crewMemberFeeCents()
+    -- is the same formula, cent for cent. A roster row from before the slots
+    -- existed is priced on its would-be slot share in hire order.
     v_needed := GREATEST(COALESCE(v_job.helpers_needed, 1), 1);
-    INSERT INTO public.crew_cancellation_fee_shares (job_id, helper_id, committed, fee_percent, share_amount)
-    SELECT v_job.id,
-           g.helper_id,
-           (g.helper_confirmed_at IS NOT NULL),
-           public.cancellation_fee_percent(g.helper_confirmed_at IS NOT NULL, v_hours),
-           CASE
-             WHEN COALESCE(v_job.budget, 0) > 0
-                  AND public.cancellation_fee_percent(g.helper_confirmed_at IS NOT NULL, v_hours) > 0
-               THEN round(v_job.budget * public.cancellation_fee_percent(g.helper_confirmed_at IS NOT NULL, v_hours) / v_needed) / 100.0
-             ELSE 0
-           END
-      FROM public.group_job_helpers g
-     WHERE g.job_id = v_job.id
-       AND g.helper_id IS NOT NULL
+    INSERT INTO public.crew_cancellation_fee_shares
+      (job_id, helper_id, committed, share_basis_cents, fee_percent, share_amount)
+    SELECT v_job.id, m.helper_id, m.committed, m.basis, m.pct,
+           round(m.basis * m.pct / 100.0) / 100.0
+      FROM (
+        SELECT g.helper_id,
+               (public.crew_fee_pays_unconfirmed() OR g.helper_confirmed_at IS NOT NULL) AS committed,
+               COALESCE(g.share_cents,
+                        public.crew_slot_share_cents(round(COALESCE(v_job.budget, 0) * 100)::bigint, v_needed,
+                          (row_number() OVER (ORDER BY g.joined_at NULLS LAST, g.id) - 1)::integer)) AS basis,
+               public.cancellation_fee_percent(public.crew_fee_pays_unconfirmed() OR g.helper_confirmed_at IS NOT NULL, v_hours) AS pct
+          FROM public.group_job_helpers g
+         WHERE g.job_id = v_job.id
+           AND g.helper_id IS NOT NULL
+      ) m
     ON CONFLICT (job_id, helper_id) DO NOTHING;
 
     SELECT COALESCE(sum(s.share_amount), 0) INTO v_fee
       FROM public.crew_cancellation_fee_shares s
      WHERE s.job_id = v_job.id;
+
+    -- Never more than the budget the escrow holds (the shares' bases add up to
+    -- at most the budget and the ladder tops out at 50%, so this is a tripwire
+    -- for a corrupted share, not a rule that normally bites).
+    IF round(v_fee * 100) > round(COALESCE(v_job.budget, 0) * 100) THEN
+      RAISE EXCEPTION 'crew_fee_exceeds_budget: the crew''s cancellation fee % is more than the budget % (job_id=%)', v_fee, v_job.budget, v_job.id
+        USING ERRCODE = 'check_violation';
+    END IF;
   ELSE
     v_fee := CASE
       WHEN COALESCE(v_job.budget, 0) > 0 AND v_percent > 0
@@ -773,14 +968,15 @@ BEGIN
   -- No helper was committed -> no strike. Cancelling a job nobody accepted
   -- costs nobody anything, which is why the ladder only counts these.
   -- CHANGED 2026-09-25 (Q407): a crew has no lead, so jobs.helper_id is NULL
-  -- on every group job; a crew with a member who confirmed is a committed
-  -- booking. One cancelled crew job is still ONE strike (keyed on the job).
+  -- on every group job; a crew with a member who counts as committed (the
+  -- crew_fee_pays_unconfirmed rule) is a committed booking. One cancelled crew
+  -- job is still ONE strike (keyed on the job).
   IF v_job.helper_id IS NULL
      AND NOT EXISTS (
        SELECT 1 FROM public.group_job_helpers g
         WHERE g.job_id = p_job_id
           AND g.helper_id IS NOT NULL
-          AND g.helper_confirmed_at IS NOT NULL
+          AND (public.crew_fee_pays_unconfirmed() OR g.helper_confirmed_at IS NOT NULL)
      ) THEN
     RETURN jsonb_build_object('action', 'none', 'prior_count', 0);
   END IF;
@@ -1248,3 +1444,107 @@ CREATE POLICY "Users can read proof photos for their jobs"
       OR public.is_crew_member_of_job_folder(name)
     )
   );
+
+-- ── 13. AN UNDER-FILLED CREW COMPLETES WHEN EVERY HIRED MEMBER IS DONE ──────
+-- Restated from 20260919192559; only the roll-up condition changes.
+CREATE OR REPLACE FUNCTION public.rpc_group_member_mark_done(_job_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_slot uuid;
+  v_row record;
+  v_now timestamptz := now();
+  v_remaining int;
+  v_filled int;
+  v_needed int;
+  v_job_complete boolean := false;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  v_slot := public.group_member_slot(_job_id, v_uid);
+  IF v_slot IS NULL THEN
+    RAISE EXCEPTION 'not_on_this_crew' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT * INTO v_row FROM public.group_job_helpers WHERE id = v_slot FOR UPDATE;
+
+  IF v_row.helper_completed_at IS NOT NULL THEN
+    RETURN jsonb_build_object('already_done', true, 'helper_completed_at', v_row.helper_completed_at);
+  END IF;
+
+  -- The §3 trigger is AUTHORITATIVE and fires on the UPDATE below. This write
+  -- is plain: no pre-flight copy of the gates to drift out of step with it.
+  UPDATE public.group_job_helpers
+     SET helper_completed_at = v_now
+   WHERE id = v_slot
+     AND helper_completed_at IS NULL;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'part_not_completable' USING ERRCODE = '42501';
+  END IF;
+
+  -- THE ROLL-UP. Lock the job row so two members finishing at once cannot both
+  -- decide they were last.
+  PERFORM 1 FROM public.jobs WHERE id = _job_id FOR UPDATE;
+
+  SELECT count(*) FILTER (WHERE g.helper_completed_at IS NULL), count(*)
+    INTO v_remaining, v_filled
+  FROM public.group_job_helpers g
+  WHERE g.job_id = _job_id;
+
+  SELECT COALESCE(j.helpers_needed, 1) INTO v_needed FROM public.jobs j WHERE j.id = _job_id;
+
+  -- Every slot the poster paid for must be BOTH filled and finished. An
+  -- under-filled roster does not complete the job on its own: that is a human
+  -- decision about the unallocated share, which process-scheduled-payouts
+  -- already pages on, and silently completing here would hand it that decision
+  -- by default.
+  -- CHANGED 2026-09-25 (money review MEDIUM-4, owner being asked): under the
+  -- crew_completes_when_hired_done rule an under-filled crew completes once
+  -- every HIRED member is done; the unfilled slots' shares are refunded to the
+  -- poster by process-scheduled-payouts. With the rule off, every slot the
+  -- poster paid for must be filled and finished, as before.
+  IF v_remaining = 0
+     AND (v_filled >= v_needed
+          OR (public.crew_completes_when_hired_done() AND v_filled >= 1)) THEN
+    -- The transaction-local flag the restated `enforce_helper_completion_gates`
+    -- below reads. It admits THIS write, on a group job only, past a job-level
+    -- arrival predicate that a crew job never satisfies (the arrivals are on the
+    -- roster rows, and each of them has already passed the per-member gate
+    -- above). It is dropped immediately after its single UPDATE, so nothing
+    -- later in the transaction inherits it.
+    -- An under-filled crew is still 'open' (only the last slot books it):
+    -- close its staffing first, so the job reads as booked by the crew that
+    -- did the work and the poster's approval sees a live job.
+    IF v_filled < v_needed THEN
+      UPDATE public.jobs
+         SET status = 'accepted'
+       WHERE id = _job_id
+         AND status = 'open';
+    END IF;
+    PERFORM set_config('app.group_rollup_rpc', '1', true);
+    UPDATE public.jobs
+       SET helper_completed_at = v_now
+     WHERE id = _job_id
+       AND helper_completed_at IS NULL
+       AND status IN ('accepted', 'in_progress', 'revision_requested');
+    PERFORM set_config('app.group_rollup_rpc', '0', true);
+    v_job_complete := true;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'already_done', false,
+    'helper_completed_at', v_now,
+    'crew_remaining', v_remaining,
+    'job_complete', v_job_complete
+  );
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.rpc_group_member_mark_done(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.rpc_group_member_mark_done(uuid) TO authenticated, service_role;

@@ -34,7 +34,7 @@ export interface PostedJobCardProps {
   /** Helper avatar URL by helper id, for the expanded card's Helpr tile
    *  (VN-22). Optional: absent, the tile falls back to the monogram. */
   helperAvatars?: Record<string, string | null>;
-  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
+  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }> }>;
   userId: string;
   /** Job-lifecycle handlers, owned by the parent ActivityTab. */
   onBoost: (jobId: string) => void;

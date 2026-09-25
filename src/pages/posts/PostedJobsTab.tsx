@@ -37,7 +37,7 @@ interface PostedJobsTabProps {
   helperNames: Record<string, string>;
   /** Helper avatar URLs for the expanded card's Helpr tile (VN-22). */
   helperAvatars?: Record<string, string | null>;
-  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
+  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }> }>;
   /** Batched per-card tracking + group-helper data, pre-fetched by
       useActivityData. Hoisted here so each <JobTracking>/<GroupJobHelpers>
       doesn't re-fetch on mount (N+1 across active cards). */

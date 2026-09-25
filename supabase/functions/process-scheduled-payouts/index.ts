@@ -17,6 +17,7 @@ import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
+import { allocateCents } from "../_shared/crewShares.ts";
 
 
 serve(async (req) => {
@@ -164,6 +165,12 @@ serve(async (req) => {
     // it can be refunded to the poster instead of resting on the platform
     // balance in silence.
     const rosterSizeByJob = new Map<string, number>();
+    // A crew has no lead (Q407), and each member's share of the budget is
+    // FROZEN in cents at hire (group_job_helpers.share_cents / slot_no,
+    // 20260925154606, largest remainder so the shares add up to the budget).
+    // Paid from the frozen share, never re-derived from budget / helpers_needed
+    // (money review HIGH-1 + MEDIUM-3).
+    const crewSlotByJob = new Map<string, Map<string, { shareCents: number | null; slotNo: number | null }>>();
     for (const job of (jobs || [])) {
       // ── Holds the job row may not show (defense in depth) ────────────────
       //
@@ -259,7 +266,7 @@ serve(async (req) => {
       if (job.is_group_job) {
         const { data: roster, error: rosterErr } = await supabaseAdmin
           .from("group_job_helpers")
-          .select("helper_id")
+          .select("helper_id, share_cents, slot_no")
           .eq("job_id", job.id);
         if (rosterErr) {
           // Fail closed for this job only: paying just the lead helper off a
@@ -270,6 +277,14 @@ serve(async (req) => {
           continue;
         }
         const rosterIds = (roster ?? []).map((r) => r.helper_id).filter(Boolean);
+        crewSlotByJob.set(
+          job.id,
+          new Map(
+            (roster ?? [])
+              .filter((r) => !!r.helper_id)
+              .map((r) => [r.helper_id as string, { shareCents: r.share_cents ?? null, slotNo: r.slot_no ?? null }]),
+          ),
+        );
         if (rosterIds.length === 0) {
           // Roster empty but the job completed — fall back to the lead helper
           // so a legacy group job (created before the roster existed) still
@@ -306,10 +321,10 @@ serve(async (req) => {
           await postSlackOpsAlert({
             kind: "payout_failed",
             seed: seedJobIds.has(job.id),
-            severity: "warning",
-            title: "Under-filled group job paid out — escrow remainder unallocated",
+            severity: "info",
+            title: "Under-filled group job paid out — unfilled shares go back to the poster",
             message:
-              "A group job completed with fewer helpers on its roster than it was funded for. Every roster member is being paid their agreed budget/helpers_needed share, but the unfilled slot's share stays on the platform balance and needs a decision (refund the poster, or redistribute).",
+              "A group job completed with fewer helpers on its roster than it was funded for (crew_completes_when_hired_done). Every hired member is paid their frozen share; the unfilled slots' shares are refunded to the poster once the whole crew is paid (payment_refunds source 'crew_unfilled_refund').",
             fields: {
               "Job ID": job.id,
               "Roster size": String(distinctRoster.size),
@@ -333,9 +348,110 @@ serve(async (req) => {
       }
     }
 
+    const refundUnfilledCrewShares = async (a: {
+      job: typeof jobs[number];
+      paymentIntentId: string | null | undefined;
+      isPifFunded: boolean;
+      capturedCents: number;
+      paidCents: number;
+    }): Promise<boolean> => {
+      const { job } = a;
+      const slots = crewSlotByJob.get(job.id);
+      const needed = Math.max(1, Number(job.helpers_needed ?? 1));
+      if (!slots || slots.size >= needed) return true;
+      const filled = [...slots.values()];
+      if (filled.some((m) => m.shareCents == null || m.slotNo == null)) {
+        // A crew from before the slots existed: the old unallocated-share page
+        // above already told a human; nothing automatic can price the rest.
+        return true;
+      }
+      const budgetCents = Math.round(Number(job.budget ?? 0) * 100);
+      const urgentCents = Math.round(Number(job.urgent_fee ?? 0) * 100);
+      const filledBudget = filled.reduce((sum, m) => sum + (m.shareCents as number), 0);
+      const filledUrgent = filled.reduce((sum, m) => sum + allocateCents(urgentCents, needed, m.slotNo as number), 0);
+      const unfilledCents = Math.max(0, budgetCents - filledBudget) + Math.max(0, urgentCents - filledUrgent);
+      if (unfilledCents <= 0) return true;
+
+      const { data: prior, error: priorErr } = await supabaseAdmin
+        .from("payment_refunds")
+        .select("stripe_refund_id")
+        .eq("job_id", job.id)
+        .eq("source", "crew_unfilled_refund")
+        .limit(1);
+      if (priorErr) {
+        jobDefect(job.id, `crew unfilled refund dedupe ${job.id}: ${priorErr.message}`);
+        return false;
+      }
+      if ((prior ?? []).length > 0) return true;
+
+      if (a.isPifFunded || !a.paymentIntentId) {
+        // A gift-funded escrow has no charge to refund to; a person decides.
+        jobDefect(job.id, `crew unfilled refund ${job.id}: no charge to refund ${unfilledCents}c to`);
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          seed: seedJobIds.has(job.id),
+          severity: "warning",
+          title: "Under-filled crew — unfilled shares need a manual refund",
+          message: `Group job ${job.id} completed under-filled; ${unfilledCents}c of its escrow belonged to unfilled slots, but it has no card charge to refund it to (gift-funded or no payment intent). Return it to the poster by hand.`,
+          fields: { job_id: job.id, unfilled_cents: unfilledCents },
+          oncePerDayKey: `crew-unfilled-manual:${job.id}`,
+        });
+        return true;
+      }
+      // Never refund more than the charge still holds after the crew's transfers.
+      const refundCents = Math.min(unfilledCents, Math.max(0, a.capturedCents - a.paidCents));
+      if (refundCents <= 0) return true;
+      try {
+        const refund = await stripe.refunds.create(
+          { payment_intent: a.paymentIntentId, amount: refundCents },
+          { idempotencyKey: `crew-unfilled-refund-${job.id}` },
+        );
+        const { error: ledgerErr } = await supabaseAdmin.from("payment_refunds").upsert({
+          job_id: job.id,
+          customer_id: job.customer_id,
+          stripe_refund_id: refund.id,
+          stripe_payment_intent_id: a.paymentIntentId,
+          amount_cents: Math.round(Number(refund.amount ?? refundCents)),
+          currency: refund.currency ?? "usd",
+          is_partial: true,
+          reason: "under-filled crew: the unfilled slots' shares",
+          source: "crew_unfilled_refund",
+          initiated_by_user_id: null,
+        }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
+        if (ledgerErr) {
+          jobDefect(job.id, `crew unfilled refund ledger ${job.id}: ${ledgerErr.message}`);
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            seed: seedJobIds.has(job.id),
+            severity: "critical",
+            title: "Crew unfilled-share refund sent but not recorded",
+            message: `Refund ${refund.id} (${refundCents}c) for under-filled crew job ${job.id} went out, but its payment_refunds row was not written. The Stripe key stops a second refund for ~24h; record the row by hand.`,
+            fields: { job_id: job.id, refund_id: refund.id, db_error: ledgerErr.message.slice(0, 200) },
+          });
+        }
+        if (job.customer_id) {
+          await insertNotifications(supabaseAdmin, {
+            user_id: job.customer_id,
+            job_id: job.id,
+            title: "Part of your payment is on its way back",
+            message: `"${job.title}" was finished by fewer Helprs than you paid for, so $${formatPayoutDollars(refundCents / 100)} for the unfilled spots is being refunded to you.`,
+            type: "payment",
+            link: `/posts?job=${job.id}`,
+          });
+        }
+        return true;
+      } catch (refundErr) {
+        jobDefect(job.id, `crew unfilled refund ${job.id}: ${(refundErr as Error).message}`);
+        return false;
+      }
+    };
+
     for (const { job, helperId } of payoutTargets) {
       const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-      const perHelperBudget = job.budget / helpersCount;
+      // A crew member's FROZEN share; a roster row from before the slots existed
+      // falls back to the old even split.
+      const crewSlot = job.is_group_job ? crewSlotByJob.get(job.id)?.get(helperId) : undefined;
+      const perHelperBudget = crewSlot?.shareCents != null ? crewSlot.shareCents / 100 : job.budget / helpersCount;
       // Resolve the helper's live subscription tier at payout time; fall back to
       // the fee frozen on the job, then to the platform default, if the profile
       // read fails. The default is 12 (free tier), not the legacy 10 — a wrong
@@ -352,7 +468,12 @@ serve(async (req) => {
       // Urgent fee is collected from the poster ONCE → split across the roster
       // like the budget, else each of N helpers is paid the full urgent bonus
       // against a single fee collected and the platform over-pays N×.
-      let helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee) / helpersCount;
+      // On a crew with slots the urgent bonus is split by the same largest
+      // remainder as the budget, in cents, so the N bonuses add up exactly.
+      const urgentShare = crewSlot?.slotNo != null
+        ? allocateCents(Math.round(netUrgentFeeDollars(job.urgent_fee) * 100), helpersCount, crewSlot.slotNo) / 100
+        : netUrgentFeeDollars(job.urgent_fee) / helpersCount;
+      let helperPayout = perHelperBudget - helperCommission + urgentShare;
 
       // ── Step 1: Get helper's connected Stripe account & onboarding fee status ──
       const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin
@@ -974,7 +1095,7 @@ serve(async (req) => {
         if (job.is_group_job) {
           const { data: paidRows, error: paidCountErr } = await supabaseAdmin
             .from("payout_transfers")
-            .select("helper_id")
+            .select("helper_id, amount_cents")
             .eq("job_id", job.id)
             .in("status", ["pending", "paid"]);
           if (paidCountErr) {
@@ -1018,6 +1139,25 @@ serve(async (req) => {
             // never reach, which left the job cycling through this cron forever
             // with every member already paid.
             allRosterPaid = distinctPaid >= (rosterSizeByJob.get(job.id) ?? job.helpers_needed ?? 1);
+
+            // ── The unfilled slots' shares go back to the poster ──────────────
+            // (money review MEDIUM-4, crew_completes_when_hired_done.) Once the
+            // whole hired crew is paid, whatever of the budget and the urgent
+            // fee belonged to slots nobody filled is refunded, ONCE: the
+            // payment_refunds ledger is read first (fail closed), the Stripe
+            // key is per job, and the job is not released until it is done, so
+            // a failure here is retried by the next run instead of stranding
+            // the money on the platform balance.
+            if (allRosterPaid) {
+              const refunded = await refundUnfilledCrewShares({
+                job,
+                paymentIntentId,
+                isPifFunded,
+                capturedCents,
+                paidCents: (paidRows ?? []).reduce((a, r) => a + Number(r.amount_cents ?? 0), 0),
+              });
+              if (!refunded) allRosterPaid = false;
+            }
           }
         }
 

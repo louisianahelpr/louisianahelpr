@@ -1451,6 +1451,15 @@ serve(async (req) => {
             console.error(
               `CRITICAL: [create-payment] cancel_escrow on crew job ${jobId} could not put its claim back (payment_status stays 'cancelling'; no money moved): ${restoreErr?.message ?? "zero rows"}`,
             );
+            // A job stuck in 'cancelling' blocks every payout and hire on it
+            // (money review LOW-12): page, do not only log.
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "critical",
+              title: "Crew job stuck in 'cancelling' — claim could not be put back",
+              message: `cancel_escrow claimed crew job ${jobId} (payment_status -> 'cancelling'), found a hired member, and could not restore payment_status. No money moved. Set payment_status back to '${job.payment_status}' by hand.`,
+              fields: { job_id: jobId, restore_to: String(job.payment_status), db_error: (restoreErr?.message ?? "zero rows").slice(0, 200) },
+            });
           }
           if (crewNowErr) {
             console.error(`[create-payment] cancel_escrow post-claim roster check failed for job ${jobId}: ${crewNowErr.message}`);

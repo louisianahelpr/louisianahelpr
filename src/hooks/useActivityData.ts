@@ -57,6 +57,11 @@ export interface GroupHelperLite {
       whose profile lookup merely failed. */
   helper_id: string | null;
   status: string;
+  /** This member's own confirmation of their spot. A crew has no lead (Q407):
+      the cancellation quote counts confirmed members, one share each. */
+  helper_confirmed_at?: string | null;
+  /** This member's share of the budget in cents, frozen at hire (20260925154606). */
+  share_cents?: number | null;
   /** Nullable per the generated DB types (has a server default but the
       column accepts NULL). Forwarded as-is to the legacy GroupJobHelpers
       shape, which never read this field. */
@@ -78,9 +83,21 @@ export interface PostedActivityDetail {
   /** Avatar URL per helper, from the same get_safe_profiles row as the name —
    *  the Helpr profile tile on an expanded Posts card (VN-22). */
   helperAvatars: Record<string, string | null>;
-  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
+  completedJobMeta: Record<string, CompletedJobMetaEntry>;
   latestTracking: Record<string, TrackingData | null>;
   groupHelpersByJob: Record<string, GroupHelperLite[]>;
+}
+
+/**
+ * Tip / review state of one completed posted job. On a GROUP job (Q407: a crew
+ * has no lead, one review per Helpr) `crewToReview` lists the members the
+ * poster has not reviewed yet, in hire order, and `reviewed` means every member
+ * has been. Absent on a single-helper job.
+ */
+export interface CompletedJobMetaEntry {
+  tipped: boolean;
+  reviewed: boolean;
+  crewToReview?: Array<{ id: string; name: string }>;
 }
 
 /** What My Jobs needs before it can paint a correct card. */
@@ -217,6 +234,8 @@ export interface PostedDetailInputs {
   completedIds: string[];
   activeIds: string[];
   groupIds: string[];
+  /** Completed GROUP jobs: their crews are who the poster reviews (Q407). */
+  completedGroupIds: string[];
 }
 
 /** The id sets `fetchPostedActivityDetail` needs, derived from the core data.
@@ -233,6 +252,10 @@ export function postedDetailInputs(postedJobs: Job[]): PostedDetailInputs {
       .filter((j) => isActiveStatus(j.status) && j.is_group_job)
       .map((j) => j.id)
       .sort(),
+    completedGroupIds: postedJobs
+      .filter((j) => j.status === "completed" && j.is_group_job)
+      .map((j) => j.id)
+      .sort(),
   };
 }
 
@@ -240,9 +263,9 @@ export async function fetchPostedActivityDetail(
   userId: string,
   inputs: PostedDetailInputs,
 ): Promise<PostedActivityDetail> {
-  const { helperIds, completedIds, activeIds, groupIds } = inputs;
+  const { helperIds, completedIds, activeIds, groupIds, completedGroupIds = [] } = inputs;
 
-  const [helperProfilesRes, tipsRes, reviewsRes, trackingRes, groupHelpersRes] = await Promise.all([
+  const [helperProfilesRes, tipsRes, reviewsRes, trackingRes, groupHelpersRes, completedCrewRes] = await Promise.all([
     helperIds.length ? supabase.rpc("get_safe_profiles", { user_ids: helperIds }) : emptyResult<SafeProfileRow>(),
     completedIds.length
       // `payment_status = 'paid'` matters: without it ANY tips row counted as
@@ -253,12 +276,15 @@ export async function fetchPostedActivityDetail(
       ? supabase.from("tips").select("job_id").in("job_id", completedIds).eq("tipper_id", userId).eq("payment_status", "paid")
       : emptyResult<{ job_id: string }>(),
     completedIds.length
-      ? supabase.from("reviews").select("job_id").in("job_id", completedIds).eq("reviewer_id", userId)
-      : emptyResult<{ job_id: string }>(),
+      ? supabase.from("reviews").select("job_id, reviewee_id").in("job_id", completedIds).eq("reviewer_id", userId)
+      : emptyResult<{ job_id: string; reviewee_id: string }>(),
     activeIds.length ? fetchTracking(activeIds) : emptyResult<TrackingRow>(),
     groupIds.length
-      ? supabase.from("group_job_helpers").select("id, job_id, helper_id, status, joined_at").in("job_id", groupIds)
+      ? supabase.from("group_job_helpers").select("id, job_id, helper_id, status, joined_at, helper_confirmed_at, share_cents").in("job_id", groupIds)
       : emptyResult<GroupHelperRow>(),
+    completedGroupIds.length
+      ? supabase.from("group_job_helpers").select("job_id, helper_id, joined_at").in("job_id", completedGroupIds)
+      : emptyResult<{ job_id: string; helper_id: string | null; joined_at: string | null }>(),
   ]);
 
   // Enrichment, not primary data — a failed name lookup degrades to the
@@ -281,16 +307,46 @@ export async function fetchPostedActivityDetail(
     helperAvatars[p.user_id] = p.avatar_url ?? null;
   });
 
-  const completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }> = {};
+  const completedJobMeta: Record<string, CompletedJobMetaEntry> = {};
   completedIds.forEach((id) => {
     completedJobMeta[id] = { tipped: false, reviewed: false };
   });
   (tipsRes.data ?? []).forEach((t) => {
     if (completedJobMeta[t.job_id]) completedJobMeta[t.job_id].tipped = true;
   });
+  const completedCrew = new Set(completedGroupIds);
   (reviewsRes.data ?? []).forEach((r) => {
-    if (completedJobMeta[r.job_id]) completedJobMeta[r.job_id].reviewed = true;
+    if (completedJobMeta[r.job_id] && !completedCrew.has(r.job_id)) completedJobMeta[r.job_id].reviewed = true;
   });
+
+  // A crew (Q407): one review per member. `reviewed` only once every member
+  // who still has an account has been reviewed; until then `crewToReview`
+  // names who is left, in hire order.
+  if (completedCrewRes.error) {
+    report(completedCrewRes.error, { severity: "warning", tags: { source: "useActivityData.completedCrew" } });
+  }
+  if (completedGroupIds.length > 0 && !completedCrewRes.error) {
+    const crewRows = [...(completedCrewRes.data ?? [])].sort((a, b) => (a.joined_at ?? "").localeCompare(b.joined_at ?? ""));
+    const crewIds = [...new Set(crewRows.map((r) => r.helper_id).filter((id): id is string => !!id))];
+    const { data: crewProfiles, error: crewProfilesErr } = crewIds.length
+      ? await supabase.rpc("get_safe_profiles", { user_ids: crewIds })
+      : { data: [] as SafeProfileRow[], error: null };
+    if (crewProfilesErr) {
+      report(crewProfilesErr, { severity: "warning", tags: { source: "useActivityData.completedCrewNames" } });
+    }
+    const crewNames = new Map((crewProfiles ?? []).map((p: SafeProfileRow) => [p.user_id, formatName(p.full_name, "Helpr")]));
+    const reviewedPairs = new Set((reviewsRes.data ?? []).map((r) => `${r.job_id}:${r.reviewee_id}`));
+    for (const jobId of completedGroupIds) {
+      const meta = completedJobMeta[jobId];
+      if (!meta) continue;
+      const toReview = crewRows
+        .filter((r) => r.job_id === jobId && r.helper_id && !reviewedPairs.has(`${jobId}:${r.helper_id}`))
+        .map((r) => ({ id: r.helper_id as string, name: crewNames.get(r.helper_id as string) || "Helpr" }));
+      const members = crewRows.filter((r) => r.job_id === jobId && r.helper_id).length;
+      meta.crewToReview = toReview;
+      meta.reviewed = members > 0 && toReview.length === 0;
+    }
+  }
 
   const groupHelpersByJob: Record<string, GroupHelperLite[]> = {};
   const groupRows = groupHelpersRes.error ? [] : (groupHelpersRes.data ?? []);
@@ -558,6 +614,8 @@ type GroupHelperRow = {
   helper_id: string | null;
   status: string;
   joined_at: string | null;
+  helper_confirmed_at: string | null;
+  share_cents: number | null;
 };
 
 type TrackingRow = {

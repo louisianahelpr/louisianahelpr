@@ -125,7 +125,7 @@ export function HelperPhotoAsk({
           .eq("helper_id", me)
           .limit(1),
       );
-      return rows[0] ?? null;
+      return (rows ?? [])[0] ?? null;
     },
   });
 

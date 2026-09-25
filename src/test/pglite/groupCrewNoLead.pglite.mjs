@@ -34,7 +34,7 @@
  *       role) lands on a crew whose escrow was refunded.
  *   R5  a crew member who is not the lead cannot upload a proof photo to the
  *       job's folder (the before photo their own Working step needs).
- * AFTER: A1..A30 below.
+ * AFTER: A1..A37 below.
  */
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${process.env.HOME}/.lh-pglite-probe`;
 let PGlite;
@@ -64,7 +64,7 @@ const PATH_FUNCTIONS = [
   "poster_cancel_job", "job_hours_until_start", "cancellation_fee_percent", "is_late_cancellation",
   "apply_cancellation_violation_consequence", "notify_on_job_update", "notify_on_payment_escrowed",
   "enforce_review_validity", "set_review_visibility", "get_helper_tiers", "is_party_to_job_folder",
-  "rpc_group_member_set_proof",
+  "rpc_group_member_set_proof", "rpc_group_member_mark_done",
 ];
 const defRe = (name) => new RegExp(`CREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\s+public\\.${name}\\s*\\(`, "gi");
 function cutFunction(sql, name) {
@@ -202,6 +202,10 @@ ALTER TABLE public.group_job_helpers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "view" ON public.group_job_helpers FOR SELECT USING (
   (SELECT auth.uid()) IN (SELECT jobs.customer_id FROM public.jobs WHERE jobs.id = group_job_helpers.job_id)
   OR (SELECT auth.uid()) = helper_id);
+-- 20260901030422: the poster may UPDATE their roster rows (why a share needs its own freeze).
+CREATE POLICY "Job owner can update group helpers" ON public.group_job_helpers FOR UPDATE
+  USING (auth.uid() IN (SELECT j.customer_id FROM public.jobs j WHERE j.id = group_job_helpers.job_id))
+  WITH CHECK (auth.uid() IN (SELECT j.customer_id FROM public.jobs j WHERE j.id = group_job_helpers.job_id));
 CREATE POLICY "remove while staffing" ON public.group_job_helpers FOR DELETE USING (
   EXISTS (SELECT 1 FROM public.jobs j WHERE j.id = group_job_helpers.job_id
           AND j.customer_id = (SELECT auth.uid()) AND j.status = 'open'::job_status));
@@ -537,23 +541,42 @@ for (const m of [M1, M2, M3]) await hire(m);
 await confirm([M1, M2]);
 const a9 = await cancel();
 const a9s = await all(`SELECT helper_id, share_amount::text AS share, committed FROM public.crew_cancellation_fee_shares WHERE job_id='${GJOB}' ORDER BY helper_id`);
+check(
+  "A9 (<24h, 25%) the owner rule's default: every HIRED member counts, confirmed or not: three equal $25.00 shares",
+  a9.ok && a9s.map((s) => s.share).join(",") === "25.00,25.00,25.00" && Number((await job()).fee) === 75,
+  a9.ok ? JSON.stringify({ shares: a9s.map((s) => s.share), fee: (await job()).fee }) : a9.error,
+);
+
+// The rule is ONE function: flipped, a member is priced on their own confirmation.
+await db.exec(`CREATE OR REPLACE FUNCTION public.crew_fee_pays_unconfirmed() RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT false $f$;`);
+await seed({ start: "+10 hours" });
+for (const m of [M1, M2, M3]) await hire(m);
+await confirm([M1, M2]);
+const a9f = await cancel();
+const a9fs = await all(`SELECT share_amount::text AS share FROM public.crew_cancellation_fee_shares WHERE job_id='${GJOB}' ORDER BY helper_id`);
 const m3note = (await noticesFor(M3)).map((n) => n.message).join("");
 check(
-  "A9 (<24h, 25%) two confirmed + one who never confirmed: $25.00, $25.00, $0.00; the unconfirmed member is told no fee applies",
-  a9.ok && a9s.map((s) => s.share).join(",") === "25.00,25.00,0.00" && Number((await job()).fee) === 50 && /before you confirmed your spot/.test(m3note),
-  a9.ok ? JSON.stringify({ shares: a9s.map((s) => s.share), fee: (await job()).fee, m3: m3note.slice(0, 80) }) : a9.error,
+  "A9b rule flipped to false: $25.00, $25.00, $0.00, and the unconfirmed member is told no fee applies",
+  a9f.ok && a9fs.map((s) => s.share).join(",") === "25.00,25.00,0.00" && /before you confirmed your spot/.test(m3note),
+  a9f.ok ? JSON.stringify({ shares: a9fs.map((s) => s.share), m3: m3note.slice(0, 70) }) : a9f.error,
 );
+await seed({ start: "+1 hour" });
+for (const m of [M1, M2]) await hire(m);
+await cancel();
+check("A12 rule false and nobody on the crew confirmed: no fee, no strike", Number((await job()).fee) === 0 && (await strikes()) === 0, `fee=${(await job()).fee}, strikes=${await strikes()}`);
+await db.exec(`CREATE OR REPLACE FUNCTION public.crew_fee_pays_unconfirmed() RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT true $f$;`);
 
 await seed({ start: "+10 hours", budget: 100 });
 for (const m of [M1, M2, M3]) await hire(m);
 await confirm([M1, M2, M3]);
 await cancel();
-const a10s = await all(`SELECT share_amount::text AS share FROM public.crew_cancellation_fee_shares WHERE job_id='${GJOB}'`);
+const a10s = await all(`SELECT s.share_amount::text AS share, s.share_basis_cents AS basis FROM public.crew_cancellation_fee_shares s
+  JOIN public.group_job_helpers g ON g.job_id = s.job_id AND g.helper_id = s.helper_id WHERE s.job_id='${GJOB}' ORDER BY g.slot_no`);
 const a10j = await job();
 check(
-  "A10 cents: $100 / 3 at 25% is $8.33 each, and the job's fee is exactly the ledger's sum ($24.99)",
-  a10s.length === 3 && a10s.every((s) => s.share === "8.33") && Number(a10j.fee) === 24.99,
-  JSON.stringify({ shares: a10s.map((s) => s.share), fee: a10j.fee }),
+  "A10 cents: $100 / 3 is frozen as 3334 + 3333 + 3333; at 25% the shares are $8.34, $8.33, $8.33 and the fee is exactly $25.00",
+  a10s.map((s) => `${s.basis}:${s.share}`).join(",") === "3334:8.34,3333:8.33,3333:8.33" && Number(a10j.fee) === 25,
+  JSON.stringify({ shares: a10s, fee: a10j.fee }),
 );
 
 await seed({ start: "+5 days" });
@@ -570,7 +593,7 @@ check(
 await seed({ start: "+1 hour" });
 for (const m of [M1, M2]) await hire(m);
 await cancel();
-check("A12 nobody on the crew confirmed: no fee, no strike", Number((await job()).fee) === 0 && (await strikes()) === 0, `fee=${(await job()).fee}, strikes=${await strikes()}`);
+check("A12a rule default and nobody confirmed: the hired crew is still paid ($50 each on $300/3 at 50%) and it is one strike", Number((await job()).fee) === 100 && (await strikes()) === 1, `fee=${(await job()).fee}, strikes=${await strikes()}`);
 
 await seed({ start: "+1 hour" });
 for (const m of [M1, M2, M3]) await hire(m);
@@ -709,6 +732,71 @@ check(
   setProof.ok && JSON.stringify(slot?.proof_before_urls) === JSON.stringify([`${GJOB}/before-m2.jpg`]),
   setProof.error ?? JSON.stringify(slot),
 );
+
+// ── HIGH-1: the crew's shape is locked, its shares frozen ───────────────────
+await seed({ budget: 100 });
+for (const m of [M1, M2, M3]) await hire(m);
+const shares = await all(`SELECT helper_id, slot_no, share_cents FROM public.group_job_helpers WHERE job_id='${GJOB}' ORDER BY slot_no`);
+check(
+  "A31 three hires on $100 take slots 0,1,2 with frozen shares 3334/3333/3333 (exactly the budget)",
+  shares.map((r) => `${r.slot_no}:${r.share_cents}`).join(",") === "0:3334,1:3333,2:3333",
+  JSON.stringify(shares),
+);
+const lockN = await asUser(POSTER, `UPDATE public.jobs SET helpers_needed = 100 WHERE id='${GJOB}';`);
+const lockG = await asUser(POSTER, `UPDATE public.jobs SET is_group_job = false WHERE id='${GJOB}';`);
+const lockS = await asUser(POSTER, `UPDATE public.group_job_helpers SET share_cents = 999999 WHERE job_id='${GJOB}';`);
+check(
+  "A32 once funded and hired, the poster cannot change helpers_needed or is_group_job, nor any member's share",
+  !lockN.ok && /crew_shape_locked/.test(lockN.error) && !lockG.ok && /crew_shape_locked/.test(lockG.error) && !lockS.ok && /crew_share_frozen/.test(lockS.error),
+  JSON.stringify({ needed: lockN.error ?? "allowed", group: lockG.error ?? "allowed", share: lockS.error ?? "allowed" }),
+);
+await seed({ payment: "unpaid", apps: [] });
+await db.exec(`UPDATE public.jobs SET stripe_session_id = NULL WHERE id='${GJOB}'`);
+const draft = await asUser(POSTER, `UPDATE public.jobs SET helpers_needed = 4 WHERE id='${GJOB}';`);
+check("A33 a draft nobody has paid for or been hired on can still change its crew size", draft.ok, draft.error ?? "");
+
+await seed({ budget: 100, needed: 3 });
+for (const m of [M1, M2]) await hire(m);
+await asUser(M1, `SELECT public.helper_cancel_booking('${GJOB}');`);
+await hire(M3);
+const reslot = await all(`SELECT helper_id, slot_no, share_cents FROM public.group_job_helpers WHERE job_id='${GJOB}' ORDER BY slot_no`);
+check(
+  "A34 a departed member's slot is reused: the next hire takes slot 0 and its 3334",
+  reslot.map((r) => `${r.slot_no}:${r.share_cents}`).join(",") === "0:3334,1:3333" && reslot[0].helper_id === M3,
+  JSON.stringify(reslot),
+);
+
+// The split's twin: SQL crew_slot_share_cents == floor(T/N) + (slot < T mod N).
+const jsShare = (t, n, k) => (t <= 0 ? 0 : Math.floor(t / n) + (k < t % n ? 1 : 0));
+let twinBad = 0;
+for (const t of [0, 1, 2, 99, 100, 101, 9999, 10000, 12345, 300000]) {
+  for (let n = 1; n <= 8; n++) {
+    const rows = await all(`SELECT k, public.crew_slot_share_cents(${t}, ${n}, k) AS c FROM generate_series(0, ${n - 1}) k`);
+    const sum = rows.reduce((a, r) => a + r.c, 0);
+    if (sum !== t || rows.some((r) => r.c !== jsShare(t, n, r.k))) twinBad++;
+  }
+}
+check("A35 the SQL split sums to the total and matches floor(T/N) + (slot < T mod N) on 80 (total, N) pairs", twinBad === 0, `bad=${twinBad}`);
+
+// ── MEDIUM-4: an under-filled crew completes when every hired member is done ─
+await seed({ needed: 3 });
+for (const m of [M1, M2]) await hire(m);
+await db.exec(`UPDATE public.group_job_helpers SET helper_completed_at = now() WHERE job_id='${GJOB}' AND helper_id='${M1}'`);
+const done2 = await asUser(M2, `SELECT public.rpc_group_member_mark_done('${GJOB}');`);
+const doneJ = await one(`SELECT status::text AS status, helper_completed_at FROM public.jobs WHERE id='${GJOB}'`);
+check(
+  "A36 two of three slots hired, both done: the crew completes (staffing closed, job-level done stamped)",
+  done2.ok && doneJ.status === "accepted" && doneJ.helper_completed_at !== null,
+  done2.ok ? JSON.stringify(doneJ) : done2.error,
+);
+await db.exec(`CREATE OR REPLACE FUNCTION public.crew_completes_when_hired_done() RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT false $f$;`);
+await seed({ needed: 3 });
+for (const m of [M1, M2]) await hire(m);
+await db.exec(`UPDATE public.group_job_helpers SET helper_completed_at = now() WHERE job_id='${GJOB}' AND helper_id='${M1}'`);
+await asUser(M2, `SELECT public.rpc_group_member_mark_done('${GJOB}');`);
+const notDone = await one(`SELECT status::text AS status, helper_completed_at FROM public.jobs WHERE id='${GJOB}'`);
+check("A37 rule flipped to false: the under-filled crew does not complete", notDone.status === "open" && notDone.helper_completed_at === null, JSON.stringify(notDone));
+await db.exec(`CREATE OR REPLACE FUNCTION public.crew_completes_when_hired_done() RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT true $f$;`);
 
 const acl = await one(`SELECT
   has_function_privilege('authenticated', 'public.enforce_group_job_has_no_lead()', 'EXECUTE') AS auth_lead,

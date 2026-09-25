@@ -26,14 +26,12 @@
  * comment beside it. So the declaration is checked against the floor's own
  * value, read out of src/index.css.
  *
- * ── 3. THE LANDING IS ON THE SHARED HEADER, NOT A TITLE OF ITS OWN ────────
- * The landing's name used to be an `<h1>` inside the identity card's avatar
- * row — the last Profile title still carrying the pre-2026-08-29 inline
- * `clamp()` type ramp, indented by the avatar in front of it. It is now the
- * `title` of a real `<PageHeader>`. Two ways that regresses: someone puts an
- * `<h1>` back in the identity row (two titles, and the measured one is the
- * wrong one), or someone drops `reserveBackSlot` (the title collapses back to
- * the gutter, 48px off every tab). Both are asserted.
+ * ── 3. THE LANDING IS ON THE SHARED HEADER, LINED UP WITH THE CARD ─────────
+ * The landing's name is the `title` of the shared `<PageHeader>`, and it
+ * starts on the column edge the identity card starts on (owner, 2026-09-25:
+ * "line up with the card"). Asserted: no `<h1>` in the identity row (that
+ * would be a second title, indented by the avatar), and no reserved back
+ * slot on the landing or its skeleton (that would put the name 48px in).
  *
  * Comments are stripped before every scan: prose naming a tag is not a render
  * of it, and this file is full of prose naming these tags.
@@ -123,8 +121,8 @@ describe("the Profile title line has one definition", () => {
         .replace(/\s+/g, "\\s+"),
     );
 
-    // SkeletonLoaders left this list on 2026-09-25: the landing skeleton no
-    // longer reserves the slot (owner: "line up with the card").
+    // PageHeader is the one place that reserves the slot (for any future nav
+    // root that wants it); the landing and its skeleton reserve none.
     for (const [name, src] of [["src/components/PageHeader.tsx", PAGE_HEADER]] as const) {
       // NOT `src.includes(name-of-the-constant)`: the import line alone
       // satisfies that, which is exactly how the first version of this guard

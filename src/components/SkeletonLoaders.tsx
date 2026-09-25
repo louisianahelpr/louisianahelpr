@@ -141,15 +141,12 @@ const MenuGroupCardSkeleton = () => (
 /**
  * The landing's PAGE TITLE, as bones.
  *
- * The landing grew a real `<PageHeader>` on 2026-09-20 (the owner's "align
- * the landing title to x=72"), and a skeleton that does not have one puts the
- * identity card 75px higher than the screen that replaces it — the same
- * header jump Profile.tsx's own note records being measured and fixed at 12px
- * on the tabs. So the bones carry the row too.
+ * The landing renders a real `<PageHeader>`, so its skeleton carries the
+ * same title row; without it the identity card would paint 75px higher than
+ * the screen that replaces it.
  *
- * Horizontally the bar starts on the column edge, like the real title since
- * the owner's 2026-09-25 "line up with the card" (the landing no longer
- * reserves the back slot, so neither do the bones).
+ * Horizontally the bar starts on the column edge, like the real title (the
+ * owner's "line up with the card", 2026-09-25): no back slot is reserved.
  * The vertical values (`--shell-gap` on phone, `sm:pt-6 sm:pb-6`) are copied from
  * PageHeader's "equal air above and below" block; `h-7` is the measured height
  * of a rendered `.text-page-title` (27px at 1440, 25px at 375).

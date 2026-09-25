@@ -38,46 +38,21 @@ export function ProfileLanding({
   return (
     <>
       {/* ── THE PAGE TITLE ──────────────────────────────────────────
-          OWNER, 2026-09-25 (screenshot of the landing on iPhone): "move the
-          name at the top over to the left some", answered "line up with the
-          card". The landing no longer reserves the empty back slot, so its
-          title starts on the column edge the identity card and the WORK list
-          start on (x=20 at 375, 24 at 1440). The 25 tabs keep their back
-          chevron and their title 48px in. The 2026-09-20 note below is the
-          history of the x=72 alignment this replaces.
+          The member's name, lined up with the identity card and the WORK
+          list below it: it starts on the column edge (x=20 at 375, 24 at
+          1440). Owner, 2026-09-25: "move the name at the top over to the
+          left some" -> "line up with the card".
 
-          The member's name, on the SAME title line as all 25 Profile tabs
-          (owner, 2026-09-20: "align the landing title to x=72"). Measured at
-          1440 before the change: tab titles x=72, landing x=145; at 375,
-          68 against 141. The cards already agreed (24 / 20); the title was
-          the last Profile surface that did not.
+          It is the shared `<PageHeader>`: `width="none"` because Profile.tsx
+          already applies the app container + `page-measure` one layer up,
+          `topInsetHandled` because AppShell's `pt-safe-top` has already
+          cleared the notch, and `hideBack` because the landing is a
+          bottom-nav root with nothing to go back to. No back slot is
+          reserved, so nothing indents the name.
 
-          Why it lands there BY CONSTRUCTION and not by a nudge: this is the
-          same `<PageHeader>` the tabs render through (via ProfileTabHeader),
-          with the same two load-bearing options — `width="none"` because
-          Profile.tsx has already applied the app container + `page-measure`
-          one layer up, and `topInsetHandled` because AppShell's `pt-safe-top`
-          has already cleared the notch. The x is then the header's own back
-          slot (36) + `gap-3` (12) off the gutter, which is the same arithmetic
-          every tab title is subject to.
-
-          `hideBack`: the landing is a bottom-nav ROOT — there is nothing to
-          go back to and a chevron here would navigate out of the tab. Until
-          2026-09-25 the slot was also held open EMPTY (`reserveBackSlot`);
-          the owner's "line up with the card" removed that.
-
-          The nudge that was NOT taken: a one-off left margin on the old
-          in-card `<h1>`. It would have matched the number and matched nothing
-          else — the landing would still have been the one Profile screen with
-          no page title, still on the pre-2026-08-29 inline `clamp()` type
-          ramp, and still free to drift the next time the back slot changed
-          width.
-
-          `-mb-3 lg:-mb-4` cancels the LANDING COLUMN's own `gap-3 lg:gap-4`
-          (Profile.tsx), the same way ProfileTabHeader's `-mb-4` cancels the
-          tab shell's `space-y-4` — so the air under this title equals the air
-          above it, which is PageHeader's app-wide rule. It is keyed to that
-          gap and moves with it; it is NOT keyed to PageHeader's padding. */}
+          `-mb-3 lg:-mb-4` cancels the landing column's own `gap-3 lg:gap-4`
+          (Profile.tsx), so the air under the title equals the air above it,
+          PageHeader's app-wide rule. */}
       <div className="-mb-3 lg:-mb-4">
         <PageHeader
           title={displayName || "Welcome back"}

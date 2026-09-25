@@ -133,7 +133,7 @@ console.log(`loaded newest definitions: ${loaded.join(" ")}`);
 // Stubs for the rest of the classified inventory (right arity + volatility).
 const sqlFile = readFileSync(`${ROOT}scripts/ci/null-arg-validators.sql`, "utf8");
 const classRows = [...sqlFile.matchAll(/^\s*\('([a-z_0-9]+)',\s*'(allow|absent|deny|classify|noarg|action)',/gm)].map((m) => ({ fn: m[1], kind: m[2] }));
-check("the class list parses (55 entries)", classRows.length === 55, `${classRows.length}`);
+check("the class list parses (58 entries on 2026-09-25)", classRows.length === 58, `${classRows.length}`);
 const real = new Set([...ALLOW, ...HELPERS]);
 for (const { fn, kind } of classRows) {
   if (real.has(fn)) continue;

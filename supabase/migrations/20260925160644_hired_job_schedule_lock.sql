@@ -23,7 +23,10 @@
 -- (20260925052841) with that block added; everything else is verbatim.
 
 -- Is anyone on this job's crew? SECURITY DEFINER so the lock (which runs as
--- the client) does not depend on the client's RLS view of the roster.
+-- the client) does not depend on the client's RLS view of the roster. It
+-- answers only about a job the CALLER posted or is hired on (or in a server
+-- context), and false otherwise: the lock needs nothing more, and anyone else
+-- could otherwise probe any job's crew (review LOW-2).
 CREATE OR REPLACE FUNCTION public.job_has_crew(p_job uuid)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -35,6 +38,12 @@ DECLARE
   v_found boolean := false;
 BEGIN
   IF to_regclass('public.group_job_helpers') IS NULL THEN
+    RETURN false;
+  END IF;
+  IF NOT public.is_server_context()
+     AND NOT EXISTS (SELECT 1 FROM public.jobs j
+                      WHERE j.id = p_job
+                        AND (SELECT auth.uid()) IN (j.customer_id, j.helper_id)) THEN
     RETURN false;
   END IF;
   EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = $1)'

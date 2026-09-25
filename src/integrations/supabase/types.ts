@@ -6308,7 +6308,7 @@ export type Database = {
       is_safe_media_url: { Args: { v: string }; Returns: boolean }
       is_seed_email: { Args: { p_email: string }; Returns: boolean }
       is_series_party: {
-        Args: { p_parent: string; p_uid: string }
+        Args: { p_parent: string }
         Returns: boolean
       }
       is_server_context: { Args: never; Returns: boolean }

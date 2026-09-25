@@ -21,6 +21,8 @@
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   IF NEW.series_split_ok IS DISTINCT FROM OLD.series_split_ok | IF false
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   WHEN (OLD.recurring_helper_id IS DISTINCT FROM NEW.recurring_helper_id) |   WHEN (false)
+ * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   WITH me AS (SELECT (SELECT auth.uid()) AS p_uid) |   WITH me AS (SELECT p_parent AS p_uid)
+ * @mutate supabase/migrations/20260925160644_hired_job_schedule_lock.sql |                         AND (SELECT auth.uid()) IN (j.customer_id, j.helper_id)) THEN |                         AND true) THEN
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |         PERFORM set_config('app.series_claim_rpc', '1', true);\n        INSERT INTO public.applications | INSERT INTO public.applications
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |         PERFORM set_config('app.series_claim_rpc', '0', true); | NULL;
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   IF current_setting('app.series_claim_rpc', true) = '1' THEN\n    RETURN NEW;\n  END IF;\n\n  -- C1. | -- C1.
@@ -98,6 +100,15 @@ describe("recurring split days (Q407 4-6)", () => {
     expect(cancel).toMatch(/\n {2}IF public\.is_late_cancellation\(true, EXTRACT\(EPOCH FROM \(v_starts_at - now\(\)\)\) \/ 3600\.0\) THEN/);
     // A cancelled series visit goes back to the series, not to the public.
     expect(cancel).toMatch(/IF v_job\.parent_job_id IS NOT NULL THEN\s+PERFORM public\.series_release_dates\(/);
+  });
+
+  it("LOW-2: is_series_party and job_has_crew answer only about the caller", () => {
+    const party = newestFunction("is_series_party").body;
+    expect(party).toMatch(/CREATE OR REPLACE FUNCTION public\.is_series_party\(p_parent uuid\)/);
+    expect(party).toMatch(/WITH me AS \(SELECT \(SELECT auth\.uid\(\)\) AS p_uid\)/);
+    expect(allSql).not.toMatch(/is_series_party\(\s*[\w.]+\s*,/);
+    const crew = newestFunction("job_has_crew").body;
+    expect(crew).toMatch(/IF NOT public\.is_server_context\(\)\s+AND NOT EXISTS \(SELECT 1 FROM public\.jobs j\s+WHERE j\.id = p_job\s+AND \(SELECT auth\.uid\(\)\) IN \(j\.customer_id, j\.helper_id\)\) THEN\s+RETURN false;/);
   });
 
   it("MEDIUM-1: the takeover's application passes enforce_application_job_state by a flag only the claim sets, around that one INSERT", () => {

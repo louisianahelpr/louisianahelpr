@@ -119,18 +119,22 @@ REVOKE ALL ON TABLE public.series_date_offers FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.series_date_offers TO authenticated;
 GRANT ALL ON TABLE public.series_date_offers TO service_role;
 
--- Who is on a series: the poster, the first hired Helpr while still hired on
--- the parent, anyone holding a date from today on, and anyone with an offer.
--- SECURITY DEFINER so the policies below can ask it without recursing through
--- the RLS of the tables it reads.
-CREATE OR REPLACE FUNCTION public.is_series_party(p_parent uuid, p_uid uuid)
+-- Is the CALLER on a series: the poster, the first hired Helpr while still
+-- hired on the parent, anyone holding a date from today on, and anyone with
+-- an offer. SECURITY DEFINER so the policies below can ask it without
+-- recursing through the RLS of the tables it reads. It answers only for the
+-- caller ((SELECT auth.uid())), never for a user the caller names: a
+-- two-argument version let any signed-in account probe who is on whose
+-- series (review LOW-2).
+CREATE OR REPLACE FUNCTION public.is_series_party(p_parent uuid)
 RETURNS boolean
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path TO 'public'
 AS $fn$
-  SELECT p_uid IS NOT NULL AND (
+  WITH me AS (SELECT (SELECT auth.uid()) AS p_uid)
+  SELECT me.p_uid IS NOT NULL AND (
     EXISTS (SELECT 1 FROM public.jobs j
              WHERE j.id = p_parent
                AND (j.customer_id = p_uid
@@ -141,15 +145,16 @@ AS $fn$
     OR EXISTS (SELECT 1 FROM public.series_date_offers o
                 WHERE o.parent_job_id = p_parent AND o.helper_id = p_uid)
   )
+  FROM me
 $fn$;
 
-REVOKE ALL ON FUNCTION public.is_series_party(uuid, uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.is_series_party(uuid, uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.is_series_party(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_series_party(uuid) TO authenticated, service_role;
 
 DROP POLICY IF EXISTS "Series parties read holds" ON public.series_visit_holds;
 CREATE POLICY "Series parties read holds"
   ON public.series_visit_holds FOR SELECT TO authenticated
-  USING (public.is_series_party(parent_job_id, (SELECT auth.uid())));
+  USING (public.is_series_party(parent_job_id));
 
 DROP POLICY IF EXISTS "Poster and offeree read offers" ON public.series_date_offers;
 CREATE POLICY "Poster and offeree read offers"
@@ -179,7 +184,7 @@ BEGIN
     ON public.recurring_visit_releases FOR SELECT TO authenticated
     USING (
       helper_id = (SELECT auth.uid())
-      OR public.is_series_party(parent_job_id, (SELECT auth.uid()))
+      OR public.is_series_party(parent_job_id)
     );
   COMMENT ON TABLE public.recurring_visit_releases IS
     'A series visit date a Helpr gave up that nobody has picked up yet (one row per date; deleted when someone claims it). Written only by definer functions (20260925160645).';

@@ -323,6 +323,20 @@ for (const fn of ["series_release_dates(uuid, uuid, date[], text, text, uuid)", 
   r = await as(db, "authenticated", A, `select has_function_privilege('authenticated', 'public.${fn}', 'execute') as x`);
   check(`authenticated cannot execute the internal ${fn.split("(")[0]}`, r.ok && r.rows[0].x === false, r.err);
 }
+// LOW-2: no client can ask whether SOMEONE ELSE is on a series or crew.
+r = await as(db, "authenticated", X, `select to_regprocedure('public.is_series_party(uuid,uuid)') is null as gone`);
+check("is_series_party takes no caller-chosen user (the 2-arg probe is gone)", r.ok && r.rows[0].gone === true, r.err ?? JSON.stringify(r.rows));
+r = await as(db, "authenticated", X, `select public.is_series_party('${J(2)}') as v`);
+check("... a stranger asking about a series gets false", r.ok && r.rows[0].v === false, r.err ?? JSON.stringify(r.rows));
+r = await as(db, "authenticated", P, `select public.is_series_party('${J(2)}') as v`);
+check("... its poster gets true (the RLS policies still work)", r.ok && r.rows[0].v === true, r.err ?? JSON.stringify(r.rows));
+await server(db, `insert into public.jobs (id, title, customer_id, status, date_needed, is_group_job, helpers_needed) values ('${J(60)}', 'crew', '${P}', 'open', current_date + 9, true, 2)`);
+await db.exec(`insert into public.group_job_helpers (job_id, helper_id) values ('${J(60)}', '${A}')`);
+r = await as(db, "authenticated", X, `select public.job_has_crew('${J(60)}') as v`);
+check("job_has_crew tells a stranger nothing about someone else's job", r.ok && r.rows[0].v === false, r.err ?? JSON.stringify(r.rows));
+r = await as(db, "authenticated", P, `select public.job_has_crew('${J(60)}') as v`);
+check("... its poster (whose writes the schedule lock judges) gets the answer", r.ok && r.rows[0].v === true, r.err ?? JSON.stringify(r.rows));
+
 await db.exec(SERIES(J(5), true, "ban series"));
 await server(db, HIRE(J(5), A));
 await db.exec(`update public.profiles set ban_status = 'permanently_banned' where user_id = '${A}'`);

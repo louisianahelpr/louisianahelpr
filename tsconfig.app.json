@@ -51,6 +51,8 @@
     "e2e/prod-audit/fundedOpenJobPlan.ts",
     // src/test/slowNetworkCoversEverySteps.test.ts (Q68) imports the step list.
     "e2e/slow-network/steps.ts",
+    // src/test/proofPhotoTeardownDetaches.test.ts imports the teardown helpers.
+    "e2e/proofPhotoTeardown.ts",
     // src/test/stateMatrixPendingApprovalUnreachable.test.ts (Q251) imports the
     // manifest enumerator to assert pending_approval cells are unreachable.
     "e2e/happy-path/state-matrix/stateMatrix.ts",

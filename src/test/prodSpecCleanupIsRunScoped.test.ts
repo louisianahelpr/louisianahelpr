@@ -33,12 +33,6 @@ const files = readdirSync(join(ROOT, DIR))
   .map((f) => `${DIR}/${f}`);
 const harness = read(`${DIR}/harness.ts`);
 
-describe("prod-audit spec inventory", () => {
-  it("finds the prod-audit specs (an empty directory would pass every per-file check)", () => {
-    expect(files.length).toBeGreaterThan(5);
-  });
-});
-
 describe("prod-audit cleanup is scoped to the run that wrote the rows", () => {
   it("reads a real inventory (floor)", () => {
     // 19 .ts files in e2e/prod-audit on 2026-09-25; an empty or moved directory

@@ -24,7 +24,7 @@
  * groups, embedded-resource filters (`a.b=`) and query strings assembled from
  * variables (`${table}?${filter}`) are not followed.
  */
-// @mutate e2e/journeys/abuse/contact-smuggling.spec.ts | rest/v1/user_violations?user_id=eq. | rest/v1/user_violations?violator_id=eq.
+// @mutate e2e/journeys/abuse/contact-smuggling.spec.ts | user_violations?user_id=eq.${posterId}&violation_type=eq.off_platform&select= | user_violations?violator_id=eq.${posterId}&violation_type=eq.off_platform&select=
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";

@@ -26,6 +26,7 @@ import { report } from "@/lib/errorLogger";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdown";
+import { recordReviewInActivityCache } from "@/lib/reviewActivityCache";
 
 // NpsPrompt is mounted as the final step in the post-completion sequence —
 // after review/tip/share. It self-gates on eligibility (2nd qualifying job
@@ -157,11 +158,14 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     });
     setSaving(false);
     if (error) {
-      if (error.code === "23505") { setStep("tip"); }
+      if (error.code === "23505") { recordReviewInActivityCache(jobId); setStep("tip"); }
       else if (error.code === "23514" && error.message) { hapticError(); toast.error(error.message); } // server contact-leak refusal (TS-010)
       else { hapticError(); toast.error("We couldn't submit your review — please try again."); }
     } else {
       hapticSuccess();
+      // `onDone` only clears this prompt; nothing else tells the activity
+      // cache the job is reviewed (nightly-red #1719).
+      recordReviewInActivityCache(jobId);
 
       // Repeat low ratings → auto-flag for the admin fraud queue.
       //

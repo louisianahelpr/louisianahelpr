@@ -37,9 +37,16 @@
 -- {postgres, service_role} only; the two policies reach it through
 -- can_send_message_in_job / can_send_message_to_in_job, which read auth.uid().
 --
--- Not checked live (no read access to prod from this lane): the shape above is
--- read from the migrations. Verify after deploy with pg_get_functiondef and
--- pg_proc.proacl (docs/OPEN.md Q410).
+-- The removal path described above is the one on this tree: the row DELETE
+-- fires trg_sync_job_after_roster_departure (created by 20260925140148,
+-- function body restated by 20260925154606), which rejects the application.
+-- src/test/pglite/messageGateCurrentParty.pglite.mjs runs THAT trigger, cut
+-- from the migrations, rather than simulating it, and fails on a tree that
+-- lacks it. 20260925230845 (next) restates this function again, tightening
+-- branch 2 for declined/expired offers, and closes the receiver side.
+--
+-- Not read live from this lane. Verify after deploy with pg_get_functiondef
+-- and pg_proc.proacl (docs/OPEN.md Q410).
 --
 -- Replay-safe: CREATE OR REPLACE, idempotent grants, and skipped (NOTICE) when
 -- any object the body reads is absent.

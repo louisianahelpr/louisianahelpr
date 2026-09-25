@@ -37,7 +37,7 @@
  * @mutate supabase/migrations/20260919220233_close_cancelled_job_messaging.sql | COALESCE(j.cancelled_at, j.updated_at, j.created_at) | j.cancelled_at
  * @mutate supabase/migrations/20260919220233_close_cancelled_job_messaging.sql | AND j.status IN ('completed', 'cancelled') | AND j.status = 'completed'
  * @mutate src/lib/messagingLockout.ts | jobStatus === "cancelled"\n    ? { notice: THREAD_CANCELLED_NOTICE, toast: THREAD_CANCELLED_TOAST }\n    : | false\n    ? { notice: THREAD_CANCELLED_NOTICE, toast: THREAD_CANCELLED_TOAST }\n    :
- * @mutate src/components/messages/chatView/ChatComposer.tsx | {draft.trim().length > 0 && ( | {false && (
+ * @mutate src/components/messages/chatView/ChatComposer.tsx |   if (draft.trim().length === 0) return null; |   if (draft.length >= 0) return null;
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { readFileSync } from "node:fs";

@@ -5816,6 +5816,10 @@ export type Database = {
         Args: { p_helper_id: string; p_job_id: string }
         Returns: number
       }
+      get_off_job_thread_state: {
+        Args: { _job_id: string; _other: string }
+        Returns: string
+      }
       get_open_jobs_for_map: {
         Args: never
         Returns: {
@@ -6084,6 +6088,7 @@ export type Database = {
         Args: { p_has_helper: boolean; p_hours_until: number }
         Returns: boolean
       }
+      is_off_job: { Args: { _job_id: string; _user: string }; Returns: boolean }
       is_party_to_job: {
         Args: { _job_id: string; _user_id: string }
         Returns: boolean

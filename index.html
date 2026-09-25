@@ -118,6 +118,14 @@
     <link rel="preconnect" href="https://fncmgoasalhdgfwzhsqa.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://fncmgoasalhdgfwzhsqa.supabase.co" />
 
+    <!-- The header's H emblem (HelprMark: emblemOnly, 40px). Preloaded so it
+         arrives with the page instead of after the header renders (owner,
+         2026-09-25: "on the legal pages it was taking awhile for the h logo
+         to show"). imagesrcset/imagesizes match the rendered <img> exactly,
+         so the browser fetches the one file the <img> will use. -->
+    <link rel="preload" as="image" href="/src/assets/helpr-logo-256.webp"
+          imagesrcset="/src/assets/helpr-logo-96.webp 96w, /src/assets/helpr-logo-256.webp 256w"
+          imagesizes="40px" />
     <!-- Hero image preloads intentionally removed 2026-05-19.
          The hero used to render a photographic <img> (hero-courtyard-*.webp),
          but the editorial brand polish (4ba790a0) replaced it with the

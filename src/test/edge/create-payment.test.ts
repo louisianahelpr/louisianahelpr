@@ -1117,6 +1117,7 @@ describe("create-payment edge function", () => {
   });
 
   describe("action: cancel_escrow", () => {
+    // @mutate supabase/functions/create-payment/index.ts | if ((crew?.length ?? 0) > 0) { | if (false) {
     it("refunds a succeeded payment intent minus the non-refundable service fee and cancels the job", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = {
@@ -1303,6 +1304,34 @@ describe("create-payment edge function", () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", helper_id: null, payment_status: "escrow", stripe_payment_intent_id: "pi_live" }] };
       scenario.reads.disputes = { error: { message: "read blew up" } };
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(503);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+    });
+
+    // A crew whose lead left or was removed has helper_id NULL while its other
+    // members are still hired (group_job_helpers). That is a hired job: the
+    // refund would skip the cancellation rules, so it goes through Cancel job.
+    it("refuses an OPEN group job with hired crew members and no lead: 409, no Stripe call, no claim", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", helper_id: null, is_group_job: true, payment_status: "escrow", stripe_payment_intent_id: "pi_live", budget: 100, customer_fee_amount: 10 }] };
+      scenario.reads.group_job_helpers = { rows: [{ id: "slot-2" }] };
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(409);
+      expect((await json(res)).useCancelJob).toBe(true);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+    });
+
+    it("fails CLOSED (503, nothing moved) when the crew roster cannot be read", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", helper_id: null, payment_status: "escrow", stripe_payment_intent_id: "pi_live" }] };
+      scenario.reads.group_job_helpers = { error: { message: "read blew up" } };
       const fn = await load();
       const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
       expect(res.status).toBe(503);

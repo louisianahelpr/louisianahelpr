@@ -1327,6 +1327,31 @@ serve(async (req) => {
       if (job.customer_id !== user.id) throw new PublicError("Not authorized");
 
       // ── Only an unhired, undisputed job is the poster's to refund here ──
+      // A group job's crew is its roster (group_job_helpers); jobs.helper_id is
+      // only the lead, and is NULL on a crew whose lead left or was removed
+      // (20260925140148). A crew with hired members is a hired job: it goes
+      // through Cancel job like any other. Fail-closed on a read error.
+      const { data: crew, error: crewErr } = await supabaseAdmin
+        .from("group_job_helpers")
+        .select("id")
+        .eq("job_id", jobId)
+        .limit(1);
+      if (crewErr) {
+        console.error(`[create-payment] cancel_escrow roster check failed for job ${jobId}: ${crewErr.message}`);
+        return new Response(JSON.stringify({
+          error: "Couldn't check who is hired on this job. No money was moved — try again.",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+      }
+      if ((crew?.length ?? 0) > 0) {
+        console.error(
+          `[create-payment] cancel_escrow REFUSED on job ${jobId} (caller ${user.id}): group job with hired crew members, helper=${job.helper_id ?? "none"}`,
+        );
+        return new Response(JSON.stringify({
+          error: "This job has a Helpr or has already started, so it has to be cancelled with Cancel job — that applies the cancellation rules and refunds you. No money was moved.",
+          useCancelJob: true,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+      }
+
       // This door checked `payment_status` alone, and it is reachable by any
       // poster with a JWT (no UI calls it; the prod test sweepers do). So:
       //   * on a DISPUTED job the poster — the side that filed, or the side

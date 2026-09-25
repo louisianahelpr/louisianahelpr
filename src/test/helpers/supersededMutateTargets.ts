@@ -25,7 +25,7 @@ import { basename, join } from "node:path";
 import { blankSqlComments } from "./blankNonCode";
 import { effectiveDefs, migrationFiles, parseDefs } from "./effectiveFunctionDefs";
 
-export interface Span {
+interface Span {
   kind: "function" | "view" | "trigger";
   key: string;
   start: number;
@@ -53,7 +53,7 @@ const TRIGGER =
   /create\s+(?:or\s+replace\s+)?(?:constraint\s+)?trigger\s+"?(\w+)"?\s+(?:before|after|instead\s+of)\b[\s\S]*?\bon\s+(?:\w+\.)?"?(\w+)"?/gi;
 
 /** Every function, view and trigger definition in one migration, as offsets into its raw text. */
-export function definitionSpans(sql: string): Span[] {
+function definitionSpans(sql: string): Span[] {
   const spans: Span[] = parseDefs(sql).map((d) => ({
     kind: "function",
     key: d.name,

@@ -47,11 +47,21 @@ const MIGRATIONS = join(REPO, "supabase", "migrations");
  * newest body is seedNeverNotifiesReal's to catch, not this guard's.
  */
 // @two-way src/test/mutateTargetsTheNewestDefinition.test.ts:"these no longer target a superseded definition
-const EXEMPT_HISTORICAL_TARGETS: readonly string[] = [
-  "src/test/routeProbeCloseRule.test.ts | supabase/migrations/20260923182022_ops_route_probe_close_rule.sql | ELSIF p_source = 'seed-boundary-check-failed' THEN",
+// Stored as a bare migration name, not a `migrations/<file>` path:
+// guardsReadTheNewestMigration grades any such path in code as a READ of that
+// file, and this list reads nothing.
+const EXEMPT_HISTORICAL_TARGETS: readonly { guard: string; migration: string; find: string }[] = [
+  {
+    guard: "src/test/routeProbeCloseRule.test.ts",
+    migration: "20260923182022_ops_route_probe_close_rule.sql",
+    find: "ELSIF p_source = 'seed-boundary-check-failed' THEN",
+  },
 ];
 
-const keyOf = (m: MutateTarget) => `${m.guard} | ${m.target} | ${m.find}`;
+const keyOf = (m: { guard: string; target: string; find: string }) => `${m.guard} | ${m.target} | ${m.find}`;
+const exemptKeys = EXEMPT_HISTORICAL_TARGETS.map((e) =>
+  keyOf({ guard: e.guard, target: ["supabase", "migrations", e.migration].join("/"), find: e.find }),
+);
 
 function realMigrationTargets(): MutateTarget[] {
   const files = [...new Set([...guardFiles(), ...untrackedGuardFiles()])];
@@ -150,7 +160,7 @@ describe("the detector (fixture tree, never real files)", () => {
 describe("every @mutate on a migration breaks the definition the database runs", () => {
   const targets = realMigrationTargets();
   const { inside, superseded } = gradeMutateTargets(MIGRATIONS, targets);
-  const exempt = new Set(EXEMPT_HISTORICAL_TARGETS);
+  const exempt = new Set(exemptKeys);
 
   it("reads a real inventory (floor)", () => {
     expect(targets.length, "almost no @mutate targets a migration — the directive scan is broken").toBeGreaterThan(250);
@@ -170,13 +180,13 @@ describe("every @mutate on a migration breaks the definition the database runs",
   it("the historical exemptions are exact, and each guard reads that migration by name", () => {
     const live = new Set(superseded.map(keyOf));
     expect(
-      EXEMPT_HISTORICAL_TARGETS.filter((k) => !live.has(k)),
+      exemptKeys.filter((k) => !live.has(k)),
       "these no longer target a superseded definition (or no longer exist) — remove them",
     ).toEqual([]);
-    for (const k of EXEMPT_HISTORICAL_TARGETS) {
-      const [guard, target] = k.split(" | ");
-      const file = target.split("/").pop()!;
-      expect(blankComments(readFileSync(join(REPO, guard), "utf8")), `${guard} does not read ${file} by name`).toContain(file);
+    for (const { guard, migration } of EXEMPT_HISTORICAL_TARGETS) {
+      expect(blankComments(readFileSync(join(REPO, guard), "utf8")), `${guard} does not read ${migration} by name`).toContain(
+        migration,
+      );
     }
   });
 });

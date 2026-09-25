@@ -227,6 +227,11 @@ describe("fixture-job visibility — one switch, every surface", () => {
     ["public.expire_unanswered_offers", "sweep over offers, not a browse feed"],
     ["public.helper_abort_job", "single-job mutation; status is a precondition"],
     ["public.helper_cancel_booking", "single-job mutation; status is a precondition"],
+    // Q407 (5)/(6), 20260925160645: each reads 'open' on the VISITS of one
+    // series the caller is on (a vacated visit), never a browse list.
+    ["public.claim_series_dates", "one series the caller is on; 'open' marks a vacated visit"],
+    ["public.offer_series_dates", "one series the caller posted; 'open' marks a vacated visit"],
+    ["public.series_release_dates", "one series' visits; 'open' marks a vacated visit"],
     ["public.report_helper_no_show", "single-job mutation; status is a precondition"],
     ["public.rpc_open_dispute", "single-job mutation; status is a precondition"],
     // The shared body rpc_open_dispute now delegates to, so the platform's own

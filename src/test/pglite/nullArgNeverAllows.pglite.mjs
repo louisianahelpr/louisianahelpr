@@ -91,7 +91,10 @@ CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title t
   cancelled_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
   has_active_dispute boolean NOT NULL DEFAULT false, dispute_resolved_at timestamptz, disputed_by uuid, disputed_at timestamptz,
   -- The CI fixture inserts start_time (jobs.start_time is NOT NULL on prod since Q-start-time).
-  start_time time);
+  recurring_helper_id uuid, start_time time);
+-- is_series_party (20260925160645) reads these two.
+CREATE TABLE public.series_visit_holds (parent_job_id uuid, visit_date date, helper_id uuid);
+CREATE TABLE public.series_date_offers (parent_job_id uuid, helper_id uuid);
 CREATE TABLE public.applications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL, helper_id uuid NOT NULL,
   status text DEFAULT 'pending', UNIQUE (job_id, helper_id));
 CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid);
@@ -110,12 +113,12 @@ END
 $function$;
 `);
 
-// Real definitions: every allow function (18 on 2026-09-25) plus the helpers they call.
+// Real definitions: every allow function (19 on 2026-09-25) plus the helpers they call.
 const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job", "can_send_message_to_in_job",
   "check_dispute_velocity", "credential_document_path_ok", "dispute_evidence_url_ok", "has_role",
   "helper_credential_document_ok", "helper_has_advanced_analytics", "identity_is_verified", "is_party_to_job",
   "is_party_to_job_folder", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
-  "user_may_see_job_address", "is_crew_member_of_job_folder"];
+  "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party"];
 const HELPERS = ["job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
 const ORDER = [...HELPERS, "job_payment_is_funded", ...ALLOW.filter((f) => f !== "job_payment_is_funded")];

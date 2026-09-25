@@ -5580,6 +5580,7 @@ export type Database = {
         Returns: string
       }
       end_recurring_series: { Args: { p_job_id: string }; Returns: Json }
+      end_series_for_banned_account: { Args: { p_user: string }; Returns: number }
       enforce_retained_ban: {
         Args: {
           p_email?: string
@@ -6707,6 +6708,21 @@ export type Database = {
       }
       seed_jobs_hidden_publicly: { Args: never; Returns: boolean }
       send_ops_daily_digest: { Args: never; Returns: Json }
+      series_give_up_strike: {
+        Args: { p_dates: string[]; p_helper: string; p_parent: string }
+        Returns: boolean
+      }
+      series_release_dates: {
+        Args: {
+          p_customer: string
+          p_dates: string[]
+          p_helper: string
+          p_parent: string
+          p_reason: string
+          p_title: string
+        }
+        Returns: string[]
+      }
       series_visit_dates: {
         Args: { p_days: number[]; p_start: string; p_weeks: number }
         Returns: string[]

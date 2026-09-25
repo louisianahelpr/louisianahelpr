@@ -226,7 +226,7 @@ export const RPC_ERROR_COPY = {
     not_authorized: "You can pick dates once the person who posted this series offers them to you, or once you have dates on it.",
     not_a_series: "This job isn't a recurring series. Refresh and check.",
     series_ended: "This series has ended, so there are no dates left to pick.",
-    series_blocked: "You can't pick dates on this series.",
+    applicant_blocked: "You can't pick dates on this series.",
     account_restricted: "Your account is restricted, so you can't pick up dates right now.",
     job_not_found: JOB_GONE,
     not_authenticated: "Please sign in again to pick dates.",

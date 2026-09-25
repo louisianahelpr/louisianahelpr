@@ -459,7 +459,7 @@ BEGIN
     RAISE EXCEPTION 'not_authorized';
   END IF;
   IF public.are_users_blocked(v_job.customer_id, v_uid) THEN
-    RAISE EXCEPTION 'series_blocked';
+    RAISE EXCEPTION 'applicant_blocked';
   END IF;
 
   -- The earliest uncreated date a future charge-recurring-visits run can still
@@ -494,6 +494,13 @@ BEGIN
     IF v_child_id IS NULL
        AND v_d < v_min_fundable THEN
       v_refused := v_refused || v_d;
+      CONTINUE;
+    END IF;
+    -- Someone already holds it (the other claimer of a race committed first):
+    -- `taken`, before the pick-up rule below reads the release row that claim
+    -- just deleted.
+    IF EXISTS (SELECT 1 FROM public.series_visit_holds h WHERE h.parent_job_id = v_job.id AND h.visit_date = v_d) THEN
+      v_taken := v_taken || v_d;
       CONTINUE;
     END IF;
     v_releaser := NULL;
@@ -908,7 +915,7 @@ BEGIN
   -- ADDED 2026-09-14: reopening would hand the next Helpr this one's done stamp.
   IF v_job.helper_completed_at IS NOT NULL THEN
     RAISE EXCEPTION 'not_cancellable'
-      USING HINT = 'You already marked this job done, so it can''t be cancelled. Message the poster or open a dispute.';
+      USING HINT = 'You already marked this job done, so it can''t be cancelled. Message the person who posted it or open a dispute.';
   END IF;
 
   -- Once the start has passed this is a no-show question, not a cancellation.
@@ -916,7 +923,7 @@ BEGIN
                     AT TIME ZONE 'America/Chicago');
   IF v_starts_at IS NOT NULL AND now() >= v_starts_at THEN
     RAISE EXCEPTION 'job_already_started'
-      USING HINT = 'The scheduled start has passed — contact the poster or support.';
+      USING HINT = 'The scheduled start has passed — contact the person who posted it or support.';
   END IF;
 
   v_series_visit := v_job.parent_job_id IS NOT NULL OR v_job.recurrence_days IS NOT NULL;
@@ -1152,6 +1159,30 @@ $view$;
 -- grants; restated so a replay from scratch ends in the same place.
 REVOKE ALL ON public.open_jobs_browse FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.open_jobs_browse TO anon, authenticated;
+
+-- ── The silent-cron detector's view of charge-recurring-visits ─────────────
+-- The cron no longer emits skippedReleased (a released date is simply unheld)
+-- and gained skippedUnfilled / skippedEnded / skippedBanned / skippedBlocked /
+-- skippedChargeback. Every one is a legitimate disposition of a considered
+-- series, so all count as work done (src/test/cronWatcherKeyContract.test.ts).
+DO $cwe$
+BEGIN
+  IF to_regclass('public.cron_work_expectations') IS NULL THEN
+    RAISE NOTICE 'cron_work_expectations absent: skipped';
+    RETURN;
+  END IF;
+  INSERT INTO public.cron_work_expectations
+    (jobname, candidate_key, disposition_keys, min_streak, note)
+  VALUES
+    ('charge-recurring-visits', 'seriesConsidered', ARRAY['funded','declined','skippedUnfilled','skippedExisting','skippedEnded','skippedBanned','skippedBlocked','skippedChargeback'], 2,
+     'declined and every skip (a date nobody holds, already created, an ended, banned, blocked or charged-back series) are legitimate dispositions, so they count as work done; only a series that vanished entirely is suspicious.')
+  ON CONFLICT (jobname) DO UPDATE
+    SET candidate_key    = EXCLUDED.candidate_key,
+        disposition_keys = EXCLUDED.disposition_keys,
+        min_streak       = EXCLUDED.min_streak,
+        note             = EXCLUDED.note;
+END
+$cwe$;
 
 -- Every jobs ADD COLUMN ends with the grant sync (offeredHelperPrivacy.test.ts).
 SELECT public.sync_jobs_select_grants();

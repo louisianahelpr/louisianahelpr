@@ -56,6 +56,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('job_payment_is_funded',         'allow',    'payment_status counts as funded (award + apply gates)'),
   ('user_has_pending_application',  'allow',    'user applied to the job'),
   ('user_may_see_job_address',      'allow',    'user may see the exact job address'),
+  ('is_series_party',               'allow',    'user is on the recurring series (reads its holds, offers, releases; 20260925160645)'),
   ('is_safe_media_url',             'absent',   'NULL = no URL stored; nothing to render (nullable avatar_url CHECK)'),
   ('are_safe_media_urls',           'absent',   'NULL = no photo list stored (nullable jobs.photos / portfolio_urls CHECK)'),
   ('are_users_blocked',             'deny',     'TRUE refuses the interaction'),
@@ -63,6 +64,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_submitted_credential_object','deny',     'TRUE freezes the object (storage UPDATE/DELETE policies use NOT)'),
   ('is_thread_muted',               'deny',     'TRUE suppresses the notification'),
   ('is_off_job',                    'deny',     'TRUE: the person is off the job, so messaging on it closes both ways (can_message_in_job / can_send_message_to_in_job use NOT; Q419/Q420)'),
+  ('job_has_crew',                  'deny',     'TRUE locks a job''s date and start time to clients (20260925160644)'),
   ('admin_notification_crosses_seed_boundary','deny', 'TRUE: the admin client skips the notification (Q157)'),
   ('notification_crosses_seed_boundary','deny', 'TRUE suppresses the notification'),
   ('error_log_is_seed',             'classify', 'labels an error_logs row as seed traffic'),
@@ -92,7 +94,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('report_stale_dispute_settlement_claim','action','RPC'),
   ('resolve_stalled_job_flag',      'action',   'RPC'),
   ('stamp_dispute_settlement_claim','action',   'RPC'),
-  ('toggle_thread_mute',            'action',   'RPC');
+  ('toggle_thread_mute',            'action',   'RPC'),
+  ('series_give_up_strike',         'action',   'writes a reliability strike (internal to the series give-up RPCs; true = a strike was recorded)');
 
 -- Fixture ids (all 00000000-0000-4000-8140-*): A poster, B hired helper on a
 -- pro plan, D admin; J an open funded job (A posts, B hired, B applied);
@@ -119,7 +122,9 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('job_is_funded',                 NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
   ('job_payment_is_funded',         NULL, ARRAY['''escrow'''], ARRAY[1]),
   ('user_has_pending_application',  NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
-  ('user_may_see_job_address',      NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]);
+  ('user_may_see_job_address',      NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
+  -- A posts J, so A is a party to it as a series (the poster branch).
+  ('is_series_party',               NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]);
 
 DO $q140$
 DECLARE

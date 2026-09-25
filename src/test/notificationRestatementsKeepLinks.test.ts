@@ -76,6 +76,10 @@ const INTENDED_LINK_CHANGES = new Set([
   "20260925154606_group_crew_has_no_lead.sql::notify_on_job_update",
   "20260925154606_group_crew_has_no_lead.sql::notify_on_payment_escrowed",
   "20260925154606_group_crew_has_no_lead.sql::poster_cancel_job",
+  // Q407 (6): a Helpr's end_recurring_series now LEAVES the series; the poster
+  // is told by series_release_dates (same '/posts?job=' || parent link), and
+  // the poster ending it tells every Helpr on the series ('/jobs?job=').
+  "20260925160645_recurring_split_days.sql::end_recurring_series",
 ]);
 
 /**

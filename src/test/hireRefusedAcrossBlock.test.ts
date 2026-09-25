@@ -30,7 +30,9 @@ const MIG_DIR = join(process.cwd(), "supabase/migrations");
 const HIRE_WRITE =
   /update\s+(public\.)?applications\s+set\s+status\s*=\s*'accepted'|insert\s+into\s+(public\.)?applications[^;]*'accepted'|insert\s+into\s+(public\.)?group_job_helpers|set\s+status\s*=\s*'accepted'/i;
 
-const EXPECTED = ["accept_application", "accept_group_application", "respond_to_direct_offer"];
+// claim_series_dates (20260925160645, Q407 5): taking over a VACATED series
+// visit stamps it accepted and inserts an accepted application, so it hires.
+const EXPECTED = ["accept_application", "accept_group_application", "claim_series_dates", "respond_to_direct_offer"];
 
 /**
  * Functions whose body matches HIRE_WRITE but hire nobody, with why. Two-way:
@@ -98,6 +100,7 @@ describe("Q345: every hire RPC refuses across a block", () => {
 });
 
 // Each hire RPC's check removed, one at a time.
+// @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   IF public.are_users_blocked(v_job.customer_id, v_uid) THEN\n    RAISE EXCEPTION 'applicant_blocked'; |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked';
 // @mutate supabase/migrations/20260924023314_hire_refused_across_block.sql | IF public.are_users_blocked(v_helper_id, v_job_customer) THEN | IF false THEN
 // @mutate supabase/migrations/20260924023314_hire_refused_across_block.sql | IF public.are_users_blocked(v_job_customer, v_helper_id) THEN | IF false THEN
 // @mutate supabase/migrations/20260924023314_hire_refused_across_block.sql | IF public.are_users_blocked(auth.uid(), v_customer) THEN | IF false THEN

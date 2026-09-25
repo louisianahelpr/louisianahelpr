@@ -64,13 +64,14 @@ const POSTER = "11111111-1111-4111-8111-111111111111";
 const HELPR = "22222222-2222-4222-8222-222222222222";
 const series = (over: Row = {}): Row => ({
   id: "s1", customer_id: POSTER, parent_job_id: null, recurrence_days: [3], recurrence_weeks: 6,
-  date_needed: "2026-09-02", series_ended_on: null, status: "completed", ...over,
+  date_needed: "2032-09-02", series_ended_on: null, status: "completed", ...over,
 });
 
 describe("a running recurring series blocks deleting either party's account (Q407 7)", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-09-20T17:00:00Z")); // Sun Sep 20 in Chicago
+    // A fixed far-future day, so the fixtures never age into the past.
+    vi.setSystemTime(new Date("2032-09-20T17:00:00Z")); // Mon Sep 20 2032 in Chicago
   });
   afterEach(() => vi.useRealTimers());
 
@@ -81,17 +82,17 @@ describe("a running recurring series blocks deleting either party's account (Q40
   });
 
   it("an ENDED series, a cancelled one, and one whose last visit has passed do not block", async () => {
-    for (const s of [series({ series_ended_on: "2026-09-16" }), series({ status: "cancelled" }), series({ recurrence_weeks: 2 })]) {
+    for (const s of [series({ series_ended_on: "2032-09-16" }), series({ status: "cancelled" }), series({ recurrence_weeks: 2 })]) {
       const r = await findActiveWork(fakeAdmin({ jobs: [s], series_visit_holds: [] }), POSTER);
       expect(r, JSON.stringify(s)).toMatchObject({ ok: true, active: false });
     }
   });
 
   it("a Helpr holding a date on a running series is refused; on an ended one, not", async () => {
-    const hold = { parent_job_id: "s1", helper_id: HELPR, visit_date: "2026-09-23" };
+    const hold = { parent_job_id: "s1", helper_id: HELPR, visit_date: "2032-09-23" };
     let r = await findActiveWork(fakeAdmin({ jobs: [series()], series_visit_holds: [hold] }), HELPR);
     expect(r).toMatchObject({ ok: true, active: true, reason: "series" });
-    r = await findActiveWork(fakeAdmin({ jobs: [series({ series_ended_on: "2026-09-20" })], series_visit_holds: [hold] }), HELPR);
+    r = await findActiveWork(fakeAdmin({ jobs: [series({ series_ended_on: "2032-09-20" })], series_visit_holds: [hold] }), HELPR);
     expect(r).toMatchObject({ ok: true, active: false });
   });
 

@@ -123,6 +123,9 @@ describe("Q341: applicant list and counters share ONE blocked filter", () => {
         "src/pages/home/useApplyFlow.ts",
         "src/pages/info/legal/DataExportCard.tsx",
         "src/pages/user/useUserProfileData.ts",
+        // Q407 (5): the poster's pending applicants to a series, to offer its
+        // open dates; read through the same block-filtered poster policy.
+        "src/components/series/SeriesDatesPanel.tsx",
       ].sort(),
     );
   });

@@ -165,7 +165,7 @@ export function SeriesDatesPanel({
         }}
       >
         <CalendarDays className="w-3.5 h-3.5 shrink-0" aria-hidden />
-        <span className="truncate flex-1 min-w-0">Visit dates · {summary}</span>
+        <span className="truncate flex-1 min-w-0" title={`Visit dates · ${summary}`}>Visit dates · {summary}</span>
         <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
       </button>
 
@@ -277,7 +277,7 @@ export function SeriesDatesPanel({
               : `Gave up ${r.released.length} date${r.released.length === 1 ? "" : "s"}.`;
           });
         }}
-        secondaryLabel="Keep them"
+        secondaryLabel="Cancel"
       />
     </div>
   );

@@ -260,7 +260,6 @@ serve(async (req) => {
     funded: 0,
     skippedUnfilled: 0,
     skippedExisting: 0,
-    skippedUnhired: 0,
     skippedBlocked: 0,
     skippedEnded: 0,
     skippedBanned: 0,

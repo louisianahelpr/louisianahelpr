@@ -17,7 +17,7 @@ import { rpcErrorMessage } from "@/lib/lifecycleErrors";
  *               offered Helpr can pick it; the poster can offer it)
  * A date nobody holds is not charged when it arrives.
  */
-export type SeriesDateState = "mine" | "taken" | "released" | "open";
+type SeriesDateState = "mine" | "taken" | "released" | "open";
 
 export interface SeriesDate {
   date: string;

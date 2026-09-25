@@ -53,9 +53,10 @@ function seed(job: Record<string, unknown>) {
           rows: [{
             id: "visit-1", title: "Weekly walk", stripe_session_id: null, stripe_payment_intent_id: "pi_visit",
             budget: 100, customer_fee_amount: 10, cancellation_fee: 0,
-            // Tomorrow morning, so a committed Helpr would put a late fee on it.
-            date_needed: "2026-09-06", start_time: "09:00:00", cancelled_at: "2026-09-05T17:00:00Z",
-            helper_id: "helper-1", helper_confirmed_at: "2026-09-01T00:00:00Z",
+            // Tomorrow morning (a fixed far-future day, so it never ages into the
+            // past), so a committed Helpr would put a late fee on it.
+            date_needed: "2032-09-06", start_time: "09:00:00", cancelled_at: "2032-09-05T17:00:00Z",
+            helper_id: "helper-1", helper_confirmed_at: "2032-09-01T00:00:00Z",
             customer_id: "poster-1", helper_fee_percent: 10,
             parent_job_id: null, cancellation_reason: null,
             ...job,
@@ -73,7 +74,7 @@ function seed(job: Record<string, unknown>) {
 
 async function refundedCents(): Promise<number | null> {
   vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-09-05T17:00:00Z"));
+  vi.setSystemTime(new Date("2032-09-05T17:00:00Z"));
   try {
     const h = await load();
     await h.fetch(cronReq());

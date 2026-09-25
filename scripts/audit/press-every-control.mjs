@@ -63,9 +63,10 @@ import {
 import * as pressSafety from "./pressProdSafety.mjs";
 import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
-  FOREIGN_FIXTURE_SKIP, NOT_REACHED_STATUS, classifyConsoleError, classifyFailedResponse, clickFailureReason,
-  isForeignSweepFixture, overTimeBudget, refusalIsDeath, tokenNeedsRefresh,
+  FOREIGN_FIXTURE_SKIP, MIN_CYCLE_BURST, NOT_REACHED_STATUS, ceilingWaitMs, classifyConsoleError, classifyFailedResponse,
+  clickFailureReason, isForeignSweepFixture, overTimeBudget, refusalIsDeath, tokenNeedsRefresh,
 } from "./pressFailureClass.mjs";
+import { budgetFor } from "../e2e/request-budget.mjs";
 import { recordRouteProbePasses, routeProbePasses } from "./pressRouteProbe.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -810,6 +811,17 @@ async function main() {
   const requestMeter = new RequestMeter("press-every-control");
   requestMeter.attachBrowser(browser);
   process.on("exit", () => requestMeter.flush());
+  // The load ceiling the budget step judges this run by (e2e/request-budgets.json),
+  // and the largest burst one press cycle has produced so far. See ceilingWaitMs.
+  const LOAD_CEILING = budgetFor(JSON.parse(readFileSync(resolve(REPO, "e2e/request-budgets.json"), "utf8")).budgets, "press-every-control").ceilingPerMinute;
+  let cycleBurst = MIN_CYCLE_BURST;
+  let cycleStartTotal = null;
+  const paceToCeiling = async (page) => {
+    if (cycleStartTotal !== null) cycleBurst = Math.max(cycleBurst, requestMeter.total - cycleStartTotal);
+    const wait = ceilingWaitMs({ minutes: requestMeter.minutes, ceiling: LOAD_CEILING, burst: cycleBurst });
+    if (wait > 0) await page.waitForTimeout(wait);
+    cycleStartTotal = requestMeter.total;
+  };
   // Shared across every route × persona: create-payment's limiter is per
   // account, and the same test accounts are walked row after row.
   const PAYMENT_PACE_MS = paymentPaceMs();
@@ -1176,6 +1188,7 @@ async function main() {
       };
 
       try {
+        await paceToCeiling(page);
         await load();
         const landed = page.url();
         rec.landedOn = landed.replace(BASE, "");
@@ -1241,6 +1254,7 @@ async function main() {
             break;
           }
           const item = queue[idx++];
+          await paceToCeiling(page);
           const { meta } = item;
           const chain = item.chain.map((s) => s);
           const label = meta.label || `<${meta.tag}${meta.type ? ` type=${meta.type}` : ""}>`;

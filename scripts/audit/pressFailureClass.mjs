@@ -171,3 +171,31 @@ export function overTimeBudget({ startedAt, now = Date.now(), budgetMs }) {
   if (!(budgetMs > 0)) return false;
   return now - startedAt >= budgetMs;
 }
+
+/**
+ * THE SWEEP PACES ITSELF TO THE PROD LOAD CEILING.
+ *
+ * e2e/request-budgets.json sets `ceilingPerMinute` (400) for every label, and
+ * the budget step fails a run whose busiest wall-clock minute exceeds it. Run
+ * 36069319716: shard 1 peaked at 599 and shard 4 at 587 while their averages
+ * were ~190/min (25,986 and 18,275 requests over ~135 min). The peaks are
+ * bursts: a reload plus an opened feed plus the navigation a press starts.
+ *
+ * So before each press cycle the harness asks how many metered requests the
+ * current minute already holds, and when this minute's count plus the largest
+ * burst one cycle has produced so far would pass the ceiling, it waits for the
+ * next minute. Same idea as paymentPaceMs: the limit is read, not guessed, so
+ * tightening the ceiling slows the sweep instead of turning it red.
+ *
+ * @returns {number} milliseconds to wait before the next cycle (0 = go now).
+ */
+export function ceilingWaitMs({ minutes, now = Date.now(), ceiling, burst }) {
+  if (!(ceiling > 0)) return 0;
+  const minute = Math.floor(now / 60_000);
+  const used = minutes?.[minute] ?? 0;
+  if (used === 0 || used + Math.min(burst, ceiling) <= ceiling) return 0;
+  return (minute + 1) * 60_000 - now + 50;
+}
+
+/** The burst estimate before any cycle has been measured; measured cycles only raise it. */
+export const MIN_CYCLE_BURST = 100;

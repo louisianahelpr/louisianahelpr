@@ -28,7 +28,7 @@
 // tab started a web OAuth sign-in (`markOAuthPending`, written by socialAuth
 // just before it leaves). That scoping matters: /reset-password reads its own
 // `error_description` from the URL (an expired recovery link), and must keep
-// it. When it fires it stashes the error for Login, and strips the error
+// it. When it fires it holds the error in memory for Login, and strips the error
 // params from the URL so ProtectedRoute's `?redirect=` carries a clean path.
 //
 // Native sign-in never redirects; its errors arrive as AuthApiError.code and
@@ -45,7 +45,6 @@ export type OAuthRedirectError = {
 };
 
 const PENDING_KEY = "helpr_oauth_pending";
-const STASH_KEY = "helpr_oauth_error";
 // A round trip through the provider's consent screen is seconds to a couple of
 // minutes. Anything older is an abandoned attempt, not this redirect.
 const PENDING_MAX_AGE_MS = 15 * 60 * 1000;
@@ -196,30 +195,18 @@ export function captureOAuthRedirectError(loc: Location = window.location, hist:
   }
 
   if (message === "") return null; // declined at the provider — no notice
+  // Held in memory only. The /home -> /login bounce is a client-side route
+  // change in the same page load, so nothing needs to survive a reload, and
+  // an auth error from the URL is not persisted to storage (CodeQL
+  // js/clear-text-storage-of-sensitive-data on the first version of this).
   captured = { provider: pending.provider, code, message };
-  try {
-    sessionStorage.setItem(STASH_KEY, JSON.stringify(captured));
-  } catch {
-    // Silent by design: the in-memory copy still serves this page load; the
-    // stash only exists to survive a reload before Login mounts.
-  }
   return captured;
 }
 
 /** Read-and-clear, for the Login notice. */
 export function takeOAuthRedirectError(): OAuthRedirectError | null {
-  let out = captured;
+  const out = captured;
   captured = null;
-  try {
-    const raw = sessionStorage.getItem(STASH_KEY);
-    if (raw) {
-      sessionStorage.removeItem(STASH_KEY);
-      out = out ?? (JSON.parse(raw) as OAuthRedirectError);
-    }
-  } catch {
-    // Silent by design: a corrupt or unreadable stash means no notice, which
-    // is what the page showed before this module existed.
-  }
   return out;
 }
 

@@ -265,7 +265,12 @@ serve(async (req) => {
           // and would strand the rest of the roster. Full refund is the only
           // automated close for a group dispute until the roster fan-out
           // exists; naming the release here would send an admin at a 409.
-          "group jobs cannot be settled with a partial split yet — a split across a multi-helper roster needs per-helper shares. Resolve this one with the full refund action, or pay the roster manually.",
+          // A crew is decided member by member with rpc_decide_crew_dispute
+          // (20260925234055, Q409) and settled by process-scheduled-payouts'
+          // fan-out; rpc_decide_dispute now refuses a crew before recording
+          // anything, so this is reachable only for a decision recorded
+          // before that migration.
+          "group jobs are not settled by this split — decide each crew member (rpc_decide_crew_dispute; the payout run pays or refunds each frozen share), or resolve it with the full refund action.",
         is_group_job: true,
         helpers_needed: job.helpers_needed ?? null,
       },

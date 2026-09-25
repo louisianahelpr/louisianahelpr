@@ -49,13 +49,23 @@ export type UnsettledDisputeCheck = {
 export async function checkUnsettledDispute(
   supabaseAdmin: { from: (t: string) => any },
   jobId: string,
+  opts: { crewFanout?: boolean } = {},
 ): Promise<UnsettledDisputeCheck> {
+  // `crewFanout`: ONLY process-scheduled-payouts, and only for a group job.
+  // A crew decision (rpc_decide_crew_dispute, 20260925234055) is recorded with
+  // execution_status 'crew_fanout': it is settled BY that cron's per-member
+  // fan-out, so it must not block the one path that executes it. Every other
+  // caller still reads it as decided-unexecuted and refuses (a single-helper
+  // release of a crew decision would pay over the per-member outcomes).
+  const unsettled = opts.crewFanout
+    ? "execution_status.is.null,and(execution_status.neq.executed,execution_status.neq.crew_fanout)"
+    : "execution_status.is.null,execution_status.neq.executed";
   const { data, error } = await supabaseAdmin
     .from("disputes")
     .select("id, execution_status, payout_split")
     .eq("job_id", jobId)
     .eq("status", "decided")
-    .or("execution_status.is.null,execution_status.neq.executed")
+    .or(unsettled)
     .limit(1);
 
   if (error) {

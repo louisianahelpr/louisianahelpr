@@ -261,3 +261,32 @@ export function landingSettled(samples, quietMs) {
   return last.t - samples[i].t >= quietMs;
 }
 export const LANDING_QUIET_MS = 1500;
+
+/**
+ * THE LOG IS THE ONLY REPORT A CLOUD TRIAGE CAN READ.
+ *
+ * Issue #1582 (run 36069319716): the per-row log line listed at most FOUR
+ * failures and never said WHY a control was left unpressed, so "90 control(s)
+ * unpressed without a documented reason" on shard 2 could not be traced to a
+ * single control from the log; coverage.md has it, but the shard artifacts are
+ * not downloadable from the agents that triage the red (the blob host is
+ * outside their network policy). Q389(b) stayed "not root-caused, needs the
+ * artifacts" for the same reason.
+ *
+ * So every FAILED press and every UNDOCUMENTED skip gets its own log line, in
+ * full, under the row's summary line. Documented skips and passes stay in
+ * coverage.md only: they are not what a red is made of.
+ *
+ * @param {{ route: string, persona: string, controls: readonly { chain?: readonly string[], result?: string, why?: string }[], documented: ReadonlySet<string>, max?: number }} a
+ * @returns {string[]}
+ */
+export function rowDetailLines({ route, persona, controls, documented, max = 700 }) {
+  const out = [];
+  for (const c of controls ?? []) {
+    const kind = c.result === "FAIL" ? "FAIL" : c.result === "SKIP" && !documented.has(c.why ?? "") ? "UNDOCUMENTED SKIP" : null;
+    if (!kind) continue;
+    const why = String(c.why ?? "").replace(/\s+/g, " ").slice(0, max);
+    out.push(`[${route} ${persona}]   ${kind} "${(c.chain ?? []).join(" › ")}" — ${why}`);
+  }
+  return out;
+}

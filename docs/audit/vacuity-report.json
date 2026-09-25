@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-25T16:07:05.638Z",
+  "generated": "2026-09-25T23:33:35.504Z",
   "guards": 1048,
   "registered": 1048,
   "unregistered": [],
@@ -51,6 +51,15 @@
       "module": "src/components/admin/AdminUserDetailDialog.tsx",
       "tests": [
         "src/components/admin/AdminUserDetailDialog.test.tsx"
+      ],
+      "parents": [
+        "src/components/admin/AdminUsers.tsx"
+      ]
+    },
+    {
+      "module": "src/components/admin/adminusers/AdminUserRow.tsx",
+      "tests": [
+        "src/test/adminUserSummaryUnknownIsNotAbsent.test.tsx"
       ],
       "parents": [
         "src/components/admin/AdminUsers.tsx"

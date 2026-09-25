@@ -35,7 +35,7 @@ export const TIP_MAX_CENTS = 100_000;
  * so the platform recovers Stripe's card-rate cost on the full charge and keeps
  * nothing beyond it. Returns 0 for a non-positive tip.
  */
-export function tipCardFeeCents(tipCents: number): number {
+function tipCardFeeCents(tipCents: number): number {
   if (!(tipCents > 0)) return 0;
   // Closed-form starting point from the real-valued equation
   // fee = (tip + fee) * pct + flat, then settle on the exact integer answer

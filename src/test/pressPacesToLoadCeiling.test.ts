@@ -1,4 +1,4 @@
-// @mutate scripts/audit/press-every-control.mjs |           await paceToCeiling(page); |           void paceToCeiling;
+// @mutate scripts/audit/press-every-control.mjs | const item = queue[idx++];\n          await paceToCeiling(page); | const item = queue[idx++];\n          void paceToCeiling;
 // @mutate scripts/audit/pressFailureClass.mjs |   if (used === 0 \|\| used + Math.min(burst, ceiling) <= ceiling) return 0; |   return 0;
 /**
  * press-every-control stays under the prod load ceiling it is judged by.

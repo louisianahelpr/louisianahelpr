@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-25T04:36:01.374Z",
-  "guards": 1015,
-  "registered": 1015,
+  "generated": "2026-09-25T04:52:23.264Z",
+  "guards": 1016,
+  "registered": 1016,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -129,6 +129,15 @@
       "tests": [
         "src/test/browseFeedRendersEveryJob.test.tsx",
         "src/test/failedListLoadShowsError.test.tsx"
+      ],
+      "parents": [
+        "src/pages/home/Dashboard.tsx"
+      ]
+    },
+    {
+      "module": "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
+      "tests": [
+        "src/test/recentSearchesFloatOverPage.test.tsx"
       ],
       "parents": [
         "src/pages/home/Dashboard.tsx"

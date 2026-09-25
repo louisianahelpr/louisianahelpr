@@ -1,6 +1,6 @@
 -- Class check (the TABLE half of what client-writable-views.sql covers for
 -- views). Returns one row per offending (table, role, privilege); ZERO ROWS =
--- CLEAN. Two rules, both defense-in-depth against prod's default privileges,
+-- CLEAN. Four rules, all defense-in-depth against prod's default privileges,
 -- which hand `anon`/`authenticated` arwdxm on every relation postgres creates
 -- in public — so a one-off REVOKE cannot hold and this catalog read is what
 -- does.
@@ -23,6 +23,12 @@
 --   New high-value tables join the set here as they are hardened; this is the
 --   table analog of client-writable-views.sql, which can afford to scan ALL
 --   views only because there are a handful of them.
+--
+--   ANON-POLICY rule (Q399, 2026-09-25): on a table with no signed-out write
+--   path (anon_write_forbidden below: messages), ANY INSERT/UPDATE/DELETE/ALL
+--   policy that names anon or public is an offender. It closes the WRITE rule's
+--   exemption on those tables: there, a public policy is not "RLS doing its
+--   job", it is the thing that would hide a returning anon grant.
 --
 --   ZERO-POLICY rule (2026-09-19): a table with RLS enabled and NO POLICY AT
 --   ALL that nonetheless carries a client grant — `anon` or `authenticated`,
@@ -99,6 +105,25 @@ write_offenders AS (
               AND ('anon' = ANY(pol.roles) OR 'public' = ANY(pol.roles))
          )
 ),
+-- ANON-POLICY offenders (Q399, 2026-09-25): on a table no signed-out path
+-- writes, a write policy that names anon or PUBLIC is itself the defect. The
+-- WRITE rule above exempts any command such a policy covers, so one TO-public
+-- UPDATE policy on messages ("Users can mark messages as read" until
+-- 20260925175559) hid a returning anon UPDATE grant from it. This rule does not
+-- depend on the grant: the policy alone is reported, whatever its predicate.
+anon_write_forbidden(tbl) AS (
+  VALUES ('messages')
+),
+anon_policy_offenders AS (
+  SELECT pol.schemaname::text AS schema, pol.tablename::text AS "table",
+         CASE WHEN 'anon' = ANY(pol.roles) THEN 'anon' ELSE 'public' END AS role,
+         pol.cmd::text AS priv, 'write:anon-policy'::text AS rule
+    FROM pg_policies pol
+    JOIN anon_write_forbidden f ON f.tbl = pol.tablename
+   WHERE pol.schemaname = 'public'
+     AND pol.cmd IN ('INSERT', 'UPDATE', 'DELETE', 'ALL')
+     AND ('anon' = ANY(pol.roles) OR 'public' = ANY(pol.roles))
+),
 -- ZERO-POLICY offenders, derived from the catalog: a table with RLS on and no
 -- policy at all denies every client, so any client grant on it is surplus.
 -- `has_any_column_privilege` takes SELECT/INSERT/UPDATE only (DELETE has no
@@ -155,6 +180,8 @@ read_offenders AS (
       OR has_any_column_privilege('anon', t.oid, 'SELECT')
 )
 SELECT schema, "table", role, priv, rule FROM write_offenders
+UNION ALL
+SELECT schema, "table", role, priv, rule FROM anon_policy_offenders
 UNION ALL
 SELECT schema, "table", role, priv, rule FROM read_offenders
 UNION ALL

@@ -16,8 +16,12 @@
 // 1. BEFORE: class check RED — jobs on DELETE (its only unbacked write), each
 //    sensitive table on SELECT + its unbacked writes; analytics/error on
 //    SELECT + UPDATE/DELETE but NOT INSERT (that one is policy-backed). An
-//    out-of-scope table (messages) with the same default-priv anon writes is
+//    out-of-scope table (saved_jobs) with the same default-priv anon writes is
 //    NOT flagged — the WRITE rule is the curated high-value set, not blanket.
+//    messages (in scope since Q340) in its pre-Q399 prod shape: INSERT and
+//    DELETE flagged by the WRITE rule, UPDATE NOT (its "mark as read" policy is
+//    TO public, the exemption Q399 is about) but flagged by the ANON-POLICY
+//    rule (Q399, 2026-09-25).
 //    The ZERO-POLICY rule (2026-09-19) is the one that is NOT a list: the
 //    policy-less notification_dedupe_suppressions is flagged for both client
 //    roles on all four privileges, while the equally policy-less
@@ -26,7 +30,9 @@
 //    SELECT on any sensitive table, INSERT-only on analytics/error; authenticated
 //    keeps its explicit grants (reads sensitive, writes jobs); guest browse via
 //    open_jobs_browse still returns the row.
-// 3. Broken copies of the migration each leave the check red.
+// 3. Broken copies of the migration each leave the check red; for messages,
+//    the Q399 policy left TO public, and an anon UPDATE re-grant after the fix,
+//    are each red.
 // 4. Skip path: no tables -> migration runs twice as a no-op.
 // 5. PG15 parse-safety: neither the migration nor the check names a bare
 //    version-specific privilege keyword (MAINTAIN).
@@ -45,6 +51,12 @@ const MIG = read("../../supabase/migrations/20260915055601_revoke_excess_anon_gr
 // The zero-policy rule's own migration: the table that rule was written for.
 const MIG_ZP = read("../../supabase/migrations/20260919172735_revoke_client_grants_on_dedupe_suppressions.sql");
 const CHECK = read("../ci/sensitive-anon-grants.sql");
+// messages: Q340 revokes anon writes, Q399 moves the last TO-public write
+// policy to authenticated.
+const MIG_Q340 = read("../../supabase/migrations/20260925144708_revoke_anon_writes_on_messages.sql");
+const MIG_Q399 = read("../../supabase/migrations/20260925175559_messages_mark_read_policy_to_authenticated.sql");
+const RECEIVER = "5b0e0a6c-7a43-4a55-9d8f-0c2b1f7d9e11";
+const MSG = "8f3c2d1e-4b5a-4c6d-8e7f-9a0b1c2d3e4f";
 
 const OWNER = "vbypass"; // stands in for postgres: BYPASSRLS, not a superuser
 const POSTER = "71c56dfb-b326-4010-b960-b18dd3966e7f";
@@ -130,10 +142,30 @@ REVOKE ALL ON public.edge_rate_limit_log FROM PUBLIC, anon, authenticated;
 
 -- Out-of-scope control: same default-priv anon writes, TO-authenticated policies.
 -- Must NOT be flagged — proves the write rule is scoped, not blanket.
-CREATE TABLE public.messages (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), sender_id uuid, body text);
+CREATE TABLE public.saved_jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid);
+ALTER TABLE public.saved_jobs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "saved_jobs_owner_write" ON public.saved_jobs FOR UPDATE TO authenticated
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- messages, the prod policy set before Q399 (roles as pg_policies shows them):
+-- SELECT/INSERT/DELETE and the sender edit TO authenticated; "Users can mark
+-- messages as read" with no TO clause (20260819060000), i.e. TO public. The
+-- default-priv rule above hands anon INSERT/UPDATE/DELETE, as prod had before
+-- Q340.
+CREATE TABLE public.messages (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), sender_id uuid,
+  receiver_id uuid, content text, read boolean DEFAULT false);
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "messages_owner_write" ON public.messages FOR UPDATE TO authenticated
-  USING (auth.uid() = sender_id) WITH CHECK (auth.uid() = sender_id);
+CREATE POLICY "Users can view their own messages" ON public.messages FOR SELECT TO authenticated
+  USING ((SELECT auth.uid()) = sender_id OR (SELECT auth.uid()) = receiver_id);
+CREATE POLICY "Users can send messages" ON public.messages FOR INSERT TO authenticated
+  WITH CHECK ((SELECT auth.uid()) = sender_id);
+CREATE POLICY "Users can edit their own sent messages" ON public.messages FOR UPDATE TO authenticated
+  USING ((SELECT auth.uid()) = sender_id) WITH CHECK ((SELECT auth.uid()) = sender_id);
+CREATE POLICY "Users can delete their own sent messages" ON public.messages FOR DELETE TO authenticated
+  USING ((SELECT auth.uid()) = sender_id);
+CREATE POLICY "Users can mark messages as read" ON public.messages FOR UPDATE
+  USING ((SELECT auth.uid()) = receiver_id) WITH CHECK ((SELECT auth.uid()) = receiver_id);
+INSERT INTO public.messages (id, sender_id, receiver_id, content) VALUES ('${MSG}', '${POSTER}', '${RECEIVER}', 'hi');
 RESET ROLE;
 `;
 
@@ -182,7 +214,14 @@ const has = (rows, tbl, p, rule) => rows.some((r) => r.table === tbl && r.priv =
     "analytics_events flagged on UPDATE/DELETE");
   expect(!has(rows, "analytics_events", "INSERT", "write:no-policy"),
     "analytics_events NOT flagged on INSERT (permissive anon INSERT policy backs it)");
-  expect(!rows.some((r) => r.table === "messages"), "out-of-scope messages NOT flagged (rule is scoped, not blanket)");
+  expect(!rows.some((r) => r.table === "saved_jobs"), "out-of-scope saved_jobs NOT flagged (rule is scoped, not blanket)");
+  // messages, pre-Q340/Q399 shape.
+  expect(has(rows, "messages", "INSERT", "write:no-policy") && has(rows, "messages", "DELETE", "write:no-policy"),
+    "messages flagged on INSERT/DELETE (Q340: no anon/public policy backs them)");
+  expect(!has(rows, "messages", "UPDATE", "write:no-policy"),
+    "messages NOT flagged on UPDATE by the WRITE rule (the TO-public read policy exempts it: the Q399 gap)");
+  expect(has(rows, "messages", "UPDATE", "write:anon-policy"),
+    "messages flagged on UPDATE by the ANON-POLICY rule (Q399)");
 
   // ── the ZERO-POLICY rule (2026-09-19) ────────────────────────────────────
   // Both client roles, all four privileges, on a table no allowlist names.
@@ -204,7 +243,7 @@ const has = (rows, tbl, p, rule) => rows.some((r) => r.table === tbl && r.priv =
 
 {
   console.log("\n== 2. AFTER (migration 3x)");
-  const db = await fresh([MIG, MIG_ZP], 3);
+  const db = await fresh([MIG, MIG_ZP, MIG_Q340, MIG_Q399], 3);
   const rows = await checkRows(db);
   expect(rows.length === 0, `class check GREEN (${rows.length} rows)`);
   for (const role of ["anon", "authenticated"]) {
@@ -241,6 +280,18 @@ const has = (rows, tbl, p, rule) => rows.some((r) => r.table === tbl && r.priv =
   // authenticated poster can still operate their job (RLS-gated).
   const upd = outcome(await asRole(db, "authenticated", POSTER, `UPDATE public.jobs SET title='x' WHERE id='${JOB}' RETURNING id`));
   expect(upd === "applied", `${upd.padEnd(8)} poster UPDATE own job (RLS-gated, must still work)`);
+
+  // messages after Q340 + Q399.
+  for (const p of ["INSERT", "UPDATE", "DELETE"]) {
+    expect((await priv(db, "anon", "messages", p)) === false, `anon has NO ${p} on messages`);
+  }
+  const roles = (await db.query(`SELECT roles::text AS r, cmd FROM pg_policies WHERE tablename='messages' AND policyname='Users can mark messages as read'`)).rows;
+  expect(roles.length === 1 && roles[0].r === "{authenticated}" && roles[0].cmd === "UPDATE",
+    `"Users can mark messages as read" is FOR UPDATE TO authenticated (${JSON.stringify(roles)})`);
+  const markRead = outcome(await asRole(db, "authenticated", RECEIVER, `UPDATE public.messages SET read = true WHERE id='${MSG}' RETURNING id`));
+  expect(markRead === "applied", `${markRead.padEnd(8)} receiver marks the message read (must still work)`);
+  const stranger = outcome(await asRole(db, "authenticated", STRANGER, `UPDATE public.messages SET read = true WHERE id='${MSG}' RETURNING id`));
+  expect(stranger === "noop", `${stranger.padEnd(8)} a stranger's mark-read matches no row`);
 }
 
 {
@@ -271,6 +322,32 @@ const has = (rows, tbl, p, rule) => rows.some((r) => r.table === tbl && r.priv =
       .replace("REVOKE ALL ON TABLE public.notification_dedupe_suppressions FROM anon;", "")
       .replace("REVOKE ALL ON TABLE public.notification_dedupe_suppressions FROM authenticated;", "")],
   ];
+  // Q399: the policy restated TO public again -> the ANON-POLICY rule is red.
+  const q399Public = MIG_Q399.replace("    TO authenticated\n", "");
+  if (q399Public === MIG_Q399) expect(false, "mutation did not apply: Q399 TO clause");
+  else {
+    const db = await fresh([MIG, MIG_ZP, MIG_Q340, q399Public]);
+    expect(has(await checkRows(db), "messages", "UPDATE", "write:anon-policy"),
+      "Q399 policy left TO public: ANON-POLICY rule red on messages UPDATE");
+  }
+  // After the fix, an anon UPDATE re-grant (prod's default privileges on any
+  // recreation) is caught by the WRITE rule, which the TO-public policy used to
+  // exempt.
+  {
+    const db = await fresh([MIG, MIG_ZP, MIG_Q340, MIG_Q399]);
+    await db.exec("GRANT UPDATE ON public.messages TO anon");
+    expect(has(await checkRows(db), "messages", "UPDATE", "write:no-policy"),
+      "anon UPDATE re-granted on messages after Q399: WRITE rule red");
+  }
+  // …and the same re-grant WITHOUT Q399 stays invisible to the WRITE rule:
+  // the gap, shown rather than asserted.
+  {
+    const db = await fresh([MIG, MIG_ZP, MIG_Q340]);
+    await db.exec("GRANT UPDATE ON public.messages TO anon");
+    expect(!has(await checkRows(db), "messages", "UPDATE", "write:no-policy"),
+      "without Q399 the same re-grant is exempt from the WRITE rule (why the ANON-POLICY rule exists)");
+  }
+
   for (const [name, sql] of ZP_BROKEN) {
     if (sql === MIG_ZP) { expect(false, `mutation did not apply: ${name}`); continue; }
     const db = await fresh([MIG, sql]);

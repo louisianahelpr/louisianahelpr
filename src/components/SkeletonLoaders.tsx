@@ -1,4 +1,3 @@
-import { BACK_BUTTON_BOX_CLASS } from "@/components/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CollapsedActivityCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
 
@@ -148,16 +147,15 @@ const MenuGroupCardSkeleton = () => (
  * header jump Profile.tsx's own note records being measured and fixed at 12px
  * on the tabs. So the bones carry the row too.
  *
- * The horizontal half cannot drift: the reserved chevron slot is the SAME
- * `BACK_BUTTON_BOX_CLASS` PageHeader reserves, and `gap-3` is PageHeader's own
- * title-row gap, so the bar starts on the app's title line like the real one.
+ * Horizontally the bar starts on the column edge, like the real title since
+ * the owner's 2026-09-25 "line up with the card" (the landing no longer
+ * reserves the back slot, so neither do the bones).
  * The vertical values (`--shell-gap` on phone, `sm:pt-6 sm:pb-6`) are copied from
  * PageHeader's "equal air above and below" block; `h-7` is the measured height
  * of a rendered `.text-page-title` (27px at 1440, 25px at 375).
  */
 const LandingTitleSkeleton = () => (
   <div className="pt-[var(--shell-gap)] pb-[var(--shell-gap)] sm:pt-6 sm:pb-6 flex items-center gap-3">
-    <span className={`${BACK_BUTTON_BOX_CLASS} block shrink-0`} aria-hidden="true" />
     <Skeleton className="h-7 w-44 rounded-md" />
   </div>
 );

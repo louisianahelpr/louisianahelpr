@@ -38,6 +38,14 @@ export function ProfileLanding({
   return (
     <>
       {/* ── THE PAGE TITLE ──────────────────────────────────────────
+          OWNER, 2026-09-25 (screenshot of the landing on iPhone): "move the
+          name at the top over to the left some", answered "line up with the
+          card". The landing no longer reserves the empty back slot, so its
+          title starts on the column edge the identity card and the WORK list
+          start on (x=20 at 375, 24 at 1440). The 25 tabs keep their back
+          chevron and their title 48px in. The 2026-09-20 note below is the
+          history of the x=72 alignment this replaces.
+
           The member's name, on the SAME title line as all 25 Profile tabs
           (owner, 2026-09-20: "align the landing title to x=72"). Measured at
           1440 before the change: tab titles x=72, landing x=145; at 375,
@@ -53,10 +61,10 @@ export function ProfileLanding({
           slot (36) + `gap-3` (12) off the gutter, which is the same arithmetic
           every tab title is subject to.
 
-          `hideBack` + `reserveBackSlot`: the landing is a bottom-nav ROOT —
-          there is nothing to go back to and a chevron here would navigate out
-          of the tab — so the slot is held open EMPTY rather than filled. See
-          the prop's note in PageHeader.tsx.
+          `hideBack`: the landing is a bottom-nav ROOT — there is nothing to
+          go back to and a chevron here would navigate out of the tab. Until
+          2026-09-25 the slot was also held open EMPTY (`reserveBackSlot`);
+          the owner's "line up with the card" removed that.
 
           The nudge that was NOT taken: a one-off left margin on the old
           in-card `<h1>`. It would have matched the number and matched nothing
@@ -74,7 +82,6 @@ export function ProfileLanding({
         <PageHeader
           title={displayName || "Welcome back"}
           hideBack
-          reserveBackSlot
           width="none"
           topInsetHandled
         />

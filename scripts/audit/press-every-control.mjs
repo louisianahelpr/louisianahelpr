@@ -63,8 +63,8 @@ import {
 import * as pressSafety from "./pressProdSafety.mjs";
 import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
-  FOREIGN_FIXTURE_SKIP, MIN_CYCLE_BURST, NOT_REACHED_STATUS, ceilingWaitMs, classifyConsoleError, classifyFailedResponse,
-  clickFailureReason, isForeignSweepFixture, overTimeBudget, refusalIsDeath, tokenNeedsRefresh,
+  CHROME_SKIP, FOREIGN_FIXTURE_SKIP, MIN_CYCLE_BURST, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
+  classifyConsoleError, classifyFailedResponse, clickFailureReason, isForeignSweepFixture, overTimeBudget, refusalIsDeath, tokenNeedsRefresh,
 } from "./pressFailureClass.mjs";
 import { budgetFor } from "../e2e/request-budget.mjs";
 import { recordRouteProbePasses, routeProbePasses } from "./pressRouteProbe.mjs";
@@ -528,6 +528,7 @@ export const DOCUMENTED_SKIPS = new Set([
   TRANSIENT_STATUS_SKIP,
   FORM_MIRROR_SKIP,
   FOREIGN_FIXTURE_SKIP,
+  CHROME_SKIP,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -614,6 +615,9 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel }) => {
       // isAccountSettingToggle (Q200): a toggle inside a <form> is a draft
       // field; one outside it saves the setting the moment it is pressed.
       inForm: el.closest("form") !== null,
+      // Page chrome: the same on every route. An overlay it opens is walked
+      // once per run (CHROME_SKIP, pressFailureClass.mjs).
+      inChrome: el.closest('header, nav, [role="banner"], [role="navigation"]') !== null,
       type: el.getAttribute("type"),
       disabled: el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true",
       srOnly,
@@ -829,6 +833,8 @@ async function main() {
   const results = []; // one per route × persona
   let failedPresses = 0, undocumented = 0, totalFound = 0, totalPressed = 0, shots = 0;
   const ownershipCache = new Map();
+  /** chromeKey → the row where that header-chrome overlay control passed. */
+  const chromePassedOn = new Map();
   /**
    * SESSION DEATH IS NOT A PRESS FAILURE.
    *
@@ -1239,7 +1245,7 @@ async function main() {
 
         // The work queue: every control found on the page, then every control
         // found inside any overlay a press opened.
-        const queue = (await enumerate("page")).map((c) => ({ chain: [], step: { scope: "page", path: c.path }, meta: c, depth: 0, chainOwned: false, scopeKey: "page" }));
+        const queue = (await enumerate("page")).map((c) => ({ chain: [], step: { scope: "page", path: c.path }, meta: c, depth: 0, chainOwned: false, scopeKey: "page", fromChrome: false }));
         const seenOverlays = new Set();
         /** scopeKey → the signatures of the controls this run has actually clicked in it. */
         const pressedInScope = new Map([["page", new Set()]]);
@@ -1298,6 +1304,9 @@ async function main() {
           if (meta.type === "file") { skip("file picker (opens the OS dialog; not a DOM outcome)"); continue; }
           if (meta.inToast) { skip("inside a toast (transient; not page chrome)"); continue; }
           if (isHiddenFormMirror(meta)) { skip(FORM_MIRROR_SKIP); continue; }
+          const ckey = chromeKey({ persona, chain: entry.chain.slice(0, -1), sig: meta.sig });
+          const chromeWhy = chromeDisposition({ fromChrome: item.fromChrome, depth: item.depth, key: ckey, passedOn: chromePassedOn });
+          if (chromeWhy) { entry.pressedOn = chromePassedOn.get(ckey); skip(chromeWhy); continue; }
           if (DESTRUCTIVE_RX.test(label) || meta.type === "submit" || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAccountSettingToggle({ persona, meta, label })) {
             const why = await gate(label, meta, item.chainOwned);
             if (why) { skip(why); continue; }
@@ -1613,6 +1622,7 @@ async function main() {
             entry.shot = await shoot(`fail-${slug(label)}`);
           } else {
             entry.result = "PASS"; rec.passed++;
+            if (item.fromChrome && item.depth > 0 && !chromePassedOn.has(ckey)) chromePassedOn.set(ckey, `${route.url} (${persona})`);
             if (rec.pressed <= SAMPLE) entry.shot = await shoot(`sample-${slug(label)}`);
           }
 
@@ -1629,7 +1639,8 @@ async function main() {
               const chainOwned = item.chainOwned || rowNamesTestOwner(meta.rowText, owners);
               const scopeKey = `overlay:${entry.chain.join(" › ")}`;
               if (!pressedInScope.has(scopeKey)) pressedInScope.set(scopeKey, new Set());
-              for (const c of inner) queue.push({ chain: nextChain, step: { scope: "overlay", path: c.path }, meta: c, depth: item.depth + 1, chainOwned, scopeKey });
+              const fromChrome = item.fromChrome || (item.depth === 0 && !!meta.inChrome);
+              for (const c of inner) queue.push({ chain: nextChain, step: { scope: "overlay", path: c.path }, meta: c, depth: item.depth + 1, chainOwned, scopeKey, fromChrome });
               entry.opened = inner.length;
             }
             // Close it so the next page-level control starts clean.
@@ -1714,7 +1725,7 @@ async function main() {
   for (const f of fails) lines.push(`- **${f.route}** (${f.persona}) › ${f.chain.join(" › ")} — ${f.why}${f.shot ? ` — ${f.shot}` : ""}`);
   const skips = results.flatMap((r) => r.controls.filter((c) => c.result === "SKIP").map((c) => ({ ...c, route: r.route, persona: r.persona })));
   lines.push("", `## Unpressed controls (${skips.length}) — every one with its reason`, "");
-  for (const s of skips) lines.push(`- ${s.route} (${s.persona}) › ${s.chain.join(" › ")} — ${s.why}${DOCUMENTED_SKIPS.has(s.why) ? "" : "  **UNDOCUMENTED**"}`);
+  for (const s of skips) lines.push(`- ${s.route} (${s.persona}) › ${s.chain.join(" › ")} — ${s.why}${s.pressedOn ? ` (passed on ${s.pressedOn})` : ""}${DOCUMENTED_SKIPS.has(s.why) ? "" : "  **UNDOCUMENTED**"}`);
   const mutated = results.flatMap((r) => r.controls.filter((c) => c.mutating && c.result !== "SKIP").map((c) => `- ${r.route} (${r.persona}) › ${c.chain.join(" › ")} — ${c.result}: ${c.outcome ?? ""}`));
   lines.push("", `## Mutating presses on test-owned targets (${mutated.length})`, "", ...mutated);
   // An excused error toast must be VISIBLE, or the allow becomes the kind of

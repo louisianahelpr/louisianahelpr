@@ -199,3 +199,40 @@ export function ceilingWaitMs({ minutes, now = Date.now(), ceiling, burst }) {
 
 /** The burst estimate before any cycle has been measured; measured cycles only raise it. */
 export const MIN_CYCLE_BURST = 100;
+
+/**
+ * AN OVERLAY OPENED FROM THE HEADER IS THE SAME OVERLAY ON EVERY ROUTE.
+ *
+ * Run 36069319716 did not reach 32 rows (14 + 7 + 11 + 0) inside its 135-minute
+ * budget, and the rows it never reached were the ones after the admin views:
+ * /jobs/:id x2, /legal, /terms, /support, /rules, /browse. Each admin view took
+ * 12-17 minutes and found 54-85 controls whatever the view: /admin?view=export
+ * 63, subscriptions 60, banreview 60, jobs 60, credentials 60. Those ~55 shared
+ * controls are the admin menu (AdminTopBar's "Open the admin menu" opens
+ * AdminSidebar's sheet: 25 view rows, their pin buttons and the footer) plus
+ * the bell's panel. Every one is pressed through an opener chain, so each costs
+ * a reload, a replay of the opener and an overlay fill, and the same sheet was
+ * walked once per admin view: 25 times a night, per persona.
+ *
+ * A control inside an overlay whose opener is page chrome (inside <header> or
+ * <nav>) renders the same controls with the same destinations on every route.
+ * Once such a control has PASSED on one row of this run, the same control (same
+ * persona, same opener chain, same signature) on a later row is not pressed
+ * again, and the entry names the row where it passed. A control that FAILED is
+ * pressed again on every row, so a failure is never hidden behind an earlier
+ * one; page-level chrome (the bell, the menu button, the dock) is still pressed
+ * on every row.
+ */
+export const CHROME_SKIP =
+  "header chrome overlay: this identical control (same persona, opener and target) already passed on an earlier row of this run";
+
+/** Identity of a chrome-overlay control across rows. */
+export function chromeKey({ persona, chain, sig }) {
+  return [persona, ...(chain ?? []), sig ?? ""].join("\u0001");
+}
+
+/** CHROME_SKIP when this overlay control already passed elsewhere in the run, else null. */
+export function chromeDisposition({ fromChrome, depth, key, passedOn }) {
+  if (!fromChrome || !(depth > 0)) return null;
+  return passedOn.has(key) ? CHROME_SKIP : null;
+}

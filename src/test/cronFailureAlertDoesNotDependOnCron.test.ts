@@ -134,9 +134,14 @@ describe("a single raised error pages (CJ-004)", () => {
     const body = latestBody("sweep_dead_crons")!;
     expect(body, "sweep_dead_crons must be defined").toBeTruthy();
     expect(body).toMatch(/WHEN l\.raised_msg IS NOT NULL THEN 'raised'/);
-    const pick = /AS raised_msg/.test(body) ? body.slice(0, body.indexOf("AS raised_msg")) : "";
-    const sub = pick.slice(pick.lastIndexOf("(SELECT"));
-    expect(sub, "one run, not a count: the raised check must LIMIT 1").toMatch(/LIMIT 1\)\s*$/);
+    // One run, not a count: the newest raised run's message, taken from the
+    // single pass over the run history (20260925140304).
+    expect(body, "one run, not a count: raised_msg is the newest raised run's message").toMatch(
+      /\(array_agg\((\w+)\.return_message ORDER BY \1\.start_time DESC\)\s*FILTER \(WHERE \1\.is_raised\)\)\[1\]\s+AS raised_msg/,
+    );
+    const end = body.indexOf("AS is_raised");
+    const sub = end > 0 ? body.slice(body.lastIndexOf("(d.end_time IS NOT NULL", end), end) : "";
+    expect(sub, "the is_raised predicate must exist").toMatch(/status <> 'succeeded'/);
     expect(sub).toMatch(/interval '24 hours'/);
     // Infra failures belong to sweep_cron_startup_failures' burst floor; paging
     // each lost connection here would be the noise that floor exists to stop.
@@ -144,4 +149,6 @@ describe("a single raised error pages (CJ-004)", () => {
     expect(sub).toMatch(/NOT ILIKE '%startup timeout%'/);
   });
 });
-// @mutate supabase/migrations/20260924082754_cron_raised_verdict.sql |               WHEN l.raised_msg IS NOT NULL THEN 'raised' |               WHEN false THEN 'raised'
+// @mutate supabase/migrations/20260925140304_sweep_dead_crons_one_scan.sql |               WHEN l.raised_msg IS NOT NULL THEN 'raised' |               WHEN false THEN 'raised'
+// @mutate supabase/migrations/20260925140304_sweep_dead_crons_one_scan.sql |               FILTER (WHERE rk.is_raised))[1] |               FILTER (WHERE rk.is_raised))[2]
+// @mutate supabase/migrations/20260925140304_sweep_dead_crons_one_scan.sql | AND coalesce(d.return_message, '') NOT ILIKE '%startup timeout%') AS is_raised | ) AS is_raised

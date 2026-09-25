@@ -6173,6 +6173,7 @@ export type Database = {
       prune_cron_http_requests: { Args: never; Returns: undefined }
       prune_cron_run_log: { Args: never; Returns: undefined }
       prune_edge_rate_limit_log: { Args: never; Returns: Json }
+      prune_retention_tables: { Args: never; Returns: Json }
       purge_user_data: { Args: { p_user_id: string }; Returns: Json }
       rate_limit_hit: {
         Args: {

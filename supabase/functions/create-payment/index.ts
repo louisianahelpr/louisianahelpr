@@ -1505,6 +1505,42 @@ serve(async (req) => {
         }
       }
 
+      // ── Give the gift card back (SC-005) ──
+      // A job funded by a gift card has no charge for the refund above to
+      // reverse — or only the shortfall — because the gift IS the money
+      // (redeem_gift_card consumed it against this job). This door flipped the
+      // job to cancelled and stopped, so the recipient's gift stayed 'redeemed'
+      // on a dead job and was simply gone; every other cancel/refund exit
+      // (void-cancelled-payments, release-payout, execute-dispute-split,
+      // process-scheduled-payouts) calls restore_gift_card_for_job. Found by
+      // e2e/prod-gift-card.spec.ts; the class is pinned by
+      // src/test/cancelPathsRestoreGift.test.ts.
+      //
+      // After the refund, before the flip, and FAIL CLOSED: if the gift cannot
+      // be given back the job stays 'cancelling', which the claim above
+      // re-admits, so a retry re-runs this (the refund is deduped by its
+      // idempotency key and the restore by restored_from_job_id's uniqueness).
+      // Flipping anyway would make the loss permanent. The caller is the
+      // recipient themself (poster == gift recipient), so the answer below is
+      // their notice; no separate notification is sent.
+      const giftBack = await restoreGiftForCancelledJob(supabaseAdmin, jobId);
+      if (!giftBack.ok) {
+        console.error(`CRITICAL: [create-payment] cancel_escrow could not restore the gift card on job ${jobId}: ${giftBack.reason}`);
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: "Cancelled gift-funded job could not have its gift returned",
+          message:
+            `cancel_escrow on job ${jobId} could not give the recipient's gift card back, so the job was left 'cancelling' ` +
+            "(retryable) instead of cancelled. Any shortfall refund above has been issued.",
+          fields: { job_id: jobId, reason: giftBack.reason.slice(0, 200) },
+          seed: job.is_seed === true,
+        });
+        return new Response(JSON.stringify({
+          error: "We couldn't return your gift card yet, so this job wasn't cancelled. Please try again in a moment.",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
+      }
+
       // The job's pending applications are closed in the same UPDATE by
       // trg_close_pending_applications_on_job_cancel (Q274, 20260923205811).
       //
@@ -3403,6 +3439,47 @@ async function transferToHelper(
     // the job stays disputed and an admin can retry once the cause is fixed.
     throw e;
   }
+}
+
+/**
+ * Give back the gift card that funded a job being cancelled, via
+ * restore_gift_card_for_job (idempotent: a second call answers
+ * `already_restored`). Mirrors void-cancelled-payments' restorePifGift outcome
+ * handling: a null `error` is not proof, only the outcomes the function
+ * defines count, and an error is only survivable when no gift is at stake.
+ */
+async function restoreGiftForCancelledJob(
+  supabaseAdmin: any,
+  jobId: string,
+): Promise<{ ok: true; outcome: string | null } | { ok: false; reason: string }> {
+  const { data, error: rpcErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", { p_job_id: jobId });
+  const outcome = rpcErr ? null : ((data as { outcome?: string } | null)?.outcome ?? null);
+  if (
+    outcome === "restored" ||
+    outcome === "unreserved" ||
+    outcome === "already_restored" ||
+    outcome === "no_credit" ||
+    outcome === "nothing_to_restore" ||
+    outcome === "job_not_found"
+  ) {
+    return { ok: true, outcome };
+  }
+  const reason = rpcErr
+    ? `${rpcErr.message}${rpcErr.code ? ` (${rpcErr.code})` : ""}`
+    : `unrecognised outcome ${JSON.stringify(data)}`;
+  // Was a gift at stake at all? If not (the ordinary card-funded job), an
+  // unavailable RPC must not hold every cancellation hostage.
+  const { data: giftRows, error: giftErr } = await supabaseAdmin
+    .from("gift_cards")
+    .select("id")
+    .eq("job_id", jobId)
+    .in("status", ["redeemed", "reserved"])
+    .limit(1);
+  if (!giftErr && (giftRows ?? []).length === 0) {
+    console.warn(`[create-payment] restore_gift_card_for_job unavailable for job ${jobId}: ${reason}. No gift on this job — cancelling anyway.`);
+    return { ok: true, outcome: null };
+  }
+  return { ok: false, reason: giftErr ? `${reason}; gift lookup failed: ${giftErr.message}` : reason };
 }
 
 /**

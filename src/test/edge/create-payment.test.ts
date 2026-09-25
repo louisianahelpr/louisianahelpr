@@ -1172,6 +1172,47 @@ describe("create-payment edge function", () => {
       );
     });
 
+    // SC-005: a gift-card-funded job has no charge (or only a shortfall) for
+    // the refund to reverse — the gift IS the money. cancel_escrow flipped it
+    // to cancelled without restore_gift_card_for_job, so the gift was lost.
+    // @mutate supabase/functions/create-payment/index.ts | const giftBack = await restoreGiftForCancelledJob(supabaseAdmin, jobId); | const giftBack = { ok: true as const, reason: "" };
+    it("gives a gift-funded job's gift card back before flipping it to cancelled", async () => {
+      seedAuth(scenario, POSTER);
+      // Settled by redeem_gift_card: escrow, no PaymentIntent, no session.
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", budget: 10, payment_status: "escrow" }],
+      };
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      scenario.rpc.restore_gift_card_for_job = { outcome: "restored", credit_id: "gift-2", restore_cents: 1000 };
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(200);
+      const restores = (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job");
+      expect(restores).toHaveLength(1);
+      expect(restores[0].args).toEqual({ p_job_id: "job-1" });
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect((jobUpdates[jobUpdates.length - 1]?.payload as Record<string, unknown>).status).toBe("cancelled");
+    });
+
+    it("leaves a gift-funded job retryable (never cancelled) when its gift cannot be given back", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", budget: 10, payment_status: "escrow" }],
+      };
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      scenario.rpcErrors = { restore_gift_card_for_job: { message: "deadlock detected", code: "40P01" } };
+      scenario.reads.gift_cards = { rows: [{ id: "gift-1" }] };
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(500);
+      expect(String((await json(res)).error)).toContain("gift card");
+      const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      // Only the 'cancelling' claim landed — the claim re-admits it, so a retry re-runs the restore.
+      expect(jobUpdates.map((w) => (w.payload as Record<string, unknown>).payment_status)).toEqual(["cancelling"]);
+      expect(slackAlerts.some((a) => (a as { title?: string }).title === "Cancelled gift-funded job could not have its gift returned")).toBe(true);
+    });
+
     it("skips the refund but ALERTS ops when withholding consumes the whole capture ($0 refund)", async () => {
       seedAuth(scenario, POSTER);
       // A $2 capture whose entire value is a $2 service fee: withholding the

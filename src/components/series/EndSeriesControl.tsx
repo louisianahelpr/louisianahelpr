@@ -21,10 +21,17 @@ export function EndSeriesControl({
   jobId,
   jobTitle,
   userId,
+  mode = "end",
 }: {
   jobId: string;
   jobTitle: string | null;
   userId: string | null | undefined;
+  /**
+   * "end": the person who posted it ends the series. "leave": a Helpr on it
+   * leaves (20260925160645, owner decision 6): the same RPC hands their
+   * upcoming dates back to the series and ends nothing for anyone else.
+   */
+  mode?: "end" | "leave";
 }) {
   const [open, setOpen] = useState(false);
   const [ending, setEnding] = useState(false);
@@ -47,12 +54,19 @@ export function EndSeriesControl({
           rpcErrorMessage("end_recurring_series", error) ?? error.message ?? "Couldn't end the series — please try again",
         );
       }
-      const result = (data ?? {}) as { booked_visits_remaining?: number | null };
+      const result = (data ?? {}) as {
+        action?: string;
+        booked_visits_remaining?: number | null;
+        released?: string[] | null;
+        strike?: boolean | null;
+      };
       const booked = result.booked_visits_remaining ?? 0;
       // "No new visits", not "nothing after <end date>": an ended series gets
       // no new visit at all, a gap before the end date included.
       toast.success(
-        "Series ended. No new visits will be booked or charged.",
+        result.action === "left"
+          ? `You left the series. ${(result.released ?? []).length} upcoming date${(result.released ?? []).length === 1 ? " goes" : "s go"} back to it.${result.strike ? " One started within 24 hours, so it counts as a reliability strike." : ""}`
+          : "Series ended. No new visits will be booked or charged.",
         booked > 0
           ? {
               description: `${booked} visit${booked === 1 ? " is" : "s are"} already booked and still on the calendar — cancel ${booked === 1 ? "it" : "any of them"} from ${booked === 1 ? "its" : "their"} own card.`,
@@ -86,16 +100,20 @@ export function EndSeriesControl({
         className="shrink-0 min-h-[44px] -my-3 px-1 text-ds-11 font-semibold underline underline-offset-2"
         style={{ color: "hsl(var(--burnt-sienna))" }}
       >
-        End series
+        {mode === "leave" ? "Leave series" : "End series"}
       </button>
       <BrandConfirmDialog
         open={open}
         onOpenChange={(next) => {
           if (!ending) setOpen(next);
         }}
-        title={`End "${jobTitle ?? "this series"}"?`}
-        description="No new visits will be booked or charged. Visits already booked stay on the calendar, and each can still be cancelled from its own card. This can't be undone."
-        primaryLabel={ending ? "Ending…" : "End series"}
+        title={mode === "leave" ? `Leave "${jobTitle ?? "this series"}"?` : `End "${jobTitle ?? "this series"}"?`}
+        description={
+          mode === "leave"
+            ? "Your upcoming dates that aren't booked yet go back to the series: another Helpr on it can pick them up, or the person who posted it can offer them to someone new. Giving up a date that starts within 24 hours counts as a reliability strike. Visits already booked stay yours; cancel one from its own card."
+            : "No new visits will be booked or charged. Visits already booked stay on the calendar, and each can still be cancelled from its own card. This can't be undone."
+        }
+        primaryLabel={ending ? (mode === "leave" ? "Leaving…" : "Ending…") : mode === "leave" ? "Leave series" : "End series"}
         primaryTone="sienna"
         primaryHaptic="warning"
         primaryDisabled={ending}

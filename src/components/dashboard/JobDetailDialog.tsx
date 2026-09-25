@@ -19,6 +19,7 @@ import { useJobDetailData } from "./jobDetailDialog/useJobDetailData";
 import { JobStatTiles } from "./jobDetailDialog/JobStatTiles";
 import { JobDetailFooter } from "./jobDetailDialog/JobDetailFooter";
 import { askQuestionCounterpart } from "./jobDetailDialog/askQuestionCounterpart";
+import { SeriesTermsLine } from "@/components/series/SeriesTermsLine";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -860,6 +861,13 @@ const JobDetailDialog = ({
                   return job.recurrence_interval || "Recurring";
                 })()}
               </span>
+              {/* The series terms, before applying (Q407 4). */}
+              {!(job as { parent_job_id?: string | null }).parent_job_id && (
+                <SeriesTermsLine
+                  jobId={job.id}
+                  known={(job as { series_split_ok?: boolean | null }).series_split_ok}
+                />
+              )}
           </div>
         )}
 

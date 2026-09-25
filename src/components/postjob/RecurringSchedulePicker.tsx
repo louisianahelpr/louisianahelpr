@@ -1,6 +1,7 @@
 import { Repeat, Minus, Plus } from "lucide-react";
 
 import { Label } from "@/components/ui/label";
+import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import { formatPriceExact } from "@/lib/format";
 import {
   MAX_RECURRENCE_WEEKS,
@@ -19,7 +20,19 @@ interface RecurringSchedulePickerProps {
   startDate: string;
   /** Per-visit budget, in dollars. */
   budget: number;
+  /**
+   * One Helpr for every visit (false) or OK to split the days between Helprs
+   * (true). Owner decision Q407 (4), 2026-09-25: chosen here, at posting, and
+   * locked once a Helpr is hired (jobs.series_split_ok).
+   */
+  splitOk: boolean;
+  setSplitOk: (next: boolean) => void;
 }
+
+const SPLIT_OPTIONS: SegmentedOption<"one" | "split">[] = [
+  { value: "one", label: "One Helpr for every visit" },
+  { value: "split", label: "OK to split the days" },
+];
 
 /**
  * Pick the weekdays a job repeats on, and for how many weeks.
@@ -37,7 +50,7 @@ interface RecurringSchedulePickerProps {
  * charge.
  */
 export function RecurringSchedulePicker({
-  days, setDays, weeks, setWeeks, startDate, budget,
+  days, setDays, weeks, setWeeks, startDate, budget, splitOk, setSplitOk,
 }: RecurringSchedulePickerProps) {
   const toggle = (d: number) =>
     setDays(days.includes(d) ? days.filter((x) => x !== d) : [...days, d].sort((a, b) => a - b));
@@ -171,6 +184,23 @@ export function RecurringSchedulePicker({
             <Plus className="w-4 h-4" />
           </button>
         </div>
+      </div>
+
+      <div className="space-y-2.5">
+        <Label id="series-split-label">Who Does The Visits?</Label>
+        <SegmentedControl
+          ariaLabel="Who does the visits"
+          layout="grid"
+          gridClassName="grid-cols-1 min-[420px]:grid-cols-2"
+          options={SPLIT_OPTIONS}
+          value={splitOk ? "split" : "one"}
+          onChange={(next) => setSplitOk(next === "split")}
+        />
+        <p className="text-ds-11 text-muted-foreground leading-snug">
+          {splitOk
+            ? "The first Helpr you hire picks the dates they want, and you offer the rest to the next Helpr you choose. A date nobody takes isn't charged."
+            : "The Helpr you hire does every visit. If they give up a date, you can offer it to someone else."}
+        </p>
       </div>
 
       {/* Three states, because "0 visits" is a nonsense answer to every one of

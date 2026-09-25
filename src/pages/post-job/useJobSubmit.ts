@@ -138,6 +138,8 @@ export interface UseJobSubmitParams {
   recurrenceEndDate: string;
   recurrenceDays: number[];
   recurrenceWeeks: number;
+  /** Q407 (4): the poster is OK with different Helprs on different dates. */
+  seriesSplitOk?: boolean;
   isGroupJob: boolean;
   helpersNeeded: string;
   isUrgent: boolean;
@@ -194,6 +196,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     recurrenceEndDate,
     recurrenceDays,
     recurrenceWeeks,
+    seriesSplitOk,
     isGroupJob,
     helpersNeeded,
     isUrgent,
@@ -448,6 +451,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         recurrenceEndDate,
         recurrenceDays,
         recurrenceWeeks,
+        seriesSplitOk,
         isGroupJob,
         helpersNeeded,
         isUrgent,

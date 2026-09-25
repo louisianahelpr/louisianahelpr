@@ -459,7 +459,7 @@ BEGIN
     RAISE EXCEPTION 'not_authorized';
   END IF;
   IF public.are_users_blocked(v_job.customer_id, v_uid) THEN
-    RAISE EXCEPTION 'blocked';
+    RAISE EXCEPTION 'series_blocked';
   END IF;
 
   -- The earliest uncreated date a future charge-recurring-visits run can still
@@ -595,7 +595,7 @@ BEGIN
     RAISE EXCEPTION 'not_an_applicant';
   END IF;
   IF public.are_users_blocked(v_uid, p_helper_id) THEN
-    RAISE EXCEPTION 'blocked';
+    RAISE EXCEPTION 'series_blocked';
   END IF;
   IF EXISTS (SELECT 1 FROM public.profiles p
               WHERE p.user_id = p_helper_id

@@ -195,12 +195,42 @@ export const RPC_ERROR_COPY = {
     job_not_found: JOB_GONE,
     not_authenticated: "Please sign in again to cancel this job.",
   },
-  // EndSeriesControl — ending a recurring series (poster or standing Helpr).
+  // EndSeriesControl — the poster ends a recurring series; a Helpr on it leaves.
   end_recurring_series: {
-    not_authorized: "Only the two people on this series can end it.",
+    not_authorized: "Only the person who posted this series, or a Helpr with upcoming dates on it, can do that.",
     not_a_series: "This job isn't a recurring series, so there is nothing to end. Refresh and check.",
     job_not_found: JOB_GONE,
     not_authenticated: "Please sign in again to end this series.",
+  },
+  // SeriesDatesPanel — picking visit dates on a series (Q407 5).
+  claim_series_dates: {
+    not_authorized: "You can pick dates once the person who posted this series offers them to you, or once you have dates on it.",
+    not_a_series: "This job isn't a recurring series. Refresh and check.",
+    series_ended: "This series has ended, so there are no dates left to pick.",
+    series_blocked: "You can't pick dates on this series.",
+    account_restricted: "Your account is restricted, so you can't pick up dates right now.",
+    job_not_found: JOB_GONE,
+    not_authenticated: "Please sign in again to pick dates.",
+  },
+  // SeriesDatesPanel — handing dates back (Q407 6).
+  give_up_series_dates: {
+    not_your_dates: "Those dates aren't yours to give up, or their visits are already booked. Cancel a booked visit from its own card.",
+    not_a_series: "This job isn't a recurring series. Refresh and check.",
+    job_not_found: JOB_GONE,
+    not_authenticated: "Please sign in again to give up dates.",
+  },
+  // SeriesDatesPanel — the poster offers the open dates to someone who applied.
+  offer_series_dates: {
+    not_an_applicant: "You can offer dates only to someone who applied to this series and is still waiting.",
+    nothing_to_offer: "Every upcoming date already has a Helpr, so there is nothing to offer.",
+    helper_unavailable: "That person's account is restricted right now, so they can't take dates.",
+    series_blocked: "You can't offer dates to someone you've blocked or who has blocked you.",
+    series_ended: "This series has ended, so there are no dates to offer.",
+    not_authorized: "Only the person who posted this series can offer its dates.",
+    not_a_series: "This job isn't a recurring series. Refresh and check.",
+    account_restricted: "Your account is restricted, so you can't offer dates right now.",
+    job_not_found: JOB_GONE,
+    not_authenticated: "Please sign in again to offer dates.",
   },
   // ConfirmedSection — cancelling a booking before the start.
   helper_cancel_booking: {

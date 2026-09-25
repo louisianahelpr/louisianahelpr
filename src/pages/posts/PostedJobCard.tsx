@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw, RefreshCw, Check, MapPinOff } from "lucide-react";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { SeriesStrip } from "@/pages/posts/SeriesStrip";
+import { SeriesDatesPanel } from "@/components/series/SeriesDatesPanel";
 import { JobCountdown } from "@/components/job-card/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
@@ -361,6 +362,22 @@ function PostedJobCardInner({
                 canEnd={!!job.recurring_helper_id && job.status !== "cancelled"}
                 jobTitle={job.title}
                 userId={userId}
+              />
+            )}
+            {/* Who has each upcoming visit date, and offering the open ones
+                (Q407 5). Series parents that are still running. */}
+            {!job.parent_job_id && (job.recurrence_days?.length ?? 0) > 0 && !!job.recurrence_weeks &&
+              !!job.date_needed && !job.series_ended_on && job.status !== "cancelled" && (
+              <SeriesDatesPanel
+                jobId={job.id}
+                jobTitle={job.title}
+                dateNeeded={job.date_needed}
+                recurrenceDays={job.recurrence_days ?? []}
+                recurrenceWeeks={job.recurrence_weeks}
+                userId={userId ?? null}
+                isPoster
+                firstHelpr={job.recurring_helper_id && job.recurring_helper_id === job.helper_id ? job.recurring_helper_id : null}
+                splitOk={!!job.series_split_ok}
               />
             )}
 

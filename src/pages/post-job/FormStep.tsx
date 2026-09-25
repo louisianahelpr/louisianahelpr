@@ -135,6 +135,8 @@ export function FormStep({ form }: FormStepProps) {
             setRecurrenceDays={form.setRecurrenceDays}
             recurrenceWeeks={form.recurrenceWeeks}
             setRecurrenceWeeks={form.setRecurrenceWeeks}
+            seriesSplitOk={form.seriesSplitOk}
+            setSeriesSplitOk={form.setSeriesSplitOk}
             isGroupJob={form.isGroupJob}
             setIsGroupJob={form.setIsGroupJob}
             helpersNeeded={form.helpersNeeded}

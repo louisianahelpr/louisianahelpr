@@ -141,6 +141,8 @@ export function usePostJobForm() {
   // useJobFormEffects) so turning on Repeats never starts from an empty set.
   const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
   const [recurrenceWeeks, setRecurrenceWeeks] = useState(4);
+  // Q407 (4): one Helpr for every visit (the default) or OK to split the days.
+  const [seriesSplitOk, setSeriesSplitOk] = useState(false);
 
   /**
    * Turning on Repeats seeds the day set with the job's OWN weekday.
@@ -392,6 +394,7 @@ export function usePostJobForm() {
     recurrenceEndDate,
     recurrenceDays,
     recurrenceWeeks,
+    seriesSplitOk,
     isGroupJob,
     helpersNeeded,
     isUrgent,
@@ -551,6 +554,8 @@ export function usePostJobForm() {
     setRecurrenceDays,
     recurrenceWeeks,
     setRecurrenceWeeks,
+    seriesSplitOk,
+    setSeriesSplitOk,
     recurrenceEndDate,
     setRecurrenceEndDate,
     isGroupJob,

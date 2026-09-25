@@ -514,6 +514,18 @@
     "nargs": 2
    }
   ],
+  "claim_series_dates": [
+   {
+    "anon": false,
+    "args": [
+     "p_job_id",
+     "p_dates"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "cleanup_observability_tables": [
    {
     "anon": false,
@@ -1640,6 +1652,18 @@
     "nargs": 1
    }
   ],
+  "give_up_series_dates": [
+   {
+    "anon": false,
+    "args": [
+     "p_job_id",
+     "p_dates"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "group_member_slot": [
    {
     "anon": false,
@@ -2374,6 +2398,18 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "offer_series_dates": [
+   {
+    "anon": false,
+    "args": [
+     "p_job_id",
+     "p_helper_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
    }
   ],
   "open_dispute_as": [
@@ -7745,6 +7781,7 @@
       "sales_tax_rate",
       "scope_video_url",
       "series_ended_on",
+      "series_split_ok",
       "special_requirements",
       "start_reminder_sent_at",
       "start_time",
@@ -8492,6 +8529,13 @@
      "hasDefault": false,
      "notNull": false,
      "type": "date"
+    },
+    "series_split_ok": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
     },
     "special_requirements": {
      "enum": null,
@@ -11092,6 +11136,13 @@
      "notNull": false,
      "type": "text"
     },
+    "recurrence_days": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "smallint[]"
+    },
     "recurrence_end_date": {
      "enum": null,
      "generated": false,
@@ -11106,7 +11157,21 @@
      "notNull": false,
      "type": "text"
     },
+    "recurrence_weeks": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "smallint"
+    },
     "require_photo_proof": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "boolean"
+    },
+    "series_split_ok": {
      "enum": null,
      "generated": false,
      "hasDefault": false,
@@ -13281,39 +13346,12 @@
     }
    },
    "grants": {
-    "anon": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
-    ],
     "authenticated": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
+     "SELECT"
     ]
    },
    "kind": "table",
    "policies": [
-    {
-     "cmd": "INSERT",
-     "name": "Helper releases their own visit dates",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    },
-    {
-     "cmd": "DELETE",
-     "name": "Helper un-releases a future date",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    },
     {
      "cmd": "SELECT",
      "name": "Series participants read releases",
@@ -14188,6 +14226,117 @@
     "before:insert",
     "before:update"
    ]
+  },
+  "series_date_offers": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "helper_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "offered_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "parent_job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "Poster and offeree read offers",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": []
+  },
+  "series_visit_holds": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "claimed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "helper_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "parent_job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "visit_date": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "date"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "Series parties read holds",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": []
   },
   "str_calendar_connections": {
    "checks": [

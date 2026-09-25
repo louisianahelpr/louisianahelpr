@@ -13,24 +13,33 @@
 --    cannot disagree. Guard: src/test/savedSearchAlertsWaitForEarlyAccess.test.ts
 --    and src/lib/earlyAccess.parity.test.ts (client/SQL parity reads the ladder
 --    from here).
--- 2. saved_search_alert_queue holds an alert whose visible_at is still in the
---    future. Server-only: RLS on, no policies, no client privileges.
+-- 2. saved_search_alert_queue holds every non-digest match until the sweep
+--    sends it. Server-only: RLS on, no policies, no client privileges.
 -- 3. deliver_saved_search_alert() is the one place a saved-search alert is
 --    sent (throttle stamp, notifications row, email). It re-checks, at send
---    time, that the job is still open/funded/public, that it is visible to the
---    user, that the user is still verified/active/opted in, and the hourly
---    throttle (ST-011: the stamp is spent only when an alert is sent).
+--    time, that the job is still open/funded/public with a living poster,
+--    that it is visible to the user (early access AND the credential-tier gate
+--    open_jobs_browse applies), that the user is still verified/active/opted
+--    in, and the hourly throttle (ST-011: the stamp is spent only when an
+--    alert is sent). Only the sweep calls it.
 -- 4. notify_saved_searches_on_new_job() keeps its match query and digest branch
---    unchanged; a non-digest match is delivered now when visible_at <= now(),
---    else queued.
+--    unchanged; every non-digest match is QUEUED, even one already visible
+--    (notify_at = visible_at). The trigger runs inside the funding write
+--    (stripe-webhook checkout.session.completed sets payment_status =
+--    'escrow'), so it takes no saved_searches lock and sends nothing: a lock
+--    cycle with the sweep could otherwise cancel the funding transaction.
 -- 5. sweep_saved_search_alert_queue(), every minute ('saved-search-alert-queue'),
---    sends due rows and deletes them. Rows are locked FOR UPDATE SKIP LOCKED
---    and deleted before sending, so overlapping runs cannot send one twice;
---    deliver locks the matched saved_searches rows, so the trigger and the
---    sweep cannot both pass the hourly throttle for one search. A send that
---    raises is logged to error_logs and does not stop the rest of the run.
---    visible_at is recomputed from the user's CURRENT tier on every run, so an
---    upgrade sends sooner and a downgrade waits longer.
+--    sends rows whose job is now in the user's feed and deletes them. Rows are
+--    locked FOR UPDATE SKIP LOCKED and deleted before sending, so overlapping
+--    runs cannot send one twice. Rows are taken in (user_id, id) order and
+--    deliver locks each user's saved_searches rows in id order, so two runs
+--    lock in one order. deliver takes the job row NOWAIT and the run sets a
+--    5s lock_timeout, so the sweep never waits on the funding transaction; a
+--    send that cannot get its locks stays queued for the next minute. A send
+--    that raises anything else is logged to error_logs, its row dropped, and
+--    the rest of the run continues. Visibility is recomputed from the user's
+--    CURRENT tier on every run, so an upgrade sends sooner and a downgrade
+--    waits longer.
 --
 -- Replay-safe: CREATE TABLE/INDEX IF NOT EXISTS, CREATE OR REPLACE, ON CONFLICT
 -- for the liveness row, cron.schedule upserts by name, and every reserved
@@ -146,21 +155,28 @@ DECLARE
   v_digest BOOLEAN;
 BEGIN
   -- FOR SHARE: the job cannot be hired, cancelled or unfunded between this
-  -- check and the send.
-  SELECT * INTO v_job FROM public.jobs WHERE id = p_job_id FOR SHARE;
+  -- check and the send. NOWAIT: if a writer (the funding transaction, a hire)
+  -- holds the row, this raises lock_not_available instead of waiting, and the
+  -- sweep keeps the row for its next run. The sweep never waits on a job.
+  SELECT * INTO v_job FROM public.jobs WHERE id = p_job_id FOR SHARE NOWAIT;
   IF NOT FOUND THEN
     RETURN false;
   END IF;
 
-  -- The job must still be what notify_saved_searches_on_new_job alerts on:
-  -- open, funded, not under a live direct offer, not a hidden fixture, and
-  -- not the recipient's own.
+  -- The job must still be what open_jobs_browse shows this user: open,
+  -- funded, not under a live direct offer, not a hidden fixture, not
+  -- ownerless (the poster deleted their account), not the recipient's own,
+  -- and not above the recipient's credential tier (the view's gate, with
+  -- get_user_credential_tier(recipient) in place of my_credential_tier()).
   IF v_job.status <> 'open'
      OR COALESCE(v_job.payment_status, '') <> ALL (ARRAY['escrow'::text, 'payout_pending'::text, 'released'::text])
      OR (v_job.offered_to_helper_id IS NOT NULL
          AND COALESCE(v_job.direct_offer_status, 'pending') NOT IN ('declined', 'expired'))
      OR (COALESCE(v_job.is_seed, false) AND public.seed_jobs_hidden_publicly())
-     OR v_job.customer_id IS NOT DISTINCT FROM p_user_id
+     OR v_job.customer_id IS NULL
+     OR v_job.customer_id = p_user_id
+     OR (COALESCE(v_job.credential_tier, 0) <> 0
+         AND COALESCE(public.get_user_credential_tier(p_user_id), 0) < v_job.credential_tier)
   THEN
     RETURN false;
   END IF;
@@ -341,16 +357,13 @@ BEGIN
       VALUES (match_record.user_id, NEW.id)
       ON CONFLICT (user_id, job_id) DO NOTHING;
     ELSE
-      -- V-008: the alert goes out when the job enters THIS user's feed.
+      -- V-008: queued, never sent here, even when already visible. This
+      -- runs inside the funding write; the sweep sends once the job is in
+      -- THIS user's feed.
       v_visible_at := public.early_access_visible_at(match_record.user_id, NEW.created_at);
-      IF v_visible_at <= now() THEN
-        PERFORM public.deliver_saved_search_alert(
-          match_record.user_id, NEW.id, match_record.search_name, match_record.matched_search_ids);
-      ELSE
-        INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids)
-        VALUES (match_record.user_id, NEW.id, v_visible_at, match_record.search_name, match_record.matched_search_ids)
-        ON CONFLICT (user_id, job_id) DO NOTHING;
-      END IF;
+      INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids)
+      VALUES (match_record.user_id, NEW.id, v_visible_at, match_record.search_name, match_record.matched_search_ids)
+      ON CONFLICT (user_id, job_id) DO NOTHING;
     END IF;
   END LOOP;
 
@@ -367,50 +380,51 @@ CREATE OR REPLACE FUNCTION public.sweep_saved_search_alert_queue()
 AS $function$
 DECLARE
   r RECORD;
-  v_visible_at TIMESTAMPTZ;
   v_sent integer := 0;
 BEGIN
-  -- Every row is read, not only notify_at <= now(): visible_at follows the
-  -- user's CURRENT tier, so an upgrade since queueing makes a row due early.
-  -- The queue holds at most ~20 minutes of matches.
+  -- Any lock wait in this run is bounded; a send that hits it stays queued.
+  PERFORM set_config('lock_timeout', '5s', true);
+
+  -- Due = the job is in the user's feed by their CURRENT tier (an upgrade
+  -- since queueing makes a row due early; notify_at is the estimate made at
+  -- queue time). (user_id, id) order: see deliver's saved_searches lock.
   FOR r IN
-    SELECT q.id, q.user_id, q.job_id, q.notify_at, q.search_name, q.matched_search_ids,
-           j.created_at AS job_created_at, COALESCE(j.is_seed, false) AS job_is_seed
+    SELECT q.id, q.user_id, q.job_id, q.search_name, q.matched_search_ids,
+           COALESCE(j.is_seed, false) AS job_is_seed
       FROM public.saved_search_alert_queue q
       JOIN public.jobs j ON j.id = q.job_id
-     ORDER BY q.notify_at
+     WHERE public.early_access_visible_at(q.user_id, j.created_at) <= now()
+     ORDER BY q.user_id, q.id
      LIMIT 1000
        FOR UPDATE OF q SKIP LOCKED
   LOOP
-    v_visible_at := public.early_access_visible_at(r.user_id, r.job_created_at);
-    IF v_visible_at > now() THEN
-      -- Not in the feed yet (a downgrade may have moved it later): keep it.
-      IF v_visible_at IS DISTINCT FROM r.notify_at THEN
-        UPDATE public.saved_search_alert_queue SET notify_at = v_visible_at WHERE id = r.id;
-      END IF;
-      CONTINUE;
-    END IF;
-
-    -- Deleted before sending: a second run can never pick this row up again.
-    -- deliver_saved_search_alert re-checks the job, the user and the throttle,
-    -- so a job cancelled, hired or unfunded meanwhile is dropped unsent.
-    DELETE FROM public.saved_search_alert_queue WHERE id = r.id;
     BEGIN
+      -- Deleted before sending: a second run can never pick this row up
+      -- again. deliver_saved_search_alert re-checks the job, the user and the
+      -- throttle, so a job cancelled, hired or unfunded meanwhile is dropped
+      -- unsent.
+      DELETE FROM public.saved_search_alert_queue WHERE id = r.id;
       IF public.deliver_saved_search_alert(r.user_id, r.job_id, r.search_name, r.matched_search_ids) THEN
         v_sent := v_sent + 1;
       END IF;
-    EXCEPTION WHEN OTHERS THEN
-      -- One row that raises must not roll back every other send in this run
-      -- and then raise again every minute. Only this send's writes roll back;
-      -- its row stays deleted (the DELETE is outside this block), so the
-      -- alert is dropped and the failure goes to error_logs. A seed (E2E)
-      -- job's failure is logged under a '-seed' source with tags.seed, so a
-      -- fixture never reads as a real delivery failure.
-      INSERT INTO public.error_logs (severity, message, tags)
-      VALUES ('error', 'saved-search alert not sent: ' || SQLERRM,
-              jsonb_build_object('source', 'saved-search-alert-queue' || CASE WHEN r.job_is_seed THEN '-seed' ELSE '' END,
-                                 'area', 'notifications', 'seed', r.job_is_seed,
-                                 'job_id', r.job_id, 'user_id', r.user_id));
+    EXCEPTION
+      WHEN lock_not_available THEN
+        -- The job or a saved search is held by another writer (NOWAIT or the
+        -- 5s lock_timeout). The block's DELETE rolls back with it, so the row
+        -- stays queued and the next run retries it; nothing was sent.
+        NULL;
+      WHEN OTHERS THEN
+        -- One row that raises must not roll back every other send in this
+        -- run and then raise again every minute. Only this send's writes roll
+        -- back; the row is dropped and the failure goes to error_logs. A seed
+        -- (E2E) job's failure is logged under a '-seed' source with
+        -- tags.seed, so a fixture never reads as a real delivery failure.
+        DELETE FROM public.saved_search_alert_queue WHERE id = r.id;
+        INSERT INTO public.error_logs (severity, message, tags)
+        VALUES ('error', 'saved-search alert not sent: ' || SQLERRM,
+                jsonb_build_object('source', 'saved-search-alert-queue' || CASE WHEN r.job_is_seed THEN '-seed' ELSE '' END,
+                                   'area', 'notifications', 'seed', r.job_is_seed,
+                                   'job_id', r.job_id, 'user_id', r.user_id));
     END;
   END LOOP;
 

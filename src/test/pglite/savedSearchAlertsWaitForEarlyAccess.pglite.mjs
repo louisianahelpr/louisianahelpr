@@ -80,7 +80,9 @@ CREATE TABLE public.match_digest_queue (user_id uuid, job_id uuid, UNIQUE (user_
 CREATE TABLE public.notifications (user_id uuid, title text, message text, type text, link text);
 CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), created_at timestamptz NOT NULL DEFAULT now(), status text, payment_status text,
   offered_to_helper_id uuid, direct_offer_status text, is_seed boolean DEFAULT false, is_urgent boolean, customer_id uuid, category text, parish text,
-  budget numeric, title text, description text, location text, latitude float8, longitude float8);
+  budget numeric, title text, description text, location text, latitude float8, longitude float8, credential_tier integer NOT NULL DEFAULT 0);
+CREATE TABLE public.cred (user_id uuid PRIMARY KEY, tier integer);
+CREATE FUNCTION public.get_user_credential_tier(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT tier FROM public.cred WHERE user_id = p_user_id $$;
 CREATE TABLE public.cron_work_expectations (jobname text PRIMARY KEY, expected_max_gap interval, note text);
 CREATE TABLE public.error_logs (severity text CHECK (severity IN ('info','warning','error','fatal')), message text, tags jsonb);
 `);
@@ -116,23 +118,25 @@ const postJob = async (title, urgent = false) =>
   (await q(`INSERT INTO public.jobs (status, payment_status, customer_id, category, parish, budget, title, is_urgent)
             VALUES ('open','escrow',$1,'cleaning','Orleans',50,$2,$3) RETURNING id`, [POSTER, title, urgent]))[0].id;
 
-// ── 1. at INSERT only the tier whose delay is 0 is told ─────────────────────
+// ── 1. nobody is told at INSERT: the trigger runs inside the funding write ──
 const job1 = await postJob("Pressure wash a driveway");
 for (const k of ["free", "basic", "pro", "plus", "lapsed"]) {
   check(`${k}: no alert at INSERT (job not yet in their feed)`, (await notified(U[k])) === 0, `notified ${await notified(U[k])}`);
 }
-check("elite: alerted at INSERT (delay 0 — in their feed now)", (await notified(U.elite)) === 1, `notified ${await notified(U.elite)}`);
+check("elite: not alerted at INSERT either — queued, even though already visible (no send in the funding transaction)",
+  (await notified(U.elite)) === 0, `notified ${await notified(U.elite)}`);
 check("digest-mode user: queued for the daily digest, as before",
   (await q(`SELECT count(*)::int n FROM public.match_digest_queue WHERE user_id = $1`, [U.digest]))[0].n === 1);
 const queued = RED ? [] : await q(`SELECT user_id, round(extract(epoch FROM notify_at - j.created_at) / 60)::int AS delay
                                      FROM public.saved_search_alert_queue qq JOIN public.jobs j ON j.id = qq.job_id ORDER BY 2`);
 const delayOf = (id) => queued.find((r) => r.user_id === id)?.delay;
-check("queue: notify_at = created_at + (20 - tier minutes) for each waiting user",
-  delayOf(U.plus) === 5 && delayOf(U.pro) === 10 && delayOf(U.basic) === 15 && delayOf(U.free) === 20 && delayOf(U.lapsed) === 20,
+check("queue: notify_at = created_at + (20 - tier minutes) for every non-digest match",
+  delayOf(U.elite) === 0 && delayOf(U.plus) === 5 && delayOf(U.pro) === 10 && delayOf(U.basic) === 15 && delayOf(U.free) === 20 && delayOf(U.lapsed) === 20,
   JSON.stringify(queued.map((r) => [Object.keys(U).find((k) => U[k] === r.user_id), r.delay])));
 
 // ── 2. the sweep sends exactly the ones now visible, once ──────────────────
 check("sweep exists", (await sweep()) !== null);
+check("elite: alerted by the first sweep (delay 0)", (await notified(U.elite)) === 1, `notified ${await notified(U.elite)}`);
 await ageJob(job1, 11); // plus (5) and pro (10) are visible, basic (15), free/lapsed (20) not
 await sweep();
 await sweep(); // a second run finds nothing new: no double send
@@ -160,10 +164,10 @@ await db.query(`UPDATE public.jobs SET status = 'accepted' WHERE id = $1`, [job2
 await ageJob(job2, 25);
 await sweep();
 const about2 = (await q(`SELECT count(*)::int n FROM public.notifications WHERE link = $1`, [`/home?job=${job2}`]))[0].n;
-check("job hired before visible: waiting users never alerted (elite was, at INSERT)", about2 === 1, `alerts ${about2}`);
+check("job hired before the sweep: nobody alerted, elite included", about2 === 0, `alerts ${about2}`);
 check("its queue rows are gone", RED ? false : (await q(`SELECT count(*)::int n FROM public.saved_search_alert_queue`))[0].n === 0);
 const stamped2 = (await q(`SELECT count(*)::int n FROM public.saved_searches WHERE last_notified_at IS NOT NULL`))[0].n;
-check("ST-011: a dropped alert spends no throttle (only elite stamped)", stamped2 === 1, `stamped ${stamped2}`);
+check("ST-011: a dropped alert spends no throttle", stamped2 === 0, `stamped ${stamped2}`);
 
 // ── 4. deleted job cascades; throttle spent meanwhile drops the alert ──────
 await db.exec(`UPDATE public.saved_searches SET last_notified_at = NULL`);
@@ -192,7 +196,7 @@ await ageJob(job5, 21);
 const sent5 = await sweep();
 const got5 = async (k) => (await q(`SELECT count(*)::int n FROM public.notifications WHERE user_id = $1 AND link = $2`, [U[k], `/home?job=${job5}`]))[0].n;
 check("a raising send: every other waiting user is still alerted in the same run",
-  sent5 === 4 && (await got5("free")) === 1 && (await got5("pro")) === 1 && (await got5("plus")) === 1 && (await got5("lapsed")) === 1,
+  sent5 === 5 && (await got5("elite")) === 1 && (await got5("free")) === 1 && (await got5("pro")) === 1 && (await got5("plus")) === 1 && (await got5("lapsed")) === 1,
   `sent ${sent5}`);
 check("a raising send: its notification and throttle stamp roll back, not the run's",
   (await got5("basic")) === 0
@@ -203,6 +207,46 @@ check("a raising send is logged to error_logs once", logged5.length === 1 && log
 check("a raising send does not stay queued to raise every minute",
   RED ? false : (await q(`SELECT count(*)::int n FROM public.saved_search_alert_queue`))[0].n === 0);
 await db.exec(`CREATE OR REPLACE FUNCTION net.http_post(url text, headers jsonb, body jsonb) RETURNS bigint LANGUAGE sql AS $$ INSERT INTO net.calls VALUES (body); SELECT 1::bigint $$;`);
+
+// ── 4c. ownerless job and credential-gated job: only who the feed shows ───
+await db.exec(`UPDATE public.saved_searches SET last_notified_at = NULL`);
+const job6 = await postJob("Fix a porch step");
+await db.query(`UPDATE public.jobs SET customer_id = NULL WHERE id = $1`, [job6]); // poster deleted their account
+await ageJob(job6, 21);
+await sweep();
+const about6 = (await q(`SELECT count(*)::int n FROM public.notifications WHERE link = $1`, [`/home?job=${job6}`]))[0].n;
+check("ownerless job (poster deleted): nobody alerted", about6 === 0, `alerts ${about6}`);
+check("ownerless job: its queue rows are gone", RED ? false : (await q(`SELECT count(*)::int n FROM public.saved_search_alert_queue`))[0].n === 0);
+await db.exec(`UPDATE public.saved_searches SET last_notified_at = NULL`);
+await db.query(`INSERT INTO public.cred VALUES ($1, 2), ($2, 1)`, [U.pro, U.plus]);
+const job7 = await postJob("Rewire a panel");
+await db.query(`UPDATE public.jobs SET credential_tier = 2 WHERE id = $1`, [job7]);
+await ageJob(job7, 21);
+await sweep();
+const who7 = (await q(`SELECT user_id FROM public.notifications WHERE link = $1`, [`/home?job=${job7}`])).map((r) => r.user_id);
+check("credential_tier 2 job: only the tier-2 user is alerted (tier 1 and no-credential users are not; open_jobs_browse gate)",
+  who7.length === 1 && who7[0] === U.pro, JSON.stringify(who7.map((id) => Object.keys(U).find((k) => U[k] === id))));
+
+// ── 4d. a send that cannot get its lock stays queued for the next run ─────
+await db.exec(`UPDATE public.saved_searches SET last_notified_at = NULL`);
+await db.exec(`DELETE FROM public.error_logs`);
+const job8 = await postJob("Move a couch");
+await db.exec(`CREATE OR REPLACE FUNCTION net.http_post(url text, headers jsonb, body jsonb) RETURNS bigint LANGUAGE plpgsql AS $$
+  BEGIN
+    IF body->>'user_id' = '${U.free}' THEN RAISE EXCEPTION 'simulated lock wait' USING ERRCODE = 'lock_not_available'; END IF;
+    INSERT INTO net.calls VALUES (body); RETURN 1;
+  END $$;`);
+await ageJob(job8, 21);
+await sweep();
+const got8 = async (k) => (await q(`SELECT count(*)::int n FROM public.notifications WHERE user_id = $1 AND link = $2`, [U[k], `/home?job=${job8}`]))[0].n;
+check("lock_not_available: that user's alert is not sent and not logged", (await got8("free")) === 0
+  && (await q(`SELECT count(*)::int n FROM public.error_logs`))[0].n === 0);
+check("lock_not_available: its row stays queued; the others were sent",
+  RED ? false : (await q(`SELECT count(*)::int n FROM public.saved_search_alert_queue WHERE job_id = $1 AND user_id = $2`, [job8, U.free]))[0].n === 1
+    && (await got8("pro")) === 1);
+await db.exec(`CREATE OR REPLACE FUNCTION net.http_post(url text, headers jsonb, body jsonb) RETURNS bigint LANGUAGE sql AS $$ INSERT INTO net.calls VALUES (body); SELECT 1::bigint $$;`);
+await sweep();
+check("lock_not_available: the next run sends it, once", (await got8("free")) === 1);
 
 // ── 5. the feed and the alert delay agree for every tier ───────────────────
 if (!RED) {

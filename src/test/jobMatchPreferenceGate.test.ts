@@ -16,10 +16,10 @@ import { stripSqlComments } from "../../scripts/check-migration-raise-codes.mjs"
  *
  * Four producers write type 'job_match':
  *   1. notify_helpers_on_job_post        (trigger — parish fan-out)
- *   2. deliver_saved_search_alert        (saved searches: called by the
- *                                         notify_saved_searches_on_new_job
- *                                         trigger and the every-minute
- *                                         saved-search-alert-queue sweep)
+ *   2. deliver_saved_search_alert        (saved searches: called only by
+ *                                         the every-minute
+ *                                         saved-search-alert-queue sweep;
+ *                                         the trigger queues)
  *   3. sweep_daily_job_digest            (cron — daily parish digest)
  *   4. supabase/functions/instant-job-match (edge function)
  *

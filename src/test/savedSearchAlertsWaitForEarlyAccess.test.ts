@@ -12,23 +12,33 @@
  * (RED on the previous definitions with NEW_MIGRATION=skip: free/basic/pro/plus
  * alerted at INSERT). This file pins the shape of the NEWEST definitions so a
  * later CREATE OR REPLACE cannot bring the early send back:
- *   - the trigger sends only through deliver_saved_search_alert, and only when
- *     early_access_visible_at() <= now(); otherwise it queues;
- *   - deliver_saved_search_alert refuses a job not yet visible to the user;
- *   - the sweep deletes a locked row before sending it (no double send);
+ *   - the trigger never sends: it runs inside the funding write (stripe-webhook
+ *     sets payment_status = 'escrow'), so it only QUEUES, even an already
+ *     visible match, and takes no saved_searches lock that could deadlock
+ *     with the sweep and cancel the funding transaction;
+ *   - deliver_saved_search_alert refuses a job not yet visible to the user,
+ *     an ownerless job, and a job above the user's credential tier (the
+ *     open_jobs_browse gate);
+ *   - the sweep deletes a locked row before sending it (no double send),
+ *     takes rows in (user_id, id) order, bounds lock waits, and takes the
+ *     job row NOWAIT so it never waits on the funding transaction;
  *   - deliver locks the matched saved_searches rows before reading the hourly
- *     throttle, so the trigger and the sweep cannot both send for one search;
+ *     throttle, so two sweeps cannot both send for one search;
  *   - a send that raises is logged and does not roll back the rest of a run;
  *   - the early-access tier ladder has ONE definition, early_access_delay_minutes,
  *     which both the feed cutoff and the alert delay read.
  *
- * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |       IF v_visible_at <= now() THEN |       IF true THEN
+ * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |       INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids) |       PERFORM public.deliver_saved_search_alert(match_record.user_id, NEW.id, match_record.search_name, match_record.matched_search_ids);\n      INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids)
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
- * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |     DELETE FROM public.saved_search_alert_queue WHERE id = r.id; |     NULL;
+ * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |      OR v_job.customer_id IS NULL\n |
+ * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |      OR (COALESCE(v_job.credential_tier, 0) <> 0 | OR (false
+ * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |      DELETE FROM public.saved_search_alert_queue WHERE id = r.id;\n      IF public.deliver |      IF public.deliver
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |        FOR UPDATE OF q SKIP LOCKED |        FOR UPDATE OF q
+ * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |      ORDER BY q.user_id, q.id |      ORDER BY q.id
+ * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql | WHERE id = p_job_id FOR SHARE NOWAIT; | WHERE id = p_job_id FOR SHARE;
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |   SELECT now() - make_interval(mins => public.early_access_delay_minutes((SELECT auth.uid()))); |   SELECT now() - make_interval(mins => 20 - COALESCE((SELECT CASE WHEN p.subscription_tier = 'elite' THEN 20 WHEN p.subscription_tier = 'plus' THEN 15 WHEN p.subscription_tier = 'pro' THEN 10 WHEN p.subscription_tier = 'basic' THEN 5 ELSE 0 END FROM public.profiles p WHERE p.user_id = (SELECT auth.uid())), 0));
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |          FOR UPDATE\n    ) x; |     ) x;
- * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |     EXCEPTION WHEN OTHERS THEN\n      -- One row | --     EXCEPTION WHEN OTHERS THEN\n      -- One row
+ * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |       WHEN OTHERS THEN\n        -- One row |       WHEN division_by_zero THEN\n        -- One row
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql | REVOKE ALL ON TABLE public.saved_search_alert_queue FROM PUBLIC, anon, authenticated; | GRANT SELECT ON TABLE public.saved_search_alert_queue TO authenticated;
  */
 import { describe, it, expect } from "vitest";
@@ -72,22 +82,17 @@ describe("saved-search alerts wait for early access (V-008)", () => {
     expect(bodies.size).toBeGreaterThan(300);
   });
 
-  it("the trigger sends only through deliver_saved_search_alert, and only once the job is visible", () => {
+  it("the trigger never sends and never locks: every non-digest match is queued (it runs inside the funding write)", () => {
     const { file, body } = get("notify_saved_searches_on_new_job");
     const b = ws(body);
-    // No direct send left in the trigger.
+    expect(b, file).not.toMatch(/deliver_saved_search_alert/i);
     expect(b, file).not.toMatch(/INSERT INTO public\.notifications/i);
     expect(b, file).not.toMatch(/net\.http_post/i);
-    expect(b, file).toContain("v_visible_at := public.early_access_visible_at(match_record.user_id, NEW.created_at);");
-    const gate = b.indexOf("IF v_visible_at <= now() THEN");
-    const send = b.indexOf("PERFORM public.deliver_saved_search_alert(");
-    const queue = b.indexOf("INSERT INTO public.saved_search_alert_queue");
-    const orElse = b.indexOf("ELSE", send);
-    expect(gate, `${file}: no visible_at gate`).toBeGreaterThan(0);
-    expect(send, `${file}: the send is not under the gate`).toBeGreaterThan(gate);
-    expect(orElse, `${file}: no ELSE after the send`).toBeGreaterThan(send);
-    expect(queue, `${file}: a not-yet-visible match is not queued`).toBeGreaterThan(orElse);
-    expect([...b.matchAll(/deliver_saved_search_alert\(/g)].length, file).toBe(1);
+    expect(b, file).not.toMatch(/UPDATE public\.saved_searches/i);
+    expect(b, file).not.toMatch(/\bFOR (?:UPDATE|SHARE|NO KEY UPDATE|KEY SHARE)\b/i);
+    expect(b, file).toContain(
+      "v_visible_at := public.early_access_visible_at(match_record.user_id, NEW.created_at); INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids) VALUES (match_record.user_id, NEW.id, v_visible_at, match_record.search_name, match_record.matched_search_ids) ON CONFLICT (user_id, job_id) DO NOTHING;",
+    );
   });
 
   it("deliver_saved_search_alert refuses a job not yet in the user's feed, before any write", () => {
@@ -103,17 +108,37 @@ describe("saved-search alerts wait for early access (V-008)", () => {
     expect(b).toMatch(/IF v_job\.status <> 'open' OR COALESCE\(v_job\.payment_status, ''\) <> ALL/);
   });
 
-  it("the sweep deletes a locked row before sending it, and sends only visible rows", () => {
+  it("deliver refuses an ownerless job and a job above the recipient's credential tier (open_jobs_browse's gates)", () => {
+    const { file, body } = get("deliver_saved_search_alert");
+    const b = ws(body);
+    const gate = b.slice(b.indexOf("IF v_job.status <> 'open'"), b.indexOf("THEN RETURN false;", b.indexOf("IF v_job.status <> 'open'")));
+    expect(gate.length, file).toBeGreaterThan(100);
+    expect(gate, file).toContain("OR v_job.customer_id IS NULL");
+    // The view: COALESCE(credential_tier, 0) = 0 OR ... OR COALESCE(my_credential_tier(), 0) >= credential_tier,
+    // where my_credential_tier() = COALESCE(get_user_credential_tier(auth.uid()), 0).
+    expect(gate, file).toContain(
+      "OR (COALESCE(v_job.credential_tier, 0) <> 0 AND COALESCE(public.get_user_credential_tier(p_user_id), 0) < v_job.credential_tier)",
+    );
+    const view = files.filter((f) => /VIEW public\.open_jobs_browse\b[\s\S]*credential_tier/.test(f.sql)).pop();
+    expect(view, "open_jobs_browse no longer gates on credential_tier: re-read this guard").toBeTruthy();
+    expect(ws(view!.sql)).toContain("COALESCE(( SELECT my_credential_tier() AS my_credential_tier), 0) >= credential_tier");
+    const mine = ws(get("my_credential_tier").body);
+    expect(mine).toContain("COALESCE(public.get_user_credential_tier(auth.uid()), 0)");
+  });
+
+  it("the sweep deletes a locked row before sending it, sends only visible rows, and never waits on the funding write", () => {
     const { file, body } = get("sweep_saved_search_alert_queue");
     const b = ws(body);
-    expect(b, file).toContain("FOR UPDATE OF q SKIP LOCKED");
-    const visible = b.indexOf("IF v_visible_at > now() THEN");
-    const del = b.indexOf("DELETE FROM public.saved_search_alert_queue WHERE id = r.id;");
-    const send = b.indexOf("public.deliver_saved_search_alert(");
-    expect(b).toContain("v_visible_at := public.early_access_visible_at(r.user_id, r.job_created_at);");
-    expect(visible, file).toBeGreaterThan(0);
-    expect(del, `${file}: row not deleted`).toBeGreaterThan(visible);
-    expect(send, `${file}: sent before the row is deleted`).toBeGreaterThan(del);
+    expect(b, file).toContain("PERFORM set_config('lock_timeout', '5s', true);");
+    expect(b, file).toContain(
+      "WHERE public.early_access_visible_at(q.user_id, j.created_at) <= now() ORDER BY q.user_id, q.id LIMIT 1000 FOR UPDATE OF q SKIP LOCKED",
+    );
+    const del = b.indexOf("DELETE FROM public.saved_search_alert_queue WHERE id = r.id; IF public.deliver_saved_search_alert(");
+    expect(del, `${file}: row not deleted before the send`).toBeGreaterThan(0);
+    // A lock it cannot get keeps the row (the block's DELETE rolls back) for the next run.
+    expect(b, file).toMatch(/EXCEPTION WHEN lock_not_available THEN NULL; WHEN OTHERS THEN/);
+    const d = ws(get("deliver_saved_search_alert").body);
+    expect(d).toContain("SELECT * INTO v_job FROM public.jobs WHERE id = p_job_id FOR SHARE NOWAIT;");
   });
 
   it("deliver locks the matched searches before reading the throttle (no concurrent double send)", () => {
@@ -129,7 +154,7 @@ describe("saved-search alerts wait for early access (V-008)", () => {
     const { file, body } = get("sweep_saved_search_alert_queue");
     const b = ws(body);
     expect(b, file).toMatch(
-      /DELETE FROM public\.saved_search_alert_queue WHERE id = r\.id; BEGIN IF public\.deliver_saved_search_alert\([^;]*; END IF; EXCEPTION WHEN OTHERS THEN INSERT INTO public\.error_logs \(severity, message, tags\) VALUES \('error', 'saved-search alert not sent: ' \|\| SQLERRM, jsonb_build_object\('source', 'saved-search-alert-queue' \|\| CASE WHEN r\.job_is_seed THEN '-seed' ELSE '' END/,
+      /WHEN OTHERS THEN DELETE FROM public\.saved_search_alert_queue WHERE id = r\.id; INSERT INTO public\.error_logs \(severity, message, tags\) VALUES \('error', 'saved-search alert not sent: ' \|\| SQLERRM, jsonb_build_object\('source', 'saved-search-alert-queue' \|\| CASE WHEN r\.job_is_seed THEN '-seed' ELSE '' END/,
     );
   });
 

@@ -9,8 +9,8 @@
  * The match query (and its throttle filter) is the trigger
  * notify_saved_searches_on_new_job; the stamp is taken in
  * deliver_saved_search_alert, the one function that sends a saved-search alert
- * (immediately from the trigger, or later from the saved-search-alert-queue
- * sweep, V-008).
+ * (only from the every-minute saved-search-alert-queue sweep; the trigger
+ * queues every non-digest match, V-008).
  *
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |         OR (COALESCE(np.match_digest_mode, false) AND NOT v_is_urgent) -- ST-011 digest unthrottled |         OR false -- ST-011 digest unthrottled
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |   -- Switched to the daily digest while this alert waited: batch it there. |   UPDATE public.saved_searches SET last_notified_at = now() WHERE id = ANY(p_search_ids);

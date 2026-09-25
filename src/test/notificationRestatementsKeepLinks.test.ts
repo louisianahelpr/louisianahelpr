@@ -64,7 +64,7 @@ const INTENDED_LINK_CHANGES = new Set([
   "20260923211309_referral_bonus_links_and_apostrophe.sql::check_referral_bonus",
   // V-008: the trigger no longer sends; its '/home?job=' || id link and the
   // email call live in deliver_saved_search_alert, the one saved-search send
-  // path (immediate and deferred), with the same link.
+  // path (called by the queue sweep), with the same link.
   "20260925053412_saved_search_alerts_wait_for_early_access.sql::notify_saved_searches_on_new_job",
 ]);
 

@@ -21,6 +21,7 @@
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   IF NEW.series_split_ok IS DISTINCT FROM OLD.series_split_ok | IF false
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   WHEN (OLD.recurring_helper_id IS DISTINCT FROM NEW.recurring_helper_id) |   WHEN (false)
+ * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |       IF v_holder = v_uid THEN\n        v_already := v_already || v_d; |       IF false THEN\n        v_already := v_already || v_d;
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   WITH me AS (SELECT (SELECT auth.uid()) AS p_uid) |   WITH me AS (SELECT p_parent AS p_uid)
  * @mutate supabase/migrations/20260925160644_hired_job_schedule_lock.sql |                         AND (SELECT auth.uid()) IN (j.customer_id, j.helper_id)) THEN |                         AND true) THEN
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |         PERFORM set_config('app.series_claim_rpc', '1', true);\n        INSERT INTO public.applications | INSERT INTO public.applications
@@ -100,6 +101,13 @@ describe("recurring split days (Q407 4-6)", () => {
     expect(cancel).toMatch(/\n {2}IF public\.is_late_cancellation\(true, EXTRACT\(EPOCH FROM \(v_starts_at - now\(\)\)\) \/ 3600\.0\) THEN/);
     // A cancelled series visit goes back to the series, not to the public.
     expect(cancel).toMatch(/IF v_job\.parent_job_id IS NOT NULL THEN\s+PERFORM public\.series_release_dates\(/);
+  });
+
+  it("LOW-6: a claim of the caller's own date is already_yours, never taken", () => {
+    const claim = newestFunction("claim_series_dates").body;
+    expect(claim).toMatch(/IF v_holder = v_uid THEN\s+v_already := v_already \|\| v_d;\s+ELSE\s+v_taken := v_taken \|\| v_d;/);
+    expect(claim).toMatch(/IF v_child_helper = v_uid THEN\s+v_already := v_already \|\| v_d;/);
+    expect(claim).toMatch(/'already_yours', to_jsonb\(v_already\)/);
   });
 
   it("LOW-2: is_series_party and job_has_crew answer only about the caller", () => {

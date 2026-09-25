@@ -11,6 +11,7 @@
  * @mutate src/lib/seriesDates.ts |     .filter((d) => d > input.firstVisit && d > input.today) |     .filter((d) => d > input.today)
  * @mutate src/components/series/SeriesDatesPanel.tsx | d.state === "released" && d.releasedBy !== userId && onSeries | d.state === "released" && onSeries
  * @mutate src/components/series/SeriesDatesPanel.tsx | const r = await claimSeriesDates(jobId, pickedOpen); | const r = await claimSeriesDates(jobId, picked);
+ * @mutate src/lib/seriesDates.ts | alreadyYours: r.already_yours ?? [] }; | alreadyYours: [] };
  * @mutate src/lib/seriesDates.ts |       if (isNotDeployedYet(r.error)) return null; |       if (false) return null;
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -113,6 +114,23 @@ describe("SeriesDatesPanel", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: "Wed, Sep 16" }));
     fireEvent.click(screen.getByRole("button", { name: /Pick 1 date/ }));
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("claim_series_dates", { p_job_id: "p1", p_dates: ["2026-09-16"] }));
+  });
+
+  it("LOW-6: a double tap on your own date says it is already yours, not that it was taken", async () => {
+    const { toast } = await import("sonner");
+    tables.value = {
+      series_visit_holds: { data: [{ visit_date: "2026-09-09", helper_id: ME }], error: null },
+      recurring_visit_releases: { data: [{ visit_date: "2026-09-16", helper_id: OTHER }], error: null },
+      series_date_offers: { data: [], error: null },
+      jobs: { data: [], error: null },
+    };
+    rpc.mockResolvedValue({ data: { claimed: [], taken: [], refused: [], already_yours: ["2026-09-16"] }, error: null });
+    renderPanel();
+    fireEvent.click(await screen.findByRole("button", { name: /A date opened up — pick it up/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Wed, Sep 16" }));
+    fireEvent.click(screen.getByRole("button", { name: /Pick 1 date/ }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("That date is already yours."));
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it("never offers a Helpr the date they gave up themselves", async () => {

@@ -592,6 +592,8 @@ DECLARE
   v_claimed date[] := ARRAY[]::date[];
   v_taken date[] := ARRAY[]::date[];
   v_refused date[] := ARRAY[]::date[];
+  v_already date[] := ARRAY[]::date[];
+  v_holder uuid;
   v_name text;
   v_list text;
 BEGIN
@@ -658,7 +660,12 @@ BEGIN
     IF v_child_id IS NOT NULL
        AND NOT (v_child_status = 'open' AND v_child_helper IS NULL
                 AND ((v_d + COALESCE(v_child_start, '00:00'::time)) AT TIME ZONE 'America/Chicago') > now()) THEN
-      v_taken := v_taken || v_d;
+      -- Review LOW-6: a double tap is not "taken" when the visit is yours.
+      IF v_child_helper = v_uid THEN
+        v_already := v_already || v_d;
+      ELSE
+        v_taken := v_taken || v_d;
+      END IF;
       CONTINUE;
     END IF;
     -- An uncreated date must still be fundable: charge-recurring-visits runs
@@ -673,8 +680,16 @@ BEGIN
     -- Someone already holds it (the other claimer of a race committed first):
     -- `taken`, before the pick-up rule below reads the release row that claim
     -- just deleted.
-    IF EXISTS (SELECT 1 FROM public.series_visit_holds h WHERE h.parent_job_id = v_job.id AND h.visit_date = v_d) THEN
-      v_taken := v_taken || v_d;
+    v_holder := NULL;
+    SELECT h.helper_id INTO v_holder
+      FROM public.series_visit_holds h WHERE h.parent_job_id = v_job.id AND h.visit_date = v_d;
+    IF v_holder IS NOT NULL THEN
+      -- Review LOW-6: the caller's own date (a double tap) is already_yours.
+      IF v_holder = v_uid THEN
+        v_already := v_already || v_d;
+      ELSE
+        v_taken := v_taken || v_d;
+      END IF;
       CONTINUE;
     END IF;
     v_releaser := NULL;
@@ -725,7 +740,8 @@ BEGIN
             'job_updates', '/posts?job=' || v_job.id::text);
   END IF;
 
-  RETURN jsonb_build_object('claimed', to_jsonb(v_claimed), 'taken', to_jsonb(v_taken), 'refused', to_jsonb(v_refused));
+  RETURN jsonb_build_object('claimed', to_jsonb(v_claimed), 'taken', to_jsonb(v_taken), 'refused', to_jsonb(v_refused),
+                            'already_yours', to_jsonb(v_already));
 END;
 $fn$;
 

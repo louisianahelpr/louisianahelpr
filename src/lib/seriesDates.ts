@@ -120,14 +120,15 @@ function seriesRpcError(error: { code?: string | null; message?: string | null }
   return new Error(copy ?? error.message ?? "Something went wrong. Please try again.");
 }
 
-export interface ClaimResult { claimed: string[]; taken: string[]; refused: string[] }
+/** `alreadyYours`: dates the caller already held (a double tap; review LOW-6). */
+export interface ClaimResult { claimed: string[]; taken: string[]; refused: string[]; alreadyYours: string[] }
 
 /** Pick visit dates (the first Helpr, an offered Helpr, or a pick-up). */
 export async function claimSeriesDates(jobId: string, dates: string[]): Promise<ClaimResult> {
   const { data, error } = await supabase.rpc("claim_series_dates", { p_job_id: jobId, p_dates: dates });
   if (error) throw seriesRpcError(error, rpcErrorMessage("claim_series_dates", error));
-  const r = (data ?? {}) as Partial<ClaimResult>;
-  return { claimed: r.claimed ?? [], taken: r.taken ?? [], refused: r.refused ?? [] };
+  const r = (data ?? {}) as { claimed?: string[]; taken?: string[]; refused?: string[]; already_yours?: string[] };
+  return { claimed: r.claimed ?? [], taken: r.taken ?? [], refused: r.refused ?? [], alreadyYours: r.already_yours ?? [] };
 }
 
 /** Hand dates back to the series. `strike` = one started within 24 hours. */

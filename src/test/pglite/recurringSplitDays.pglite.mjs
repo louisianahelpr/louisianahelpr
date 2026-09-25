@@ -124,6 +124,12 @@ check("the first Helpr claims open dates; a past date and visit one are refused"
 n = (await db.query(`select message from public.notifications where user_id='${P}' and job_id='${J(2)}' and title like 'Visit dates were picked up'`)).rows;
 check("the poster is told who took which dates", n.length === 1 && /User 2 took/.test(n[0].message), JSON.stringify(n));
 
+// LOW-6: a double tap reports the caller's own dates as theirs, not "taken".
+r = await as(db, "authenticated", A, `select public.claim_series_dates('${J(2)}', array[${d(5)}, ${d(6)}]) as v`);
+check("a second claim of your own dates says already_yours, not taken",
+  r.ok && JSON.stringify(r.rows[0].v.already_yours) === JSON.stringify([D5, D6]) && r.rows[0].v.taken.length === 0 && r.rows[0].v.claimed.length === 0,
+  r.err ?? JSON.stringify(r.rows?.[0]));
+
 // 5. The poster offers the rest to someone who applied.
 r = await as(db, "authenticated", P, `select public.offer_series_dates('${J(2)}', '${B}') as v`);
 check("an offer needs a pending application", refused(r, /not_an_applicant/), r.err);

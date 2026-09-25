@@ -205,6 +205,9 @@ export function SeriesDatesPanel({
                 onClick={() =>
                   run(async () => {
                     const r = await claimSeriesDates(jobId, pickedOpen);
+                    if (r.claimed.length === 0 && r.alreadyYours.length > 0 && r.taken.length + r.refused.length === 0) {
+                      return r.alreadyYours.length === 1 ? "That date is already yours." : "Those dates are already yours.";
+                    }
                     if (r.claimed.length === 0) throw new Error("Those dates were taken or can't be booked in time any more.");
                     const lost = r.taken.length + r.refused.length;
                     return `You have ${r.claimed.length} more date${r.claimed.length === 1 ? "" : "s"}.${lost ? ` ${lost} couldn't be added.` : ""}`;

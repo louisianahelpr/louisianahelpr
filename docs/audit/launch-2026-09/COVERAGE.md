@@ -4,28 +4,10 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: node scripts/audit-coverage.mjs -->
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-Generated from findings.jsonl as of its newest entry: 2026-09-25T05:30:58.028Z
-
-- **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 27 open (3 open launch blockers), 334 fixed, 1 wontfix, 22 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
-=======
-Generated from findings.jsonl as of its newest entry: 2026-09-25T05:45:13.093Z
-=======
-Generated from findings.jsonl as of its newest entry: 2026-09-25T05:47:10.977Z
->>>>>>> 3fa8d8f2f (chore(audit-bus): re-verification notes for the open findings; OA-004 follow-up is Q389)
+Generated from findings.jsonl as of its newest entry: 2026-09-25T14:01:39.785Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
 - **Findings:** 25 open (3 open launch blockers), 336 fixed, 1 wontfix, 22 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
->>>>>>> 290de6256 (fix(money): auto-tip anchored on completion and opt-in time (CJ-008))
-=======
-Generated from findings.jsonl as of its newest entry: 2026-09-25T05:35:08.052Z
-
-- **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 26 open (3 open launch blockers), 335 fixed, 1 wontfix, 22 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
->>>>>>> 3d464f300 (fix(auth): name the native session store for what it is (OA-004))
 - **Surface:** 1032 auditable surfaces (446 navigable, 586 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are

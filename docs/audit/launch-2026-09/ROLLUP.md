@@ -1,24 +1,8 @@
 # Launch audit — findings rollup
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-_Generated from findings.jsonl as of its newest entry (2026-09-25T05:30:58.028Z). Do not hand-edit — run `node scripts/audit-bus.mjs rollup`._
-
-**27 open findings** · 3 open launch blockers · 334 fixed · 1 wontfix · 22 obsolete · 14 retracted · 31 duplicate · 429 filed all time
-=======
-_Generated from findings.jsonl as of its newest entry (2026-09-25T05:45:13.093Z). Do not hand-edit — run `node scripts/audit-bus.mjs rollup`._
-=======
-_Generated from findings.jsonl as of its newest entry (2026-09-25T05:47:10.977Z). Do not hand-edit — run `node scripts/audit-bus.mjs rollup`._
->>>>>>> 3fa8d8f2f (chore(audit-bus): re-verification notes for the open findings; OA-004 follow-up is Q389)
+_Generated from findings.jsonl as of its newest entry (2026-09-25T14:01:39.785Z). Do not hand-edit — run `node scripts/audit-bus.mjs rollup`._
 
 **25 open findings** · 3 open launch blockers · 336 fixed · 1 wontfix · 22 obsolete · 14 retracted · 31 duplicate · 429 filed all time
->>>>>>> 290de6256 (fix(money): auto-tip anchored on completion and opt-in time (CJ-008))
-=======
-_Generated from findings.jsonl as of its newest entry (2026-09-25T05:35:08.052Z). Do not hand-edit — run `node scripts/audit-bus.mjs rollup`._
-
-**26 open findings** · 3 open launch blockers · 335 fixed · 1 wontfix · 22 obsolete · 14 retracted · 31 duplicate · 429 filed all time
->>>>>>> 3d464f300 (fix(auth): name the native session store for what it is (OA-004))
 
 ## HIGH (113)
 

@@ -63,7 +63,7 @@ type PhotoProofProps = {
  * the caller's roster row on a crew. Throws on a refusal, so the dialog never
  * closes as if photos were attached when nothing was.
  */
-export async function saveProofPaths(jobId: string, type: "before" | "after", urls: string[], crew: boolean): Promise<void> {
+async function saveProofPaths(jobId: string, type: "before" | "after", urls: string[], crew: boolean): Promise<void> {
   if (crew) {
     const { data, error } = await supabase.rpc(
       "rpc_group_member_set_proof",

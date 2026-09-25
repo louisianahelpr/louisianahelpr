@@ -48,8 +48,8 @@ function seedCrew({ transfers, jobPatch = {} }: { transfers: Array<Record<string
 
 /** The JOB row of a crew cancelled late (a jobs patch, not a ledger row). */
 const CANCELLED_CREW_JOB: Record<string, unknown> = {
-  status: "cancelled", payment_status: "refunded", date_needed: "2026-09-25", start_time: "10:00:00",
-  cancelled_at: "2026-09-25T14:00:00Z", cancellation_fee: 50, cancellation_fee_status: "charged",
+  status: "cancelled", payment_status: "refunded", date_needed: "2024-06-25", start_time: "10:00:00",
+  cancelled_at: "2024-06-25T14:00:00Z", cancellation_fee: 50, cancellation_fee_status: "charged",
 };
 
 const paid = (helper: string, amount: number, fee: number) => ({

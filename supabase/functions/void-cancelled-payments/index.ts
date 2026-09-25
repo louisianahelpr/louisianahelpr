@@ -412,6 +412,9 @@ serve(async (req) => {
     // any transfer Stripe is asked (once per job, fail closed) which members'
     // fee transfers already exist in the job's transfer group; one that exists
     // repairs the ledger instead of paying again.
+    /** The crew ledger table is not deployed yet (42P01 / PGRST205). */
+    const isMissingTable = (e: { code?: string; message?: string } | null) =>
+      !!e && (e.code === "42P01" || e.code === "PGRST205" || /does not exist|could not find the table/i.test(e.message ?? ""));
     type CrewShare = {
       id: string;
       helper_id: string | null;
@@ -421,15 +424,11 @@ serve(async (req) => {
       status: string;
       stripe_transfer_id: string | null;
     };
-    // Jobs whose crew shares Part A handled this run: Part D does not retry
-    // them in the same run.
-    const crewJobsHandled = new Set<string>();
     const payCrewCancellationFees = async (
       job: { id: string; title: string; helper_fee_percent?: number | string | null },
       shares: CrewShare[],
       pi: Stripe.PaymentIntent,
     ) => {
-      crewJobsHandled.add(job.id);
       const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0 && s.status !== "paid");
       if (owed.length === 0) return;
       const feeGroup = `job_${job.id}`;
@@ -763,7 +762,53 @@ serve(async (req) => {
     let refunded = 0;
     const results: any[] = [];
 
-    for (const job of (jobs || [])) {
+    // ── Part D: crew fee shares still owed after their job settled ──────────
+    // (money review MEDIUM-6.) Part A settles a cancelled crew once the poster's
+    // refund and the fee capture are done, which takes the job out of its own
+    // selection; a member whose transfer failed (no payout account yet, a
+    // Stripe error) would then never be retried. So every run collects every
+    // pending or failed share with money on it, on a crew job whose fee was
+    // captured, and pays it INSIDE the loop below, AFTER the same unsettled-
+    // dispute check every Part A job passes (Q231), with the same dedupe
+    // (ledger + Stripe transfer group) and per-member idempotency key, so a
+    // retry can never pay twice. A share already marked failed pages once.
+    let crewSharesRetried = 0;
+    const crewRetryShares = new Map<string, CrewShare[]>();
+    const crewRetryJobs: Array<Record<string, unknown>> = [];
+    const { data: owedShares, error: owedErr } = await supabaseAdmin
+      .from("crew_cancellation_fee_shares")
+      .select("id, job_id, helper_id, committed, share_basis_cents, share_amount, status, stripe_transfer_id")
+      .in("status", ["pending", "failed"])
+      .gt("share_amount", 0)
+      .limit(200);
+    if (owedErr && isMissingTable(owedErr)) {
+      // Not deployed yet (money review MEDIUM-5): nothing can be owed.
+    } else if (owedErr) {
+      console.error("[void-cancelled-payments] crew share retry read failed:", owedErr.message);
+      defects.record(`crew share retry read: ${owedErr.message}`);
+    } else {
+      for (const row of (owedShares ?? []) as Array<CrewShare & { job_id: string }>) {
+        const list = crewRetryShares.get(row.job_id) ?? [];
+        list.push(row);
+        crewRetryShares.set(row.job_id, list);
+      }
+      if (crewRetryShares.size > 0) {
+        const { data: settledJobs, error: settledErr } = await supabaseAdmin
+          .from("jobs")
+          .select("id, title, helper_fee_percent, payment_status, cancellation_fee_status, stripe_payment_intent_id")
+          .in("id", [...crewRetryShares.keys()])
+          // Only a job whose fee Part A captured: one still in escrow is Part A's own.
+          .eq("payment_status", "refunded")
+          .eq("cancellation_fee_status", "charged");
+        if (settledErr) {
+          defects.record(`crew share retry job read: ${settledErr.message}`);
+        } else {
+          for (const sj of settledJobs ?? []) crewRetryJobs.push({ ...sj, crew_share_retry: true });
+        }
+      }
+    }
+
+    for (const job of [...(jobs || []), ...crewRetryJobs] as any[]) {
       // ── Not a job whose escrow an admin's dispute decision owns ──────────
       // rpc_decide_dispute moves a poster-wins decision to status 'cancelled'
       // with the escrow still held for execute-dispute-split — exactly the
@@ -781,6 +826,25 @@ serve(async (req) => {
           console.log(`[void-cancelled-payments] job ${job.id} has an unexecuted dispute decision (${settlement.dispute?.id}); leaving the escrow to execute-dispute-split.`);
         }
         results.push({ job_id: job.id, title: job.title, status: settlement.readError ? "dispute_check_failed" : "dispute_decision_pending" });
+        continue;
+      }
+
+      // Part D: a settled crew with fee shares still owed. Nothing else in
+      // this loop applies to it (its escrow already left 'escrow').
+      if (job.crew_share_retry) {
+        const shares = crewRetryShares.get(job.id) ?? [];
+        if (!job.stripe_payment_intent_id) {
+          defects.record(`crew share retry ${job.id}: no payment intent to draw the fee from`);
+          continue;
+        }
+        try {
+          const retryPi = await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
+          await payCrewCancellationFees(job, shares, retryPi);
+          crewSharesRetried += shares.length;
+          results.push({ job_id: job.id, title: job.title, status: "crew_shares_retried", shares: shares.length });
+        } catch (retryErr) {
+          defects.record(`crew share retry ${job.id}: ${(retryErr as Error)?.message ?? retryErr}`);
+        }
         continue;
       }
 
@@ -871,7 +935,11 @@ serve(async (req) => {
           .from("crew_cancellation_fee_shares")
           .select("id, helper_id, committed, share_basis_cents, share_amount, status, stripe_transfer_id")
           .eq("job_id", job.id);
-        if (shareErr) {
+        // DEPLOY ORDER (money review MEDIUM-5): before 20260925154606 the
+        // ledger does not exist, and no crew without a lead can exist either
+        // (the no-lead backfill is in the same migration), so "no table" is
+        // "no shares". Any other read error fails closed.
+        if (shareErr && !isMissingTable(shareErr)) {
           console.error(`[void-cancelled-payments] crew fee ledger read failed for job ${job.id}; not settling:`, shareErr.message);
           defects.record(`crew fee ledger read ${job.id}: ${shareErr.message} — not settled`);
           results.push({ job_id: job.id, title: job.title, status: "crew_shares_read_failed" });
@@ -1183,59 +1251,6 @@ serve(async (req) => {
             "gift frozen on a cancelled, never-funded job",
           );
           if (outcome === "unreserved" || outcome === "restored") giftsUnfrozen++;
-        }
-      }
-    }
-
-    // ── Part D: crew fee shares still owed after their job settled ──────────
-    // (money review MEDIUM-6.) Part A settles a cancelled crew once the poster's
-    // refund and the fee capture are done, which takes the job out of its own
-    // selection; a member whose transfer failed (no payout account yet, a
-    // Stripe error) would then never be retried. Every run retries every
-    // pending or failed share with money on it, on a job whose fee was
-    // captured, with the same dedupe (ledger + Stripe transfer group) and the
-    // same per-member idempotency key, so a retry can never pay twice. A share
-    // already marked failed pages once, not every hour.
-    let crewSharesRetried = 0;
-    const { data: owedShares, error: owedErr } = await supabaseAdmin
-      .from("crew_cancellation_fee_shares")
-      .select("id, job_id, helper_id, committed, share_basis_cents, share_amount, status, stripe_transfer_id")
-      .in("status", ["pending", "failed"])
-      .gt("share_amount", 0)
-      .limit(200);
-    if (owedErr) {
-      console.error("[void-cancelled-payments] crew share retry read failed:", owedErr.message);
-      defects.record(`crew share retry read: ${owedErr.message}`);
-    } else {
-      const byJob = new Map<string, CrewShare[]>();
-      for (const row of (owedShares ?? []) as Array<CrewShare & { job_id: string }>) {
-        if (crewJobsHandled.has(row.job_id)) continue;
-        const list = byJob.get(row.job_id) ?? [];
-        list.push(row);
-        byJob.set(row.job_id, list);
-      }
-      for (const [jobId, shares] of byJob) {
-        const { data: settledJob, error: settledErr } = await supabaseAdmin
-          .from("jobs")
-          .select("id, title, helper_fee_percent, payment_status, cancellation_fee_status, stripe_payment_intent_id")
-          .eq("id", jobId)
-          .maybeSingle();
-        if (settledErr || !settledJob) {
-          defects.record(`crew share retry job read ${jobId}: ${settledErr?.message ?? "not found"}`);
-          continue;
-        }
-        // Only a job whose fee Part A captured: one still in escrow is Part A's.
-        if (settledJob.payment_status !== "refunded" || settledJob.cancellation_fee_status !== "charged") continue;
-        if (!settledJob.stripe_payment_intent_id) {
-          defects.record(`crew share retry ${jobId}: no payment intent to draw the fee from`);
-          continue;
-        }
-        try {
-          const retryPi = await stripe.paymentIntents.retrieve(settledJob.stripe_payment_intent_id);
-          await payCrewCancellationFees(settledJob as { id: string; title: string; helper_fee_percent?: number | string | null }, shares, retryPi);
-          crewSharesRetried += shares.length;
-        } catch (retryErr) {
-          defects.record(`crew share retry ${jobId}: ${(retryErr as Error)?.message ?? retryErr}`);
         }
       }
     }

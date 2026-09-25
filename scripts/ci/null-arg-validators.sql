@@ -51,6 +51,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('identity_is_verified',          'allow',    'identity badge / hire gate verdict'),
   ('is_party_to_job',               'allow',    'user is a party to the job'),
   ('is_party_to_job_folder',        'allow',    'caller is a party to the job owning this storage folder'),
+  ('is_crew_member_of_job_folder',  'allow',    'caller is on the crew of the job owning this storage folder (Q407)'),
   ('job_is_funded',                 'allow',    'job escrow is funded (applications WITH CHECK)'),
   ('job_payment_is_funded',         'allow',    'payment_status counts as funded (award + apply gates)'),
   ('user_has_pending_application',  'allow',    'user applied to the job'),
@@ -74,6 +75,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_caller_banned',              'noarg',    'reads auth.uid() only'),
   ('is_server_context',             'noarg',    'reads the session only'),
   ('seed_jobs_hidden_publicly',     'noarg',    'reads the launch switch only'),
+  ('crew_fee_pays_unconfirmed',     'noarg',    'owner rule constant (Q407): unconfirmed crew members share the late fee'),
+  ('crew_completes_when_hired_done','noarg',    'owner rule constant (Q407): an under-filled crew completes when every hired member is done'),
   ('clear_thread_mute',             'action',   'RPC'),
   ('delete_email',                  'action',   'pgmq wrapper'),
   ('deliver_saved_search_alert',    'action',   'saved-search send (writes; true = sent)'),
@@ -110,6 +113,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('identity_is_verified',          NULL, ARRAY['''unverified''', 'true'], ARRAY[2]),
   ('is_party_to_job',               NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
   ('is_party_to_job_folder',        '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101/x.png'''], ARRAY[1]),
+  -- B is on J's crew (the 'roster' fixture step), so the non-NULL call is TRUE.
+  ('is_crew_member_of_job_folder',  '00000000-0000-4000-8140-00000000000b', ARRAY['''00000000-0000-4000-8140-000000000101/x.png'''], ARRAY[1]),
   ('job_is_funded',                 NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
   ('job_payment_is_funded',         NULL, ARRAY['''escrow'''], ARRAY[1]),
   ('user_has_pending_application',  NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
@@ -136,14 +141,14 @@ BEGIN
   -- the ROLLBACK at the end restores them). Measured in db-smoke 35862895416:
   -- with triggers on, the admin-role guard refuses a non-service_role grant and
   -- the application notifier's pg_net call dies on a NULL url.
-  FOREACH step IN ARRAY ARRAY['public.profiles', 'public.user_roles', 'public.jobs', 'public.applications'] LOOP
+  FOREACH step IN ARRAY ARRAY['public.profiles', 'public.user_roles', 'public.jobs', 'public.applications', 'public.group_job_helpers'] LOOP
     BEGIN
       EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', step);
     EXCEPTION WHEN OTHERS THEN
       RAISE NOTICE 'q140: triggers stay on for % (%)', step, SQLERRM;
     END;
   END LOOP;
-  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'bucket', 'objects']) LOOP
+  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'bucket', 'objects']) LOOP
     BEGIN
       CASE step
       WHEN 'users' THEN
@@ -166,6 +171,8 @@ BEGIN
                 A, B, 'completed', 'released', now(), now(), '00:00');
       WHEN 'application' THEN
         INSERT INTO public.applications (job_id, helper_id) VALUES (J, B);
+      WHEN 'roster' THEN
+        INSERT INTO public.group_job_helpers (job_id, helper_id) VALUES (J, B);
       WHEN 'bucket' THEN
         INSERT INTO storage.buckets (id, name) VALUES ('user-documents', 'user-documents') ON CONFLICT (id) DO NOTHING;
       WHEN 'objects' THEN

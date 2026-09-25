@@ -61,9 +61,9 @@ function seedCancelledCrew(shares: Array<Record<string, unknown>> = MEMBERS.map(
             budget: 300,
             customer_fee_amount: 30,
             cancellation_fee: 150,
-            date_needed: "2026-09-25",
+            date_needed: "2024-06-25",
             start_time: "10:00:00",
-            cancelled_at: "2026-09-25T14:00:00Z",
+            cancelled_at: "2024-06-25T14:00:00Z",
             helper_id: null,
             helper_confirmed_at: null,
             customer_id: "poster-1",
@@ -192,7 +192,7 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
   it("a crew cancelled before the no-lead migration (lead in helper_id, no ledger) settles on the single path, as deployed", async () => {
     seedCancelledCrew([]);
     const jobs = scenario.reads.jobs as { selectOverrides: Array<{ result: { rows: Array<Record<string, unknown>> } }> };
-    Object.assign(jobs.selectOverrides[0].result.rows[0], { helper_id: "old-lead", helper_confirmed_at: "2026-09-24T12:00:00Z", budget: 300 });
+    Object.assign(jobs.selectOverrides[0].result.rows[0], { helper_id: "old-lead", helper_confirmed_at: "2024-06-24T12:00:00Z", budget: 300 });
     const h = await load();
     await h.fetch(cronReq());
     // 50% of $300 to the lead, one transfer with the single path's key.
@@ -225,6 +225,23 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     );
     expect(sweep?.filters.find((f) => f.column === "status")?.value).toEqual(["pending", "failed"]);
     expect(slackAlerts).toHaveLength(0);
+  });
+
+  it("Part D pays nothing on a crew job with a decided, unexecuted dispute (Q231)", async () => {
+    scenario.reads.jobs = {
+      selectOverrides: [
+        { includes: "cancellation_fee,", result: { rows: [] } },
+        { includes: "cancellation_fee_status", result: { rows: [{ id: "job-crew", title: "Move a piano", helper_fee_percent: 10, payment_status: "refunded", cancellation_fee_status: "charged", stripe_payment_intent_id: "pi_crew" }] } },
+      ],
+      rows: [],
+    };
+    scenario.reads.crew_cancellation_fee_shares = {
+      rows: [{ id: "share-2", job_id: "job-crew", helper_id: "member-b", committed: true, share_basis_cents: 10000, share_amount: "50.00", status: "failed", stripe_transfer_id: null }],
+    };
+    scenario.reads.disputes = { rows: [{ id: "dispute-1", execution_status: "pending", payout_split: { poster: 1, helper: 0 } }] };
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
   });
 
   it("fails CLOSED when the crew ledger cannot be read: no refund, no transfer", async () => {

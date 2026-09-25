@@ -58,7 +58,7 @@ describe("crew shares split the budget exactly", () => {
   });
 
   it("the money path re-prices every ledger row to the cent and refuses bases over the budget", () => {
-    const job = { budget: 100, date_needed: "2026-09-25", start_time: "10:00:00", cancelled_at: "2026-09-25T14:00:00Z" };
+    const job = { budget: 100, date_needed: "2024-06-25", start_time: "10:00:00", cancelled_at: "2024-06-25T14:00:00Z" };
     const ok = crewCancellationFee(job, [
       { helper_id: "a", committed: true, share_basis_cents: 5000, share_amount: "25.00" },
       { helper_id: "b", committed: true, share_basis_cents: 5000, share_amount: "25.00" },

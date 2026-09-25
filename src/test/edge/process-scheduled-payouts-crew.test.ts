@@ -15,7 +15,7 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
-import { resetSharedMocks } from "./mocks/shared";
+import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 
 const CRON_SECRET = "cron-secret-crew";
 
@@ -114,6 +114,26 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
     expect(ledger?.payload).toEqual(expect.objectContaining({ source: "crew_unfilled_refund", amount_cents: 3333, customer_id: "poster-1" }));
     expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(true);
+  });
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |           if (autoRefunds) { |           if (false) {
+  it("an under-filled crew whose shares are frozen is refunded, not paged; one from before the shares still pages", async () => {
+    const unallocated = () =>
+      (slackAlerts as Array<{ title?: string }>).filter((a) => /escrow remainder unallocated/.test(a.title ?? "")).length;
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]]);
+    await run();
+    expect(unallocated()).toBe(0);
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+    // A roster row from before 20260925154606: no slot, no frozen share.
+    seedCrew([["m1", 0, 3334]]);
+    (scenario.reads.group_job_helpers as { rows: Array<Record<string, unknown>> }).rows = [
+      { helper_id: "m1", slot_no: null, share_cents: null },
+      { helper_id: "m2", slot_no: null, share_cents: null },
+    ];
+    await run();
+    expect(unallocated()).toBe(1);
   });
 
   it("the unfilled refund is never sent twice: a prior crew_unfilled_refund row skips it", async () => {

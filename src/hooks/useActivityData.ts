@@ -94,7 +94,7 @@ export interface PostedActivityDetail {
  * poster has not reviewed yet, in hire order, and `reviewed` means every member
  * has been. Absent on a single-helper job.
  */
-export interface CompletedJobMetaEntry {
+interface CompletedJobMetaEntry {
   tipped: boolean;
   reviewed: boolean;
   crewToReview?: Array<{ id: string; name: string }>;

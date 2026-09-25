@@ -89,7 +89,9 @@ CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title t
   status text NOT NULL DEFAULT 'open', payment_status text DEFAULT 'unpaid',
   poster_completed_at timestamptz, helper_completed_at timestamptz, revision_completed_at timestamptz, completed_at timestamptz,
   cancelled_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
-  has_active_dispute boolean NOT NULL DEFAULT false, dispute_resolved_at timestamptz, disputed_by uuid, disputed_at timestamptz);
+  has_active_dispute boolean NOT NULL DEFAULT false, dispute_resolved_at timestamptz, disputed_by uuid, disputed_at timestamptz,
+  -- The CI fixture inserts start_time (jobs.start_time is NOT NULL on prod since Q-start-time).
+  start_time time);
 CREATE TABLE public.applications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL, helper_id uuid NOT NULL,
   status text DEFAULT 'pending', UNIQUE (job_id, helper_id));
 CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid);
@@ -108,12 +110,12 @@ END
 $function$;
 `);
 
-// Real definitions: every allow function (17 on 2026-09-23) plus the helpers they call.
+// Real definitions: every allow function (18 on 2026-09-25) plus the helpers they call.
 const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job", "can_send_message_to_in_job",
   "check_dispute_velocity", "credential_document_path_ok", "dispute_evidence_url_ok", "has_role",
   "helper_credential_document_ok", "helper_has_advanced_analytics", "identity_is_verified", "is_party_to_job",
   "is_party_to_job_folder", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
-  "user_may_see_job_address"];
+  "user_may_see_job_address", "is_crew_member_of_job_folder"];
 const HELPERS = ["job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
 const ORDER = [...HELPERS, "job_payment_is_funded", ...ALLOW.filter((f) => f !== "job_payment_is_funded")];
@@ -128,7 +130,7 @@ console.log(`loaded newest definitions: ${loaded.join(" ")}`);
 // Stubs for the rest of the classified inventory (right arity + volatility).
 const sqlFile = readFileSync(`${ROOT}scripts/ci/null-arg-validators.sql`, "utf8");
 const classRows = [...sqlFile.matchAll(/^\s*\('([a-z_0-9]+)',\s*'(allow|absent|deny|classify|noarg|action)',/gm)].map((m) => ({ fn: m[1], kind: m[2] }));
-check("the class list parses (47 entries)", classRows.length === 47, `${classRows.length}`);
+check("the class list parses (54 entries)", classRows.length === 54, `${classRows.length}`);
 const real = new Set([...ALLOW, ...HELPERS]);
 for (const { fn, kind } of classRows) {
   if (real.has(fn)) continue;

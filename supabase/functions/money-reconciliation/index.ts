@@ -466,7 +466,11 @@ serve(async (req) => {
         .from("crew_cancellation_fee_shares")
         .select("job_id, helper_id, committed, share_basis_cents, share_amount")
         .in("job_id", cancelledCrewIds);
-      if (shareErr) throw new Error(`crew_cancellation_fee_shares read failed: ${shareErr.message}`);
+      // Before 20260925154606 deploys the ledger does not exist, and no crew
+      // cancelled without a lead can exist either (the backfill is in the same
+      // migration): "no table" is "no shares". Any other error fails the run.
+      const missingTable = !!shareErr && (shareErr.code === "42P01" || shareErr.code === "PGRST205");
+      if (shareErr && !missingTable) throw new Error(`crew_cancellation_fee_shares read failed: ${shareErr.message}`);
       for (const r of (shareRows ?? []) as Array<CrewFeeShareRow & { job_id: string }>) {
         const list = crewSharesByJob.get(r.job_id) ?? [];
         list.push(r);
@@ -640,7 +644,7 @@ serve(async (req) => {
     const crewShareBy = new Map<string, Map<string, number | null>>();
     let crewRosterRead = true;
     if (crewJobIds.length) {
-      const rosterScan = await scanAllIn<Record<string, unknown>>(
+      let rosterScan = await scanAllIn<Record<string, unknown>>(
         "group_job_helpers",
         crewJobIds,
         (chunk, countOpt) =>
@@ -650,6 +654,20 @@ serve(async (req) => {
             .order("id", { ascending: true })
             .in("job_id", chunk),
       );
+      // Before 20260925154606 there are no frozen shares: read the roster
+      // without them (the per-member tier check then has nothing to grade).
+      if (rosterScan.error && ((rosterScan.error as { code?: string }).code === "42703" || /share_cents/.test(rosterScan.error.message))) {
+        rosterScan = await scanAllIn<Record<string, unknown>>(
+          "group_job_helpers",
+          crewJobIds,
+          (chunk, countOpt) =>
+            admin
+              .from("group_job_helpers")
+              .select("id, job_id, helper_id", countOpt)
+              .order("id", { ascending: true })
+              .in("job_id", chunk),
+        );
+      }
       const rosterCap = rosterScan.error ? `group_job_helpers read failed (${rosterScan.error.message})` : scanDefect("group_job_helpers", rosterScan);
       if (rosterCap) {
         crewRosterRead = false;

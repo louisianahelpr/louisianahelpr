@@ -6173,7 +6173,10 @@
    "triggers": []
   },
   "group_job_helpers": {
-   "checks": [],
+   "checks": [
+    "CHECK (((share_cents IS NULL) OR (share_cents >= 0)))",
+    "CHECK (((slot_no IS NULL) OR (slot_no >= 0)))"
+   ],
    "columnGrants": {},
    "columns": {
     "helper_arrival_near_miss_at": {
@@ -6294,6 +6297,20 @@
      "hasDefault": false,
      "notNull": false,
      "type": "text[]"
+    },
+    "share_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
+    },
+    "slot_no": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
     },
     "status": {
      "enum": null,

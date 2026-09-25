@@ -17,7 +17,7 @@ import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
-import { allocateCents } from "../_shared/crewShares.ts";
+import { allocateCents, CREW_COMPLETES_WHEN_HIRED_DONE } from "../_shared/crewShares.ts";
 
 
 serve(async (req) => {
@@ -171,6 +171,9 @@ serve(async (req) => {
     // Paid from the frozen share, never re-derived from budget / helpers_needed
     // (money review HIGH-1 + MEDIUM-3).
     const crewSlotByJob = new Map<string, Map<string, { shareCents: number | null; slotNo: number | null }>>();
+    /** A PostgREST / Postgres "no such column" error (the columns are not deployed yet). */
+    const isMissingColumn = (e: { code?: string; message?: string } | null) =>
+      !!e && (e.code === "42703" || e.code === "PGRST204" || /column .* does not exist/i.test(e.message ?? ""));
     for (const job of (jobs || [])) {
       // ── Holds the job row may not show (defense in depth) ────────────────
       //
@@ -264,10 +267,20 @@ serve(async (req) => {
       }
 
       if (job.is_group_job) {
-        const { data: roster, error: rosterErr } = await supabaseAdmin
+        let { data: roster, error: rosterErr } = await supabaseAdmin
           .from("group_job_helpers")
           .select("helper_id, share_cents, slot_no")
           .eq("job_id", job.id);
+        // DEPLOY ORDER (money review MEDIUM-5): this function can ship before
+        // 20260925154606 adds the frozen-share columns. A roster from before
+        // it has no frozen shares anyway, so read it the old way and pay the
+        // old even split (shareCents / slotNo null below) rather than failing.
+        if (rosterErr && isMissingColumn(rosterErr)) {
+          ({ data: roster, error: rosterErr } = await supabaseAdmin
+            .from("group_job_helpers")
+            .select("helper_id")
+            .eq("job_id", job.id) as unknown as { data: typeof roster; error: typeof rosterErr });
+        }
         if (rosterErr) {
           // Fail closed for this job only: paying just the lead helper off a
           // partial view of the roster is exactly the bug being fixed.
@@ -310,30 +323,47 @@ serve(async (req) => {
         const distinctRoster = new Set(rosterIds);
         rosterSizeByJob.set(job.id, distinctRoster.size);
         if (distinctRoster.size < (job.helpers_needed ?? 1)) {
-          // Page, but do NOT skip. Everyone on the roster still gets the share
-          // they agreed to; what needs a human is the slice of escrow that
-          // belongs to a slot nobody filled, which no automatic path can
-          // decide the destination of (refund to the poster vs. redistribute
-          // is a product/contract call, not a cron's).
-          console.error(
-            `[process-scheduled-payouts] group job ${job.id} is under-filled: ${distinctRoster.size} of ${job.helpers_needed} slots. Paying the roster; the remaining share is unallocated.`,
-          );
-          await postSlackOpsAlert({
-            kind: "payout_failed",
-            seed: seedJobIds.has(job.id),
-            severity: "info",
-            title: "Under-filled group job paid out — unfilled shares go back to the poster",
-            message:
-              "A group job completed with fewer helpers on its roster than it was funded for (crew_completes_when_hired_done). Every hired member is paid their frozen share; the unfilled slots' shares are refunded to the poster once the whole crew is paid (payment_refunds source 'crew_unfilled_refund').",
-            fields: {
-              "Job ID": job.id,
-              "Roster size": String(distinctRoster.size),
-              "Helpers needed": String(job.helpers_needed ?? 1),
-              "Unallocated share":
-                `${(job.helpers_needed ?? 1) - distinctRoster.size}/${job.helpers_needed ?? 1} of $${Number(job.budget ?? 0).toFixed(2)}`,
-            },
-            link: "https://www.louisianahelpr.com/admin?view=payouts",
-          });
+          // Under crew_completes_when_hired_done (Q407, money review MEDIUM-4)
+          // the unfilled slots' shares go back to the poster automatically
+          // (refundUnfilledCrewShares below; it pages itself on failure), so
+          // there is nothing for a human to decide. Only when that cannot run
+          // — the rule is off, or a member predates the frozen shares — does
+          // the remainder stay on the platform balance, and then it pages as
+          // it always did.
+          const slots = crewSlotByJob.get(job.id);
+          const autoRefunds =
+            CREW_COMPLETES_WHEN_HIRED_DONE &&
+            !!slots && [...slots.values()].every((m) => m.shareCents != null && m.slotNo != null);
+          if (autoRefunds) {
+            console.log(
+              `[process-scheduled-payouts] group job ${job.id} is under-filled: ${distinctRoster.size} of ${job.helpers_needed} slots. Paying the crew; the unfilled shares are refunded to the poster.`,
+            );
+          } else {
+            // Page, but do NOT skip. Everyone on the roster still gets the share
+            // they agreed to; what needs a human is the slice of escrow that
+            // belongs to a slot nobody filled, which no automatic path can
+            // decide the destination of (refund to the poster vs. redistribute
+            // is a product/contract call, not a cron's).
+            console.error(
+              `[process-scheduled-payouts] group job ${job.id} is under-filled: ${distinctRoster.size} of ${job.helpers_needed} slots. Paying the roster; the remaining share is unallocated.`,
+            );
+            await postSlackOpsAlert({
+              kind: "payout_failed",
+              seed: seedJobIds.has(job.id),
+              severity: "warning",
+              title: "Under-filled group job paid out — escrow remainder unallocated",
+              message:
+                "A group job completed with fewer helpers on its roster than it was funded for. Every roster member is being paid their agreed share, but the unfilled slot's share stays on the platform balance and needs a decision (refund the poster, or redistribute).",
+              fields: {
+                "Job ID": job.id,
+                "Roster size": String(distinctRoster.size),
+                "Helpers needed": String(job.helpers_needed ?? 1),
+                "Unallocated share":
+                  `${(job.helpers_needed ?? 1) - distinctRoster.size}/${job.helpers_needed ?? 1} of $${Number(job.budget ?? 0).toFixed(2)}`,
+              },
+              link: "https://www.louisianahelpr.com/admin?view=payouts",
+            });
+          }
         }
         for (const helperId of distinctRoster) payoutTargets.push({ job, helperId });
       } else if (job.helper_id) {
@@ -358,7 +388,7 @@ serve(async (req) => {
       const { job } = a;
       const slots = crewSlotByJob.get(job.id);
       const needed = Math.max(1, Number(job.helpers_needed ?? 1));
-      if (!slots || slots.size >= needed) return true;
+      if (!CREW_COMPLETES_WHEN_HIRED_DONE || !slots || slots.size >= needed) return true;
       const filled = [...slots.values()];
       if (filled.some((m) => m.shareCents == null || m.slotNo == null)) {
         // A crew from before the slots existed: the old unallocated-share page

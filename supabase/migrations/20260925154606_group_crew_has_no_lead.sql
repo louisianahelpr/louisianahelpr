@@ -1082,8 +1082,10 @@ BEGIN
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.notify_on_job_update() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.notify_on_job_update() TO authenticated, service_role;
+-- A trigger function: no client role needs EXECUTE (triggers fire without it),
+-- so authenticated loses the grant it carried (the 20260916030921 class).
+REVOKE ALL ON FUNCTION public.notify_on_job_update() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.notify_on_job_update() TO service_role;
 
 CREATE OR REPLACE FUNCTION public.notify_on_payment_escrowed()
  RETURNS trigger

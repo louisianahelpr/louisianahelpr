@@ -73,10 +73,10 @@ BEGIN
            $q$or message the person who posted it if you''re delayed.$q$, 'g'),
       (100, 'helper_cancel_booking',
            $p$Message the poster or open a dispute\.$p$,
-           $q$Message the person who posted it or open a dispute.$q$, ''),
+           $q$Message the person who posted it or open a dispute.$q$, 'g'),
       (101, 'helper_cancel_booking',
            $p$contact the poster or support\.$p$,
-           $q$contact the person who posted it or support.$q$, ''),
+           $q$contact the person who posted it or support.$q$, 'g'),
       (110, 'helper_abort_job',
            $p$'Tell the poster why you can''t finish\.'$p$,
            $q$'Tell the person who posted it why you can''t finish.'$q$, '')

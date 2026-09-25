@@ -66,6 +66,9 @@ const INTENDED_LINK_CHANGES = new Set([
   // email call live in deliver_saved_search_alert, the one saved-search send
   // path (called by the queue sweep), with the same link.
   "20260925053412_saved_search_alerts_wait_for_early_access.sql::notify_saved_searches_on_new_job",
+  // Q393: a crew member leaving tells the poster "A Helpr left your crew",
+  // linking to the job on /posts like the poster's other job notifications.
+  "20260925140148_group_roster_departure.sql::helper_cancel_booking",
 ]);
 
 /**

@@ -30,7 +30,7 @@ const surface = (() => {
 
 /** Every value a custom property is given across the stylesheet (light + dark blocks). */
 function values(name: string): string[] {
-  return [...css.matchAll(new RegExp(`--${name}:\\s*([^;]+);`, "g"))].map((m) => m[1].replace(/\/\*.*$/, "").trim());
+  return [...css.matchAll(new RegExp(`--${name}:\\s*([^;]+);`, "g"))].map((m) => m[1].split("/*")[0].trim());
 }
 
 /** The object literal behind `desktopPanelSurfaceStyle`. */

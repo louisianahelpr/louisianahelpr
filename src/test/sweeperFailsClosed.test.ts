@@ -23,7 +23,9 @@
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | const STRIPE_TEST_MODE = STRIPE_MODE === "test"; | const STRIPE_TEST_MODE = true;
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs |     `&customer_id=eq.${POSTER_ID}&is_seed=is.true` + |
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs |     return Array.isArray(rows) && rows.length === 1; |     return true;
-// @mutate scripts/e2e/prod-lifecycle-sweeper.mjs |   if (typeof job.title === "string" && job.title.includes(E2E_HOLD_MARKER)) { |   if (false) {
+// @mutate scripts/e2e/prod-lifecycle-sweeper.mjs |   const holdWhy = heldReason(job); |   const holdWhy = null;
+// @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | if (verdict === "settle-forward" && job.stripe_session_id == null) { | if (false) {
+// @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | summary.stale.filter((r) => String(sessionOf.get(r.id) ?? "").startsWith("cs_test_")) | summary.stale
 // @mutate scripts/e2e/sweep-both-seats.sh |     if [ "$SWEEP_PHASE" = "teardown" ]; then |     if false; then
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
@@ -184,9 +186,52 @@ describe("the sweeper fails closed", () => {
       { rows: [heldRow, heldUnfunded], patchAnswer: [{ id: "x" }] },
     );
     expect(r.code, r.out).toBe(0);
-    expect(r.out).toMatch(/held \(\[E2E HOLD\]\) — not touched/);
+    expect(r.out).toMatch(/held \(\[E2E HOLD\] in the title\) — not touched/);
     expect(seen.filter((s) => s.method !== "GET" || /[?&]id=eq\./.test(s.url)), r.out).toEqual([]);
   });
+
+  it("never touches the two-role fixture, by id, even without the title marker", async () => {
+    const fixture = { ...staleHiredFunded, id: "aaaaaaaa-0000-4000-8000-000000000005", title: `${MARKER} two-role, no hold marker` };
+    const fixtureUnfunded = { ...fixture, payment_status: "unpaid", stripe_session_id: null };
+    for (const row of [fixture, fixtureUnfunded]) {
+      const r = await sweep(
+        { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", E2E_STRIPE_MODE: "test", PLAYWRIGHT_LIFECYCLE_JOB_ID: row.id as string },
+        { rows: [row], patchAnswer: [{ id: "x" }] },
+      );
+      expect(r.code, r.out).toBe(0);
+      expect(r.out).toMatch(/held \(the two-role fixture \(PLAYWRIGHT_LIFECYCLE_JOB_ID\)\) — not touched/);
+      expect(seen.filter((s) => s.method !== "GET" || /[?&]id=eq\./.test(s.url)), r.out).toEqual([]);
+    }
+    // Control: the same row with the secret unset IS walked (it is not held by title).
+    const r = await sweep(
+      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", E2E_STRIPE_MODE: "test" },
+      { rows: [fixture] },
+    );
+    expect(seen.some((s) => s.url.includes("/rpc/mark_helper_arrival")), r.out).toBe(true);
+  }, 30_000);
+
+  it("a hired+funded row with NO Checkout Session is held with a warning, not a teardown failure", async () => {
+    const giftFunded = { ...staleHiredFunded, id: "aaaaaaaa-0000-4000-8000-000000000006", stripe_session_id: null };
+    const r = await sweep(
+      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", E2E_STRIPE_MODE: "test" },
+      { rows: [giftFunded] },
+    );
+    expect(r.code, r.out).toBe(0);
+    expect(r.out).toMatch(/::warning title=Funded test job with no Checkout Session::aaaaaaaa-0000-4000-8000-000000000006/);
+    expect(r.out).toMatch(/held \(no Checkout Session\)/);
+    expect(seen.filter((s) => s.method !== "GET" || /[?&]id=eq\./.test(s.url)), r.out).toEqual([]);
+  });
+
+  it("a stale cs_live_ row is refused and warned about, not counted as a failed settle", async () => {
+    const liveFunded = { ...staleHiredFunded, id: "aaaaaaaa-0000-4000-8000-000000000007", stripe_session_id: "cs_live_abc" };
+    const r = await sweep(
+      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", E2E_STRIPE_MODE: "test" },
+      { rows: [liveFunded] },
+    );
+    expect(r.code, r.out).toBe(0);
+    expect(r.out).toMatch(/NOT settling — not funded through a test-mode Checkout Session/);
+    expect(r.out).toMatch(/::warning title=Stranded funded test jobs are not settling forward::1 /);
+  }, 30_000);
 });
 
 describe("sweep-both-seats.sh: a teardown that cannot hold the helper seat fails", () => {

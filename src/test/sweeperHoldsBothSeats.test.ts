@@ -35,6 +35,7 @@
 // @mutate .github/workflows/e2e-abuse-notifications.yml |     concurrency:\n      group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false\n    strategy: |     strategy:
 // @mutate .github/workflows/e2e-journeys.yml |           SWEEP_PHASE: teardown | SWEEP_PHASE: pre
 // @mutate .github/workflows/slow-network.yml |           E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }} | E2E_STRIPE_MODE: test
+// @mutate .github/workflows/e2e-abuse-notifications.yml |           PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }} | PLAYWRIGHT_LIFECYCLE_JOB_ID: ""
 // @mutate scripts/e2e/stripe-sandbox-off.sh | gh variable set E2E_STRIPE_MODE --body live | gh variable list
 // @mutate scripts/e2e/stripe-sandbox-off.sh |   exit 1\nfi\n\nread -r -s -p "Paste your sk_live key: " |   true\nfi\n\nread -r -s -p "Paste your sk_live key: "
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | export const SETTLE_FORWARD_MIN_AGE_MS = 6 * 60 * 60 * 1000; | export const SETTLE_FORWARD_MIN_AGE_MS = 2 * 60 * 60 * 1000;
@@ -90,6 +91,8 @@ describe("every CI sweep holds both seats", () => {
     );
     // L2: the sweeper settles forward only when the repo variable says test.
     expect(step.env?.E2E_STRIPE_MODE).toBe("${{ vars.E2E_STRIPE_MODE }}");
+    // The two-role fixture is held BY ID, so every sweep must know that id.
+    expect(step.env?.PLAYWRIGHT_LIFECYCLE_JOB_ID).toBe("${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}");
   });
 
   it("every workflow that sweeps has a teardown sweep", () => {

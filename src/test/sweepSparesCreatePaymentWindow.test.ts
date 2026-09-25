@@ -23,7 +23,7 @@
  * @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | const windowWait = createPaymentWindowWaitMs(lastCreatePaymentAt); | const windowWait = 0;
  * @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | lastCreatePaymentAt = Date.now(); // before the call | void 0; // before the call
  * @mutate scripts/e2e/sweepSummary.mjs | export const CREATE_PAYMENT_WINDOW_MS = 60_000; | export const CREATE_PAYMENT_WINDOW_MS = 30_000;
- * @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | } finally {\n          // The forward walk ends on create-payment's release, in the same window.\n          lastCreatePaymentAt = Date.now();\n        } | }\n        lastCreatePaymentAt = Date.now();
+ * @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | } finally {\n          // The forward walk ends on create-payment's release, in the same window.\n          if (!refusedUnwalked) lastCreatePaymentAt = Date.now();\n        } | }\n        if (!refusedUnwalked) lastCreatePaymentAt = Date.now();
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

@@ -158,6 +158,13 @@ export const RPC_ERROR_COPY = {
     invalid_helpers_needed:
       "This job doesn't say how many people it needs. Edit the job to set that, then try again.",
   },
+  // PhotoProof — a crew member's OWN before/after photos (Q407: a crew has no
+  // lead, so each member's proof lives on their own roster row).
+  rpc_group_member_set_proof: {
+    not_authenticated: "Sign in again to add your photos.",
+    not_on_this_crew: "You're not on this job's crew any more, so you can't add photos to it.",
+    part_already_done: "You already marked your part done, so its photos are part of the record now.",
+  },
   // useOfferHandlers — responding to a direct offer.
   respond_to_direct_offer: {
     offer_expired: "This offer expired — the job is open to everyone again.",

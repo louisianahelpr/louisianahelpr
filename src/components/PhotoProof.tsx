@@ -14,6 +14,7 @@ import { CardSubPanel } from "@/components/ui/CardSubPanel";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative, pickerFailure } from "@/lib/nativeCamera";
@@ -191,7 +192,8 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
         report(updateError, { tags: { source: crew ? "PhotoProof.saveCrew" : "PhotoProof.save" } });
       }
       toast.error(
-        mutationErrorMessage(updateError, "Photos uploaded but couldn't be saved to the job. Please try again."),
+        (crew ? rpcErrorMessage("rpc_group_member_set_proof", updateError) : null) ??
+          mutationErrorMessage(updateError, "Photos uploaded but couldn't be saved to the job. Please try again."),
       );
       setUploading(false);
       return;

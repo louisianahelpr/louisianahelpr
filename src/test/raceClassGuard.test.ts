@@ -244,7 +244,9 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
 
   it("without the fix migration there is no status guard on helper_completed_at and a done job is cancellable", () => {
     expect(triggerDefined([COMPLETION_FIX])).toBe(false);
-    expect(latestDefinition("poster_cancel_job", [COMPLETION_FIX, RENAMES_TAB_ADDRESSES])).not.toMatch(/helper_completed_at\s+IS\s+NOT\s+NULL/i);
+    // 20260925154606 (Q407: a crew has no lead) restates it WITH the guard
+    // (plus the crew's per-member version), so the pre-guard baseline excludes it.
+    expect(latestDefinition("poster_cancel_job", [COMPLETION_FIX, RENAMES_TAB_ADDRESSES, "20260925154606"])).not.toMatch(/helper_completed_at\s+IS\s+NOT\s+NULL/i);
   });
 
   it("with it: the trigger judges OLD.status and pins a re-stamp; poster_cancel_job refuses a job marked done", () => {

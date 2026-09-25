@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-25T17:08:01.717Z",
-  "guards": 1050,
-  "registered": 1050,
+  "generated": "2026-09-25T16:40:52.607Z",
+  "guards": 1052,
+  "registered": 1052,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -28,6 +28,7 @@
     "src/test/messageToneInvariant.test.ts",
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
+    "src/test/prodSpecCleanupIsRunScoped.test.ts",
     "src/test/storageBucketLimits.test.ts",
     "src/test/unknownZipIsNeverSilent.test.ts"
   ],
@@ -417,17 +418,7 @@
     {
       "module": "src/pages/user/AtAGlanceCard.tsx",
       "tests": [
-        "src/pages/user/AtAGlanceCard.test.tsx",
-        "src/pages/user/ProfileHeroSkeleton.test.tsx"
-      ],
-      "parents": [
-        "src/pages/user/UserProfile.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/user/ProfileHeroSkeleton.tsx",
-      "tests": [
-        "src/pages/user/ProfileHeroSkeleton.test.tsx"
+        "src/pages/user/AtAGlanceCard.test.tsx"
       ],
       "parents": [
         "src/pages/user/UserProfile.tsx"

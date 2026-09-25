@@ -75,7 +75,8 @@ export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDia
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-payment", {
-        body: { action: "tip", jobId, amount: tipAmount, tipAttemptId: tipAttemptIdRef.current, native: isNativePlatform, ...(helperId ? { helperId } : {}) },
+        // helperId: undefined on a single-helper job, dropped by JSON.
+        body: { action: "tip", jobId, amount: tipAmount, tipAttemptId: tipAttemptIdRef.current, native: isNativePlatform, helperId },
       });
       // A non-2xx makes the SDK throw a FunctionsHttpError whose message is the
       // useless "Edge Function returned a non-2xx status code" — while the real

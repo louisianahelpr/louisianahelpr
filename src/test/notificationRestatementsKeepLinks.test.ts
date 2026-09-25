@@ -70,6 +70,12 @@ const INTENDED_LINK_CHANGES = new Set([
   // linking to the job on /posts?job=<id>, like the poster's other job
   // notifications (the single-helper "Your Helpr cancelled" beside it too).
   "20260925140148_group_roster_departure.sql::helper_cancel_booking",
+  // Q407: a crew has no lead, so the notices a single Helpr gets go to EVERY
+  // crew member: the same links, once per member (completion, cancellation,
+  // payout released, and each member's own cancellation-fee share).
+  "20260925154606_group_crew_has_no_lead.sql::notify_on_job_update",
+  "20260925154606_group_crew_has_no_lead.sql::notify_on_payment_escrowed",
+  "20260925154606_group_crew_has_no_lead.sql::poster_cancel_job",
 ]);
 
 /**

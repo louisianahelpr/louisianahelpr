@@ -32,6 +32,18 @@ const HIRE_WRITE =
 
 const EXPECTED = ["accept_application", "accept_group_application", "respond_to_direct_offer"];
 
+/**
+ * Functions whose body matches HIRE_WRITE but hire nobody, with why. Two-way:
+ * each must still match (else it is stale here).
+ */
+const NOT_HIRES: Record<string, string> = {
+  // 20260925154606 (Q407): an under-filled crew whose every HIRED member is
+  // done is closed for staffing (open -> accepted) before the roll-up stamps
+  // it done. It adds no one; every member on it was hired (and block-checked)
+  // by accept_group_application.
+  rpc_group_member_mark_done: "closes an under-filled crew's staffing; hires nobody",
+};
+
 describe("Q345: every hire RPC refuses across a block", () => {
   const defs = effectiveDefs(MIG_DIR);
   // effectiveDefs does not model DROP FUNCTION; a function dropped in a file
@@ -43,11 +55,15 @@ describe("Q345: every hire RPC refuses across a block", () => {
     for (const m of sql.matchAll(/drop\s+function\s+(?:if\s+exists\s+)?(?:public\.)?"?(\w+)"?/gi)) droppedAfter.set(m[1], f);
   }
   const hireFns = new Map<string, string>();
+  const notHiresSeen = new Set<string>();
   for (const [name, def] of defs) {
     const dropped = droppedAfter.get(name);
     if (dropped && dropped > def.file) continue;
     const body = blankSqlComments(def.stmt);
-    if (HIRE_WRITE.test(body)) hireFns.set(name, body);
+    if (HIRE_WRITE.test(body)) {
+      if (NOT_HIRES[name]) notHiresSeen.add(name);
+      else hireFns.set(name, body);
+    }
   }
 
   it("the inventory is real", () => {
@@ -57,6 +73,7 @@ describe("Q345: every hire RPC refuses across a block", () => {
   });
 
   it("the hire-RPC inventory is exact", () => {
+    expect([...notHiresSeen].sort(), "a NOT_HIRES entry no longer matches HIRE_WRITE").toEqual(Object.keys(NOT_HIRES).sort());
     expect([...hireFns.keys()].sort()).toEqual(EXPECTED);
   });
 

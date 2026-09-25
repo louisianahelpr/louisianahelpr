@@ -964,11 +964,29 @@ test.describe.serial("marketplace chain", () => {
          2026-09-22 on a real released job: the row was in `reviews` at
          05:02:40 and one reload still drew "Review"; the next reload drew
          "Reviewed". Polling the reload asserts the same fact without asserting
-         a refresh speed nobody promised. */
+         a refresh speed nobody promised.
+         EACH RELOAD WAITS for the chip; it does not take one instant count().
+         The badge is drawn by the DETAIL query, which is issued only after the
+         core list lands, and card() returns as soon as the heading is on
+         screen. An instant count therefore sampled the pre-detail "Review" on
+         a slow (drops-profile) reload: nightly-red #1719, run 36164148002,
+         90s of reloads, 0 every time. The app half of that failure (the
+         review write never told the persisted cache, so a reload could
+         repaint "Review" for up to 60s) is fixed in
+         src/lib/reviewActivityCache.ts, guarded by
+         src/test/reviewWritesUpdateActivityCache.test.ts. */
       await expect
         .poll(
-          async () => (await card(pp, "/posts", "Done")).getByRole("button", { name: /^Reviewed\b/ }).count(),
-          { timeout: 90_000, message: "the poster's card never showed the Reviewed badge after the review was submitted" },
+          async () =>
+            (await card(pp, "/posts", "Done"))
+              .getByRole("button", { name: /^Reviewed\b/ })
+              .first()
+              .waitFor({ state: "visible", timeout: 20_000 })
+              .then(
+                () => 1,
+                () => 0,
+              ),
+          { timeout: 120_000, message: "the poster's card never showed the Reviewed badge after the review was submitted" },
         )
         .toBeGreaterThan(0);
       const c2 = await card(pp, "/posts", "Done", false);

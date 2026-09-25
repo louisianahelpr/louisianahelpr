@@ -236,3 +236,28 @@ export function chromeDisposition({ fromChrome, depth, key, passedOn }) {
   if (!fromChrome || !(depth > 0)) return null;
   return passedOn.has(key) ? CHROME_SKIP : null;
 }
+
+/**
+ * A ROUTE THAT REDIRECTS IN STEPS LANDS ON ITS LAST URL.
+ *
+ * Signed in, /jobs/:id renders <Navigate to="/home?quickApply=<id>">
+ * (src/pages/jobs/JobDetail.tsx); for the job's own poster QuickApplyHandler
+ * then replaces that with /posts?highlight=<id>, and JobListPage drops
+ * `highlight` after its first paint. Run 36069319716,
+ * `/jobs/4a980ec0… customer`: the dock's "Posts", "Jobs", "Messages",
+ * "Profile" were enumerated with none of them the current tab, then failed
+ * NOT CLICKABLE with the resolved element `<button aria-label="Posts"
+ * aria-current="page">`: the screen was inventoried mid-redirect and pressed
+ * on a different one.
+ *
+ * The landing is read once the URL has held still for `quietMs`.
+ * @param {{ t: number, url: string }[]} samples in time order
+ */
+export function landingSettled(samples, quietMs) {
+  if (!samples.length) return false;
+  const last = samples[samples.length - 1];
+  let i = samples.length - 1;
+  while (i > 0 && samples[i - 1].url === last.url) i--;
+  return last.t - samples[i].t >= quietMs;
+}
+export const LANDING_QUIET_MS = 1500;

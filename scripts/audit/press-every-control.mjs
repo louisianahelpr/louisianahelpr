@@ -63,7 +63,7 @@ import {
 import * as pressSafety from "./pressProdSafety.mjs";
 import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
-  CHROME_SKIP, FOREIGN_FIXTURE_SKIP, MIN_CYCLE_BURST, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
+  CHROME_SKIP, FOREIGN_FIXTURE_SKIP, LANDING_QUIET_MS, MIN_CYCLE_BURST, landingSettled, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
   classifyConsoleError, classifyFailedResponse, clickFailureReason, isForeignSweepFixture, overTimeBudget, refusalIsDeath, tokenNeedsRefresh,
 } from "./pressFailureClass.mjs";
 import { budgetFor } from "../e2e/request-budget.mjs";
@@ -1075,6 +1075,16 @@ async function main() {
         lastHeal = healExhausted ? { healing: false, healed: true, waitedMs: 0 } : await awaitSelfHeal(page, { timeout: SELF_HEAL_MS });
         if (lastHeal.healing && !lastHeal.healed) healExhausted = true;
       };
+      /** Wait (bounded) until a stepwise redirect has stopped moving; see landingSettled. */
+      const awaitLandedUrl = async (maxMs = 12_000) => {
+        const samples = [{ t: Date.now(), url: page.url() }];
+        const first = samples[0].url;
+        while (!landingSettled(samples, LANDING_QUIET_MS) && Date.now() - samples[0].t < maxMs) {
+          await page.waitForTimeout(250);
+          samples.push({ t: Date.now(), url: page.url() });
+        }
+        if (page.url() !== first) await settle();
+      };
       const sameScreen = (u) => {
         const a = new URL(u), b = new URL(BASE + route.url);
         const key = (x) => x.pathname + "|" + (x.searchParams.get("tab") ?? "") + "|" + (x.searchParams.get("view") ?? "");
@@ -1196,6 +1206,7 @@ async function main() {
       try {
         await paceToCeiling(page);
         await load();
+        await awaitLandedUrl();
         const landed = page.url();
         rec.landedOn = landed.replace(BASE, "");
         if (!sameScreen(landed)) {

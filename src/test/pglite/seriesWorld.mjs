@@ -112,6 +112,7 @@ export function baseSchema(before) {
   grant select on public.group_job_helpers to authenticated;
   create table public.user_blocks (a uuid, b uuid);
   create table public.strikes (user_id uuid, job_id uuid, description text);
+  create table public.error_logs (id serial primary key, severity text, message text, tags jsonb, context jsonb);
   create function public.has_role(uuid, public.app_role) returns boolean language sql stable as $f$ select false $f$;
   create function public.are_users_blocked(_user_a uuid, _user_b uuid) returns boolean language sql stable as
     $f$ select exists (select 1 from public.user_blocks where (a = _user_a and b = _user_b) or (a = _user_b and b = _user_a)) $f$;

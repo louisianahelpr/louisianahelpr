@@ -1,0 +1,19 @@
+-- Q340: a signed-out client holds INSERT/UPDATE/DELETE on public.messages.
+--
+-- Prod's default privileges hand anon (and PUBLIC) every privilege on each table
+-- postgres creates in public, including column-level INSERT on every messages
+-- column. RLS is the only thing keeping a signed-out caller from writing a
+-- message; no signed-out path reads or writes messages at all. This removes the
+-- grant so RLS is no longer the sole line of defence.
+--
+-- Revoking a table-level privilege also revokes the matching column-level
+-- privileges on every column, so no column form is needed.
+--
+-- authenticated is untouched here: its column list is a separate decision (an
+-- installed native build predates the current send code, so narrowing what
+-- authenticated may insert needs that build's payload first; see Q340 in
+-- docs/OPEN.md).
+--
+-- Kept closed by scripts/ci/sensitive-anon-grants.sql, whose WRITE rule now
+-- scopes messages (run live by scripts/check-anon-table-grants.mjs).
+REVOKE INSERT, UPDATE, DELETE ON public.messages FROM PUBLIC, anon;

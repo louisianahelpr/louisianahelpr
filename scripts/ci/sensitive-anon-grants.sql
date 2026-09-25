@@ -79,6 +79,9 @@ write_scope(tbl) AS (
   SELECT tbl FROM sensitive
   UNION ALL
   SELECT 'jobs'
+  UNION ALL
+  -- Q340 (2026-09-25): no signed-out path writes a message.
+  SELECT 'messages'
 ),
 write_offenders AS (
   SELECT t.schema, t.tbl AS "table", 'anon'::text AS role, p.priv, 'write:no-policy'::text AS rule

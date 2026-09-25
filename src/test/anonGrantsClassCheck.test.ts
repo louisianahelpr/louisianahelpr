@@ -32,6 +32,8 @@ function sensitiveFromCheck(): string[] {
 }
 
 // @mutate scripts/ci/sensitive-anon-grants.sql | FROM zero_policy_offenders\nUNION ALL | FROM write_offenders\nUNION ALL
+// @mutate scripts/ci/sensitive-anon-grants.sql |   SELECT 'messages'\n | \n
+// @mutate supabase/migrations/20260925144708_revoke_anon_writes_on_messages.sql | REVOKE INSERT, UPDATE, DELETE ON public.messages FROM PUBLIC, anon; | REVOKE UPDATE, DELETE ON public.messages FROM PUBLIC, anon;
 // @mutate scripts/ci/sensitive-anon-grants.sql | unnest(ARRAY['anon', 'authenticated']) AS r(role) | unnest(ARRAY['anon']) AS r(role)
 // @mutate scripts/ci/sensitive-anon-grants.sql | COALESCE(pc.n, 0) = 0 | COALESCE(pc.n, 0) >= 0
 
@@ -65,6 +67,18 @@ describe("excess-anon-grant class check ↔ migration parity", () => {
       expect(MIG).toMatch(/REVOKE SELECT, UPDATE, DELETE ON public\.%I FROM anon/);
       expect(MIG.includes(`REVOKE ALL ON public.${t}`)).toBe(false);
     }
+  });
+
+  it("messages is in the write scope and a migration revokes anon writes on it (Q340)", () => {
+    // Q340, 2026-09-25: anon held INSERT on every messages column and only RLS
+    // kept a signed-out caller from writing a message.
+    const scope = CHECK_SQL.match(/write_scope\(tbl\) AS \(([\s\S]*?)\n\),/)?.[1] ?? "";
+    expect(scope).toContain("SELECT 'messages'");
+    const revoke = readdirSync(MIGRATIONS)
+      .filter((f) => f.endsWith(".sql"))
+      .map((f) => readFileSync(resolve(MIGRATIONS, f), "utf8"))
+      .some((sql) => /REVOKE[^;]*\bINSERT\b[^;]*ON public\.messages FROM PUBLIC, anon\s*;/.test(sql));
+    expect(revoke, "no migration revokes INSERT on public.messages FROM PUBLIC, anon").toBe(true);
   });
 
   it("the write rule is scoped to jobs + the sensitive set, and reads the policy table", () => {

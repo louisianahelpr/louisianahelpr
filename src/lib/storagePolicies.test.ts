@@ -11,7 +11,7 @@
 // the bucket and grants it a SELECT (or ALL) policy.
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { resolve } from "node:path";
@@ -65,6 +65,12 @@ function deriveUpsertBuckets(): { buckets: string[]; unresolved: string[] } {
       let bucket: string | undefined = owner.literal;
       if (!bucket && owner.ident) {
         bucket = new RegExp(`\\b${owner.ident}\\s*=\\s*["']([^"']+)["']`).exec(src)?.[1];
+        // A bucket constant imported from an "@/..." module: read it there.
+        const from = new RegExp(`import\\s*\\{[^}]*\\b${owner.ident}\\b[^}]*\\}\\s*from\\s*["']@/([^"']+)["']`).exec(src)?.[1];
+        if (!bucket && from) {
+          const mod = ["ts", "tsx"].map((ext) => resolve(ROOT, "src", `${from}.${ext}`)).find((f) => existsSync(f));
+          if (mod) bucket = new RegExp(`export\\s+const\\s+${owner.ident}\\s*=\\s*["']([^"']+)["']`).exec(readFileSync(mod, "utf8"))?.[1];
+        }
       }
       if (!bucket) { unresolved.push(`${rel}: could not resolve bucket for ${owner.ident}`); continue; }
       buckets.add(bucket);

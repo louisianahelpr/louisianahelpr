@@ -33,7 +33,7 @@ CREATE POLICY "Users can update their own proof photos"
     bucket_id = 'proof-photos'
     AND (storage.foldername(name))[2] IS DISTINCT FROM 'disputes'
     AND (
-      (auth.uid())::text = (storage.foldername(name))[1]
+      ((select auth.uid()))::text = (storage.foldername(name))[1]
       OR public.is_party_to_job_folder(name)
     )
   );
@@ -45,7 +45,7 @@ CREATE POLICY "Users can delete their own proof photos"
     bucket_id = 'proof-photos'
     AND (storage.foldername(name))[2] IS DISTINCT FROM 'disputes'
     AND (
-      (auth.uid())::text = (storage.foldername(name))[1]
+      ((select auth.uid()))::text = (storage.foldername(name))[1]
       OR public.is_party_to_job_folder(name)
     )
   );

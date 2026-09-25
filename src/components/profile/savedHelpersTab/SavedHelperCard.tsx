@@ -176,12 +176,15 @@ export function SavedHelperCard({
           Closed by default, tap to expand into a small
           textarea. Never shown to the helpr (RLS scopes
           reads/writes to customer_id). */}
-      {/* `relative z-10` so this sits ABOVE the stretched link that covers the
-          card — that, not a stopPropagation handler, is what keeps typing and
-          the Cancel/Save presses from landing on the profile link. The old
-          `onClick={e => e.stopPropagation()}` wrapper is gone with the card's
-          own click handler; the link is a sibling now, so nothing bubbles to
-          it in the first place. */}
+      {/* Only the EDITOR is raised (`relative z-10`) above the stretched link
+          that covers the card — that, not a stopPropagation handler, is what
+          keeps typing and the Cancel/Save presses from landing on the profile
+          link. The displayed note is content, not a control, so it stays under
+          the link like the name and avatar: a tap on it opens the profile.
+          Raised, it is a dead patch in the middle of the card that swallows
+          the tap (press-every-control run 36069319716: "View Hallie H.'s
+          profile" NOT CLICKABLE, the note's <p> intercepting pointer events).
+          src/test/stretchedLinkRaisesOnlyControls.test.ts holds the class. */}
       {/* Rendered ONLY when there is a note to show or one being written.
           There used to be a third branch here — an "Add a Private Note" text
           button — which meant every note-less card still paid for a whole
@@ -190,7 +193,7 @@ export function SavedHelperCard({
           17px line of tertiary text. That affordance now lives in the action
           row below, where a 44px row already exists and it costs nothing. */}
       {(isEditingNote || hasNote) && (
-      <div className="relative z-10">
+      <div className={isEditingNote ? "relative z-10" : undefined}>
         {isEditingNote ? (
           <div
             className="rounded-ds-md p-2.5 space-y-2"

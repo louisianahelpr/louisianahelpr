@@ -149,7 +149,13 @@ describe("every scheduled job records its work and says what 'did nothing' means
     for (const [job, kind] of inventory) {
       if (kind !== "scheduled") continue;
       const c = commands.get(job);
-      if (!c || isHttp(c.command)) continue;
+      if (!c) {
+        // Scheduled through a variable name the parser cannot follow: a gap,
+        // never a pass.
+        unrecorded.push(`${job}: scheduled, but no migration command for it could be read`);
+        continue;
+      }
+      if (isHttp(c.command)) continue;
       sql++;
       const fn = wrappedFn(c.command, job);
       if (!fn) unrecorded.push(`${job} (newest command in ${c.file} discards its result)`);

@@ -191,7 +191,7 @@ export const useCronHealth = () => {
       // HTTP answers only: SQL crons record every run here since CJ-007
       // (20260925231818), thousands a day, and would crowd daily jobs out of
       // the 1000-row page.
-      const { data: logRows } = await supabase
+      const { data: logRows, error: logError } = await supabase
         .from("cron_run_log")
         .select("jobname")
         .not("response_id", "is", null)
@@ -199,7 +199,7 @@ export const useCronHealth = () => {
         .limit(1000);
       const reporting = new Set((logRows ?? []).map((r) => (r as { jobname: string }).jobname));
 
-      const { data: expectRows } = await supabase
+      const { data: expectRows, error: expectError } = await supabase
         .from("cron_work_expectations")
         .select("jobname")
         .limit(100);
@@ -209,6 +209,17 @@ export const useCronHealth = () => {
       // differ — the HTTP rows counted here are only the crons that answered,
       // while the tolerance list covers the SQL-only sweeps too — so "N of M"
       // would invite a comparison that is meaningless in both directions.
+      // A failed read is "unknown", never "0 jobs reporting" in an ok tone.
+      const readError = logError ?? expectError;
+      if (readError) {
+        checks.push({
+          id: "cron-reporting",
+          label: "Jobs reporting",
+          tone: "unknown",
+          detail: `Could not read ${logError ? "cron_run_log" : "cron_work_expectations"}: ${readError.message}`,
+        });
+        return checks;
+      }
       checks.push({
         id: "cron-reporting",
         label: "Jobs reporting",

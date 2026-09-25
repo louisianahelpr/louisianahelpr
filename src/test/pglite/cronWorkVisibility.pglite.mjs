@@ -88,7 +88,9 @@ CREATE FUNCTION cron.alter_job(job_id bigint, schedule text DEFAULT NULL, comman
 CREATE FUNCTION public.sweep_release_last_chance() RETURNS integer LANGUAGE sql AS $f$ SELECT 3 $f$;
 CREATE FUNCTION public.detect_stuck_payments() RETURNS integer LANGUAGE sql AS $f$ SELECT 0 $f$;
 CREATE FUNCTION public.reap_stranded_instant_payouts() RETURNS jsonb LANGUAGE sql AS $f$ SELECT '{"reaped":2,"helpers":[]}'::jsonb $f$;
-CREATE FUNCTION public.extend_boosts() RETURNS integer LANGUAGE sql AS $f$ SELECT 5 $f$;
+-- Prod shape per src/integrations/supabase/types.ts: set-returning.
+CREATE FUNCTION public.extend_boosts_with_no_applications() RETURNS TABLE(job_id uuid, new_expires_at timestamptz)
+  LANGUAGE sql AS $f$ SELECT gen_random_uuid(), now() UNION ALL SELECT gen_random_uuid(), now() $f$;
 CREATE FUNCTION public.void_thing() RETURNS void LANGUAGE sql AS $f$ SELECT $f$;
 -- The four void pruners as they are on prod before this migration.
 CREATE FUNCTION public.prune_cron_run_log() RETURNS void LANGUAGE sql AS $f$ SELECT $f$;
@@ -103,7 +105,7 @@ const jobs = [
   [2, "detect-stuck-payments", "*/15 * * * *", "SELECT public.detect_stuck_payments();"],
   [3, "reap-stranded-instant-payouts", "34 * * * *", "SELECT public.reap_stranded_instant_payouts();"],
   [4, "prune-cron-run-details", "17 4 * * *", "DELETE FROM cron.job_run_details WHERE end_time < now() - interval '7 days'"],
-  [5, "extend-boosts-hourly", "0 * * * *", "SELECT public.extend_boosts();"],
+  [5, "extend-boosts-hourly", "0 * * * *", "SELECT public.extend_boosts_with_no_applications();"],
   [6, "void-job", "0 * * * *", "SELECT public.void_thing();"],
   [7, "paused-void-job", "0 * * * *", "SELECT public.void_thing();"],
   [8, "payment-confirm-reminder", "15 */6 * * *", "SELECT public.cron_http_tag(net.http_post(url := 'x'), 'payment-confirm-reminder')"],
@@ -131,8 +133,9 @@ check("listed SQL cron wrapped", (await cmd(1)).command ===
 check("its live schedule is untouched", (await cmd(1)).schedule === "8,23,38,53 * * * *");
 check("raw DELETE job now calls prune_cron_run_details through the recorder, on its own schedule",
   (await cmd(4)).schedule === "17 4 * * *" && (await cmd(4)).command.includes("cron_record_work('prune-cron-run-details', to_jsonb(public.prune_cron_run_details()))"));
-check("unlisted plain SELECT job wrapped generically",
-  (await cmd(5)).command === "SELECT public.cron_record_work('extend-boosts-hourly', to_jsonb(public.extend_boosts()));");
+check("unlisted set-returning SELECT job wrapped generically, counting its rows",
+  (await cmd(5)).command === "SELECT public.cron_record_work('extend-boosts-hourly', to_jsonb((SELECT count(*) FROM public.extend_boosts_with_no_applications())));",
+  (await cmd(5)).command);
 check("void job left alone", (await cmd(6)).command === "SELECT public.void_thing();");
 check("HTTP job left alone", !(await cmd(8)).command.includes("cron_record_work"));
 
@@ -144,6 +147,8 @@ check("an integer result is recorded as {result, fn}",
   JSON.stringify(rec[0].body) === JSON.stringify({ fn: "sweep-release-last-chance", result: 3 }), JSON.stringify(rec[0].body));
 check("an object result keeps its keys and gains fn",
   rec[1].body.reaped === 2 && rec[1].body.fn === "reap-stranded-instant-payouts");
+check("a set-returning job records ONE row carrying its row count",
+  rec[2].body.result === 2 && rec[2].body.fn === "extend-boosts-hourly", JSON.stringify(rec[2].body));
 
 // ── pruners report counts ───────────────────────────────────────────────────
 await db.exec(`INSERT INTO public.cron_http_requests (request_id, jobname, created_at)

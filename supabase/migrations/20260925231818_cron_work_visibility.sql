@@ -42,6 +42,14 @@
 -- ── 1. SQL runs in cron_run_log ─────────────────────────────────────────────
 ALTER TABLE public.cron_run_log ALTER COLUMN response_id DROP NOT NULL;
 
+-- SQL runs make this table ~10x busier (a per-minute job alone is 1,440 rows a
+-- day). The two readers that only want HTTP rows get partial indexes: the
+-- health-check heartbeat (newest HTTP answer) and 3a's body-fill loop.
+CREATE INDEX IF NOT EXISTS cron_run_log_http_occurred_idx
+  ON public.cron_run_log (occurred_at DESC) WHERE response_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS cron_run_log_unparsed_idx
+  ON public.cron_run_log (id) WHERE body = '{}'::jsonb;
+
 COMMENT ON COLUMN public.cron_run_log.response_id IS
   'pg_net response id for an HTTP cron run (ingested by sweep_silent_cron_failures). NULL for a SQL cron run recorded by public.cron_record_work() (CJ-007).';
 
@@ -415,7 +423,7 @@ BEGIN
       INSERT INTO public.error_logs (severity, message, tags, context)
       VALUES (
         'error',
-        format('Unrecorded SQL cron: %s discards what it did. Wrap its command as SELECT public.cron_record_work(''%s'', to_jsonb(public.<fn>())); (20260925231818).',
+        format('Unrecorded SQL cron: %s discards what it did. Wrap its command as SELECT public.cron_record_work(''%s'', to_jsonb(public.<fn>())); (a set-returning fn: to_jsonb((SELECT count(*) FROM public.<fn>())); see 20260925231818).',
                r.jobname, r.jobname),
         jsonb_build_object('source', 'cron-silent', 'area', 'cron', 'job', r.jobname, 'rule', 'unrecorded'),
         jsonb_build_object('jobid', r.jobid, 'docs', 'CJ-007'));
@@ -512,30 +520,38 @@ BEGIN
 
   -- prune-cron-run-details was a raw DELETE; it now runs through its own
   -- function, on the schedule 20260903030805 gave it (never re-timed since).
-  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'prune-cron-run-details') THEN
+  -- Only while active: cron.schedule's upsert must not re-enable a paused job.
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'prune-cron-run-details' AND active) THEN
     PERFORM cron.schedule('prune-cron-run-details', '17 4 * * *',
       $c$SELECT public.cron_record_work('prune-cron-run-details', to_jsonb(public.prune_cron_run_details()));$c$);
   END IF;
 
   -- Any other SQL cron of the plain `SELECT public.<fn>();` shape whose
   -- function returns something (extend-boosts-hourly was created outside the
-  -- migrations; its command is not in this repo). Anything else stays as it
-  -- is and 3d files it as 'unrecorded' for a person.
+  -- migrations; its command is not in this repo). A set-returning function
+  -- (extend_boosts_with_no_applications returns TABLE(job_id, new_expires_at)
+  -- per the generated types) records how many rows it returned. Anything else
+  -- stays as it is and 3d files it as 'unrecorded' for a person; so does a job
+  -- this role may not alter (the loop never aborts the migration for one).
   FOR r IN
-    SELECT j.jobid, j.jobname, m[1] AS fn
+    SELECT j.jobid, j.jobname, m[1] AS fn, p.proretset AS setof
       FROM cron.job j
       CROSS JOIN LATERAL regexp_match(j.command, '^\s*SELECT\s+public\.([a-z_][a-z0-9_]*)\(\s*\)\s*;?\s*$', 'i') AS m
+      JOIN pg_proc p ON p.oid = to_regprocedure('public.' || m[1] || '()')
      WHERE j.jobname IS NOT NULL
        AND j.command NOT LIKE '%net.http_post(%'
        AND j.command NOT LIKE '%cron_record_work(%'
-       AND EXISTS (SELECT 1 FROM pg_proc p
-                    WHERE p.oid = to_regprocedure('public.' || m[1] || '()')
-                      AND p.prorettype <> 'void'::regtype
-                      AND NOT p.proretset)
+       AND p.prorettype <> 'void'::regtype
   LOOP
-    PERFORM cron.alter_job(
-      job_id  := r.jobid,
-      command := format('SELECT public.cron_record_work(%L, to_jsonb(public.%I()));', r.jobname, r.fn));
+    BEGIN
+      PERFORM cron.alter_job(
+        job_id  := r.jobid,
+        command := CASE WHEN r.setof
+          THEN format('SELECT public.cron_record_work(%L, to_jsonb((SELECT count(*) FROM public.%I())));', r.jobname, r.fn)
+          ELSE format('SELECT public.cron_record_work(%L, to_jsonb(public.%I()));', r.jobname, r.fn) END);
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'CJ-007: could not wrap cron job % (%): %', r.jobname, r.jobid, SQLERRM;
+    END;
   END LOOP;
 END
 $do$;
@@ -691,7 +707,7 @@ BEGIN
 
       -- Created outside the migrations: its command is not in this repo.
       ('extend-boosts-hourly',            'exempt', NULL, NULL,
-       'Created outside the migrations, so its result shape is unknown here. Section 6 wraps it when its command is SELECT public.<fn>(); otherwise 3d files it as unrecorded for a person.')
+       'Created outside the migrations; extend_boosts_with_no_applications() returns one row per boost it extended, and zero rows is the normal hour. Section 6 records that row count when its command is SELECT public.<fn>(); otherwise 3d files it as unrecorded.')
     ) AS v(jobname, work_visibility, max_idle, work_keys, work_exempt_reason)
    WHERE c.jobname = v.jobname;
 END

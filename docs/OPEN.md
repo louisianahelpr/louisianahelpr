@@ -171,7 +171,7 @@ sure someone hears it and closes it.
   now shows them as "Link withheld (not https)" (before: a broken relative
   link). Sign them at display time like id_document_url. 0 such rows on prod
   2026-09-23.
-- [ ] **`blankComments()` desyncs on a regex literal containing `'`**
+- [x] **`blankComments()` desyncs on a regex literal containing `'`** DONE (re-read 2026-09-25, queue lane): fixed by Q24 in e069ff077; src/test/helpers/blankNonCode.ts scan() treats a `/` where an expression can start as a regex literal (regexCanStart). GUARD: src/test/blankNonCodeRegexLiteral.test.ts (4 tests incl. the chunkReload.ts shape; @mutate disabling the regex branch). Ran green 2026-09-25. Original report:
   (src/test/helpers/blankNonCode.ts; e.g. src/lib/chunkReload.ts:27): every
   comment after that point in the file is kept as code, so guards built on it
   can see comment prose as calls. Found 2026-09-23; not fixed (shared helper,

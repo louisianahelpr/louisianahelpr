@@ -682,7 +682,7 @@ const Dashboard = () => {
                         {filters.hasFilters ? " match your filters" : ""}
                       </span>
                       {filters.searchOpen && (
-                        <BrowseSearchBar filters={filters} floatRecents className="ml-auto" />
+                        <BrowseSearchBar filters={filters} className="ml-auto" />
                       )}
                       <div className={`flex items-center gap-1 ${filters.searchOpen ? "" : "ml-auto"}`}>
                         <BrowseTasksActions

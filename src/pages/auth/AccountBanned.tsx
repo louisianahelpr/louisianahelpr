@@ -7,7 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import AuthShell from "@/components/auth/AuthShell";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 
@@ -20,7 +21,8 @@ const DeleteAccountDialog = lazy(() =>
 const BAN_STATUSES = ["banned", "temp_banned", "permanently_banned"] as const;
 
 const AccountBanned = () => {
-  usePageTitle("Account Banned — Helpr");
+  // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
+  usePageMeta(NOINDEX_PAGE_META["/account-banned"]);
   const navigate = useNavigate();
   const { user, profile, isLoading } = useCurrentUser();
 

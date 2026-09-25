@@ -59,7 +59,7 @@
  */
 
 import { SHELL_HTML } from "../scripts/generated/og-shell.js";
-import { publicPageMetaFor } from "../src/lib/publicPageMeta.mjs";
+import { noindexPageMetaFor, publicPageMetaFor } from "../src/lib/publicPageMeta.mjs";
 
 /**
  * og:url and the canonical link are built from this constant, never from the
@@ -423,21 +423,18 @@ async function metaForJob(id: string, url: string): Promise<Meta | null> {
  */
 function metaForSignup(ref: string | null): Meta {
   const invited = !!ref && REF_CODE_RE.test(ref);
-  if (!invited) {
-    return {
-      title: "Create your free Helpr account",
-      ogTitle: "Join Helpr — Louisiana's local job marketplace",
-      description:
-        "Post a job or get paid to help your neighbors with cleaning, yard work, moving and errands. Payment is held safely until the work is confirmed done.",
-      url: `${SITE_ORIGIN}/signup`,
-    };
-  }
+  // Q401a: /signup is noindex (an auth entry point, out of the sitemap by
+  // choice). An invite link is the same page, so it says so too: the page's
+  // own usePageMeta sets the same robots after JS.
+  const signup = noindexPageMetaFor("/signup")!;
+  if (!invited) return metaForNoindexPage("signup")!;
   return {
     title: "You've been invited to Helpr",
     ogTitle: "You've been invited to join Helpr",
     description:
       "A neighbor invited you to Helpr — Louisiana's local job marketplace for cleaning, yard work, moving and errands. Sign up free with their invite.",
-    url: `${SITE_ORIGIN}/signup`,
+    url: signup.canonical,
+    robots: signup.robots,
   };
 }
 
@@ -496,6 +493,27 @@ function metaForPublicPage(id: string, tab: string | null): Meta | null {
 }
 
 /**
+ * A public page that is deliberately NOT indexed (Q401a): /login, /signup,
+ * /forgot-password, /reset-password, /signup-pending, /account-banned. Before
+ * this they got the homepage's title and canonical and the shell's
+ * "index, follow" until JS ran. Same table the pages' usePageMeta reads
+ * (NOINDEX_PAGE_META), so pre-JS and post-JS agree; `null` for an unknown id
+ * serves the untouched shell. No database read.
+ */
+function metaForNoindexPage(id: string): Meta | null {
+  const page = noindexPageMetaFor(`/${id}`);
+  if (!page) return null;
+  return {
+    title: page.title,
+    description: page.description,
+    ogTitle: page.ogTitle,
+    ogDescription: page.ogDescription,
+    url: page.canonical,
+    robots: page.robots,
+  };
+}
+
+/**
  * Which route is being previewed.
  *
  * The rewrites in vercel.json name the route explicitly
@@ -509,9 +527,9 @@ function metaForPublicPage(id: string, tab: string | null): Meta | null {
  * invoked directly with a real route path — which is how the local harness and
  * the unit-style checks exercise it.
  */
-function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page"; id: string } | null {
+function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex"; id: string } | null {
   const declared = url.searchParams.get("_og");
-  if (declared === "job" || declared === "user" || declared === "page") {
+  if (declared === "job" || declared === "user" || declared === "page" || declared === "noindex") {
     return { kind: declared, id: url.searchParams.get("_id") ?? "" };
   }
   if (declared === "signup") return { kind: "signup", id: "" };
@@ -523,6 +541,7 @@ function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page"; id:
   const userMatch = pathname.match(/^\/user\/([^/]+)$/);
   if (userMatch) return { kind: "user", id: decodeURIComponent(userMatch[1]) };
   if (publicPageMetaFor(pathname, null)) return { kind: "page", id: pathname.slice(1) };
+  if (noindexPageMetaFor(pathname)) return { kind: "noindex", id: pathname.slice(1) };
   return null;
 }
 
@@ -547,6 +566,10 @@ async function resolveMeta(url: URL): Promise<Meta | null> {
 
   if (route.kind === "page") {
     return metaForPublicPage(route.id, url.searchParams.get("tab"));
+  }
+
+  if (route.kind === "noindex") {
+    return metaForNoindexPage(route.id);
   }
 
   const seg = safeIdSegment(route.id);

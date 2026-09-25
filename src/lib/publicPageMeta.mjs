@@ -95,6 +95,76 @@ export const PUBLIC_PAGE_META = {
   },
 };
 
+/**
+ * Public pages that are deliberately NOT indexed (Q401a): auth entry points and
+ * account-state screens that are public only because they render before a
+ * session exists. They are out of the sitemap by choice (NOINDEX in
+ * scripts/generate-sitemap.mjs), and until 2026-09-25 they served the
+ * homepage's title and canonical before JS with the shell's "index, follow" —
+ * telling a non-JS crawler each was a duplicate of `/`. vercel.json routes
+ * them through api/share.ts (`_og=noindex`), which writes these values into
+ * the pre-JS head; each page passes the same entry to usePageMeta, so the
+ * values agree before and after JavaScript.
+ */
+export const NOINDEX_ROBOTS = "noindex, follow";
+
+export const NOINDEX_PAGE_META = {
+  "/login": {
+    title: "Log In — Helpr",
+    description: "Log in to your Helpr account.",
+    canonical: `${SITE_ORIGIN}/login`,
+    ogTitle: "Log In — Helpr",
+    ogDescription: "Log in to your Helpr account to post jobs or pick up local work across Louisiana.",
+    robots: NOINDEX_ROBOTS,
+  },
+  "/signup": {
+    title: "Sign Up — Helpr",
+    description: "Create your free Helpr account in under a minute.",
+    canonical: `${SITE_ORIGIN}/signup`,
+    ogTitle: "Sign Up — Helpr",
+    ogDescription: "Join Helpr in under a minute and start posting jobs or earning as a verified Helpr across Louisiana.",
+    robots: NOINDEX_ROBOTS,
+  },
+  "/forgot-password": {
+    title: "Reset Password — Helpr",
+    description: "Forgot your Helpr password? Enter your email and we'll send you a reset link.",
+    canonical: `${SITE_ORIGIN}/forgot-password`,
+    ogTitle: "Reset Password — Helpr",
+    ogDescription: "Recover access to your Helpr account with a one-time password reset email.",
+    robots: NOINDEX_ROBOTS,
+  },
+  "/reset-password": {
+    title: "Set New Password — Helpr",
+    description: "Choose a new password for your Helpr account.",
+    canonical: `${SITE_ORIGIN}/reset-password`,
+    ogTitle: "Set New Password — Helpr",
+    ogDescription: "Finish resetting your Helpr password.",
+    robots: NOINDEX_ROBOTS,
+  },
+  "/signup-pending": {
+    title: "Check Your Email — Helpr",
+    description: "Confirm your email address to finish creating your Helpr account.",
+    canonical: `${SITE_ORIGIN}/signup-pending`,
+    ogTitle: "Check Your Email — Helpr",
+    ogDescription: "Confirm your email address to finish creating your Helpr account.",
+    robots: NOINDEX_ROBOTS,
+  },
+  "/account-banned": {
+    title: "Account Banned — Helpr",
+    description: "This Helpr account has been banned. Contact support if you think this is a mistake.",
+    canonical: `${SITE_ORIGIN}/account-banned`,
+    ogTitle: "Account Banned — Helpr",
+    ogDescription: "This Helpr account has been banned. Contact support if you think this is a mistake.",
+    robots: NOINDEX_ROBOTS,
+  },
+};
+
+/** The noindex head values for a path, or null when it is not one of those pages. */
+export function noindexPageMetaFor(pathname) {
+  const path = pathname.replace(/\/+$/, "") || "/";
+  return Object.prototype.hasOwnProperty.call(NOINDEX_PAGE_META, path) ? NOINDEX_PAGE_META[path] : null;
+}
+
 /** Legal tab meta in the same full shape as PUBLIC_PAGE_META's entries. */
 export function legalPageMeta(tab) {
   const m = LEGAL_PAGE_META[tab];

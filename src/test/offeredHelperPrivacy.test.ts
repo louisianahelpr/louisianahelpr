@@ -212,6 +212,7 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:get_ranked_open_jobs": "no-return",
     "function:instant_book_claim": "no-return",
     "function:is_party_to_job": "no-return",
+    "function:job_announceable_to": "no-return",
     "function:jobs_private_select_columns": "no-return",
     "function:notify_helper_on_direct_offer": "no-return",
     "function:notify_helpers_on_job_post": "no-return",

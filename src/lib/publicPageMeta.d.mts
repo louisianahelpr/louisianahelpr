@@ -18,6 +18,19 @@ export const LEGAL_PAGE_META: Readonly<
 >;
 export const PUBLIC_PAGE_META: Readonly<Record<"/browse" | "/help" | "/support", PublicPageMeta>>;
 export function legalPageMeta(tab: LegalTab): PublicPageMeta;
+export type NoindexPath =
+  | "/login"
+  | "/signup"
+  | "/forgot-password"
+  | "/reset-password"
+  | "/signup-pending"
+  | "/account-banned";
+export interface NoindexPageMeta extends PublicPageMeta {
+  robots: string;
+}
+export const NOINDEX_ROBOTS: string;
+export const NOINDEX_PAGE_META: Readonly<Record<NoindexPath, NoindexPageMeta>>;
+export function noindexPageMetaFor(pathname: string): NoindexPageMeta | null;
 export function publicPageMetaFor(
   pathname: string,
   tabParam: string | null | undefined,

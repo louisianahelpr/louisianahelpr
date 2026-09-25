@@ -4,7 +4,7 @@
  * account. It must only ever do that with a test-mode key, for a bounded
  * amount, and only when someone presses Run.
  *
- * @mutate scripts/stripe-test-topup.mjs | if (!/^(sk|rk)_test_/.test(key)) { | if (false) {
+ * @mutate scripts/stripe-test-topup.mjs | if (!/^(sk\|rk)_test_/.test(key)) { | if (false) {
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

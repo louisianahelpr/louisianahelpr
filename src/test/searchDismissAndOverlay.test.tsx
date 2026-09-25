@@ -801,6 +801,23 @@ describe("every expanding search holds the magnifier's landing slot open", () =>
     ).toMatch(/<SearchTriggerSlot[\s/>]|triggerWidth:/);
   });
 
+  /* A screen that hands ScreenHeaderRow an `expandingSearch` config must say
+     how wide the held-open magnifier slot is. A file can also render its own
+     `<SearchTriggerSlot>` elsewhere, so the check above cannot see a config
+     that lost its `triggerWidth`; this one reads the config itself. */
+  it("every expandingSearch config declares its triggerWidth", () => {
+    let configs = 0;
+    for (const file of MUST_RESERVE_THE_SLOT) {
+      const src = stripComments(readFileSync(path.join(SRC, file), "utf8"));
+      for (let i = src.indexOf("expandingSearch={{"); i !== -1; i = src.indexOf("expandingSearch={{", i + 1)) {
+        configs++;
+        const block = src.slice(i, src.indexOf("}}", i));
+        expect(block, `${file}: an expandingSearch config has no triggerWidth`).toMatch(/triggerWidth:/);
+      }
+    }
+    expect(configs, "no expandingSearch config found — this check reads nothing").toBeGreaterThanOrEqual(3);
+  });
+
   it("the slot carries the marker the browser probe addresses it by", () => {
     const src = stripComments(readFileSync(path.join(SRC, "components/ui/ScreenHeaderRow.tsx"), "utf8"));
     // The exact attribute TOKEN, not a prefix — a loose match also accepts a

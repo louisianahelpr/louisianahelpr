@@ -45,6 +45,7 @@ describe("generated test passwords meet the Auth password policy", () => {
     const files = execFileSync("git", ["ls-files", "--", "e2e", "scripts"], { cwd: REPO, encoding: "utf8" })
       .split("\n")
       .filter((f) => /\.(ts|tsx|mjs|js)$/.test(f) && f !== "src/test/strongTestPassword.ts");
+    expect(files.length, "git ls-files found no e2e/ or scripts/ sources — this check reads nothing").toBeGreaterThan(100);
     const hits: string[] = [];
     for (const f of files) {
       readFileSync(resolve(REPO, f), "utf8")

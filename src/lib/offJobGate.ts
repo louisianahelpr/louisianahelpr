@@ -45,6 +45,9 @@ export async function fetchOffJobState(
   otherUserId: string | null | undefined,
 ): Promise<OffJobState | null> {
   if (!jobId) return null;
+  // nullable-arg: _other is NULL when the other party deleted their account
+  // (messages.receiver_id ON DELETE SET NULL); get_off_job_thread_state then
+  // answers only for the viewer ('self' or NULL), never 'other'.
   const { data, error } = await supabase.rpc("get_off_job_thread_state", {
     _job_id: jobId,
     // Q262: the other party may have deleted their account; the viewer's own

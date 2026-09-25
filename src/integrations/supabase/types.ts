@@ -3258,6 +3258,7 @@ export type Database = {
           auto_release_on_complete: boolean
           auto_suspended_until: string | null
           auto_tip_cap: number | null
+          auto_tip_enabled_at: string | null
           auto_tip_mode: Database["public"]["Enums"]["auto_tip_mode"]
           auto_tip_value: number | null
           availability: string | null
@@ -3360,6 +3361,7 @@ export type Database = {
           auto_release_on_complete?: boolean
           auto_suspended_until?: string | null
           auto_tip_cap?: number | null
+          auto_tip_enabled_at?: string | null
           auto_tip_mode?: Database["public"]["Enums"]["auto_tip_mode"]
           auto_tip_value?: number | null
           availability?: string | null
@@ -3462,6 +3464,7 @@ export type Database = {
           auto_release_on_complete?: boolean
           auto_suspended_until?: string | null
           auto_tip_cap?: number | null
+          auto_tip_enabled_at?: string | null
           auto_tip_mode?: Database["public"]["Enums"]["auto_tip_mode"]
           auto_tip_value?: number | null
           availability?: string | null
@@ -3920,6 +3923,58 @@ export type Database = {
           },
           {
             foreignKeyName: "saved_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_search_alert_queue: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          matched_search_ids: string[]
+          notify_at: string
+          search_name: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          matched_search_ids?: string[]
+          notify_at: string
+          search_name?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          matched_search_ids?: string[]
+          notify_at?: string
+          search_name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_search_alert_queue_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_search_alert_queue_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_search_alert_queue_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "open_jobs_browse"
@@ -5244,6 +5299,15 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      deliver_saved_search_alert: {
+        Args: {
+          p_job_id: string
+          p_search_ids: string[]
+          p_search_name: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       detect_stuck_payments: { Args: never; Returns: number }
       detect_suspicious_user_patterns: { Args: never; Returns: number }
       dispute_evidence_url_ok: {
@@ -5252,6 +5316,14 @@ export type Database = {
       }
       dispute_settlement_claim_ttl: { Args: never; Returns: string }
       early_access_cutoff: { Args: never; Returns: string }
+      early_access_delay_minutes: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
+      early_access_visible_at: {
+        Args: { p_created_at: string; p_user_id: string }
+        Returns: string
+      }
       enforce_retained_ban: {
         Args: {
           p_email?: string
@@ -6173,6 +6245,7 @@ export type Database = {
       prune_cron_http_requests: { Args: never; Returns: undefined }
       prune_cron_run_log: { Args: never; Returns: undefined }
       prune_edge_rate_limit_log: { Args: never; Returns: Json }
+      prune_retention_tables: { Args: never; Returns: Json }
       purge_user_data: { Args: { p_user_id: string }; Returns: Json }
       rate_limit_hit: {
         Args: {
@@ -6388,6 +6461,7 @@ export type Database = {
       sweep_old_error_logs: { Args: never; Returns: number }
       sweep_old_notifications: { Args: never; Returns: number }
       sweep_release_last_chance: { Args: never; Returns: number }
+      sweep_saved_search_alert_queue: { Args: never; Returns: number }
       sweep_silent_cron_failures: { Args: never; Returns: Json }
       sync_jobs_select_grants: { Args: never; Returns: Json }
       sync_profiles_update_grants: { Args: never; Returns: Json }

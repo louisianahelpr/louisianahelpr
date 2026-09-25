@@ -78,7 +78,9 @@ allMigrationFiles().forEach((file, i) => {
   for (const d of sql.matchAll(dropRe)) lastDrop.set(d[1].toLowerCase(), i);
   for (const c of sql.matchAll(createRe)) lastCreate.set(c[1].toLowerCase(), i);
 });
-const droppedForGood = (name) => (lastDrop.get(name) ?? -1) >= (lastCreate.get(name) ?? -1);
+// A name no migration ever dropped is not "dropped" (a file outside the corpus
+// would otherwise compare -1 >= -1 and skip every function it defines).
+const droppedForGood = (name) => lastDrop.has(name) && lastDrop.get(name) >= (lastCreate.get(name) ?? -1);
 
 // New function definitions in the changed files.
 const fnRe = /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?([a-z0-9_]+)"?\s*\(/gi;

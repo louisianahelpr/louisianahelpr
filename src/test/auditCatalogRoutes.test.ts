@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { TAB_TITLES } from "@/pages/profile/types";
 
 /**
  * The audit catalog must describe the app that exists.
@@ -173,8 +174,11 @@ function isUnconditionalRedirect(element: string): boolean {
 // row whose route is a <Navigate> and it goes back to being counted as an
 // independently audited screen.
 // @mutate e2e/happy-path/auditRoutes.ts | { name: "profile-gift-card", url: "/profile?tab=gift_card" }, | { name: "profile-gift-card", url: "/gift-card" },
-// Proves reclassification cannot open a hole: remove the row that actually
-// audits the gift_card tab and /gift-card's alias target is orphaned.
+// Proves a Profile tab cannot silently drop out of the sweeps: remove the row
+// that audits the gift_card tab and the TAB_TITLES coverage test goes red.
+// (Until 2026-09-25 this comment said "/gift-card's alias target is orphaned":
+// true while /gift-card was a redirect row, but Q194 deleted that alias, the
+// orphan check had nothing left to look at, and this registration SURVIVED.)
 // @mutate e2e/happy-path/auditRoutes.ts | { name: "profile-gift-card", url: "/profile?tab=gift_card" }, | 
 // Proves the second catalog is covered too: a dead route put back into
 // overlay-sweep's own ROUTES list must fail here, not be probed silently.
@@ -400,6 +404,43 @@ describe("audit catalog matches the real route table", () => {
     expect(
       dead,
       `overlay-sweep ROUTES entries that render nothing:\n  - ${dead.join("\n  - ")}`,
+    ).toEqual([]);
+  });
+
+  /**
+   * Profile is a `?tab=`-switched shell, exactly like /admin: resolveRoute()
+   * sees every `/profile?tab=…` row as the single route `/profile`, so the
+   * route-coverage test above is satisfied by ANY one Profile row. Deleting
+   * the row for a tab therefore left every other check green while that tab
+   * went unswept (measured 2026-09-25: the vacuity harness removed
+   * `profile-gift-card` and this file stayed green, because Q194 had deleted
+   * the /gift-card alias whose orphan check used to catch it).
+   *
+   * Derived from TAB_TITLES — the object the app routes on, typed
+   * `Record<Tab, …>` so a new tab without a title is a typecheck failure —
+   * never from the catalog, so this is not a list checked against itself.
+   */
+  it("every Profile tab in TAB_TITLES is audited by a real (non-alias) catalog row", () => {
+    const tabs = Object.keys(TAB_TITLES);
+    expect(tabs.length).toBeGreaterThan(15);
+
+    const rows = [
+      ...screensIn("ANON_SCREENS"),
+      ...screensIn("AUTHED_SCREENS"),
+      ...screensIn("ADMIN_SCREENS"),
+    ];
+    const auditedTabs = new Set(
+      rows
+        .filter((s) => !s.redirectsTo && s.url.split("?")[0] === "/profile")
+        .map((s) => new URLSearchParams(s.url.split("?")[1] ?? "").get("tab"))
+        .filter((t): t is string => t !== null),
+    );
+    const missing = tabs.filter((t) => !auditedTabs.has(t));
+
+    expect(
+      missing,
+      "Profile tabs no catalog row renders (every sweep would report clean " +
+        `without ever opening them):\n  - ${missing.map((t) => `/profile?tab=${t}`).join("\n  - ")}`,
     ).toEqual([]);
   });
 

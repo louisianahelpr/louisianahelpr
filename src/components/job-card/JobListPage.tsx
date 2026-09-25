@@ -41,7 +41,8 @@ import {
   postedActivityBucket,
   appliedActivityBucket,
 } from "@/components/job-card/activityFilters";
-import { ActivityHeader, ACTIVITY_HEADER_PADDING } from "@/components/job-card/ActivityHeader";
+import { PostsHeader, POSTS_HEADER_PADDING } from "@/pages/posts/PostsHeader";
+import { JobsHeader, JOBS_HEADER_PADDING } from "@/pages/jobs/JobsHeader";
 import { ActivityEmptyState } from "@/components/job-card/ActivityEmptyState";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import { useSearchParamMirror } from "@/hooks/useSearchParamMirror";
@@ -57,7 +58,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useCurrentUser();
   // Full-bleed app bar — web-desktop ONLY. My Posts / My Jobs carry no app
-  // bar on phone/native (ActivityHeader's own title is the page name there),
+  // bar on phone/native (the page header's own title is the page name there),
   // matching every other Activity/Messages screen; on web-desktop the new
   // full-bleed DashboardHeader spans above the sidebar rail the same way it
   // now does on Dashboard.
@@ -478,9 +479,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     (tab === "posted" && filteredPostedJobs.length === 0) ||
     (tab === "applied" && filteredAppliedApps.length === 0);
 
+  // Each tab owns its header: My Posts renders src/pages/posts/PostsHeader,
+  // My Jobs renders src/pages/jobs/JobsHeader (owner, 2026-09-25: "They
+  // should be there own headers"). Each header carries its own title.
+  const PageHeader = tab === "posted" ? PostsHeader : JobsHeader;
+  const headerPadding = tab === "posted" ? POSTS_HEADER_PADDING : JOBS_HEADER_PADDING;
   const headerEl = (
-    <ActivityHeader
-      title={tab === "posted" ? "My Posts" : "My Jobs"}
+    <PageHeader
       // Desktop: the app bar and the right rail already say which page you
       // are on, so the page name is sr-only here and the row is just its
       // count + controls. Phone and native keep the visible title; they have
@@ -545,7 +550,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       <PageScaffold
         animate={!skeletonShownRef.current}
         titleCard={isWebDesktop ? undefined : headerEl}
-        titleCardClassName={ACTIVITY_HEADER_PADDING}
+        titleCardClassName={headerPadding}
       >
           {isWebDesktop && headerEl && (
             <div
@@ -555,9 +560,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               {headerEl}
             </div>
           )}
-          {/* The sr-only <h1> that used to stand in here is gone: the real
-              ActivityHeader h1 now renders on the empty list too, so adding
-              this one would give the document TWO h1s. */}
+          {/* No sr-only <h1> here: the page header's h1 renders on the empty
+              list too, so a second one would give the document TWO h1s. */}
 
           <PullToRefreshWrapper
             ref={containerRef}

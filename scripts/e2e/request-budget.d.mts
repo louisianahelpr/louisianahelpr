@@ -11,6 +11,8 @@ export interface RunAggregate {
   minutes: Record<string, number>;
   topDuplicates: Record<string, number>;
   samples: number;
+  /** Total ms the meter held navigations to stay under the ceiling. */
+  paceWaitMs: number;
   peakPerMinute: number;
   perTest: number;
 }

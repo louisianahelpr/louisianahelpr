@@ -4,6 +4,11 @@ import { resolve } from "node:path";
 // @ts-expect-error — plain .mjs script shared with CI (race-runner.yml), no types.
 import * as guard from "../../scripts/check-race-class.mjs";
 
+// Q245: a second unguarded write of the same shape in an already-baselined
+// file gets its own key (base#2), so it is NEW, not covered by the first's
+// baseline entry.
+// @mutate scripts/check-race-class.mjs | hits.push({ key: n === 1 ? base : `${base}#${n}`, file: relPath, line }); | hits.push({ key: base, file: relPath, line });
+
 /**
  * Class guard for the job-row race proven on prod 2026-09-12 and fixed in
  * 20260913014328_lock_job_row_on_apply_and_confirm.sql (d0471d07f).
@@ -104,6 +109,17 @@ describe("race-class guard — dispute settlement wave (BUILT 2026-09-14, no pro
     const src = readFileSync(resolve(REPO_ROOT, DISPUTE_DIALOG), "utf8");
     const keys = guard.clientHitsInSource(DISPUTE_DIALOG, src).map((h: Hit) => h.key);
     expect(keys).not.toContain(`client:${DISPUTE_DIALOG}::status`);
+  });
+
+  it("a second write of an already-baselined shape in the same file is NEW (Q245)", () => {
+    const one = `supabase.from("jobs").update({ status: "open" }).eq("id", id);`;
+    const path = "src/example/Probe.ts";
+    const first = guard.clientHitsInSource(path, one);
+    const both = guard.clientHitsInSource(path, `${one}\n${one}`);
+    expect(first.map((h: Hit) => h.key)).toEqual([`client:${path}::status`]);
+    const baseline = { allow: { [`client:${path}::status`]: "one audited write" }, safe: {} };
+    expect(guard.compare(first, baseline).unexpected).toEqual([]);
+    expect(guard.compare(both, baseline).unexpected.map((h: Hit) => h.key)).toEqual([`client:${path}::status#2`]);
   });
 
   it("keeps the whole inventory baselined — 0 new, 0 stale", () => {

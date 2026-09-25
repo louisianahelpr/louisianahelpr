@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/imageCompression";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation } from "@/lib/mutationResult";
+import { SCOPE_VIDEO_BUCKET, readVideoDuration, scopeVideoDurationProblem, scopeVideoFileProblem } from "@/lib/scopeVideo";
 
 /**
  * useJobMediaUpload — owns the post-a-job photo + scope-video state and the
@@ -24,10 +25,19 @@ export function useJobMediaUpload() {
   const [scopeVideoFile, setScopeVideoFile] = useState<File | null>(null);
   const [scopeVideoPreviewUrl, setScopeVideoPreviewUrl] = useState<string | null>(null);
 
-  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  // A clip the bucket would refuse is refused here, with the reason: the upload
+  // runs after the job posts and is non-fatal, so a refusal there is silent.
+  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const file = input.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("video/")) return;
+    const problem =
+      scopeVideoFileProblem(file) ?? scopeVideoDurationProblem(await readVideoDuration(file));
+    if (problem) {
+      toast.error(problem);
+      input.value = "";
+      return;
+    }
     const url = URL.createObjectURL(file);
     setScopeVideoFile(file);
     setScopeVideoPreviewUrl(url);
@@ -179,10 +189,10 @@ export function useJobMediaUpload() {
         const ext = scopeVideoFile.name.split(".").pop() || "mp4";
         const path = `${jobId}/scope-video.${ext}`;
         const { error: vidErr } = await supabase.storage
-          .from("job-photos")
+          .from(SCOPE_VIDEO_BUCKET)
           .upload(path, scopeVideoFile, { upsert: true });
         if (!vidErr) {
-          const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
+          const { data: urlData } = supabase.storage.from(SCOPE_VIDEO_BUCKET).getPublicUrl(path);
           try {
             unwrapMutation(
               await supabase.from("jobs").update({ scope_video_url: urlData.publicUrl }).eq("id", jobId).select("id"),
@@ -211,10 +221,10 @@ export function useJobMediaUpload() {
     const ext = scopeVideoFile.name.split(".").pop() ?? "mp4";
     const path = `${jobId}/scope-video.${ext}`;
     const { error: upErr } = await supabase.storage
-      .from("job-photos")
+      .from(SCOPE_VIDEO_BUCKET)
       .upload(path, scopeVideoFile, { upsert: true });
     if (upErr) return; // non-fatal — video is a nice-to-have
-    const { data } = supabase.storage.from("job-photos").getPublicUrl(path);
+    const { data } = supabase.storage.from(SCOPE_VIDEO_BUCKET).getPublicUrl(path);
     if (!data?.publicUrl) return;
     // Non-fatal — the column may not exist on prod yet — but BOTH failures are
     // now surfaced. The intent of the old comment was right and its code was

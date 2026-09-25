@@ -11,7 +11,11 @@ import { NARROW_TITLE_ASIDE_PX } from "@/components/ui/ScreenHeaderRow";
 import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
 
 /**
- * THE ACTIVITY HEADER'S PHONE WIDTH BUDGET — both claims on one row.
+ * THE MY POSTS / MY JOBS HEADERS' PHONE WIDTH BUDGET — both claims on one row.
+ *
+ * My Posts and My Jobs each own their header (src/pages/posts/PostsHeader.tsx,
+ * src/pages/jobs/JobsHeader.tsx; owner, 2026-09-25: "They should be there own
+ * headers"). Every claim below is asserted of BOTH files.
  *
  *   (1) SEARCH CLOSED: every status-tab label is FULLY ON THE SCREEN at 320,
  *       375 and 414.
@@ -84,14 +88,20 @@ import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
 // a mutation that edits the CLASS LITERAL cannot make that leg red, because
 // the `@mutate` directive below restates the class in a file Tailwind scans,
 // which keeps the rule alive on its own. The directives are content too.
-// @mutate src/components/job-card/ActivityHeader.tsx | shortLabel: inlineFilters ? undefined : f.shortLabel, | shortLabel: undefined,
+// @mutate src/pages/posts/PostsHeader.tsx | shortLabel: inlineFilters ? undefined : f.shortLabel, | shortLabel: undefined,
+// @mutate src/pages/jobs/JobsHeader.tsx | shortLabel: inlineFilters ? undefined : f.shortLabel, | shortLabel: undefined,
 // @mutate src/lib/shortLabelBreakpoint.ts | export const SHORT_LABEL_BELOW_PX = 390; | export const SHORT_LABEL_BELOW_PX = 290;
-// @mutate src/components/job-card/ActivityHeader.tsx | tight={!inlineFilters} | tight={false}
-// @mutate src/components/job-card/ActivityHeader.tsx | narrowTitleStepsAside: true, | narrowTitleStepsAside: false,
-// @mutate src/components/job-card/ActivityHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | triggerWidth: inlineFilters ? "28px" : "88px",
+// @mutate src/pages/posts/PostsHeader.tsx | tight={!inlineFilters} | tight={false}
+// @mutate src/pages/jobs/JobsHeader.tsx | tight={!inlineFilters} | tight={false}
+// @mutate src/pages/posts/PostsHeader.tsx | narrowTitleStepsAside: true, | narrowTitleStepsAside: false,
+// @mutate src/pages/jobs/JobsHeader.tsx | narrowTitleStepsAside: true, | narrowTitleStepsAside: false,
+// @mutate src/pages/posts/PostsHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | triggerWidth: inlineFilters ? "28px" : "88px",
+// @mutate src/pages/jobs/JobsHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | triggerWidth: inlineFilters ? "28px" : "88px",
 // @mutate src/components/job-card/JobListPage.tsx | activeStatusFilters={activeStatusFilters} | activeStatusFilters={[]}
-// @mutate src/components/job-card/ActivityHeader.tsx | style={tabFadeStyle} | style={undefined}
-// @mutate src/components/job-card/ActivityHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(true); | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter);
+// @mutate src/pages/posts/PostsHeader.tsx | style={tabFadeStyle} | style={undefined}
+// @mutate src/pages/jobs/JobsHeader.tsx | style={tabFadeStyle} | style={undefined}
+// @mutate src/pages/posts/PostsHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
+// @mutate src/pages/jobs/JobsHeader.tsx | const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter); | const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
 
 const ROOT = resolve(__dirname, "../..");
 const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
@@ -99,7 +109,12 @@ const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
 const stripComments = (t: string) =>
   t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
-const HEADER = stripComments(read("src/components/job-card/ActivityHeader.tsx"));
+/** Each tab's own header, keyed the way Part 1 names the two tabs. */
+const HEADERS = {
+  posts: { file: "src/pages/posts/PostsHeader.tsx", src: stripComments(read("src/pages/posts/PostsHeader.tsx")) },
+  jobs: { file: "src/pages/jobs/JobsHeader.tsx", src: stripComments(read("src/pages/jobs/JobsHeader.tsx")) },
+} as const;
+const HEADER_LIST = Object.values(HEADERS);
 const TABS = stripComments(read("src/components/ui/UnderlineTabs.tsx"));
 const ROW = stripComments(read("src/components/ui/ScreenHeaderRow.tsx"));
 const PAGE = stripComments(read("src/components/job-card/JobListPage.tsx"));
@@ -205,8 +220,8 @@ const COUNT_FONT = dsFontPx(
 const COUNT_GAP = gapPx(TABS, /items-baseline gap-(\d+)/, 1);
 
 /** Is the phone row wired to the tight density, and to the short words? */
-const PHONE_IS_TIGHT = /tight=\{!inlineFilters\}/.test(HEADER);
-const PHONE_GETS_SHORT_LABELS = /shortLabel:[^,]*\bf\.shortLabel\b/.test(HEADER);
+const phoneIsTight = (header: string) => /tight=\{!inlineFilters\}/.test(header);
+const phoneGetsShortLabels = (header: string) => /shortLabel:[^,]*\bf\.shortLabel\b/.test(header);
 
 /**
  * THE SHORT-WORD BREAKPOINT'S CLASS NAME, SPELLED WITHOUT EVER WRITING IT.
@@ -306,11 +321,13 @@ describe("the Activity status tabs fit a phone", () => {
   });
 
   it("the phone row is wired to both width layers", () => {
-    expect(PHONE_IS_TIGHT, "ActivityHeader no longer passes tight={!inlineFilters}").toBe(true);
-    expect(
-      PHONE_GETS_SHORT_LABELS,
-      "ActivityHeader no longer passes f.shortLabel through to the tabs",
-    ).toBe(true);
+    for (const { file, src } of HEADER_LIST) {
+      expect(phoneIsTight(src), `${file} no longer passes tight={!inlineFilters}`).toBe(true);
+      expect(
+        phoneGetsShortLabels(src),
+        `${file} no longer passes f.shortLabel through to the tabs`,
+      ).toBe(true);
+    }
     // The breakpoint constant and the two Tailwind literals must agree, or the
     // swap happens at a width nobody declared. Whether those literals COMPILE
     // to anything is a separate question with its own answer — see "the
@@ -327,20 +344,24 @@ describe("the Activity status tabs fit a phone", () => {
     // the card's rounded corner. Asserted structurally — jsdom lays nothing
     // out, so the browser pass is what proved it appears at 200/240/260/280
     // and goes away again at 320.
-    expect(HEADER, "the tab scroller no longer carries the edge-fade style").toMatch(
-      /style=\{tabFadeStyle\}/,
-    );
-    expect(HEADER, "the fade is no longer driven by a measured edge").toMatch(
-      /WebkitMaskImage: gradient/,
-    );
+    for (const { file, src } of HEADER_LIST) {
+      expect(src, `${file}: the tab scroller no longer carries the edge-fade style`).toMatch(
+        /style=\{tabFadeStyle\}/,
+      );
+      expect(src, `${file}: the fade is no longer driven by a measured edge`).toMatch(
+        /WebkitMaskImage: gradient/,
+      );
+    }
     // It must fire on "a label is past the edge", never on the box merely
     // being scrollable: this scroller bleeds the card's own px-5, so
     // scrollWidth counts 20px of trailing padding and a fitted row would fade
     // for nothing.
-    expect(
-      HEADER,
-      "the fade is back to a scrollWidth/clientWidth test, which is true of a row that fits",
-    ).not.toMatch(/el\.scrollWidth - el\.clientWidth/);
+    for (const { file, src } of HEADER_LIST) {
+      expect(
+        src,
+        `${file}: the fade is back to a scrollWidth/clientWidth test, which is true of a row that fits`,
+      ).not.toMatch(/el\.scrollWidth - el\.clientWidth/);
+    }
   });
 
   for (const viewport of PHONE_WIDTHS) {
@@ -351,8 +372,8 @@ describe("the Activity status tabs fit a phone", () => {
         ["jobs", APPLIED_STATUS_FILTERS],
       ] as const) {
         const content = contentWidth(filters, viewport, {
-          tight: PHONE_IS_TIGHT,
-          shortLabels: PHONE_GETS_SHORT_LABELS,
+          tight: phoneIsTight(HEADERS[name].src),
+          shortLabels: phoneGetsShortLabels(HEADERS[name].src),
         });
         expect(
           content,
@@ -376,48 +397,52 @@ describe("the Activity status tabs fit a phone", () => {
 const ROW_GAP = gapPx(ROW, /flex items-center (gap-(\d+))/, 2);
 const CLUSTER_GAP = gapPx(ROW, /flex items-center gap-(\d+) shrink-0/, 1);
 /** `triggerWidth: inlineFilters ? "28px" : "44px"` — the phone one. */
-const SLOT_PX = (() => {
-  const m = HEADER.match(/triggerWidth: inlineFilters \? "(\d+)px" : "(\d+)px"/);
-  if (!m) throw new Error("could not parse the header's held-open slot width");
+const slotPx = (file: string, header: string) => {
+  const m = header.match(/triggerWidth: inlineFilters \? "(\d+)px" : "(\d+)px"/);
+  if (!m) throw new Error(`could not parse ${file}'s held-open slot width`);
   return Number(m[2]);
-})();
+};
 /** The status chevron that stays in the cluster while searching: `h-11 w-11`. */
-const CHEVRON_PX = (() => {
-  const m = HEADER.match(/shrink-0 rounded-ds-md flex items-center justify-center btn-press transition hover:bg-secondary\/60 h-(\d+) w-(\d+)/);
-  if (!m) throw new Error("could not parse the search-mode status chevron's box");
+const chevronPx = (file: string, header: string) => {
+  const m = header.match(/shrink-0 rounded-ds-md flex items-center justify-center btn-press transition hover:bg-secondary\/60 h-(\d+) w-(\d+)/);
+  if (!m) throw new Error(`could not parse ${file}'s search-mode status chevron box`);
   return Number(m[2]) * 4;
-})();
+};
 /**
  * The visible title's natural width — "My Posts" in the row's 20px display
  * face, measured in the browser at 500 and 520 where it is on screen (82px
  * both times, so it is at its natural width and not against its 40% cap).
+ * "My Jobs" is the shorter title, so the same 82px is charged to both
+ * headers as the wider claim.
  */
 const TITLE_PX = 82;
-const TITLE_STEPS_ASIDE = /narrowTitleStepsAside: true/.test(HEADER);
+const titleStepsAside = (header: string) => /narrowTitleStepsAside: true/.test(header);
 
-const fieldWidth = (viewport: number) => {
-  const titleVisible = !(TITLE_STEPS_ASIDE && viewport < NARROW_TITLE_ASIDE_PX);
+const fieldWidth = (viewport: number, file: string, header: string) => {
+  const titleVisible = !(titleStepsAside(header) && viewport < NARROW_TITLE_ASIDE_PX);
   return (
     rowWidth(viewport) -
     (titleVisible ? TITLE_PX + ROW_GAP : 0) -
     ROW_GAP -
-    (SLOT_PX + CLUSTER_GAP + CHEVRON_PX)
+    (slotPx(file, header) + CLUSTER_GAP + chevronPx(file, header))
   );
 };
 
 describe("the Activity search field stays typable on a phone", () => {
   for (const viewport of [...PHONE_WIDTHS, NARROW_TITLE_ASIDE_PX]) {
     it(`the open field is readable at ${viewport}`, () => {
-      const w = fieldWidth(viewport);
-      expect(
-        w,
-        `@${viewport}: the open search field is ${w.toFixed(0)}px wide. The magnifier ` +
-          `(pl-9) and the ✕ (pr-10) take 76px of that before a character is drawn, so ` +
-          `anything under ${MIN_TYPABLE_FIELD_PX}px cannot show the word being typed — ` +
-          `at 76px (the width this row shipped at 320) the ✕ is drawn ON TOP of the ` +
-          `magnifier. Every other item on the row is fixed-width, so a new one is always ` +
-          `paid for out of the field.`,
-      ).toBeGreaterThanOrEqual(MIN_TYPABLE_FIELD_PX);
+      for (const { file, src } of HEADER_LIST) {
+        const w = fieldWidth(viewport, file, src);
+        expect(
+          w,
+          `${file} @${viewport}: the open search field is ${w.toFixed(0)}px wide. The magnifier ` +
+            `(pl-9) and the ✕ (pr-10) take 76px of that before a character is drawn, so ` +
+            `anything under ${MIN_TYPABLE_FIELD_PX}px cannot show the word being typed — ` +
+            `at 76px (the width this row shipped at 320) the ✕ is drawn ON TOP of the ` +
+            `magnifier. Every other item on the row is fixed-width, so a new one is always ` +
+            `paid for out of the field.`,
+        ).toBeGreaterThanOrEqual(MIN_TYPABLE_FIELD_PX);
+      }
     });
   }
 });
@@ -474,24 +499,25 @@ describe("an empty Activity list still shows its tabs", () => {
  * the build uses, not a restatement of what it ought to do.
  */
 describe("the status tabs survive first paint, and their breakpoint is a real rule", () => {
-  it("the phone disclosure starts OPEN, so arriving on the screen shows the tabs", () => {
+  it("the phone disclosure starts FOLDED on the default filter (owner, 2026-09-25)", () => {
     const SEED_RE = /const \[tabsOpenPhone, setTabsOpenPhone\] = useState\(([^)]*)\)/;
-    expect(
-      HEADER,
-      "ActivityHeader no longer seeds the phone disclosure state at all — find the " +
-        "useState behind `tabsOpenPhone`.",
-    ).toMatch(SEED_RE);
-    const seed = HEADER.match(SEED_RE)![1].trim();
-    expect(
-      seed,
-      `ActivityHeader opens the phone status tabs collapsed (useState(${seed})). ` +
-        "That is the screen the owner reported on 2026-09-20: plain /posts at 375 and " +
-        "414 painted \"My Posts · 🔍 · ⌄\" and no tab row, because the seed was " +
-        "`!isDefaultFilter` and the default filter is what every arrival lands on. Note " +
-        "the obvious wrong guess, ruled out by measurement that day: it was never about " +
-        "the bucket being EMPTY — /jobs' default bucket had rows and hid its tabs too. " +
-        "The tabs are navigation; they open with the screen.",
-    ).toBe("true");
+    // Owner, 2026-09-25, from iPhone screenshots: "This should open with the
+    // chevrons collapsed. Not expanded." A NON-default filter seeds open, so
+    // an active filter is never folded away unseen.
+    for (const { file, src } of HEADER_LIST) {
+      expect(
+        src,
+        `${file} no longer seeds the phone disclosure state at all — find the ` +
+          "useState behind `tabsOpenPhone`.",
+      ).toMatch(SEED_RE);
+      const seed = src.match(SEED_RE)![1].trim();
+      expect(
+        seed,
+        `${file} seeds the phone status tabs with useState(${seed}). The owner asked ` +
+          "on 2026-09-25 for My Posts / My Jobs to open with the chevron collapsed on the " +
+          "default filter, and open when a non-default filter is active.",
+      ).toBe("!isDefaultFilter");
+    }
   });
 
   /* AND THE OTHER HALF OF (b) IS NOT HERE ON PURPOSE.

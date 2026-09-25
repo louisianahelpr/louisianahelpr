@@ -108,7 +108,7 @@ const config: CapacitorConfig = {
       // mount, hiding it just reveals index.html's #boot-loader, and the app
       // sits on that forever. That is what a "loads but never opens" launch
       // looks like — see the HARD CAP note in
-      // src/integrations/supabase/keychainStorageAdapter.ts.
+      // src/integrations/supabase/preferencesStorageAdapter.ts.
       // launchShowDuration MUST be non-zero. Read
       // node_modules/@capacitor/splash-screen/ios/.../SplashScreen.swift:
       // `showOnLaunch()` calls buildViews() and then

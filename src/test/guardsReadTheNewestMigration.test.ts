@@ -138,7 +138,6 @@ const GRANDFATHERED: readonly string[] = [
   "src/pages/home/applyErrorCopy.test.ts",
   "src/lib/smartSort.test.ts",
   "src/test/consequenceCopyParity.test.ts",
-  "src/test/groupJobRosterLifecycle.test.ts",
 ];
 
 describe("a guard reads the NEWEST definition of the SQL it grades", () => {

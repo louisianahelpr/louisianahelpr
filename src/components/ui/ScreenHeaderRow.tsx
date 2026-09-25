@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 /**
  * ScreenHeaderRow — the ONE header row the panelled screens share.
  *
- * My Posts / My Jobs (`ActivityHeader`) and the Browse feed
+ * My Posts / My Jobs (`PostsHeader`, `JobsHeader`) and the Browse feed
  * (`BrowseTasksToolbar`) render the same row: the screen's name on the left,
  * an optional small state label beside it, and an icon cluster (search ·
  * filters) pinned to the trailing edge. This component IS that row, so the two
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
  * must never be what gets cut.
  *
  * It owns the row's INSIDE only. The surface it sits on stays the caller's:
- * ActivityHeader is mounted as PageScaffold's `titleCard` (so the card gives
+ * PostsHeader / JobsHeader are mounted as PageScaffold's `titleCard` (so the card gives
  * it its liquid-glass background, radius and `px-5`), while the browse toolbar
  * renders it as the first row inside the panel with its own `px-4`. Pass those
  * through `className` / `style`.

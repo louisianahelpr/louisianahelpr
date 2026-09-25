@@ -254,12 +254,39 @@ export async function selectAs<T>(api: APIRequestContext, s: Session, pathAndQue
   return (await r.json()) as T;
 }
 
-/** Delete this run's rows: messages and applications carrying MARKER, as the account that owns them. */
-export async function cleanupMarked(api: APIRequestContext, s: Session): Promise<string[]> {
+/**
+ * MARKER plus a token for THIS process, for text a spec writes and then
+ * removes itself. The shared test accounts are driven by more than one run at
+ * a time (a dispatched prod-audit, a vacuity run replaying the same spec under
+ * a mutation), so cleanup deletes by this, never by the bare MARKER: a bare
+ * MARKER delete in one run removes the rows another run is still asserting on.
+ * Letters only: the chat safety filter reads a digit run as a phone number.
+ */
+export const RUN_MARKER = `${MARKER} run${Array.from({ length: 8 }, () => "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)]).join("")}`;
+
+/**
+ * A marked row older than this was left by a run that died: no prod-audit run
+ * lives longer (prod-audit.yml's job timeout is 300 min), so deleting it
+ * cannot pull a row from under a run still going.
+ */
+export const LEFTOVER_AGE_MS = 6 * 60 * 60_000;
+
+/**
+ * Delete marked messages and applications, as the account that owns them.
+ * `{ run: RUN_MARKER }` removes what this process wrote; `{ leftoverBefore }`
+ * removes any run's marked rows created before that instant (use
+ * `Date.now() - LEFTOVER_AGE_MS`).
+ */
+export async function cleanupMarked(
+  api: APIRequestContext,
+  s: Session,
+  scope: { run: string } | { leftoverBefore: number },
+): Promise<string[]> {
   const removed: string[] = [];
-  const enc = encodeURIComponent(`*${MARKER}*`);
+  const enc = encodeURIComponent(`*${"run" in scope ? scope.run : MARKER}*`);
+  const age = "leftoverBefore" in scope ? `&created_at=lt.${encodeURIComponent(new Date(scope.leftoverBefore).toISOString())}` : "";
   for (const [table, col] of [["messages", "content"], ["applications", "message"]] as const) {
-    const r = await restAs(api, s, "delete", `${table}?${col}=like.${enc}&select=id`);
+    const r = await restAs(api, s, "delete", `${table}?${col}=like.${enc}${age}&select=id`);
     if (r.ok()) {
       const rows = (await r.json()) as { id: string }[];
       removed.push(...rows.map((x) => `${table}/${x.id}`));

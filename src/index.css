@@ -2104,7 +2104,7 @@ body[data-scroll-locked] .strike-banner {
 
 
 /* Every search field in the app pairs `type="search"` with its own branded
-   clear button (BrowseSearchBar, ConversationList, ActivityHeader, the admin
+   clear button (BrowseSearchBar, ConversationList, PostsHeader, JobsHeader, the admin
    tables, SavedHelpers…). WebKit ALSO draws its native cancel glyph inside
    the same field, so typing produced two X's side by side — owner, 2026-08-25:
    "there is 2 x buttons when you type in search". The app's own button is the

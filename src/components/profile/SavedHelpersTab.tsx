@@ -37,7 +37,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   // Closed by default — see the note on the header icon below.
   const [searchOpen, setSearchOpen] = useState(false);
   /* ONE PRESS OUT, AND THE FOCUS COMES BACK — the dismiss contract every
-     expanding search on this app now shares (ActivityHeader states it in
+     expanding search on this app now shares (PostsHeader states it in
      full, owner 2026-09-19). The trigger and the dismiss used to be the SAME
      button, which hid the focus problem behind the mouse and created a worse
      one: see the header slot below. They are two controls now, so the caret

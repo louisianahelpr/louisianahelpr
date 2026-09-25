@@ -211,8 +211,8 @@ for (const variant of [
     // review read as a broken search box; at 320 the row now needs 156px
     // against 201px of room.
     //
-    // The deciding argument was consistency rather than width: ActivityHeader
-    // renders its "Search jobs" button unconditionally, so My Posts and My Jobs
+    // The deciding argument was consistency rather than width: PostsHeader and
+    // JobsHeader render their "Search jobs" button unconditionally, so My Posts and My Jobs
     // have carried this icon in this slot at this width the whole time. Browse
     // was the odd screen out.
     //

@@ -42,7 +42,7 @@ export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
     file: "src/components/NotificationPanel.tsx",
     text: "cancelled by the poster",
     reason:
-      "not copy — a needle matched against STORED notification bodies. Postgres triggers write them (migrations 20260905021859, 20260908155425 and earlier) and every row already in the table says 'cancelled by the poster', so dropping the legacy phrasing would silently remove the quick-action pill from all of them. Reword the trigger in a migration first, then this.",
+      "not copy — a needle matched against STORED notification bodies. Postgres writes them; since 20260925143327 they say 'cancelled by the person who posted it', but every row stored before it says 'cancelled by the poster' and always will, so dropping the legacy phrasing would silently remove the quick-action pill from all of them.",
   },
   {
     file: "src/pages/info/helpCenter/helpCenterContent.ts",

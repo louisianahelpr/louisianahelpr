@@ -16,3 +16,10 @@ export declare function tokenNeedsRefresh(token: string | null | undefined, now?
 export declare function refusalIsDeath(token: string | null | undefined, now?: number): boolean;
 export declare const NOT_REACHED_STATUS: string;
 export declare function overTimeBudget(a: { startedAt: number; now?: number; budgetMs: number }): boolean;
+export declare function ceilingWaitMs(a: { minutes: Record<number | string, number> | null | undefined; now?: number; ceiling: number; burst: number }): number;
+export declare const MIN_CYCLE_BURST: number;
+export declare const CHROME_SKIP: string;
+export declare function chromeKey(a: { persona: string; chain: readonly string[] | null | undefined; sig: string | null | undefined }): string;
+export declare function chromeDisposition(a: { fromChrome: boolean; depth: number; key: string; passedOn: Map<string, string> }): string | null;
+export declare function landingSettled(samples: readonly { t: number; url: string }[], quietMs: number): boolean;
+export declare const LANDING_QUIET_MS: number;

@@ -10,7 +10,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
-import { stripeProcessingCostCents, actualOrEstimatedFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
+import { actualOrEstimatedFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
+import { TIP_MAX_CENTS, TIP_MIN_CENTS, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { isLaborTaxable } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
@@ -1171,16 +1172,16 @@ serve(async (req) => {
           ? rawTipAttemptId
           : null;
       // `amount` is raw client JSON — validate it as a finite, bounded number
-      // BEFORE any money math. A $1 floor keeps the tip safely above both
-      // Stripe's 50¢ charge minimum AND the fee-crossover (a sub-32¢ tip would
-      // have an application_fee_amount ≥ the charge, which Stripe rejects); the
-      // $1,000 ceiling bounds a fat-finger / abusive charge.
+      // BEFORE any money math. The $1 floor keeps the charge above Stripe's 50¢
+      // minimum and keeps the card fee (added on top; 34¢ on a $1 tip) a small
+      // share of what the poster pays; the $1,000 ceiling bounds a
+      // fat-finger / abusive charge and matches the tips.amount CHECK.
       if (typeof amount !== "number" || !Number.isFinite(amount)) {
         throw new PublicError("Invalid tip amount");
       }
       const tipCents = Math.round(amount * 100);
-      if (tipCents < 100 || tipCents > 100_000) {
-        throw new PublicError("Tips must be between $1 and $1,000");
+      if (tipCents < TIP_MIN_CENTS || tipCents > TIP_MAX_CENTS) {
+        throw new PublicError(`Tips must be between $${TIP_MIN_CENTS / 100} and $${(TIP_MAX_CENTS / 100).toLocaleString("en-US")}`);
       }
 
       const { data: job, error: jobError } = await supabaseAdmin
@@ -1212,33 +1213,55 @@ serve(async (req) => {
         );
       }
 
-      // The tip covers its OWN Stripe processing fee — the platform never eats
-      // it. On a destination charge the Stripe fee is debited from the platform
-      // balance, so we retain exactly that many cents as the application fee;
-      // the helper's transfer nets tip-minus-fee and the platform breaks even.
-      // (`tipCents` is validated + bounded above; the $1 floor guarantees
-      // tipFeeCents < tipCents so Stripe never rejects the fee.)
-      const tipFeeCents = stripeProcessingCostCents(tipCents);
+      // The Helpr receives 100% of the tip. Stripe's card-processing cost is
+      // added ON TOP as its own line item the poster sees on the Checkout page
+      // (and was quoted in the tip dialog from the same tipChargeBreakdown).
+      // On this destination charge Stripe transfers `charge - application fee`
+      // to the Helpr, so application_fee_amount = feeCents leaves the Helpr's
+      // transfer at exactly tipCents, and the platform keeps only what covers
+      // Stripe's card fee on the whole charge.
+      const tipQuote = tipChargeBreakdown(tipCents);
 
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
-        line_items: [{
-          price_data: {
-            currency: "usd",
-            tax_behavior: TAX_BEHAVIOR,
-            product_data: { name: `Tip — ${job.title}`, description: "Thank you tip. The small card-processing fee is deducted so the platform never subsidizes it." },
-            unit_amount: tipCents,
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              tax_behavior: TAX_BEHAVIOR,
+              product_data: { name: `Tip — ${job.title}`, description: "100% of your tip goes to your Helpr." },
+              unit_amount: tipQuote.tipCents,
+            },
+            quantity: 1,
           },
-          quantity: 1,
-        }],
+          {
+            price_data: {
+              currency: "usd",
+              tax_behavior: TAX_BEHAVIOR,
+              product_data: { name: "Card processing", description: "Added so your Helpr receives the full tip." },
+              unit_amount: tipQuote.feeCents,
+            },
+            quantity: 1,
+          },
+        ],
         mode: "payment",
-        // 3D Secure from $300 (Q202), same rule as the job charge.
-        payment_method_options: threeDSecureOptions(tipCents),
+        // 3D Secure from $300 (Q202), same rule as the job charge, measured on
+        // what the card is actually charged.
+        payment_method_options: threeDSecureOptions(tipQuote.chargeCents),
         payment_intent_data: {
           transfer_data: {
             destination: helperProfile.stripe_account_id,
           },
-          application_fee_amount: tipFeeCents,
+          application_fee_amount: tipQuote.feeCents,
+          // Amounts only. No job_id here: paymentIntentPaymentFailed reads
+          // pi.metadata.job_id as "the JOB's escrow charge failed" and would
+          // tell the poster their job payment failed on a declined tip.
+          metadata: {
+            type: "tip",
+            tip_cents: String(tipQuote.tipCents),
+            fee_cents: String(tipQuote.feeCents),
+            helper_cents: String(tipQuote.helperCents),
+          },
         },
         success_url: buildRedirectUrl(`/posts?tip=success`, isNative),
         cancel_url: buildRedirectUrl(`/posts`, isNative),
@@ -1254,9 +1277,11 @@ serve(async (req) => {
         // collapses onto one session regardless of elapsed time.
         // Falls back to the old bucket only for a client that predates this
         // field, so an older app build still gets partial protection.
+        // The key names the charged total as well as the tip, so a retry can
+        // only replay a session whose money fields are identical.
         idempotencyKey: tipAttemptId
-          ? `tip-${jobId}-${user.id}-${tipCents}-${tipAttemptId}`
-          : `tip-${jobId}-${user.id}-${tipCents}-${Math.floor(Date.now() / 600_000)}`,
+          ? `tip-${jobId}-${user.id}-${tipCents}-c${tipQuote.chargeCents}-${tipAttemptId}`
+          : `tip-${jobId}-${user.id}-${tipCents}-c${tipQuote.chargeCents}-${Math.floor(Date.now() / 600_000)}`,
       });
 
       // Ledger row for the webhook to reconcile against. The idempotency key

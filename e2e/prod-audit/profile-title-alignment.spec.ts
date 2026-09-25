@@ -32,8 +32,10 @@
  *      Profile surface is drawn inside. 24 at 1440, 20 at 375. (Content-box,
  *      not border-box: the tab scroller is `px-3 -mx-3`, so its border edge is
  *      12px out and its content edge is the same 24 the landing's is.)
- *   2. `h1.left` MINUS that edge. 48 everywhere — the back slot (36) plus
- *      `gap-3` (12).
+ *   2. `h1.left` MINUS that edge. 48 on every TAB — the back slot (36) plus
+ *      `gap-3` (12) — and 0 on the LANDING, which has no back slot since the
+ *      owner's 2026-09-25 "line up with the card": its name starts on the same
+ *      column edge as the identity card below it.
  *
  * Exact equality, not a tolerance: a 4px disagreement is what this exists to
  * catch. Two numbers rather than one because the title's absolute x can be
@@ -98,6 +100,8 @@ function profileTabs(): string[] {
 
 const ALL_TABS = profileTabs();
 const TABS = ALL_TABS.filter((t) => t !== "landing");
+/** A tab title's x inside its column: the back slot (36) plus `gap-3` (12). */
+const TAB_INDENT = 48;
 
 test("the tab inventory is the app's own, and is not empty", () => {
   expect(
@@ -259,6 +263,15 @@ for (const vw of WIDTHS) {
         `landing@${vw}: content past the right edge (body{overflow-x:hidden} hides this from scrollWidth)`,
       ).toEqual([]);
 
+      // Owner, 2026-09-25: the landing's name lines up with the card, i.e. it
+      // sits ON the column edge, 0px in.
+      expect(
+        landing.indent,
+        `landing@${vw}: the name sits ${landing.indent}px in from the column the identity card ` +
+          `starts on (absolute x=${landing.h1!.left}); the owner asked on 2026-09-25 for it to ` +
+          `line up with the card`,
+      ).toBe(0);
+
       const disagree: string[] = [];
       for (const tab of TABS) {
         const box = await measure(page, `/profile?tab=${tab}`, `?tab=${tab}@${vw}`);
@@ -269,10 +282,10 @@ for (const vw of WIDTHS) {
               `landing's ${landing.column}`,
           );
         }
-        if (box.indent !== landing.indent) {
+        if (box.indent !== TAB_INDENT) {
           disagree.push(
-            `?tab=${tab} title sits ${box.indent}px into its column against the landing's ` +
-              `${landing.indent}px (absolute x=${box.h1!.left} against ${landing.h1!.left})`,
+            `?tab=${tab} title sits ${box.indent}px into its column against the ${TAB_INDENT}px ` +
+              `every tab title sits (absolute x=${box.h1!.left})`,
           );
         }
         expect(box.overflow, `?tab=${tab}@${vw}: the page scrolls sideways`).toBeLessThanOrEqual(0);
@@ -284,11 +297,10 @@ for (const vw of WIDTHS) {
 
       expect(
         disagree,
-        `@${vw}: Profile surfaces disagree about where a page title starts. The owner's ` +
-          `report on 2026-09-20 was exactly this — the landing's title at x=145 while all ` +
-          `25 tabs sat at x=72 — and the fix was to put the landing on the same PageHeader ` +
-          `rather than to nudge it. A disagreement here means one surface has left that ` +
-          `shell again.`,
+        `@${vw}: Profile surfaces disagree about where a page title starts. Every tab ` +
+          `title sits ${TAB_INDENT}px into the shared column (after its back chevron) and ` +
+          `every surface draws into the same column; a disagreement here means one surface ` +
+          `has left the shared PageHeader shell.`,
       ).toEqual([]);
 
       // ── VACUITY: the 4px that actually shipped ─────────────────────────

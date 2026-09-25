@@ -146,7 +146,7 @@ const SILENT_CATCH_LEGACY = [
   "src/hooks/useUserLocation.ts",
   "src/hooks/useVoiceDictation.ts",
   "src/integrations/supabase/client.ts",
-  "src/integrations/supabase/keychainStorageAdapter.ts",
+  "src/integrations/supabase/preferencesStorageAdapter.ts",
   "src/lib/analytics.ts",
   "src/lib/applicationAttachments.ts",
   "src/lib/applicationWithdrawAnalytics.ts",

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Search, X } from "lucide-react";
 
 import { useComboboxKeyboard } from "@/hooks/useComboboxKeyboard";
@@ -31,7 +32,6 @@ import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 export function BrowseSearchBar({
   filters,
   embedded = false,
-  floatRecents = false,
   className = "",
 }: {
   filters: ReturnType<typeof useDashboardFilters>;
@@ -50,15 +50,6 @@ export function BrowseSearchBar({
    * close button in its header.
    */
   embedded?: boolean;
-  /**
-   * Float the Recent-searches list OVER the content beneath the field instead
-   * of pushing it down (owner, 2026-09-14, VN-6: "recents should expand like
-   * over the other stuff not push it down"). Set by the desktop list-column
-   * row on Dashboard. The phone title-card form leaves it off: the title card
-   * is `overflow-hidden` (TITLE_CARD_CLASS), so an absolutely positioned list
-   * there would be clipped to the card — it keeps the in-flow list.
-   */
-  floatRecents?: boolean;
   /**
    * Extra classes for the field's own wrapper.
    *
@@ -147,6 +138,35 @@ export function BrowseSearchBar({
 
   const showRecent = focused && filters.searchQuery.length === 0 && recent.length > 0;
 
+  /* RECENT SEARCHES OPEN OVER THE PAGE, NEVER INSIDE THE CARD (owner,
+     2026-09-25, iPhone: "Recent search's should pop out in front of that
+     search. Like it shouldn't make that box it's in any bigger"; and
+     2026-09-14, VN-6: "recents should expand like over the other stuff not
+     push it down"). The list is portaled to <body> and fixed just under the
+     field, the field's own width, so neither the phone title card (which
+     clips its overflow) nor the desktop strip grows. The one exception is
+     `embedded` (inside the modal filter panel): a portal outside that modal
+     would be inert and aria-hidden, so there the list stays in the panel. */
+  const fieldRowRef = useRef<HTMLDivElement>(null);
+  const floatList = !embedded;
+  const [listBox, setListBox] = useState<{ top: number; left: number; width: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!showRecent || !floatList) return;
+    const place = () => {
+      const r = fieldRowRef.current?.getBoundingClientRect();
+      if (r) setListBox({ top: Math.round(r.bottom + 6), left: Math.round(r.left), width: Math.round(r.width) });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    window.visualViewport?.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+      window.visualViewport?.removeEventListener("resize", place);
+    };
+  }, [showRecent, floatList]);
+
   // Arrow/Enter/Escape/Tab model + aria-activedescendant, shared with the
   // City and Address typeaheads. No `onOpen`: this popup is the recent-search
   // list, which is already showing whenever the field is focused and empty,
@@ -158,22 +178,65 @@ export function BrowseSearchBar({
     onClose: () => setFocused(false),
   });
 
+  const recentList = (
+    <div
+      className={`rounded-ds-md overflow-hidden bg-card ${floatList ? "fixed z-50 pointer-events-auto" : "mt-1.5"}`}
+      style={{
+        border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+        boxShadow: "0 12px 32px -12px hsl(var(--olivewood) / 0.35)",
+        ...(floatList && listBox ? { top: listBox.top, left: listBox.left, width: listBox.width } : {}),
+      }}
+      {...listboxProps}
+      role="listbox"
+      aria-label="Recent searches"
+    >
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/30">
+        <span
+          className="font-sans tracking-[0.14em] uppercase text-ds-9"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+        >
+          Recent
+        </span>
+        <button
+          type="button"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            clearRecentSearches();
+            setRecent([]);
+          }}
+          className="text-ds-10 text-muted-foreground hover:text-destructive btn-press"
+        >
+          Clear
+        </button>
+      </div>
+      <ul>
+        {recent.map((q, i) => (
+          <li key={q}>
+            <button
+              type="button"
+              {...getOptionProps(i)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                applySuggestion(q);
+              }}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-left text-ds-13 hover:bg-muted/50 btn-press ${COMBOBOX_ACTIVE_OPTION_CLASS}`}
+            >
+              <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span className="truncate">{q}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
   return (
-    // RECENT SEARCHES FLOAT OVER THE FEED ON DESKTOP (owner, 2026-09-14,
-    // VN-6: "recents should expand like over the other stuff not push it
-    // down"). This reverses the earlier "should push down, not overlap"
-    // ruling, which had moved the list into document flow. With
-    // `floatRecents` (the desktop list-column row) the list is absolute,
-    // anchored to the full width of this wrapper, on its own layer with a
-    // card shadow. Without it (phone title card, which clips overflow) the
-    // list stays in flow — see the prop doc.
-    //
     // WIDTH CAP (owner, 2026-09-14, VN-5: "the search bar should not take up
     // the whole column"): `lg:max-w-md` on desktop; phone stays full-width.
     // `spellCheck={false}` on the input — a search query is not prose the
     // browser should be second-guessing with red squiggles.
     <div className={`relative flex-1 min-w-0 lg:max-w-md ${className}`}>
-      <div className="flex items-center gap-2">
+      <div ref={fieldRowRef} className="flex items-center gap-2">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           {/* Deliberately NOT autoFocus. This field is inside the "Refine
@@ -260,56 +323,9 @@ export function BrowseSearchBar({
         </div>
       </div>
 
-      {showRecent && (
-        <div
-          className={`mt-1.5 rounded-ds-md overflow-hidden bg-card ${floatRecents ? "absolute left-0 right-0 top-full z-50" : ""}`}
-          style={{
-            border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-            boxShadow: "0 12px 32px -12px hsl(var(--olivewood) / 0.35)",
-          }}
-          {...listboxProps}
-          role="listbox"
-          aria-label="Recent searches"
-        >
-          <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/30">
-            <span
-              className="font-sans tracking-[0.14em] uppercase text-ds-9"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              Recent
-            </span>
-            <button
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                clearRecentSearches();
-                setRecent([]);
-              }}
-              className="text-ds-10 text-muted-foreground hover:text-destructive btn-press"
-            >
-              Clear
-            </button>
-          </div>
-          <ul>
-            {recent.map((q, i) => (
-              <li key={q}>
-                <button
-                  type="button"
-                  {...getOptionProps(i)}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    applySuggestion(q);
-                  }}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-left text-ds-13 hover:bg-muted/50 btn-press ${COMBOBOX_ACTIVE_OPTION_CLASS}`}
-                >
-                  <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <span className="truncate">{q}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {showRecent && !floatList && recentList}
+      {showRecent && floatList && listBox && typeof document !== "undefined" &&
+        createPortal(recentList, document.body)}
     </div>
   );
 }

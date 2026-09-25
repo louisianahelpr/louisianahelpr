@@ -18,11 +18,14 @@ export interface QuotaRow {
   status: QuotaStatus;
   pct: number | null;
   note: string;
+  /** The window the reading really measured, when it differs from q.window (Q379). */
+  window?: string;
 }
 export interface Reading {
   value?: number;
   error?: string;
   note?: string;
+  window?: string;
 }
 export const WARN_AT: number;
 export interface PlanLimit {

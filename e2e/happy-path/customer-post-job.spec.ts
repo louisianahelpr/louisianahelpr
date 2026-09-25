@@ -166,7 +166,7 @@ test.describe("customer post-job happy path", () => {
     // that holds this job or the title will be on an unrendered tab.
     await page.goto("/posts?filter=waiting");
 
-    // Heading must render — ActivityHeader uses "My Posts" as the title.
+    // Heading must render — PostsHeader uses "My Posts" as the title.
     await expect(
       page.getByText(postedJob.title, { exact: false }),
     ).toBeVisible({ timeout: 15_000 });

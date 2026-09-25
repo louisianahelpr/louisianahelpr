@@ -135,7 +135,7 @@ export const TermsContent = () => {
                 They were the only two fee statements that lived ONLY there, so
                 they were promoted into the canonical Terms rather than dropped. */}
             <p><strong className="text-foreground">Job boost:</strong> Optional paid boost to increase visibility of your listing.</p>
-            <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the Helpr — no platform fee on tips.</p>
+            <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the Helpr — no platform fee on tips. The card-processing fee on a tip is paid by the person tipping, added on top of the tip and shown before they pay; it is never taken from the Helpr's tip.</p>
           </>
         }
       />

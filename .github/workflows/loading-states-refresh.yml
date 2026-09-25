@@ -11,7 +11,7 @@ name: Loading states refresh
 # by the skeleton work could sit in the baseline indefinitely.
 #
 # This job measures the committed commit's build against prod with the shared
-# test accounts (READ-ONLY: the only intervention is a response DELAY), then
+# test accounts (READ-ONLY: the only intervention is holding data requests until the loading frame is measured), then
 # runs scripts/check-loading-state-shape.mjs on the FRESH measurement, which
 # fails in both directions: a new breach, or a baseline entry that no longer
 # breaches. The fresh measurement and screenshots are uploaded; a red run opens
@@ -101,6 +101,7 @@ jobs:
           supabase-publishable-key: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
       - name: Measure (writes docs/audit/loading-states/ in this checkout only)
+        id: measure
         env:
           BASE: http://127.0.0.1:4173
           PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
@@ -119,6 +120,9 @@ jobs:
         if: ${{ !cancelled() }}
         run: node scripts/e2e/request-budget.mjs --label loading-states
       - name: Re-prove the baseline on the fresh measurement (both directions)
+        # Judged whenever a measurement exists, whatever the budget step said:
+        # both are verdicts on this run, and one must never hide the other.
+        if: ${{ !cancelled() && steps.measure.outcome == 'success' }}
         run: npm run check:loading-states
 
       - name: Shred the key

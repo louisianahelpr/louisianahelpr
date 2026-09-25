@@ -123,7 +123,10 @@ type Mode = {
   sql: "ok" | "empty" | "fail" | "full" | "zero"; logs: "ok" | "fail"; gh: "ok" | "empty"; sentry: "ok" | "forbidden";
   replays?: "low" | "dropping";
   errors?: "low" | "dropping";
+  /** Q379: what GET /api/0/customers/{org}/ answers. Absent = 404. */
+  period?: "monthly" | "garbled";
 };
+let lastReplayUrl = "";
 let server: Server;
 let base = "";
 let mode: Mode = { sql: "ok", logs: "ok", gh: "ok", sentry: "ok" };
@@ -145,9 +148,15 @@ beforeAll(async () => {
       const now = Date.now();
       return send(200, [{ created_at: new Date(now - 3600_000).toISOString() }, { created_at: new Date(now - 3 * 86400_000).toISOString() }]);
     }
+    if (url.includes("/api/0/customers/")) {
+      if (mode.period === "monthly") return send(200, { billingPeriodStart: "2026-01-14", onDemandPeriodStart: "2026-09-14" });
+      if (mode.period === "garbled") return send(200, { plan: "am3_f" });
+      return send(404, { detail: "not found" });
+    }
     if (url.includes("/stats_v2/")) {
       if (mode.sentry === "forbidden") return send(403, { detail: "forbidden" });
       if (url.includes("category=replay")) {
+        lastReplayUrl = url;
         // Q275: the replay quota. "dropping" = the state of 2026-09-23: the
         // cap reached and Sentry refusing the rest (outcome rate_limited).
         const dropped = mode.replays === "dropping";
@@ -242,12 +251,33 @@ describe("check-quota-usage.mjs (stub APIs)", () => {
   it("replays dropped by the Sentry quota -> the replay row reads OVER and alerts", async () => {
     const low = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", replays: "low" });
     expect(low.code, low.out).toBe(0);
-    expect(low.out).toMatch(/Session replays sent: accepted \+ dropped by quota \(last 30 days\) \| 3 \| 50/);
+    expect(low.out).toMatch(/Session replays sent: accepted \+ dropped by quota \(this usage period\) \| 3 \| 50/);
     const full = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", replays: "dropping" });
     expect(full.code, full.out).toBe(0);
     expect(full.out).toMatch(/::warning title=Quota at 174%::Sentry Session replays sent/);
     expect(full.out).toMatch(/50 accepted, 37 dropped by quota/);
   }, 90_000);
+
+  // Q379: the replay quota resets per Sentry usage period; a trailing 30-day
+  // window kept a source fixed mid-period red for up to a month. The reader asks
+  // for the period start and counts from it; an unreadable period falls back to
+  // 30 days (it can only over-count) and names why, never a red run.
+  // @mutate scripts/check-quota-usage.mjs |     const range = "start" in period |     const range = false && "start" in period
+  // @mutate scripts/check-quota-usage.mjs |     const raw = body?.onDemandPeriodStart ?? body?.billingPeriodStart; |     const raw = body?.billingPeriodStart;
+  it("replays are counted over the Sentry usage period when it is readable, else 30 days, named", async () => {
+    const monthly = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", replays: "low", period: "monthly" });
+    expect(monthly.code, monthly.out).toBe(0);
+    expect(lastReplayUrl).toMatch(/[?&]start=2026-09-14T00:00:00Z&end=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z&/);
+    expect(lastReplayUrl).not.toMatch(/statsPeriod=/);
+    expect(monthly.out).toMatch(/\| Sentry usage period since 2026-09-14 \|/);
+    const missing = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", replays: "low" });
+    expect(missing.code, missing.out).toBe(0);
+    expect(lastReplayUrl).toMatch(/statsPeriod=30d/);
+    expect(missing.out).toMatch(/\| trailing 30 days \(usage period unreadable: customers 404\) \|/);
+    const garbled = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", replays: "low", period: "garbled" });
+    expect(garbled.code, garbled.out).toBe(0);
+    expect(garbled.out).toMatch(/usage period unreadable: customers answered without a usage period start/);
+  }, 120_000);
 
   // Q311: Sentry recorded 0 errors for ~17h on 2026-09-23; an accepted-only read cannot tell
   // a genuinely quiet window from one where events are being dropped (quota /

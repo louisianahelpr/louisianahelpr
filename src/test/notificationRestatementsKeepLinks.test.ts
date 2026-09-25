@@ -62,6 +62,10 @@ const INTENDED_LINK_CHANGES = new Set([
   // Q310: the four referral-bonus links '/profile' -> '/profile?tab=referral'
   // (20260831232514 had made that change; 20260902014651 restated older text).
   "20260923211309_referral_bonus_links_and_apostrophe.sql::check_referral_bonus",
+  // V-008: the trigger no longer sends; its '/home?job=' || id link and the
+  // email call live in deliver_saved_search_alert, the one saved-search send
+  // path (called by the queue sweep), with the same link.
+  "20260925053412_saved_search_alerts_wait_for_early_access.sql::notify_saved_searches_on_new_job",
 ]);
 
 /**
@@ -203,6 +207,8 @@ describe("Q139: a restated notification producer keeps the links the database wr
     expect(withTuples).toEqual([
       "20260831232514_notification_links_land_on_the_right_spot.sql",
       "20260901021929_notification_links_never_carry_a_fixed_filter.sql",
+      // Copy, not links: the same mechanism rewording SQL notification copy.
+      "20260925143327_notification_copy_names_the_person.sql",
     ]);
     expect(tuples).toBeGreaterThan(28);
     expect(unparsed.sort()).toEqual([...NOT_LINK_REWRITES].sort());

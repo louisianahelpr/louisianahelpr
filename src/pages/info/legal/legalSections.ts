@@ -1,4 +1,5 @@
 import { Scale, Users, Lock, type LucideIcon } from "lucide-react";
+import { LEGAL_PAGE_META } from "@/lib/publicPageMeta.mjs";
 
 // Tier pricing/fees come from the single source of truth so this page can
 // never drift from the Subscription page or the in-feed fee math (LH-30).
@@ -7,29 +8,30 @@ export const legalFmtMo = (n: number | null) => (n == null ? "free" : `$${n.toFi
 export type TabKey = "terms" | "community" | "privacy";
 export const VALID_TABS: TabKey[] = ["terms", "community", "privacy"];
 
+// Title, description and canonical per tab live in the ONE table the
+// pre-JS HTML is also built from (src/lib/publicPageMeta.mjs, read by
+// api/share.ts), so what a crawler sees before JavaScript and what
+// usePageMeta sets after it cannot drift (lh-seo-web SW-001/SW-002).
+// The default `terms` tab uses the clean /legal URL as its canonical;
+// the other tabs canonicalize to their ?tab= URL (which /rules, /terms and
+// /privacy also point at), so each policy view has a single, stable
+// indexable URL.
 export const PAGE_TITLES: Record<TabKey, string> = {
-  terms: "Terms of Service — Helpr",
-  community: "Community Rules — Helpr",
-  privacy: "Privacy Policy — Helpr",
+  terms: LEGAL_PAGE_META.terms.title,
+  community: LEGAL_PAGE_META.community.title,
+  privacy: LEGAL_PAGE_META.privacy.title,
 };
 
 export const PAGE_DESCRIPTIONS: Record<TabKey, string> = {
-  terms:
-    "Helpr's Terms of Service — eligibility, binding job agreements, escrow, split fees, membership tiers, and tax responsibilities for Louisiana's job marketplace.",
-  community:
-    "Helpr's Community Rules — cancellation windows, escrow release, the revision-and-dispute process, strikes, bans, and money-and-taxes guidance.",
-  privacy:
-    "Helpr's Privacy Policy — what we collect, how we use it, who we share with, data security, and your rights. We never sell your personal data.",
+  terms: LEGAL_PAGE_META.terms.description,
+  community: LEGAL_PAGE_META.community.description,
+  privacy: LEGAL_PAGE_META.privacy.description,
 };
 
-// The default `terms` tab uses the clean /legal URL as its canonical;
-// the other tabs canonicalize to their ?tab= URL (which /rules and
-// /terms-style redirect stubs also point at), so each policy view has a
-// single, stable indexable URL.
 export const PAGE_CANONICALS: Record<TabKey, string> = {
-  terms: "https://www.louisianahelpr.com/legal",
-  community: "https://www.louisianahelpr.com/legal?tab=community",
-  privacy: "https://www.louisianahelpr.com/legal?tab=privacy",
+  terms: LEGAL_PAGE_META.terms.canonical,
+  community: LEGAL_PAGE_META.community.canonical,
+  privacy: LEGAL_PAGE_META.privacy.canonical,
 };
 
 // Per-tab revision date shown in each tab's PolicyFooter. Each policy

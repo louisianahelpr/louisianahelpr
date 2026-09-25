@@ -42,12 +42,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { LEGAL_PAGE_META } from "../src/lib/publicPageMeta.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const APP_TSX = path.join(repoRoot, "src", "App.tsx");
 const SITEMAP = path.join(repoRoot, "public", "sitemap.xml");
-const LEGAL_SECTIONS = path.join(repoRoot, "src", "pages", "info", "legal", "legalSections.ts");
 
 /** Canonical origin — must match src/lib/sitemap.test.ts. */
 const ORIGIN = "https://www.louisianahelpr.com";
@@ -123,17 +123,13 @@ function parseRoutes(source) {
  * `/legal` (= terms) while community and privacy were undiscoverable except
  * by crawl (lh-seo-web audit finding SW-005, 2026-09-02).
  *
- * Read PAGE_CANONICALS directly rather than hand-typing the two extra URLs,
- * so this can't drift from the canonicals Legal.tsx actually sets.
+ * Read the canonicals from the shared head-meta table
+ * (src/lib/publicPageMeta.mjs — the same values Legal.tsx sets and api/share.ts
+ * serves pre-JS) rather than hand-typing the two extra URLs, so this can't
+ * drift from them.
  */
 function parseExtraLegalTabPaths() {
-  const source = fs.readFileSync(LEGAL_SECTIONS, "utf8");
-  const block = source.match(/PAGE_CANONICALS[^{]*\{([\s\S]*?)\n\};/);
-  if (!block) {
-    console.error("WARNING: could not find PAGE_CANONICALS in legalSections.ts — /legal tab canonicals not added to sitemap.");
-    return [];
-  }
-  const urls = [...block[1].matchAll(/:\s*"([^"]+)"/g)].map((m) => m[1]);
+  const urls = Object.values(LEGAL_PAGE_META).map((m) => m.canonical);
   const paths = urls
     .map((u) => new URL(u).pathname + new URL(u).search)
     .filter((p) => p !== "/legal"); // terms === the bare route, already included
@@ -176,7 +172,7 @@ function classify(routes) {
     if (/\bAdminRoute\b/.test(r.element)) { reject("admin-only"); continue; }
     if (NOINDEX[r.path]) { reject(`noindex — ${NOINDEX[r.path]}`); continue; }
     // Aliases of the legal page (/terms, /privacy, /rules) render <Legal> but
-    // declare a /legal URL as their canonical (PAGE_CANONICALS). A sitemap
+    // declare a /legal URL as their canonical (LEGAL_PAGE_META). A sitemap
     // lists canonical URLs only, so the alias is left out and its canonical
     // (added by parseExtraLegalTabPaths, or /legal itself) is listed instead.
     if (/<Legal\b/.test(r.element) && r.path !== "/legal") { reject("alias of /legal — its canonical is a /legal URL"); continue; }

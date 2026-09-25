@@ -71,6 +71,16 @@ function isMissingTable(error: unknown): boolean {
   return code === "PGRST205" || code === "42P01";
 }
 
+/**
+ * True when a pin points at a job or person that no longer exists (Postgres
+ * 23503, a foreign-key violation). A job can be deleted after it was pinned on
+ * this device; that pin can never be stored, so it is dropped, not retried.
+ */
+function isGonePin(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  return (error as { code?: string }).code === "23503";
+}
+
 function readLocal(userId: string): Set<string> {
   try {
     const raw = safeStorage.getItem(storageKey(userId));
@@ -144,16 +154,30 @@ export async function loadPins(userId: string): Promise<Set<string>> {
         return { user_id: userId, job_id: parsed.jobId, other_user_id: parsed.otherUserId };
       })
       .filter((r): r is NonNullable<typeof r> => r !== null);
+    const gone = new Set<string>();
     if (rows.length > 0) {
       // ignoreDuplicates (ON CONFLICT DO NOTHING): this table has no UPDATE policy, so a plain upsert on an existing row was refused by RLS. Write-contract audit, 2026-09-12.
-      const { error: mergeError } = await supabase
-        .from("thread_pins")
-        .upsert(rows, { onConflict: "user_id,job_id,other_user_id", ignoreDuplicates: true });
-      if (mergeError && !isMissingTable(mergeError)) {
+      const pushPins = (batch: typeof rows) =>
+        supabase
+          .from("thread_pins")
+          .upsert(batch, { onConflict: "user_id,job_id,other_user_id", ignoreDuplicates: true });
+      const { error: mergeError } = await pushPins(rows);
+      if (isGonePin(mergeError)) {
+        // One pin to a deleted job fails the whole batch (Sentry JAVASCRIPT-2K,
+        // 2026-09-25). Retry one at a time so the live pins still sync, and
+        // drop the ones whose job or person is gone.
+        for (const row of rows) {
+          const { error: rowError } = await pushPins([row]);
+          if (isGonePin(rowError)) gone.add(pinnedKey(row.job_id, row.other_user_id));
+          else if (rowError && !isMissingTable(rowError)) {
+            report(rowError, { severity: "warning", tags: { source: "pinnedConversations.mergeLocalPins" } });
+          }
+        }
+      } else if (mergeError && !isMissingTable(mergeError)) {
         report(mergeError, { severity: "warning", tags: { source: "pinnedConversations.mergeLocalPins" } });
       }
     }
-    for (const k of localOnlyKeys) server.add(k);
+    for (const k of localOnlyKeys) if (!gone.has(k)) server.add(k);
   }
 
   cache.set(userId, server);

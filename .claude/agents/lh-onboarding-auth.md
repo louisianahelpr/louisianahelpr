@@ -113,9 +113,9 @@ through it.
 1. **Where does the session actually live?** Supabase stores it in `localStorage` by
    default. In a WKWebView that is readable by any script that gets injected. Determine
    what is stored, and whether anything more sensitive than the session token is there.
-   If sensitive material is in plain storage rather than Keychain via
-   `@capacitor/preferences`, that is a finding — but **state what is actually there
-   rather than assuming**.
+   If sensitive material is in plain storage rather than the iOS Keychain, that is a
+   finding (`@capacitor/preferences` is NSUserDefaults, NOT the Keychain) — but **state
+   what is actually there rather than assuming**.
 2. **Refresh and expiry.** Does an expired token force a clean re-auth, or produce a
    half-logged-in state with failing requests and no explanation? Does refresh rotate?
    Does a background thread crash when refresh fails?

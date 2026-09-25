@@ -16,7 +16,10 @@ import { stripSqlComments } from "../../scripts/check-migration-raise-codes.mjs"
  *
  * Four producers write type 'job_match':
  *   1. notify_helpers_on_job_post        (trigger — parish fan-out)
- *   2. notify_saved_searches_on_new_job  (trigger — saved searches)
+ *   2. deliver_saved_search_alert        (saved searches: called only by
+ *                                         the every-minute
+ *                                         saved-search-alert-queue sweep;
+ *                                         the trigger queues)
  *   3. sweep_daily_job_digest            (cron — daily parish digest)
  *   4. supabase/functions/instant-job-match (edge function)
  *
@@ -112,8 +115,8 @@ function liveFunctionBody(name: string): string {
 
 /** Producers discovered from the source tree, not asserted from memory. */
 const SQL_PRODUCERS = [
+  "deliver_saved_search_alert",
   "notify_helpers_on_job_post",
-  "notify_saved_searches_on_new_job",
   "sweep_daily_job_digest",
 ];
 
@@ -176,9 +179,8 @@ describe("job_match respects the user's Job Matches preference", () => {
   });
 });
 
-// Comment out the live Job Matches clause in the saved-search fan-out: every
-// saved-search `job_match` row (and its push) fires again for accounts that
-// turned the category OFF — the decorative-toggle defect at the top of this
-// file. Registered in its COMMENT form deliberately: that is the shape that
-// used to survive here.
-// @mutate supabase/migrations/20260911201653_job_match_notification_preference.sql | is the master over every saved search. Unset means on.\n      AND COALESCE(np.job_matches, true) IS TRUE | is the master over every saved search. Unset means on.\n      -- AND COALESCE(np.job_matches, true) IS TRUE
+// Drop the Job Matches clause from the saved-search delivery path (immediate
+// and deferred, V-008): every saved-search `job_match` row and its push fire
+// again for accounts that turned the category OFF, including alerts that were
+// waiting in saved_search_alert_queue when they turned it off.
+// @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |      AND COALESCE(np.job_matches, true) IS TRUE; |      AND true;

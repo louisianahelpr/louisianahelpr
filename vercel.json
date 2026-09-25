@@ -37,6 +37,34 @@
       "destination": "/api/share?_og=user&_id=:userId"
     },
     {
+      "source": "/browse",
+      "destination": "/api/share?_og=page&_id=browse"
+    },
+    {
+      "source": "/help",
+      "destination": "/api/share?_og=page&_id=help"
+    },
+    {
+      "source": "/support",
+      "destination": "/api/share?_og=page&_id=support"
+    },
+    {
+      "source": "/legal",
+      "destination": "/api/share?_og=page&_id=legal"
+    },
+    {
+      "source": "/terms",
+      "destination": "/api/share?_og=page&_id=terms"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/api/share?_og=page&_id=privacy"
+    },
+    {
+      "source": "/rules",
+      "destination": "/api/share?_og=page&_id=rules"
+    },
+    {
       "source": "/((?!api/|_vercel/).*)",
       "destination": "/index.html"
     }

@@ -43,6 +43,7 @@ import {
   setTag,
   addBreadcrumb,
   addIntegration,
+  getReplay,
   captureException as sentryCaptureException,
   breadcrumbsIntegration,
   globalHandlersIntegration,
@@ -289,6 +290,8 @@ export function initSentry() {
         // (@sentry-internal/replay was removed in @sentry/react ≥10.58.)
         import("@sentry/react")
           .then(({ replayIntegration }) => {
+            // A test profile signed in before the idle tick: never start.
+            if (replayBlocked) return;
             try {
               addIntegration(
                 replayIntegration({
@@ -409,6 +412,31 @@ export function markColdLaunchPhase(phase: string, timestampSeconds: number = Da
       timestamp: timestampSeconds,
     });
   } catch { /* ignore */ }
+}
+
+// Q379: set once the signed-in profile is a test profile (is_seed). The seed
+// and e2e accounts spent the 50/month replay quota (2026-09-13: every accepted
+// replay but the owner's was a helpr-e2e-* or helpr-seed-* account), and
+// Playwright attached over CDP to a normally launched Chrome reports
+// navigator.webdriver=false, so isAutomatedBrowser() alone cannot stop them.
+let replayBlocked = false;
+
+/**
+ * Stop Session Replay for the rest of this page's life: the deferred
+ * registration is skipped, and a replay already recording is stopped WITHOUT
+ * sending its pending segment. Errors keep reporting. Called by the boot path
+ * (src/lib/replayTestProfile.ts) when the signed-in profile is_seed.
+ */
+export function blockReplayForTestProfile() {
+  replayBlocked = true;
+  if (!initialized) return;
+  try {
+    void getReplay()?.stop({ flush: false }).catch(() => {
+      /* swallow — a replay that will not stop must never break the app */
+    });
+  } catch {
+    /* swallow — Replay failure must never break the app */
+  }
 }
 
 export function setSentryUser(user: { id: string; email?: string | null } | null) {

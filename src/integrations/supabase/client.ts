@@ -2,7 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Capacitor } from '@capacitor/core';
 import type { Database } from './types';
-import { hydratePromise, keychainStorageAdapter } from './keychainStorageAdapter';
+import { hydratePromise, preferencesStorageAdapter } from './preferencesStorageAdapter';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -73,7 +73,7 @@ function getWebAuthStorage(): Storage {
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: Capacitor.isNativePlatform() ? keychainStorageAdapter : getWebAuthStorage(),
+    storage: Capacitor.isNativePlatform() ? preferencesStorageAdapter : getWebAuthStorage(),
     persistSession: true,
     autoRefreshToken: true,
   }

@@ -29,9 +29,9 @@
  *
  * The /jobs numbers come from two fixes: `ApplicationCardSkeleton` now
  * draws the collapsed card's two blocks instead of six bone rows and a footer
- * button, and `ActivityPageSkeleton` reserves the status-tab line that
- * `ActivityHeader` has rendered open-by-default since 2026-09-20 (and uses the
- * lists' own `space-y-3`, not `space-y-2.5`).
+ * button, and `ActivityPageSkeleton` reserves the status-tab line that the
+ * page header (PostsHeader / JobsHeader) renders on phone when the row is
+ * open (and uses the lists' own `space-y-3`, not `space-y-2.5`).
  *
  * The /posts row height comes from one more: `ActivityCardSkeleton` is no
  * longer a hand-drawn box but `CollapsedActivityCardSkeleton`, the same
@@ -64,7 +64,7 @@
 // moves the real box: 26px -> 96px takes the row 150px -> ~220px, far outside
 // the 8px budget.
 // @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | className="h-[26px] w-16 rounded-ds-md shrink-0 ml-3" | className="h-[96px] w-16 rounded-ds-md shrink-0 ml-3"
-// @mutate src/components/ActivityPageSkeleton.tsx | {!isWebDesktop && ( | {false && (
+// @mutate src/components/ActivityPageSkeleton.tsx | {!isWebDesktop && tabRowOpens && ( | {false && (
 // The pitch assertion, shown able to fail. `space-y-8` and not the real
 // regression it guards (`space-y-2.5`, the 10px gap this fix replaced with the
 // lists' own 12px): 10 vs 12 is a 2px pitch error, INSIDE the 8px budget by

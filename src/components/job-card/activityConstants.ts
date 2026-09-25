@@ -172,7 +172,7 @@ export type AppliedApp = Application & {
  * The status filter each Activity tab opens on.
  *
  * Single source of truth because it was previously written out twice —
- * Activity.tsx computed the initial `statusFilter`, and ActivityHeader
+ * Activity.tsx computed the initial `statusFilter`, and the page header
  * independently recomputed the same expression to decide whether to show the
  * "filtered" dot and what "Clear all" should reset to. Two copies of a default
  * is a defect waiting to happen, and it did: they drifted, so the header lit

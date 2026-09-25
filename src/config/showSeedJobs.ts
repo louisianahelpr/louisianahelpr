@@ -105,6 +105,9 @@ export const SEED_GATED_SURFACES = [
   // fixture jobs to the public. Gate added in 20260902163216.
   { surface: "landing teaser", object: "public.get_public_open_jobs" },
   { surface: "saved-search alerts", object: "public.notify_saved_searches_on_new_job" },
+  // V-008 (2026-09-25): the trigger only queues; this is the one send path,
+  // and it re-checks the seed gate at send time.
+  { surface: "saved-search alerts (queued send)", object: "public.deliver_saved_search_alert" },
   // MISSING UNTIL 2026-09-03, and found the other way round. Every check here
   // used to discover surfaces by NAME (`public.*open_jobs*`) and ask whether
   // each was registered — which cannot see this one, or the saved-search entry

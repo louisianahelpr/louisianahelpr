@@ -18,6 +18,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
@@ -150,17 +151,8 @@ const FieldError = ({ id, message }: { id: string; message?: string }) =>
 /* -------------------------------------------------------------------------- */
 
 const Support = () => {
-  usePageMeta({
-    // "X — Helpr", like every sibling page — the "| Louisiana's Local Job
-    // Partner" long suffix belongs to the landing page's title alone.
-    title: "Contact Support — Helpr",
-    description:
-      "Message the Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
-    canonical: "https://www.louisianahelpr.com/support",
-    ogTitle: "Contact Support — Helpr",
-    ogDescription:
-      "Message the Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
-  });
+  // Same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs).
+  usePageMeta(PUBLIC_PAGE_META["/support"]);
 
   const { user, isReady } = useAuthReady();
   const { data: profile, isLoading: profileLoading } = useProfile(user?.id);

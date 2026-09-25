@@ -171,3 +171,93 @@ export function overTimeBudget({ startedAt, now = Date.now(), budgetMs }) {
   if (!(budgetMs > 0)) return false;
   return now - startedAt >= budgetMs;
 }
+
+/**
+ * THE SWEEP PACES ITSELF TO THE PROD LOAD CEILING.
+ *
+ * e2e/request-budgets.json sets `ceilingPerMinute` (400) for every label, and
+ * the budget step fails a run whose busiest wall-clock minute exceeds it. Run
+ * 36069319716: shard 1 peaked at 599 and shard 4 at 587 while their averages
+ * were ~190/min (25,986 and 18,275 requests over ~135 min). The peaks are
+ * bursts: a reload plus an opened feed plus the navigation a press starts.
+ *
+ * So before each press cycle the harness asks how many metered requests the
+ * current minute already holds, and when this minute's count plus the largest
+ * burst one cycle has produced so far would pass the ceiling, it waits for the
+ * next minute. Same idea as paymentPaceMs: the limit is read, not guessed, so
+ * tightening the ceiling slows the sweep instead of turning it red.
+ *
+ * @returns {number} milliseconds to wait before the next cycle (0 = go now).
+ */
+export function ceilingWaitMs({ minutes, now = Date.now(), ceiling, burst }) {
+  if (!(ceiling > 0)) return 0;
+  const minute = Math.floor(now / 60_000);
+  const used = minutes?.[minute] ?? 0;
+  if (used === 0 || used + Math.min(burst, ceiling) <= ceiling) return 0;
+  return (minute + 1) * 60_000 - now + 50;
+}
+
+/** The burst estimate before any cycle has been measured; measured cycles only raise it. */
+export const MIN_CYCLE_BURST = 100;
+
+/**
+ * AN OVERLAY OPENED FROM THE HEADER IS THE SAME OVERLAY ON EVERY ROUTE.
+ *
+ * Run 36069319716 (2026-09-25) did not reach 32 rows (14 + 7 + 11 + 0) inside its 135-minute
+ * budget, and the rows it never reached were the ones after the admin views:
+ * /jobs/:id x2, /legal, /terms, /support, /rules, /browse. Each admin view took
+ * 12-17 minutes and found 54-85 controls whatever the view: /admin?view=export
+ * 63, subscriptions 60, banreview 60, jobs 60, credentials 60. Those ~55 shared
+ * controls are the admin menu (AdminTopBar's "Open the admin menu" opens
+ * AdminSidebar's sheet: 25 view rows, their pin buttons and the footer) plus
+ * the bell's panel. Every one is pressed through an opener chain, so each costs
+ * a reload, a replay of the opener and an overlay fill, and the same sheet was
+ * walked once per admin view: 25 times a night, per persona.
+ *
+ * A control inside an overlay whose opener is page chrome (inside <header> or
+ * <nav>) renders the same controls with the same destinations on every route.
+ * Once such a control has PASSED on one row of this run, the same control (same
+ * persona, same opener chain, same signature) on a later row is not pressed
+ * again, and the entry names the row where it passed. A control that FAILED is
+ * pressed again on every row, so a failure is never hidden behind an earlier
+ * one; page-level chrome (the bell, the menu button, the dock) is still pressed
+ * on every row.
+ */
+export const CHROME_SKIP =
+  "header chrome overlay: this identical control (same persona, opener and target) already passed on an earlier row of this run";
+
+/** Identity of a chrome-overlay control across rows. */
+export function chromeKey({ persona, chain, sig }) {
+  return [persona, ...(chain ?? []), sig ?? ""].join("\u0001");
+}
+
+/** CHROME_SKIP when this overlay control already passed elsewhere in the run, else null. */
+export function chromeDisposition({ fromChrome, depth, key, passedOn }) {
+  if (!fromChrome || !(depth > 0)) return null;
+  return passedOn.has(key) ? CHROME_SKIP : null;
+}
+
+/**
+ * A ROUTE THAT REDIRECTS IN STEPS LANDS ON ITS LAST URL.
+ *
+ * Signed in, /jobs/:id renders <Navigate to="/home?quickApply=<id>">
+ * (src/pages/jobs/JobDetail.tsx); for the job's own poster QuickApplyHandler
+ * then replaces that with /posts?highlight=<id>, and JobListPage drops
+ * `highlight` after its first paint. Run 36069319716,
+ * `/jobs/4a980ec0… customer`: the dock's "Posts", "Jobs", "Messages",
+ * "Profile" were enumerated with none of them the current tab, then failed
+ * NOT CLICKABLE with the resolved element `<button aria-label="Posts"
+ * aria-current="page">`: the screen was inventoried mid-redirect and pressed
+ * on a different one.
+ *
+ * The landing is read once the URL has held still for `quietMs`.
+ * @param {{ t: number, url: string }[]} samples in time order
+ */
+export function landingSettled(samples, quietMs) {
+  if (!samples.length) return false;
+  const last = samples[samples.length - 1];
+  let i = samples.length - 1;
+  while (i > 0 && samples[i - 1].url === last.url) i--;
+  return last.t - samples[i].t >= quietMs;
+}
+export const LANDING_QUIET_MS = 1500;

@@ -10,6 +10,7 @@ import { report } from "@/lib/errorLogger";
 import { hapticLight } from "@/lib/haptics";
 import { formatPrice, formatPriceExact } from "@/lib/format";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { centsLabel, tipQuoteForDollars } from "@/components/TipCostBreakdown";
 
 type Mode = "off" | "percent" | "fixed";
 
@@ -17,7 +18,9 @@ const PERCENT_PRESETS = [10, 15, 20];
 const FIXED_PRESETS = [5, 10, 20];
 /** Mirrors the CHECK constraint in 20260811180000. Kept in sync deliberately:
  *  the form should refuse a bad value before the database has to. */
-const LIMITS = { percent: { min: 1, max: 50 }, fixed: { min: 1, max: 500 }, cap: { min: 1, max: 500 } };
+// Fixed amounts and caps start at the $3 tip minimum (TIP_MIN_CENTS); a
+// percent tip that works out under it is not charged and the poster is asked.
+const LIMITS = { percent: { min: 1, max: 50 }, fixed: { min: 3, max: 500 }, cap: { min: 3, max: 500 } };
 
 /** SELECTED = the app's shared glossy primary surface, never a flat tint.
  *  Standing project rule (see `glossyPrimaryInvariant.test.ts` and the note in
@@ -233,8 +236,8 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
           >
             Tip automatically once a job is finished, without having to remember.
             Charged after completion — never before — so you only ever tip for
-            work that actually happened, and the whole tip goes to your Helpr:
-            Helpr takes no cut, only the card processing fee applies. If you
+            work that actually happened. Your Helpr receives 100% of the tip; the
+            card-processing fee is added on top of it for you. If you
             haven't saved a card, we'll ask you to confirm the tip instead of
             charging it automatically.
           </p>
@@ -420,6 +423,12 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
                   <> — {numericValue}% would be ${formatPriceExact(uncapped!)}, held to your ${formatPrice(numericCap!)} maximum.</>
                 ) : (
                   "."
+                )}
+                {example > 0 && (
+                  <>
+                    {" "}Your Helpr receives all ${formatPriceExact(example)}; with card processing you pay{" "}
+                    <span className="font-semibold">{centsLabel(tipQuoteForDollars(example).chargeCents)}</span>.
+                  </>
                 )}
               </p>
             </div>

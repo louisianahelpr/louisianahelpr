@@ -15,9 +15,12 @@
  *      accepted-only read cannot tell a quiet window from one where events
  *      are being dropped by quota/rate-limit). On a 401/403 falls back to the
  *      project stats endpoint (project:read only), which cannot split outcomes.
- *   5. Sentry REST: session replays over 30 days, accepted + rate_limited
- *      (org stats_v2 category=replay; Q275). No project-level fallback
- *      exists for replays, so a refused read is UNREADABLE.
+ *   5. Sentry REST: session replays in the current Sentry usage period
+ *      (GET /api/0/customers/{org}/ onDemandPeriodStart; Q379), accepted +
+ *      rate_limited (org stats_v2 category=replay; Q275). An unreadable period
+ *      falls back to the trailing 30 days and says so in the row's window. No
+ *      project-level fallback exists for replays, so a refused stats read is
+ *      UNREADABLE.
  *
  * At >= 80% of a limit: a warning item in the ops alert ledger (>= 100%: an
  * error item), verify-ref quota-monitor.yml, so the item closes only when this
@@ -204,13 +207,52 @@ async function readSentry() {
   }
 }
 
+/**
+ * Q379: the replay quota resets per Sentry USAGE period, not over a trailing 30
+ * days, so a source fixed mid-period kept the row red for up to a month. The
+ * period start is read from Sentry's subscription record for the org
+ * (GET /api/0/customers/{org}/, the record sentry.io's own usage page reads):
+ * `onDemandPeriodStart` is the start of the current monthly usage period
+ * (on an annual plan `billingPeriodStart` is the year's start, so it is only
+ * the fallback). That route is not in Sentry's public API reference, so a
+ * refused or unrecognised answer is NOT an unreadable quota: the reader falls
+ * back to the trailing 30 days, which can only over-count, and says so in the
+ * row's window.
+ * @returns {Promise<{start: string} | {why: string}>} start is YYYY-MM-DD
+ */
+async function sentryUsagePeriodStart(t, org) {
+  try {
+    const res = await fetch(`${SENTRY}/api/0/customers/${org}/`, {
+      headers: { Authorization: `Bearer ${t}` }, signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) return { why: `customers ${res.status}` };
+    const body = await res.json();
+    const raw = body?.onDemandPeriodStart ?? body?.billingPeriodStart;
+    const day = typeof raw === "string" ? raw.slice(0, 10) : "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(Date.parse(`${day}T00:00:00Z`))) {
+      return { why: "customers answered without a usage period start" };
+    }
+    if (Date.parse(`${day}T00:00:00Z`) > Date.now()) return { why: `usage period start ${day} is in the future` };
+    return { start: day };
+  } catch (e) {
+    return { why: `customers read failed: ${e?.message ?? e}` };
+  }
+}
+
 async function readSentryReplays() {
   const id = "sentry.replays_30d";
   const { SENTRY_AUTH_TOKEN: t, SENTRY_ORG: org } = env;
   if (!t || !org) return fail([id], "could not read: SENTRY_AUTH_TOKEN and SENTRY_ORG are required");
   try {
+    const period = await sentryUsagePeriodStart(t, org);
+    const range = "start" in period
+      ? `start=${period.start}T00:00:00Z&end=${new Date().toISOString().slice(0, 19)}Z`
+      : "statsPeriod=30d";
+    const window = "start" in period
+      ? `Sentry usage period since ${period.start}`
+      : `trailing 30 days (usage period unreadable: ${period.why})`;
     const res = await fetch(
-      `${SENTRY}/api/0/organizations/${org}/stats_v2/?field=sum(quantity)&category=replay&outcome=accepted&outcome=rate_limited&groupBy=outcome&statsPeriod=30d&interval=1d`,
+      `${SENTRY}/api/0/organizations/${org}/stats_v2/?field=sum(quantity)&category=replay&outcome=accepted&outcome=rate_limited&groupBy=outcome&${range}&interval=1d`,
       { headers: { Authorization: `Bearer ${t}` }, signal: AbortSignal.timeout(20_000) },
     );
     if (!res.ok) throw new Error(`Sentry stats_v2 (replay) ${res.status}: ${(await res.text()).slice(0, 200)}`);
@@ -232,8 +274,9 @@ async function readSentryReplays() {
     const last7 = perDay.slice(-7).reduce((a, b) => a + b, 0);
     let newest = -1;
     perDay.forEach((v, i) => { if (v > 0) newest = i; });
-    const newestDay = newest >= 0 ? String(body.intervals[newest]).slice(0, 10) : "none in 30d";
+    const newestDay = newest >= 0 ? String(body.intervals[newest]).slice(0, 10) : "none in the window";
     readings[id] = {
+      window,
       value: by.accepted + by.rate_limited,
       note: `org stats_v2 category=replay: ${by.accepted} accepted, ${by.rate_limited} dropped by quota (rate_limited); last 7 days ${last7}, newest day with any ${newestDay}`,
     };

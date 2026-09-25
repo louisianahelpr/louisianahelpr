@@ -18,6 +18,11 @@
  *
  * THE APPROACH — AND THE ONE RULE
  * -------------------------------
+ * Since 2026-09-25 it also serves the public, indexable pages (/browse, /help,
+ * /support, /legal and its /terms, /privacy, /rules aliases) so each carries
+ * its own title, description, og:* and self-referencing canonical before JS
+ * runs — see metaForPublicPage. The landing page `/` stays the static shell.
+ *
  * This function is reached by path-scoped rewrites (see vercel.json), NOT by
  * sniffing the User-Agent. Humans and crawlers get byte-identical responses.
  * Serving crawlers a different page is cloaking and gets domains penalised;
@@ -54,6 +59,7 @@
  */
 
 import { SHELL_HTML } from "../scripts/generated/og-shell.js";
+import { publicPageMetaFor } from "../src/lib/publicPageMeta.mjs";
 
 /**
  * og:url and the canonical link are built from this constant, never from the
@@ -83,8 +89,10 @@ const REF_CODE_RE = /^[A-Za-z0-9_-]{3,32}$/;
 interface Meta {
   /** Document <title>. */
   title: string;
-  /** name="description" — also reused for og/twitter description. */
+  /** name="description" — also reused for og/twitter description unless ogDescription is set. */
   description: string;
+  /** og/twitter description when the card copy differs from name="description". */
+  ogDescription?: string;
   /** Card headline. */
   ogTitle: string;
   /** Absolute canonical URL for this route. */
@@ -186,10 +194,10 @@ function applyMeta(html: string, meta: Meta): string {
   out = setMetaContent(out, "name", "description", meta.description);
   out = setMetaContent(out, "property", "og:url", meta.url);
   out = setMetaContent(out, "property", "og:title", meta.ogTitle);
-  out = setMetaContent(out, "property", "og:description", meta.description);
+  out = setMetaContent(out, "property", "og:description", meta.ogDescription ?? meta.description);
   out = setMetaContent(out, "name", "twitter:url", meta.url);
   out = setMetaContent(out, "name", "twitter:title", meta.ogTitle);
-  out = setMetaContent(out, "name", "twitter:description", meta.description);
+  out = setMetaContent(out, "name", "twitter:description", meta.ogDescription ?? meta.description);
   if (meta.robots) out = setMetaContent(out, "name", "robots", meta.robots);
   return out;
 }
@@ -460,6 +468,34 @@ function metaForUser(url: string): Meta {
 }
 
 /**
+ * A public, indexable page (lh-seo-web SW-001 / SW-002, 2026-09-25).
+ *
+ * /browse, /help, /support and the Legal URLs used to get the homepage's
+ * title, description, og:* and — worst — `<link rel=canonical>` pointing at
+ * the homepage until JavaScript ran, which tells a non-JS crawler every one of
+ * them is a duplicate of `/`. Their values come from the same table the SPA's
+ * usePageMeta reads (src/lib/publicPageMeta.mjs), so pre-JS and post-JS agree
+ * by construction. No database read; `null` (unknown page id) serves the
+ * untouched shell, like every other "say nothing new" branch here.
+ *
+ * `id` is the path without its leading slash ("browse", "legal", "terms"), as
+ * named by the vercel.json rewrite. `tab` is the visitor's own ?tab=, which
+ * Vercel carries through the rewrite (the /signup ?ref= card relies on the
+ * same behaviour); the Legal tab resolution is the page's own.
+ */
+function metaForPublicPage(id: string, tab: string | null): Meta | null {
+  const page = publicPageMetaFor(`/${id}`, tab);
+  if (!page) return null;
+  return {
+    title: page.title,
+    description: page.description,
+    ogTitle: page.ogTitle,
+    ogDescription: page.ogDescription,
+    url: page.canonical,
+  };
+}
+
+/**
  * Which route is being previewed.
  *
  * The rewrites in vercel.json name the route explicitly
@@ -473,9 +509,9 @@ function metaForUser(url: string): Meta {
  * invoked directly with a real route path — which is how the local harness and
  * the unit-style checks exercise it.
  */
-function resolveRoute(url: URL): { kind: "job" | "signup" | "user"; id: string } | null {
+function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page"; id: string } | null {
   const declared = url.searchParams.get("_og");
-  if (declared === "job" || declared === "user") {
+  if (declared === "job" || declared === "user" || declared === "page") {
     return { kind: declared, id: url.searchParams.get("_id") ?? "" };
   }
   if (declared === "signup") return { kind: "signup", id: "" };
@@ -486,6 +522,7 @@ function resolveRoute(url: URL): { kind: "job" | "signup" | "user"; id: string }
   if (pathname === "/signup") return { kind: "signup", id: "" };
   const userMatch = pathname.match(/^\/user\/([^/]+)$/);
   if (userMatch) return { kind: "user", id: decodeURIComponent(userMatch[1]) };
+  if (publicPageMetaFor(pathname, null)) return { kind: "page", id: pathname.slice(1) };
   return null;
 }
 
@@ -506,6 +543,10 @@ async function resolveMeta(url: URL): Promise<Meta | null> {
 
   if (route.kind === "signup") {
     return metaForSignup(url.searchParams.get("ref"));
+  }
+
+  if (route.kind === "page") {
+    return metaForPublicPage(route.id, url.searchParams.get("tab"));
   }
 
   const seg = safeIdSegment(route.id);

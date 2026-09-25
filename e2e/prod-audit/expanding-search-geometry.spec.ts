@@ -620,7 +620,7 @@ const SURFACES: {
        ~170px of label, so all three tab names overlapped into one smear. Both
        are `flex-1`, so the shortfall was split and both lost.
        `tabBar` now steps the tab group aside below 500px while the field is
-       open — the same behaviour as ActivityHeader, for a stronger reason: a
+       open — the same behaviour as PostsHeader / JobsHeader, for a stronger reason: a
        live query renders all three policies at once, so the tabs are inert
        exactly then. Measured after, on the production build against prod, in
        both themes: 320 → 107px becomes 222px; 375 → 135px becomes 277px; 1440

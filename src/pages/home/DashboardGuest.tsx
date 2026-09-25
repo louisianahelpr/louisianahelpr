@@ -30,6 +30,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { signupUrlFor } from "@/lib/jobIntent";
@@ -185,12 +186,10 @@ function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup
 
 const DashboardGuest = () => {
   const navigate = useNavigate();
+  // Title/description/canonical/og come from the table api/share.ts also
+  // serves pre-JS (src/lib/publicPageMeta.mjs), so the two cannot drift.
   usePageMeta({
-    title: "Browse Local Jobs — Helpr",
-    description: "See what your Louisiana neighbors need help with right now. No account needed to look.",
-    canonical: "https://www.louisianahelpr.com/browse",
-    ogTitle: "Browse Local Jobs — Helpr",
-    ogDescription: "Browse open jobs across Louisiana — cleaning, yard work, moving, errands, and more. No signup required to look.",
+    ...PUBLIC_PAGE_META["/browse"],
     geoRegion: "US-LA",
     geoPlacename: "Louisiana",
   });

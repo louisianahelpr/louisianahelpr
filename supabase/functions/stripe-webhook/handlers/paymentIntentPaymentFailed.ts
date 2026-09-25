@@ -22,6 +22,11 @@ export async function handlePaymentIntentPaymentFailed(
   // `payment_intent_data.metadata` on every Checkout Session it creates, so
   // it survives onto the resulting PaymentIntent unconditionally — read the
   // job from there instead of a column only the success path populates.
+  // A tip is not the job's payment. A declined tip (auto-tip-charge carries
+  // `job_id` for its receipt) must never tell the poster their JOB payment
+  // failed; auto-tip-charge sends its own "your auto-tip didn't go through"
+  // notice, and a manual tip is retried in the Tip dialog.
+  if (pi.metadata?.type === "tip") return;
   const jobId = pi.metadata?.job_id;
   const { data: failedJob, error: failedJobErr } = jobId
     ? await supabase

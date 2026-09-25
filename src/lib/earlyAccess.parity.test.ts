@@ -8,9 +8,11 @@ import { TIER_PERKS, type SubscriptionTier } from "./subscriptionTiers";
 
 /**
  * The early-access delay exists in TWO places: this module (the client
- * pre-filters) and `public.early_access_cutoff()` in SQL (THE enforcement
- * point — all three browse surfaces compare against it, and the perk is paid
- * for, so the client's copy is advisory).
+ * pre-filters) and `public.early_access_delay_minutes(user_id)` in SQL, the one
+ * server-side tier ladder. `early_access_cutoff()` (THE feed enforcement point:
+ * every browse surface compares against it) and `early_access_visible_at()`
+ * (when a saved-search alert may go out, V-008) both read that ladder, and the
+ * perk is paid for, so the client's copy is advisory.
  *
  * They must agree exactly. If the SQL is stricter, rows vanish from a surface
  * the client thought it had earned; if it's looser, the perk leaks. That
@@ -18,44 +20,32 @@ import { TIER_PERKS, type SubscriptionTier } from "./subscriptionTiers";
  * to fix, so it is worth a guard rather than a comment.
  */
 /**
- * The migration that currently DEFINES the cutoff — the newest file containing
- * `CREATE OR REPLACE FUNCTION public.early_access_cutoff()`.
- *
- * This used to be a hardcoded path. That is a trap twice over: migrations are
- * append-only, so a later redefinition is the live one and a pinned path grades
- * a body Postgres has already replaced; and the pin silently survives the very
- * change it should catch. It did exactly that on 2026-09-05, when the Plus
- * branch was added to the function and this test kept reading the 2026-09-01
- * file and passing.
+ * The newest `CREATE OR REPLACE FUNCTION public.<name>(` definition in the
+ * migrations, from its header to its closing `$function$;`. Migrations are
+ * append-only, so the newest file is the live one; the file is found by
+ * content, never pinned by path (a pinned path kept grading a replaced body on
+ * 2026-09-05, when the Plus branch was added).
  */
-const SQL = (() => {
+function newestDefinition(name: string): string {
   const dir = resolve(__dirname, "../../supabase/migrations");
+  const head = `CREATE OR REPLACE FUNCTION public.${name}(`;
   const file = readdirSync(dir)
     .filter((f) => f.endsWith(".sql"))
-    .filter((f) =>
-      readFileSync(resolve(dir, f), "utf8").includes(
-        "CREATE OR REPLACE FUNCTION public.early_access_cutoff()",
-      ),
-    )
+    .filter((f) => readFileSync(resolve(dir, f), "utf8").includes(head))
     .sort()
     .pop();
-  if (!file) throw new Error("No migration defines early_access_cutoff()");
-  return readFileSync(resolve(dir, file), "utf8");
-})();
+  if (!file) throw new Error(`No migration defines ${name}()`);
+  const sql = readFileSync(resolve(dir, file), "utf8");
+  const start = sql.indexOf(head);
+  const end = sql.indexOf("$function$;", start);
+  if (end === -1) throw new Error(`${name}() in ${file} has no closing $function$;`);
+  return sql.slice(start, end);
+}
 
-/**
- * The executable body of `early_access_cutoff()`, prose headers excluded. The
- * migration's header explains at length WHY the retired `business` tier and
- * the old NULL-expiry reading are gone, so grading the whole file would fail
- * on the explanation rather than on any live SQL.
- */
-const CUTOFF_BODY = (() => {
-  const start = SQL.indexOf("CREATE OR REPLACE FUNCTION public.early_access_cutoff()");
-  if (start === -1) throw new Error("early_access_cutoff() is missing from the migration");
-  const end = SQL.indexOf("$function$;", start);
-  if (end === -1) throw new Error("early_access_cutoff() has no closing $function$;");
-  return SQL.slice(start, end);
-})();
+/** The tier ladder: 20 minus the minutes a user's ACTIVE tier earns. */
+const LADDER_BODY = newestDefinition("early_access_delay_minutes");
+/** The feed cutoff, which must take its delay from the ladder. */
+const CUTOFF_BODY = newestDefinition("early_access_cutoff");
 
 /** Every surface that must sit behind the shared cutoff, and its object name. */
 const GATED_SURFACES: Array<[string, string]> = [
@@ -77,10 +67,10 @@ function sqlEarnedMinutes(): Record<string, number> {
     (t) => t !== "free" && TIER_PERKS[t].earlyAccess,
   );
   for (const tier of paidTiers) {
-    const m = CUTOFF_BODY.match(
+    const m = LADDER_BODY.match(
       new RegExp(`WHEN p\\.subscription_tier = '${tier}'\\s+THEN (\\d+)`),
     );
-    expect(m, `${tier} branch missing from early_access_cutoff()`).not.toBeNull();
+    expect(m, `${tier} branch missing from early_access_delay_minutes()`).not.toBeNull();
     earned[tier] = Number(m![1]);
   }
   return earned;
@@ -89,7 +79,9 @@ function sqlEarnedMinutes(): Record<string, number> {
 describe("early-access delay — client/SQL parity", () => {
   it("uses the same 20-minute base on both sides", () => {
     expect(earlyAccessDelayMs(null)).toBe(20 * 60 * 1000);
-    expect(CUTOFF_BODY).toContain("make_interval(mins => 20 -");
+    expect(LADDER_BODY).toContain("SELECT 20 - COALESCE(");
+    // The feed cutoff takes the caller's delay from the ladder, not a copy of it.
+    expect(CUTOFF_BODY).toContain("make_interval(mins => public.early_access_delay_minutes((SELECT auth.uid())))");
   });
 
   it("shaves the same minutes off per tier", () => {
@@ -105,8 +97,8 @@ describe("early-access delay — client/SQL parity", () => {
     // The COALESCE covers "no profile row at all" — which is every anonymous
     // caller, and therefore both guest surfaces. ELSE 0 covers a row whose
     // tier is off the ladder. Unknown must never earn minutes.
-    expect(CUTOFF_BODY).toContain("ELSE 0");
-    expect(CUTOFF_BODY).toMatch(/COALESCE\(/);
+    expect(LADDER_BODY).toContain("ELSE 0");
+    expect(LADDER_BODY).toMatch(/COALESCE\(/);
   });
 
   it("grants the retired 'business' tier NOTHING, on both sides", () => {
@@ -118,7 +110,7 @@ describe("early-access delay — client/SQL parity", () => {
     // Grade the SQL LITERAL, not the word: the body carries a comment naming
     // the retired tier so the next reader knows its absence is deliberate
     // rather than an oversight. A `'business'` in quotes is a live branch.
-    expect(CUTOFF_BODY.slice(CUTOFF_BODY.indexOf("AS $function$"))).not.toMatch(/'business'/);
+    expect(LADDER_BODY.slice(LADDER_BODY.indexOf("AS $function$"))).not.toMatch(/'business'/);
   });
 
   it("lapses a paid tier on a stamped PAST date only — never on a NULL expiry", () => {
@@ -131,10 +123,10 @@ describe("early-access delay — client/SQL parity", () => {
     // not tell, because it only checked the file contained the substring
     // "subscription_expires_at <= now()", which was true of BOTH readings.
     // Grade the guard clause instead.
-    expect(CUTOFF_BODY).toMatch(
+    expect(LADDER_BODY).toMatch(
       /WHEN p\.subscription_expires_at IS NOT NULL\s*\n?\s*AND p\.subscription_expires_at <= now\(\) THEN 0/,
     );
-    expect(CUTOFF_BODY).not.toMatch(/subscription_expires_at IS NULL OR/);
+    expect(LADDER_BODY).not.toMatch(/subscription_expires_at IS NULL OR/);
   });
 
   it("puts ALL THREE browse surfaces behind the one cutoff", () => {

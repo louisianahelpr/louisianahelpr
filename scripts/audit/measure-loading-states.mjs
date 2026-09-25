@@ -21,9 +21,24 @@
  *          wrong. Neither substitutes for the other.
  *
  * NO MOCK MODE (owner, said twice). Every response is a real prod response
- * from the shared test accounts; the only intervention is a DELAY, so the
- * loading frame exists long enough to be captured. Delaying a real response is
- * not mocking it — the bytes that arrive are the bytes prod sent.
+ * from the shared test accounts; the only intervention is TIMING: data
+ * requests wait at a gate until the loading frame has been measured, then go
+ * to prod untouched. Holding a real request is not mocking it — the bytes that
+ * arrive are the bytes prod sent.
+ *
+ * WHICH FRAME IS "THE LOADING FRAME". A page loads in stages: a route
+ * fallback while the session's profile arrives, then the page's own skeleton
+ * while its queries run. The frame is taken at a STAGE, never at an instant:
+ * every data request is held at the gate, the page runs until nothing is in
+ * flight but held requests and the screen has not changed for SETTLE_MS, and
+ * then
+ *   - placeholders on screen -> that is the loading frame (nextStage "capture");
+ *   - none, but requests held -> release that one wave and settle again;
+ *   - none, nothing held      -> the surface has no loading state.
+ * So the same build over the same data measures the same frame on every run,
+ * whatever prod's latency or the poll's phase: the two-way baseline in
+ * docs/audit/loading-states/baseline.json can only settle on a measurement
+ * that repeats.
  *
  * Placeholders are found by what they ARE, never by a list of files:
  *   - `<Skeleton>`      → its class carries `animate-[shimmer_2s_infinite]`
@@ -35,7 +50,7 @@
  *   BASE=http://127.0.0.1:4173 node scripts/audit/measure-loading-states.mjs
  *   ROUTES=/home,/profile?tab=earnings   … narrow
  *   PERSONAS=customer                          … narrow
- *   DATA_DELAY=3000 CHUNK_DELAY=900            … tune the capture window
+ *   SETTLE_MS=600 CHUNK_DELAY=400              … how long a stage must hold still
  *   OUT=docs/audit/loading-states                … where the JSON + PNGs land
  */
 import { chromium } from "@playwright/test";
@@ -51,8 +66,9 @@ const REPO = resolve(HERE, "../..");
 
 const BASE = process.env.BASE ?? "http://127.0.0.1:4173";
 const OUT = resolve(REPO, process.env.OUT ?? "docs/audit/loading-states");
-const DATA_DELAY = Number(process.env.DATA_DELAY ?? 1200);
 const CHUNK_DELAY = Number(process.env.CHUNK_DELAY ?? 400);
+/** How long a stage's screen must stay unchanged, with nothing moving, before it is judged. */
+export const SETTLE_MS = Number(process.env.SETTLE_MS ?? 600);
 const VIEWPORT = { width: 375, height: 812 };
 
 /** Every placeholder, by what it is. */
@@ -64,6 +80,37 @@ export const PLACEHOLDER_SEL = [
   '[data-testid*="skeleton" i]',
   '[data-testid*="fallback" i]',
 ].join(",");
+
+/**
+ * One step of the staged capture (see "WHICH FRAME" above). Pure, so its
+ * contract is unit-tested without a browser (src/test/loadingStatesRepeat.test.ts).
+ *
+ *   placeholders  visible placeholders on screen now
+ *   held          data requests waiting at the gate
+ *   moving        chunk requests and released data requests still in flight
+ *   quietFor      ms the screen's signature has been unchanged
+ *
+ * Returns "wait" (the stage is still moving), "capture" (measure this frame),
+ * "release" (let the held wave through) or "empty" (settled, nothing held,
+ * nothing on screen: no loading state).
+ */
+export function nextStage({ placeholders, held, moving, quietFor, settleMs = SETTLE_MS }) {
+  if (moving > 0 || quietFor < settleMs) return "wait";
+  if (placeholders > 0) return "capture";
+  if (held > 0) return "release";
+  return "empty";
+}
+
+/** What the screen shows, cheaply: visible placeholder count and document height. */
+const SCREEN_SIG = (sel) => {
+  const n = [...document.querySelectorAll(sel)].filter((e) => {
+    const r = e.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return false;
+    const cs = getComputedStyle(e);
+    return cs.visibility !== "hidden" && cs.display !== "none" && Number(cs.opacity) > 0.01;
+  }).length;
+  return { count: n, sig: `${n}|${document.documentElement.scrollHeight}` };
+};
 
 // ---------------------------------------------------------------------------
 // In-page probes
@@ -331,42 +378,77 @@ async function measureOne(context, { url, persona }) {
   // while its four feed bones were still up and called them the loaded state,
   // which would have scored a jumping surface as clean.
   let inflight = 0;
+  let chunksInflight = 0;
   let lastSettled = Date.now();
-  page.on("request", (r) => { if (DATA_RX.test(r.url())) { inflight++; } });
-  const done = (r) => { if (DATA_RX.test(r.url())) { inflight = Math.max(0, inflight - 1); lastSettled = Date.now(); } };
+  page.on("request", (r) => {
+    if (DATA_RX.test(r.url())) inflight++;
+    else if (CHUNK_RX.test(r.url())) chunksInflight++;
+  });
+  const done = (r) => {
+    if (DATA_RX.test(r.url())) { inflight = Math.max(0, inflight - 1); lastSettled = Date.now(); }
+    else if (CHUNK_RX.test(r.url())) chunksInflight = Math.max(0, chunksInflight - 1);
+  };
   page.on("requestfinished", done);
   page.on("requestfailed", done);
 
-  // Delay REAL responses so the loading frame is capturable. Nothing is
-  // fabricated: the handler awaits and then continues the request untouched.
+  // The gate. While it is shut, every REAL data request waits here; a wave is
+  // let through only when a settled stage shows no placeholder, and the whole
+  // gate opens once the loading frame is measured. Nothing is fabricated: a
+  // held request continues untouched to prod.
+  let gateOpen = false;
+  const held = [];
+  const releaseHeld = () => { for (const go of held.splice(0)) go(); };
   await page.route("**/*", async (route) => {
     const u = route.request().url();
-    if (DATA_RX.test(u)) await sleep(DATA_DELAY);
+    if (DATA_RX.test(u) && !gateOpen) await new Promise((go) => held.push(go));
     else if (CHUNK_RX.test(u)) await sleep(CHUNK_DELAY);
     await route.continue().catch(() => {});
   });
+  const openGate = () => { gateOpen = true; releaseHeld(); };
 
   const slug = `${persona}${url.replace(/[^\w]+/g, "_")}`.slice(0, 90);
   try {
     await page.goto(BASE + url, { waitUntil: "commit", timeout: 60_000 });
 
-    // --- loading frame ---------------------------------------------------
+    // --- loading frame (staged: see "WHICH FRAME" at the top) -------------
     let loading = null;
-    const deadline = Date.now() + 15_000;
+    let lastSig = null;
+    let sigSince = Date.now();
+    let waves = 0;
+    let ended = "deadline";
+    const deadline = Date.now() + 20_000;
     while (Date.now() < deadline) {
-      const p = await page.evaluate(MEASURE, [PLACEHOLDER_SEL, null]).catch(() => null);
-      if (p && p.found > 0) {
-        // let the placeholder settle one frame before measuring it
-        await page.waitForTimeout(180);
+      const scr = await page.evaluate(SCREEN_SIG, PLACEHOLDER_SEL).catch(() => null);
+      const sig = scr?.sig ?? "unreadable";
+      if (sig !== lastSig) { lastSig = sig; sigSince = Date.now(); }
+      const step = nextStage({
+        placeholders: scr?.count ?? 0,
+        held: held.length,
+        moving: chunksInflight + Math.max(0, inflight - held.length),
+        quietFor: scr ? Date.now() - sigSince : 0,
+      });
+      if (step === "capture") {
         loading = await page.evaluate(MEASURE, [PLACEHOLDER_SEL, null]).catch(() => null);
-        if (loading && loading.found > 0) break;
+        if (loading && loading.found > 0) { ended = "captured"; break; }
+        sigSince = Date.now();
+      } else if (step === "release") {
+        waves++;
+        releaseHeld();
+        sigSince = Date.now();
+      } else if (step === "empty") {
+        ended = "empty";
+        break;
       }
-      await page.waitForTimeout(90);
+      await page.waitForTimeout(100);
     }
+    result.stage = { waves, ended };
 
     if (!loading || !loading.found) {
+      openGate();
       result.status = "no-placeholder";
-      result.note = "no loading placeholder rendered within 25s at this delay";
+      result.note = ended === "empty"
+        ? `no loading placeholder at any settled stage (${waves} wave(s) of data released)`
+        : `no settled stage with a placeholder within 20s (${waves} wave(s) released)`;
       await page.close();
       return result;
     }
@@ -374,6 +456,8 @@ async function measureOne(context, { url, persona }) {
     mkdirSync(OUT, { recursive: true });
     const loadingPng = resolve(OUT, `${slug}.loading.png`);
     await page.screenshot({ path: loadingPng, fullPage: false });
+    // Measured and photographed: prod's answers may land now.
+    openGate();
     result.loadingPng = loadingPng;
     result.loading = loading;
     result.shiftsAtLoading = (loading.shifts ?? []).reduce((a, s) => a + s.v, 0);
@@ -480,6 +564,7 @@ async function measureOne(context, { url, persona }) {
     result.status = "error";
     result.error = String(e).slice(0, 300);
   }
+  openGate();
   await page.close().catch(() => {});
   return result;
 }
@@ -489,7 +574,9 @@ async function main() {
   const { sessions, unavailable } = await mintAccounts(personas.filter((p) => p !== "anon"));
   for (const [p, why] of Object.entries(unavailable)) console.warn(`persona ${p} unavailable: ${why}`);
 
-  // Real ids, resolved from prod — never faked.
+  // Real ids, resolved from prod — never faked. The newest job is a different
+  // job on most runs, so check-loading-state-shape.mjs keys /jobs/<id> as
+  // /jobs/:id (stableUrl) rather than by the id.
   const poster = sessions.customer;
   const helper = sessions.helper;
   let seedJobId = "test";
@@ -573,7 +660,7 @@ async function main() {
   await browser.close();
 
   mkdirSync(OUT, { recursive: true });
-  writeFileSync(resolve(OUT, "measurements.json"), JSON.stringify({ base: BASE, viewport: VIEWPORT, dataDelay: DATA_DELAY, chunkDelay: CHUNK_DELAY, at: new Date().toISOString(), results }, null, 2));
+  writeFileSync(resolve(OUT, "measurements.json"), JSON.stringify({ base: BASE, viewport: VIEWPORT, capture: "staged-gate", settleMs: SETTLE_MS, chunkDelay: CHUNK_DELAY, at: new Date().toISOString(), results }, null, 2));
   console.log(`\n${results.length} surfaces · ${results.filter((r) => r.status === "measured").length} measured · ${OUT}/measurements.json`);
 }
 

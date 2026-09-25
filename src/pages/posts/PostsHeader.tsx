@@ -3,19 +3,26 @@ import { ChevronDown, Search, X } from "lucide-react";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
 import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
 import { hapticLight } from "@/lib/haptics";
-import type { StatusFilter } from "./activityFilters";
+import type { StatusFilter } from "@/components/job-card/activityFilters";
 import { defaultStatusFilterFor } from "@/components/job-card/activityConstants";
 
 /**
- * ActivityHeader — the title row with search/filter toggle buttons, the
- * status-filter dropdown, and the expandable search bar. Stateless: all
- * search/filter state is owned by the page and passed in.
+ * PostsHeader — the My Posts (/posts) header: the "My Posts" title row with
+ * the search and status-filter toggle buttons, the status tabs, and the
+ * expandable search field. Stateless: all search/filter state is owned by the
+ * page and passed in.
  *
- * It is mounted as PageScaffold's `titleCard`, NOT as the panel's first child.
- * That is what gives it the rounded floating liquid-glass card the panel below
- * already uses (owner picked the card treatment over the hairline rule it used
- * to be) — the treatment is PageScaffold's own TITLE_CARD_CLASS /
- * TITLE_CARD_STYLE, so nothing here re-implements it.
+ * My Posts owns this header and My Jobs owns its own (src/pages/jobs/
+ * JobsHeader.tsx). Owner, 2026-09-25: "They should be there own headers. We
+ * already discussed they should not be under a shared activity folder." The
+ * two headers share only generic UI primitives (ScreenHeaderRow,
+ * UnderlineTabs); src/test/filterDisclosureParity.test.ts keeps the phone
+ * disclosure behaving the same on My Posts, My Jobs and Messages.
+ *
+ * On phone it is mounted as PageScaffold's `titleCard`, which gives it the
+ * rounded floating liquid-glass card the panel below uses — the treatment is
+ * PageScaffold's own TITLE_CARD_CLASS / TITLE_CARD_STYLE, so nothing here
+ * re-implements it. On the desktop website it is the panel's first child.
  */
 
 /**
@@ -26,31 +33,26 @@ import { defaultStatusFilterFor } from "@/components/job-card/activityConstants"
  * block, and on a single 44px control row it leaves the title floating in dead
  * space. `!` because PageScaffold concatenates rather than merges.
  */
-export const ACTIVITY_HEADER_PADDING = "!py-1.5 lg:!py-2";
+export const POSTS_HEADER_PADDING = "!py-1.5 lg:!py-2";
 
-export interface ActivityHeaderProps {
-  /** Page name, rendered here rather than in an app bar above the panel.
-   *  The bar was removed: it stated the page name a second time, directly
-   *  above this row, which is the stacked-header problem already fixed on the
-   *  message thread. */
-  title: string;
+const TITLE = "My Posts";
+const TABS_ID = "posts-status-tabs";
+
+export interface PostsHeaderProps {
   /** Hide the title VISUALLY (it stays in the accessibility tree). Set on the
-   *  desktop website, where this row is rendered inside the global app bar and
-   *  the page name would otherwise repeat chrome the bar already carries. The
-   *  title is not dropped — a screen with no h1 is an a11y defect — it is
-   *  `sr-only`, which is exactly what ScreenHeaderRow's own `titleSrOnly`
-   *  does. */
+   *  desktop website, where the app bar and the right rail already name the
+   *  page. The title is `sr-only`, not dropped — a screen with no h1 is an a11y
+   *  defect — which is exactly what ScreenHeaderRow's own `titleSrOnly` does. */
   titleSrOnly?: boolean;
   /**
    * Put the status tabs IN THE HEADER ROW, beside the screen name, rather than
    * on their own line beneath it.
    *
    * Set on the desktop website only, and it is purely about width: at 375px the
-   * four labels cannot share a row with a title and a search button, so phone
-   * gives them their own line. Both placements show the same tabs — the sheet
-   * they used to hide behind on phone is gone (owner: "put the needs you etc at
-   * the top oiver the job card same for search and remove the filter since they
-   * will all be ther").
+   * labels cannot share a row with a title and a search button, so phone gives
+   * them their own line. Both placements show the same tabs (owner: "put the
+   * needs you etc at the top oiver the job card same for search and remove the
+   * filter since they will all be ther").
    */
   inlineFilters?: boolean;
   activeStatusFilters: StatusFilter[];
@@ -63,13 +65,12 @@ export interface ActivityHeaderProps {
   setSearchQuery: (query: string) => void;
 }
 
-/** The filter both this disclosure and Activity.tsx call the default.
- *  Read from the same function Activity.tsx seeds its state with, so the two
- *  can never disagree about what "unfiltered" means. */
+/** The filter My Posts opens on. Read from the same function JobListPage
+ *  seeds its state with, so the two can never disagree about what
+ *  "unfiltered" means. */
 const DEFAULT_STATUS_FILTER = defaultStatusFilterFor("posted");
 
-export function ActivityHeader({
-  title,
+export function PostsHeader({
   titleSrOnly = false,
   inlineFilters = false,
   activeStatusFilters,
@@ -80,62 +81,21 @@ export function ActivityHeader({
   setSearchOpen,
   searchQuery,
   setSearchQuery,
-}: ActivityHeaderProps) {
-  /* The tab set drops the catch-all. On My Jobs "All" returned the same rows
-     as Active, so it was a quarter of the control spent on a duplicate
-     (owner). Which tab opens selected is the page's call
+}: PostsHeaderProps) {
+  /* The tab set drops the catch-all "All" (owner: it spent a tab on a
+     duplicate of Active). Which tab opens selected is the page's call
      (`defaultStatusFilterFor`), not this row's. */
   const inlineStatusFilters = activeStatusFilters.filter((f) => f.key !== "all");
 
-  /**
-   * THE TAB ROW STARTS OPEN. ALWAYS, AT EVERY WIDTH, IN EVERY BUCKET.
-   *
-   * There is a disclosure chevron beside search (owner, 2026-09-19: "add a
-   * dropdown arrow next to search so these aren't always showing, but then
-   * always open to needs you"), and it still works — one press folds the row
-   * away for a reader who wants the extra 41px of cards. What it no longer
-   * does is decide what a phone sees FIRST.
-   *
-   * ── WHAT SHIPPING IT CLOSED-BY-DEFAULT ACTUALLY DID ──────────────────────
-   * The initial state used to be `!isDefaultFilter`, i.e. closed whenever the
-   * live filter was the one the screen opens on — which is the state every
-   * phone arrives in. Measured on prod, signed in, 2026-09-20, plain
-   * `/posts` with no query string:
-   *
-   *     320 / 375 / 414   chevron aria-expanded="false"   tab words: []
-   *     1440              tabs in the header row          all five words
-   *
-   * The owner's report was that "Cancelled" was clipping to "Ca…" at 375 —
-   * four of five words readable. After the disclosure landed it was ZERO of
-   * five until you found and pressed a chevron. The same complaint, worse.
-   *
-   * ── AND IT WAS NEVER ABOUT EMPTINESS ─────────────────────────────────────
-   * Worth stating because it is the obvious wrong guess and it costs a lane:
-   * /posts' default bucket happened to be empty that morning and /jobs'
-   * default bucket was NOT, and both hid their tabs. The predicate was the
-   * filter's IDENTITY, not the list's length.
-   *
-   * ── WHY OPEN IS THE RIGHT DEFAULT ────────────────────────────────────────
-   * These five words are not an action on the rows, they are WHERE YOU ARE in
-   * the screen — the same reason `activeStatusFilters` is passed whole on an
-   * empty list (see Part 3 of activityTabLabelsFitAPhone). A screen that
-   * opens with its navigation folded away reads as broken, and the row is
-   * one line of 11px type that now fits 320 without scrolling.
-   */
   /* ONE PRESS OUT, AND THE FOCUS COMES BACK.
      Owner, 2026-09-19 (/posts): "the x on search needed to be clicked 3
-     times to close the search bar". The state machine was never the problem —
-     instrumented, the X already does query-clear + close in a single
-     activation and the `?q=` mirror does not re-open it (transition trail in
-     src/test/searchDismissAndOverlay.test.tsx).
-     What it did NOT do was give the focus back. The field unmounts under the
-     caret, so `document.activeElement` fell to <body>: a keyboard user pressing
-     the X landed nowhere and had to Tab from the top of the page to find search
-     again, and a screen-reader user lost the row entirely. Every dismiss on
-     this screen now goes through `closeSearch()`, which is the whole pre-open
-     state in one call — query cleared, field closed, focus back on the
-     magnifier that opened it. Escape does the same thing, which is what the X
-     already implied and the keyboard had no way to ask for. */
+     times to close the search bar". The X clears the query and closes the
+     field in a single activation, and the `?q=` mirror does not re-open it
+     (transition trail in src/test/searchDismissAndOverlay.test.tsx).
+     The field unmounts under the caret, so every dismiss goes through
+     `closeSearch()`, which restores the whole pre-open state in one call —
+     query cleared, field closed, focus back on the magnifier that opened it.
+     Escape does the same thing. */
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
   /* Focus AFTER the commit that unmounts the field — the trigger does not
      exist yet at the moment the click handler runs. An effect keyed on the
@@ -153,42 +113,40 @@ export function ActivityHeader({
   };
 
   const isDefaultFilter = statusFilter === DEFAULT_STATUS_FILTER;
-  const [tabsOpenPhone, setTabsOpenPhone] = useState(true);
+  // THE PHONE TAB ROW STARTS FOLDED ON THE DEFAULT FILTER. Owner, 2026-09-25
+  // (screenshots of My Posts, My Jobs and Messages on iPhone): "This should
+  // open with the chevrons collapsed. Not expanded." A non-default filter
+  // arrives OPEN, so an active filter is never hidden. The chevron beside
+  // search opens and folds the row (owner, 2026-09-19: "add a dropdown arrow
+  // next to search so these aren't always showing").
+  const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter);
   // On the wide screen the tabs simply STAY UP — there is room for them beside
-  // the title, so hiding four short words behind a chevron buys nothing and
-  // costs a press (owner: "drop down not needed on the wide screen, the
-  // category can stay at the top"). The disclosure is a phone affordance,
-  // where the row genuinely cannot hold both.
+  // the title, so hiding them behind a chevron buys nothing and costs a press
+  // (owner: "drop down not needed on the wide screen, the category can stay at
+  // the top"). The disclosure is a phone affordance.
   const tabsOpen = inlineFilters || tabsOpenPhone;
   const setTabsOpen = setTabsOpenPhone;
   // A FILTER ARRIVING LATER RE-OPENS A ROW THE READER FOLDED AWAY.
   // The disclosure may hide a control; it may never hide an ACTIVE filter. A
-  // deep link resolving, back/forward restoring `?filter=`, or a tab switch
-  // that changes the bucket all land the same way: looking at four of your
-  // twelve jobs with nothing on screen saying why. The initial state is now
-  // open regardless, so this only ever fires on a row the reader collapsed
-  // themselves.
+  // deep link resolving, back/forward restoring `?filter=`, or a bucket change
+  // all land the same way: a filtered list with nothing on screen saying why.
   useEffect(() => {
     if (!isDefaultFilter) setTabsOpen(true);
   }, [isDefaultFilter]);
 
-  /* LAYER THREE: IF A LABEL IS STILL PAST THE EDGE, SAY SO.
-     ────────────────────────────────────────────────────────────────────────
-     The first two layers (11px type + 12px gaps, and the short words below
-     390px) are what make the five labels FIT. This one is the insurance for
-     every width they cannot be measured at: Dynamic Type at its largest, a
-     future sixth bucket, a translation, a three-digit count. In all of those
-     the row goes back to scrolling — and a scroller with no affordance is
-     exactly the defect that shipped, because a hard cut at a card edge reads
-     as the end of the row, not as more of it.
+  /* IF A LABEL IS PAST THE EDGE, SAY SO.
+     The labels FIT the phone row (11px type + 12px gaps, and the short words
+     below 390px). This fade covers every width they cannot be measured at:
+     Dynamic Type at its largest, a sixth bucket, a translation, a three-digit
+     count. In all of those the row scrolls, and a scroller with no affordance
+     reads as the end of the row, not as more of it.
      A MASK, not an overlay gradient: the card behind this row is
      liquid-glass, so a gradient painted in a surface colour would be a pale
-     rectangle sitting on translucency in one theme and a dark one in the
-     other. Fading the CONTENT's own alpha is right in both themes and on any
+     rectangle on translucency in one theme and a dark one in the other.
+     Fading the CONTENT's own alpha is right in both themes and on any
      surface, and it costs no element.
      Only while there IS something past that edge, and on the side it is on —
-     a permanent fade would dim "Cancelled" on a 414 phone where it is fully
-     on screen, which is a cost paid for nothing. */
+     a permanent fade would dim a label that is fully on screen. */
   const tabScrollerRef = useRef<HTMLDivElement>(null);
   const [tabEdges, setTabEdges] = useState({ start: false, end: false });
   useEffect(() => {
@@ -202,10 +160,9 @@ export function ActivityHeader({
          `scrollWidth - clientWidth` is the second thing, and at 320 the two
          disagree: this scroller carries the card's own `px-5` (it bleeds with
          `-mx-5`), and Chrome counts the trailing 20px of that padding in
-         scrollWidth. So a row whose five labels all fit still reported 6px of
-         slack and faded the tail of "Cancel 1" for nothing. Measuring the tab
-         GROUP's box against the scroller's asks the question the fade is
-         actually for. */
+         scrollWidth, so a row whose labels all fit reports 6px of slack.
+         Measuring the tab GROUP's box against the scroller's asks the question
+         the fade is actually for. */
       const content = el.firstElementChild;
       if (!content) return;
       const box = el.getBoundingClientRect();
@@ -245,22 +202,15 @@ export function ActivityHeader({
   /* THE TABS, built once and placed twice.
 
      On the desktop website they ride in the header row's `meta` slot beside
-     the screen name — there is width to spare there. On phone the same four
-     labels cannot share a 375px row with a title and a search button, so the
-     row below places them on their own line, still directly above the first
-     job card (owner: "put the needs you etc at the top oiver the job card
-     same for search and remove the filter since they will all be ther").
-
-     ONE definition either way — the phone list and the desktop list must
-     never be able to offer different filters.
+     the screen name. On phone they cannot share a 375px row with a title and
+     a search button, so the row below places them on their own line, directly
+     above the first job card. ONE definition either way — the phone list and
+     the desktop list can never offer different filters.
 
      UNDERLINE TABS, not filled chips (owner: "make smaller", "could look
-     better in this space"). Bordered pills in a tinted track put four
-     rectangles of chrome above the cards to express one choice; the same
-     choice reads at a glance as the screen's own display italic with a rule
-     under the live one, and it costs a third of the height. It also stops
-     the filter competing with the job cards for weight — the cards are the
-     content, this is a caption on them. */
+     better in this space"): the screen's own display italic with a rule under
+     the live one, at a third of the height of bordered pills, so the filter
+     reads as a caption on the cards rather than competing with them. */
   const statusTabs = (
     <UnderlineTabs
       /* Inline in the header row on the desktop website; on its own line on
@@ -289,46 +239,40 @@ export function ActivityHeader({
 
   return (
     <>
-      {/* No hairline rule and no horizontal padding of its own: this row is the
-          body of PageScaffold's title card now, so the card owns the surface,
-          the radius and the `px-5`.
+      {/* No hairline rule and no horizontal padding of its own: on phone this
+          row is the body of PageScaffold's title card, so the card owns the
+          surface, the radius and the `px-5`.
 
           The row itself is the shared <ScreenHeaderRow> — the same component
-          the Browse feed's toolbar renders, so "My Posts" and Home cannot
+          the Browse feed's toolbar renders, so this screen and Home cannot
           drift apart on the geometry (44px floor, title block, trailing
           `gap-1` icon cluster) that makes them read as one screen family. */}
       {searchOpen ? (
         /* Search mode — the field GROWS LEFTWARD out of the search button it
            came from, and the title stays exactly as it was (owner: "search
            should expand to the left if it's selected without coloring the
-           title"). It used to swap the whole row for the input, so the screen
-           you were on lost its name the moment you tapped search — the one
-           piece of context you need while typing into it.
+           title").
 
-           This state is the SHARED <ScreenHeaderRow expandingSearch> slot now,
-           not a hand-rolled `children` arrangement on top of it. The slot owns
-           the three facts this row used to own alone: the name stays (visible
-           AND as the h1), the field takes free space rather than a sibling's,
-           and — the three-click fix — the magnifier's place in the trailing
-           cluster is HELD OPEN while the field is up, so the ✕ at the field's
+           This is the shared <ScreenHeaderRow expandingSearch> slot. The slot
+           keeps the name (visible AND as the h1), gives the field free space
+           rather than a sibling's, and holds the magnifier's place in the
+           trailing cluster OPEN while the field is up, so the ✕ at the field's
            trailing edge can never sit on the control that replaces it. See
            SearchTriggerSlot for the arithmetic. */
         <ScreenHeaderRow
-          title={title}
+          title={TITLE}
           titleSrOnly={titleSrOnly}
           expandingSearch={{
             open: true,
             /* DESKTOP: THE TABS STAY UP WHILE SEARCHING, and the field is
                capped (owner, 2026-09-14, VN-31: "search does not need to open
                that large. also the chevron on the right is useless here").
-               The field used to take the whole ~1500px row and swap the tabs
-               out, leaving the chevron as the only way back to them. On the
-               desktop website (`inlineFilters`) there is room for both, so the
-               tabs keep their place on the left, the field sits at the right
-               capped at `max-w-md`, and the chevron is not rendered. Phone is
-               unchanged: full-width field, tabs on their own line, chevron. */
+               On the desktop website (`inlineFilters`) the tabs keep their
+               place on the left, the field sits at the right capped at
+               `max-w-md`, and no chevron renders. Phone: full-width field,
+               tabs on their own line, chevron. */
             leading: inlineFilters ? (
-              <div id="activity-status-tabs" className="flex-1 min-w-0 overflow-x-auto scrollbar-hide">
+              <div id={TABS_ID} className="flex-1 min-w-0 overflow-x-auto scrollbar-hide">
                 {statusTabs}
               </div>
             ) : undefined,
@@ -338,29 +282,27 @@ export function ActivityHeader({
                overlap straight back. */
             triggerWidth: inlineFilters ? "28px" : "44px",
             /* THE SAME 320–414 BUDGET THE TAB LABELS ARE FIGHTING FOR.
-               This row has to make two claims true on a phone: five legible
-               tab labels while search is closed, and a field you can read what
-               you typed in while it is open. The tabs pay with type and with
-               shorter words; the open field has no such lever — every other
-               item on the row is fixed-width — so what yields is the visible
-               page name, below 500px only. Measured at 375 on /posts: the
-               field goes 95px → 233px. See `narrowTitleStepsAside`. */
+               On a phone this row keeps five legible tab labels while search is
+               closed, and a field you can read what you typed in while it is
+               open. The tabs pay with type and shorter words; the open field has
+               no such lever — every other item on the row is fixed-width — so
+               what yields is the visible page name, below 500px only. Measured
+               at 375: the field is 233px wide. See
+               `narrowTitleStepsAside`. */
             narrowTitleStepsAside: true,
             field: (
               <div className={`relative flex-1 min-w-0 ${inlineFilters ? "max-w-md" : ""} origin-right motion-safe:animate-in motion-safe:slide-in-from-right-4 motion-safe:duration-200`}>
                 {/* THE MAGNIFIER IS IN THE FIELD (owner, 2026-09-19: "the
                     magnifier should move to the left and the x stay"). Not a
-                    button — the field is already open, so a second control
-                    that opens it would do nothing — just the glyph that says
-                    what this box is. */}
+                    button — the field is already open — just the glyph that
+                    says what this box is. */}
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <input
                   autoFocus
                   type="search"
                   aria-label="Search jobs"
                   /* No placeholder (owner). The magnifier already says what the
-                     field is, and greyed placeholder text inside a field that only
-                     exists because you just tapped search is repeating it. */
+                     field is. */
                   placeholder=""
                   spellCheck={false}
                   value={searchQuery}
@@ -370,23 +312,19 @@ export function ActivityHeader({
                   onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }}
                   className="w-full pl-9 pr-10 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
                 />
-                {/* The X lives INSIDE the field, on its right (owner), and with
-                    the magnifier gone it is the ONLY control in the field.
-                    Always present, not only once you have typed: it is the way
-                    OUT of search, so hiding it until there is a query left an
-                    empty search bar with no visible dismiss. Clears the query
+                {/* The X lives INSIDE the field, on its right (owner), and is
+                    the only control in the field. Always present, not only once
+                    you have typed: it is the way OUT of search. Clears the query
                     and closes in one press — the two things "done searching"
                     means.
 
                     `!min-h-0 !min-w-0` — index.css's bare
                     `button { min-height: 44px; min-width: 44px }` HIG rule
                     otherwise wins over `h-7 w-7` and renders this 44x44 inside
-                    a 36px-tall bar, spilling past its top and bottom edge. The
-                    classes here said 28px and the box measured 44 (the same
-                    trap already documented on the toast close button and on
-                    BrowseSearchBar's ✕); a control whose real hit area is 16px
-                    wider than it looks is how a mis-tap lands on whatever is
-                    next to it. */}
+                    a 36px-tall bar, spilling past its top and bottom edge (the
+                    same trap as the toast close button and BrowseSearchBar's ✕).
+                    A hit area wider than the glyph is how a mis-tap lands on
+                    whatever is next to it. */}
                 <button
                   type="button"
                   onClick={closeSearch}
@@ -407,7 +345,7 @@ export function ActivityHeader({
                 type="button"
                 onClick={() => { hapticLight(); setTabsOpen((v) => !v); }}
                 aria-expanded={tabsOpen}
-                aria-controls={tabsOpen ? "activity-status-tabs" : undefined}
+                aria-controls={tabsOpen ? TABS_ID : undefined}
                 aria-label={tabsOpen ? "Hide status filters" : "Filter by status"}
                 className={`shrink-0 rounded-ds-md flex items-center justify-center btn-press transition hover:bg-secondary/60 h-11 w-11 ${
                   !isDefaultFilter ? "text-[hsl(var(--bark))]" : "text-muted-foreground hover:text-foreground"
@@ -424,22 +362,16 @@ export function ActivityHeader({
       ) : (
         /* Normal mode — title + action buttons. */
         <ScreenHeaderRow
-          title={title}
+          title={TITLE}
           titleSrOnly={titleSrOnly}
           style={inlineFilters ? { minHeight: "34px" } : undefined}
           className={inlineFilters ? "[&>div:first-child]:!py-0" : undefined}
-          /* The active-filter indicator sits to the RIGHT of the name, the
-             same shape Messages uses for "1 unread" (the one the owner asked
-             for there: "put 1 unread to the right of messages bc i dont like
-             it under"). It is a <span>, never a heading — the row's h1 is the
-             whole page's only one. */
-          /* Same id as the phone row below. Only ONE of the two ever renders
+          /* The desktop tabs sit to the RIGHT of the name, in the row's `meta`
+             slot — the same shape Messages uses for "1 unread". They carry the
+             same id as the phone row below; only ONE of the two ever renders
              (inlineFilters is exactly one of true/false), so the id stays
-             unique — and `aria-controls` on the chevron resolves on BOTH
-             surfaces. Without this the desktop chevron pointed at an id that
-             only existed in the phone branch, which axe flags
-             `aria-valid-attr-value` critical. */
-          meta={inlineFilters && tabsOpen ? <div id="activity-status-tabs">{statusTabs}</div> : undefined}
+             unique and `aria-controls` resolves on both surfaces. */
+          meta={inlineFilters && tabsOpen ? <div id={TABS_ID}>{statusTabs}</div> : undefined}
           actions={
             <>
               <button
@@ -459,18 +391,16 @@ export function ActivityHeader({
                 type="button"
                 onClick={() => { hapticLight(); setTabsOpen((v) => !v); }}
                 aria-expanded={tabsOpen}
-                /* Only while the panel EXISTS. The tabs unmount when
-                   collapsed, so emitting this unconditionally pointed at a
-                   missing id — axe flags it `aria-valid-attr-value` critical,
-                   and it is a real lie to a screen reader. */
-                aria-controls={tabsOpen ? "activity-status-tabs" : undefined}
+                /* Only while the panel EXISTS. The tabs unmount when folded,
+                   and pointing at a missing id is axe
+                   `aria-valid-attr-value` critical. */
+                aria-controls={tabsOpen ? TABS_ID : undefined}
                 aria-label={tabsOpen ? "Hide status filters" : "Filter by status"}
                 className={`rounded-ds-md flex items-center justify-center btn-press transition hover:bg-secondary/60 ${
-                  // No filled pill. The chevron's ROTATION already carries
-                  // open/closed, and a tinted box beside a plain search glyph
-                  // made two siblings read as different kinds of control. Ink
-                  // still darkens while a non-default filter is on, so an
-                  // active filter is never silent.
+                  // No filled pill: the chevron's ROTATION carries open/closed,
+                  // so it reads as the same kind of control as the plain search
+                  // glyph beside it. Ink darkens while a non-default filter is
+                  // on, so an active filter is never silent.
                   !isDefaultFilter
                     ? "text-[hsl(var(--bark))]"
                     : "text-muted-foreground hover:text-foreground"
@@ -492,25 +422,15 @@ export function ActivityHeader({
           search input has taken the row over — one control at a time.
 
           The scroller BLEEDS TO THE CARD EDGE (`-mx-5 px-5`, the title card's
-          own `px-5`), not to a 4px inset. This used to say the four labels fit
-          at 375 without scrolling; there are five now, and their content width
-          is ~407px against a 335px column, so the row always scrolls on a
-          phone. With the 4px inset the scroller's clip edge sat INSIDE the
-          card padding, and "Cancelled" — starting 1px past it — was hidden
-          whole: the empty-bucket copy said "1 in Cancelled" under a tab row
-          that showed no Cancelled. Clipping at the card's rounded edge instead
-          lets the fifth label peek, cut by the card, which is the one signal
-          that says "this scrolls". `scroll-px-5` keeps a tab you scroll to
-          from landing under the padding.
-
-          THAT PEEK IS NO LONGER THE PLAN, it is the fallback. The five labels
-          now FIT this scroller at 320 and up (11px type, 12px gaps, and the
-          short words below 390px), so on a phone there is normally nothing
-          past either edge and no fade. `tabFadeStyle` is what happens when
-          there is anyway — see the note beside it. */}
+          own `px-5`), so if a label ever overflows it is cut by the card's
+          rounded edge rather than hidden inside the card padding. `scroll-px-5`
+          keeps a tab you scroll to from landing under the padding. The five
+          labels fit this scroller at 320 and up, so normally nothing is past
+          either edge and no fade shows; `tabFadeStyle` covers the case where
+          something is. */}
       {!inlineFilters && tabsOpen && (
         <div
-          id="activity-status-tabs"
+          id={TABS_ID}
           ref={tabScrollerRef}
           style={tabFadeStyle}
           className="-mx-5 px-5 scroll-px-5 pb-0.5 overflow-x-auto scrollbar-hide"
@@ -521,4 +441,3 @@ export function ActivityHeader({
     </>
   );
 }
-

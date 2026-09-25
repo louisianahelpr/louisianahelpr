@@ -26,14 +26,12 @@
  * comment beside it. So the declaration is checked against the floor's own
  * value, read out of src/index.css.
  *
- * ── 3. THE LANDING IS ON THE SHARED HEADER, NOT A TITLE OF ITS OWN ────────
- * The landing's name used to be an `<h1>` inside the identity card's avatar
- * row — the last Profile title still carrying the pre-2026-08-29 inline
- * `clamp()` type ramp, indented by the avatar in front of it. It is now the
- * `title` of a real `<PageHeader>`. Two ways that regresses: someone puts an
- * `<h1>` back in the identity row (two titles, and the measured one is the
- * wrong one), or someone drops `reserveBackSlot` (the title collapses back to
- * the gutter, 48px off every tab). Both are asserted.
+ * ── 3. THE LANDING IS ON THE SHARED HEADER, LINED UP WITH THE CARD ─────────
+ * The landing's name is the `title` of the shared `<PageHeader>`, and it
+ * starts on the column edge the identity card starts on (owner, 2026-09-25:
+ * "line up with the card"). Asserted: no `<h1>` in the identity row (that
+ * would be a second title, indented by the avatar), and no reserved back
+ * slot on the landing or its skeleton (that would put the name 48px in).
  *
  * Comments are stripped before every scan: prose naming a tag is not a render
  * of it, and this file is full of prose naming these tags.
@@ -44,9 +42,9 @@ import { resolve } from "node:path";
 import { BACK_BUTTON_BOX_CLASS } from "@/components/BackButton";
 
 // @mutate src/components/PageHeader.tsx | <span className={`${BACK_BUTTON_BOX_CLASS} block`} /> | <span className="w-10 h-10 -ml-2 block" />
-// @mutate src/components/SkeletonLoaders.tsx | <span className={`${BACK_BUTTON_BOX_CLASS} block shrink-0`} aria-hidden="true" /> | <span className="w-10 h-10 -ml-2 block shrink-0" aria-hidden="true" />
 // @mutate src/components/BackButton.tsx | export const BACK_BUTTON_BOX_CLASS = "w-11 h-11 -ml-2"; | export const BACK_BUTTON_BOX_CLASS = "w-10 h-10 -ml-2";
-// @mutate src/components/profile/ProfileLanding.tsx | hideBack\n          reserveBackSlot | hideBack
+// @mutate src/components/profile/ProfileLanding.tsx | hideBack\n          width="none" | hideBack\n          reserveBackSlot\n          width="none"
+// @mutate src/components/SkeletonLoaders.tsx | <Skeleton className="h-7 w-44 rounded-md" /> | <span className="w-11 h-11 -ml-2 block shrink-0" aria-hidden="true" /><Skeleton className="h-7 w-44 rounded-md" />
 // @mutate src/components/profile/profileLanding/IdentityHeader.tsx | <div className="flex-1 min-w-0 text-left"> | <div className="flex-1 min-w-0 text-left"><h1>{displayName}</h1>
 
 const ROOT = resolve(__dirname, "../..");
@@ -63,6 +61,11 @@ const PAGE_HEADER = strip(read("src/components/PageHeader.tsx"));
 const SKELETONS = strip(read("src/components/SkeletonLoaders.tsx"));
 const LANDING = strip(read("src/components/profile/ProfileLanding.tsx"));
 const IDENTITY = strip(read("src/components/profile/profileLanding/IdentityHeader.tsx"));
+/** Exactly the landing skeleton's body, so another skeleton's slot cannot satisfy or fail it. */
+const LANDING_SKELETON = (() => {
+  const start = SKELETONS.indexOf("const LandingTitleSkeleton");
+  return start === -1 ? "" : SKELETONS.slice(start, SKELETONS.indexOf("\n);", start));
+})();
 
 describe("the Profile title line has one definition", () => {
   it("the back-button box is declared once and is not empty", () => {
@@ -118,10 +121,9 @@ describe("the Profile title line has one definition", () => {
         .replace(/\s+/g, "\\s+"),
     );
 
-    for (const [name, src] of [
-      ["src/components/PageHeader.tsx", PAGE_HEADER],
-      ["src/components/SkeletonLoaders.tsx", SKELETONS],
-    ] as const) {
+    // PageHeader is the one place that reserves the slot (for any future nav
+    // root that wants it); the landing and its skeleton reserve none.
+    for (const [name, src] of [["src/components/PageHeader.tsx", PAGE_HEADER]] as const) {
       // NOT `src.includes(name-of-the-constant)`: the import line alone
       // satisfies that, which is exactly how the first version of this guard
       // stayed green while the reserved slot was hand-typed beside it.
@@ -140,19 +142,31 @@ describe("the Profile title line has one definition", () => {
     }
   });
 
-  it("the landing's title is a PageHeader with the slot reserved", () => {
+  it("the landing's title is a PageHeader on the column edge, lined up with the card", () => {
     expect(
       LANDING.includes("<PageHeader"),
       "ProfileLanding no longer renders the shared <PageHeader> — its title has left the shell " +
         "every Profile tab's title is on",
     ).toBe(true);
-    for (const prop of ["hideBack", "reserveBackSlot", 'width="none"', "topInsetHandled"]) {
+    for (const prop of ["hideBack", 'width="none"', "topInsetHandled"]) {
       expect(
         LANDING.includes(prop),
-        `ProfileLanding's <PageHeader> dropped \`${prop}\`. Without \`reserveBackSlot\` the ` +
-          `title collapses 48px back to the gutter; without \`width="none"\` it gains a second ` +
-          `container; without \`topInsetHandled\` it absorbs the notch inset twice.`,
+        `ProfileLanding's <PageHeader> dropped \`${prop}\`. Without \`width="none"\` it gains ` +
+          `a second container; without \`topInsetHandled\` it absorbs the notch inset twice.`,
       ).toBe(true);
+    }
+    // Owner, 2026-09-25: "move the name at the top over to the left some" ->
+    // "line up with the card". The empty back slot put it 48px in.
+    for (const [name, src] of [
+      ["ProfileLanding.tsx", LANDING],
+      ["SkeletonLoaders.tsx (LandingTitleSkeleton)", LANDING_SKELETON],
+    ] as const) {
+      expect(src.length, `${name}: nothing to scan — this guard has rotted`).toBeGreaterThan(40);
+      expect(
+        /reserveBackSlot|BACK_BUTTON_BOX_CLASS|\bw-11\b/.test(src),
+        `${name} reserves the empty back slot again, which puts the landing's name 48px in ` +
+          `from the card below it. The owner asked on 2026-09-25 for it to line up with the card.`,
+      ).toBe(false);
     }
   });
 

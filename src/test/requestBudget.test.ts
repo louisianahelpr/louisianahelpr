@@ -25,6 +25,7 @@
  * @mutate scripts/e2e/request-budget.mjs | .replace(UUID, ":id"); | ;
  * @mutate scripts/e2e/request-budget.mjs | kv && !/^t= | kv && !/^NOPE=
  * @mutate e2e/request-budgets.json | "perTest": 135.3, | "perTest": null,
+ * @mutate .github/workflows/loading-states-refresh.yml | if: ${{ !cancelled() && steps.measure.outcome == 'success' }} | env: {}
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync, mkdtempSync } from "node:fs";
@@ -139,6 +140,27 @@ describe("backend request budgets (Q104)", () => {
     expect(req.filter((r) => !r.has).map((r) => `${r.wf}: ${r.label}`)).toEqual([]);
   });
 
+  it("a red budget step never skips a later step: every step after it carries its own `if:`", () => {
+    // A step with no `if:` runs only on success(), so an over-budget run would
+    // skip it: a verdict step placed there (loading-states-refresh's baseline
+    // check) would go unjudged on exactly the runs that are already red.
+    const unguarded: string[] = [];
+    let budgetJobs = 0;
+    for (const file of workflows) {
+      for (const [job, code] of jobs(read(`.github/workflows/${file}`))) {
+        const steps = code.split(/^(?= {6}- )/m).slice(1);
+        const at = steps.findIndex((s) => /run: node scripts\/e2e\/request-budget\.mjs\b/.test(s));
+        if (at < 0) continue;
+        budgetJobs++;
+        for (const s of steps.slice(at + 1)) {
+          if (!/^\s+if:\s*\S/m.test(s)) unguarded.push(`${file} ${job}: ${s.split("\n")[0].trim().slice(0, 80)}`);
+        }
+      }
+    }
+    expect(budgetJobs, "found almost no budget steps — the workflow scan is broken").toBeGreaterThan(8);
+    expect(unguarded, "these steps are skipped whenever the budget step is red").toEqual([]);
+  });
+
   it("the budgets file names exactly the metered labels, each with a ceiling", () => {
     const { budgets } = JSON.parse(read("e2e/request-budgets.json")) as { budgets: Record<string, { ceilingPerMinute?: number }> };
     const used = new Set<string>();
@@ -211,7 +233,7 @@ describe("Q104 calibration: budgets written from the first metered runs", () => 
     // EXACT, two-way: a label calibrated from a measured run (2026-09-23, run
     // ids in the file's _calibrated note) cannot silently go back to null, and
     // a new one is written here in the same commit.
-    expect(calibrated).toEqual(["journeys", "journeys-webkit", "loading-states", "press-every-control", "privacy", "slow-network"]);
+    expect(calibrated).toEqual(["journeys", "journeys-webkit", "loading-states", "press-every-control", "privacy", "prod-audit", "slow-network"]);
     for (const k of calibrated) {
       const b = budgets[k];
       expect(typeof b.perTest, `${k}.perTest`).toBe("number");

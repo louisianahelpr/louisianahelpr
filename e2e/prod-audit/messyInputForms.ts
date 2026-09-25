@@ -423,7 +423,8 @@ export const FORMS: FormSpec[] = [
   },
   { name: "dashboard-search", url: "/home", as: "helper", prepare: openSearch, covers: ["src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx"] },
   { name: "messages-list", url: "/messages", as: "helper", prepare: openSearch, covers: ["src/components/messages/ConversationList.tsx"] },
-  { name: "posts-search", url: "/posts", as: "poster", prepare: openSearch, covers: ["src/components/job-card/ActivityHeader.tsx"] },
+  { name: "posts-search", url: "/posts", as: "poster", prepare: openSearch, covers: ["src/pages/posts/PostsHeader.tsx"] },
+  { name: "jobs-search", url: "/jobs", as: "helper", prepare: openSearch, covers: ["src/pages/jobs/JobsHeader.tsx"] },
   { name: "complete-profile", url: "/complete-profile", as: "incomplete", covers: ["src/pages/auth/CompleteProfile.tsx", "src/components/postjob/CityAutocomplete.tsx"] },
   { name: "profile-edit", url: "/profile?tab=profile", as: "helper", covers: ["src/components/profile/ProfileEditForm.tsx", "src/components/profile/profileEditForm/PhotoNameSection.tsx"] },
   { name: "profile-support", url: "/profile?tab=support", as: "helper", covers: ["src/components/profile/SupportInline.tsx"] },
@@ -800,4 +801,27 @@ export const GAPS: Record<string, string> = {
   "src/components/admin/AdminIDVReview.tsx": "empty queue on prod — /admin?view=idvreview renders \"Nobody is waiting on a human\"; a row lands here only after Stripe CHARGED for an identity attempt and failed it, which cannot be seeded without paying Stripe for a real verification",
   // Read-only by decision, not by reachability.
   "src/components/admin/EditEmailDialog.tsx": "reachable (user detail → Edit email) but deliberately NOT swept: it rewrites an account's login address, and every shared test account is a sign-in dependency for this whole suite. One stray submit slipping the write firewall would lock every lane out of that account",
+  "src/components/admin/DeleteUserDialog.tsx": "reachable (user detail → Actions → Delete Account) but deliberately NOT swept: NEVER_PRESS (harness.ts) refuses \"Delete Account\", because the account it would delete is a real member or one of the shared test accounts every lane signs in as. Its one field is the typed DELETE confirm",
 };
+
+/**
+ * The inventory files no FORMS entry covers and no GAP excuses: the explore
+ * presser reaches each one and credits it at run time. With FORMS and GAPS
+ * this is the whole inventory, decided in the commit that changes it:
+ * src/test/messyInputCoverageDecided.test.ts holds `inventory − FORMS − GAPS`
+ * equal to this list, both ways, and the coverage test in messy-input.spec.ts
+ * fails when explore did not credit one of them.
+ */
+export const EXPLORE_CREDITED: readonly string[] = [
+  "src/components/admin/AdminMarketing.tsx",
+  "src/components/admin/dashboard/DateRangeBar.tsx",
+  "src/components/admin/marketing/MarketingComposerDialog.tsx",
+  "src/components/admin/marketing/MarketingSettingsCard.tsx",
+  "src/components/dashboard/applyConfirmDialog/ApplyBody.tsx",
+  "src/components/reviewPanel/ReviewForm.tsx",
+  "src/components/postjob/AddressAutocomplete.tsx",
+  "src/components/postjob/BudgetSection.tsx",
+  "src/components/postjob/LogisticsSection.tsx",
+  "src/components/profile/SecurityTab.tsx",
+  "src/pages/profile/giftCards/RecipientPicker.tsx",
+];

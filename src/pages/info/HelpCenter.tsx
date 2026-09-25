@@ -6,6 +6,7 @@ import FaqRow from "@/components/marketing/FaqRow";
 // Help Center and the policy pages cannot drift into two support cards.
 import { PolicyFooter } from "@/pages/info/legal/LegalChrome";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import {
   TOPICS,
   SECTION_ACCENTS,
@@ -222,15 +223,8 @@ const HelpCenter = () => {
   // already covers the rest. The whole feature is gone rather than relocated
   // again: the filter, its "Matching …" caption, and the no-results dead end.
 
-  usePageMeta({
-    title: "Help Center — Helpr",
-    description:
-      "Answers, guides, and support for everyone here — posting jobs, doing jobs, payments, safety, and account settings.",
-    canonical: "https://www.louisianahelpr.com/help",
-    ogTitle: "Louisiana Helpr Help Center",
-    ogDescription:
-      "Answers, guides, and support — for posting jobs and doing them alike.",
-  });
+  // Same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs).
+  usePageMeta(PUBLIC_PAGE_META["/help"]);
 
   return (
     // Shared shell (PublicHeaderPage) — same component Legal, Jobs and

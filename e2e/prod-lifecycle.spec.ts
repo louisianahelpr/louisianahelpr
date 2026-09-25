@@ -3,6 +3,7 @@ import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { openCardFields } from "./stripeCheckoutCard";
 import { join } from "node:path";
+import { pathsByJob, rowStillNames, withoutPaths, type ProofRow } from "./proofPhotoTeardown";
 
 // The full authenticated money loop, against PRODUCTION, on a Stripe TEST key.
 //
@@ -483,10 +484,14 @@ test.describe("full money loop against production", () => {
      `is_party_to_job_folder`), and one settled job per night carrying two
      orphan images is growth nothing would ever come back for.
 
+     The row is DETACHED from each object before the object goes
+     (e2e/proofPhotoTeardown.ts): the helper rewrites the job's proof arrays
+     without this run's paths, and an object is deleted only once its row is
+     confirmed rewritten. A surviving row that still named a deleted object is
+     what every later screen showing the job signed and got 400 for.
+
      Runs on failure too, which is the case that matters: a run that dies after
      the upload but before completion is exactly the run that leaves them.
-     The signed URLs left on the row will 400 afterwards; that is deliberate and
-     preferable to unbounded bucket growth, and the row is already a tombstone.
      Deliberately non-fatal — a teardown that fails the suite turns a tidy-up
      problem into a false report about the money loop. */
   test.afterEach(async ({ request }) => {
@@ -494,14 +499,39 @@ test.describe("full money loop against production", () => {
     const paths = uploadedProofPaths.splice(0, uploadedProofPaths.length);
     try {
       const helper = await signIn(request, HELPER_EMAIL!, HELPER_PASSWORD!);
+      const detached: string[] = [];
+      for (const [jobId, jobPaths] of pathsByJob(paths)) {
+        const read = await request.get(
+          `${SUPABASE_URL}/rest/v1/jobs?id=eq.${jobId}&select=id,proof_before_urls,proof_after_urls`,
+          { headers: rest(helper) },
+        );
+        const row = read.ok() ? ((await read.json()) as ProofRow[])[0] : undefined;
+        if (!row) {
+          announceUncovered("Proof photos kept", `could not read job ${jobId} (HTTP ${read.status()}) — its ${jobPaths.length} object(s) stay so the row never names a missing one`);
+          continue;
+        }
+        if (rowStillNames(row, jobPaths)) {
+          const patched = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${jobId}&select=id,proof_before_urls,proof_after_urls`, {
+            headers: { ...rest(helper), Prefer: "return=representation" },
+            data: withoutPaths(row, jobPaths),
+          });
+          const after = patched.ok() ? ((await patched.json()) as ProofRow[]) : [];
+          if (after.length !== 1 || rowStillNames(after[0], jobPaths)) {
+            announceUncovered("Proof photos kept", `job ${jobId}: detaching its proof paths returned HTTP ${patched.status()} with ${after.length} row(s) — its ${jobPaths.length} object(s) stay`);
+            continue;
+          }
+        }
+        detached.push(...jobPaths);
+      }
+      if (detached.length === 0) return;
       const removed = await request.delete(`${SUPABASE_URL}/storage/v1/object/proof-photos`, {
         headers: rest(helper),
-        data: { prefixes: paths },
+        data: { prefixes: detached },
       });
       if (!removed.ok()) {
         announceUncovered(
           "Proof photos not cleaned up",
-          `storage remove returned ${removed.status()} — ${paths.length} object(s) left in \`proof-photos\`: ${paths.join(", ")}`,
+          `storage remove returned ${removed.status()} — ${detached.length} object(s) left in \`proof-photos\`: ${detached.join(", ")}`,
         );
       }
     } catch (err) {

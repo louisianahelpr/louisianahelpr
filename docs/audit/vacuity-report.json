@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-25T16:13:20.591Z",
-  "guards": 1048,
-  "registered": 1048,
+  "generated": "2026-09-25T17:08:01.717Z",
+  "guards": 1050,
+  "registered": 1050,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -417,7 +417,17 @@
     {
       "module": "src/pages/user/AtAGlanceCard.tsx",
       "tests": [
-        "src/pages/user/AtAGlanceCard.test.tsx"
+        "src/pages/user/AtAGlanceCard.test.tsx",
+        "src/pages/user/ProfileHeroSkeleton.test.tsx"
+      ],
+      "parents": [
+        "src/pages/user/UserProfile.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/user/ProfileHeroSkeleton.tsx",
+      "tests": [
+        "src/pages/user/ProfileHeroSkeleton.test.tsx"
       ],
       "parents": [
         "src/pages/user/UserProfile.tsx"

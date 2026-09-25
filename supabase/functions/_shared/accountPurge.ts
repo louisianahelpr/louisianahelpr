@@ -43,6 +43,7 @@
 
 import { removeJobMedia, type JobMediaOwner } from "./jobMedia.ts";
 import { IDENTITY_BUCKETS, missingBuckets } from "./purgeBuckets.ts";
+import { recurringVisitDates } from "./recurringSchedule.ts";
 
 /**
  * Structural, not `SupabaseClient`.
@@ -142,6 +143,97 @@ export interface ActiveWorkResult {
   /** True when the account is party to live work and must not be deleted. */
   active: boolean;
   detail?: string;
+  /**
+   * "series": the live work is a running recurring series (posted, or dates
+   * held on one). Its own copy, because what unblocks it is ending the series
+   * (or leaving it), not finishing a job (owner decision Q407 (7)).
+   */
+  reason?: "job" | "series";
+}
+
+/** What the person is told when a running series blocks deleting their account. */
+export const SERIES_BLOCKS_DELETION_MESSAGE =
+  "You have a recurring series that is still running. End it from your posts (or leave it from My Jobs if you're doing its visits) before deleting your account.";
+
+/** Today's date in America/Chicago, the platform's calendar. */
+function chicagoToday(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
+
+/**
+ * Is this account on a RUNNING recurring series (Q407 (7), money audit
+ * LOW-14)? A series the account POSTED that is not cancelled, not ended
+ * (series_ended_on NULL) and still has a visit date today or later; or a date
+ * the account HOLDS (series_visit_holds) from today on, on a series that has
+ * not ended. Deleting either party mid-series leaves the other with visits
+ * nobody can run or pay for.
+ */
+async function findRunningSeries(admin: PurgeCapableClient, userId: string): Promise<ActiveWorkResult> {
+  const today = chicagoToday();
+  // `date_needed` bounds the scan exactly as the charge cron does: the last
+  // visit of any series is at most 52 weeks after its first.
+  const since = new Date(Date.now() - 371 * 86_400_000).toISOString().slice(0, 10);
+  const posted: PostgrestLike<Array<{ id: string; date_needed: string | null; recurrence_days: number[] | null; recurrence_weeks: number | null }>> =
+    await admin
+      .from("jobs")
+      .select("id, date_needed, recurrence_days, recurrence_weeks")
+      .eq("customer_id", userId)
+      .is("parent_job_id", null)
+      .not("recurrence_days", "is", null)
+      .is("series_ended_on", null)
+      .neq("status", "cancelled")
+      .gte("date_needed", since)
+      .limit(201);
+  if (posted.error) {
+    console.error(`[accountPurge] running-series check failed for ${userId}:`, posted.error.message);
+    return { ok: false, active: false, detail: posted.error.message };
+  }
+  const rows = posted.data ?? [];
+  if (rows.length > 200) {
+    return { ok: false, active: false, detail: "more than 200 series — cannot prove none is running" };
+  }
+  for (const s of rows) {
+    const dates = recurringVisitDates(s.date_needed ?? "", s.recurrence_days ?? [], Number(s.recurrence_weeks ?? 0));
+    if (dates.some((d) => d >= today)) {
+      return { ok: true, active: true, detail: `series ${s.id}`, reason: "series" };
+    }
+  }
+
+  const holds: PostgrestLike<Array<{ parent_job_id: string }>> = await admin
+    .from("series_visit_holds")
+    .select("parent_job_id")
+    .eq("helper_id", userId)
+    .gte("visit_date", today)
+    .limit(201);
+  if (holds.error) {
+    // The table arrives with 20260925160645; before db-deploy there is
+    // nothing to hold. Any other failure fails closed.
+    if (/does not exist|42P01|PGRST205/i.test(`${holds.error.code ?? ""} ${holds.error.message}`)) {
+      return { ok: true, active: false };
+    }
+    console.error(`[accountPurge] held-dates check failed for ${userId}:`, holds.error.message);
+    return { ok: false, active: false, detail: holds.error.message };
+  }
+  const parents = [...new Set((holds.data ?? []).map((h) => h.parent_job_id))];
+  if (parents.length > 200) {
+    return { ok: false, active: false, detail: "held dates on more than 200 series — cannot prove none is running" };
+  }
+  if (parents.length === 0) return { ok: true, active: false };
+  const live: PostgrestLike<Array<{ id: string }>> = await admin
+    .from("jobs")
+    .select("id")
+    .in("id", parents)
+    .is("series_ended_on", null)
+    .neq("status", "cancelled")
+    .limit(1);
+  if (live.error) {
+    console.error(`[accountPurge] held-series check failed for ${userId}:`, live.error.message);
+    return { ok: false, active: false, detail: live.error.message };
+  }
+  if (live.data && live.data.length > 0) {
+    return { ok: true, active: true, detail: `holds dates on series ${live.data[0].id}`, reason: "series" };
+  }
+  return { ok: true, active: false };
 }
 
 /**
@@ -196,8 +288,12 @@ export async function findActiveWork(
     return { ok: false, active: false, detail: direct.error.message };
   }
   if (direct.data && direct.data.length > 0) {
-    return { ok: true, active: true, detail: `job ${direct.data[0].id}` };
+    return { ok: true, active: true, detail: `job ${direct.data[0].id}`, reason: "job" };
   }
+
+  // 1b. A running recurring series, posted or worked (Q407 (7)).
+  const series = await findRunningSeries(admin, userId);
+  if (!series.ok || series.active) return series;
 
   // 2. Group-job rosters. Read the memberships, then test THOSE jobs.
   // 201, not 200: a page that comes back FULL is indistinguishable from a page
@@ -247,7 +343,7 @@ export async function findActiveWork(
     return { ok: false, active: false, detail: grouped.error.message };
   }
   if (grouped.data && grouped.data.length > 0) {
-    return { ok: true, active: true, detail: `group job ${grouped.data[0].id}` };
+    return { ok: true, active: true, detail: `group job ${grouped.data[0].id}`, reason: "job" };
   }
 
   return { ok: true, active: false };

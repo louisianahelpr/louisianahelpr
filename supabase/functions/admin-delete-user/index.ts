@@ -152,8 +152,9 @@ Deno.serve(async (req) => {
     if (active.active) {
       return new Response(
         JSON.stringify({
-          error:
-            "This user has an active job or funds held in escrow. Resolve or cancel it and let any payment settle before deleting the account.",
+          error: active.reason === "series"
+            ? "This user is on a recurring series that is still running (posted, or holding visit dates). The series has to end first: the person who posted it ends it, or the Helpr leaves it."
+            : "This user has an active job or funds held in escrow. Resolve or cancel it and let any payment settle before deleting the account.",
         }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );

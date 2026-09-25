@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { describeDeleteError, findActiveWork, purgeAccount } from "../_shared/accountPurge.ts";
+import { describeDeleteError, findActiveWork, purgeAccount, SERIES_BLOCKS_DELETION_MESSAGE } from "../_shared/accountPurge.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -77,8 +77,9 @@ serve(async (req) => {
     if (active.active) {
       return new Response(
         JSON.stringify({
-          error:
-            "You have an active job or funds held in escrow. Finish or cancel your open jobs and let any payments settle before deleting your account.",
+          error: active.reason === "series"
+            ? SERIES_BLOCKS_DELETION_MESSAGE
+            : "You have an active job or funds held in escrow. Finish or cancel your open jobs and let any payments settle before deleting your account.",
         }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );

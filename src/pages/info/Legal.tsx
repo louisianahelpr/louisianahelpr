@@ -12,6 +12,7 @@ import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
 import { cn } from "@/lib/utils";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { resolveLegalTab } from "@/lib/publicPageMeta.mjs";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { TermsContent } from "./legal/TermsSection";
 import { CommunityContent } from "./legal/CommunitySection";
@@ -65,13 +66,10 @@ const Legal = () => {
   // ?tab= — the path IS the tab in that case. ?tab= still wins whenever it is
   // present, so /legal?tab=…#anchor links from LegalTab.tsx and PolicyFooter
   // are unaffected. Never used when ?tab= is present, only as the fallback.
-  const PATH_TAB: Record<string, TabKey> = {
-    "/terms": "terms",
-    "/privacy": "privacy",
-    "/rules": "community",
-  };
-  const tabParam = (params.get("tab") || PATH_TAB[location.pathname] || "terms") as TabKey;
-  const tab: TabKey = VALID_TABS.includes(tabParam) ? tabParam : "terms";
+  // The path→tab map and this resolution live in src/lib/publicPageMeta.mjs,
+  // shared with api/share.ts, so the pre-JS head for /terms, /privacy and
+  // /rules names the same tab this page renders.
+  const tab: TabKey = resolveLegalTab(location.pathname, params.get("tab"));
 
   // Where "back" lands when there is NO in-app history (a deep link, or a cold
   // open from the footer). NEVER the marketing landing for a signed-in visitor

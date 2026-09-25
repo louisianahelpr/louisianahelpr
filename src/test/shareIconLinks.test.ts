@@ -21,28 +21,22 @@
 // @mutate api/share.ts | const shell = absolutiseIconLinks(SHELL_HTML); | const shell = SHELL_HTML;
 // @mutate api/share.ts | return respond(absolutiseIconLinks(SHELL_HTML)); | return respond(SHELL_HTML);
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
 
 /* api/share.ts imports the build-time snapshot `scripts/generated/og-shell.js`
-   (gitignored; written by `npm run build`). A fresh checkout has none, so the
-   test writes one from index.html when — and only when — it is missing, and
-   removes exactly what it wrote. A snapshot a real build left behind is used
-   as-is and never overwritten. */
-const GENERATED = resolve("scripts/generated/og-shell.js");
-let createdSnapshot = false;
+   (gitignored; written by `npm run build`). ensureOgShellSnapshot writes one
+   when — and only when — it is missing, and never deletes it: this file used to
+   remove the snapshot it wrote in afterAll, which broke the handler import of
+   any other test file (publicRoutesServeOwnHead) running in a parallel worker. */
 let handler: { fetch: (req: Request) => Promise<Response> };
 
 beforeAll(async () => {
   // No network from a unit test: a job lookup always lands on the handler's
   // `unknown` branch (plain shell), even where CI has Supabase env set.
   vi.stubGlobal("fetch", () => Promise.reject(new Error("no network in unit tests")));
-  if (!existsSync(GENERATED)) {
-    mkdirSync(dirname(GENERATED), { recursive: true });
-    const html = readFileSync("index.html", "utf8");
-    writeFileSync(GENERATED, `export const SHELL_HTML = ${JSON.stringify(html)};\n`);
-    createdSnapshot = true;
-  }
+  ensureOgShellSnapshot(resolve("."));
   // Imported by a runtime-built path so tsc (tsconfig.app.json covers src/
   // only) does not pull api/share.ts and its build-time snapshot into the app
   // project; vitest resolves it normally.
@@ -52,7 +46,6 @@ beforeAll(async () => {
 
 afterAll(() => {
   vi.unstubAllGlobals();
-  if (createdSnapshot) rmSync(GENERATED);
 });
 
 const ORIGIN = "https://www.louisianahelpr.com";

@@ -25,7 +25,10 @@
 --    else queued.
 -- 5. sweep_saved_search_alert_queue(), every minute ('saved-search-alert-queue'),
 --    sends due rows and deletes them. Rows are locked FOR UPDATE SKIP LOCKED
---    and deleted before sending, so overlapping runs cannot send one twice.
+--    and deleted before sending, so overlapping runs cannot send one twice;
+--    deliver locks the matched saved_searches rows, so the trigger and the
+--    sweep cannot both pass the hourly throttle for one search. A send that
+--    raises is logged to error_logs and does not stop the rest of the run.
 --    visible_at is recomputed from the user's CURRENT tier on every run, so an
 --    upgrade sends sooner and a downgrade waits longer.
 --
@@ -192,13 +195,22 @@ BEGIN
 
   -- ST-011: the matched searches that still notify and are past the hourly
   -- throttle. None left means this alert is dropped, as a throttled match is.
-  SELECT ARRAY_AGG(s.id)
+  -- FOR UPDATE (in id order, so two sends cannot deadlock): a concurrent send
+  -- for the same searches waits here, then re-reads last_notified_at after the
+  -- first one's stamp commits and finds nothing left. Without the lock both
+  -- read the old stamp and both send.
+  SELECT ARRAY_AGG(x.id)
     INTO v_ids
-    FROM public.saved_searches s
-   WHERE s.id = ANY(p_search_ids)
-     AND s.user_id = p_user_id
-     AND s.notify_enabled = true
-     AND (s.last_notified_at IS NULL OR s.last_notified_at < now() - interval '1 hour');
+    FROM (
+      SELECT s.id
+        FROM public.saved_searches s
+       WHERE s.id = ANY(p_search_ids)
+         AND s.user_id = p_user_id
+         AND s.notify_enabled = true
+         AND (s.last_notified_at IS NULL OR s.last_notified_at < now() - interval '1 hour')
+       ORDER BY s.id
+         FOR UPDATE
+    ) x;
   IF v_ids IS NULL THEN
     RETURN false;
   END IF;
@@ -383,9 +395,20 @@ BEGIN
     -- deliver_saved_search_alert re-checks the job, the user and the throttle,
     -- so a job cancelled, hired or unfunded meanwhile is dropped unsent.
     DELETE FROM public.saved_search_alert_queue WHERE id = r.id;
-    IF public.deliver_saved_search_alert(r.user_id, r.job_id, r.search_name, r.matched_search_ids) THEN
-      v_sent := v_sent + 1;
-    END IF;
+    BEGIN
+      IF public.deliver_saved_search_alert(r.user_id, r.job_id, r.search_name, r.matched_search_ids) THEN
+        v_sent := v_sent + 1;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      -- One row that raises must not roll back every other send in this run
+      -- and then raise again every minute. Only this send's writes roll back;
+      -- its row stays deleted (the DELETE is outside this block), so the
+      -- alert is dropped and the failure goes to error_logs.
+      INSERT INTO public.error_logs (severity, message, tags)
+      VALUES ('error', 'saved-search alert not sent: ' || SQLERRM,
+              jsonb_build_object('source', 'saved-search-alert-queue', 'area', 'notifications',
+                                 'job_id', r.job_id, 'user_id', r.user_id));
+    END;
   END LOOP;
 
   RETURN v_sent;

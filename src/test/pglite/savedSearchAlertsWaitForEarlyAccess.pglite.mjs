@@ -82,6 +82,7 @@ CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), created
   offered_to_helper_id uuid, direct_offer_status text, is_seed boolean DEFAULT false, is_urgent boolean, customer_id uuid, category text, parish text,
   budget numeric, title text, description text, location text, latitude float8, longitude float8);
 CREATE TABLE public.cron_work_expectations (jobname text PRIMARY KEY, expected_max_gap interval, note text);
+CREATE TABLE public.error_logs (severity text CHECK (severity IN ('info','warning','error','fatal')), message text, tags jsonb);
 `);
 await db.exec(`INSERT INTO auth.users VALUES ('${POSTER}')`);
 for (const [k, id] of Object.entries(U)) {
@@ -178,6 +179,30 @@ await ageJob(job4, 21);
 await sweep();
 const free4 = (await q(`SELECT count(*)::int n FROM public.notifications WHERE user_id = $1 AND link = $2`, [U.free, `/home?job=${job4}`]))[0].n;
 check("ST-011: a search notified within the hour is not alerted again when its row comes due", free4 === 0, `alerts ${free4}`);
+
+// ── 4b. one send that raises is logged; the rest of the run still sends ────
+await db.exec(`UPDATE public.saved_searches SET last_notified_at = NULL`);
+const job5 = await postJob("Paint a fence");
+await db.exec(`CREATE OR REPLACE FUNCTION net.http_post(url text, headers jsonb, body jsonb) RETURNS bigint LANGUAGE plpgsql AS $$
+  BEGIN
+    IF body->>'user_id' = '${U.basic}' THEN RAISE EXCEPTION 'simulated pg_net failure'; END IF;
+    INSERT INTO net.calls VALUES (body); RETURN 1;
+  END $$;`);
+await ageJob(job5, 21);
+const sent5 = await sweep();
+const got5 = async (k) => (await q(`SELECT count(*)::int n FROM public.notifications WHERE user_id = $1 AND link = $2`, [U[k], `/home?job=${job5}`]))[0].n;
+check("a raising send: every other waiting user is still alerted in the same run",
+  sent5 === 4 && (await got5("free")) === 1 && (await got5("pro")) === 1 && (await got5("plus")) === 1 && (await got5("lapsed")) === 1,
+  `sent ${sent5}`);
+check("a raising send: its notification and throttle stamp roll back, not the run's",
+  (await got5("basic")) === 0
+    && (await q(`SELECT count(*)::int n FROM public.saved_searches WHERE user_id = $1 AND last_notified_at IS NOT NULL`, [U.basic]))[0].n === 0);
+const logged5 = await q(`SELECT severity, tags->>'source' AS src FROM public.error_logs`);
+check("a raising send is logged to error_logs once", logged5.length === 1 && logged5[0].src === "saved-search-alert-queue" && logged5[0].severity === "error",
+  JSON.stringify(logged5));
+check("a raising send does not stay queued to raise every minute",
+  RED ? false : (await q(`SELECT count(*)::int n FROM public.saved_search_alert_queue`))[0].n === 0);
+await db.exec(`CREATE OR REPLACE FUNCTION net.http_post(url text, headers jsonb, body jsonb) RETURNS bigint LANGUAGE sql AS $$ INSERT INTO net.calls VALUES (body); SELECT 1::bigint $$;`);
 
 // ── 5. the feed and the alert delay agree for every tier ───────────────────
 if (!RED) {

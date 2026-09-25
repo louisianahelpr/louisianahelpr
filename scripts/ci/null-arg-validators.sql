@@ -76,6 +76,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('seed_jobs_hidden_publicly',     'noarg',    'reads the launch switch only'),
   ('clear_thread_mute',             'action',   'RPC'),
   ('delete_email',                  'action',   'pgmq wrapper'),
+  ('deliver_saved_search_alert',    'action',   'saved-search send (writes; true = sent)'),
   ('ops_alert_close',               'action',   'RPC'),
   ('ops_alert_condition',           'action',   'ops ledger probe (writes)'),
   ('ops_alert_mark_fixed',          'action',   'RPC'),

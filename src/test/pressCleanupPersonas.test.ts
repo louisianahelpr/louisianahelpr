@@ -7,7 +7,7 @@
  * CLEANUP_SINCE and the script's DEFAULT persona list, and it fails when any
  * persona is not minted ("Not cleaned is not green", Q52). The job has no .env
  * (no service-role key), so a persona is minted only by the password grant from
- * its PLAYWRIGHT_<ROLE>_EMAIL / _PASSWORD secrets. Run 36069319716's clean-up:
+ * its PLAYWRIGHT_<ROLE>_EMAIL / _PASSWORD secrets. Run 36069319716's clean-up (2026-09-25):
  *
  *   ERROR: no .env at /home/runner/work/louisianahelpr/louisianahelpr/.env.
  *   ::warning::incomplete: Command failed: node …/scripts/test-signin-link.mjs incomplete-e2e --session --json

@@ -4,7 +4,7 @@
  * press-every-control walks an overlay opened from the page header ONCE per
  * run and persona, not once per route.
  *
- * Run 36069319716 did not reach 32 rows (14 + 7 + 11 + 0) inside its 135-minute
+ * Run 36069319716 (2026-09-25) did not reach 32 rows (14 + 7 + 11 + 0) inside its 135-minute
  * budget. Every admin view found 54-85 controls whatever the view (export 63,
  * subscriptions 60, banreview 60, jobs 60) and took 12-17 minutes, because the
  * admin menu's sheet (AdminTopBar → AdminSidebar: 25 view rows, 25 pin buttons,

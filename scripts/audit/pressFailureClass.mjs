@@ -203,7 +203,7 @@ export const MIN_CYCLE_BURST = 100;
 /**
  * AN OVERLAY OPENED FROM THE HEADER IS THE SAME OVERLAY ON EVERY ROUTE.
  *
- * Run 36069319716 did not reach 32 rows (14 + 7 + 11 + 0) inside its 135-minute
+ * Run 36069319716 (2026-09-25) did not reach 32 rows (14 + 7 + 11 + 0) inside its 135-minute
  * budget, and the rows it never reached were the ones after the admin views:
  * /jobs/:id x2, /legal, /terms, /support, /rules, /browse. Each admin view took
  * 12-17 minutes and found 54-85 controls whatever the view: /admin?view=export

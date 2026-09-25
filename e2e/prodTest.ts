@@ -12,7 +12,7 @@
  *    also PACES: every `page.goto` / `page.reload` waits until the current
  *    wall-clock minute has room under the label's `ceilingPerMinute`
  *    (e2e/request-budgets.json), shared between the run's workers. A spec that
- *    walks 26 surfaces back to back is held between surfaces instead of
+ *    walks surface after surface back to back is held between surfaces instead of
  *    sending 700 requests in one minute (e2e/requestMeter.mjs `pace`);
  *  - test-scoped `_requestMeterTest`: counts tests, so the budget can be per
  *    test and survive a `-g` filter, and holds the test's start at the same

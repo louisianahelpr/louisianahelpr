@@ -108,6 +108,9 @@ export const SEED_GATED_SURFACES = [
   // V-008 (2026-09-25): the trigger only queues; this is the one send path,
   // and it re-checks the seed gate at send time.
   { surface: "saved-search alerts (queued send)", object: "public.deliver_saved_search_alert" },
+  // Q392 (2026-09-25): the one per-recipient browse gate every job_match
+  // producer asks (instant matches, the parish fan-out, both digests).
+  { surface: "job-match gate (instant + parish + digests)", object: "public.job_announceable_to" },
   // MISSING UNTIL 2026-09-03, and found the other way round. Every check here
   // used to discover surfaces by NAME (`public.*open_jobs*`) and ask whether
   // each was registered — which cannot see this one, or the saved-search entry

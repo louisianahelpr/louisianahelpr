@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
       // — answer 200 with a zero count so the poster's submit path is not
       // failed by a match that correctly declined to run.
       return new Response(
-        JSON.stringify({ notified: 0, queued_for_digest: 0, matchedHelpers: [], skipped: "job_not_matchable" }),
+        JSON.stringify({ notified: 0, queued: 0, skipped: "job_not_matchable" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -337,7 +337,7 @@ Deno.serve(async (req) => {
       if ((enqueueError as { code?: string }).code === "PGRST202") {
         console.error("instant-job-match: enqueue_instant_job_match not deployed yet (PGRST202); no match sent");
         return new Response(
-          JSON.stringify({ notified: 0, queued: 0, matchedHelpers: [], skipped: "match_queue_not_deployed" }),
+          JSON.stringify({ notified: 0, queued: 0, skipped: "match_queue_not_deployed" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
@@ -345,13 +345,14 @@ Deno.serve(async (req) => {
     }
     const result = (outcome ?? {}) as { eligible?: number; queued?: number; already?: number; sent_now?: number };
 
+    // Counts only: the ranked candidate list (up to 200 nearby accounts,
+    // some the gate refuses) is never handed back to the caller.
     return new Response(
       JSON.stringify({
         notified: result.sent_now ?? 0,
         queued: result.queued ?? 0,
         already_matched: result.already ?? 0,
         eligible: result.eligible ?? 0,
-        matchedHelpers: matches.map((m) => m.user_id),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

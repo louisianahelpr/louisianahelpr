@@ -131,6 +131,7 @@ DECLARE
   v_job public.jobs%ROWTYPE;
   v_digest BOOLEAN;
   v_reason TEXT;
+  v_notified uuid;
 BEGIN
   SELECT * INTO r FROM public.job_match_queue
    WHERE id = p_id AND status = 'queued'
@@ -213,7 +214,17 @@ BEGIN
   END IF;
 
   INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
-  VALUES (r.user_id, r.title, r.message, 'job_match', r.link, r.job_id);
+  VALUES (r.user_id, r.title, r.message, 'job_match', r.link, r.job_id)
+  RETURNING id INTO v_notified;
+
+  -- trg_notifications_seed_boundary can suppress the row (a seed job, a real
+  -- recipient): nothing was delivered, so the ledger says dropped, not sent.
+  IF v_notified IS NULL THEN
+    UPDATE public.job_match_queue
+       SET status = 'dropped', drop_reason = 'suppressed by the seed boundary', settled_at = now()
+     WHERE id = r.id;
+    RETURN false;
+  END IF;
 
   IF r.send_email THEN
     PERFORM net.http_post(
@@ -266,6 +277,10 @@ BEGIN
   -- funding transaction has committed; a sweep that meets this lock gets
   -- lock_not_available (NOWAIT) and retries its row next minute.
   SELECT * INTO v_job FROM public.jobs WHERE id = p_job_id FOR SHARE;
+  -- Two runs for one job (a Stripe redelivery racing the webhook, or the
+  -- poster's own call) insert the same (user, job) keys in an order the
+  -- scorer does not fix; FOR SHARE does not serialise them. One at a time.
+  PERFORM pg_advisory_xact_lock(hashtextextended('enqueue_instant_job_match:' || p_job_id::text, 0));
   IF NOT FOUND THEN
     RETURN jsonb_build_object('eligible', 0, 'queued', 0, 'already', 0, 'sent_now', 0);
   END IF;
@@ -276,9 +291,10 @@ BEGIN
     EXIT WHEN v_eligible >= v_limit;
     v_uid := NULLIF(m->>'user_id', '')::uuid;
     CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid);
-    -- An in-app path only: '/x', never '//host' (protocol-relative) or a URL.
+    -- An in-app path only: '/x...', never '//host' or '/\host' (both read as
+    -- protocol-relative by browsers) or a URL.
     IF NULLIF(m->>'title', '') IS NULL OR NULLIF(m->>'message', '') IS NULL
-       OR left(COALESCE(m->>'link', ''), 1) <> '/' OR left(m->>'link', 2) = '//' OR strpos(m->>'link', '://') > 0 THEN
+       OR COALESCE(m->>'link', '') !~ '^/[A-Za-z0-9]' OR strpos(m->>'link', '://') > 0 THEN
       RAISE EXCEPTION 'match for % has no title, message or in-app link', v_uid;
     END IF;
     v_eligible := v_eligible + 1;
@@ -347,8 +363,9 @@ BEGIN
         v_sent := v_sent + 1;
       END IF;
     EXCEPTION
-      WHEN lock_not_available THEN
-        -- The job is held by another writer: the row stays queued.
+      WHEN lock_not_available OR deadlock_detected OR serialization_failure THEN
+        -- Transient: the job is held by another writer, or this send lost a
+        -- deadlock / serialization race. The row stays queued for next run.
         NULL;
       WHEN OTHERS THEN
         -- Only this send rolls back; the row is dropped (never re-sent every
@@ -383,6 +400,8 @@ DECLARE
   v_message TEXT;
   v_link TEXT;
   v_visible_at TIMESTAMPTZ;
+  v_ledger uuid;
+  v_notified uuid;
 BEGIN
   IF NEW.parish IS NULL OR NEW.status <> 'open' THEN
     RETURN NEW;
@@ -437,6 +456,13 @@ BEGIN
       -- Q392: the browse gate for this recipient (ownerless, credential tier,
       -- funded, offer, fixture), the one open_jobs_browse applies.
       AND public.job_announceable_to(NEW, c.user_id)
+      -- A block either way keeps the job out of this user's fan-out, as it
+      -- does in instant-job-match and deliver_job_match.
+      AND NOT EXISTS (
+        SELECT 1 FROM public.user_blocks b
+         WHERE (b.blocker_id = NEW.customer_id AND b.blocked_id = c.user_id)
+            OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id)
+      )
       -- N-007: once per (job, Helpr). A funded job that leaves 'open' and comes
       -- back re-fires this trigger; it must not re-notify the whole parish.
       AND NOT EXISTS (
@@ -461,8 +487,27 @@ BEGIN
       CONTINUE;
     END IF;
 
+    -- Already visible: send now, but through the ledger first. The row is the
+    -- dedupe for every producer (a deleted notification or a job that left
+    -- 'open' and came back must not re-notify); no row back = already told.
+    v_ledger := NULL;
+    INSERT INTO public.job_match_queue (user_id, job_id, source, notify_at, title, message, link, send_email, status, settled_at)
+    VALUES (helper_record.helper_id, NEW.id, 'parish', v_visible_at, v_title, v_message, v_link, true, 'sent', now())
+    ON CONFLICT (user_id, job_id) DO NOTHING
+    RETURNING id INTO v_ledger;
+    CONTINUE WHEN v_ledger IS NULL;
+
+    v_notified := NULL;
     INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
-    VALUES (helper_record.helper_id, v_title, v_message, 'job_match', v_link, NEW.id);
+    VALUES (helper_record.helper_id, v_title, v_message, 'job_match', v_link, NEW.id)
+    RETURNING id INTO v_notified;
+    IF v_notified IS NULL THEN
+      -- Suppressed by the seed boundary: nothing delivered, no email.
+      UPDATE public.job_match_queue
+         SET status = 'dropped', drop_reason = 'suppressed by the seed boundary'
+       WHERE id = v_ledger;
+      CONTINUE;
+    END IF;
 
     PERFORM net.http_post(
       url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_url' LIMIT 1) || '/functions/v1/send-notification-email',
@@ -483,6 +528,9 @@ BEGIN
   RETURN NEW;
 END;
 $function$;
+
+-- CREATE OR REPLACE keeps the ACL (revoked in 20260923172405); restated.
+REVOKE ALL ON FUNCTION public.notify_helpers_on_job_post() FROM PUBLIC, anon, authenticated;
 
 -- ── 7. the daily parish digest counts only what the recipient can see ───────
 CREATE OR REPLACE FUNCTION public.sweep_daily_job_digest()
@@ -582,6 +630,8 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $function$;
 
+REVOKE ALL ON FUNCTION public.sweep_daily_job_digest() FROM PUBLIC, anon, authenticated;
+
 -- ── 8. daily-match-digest re-checks its rows at digest time ─────────────────
 CREATE OR REPLACE FUNCTION public.job_match_digest_rows(p_queue_ids uuid[])
  RETURNS TABLE(id uuid, send boolean)
@@ -593,8 +643,21 @@ AS $function$
   -- send = false: no longer announceable (hired, cancelled, unfunded,
   --   ownerless, above their tier, or the job is gone): drain it unsent.
   -- Not returned: announceable but not yet visible to them; keep it queued.
+  -- The recipient is re-checked too, as deliver_job_match does: verified,
+  -- active, Job Matches on, and no block either way with the poster.
   SELECT q.id,
-         (j.id IS NOT NULL AND public.job_announceable_to(j, q.user_id)) AS send
+         (j.id IS NOT NULL AND public.job_announceable_to(j, q.user_id)
+          AND EXISTS (
+            SELECT 1 FROM public.profiles p
+              LEFT JOIN public.notification_preferences np ON np.user_id = p.user_id
+             WHERE p.user_id = q.user_id
+               AND p.email_verified
+               AND COALESCE(p.ban_status, 'active') = 'active'
+               AND COALESCE(np.job_matches, true) IS TRUE)
+          AND NOT EXISTS (
+            SELECT 1 FROM public.user_blocks b
+             WHERE (b.blocker_id = j.customer_id AND b.blocked_id = q.user_id)
+                OR (b.blocker_id = q.user_id AND b.blocked_id = j.customer_id))) AS send
     FROM public.match_digest_queue q
     LEFT JOIN public.jobs j ON j.id = q.job_id
    WHERE q.id = ANY(p_queue_ids)

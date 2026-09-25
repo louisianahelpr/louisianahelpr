@@ -306,6 +306,44 @@ if (await has("public.job_match_digest_rows(uuid[])")) {
     byId[ids[0]] === false && byId[ids[1]] === true && !(ids[2] in byId), JSON.stringify(byId));
 } else check("job_match_digest_rows exists", false);
 
+// ── 9b. review findings (lh-authz-rls, 2026-09-25) ────────────────────────
+// Ledger covers the inline parish send: deleting the notification, or the job
+// leaving 'open' and coming back, must not tell the same user again.
+await db.query(`INSERT INTO public.applications VALUES ($1, null)`, [U.blocked]);
+await db.query(`UPDATE public.profiles SET subscription_tier = 'elite' WHERE user_id = $1`, [U.blocked]);
+const job11 = await postJob("Wash a car", { parish: "Orleans" });
+check("parish: elite told inline", (await notifiedAbout(U.elite, job11)) === 1);
+check("parish: an elite user the poster blocked is NOT told inline", (await notifiedAbout(U.blocked, job11)) === 0);
+await db.query(`DELETE FROM public.notifications WHERE job_id = $1`, [job11]);
+await enqueue(job11, [U.elite]);
+check("notification deleted, then instant match: elite not told twice (the ledger decides)", (await notifiedAbout(U.elite, job11)) === 0);
+await db.query(`UPDATE public.jobs SET status = 'accepted' WHERE id = $1`, [job11]);
+await db.query(`UPDATE public.jobs SET status = 'open' WHERE id = $1`, [job11]);
+await db.exec(`CREATE TRIGGER t2 AFTER UPDATE ON public.jobs FOR EACH ROW WHEN (OLD.status IS DISTINCT FROM NEW.status) EXECUTE FUNCTION public.notify_helpers_on_job_post();`);
+await db.query(`UPDATE public.jobs SET status = 'accepted' WHERE id = $1`, [job11]);
+await db.query(`UPDATE public.jobs SET status = 'open' WHERE id = $1`, [job11]);
+await db.exec(`DROP TRIGGER t2 ON public.jobs;`);
+check("job reopened: the parish fan-out does not re-notify", (await notifiedAbout(U.elite, job11)) === 0);
+// The digest re-check covers the recipient, not only the job.
+if (await has("public.job_match_digest_rows(uuid[])")) {
+  const live2 = await postJob("Open, but recipient muted since");
+  await ageJob(live2, 60);
+  const qid = (await q(`INSERT INTO public.match_digest_queue (user_id, job_id) VALUES ($1, $2) RETURNING id`, [U.muted, live2]))[0].id;
+  const v = (await q(`SELECT send FROM public.job_match_digest_rows($1::uuid[])`, [[qid]]))[0];
+  check("digest rows: a recipient who turned Job Matches off is drained unsent", v?.send === false, JSON.stringify(v));
+}
+// Only in-app paths are queued.
+if (HAS_ENQUEUE) {
+  const job12 = await postJob("Link check");
+  let refused = 0;
+  for (const link of ["//evil.example", "/\\evil.example", "https://evil.example", "javascript:alert(1)"]) {
+    try {
+      await q(`SELECT public.enqueue_instant_job_match($1, $2::jsonb)`, [job12, JSON.stringify([{ user_id: U.elite, title: "t", message: "m", link }])]);
+    } catch { refused++; }
+  }
+  check("enqueue refuses every non-in-app link", refused === 4, `refused ${refused}/4`);
+}
+
 // ── 10. authz: nothing new is reachable by a client role ───────────────────
 if (!RED) {
   const [g] = await q(`SELECT

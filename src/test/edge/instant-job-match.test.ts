@@ -19,7 +19,8 @@
  * @mutate supabase/functions/instant-job-match/index.ts |       .not("customer_id", "is", null)\n |
  * @mutate supabase/functions/instant-job-match/index.ts |     if (!isInternal) {\n      const { allowed, retryAfter } = await checkRateLimit(req, {\n        windowMs: 10 * 60_000 |     if (false) {\n      const { allowed, retryAfter } = await checkRateLimit(req, {\n        windowMs: 10 * 60_000
  * @mutate supabase/functions/instant-job-match/index.ts |       if (mutedMatches.has(h.user_id)) continue; |
- * @mutate supabase/functions/instant-job-match/index.ts |         return new Response(\n          JSON.stringify({ notified: 0, queued: 0, matchedHelpers: [], skipped: "match_queue_not_deployed" }), |         await supabase.from("notifications").insert(matches.map((m) => ({ ...m, type: "job_match" })));\n        return new Response(\n          JSON.stringify({ notified: 0, queued: 0, matchedHelpers: [], skipped: "match_queue_not_deployed" }),
+ * @mutate supabase/functions/instant-job-match/index.ts |         eligible: result.eligible ?? 0,\n |         eligible: result.eligible ?? 0,\n        matchedHelpers: matches.map((m) => m.user_id),\n
+ * @mutate supabase/functions/instant-job-match/index.ts |         return new Response(\n          JSON.stringify({ notified: 0, queued: 0, skipped: "match_queue_not_deployed" }), |         await supabase.from("notifications").insert(matches.map((m) => ({ ...m, type: "job_match" })));\n        return new Response(\n          JSON.stringify({ notified: 0, queued: 0, skipped: "match_queue_not_deployed" }),
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -92,7 +93,10 @@ describe("instant-job-match edge function (Q392)", () => {
     });
     expect(args.p_matches[0].message).not.toContain("12 Canal St");
     expect(directWrites()).toEqual([]);
-    expect(await json(res)).toMatchObject({ notified: 0, queued: 1, eligible: 1 });
+    const out = await json(res);
+    expect(out).toMatchObject({ notified: 0, queued: 1, eligible: 1 });
+    // Counts only: the ranked candidate list never goes back to the caller.
+    expect(JSON.stringify(out)).not.toContain("u-near");
     // Internal callers are never rate-limited: the webhook must not skip a match.
     expect(rateLimitCalls).toEqual([]);
   });

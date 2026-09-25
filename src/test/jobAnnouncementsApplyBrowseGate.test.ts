@@ -33,6 +33,8 @@
  * @mutate supabase/migrations/20260925231704_job_matches_wait_for_early_access.sql |         AND public.early_access_visible_at(p.user_id, nj.created_at) <= now()\n |
  * @mutate supabase/migrations/20260925231704_job_matches_wait_for_early_access.sql |     AND p_job.customer_id IS NOT NULL\n |
  * @mutate supabase/migrations/20260925231704_job_matches_wait_for_early_access.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier), | OR true),
+ * @mutate supabase/migrations/20260925231704_job_matches_wait_for_early_access.sql |     CONTINUE WHEN v_ledger IS NULL;\n |
+ * @mutate supabase/migrations/20260925231704_job_matches_wait_for_early_access.sql |            OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id) | OR false
  * @mutate supabase/functions/instant-job-match/index.ts | supabase.rpc("enqueue_instant_job_match", { | supabase.rpc("enqueue_instant_job_match_v0", {
  * @mutate supabase/functions/daily-match-digest/index.ts | supabase.rpc("job_match_digest_rows", { p_queue_ids: allIds }) | supabase.rpc("job_match_digest_rows_v0", { p_queue_ids: allIds })
  */
@@ -242,8 +244,23 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
     expect(all).not.toMatch(/GRANT [^;]* ON (?:TABLE )?public\.job_match_queue TO [^;]*\b(?:anon|authenticated)\b/i);
     const d = body("deliver_job_match");
     expect(d).toContain("WHERE n.user_id = r.user_id AND n.job_id = r.job_id AND n.type = 'job_match'");
-    expect(d).toContain("INSERT INTO public.notifications (user_id, title, message, type, link, job_id) VALUES (r.user_id, r.title, r.message, 'job_match', r.link, r.job_id);");
+    expect(d).toContain("INSERT INTO public.notifications (user_id, title, message, type, link, job_id) VALUES (r.user_id, r.title, r.message, 'job_match', r.link, r.job_id) RETURNING id INTO v_notified;");
+    // A row the seed boundary suppressed is not recorded as sent.
+    expect(d).toContain("IF v_notified IS NULL THEN UPDATE public.job_match_queue SET status = 'dropped'");
     expect(all).toMatch(/cron\.schedule\('job-match-queue', '\* \* \* \* \*', 'SELECT public\.sweep_job_match_queue\(\);'\)/);
+  });
+
+  it("the parish fan-out's inline send goes through the ledger first, and skips blocked users", () => {
+    const b = body("notify_helpers_on_job_post");
+    const ledger = b.indexOf("INSERT INTO public.job_match_queue (user_id, job_id, source, notify_at, title, message, link, send_email, status, settled_at)");
+    const skip = b.indexOf("CONTINUE WHEN v_ledger IS NULL;");
+    const send = b.lastIndexOf("INSERT INTO public.notifications");
+    expect(ledger, "no ledger row before the inline send").toBeGreaterThan(0);
+    expect(skip).toBeGreaterThan(ledger);
+    expect(send).toBeGreaterThan(skip);
+    expect(b).toContain(
+      "WHERE (b.blocker_id = NEW.customer_id AND b.blocked_id = c.user_id) OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id)",
+    );
   });
 
   it("daily-match-digest re-checks its rows against the gate before it summarises them", () => {

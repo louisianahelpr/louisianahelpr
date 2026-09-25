@@ -897,7 +897,7 @@ export async function handleCheckoutSessionCompleted(
       if (taxedZeroOnTaxableLouisianaLabor(sessionTaxCents, taxJobBudgetCents, taxJob?.category, billingState)) {
         await postSlackOpsAlert({
           kind: "custom",
-          severity: "error",
+          severity: "warning",
           title: "Taxable job charged $0 Louisiana sales tax",
           message: "Stripe Tax returned $0 on a taxable labor line billed to a Louisiana address. Check Stripe Tax > Registrations for Louisiana in this mode (docs/OPEN.md Q424).",
           fields: { job_id: jobId, category: taxJob?.category ?? "(none)", session_id: session.id, livemode: String(session.livemode) },

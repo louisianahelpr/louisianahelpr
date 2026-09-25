@@ -67,7 +67,7 @@ import {
   helperCommissionDollars,
 } from "../_shared/helperFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
-import { isLaborTaxable } from "../_shared/salesTax.ts";
+import { isLaborTaxable, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
 import { cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
@@ -582,7 +582,7 @@ serve(async (req) => {
                 amount: budgetCents,
                 reference: "labor",
                 tax_behavior: "exclusive",
-                tax_code: "txcd_20030000",
+                tax_code: TAXABLE_LABOR_TAX_CODE,
               }],
               customer_details: {
                 address: {

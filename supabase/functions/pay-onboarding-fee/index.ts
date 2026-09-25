@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
+import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 
 /**
@@ -139,7 +140,7 @@ serve(async (req) => {
                 name: "One-time account setup",
                 description:
                   "One-time identity verification & account setup fee. Charged once per account.",
-                tax_code: "txcd_00000000",
+                tax_code: NONTAXABLE_TAX_CODE,
               },
               unit_amount: feeCents,
             },

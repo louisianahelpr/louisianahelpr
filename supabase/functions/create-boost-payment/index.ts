@@ -4,6 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
+import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { BOOST_FEE_CENTS, BOOST_DURATION_HOURS, BOOST_DISCOUNT_PCT, BOOST_MIN_UNIT_AMOUNT_CENTS } from "../_shared/productPrices.ts";
 import { TIER_DISPLAY_NAMES, tierDisplayName } from "../_shared/tierNames.ts";
 import { hasPerk, monthlyFreeBoostAllowance } from "../_shared/tierPerks.ts";
@@ -355,9 +356,15 @@ serve(async (req) => {
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
+      // automatic_tax needs a tax location. An existing Stripe Customer with no
+      // address made Stripe refuse the session (customer_tax_location_invalid,
+      // proved on create-pro-checkout 2026-09-06), so save the one Checkout
+      // collects. `customer_update` is invalid without `customer` (ME-043).
+      ...(customerId ? { customer_update: { address: "auto" as const } } : {}),
       line_items: [{
         price_data: {
           currency: "usd",
+          tax_behavior: "exclusive",
           product_data: {
             name: productName,
             // Derived, not hardcoded: this is the line the customer reads on
@@ -366,7 +373,7 @@ serve(async (req) => {
             description: `Boosts "${job.title}" to the top of Browse Jobs for ${BOOST_DURATION_HOURS} hours.`,
             // Promotional / advertising service — not subject to LA sales tax.
             // (LA does not currently tax advertising services for state purposes.)
-            tax_code: "txcd_00000000",
+            tax_code: NONTAXABLE_TAX_CODE,
           },
           unit_amount: unitAmount,
         },

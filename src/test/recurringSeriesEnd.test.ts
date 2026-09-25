@@ -21,6 +21,8 @@
  * @mutate supabase/migrations/20260925052841_recurring_series_end.sql |   IF v_ended IS NOT NULL THEN | IF v_ended IS NOT NULL AND NEW.date_needed > v_ended THEN
  * @mutate supabase/migrations/20260925052841_recurring_series_end.sql |    FOR SHARE; |    ;
  * @mutate supabase/migrations/20260925052841_recurring_series_end.sql |      AND current_setting('app.series_end_rpc', true) IS DISTINCT FROM '1' THEN |      THEN
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | job.recurring_helper_id === userId && job.helper_id === userId && | job.recurring_helper_id === userId &&
+ * @mutate supabase/migrations/20260925052841_recurring_series_end.sql | THEN CASE WHEN v_job.recurring_helper_id = v_job.helper_id THEN v_job.recurring_helper_id END | THEN v_job.recurring_helper_id
  * @mutate supabase/functions/charge-recurring-visits/index.ts | .not("customer_id", "is", null) | .not("id", "is", null)
  * @mutate supabase/functions/charge-recurring-visits/index.ts | recurring_helper_id, helper_id, status, series_ended_on", | recurring_helper_id, helper_id, status",
  * @mutate supabase/functions/charge-recurring-visits/index.ts | Can't make it? Cancel this visit from My Jobs. | Can't make it? Release the date from My Jobs.
@@ -100,6 +102,8 @@ describe("recurring series: end + schedule lock", () => {
     const on = rpc.indexOf("set_config('app.series_end_rpc', '1', true)");
     const off = rpc.indexOf("set_config('app.series_end_rpc', '0', true)");
     expect(on).toBeGreaterThan(rpc.indexOf("RAISE EXCEPTION 'not_authorized'"));
+    // Only a recurring_helper_id still hired on the parent is notified.
+    expect(rpc).toMatch(/THEN CASE WHEN v_job\.recurring_helper_id = v_job\.helper_id THEN v_job\.recurring_helper_id END/);
     expect(off).toBeGreaterThan(on);
   });
 
@@ -134,7 +138,8 @@ describe("recurring series: end + schedule lock", () => {
     const strip = blankComments(readFileSync("src/pages/posts/SeriesStrip.tsx", "utf8"));
     expect(strip).toMatch(/canEnd && !seriesEndedOn && next && \([\s\S]*?<EndSeriesControl/);
     const applied = blankComments(readFileSync("src/pages/jobs/AppliedJobCard.tsx", "utf8"));
-    expect(applied).toMatch(/job\.recurring_helper_id === userId[\s\S]{0,200}<EndSeriesControl jobId=\{job\.id\}/);
+    // Review 2026-09-25: only the standing Helpr who is STILL hired on the parent.
+    expect(applied).toMatch(/job\.recurring_helper_id === userId && job\.helper_id === userId[\s\S]{0,200}<EndSeriesControl jobId=\{job\.id\}/);
     const control = blankComments(readFileSync("src/components/series/EndSeriesControl.tsx", "utf8"));
     expect(control).toContain('supabase.rpc("end_recurring_series", { p_job_id: jobId })');
   });

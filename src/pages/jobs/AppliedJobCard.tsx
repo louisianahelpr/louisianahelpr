@@ -850,7 +850,8 @@ function AppliedJobCardInner({
                   {/* The standing Helpr's way out of a running series parent
                       (end_recurring_series accepts the poster or this Helpr). */}
                   {!job.parent_job_id && (job.recurrence_days?.length ?? 0) > 0 && !!userId &&
-                    job.recurring_helper_id === userId && !job.series_ended_on && job.status !== "cancelled" && (
+                    job.recurring_helper_id === userId && job.helper_id === userId &&
+                    !job.series_ended_on && job.status !== "cancelled" && (
                     <span className="ml-auto">
                       <EndSeriesControl jobId={job.id} jobTitle={job.title} userId={userId} />
                     </span>

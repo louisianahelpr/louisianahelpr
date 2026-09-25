@@ -216,6 +216,11 @@ check("the Helpr is told the poster ended it", n.length === 1 && n[0].user_id ==
 r = await server(db, `update public.jobs set series_ended_on = null where id='${J(3)}'`);
 check("service_role is not client-locked", r.ok, r.err);
 
+// Review 2026-09-25 (LOW): a stale recurring_helper_id is not told.
+r = await as(db, "authenticated", P, `select public.end_recurring_series('${J(5)}') as v`);
+n = (await db.query(`select user_id from public.notifications where job_id='${J(5)}'`)).rows;
+check("the poster ending a series whose recurring_helper_id moved on notifies nobody stale", r.ok && n.length === 0, r.err ?? JSON.stringify(n));
+
 // ── Review 2026-09-25 (MEDIUM): a BANNED party can still end a series ──────
 // The real enforce_ban_gate (BEFORE UPDATE on jobs) is loaded above; the
 // migration restates it with the app.series_end_rpc carve-out.

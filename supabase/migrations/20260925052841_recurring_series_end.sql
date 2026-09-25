@@ -376,7 +376,12 @@ BEGIN
   PERFORM set_config('app.series_end_rpc', '0', true);
 
   v_by_poster := v_uid = v_job.customer_id;
-  v_other := CASE WHEN v_by_poster THEN v_job.recurring_helper_id ELSE v_job.customer_id END;
+  -- The Helpr side is told only when recurring_helper_id is still the Helpr
+  -- hired on the parent: a stale recurring_helper_id left behind after
+  -- helper_id moved on is not on this series any more (review 2026-09-25).
+  v_other := CASE WHEN v_by_poster
+                  THEN CASE WHEN v_job.recurring_helper_id = v_job.helper_id THEN v_job.recurring_helper_id END
+                  ELSE v_job.customer_id END;
 
   IF v_other IS NOT NULL THEN
     INSERT INTO public.notifications (user_id, job_id, title, message, type, link)

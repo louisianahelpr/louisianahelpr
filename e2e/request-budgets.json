@@ -23,7 +23,7 @@
       "signIns": 0
     },
     "loading-states": {
-      "perTest": 3271,
+      "perTest": 3323,
       "signIns": 0
     },
     "canary": {},
@@ -36,5 +36,5 @@
       "signIns": 4
     }
   },
-  "_calibrated": "2026-09-23, the highest value each label's first metered runs printed (perTest/signIns): journeys 135.3/1 from e2e-journeys 35905284660; journeys-webkit 51.9/1 from e2e-journeys 35932913760 (35905284660: 44, raised when the second run measured 51.9); press-every-control 26845/0 from press-every-control 35905268411, max of 4 shards (18313-26845); loading-states 3271/0 from loading-states-refresh 35910881322; privacy 40.5/0 from privacy-journey 35907558297 (35906025953: 37.5); slow-network 35.3/1 from slow-network 35931277278. Labels still {} inherit null: no metered run yet (chromium, prod-audit, a11y-prod, a11y-prod-webkit, canary) - e2e-real-backend's authenticated legs and prod-audit / a11y-webkit-prod / core-loop-canary had not run a metered browser step since the meter landed (83235cd20, 17:48Z)."
+  "_calibrated": "2026-09-23, the highest value each label's first metered runs printed (perTest/signIns): journeys 135.3/1 from e2e-journeys 35905284660; journeys-webkit 51.9/1 from e2e-journeys 35932913760 (35905284660: 44, raised when the second run measured 51.9); press-every-control 26845/0 from press-every-control 35905268411, max of 4 shards (18313-26845); loading-states 3323/0 from loading-states-refresh 36069105982 (2026-09-24 22:56Z; the other metered runs printed 3271 in 35910881322, 3253 in 35970927275, 3254 in 36055191338); privacy 40.5/0 from privacy-journey 35907558297 (35906025953: 37.5); slow-network 35.3/1 from slow-network 35931277278. Labels still {} inherit null: no metered run yet (chromium, prod-audit, a11y-prod, a11y-prod-webkit, canary) - e2e-real-backend's authenticated legs and prod-audit / a11y-webkit-prod / core-loop-canary had not run a metered browser step since the meter landed (83235cd20, 17:48Z)."
 }

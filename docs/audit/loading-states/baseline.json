@@ -238,7 +238,7 @@
       "was": "0 avatar/media bone(s) → 6 real"
     },
     {
-      "key": "customer /jobs/c9b3bd7a-9db4-48bf-a2d8-0477f6746524 #0",
+      "key": "customer /jobs/:id #0",
       "kind": "jump",
       "was": "row 487px → 120px (-367px)"
     }

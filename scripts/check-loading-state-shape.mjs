@@ -64,8 +64,17 @@ const BASELINE = resolve(REPO, "docs/audit/loading-states/baseline.json");
  */
 export const ROW_BUDGET = 8;
 
+/**
+ * A surface's address as it holds from run to run. The measured job is the
+ * newest job on prod at measuring time (a different id on most runs), so
+ * `/jobs/<id>` is keyed as `/jobs/:id`. `/user/<id>` keeps its id: those are
+ * the two shared test accounts, the same ids every run, and they are two
+ * different surfaces (the Helpr's page and the poster's).
+ */
+export const stableUrl = (url) => url.replace(/^\/jobs\/[^/?#]+/, "/jobs/:id");
+
 /** A cluster's stable identity across runs. */
-export const clusterKey = (r, i) => `${r.persona} ${r.url} #${i}`;
+export const clusterKey = (r, i) => `${r.persona} ${stableUrl(r.url)} #${i}`;
 
 /** Every breach in a measurement set, as {key, kind, detail}. */
 export function breaches(results) {
@@ -168,7 +177,7 @@ function main() {
   // Only `allow` shrinks. See the comment on the two lists above.
   const stale = [...allow].filter((id) => !seen.has(id));
   if (stale.length) {
-    problems.push(`BASELINE: ${stale.length} entr(ies) no longer breach and must be deleted from docs/audit/loading-states/baseline.json: ${stale.slice(0, 6).join(", ")}`);
+    problems.push(`BASELINE: ${stale.length} entr(ies) no longer breach and must be deleted from docs/audit/loading-states/baseline.json: ${stale.join(", ")}`);
   }
 
   if (json) {

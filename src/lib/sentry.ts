@@ -13,7 +13,8 @@
  *
  * Session Replay is enabled ONLY in production builds (gated on
  * `import.meta.env.PROD`), never in an automated browser (Q275,
- * `isAutomatedBrowser`), with conservative sampling (10% sessions,
+ * `isAutomatedBrowser`) or a prod build served locally (Q386,
+ * `isLocalBuildHost`), with conservative sampling (10% sessions,
  * 100% on-error). All text inputs are masked by default for Stripe PCI
  * safety; media is unmasked so the UI surface is still legible in the
  * replay. Dev builds skip Replay entirely to keep the local bundle and
@@ -205,7 +206,13 @@ export function initSentry() {
   if (initialized || typeof window === "undefined" || !DSN) return;
   try {
     const automated = isAutomatedBrowser();
-    const recordReplays = import.meta.env.PROD && !automated;
+    // Q386: a prod build served on this machine (vite preview, Lighthouse CI
+    // and the press sweeps on http://127.0.0.1:4173) records no replay either.
+    // beforeSend already drops its errors, but session sampling sent 10% of
+    // those page loads' replays straight to the quota. Native is unaffected:
+    // capacitor://localhost and https://localhost are not a local build host.
+    const localBuild = isLocalBuildHost(window.location);
+    const recordReplays = import.meta.env.PROD && !automated && !localBuild;
     // Initial integration set is the minimal "always-on" tracking surface.
     // Session Replay is registered *after* init() returns, on the next
     // idle tick — see the deferred block below. Keeping it out of this
@@ -242,7 +249,8 @@ export function initSentry() {
       //   - 100% of sessions that hit an error (these are the ones we
       //     always want to see — debugging is the whole point).
       // Both default to 0 in dev because Replay isn't registered there.
-      // Both are 0 in an automated browser (Q275, isAutomatedBrowser).
+      // Both are 0 in an automated browser (Q275, isAutomatedBrowser) and in
+      // a prod build served locally (Q386, isLocalBuildHost).
       replaysSessionSampleRate: recordReplays ? 0.1 : 0,
       replaysOnErrorSampleRate: recordReplays ? 1.0 : 0,
 

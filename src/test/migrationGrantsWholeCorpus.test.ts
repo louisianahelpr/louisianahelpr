@@ -7,10 +7,10 @@
  * A new function without an explicit GRANT/REVOKE now fails here even if the
  * per-PR run was skipped.
  *
- * An EDITED old migration defining a since-dropped function is not a new
- * function either (2026-09-24: the address rename edited 20260504142454 and
- * 20260509195035, whose get_approved_helpers / get_hero_parishes were dropped
- * on 2026-09-13, and the per-diff run blocked db-deploy).
+ * Per-file pinning uses the NEWEST migration defining each function
+ * (2026-09-25: updated from 20260504142454 / 20260509195035 to the migrations
+ * that now define those same functions: rename_tab_addresses and
+ * retire_approval_status_reads).
  *
  * @mutate scripts/check-migration-grants.mjs | if (droppedForGood(name.toLowerCase())) continue; | void 0;
  */
@@ -28,13 +28,13 @@ describe("check-migration-grants --all (Q263)", () => {
     expect(r.status).toBe(0);
   }, 60_000);
 
-  it("an edited old migration whose functions were dropped later passes the per-file run", () => {
+  it("migrations that redefine many functions pass the per-file run", () => {
     const r = spawnSync(
       "node",
       [
         "scripts/check-migration-grants.mjs",
-        "supabase/migrations/20260504142454_fix_role_checks_via_user_roles.sql",
-        "supabase/migrations/20260509195035_rewrite_helper_filters_behavior_based.sql",
+        "supabase/migrations/20260924220318_rename_tab_addresses.sql",
+        "supabase/migrations/20260924055509_get_safe_profiles_hide_anonymized.sql",
       ],
       { cwd: resolve(__dirname, "..", ".."), encoding: "utf8" },
     );

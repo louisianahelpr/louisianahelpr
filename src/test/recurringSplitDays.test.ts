@@ -21,6 +21,9 @@
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   IF NEW.series_split_ok IS DISTINCT FROM OLD.series_split_ok | IF false
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   WHEN (OLD.recurring_helper_id IS DISTINCT FROM NEW.recurring_helper_id) |   WHEN (false)
+ * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |    AND c.helper_id IS NOT NULL\n   AND c.status::text <> 'cancelled'\n   AND c.date_needed >= | AND false\n   AND c.status::text <> 'cancelled'\n   AND c.date_needed >=
+ * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |      AND j.recurring_helper_id IS DISTINCT FROM j.helper_id\n     AND NOT EXISTS | AND false\n     AND NOT EXISTS
+ * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |     IF COALESCE(cardinality(v_released), 0) = 0 AND v_job.customer_id IS NOT NULL THEN | IF false THEN
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |       IF v_holder = v_uid THEN\n        v_already := v_already || v_d; |       IF false THEN\n        v_already := v_already || v_d;
  * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   WITH me AS (SELECT (SELECT auth.uid()) AS p_uid) |   WITH me AS (SELECT p_parent AS p_uid)
  * @mutate supabase/migrations/20260925160644_hired_job_schedule_lock.sql |                         AND (SELECT auth.uid()) IN (j.customer_id, j.helper_id)) THEN |                         AND true) THEN
@@ -100,7 +103,14 @@ describe("recurring split days (Q407 4-6)", () => {
     // Every booking alike since Q407 (11); the class guard is helperCancelStrikeWithin24h.test.ts.
     expect(cancel).toMatch(/\n {2}IF public\.is_late_cancellation\(true, EXTRACT\(EPOCH FROM \(v_starts_at - now\(\)\)\) \/ 3600\.0\) THEN/);
     // A cancelled series visit goes back to the series, not to the public.
-    expect(cancel).toMatch(/IF v_job\.parent_job_id IS NOT NULL THEN\s+PERFORM public\.series_release_dates\(/);
+    expect(cancel).toMatch(/IF v_job\.parent_job_id IS NOT NULL THEN\s+v_released := public\.series_release_dates\(/);
+    // LOW-1: nothing released still reaches the poster.
+    expect(cancel).toMatch(/IF COALESCE\(cardinality\(v_released\), 0\) = 0 AND v_job\.customer_id IS NOT NULL THEN\s+INSERT INTO public\.notifications/);
+  });
+
+  it("LOW-1 / LOW-8: a series running at deploy keeps its booked visits' dates, and one it cannot seed is logged", () => {
+    expect(allSql).toMatch(/SELECT c\.parent_job_id, c\.date_needed, c\.helper_id\s+FROM public\.jobs c\s+JOIN public\.jobs p ON p\.id = c\.parent_job_id\s+WHERE c\.parent_job_id IS NOT NULL\s+AND c\.helper_id IS NOT NULL\s+AND c\.status::text <> 'cancelled'/);
+    expect(allSql).toMatch(/AND j\.recurring_helper_id IS NOT NULL\s+AND j\.recurring_helper_id IS DISTINCT FROM j\.helper_id\s+AND NOT EXISTS \(SELECT 1 FROM public\.error_logs e/);
   });
 
   it("LOW-6: a claim of the caller's own date is already_yours, never taken", () => {

@@ -1096,6 +1096,7 @@ DECLARE
   v_slot_id uuid;
   v_slot_completed_at timestamptz;
   v_remaining int;
+  v_released date[];
 BEGIN
   SELECT j.id, j.title, j.customer_id, j.helper_id, j.status,
          j.date_needed, j.start_time, j.helper_completed_at,
@@ -1236,8 +1237,22 @@ BEGIN
   IF v_job.parent_job_id IS NOT NULL THEN
     -- The date goes back to the series: the poster and the other Helprs on it
     -- are told by series_release_dates.
-    PERFORM public.series_release_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled',
-                                        v_job.title, v_job.customer_id);
+    v_released := public.series_release_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled',
+                                              v_job.title, v_job.customer_id);
+    -- Review LOW-1: nothing released (this Helpr held no hold on the date,
+    -- e.g. legacy data) must still reach the poster, who can offer it.
+    IF COALESCE(cardinality(v_released), 0) = 0 AND v_job.customer_id IS NOT NULL THEN
+      INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
+      VALUES (
+        v_job.customer_id,
+        'Your Helpr cancelled',
+        format('Your Helpr can''t make "%s" on %s. The visit stays paid for: offer the date to someone new from the series card. If nobody takes it, you''re refunded less the card processing fee.',
+               COALESCE(v_job.title, 'your series'), to_char(v_job.date_needed, 'FMDy FMMon FMDD')),
+        'warning',
+        '/posts?job=' || v_job.parent_job_id::text,
+        v_job.parent_job_id
+      );
+    END IF;
   ELSE
     INSERT INTO public.notifications (user_id, title, message, type, link)
     VALUES (
@@ -1356,6 +1371,56 @@ SELECT j.id, d, j.recurring_helper_id
    AND NOT EXISTS (SELECT 1 FROM public.jobs c WHERE c.parent_job_id = j.id AND c.date_needed = d)
    AND NOT EXISTS (SELECT 1 FROM public.recurring_visit_releases r WHERE r.parent_job_id = j.id AND r.visit_date = d)
 ON CONFLICT (parent_job_id, visit_date) DO NOTHING;
+
+-- Review LOW-1: a visit the cron booked BEFORE holds existed has a Helpr but
+-- no hold, so its Helpr cancelling it released nothing (the poster heard
+-- nothing and nobody could pick it up). Its date is held by that visit's
+-- Helpr, like every date booked from now on. Replay-safe (ON CONFLICT).
+INSERT INTO public.series_visit_holds (parent_job_id, visit_date, helper_id)
+SELECT c.parent_job_id, c.date_needed, c.helper_id
+  FROM public.jobs c
+  JOIN public.jobs p ON p.id = c.parent_job_id
+ WHERE c.parent_job_id IS NOT NULL
+   AND c.helper_id IS NOT NULL
+   AND c.status::text <> 'cancelled'
+   AND c.date_needed >= (now() AT TIME ZONE 'America/Chicago')::date
+   AND p.series_ended_on IS NULL
+   AND p.status::text <> 'cancelled'
+ON CONFLICT (parent_job_id, visit_date) DO NOTHING;
+
+-- Review LOW-8: a running series whose standing Helpr (recurring_helper_id)
+-- is not the Helpr hired on the parent cannot be seeded without guessing who
+-- holds its dates. It gets no holds, so charge-recurring-visits books and
+-- charges nothing for it (skippedUnfilled), and a person is told to sort it
+-- out: one error_logs row per series (not repeated on replay). Deploy-note
+-- query: SELECT id FROM jobs WHERE parent_job_id IS NULL AND recurrence_days
+-- IS NOT NULL AND series_ended_on IS NULL AND status::text <> 'cancelled' AND
+-- recurring_helper_id IS NOT NULL AND recurring_helper_id IS DISTINCT FROM
+-- helper_id;  (expect 0 rows; each row is a series to end or re-hire by hand)
+DO $mismatch$
+BEGIN
+  IF to_regclass('public.error_logs') IS NULL THEN
+    RAISE NOTICE 'error_logs absent: skipped';
+    RETURN;
+  END IF;
+  INSERT INTO public.error_logs (severity, message, tags, context)
+  SELECT 'error',
+         format('Recurring series %s has standing Helpr %s but a different Helpr (or none) hired on it, so no visit dates were assigned when split days shipped (20260925160645). Nothing will be booked or charged for it until a person ends it or re-hires it.',
+                j.id, j.recurring_helper_id),
+         jsonb_build_object('source', 'recurring_split_days_backfill', 'area', 'recurring-series'),
+         jsonb_build_object('parent_job_id', j.id, 'recurring_helper_id', j.recurring_helper_id, 'helper_id', j.helper_id)
+    FROM public.jobs j
+   WHERE j.parent_job_id IS NULL
+     AND j.recurrence_days IS NOT NULL
+     AND j.series_ended_on IS NULL
+     AND j.status::text <> 'cancelled'
+     AND j.recurring_helper_id IS NOT NULL
+     AND j.recurring_helper_id IS DISTINCT FROM j.helper_id
+     AND NOT EXISTS (SELECT 1 FROM public.error_logs e
+                      WHERE e.tags->>'source' = 'recurring_split_days_backfill'
+                        AND e.context->>'parent_job_id' = j.id::text);
+END
+$mismatch$;
 
 -- ── Helprs see the terms before applying ──────────────────────────────────
 -- open_jobs_browse restated verbatim from its newest definition

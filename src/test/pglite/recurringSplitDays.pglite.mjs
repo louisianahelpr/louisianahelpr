@@ -62,6 +62,50 @@ const dateAt = async (db, n) => (await db.query(`select ${d(n)}::text as v`)).ro
   await db.close();
 }
 
+// ── LOW-1 / LOW-8: series ALREADY RUNNING when 20260925160645 deploys ───────
+{
+  let r, n;
+  const bdb = new PGlite();
+  await bdb.exec(baseSchema("20260925052841"));
+  await bdb.exec(END);
+  await bdb.exec(LOCK);
+  const RUN = J(70), BOOKED = J(71), ODD = J(72);
+  await bdb.exec(`insert into public.jobs (id, title, customer_id, status, date_needed, start_time, recurrence_days, recurrence_weeks)
+    values ('${RUN}', 'Running', '${P}', 'open', ${d(1)}, '09:00', '{0,1,2,3,4,5,6}', 2),
+           ('${ODD}', 'Mismatched', '${P}', 'open', ${d(1)}, '09:00', '{0,1,2,3,4,5,6}', 2)`);
+  await server(bdb, HIRE(RUN, A));
+  await server(bdb, HIRE(ODD, A));
+  // A pre-deploy booked visit (the cron made it before holds existed).
+  r = await server(bdb, `insert into public.jobs (id, title, customer_id, helper_id, status, date_needed, start_time, parent_job_id, payment_status)
+    values ('${BOOKED}', 'Running', '${P}', '${A}', 'accepted', ${d(4)}, '09:00', '${RUN}', 'escrow')`);
+  check("LOW-1 fixture: a visit booked before holds existed", r.ok, r.err);
+  await bdb.exec(`insert into public.applications (job_id, helper_id, status) values ('${BOOKED}', '${A}', 'accepted')`);
+  // LOW-8: a running series whose standing Helpr is not the one hired on the
+  // parent (legacy data): the backfill cannot tell who holds its dates.
+  await bdb.exec(`alter table public.jobs disable trigger user; update public.jobs set recurring_helper_id = '${B}' where id = '${ODD}'; alter table public.jobs enable trigger user;`);
+  for (let i = 0; i < 3; i++) await bdb.exec(SPLIT);
+  const held = (await bdb.query(`select helper_id from public.series_visit_holds where parent_job_id='${RUN}' and visit_date = ${d(4)}`)).rows;
+  check("LOW-1 the backfill gives a pre-deploy booked visit's date to its Helpr", held.length === 1 && held[0].helper_id === A, JSON.stringify(held));
+  r = await as(bdb, "authenticated", A, `select public.helper_cancel_booking('${BOOKED}') as v`);
+  n = (await bdb.query(`select count(*)::int c from public.notifications where user_id='${P}' and job_id='${RUN}' and title='A visit date is open again'`)).rows[0].c;
+  const rel = (await bdb.query(`select helper_id from public.recurring_visit_releases where parent_job_id='${RUN}' and visit_date = ${d(4)}`)).rows;
+  check("LOW-1 cancelling that visit tells the poster and opens it to the series", r.ok && n === 1 && rel.length === 1 && rel[0].helper_id === A, `${r.err ?? ""} n=${n} rel=${JSON.stringify(rel)}`);
+  // Nothing to release (the Helpr held no hold on the date): the poster still hears.
+  const BARE = J(73);
+  await server(bdb, `insert into public.series_visit_holds (parent_job_id, visit_date, helper_id) values ('${RUN}', ${d(6)}, '${A}') on conflict do nothing`);
+  await server(bdb, `insert into public.jobs (id, title, customer_id, helper_id, status, date_needed, start_time, parent_job_id, payment_status)
+    values ('${BARE}', 'Running', '${P}', '${A}', 'accepted', ${d(6)}, '09:00', '${RUN}', 'escrow')`);
+  await bdb.exec(`delete from public.series_visit_holds where parent_job_id='${RUN}' and visit_date = ${d(6)}`);
+  r = await as(bdb, "authenticated", A, `select public.helper_cancel_booking('${BARE}') as v`);
+  n = (await bdb.query(`select message from public.notifications where user_id='${P}' and title='Your Helpr cancelled' and job_id='${RUN}'`)).rows;
+  check("LOW-1 a series visit with nothing to release still tells the poster, with the series copy", r.ok && n.length === 1 && /offer the date/.test(n[0].message), `${r.err ?? ""} ${JSON.stringify(n)}`);
+  const logs = (await bdb.query(`select severity, context from public.error_logs where context->>'parent_job_id' = '${ODD}'`)).rows;
+  check("LOW-8 a running series the backfill cannot seed is logged for a person (not silently unfunded)", logs.length === 1 && logs[0].severity === "error", JSON.stringify(logs));
+  const oddHolds = (await bdb.query(`select count(*)::int c from public.series_visit_holds where parent_job_id='${ODD}'`)).rows[0].c;
+  check("LOW-8 ... and gets no guessed holds", oddHolds === 0, String(oddHolds));
+  await bdb.close();
+}
+
 // ── NEW STATE ──────────────────────────────────────────────────────────────
 const db = new PGlite();
 await db.exec(baseSchema("20260925052841"));
@@ -287,7 +331,7 @@ check("a new one-person hire takes every open date back", held.length === expect
   r = await as(db, "authenticated", A, `select public.helper_cancel_booking('${O2}') as v`);
   n = (await db.query(`select count(*)::int c from public.strikes where user_id='${A}'`)).rows[0].c;
   check("a one-time job cancelled within 24h IS a strike", r.ok && n === aBefore + 1, r.err ?? `${aBefore} -> ${n}`);
-  n = (await db.query(`select count(*)::int c from public.notifications where user_id='${P}' and title='Your Helpr cancelled'`)).rows[0].c;
+  n = (await db.query(`select count(*)::int c from public.notifications where user_id='${P}' and title='Your Helpr cancelled' and message like '%open to everyone again%'`)).rows[0].c;
   check("... and the poster of a one-time job gets the single-job notice", n === 2, String(n));
 }
 

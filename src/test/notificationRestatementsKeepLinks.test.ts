@@ -80,6 +80,10 @@ const INTENDED_LINK_CHANGES = new Set([
   // is told by series_release_dates (same '/posts?job=' || parent link), and
   // the poster ending it tells every Helpr on the series ('/jobs?job=').
   "20260925160645_recurring_split_days.sql::end_recurring_series",
+  // Review LOW-1: a Helpr cancelling a series visit with nothing to release
+  // (no hold on the date) tells the poster on the SERIES card
+  // ('/posts?job=' || parent_job_id), where the date can be offered again.
+  "20260925160645_recurring_split_days.sql::helper_cancel_booking",
 ]);
 
 /**

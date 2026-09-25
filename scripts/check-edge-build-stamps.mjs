@@ -17,8 +17,10 @@
  *   node scripts/check-edge-build-stamps.mjs [--functions "a b"] [--wait-seconds N]
  *        [--mismatch-file <path>]
  * Env: SUPABASE_URL, or SUPABASE_PROJECT_REF (-> https://<ref>.supabase.co).
- *      Optional VITE_SUPABASE_PUBLISHABLE_KEY (sent as apikey; the probe does
- *      not need it: the gateway passes OPTIONS through unauthenticated).
+ *      The probe sends NO credentials: that is the shape measured on
+ *      2026-09-25 (an unauthenticated OPTIONS reached each function's own
+ *      handler), and a publishable key that is not a JWT could draw a gateway
+ *      401 on a verify_jwt function instead.
  * Exit: success only when every function answered HEAD's stamp; otherwise
  *       non-zero, with the names written to --mismatch-file, one per line, for
  *       the workflow to redeploy.
@@ -55,12 +57,10 @@ const TARGETS = only.length ? only : ALL;
 if (TARGETS.length === 0) fail("found no functions under supabase/functions — refusing to report clean");
 
 const expected = Object.fromEntries(TARGETS.map((fn) => [fn, expectedStamp(ROOT, fn)]));
-const KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";
 
 /** What `fn` answers to the build probe: the header value, or null with the reason. */
 async function probe(fn) {
   const headers = { [BUILD_PROBE_HEADER]: "1" };
-  if (KEY) Object.assign(headers, { apikey: KEY, Authorization: `Bearer ${KEY}` });
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 20_000);
   try {

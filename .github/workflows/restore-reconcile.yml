@@ -25,9 +25,10 @@ on:
         description: "Restore point: when the restored backup was taken (ISO-8601, e.g. 2026-09-24T09:37:00Z)"
         required: true
       stripe_mode:
-        description: "Stripe mode to read (test until launch)"
-        required: false
-        default: "test"
+        description: "Stripe mode to read: test until launch, live after (no default on purpose)"
+        required: true
+        type: choice
+        options: ["", "test", "live"]
 
 jobs:
   reconcile:

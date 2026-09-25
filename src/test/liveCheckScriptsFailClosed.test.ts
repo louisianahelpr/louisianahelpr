@@ -259,22 +259,23 @@ const HERMETIC: Record<string, Case[]> = {
   // DR-006 (same runbook): Stripe money objects since the restore point, by id.
   "scripts/check-stripe-restore-drift.mjs": [
     { label: "no restore point", says: /could not reconcile: --since is required/ },
-    { label: "no key", args: ["--since", "2026-09-24T00:00:00Z"], says: /could not reconcile: STRIPE_TEST_SECRET_KEY is not set/ },
+    { label: "no mode", args: ["--since", "2026-09-24T00:00:00Z"], env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub" }, says: /could not reconcile: --mode is required/ },
+    { label: "no key", args: ["--since", "2026-09-24T00:00:00Z", "--mode", "test"], says: /could not reconcile: STRIPE_TEST_SECRET_KEY is not set/ },
     {
       label: "Stripe 500",
-      args: ["--since", "2026-09-24T00:00:00Z"],
+      args: ["--since", "2026-09-24T00:00:00Z", "--mode", "test"],
       env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub", LH_STRIPE_API_BASE: "@HTTP@/fail", SUPABASE_URL: "@HTTP@/fail", SUPABASE_SERVICE_ROLE_KEY: "stub" },
       says: /could not reconcile: Stripe GET \S*\/v1\/payment_intents → 500/,
     },
     {
       label: "Stripe []",
-      args: ["--since", "2026-09-24T00:00:00Z"],
+      args: ["--since", "2026-09-24T00:00:00Z", "--mode", "test"],
       env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub", LH_STRIPE_API_BASE: "@HTTP@/empty", SUPABASE_URL: "@HTTP@/empty", SUPABASE_SERVICE_ROLE_KEY: "stub" },
       says: /did not return a list object — refusing to report clean/,
     },
     {
       label: "database empty",
-      args: ["--since", "2026-09-24T00:00:00Z"],
+      args: ["--since", "2026-09-24T00:00:00Z", "--mode", "test"],
       env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub", LH_STRIPE_API_BASE: "@HTTP@/stripelist", SUPABASE_URL: "@HTTP@/empty", SUPABASE_SERVICE_ROLE_KEY: "stub" },
       says: /every one was empty — refusing to report clean/,
     },

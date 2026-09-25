@@ -61,19 +61,20 @@ describe("gradeKind", () => {
     expect(g.missing[0].hint).toContain("transfer_group=job_j1");
   });
 
-  it("an abandoned checkout is not money; a boost or subscription is listed, never graded missing", () => {
+  it("an abandoned checkout is not money; a boost, onboarding fee or subscription is listed, never graded missing", () => {
     const g = gradeKind(
       "payment_intent",
       [
         { id: "pi_abandoned", status: "requires_payment_method", metadata: {} },
         { id: "pi_boost", status: "succeeded", amount: 500, created: 1, metadata: { kind: "job_boost", job_id: "j1" } },
         { id: "pi_sub", status: "succeeded", amount: 999, created: 1, invoice: "in_1", metadata: {} },
+        { id: "pi_onb", status: "succeeded", amount: 500, created: 1, metadata: { kind: "onboarding_fee" } },
         { id: "pi_job", status: "requires_capture", amount: 10000, created: 1, metadata: { job_id: "j2" } },
       ],
       new Set(),
     );
     expect(g.ignored).toBe(1);
-    expect(g.unlinkable.map((u) => u.id)).toEqual(["pi_boost", "pi_sub"]);
+    expect(g.unlinkable.map((u) => u.id)).toEqual(["pi_boost", "pi_sub", "pi_onb"]);
     expect(g.missing.map((m) => m.id)).toEqual(["pi_job"]);
   });
 
@@ -93,6 +94,8 @@ describe("safety", () => {
     expect(() => keyForMode("test", { STRIPE_TEST_SECRET_KEY: "sk_live_x" })).toThrow(/not a test-mode key/);
     expect(() => keyForMode("live", { STRIPE_SECRET_KEY: "sk_test_x" })).toThrow(/live-mode key/);
     expect(() => keyForMode("test", {})).toThrow(/not set/);
+    // No default mode: after launch a silent "test" would read the sandbox.
+    expect(() => keyForMode("", { STRIPE_TEST_SECRET_KEY: "sk_test_x" })).toThrow(/--mode is required/);
   });
 
   it("needs a restore point", () => {

@@ -53,15 +53,44 @@ export function stampedFiles(root, fn) {
   return files.sort();
 }
 
-/** `<fn>@<first 16 hex of sha256>` over the files `stampedFiles` names. */
+/**
+ * The `[functions.<fn>]` block of supabase/config.toml (its deploy-time
+ * settings, e.g. verify_jwt), or "" when the function has none. The workflow
+ * deploys every function when config.toml changes, so a config-only change
+ * must move the stamp too.
+ */
+export function configBlock(configToml, fn) {
+  const lines = configToml.split("\n");
+  const start = lines.findIndex((l) => l.trim() === `[functions.${fn}]`);
+  if (start < 0) return "";
+  const out = [];
+  for (let i = start + 1; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (t.startsWith("[")) break;
+    if (t === "" || t.startsWith("#")) continue;
+    out.push(t);
+  }
+  return out.join("\n");
+}
+
+/**
+ * `<fn>@<first 16 hex of sha256>` over the files `stampedFiles` names, the
+ * stamp file with its literal reset to the placeholder (so a change to the
+ * wrapper's LOGIC moves every stamp, while writing a stamp moves none), and the
+ * function's config.toml block.
+ */
 export function expectedStamp(root, fn) {
   const h = createHash("sha256");
-  for (const rel of stampedFiles(root, fn)) {
-    h.update(rel);
+  const add = (label, content) => {
+    h.update(label);
     h.update("\0");
-    h.update(createHash("sha256").update(readFileSync(join(root, rel))).digest("hex"));
+    h.update(createHash("sha256").update(content).digest("hex"));
     h.update("\n");
-  }
+  };
+  for (const rel of stampedFiles(root, fn)) add(rel, readFileSync(join(root, rel)));
+  add(STAMP_FILE, withStamp(readFileSync(join(root, STAMP_FILE), "utf8"), PLACEHOLDER));
+  const config = join(root, "supabase/config.toml");
+  add("supabase/config.toml#" + fn, existsSync(config) ? configBlock(readFileSync(config, "utf8"), fn) : "");
   return `${fn}@${h.digest("hex").slice(0, 16)}`;
 }
 

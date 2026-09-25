@@ -11,11 +11,11 @@
  * daily `money-reconciliation` function checks; the runbook runs both.
  *
  * READ-ONLY. Stripe: GET list endpoints only. Database: PostgREST GET only.
- * Refuses a key whose mode differs from --mode (default test: Stripe stays in
- * SANDBOX until launch).
+ * --mode is REQUIRED (test until launch, live after): a default would let a
+ * post-launch run read the sandbox and pass. A key of the other mode is refused.
  *
  * Usage:
- *   node scripts/check-stripe-restore-drift.mjs --since <ISO-8601 | epoch s> [--mode test|live] [--json <file>]
+ *   node scripts/check-stripe-restore-drift.mjs --since <ISO-8601 | epoch s> --mode test|live [--json <file>]
  * Env: STRIPE_TEST_SECRET_KEY (test) or STRIPE_SECRET_KEY (live);
  *      SUPABASE_URL or SUPABASE_PROJECT_REF, SUPABASE_SERVICE_ROLE_KEY (the RESTORED project);
  *      LH_STRIPE_API_BASE (tests only).
@@ -37,7 +37,7 @@ const unmeasured = (msg) => {
 
 let SINCE;
 let STRIPE_KEY;
-const MODE = opt("mode", "test");
+const MODE = opt("mode", "");
 try {
   SINCE = parseSince(opt("since", ""));
   STRIPE_KEY = keyForMode(MODE, process.env);
@@ -107,7 +107,9 @@ for (const [kind, cols] of Object.entries(DB_ID_COLUMNS)) {
       if (!Array.isArray(page)) unmeasured(`database ${table}.${column} did not return rows`);
       for (const r of page) if (r[column]) ids.add(r[column]);
       n += page.length;
-      if (page.length < 1000) break;
+      // Stop on an EMPTY page, not a short one: a short page only means the
+      // end while db-max-rows is exactly 1000.
+      if (page.length === 0) break;
     }
     dbCounts[`${table}.${column}`] = n;
   }

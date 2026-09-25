@@ -26,6 +26,8 @@
  * @mutate supabase/functions/_shared/buildStamp.ts |   if (req.method !== "OPTIONS" \|\| !req.headers.has(BUILD_PROBE_HEADER)) return null; |   if (!req.headers.has(BUILD_PROBE_HEADER)) return null;
  * @mutate .github/workflows/functions-deploy.yml |               node scripts/edge-build-stamp.mjs write "$fn"\n              supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" 2>&1 |               supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" 2>&1
  * @mutate .github/workflows/functions-deploy.yml |             if node scripts/check-edge-build-stamps.mjs --wait-seconds 120 | if node scripts/check-edge-build-stamps.mjs --functions "${{ steps.targets.outputs.functions }}" --wait-seconds 120
+ * @mutate .github/workflows/functions-deploy.yml | if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then | if false; then
+ * @mutate scripts/lib/edgeBuildStamp.mjs |   add(STAMP_FILE, withStamp(readFileSync(join(root, STAMP_FILE), "utf8"), PLACEHOLDER)); |
  */
 import { describe, expect, it } from "vitest";
 import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
@@ -132,6 +134,7 @@ describe("the stamp", () => {
     writeFileSync(join(dir, "supabase/functions/a/index.ts"), "a1");
     writeFileSync(join(dir, "supabase/functions/b/index.ts"), "b1");
     writeFileSync(join(dir, "supabase/functions/_shared/lib.ts"), "s1");
+    writeFileSync(join(dir, "supabase/config.toml"), "[functions]\n  [functions.a]\n    verify_jwt = true\n  [functions.b]\n    verify_jwt = false\n");
     cpSync(join(ROOT, STAMP_FILE), join(dir, STAMP_FILE));
     return dir;
   }
@@ -154,7 +157,21 @@ describe("the stamp", () => {
       const a1 = expectedStamp(dir, "a");
       expect(a1).not.toBe(a0);
       writeFileSync(join(dir, "supabase/functions/a/nested.ts"), "n");
-      expect(expectedStamp(dir, "a")).not.toBe(a1);
+      const a2 = expectedStamp(dir, "a");
+      expect(a2).not.toBe(a1);
+
+      // A change to the wrapper's LOGIC moves the stamp (its literal does not).
+      const stampFile = join(dir, STAMP_FILE);
+      writeFileSync(stampFile, readFileSync(stampFile, "utf8") + "\n// changed\n");
+      const a3 = expectedStamp(dir, "a");
+      expect(a3).not.toBe(a2);
+
+      // A config.toml change to THIS function's block moves it; another's does not.
+      const cfg = join(dir, "supabase/config.toml");
+      writeFileSync(cfg, readFileSync(cfg, "utf8").replace("verify_jwt = false", "verify_jwt = true"));
+      expect(expectedStamp(dir, "a")).toBe(a3);
+      writeFileSync(cfg, readFileSync(cfg, "utf8").replace("[functions.a]\n    verify_jwt = true", "[functions.a]\n    verify_jwt = false"));
+      expect(expectedStamp(dir, "a")).not.toBe(a3);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -201,9 +218,15 @@ describe("functions-deploy.yml wiring", () => {
     const step = WORKFLOW.slice(at, next < 0 ? undefined : next);
     expect(step).toMatch(/if: always\(\) && /);
     expect(step).not.toMatch(/continue-on-error/);
-    const call = step.match(/node scripts\/check-edge-build-stamps\.mjs[^\n]*/)?.[0] ?? "";
+    // The call inside the redeploy loop covers EVERY function...
+    const call = step.match(/if node scripts\/check-edge-build-stamps\.mjs[^\n]*/)?.[0] ?? "";
     expect(call).not.toBe("");
     expect(call, "the check must cover every function, not only this run's targets").not.toContain("--functions");
+    // ...and the loop is reachable only from main's tip: a re-run of an old
+    // run must never redeploy old code over newer code.
+    const guard = step.indexOf('if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]');
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeLessThan(step.indexOf("MAX_RETRIES=2"));
     // It runs after the deploy steps, so it reads what they left behind.
     expect(at).toBeGreaterThan(WORKFLOW.indexOf("- name: Verify every deploy actually landed"));
   });

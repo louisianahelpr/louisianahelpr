@@ -83,7 +83,9 @@ for (const col of STORAGE_REFERENCE_COLUMNS) {
     }
     rows += page.length;
     refs.push(...referencesFromRows(col, page));
-    if (page.length < 1000) break;
+    // Stop on an EMPTY page, not a short one: a lowered db-max-rows would make
+    // a short page mid-table and a partial read would look complete.
+    if (page.length === 0) break;
   }
   perColumn.push({ column: `${col.table}.${col.column}`, rows, refs: refs.length - before });
 }

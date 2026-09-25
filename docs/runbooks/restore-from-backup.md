@@ -234,7 +234,7 @@ column fails `src/test/stripeRestoreReconcile.test.ts` until it is listed):
 ```bash
 SUPABASE_URL=https://<new-ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<new service key> \
 STRIPE_TEST_SECRET_KEY=sk_test_... \
-  node scripts/check-stripe-restore-drift.mjs --since <backup time, ISO-8601> --json stripe-drift.json
+  node scripts/check-stripe-restore-drift.mjs --since <backup time, ISO-8601> --mode test --json stripe-drift.json
 # after launch: STRIPE_SECRET_KEY=sk_live_... ... --mode live
 ```
 
@@ -247,8 +247,14 @@ platform backup's time in the dashboard), never the time you restored.
   process-scheduled-payouts runs. A PaymentIntent there is a payment or tip the
   database has no record of: re-link it to its job (`job_id=` in the hint). A
   refund there is money already returned: record it in `payment_refunds`.
-- **not id-linked by design** (job boosts, background-check fees, subscription
-  invoices) are listed for you to check by hand; the app never stores their id.
+- **not id-linked by design** (job boosts, background-check fees, onboarding
+  fees, subscription invoices) are listed for you to check by hand; the app never stores their id.
+- It lists only objects CREATED since T. Check by hand in the dashboard:
+  Stripe disputes (chargebacks) opened since T and transfer reversals made
+  since T (`chargeback_clawbacks` records them; neither is listed), and
+  PaymentIntents created before T but captured or cancelled after it (§5.2's
+  money-reconciliation compares those jobs' state with Stripe).
+- `--mode` has no default on purpose: `test` until launch, `live` after.
 - It does not list instant payouts: those live ON each helper's connected
   account (`instant_payouts.stripe_payout_id`). Check the helpers who had an
   instant payout in the lost window in the Stripe dashboard.

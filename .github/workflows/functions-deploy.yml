@@ -403,9 +403,19 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: |
           set -euo pipefail
+          # A RE-RUN OF AN OLD RUN checks out that run's old SHA. Every function
+          # changed since then would "mismatch", and redeploying them would roll
+          # prod back to old code. So the redeploy loop runs only when this
+          # checkout is main's current tip; otherwise the check covers just this
+          # run's own targets and never redeploys.
+          git fetch --quiet origin main
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            echo "::warning::This run's commit is not main's tip (a re-run of an older run?). Checking only its targets, redeploying nothing."
+            node scripts/check-edge-build-stamps.mjs --wait-seconds 120 --functions "${{ steps.targets.outputs.functions }}"
+            exit $?
+          fi
           MAX_RETRIES=2
           ATTEMPT=0
           while :; do

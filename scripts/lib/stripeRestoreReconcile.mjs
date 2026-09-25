@@ -51,7 +51,7 @@ export const NOT_MATCHED = {
   "payment_refunds.stripe_payment_intent_id": "the PaymentIntent a refund came from, not a record of that PaymentIntent",
   "payout_transfers.stripe_account_id": "the destination connected account, not a money movement",
   "chargeback_clawbacks.stripe_account_id": "the connected account, not a money movement",
-  "chargeback_clawbacks.stripe_reversal_id": "a transfer reversal; listed per transfer, reconciled through its original_transfer_id",
+  "chargeback_clawbacks.stripe_reversal_id": "a transfer reversal; NOT listed by the script (reversals live under each transfer) — runbook §5.1 has it as a manual step with Stripe disputes",
   "instant_payouts.stripe_payout_id": "a payout ON a connected account; listing it needs a Stripe-Account header per helper — manual step in the runbook",
   "profiles.stripe_account_id": "account linkage, not a money movement",
   "profiles.stripe_customer_id": "customer linkage, not a money movement",
@@ -82,6 +82,7 @@ export function unlinkableReason(pi) {
   if (pi?.invoice) return "subscription invoice (reconciled by subscription-reconciliation)";
   if (md.kind === "job_boost") return "job boost (create-boost-payment records no PaymentIntent id)";
   if (md.kind === "background_check") return "background-check fee (create-bgc-payment records no PaymentIntent id)";
+  if (md.kind === "onboarding_fee") return "onboarding fee (pay-onboarding-fee records only profiles.onboarding_fee_paid)";
   return null;
 }
 
@@ -157,5 +158,5 @@ export function keyForMode(mode, env) {
     if (!/^(sk|rk)_live_/.test(key)) throw new Error("--mode live needs a live-mode key in STRIPE_SECRET_KEY");
     return key;
   }
-  throw new Error(`--mode must be test or live, not ${mode}`);
+  throw new Error(`--mode is required and must be test or live (not ${JSON.stringify(mode ?? "")}): after launch a default of "test" would read the sandbox and pass while live money went unchecked`);
 }

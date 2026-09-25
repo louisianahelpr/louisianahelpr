@@ -1213,6 +1213,29 @@ describe("create-payment edge function", () => {
       expect(slackAlerts.some((a) => (a as { title?: string }).title === "Cancelled gift-funded job could not have its gift returned")).toBe(true);
     });
 
+    // A retry of a cancel left 'cancelling' by a failed restore, after Stripe's
+    // ~24h idempotency window: the charge already carries the refund, so a
+    // second refunds.create must not be sent (lh-money-escrow review, SC-005).
+    // @mutate supabase/functions/create-payment/index.ts | if (refundAmount > 0 && alreadyRefundedCents >= refundAmount) { | if (false) {
+    it("a retried cancel does not refund a charge that is already refunded, and still restores and flips", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", stripe_payment_intent_id: "pi_short", budget: 30, customer_fee_amount: 0, payment_status: "cancelling" }],
+      };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_short", status: "succeeded", amount: 500, amount_received: 500,
+        latest_charge: { amount_refunded: 470 },
+      });
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      scenario.rpc.restore_gift_card_for_job = { outcome: "already_restored", credit_id: "gift-2", restore_cents: 2500 };
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(200);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect((jobUpdates[jobUpdates.length - 1]?.payload as Record<string, unknown>).status).toBe("cancelled");
+    });
+
     it("skips the refund but ALERTS ops when withholding consumes the whole capture ($0 refund)", async () => {
       seedAuth(scenario, POSTER);
       // A $2 capture whose entire value is a $2 service fee: withholding the

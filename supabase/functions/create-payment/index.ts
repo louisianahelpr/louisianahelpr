@@ -1456,7 +1456,22 @@ serve(async (req) => {
           // the payment_status flip below makes the second 409 out.
           // Skip the refund entirely if the withholding consumes the whole
           // capture (Stripe rejects a $0 refund); the job still flips cancelled.
-          if (refundAmount > 0) {
+          // A retry of a cancel that already refunded (the job is left
+          // 'cancelling' when the gift restore below fails) must not refund
+          // again: the idempotency key only dedupes for ~24h, and past that a
+          // second refunds.create either errors (stranding the job) or, when
+          // the withholding is at least half the capture, pays out twice.
+          // The charge's own amount_refunded is the authority.
+          const alreadyRefundedCents = Number(
+            (pi.latest_charge && typeof pi.latest_charge === "object"
+              ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded
+              : 0) ?? 0,
+          );
+          if (refundAmount > 0 && alreadyRefundedCents >= refundAmount) {
+            console.log(
+              `[create-payment] cancel_escrow: charge for job ${jobId} already refunded ${alreadyRefundedCents}¢ (>= ${refundAmount}¢) — not refunding again`,
+            );
+          } else if (refundAmount > 0) {
             const refund = await stripe.refunds.create(
               { payment_intent: cancelPaymentIntentId, amount: refundAmount },
               { idempotencyKey: `cancel-escrow-${jobId}` },
@@ -1518,9 +1533,10 @@ serve(async (req) => {
       //
       // After the refund, before the flip, and FAIL CLOSED: if the gift cannot
       // be given back the job stays 'cancelling', which the claim above
-      // re-admits, so a retry re-runs this (the refund is deduped by its
-      // idempotency key and the restore by restored_from_job_id's uniqueness).
-      // Flipping anyway would make the loss permanent. The caller is the
+      // re-admits, so a retry re-runs this (the refund is skipped once the
+      // charge shows it, and the restore dedupes on restored_from_job_id).
+      // Flipping anyway would make the loss permanent. Nothing sweeps
+      // 'cancelling' (docs/OPEN.md Q411), so the alert asks for a hand. The caller is the
       // recipient themself (poster == gift recipient), so the answer below is
       // their notice; no separate notification is sent.
       const giftBack = await restoreGiftForCancelledJob(supabaseAdmin, jobId);
@@ -1532,7 +1548,9 @@ serve(async (req) => {
           title: "Cancelled gift-funded job could not have its gift returned",
           message:
             `cancel_escrow on job ${jobId} could not give the recipient's gift card back, so the job was left 'cancelling' ` +
-            "(retryable) instead of cancelled. Any shortfall refund above has been issued.",
+            "instead of cancelled. Any shortfall refund above has been issued. MANUAL ACTION: nothing retries this " +
+            "automatically and the job is still open and hireable; re-run cancel_escrow for it (a repeat call does not " +
+            "refund twice and the restore is idempotent) or restore the gift by hand before anyone is hired.",
           fields: { job_id: jobId, reason: giftBack.reason.slice(0, 200) },
           seed: job.is_seed === true,
         });

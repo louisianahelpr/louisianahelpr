@@ -22,9 +22,13 @@
 --
 --   1. sync_job_after_roster_departure, AFTER DELETE on group_job_helpers.
 --      Whoever deletes the row (the poster while staffing, the Helpr through
---      helper_cancel_booking, account deletion), the departed Helpr's accepted
---      application becomes `rejected` (no notice: notify_on_application only
---      speaks on pending -> rejected), and if they were the lead:
+--      helper_cancel_booking), the departed Helpr's accepted application
+--      becomes `rejected` (no notice: notify_on_application only speaks on
+--      pending -> rejected), and if they were the lead:
+--      (Account deletion does NOT come through here: purge_user_data
+--      anonymises the roster row with an UPDATE, helper_id -> NULL, and
+--      _shared/accountPurge.ts findActiveWork refuses the deletion while the
+--      Helpr is on a live crew. 20260925154606 removes the lead entirely.)
 --        - on a FUNDED job the lead moves to the earliest remaining member the
 --          award gate would accept (helper_award_block_reason IS NULL);
 --        - otherwise `jobs.helper_id` is cleared, and the next hire becomes the

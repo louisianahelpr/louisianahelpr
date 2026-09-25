@@ -2009,7 +2009,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### HEADS-UP — three duplicate reads on every Activity page load (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] useActivityBadgeCounts mounted by both DesktopSidebarNav and MobileNav causes 3x/2x duplicate prod round trips — Reported only: duplicate badge-count/application-count/avatar reads fire from both nav components on every Activity load; not de-duplicated via React Query. No fix landed. (archive L1686)
+- [x] useActivityBadgeCounts mounted by both DesktopSidebarNav and MobileNav causes 3x/2x duplicate prod round trips — DONE (re-read 2026-09-25, queue lane): fixed by Q53/Q103; useActivityBadgeCounts and useNavUnreadCount each keep ONE store per user (stores map, src/hooks/useActivityBadgeCounts.ts), so the second nav mount costs no request, and realtime wake-ups coalesce through scheduleLoad on the shared userRealtimeBus channel. GUARD: src/test/hotQueryLoad.test.ts ('reuses one store per user instead of opening a new one per consumer', both hooks) + src/test/realtimeChannelInventory.test.ts. The avatar in both navs comes from the auth profile (no nav-level DB read); the <img> fetch itself was not re-measured in a browser this session. Original report: duplicate badge-count/application-count/avatar reads fire from both nav components on every Activity load; not de-duplicated via React Query. No fix landed. (archive L1686)
 
 ### CLOSED 2026-09-22 — hired-and-funded journey leftovers accumulate in escrow
 Reconciled 2026-09-23; detail in the archive at the line shown.

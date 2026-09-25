@@ -540,6 +540,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/crewShares.ts";`,
   );
 
+  // Q407 (5)/(9): `_shared/seriesRefund.ts` has ZERO imports and decides when a
+  // cancelled series visit is refunded in full; the real module is under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/seriesRefund\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/seriesRefund.ts";`,
+  );
+
   // ── The transactional-email layer ────────────────────────────────────────
   //
   // `_shared/resend.ts` constructs a Resend client at module scope,

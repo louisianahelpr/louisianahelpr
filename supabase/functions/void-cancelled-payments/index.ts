@@ -5,6 +5,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { computeCancellationFee } from "../_shared/cancellationFee.ts";
 import { crewCancellationFee } from "../_shared/crewShares.ts";
+import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
@@ -575,7 +576,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, is_group_job, helpers_needed")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, is_group_job, helpers_needed, parent_job_id, cancellation_reason")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
@@ -965,7 +966,9 @@ serve(async (req) => {
         crewShares = (shareRows ?? []) as CrewShare[];
         jobCancellationFee = priced.total;
       } else {
-        jobCancellationFee = computeCancellationFee(job);
+        // An unfilled or ban-ended series visit carries no fee
+        // (_shared/seriesRefund.ts).
+        jobCancellationFee = refundsSeriesVisitInFull(job) ? 0 : computeCancellationFee(job);
       }
       const payCancellationFee = (fee: number, pi: Stripe.PaymentIntent) =>
         crewShares ? payCrewCancellationFees(job, crewShares, pi) : payHelperCancellationFee(job, fee, pi);
@@ -1046,6 +1049,10 @@ serve(async (req) => {
           // cancel time, so this still equals the amount the poster was shown on
           // the "Cancel · pay $X" button (both derive from the same ladder),
           // while removing the ability for a helper to skim the refund.
+          // An unfilled or ban-ended series visit is refunded IN FULL, the
+          // service fee included (money audit MEDIUM-9, Q407 (5)/(9);
+          // _shared/seriesRefund.ts). Its fee is priced as 0 above.
+          const fullSeriesRefund = refundsSeriesVisitInFull(job);
           const cancellationFee = jobCancellationFee;
           // Refund the entire captured amount minus the cancellation fee AND the
           // non-refundable poster service fee.
@@ -1064,7 +1071,9 @@ serve(async (req) => {
           // never loses money regardless of payment method — cards, Klarna/
           // Affirm/Afterpay, and ACH all carry different real rates.
           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
-          const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
+          const nonRefundableCents = fullSeriesRefund
+            ? 0
+            : Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
           const refundAmount = capturedCents - Math.round(cancellationFee * 100) - nonRefundableCents;
           // ── Ledger guard against a SECOND real refund ────────────────────
           // The idempotency key below is permanent and unsalted. That protects

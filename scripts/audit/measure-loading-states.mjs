@@ -445,6 +445,10 @@ async function measureOne(context, { url, persona }) {
       await page.waitForTimeout(100);
     }
     result.stage = { waves, ended };
+    // Where the page actually is when the frame is judged: a signed-in route
+    // that redirected (to /login, /complete-profile, ...) is not a measurement
+    // of that route, and the log line must say so.
+    result.finalUrl = page.url().replace(BASE, "");
 
     if (!loading || !loading.found) {
       openGate();
@@ -673,7 +677,7 @@ async function main() {
         ? `cl=${String(r.clustersMeasured ?? 0)}/${String(r.clusters?.length ?? 0)}  worstΔrow=${String(r.worstDeltaRowPx ?? "?").padStart(7)}px  ` +
           `ΔrowH=${String(r.worstDeltaRowH ?? "-").padStart(5)}  Δrows=${String(r.worstDeltaRows ?? "-").padStart(4)}  shapeBad=${r.shapeMismatches}  ` +
           `shift=${String(r.maxLandmarkShiftPx ?? "?").padStart(6)}px`
-        : r.status;
+        : `${r.status}  ${r.note ?? ""}${r.finalUrl && r.finalUrl !== t.url ? `  (at ${r.finalUrl})` : ""}`;
       console.log(`${t.persona.padEnd(9)} ${t.url.padEnd(44)} ${tag}`);
     }
   };

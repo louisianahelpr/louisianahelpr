@@ -1705,6 +1705,73 @@ export type Database = {
           },
         ]
       }
+      job_schedule_change_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          expires_at: string
+          id: string
+          job_id: string
+          new_date: string
+          new_start_time: string | null
+          old_date: string
+          old_start_time: string | null
+          requested_by: string
+          responder_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          expires_at: string
+          id?: string
+          job_id: string
+          new_date: string
+          new_start_time?: string | null
+          old_date: string
+          old_start_time?: string | null
+          requested_by: string
+          responder_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          expires_at?: string
+          id?: string
+          job_id?: string
+          new_date?: string
+          new_start_time?: string | null
+          old_date?: string
+          old_start_time?: string | null
+          requested_by?: string
+          responder_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_schedule_change_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_schedule_change_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_schedule_change_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_tracking: {
         Row: {
           created_at: string | null
@@ -6527,11 +6594,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      request_job_schedule_change: {
+        Args: { p_date: string; p_job_id: string; p_start_time: string }
+        Returns: Json
+      }
       resolve_auto_tip: {
         Args: { _budget: number; _user: string }
         Returns: number
       }
       resolve_stalled_job_flag: { Args: { p_job_id: string }; Returns: boolean }
+      respond_job_schedule_change: {
+        Args: { p_accept: boolean; p_request_id: string }
+        Returns: Json
+      }
       respond_to_direct_offer: {
         Args: { p_accept: boolean; p_job_id: string }
         Returns: Json

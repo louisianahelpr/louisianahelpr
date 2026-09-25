@@ -2955,6 +2955,19 @@
     "nargs": 0
    }
   ],
+  "request_job_schedule_change": [
+   {
+    "anon": false,
+    "args": [
+     "p_job_id",
+     "p_date",
+     "p_start_time"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
   "resolve_auto_tip": [
    {
     "anon": false,
@@ -2976,6 +2989,18 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 1
+   }
+  ],
+  "respond_job_schedule_change": [
+   {
+    "anon": false,
+    "args": [
+     "p_request_id",
+     "p_accept"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
    }
   ],
   "respond_to_direct_offer": [
@@ -7467,6 +7492,116 @@
     "before:insert",
     "before:update"
    ]
+  },
+  "job_schedule_change_requests": {
+   "checks": [
+    "CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'declined'::text, 'expired'::text, 'replaced'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "decided_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "expires_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "new_date": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "date"
+    },
+    "new_start_time": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "time without time zone"
+    },
+    "old_date": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "date"
+    },
+    "old_start_time": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "time without time zone"
+    },
+    "requested_by": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "responder_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "The two parties read a change request",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": []
   },
   "job_tracking": {
    "checks": [],

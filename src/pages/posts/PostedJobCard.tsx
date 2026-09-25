@@ -5,6 +5,7 @@ import { RotateCcw, RefreshCw, Check, MapPinOff } from "lucide-react";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { SeriesStrip } from "@/pages/posts/SeriesStrip";
 import { SeriesDatesPanel } from "@/components/series/SeriesDatesPanel";
+import { ScheduleChangeControl } from "@/components/schedule/ScheduleChangeControl";
 import { JobCountdown } from "@/components/job-card/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
@@ -378,6 +379,18 @@ function PostedJobCardInner({
                 isPoster
                 firstHelpr={job.recurring_helper_id && job.recurring_helper_id === job.helper_id ? job.recurring_helper_id : null}
                 splitOk={!!job.series_split_ok}
+              />
+            )}
+            {/* A booked one-time job's date/time changes only by a request the
+                Helpr accepts (Q407 8). */}
+            {!!userId && job.status === "accepted" && !!job.helper_id && !job.helper_completed_at &&
+              !job.parent_job_id && !(job.recurrence_days?.length) && !job.is_group_job && !!job.date_needed && (
+              <ScheduleChangeControl
+                jobId={job.id}
+                jobTitle={job.title}
+                userId={userId}
+                dateNeeded={job.date_needed}
+                startTime={job.start_time}
               />
             )}
 

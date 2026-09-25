@@ -33,6 +33,7 @@ import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { EndSeriesControl } from "@/components/series/EndSeriesControl";
 import { SeriesDatesPanel } from "@/components/series/SeriesDatesPanel";
+import { ScheduleChangeControl } from "@/components/schedule/ScheduleChangeControl";
 import { formatJobDate } from "@/lib/dateUtils";
 
 /**
@@ -878,6 +879,18 @@ function AppliedJobCardInner({
                 />
               )}
             </div>
+          )}
+          {/* A booked one-time job's date/time changes only by a request the
+              person who posted it accepts (Q407 8). */}
+          {!!userId && job.helper_id === userId && job.status === "accepted" && !job.helper_completed_at &&
+            !job.parent_job_id && !(job.recurrence_days?.length) && !job.is_group_job && !!job.date_needed && (
+            <ScheduleChangeControl
+              jobId={job.id}
+              jobTitle={job.title}
+              userId={userId}
+              dateNeeded={job.date_needed}
+              startTime={job.start_time}
+            />
           )}
           {/* WHAT THIS CARD IS WAITING ON — one sentence, at the card's bottom
               edge (owner, 2026-09-19: "should show what we are waiting on...

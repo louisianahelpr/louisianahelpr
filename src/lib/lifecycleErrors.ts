@@ -202,6 +202,25 @@ export const RPC_ERROR_COPY = {
     job_not_found: JOB_GONE,
     not_authenticated: "Please sign in again to end this series.",
   },
+  // ScheduleChangeControl — asking for a new date/time on a booked job (Q407 8).
+  request_job_schedule_change: {
+    not_authorized: "Only the two people on this job can ask to change its date or time.",
+    schedule_change_not_one_time: "A recurring series keeps its schedule; change its dates from the series instead.",
+    schedule_change_not_booked: "This job isn't booked any more, so its date or time can't be changed this way. Refresh and check.",
+    schedule_change_too_late: "The job has already started, so its date or time can't be changed now.",
+    schedule_change_in_past: "Pick a date and time that are still ahead.",
+    schedule_change_same: "That's the date and time the job already has.",
+    schedule_change_invalid: "Pick a date for the new time.",
+    account_restricted: "Your account is restricted, so you can't ask for changes right now.",
+    job_not_found: JOB_GONE,
+    not_authenticated: "Please sign in again to ask for a change.",
+  },
+  respond_job_schedule_change: {
+    not_authorized: "Only the other person on this job can answer this request.",
+    request_not_found: "That request no longer exists. Refresh to see the job as it is.",
+    account_restricted: "Your account is restricted, so you can't answer requests right now.",
+    not_authenticated: "Please sign in again to answer this request.",
+  },
   // SeriesDatesPanel — picking visit dates on a series (Q407 5).
   claim_series_dates: {
     not_authorized: "You can pick dates once the person who posted this series offers them to you, or once you have dates on it.",

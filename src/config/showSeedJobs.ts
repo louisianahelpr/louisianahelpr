@@ -145,4 +145,9 @@ export const SEED_GATED_SURFACES = [
   // `seed_jobs_hidden_publicly()` directly, which is why the caller-half of
   // the parity discovery found it the moment it landed.
   { surface: "apply-path refusal (write side)", object: "public.enforce_application_job_state" },
+  // ADDED 2026-09-26 with 20260926193006 (Q392). The one predicate every job
+  // announcement (instant parish push, saved-search and parish alerts) asks
+  // before telling a Helpr about a job; it calls `seed_jobs_hidden_publicly()`
+  // so a fixture job is never announced once the launch switch flips.
+  { surface: "job announcement predicate", object: "public.job_announceable_to" },
 ] as const;

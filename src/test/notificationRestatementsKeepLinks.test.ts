@@ -223,6 +223,8 @@ describe("Q139: a restated notification producer keeps the links the database wr
       "20260901021929_notification_links_never_carry_a_fixed_filter.sql",
       // Copy, not links: the same mechanism rewording SQL notification copy.
       "20260925143327_notification_copy_names_the_person.sql",
+      // Drift repair: re-runs 20260925143327's two helper_cancel_booking rewrites.
+      "20260926193844_helper_cancel_booking_copy_reapply.sql",
     ]);
     expect(tuples).toBeGreaterThan(28);
     expect(unparsed.sort()).toEqual([...NOT_LINK_REWRITES].sort());

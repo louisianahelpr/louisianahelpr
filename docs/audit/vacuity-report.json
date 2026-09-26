@@ -1,11 +1,14 @@
 {
-  "generated": "2026-09-26T03:57:18.644Z",
-  "guards": 1054,
-  "registered": 1054,
-  "unregistered": [],
+  "generated": "2026-09-26T05:12:09.412Z",
+  "guards": 1086,
+  "registered": 1085,
+  "unregistered": [
+    "src/components/admin/adminusers/adminUsersProfilesPaging.test.ts"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/admin/adminStalledJobsWiring.test.tsx",
+    "src/components/admin/adminusers/adminUsersProfilesPaging.test.ts",
     "src/components/analytics/analyticsContrast.test.ts",
     "src/lib/earlyAccess.parity.test.ts",
     "src/lib/evidenceUrl.test.ts",
@@ -28,6 +31,7 @@
     "src/test/messageToneInvariant.test.ts",
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
+    "src/test/sessionWorktree.test.ts",
     "src/test/storageBucketLimits.test.ts",
     "src/test/unknownZipIsNeverSilent.test.ts"
   ],
@@ -51,6 +55,15 @@
       "module": "src/components/admin/AdminUserDetailDialog.tsx",
       "tests": [
         "src/components/admin/AdminUserDetailDialog.test.tsx"
+      ],
+      "parents": [
+        "src/components/admin/AdminUsers.tsx"
+      ]
+    },
+    {
+      "module": "src/components/admin/adminusers/AdminUserRow.tsx",
+      "tests": [
+        "src/test/adminUserSummaryUnknownIsNotAbsent.test.tsx"
       ],
       "parents": [
         "src/components/admin/AdminUsers.tsx"

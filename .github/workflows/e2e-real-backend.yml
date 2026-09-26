@@ -159,14 +159,20 @@ jobs:
     name: Anon surface contract (real prod, read-only, no credentials)
     runs-on: ubuntu-latest
     # 15, not 5: the page leg now builds this commit instead of asking Vercel.
-    timeout-minutes: 15
+    # 20 since 2026-09-26: plus a Chromium install and the PD-009 route walk.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: "npm"
+      - name: Drop the Google Chrome apt source
+        # Same reason as the authenticated leg: `playwright install --with-deps`
+        # runs `apt-get update`, and Google's repo is only a source of outages.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
       - name: Build and serve this commit locally (real backend, local frontend)
         uses: ./.github/actions/local-preview
         with:
@@ -198,6 +204,26 @@ jobs:
           SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
         run: node scripts/ci/guest-listing-horizon.mjs
+      - name: Route changes keep no old page alive (PD-009) + shell-spacing probe (Q411)
+        # 40 guest route changes on this commit's build, then CDP detached-DOM
+        # and node/listener budgets after forced GC. Needs no credentials, so it
+        # lives in the leg that runs on every PR and push (the authenticated
+        # leg is schedule/dispatch only). Chromium only (it needs CDP); ~30 s.
+        # `always()` so a red contract step above cannot hide a leak, and
+        # probes/shell-spacing-probe (Q411) rides the same step: setContent
+        # pages, no backend, ~2 s; it proves the shell-spacing probe cannot
+        # swallow the gap it measures.
+        # ONE line: e2eSpecsReachableInCi reads workflow files line by line.
+        if: always()
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+        run: npx playwright test --project=chromium e2e/memory/route-retention.spec.ts e2e/probes/shell-spacing-probe.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
+      - name: Backend request budget (Q104)
+        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
+        # fails over e2e/request-budgets.json. `always()`: this leg allows
+        # only always-run conditions (e2eSpecsReachableInCi).
+        if: always()
+        run: node scripts/e2e/request-budget.mjs --label chromium
 
   # ---------------------------------------------------------------------
   # Leg 2 — a real account against the deployed site.

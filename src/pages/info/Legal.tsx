@@ -27,6 +27,7 @@ import {
   TAB_ICONS,
   TAB_ORIGIN_LABELS,
 } from "./legal/legalSections";
+import { SharedLayoutPill } from "@/components/ui/SharedLayoutPill";
 
 /* ─────────────────────────  PER-TAB TITLE  ───────────────────────── */
 // Per-tab H1 text for the NATIVE in-app header. Plain single-colour strings,
@@ -348,7 +349,7 @@ const Legal = () => {
                 so switching tabs animates the pill across rather than hopping.
                 Gradient + inset highlight + soft drop shadow give it depth. */}
             {isActive && (
-              <motion.span
+              <SharedLayoutPill
                 layoutId="legalTabPill"
                 transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
                 className="absolute inset-0 rounded-ds-md btn-grad-primary"

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import type { CSSProperties } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Crown, CheckCircle, Loader2, RefreshCw, Sparkles, Clock } from "lucide-react";
@@ -27,6 +27,7 @@ import {
   type IapCadence,
 } from "@/lib/iap";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { SharedLayoutPill } from "@/components/ui/SharedLayoutPill";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -281,7 +282,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               }}
             >
               {active && (
-                <motion.span
+                <SharedLayoutPill
                   layoutId="membershipBillingPill"
                   transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
                   className="absolute inset-0 rounded-ds-md btn-grad-primary"

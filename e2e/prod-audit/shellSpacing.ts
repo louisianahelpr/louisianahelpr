@@ -112,8 +112,20 @@ export function readShellSpacing(): SpacingRow {
     block = titleCard;
     titleKind = "card";
   } else if (h1) {
+    // The title ROW is the tightest box around the title's content. Climb only
+    // through wrappers that add no vertical padding: that padding IS the
+    // --shell-gap this probe measures, so a padded wrapper is the gap, not the
+    // row. Height alone was the old rule and it read the Profile landing as
+    // 0/0 (Q411): with no back-button slot its row is the 25px h1, so
+    // PageHeader's `py-[var(--shell-gap)]` box is only 49px, under the 64px
+    // cap, and got swallowed into the "title". Pages with a back button have a
+    // 44px row, 68px padded, so they never hit it.
+    const padsY = (el: Element) => {
+      const s = getComputedStyle(el);
+      return parseFloat(s.paddingTop) > 0 || parseFloat(s.paddingBottom) > 0;
+    };
     let row: Element = h1;
-    while (row.parentElement && row.parentElement.getBoundingClientRect().height <= 64) row = row.parentElement;
+    while (row.parentElement && row.parentElement.getBoundingClientRect().height <= 64 && !padsY(row.parentElement)) row = row.parentElement;
     block = row;
     titleKind = "row";
     // A painted card wrapping the row, starting below the chrome and not the page itself.
@@ -318,8 +330,14 @@ export function readSectionSpacing(): SectionRow {
   const titleCard = h1 ? null : document.querySelector(".app-shell-frame .liquid-glass.shrink-0");
   if (titleCard && visible(titleCard)) block = titleCard;
   else if (h1) {
+    // Same row rule as readShellSpacing (Q411): never climb into a wrapper
+    // that pads vertically, since its padding is the gap, not the row.
+    const padsY = (el: Element) => {
+      const s = getComputedStyle(el);
+      return parseFloat(s.paddingTop) > 0 || parseFloat(s.paddingBottom) > 0;
+    };
     let row: Element = h1;
-    while (row.parentElement && row.parentElement.getBoundingClientRect().height <= 64) row = row.parentElement;
+    while (row.parentElement && row.parentElement.getBoundingClientRect().height <= 64 && !padsY(row.parentElement)) row = row.parentElement;
     block = row;
     let p: Element | null = row;
     while (p && p !== document.body) {

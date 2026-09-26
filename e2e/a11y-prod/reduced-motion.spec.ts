@@ -197,7 +197,7 @@ async function measureMotion(page: Page, url: string, extraSetup?: (page: Page) 
   }, MAX_MS);
 }
 
-function authedScreens(poster: Session, realJobId: string | null): ScreenSpec[] {
+function authedScreens(poster: Session, realJobId: string | null, otherUserId: string | null): ScreenSpec[] {
   const out: ScreenSpec[] = [];
   for (const s of AUTHED_SCREENS) {
     if (s.seededOnly || s.name === "complete-profile-incomplete") continue;
@@ -206,6 +206,7 @@ function authedScreens(poster: Session, realJobId: string | null): ScreenSpec[] 
       continue;
     }
     if (s.name === "user-profile" || s.name === "user-profile-customer") {
+      if (s.name === "user-profile" && otherUserId) out.push({ name: "user-profile", url: `/user/${otherUserId}` });
       if (s.name === "user-profile-customer") out.push({ name: "user-profile-self", url: `/user/${poster.user.id}` });
       continue;
     }
@@ -262,11 +263,13 @@ test.describe("Reduce Motion: nothing moves (Q254)", () => {
 
   let poster: Session | null = null;
   let realJobId: string | null = null;
+  let otherUserId: string | null = null;
   const signedInScreens = inScope(AUTHED_SCREENS.filter((s) => !s.seededOnly && s.name !== "complete-profile-incomplete"));
 
   test.beforeAll(async ({ request }) => {
     if (!signedInScreens.length || !sessionAvailable("poster")) return;
     poster = await getSession(request, "poster");
+    if (sessionAvailable("helper")) otherUserId = (await getSession(request, "helper")).user.id;
     const jobs = await request.get(`${SUPABASE_URL}/rest/v1/open_jobs_browse?select=id&limit=1`, {
       headers: { apikey: ANON, Authorization: `Bearer ${ANON}` },
     });
@@ -277,7 +280,7 @@ test.describe("Reduce Motion: nothing moves (Q254)", () => {
     for (const spec of signedInScreens) {
       test(`${spec.name} (signed-in/${v.tag})`, async ({ browser }) => {
         test.skip(!poster, "no poster session (PLAYWRIGHT_POSTER_EMAIL/_PASSWORD or a local .env) — the signed-in surface was NOT checked for motion");
-        const screen = authedScreens(poster!, realJobId).find(
+        const screen = authedScreens(poster!, realJobId, otherUserId).find(
           (s) =>
             s.name === spec.name ||
             (spec.name === "job-detail-1" && s.name === "job-detail") ||

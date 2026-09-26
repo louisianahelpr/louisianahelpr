@@ -74,9 +74,10 @@ describe("every user_id table has a foreign key or a stated reason (Q282)", () =
   const missing = tablesWithoutUserFk();
   // Inventory, EXACT (Q339): the scanner must still see every public table
   // with a user_id uuid column. Live information_schema agreed on 2026-09-24
-  // (33); 2026-09-25 V-008 adds saved_search_alert_queue (FK to auth.users).
+  // (33); 2026-09-25 V-008 adds saved_search_alert_queue (FK to auth.users);
+  // 2026-09-26 Q355 part 2 adds ops_alert_admin_subjects (FK to auth.users).
   it("scans the whole user_id inventory", () => {
-    expect(scanned.length).toBe(34);
+    expect(scanned.length).toBe(35);
   });
   it("no user_id table without a FK is missing from KNOWN_NO_FK", () => {
     expect(missing.filter((t) => !(t in KNOWN_NO_FK))).toEqual([]);

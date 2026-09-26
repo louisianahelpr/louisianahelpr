@@ -68,7 +68,7 @@ describe("a permanent ban ends the account's recurring series (Q407 9)", () => {
   });
 
   it("one series it cannot handle never undoes the ban: own subtransaction, logged fatal", () => {
-    expect(sql).toMatch(/EXCEPTION WHEN OTHERS THEN\s+RAISE WARNING[\s\S]{0,200}INSERT INTO public\.error_logs \(severity, message, tags, context\)\s+VALUES \('fatal',/);
+    expect(sql).toMatch(/EXCEPTION WHEN OTHERS THEN\s+RAISE WARNING[\s\S]{0,600}INSERT INTO public\.error_logs \(severity, message, tags, context\)\s+VALUES \(CASE WHEN COALESCE\(v_p\.is_seed, false\) THEN 'error' ELSE 'fatal' END,/);
   });
 
   it("the executable PGlite proof exists", () => {

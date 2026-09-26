@@ -232,7 +232,7 @@ BEGIN
 
   FOR v_p IN
     SELECT j.id, j.title, j.customer_id, j.recurring_helper_id, j.helper_id, j.series_split_ok,
-           j.status::text AS status, j.date_needed, j.start_time, j.helper_completed_at
+           j.status::text AS status, j.date_needed, j.start_time, j.helper_completed_at, j.is_seed
       FROM public.jobs j
      WHERE j.parent_job_id IS NULL
        AND j.recurrence_days IS NOT NULL
@@ -395,11 +395,14 @@ BEGIN
       PERFORM set_config('app.sanctioned_cancel', COALESCE(v_cancel_flag, 'off'), true);
     EXCEPTION WHEN OTHERS THEN
       RAISE WARNING 'end_series_for_banned_account: series % for % not handled: %', v_p.id, p_user, SQLERRM;
+      -- A seed (E2E) series is logged at 'error' and tagged, like every
+      -- detector's seed rows (detect_stuck_payments), never paging as fatal.
       INSERT INTO public.error_logs (severity, message, tags, context)
-      VALUES ('fatal',
+      VALUES (CASE WHEN COALESCE(v_p.is_seed, false) THEN 'error' ELSE 'fatal' END,
               format('A permanent ban could not end or hand back recurring series %s (%s). The ban stands and charge-recurring-visits skips the banned party, but the series needs a person: end it or hand the dates back by hand.',
                      v_p.id, SQLERRM),
-              jsonb_build_object('source', 'end_series_for_banned_account', 'area', 'recurring-series'),
+              jsonb_build_object('source', 'end_series_for_banned_account', 'area', 'recurring-series',
+                                 'seed', COALESCE(v_p.is_seed, false)),
               jsonb_build_object('parent_job_id', v_p.id, 'user_id', p_user, 'sqlstate', SQLSTATE));
     END;
   END LOOP;

@@ -264,10 +264,10 @@ export function ShareJobButton({
           color: "hsl(var(--muted-foreground))",
           ...(compact ? { minHeight: "32px", minWidth: "32px" } : {}),
         } : {
-          backgroundColor: "hsla(0, 0%, 100%, 0.32)",
+          backgroundColor: "hsl(var(--card) / 0.32)",
           backdropFilter: "blur(20px) saturate(150%)",
           WebkitBackdropFilter: "blur(20px) saturate(150%)",
-          border: "0.5px solid hsla(0, 0%, 100%, 0.4)",
+          border: "0.5px solid hsl(var(--card) / 0.4)",
           color: "hsl(var(--olivewood) / 0.80)",
           boxShadow:
             "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px hsl(var(--olivewood) / 0.04)",

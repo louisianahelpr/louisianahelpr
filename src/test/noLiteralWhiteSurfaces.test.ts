@@ -10,7 +10,10 @@
  * Some literal whites are legitimate — a scrim over a PHOTO (the lightbox) is
  * the same in both themes — so this is an EXACT per-file baseline, not a ban:
  * a new site fails, and fixing one fails too until its count here is lowered
- * (two-way). The remaining sites are unjudged in dark theme; see Q277.
+ * (two-way). Q277 (2026-09-26) judged every site in dark: the twelve that
+ * painted a pale grey block moved to hsl(var(--card) / a) (the Wrapped
+ * skeleton to --parchment, matching its loaded tile); the two files left below
+ * are right in both themes, for the reason beside each.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -19,6 +22,7 @@ import { resolve } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 // @mutate src/components/profile/ReviewsTab.tsx | background: "hsl(var(--card) / 0.65)", | background: "hsla(0, 0%, 100%, 0.65)",
+// @mutate src/components/profile/TwoFactorCard.tsx | background: "hsl(var(--card) / 0.55)", | background: "hsla(0, 0%, 100%, 0.55)",
 
 const ROOT = resolve(__dirname, "..", "..");
 const FILES = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })
@@ -30,15 +34,13 @@ const LITERAL_WHITE_BG =
 
 // @two-way src/test/noLiteralWhiteSurfaces.test.ts:stale literal-white baseline entry
 const BASELINE: Record<string, number> = {
+  // Judged in dark 2026-09-26 (Q277): the footer's 8% white is a faint lift over
+  // the dark page, not a pale block (screenshot of / at 375, dark and light).
   "src/components/Footer.tsx": 1,
-  "src/components/PhotoProof.tsx": 2,
+  // Judged 2026-09-26 (Q277): all five sit on the lightbox's own scrim,
+  // hsla(38, 18%, 12%, 0.55), which is dark in BOTH themes, so a white wash is
+  // right in both.
   "src/components/dashboard/PhotoLightbox.tsx": 5,
-  "src/components/jobs/ShareJobButton.tsx": 1,
-  "src/components/postjob/MaterialsPanel.tsx": 1,
-  "src/components/profile/ScheduleTab.tsx": 2,
-  "src/components/profile/TwoFactorCard.tsx": 1,
-  "src/pages/profile/HelprWrapped.tsx": 1,
-  "src/pages/post-job/CheckoutStepIndicator.tsx": 1,
 };
 
 describe("literal-white inline surfaces are ratcheted (Q179)", () => {

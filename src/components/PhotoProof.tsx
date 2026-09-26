@@ -292,7 +292,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip 
                     onClick={handleNativeAdd}
                     className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
                     style={{
-                      background: "hsla(0, 0%, 100%, 0.4)",
+                      background: "hsl(var(--card) / 0.4)",
                       border: "1.5px dashed hsl(var(--bark) / 0.30)",
                     }}
                   >
@@ -308,7 +308,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip 
                   <label
                     className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97] focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.45)]"
                     style={{
-                      background: "hsla(0, 0%, 100%, 0.4)",
+                      background: "hsl(var(--card) / 0.4)",
                       border: "1.5px dashed hsl(var(--bark) / 0.30)",
                     }}
                   >

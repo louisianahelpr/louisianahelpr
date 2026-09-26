@@ -160,18 +160,18 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
       selectOverrides: [{ includes: "payout_split", result: { rows: [] } }],
     };
     scenario.reads.crew_dispute_member_outcomes = {
-      rows: outcomesFor.map((helper_id) => ({ helper_id, outcome: refunded.includes(helper_id) ? "refund" : "pay" })),
+      rows: outcomesFor.map((helper_id) => ({ helper_id, member_outcome: refunded.includes(helper_id) ? "refund" : "pay" })),
     };
     scenario.rpc.mark_crew_dispute_executed = true;
   }
 
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts | .or("disputed_at.is.null,dispute_status.in.(resolved,auto_resolved)") | .is("disputed_at", null)
-  it("Q396(c): the payout query admits a job whose dispute CLOSED (resolved / auto_resolved), not only a never-disputed one", async () => {
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | .or("disputed_at.is.null,and(is_group_job.is.true,dispute_status.in.(resolved,auto_resolved))") | .is("disputed_at", null)
+  it("Q396(c): the payout query admits a CREW whose dispute CLOSED (resolved / auto_resolved); a single job still needs disputed_at IS NULL", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333], ["m3", 2, 3333]]);
     await run();
     const q = scenario.readQueries.find((r) => r.table === "jobs" && r.cols.includes("sales_tax_rate"));
     expect(q?.filters).toEqual(
-      expect.arrayContaining([expect.objectContaining({ op: "or", value: "disputed_at.is.null,dispute_status.in.(resolved,auto_resolved)" })]),
+      expect.arrayContaining([expect.objectContaining({ op: "or", value: "disputed_at.is.null,and(is_group_job.is.true,dispute_status.in.(resolved,auto_resolved))" })]),
     );
     expect(q?.filters.some((f) => f.op === "is" && f.column === "disputed_at")).toBe(false);
     // A group job reads the unsettled-dispute hold WITHOUT its own crew

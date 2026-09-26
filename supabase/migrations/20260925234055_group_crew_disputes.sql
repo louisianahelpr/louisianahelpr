@@ -55,7 +55,11 @@
 -- was disputed once" record DisputeLink and the admin queue read, and the
 -- single-Helpr path keeps it too. The fan-out now admits a job whose dispute
 -- CLOSED (dispute_status resolved / auto_resolved), exactly release-payout's
--- rule, behind the same decided-unexecuted and claim holds.
+-- rule, behind the same decided-unexecuted and claim holds, FOR A CREW ONLY:
+-- a single-Helpr job keeps `disputed_at IS NULL` there (its closed disputes are
+-- release-payout's, and its stranded shape is watched by
+-- sweep_disputes_closed_without_payment, restated in section 9 to leave a
+-- closed CREW dispute out, since the fan-out now pays it).
 --
 -- REPLAY-SAFETY: CREATE OR REPLACE, DROP ... IF EXISTS, CREATE TABLE / INDEX
 -- IF NOT EXISTS, a re-created named CHECK. Applied 3x in PGlite
@@ -840,7 +844,7 @@ CREATE TABLE IF NOT EXISTS public.crew_dispute_member_outcomes (
   helper_id uuid,
   slot_no integer NOT NULL,
   share_cents integer NOT NULL CHECK (share_cents >= 0),
-  outcome text NOT NULL CHECK (outcome IN ('pay', 'refund')),
+  member_outcome text NOT NULL CHECK (member_outcome IN ('pay', 'refund')),
   decided_by uuid,
   decided_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (dispute_id, helper_id),
@@ -983,14 +987,14 @@ BEGIN
   END IF;
 
   INSERT INTO public.crew_dispute_member_outcomes
-    (dispute_id, job_id, helper_id, slot_no, share_cents, outcome, decided_by)
+    (dispute_id, job_id, helper_id, slot_no, share_cents, member_outcome, decided_by)
   SELECT _dispute_id, _job_id, g.helper_id, g.slot_no, g.share_cents,
          CASE WHEN g.helper_id = ANY (_refund) THEN 'refund' ELSE 'pay' END, _uid
     FROM public.group_job_helpers g
    WHERE g.job_id = _job_id AND g.helper_id IS NOT NULL;
 
-  SELECT COALESCE(sum(share_cents) FILTER (WHERE outcome = 'pay'), 0),
-         COALESCE(sum(share_cents) FILTER (WHERE outcome = 'refund'), 0)
+  SELECT COALESCE(sum(share_cents) FILTER (WHERE member_outcome = 'pay'), 0),
+         COALESCE(sum(share_cents) FILTER (WHERE member_outcome = 'refund'), 0)
     INTO _pay_cents, _refund_cents
     FROM public.crew_dispute_member_outcomes WHERE dispute_id = _dispute_id;
   _budget_cents := GREATEST(round(COALESCE(_job.budget, 0) * 100)::bigint, 1);
@@ -1037,14 +1041,14 @@ BEGIN
              ELSE '' END,
       '/posts?job=' || _job_id::text, _job_id);
   END IF;
-  FOR _m IN SELECT helper_id, outcome FROM public.crew_dispute_member_outcomes WHERE dispute_id = _dispute_id LOOP
+  FOR _m IN SELECT helper_id, member_outcome FROM public.crew_dispute_member_outcomes WHERE dispute_id = _dispute_id LOOP
     INSERT INTO public.notifications (user_id, type, title, message, link, job_id)
     VALUES (
       _m.helper_id, 'info', 'Dispute resolved',
       'A decision has been made on "' || COALESCE(_job.title, 'a job you worked') || '": ' || _decision_text ||
-        CASE WHEN _m.outcome = 'pay'
+        CASE WHEN _m.member_outcome = 'pay'
              THEN ' Your share will be paid out.'
-             ELSE ' Your share goes back to the poster.' END,
+             ELSE ' Your share goes back to the person who posted the job.' END,
       '/jobs?job=' || _job_id::text, _job_id);
   END LOOP;
 
@@ -1103,6 +1107,8 @@ RETURNS trigger
 LANGUAGE plpgsql
 SET search_path TO 'public'
 AS $function$
+DECLARE
+  v_due timestamptz;
 BEGIN
   IF OLD.execution_status IS DISTINCT FROM 'crew_fanout' THEN
     RETURN NEW;
@@ -1117,10 +1123,14 @@ BEGIN
     RAISE EXCEPTION 'crew_fanout_decision_fixed: a crew decision is not rewritten; supersede it (dispute_id=%)', OLD.id
       USING ERRCODE = '42501';
   END IF;
-  IF NEW.status IS DISTINCT FROM OLD.status AND EXISTS (
-       SELECT 1 FROM public.jobs j
-        WHERE j.id = OLD.job_id
-          AND (j.payout_scheduled_at IS NULL OR j.payout_scheduled_at <= now() + interval '15 minutes')) THEN
+  IF NEW.status IS DISTINCT FROM OLD.status THEN
+    -- FOR SHARE: the payout time is judged on a row nobody can move under
+    -- this decision (rpc_supersede_dispute_decision already holds it FOR
+    -- UPDATE; a direct admin write does not).
+    SELECT j.payout_scheduled_at INTO v_due FROM public.jobs j WHERE j.id = OLD.job_id FOR SHARE;
+  END IF;
+  IF NEW.status IS DISTINCT FROM OLD.status
+     AND (v_due IS NULL OR v_due <= now() + interval '15 minutes') THEN
     RAISE EXCEPTION 'crew_fanout_due: this crew decision is being paid out and can no longer be superseded (dispute_id=%)', OLD.id
       USING ERRCODE = '42501';
   END IF;
@@ -1134,3 +1144,115 @@ DROP TRIGGER IF EXISTS trg_crew_fanout_dispute_lock ON public.disputes;
 CREATE TRIGGER trg_crew_fanout_dispute_lock
   BEFORE UPDATE ON public.disputes
   FOR EACH ROW EXECUTE FUNCTION public.enforce_crew_fanout_dispute_lock();
+
+-- ── 9. The unpaid-dispute sweep stops calling a closed crew dispute a strand ─
+-- sweep_disputes_closed_without_payment pages a dispute closed with no money
+-- moved on a job whose funds are held, on the premise that no automatic path
+-- will pay it. process-scheduled-payouts now pays a CREW whose dispute closed
+-- (Q396(c)), so that premise holds for single-Helpr jobs only. Restated from
+-- its effective definition (20260922224023) with that one predicate added.
+CREATE OR REPLACE FUNCTION public.sweep_disputes_closed_without_payment()
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $fn$
+DECLARE
+  v_reported int   := 0;
+  v_seen     jsonb := '[]'::jsonb;
+  r          record;
+BEGIN
+  -- A from-scratch replay (PGlite, a fresh branch) may not have these yet.
+  -- Nothing to look at is not a defect to report.
+  IF to_regclass('public.disputes') IS NULL
+     OR to_regclass('public.jobs') IS NULL
+     OR to_regclass('public.error_logs') IS NULL THEN
+    RETURN jsonb_build_object('reported', 0, 'skipped', 'tables not present');
+  END IF;
+
+  FOR r IN
+    SELECT d.id                AS dispute_id,
+           d.job_id            AS job_id,
+           d.payout_split      AS payout_split,
+           d.decided_at        AS decided_at,
+           j.payment_status    AS payment_status,
+           j.status            AS job_status,
+           COALESCE(j.is_seed, false) AS is_seed
+      FROM public.disputes d
+      JOIN public.jobs j ON j.id = d.job_id
+     WHERE d.execution_status = 'executed'
+       -- Moved nothing, by any route, and said nothing about why.
+       AND d.execution_transfer_id IS NULL
+       AND d.execution_refund_id   IS NULL
+       AND COALESCE(d.execution_helper_cents, 0) = 0
+       AND COALESCE(d.execution_refund_cents, 0) = 0
+       AND d.execution_error IS NULL
+       -- The funds are still held. A job already refunded or paid out is
+       -- settled by some other path and is not owed anything here.
+       AND j.payment_status IN ('escrow', 'payout_pending')
+       -- Q396(c), 20260925234055: a CREW whose dispute closed (resolved /
+       -- auto_resolved) is paid by process-scheduled-payouts' fan-out, so it
+       -- is not a strand; a single-Helpr job still is (that cron still
+       -- excludes it), and stays watched.
+       AND NOT (j.is_group_job IS TRUE AND j.dispute_status IN ('resolved', 'auto_resolved'))
+       -- Never reported before. The dedupe.
+       AND NOT EXISTS (
+             SELECT 1
+               FROM public.error_logs e
+              WHERE e.tags ->> 'area' = 'dispute-unsettled'
+                AND e.context ->> 'dispute_id' = d.id::text)
+     ORDER BY d.decided_at NULLS LAST
+       -- THE ROW LOCK, added 2026-09-22 after this function tripped
+       -- scripts/check-race-class.mjs and made race-runner red (#1643).
+       --
+       -- The guard's shape is exact and this matched it: read public.jobs
+       -- WITHOUT a lock, make a decision (the IF below), write somewhere other
+       -- than jobs (error_logs). It exists because two money bugs came from
+       -- that shape — applications landing on a cancelled job, and a payout
+       -- cron charging 25% on one.
+       --
+       -- Here the damage is smaller but real, and it STICKS: release-payout
+       -- can settle a dispute between this SELECT and the INSERT, and the row
+       -- would be reported as unpaid forever — the dedupe is on dispute id, so
+       -- a false page is never re-evaluated.
+       --
+       -- `OF j` locks only the jobs rows, not disputes. FOR SHARE, not FOR
+       -- UPDATE: this function never writes to jobs and must never block a
+       -- settlement any longer than reading it takes.
+       FOR SHARE OF j
+  LOOP
+    INSERT INTO public.error_logs (severity, message, tags, context)
+    VALUES (
+      CASE WHEN r.is_seed THEN 'error' ELSE 'fatal' END,
+      format('Dispute %s on job %s is marked executed but moved no money: no transfer, no refund, no cents, no error. The job has been %s since %s UTC and neither process-scheduled-payouts (excluded by disputed_at) nor claim_dispute_settlement (excluded by execution_status) will ever pay it. Split %s. Only a manual release-payout can settle it.',
+             left(r.dispute_id::text, 8),
+             left(r.job_id::text, 8),
+             r.payment_status,
+             to_char(r.decided_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI'),
+             COALESCE(r.payout_split::text, 'unrecorded')),
+      jsonb_build_object('source', CASE WHEN r.is_seed
+                                        THEN 'dispute-unsettled-seed'
+                                        ELSE 'dispute-unsettled' END,
+                         'area', 'dispute-unsettled'),
+      jsonb_build_object('dispute_id',     r.dispute_id,
+                         'job_id',         r.job_id,
+                         'payout_split',   r.payout_split,
+                         'payment_status', r.payment_status,
+                         'job_status',     r.job_status,
+                         'decided_at',     r.decided_at,
+                         'is_seed',        r.is_seed));
+
+    v_reported := v_reported + 1;
+    v_seen := v_seen || jsonb_build_object('dispute_id', r.dispute_id,
+                                           'job_id',     r.job_id,
+                                           'is_seed',    r.is_seed,
+                                           'severity',   CASE WHEN r.is_seed
+                                                              THEN 'error' ELSE 'fatal' END);
+  END LOOP;
+
+  RETURN jsonb_build_object('reported', v_reported, 'disputes', v_seen);
+END;
+$fn$;
+
+REVOKE ALL ON FUNCTION public.sweep_disputes_closed_without_payment() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.sweep_disputes_closed_without_payment() TO service_role;

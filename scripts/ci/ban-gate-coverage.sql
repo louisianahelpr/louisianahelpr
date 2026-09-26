@@ -175,6 +175,7 @@ rpc_exempt(fn, why) AS (
   ('resolve_stalled_job_flag', 'admin-only (body checks has_role admin)'),
   ('review_credential', 'admin-only (body checks has_role admin)'),
   ('rpc_decide_dispute', 'admin-only (body checks has_role admin)'),
+  ('rpc_decide_crew_dispute', 'admin-only (body checks has_role admin; Q409)'),
   ('rpc_settle_dispute_without_payment', 'admin-only (body checks has_role admin)'),
   ('rpc_supersede_dispute_decision', 'admin-only (body checks has_role admin)'),
   -- No user-visible write.

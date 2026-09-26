@@ -333,6 +333,57 @@ export type Database = {
           },
         ]
       }
+      crew_dispute_member_outcomes: {
+        Row: {
+          decided_at: string
+          decided_by: string | null
+          dispute_id: string
+          helper_id: string | null
+          id: string
+          job_id: string
+          member_outcome: string
+          share_cents: number
+          slot_no: number
+        }
+        Insert: {
+          decided_at?: string
+          decided_by?: string | null
+          dispute_id: string
+          helper_id?: string | null
+          id?: string
+          job_id: string
+          member_outcome: string
+          share_cents: number
+          slot_no: number
+        }
+        Update: {
+          decided_at?: string
+          decided_by?: string | null
+          dispute_id?: string
+          helper_id?: string | null
+          id?: string
+          job_id?: string
+          member_outcome?: string
+          share_cents?: number
+          slot_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_dispute_member_outcomes_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_dispute_member_outcomes_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cron_catchup_policy: {
         Row: {
           catch_up: boolean
@@ -5492,6 +5543,15 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_helper_parish_badges: {
+        Args: { _user_id: string }
+        Returns: {
+          home_parish: string
+          is_top_helper_in_parish: boolean
+          is_verified_local: boolean
+          parish_completed_jobs: number
+        }[]
+      }
       get_helper_repeat_hire_percents: {
         Args: { p_user_ids: string[] }
         Returns: {
@@ -6189,6 +6249,15 @@ export type Database = {
         Args: { p_job_id: string }
         Returns: undefined
       }
+      mark_crew_dispute_executed: {
+        Args: {
+          _dispute_id: string
+          _helper_cents: number
+          _refund_cents: number
+          _refund_id: string
+        }
+        Returns: boolean
+      }
       mark_helper_arrival: {
         Args: { p_job_id: string; p_lat?: number; p_lng?: number }
         Returns: Json
@@ -6454,6 +6523,14 @@ export type Database = {
           reason: string
           retry_after_seconds: number
         }[]
+      }
+      rpc_decide_crew_dispute: {
+        Args: {
+          _decision_text: string
+          _dispute_id: string
+          _refund_helper_ids: string[]
+        }
+        Returns: Json
       }
       rpc_decide_dispute: {
         Args: {

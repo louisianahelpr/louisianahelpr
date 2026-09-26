@@ -108,7 +108,15 @@ describe("a dispute closed without moving money is watched", () => {
       "The sweep's message says process-scheduled-payouts will never pay a disputed job. " +
         "If this gate is gone, the automatic door has REOPENED: re-check whether the sweep " +
         "is still describing a real strand before changing this test.",
-    ).toContain('.is("disputed_at", null)');
+    ).toMatch(/\.or\("disputed_at\.is\.null,and\(is_group_job\.is\.true,dispute_status\.in\.\(resolved,auto_resolved\)\)"\)/);
+    // Q396(c), 2026-09-26: the gate was widened for CREWS only (a crew is paid
+    // only by this cron). For a single-Helpr job it still shuts on any
+    // disputed_at, so the sweep's sentence stays true for singles; for a crew
+    // the sweep itself leaves a closed crew dispute out (below), since this
+    // cron now pays it.
+    expect(sweepBody, "the sweep must not page about a closed crew dispute the payout fan-out now pays").toMatch(
+      /AND NOT \(j\.is_group_job IS TRUE AND j\.dispute_status IN \('resolved', 'auto_resolved'\)\)/,
+    );
   });
 
   it("PREMISE 2: claim_dispute_settlement still refuses an 'executed' dispute", () => {

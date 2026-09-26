@@ -82,17 +82,22 @@ serve(async (req) => {
       .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, sales_tax_rate, is_seed")
       .eq("status", "completed")
       .eq("payment_status", "payout_pending")
-      // Never pay out a job under dispute; a job whose dispute CLOSED
-      // (resolved / auto_resolved) is payable, exactly release-payout's rule
-      // (docs/OPEN.md Q396(c)). disputed_at is never cleared — it is the "was
-      // disputed once" record — so `.is("disputed_at", null)` alone hid every
-      // closed dispute from this cron forever. That was survivable for a
-      // single Helpr (release-payout pays them) and fatal for a crew: this
-      // fan-out is the ONLY path that pays a crew, and a withdrawn or
-      // auto-resolved crew dispute left every member unpaid. A decided dispute
-      // whose split has not run is still refused per job below
+      // Never pay out a job under dispute. A CREW whose dispute CLOSED
+      // (resolved / auto_resolved) is payable (docs/OPEN.md Q396(c)):
+      // disputed_at is never cleared (it is the "was disputed once" record),
+      // and this fan-out is the ONLY path that pays a crew, so a withdrawn or
+      // auto-resolved crew dispute left every member unpaid forever. A decided
+      // dispute whose split has not run is still refused per job below
       // (checkUnsettledDispute), as is a live settlement claim.
-      .or("disputed_at.is.null,dispute_status.in.(resolved,auto_resolved)")
+      //
+      // A SINGLE-Helpr job keeps `disputed_at IS NULL` here, unchanged: its
+      // closed disputes are release-payout's, and the one that strands (an
+      // auto-resolved dispute closed with no cents while RELEASE_PAYOUT_AUTO is
+      // off) is watched by sweep_disputes_closed_without_payment, whose premise
+      // is exactly this exclusion (disputeClosedWithoutPaymentIsWatched.test.ts).
+      // Widening it to singles would auto-pay that watched state: a decision
+      // for the lead, not a side effect of Q396(c).
+      .or("disputed_at.is.null,and(is_group_job.is.true,dispute_status.in.(resolved,auto_resolved))")
       .lte("payout_scheduled_at", now);
     if (!includeSeed) jobQuery = jobQuery.eq("is_seed", false);
     const { data: jobs, error } = await jobQuery;
@@ -336,7 +341,7 @@ serve(async (req) => {
           const disputeId = (crewDispute as Array<{ id: string }>)[0].id;
           const { data: outcomes, error: outcomesErr } = await supabaseAdmin
             .from("crew_dispute_member_outcomes")
-            .select("helper_id, outcome")
+            .select("helper_id, member_outcome")
             .eq("dispute_id", disputeId);
           if (outcomesErr || !outcomes || outcomes.length === 0) {
             const why = outcomesErr?.message ?? "no member outcomes recorded";
@@ -348,8 +353,8 @@ serve(async (req) => {
           crewDecisionByJob.set(job.id, {
             disputeId,
             refunded: new Set(
-              (outcomes as Array<{ helper_id: string | null; outcome: string }>)
-                .filter((o) => o.outcome === "refund" && !!o.helper_id)
+              (outcomes as Array<{ helper_id: string | null; member_outcome: string }>)
+                .filter((o) => o.member_outcome === "refund" && !!o.helper_id)
                 .map((o) => o.helper_id as string),
             ),
           });

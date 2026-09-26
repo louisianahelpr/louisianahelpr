@@ -64,6 +64,9 @@ const UNREACHABLE: Allowlist = {
     admin_is_party: {
       reason: "Admin-only guard: AdminDisputes gates the decide controls for an admin who is a party, and renders any raised code in its own admin dispute UI.",
     },
+    group_dispute_needs_crew_decision: {
+      reason: "Admin-only (20260925234055, Q409): a crew is decided per member with rpc_decide_crew_dispute; AdminDisputes throws the raised error (message + hint) into its own admin dispute UI. Its per-member decision UI is open work in docs/OPEN.md Q409.",
+    },
   },
   rpc_helper_mark_done: {
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },

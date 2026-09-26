@@ -76,8 +76,9 @@ export const DUPLICATE_WINDOW_MS = 2_000;
  * BEFORE a navigation, never between a navigation and what a spec reads.
  *
  * `reserve` is the largest burst seen between two gates so far (at least
- * PACE_MIN_RESERVE, at most half the ceiling so a fresh minute always admits
- * the next gate).
+ * PACE_MIN_RESERVE, uncapped). An empty minute admits any gate. It used to be
+ * capped at half the ceiling, which let a list page's burst land on top of a
+ * part-filled minute: a11y-prod-webkit hit 439 of 400 (nightly-red #1794).
  */
 export const PACE_MIN_RESERVE = 40;
 /** Lands a released gate safely inside the next minute rather than on its edge. */
@@ -151,13 +152,15 @@ export class RequestMeter {
   /** Hold until the current minute has room for the next burst. Resolves with the ms held. */
   async pace() {
     if (!this.ceiling) return 0;
-    this.reserve = Math.min(Math.floor(this.ceiling / 2), Math.max(this.reserve, this.sinceGate));
+    this.reserve = Math.max(this.reserve, this.sinceGate);
     let held = 0;
     for (;;) {
       const t = this.clock.now();
       const m = Math.floor(t / 60_000);
       const used = (this.minutes[m] || 0) + (this.prior[m] || 0);
-      if (used + this.reserve <= this.ceiling) break;
+      // An empty minute always admits: a burst bigger than the whole share
+      // cannot be split by a gate in front of it, and waiting would never end.
+      if (used + this.reserve <= this.ceiling || used === 0) break;
       const ms = (m + 1) * 60_000 - t + PACE_EDGE_MS;
       if (this.onPaceWait) this.onPaceWait(ms);
       await this.clock.sleep(ms);

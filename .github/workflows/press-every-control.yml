@@ -267,10 +267,13 @@ jobs:
           # workflow's own run 35768341847 produced: a jobs row naming an object
           # storage does not have. READ-ONLY, and it belongs here because this is
           # the workflow that surfaces it — it presses the screens that sign those
-          # paths. Exit 1 = a dangling reference; the nightly-red job below files it.
+          # paths. Exit 1 = a dangling reference; the nightly-red job below files
+          # it. Same $KEY, same masked shell, shredded in the next step.
+          # --repair-seed-before (#1582, Q389(a)): clears the residue of the
+          # teardown bug a8d75d3b3 fixed, on is_seed jobs made before that fix
+          # ONLY; a real job, or a seed job made since, still fails here.
           SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
-            node scripts/proof-photo-reference-check.mjs
-
+            node scripts/proof-photo-reference-check.mjs --repair-seed-before 2026-09-25T05:42:00Z
       - name: Shred the key
         if: always()
         run: rm -f .env

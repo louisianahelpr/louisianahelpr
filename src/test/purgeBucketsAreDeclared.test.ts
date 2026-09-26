@@ -111,7 +111,9 @@ describe("Q219: a missing bucket fails the deletion", () => {
     });
     const out = await removePrefixes({
       base: "https://example.test",
-      headers: {},
+      // The service role: the only caller whose bucket GET means anything
+      // (callerReadsBuckets; storageCleanupAsUser.test.ts covers a user caller).
+      headers: { Authorization: `Bearer sb_secret_${"x".repeat(20)}` },
       prefixes: [{ bucket: "no-such-bucket", prefix: U }],
       source: "test",
     });

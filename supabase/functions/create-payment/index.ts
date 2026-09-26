@@ -1536,7 +1536,7 @@ serve(async (req) => {
       // re-admits, so a retry re-runs this (the refund is skipped once the
       // charge shows it, and the restore dedupes on restored_from_job_id).
       // Flipping anyway would make the loss permanent. Nothing sweeps
-      // 'cancelling' (docs/OPEN.md Q411), so the alert asks for a hand. The caller is the
+      // 'cancelling' (docs/OPEN.md Q413), so the alert asks for a hand. The caller is the
       // recipient themself (poster == gift recipient), so the answer below is
       // their notice; no separate notification is sent.
       const giftBack = await restoreGiftForCancelledJob(supabaseAdmin, jobId);

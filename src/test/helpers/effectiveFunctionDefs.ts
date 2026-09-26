@@ -27,6 +27,8 @@ import { blankSqlComments } from "./blankNonCode";
 export interface FnDef {
   /** Migration whose CREATE FUNCTION text is the base. */
   file: string;
+  /** Offset of that CREATE in `file`, so two definitions in one file are told apart. */
+  index: number;
   /** Raw statement, CREATE … closing tag … `;`, after later rewrites. */
   stmt: string;
   /** Rewrite migrations applied on top of `file`'s text, in order. */
@@ -130,7 +132,7 @@ export function applyMigration(defs: Map<string, FnDef>, file: string, sql: stri
   };
   for (const d of parseDefs(sql)) {
     if (d.index > rewriteAt) flushRewrites();
-    defs.set(d.name, { file, stmt: d.stmt, rewrites: [] });
+    defs.set(d.name, { file, index: d.index, stmt: d.stmt, rewrites: [] });
   }
   if (rewrites.length) flushRewrites();
 }

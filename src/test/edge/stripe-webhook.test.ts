@@ -208,6 +208,55 @@ describe("stripe-webhook edge function", () => {
   });
 
   describe("checkout.session.completed", () => {
+    /*
+     * ME-043: a taxable category billed to Louisiana that Stripe taxed at $0
+     * looked identical to the correct $0 on an exempt job. It now alerts.
+     *
+     * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | if (taxedZeroOnTaxableLouisianaLabor(sessionTaxCents, | if (false && taxedZeroOnTaxableLouisianaLabor(sessionTaxCents,
+     */
+    describe("taxable labor taxed $0 in Louisiana (ME-043)", () => {
+      async function deliver(category: string, meta: Record<string, string> = {}, state = "LA") {
+        const fn = await loadConfigured();
+        scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category, is_seed: false }] };
+        // The PI carries NO amount_details: the signal must come from the
+        // session's own total_details, which Checkout always fills.
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tax" });
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: `evt_tax_${category}_${state}`,
+          type: "checkout.session.completed",
+          data: {
+            object: {
+              id: "cs_tax",
+              livemode: false,
+              mode: "payment",
+              customer_email: "poster@test.com",
+              customer_details: { address: { state } },
+              total_details: { amount_tax: 0 },
+              payment_intent: "pi_tax",
+              metadata: { job_id: "job-tax", ...meta },
+            },
+          },
+        });
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        return (slackAlerts as Array<{ title: string }>).filter((a) => /\$0 Louisiana sales tax/.test(a.title));
+      }
+
+      it("alerts on an assembly job billed to LA with $0 tax", async () => {
+        const alerts = await deliver("assembly");
+        expect(alerts).toHaveLength(1);
+        expect((alerts[0] as unknown as { oncePerDayKey: string }).oncePerDayKey).toBe("taxable-zero-tax:test");
+      });
+
+      it("stays quiet on an exempt category, a non-LA address, and a gift-card shortfall", async () => {
+        expect(await deliver("yard_work")).toHaveLength(0);
+        resetSharedMocks();
+        expect(await deliver("assembly", {}, "TX")).toHaveLength(0);
+        resetSharedMocks();
+        expect(await deliver("assembly", { gift_card_id: "gc-1" })).toHaveLength(0);
+      });
+    });
+
     it("stores the payment intent + escrow status on the job", async () => {
       const fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({

@@ -479,6 +479,41 @@ describe("create-payment edge function", () => {
       );
     });
 
+    // ME-043: every line carries a tax code and tax behaviour; the labor code
+    // follows the category rule in _shared/salesTax.ts, both ways.
+    it("gives every escrow line a tax_code and tax_behavior, labor coded by category", async () => {
+      const codeFor = async (category: string) => {
+        resetSupabaseMock();
+        stripeMock.checkout.sessions.create.mockClear();
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = {
+          rows: [{ id: "job-tc", customer_id: POSTER.id, budget: 80, category, title: "T", payment_status: "unpaid", is_urgent: true, urgent_fee: 10 }],
+        };
+        scenario.reads.platform_settings = {
+          rows: [{ customer_fee_percent: 10, helper_fee_percent: 10, onboarding_fee_cents: 0 }],
+        };
+        scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true }] };
+        stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_tc", url: "u" });
+        const fn = await load();
+        await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-tc" } }));
+        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+        expect(args.automatic_tax).toEqual({ enabled: true });
+        expect(args.customer_update).toEqual({ address: "auto" });
+        expect(args.line_items.length).toBeGreaterThan(2);
+        for (const li of args.line_items) {
+          expect(li.price_data.tax_behavior).toBe("exclusive");
+          expect(li.price_data.product_data.tax_code).toMatch(/^txcd_\d{8}$/);
+        }
+        // Fees and the urgent tip stay non-taxable whatever the category.
+        for (const li of args.line_items.slice(1)) {
+          expect(li.price_data.product_data.tax_code).toBe("txcd_00000000");
+        }
+        return args.line_items[0].price_data.product_data.tax_code;
+      };
+      expect(await codeFor("handyman")).toBe("txcd_20030000");
+      expect(await codeFor("yard_work")).toBe("txcd_00000000");
+    });
+
     // ── Server-authoritative urgent fee (silent-client H-001) ─────────────
     //
     // is_urgent / urgent_fee are client-set at INSERT and the jobs INSERT

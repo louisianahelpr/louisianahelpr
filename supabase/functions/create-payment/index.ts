@@ -13,7 +13,7 @@ import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helper
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
-import { isLaborTaxable } from "../_shared/salesTax.ts";
+import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -426,7 +426,7 @@ serve(async (req) => {
               product_data: {
                 name: `Helpr Job: ${job.title}`,
                 description: "Remaining balance after applying your gift card. Funds release once both parties confirm completion.",
-                tax_code: "txcd_00000000",
+                tax_code: NONTAXABLE_TAX_CODE,
               },
               unit_amount: differenceCents,
             },
@@ -609,7 +609,7 @@ serve(async (req) => {
                 : `Secure escrow payment for exempt service (${job.category}). Funds release once both parties confirm completion.`,
               // Assembly/installation of tangible personal property: LA repair/install code.
               // All other categories: pass-through (no LA state tax on the labor).
-              tax_code: laborTaxable ? "txcd_20030000" : "txcd_00000000",
+              tax_code: laborTaxCode(job.category),
             },
             unit_amount: Math.round(job.budget * 100),
           },
@@ -629,7 +629,7 @@ serve(async (req) => {
             product_data: {
               name: "Service fee",
               description: `${customerFeePercent}% platform service fee`,
-              tax_code: "txcd_00000000", // Non-taxable until LDR clarifies
+              tax_code: NONTAXABLE_TAX_CODE, // Non-taxable until LDR clarifies
             },
             unit_amount: customerFeeCents,
           },
@@ -648,7 +648,7 @@ serve(async (req) => {
             product_data: {
               name: "Urgent tip",
               description: "Urgent tip — goes directly to the helpr",
-              tax_code: "txcd_00000000", // Non-taxable: passes through to helper
+              tax_code: NONTAXABLE_TAX_CODE, // Non-taxable: passes through to helper
             },
             unit_amount: urgentFeeCents,
           },
@@ -666,7 +666,7 @@ serve(async (req) => {
             product_data: {
               name: "One-time account setup",
               description: "One-time identity verification & account setup fee. Charged once per account.",
-              tax_code: "txcd_00000000",
+              tax_code: NONTAXABLE_TAX_CODE,
             },
             unit_amount: onboardingFeeCents,
           },
@@ -1252,7 +1252,7 @@ serve(async (req) => {
             price_data: {
               currency: "usd",
               tax_behavior: TAX_BEHAVIOR,
-              product_data: { name: `Tip — ${job.title}`, description: "100% of your tip goes to your Helpr." },
+              product_data: { name: `Tip — ${job.title}`, description: "100% of your tip goes to your Helpr.", tax_code: NONTAXABLE_TAX_CODE },
               unit_amount: tipQuote.tipCents,
             },
             quantity: 1,
@@ -1261,7 +1261,7 @@ serve(async (req) => {
             price_data: {
               currency: "usd",
               tax_behavior: TAX_BEHAVIOR,
-              product_data: { name: "Card processing", description: "Added so your Helpr receives the full tip." },
+              product_data: { name: "Card processing", description: "Added so your Helpr receives the full tip.", tax_code: NONTAXABLE_TAX_CODE },
               unit_amount: tipQuote.feeCents,
             },
             quantity: 1,

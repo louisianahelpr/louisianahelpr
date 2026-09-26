@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
+import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 
@@ -190,16 +191,22 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
+      // automatic_tax needs a tax location. An existing Stripe Customer with no
+      // address made Stripe refuse the session (customer_tax_location_invalid,
+      // proved on create-pro-checkout 2026-09-06), so save the one Checkout
+      // collects. `customer_update` is invalid without `customer` (ME-043).
+      ...(customerId ? { customer_update: { address: "auto" as const } } : {}),
       line_items: [{
         price_data: {
           currency: "usd",
+          tax_behavior: "exclusive",
           product_data: {
             // User-visible: appears on the Stripe checkout page and emailed receipt.
             name: "Louisiana Helpr gift card",
             description:
               `A $${(amountCents / 100).toFixed(0)} Louisiana Helpr credit for ${recipientEmail} to get help when they need it.`,
             // Platform service — not subject to LA sales tax.
-            tax_code: "txcd_00000000",
+            tax_code: NONTAXABLE_TAX_CODE,
           },
           unit_amount: chargeCents,
         },

@@ -200,8 +200,12 @@ jobs:
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
         # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
         # Not on a vacuity-only dispatch: the suites it budgets did not run.
+        # A `grep` dispatch runs a subset: its per-test number is not the
+        # suite's, so only the load ceiling is judged (--ceiling-only).
         if: ${{ !cancelled() && inputs.vacuity_only == '' }}
-        run: node scripts/e2e/request-budget.mjs --label prod-audit
+        env:
+          GREP: ${{ inputs.grep }}
+        run: node scripts/e2e/request-budget.mjs --label prod-audit ${GREP:+--ceiling-only}
       - name: Keep failure screenshots, samples and traces
         if: always()
         uses: actions/upload-artifact@v7

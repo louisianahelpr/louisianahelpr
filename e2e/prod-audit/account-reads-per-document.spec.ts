@@ -35,10 +35,10 @@ const DWELL_MS = 4_000;
 // Calibrated from prod-audit run 36212848613 (2026-09-26): boot /home read
 // everything once (user_blocks twice), the first /messages re-read
 // user_blocks, and the second /messages (past useCurrentUser's 30 s
-// staleTime) re-read profile + roles. user_blocks is re-measured after the
-// shared read (Q330) and set in the commit that has its number.
+// staleTime) re-read profile + roles. user_blocks: 3 → 2 once the feed and the
+// nav badge shared one read (Q330, run 36213595709: boot 2 → 1).
 export const PER_DOCUMENT: Record<string, number | null> = {
-  "user_blocks": null,
+  "user_blocks": 2, // 3 before the shared read (run 36212848613), 2 after (run 36213595709)
   "profiles select=*": 2,
   "user_roles": 2,
   "profiles terms_version_accepted": 1,

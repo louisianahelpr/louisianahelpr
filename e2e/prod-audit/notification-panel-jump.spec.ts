@@ -48,7 +48,8 @@ test.afterAll(async ({ request }) => {
   }
 });
 
-async function seedUnread(request: import("@playwright/test").APIRequestContext, n: number) {
+/** Seeds `n` unread rows and returns THIS call's ids (the route filter uses only these). */
+async function seedUnread(request: import("@playwright/test").APIRequestContext, n: number): Promise<string[]> {
   const since = new Date(Date.now() - 1000).toISOString();
   for (let i = 0; i < n; i++) {
     const r = await request.post(`${SUPABASE_URL}/functions/v1/create-notification`, {
@@ -60,8 +61,10 @@ async function seedUnread(request: import("@playwright/test").APIRequestContext,
   const rows = (await request
     .get(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${poster.user.id}&title=eq.${encodeURIComponent(TITLE)}&created_at=gte.${encodeURIComponent(since)}&select=id`, { headers: rest(poster) })
     .then((x) => x.json())) as { id: string }[];
-  created.push(...rows.map((r) => r.id));
-  expect(rows.length, "the seeded notifications did not land").toBeGreaterThanOrEqual(n);
+  const mine = rows.map((r) => r.id).filter((id) => !created.includes(id));
+  created.push(...mine);
+  expect(mine.length, "the seeded notifications did not land").toBeGreaterThanOrEqual(n);
+  return mine;
 }
 
 /** Per-frame bottom edge of the open panel while `act` runs, for `ms`. */
@@ -89,7 +92,7 @@ async function sampleEdge(page: Page, act: () => Promise<void>, ms: number): Pro
 for (const engine of ["chromium", "webkit"] as const) {
   test(`notification panel: a leaving row never moves the panel edge > ${MAX_FRAME_PX}px in one frame (${engine})`, async ({ request, browser: defaultBrowser }) => {
     test.setTimeout(3 * 60_000);
-    await seedUnread(request, 3);
+    const mine = await seedUnread(request, 3);
     const browser: Browser = engine === "chromium" ? defaultBrowser : await webkit.launch();
     try {
       const ctx = await newUserContext(browser, poster);
@@ -97,7 +100,9 @@ for (const engine of ["chromium", "webkit"] as const) {
       // list overflows the panel and no jump could happen (first CI run: 4936px
       // in 451px). Narrow the panel's OWN reads to the rows this spec created:
       // real rows, the real backend, only an id filter added on the wire.
-      const ids = created.join(",");
+      // Only THIS test's rows: an earlier engine's leftovers made WebKit's
+      // list overflow (531px in 484px, run 36213595709).
+      const ids = mine.join(",");
       await ctx.route(/\/rest\/v1\/notifications\?/, (route) => {
         const req = route.request();
         if (req.method() !== "GET" && req.method() !== "HEAD") return route.continue();
@@ -126,7 +131,9 @@ for (const engine of ["chromium", "webkit"] as const) {
       const steps = edge.slice(1).map((y, i) => Math.abs(y - edge[i]));
       const largest = Math.max(0, ...steps);
       const travel = Math.abs(edge[edge.length - 1] - edge[0]);
-      test.info().annotations.push({ type: "measure", description: `${engine} 375: frames=${edge.length} largest one-frame move=${largest.toFixed(1)}px total travel=${travel.toFixed(1)}px` });
+      const measure = `${engine} 375: frames=${edge.length} largest one-frame move=${largest.toFixed(1)}px total travel=${travel.toFixed(1)}px`;
+      test.info().annotations.push({ type: "measure", description: measure });
+      console.log(`[notification-panel-jump] ${measure}`);
       await page.screenshot({ path: test.info().outputPath(`panel-after-${engine}.png`) });
       expect(edge.length, "too few frames sampled to judge").toBeGreaterThan(10);
       expect(travel, "the panel edge never moved: nothing was measured").toBeGreaterThan(20);

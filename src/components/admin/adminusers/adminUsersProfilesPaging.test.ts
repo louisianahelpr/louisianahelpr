@@ -2,8 +2,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, basename } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// PostgREST caps a response at 1000 rows (the project's max_rows, as stated by
-// this guard's own commit 2f12a4929 on 2026-09-25) and says nothing when it truncates, so
+// PostgREST caps a response at 1000 rows (max-rows, 2026-09-25) and says nothing when it truncates, so
 // `.from("profiles").select("*")` with no bound silently stops at the
 // thousandth user: admin counts, charts and user lists all under-report. This
 // guard finds every such read in src/ and fails CI on a new one. A read is
@@ -15,9 +14,7 @@ import { describe, expect, it } from "vitest";
 // and so does a listed file that no longer offends (lower the list in the same
 // commit as the fix).
 // @two-way src/components/admin/adminusers/adminUsersProfilesPaging.test.ts:const stale = KNOWN_UNBOUNDED_PROFILES_SELECT.filter(
-export const KNOWN_UNBOUNDED_PROFILES_SELECT: readonly string[] = [
-  "AdminUsers.tsx", // Q232
-];
+export const KNOWN_UNBOUNDED_PROFILES_SELECT: readonly string[] = [];
 
 const SRC = join(__dirname, "../../..");
 

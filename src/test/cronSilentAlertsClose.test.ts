@@ -1,5 +1,5 @@
 /**
- * CLASS GUARD (CJ-007, docs/OPEN.md Q436 (b)): every cron-silent rule the sweep
+ * CLASS GUARD (CJ-007, docs/OPEN.md Q452 (b)): every cron-silent rule the sweep
  * files either closes itself or is listed here with why it cannot.
  *
  * THE BUG: 20260925231818 made sweep_silent_cron_failures file two new

@@ -73,6 +73,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { AUTO_COMPLETE_HOURS } from "../_shared/escrowTiming.ts";
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
+import { serve } from "../_shared/buildStamp.ts";
 
 /**
  * Hours after the helper marks complete before the poster is nudged. Leaves
@@ -99,7 +100,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

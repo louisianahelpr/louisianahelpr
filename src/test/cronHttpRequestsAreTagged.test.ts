@@ -58,9 +58,9 @@
  * branch (manual by design). Behaviour, red without the migration (8 checks):
  * src/test/pglite/cronHttpUntaggedCloseRule.pglite.mjs.
  *
- * @mutate supabase/migrations/20260923215732_cron_http_untagged_close_rule.sql |   ELSIF p_source = 'cron-http-untagged' AND v_job IS NOT NULL THEN |   ELSIF p_source = 'cron-http-untagged-gone' AND v_job IS NOT NULL THEN
- * @mutate supabase/migrations/20260923215732_cron_http_untagged_close_rule.sql |          AND j.active\n |          AND true\n
- * @mutate supabase/migrations/20260923215732_cron_http_untagged_close_rule.sql |          AND j.command NOT LIKE '%cron_http_tag(%'); |          AND true);
+ * @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql |   ELSIF p_source = 'cron-http-untagged' AND v_job IS NOT NULL THEN |   ELSIF p_source = 'cron-http-untagged-gone' AND v_job IS NOT NULL THEN
+ * @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql |          AND j.active\n |          AND true\n
+ * @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql |          AND j.command NOT LIKE '%cron_http_tag(%'); |          AND true);
  *
  * Q316 (20260924035844): ops_alert_normalise turns digits into '#', so
  * cleanup-7d and cleanup-30d shared one 'cron-http-untagged' item and the close

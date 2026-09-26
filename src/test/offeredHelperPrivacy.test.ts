@@ -196,6 +196,9 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:get_my_pending_direct_offers": "own-row-only",
     "function:get_jobs_for_my_applications": "returns-guarded",
     "view:open_jobs_browse": "returns-guarded",
+    // Q290: the data export returns the caller's own jobs rows and strips the
+    // column unless the caller is the poster or the offeree (checked below).
+    "function:export_my_data": "returns-guarded",
     // Q345: filters on the column to decline a pending offer between the pair;
     // returns only counts (closed_offers), never the offeree.
     "function:block_user_and_settle": "no-return",
@@ -275,6 +278,20 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
       text,
       "the RPC returns SETOF jobs, so it must override the column rather than pass the row through",
     ).toContain("CASE WHEN j.customer_id = v_uid OR j.offered_to_helper_id = v_uid THEN j.offered_to_helper_id ELSE NULL END");
+  });
+
+  it("export_my_data strips the offeree for everyone but the poster and the offeree (Q290)", () => {
+    const def = latestDefinitions().get("function:export_my_data");
+    expect(def, "export_my_data is not defined in any migration").toBeTruthy();
+    const text = def!.code.replace(/\s+/g, " ");
+    expect(text).toContain(
+      "CASE WHEN t.customer_id = v_uid OR t.offered_to_helper_id = v_uid THEN to_jsonb(t) ELSE to_jsonb(t) - 'offered_to_helper_id' END",
+    );
+    // Q408: it takes the id as p_user_id, so nobody but the export-my-data edge
+    // function (which passes the JWT-verified id) may call it: service_role only.
+    const mig = maskComments(readSource(`supabase/migrations/${def!.file}`)!).replace(/\s+/g, " ");
+    expect(mig).toContain("REVOKE ALL ON FUNCTION public.export_my_data(uuid) FROM PUBLIC, anon, authenticated;");
+    expect(mig).toContain("GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role;");
   });
 
   it("open_jobs_browse nulls the offeree for everyone but the poster and the offeree", () => {

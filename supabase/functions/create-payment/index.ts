@@ -4,7 +4,7 @@
 // nightly money journeys on seed jobs are how this path is proven, so their failures
 // are real signal (2026-09-22: "transfer failed" on seed jobs = the empty test
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";

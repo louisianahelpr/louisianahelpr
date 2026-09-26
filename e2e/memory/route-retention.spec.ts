@@ -118,6 +118,7 @@ test.describe("PD-009 route retention", () => {
     const first = samples[0];
     const last = samples[samples.length - 1];
     // Inventory floor: the walk really rendered pages and really measured.
+    expect(samples.length, "one sample per lap").toBeGreaterThan(LAPS - 1);
     expect(last.live, "live DOM node count of the landing page").toBeGreaterThan(200);
     expect(last.listeners).toBeGreaterThan(50);
 

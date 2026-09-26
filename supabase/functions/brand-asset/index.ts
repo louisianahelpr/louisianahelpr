@@ -1,3 +1,4 @@
+import { serve } from "../_shared/buildStamp.ts";
 // Serves the Helpr H mark to email clients.
 //
 // THE ASSET IS THE H MARK, NOT THE WORDMARK (owner, 2026-08-27: "this should
@@ -30,7 +31,7 @@ const H_MARK_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAKAAAACKCAYAAAAt+EF9AAAACXBIWXMAA
 
 const BYTES = Uint8Array.from(atob(H_MARK_BASE64), (c) => c.charCodeAt(0));
 
-Deno.serve((req: Request) => {
+serve((req: Request) => {
   if (req.method !== "GET" && req.method !== "HEAD") {
     return new Response("Method not allowed", { status: 405 });
   }

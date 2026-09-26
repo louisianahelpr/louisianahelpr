@@ -21,13 +21,18 @@
  *   2. an unread thread outside the live slice produces a banner that names
  *      the count and moves the reader to All;
  *   3. nothing is claimed when nothing is hidden (no permanent nag);
+ *   3b. the bar's X hides it until a NEW unread lands outside Active (owner,
+ *      2026-09-26: "an x in that top bar ... so they can x it out");
  *   4. the Active empty state reads as "nothing running", points at All, and
  *      its button actually WIDENS the view — the button used to be wired to
  *      `DEFAULT_INBOX_TAB`, which since today is Active itself, i.e. a no-op.
  *
  * @mutate src/lib/inboxDefault.ts | return "active"; | return "all";
- * @mutate src/components/messages/ConversationList.tsx | hiddenUnreadCount > 0 && ( | false && (
- * @mutate src/components/messages/ConversationList.tsx | cachedHiddenUnread > 0 && ( | false && (
+ * @mutate src/components/messages/ConversationList.tsx | hiddenUnreadCount > dismissedHiddenUnread && ( | false && (
+ * @mutate src/components/messages/ConversationList.tsx | cachedHiddenUnread > dismissedHiddenUnread && ( | false && (
+ * @mutate src/components/messages/ConversationList.tsx | hiddenUnreadCount > dismissedHiddenUnread && ( | hiddenUnreadCount > 0 && (
+ * @mutate src/components/messages/ConversationList.tsx | cachedHiddenUnread > dismissedHiddenUnread && ( | cachedHiddenUnread > 0 && (
+ * @mutate src/components/messages/HiddenUnreadBar.tsx | if (loading \|\| !userId \|\| count >= dismissedHiddenUnread) return; | return;
  * @mutate src/components/messages/ConversationList.tsx | setInboxFilter(UNFILTERED_INBOX_TAB); }}>\n                  Show All | setInboxFilter(DEFAULT_INBOX_TAB); }}>\n                  Show All
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
@@ -153,7 +158,7 @@ function openPhoneDisclosure() {
   if (chevron) fireEvent.click(chevron);
 }
 
-afterEach(() => { cleanup(); setWebDesktop(false); });
+afterEach(() => { cleanup(); setWebDesktop(false); localStorage.clear(); });
 
 describe("Messages opens on Active, and says what Active is hiding", () => {
   it("the inventory is real: these fixtures contain live, unread-open and finished threads", () => {
@@ -253,6 +258,38 @@ describe("Messages opens on Active, and says what Active is hiding", () => {
     const other = renderInbox([], true, "user-2");
     expect(other.container.textContent).not.toMatch(/aren't in Active/);
     localStorage.clear();
+  });
+
+  it("the X hides the bar until a new unread lands outside Active", () => {
+    setWebDesktop(false);
+    localStorage.clear();
+    renderInbox(MIXED);
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+    expect(screen.queryByText(/aren't in Active/i)).toBeNull();
+    cleanup();
+    // Dismissed stays dismissed on the next visit, loading frame included
+    // (no held space for a bar that will not land).
+    const loadingFrame = renderInbox([], true);
+    expect(loadingFrame.container.textContent).not.toMatch(/aren't in Active/);
+    cleanup();
+    renderInbox(MIXED);
+    expect(screen.queryByText(/aren't in Active/i)).toBeNull();
+    cleanup();
+    // A third hidden unread is news: the bar is back, with the new count.
+    const MORE = [...MIXED, convo({ jobId: "open-3", jobStatus: "open", unread: 1 })];
+    renderInbox(MORE);
+    expect(screen.getByRole("button", { name: /3 unread conversations aren't in Active/i })).toBeTruthy();
+    cleanup();
+    // Dismiss at 3, read one (2 hidden), then one more arrives (3 again):
+    // the mark fell with the count, so the new one re-shows the bar.
+    renderInbox(MORE);
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+    cleanup();
+    renderInbox(MIXED);
+    expect(screen.queryByText(/aren't in Active/i)).toBeNull();
+    cleanup();
+    renderInbox(MORE);
+    expect(screen.getByRole("button", { name: /3 unread conversations aren't in Active/i })).toBeTruthy();
   });
 
   it("stays quiet when Active is hiding nothing unread", () => {

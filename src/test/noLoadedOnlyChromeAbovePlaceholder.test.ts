@@ -118,7 +118,7 @@ function scan() {
 const KNOWN: Record<string, string> = {
   // OPEN (Q384 cause 5): THE defect above. Where the notice goes instead is
   // the owner's call (it is his 2026-09-19 "paid openly" design).
-  'src/components/messages/ConversationList.tsx :: !loading && inboxTab === "active" && !searchQuery.trim() && hiddenUnreadCount > 0':
+  'src/components/messages/ConversationList.tsx :: !loading && inboxTab === "active" && !searchQuery.trim() && hiddenUnreadCount > dismissedHiddenUnread':
     "DECIDED MQ28 (owner 2026-09-26, \"back on top, space held\"): an invisible copy sized from the device cache holds the space while loading; return visits CLS 0, a device's first visit is page-settle KNOWN",
   // Same shape, same slot, on the All tab. A cold load lands on Active
   // (defaultInboxTab), so page-settle never sees it; whether a tab switch can

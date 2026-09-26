@@ -29,7 +29,7 @@ import { MessageThreadSkeleton } from "@/components/ui/skeletons/MessageThreadSk
 import { VirtualList, type VirtualListHandle } from "@/components/VirtualList";
 import { ConversationRow } from "./ConversationRow";
 import { SwipeableConversationRow } from "./SwipeableConversationRow";
-import { HiddenUnreadBar, readCachedHiddenUnread, writeCachedHiddenUnread } from "./HiddenUnreadBar";
+import { HiddenUnreadBar, useHiddenUnreadBarMarks } from "./HiddenUnreadBar";
 import { getPinnedSet, loadPins, pinnedKey, togglePinned } from "@/lib/pinnedConversations";
 import {
   ARCHIVE_CHANGED_EVENT,
@@ -734,14 +734,11 @@ export function ConversationList({
     (c) => c.unread > 0 && !(c.jobStatus && LIVE_JOB_STATUSES.has(c.jobStatus)),
   ).length;
 
-  // Last count this device saw, read once, so the loading frame can hold the
-  // bar's space (MQ28). Written back only from a settled, unsearched Active
-  // view: the same conditions under which the real bar renders.
-  const cachedHiddenUnread = useMemo(() => readCachedHiddenUnread(userId), [userId]);
-  useEffect(() => {
-    if (loading || !userId || inboxTab !== "active" || searchQuery.trim()) return;
-    writeCachedHiddenUnread(userId, hiddenUnreadCount);
-  }, [loading, userId, inboxTab, searchQuery, hiddenUnreadCount]);
+  // The device's last count (holds the bar's space while loading, MQ28) and
+  // the count its X was pressed at: see ./HiddenUnreadBar.
+  const { cachedHiddenUnread, dismissedHiddenUnread, dismissHiddenUnread } = useHiddenUnreadBarMarks(
+    userId, hiddenUnreadCount, loading, inboxTab === "active" && !searchQuery.trim(),
+  );
 
   // Pull-to-refresh: swiping down on the list re-runs loadConversations.
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
@@ -1440,13 +1437,14 @@ export function ConversationList({
               the live slice. It sends the reader to All (the widest view),
               not to a filter, because the point is to stop hiding.
               On top, space held while loading (MQ28): see ./HiddenUnreadBar. */}
-          {loading && inboxTab === "active" && !searchQuery.trim() && cachedHiddenUnread > 0 && (
+          {loading && inboxTab === "active" && !searchQuery.trim() && cachedHiddenUnread > dismissedHiddenUnread && (
             <HiddenUnreadBar held count={cachedHiddenUnread} />
           )}
-          {!loading && inboxTab === "active" && !searchQuery.trim() && hiddenUnreadCount > 0 && (
+          {!loading && inboxTab === "active" && !searchQuery.trim() && hiddenUnreadCount > dismissedHiddenUnread && (
             <HiddenUnreadBar
               count={hiddenUnreadCount}
               onShowAll={() => { hapticLight(); setInboxFilter(UNFILTERED_INBOX_TAB); }}
+              onDismiss={() => { hapticLight(); dismissHiddenUnread(); }}
             />
           )}
           {loading ? (

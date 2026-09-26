@@ -168,22 +168,38 @@ function chicagoToday(): string {
  * not ended. Deleting either party mid-series leaves the other with visits
  * nobody can run or pay for.
  */
+/** jobs.series_ended_on is not deployed yet (42703 / PGRST204, or the message naming it). */
+function isMissingSeriesEndColumn(e: { code?: string | null; message?: string | null }): boolean {
+  return e.code === "42703" || e.code === "PGRST204" || /series_ended_on[^"]*does not exist|could not find the 'series_ended_on' column/i.test(e.message ?? "");
+}
+
 async function findRunningSeries(admin: PurgeCapableClient, userId: string): Promise<ActiveWorkResult> {
   const today = chicagoToday();
   // `date_needed` bounds the scan exactly as the charge cron does: the last
   // visit of any series is at most 52 weeks after its first.
   const since = new Date(Date.now() - 371 * 86_400_000).toISOString().slice(0, 10);
-  const posted: PostgrestLike<Array<{ id: string; date_needed: string | null; recurrence_days: number[] | null; recurrence_weeks: number | null }>> =
-    await admin
+  type SeriesRow = { id: string; date_needed: string | null; recurrence_days: number[] | null; recurrence_weeks: number | null };
+  const postedSeries = (withEnded: boolean): PromiseLike<PostgrestLike<SeriesRow[]>> => {
+    // deno-lint-ignore no-explicit-any
+    let q: any = admin
       .from("jobs")
       .select("id, date_needed, recurrence_days, recurrence_weeks")
       .eq("customer_id", userId)
       .is("parent_job_id", null)
-      .not("recurrence_days", "is", null)
-      .is("series_ended_on", null)
-      .neq("status", "cancelled")
-      .gte("date_needed", since)
-      .limit(201);
+      .not("recurrence_days", "is", null);
+    if (withEnded) q = q.is("series_ended_on", null);
+    return q.neq("status", "cancelled").gte("date_needed", since).limit(201);
+  };
+  let posted: PostgrestLike<SeriesRow[]> = await postedSeries(true);
+  // DEPLOY ORDER (review LOW-5): delete-own-account / admin-delete-user can
+  // ship before db-deploy adds jobs.series_ended_on (20260925052841). Until it
+  // exists no series can have been ended, so the same check without that
+  // filter is exact. Only that missing column falls back; any other error
+  // fails closed below.
+  if (posted.error && isMissingSeriesEndColumn(posted.error)) {
+    console.warn(`[accountPurge] jobs.series_ended_on is not deployed yet; checking running series without it for ${userId}`);
+    posted = await postedSeries(false);
+  }
   if (posted.error) {
     console.error(`[accountPurge] running-series check failed for ${userId}:`, posted.error.message);
     return { ok: false, active: false, detail: posted.error.message };

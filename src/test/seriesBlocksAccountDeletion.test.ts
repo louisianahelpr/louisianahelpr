@@ -11,7 +11,8 @@
  *
  * @mutate supabase/functions/_shared/accountPurge.ts |   const series = await findRunningSeries(admin, userId);\n  if (!series.ok \|\| series.active) return series; |   const series = { ok: true, active: false };\n  void findRunningSeries;
  * @mutate supabase/functions/_shared/accountPurge.ts |     if (dates.some((d) => d >= today)) { |     if (false) {
- * @mutate supabase/functions/_shared/accountPurge.ts |       .is("series_ended_on", null)\n      .neq("status", "cancelled")\n      .gte("date_needed", since) |       .neq("status", "cancelled")\n      .gte("date_needed", since)
+ * @mutate supabase/functions/_shared/accountPurge.ts |     if (withEnded) q = q.is("series_ended_on", null); |     void withEnded;
+ * @mutate supabase/functions/_shared/accountPurge.ts |   if (posted.error && isMissingSeriesEndColumn(posted.error)) { |   if (false) {
  * @mutate supabase/functions/_shared/accountPurge.ts |   if (live.data && live.data.length > 0) { |   if (false) {
  * @mutate supabase/functions/delete-own-account/index.ts |           error: active.reason === "series" |           error: false
  */
@@ -30,16 +31,22 @@ const { findActiveWork, SERIES_BLOCKS_DELETION_MESSAGE } = purge;
 type Row = Record<string, unknown>;
 type Tables = Record<string, Row[] | { error: { code: string; message: string } }>;
 
-function fakeAdmin(tables: Tables) {
+/** `missingColumns`: a column the database does not have yet (deploy order): filtering on it answers 42703. */
+function fakeAdmin(tables: Tables, missingColumns: string[] = []) {
   return {
     from(table: string) {
       const preds: Array<(r: Row) => boolean> = [];
       let limitN = Infinity;
+      let missing: string | null = null;
       const q = {
         select: () => q,
         eq: (c: string, v: unknown) => (preds.push((r) => r[c] === v), q),
         neq: (c: string, v: unknown) => (preds.push((r) => r[c] !== v), q),
-        is: (c: string, v: unknown) => (preds.push((r) => (r[c] ?? null) === v), q),
+        is: (c: string, v: unknown) => {
+          if (missingColumns.includes(c)) missing = c;
+          preds.push((r) => (r[c] ?? null) === v);
+          return q;
+        },
         not: (c: string, _op: string, v: unknown) => (preds.push((r) => (r[c] ?? null) !== v), q),
         gte: (c: string, v: string) => (preds.push((r) => String(r[c]) >= v), q),
         in: (c: string, vs: unknown[]) => (preds.push((r) => vs.includes(r[c])), q),
@@ -48,6 +55,7 @@ function fakeAdmin(tables: Tables) {
         or: () => (preds.push(() => false), q),
         limit: (n: number) => ((limitN = n), q),
         then: (res: (v: unknown) => unknown) => {
+          if (missing) return Promise.resolve({ data: null, error: { code: "42703", message: `column ${table}.${missing} does not exist` } }).then(res);
           const t = tables[table] ?? [];
           if (!Array.isArray(t)) return Promise.resolve({ data: null, error: t.error }).then(res);
           return Promise.resolve({ data: t.filter((r) => preds.every((p) => p(r))).slice(0, limitN), error: null }).then(res);
@@ -74,6 +82,18 @@ describe("a running recurring series blocks deleting either party's account (Q40
     vi.setSystemTime(new Date("2032-09-20T17:00:00Z")); // Mon Sep 20 2032 in Chicago
   });
   afterEach(() => vi.useRealTimers());
+
+  it("LOW-5 deploy order: before jobs.series_ended_on exists (42703) a running series still blocks (no series can have ended yet)", async () => {
+    const r = await findActiveWork(fakeAdmin({ jobs: [series()] }, ["series_ended_on"]), POSTER);
+    expect(r).toMatchObject({ ok: true, active: true, reason: "series" });
+    const none = await findActiveWork(fakeAdmin({ jobs: [series({ date_needed: "2031-01-01" })], series_visit_holds: { error: { code: "42P01", message: 'relation "series_visit_holds" does not exist' } } }, ["series_ended_on"]), POSTER);
+    expect(none).toMatchObject({ ok: true, active: false });
+  });
+
+  it("LOW-5: any other read error on the series check fails closed (ok: false, never 'nothing running')", async () => {
+    const r = await findActiveWork(fakeAdmin({ jobs: { error: { code: "08006", message: "connection reset" } } }), POSTER);
+    expect(r.ok).toBe(false);
+  });
 
   it("the poster of a running series (visit one done, later visits ahead) is refused, with the series copy", async () => {
     const r = await findActiveWork(fakeAdmin({ jobs: [series()] }), POSTER);

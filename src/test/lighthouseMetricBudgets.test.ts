@@ -11,8 +11,10 @@
  * next regression). Lower the budget in the same commit as the fix that lowers
  * the number (CLAUDE.md: every budget is exact both ways).
  *
- * @mutate .lighthouserc.json | "largest-contentful-paint": ["error", { "maxNumericValue": 8000 }] | "largest-contentful-paint": ["warn", { "maxNumericValue": 8000 }]
- * @mutate .lighthouserc.json | "first-contentful-paint": ["error", { "maxNumericValue": 4500 }] | "first-contentful-paint": ["error", { "maxNumericValue": 9000 }]
+ * (The same budget lines appear once per assertMatrix row, so each find-string
+ * carries the line above it to stay unique: LCP breaks the /login row, FCP the / row.)
+ * @mutate .lighthouserc.json | "hreflang": ["error", { "minScore": 1 }],\n            "first-contentful-paint": ["error", { "maxNumericValue": 4500 }],\n            "largest-contentful-paint": ["error", { "maxNumericValue": 8000 }] | "hreflang": ["error", { "minScore": 1 }],\n            "first-contentful-paint": ["error", { "maxNumericValue": 4500 }],\n            "largest-contentful-paint": ["warn", { "maxNumericValue": 8000 }]
+ * @mutate .lighthouserc.json | "categories:seo": ["error", { "minScore": 0.9 }],\n            "first-contentful-paint": ["error", { "maxNumericValue": 4500 }] | "categories:seo": ["error", { "minScore": 0.9 }],\n            "first-contentful-paint": ["error", { "maxNumericValue": 9000 }]
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

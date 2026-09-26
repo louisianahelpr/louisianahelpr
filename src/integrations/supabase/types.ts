@@ -439,7 +439,7 @@ export type Database = {
           id: number
           jobname: string
           occurred_at: string
-          response_id: number
+          response_id: number | null
           status_code: number | null
         }
         Insert: {
@@ -448,7 +448,7 @@ export type Database = {
           id?: never
           jobname: string
           occurred_at: string
-          response_id: number
+          response_id?: number | null
           status_code?: number | null
         }
         Update: {
@@ -457,7 +457,7 @@ export type Database = {
           id?: never
           jobname?: string
           occurred_at?: string
-          response_id?: number
+          response_id?: number | null
           status_code?: number | null
         }
         Relationships: []
@@ -468,27 +468,39 @@ export type Database = {
           disposition_keys: string[] | null
           expected_max_gap: string | null
           jobname: string
+          max_idle: string | null
           min_streak: number
           note: string
           registered_at: string
+          work_exempt_reason: string | null
+          work_keys: string[] | null
+          work_visibility: string | null
         }
         Insert: {
           candidate_key?: string | null
           disposition_keys?: string[] | null
           expected_max_gap?: string | null
           jobname: string
+          max_idle?: string | null
           min_streak?: number
           note?: string
           registered_at?: string
+          work_exempt_reason?: string | null
+          work_keys?: string[] | null
+          work_visibility?: string | null
         }
         Update: {
           candidate_key?: string | null
           disposition_keys?: string[] | null
           expected_max_gap?: string | null
           jobname?: string
+          max_idle?: string | null
           min_streak?: number
           note?: string
           registered_at?: string
+          work_exempt_reason?: string | null
+          work_keys?: string[] | null
+          work_visibility?: string | null
         }
         Relationships: []
       }
@@ -5339,8 +5351,8 @@ export type Database = {
           credits_used: number
         }[]
       }
-      cleanup_observability_tables: { Args: never; Returns: undefined }
-      cleanup_stripe_webhook_events: { Args: never; Returns: undefined }
+      cleanup_observability_tables: { Args: never; Returns: Json }
+      cleanup_stripe_webhook_events: { Args: never; Returns: number }
       clear_available_now: { Args: never; Returns: undefined }
       clear_thread_mute: {
         Args: { _job_id: string; _other_user_id: string }
@@ -5384,6 +5396,15 @@ export type Database = {
         Args: { p_jobname: string; p_request_id: number }
         Returns: number
       }
+      cron_record_work: {
+        Args: { p_job: string; p_result: Json }
+        Returns: Json
+      }
+      cron_silent_rule: { Args: { p_sample_ref: Json }; Returns: string }
+      cron_silent_still_failing: {
+        Args: { p_job: string; p_rule: string; p_since: string }
+        Returns: boolean
+      }
       db_saturation_problems: { Args: { p: Json }; Returns: string[] }
       db_saturation_thresholds: { Args: never; Returns: Json }
       decline_job_offer: { Args: { p_application_id: string }; Returns: Json }
@@ -5400,7 +5421,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      detect_stuck_payments: { Args: never; Returns: number }
+      detect_stuck_payments: { Args: never; Returns: Json }
       detect_suspicious_user_patterns: { Args: never; Returns: number }
       dispute_evidence_url_ok: {
         Args: { _job_id: string; _uploader: string; _url: string }
@@ -6341,8 +6362,9 @@ export type Database = {
         Returns: boolean
       }
       profiles_locked_update_columns: { Args: never; Returns: string[] }
-      prune_cron_http_requests: { Args: never; Returns: undefined }
-      prune_cron_run_log: { Args: never; Returns: undefined }
+      prune_cron_http_requests: { Args: never; Returns: number }
+      prune_cron_run_details: { Args: never; Returns: number }
+      prune_cron_run_log: { Args: never; Returns: number }
       prune_edge_rate_limit_log: { Args: never; Returns: Json }
       prune_retention_tables: { Args: never; Returns: Json }
       purge_user_data: { Args: { p_user_id: string }; Returns: Json }
@@ -6559,7 +6581,7 @@ export type Database = {
       sweep_old_email_send_log: { Args: never; Returns: number }
       sweep_old_error_logs: { Args: never; Returns: number }
       sweep_old_notifications: { Args: never; Returns: number }
-      sweep_release_last_chance: { Args: never; Returns: number }
+      sweep_release_last_chance: { Args: never; Returns: Json }
       sweep_saved_search_alert_queue: { Args: never; Returns: number }
       sweep_silent_cron_failures: { Args: never; Returns: Json }
       sync_jobs_select_grants: { Args: never; Returns: Json }

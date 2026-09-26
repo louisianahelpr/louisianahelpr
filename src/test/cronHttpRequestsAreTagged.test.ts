@@ -41,7 +41,7 @@
  *   - sweep_silent_cron_failures only ingests responses a cron tagged.
  *
  * @mutate supabase/migrations/20260924132850_cron_log_keys_survive_pg_net_id_reuse.sql | AND j.command NOT LIKE '%cron_http_tag(%' | AND false
- * @mutate supabase/migrations/20260924132850_cron_log_keys_survive_pg_net_id_reuse.sql | JOIN public.cron_http_requests t ON t.request_id = resp.id | LEFT JOIN public.cron_http_requests t ON t.request_id = resp.id
+ * @mutate supabase/migrations/20260925231818_cron_work_visibility.sql | JOIN public.cron_http_requests t ON t.request_id = resp.id | LEFT JOIN public.cron_http_requests t ON t.request_id = resp.id
  * @mutate supabase/migrations/20260925155322_catch_up_candidates_one_scan.sql | WHERE h.jobname = r.jobname AND h.created_at = now(); | WHERE false;
  * @mutate supabase/migrations/20260924132850_cron_log_keys_survive_pg_net_id_reuse.sql | action          = CASE WHEN v_ok THEN action ELSE 'catch_up_failed' END, | action = action,
  * @mutate supabase/migrations/20260924132850_cron_log_keys_survive_pg_net_id_reuse.sql | IF cardinality(v_parts) > 0 THEN | IF v_errors > 0 THEN
@@ -58,9 +58,9 @@
  * branch (manual by design). Behaviour, red without the migration (8 checks):
  * src/test/pglite/cronHttpUntaggedCloseRule.pglite.mjs.
  *
- * @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql |   ELSIF p_source = 'cron-http-untagged' AND v_job IS NOT NULL THEN |   ELSIF p_source = 'cron-http-untagged-gone' AND v_job IS NOT NULL THEN
- * @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql |          AND j.active\n |          AND true\n
- * @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql |          AND j.command NOT LIKE '%cron_http_tag(%'); |          AND true);
+ * @mutate supabase/migrations/20260926035556_cron_silent_close_rule.sql |   ELSIF p_source = 'cron-http-untagged' AND v_job IS NOT NULL THEN |   ELSIF p_source = 'cron-http-untagged-gone' AND v_job IS NOT NULL THEN
+ * @mutate supabase/migrations/20260926035556_cron_silent_close_rule.sql |          AND j.active\n |          AND true\n
+ * @mutate supabase/migrations/20260926035556_cron_silent_close_rule.sql |          AND j.command NOT LIKE '%cron_http_tag(%'); |          AND true);
  *
  * Q316 (20260924035844): ops_alert_normalise turns digits into '#', so
  * cleanup-7d and cleanup-30d shared one 'cron-http-untagged' item and the close

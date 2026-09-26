@@ -4,8 +4,8 @@
  * migration defining it must keep both candidate predicates: once per
  * (job, Helpr), and an hourly per-Helpr cap.
  *
- * @mutate supabase/migrations/20260924063801_parish_fanout_dedupe_and_cap.sql | )  -- N-007 once per job | ) OR true  -- N-007 once per job
- * @mutate supabase/migrations/20260924063801_parish_fanout_dedupe_and_cap.sql | ) < 10  -- N-007 hourly cap | ) >= 0  -- N-007 hourly cap
+ * @mutate supabase/migrations/20260925231704_job_matches_wait_for_early_access.sql | )  -- N-007 once per job | ) OR true  -- N-007 once per job
+ * @mutate supabase/migrations/20260925231704_job_matches_wait_for_early_access.sql | ) < 10  -- N-007 hourly cap | ) >= 0  -- N-007 hourly cap
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

@@ -205,6 +205,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/audit/rail-overlap-probe.mjs": "test-results/rail-probe",
   "scripts/perf/measure-load.mjs": "Q178 load timings to ~/.lh-shots/q178 (evidence outside the repo); the CI budget is scripts/perf/critical-path.mjs --check",
   "scripts/audit/walk-every-control.mjs": "/tmp/lh-audit",
+  "scripts/audit/measurement-from-log.mjs": "a TRANSPORT, not a generator: rebuilds the loading-states EVIDENCE output (docs/audit/loading-states/measurements.json, produced by measure-loading-states.mjs) byte-for-byte from a loading-states-refresh branch run's log, sha256-checked, for a session that cannot reach the artifact host (#1773)",
   "scripts/build-og-shell.mjs": "dist/ (build output)",
   "scripts/canary/shared-accounts-busy.mjs": "GITHUB_OUTPUT only (the Q61 canary's stand-down verdict)",
   "scripts/check-changed.mjs": "docs/audit/prepush-skips.log (untracked local log)",

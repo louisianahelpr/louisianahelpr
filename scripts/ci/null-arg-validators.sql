@@ -52,6 +52,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_party_to_job',               'allow',    'user is a party to the job'),
   ('is_party_to_job_folder',        'allow',    'caller is a party to the job owning this storage folder'),
   ('is_crew_member_of_job_folder',  'allow',    'caller is on the crew of the job owning this storage folder (Q407)'),
+  ('job_announceable_to',           'allow',    'job may be announced to this user (Q392: open_jobs_browse gate per recipient)'),
   ('job_is_funded',                 'allow',    'job escrow is funded (applications WITH CHECK)'),
   ('job_payment_is_funded',         'allow',    'payment_status counts as funded (award + apply gates)'),
   ('user_has_pending_application',  'allow',    'user applied to the job'),
@@ -85,6 +86,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('crew_completes_when_hired_done','noarg',    'owner rule constant (Q407): an under-filled crew completes when every hired member is done'),
   ('clear_thread_mute',             'action',   'RPC'),
   ('delete_email',                  'action',   'pgmq wrapper'),
+  ('deliver_job_match',             'action',   'job_match_queue send (writes; true = sent)'),
   ('deliver_saved_search_alert',    'action',   'saved-search send (writes; true = sent)'),
   ('deliver_parish_match_alert',    'action',   'parish-match alert send (writes; true = sent)'),
   ('ops_alert_close',               'action',   'RPC'),
@@ -122,6 +124,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('is_party_to_job_folder',        '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101/x.png'''], ARRAY[1]),
   -- B is on J's crew (the 'roster' fixture step), so the non-NULL call is TRUE.
   ('is_crew_member_of_job_folder',  '00000000-0000-4000-8140-00000000000b', ARRAY['''00000000-0000-4000-8140-000000000101/x.png'''], ARRAY[1]),
+  -- J is open, funded, owned by A, no offer, tier 0; D is neither its poster nor offered.
+  ('job_announceable_to',           NULL, ARRAY['(SELECT j FROM public.jobs j WHERE j.id = ''00000000-0000-4000-8140-000000000101''::uuid)', '''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1,2]),
   ('job_is_funded',                 NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
   ('job_payment_is_funded',         NULL, ARRAY['''escrow'''], ARRAY[1]),
   ('user_has_pending_application',  NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),

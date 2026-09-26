@@ -63,7 +63,11 @@ export const rateLimitState = {
   retryAfter: 60,
 };
 
+/** Every checkRateLimit() call's options, in order: a per-bucket limit is a behaviour. */
+export const rateLimitCalls: Array<{ windowMs?: number; maxRequests?: number; keyPrefix?: string }> = [];
+
 export function resetSharedMocks() {
+  rateLimitCalls.length = 0;
   rateLimitState.allowed = true;
   rateLimitState.remaining = 9;
   rateLimitState.retryAfter = 60;
@@ -75,11 +79,15 @@ export function resetSharedMocks() {
   sendGiftCardEmail.mockClear();
 }
 
-export async function checkRateLimit(): Promise<{
+export async function checkRateLimit(
+  _req?: Request,
+  opts?: { windowMs?: number; maxRequests?: number; keyPrefix?: string },
+): Promise<{
   allowed: boolean;
   remaining: number;
   retryAfter?: number;
 }> {
+  rateLimitCalls.push({ ...(opts ?? {}) });
   return {
     allowed: rateLimitState.allowed,
     remaining: rateLimitState.remaining,

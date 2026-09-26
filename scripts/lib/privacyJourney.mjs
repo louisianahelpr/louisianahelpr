@@ -95,7 +95,7 @@ export const EXPORT_SECTIONS = [
   "reports", "user_blocks", "user_bans", "user_strikes", "user_violations", "user_roles",
   "legal_acceptances", "login_history", "email_tracking", "email_send_log", "suppressed_emails",
   "job_checkins", "job_tracking", "group_job_helpers", "recurring_visit_releases", "job_revisions",
-  "job_completion_nudges", "disputes", "job_views", "profile_views", "pet_profiles",
+  "job_completion_nudges", "job_match_queue", "disputes", "job_views", "profile_views", "pet_profiles",
   "str_calendar_connections", "thread_archives", "thread_mutes", "thread_pins", "nps_responses",
   "analytics_events", "error_logs", "admin_user_notes", "fraud_flags", "helper_shadowbans",
   "application_rate_log", "profile_search_rate_log",

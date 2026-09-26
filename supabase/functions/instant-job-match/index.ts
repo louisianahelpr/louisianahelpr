@@ -3,6 +3,8 @@ import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { serve } from "../_shared/buildStamp.ts";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -57,7 +59,24 @@ serve(async (req) => {
     }
 
     const { jobId } = await req.json();
-    if (!jobId) throw new Error("Missing jobId");
+    if (typeof jobId !== "string" || !UUID_RE.test(jobId)) {
+      return new Response(JSON.stringify({ error: "Missing or invalid jobId" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Q392: one user-triggered match per job per caller every 10 minutes. The
+    // server-side dedupe (job_match_queue's UNIQUE (user_id, job_id)) already
+    // means a re-trigger notifies nobody twice; this stops a poster re-running
+    // the scan to fish for newly matching users. The webhook is exempt: it
+    // runs once per funded job and Stripe retries are absorbed by the dedupe.
+    if (!isInternal) {
+      const { allowed, retryAfter } = await checkRateLimit(req, {
+        windowMs: 10 * 60_000, maxRequests: 1, keyPrefix: `instant-job-match:job:${jobId}`,
+      });
+      if (!allowed) return rateLimitResponse(retryAfter!, corsHeaders);
+    }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
@@ -90,6 +109,10 @@ serve(async (req) => {
       .select("id, title, category, location, budget, customer_id, is_urgent, payment_status")
       .eq("id", jobId)
       .eq("status", "open")
+      // Q392: an ownerless job (the poster deleted their account) is off every
+      // browse surface (open_jobs_browse: customer_id IS NOT NULL), so it is
+      // never announced. enqueue_instant_job_match re-checks the whole gate.
+      .not("customer_id", "is", null)
       .in("payment_status", FUNDED_PAYMENT_STATUSES)
       // Same visibility rule as get_public_open_jobs: hidden while a direct
       // offer is pending; matchable again once it resolves (declined/expired).
@@ -106,7 +129,7 @@ serve(async (req) => {
       // — answer 200 with a zero count so the poster's submit path is not
       // failed by a match that correctly declined to run.
       return new Response(
-        JSON.stringify({ notified: 0, queued_for_digest: 0, matchedHelpers: [], skipped: "job_not_matchable" }),
+        JSON.stringify({ notified: 0, queued: 0, skipped: "job_not_matchable" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -232,7 +255,10 @@ serve(async (req) => {
         const tierRank: Record<string, number> = { elite: 3, pro: 2, basic: 1 };
         return (tierRank[b.subscription_tier ?? ""] ?? 0) - (tierRank[a.subscription_tier ?? ""] ?? 0);
       })
-      .slice(0, 20); // Top 20 matches
+      // Ranked candidates, not the final 20: enqueue_instant_job_match keeps
+      // the first 20 the browse gate admits for each recipient (a user below
+      // the job's credential tier must not take a slot). Bounded payload.
+      .slice(0, 200);
 
     if (scored.length === 0) {
       return new Response(JSON.stringify({ notified: 0 }), {
@@ -240,8 +266,6 @@ serve(async (req) => {
       });
     }
 
-    // Bulk INSERT instead of awaiting per row. The trigger fan_out_push_on_notification
-    // fires per-row and pushes to mobile, so this is also kinder to the cron.
     // Tiny category emoji map — surfaces a glanceable icon in the push
     // notification title so users can identify the work type without
     // reading. Keeps the brand-voiced "Match for you" framing.
@@ -269,84 +293,67 @@ serve(async (req) => {
     };
     const emoji = categoryEmoji[job.category] ?? "✨";
 
-    // Smart batching: pull each scored helper's notification preference
-    // and route non-urgent matches to a pending bucket (job_match_pending)
-    // when they opted into "digest" mode. Urgent jobs always fire
-    // immediately regardless of preference.
+    // The job-match OFF switch, honoured before anything is queued (ADDED
+    // 2026-09-11). `job_matches` false means no in-app row, no push, no digest
+    // entry. Absent row or absent column reads as TRUE. deliver_job_match
+    // re-reads it at send time, and routes digest-mode users to the digest.
     const scoredIds = scored.map((h) => h.user_id);
-    let digestMap = new Map<string, boolean>();
-    // ADDED 2026-09-11 — the job-match OFF switch, honoured at the SEND site.
-    // `job_matches` false means this helper does not want match notifications
-    // at all: no in-app row, no push, no digest entry. Absent row or absent
-    // column reads as TRUE — nobody loses matches by default.
     const mutedMatches = new Set<string>();
-    if (scoredIds.length > 0) {
-      const { data: prefs } = await supabase
-        .from("notification_preferences")
-        .select("user_id, match_digest_mode, job_matches")
-        .in("user_id", scoredIds);
-      for (const p of (prefs ?? []) as Array<{
-        user_id: string;
-        match_digest_mode: boolean | null;
-        job_matches: boolean | null;
-      }>) {
-        digestMap.set(p.user_id, !!p.match_digest_mode);
-        if (p.job_matches === false) mutedMatches.add(p.user_id);
-      }
+    const { data: prefs, error: prefsError } = await supabase
+      .from("notification_preferences")
+      .select("user_id, job_matches")
+      .in("user_id", scoredIds);
+    if (prefsError) throw prefsError;
+    for (const p of (prefs ?? []) as Array<{ user_id: string; job_matches: boolean | null }>) {
+      if (p.job_matches === false) mutedMatches.add(p.user_id);
     }
 
-    const immediate: typeof scored = [];
-    const deferred: typeof scored = [];
+    const matches: Array<{ user_id: string; title: string; message: string; link: string }> = [];
     for (const h of scored) {
-      // The switch wins over everything, urgency included. A user who turned
-      // matches off asked for silence, not for a quieter kind of noise.
+      // The switch wins over everything, urgency included.
       if (mutedMatches.has(h.user_id)) continue;
-      const digest = digestMap.get(h.user_id) ?? false;
-      if (job.is_urgent || !digest) {
-        immediate.push(h);
-      } else {
-        deferred.push(h);
+      matches.push({
+        user_id: h.user_id,
+        // Category emoji in the title for faster glance recognition.
+        title: `${emoji} Match for you${job.is_urgent ? " · Urgent" : ""}`,
+        message: `${job.title} in ${displayLocation} · $${job.budget}. Tap to review and apply.`,
+        link: `/home?quickApply=${job.id}`,
+      });
+    }
+
+    // Q392: this function no longer writes notifications itself. It hands the
+    // ranked matches to enqueue_instant_job_match, which (per recipient) applies
+    // open_jobs_browse's gate — credential tier, ownerless, funded, direct
+    // offer, fixture — queues each match until the job is in THAT user's feed
+    // under early access (early_access_visible_at), sends the ones already
+    // visible, and dedupes on (job_id, user_id) so a re-trigger tells nobody
+    // twice. The every-minute sweep_job_match_queue sends the rest.
+    const { data: outcome, error: enqueueError } = await supabase.rpc("enqueue_instant_job_match", {
+      p_job_id: job.id,
+      p_matches: matches,
+    });
+    if (enqueueError) {
+      // Deploy lag: this function can ship before its migration. Fail CLOSED —
+      // an un-gated send is the defect this replaced — and say so.
+      if ((enqueueError as { code?: string }).code === "PGRST202") {
+        console.error("instant-job-match: enqueue_instant_job_match not deployed yet (PGRST202); no match sent");
+        return new Response(
+          JSON.stringify({ notified: 0, queued: 0, skipped: "match_queue_not_deployed" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
+      throw enqueueError;
     }
+    const result = (outcome ?? {}) as { eligible?: number; queued?: number; already?: number; sent_now?: number };
 
-    // Immediate fan-out — full push notification.
-    if (immediate.length > 0) {
-      const { error: notifyErr } = await supabase.from("notifications").insert(
-        immediate.map((h) => ({
-          user_id: h.user_id,
-          // Category emoji in the title for faster glance recognition.
-          title: `${emoji} Match for you${job.is_urgent ? " · Urgent" : ""}`,
-          message: `${job.title} in ${displayLocation} · $${job.budget}. Tap to review and apply.`,
-          type: "job_match",
-          link: `/home?quickApply=${job.id}`,
-          read: false,
-        })),
-      );
-      if (notifyErr) throw notifyErr;
-    }
-
-    // Deferred — write to a queue table the daily-match-digest cron
-    // reads from. Schema: (user_id, job_id, created_at). Idempotent
-    // dedupe at write time via upsert on (user_id, job_id).
-    if (deferred.length > 0) {
-      const { error: queueErr } = await supabase.from("match_digest_queue").upsert(
-        deferred.map((h) => ({
-          user_id: h.user_id,
-          job_id: job.id,
-          created_at: new Date().toISOString(),
-        })),
-        { onConflict: "user_id,job_id", ignoreDuplicates: true },
-      );
-      // Queue failure is non-fatal — log + continue. We'd rather have
-      // some users miss a digest entry than block the match endpoint.
-      if (queueErr) console.warn("match_digest_queue upsert failed:", queueErr.message);
-    }
-
+    // Counts only: the ranked candidate list (up to 200 nearby accounts,
+    // some the gate refuses) is never handed back to the caller.
     return new Response(
       JSON.stringify({
-        notified: immediate.length,
-        queued_for_digest: deferred.length,
-        matchedHelpers: scored.map((h) => h.user_id),
+        notified: result.sent_now ?? 0,
+        queued: result.queued ?? 0,
+        already_matched: result.already ?? 0,
+        eligible: result.eligible ?? 0,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

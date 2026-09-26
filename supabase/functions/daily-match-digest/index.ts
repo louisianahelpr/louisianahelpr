@@ -58,13 +58,36 @@ serve(async (req) => {
       return cronResult("daily-match-digest", { users: 0, queued: 0 }, { count: 0 }, corsHeaders);
     }
 
+    // 1b. Q392: re-check every row against the browse gate at digest time.
+    //     A row was gated when it was queued, but the job may since have been
+    //     hired, cancelled, unfunded or orphaned, or be above the user's
+    //     credential tier. job_match_digest_rows answers send=true (summarise
+    //     it), send=false (drain it unsent), or omits the row (not yet in the
+    //     user's feed under early access: keep it for the next run).
+    const allIds = (queueRows as Array<{ id: string }>).map((r) => r.id);
+    let sendable: Set<string>;
+    let drainIds: string[];
+    const { data: gateRows, error: gateErr } = await supabase.rpc("job_match_digest_rows", { p_queue_ids: allIds });
+    if (gateErr) {
+      // Deploy lag only (the function ships before its migration): the rows
+      // were gated when queued, so summarise them as before this check.
+      if ((gateErr as { code?: string }).code !== "PGRST202") throw gateErr;
+      console.warn("[daily-match-digest] job_match_digest_rows not deployed yet (PGRST202); digest not re-checked");
+      sendable = new Set(allIds);
+      drainIds = allIds;
+    } else {
+      const verdicts = (gateRows ?? []) as Array<{ id: string; send: boolean }>;
+      sendable = new Set(verdicts.filter((v) => v.send === true).map((v) => v.id));
+      drainIds = verdicts.map((v) => v.id);
+    }
+
     // 2. Group by user_id.
     type QueueRow = (typeof queueRows)[number] & {
       jobs: { id: string; title: string; category: string; location: string; budget: number } | null;
     };
     const byUser = new Map<string, QueueRow[]>();
     for (const row of queueRows as QueueRow[]) {
-      if (!row.jobs) continue;
+      if (!row.jobs || !sendable.has(row.id)) continue;
       if (!byUser.has(row.user_id)) byUser.set(row.user_id, []);
       byUser.get(row.user_id)!.push(row);
     }
@@ -148,7 +171,9 @@ serve(async (req) => {
     //    truncated and look like a short drain on a perfectly clean run — a
     //    false page. 500 stays well under any configured cap and keeps the
     //    `?id=in.(...)` URL a sane length.
-    const queueIds = queueRows.map((r: { id: string }) => r.id);
+    // Only the rows the gate answered for: a row still waiting on early
+    // access stays queued for the next run.
+    const queueIds = drainIds;
     const DRAIN_CHUNK = 500;
     let drained = 0;
     for (let i = 0; i < queueIds.length; i += DRAIN_CHUNK) {

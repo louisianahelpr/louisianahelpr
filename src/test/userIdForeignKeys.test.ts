@@ -133,10 +133,10 @@ describe("every person-id column (*user_id, *_by) has a foreign key or a stated 
   // column named *user_id or *_by. Live information_schema agreed on
   // 2026-09-26 (58); Q355 part 2 adds ops_alert_admin_subjects.user_id (FK to
   // auth.users); Q225 adds parish_match_alert_queue.user_id (FK to
-  // auth.users). A new person column moves this; so does a scanner that
-  // stops reading a file.
+  // auth.users); Q392 adds job_match_queue.user_id (FK to auth.users). A new
+  // person column moves this; so does a scanner that stops reading a file.
   it("scans the whole person-column inventory", () => {
-    expect(all.size).toBe(60);
+    expect(all.size).toBe(61);
   });
   it("sees the columns this class is about (parser sanity)", () => {
     for (const k of ["notification_logs.user_id", "jobs.cancelled_by", "profiles.license_reviewed_by", "payment_refunds.initiated_by_user_id", "notifications.user_id"]) {

@@ -1,3 +1,4 @@
+// @mutate supabase/functions/create-payment/index.ts |         payment_method_types: TIP_PAYMENT_METHOD_TYPES, |
 /**
  * Unit tests for the `create-payment` Supabase edge function.
  *
@@ -1109,6 +1110,10 @@ describe("create-payment edge function", () => {
       expect(args.payment_intent_data.application_fee_amount).toBe(76);
       const charged = units.reduce((a: number, b: number) => a + b, 0);
       expect(charged - args.payment_intent_data.application_fee_amount).toBe(1500);
+      // Q383: the fee recovers the CARD rate, so the session offers card
+      // (Apple/Google Pay ride on it) and Link only, never the account's
+      // default list (Klarna/Affirm/Afterpay at 5.99% + 30c, bank, Cash App).
+      expect(args.payment_method_types).toEqual(["card", "link"]);
       // tips ledger row written
       expect(
         scenario.writes.some((w) => w.table === "tips" && w.op === "insert"),

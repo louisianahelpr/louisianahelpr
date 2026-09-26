@@ -11,7 +11,7 @@ import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
-import { TIP_MAX_CENTS, TIP_MIN_CENTS, tipChargeBreakdown } from "../_shared/tipFees.ts";
+import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { isLaborTaxable } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
@@ -1245,6 +1245,10 @@ serve(async (req) => {
           },
         ],
         mode: "payment",
+        // Card (incl. Apple/Google Pay) and Link only: the fee line recovers
+        // the CARD rate, so a Klarna/Affirm tip would cost the platform the
+        // difference (Q383).
+        payment_method_types: TIP_PAYMENT_METHOD_TYPES,
         // 3D Secure from $300 (Q202), same rule as the job charge, measured on
         // what the card is actually charged.
         payment_method_options: threeDSecureOptions(tipQuote.chargeCents),

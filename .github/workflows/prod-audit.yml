@@ -104,7 +104,12 @@ jobs:
     # locally at 2-2.5 minutes a route, so the ceiling is the sum, not one slow
     # screen — a 120-minute job would have been killed mid-suite and reported as
     # a failure of the app.
-    timeout-minutes: 300
+    # MEASURED (docs/OPEN.md Q322, 2026-09-26): the job itself took 100 min at
+    # most (run 36003051878, 13:14:40-14:55:13Z on 2026-09-24; 51 min on the
+    # 2026-09-24 schedule, 35963166238). 300 held prod-load 5 h in the rule-5
+    # model and left the week with no free :17 slot; 180 is 1.8x the worst
+    # measured run and frees Sun and Thu 05:17.
+    timeout-minutes: 180
     env:
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
       PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}

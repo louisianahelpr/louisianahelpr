@@ -108,6 +108,9 @@ export const SEED_GATED_SURFACES = [
   // V-008 (2026-09-25): the trigger only queues; this is the one send path,
   // and it re-checks the seed gate at send time.
   { surface: "saved-search alerts (queued send)", object: "public.deliver_saved_search_alert" },
+  // Q225 (20260926041132): the parish-match alert queue's send path re-checks
+  // the seed gate at send time, like the saved-search send above.
+  { surface: "parish match alert (queued send)", object: "public.deliver_parish_match_alert" },
   // MISSING UNTIL 2026-09-03, and found the other way round. Every check here
   // used to discover surfaces by NAME (`public.*open_jobs*`) and ask whether
   // each was registered — which cannot see this one, or the saved-search entry

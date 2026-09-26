@@ -6152,6 +6152,7 @@ export type Database = {
         Returns: boolean
       }
       is_crew_member_of_job_folder: { Args: { object_name: string }; Returns: boolean }
+      is_fixture_email: { Args: { p_email: string }; Returns: boolean }
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
       is_late_cancellation: {
         Args: { p_has_helper: boolean; p_hours_until: number }
@@ -6384,6 +6385,10 @@ export type Database = {
       prune_cron_run_log: { Args: never; Returns: number }
       prune_edge_rate_limit_log: { Args: never; Returns: Json }
       prune_retention_tables: { Args: never; Returns: Json }
+      purge_old_seed_data: {
+        Args: { p_batch?: number; p_dry_run?: boolean; p_older_than?: unknown }
+        Returns: Json
+      }
       purge_user_data: { Args: { p_user_id: string }; Returns: Json }
       rate_limit_hit: {
         Args: {
@@ -6547,6 +6552,7 @@ export type Database = {
       }
       rpc_withdraw_dispute: { Args: { _job_id: string }; Returns: undefined }
       run_missed_cron_catch_up: { Args: never; Returns: Json }
+      run_seed_purge: { Args: never; Returns: Json }
       save_weekly_availability: { Args: { p_slots: Json }; Returns: number }
       search_profiles_by_name: {
         Args: { query: string }

@@ -95,11 +95,15 @@ jobs:
     # unjustified skip on both engines). The ONE job here that writes to prod:
     # it reuses the accepted fixture, or mints one through the app's own path
     # (Stripe TEST checkout, apply, hire). It runs once, before both sweep
-    # legs, because the legs run in parallel and must stay read-only. This
-    # workflow's prod-load group is its account lock, as for the sweep.
+    # legs, because the legs run in parallel and must stay read-only. It
+    # writes to the shared E2E accounts, so besides prod-load it holds their
+    # one lock (Q326).
     name: Job-status fixtures
     needs: preflight
     runs-on: ubuntu-latest
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
     # A mint is bounded by the 22-minute early-access wait (fundedOpenJob.ts).
     timeout-minutes: 30
     env:

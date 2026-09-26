@@ -256,6 +256,9 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // 20260925154606 (Q407): the crew roll-up closes ONE under-filled crew's
     // staffing (open -> accepted) on the job the caller is on.
     ["public.rpc_group_member_mark_done", "single-job mutation on the caller's own crew; status is a precondition"],
+    // 20260926034237 (Q342): locks ONE job by id to settle its chargeback; the
+    // 'open' it tests is disputes.status, not a jobs feed.
+    ["public.settle_dispute_by_chargeback", "single-job money settlement by id; 'open' is the dispute's status"],
   ]);
 
   it("every migration object that SELECTS open jobs is gated or declared not-a-feed", () => {

@@ -321,6 +321,12 @@ jobs:
       inputs.run_two_role
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # It signs in as the shared poster AND helper seats and walks a job
+    # through its lifecycle, so it holds the account lock every such job
+    # holds (docs/OPEN.md Q326; src/test/sharedAccountJobsHoldOneLock.test.ts).
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

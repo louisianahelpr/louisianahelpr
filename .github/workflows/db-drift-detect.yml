@@ -290,6 +290,18 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/check-migration-provenance.mjs check
 
+      # Q164. A function on prod that is not in the repo (a lane's temporary
+      # function left behind) or a repo function prod no longer has (vanished).
+      # Same continue-on-error + fail-at-the-end shape.
+      - name: The deployed edge functions are exactly the repo's
+        id: deployed_functions
+        continue-on-error: true
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-deployed-functions.mjs
+
       - name: Compute drift
         id: drift
         if: steps.precheck.outputs.skip != 'true'
@@ -516,6 +528,7 @@ jobs:
           FUNCTION_BODY_DRIFT: ${{ steps.function_body_drift.outcome }}
           UNVALIDATED_CONSTRAINTS: ${{ steps.unvalidated_constraints.outcome }}
           MIGRATION_PROVENANCE: ${{ steps.migration_provenance.outcome }}
+          DEPLOYED_FUNCTIONS: ${{ steps.deployed_functions.outcome }}
         run: |
           set -euo pipefail
           if [ "${TYPES_FRESH:-success}" = "failure" ]; then
@@ -552,6 +565,10 @@ jobs:
           fi
           if [ "${UNVALIDATED_CONSTRAINTS:-success}" = "failure" ]; then
             echo "::error::A public constraint is NOT VALID (a row violates it; its next UPDATE will fail) — or the live read failed. See 'Every public constraint is validated' above."
+            failed=1
+          fi
+          if [ "${DEPLOYED_FUNCTIONS:-success}" = "failure" ]; then
+            echo "::error::The deployed edge functions differ from supabase/functions/ (a leftover or out-of-band function, or one prod no longer has) — or the list could not be read. See 'The deployed edge functions are exactly the repo's' above."
             failed=1
           fi
           if [ "${MIGRATION_PROVENANCE:-success}" = "failure" ]; then

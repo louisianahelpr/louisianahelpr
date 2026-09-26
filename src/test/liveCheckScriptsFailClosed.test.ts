@@ -45,6 +45,7 @@
 // @mutate scripts/audit/function-body-drift.mjs | if (!Array.isArray(rows) \|\| rows.length < 50 \|\| typeof rows[0].prosrc !== "string") throw | if (false) throw
 // @mutate scripts/audit/cross-account-authz.mjs | if (leaks) process.exit(1); |
 // @mutate scripts/check-migration-provenance.mjs |   if (!state) { |   if (false) {
+// @mutate scripts/check-deployed-functions.mjs |   if (!deployed.length) { |   if (false) {
 // @mutate scripts/check-migration-provenance.mjs | could not check migration provenance: ${e.message}`);\n  process.exit(2); | could not check migration provenance: ${e.message}`);\n  process.exit(0);
 // @mutate scripts/check-storage-refs.mjs | if (refs.length === 0) { | if (false) {
 // @mutate scripts/check-stripe-restore-drift.mjs | if (!isStripeList(body)) unmeasured( | if (false) unmeasured(
@@ -216,6 +217,12 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "no credentials", args: ["check"], says: /could not check migration provenance: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
     { label: "Management API 500", args: ["check"], env: MGMT("fail"), says: /could not check migration provenance: Management API query failed: 500/ },
     { label: "Management API []", args: ["check"], env: MGMT("empty"), says: /schema_migrations read returned no rows — refusing to report clean/ },
+  ],
+  // Q164 (db-drift-detect.yml): GET /v1/projects/{ref}/functions (LH_SUPABASE_API_BASE).
+  "scripts/check-deployed-functions.mjs": [
+    { label: "no credentials", says: /could not list the deployed edge functions: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
+    { label: "Management API 500", env: MGMT("fail"), says: /could not list the deployed edge functions: Management API GET \/functions 500/ },
+    { label: "Management API []", env: MGMT("empty"), says: /the deployed function list is empty — refusing to report clean/ },
   ],
   // Q63 / Q72 (quota-monitor.yml). Both read prod through the Management API
   // (LH_SUPABASE_API_BASE); their ledger writes land on the same stub.

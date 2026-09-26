@@ -26,6 +26,13 @@
  *
  * @mutate supabase/functions/money-reconciliation/index.ts | seed: true, | unrouted: true,
  * @mutate supabase/functions/subscription-reconciliation/index.ts | seed: true, | unrouted: true,
+ * @mutate supabase/functions/process-scheduled-payouts/index.ts | const { ids: adminIds } = job.is_seed === true\n          ? { ids: [] as string[] }\n          : await loadAdminIds( | const { ids: adminIds } = await loadAdminIds(
+ *
+ * THE ADMIN INBOX IS A CHANNEL TOO (docs/OPEN.md Q93, 2026-09-26): Q91 routed
+ * the Slack pages, but process-scheduled-payouts still inserted an in-app
+ * `admin_alert` for every admin on a seed job's failure. So in an
+ * include_seed function every loadAdminIds( (the admin fan-out) must sit
+ * behind the subject's own `is_seed === true` check.
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, existsSync } from "node:fs";
@@ -69,6 +76,23 @@ describe("include_seed runs route seed alerts to the digest", () => {
     const gone = [...KNOWN_UNROUTED].filter((fn) => !inventory.some((i) => i.fn === fn));
     expect(stale).toEqual([]);
     expect(gone).toEqual([]);
+  });
+
+  it("Q93: in an include_seed function, every admin in-app fan-out is gated on the subject's is_seed", () => {
+    const withFanOut = readdirSync(FNS)
+      .filter((d) => existsSync(join(FNS, d, "index.ts")))
+      .map((d) => ({ fn: d, code: blankComments(readFileSync(join(FNS, d, "index.ts"), "utf8")) }))
+      .filter(({ code }) => READS_INCLUDE_SEED.test(code) && /loadAdminIds\(/.test(code));
+    // Floor: process-scheduled-payouts fans out to admins (2 call sites, 2026-09-26).
+    expect(withFanOut.map((f) => f.fn)).toContain("process-scheduled-payouts");
+    const ungated: string[] = [];
+    for (const { fn, code } of withFanOut) {
+      for (const m of code.matchAll(/loadAdminIds\(/g)) {
+        const before = code.slice(Math.max(0, (m.index ?? 0) - 160), m.index);
+        if (!/is_seed === true/.test(before)) ungated.push(`${fn} @${m.index}`);
+      }
+    }
+    expect(ungated, "a seed job's failure reaches /admin notifications; gate the fan-out on `<subject>.is_seed === true`").toEqual([]);
   });
 
   it("the predicate ignores comments", () => {

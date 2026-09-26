@@ -248,6 +248,9 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
           payment_status: "unpaid",
           pricing_mode: "set_price",
           parish: null,
+          // Intent only: enforce_jobs_insert_column_lock derives is_seed from
+          // the poster's profiles.is_seed on a signed-in insert (Q46).
+          is_seed: true,
         },
       });
       expect(r.ok(), `job insert failed: ${r.status()} ${await r.text()}`).toBe(true);

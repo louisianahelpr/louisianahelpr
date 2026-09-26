@@ -7,74 +7,81 @@
  * "remaining connection slots are reserved for roles with the SUPERUSER
  * attribute".
  *
- * The fix is `max-parallel: 2` on the press matrix. This guard holds it there,
- * and holds the two things that change with it:
- *   - the per-job timeout still covers one shard (its clock starts when the
- *     shard starts, not while it waits for a slot);
- *   - the clean-up job's window reaches back to the FIRST wave. Two waves take
- *     up to 2 x timeout-minutes, so the old fixed "-3 hours" missed wave one.
+ * The first fix was `max-parallel: 2` on the press matrix. Since 2026-09-26
+ * (Q326) the shards run inside ONE job that holds the shared-accounts lock, in
+ * WAVES of scripts/audit/press-wave.sh; the cap is now the wave size. This
+ * guard holds it there, and holds what changes with it:
+ *   - every shard runs in exactly one wave, and no wave runs more than two;
+ *   - the job timeout covers every wave's own time budget (each shard stops
+ *     itself at TIME_BUDGET_MIN) with room for set-up and the restore;
+ *   - the clean-up window starts BEFORE the first wave (recorded by the
+ *     snapshot step), so rows made by wave one are the run's own too. The old
+ *     fixed "-3 hours" window missed wave one.
  *
- * @mutate .github/workflows/press-every-control.yml |       max-parallel: 2 |       max-parallel: 4
- * @mutate .github/workflows/press-every-control.yml |       max-parallel: 2 |       # max-parallel: 2
- * @mutate .github/workflows/press-every-control.yml | SINCE=$(date -u -d '-6 hours' | SINCE=$(date -u -d '-3 hours'
- * @mutate .github/workflows/press-every-control.yml | --jq .run_started_at | --jq .created_at_typo
+ * @mutate .github/workflows/press-every-control.yml | bash scripts/audit/press-wave.sh 1 2 | bash scripts/audit/press-wave.sh 1 2 3
+ * @mutate .github/workflows/press-every-control.yml | bash scripts/audit/press-wave.sh 3 4 | bash scripts/audit/press-wave.sh 3
+ * @mutate .github/workflows/press-every-control.yml |     timeout-minutes: 330 |     timeout-minutes: 200
+ * @mutate .github/workflows/press-every-control.yml | echo "PRESS_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV" | true
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parse } from "yaml";
 
-const FILE = resolve(__dirname, "../../.github/workflows/press-every-control.yml");
+const ROOT = resolve(__dirname, "../..");
+const FILE = resolve(ROOT, ".github/workflows/press-every-control.yml");
 const MAX_PARALLEL_CAP = 2;
 
-type Step = { name?: string; run?: string; env?: Record<string, string> };
+type Step = { id?: string; name?: string; run?: string; if?: string; env?: Record<string, string> };
 type Job = {
   "timeout-minutes"?: number;
-  strategy?: { "max-parallel"?: number; matrix?: { shard?: unknown[] } };
-  permissions?: Record<string, string>;
+  strategy?: unknown;
+  env?: Record<string, string>;
   steps?: Step[];
 };
 
 const wf = parse(readFileSync(FILE, "utf8")) as { jobs: Record<string, Job> };
 const press = wf.jobs.press;
-const shards = press.strategy?.matrix?.shard ?? [];
+const steps = press?.steps ?? [];
+const waveAt = steps.map((s, i) => ({ s, i })).filter(({ s }) => /press-wave\.sh/.test(s.run ?? ""));
+const waves = waveAt.map(({ s }) => (/press-wave\.sh ([\d ]+)/.exec(s.run ?? "")?.[1] ?? "").trim().split(/\s+/).map(Number));
+// The shard count the wave script divides the route list by (SHARD="$n/<total>").
+const total = Number(/SHARD="\$n\/(\d+)"/.exec(readFileSync(resolve(ROOT, "scripts/audit/press-wave.sh"), "utf8"))?.[1]);
 
 describe("Q317: press-every-control never floods prod's connection slots", () => {
-  it("the press matrix exists and has shards (inventory floor)", () => {
+  it("the press job runs its shards in waves (inventory floor)", () => {
     expect(press).toBeDefined();
-    expect(shards.length).toBeGreaterThan(1);
+    expect(waves.length).toBeGreaterThan(1);
+    expect(total).toBeGreaterThan(1);
   });
 
-  it(`declares max-parallel, and it is <= ${MAX_PARALLEL_CAP}`, () => {
-    const mp = press.strategy?.["max-parallel"];
-    // Absent means "all shards at once" — the original bug.
-    expect(mp, "press matrix has no max-parallel: every shard runs at once").toBeTypeOf("number");
-    expect(mp as number).toBeGreaterThan(0);
-    expect(mp as number).toBeLessThanOrEqual(MAX_PARALLEL_CAP);
+  it("no matrix: the shards share the one job that holds the account lock", () => {
+    expect(press.strategy, "a matrix cannot hold the job-level account lock (Q326)").toBeUndefined();
   });
 
-  it("the per-shard timeout still exceeds the sweep's own time budget", () => {
-    const step = press.steps?.find((s) => s.env?.TIME_BUDGET_MIN);
-    const budget = Number(step?.env?.TIME_BUDGET_MIN);
+  it(`no wave runs more than ${MAX_PARALLEL_CAP} shards`, () => {
+    for (const w of waves) expect(w.length).toBeLessThanOrEqual(MAX_PARALLEL_CAP);
+  });
+
+  it("every shard runs in exactly one wave", () => {
+    const all = waves.flat().sort((a, b) => a - b);
+    expect(all).toEqual(Array.from({ length: total }, (_, i) => i + 1));
+  });
+
+  it("the job timeout covers every wave's time budget plus set-up and restore", () => {
+    const budget = Number(press.env?.TIME_BUDGET_MIN);
     expect(budget).toBeGreaterThan(0);
-    expect(press["timeout-minutes"] ?? 0).toBeGreaterThan(budget);
+    expect(press["timeout-minutes"] ?? 0).toBeGreaterThanOrEqual(waves.length * budget + 30);
+    // GitHub-hosted runners stop any job at 360 minutes whatever it asks for.
+    expect(press["timeout-minutes"] ?? 0).toBeLessThanOrEqual(360);
   });
 
-  it("the clean-up window reaches back to the first wave", () => {
-    const mp = press.strategy?.["max-parallel"] ?? shards.length;
-    const waves = Math.ceil(shards.length / mp);
-    const worstCaseMin = waves * (press["timeout-minutes"] ?? 360);
-    const sweep = wf.jobs.cleanup?.steps?.find((s) => s.name === "Sweep");
-    expect(sweep?.run, "cleanup Sweep step not found").toBeTruthy();
-    const run = sweep!.run!;
-    // Primary: the run's own start time, which needs actions: read + a token.
-    expect(run).toMatch(/actions\/runs\/\$GITHUB_RUN_ID"? --jq \.run_started_at/);
-    expect(wf.jobs.cleanup.permissions?.actions).toBe("read");
-    expect(sweep!.env?.GH_TOKEN).toBeTruthy();
-    // Fallback: a fixed window at least as long as every wave together.
-    const hours = [...run.matchAll(/date -u -d '-(\d+) hours'/g)].map((m) => Number(m[1]));
-    expect(hours.length).toBeGreaterThan(0);
-    for (const h of hours) expect(h * 60).toBeGreaterThanOrEqual(worstCaseMin);
-    expect(run).toMatch(/CLEANUP_SINCE="\$SINCE"/);
+  it("the clean-up window starts before the first wave", () => {
+    const snapAt = steps.findIndex((s) => /PRESS_STARTED_AT=\$\(date -u/.test(s.run ?? ""));
+    expect(snapAt, "no step records PRESS_STARTED_AT").toBeGreaterThanOrEqual(0);
+    expect(snapAt).toBeLessThan(waveAt[0].i);
+    const restoreAt = steps.findIndex((s) => /CLEANUP_SINCE="\$PRESS_STARTED_AT"/.test(s.run ?? ""));
+    expect(restoreAt, "the restore does not read PRESS_STARTED_AT").toBeGreaterThan(waveAt[waveAt.length - 1].i);
+    expect(steps[restoreAt].if).toBe("always()");
   });
 });

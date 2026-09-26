@@ -21,7 +21,7 @@
  *                       'public.thread_archives'::regclass)
  *      AND conkey = ARRAY[(SELECT attnum FROM pg_attribute
  *                           WHERE attrelid = conrelid AND attname = 'other_user_id')];
- *   -- expect 3 rows, confdeltype 'c'
+ *   -- expect one row per table above, confdeltype 'c' (source says so 2026-09-26; not yet run live)
  *
  * @mutate supabase/migrations/20260831011232_add_thread_archives.sql | other_user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, | other_user_id uuid NOT NULL,
  * @mutate supabase/migrations/20260609100000_thread_mute.sql | other_user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, | other_user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -70,6 +70,7 @@ describe("every other_user_id column cascades with the account it names (Q335)",
   const fks = otherUserIdFks();
 
   it("scans the whole other_user_id inventory", () => {
+    expect([...fks.keys()].length).toBeGreaterThan(2);
     expect([...fks.keys()].sort()).toEqual(["thread_archives", "thread_mutes", "thread_pins"]);
   });
 

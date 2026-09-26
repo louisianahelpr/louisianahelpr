@@ -191,10 +191,15 @@ describe("dispatchMessage — the other party deleted their account mid-thread (
     return { handlers, setMessages, setActiveConvo };
   }
 
+  const lastOf = (xs: Message[]) => xs[xs.length - 1];
+
   /** Apply every functional setState call in order to a starting value. */
   function applyAll<T>(fn: ReturnType<typeof vi.fn>, start: T): T {
-    return fn.mock.calls.reduce(
-      (acc: T, [arg]: [unknown]) => (typeof arg === "function" ? (arg as (p: T) => T)(acc) : (arg as T)),
+    return fn.mock.calls.reduce<T>(
+      (acc, call) => {
+        const arg: unknown = call[0];
+        return typeof arg === "function" ? (arg as (p: T) => T)(acc) : (arg as T);
+      },
       start,
     );
   }
@@ -211,7 +216,7 @@ describe("dispatchMessage — the other party deleted their account mid-thread (
     expect(convo?.otherUserId).toBeNull();
     expect(convo?.otherUserName).toBe("Former member");
     const msgs = applyAll<Message[]>(setMessages, []);
-    expect(msgs.at(-1)?.sendStatus).toBe("refused");
+    expect(lastOf(msgs)?.sendStatus).toBe("refused");
     const calls = toastError().mock.calls.map((c) => String(c[0]));
     expect(calls.some((c) => /deleted/i.test(c))).toBe(true);
     expect(calls.some((c) => /try again/i.test(c))).toBe(false);
@@ -223,7 +228,7 @@ describe("dispatchMessage — the other party deleted their account mid-thread (
 
     const convo = applyAll<Conversation | null>(setActiveConvo, ACTIVE_CONVO);
     expect(convo?.otherUserId).toBe("other-1");
-    expect(applyAll<Message[]>(setMessages, []).at(-1)?.sendStatus).toBe("failed");
+    expect(lastOf(applyAll<Message[]>(setMessages, []))?.sendStatus).toBe("failed");
   });
 
   it("falls back to today's retry when the check cannot be asked (RPC not deployed)", async () => {
@@ -231,6 +236,6 @@ describe("dispatchMessage — the other party deleted their account mid-thread (
     await handlers.sendMessage("are you still coming tomorrow?");
 
     expect(applyAll<Conversation | null>(setActiveConvo, ACTIVE_CONVO)?.otherUserId).toBe("other-1");
-    expect(applyAll<Message[]>(setMessages, []).at(-1)?.sendStatus).toBe("failed");
+    expect(lastOf(applyAll<Message[]>(setMessages, []))?.sendStatus).toBe("failed");
   });
 });

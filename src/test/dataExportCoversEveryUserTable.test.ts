@@ -11,14 +11,15 @@
  * says are stripped really are, that anon cannot execute it, and that the
  * client, the edge function and the privacy journey all agree on the sections.
  *
- * @mutate supabase/migrations/20260925232153_export_my_data.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
- * @mutate supabase/migrations/20260925232153_export_my_data.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
- * @mutate supabase/migrations/20260925232153_export_my_data.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
- * @mutate supabase/migrations/20260925232153_export_my_data.sql | to_jsonb(t) - 'flag_reason' | to_jsonb(t)
- * @mutate supabase/migrations/20260925232153_export_my_data.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
- * @mutate supabase/migrations/20260925232153_export_my_data.sql | REVOKE ALL ON FUNCTION public.export_my_data() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.export_my_data() FROM PUBLIC;
+ * @mutate supabase/migrations/20260926034548_export_my_data_anti_abuse_records.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
+ * @mutate supabase/migrations/20260926034548_export_my_data_anti_abuse_records.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
+ * @mutate supabase/migrations/20260926034548_export_my_data_anti_abuse_records.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
+ * @mutate supabase/migrations/20260926034548_export_my_data_anti_abuse_records.sql | to_jsonb(t) - 'flag_reason' | to_jsonb(t)
+ * @mutate supabase/migrations/20260926034548_export_my_data_anti_abuse_records.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
+ * @mutate supabase/migrations/20260926034548_export_my_data_anti_abuse_records.sql | GRANT EXECUTE ON FUNCTION public.export_my_data() TO authenticated; | GRANT EXECUTE ON FUNCTION public.export_my_data() TO authenticated, anon;
  * @mutate src/test/helpers/dataExportInventory.ts |   "profiles.email": { reason: | "profiles.no_such_column": { reason:
- * @mutate src/test/helpers/dataExportInventory.ts |   "fraud_flags.user_id": { reason: | "fraud_flagz.user_id": { reason:
+ * @mutate src/test/helpers/dataExportInventory.ts |   "retained_bans.email_sha256": { reason: | "retained_banz.email_sha256": { reason:
+ * @mutate supabase/migrations/20260926034548_export_my_data_anti_abuse_records.sql | to_jsonb(t) - 'created_by' | to_jsonb(t)
  * @mutate supabase/functions/export-my-data/index.ts |       storage_objects: storageObjects, |       files: storageObjects,
  * @mutate scripts/lib/privacyJourney.mjs | KNOWN_NOT_EXPORTED = []; | KNOWN_NOT_EXPORTED = ["reports"];
  */

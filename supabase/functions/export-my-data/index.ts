@@ -3,7 +3,7 @@
 //
 // Two halves, and why they live here rather than in the browser:
 //   1. The rows. `export_my_data()` (SECURITY DEFINER, migration
-//      20260925232153) returns the caller's rows from every table with a
+//      20260925232153, newest 20260926034548) returns the caller's rows from every table with a
 //      column that references a person. It is called with the CALLER's JWT,
 //      so auth.uid() inside it is the person asking, never a parameter anyone
 //      can set. The table list is guarded two-way against the schema by

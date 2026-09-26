@@ -79,7 +79,7 @@ export const IDENTITY_BUCKETS = ["avatars", "user-documents", "application-attac
 
 /**
  * Top-level sections of the "Download My Data" JSON: the keys export_my_data()
- * returns (supabase/migrations/20260925232153_export_my_data.sql) plus the
+ * returns (newest definition: supabase/migrations/20260926034548_export_my_data_anti_abuse_records.sql) plus the
  * `storage_objects` the export-my-data edge function adds. Kept equal to them by
  * src/test/dataExportCoversEveryUserTable.test.ts.
  */
@@ -96,7 +96,8 @@ export const EXPORT_SECTIONS = [
   "job_checkins", "job_tracking", "group_job_helpers", "recurring_visit_releases", "job_revisions",
   "job_completion_nudges", "disputes", "job_views", "profile_views", "pet_profiles",
   "str_calendar_connections", "thread_archives", "thread_mutes", "thread_pins", "nps_responses",
-  "analytics_events", "error_logs", "application_rate_log", "profile_search_rate_log",
+  "analytics_events", "error_logs", "admin_user_notes", "fraud_flags", "helper_shadowbans",
+  "application_rate_log", "profile_search_rate_log",
   "storage_objects",
 ];
 

@@ -68,7 +68,7 @@ const FNS = [
   "enforce_group_job_has_no_lead", "enforce_dispute_markers_server_owned", "enforce_job_status_transition",
   "set_dispute_deadline", "enforce_poster_jobs_money_lock", "enforce_dispute_opener_column_whitelist",
   "open_dispute_as", "rpc_open_dispute", "rpc_escalate_dispute", "rpc_decide_dispute", "rpc_withdraw_dispute",
-  "rpc_supersede_dispute_decision",
+  "rpc_supersede_dispute_decision", "sweep_disputes_closed_without_payment",
 ];
 const TRIGGERS = [
   "trg_group_job_has_no_lead", "trg_dispute_markers_server_owned", "trg_enforce_job_status_transition",
@@ -105,7 +105,9 @@ CREATE TABLE public.jobs (
   budget numeric, urgent_fee numeric, payment_status text DEFAULT 'unpaid', stripe_session_id text, stripe_payment_intent_id text,
   offered_to_helper_id uuid, poster_completed_at timestamptz, payout_scheduled_at timestamptz,
   disputed_by uuid, disputed_at timestamptz, dispute_reason text, dispute_status text, dispute_evidence_urls text[],
-  dispute_deadline timestamptz, dispute_resolved_at timestamptz, updated_at timestamptz DEFAULT now());
+  dispute_deadline timestamptz, dispute_resolved_at timestamptz, updated_at timestamptz DEFAULT now(),
+  is_seed boolean DEFAULT false);
+CREATE TABLE public.error_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), severity text, message text, tags jsonb, context jsonb);
 CREATE TABLE public.group_job_helpers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
   helper_id uuid, status text NOT NULL DEFAULT 'accepted', slot_no integer, share_cents integer, UNIQUE (job_id, helper_id));
@@ -298,7 +300,7 @@ await db.exec(`DELETE FROM public.dispute_settlement_claims`);
 check("A8 refused while a settlement claim holds the escrow", !a8.ok && /dispute_settlement_in_progress/.test(a8.error), a8.error ?? "allowed");
 
 const a9 = await decideCrew(ADMIN, [M3]);
-const out = await all(`SELECT helper_id, slot_no, share_cents, outcome FROM public.crew_dispute_member_outcomes WHERE dispute_id = $1 ORDER BY slot_no`, [await disputeId()]);
+const out = await all(`SELECT helper_id, slot_no, share_cents, member_outcome AS outcome FROM public.crew_dispute_member_outcomes WHERE dispute_id = $1 ORDER BY slot_no`, [await disputeId()]);
 const a9d = await one(`SELECT status, execution_status, payout_split FROM public.disputes WHERE id = $1`, [await disputeId()]);
 const a9j = await jobRow();
 const hold = (new Date(a9j.payout_scheduled_at).getTime() - Date.now()) / 3600e3;
@@ -315,7 +317,7 @@ const msgFor = (u) => msgs.find((m) => m.user_id === u)?.message ?? "";
 check(
   "A10 each member is told their own outcome, the poster that a share is coming back",
   /Your share will be paid out/.test(msgFor(M1)) && /Your share will be paid out/.test(msgFor(M2)) &&
-    /Your share goes back to the poster/.test(msgFor(M3)) && /1 Helpr is being returned to you/.test(msgFor(POSTER)),
+    /Your share goes back to the person who posted the job/.test(msgFor(M3)) && /1 Helpr is being returned to you/.test(msgFor(POSTER)),
   JSON.stringify(msgs.map((m) => `${m.user_id.slice(-2)}:${m.message.slice(-40)}`)),
 );
 
@@ -370,6 +372,21 @@ check(
   a17.ok && a17j.status === "in_progress" && a17j.disputed_at !== null && a17j.dispute_status === "resolved",
   a17.error ?? JSON.stringify(a17j),
 );
+
+// The unpaid-dispute sweep: an auto-resolved dispute closed with no cents on a
+// held escrow. The single job is still a strand (the payout cron excludes it);
+// the crew is paid by the fan-out now, so it is not paged.
+await seed();
+await db.exec(`
+  UPDATE public.jobs SET status = 'completed', payment_status = 'payout_pending', dispute_status = 'auto_resolved', disputed_at = now() - interval '4 days'
+   WHERE id IN ('${CREW}', '${SINGLE}');
+  INSERT INTO public.disputes (job_id, opener_id, reason, status, execution_status, decided_at)
+  VALUES ('${CREW}', '${POSTER}', 'x', 'decided', 'executed', now()), ('${SINGLE}', '${POSTER}', 'x', 'decided', 'executed', now());
+  DELETE FROM public.error_logs;`);
+await db.exec(`SELECT public.sweep_disputes_closed_without_payment()`);
+const paged = (await all(`SELECT context->>'job_id' AS job FROM public.error_logs`)).map((r) => r.job);
+check("A19 the unpaid-dispute sweep still pages the single job's strand and no longer the closed crew dispute the fan-out pays",
+  paged.length === 1 && paged[0] === SINGLE, JSON.stringify(paged));
 
 const grants = await one(`SELECT
   has_function_privilege('anon', 'public.rpc_decide_crew_dispute(uuid,text,uuid[])', 'EXECUTE') AS anon_decide,

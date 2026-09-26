@@ -4,7 +4,7 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: node scripts/audit-coverage.mjs -->
 
-Generated from findings.jsonl as of its newest entry: 2026-09-25T23:22:57.864Z
+Generated from findings.jsonl as of its newest entry: 2026-09-26T03:46:23.108Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
 - **Findings:** 22 open (2 open launch blockers), 339 fixed, 1 wontfix, 22 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md

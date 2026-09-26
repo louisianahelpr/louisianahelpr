@@ -18,6 +18,7 @@ import {
   identityDocumentDeletable,
   orphanReason,
   selectOrphans,
+  uncacheableAvatars,
 } from "../../scripts/lib/storageOrphans.mjs";
 
 const U_LIVE = "76b07824-9b41-4741-a4c4-4f8de362f682";
@@ -225,3 +226,21 @@ describe("an empty listing is a broken read, never a clean sweep", () => {
 // @mutate scripts/lib/storageOrphans.mjs | if (!Number.isFinite(created) \|\| now - created < floorMs) { | if (!Number.isFinite(created)) {
 // @mutate scripts/lib/storageOrphans.mjs | if (!r2 \|\| !identityDocumentDeletable(o.bucket, o.name, first) | if (false \|\| !identityDocumentDeletable(o.bucket, o.name, first)
 // @mutate scripts/storage-orphan-sweep.mjs | if (listingError) throw new Error(listingError); | if (listingError) log(listingError);
+
+describe("uncacheableAvatars (nightly-red #1719: a no-cache avatar made 527 GETs)", () => {
+  const o = (bucket: string, cacheControl?: string) => ({ bucket, name: `${U_LIVE}/avatar.jpg`, cacheControl });
+  it("flags the prod shape that blew the budget, and every other uncacheable form", () => {
+    expect(uncacheableAvatars([o("avatars", "no-cache")])).toHaveLength(1);
+    expect(uncacheableAvatars([o("avatars", "max-age=3600, no-store")])).toHaveLength(1);
+    expect(uncacheableAvatars([o("avatars", "max-age=0")])).toHaveLength(1);
+    expect(uncacheableAvatars([o("avatars")])).toHaveLength(1);
+  });
+  it("passes the supabase-js default and ignores other buckets", () => {
+    expect(uncacheableAvatars([o("avatars", "max-age=3600"), o("job-photos", "no-cache")])).toEqual([]);
+  });
+  it("the sweep reads cacheControl from the listing and fails the run on a hit", () => {
+    const src = readFileSync(resolve(__dirname, "../../scripts/storage-orphan-sweep.mjs"), "utf8");
+    expect(src).toMatch(/cacheControl: r\.metadata\?\.cacheControl/);
+    expect(src).toMatch(/process\.exit\(code \|\| \(cacheFailures \? 1 : 0\)\)/);
+  });
+});

@@ -33,7 +33,7 @@
  */
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { recordOpsAlert } from "./lib/opsAlertLedger.mjs";
-import { DEFAULTS, checkCaps, emptyListingError, formatMB, orphanReason, selectOrphans } from "./lib/storageOrphans.mjs";
+import { DEFAULTS, checkCaps, emptyListingError, formatMB, orphanReason, selectOrphans, uncacheableAvatars } from "./lib/storageOrphans.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(`--${name}`);
@@ -124,7 +124,7 @@ async function listObjects() {
         for (const r of rows) {
           const full = prefix ? `${prefix}/${r.name}` : r.name;
           if (r.id === null) stack.push(full);
-          else objects.push({ bucket: id, name: full, size: Number(r.metadata?.size ?? 0), createdAt: r.created_at });
+          else objects.push({ bucket: id, name: full, size: Number(r.metadata?.size ?? 0), createdAt: r.created_at, cacheControl: r.metadata?.cacheControl });
         }
         if (rows.length < 100) break;
       }
@@ -227,6 +227,8 @@ function output(key, value) {
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${redact(String(value)).replace(/\n/g, " ")}\n`);
 }
 
+let cacheFailures = 0;
+
 async function main() {
   writeFileSync(LOG, "");
   log(`start dry_run=${DRY_RUN} wait_minutes=${WAIT_MIN} min_age_days=${MIN_AGE} max_files=${MAX_FILES} max_bucket_pct=${MAX_PCT}`);
@@ -239,6 +241,17 @@ async function main() {
   // the sweep prints "0 files ... (0 objects, 0.0 MB total)" and exits 0.
   const listingError = emptyListingError(objects, buckets);
   if (listingError) throw new Error(listingError);
+
+  // Read-only: an uncacheable avatar is reported (the run goes red), never
+  // rewritten. The orphan sweep below carries on regardless.
+  const uncached = uncacheableAvatars(objects);
+  for (const o of uncached) log(`UNCACHEABLE avatars/${o.name} cacheControl=${o.cacheControl ?? "(none)"}`);
+  if (uncached.length) {
+    cacheFailures = uncached.length;
+    const summary = `storage sweep: ${uncached.length} avatar object(s) not browser-cacheable (no max-age, or no-cache/no-store)`;
+    console.error(`::error::${summary}`);
+    await ledger("storage sweep: uncacheable avatar objects", "warning", summary);
+  }
 
   const first = await readWorld();
   const firstPass = objects.filter((o) => orphanReason(o.bucket, o.name, first));
@@ -329,7 +342,7 @@ async function main() {
 }
 
 main()
-  .then((code) => process.exit(code))
+  .then((code) => process.exit(code || (cacheFailures ? 1 : 0)))
   .catch(async (e) => {
     const msg = String(e?.message || e);
     try {

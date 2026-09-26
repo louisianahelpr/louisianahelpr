@@ -213,6 +213,25 @@ export function checkCaps({
   return { tripped: reasons.length > 0, reasons };
 }
 
+/**
+ * Avatars must be browser-cacheable. The app re-renders the same avatar URL
+ * on every list, card and header, and its `?t=` cache-buster already changes
+ * the URL on replace, so an object stored `no-cache` is refetched on every
+ * render: one test account's avatar, uploaded `no-cache` by an unknown tool
+ * on 2026-09-20, made 527 of the GETs that pushed journeys-webkit over its
+ * request budget (nightly-red #1719). Returns every avatar object whose
+ * stored cacheControl has no positive max-age, or says no-cache / no-store.
+ */
+export function uncacheableAvatars(objects) {
+  return objects.filter((o) => {
+    if (o.bucket !== "avatars") return false;
+    const cc = String(o.cacheControl ?? "").toLowerCase();
+    if (/no-cache|no-store/.test(cc)) return true;
+    const m = /max-age=(\d+)/.exec(cc);
+    return !m || Number(m[1]) <= 0;
+  });
+}
+
 export function formatMB(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

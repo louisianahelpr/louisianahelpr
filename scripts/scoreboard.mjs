@@ -588,6 +588,72 @@ async function pushTokenRows(sqlFn, now) {
 export const IDENTITY_FP_SQL =
   "SELECT count(*) FILTER (WHERE idv_status = 'verified' AND idv_session_id IS NOT NULL AND identity_sha256 IS NULL)::int AS missing, " +
   "count(*) FILTER (WHERE idv_status = 'verified' AND idv_session_id IS NOT NULL)::int AS verified FROM public.profiles";
+/**
+ * Q73: email deliverability, re-measured every scoreboard run.
+ * (1) DNS for the sending domain: SPF on the Resend bounce subdomain (send.),
+ *     the Resend DKIM key, and a DMARC policy that is not p=none.
+ * (2) Bounce and complaint rates over 30 days: suppressed_emails (resend-webhook
+ *     writes bounces and complaints there; email_send_log never gets a
+ *     'bounced' status by design) against the emails actually sent.
+ * Targets are the mailbox providers' published limits: bounce < 2%, complaint < 0.1%.
+ */
+export const EMAIL_DOMAIN = "louisianahelpr.com";
+export const EMAIL_RATES_SQL =
+  "SELECT (SELECT count(*) FROM public.email_send_log WHERE status = 'sent' AND created_at > now() - interval '30 days')::int AS sent, " +
+  "(SELECT count(*) FROM public.suppressed_emails WHERE reason = 'bounce' AND created_at > now() - interval '30 days')::int AS bounces, " +
+  "(SELECT count(*) FROM public.suppressed_emails WHERE reason = 'complaint' AND created_at > now() - interval '30 days')::int AS complaints";
+export function judgeEmailDns(txt) {
+  const has = (name, re) => (txt[name] ?? []).some((r) => re.test(r));
+  const problems = [];
+  if (!has(`send.${EMAIL_DOMAIN}`, /^v=spf1\b.*include:amazonses\.com/)) problems.push(`no SPF including amazonses.com on send.${EMAIL_DOMAIN}`);
+  if (!has(`resend._domainkey.${EMAIL_DOMAIN}`, /(^|;\s*)p=[A-Za-z0-9+/]{40,}/)) problems.push(`no DKIM key at resend._domainkey.${EMAIL_DOMAIN}`);
+  const dmarc = (txt[`_dmarc.${EMAIL_DOMAIN}`] ?? []).find((r) => /^v=DMARC1\b/.test(r));
+  if (!dmarc) problems.push(`no DMARC record at _dmarc.${EMAIL_DOMAIN}`);
+  else if (/;\s*p=none\b/.test(dmarc)) problems.push("DMARC policy is p=none (monitor only)");
+  return { problems, dmarc: dmarc ?? null };
+}
+const defaultResolveTxt = async (name) => {
+  const { resolveTxt } = await import("node:dns/promises");
+  return (await resolveTxt(name)).map((chunks) => chunks.join(""));
+};
+export async function emailDeliverabilityRows(sqlFn, now, resolveTxt = defaultResolveTxt) {
+  const rows = [];
+  const dnsSignal = `email DNS for ${EMAIL_DOMAIN} (SPF, DKIM, DMARC)`;
+  try {
+    const names = [`send.${EMAIL_DOMAIN}`, `resend._domainkey.${EMAIL_DOMAIN}`, `_dmarc.${EMAIL_DOMAIN}`];
+    const txt = {};
+    for (const n of names) {
+      try { txt[n] = await resolveTxt(n); } catch (e) {
+        // NXDOMAIN / no record is a finding (judged below), not a measurement failure.
+        if (!/ENOTFOUND|ENODATA/.test(String(e?.code ?? e?.message))) throw e;
+        txt[n] = [];
+      }
+    }
+    const { problems, dmarc } = judgeEmailDns(txt);
+    rows.push({ group: "alerts", signal: dnsSignal, status: problems.length ? "FAIL" : "PASS", fail: problems.length, total: 3, at: iso(now),
+      source: "DNS TXT lookups · OPEN.md Q73", note: problems.length ? problems.join("; ") : `all three resolve; ${dmarc}` });
+  } catch (e) {
+    rows.push(unknown("alerts", dnsSignal, `DNS lookup failed: ${errMsg(e)}`));
+  }
+  const rateSignal = "email bounce / complaint rate (30d; targets < 2% / < 0.1%)";
+  try {
+    const [r] = await sqlFn(EMAIL_RATES_SQL);
+    const num = (v) => (typeof v === "number" || (typeof v === "string" && /^\d+$/.test(v)) ? Number(v) : NaN);
+    const sent = num(r?.sent), bounces = num(r?.bounces), complaints = num(r?.complaints);
+    if (![sent, bounces, complaints].every(Number.isInteger)) throw new Error("unexpected result shape");
+    if (!sent) rows.push(unknown("alerts", rateSignal, "no sent emails in 30 days"));
+    else {
+      const b = (100 * bounces) / sent, c = (100 * complaints) / sent;
+      rows.push({ group: "alerts", signal: rateSignal, status: b >= 2 || c >= 0.1 ? "FAIL" : "PASS", pass: sent, fail: bounces + complaints, total: sent, at: iso(now),
+        source: "public.suppressed_emails vs public.email_send_log (read-only) · OPEN.md Q73",
+        note: `bounce ${b.toFixed(2)}% (${bounces}), complaint ${c.toFixed(2)}% (${complaints}) of ${sent} sent; inbox-vs-spam placement is not measured here` });
+    }
+  } catch (e) {
+    rows.push(unknown("alerts", rateSignal, `read-only SQL failed: ${errMsg(e)}`));
+  }
+  return rows;
+}
+
 export async function identityFingerprintRows(sqlFn, now) {
   const signal = "verified profiles carry an identity fingerprint (identity_sha256)";
   try {
@@ -662,7 +728,7 @@ export async function liveRows({ now = new Date(), sqlFn } = {}) {
   rows.push(...suiteRows);
   const ledger = await ledgerRows(readOnly);
   const red = nightlyRedRows(now);
-  rows.push(...ledger.rows, ...red.rows, ...(await pushTokenRows(readOnly, now)), ...(await identityFingerprintRows(readOnly, now)));
+  rows.push(...ledger.rows, ...red.rows, ...(await pushTokenRows(readOnly, now)), ...(await identityFingerprintRows(readOnly, now)), ...(await emailDeliverabilityRows(readOnly, now)));
   rows.push(...currencyRows(wf.runsByFile, now));
   const branches = remoteBranchRows(now);
   rows.push(...branches.rows);

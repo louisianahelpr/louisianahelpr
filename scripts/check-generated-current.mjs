@@ -196,6 +196,7 @@ export const HISTORICAL = {
  * reason. A script that starts writing a committed file must move out of here.
  */
 export const WRITES_NOT_COMMITTED = {
+  "scripts/storage-backup.mjs": "Q147: downloaded storage files + manifest.json into the db-backup runner's out/storage (encrypted into the CI artifact, never a repo file)",
   "scripts/rollback/rollback.mjs": "timing log to ~/.lh-rollback/timing.jsonl (outside the repo); in a LIVE migration rollback only, the new revert migration it stamps, which the operator commits (docs/RUNBOOK-rollback.md)",
   "scripts/audit-capture.mjs": "screenshots to ~/lh-audit-shots",
   "scripts/prod-deploy.mjs": "action/sha/deployment to $GITHUB_OUTPUT in prod-deploy.yml (a CI step output, never a repo file)",

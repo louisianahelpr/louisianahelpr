@@ -42,6 +42,10 @@ on:
         description: "SWEEP_ROUTES: comma-separated App.tsx route patterns to narrow the sweep (blank = every screen)"
         required: false
         default: ""
+      variants:
+        description: "SWEEP_VARIANTS for a dispatch (comma list of sweepCore.ts ALL_VARIANTS tags, or all). Blank = today's weekday rotation"
+        required: false
+        default: ""
 
 concurrency:
   # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
@@ -179,6 +183,27 @@ jobs:
         with:
           supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
           supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+
+      - name: Pick this run's viewports and themes (Q71)
+        # Q71: axe on every route at 375 AND 1440, light AND dark. Before this
+        # step the sweep ran phone-light only (sweepCore.ts VARIANTS default),
+        # so dark mode and the 1440 layout were never axe-scanned on prod.
+        # Two variants per run keeps each leg ~20 min; the Mon+Wed pair covers
+        # all four combinations every week, Fri repeats the phone pair.
+        # Guard: src/test/a11yProdCoversBothThemesAndWidths.test.ts.
+        env:
+          PICKED: ${{ inputs.variants }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PICKED:-}" ]; then
+            case "$(date -u +%u)" in
+              1) PICKED="phone-light,desktop-dark" ;;
+              3) PICKED="phone-dark,desktop-light" ;;
+              *) PICKED="phone-light,phone-dark" ;;
+            esac
+          fi
+          echo "SWEEP_VARIANTS=$PICKED" >> "$GITHUB_ENV"
+          echo "axe sweep variants this run: $PICKED" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run the prod sweep
         # The serial describe ignores --workers; kept on one line for

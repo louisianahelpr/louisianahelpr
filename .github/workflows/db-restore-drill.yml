@@ -158,11 +158,23 @@ jobs:
           echo "backup run $BACKUP_RUN, ${BACKUP_AGE_H}h old" >> "$GITHUB_STEP_SUMMARY"
           bash scripts/db-restore-drill.sh "$RUNNER_TEMP/sql"
 
+      - name: Prove the storage files restore (Q147)
+        env:
+          TARGET_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: |
+          set -euo pipefail
+          [ -s "$RUNNER_TEMP/sql/storage/manifest.json" ] || { echo "::error::the backup has no storage/manifest.json — its files would not restore (db-backup.yml 'Back up the storage files')"; exit 1; }
+          # Every storage.objects row the restore brought back must have its
+          # file in the archive, byte-identical to the manifest.
+          psql "$TARGET_DB_URL" -XAt -F $'\t' -c "select bucket_id, name from storage.objects" > "$RUNNER_TEMP/restored-rows.tsv"
+          echo "restored storage.objects rows: $(wc -l < "$RUNNER_TEMP/restored-rows.tsv")"
+          node scripts/storage-backup.mjs verify "$RUNNER_TEMP/sql/storage" "$RUNNER_TEMP/restored-rows.tsv" | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Shred the plaintext dump
         if: always()
         run: |
           set -euo pipefail
-          rm -rf "$RUNNER_TEMP/sql" "$RUNNER_TEMP/bk"
+          rm -rf "$RUNNER_TEMP/sql" "$RUNNER_TEMP/bk" "$RUNNER_TEMP/restored-rows.tsv"
 
   notify:
     name: Report drill result

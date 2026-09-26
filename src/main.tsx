@@ -68,7 +68,8 @@ initSimpleMode();
 // content-hashed chunk filenames, a tab still running the previous build
 // fails to fetch a lazy chunk on navigation. Vite fires a cancelable
 // `vite:preloadError` on window *before* throwing; preventDefault() stops
-// the throw so we own the recovery (a one-shot cache-busting reload) and
+// the throw so we own the recovery (a bounded schedule of cache-busting
+// reloads, CHUNK_RELOAD_SCHEDULE_MS in chunkReload.ts) and
 // the user never hits an error boundary on the common case. The error
 // boundaries keep the same detection as a backstop for throws that bypass
 // this event (e.g. a bare `import()` rejection inside an effect).

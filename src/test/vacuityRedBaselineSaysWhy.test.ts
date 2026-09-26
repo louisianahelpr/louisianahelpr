@@ -47,6 +47,22 @@ describe("failureTail keeps the reason a run was red", () => {
     expect(tail[24]).toBe("line 59");
   });
 
+  it("keeps the first failure's assertion when attachment paths fill the tail", () => {
+    const pw = [
+      "Running 3 tests using 1 worker",
+      "  1) [prod-audit] › e2e/prod-audit/shell-spacing.spec.ts:148:1 › every route holds the one phone rhythm",
+      "    Error: phone rhythm drifted",
+      "    Expected: []",
+      '    Received: ["legal@375: header→title 20, want 12"]',
+      "    attachment #1: screenshot (image/png) ───",
+      ...Array.from({ length: 30 }, (_, i) => `    test-results/shell-spacing-${i}/test-failed-1.png`),
+      "  2 failed",
+    ];
+    const tail: string = failureTail(pw.join("\n"));
+    expect(tail).toContain('Received: ["legal@375: header→title 20, want 12"]');
+    expect(tail).toContain("2 failed");
+  });
+
   it("is safe on empty output", () => {
     expect(failureTail("")).toBe("");
     expect(failureTail(undefined)).toBe("");

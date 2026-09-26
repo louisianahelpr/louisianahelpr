@@ -128,12 +128,24 @@ export function timedOut(r) {
  * Q410). Server chatter is dropped first, so the reason is what is kept.
  */
 export function failureTail(out, n = 25) {
-  return String(out ?? "")
+  const lines = String(out ?? "")
     .trim()
     .split("\n")
-    .filter((l) => !/^\s*\[WebServer\]/.test(l))
-    .slice(-n)
-    .join("\n");
+    .filter((l) => !/^\s*\[WebServer\]/.test(l));
+  const tail = lines.slice(-n);
+  // A Playwright failure prints its assertion first and then a long list of
+  // attachment paths, so the last n lines can still be all paths (measured on
+  // the next PR #1809 run: "2 failed" and screenshots, no Expected/Received).
+  // Keep the first failure's own block too: from its "  1) [project] ›" header
+  // up to the attachments.
+  const first = lines.findIndex((l) => /^\s*1\) \[[^\]]+\] ›/.test(l));
+  if (first === -1 || lines.length - first <= n) return tail.join("\n");
+  const block = [];
+  for (const l of lines.slice(first, first + 40)) {
+    if (/^\s*attachment #\d+:/.test(l)) break;
+    block.push(l);
+  }
+  return [...block, "      …", ...tail].join("\n");
 }
 
 function runVitest(guards, extraEnv = {}) {

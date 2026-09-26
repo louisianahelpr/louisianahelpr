@@ -643,9 +643,45 @@ test.describe.serial("marketplace chain", () => {
     return c;
   }
 
+  /**
+   * A card control by name, ON THE ROW OR IN ITS "More" OVERFLOW.
+   *
+   * A step whose action row cannot hold every chip parks the rest behind
+   * JobActionRow's overflow chip (`data-job-step-overflow`), whose panel
+   * (`data-job-step-overflow-panel`) is a Radix popover PORTALED to <body> —
+   * so a locator scoped to the card cannot see a chip in it, open or shut.
+   * Measured 2026-09-26 (e2e-journeys probe runs 36212737517 / 36213134702,
+   * wip/vac1797-probe-journeys): the poster's Done card of this very journey
+   * (it carries proof photos, so its row is Photos · More · Hire Again) had
+   * its review row in `reviews` (02:34:06Z), and its "Reviewed" chip was in
+   * the More panel next to "Tip" — `card.getByRole("button", { name:
+   * /^Reviewed\b/ })` counted 0 while the page had it. That, not the cache,
+   * is what 120s of reloads could not find in e2e-journeys 36211846948.
+   * Guarded by src/test/journeyChipsReachOverflow.test.ts.
+   */
+  async function findChip(page: Page, scope: ReturnType<Page["locator"]>, name: RegExp, timeout: number) {
+    const deadline = Date.now() + timeout;
+    const panel = page.locator("[data-job-step-overflow-panel]").filter({ visible: true });
+    for (;;) {
+      const inOpenPanel = panel.getByRole("button", { name }).first();
+      if (await inOpenPanel.isVisible().catch(() => false)) return inOpenPanel;
+      const onRow = scope.getByRole("button", { name }).filter({ visible: true }).first();
+      if (await onRow.isVisible().catch(() => false)) return onRow;
+      const more = scope.locator("[data-job-step-overflow]").filter({ visible: true }).first();
+      if (await more.isVisible().catch(() => false)) {
+        await more.click();
+        const inPanel = panel.getByRole("button", { name }).first();
+        if (await inPanel.waitFor({ state: "visible", timeout: 3_000 }).then(() => true, () => false)) return inPanel;
+        await page.keyboard.press("Escape");
+      }
+      if (Date.now() >= deadline) return null;
+      await page.waitForTimeout(1_000);
+    }
+  }
+
   /** Press a visible control by name, then prove the screen is not an error. */
   async function press(page: Page, scope: ReturnType<Page["locator"]>, name: RegExp, where: string) {
-    const btn = scope.getByRole("button", { name }).first();
+    const btn = (await findChip(page, scope, name, 45_000)) ?? scope.getByRole("button", { name }).first();
     await expect(btn, `${where}: no "${name}" control`).toBeVisible({ timeout: 45_000 });
     /* VISIBLE IS NOT PRESSABLE, and on this card the difference is a whole
        product rule. Every step of the helper's ladder renders DISABLED until
@@ -978,14 +1014,7 @@ test.describe.serial("marketplace chain", () => {
       await expect
         .poll(
           async () =>
-            (await card(pp, "/posts", "Done"))
-              .getByRole("button", { name: /^Reviewed\b/ })
-              .first()
-              .waitFor({ state: "visible", timeout: 20_000 })
-              .then(
-                () => 1,
-                () => 0,
-              ),
+            (await findChip(pp, await card(pp, "/posts", "Done"), /^Reviewed\b/, 20_000)) ? 1 : 0,
           { timeout: 120_000, message: "the poster's card never showed the Reviewed badge after the review was submitted" },
         )
         .toBeGreaterThan(0);

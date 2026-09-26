@@ -32,6 +32,7 @@
 // deleting the catch-all and rebuilding (the canary reds on every route) — see
 // the Q254 line in docs/OPEN.md. The rule itself is also pinned in source by
 // src/test/reducedMotionCatchAll.test.ts, whose @mutate is registered.
+// @mutate src/index.css |     animation-duration: 0.01ms !important;\n    animation-iteration-count: 1 !important;\n    transition-duration: 0.01ms !important;\n    scroll-behavior: auto !important; |     animation-duration: 2s !important;\n    animation-iteration-count: 1 !important;\n    transition-duration: 0.01ms !important;\n    scroll-behavior: auto !important;
 //
 // Read-only against prod: the poster account is signed in and looked at.
 // Motion is not role-dependent (every account sees every feature — CLAUDE.md

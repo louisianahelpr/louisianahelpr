@@ -138,7 +138,9 @@ jobs:
       - name: Backend request budget (Q104)
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
         # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
-        if: ${{ !cancelled() }}
+        # Not on a grep-pinned dispatch: the budget is per test over the whole
+        # suite, and a pinned subset is not that suite.
+        if: ${{ !cancelled() && inputs.grep == '' }}
         run: node scripts/e2e/request-budget.mjs --label ${{ matrix.project }}
       - name: Keep milestones, failure screenshots and traces
         if: always()

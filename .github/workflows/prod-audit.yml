@@ -198,7 +198,10 @@ jobs:
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
         # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
         # Not on a vacuity-only dispatch: the suites it budgets did not run.
-        if: ${{ !cancelled() && inputs.vacuity_only == '' }}
+        # Not on a grep-pinned dispatch: the budget is per test over the whole
+        # suite, so 3 route-walking tests read 700/test against 93.5 (run
+        # 36216759390, a false red).
+        if: ${{ !cancelled() && inputs.vacuity_only == '' && inputs.grep == '' }}
         run: node scripts/e2e/request-budget.mjs --label prod-audit
       - name: Keep failure screenshots, samples and traces
         if: always()

@@ -309,8 +309,12 @@ describe("Q401a: every public noindex page serves noindex, its own title and a s
 /* ── Q401(b): the landing page's pre-JS head is its post-JS head ──────── */
 
 describe("Q401(b): / serves the same title, description and share card before and after JavaScript", () => {
-  it("the static shell's head equals LANDING_PAGE_META", () => {
-    const html = SHELL;
+  // Source AND build: with a dist/ left by an earlier build (the vacuity gate
+  // builds one for its Playwright guards) SHELL is dist, which an edit to the
+  // source index.html cannot reach, so the source is always checked too.
+  const shells = [...new Set([resolve(ROOT, "index.html"), SHELL_SOURCE])];
+  it.each(shells.map((f) => [f.slice(ROOT.length + 1), f]))("%s: the static shell's head equals LANDING_PAGE_META", (_, file) => {
+    const html = readFileSync(file, "utf8");
     const one = (re: RegExp) => decode(html.match(re)?.[1] ?? null);
     expect(one(/<title>([\s\S]*?)<\/title>/)).toBe(LANDING_PAGE_META.title);
     expect(one(/<meta name="description" content="([^"]*)"/)).toBe(LANDING_PAGE_META.description);

@@ -1927,8 +1927,8 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   - Keeping deps only when the importer is the entry or main chunk: 12 fail AND the perf budget still fails.
   
   In a real stale deploy the new HTML carries new hashes, so this bites only on a transient chunk failure (a network blip). **Choose:** (a) keep fast first paint and accept that Try Again can't recover from a transient chunk failure in Safari/iOS; the test would then expect a manual relaunch, which needs an owner decision because it changes what the test proves. (b) Recovery first: `resolveDependencies: () => []` and re-baseline the Q178 budgets (a slower first paint on phones). (c) Research a third way, e.g. a `Clear-Site-Data: "cache"` response on `_v=` reloads. Its WebKit support has not been verified.
-- [ ] **Q722 OWNER DECISIONS: loading-states guard red (run 36267409284, #1654; blocks staleness #1773).** 13 uncovered breaches; evidence in `~/.lh-shots/loading-states/`.
-  - (a) Most breaches come from the measurer change in 98ee26e0f, not the app: referral JUMP +167/+174, referral/saved_helpers MEDIA, and `/messages` #0 −24. Accept the new measurements.json and drop the 20 stale allow entries together?
+- [ ] **Q722 OWNER DECISIONS: loading-states guard red (run 36267409284, #1654; blocks staleness #1773).** 13 uncovered breaches (measured 2026-09-26); evidence in `~/.lh-shots/loading-states/`.
+  - (a) Most breaches come from the measurer change in 98ee26e0f, not the app: referral JUMP +167/+174, referral/saved_helpers MEDIA, and `/messages` #0 −24. Accept the new measurements.json and drop the 20 stale allow entries (counted 2026-09-26) together?
   - (b) `/posts` #1 ROWS went from 2 to 5 (helper view). The cause is not yet known and it needs a look.
   - (c) A real regression: on `/user/:id`, #1 JUMP went from 18 to 44 and ROWS from 2 to 4. ProfileHeroSkeleton reserves one chip row, but since #1797 (3bf782e83) the loaded hero has two badge groups. Fix the skeleton (agent-sized).
   - (d) Should the guard keep failing both ways, so stale allows are also red?

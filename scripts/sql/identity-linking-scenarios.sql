@@ -67,7 +67,11 @@ BEGIN
      SET full_name = 'Oa Eighteen', phone = '(504) 555-0118', location = 'Lafayette, LA', date_of_birth = '1990-01-18'
    WHERE user_id IN (v_a, v_b);
 
-  SELECT count(*) INTO v_profiles_before FROM public.profiles;
+  -- Counted over THIS run's rows only (its tag is in every synthetic address):
+  -- a whole-table count moved whenever a real signup committed mid-run on
+  -- prod (READ COMMITTED), failing the check with no defect behind it
+  -- (lh-authz-rls review of #1806).
+  SELECT count(*) INTO v_profiles_before FROM public.profiles WHERE email LIKE 'oa018-_-' || v_tag || '@example.invalid';
 
   -- ── A: verified account + Google, same verified email ─────────────────────
   v_google := jsonb_build_object('sub', 'oa018-google-a-' || v_tag, 'email', v_email_a, 'email_verified', true,
@@ -86,7 +90,7 @@ BEGIN
   v_checks := v_checks || jsonb_build_object('case', 'A', 'check', 'one auth user for the address', 'ok', v_n = 1, 'got', v_n);
   SELECT count(*) INTO v_n FROM public.profiles WHERE user_id = v_a;
   v_checks := v_checks || jsonb_build_object('case', 'A', 'check', 'one profile for the user', 'ok', v_n = 1, 'got', v_n);
-  SELECT count(*) INTO v_n FROM public.profiles;
+  SELECT count(*) INTO v_n FROM public.profiles WHERE email LIKE 'oa018-_-' || v_tag || '@example.invalid';
   v_checks := v_checks || jsonb_build_object('case', 'A', 'check', 'linking created no profile', 'ok', v_n = v_profiles_before, 'got', v_n - v_profiles_before);
   SELECT full_name, phone, location, date_of_birth::text AS dob, email INTO v_row FROM public.profiles WHERE user_id = v_a;
   v_checks := v_checks || jsonb_build_object('case', 'A', 'check', 'profile data kept (name not overwritten by the provider)',
@@ -110,7 +114,7 @@ BEGIN
 
   SELECT count(*) INTO v_n FROM public.profiles WHERE user_id = v_b;
   v_checks := v_checks || jsonb_build_object('case', 'B', 'check', 'one profile for the user', 'ok', v_n = 1, 'got', v_n);
-  SELECT count(*) INTO v_n FROM public.profiles;
+  SELECT count(*) INTO v_n FROM public.profiles WHERE email LIKE 'oa018-_-' || v_tag || '@example.invalid';
   v_checks := v_checks || jsonb_build_object('case', 'B', 'check', 'linking created no profile', 'ok', v_n = v_profiles_before, 'got', v_n - v_profiles_before);
   SELECT full_name, phone, location, date_of_birth::text AS dob, email_verified INTO v_row FROM public.profiles WHERE user_id = v_b;
   v_checks := v_checks || jsonb_build_object('case', 'B', 'check', 'signup data kept through the confirm',

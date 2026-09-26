@@ -117,10 +117,16 @@ export function socialAuthErrorCopy(
   }
 }
 
-/** Called by socialAuth right before the web OAuth redirect leaves the page. */
-export function markOAuthPending(provider: OAuthProvider): void {
+/**
+ * Called by socialAuth right before the web OAuth redirect leaves the page.
+ * `path` is the pathname of `redirectTo`: GoTrue returns there, and only there
+ * is an error in the URL this attempt's (lh-authz-rls review of #1806: a
+ * marker scoped by time alone captured an expired /reset-password link's
+ * error in the same tab).
+ */
+export function markOAuthPending(provider: OAuthProvider, path: string): void {
   try {
-    sessionStorage.setItem(PENDING_KEY, JSON.stringify({ provider, at: Date.now() }));
+    sessionStorage.setItem(PENDING_KEY, JSON.stringify({ provider, path, at: Date.now() }));
   } catch {
     // Silent by design: storage blocked (private mode, site data off). The
     // sign-in still proceeds; only the failure explanation is lost, and the
@@ -128,18 +134,24 @@ export function markOAuthPending(provider: OAuthProvider): void {
   }
 }
 
-function readPending(): { provider: OAuthProvider; at: number } | null {
+function readPending(): { provider: OAuthProvider; path: string; at: number } | null {
   try {
     const raw = sessionStorage.getItem(PENDING_KEY);
     if (!raw) return null;
-    const v = JSON.parse(raw) as { provider?: unknown; at?: unknown };
+    const v = JSON.parse(raw) as { provider?: unknown; path?: unknown; at?: unknown };
     if ((v.provider !== "apple" && v.provider !== "google") || typeof v.at !== "number") return null;
-    return { provider: v.provider, at: v.at };
+    if (typeof v.path !== "string" || !v.path.startsWith("/")) return null;
+    return { provider: v.provider, path: v.path, at: v.at };
   } catch {
     // Silent by design: an unreadable or corrupt marker means "no web OAuth
     // attempt we can vouch for", which is the safe answer — capture skips.
     return null;
   }
+}
+
+/** Called by socialAuth when the redirect never left (signInWithOAuth failed). */
+export function clearOAuthPending(): void {
+  clearPending();
 }
 
 function clearPending(): void {
@@ -151,6 +163,12 @@ function clearPending(): void {
 }
 
 let captured: OAuthRedirectError | null = null;
+let capturedAt = 0;
+// The /home -> /login bounce happens within a second or two of boot. A
+// captured reason older than this is not that bounce: it must not surface on
+// a later, unrelated Login visit in the same page load (a signed-in user whose
+// refused attempt landed on /home, then signed out).
+const CAPTURED_MAX_AGE_MS = 60 * 1000;
 
 /**
  * Boot-time capture. Returns what it captured (for tests); the page reads it
@@ -164,6 +182,9 @@ export function captureOAuthRedirectError(loc: Location = window.location, hist:
 
   const pending = readPending();
   if (!pending) return null;
+  // Not where this attempt returns to: someone else's error (an email link's,
+  // /reset-password's). Leave the URL and the marker alone.
+  if (loc.pathname !== pending.path) return null;
   if (!hasError) {
     // A successful return carries the session in the fragment: the attempt is
     // over. Anything else (the user came back with the browser Back button)
@@ -200,6 +221,7 @@ export function captureOAuthRedirectError(loc: Location = window.location, hist:
   // an auth error from the URL is not persisted to storage (CodeQL
   // js/clear-text-storage-of-sensitive-data on the first version of this).
   captured = { provider: pending.provider, code, message };
+  capturedAt = Date.now();
   return captured;
 }
 
@@ -207,6 +229,7 @@ export function captureOAuthRedirectError(loc: Location = window.location, hist:
 export function takeOAuthRedirectError(): OAuthRedirectError | null {
   const out = captured;
   captured = null;
+  if (out && Date.now() - capturedAt > CAPTURED_MAX_AGE_MS) return null;
   return out;
 }
 

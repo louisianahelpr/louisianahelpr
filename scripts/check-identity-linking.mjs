@@ -124,6 +124,26 @@ if (config) {
     if (!ok) failed = true;
     console.log(`${ok ? "PASS" : "FAIL"} config ${key} = ${JSON.stringify(config[key])} (want ${value}: ${why})`);
   }
+  // GoTrue links on ANY enabled provider's `email_verified` (linking.go). One
+  // that reports unverified addresses as verified would link straight into a
+  // victim's CONFIRMED account, so the enabled set is pinned to what the app
+  // actually offers: email + Apple + Google (no phone, anonymous or other
+  // provider sign-in exists in src/ or supabase/functions; lh-authz-rls review
+  // of #1806).
+  const EXPECTED_SIGN_IN_METHODS = ["external_apple_enabled", "external_email_enabled", "external_google_enabled"];
+  const externalKeys = Object.keys(config).filter((k) => /^external_[a-z0-9_]+_enabled$/.test(k));
+  if (externalKeys.length < 5) {
+    couldNot(`auth config lists only ${externalKeys.length} external_*_enabled keys — refusing to report clean`);
+  }
+  // Exact, both ways: an extra method widens who can link in; a missing one
+  // means a button on /login and /signup that no longer works.
+  const enabled = externalKeys.filter((k) => config[k] === true).sort();
+  const extra = enabled.filter((k) => !EXPECTED_SIGN_IN_METHODS.includes(k));
+  const missing = EXPECTED_SIGN_IN_METHODS.filter((k) => !enabled.includes(k));
+  if (extra.length || missing.length) failed = true;
+  console.log(
+    `${extra.length || missing.length ? "FAIL" : "PASS"} config enabled sign-in methods = ${enabled.join(", ") || "none"} (want exactly ${EXPECTED_SIGN_IN_METHODS.join(", ")}; extra: ${extra.join(", ") || "none"}, missing: ${missing.join(", ") || "none"}; ${externalKeys.length} checked)`,
+  );
   console.log(`info config security_manual_linking_enabled = ${JSON.stringify(config.security_manual_linking_enabled)}`);
 }
 console.log(`auth.identities present: ${verdict.identities_table}${verdict.identities_table ? "" : " (replayed schema: identity rows skipped, user/profile writes still run)"}`);

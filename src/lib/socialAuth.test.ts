@@ -276,4 +276,26 @@ describe("signInWithProvider — linking refusals (OA-018)", () => {
     expect(await signInWithProvider("apple")).toEqual({ kind: "redirecting" });
     expect(signInWithOAuthMock).toHaveBeenCalledTimes(1);
   });
+
+  it("web: clears the marker when the redirect never left (signInWithOAuth errored)", async () => {
+    isNativePlatformMock.mockReturnValue(false);
+    isPluginAvailableMock.mockReturnValue(false);
+    sessionStorage.clear();
+    signInWithOAuthMock.mockResolvedValue({ error: { message: "provider misconfigured" } });
+
+    const { signInWithProvider } = await load();
+    expect((await signInWithProvider("google")).kind).toBe("error");
+    expect(sessionStorage.getItem("helpr_oauth_pending")).toBeNull();
+  });
+
+  it("web: the marker records the redirect's path", async () => {
+    isNativePlatformMock.mockReturnValue(false);
+    isPluginAvailableMock.mockReturnValue(false);
+    sessionStorage.clear();
+    signInWithOAuthMock.mockResolvedValue({ error: null });
+
+    const { signInWithProvider } = await load();
+    await signInWithProvider("google", { redirectTo: "https://example.com/home" });
+    expect(JSON.parse(sessionStorage.getItem("helpr_oauth_pending") ?? "{}").path).toBe("/home");
+  });
 });

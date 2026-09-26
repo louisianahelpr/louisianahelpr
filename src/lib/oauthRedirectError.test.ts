@@ -4,7 +4,7 @@
  * page needs an account" instead. These pin the capture and its scoping.
  * @mutate src/lib/oauthRedirectError.ts | if (!pending) return null; | if (!pending && !hasError) return null;
  */
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   SOCIAL_AUTH_ERROR_CODES,
   captureOAuthRedirectError,
@@ -41,7 +41,7 @@ beforeEach(() => {
 
 describe("captureOAuthRedirectError", () => {
   it("captures a refused Google round trip, strips the URL and hands Login the reason once", () => {
-    markOAuthPending("google");
+    markOAuthPending("google", "/home");
     const f = fakeLocation(errorUrl("provider_email_needs_verification"));
     const got = captureOAuthRedirectError(f.loc, f.hist);
     expect(got?.code).toBe("provider_email_needs_verification");
@@ -61,20 +61,20 @@ describe("captureOAuthRedirectError", () => {
   });
 
   it("ignores a stale marker (an abandoned attempt, not this redirect)", () => {
-    sessionStorage.setItem("helpr_oauth_pending", JSON.stringify({ provider: "apple", at: Date.now() - 60 * 60 * 1000 }));
+    sessionStorage.setItem("helpr_oauth_pending", JSON.stringify({ provider: "apple", path: "/home", at: Date.now() - 60 * 60 * 1000 }));
     const f = fakeLocation(errorUrl("user_banned", "User is banned"));
     expect(captureOAuthRedirectError(f.loc, f.hist)).toBeNull();
   });
 
   it("says nothing when the person declined on the provider's own screen", () => {
-    markOAuthPending("google");
+    markOAuthPending("google", "/home");
     const f = fakeLocation("/home?error=access_denied&error_description=The+user+denied+the+request");
     expect(captureOAuthRedirectError(f.loc, f.hist)).toBeNull();
     expect(f.replaced()).toBe("/home");
   });
 
   it("clears the marker on a successful return and captures nothing", () => {
-    markOAuthPending("apple");
+    markOAuthPending("apple", "/home");
     const f = fakeLocation("/home#access_token=x&refresh_token=y&type=bearer");
     expect(captureOAuthRedirectError(f.loc, f.hist)).toBeNull();
     expect(sessionStorage.getItem("helpr_oauth_pending")).toBeNull();
@@ -82,11 +82,41 @@ describe("captureOAuthRedirectError", () => {
   });
 
   it("names the two-accounts-one-email refusal, which GoTrue sends with no dedicated code", () => {
-    markOAuthPending("apple");
+    markOAuthPending("apple", "/home");
     const f = fakeLocation(
       errorUrl("unexpected_failure", "Multiple accounts with the same email address in the same linking domain detected: default"),
     );
     expect(captureOAuthRedirectError(f.loc, f.hist)?.message).toMatch(/More than one Helpr account/);
+  });
+});
+
+describe("captureOAuthRedirectError — review fixes (lh-authz-rls, #1806)", () => {
+  it("leaves an error on a path the attempt does not return to, even with a fresh marker", () => {
+    markOAuthPending("google", "/home");
+    const f = fakeLocation("/reset-password#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired");
+    expect(captureOAuthRedirectError(f.loc, f.hist)).toBeNull();
+    expect(f.replaced()).toBeNull();
+    // The marker survives for the real return.
+    expect(sessionStorage.getItem("helpr_oauth_pending")).not.toBeNull();
+  });
+
+  it("ignores a marker written before the path was recorded", () => {
+    sessionStorage.setItem("helpr_oauth_pending", JSON.stringify({ provider: "google", at: Date.now() }));
+    const f = fakeLocation(errorUrl("provider_email_needs_verification"));
+    expect(captureOAuthRedirectError(f.loc, f.hist)).toBeNull();
+  });
+
+  it("does not surface a captured reason on a Login visit long after the bounce", () => {
+    vi.useFakeTimers();
+    try {
+      markOAuthPending("google", "/home");
+      const f = fakeLocation(errorUrl("provider_email_needs_verification"));
+      expect(captureOAuthRedirectError(f.loc, f.hist)).not.toBeNull();
+      vi.advanceTimersByTime(5 * 60 * 1000);
+      expect(takeOAuthRedirectError()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

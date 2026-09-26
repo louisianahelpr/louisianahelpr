@@ -16,7 +16,7 @@
  * capture before the app and the Supabase client; Login must show it.
  *
  * @mutate src/main.tsx | import "./lib/oauthRedirectError"; | // import removed
- * @mutate src/lib/socialAuth.ts | markOAuthPending(provider); | void provider;
+ * @mutate src/lib/socialAuth.ts | markOAuthPending(provider, new URL(redirectTo, getPublicOrigin()).pathname); | void redirectTo;
  * @mutate src/lib/socialAuth.ts | const specific = socialAuthErrorCopy(provider, typeof code === "string" ? code : null, raw); | const specific = null;
  * @mutate src/pages/auth/Login.tsx | useState(() => takeOAuthRedirectError()) | useState(() => null)
  */
@@ -65,7 +65,7 @@ describe("every social sign-in outcome reaches the person (OA-018)", () => {
 
   it("the web branch marks the round trip pending before it leaves the page", () => {
     const src = code(SOCIAL);
-    const mark = src.indexOf("markOAuthPending(provider)");
+    const mark = src.search(/markOAuthPending\(\s*provider\s*,/);
     const leave = src.search(/\.auth\s*\.\s*signInWithOAuth\s*\(/);
     expect(mark).toBeGreaterThan(-1);
     expect(leave).toBeGreaterThan(mark);

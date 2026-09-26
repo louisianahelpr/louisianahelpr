@@ -23,7 +23,7 @@ import { recognizedAuthError } from "@/lib/authErrors";
 import { setLastAuthMethod } from "@/lib/lastAuthMethod";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { report } from "@/lib/errorLogger";
-import { markOAuthPending, socialAuthErrorCopy } from "@/lib/oauthRedirectError";
+import { clearOAuthPending, markOAuthPending, socialAuthErrorCopy } from "@/lib/oauthRedirectError";
 
 export type SocialProvider = "apple" | "google";
 
@@ -207,16 +207,15 @@ export async function signInWithProvider(
     setLastAuthMethod(provider);
     // OA-018: lets the boot-time capture (oauthRedirectError.ts) recognise a
     // failed round trip and explain it on Login instead of dropping it.
-    markOAuthPending(provider);
+    const redirectTo = opts.redirectTo ?? `${getPublicOrigin()}/home`;
+    markOAuthPending(provider, new URL(redirectTo, getPublicOrigin()).pathname);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: {
-        redirectTo:
-          opts.redirectTo ??
-          `${getPublicOrigin()}/home`,
-      },
+      options: { redirectTo },
     });
     if (error) {
+      // The browser never left, so no redirect is coming back to consume it.
+      clearOAuthPending();
       return { kind: "error", message: friendlyProviderError(provider, error) };
     }
     return { kind: "redirecting" };
@@ -224,6 +223,7 @@ export async function signInWithProvider(
     // Same reasoning as the native branch above: a broken web OAuth redirect
     // takes out a whole sign-in method, and the user-facing toast is the only
     // other place it would ever show up.
+    clearOAuthPending();
     report(err, { severity: "error", tags: { area: "auth", op: "webSocialSignIn", provider } });
     return { kind: "error", message: friendlyProviderError(provider, err) };
   }

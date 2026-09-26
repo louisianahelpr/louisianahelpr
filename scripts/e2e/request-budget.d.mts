@@ -10,6 +10,8 @@ export interface RunAggregate {
   tests: number;
   minutes: Record<string, number>;
   topDuplicates: Record<string, number>;
+  /** Every request by endpoint shape, summed over the label's samples. */
+  byShape: Record<string, number>;
   samples: number;
   /** Total ms the meter held navigations to stay under the ceiling. */
   paceWaitMs: number;

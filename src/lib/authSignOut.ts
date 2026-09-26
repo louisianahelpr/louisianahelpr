@@ -4,6 +4,7 @@ import { clearRememberedRoute } from "@/lib/lastRoute";
 import { queryClient } from "@/lib/queryClient";
 import { removePersistedClient } from "@/lib/queryPersister";
 import { clearPersistedAuthToken } from "@/lib/persistedAuthToken";
+import { resetProofPhotoSignCache } from "@/lib/proofPhotoStorage";
 
 // "others" is deliberately absent: everything below tears down THIS device
 // (push token, remembered route, caches). Ending only the other sessions is
@@ -120,6 +121,9 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   // error here is the leak itself, so it is logged rather than dropped.
   try {
     queryClient.clear();
+    // Signed proof-photo URLs are bearer links to another person's photos;
+    // the next account on this device must not be handed them (Q724).
+    resetProofPhotoSignCache();
     await removePersistedClient();
   } catch (err) {
     console.error("[signOut] cache wipe failed — prior user data may persist", err);

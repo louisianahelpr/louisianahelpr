@@ -71,7 +71,7 @@ type SignedEntry = { url: string; expiresAt: number };
 const signed = new Map<string, SignedEntry>();
 const inFlight = new Map<string, Promise<void>>();
 
-/** Test hook: forget every signed URL and pending batch. */
+/** Forget every signed URL and pending batch: sign-out (authSignOut.ts) and tests. */
 export function resetProofPhotoSignCache(): void {
   signed.clear();
   inFlight.clear();

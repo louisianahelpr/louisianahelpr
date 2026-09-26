@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 278 done, 100 partly done (fixed, protection pending), 115 open. Source of truth for work.
+- **Queue (this file):** 279 done, 100 partly done (fixed, protection pending), 114 open. Source of truth for work.
 - **Audit bus:** 18 open, 2 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 15 open (14 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-25T22:28Z)_
@@ -46,7 +46,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 493 items — 278 done, 100 partly done (fixed, protection pending), 115 open.**
+**Queue: 493 items — 279 done, 100 partly done (fixed, protection pending), 114 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1935,7 +1935,7 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   - `job_match_queue` rows marked 'dropped' leave `settled_at` null.
   - The seed-suppressed branch has no PGlite case.
   - OWNER: confirm that a 'dropped' row (e.g. blocked or seed) should also stop the other channel from sending.
-- [ ] **Q724 Proof-photo signed-URL cache survives sign-out (Q718 batch 1 review, LOW, 2026-09-26).**
+- [x] **Q724 Proof-photo signed-URL cache survives sign-out (Q718 batch 1 review, LOW, 2026-09-26).** DONE 2026-09-26: `signOutWithPushCleanup` now calls `resetProofPhotoSignCache()`. Class check `src/test/moduleCachesClearedOnSignOut.test.ts` classifies all 32 empty-constructed module Maps/Sets (exact, two-way) and requires every unkeyed user-data cache to be cleared on sign-out; proven red with the call removed and with a new unclassified Map.
   - `src/lib/proofPhotoStorage.ts` keeps a module-level `signed` Map. Its only reset, `resetProofPhotoSignCache`, is called from `src/test/proofPhotoSigningIsBatched.test.ts` alone (grep of `src/`, 2026-09-26).
   - Effect: after sign-out in the same tab, the next account can be handed a URL signed for the previous one for the rest of its ten-minute life.
   - Fix: call it from `src/lib/authSignOut.ts`. Add a class check that every module-level Map/Set holding user-scoped data is cleared on sign-out.

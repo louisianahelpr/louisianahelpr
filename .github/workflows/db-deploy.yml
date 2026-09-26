@@ -171,6 +171,25 @@ jobs:
             echo "::notice::No usable diff base ($EVENT_NAME). The authoritative destructive-DDL check for this run is the pending-set pre-flight in the deploy job."
           fi
 
+      # Q719: editing a migration prod already applied changes nothing on prod
+      # while the repo says it did (42a7962cc edited four). The fix is a new
+      # migration; comment-only diffs pass, replay-safety guards are listed in
+      # scripts/audit/applied-migration-edits.json by content hash.
+      - name: Refuse edits to migrations prod already applied
+        if: github.event_name == 'push'
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BEFORE_SHA:-}" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            echo "::notice::No usable diff base; nothing to compare."
+            exit 0
+          fi
+          node scripts/check-applied-migration-edits.mjs "$BEFORE_SHA" HEAD
+
   # ── DEPLOY ──────────────────────────────────────────────────────────────
 
   deploy:

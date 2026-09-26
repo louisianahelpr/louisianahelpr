@@ -10,6 +10,7 @@ export interface StoredObject {
   name: string;
   size: number;
   createdAt: string;
+  cacheControl?: string | null;
 }
 export type OrphanObject = StoredObject & { reason: string };
 export const USER_BUCKETS: string[];
@@ -33,3 +34,4 @@ export function checkCaps(args: {
 }): { tripped: boolean; reasons: string[] };
 export function emptyListingError(objects: unknown, buckets: unknown): string | null;
 export function formatMB(bytes: number): string;
+export function uncacheableAvatars<T extends { bucket: string; cacheControl?: string | null }>(objects: T[]): T[];

@@ -1,0 +1,4 @@
+{
+  "_doc": "Q719: replay-safety edits to already-applied migrations. Each entry names the file, the sha256 of its current content and why the edit could not be a new migration. The list is exact; scripts/check-applied-migration-edits.mjs fails on a stale entry.",
+  "acknowledged": []
+}

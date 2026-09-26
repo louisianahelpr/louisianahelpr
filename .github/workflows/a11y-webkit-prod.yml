@@ -23,9 +23,11 @@ permissions:
 # exist, the sweep generates it from this run's findings and fails with
 # "axe baseline missing" — see the "Surface a missing axe baseline" step below.
 #
-# Read-only against prod: the accounts are signed in and looked at, nothing is
-# written, so the two engines run in parallel and this does not take the
-# shared-account concurrency group.
+# The SWEEP is read-only against prod: the accounts are signed in and looked
+# at, nothing is written, so the two engines run in parallel and this does not
+# take the shared-account concurrency group. The one writer is the `fixtures`
+# job before them (nightly-red #1794): it keeps the job-status fixtures the
+# sweep renders alive — today the `accepted` job — through the app's own path.
 #
 # It is a REQUIRED release check: scripts/release-gate.mjs keys on this
 # workflow's name and on the "WebKit-only violations" job.
@@ -83,11 +85,62 @@ jobs:
             exit 1
           fi
 
-  sweep:
-    name: Sweep prod (${{ matrix.engine }})
+  fixtures:
+    # The job-status fixtures the sweep renders and nothing else keeps alive
+    # (nightly-red #1794, run 36148473443: no is_seed `accepted` job, an
+    # unjustified skip on both engines). The ONE job here that writes to prod:
+    # it reuses the accepted fixture, or mints one through the app's own path
+    # (Stripe TEST checkout, apply, hire). It runs once, before both sweep
+    # legs, because the legs run in parallel and must stay read-only. This
+    # workflow's prod-load group is its account lock, as for the sweep.
+    name: Job-status fixtures
     needs: preflight
     runs-on: ubuntu-latest
-    timeout-minutes: 80
+    # A mint is bounded by the 22-minute early-access wait (fundedOpenJob.ts).
+    timeout-minutes: 30
+    env:
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+      - name: Ensure the job-status fixtures
+        run: npx playwright test --project=job-status-fixtures --reporter=list,./e2e/reporters/skipReporter.ts
+      - name: Backend request budget (Q104)
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label job-status-fixtures
+      - name: Keep the fixture log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: job-status-fixtures
+          path: test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  sweep:
+    name: Sweep prod (${{ matrix.engine }})
+    # After the fixtures, whatever they did: a red fixtures job is its own
+    # failure (notify below counts it), and the sweep's evidence of every
+    # other screen is still worth having.
+    needs: [preflight, fixtures]
+    if: ${{ !cancelled() && needs.preflight.result == 'success' }}
+    runs-on: ubuntu-latest
+    # 80 -> 60 (2026-09-26) to fit the fixtures job in front of it inside the
+    # 120-minute prod-load slot (prodWorkflowSpacing rule 5). The full sweep
+    # measured 9.0 min (chromium) and 16.1 min (webkit) in run 36148473443.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -220,7 +273,7 @@ jobs:
 
   notify:
     name: Report nightly result
-    needs: [sweep, diff]
+    needs: [fixtures, sweep, diff]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -231,6 +284,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: a11y-webkit-prod
-          status: ${{ needs.sweep.result == 'success' && needs.diff.result == 'success' && 'success' || 'failure' }}
+          status: ${{ needs.fixtures.result == 'success' && needs.sweep.result == 'success' && needs.diff.result == 'success' && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

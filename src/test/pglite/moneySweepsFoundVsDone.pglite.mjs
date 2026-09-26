@@ -1,5 +1,5 @@
 /**
- * PGlite proof for 20260926040817_money_sweeps_found_vs_done (CJ-007, Q427 (c)).
+ * PGlite proof for 20260926040817_money_sweeps_found_vs_done (CJ-007, Q434 (c)).
  *
  *   node src/test/pglite/moneySweepsFoundVsDone.pglite.mjs
  *

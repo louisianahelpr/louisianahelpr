@@ -10,8 +10,9 @@
  * already-filed row is deduped, not counted as dropped; the cap row does not
  * count toward the cap; each function has its own cap; a '-seed' function's
  * cap row keeps the '-seed' source; a cap row older than an hour starts a new
- * one; it still never raises. RED: the previous body (20260831193039) on the
- * same 25 failures files 20 rows and no trace of the other 5.
+ * one; it still never raises. RED (this script, 2026-09-26): the previous
+ * body (20260831193039) on the same 25 failures files 20 rows and no trace of
+ * the other 5.
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";

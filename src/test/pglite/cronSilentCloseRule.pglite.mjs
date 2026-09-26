@@ -1,5 +1,5 @@
 /**
- * PGlite proof for 20260926035556_cron_silent_close_rule (CJ-007, Q427 (b)).
+ * PGlite proof for 20260926035556_cron_silent_close_rule (CJ-007, Q434 (b)).
  *
  *   node src/test/pglite/cronSilentCloseRule.pglite.mjs
  *

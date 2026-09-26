@@ -1,7 +1,8 @@
 /**
  * GUARD (CJ-007 follow-up): log_cron_defect's hourly cap is never silent.
  *
- * THE BUG: past 20 defect rows per function per hour, log_cron_defect only
+ * THE BUG (read 2026-09-26 from 20260831193039): past 20 defect rows per
+ * function per hour, log_cron_defect only
  * RAISE WARNINGed, which nothing reads, so 300 failures showed as 20 and the
  * other 280 left no trace. Fixed by 20260926043528_log_cron_defect_cap_alerts.
  *

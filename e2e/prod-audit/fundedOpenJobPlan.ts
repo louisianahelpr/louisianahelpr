@@ -141,3 +141,67 @@ export function planDisputedJob(
   if (open && REPAYABLE.has(open.payment_status ?? "unpaid")) return { kind: "resume", row: open, next: "fund" };
   return { kind: "create" };
 }
+
+/**
+ * THE ACCEPTED JOB FIXTURE — the pure decision half (nightly-red #1794).
+ *
+ * The prod a11y sweep (e2e/a11y-prod/a11y-prod.spec.ts) renders /jobs/<id>
+ * once per job_status, from poster-e2e's own is_seed jobs. In a11y-webkit-prod
+ * run 36148473443 (2026-09-25) `accepted` had none — "no is_seed job in status
+ * "accepted" owned by the poster on prod" — an unjustified skip on both
+ * engines. Nothing owned that state: prod-seed.mjs lists it as "real flow",
+ * and the only accepted seed rows were ones another run happened to hire and
+ * leave. `accepted` is a waiting state, not a resting one: auto-expire-jobs
+ * re-opens an accepted job whose helper has not confirmed by noon (Chicago)
+ * the day before `date_needed`, and a journey starts, completes or disputes
+ * its own. A borrowed accepted row always goes away.
+ *
+ * So the accepted state gets an owner, like the disputed one: a funded job of
+ * its own, helper-e2e applies (apply_to_job), poster-e2e hires
+ * (accept_application), and it is LEFT accepted. The rules:
+ *  - REUSE an accepted fixture hired to helper-e2e, escrowed, with at least
+ *    MIN_RUNWAY_DAYS of `date_needed` runway. auto-expire-jobs only reads
+ *    accepted jobs dated tomorrow or earlier, so a reused one stays accepted.
+ *  - An accepted fixture with less runway is NOT touched: cancel_escrow
+ *    refuses a hired job (only open with no Helpr), and cancelling it as the
+ *    poster is the cancellation-fee ladder on a shared account. auto-expire-jobs
+ *    re-opens it at its deadline; a later run then finds it open + escrow +
+ *    short runway and RETIRES it through cancel_escrow (a refund), as the
+ *    funded open fixture does.
+ *  - RESUME a half-made one (funded, or funded and applied to) with runway,
+ *    never paying twice; PAY an unpaid one with runway; else CREATE.
+ */
+export const ACCEPTED_FIXTURE_TITLE = "Prod audit accepted fixture";
+
+export type AcceptedPlan = (
+  | { kind: "reuse"; row: FixtureRow }
+  | { kind: "resume"; row: FixtureRow; next: "fund" | "apply" | "hire" }
+  | { kind: "create" }
+) & {
+  /** Funded fixture rows back at open with short runway, to release through cancel_escrow, each with its reason. */
+  retire: Array<{ row: FixtureRow; why: string }>;
+};
+
+/** `rows`: poster-e2e's own jobs titled ACCEPTED_FIXTURE_TITLE*, in any order. */
+export function planAcceptedJob(
+  rows: FixtureRow[],
+  opts: { today: string; helperId: string; appliedJobIds: ReadonlySet<string> },
+): AcceptedPlan {
+  const mine = rows
+    .filter((r) => r.title.startsWith(ACCEPTED_FIXTURE_TITLE))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const runway = (r: FixtureRow) => daysBetween(opts.today, r.date_needed);
+  const open = mine.filter((r) => r.status === "open" && !r.helper_id);
+  const retire: AcceptedPlan["retire"] = open
+    .filter((r) => FUNDED.has(r.payment_status ?? "") && runway(r) < MIN_RUNWAY_DAYS)
+    .map((row) => ({ row, why: `open again with only ${runway(row)}d of runway (< ${MIN_RUNWAY_DAYS}): release its escrow` }));
+  const accepted = mine.find(
+    (r) => r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow" && runway(r) >= MIN_RUNWAY_DAYS,
+  );
+  if (accepted) return { kind: "reuse", row: accepted, retire };
+  const funded = open.find((r) => r.payment_status === "escrow" && runway(r) >= MIN_RUNWAY_DAYS);
+  if (funded) return { kind: "resume", row: funded, next: opts.appliedJobIds.has(funded.id) ? "hire" : "apply", retire };
+  const unpaid = open.find((r) => REPAYABLE.has(r.payment_status ?? "unpaid") && runway(r) >= MIN_RUNWAY_DAYS);
+  if (unpaid) return { kind: "resume", row: unpaid, next: "fund", retire };
+  return { kind: "create", retire };
+}

@@ -3,7 +3,7 @@
  *
  * Universal Links (iOS) and App Links (Android) deliver the full
  * https://louisianahelpr.com/<path>?<query> URL to the running app. The
- * Capacitor `appUrlOpen` listener in `nativePush.ts` strips the host and
+ * Capacitor `appUrlOpen` listener in `deepLinkRouter.ts` strips the host and
  * hands the remainder to React Router via `navigate()`.
  *
  * Every link we mint is already a real `src/App.tsx` route (Q194), so this

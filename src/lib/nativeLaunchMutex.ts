@@ -4,7 +4,7 @@
  * Two cold-launch code paths can both call navigate() on the same tick:
  *   1. NativeLaunchRouter — runs in a useEffect, resolves async, then
  *      replaces "/" with the right post-auth route.
- *   2. nativePush.ts — App.getLaunchUrl() + the appUrlOpen listener,
+ *   2. deepLinkRouter.ts — App.getLaunchUrl() + the appUrlOpen listener,
  *      both async. If the app was opened from a Universal Link
  *      (/jobs/:id, /m/:id, /post-job), this calls navigate(internal).
  *

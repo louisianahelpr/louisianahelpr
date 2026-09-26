@@ -38,6 +38,7 @@ import { scanAll, scanDefect } from "../_shared/paginate.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import { arrivalNudgeStage, NEAR_MISS_ESCALATE_AFTER_HOURS, type NudgeLedger } from "../_shared/arrivalNudge.ts";
+import { serve } from "../_shared/buildStamp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,7 +56,7 @@ type DueJob = {
   helper_arrival_near_miss_ft: number | null;
 };
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const url = new URL(req.url);
   if (url.searchParams.get("health") === "1") {

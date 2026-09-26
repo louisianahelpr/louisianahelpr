@@ -241,7 +241,7 @@ export default defineConfig({
       name: "chromium",
       // The real-backend specs outside a project dir — excludes happy-path/*
       // (mocked) and the dirs that have their own project.
-      testIgnore: /(happy-path|journeys|a11y-prod|prod-audit|canary|slow-network|privacy)\//,
+      testIgnore: /(happy-path|journeys|a11y-prod|prod-audit|canary|slow-network|privacy|job-status-fixtures)\//,
       use: { ...devices["Desktop Chrome"] },
     },
     {
@@ -317,6 +317,21 @@ export default defineConfig({
         viewport: { width: 375, height: 812 },
         serviceWorkers: "block",
       },
+    },
+    {
+      name: "job-status-fixtures",
+      // The prod job-status fixtures the a11y sweep above renders and nothing
+      // else keeps alive (nightly-red #1794: no `accepted` job). WRITES to
+      // prod as the shared accounts (a Stripe TEST checkout, apply, hire), so
+      // it is its own project: a11y-webkit-prod.yml runs it once, in a job
+      // before both read-only sweep legs. `name:` is first for
+      // src/test/e2eSpecsReachableInCi.test.ts.
+      testDir: "./e2e/job-status-fixtures",
+      fullyParallel: false,
+      workers: 1,
+      timeout: 26 * 60_000,
+      retries: 0,
+      use: { ...devices["Desktop Chrome"], trace: "retain-on-failure" },
     },
   ],
   // Auto-start `vite preview` of this checkout. Gated behind

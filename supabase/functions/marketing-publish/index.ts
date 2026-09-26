@@ -58,6 +58,7 @@ import {
   type MetaEnv,
   type PublishResult,
 } from "../_shared/marketing/meta.ts";
+import { serve } from "../_shared/buildStamp.ts";
 
 const FN = "marketing-publish";
 
@@ -118,7 +119,7 @@ type ClaimedRow = MarketingRow & {
   parish: string | null;
 };
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

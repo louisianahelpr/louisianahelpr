@@ -257,6 +257,12 @@ function rewriteExternalImports(src: string): string {
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/accountPurge\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/accountPurge.ts";`,
   );
+  // Q290: export-my-data imports IDENTITY_BUCKETS from `_shared/purgeBuckets.ts`
+  // directly; it has ZERO imports, so it points at the REAL module too.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/purgeBuckets\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/purgeBuckets.ts";`,
+  );
 
   // Q202: the job price cap and the 3D Secure rule have ZERO imports, so the
   // generated file points at the REAL modules. They are the behaviour under

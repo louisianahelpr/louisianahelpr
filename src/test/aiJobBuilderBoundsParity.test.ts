@@ -85,6 +85,7 @@ function pairs(): Pair[] {
 }
 
 /** field → "sanitizer vs form", exactly as measured 2026-09-26. */
+// @two-way src/test/aiJobBuilderBoundsParity.test.ts:stale KNOWN_DRIFT entry
 const KNOWN_DRIFT: Record<string, string> = {
   "description max chars": "4000 vs 1000",
   "special_requirements max chars": "1000 vs 500",
@@ -111,6 +112,8 @@ describe("ai-job-builder output bounds vs the post-job form (Q54)", () => {
       const looser = p.loose === "above" ? p.sanitizer > p.form : p.sanitizer < p.form;
       if (looser || (p.field === "title max chars" && p.sanitizer !== p.form)) drift[p.field] = `${p.sanitizer} vs ${p.form}`;
     }
+    const stale = Object.keys(KNOWN_DRIFT).filter((f) => drift[f] !== KNOWN_DRIFT[f]);
+    expect(stale, "stale KNOWN_DRIFT entry — the bound moved or was fixed; update or remove it").toEqual([]);
     expect(drift).toEqual(KNOWN_DRIFT);
   });
 

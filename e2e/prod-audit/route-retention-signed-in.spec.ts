@@ -4,7 +4,7 @@ import { spacingScreens } from "./shellSpacing";
 import { sampleRetention, spaNavigate, type RetentionSample } from "../memory/retention";
 
 /**
- * Q414 (PD-009 follow-up): route changes keep no old page alive — SIGNED IN.
+ * Q440 (PD-009 follow-up): route changes keep no old page alive — SIGNED IN.
  *
  * The guest walk (e2e/memory/route-retention.spec.ts) covers the public routes
  * on every PR. The signed-in surface adds what a guest never mounts: realtime
@@ -19,7 +19,7 @@ import { sampleRetention, spaNavigate, type RetentionSample } from "../memory/re
  * the tester's own terms acceptance pass; every other write is refused), so a
  * walk over prod changes nothing.
  *
- * Runs in prod-audit.yml (nightly, and on demand: dispatch with grep "Q414").
+ * Runs in prod-audit.yml (nightly, and on demand: dispatch with grep "Q440").
  *
  * Shown able to fail: with SharedLayoutPill's release removed the retained
  * pages come back (see the numbers recorded beside the budgets).
@@ -37,8 +37,8 @@ const NODE_GROWTH_BUDGET = 100;
 /** JSEventListeners growth from the first measured lap to the last. */
 const LISTENER_GROWTH_BUDGET = 20;
 
-test.describe("Q414 route retention, signed in", () => {
-  test("Q414: signed-in route round-trips do not retain old pages, nodes or listeners", async ({ browser, request }) => {
+test.describe("Q440 route retention, signed in", () => {
+  test("Q440: signed-in route round-trips do not retain old pages, nodes or listeners", async ({ browser, request }) => {
     test.setTimeout(8 * 60_000);
     // Inventory floor: the catalog really gave us the signed-in surface.
     expect(ROUTES.length, "signed-in routes from spacingScreens()").toBeGreaterThan(20);
@@ -67,7 +67,7 @@ test.describe("Q414 route retention, signed in", () => {
       }
       samples.push(await sampleRetention(page, cdp, lap));
     }
-    console.log(`[Q414] routes=${ROUTES.length} ${JSON.stringify(samples)}`);
+    console.log(`[Q440] routes=${ROUTES.length} ${JSON.stringify(samples)}`);
     await test.info().attach("route-retention-signed-in.json", {
       body: JSON.stringify({ routes: ROUTES, landed, samples, blockedWrites: blocked }, null, 2),
       contentType: "application/json",

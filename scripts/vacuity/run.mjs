@@ -125,7 +125,7 @@ export function timedOut(r) {
  * warnings and dropped the failing test's error: measured on PR #1809
  * (2026-09-26), where e2e/prod-audit/shell-spacing.spec.ts came back
  * "RED before any mutation" three runs in a row with no reason printed (OPEN.md
- * Q412). Server chatter is dropped first, so the reason is what is kept.
+ * Q438). Server chatter is dropped first, so the reason is what is kept.
  */
 export function failureTail(out, n = 25) {
   const lines = String(out ?? "")

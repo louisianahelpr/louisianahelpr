@@ -1,5 +1,5 @@
 /*
- * A RED BASELINE MUST KEEP ITS REASON (OPEN.md Q412).
+ * A RED BASELINE MUST KEEP ITS REASON (OPEN.md Q438).
  *
  * The vacuity gate prints the tail of a guard's output when it was already red
  * before any mutation. For a Playwright guard that output is stdout + stderr,

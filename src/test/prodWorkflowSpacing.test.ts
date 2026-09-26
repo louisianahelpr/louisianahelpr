@@ -273,10 +273,11 @@ const SHARED_GROUP = "prod-load";
  * each with the reason losing a queued run is the safer of the two failures.
  *
  * The split rule 4 asks for is only safe when something ELSE still stops two
- * runs driving the shared prod test accounts at once. e2e-journeys.yml and
- * prod-audit.yml have that something: their JOBS hold
+ * runs driving the shared prod test accounts at once. e2e-journeys.yml,
+ * prod-audit.yml and (since 2026-09-25) e2e-abuse-notifications.yml have that
+ * something: their JOBS hold
  * `prod-lifecycle-shared-accounts`, so a private workflow-level group costs
- * them nothing. These three do not, and cannot cheaply — each fans out over a
+ * them nothing. These two do not, and cannot cheaply — each fans out over a
  * matrix that one shared job-level lock would serialise against itself — so
  * for them `prod-load` IS the account lock, and taking their dispatch out of
  * it would let a dispatched run drive poster-e2e beside another suite already
@@ -287,16 +288,12 @@ const SHARED_GROUP = "prod-load";
  * entry whenever a workflow's shape allows one.
  */
 export const DISPATCH_SHARES_GROUP: Record<string, string> = {
-  "press-every-control.yml":
-    "Signs in as poster/helper/admin/incomplete and presses mutating controls on real rows, " +
-    "across a 4-way shard matrix that a shared job-level lock would serialise against itself. " +
-    "Its own header says two runs must never press the same rows at once.",
+  // press-every-control.yml left this list on 2026-09-26 (docs/OPEN.md Q326):
+  // its shards now run in ONE job that holds the account lock, so a11y is the
+  // only entry left, whatever the count in the comment above says.
   "a11y-webkit-prod.yml":
     "Drives the shared accounts across a browser matrix for the WebKit-vs-Chromium diff, " +
     "with no job-level account lock available that would not also serialise the two engines.",
-  "e2e-abuse-notifications.yml":
-    "Signs in as both shared accounts and exercises strike/report/block paths that write " +
-    "moderation state; a second run against the same accounts changes what it is asserting.",
 };
 
 export function violations(wfs: Wf[]): string[] {
@@ -501,6 +498,32 @@ export function overlapViolations(wfs: Wf[]): string[] {
   return out;
 }
 
+/**
+ * FREE :17 SLOTS (docs/OPEN.md Q322). Every daily-or-rarer prod-load cron fires
+ * at :17 on an odd hour (the 120-min grid rule 3's 90-min spacing leaves), so
+ * the week holds 84 slots. A slot is FREE when no prod-load run fires in it and
+ * no run's worst case (rule 5) still holds the group there: a new schedule, or
+ * a raised timeout, can only land in a free one. Returns the free slots as
+ * week-minutes.
+ */
+export function freeSlots(wfs: Wf[]): number[] {
+  const runs: { at: number; len: number }[] = [];
+  for (const w of prodHitting(wfs)) {
+    if (EXEMPT[w.file] || !inProdLoad(w)) continue;
+    const len = worstCaseMinutes(w.src);
+    for (const cron of w.crons) for (const at of fireMinutes(cron)) runs.push({ at, len });
+  }
+  const free: number[] = [];
+  for (let slot = 60 + 17; slot < WEEK; slot += 120) {
+    const busy = runs.some(({ at, len }) => {
+      const after = (((slot - at) % WEEK) + WEEK) % WEEK;
+      return after === 0 || after < len;
+    });
+    if (!busy) free.push(slot);
+  }
+  return free;
+}
+
 function loadWorkflows(): Wf[] {
   return readdirSync(WORKFLOWS)
     .filter((f) => /\.ya?ml$/.test(f))
@@ -607,6 +630,16 @@ describe("prod-hitting workflow schedules", () => {
       .map((w) => `${w.file}: ${worstCaseMinutes(w.src)} min @ ${w.crons.join(" ; ")}`)
       .join("\n");
     expect(overlapViolations(wfs), `worst-case run lengths:\n${print}`).toEqual([]);
+  });
+
+  // EXACT, both ways ("every number we track stays current"): a schedule that
+  // takes a slot, or a timeout cut that frees one, updates this list in the
+  // same commit. On 2026-09-23 it was EMPTY (Q322: 84 of 84 booked); cutting
+  // prod-audit's timeout from 300 to its measured 100-min max x1.8 freed two.
+  // @mutate .github/workflows/prod-audit.yml |     timeout-minutes: 180 |     timeout-minutes: 300
+  it("Q322: the free :17 slots in the prod-load week are exactly these", () => {
+    const free = freeSlots(wfs).map(fmt);
+    expect(free).toEqual(["Sun 05:17", "Thu 05:17"]);
   });
 
   it("rule 5 can fail: the Q318 shape (press 03:17 with two waves, drift 05:17, backup 07:17) is red", () => {
@@ -716,8 +749,12 @@ describe("prod-hitting workflow schedules", () => {
     const rule4 = (v: string[]) => v.filter((s) => s.includes("declares workflow_dispatch"));
     // The rule-4 exemption is BY NAME and lifts nothing else: the same file
     // shape not named in DISPATCH_SHARES_GROUP is still red.
-    expect(rule4(violations([asDispatched("press-every-control.yml", "prod-load")]))).toEqual([]);
+    expect(rule4(violations([asDispatched("a11y-webkit-prod.yml", "prod-load")]))).toEqual([]);
     expect(rule4(violations([asDispatched("not-exempt-suite.yml", "prod-load")]))).toHaveLength(1);
+    // press-every-control left the exemption on 2026-09-26 (docs/OPEN.md Q326):
+    // its press job now holds the job-level account lock, so its dispatch is
+    // split like every other suite's; the old shape is red again.
+    expect(rule4(violations([asDispatched("press-every-control.yml", "prod-load")]))).toHaveLength(1);
     // The pre-fix shape: dispatchable, and parked in the shared group.
     expect(rule4(violations([asDispatched("e2e-journeys.yml", "prod-load")]))).toHaveLength(1);
     expect(rule4(violations([asDispatched("nightly-webkit.yml", "prod-load")]))).toHaveLength(1);

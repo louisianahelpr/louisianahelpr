@@ -495,6 +495,6 @@ describe("a weekly workflow is never described as nightly (Q52)", () => {
 // @mutate .github/workflows/migration-lint.yml | HEAD -- 'supabase/migrations/*.sql')\n          fi | HEAD -- 'supabase/migrations/*.sql' \|\| true)\n          fi
 // @mutate .github/workflows/security-audit.yml | npm audit --omit=dev --audit-level=moderate | npm audit --omit=dev --audit-level=moderate \|\| true
 // @mutate .github/workflows/prod-audit.yml | see the log above. Not checked is not clean."; exit 2 ;; | see the log above. Not checked is not clean."; exit 0 ;;
-// @mutate .github/workflows/press-every-control.yml | (needs.press.result == 'success' && needs.cleanup.result == 'success') | needs.press.result == 'success'
+// @mutate .github/workflows/press-every-control.yml | status: ${{ needs.press.result == 'success' && 'success' \|\| 'failure' }} | status: ${{ needs.press.result != 'cancelled' && 'success' \|\| 'failure' }}
 // @mutate .github/workflows/db-drift-detect.yml | TYPES_FRESH: ${{ steps.types_fresh.outcome }} | TYPES_FRESH: ${{ steps.types_fresh.conclusion }}
 // @mutate .github/workflows/prod-errors.yml | set -euo pipefail\n          node scripts/ops-alert-ledger.mjs sync | node scripts/ops-alert-ledger.mjs sync

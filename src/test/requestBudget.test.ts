@@ -55,7 +55,7 @@ const PROD_PROJECTS = configProjects.filter((p) => !MOCKED_PROJECTS.has(p));
 
 /** Node scripts that drive a browser against prod from a workflow, and the label each meters under. */
 const METERED_SCRIPTS: Record<string, { invoke: RegExp; file: string; label: string }> = {
-  press: { invoke: /run: node scripts\/audit\/press-every-control\.mjs\s*$/m, file: "scripts/audit/press-every-control.mjs", label: "press-every-control" },
+  press: { invoke: /run: (node scripts\/audit\/press-every-control\.mjs|bash scripts\/audit\/press-wave\.sh [\d ]+)\s*$/m, file: "scripts/audit/press-every-control.mjs", label: "press-every-control" },
   loading: { invoke: /run: npm run loading-states:measure\s*$/m, file: "scripts/audit/measure-loading-states.mjs", label: "loading-states" },
 };
 
@@ -85,7 +85,7 @@ function requiredBudgetSteps(): { wf: string; label: string; has: boolean }[] {
       for (const s of Object.values(METERED_SCRIPTS)) if (s.invoke.test(code)) labels.add(s.label);
       for (const label of labels) {
         const esc = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        out.push({ wf, label, has: new RegExp(`run: node scripts/e2e/request-budget\\.mjs --label ${esc}\\s*$`, "m").test(code) });
+        out.push({ wf, label, has: new RegExp(`run: node scripts/e2e/request-budget\\.mjs --label ${esc}( --dir \\S+)?\\s*$`, "m").test(code) });
       }
     }
   }

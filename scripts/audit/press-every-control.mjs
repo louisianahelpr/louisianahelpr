@@ -58,7 +58,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   cleanup, createPressJob, loadTestOwners, makeStripeProbe, mintAccounts, mutationGate, prodSelect,
-  remintSession, rowNamesTestOwner, sessionStillAlive, snapshotProfile, urlOwnership,
+  remintSession, restorePlan, restoreSource, rowNamesTestOwner, sessionStillAlive, snapshotAccounts, urlOwnership,
 } from "./pressProdSafety.mjs";
 import * as pressSafety from "./pressProdSafety.mjs";
 import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
@@ -740,10 +740,34 @@ async function main() {
   const { sessions, unavailable } = await mintAccounts(PERSONAS.filter((p) => p !== "anon"));
   for (const [p, why] of Object.entries(unavailable)) console.log(`::warning title=persona ${p} not covered::${why}`);
 
-  // Clean-up only: the workflow's final job, after every shard.
+  // Snapshot only (Q272/Q325): the run-level "before" of every shared account,
+  // taken once before any shard presses anything. Every restore reads this file.
+  if (process.env.SNAPSHOT_OUT) {
+    const snap = await snapshotAccounts(sessions);
+    const unread = Object.entries(snap.profiles).filter(([p, v]) => v === null || snap.weeklyAvailability[p] === null).map(([p]) => p);
+    writeFileSync(process.env.SNAPSHOT_OUT, JSON.stringify(snap, null, 2));
+    console.log(`snapshot: ${Object.keys(snap.profiles).join(", ")} → ${process.env.SNAPSHOT_OUT}`);
+    const notMinted = Object.keys(unavailable);
+    if (unread.length || notMinted.length) {
+      console.log(`FAIL: no restorable snapshot for ${[...unread, ...notMinted].join(", ")} — pressing without one leaves nothing to restore from`);
+      process.exitCode = 1;
+    }
+    return;
+  }
+  const plan = restorePlan({ shard: process.env.SHARD, snapshotIn: process.env.SNAPSHOT_IN });
+  if (plan.error) {
+    console.log(`::error title=press restore plan::${plan.error}`);
+    process.exitCode = 1;
+    return;
+  }
+  const runSnapshot = process.env.SNAPSHOT_IN ? JSON.parse(readFileSync(process.env.SNAPSHOT_IN, "utf8")) : null;
+
+  // Clean-up only: the workflow's final step, after every shard. With the
+  // run-level snapshot it is also THE restore (Q272): profiles and the weekly
+  // grid go back to what they were before the first shard started.
   if (process.env.CLEANUP_SINCE) {
     const since = Date.parse(process.env.CLEANUP_SINCE);
-    const r = await cleanup({ sessions, since, profilesBefore: {} });
+    const r = await cleanup({ sessions, since, profilesBefore: runSnapshot?.profiles ?? {}, weeklyAvailabilityBefore: runSnapshot?.weeklyAvailability });
     for (const l of r.log) console.log(`cleaned: ${l}`);
     for (const l of r.residue) console.log(`::warning title=clean-up residue::${l}`);
     writeFileSync(`${OUT}/cleanup.json`, JSON.stringify(r, null, 2));
@@ -761,8 +785,10 @@ async function main() {
   const poster = sessions.customer ?? null;
   const helper = sessions.helper ?? null;
   const stripeMode = makeStripeProbe(poster, RUN_ID);
-  const profilesBefore = {};
-  for (const [p, s] of Object.entries(sessions)) profilesBefore[p] = await snapshotProfile(s);
+  // Q272: a shard of a sharded run restores nothing (the run's final step
+  // does, from the run-level snapshot); an unsharded run restores itself.
+  const selfSnapshot = plan.source === "self" ? await snapshotAccounts(sessions) : null;
+  const restoreFrom = restoreSource(plan, runSnapshot, selfSnapshot);
 
   // ---- real ids ------------------------------------------------------------
   // The run's own fixture job (mutating presses land here), plus one
@@ -1697,7 +1723,7 @@ async function main() {
   // Q128 class 5: the clean-up ran on tokens that had expired hours earlier
   // ("admin applications: HTTP 401 JWT expired" x11) and cleaned nothing.
   for (const p of Object.keys(sessions)) { noticedOn = "clean-up"; await ensureLiveSession(p); }
-  const cleaned = await cleanup({ sessions, since: runStart - 60_000, profilesBefore });
+  const cleaned = await cleanup({ sessions, since: runStart - 60_000, profilesBefore: restoreFrom?.profiles ?? {}, weeklyAvailabilityBefore: restoreFrom?.weeklyAvailability });
   for (const l of cleaned.log) console.log(`cleaned: ${l}`);
   for (const l of cleaned.residue) console.log(`::warning title=clean-up residue::${l}`);
 

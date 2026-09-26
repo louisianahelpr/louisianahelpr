@@ -412,7 +412,17 @@ export function rowNamesTestOwner(text, owners) {
  */
 export const isSeedRowId = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-/i.test(String(id ?? ""));
 
-/** (table, owner column) pairs a press can insert into as the signed-in account; deleted by created_at ≥ run start, seed rows excepted. */
+/**
+ * (table, owner column[, extra PostgREST filter]) a press can insert into as
+ * the signed-in account; deleted by created_at ≥ run start, seed rows excepted.
+ *
+ * helper_availability is only its DATED rows here (self-blocked days, one
+ * insert each). The WEEKLY grid (specific_date IS NULL) is not "rows a press
+ * created": save_weekly_availability REPLACES the whole week, deleting the
+ * seed rows and inserting seven new ones, so deleting "the new rows" left the
+ * account with no week at all (docs/OPEN.md Q325, run 35905268411). The week
+ * is snapshotted before the run and put back by restoreWeeklyAvailability.
+ */
 export const CLEANUP_TABLES = [
   ["applications", "helper_id"],
   ["saved_jobs", "user_id"],
@@ -423,8 +433,84 @@ export const CLEANUP_TABLES = [
   ["messages", "sender_id"],
   ["favorite_helpers", "customer_id"],
   ["pet_profiles", "owner_id"],
-  ["helper_availability", "helper_id"],
+  ["helper_availability", "helper_id", "specific_date=not.is.null"],
 ];
+
+/** Columns of a weekly-grid row that are the account's state (id kept so seed rows keep their v5 ids). */
+const WEEK_COLS = ["id", "day_of_week", "is_available", "start_time", "end_time"];
+const weekKey = (r) => `${r.day_of_week}|${r.is_available}|${r.start_time}|${r.end_time}`;
+
+/** The account's weekly availability grid (specific_date IS NULL), or null when it cannot be read. */
+export async function snapshotWeeklyAvailability(s) {
+  try {
+    const rows = await prodSelect(s, `helper_availability?select=${WEEK_COLS.join(",")}&helper_id=eq.${s.userId}&specific_date=is.null&order=day_of_week`);
+    return rows.map((r) => Object.fromEntries(WEEK_COLS.map((c) => [c, r[c] ?? null])));
+  } catch { return null; }
+}
+
+/**
+ * The run-level snapshot every restore reads (docs/OPEN.md Q272): one per RUN,
+ * taken before any shard presses anything, so no shard can snapshot another
+ * shard's flipped value and write it back as "the original".
+ */
+export async function snapshotAccounts(sessions) {
+  const profiles = {};
+  const weeklyAvailability = {};
+  for (const [persona, s] of Object.entries(sessions)) {
+    profiles[persona] = await snapshotProfile(s);
+    weeklyAvailability[persona] = await snapshotWeeklyAvailability(s);
+  }
+  return { takenAt: new Date().toISOString(), profiles, weeklyAvailability };
+}
+
+/**
+ * WHO RESTORES (docs/OPEN.md Q272). Run 35837735324: four shards each took
+ * their own "before" snapshot while other shards were already pressing, so
+ * shard 2's end-of-run restore wrote a FLIPPED senior_mode back. A shard of a
+ * sharded run therefore never restores; the run restores once, from the one
+ * snapshot taken before any shard started (SNAPSHOT_IN). An unsharded run
+ * (local, or SHARD=1/1) may snapshot and restore itself.
+ */
+export function restorePlan({ shard, snapshotIn }) {
+  const total = shard ? Number(String(shard).split("/")[1]) : 1;
+  const sharded = Number.isFinite(total) && total > 1;
+  if (sharded && !snapshotIn) {
+    return { error: `SHARD=${shard} without SNAPSHOT_IN: a shard may not snapshot or restore the shared accounts itself (Q272). Take one run-level snapshot first (SNAPSHOT_OUT=<file>).` };
+  }
+  if (sharded) return { source: "run", restoreAtEnd: false };
+  return { source: snapshotIn ? "run" : "self", restoreAtEnd: true };
+}
+
+/** The snapshot a run's own end-of-run cleanup restores from, or null when it must restore nothing (a shard). */
+export function restoreSource(plan, runSnapshot, selfSnapshot) {
+  if (!plan?.restoreAtEnd) return null;
+  return plan.source === "run" ? runSnapshot ?? null : selfSnapshot ?? null;
+}
+
+/**
+ * Put the weekly grid back to `before` (docs/OPEN.md Q325). Same content →
+ * nothing written. Otherwise the current week is deleted and the snapshot's
+ * rows are re-inserted WITH their ids, so a seed row keeps its UUID v5 and
+ * cleanup keeps recognising it (isSeedRowId). RLS: "Helpers can manage their
+ * own availability" (ALL, auth.uid() = helper_id), verified live 2026-09-26.
+ */
+export async function restoreWeeklyAvailability(s, before) {
+  if (!Array.isArray(before)) return { ok: true, note: "no snapshot of the week" };
+  const now = await snapshotWeeklyAvailability(s);
+  if (now === null) return { ok: false, note: "could not read the week to compare" };
+  const sig = (rows) => rows.map(weekKey).sort().join(";");
+  const ids = (rows) => rows.map((r) => r.id).sort().join(";");
+  if (sig(now) === sig(before) && ids(now) === ids(before)) return { ok: true, note: "unchanged" };
+  const d = await del(s, `helper_availability?helper_id=eq.${s.userId}&specific_date=is.null`);
+  if (!d.ok) return { ok: false, note: `delete of the current week failed: HTTP ${d.status} ${d.body}` };
+  if (before.length) {
+    const rows = before.map((r) => ({ ...r, helper_id: s.userId, specific_date: null }));
+    const r = await fetch(`${supabaseUrl()}/rest/v1/helper_availability?select=id`, { method: "POST", headers: headers(s, { Prefer: "return=representation" }), body: JSON.stringify(rows) });
+    const back = r.ok ? await r.json().catch(() => []) : [];
+    if (!r.ok || back.length !== before.length) return { ok: false, note: `re-insert of ${before.length} row(s) wrote ${back.length} (HTTP ${r.status})` };
+  }
+  return { ok: true, note: `restored ${before.length} row(s) (replaced ${d.removed})` };
+}
 
 /** Profile columns a press can change through Settings and that the account may write back. Timestamps and server-managed columns stay. */
 const PROFILE_SKIP = new Set(["id", "user_id", "created_at", "updated_at", "last_seen_at", "last_active_at", "rating", "review_count", "jobs_completed", "is_seed"]);
@@ -464,7 +550,7 @@ async function del(s, pathAndQuery) {
  * Unwind what this run's presses created. Per account, RLS-scoped. Returns a
  * log of what was removed and what could not be (residue), never throws.
  */
-export async function cleanup({ sessions, since, profilesBefore }) {
+export async function cleanup({ sessions, since, profilesBefore, weeklyAvailabilityBefore }) {
   const log = [];
   const residue = [];
   const sinceIso = new Date(since).toISOString();
@@ -480,7 +566,7 @@ export async function cleanup({ sessions, since, profilesBefore }) {
         (disposition.ok ? log : residue).push(`${persona} job ${j.id} "${j.title.slice(0, 40)}" [${j.status}/${j.payment_status}] → ${disposition.note}`);
       }
     }
-    for (const [table, col] of CLEANUP_TABLES) {
+    for (const [table, col, extra] of CLEANUP_TABLES) {
       // A message row is the only pointer to its attachment: remove the file
       // before the row (2026-09-14 storage audit). Never blocks the cleanup.
       if (table === "messages") {
@@ -491,11 +577,11 @@ export async function cleanup({ sessions, since, profilesBefore }) {
         } catch (e) { residue.push(`${persona} message-attachments: ${e.message}`); }
       }
       try {
-        const since = await prodSelect(s, `${table}?select=id&${col}=eq.${s.userId}&created_at=gte.${encodeURIComponent(sinceIso)}`);
+        const since = await prodSelect(s, `${table}?select=id&${col}=eq.${s.userId}&created_at=gte.${encodeURIComponent(sinceIso)}${extra ? `&${extra}` : ""}`);
         const ids = since.map((row) => row.id).filter((id) => !isSeedRowId(id));
         if (since.length > ids.length) log.push(`${persona} ${table}: kept ${since.length - ids.length} seed row(s)`);
         if (!ids.length) continue;
-        const r = await del(s, `${table}?id=in.(${ids.join(",")})&${col}=eq.${s.userId}`);
+        const r = await del(s, `${table}?id=in.(${ids.join(",")})&${col}=eq.${s.userId}${extra ? `&${extra}` : ""}`);
         if (!r.ok) residue.push(`${persona} ${table}: HTTP ${r.status} ${r.body}`);
         else if (r.removed) log.push(`${persona} ${table}: removed ${r.removed}`);
       } catch (e) { residue.push(`${persona} ${table}: ${e.message}`); }
@@ -513,6 +599,13 @@ export async function cleanup({ sessions, since, profilesBefore }) {
           (r.ok && rows.length === 1 ? log : residue).push(`${persona} profile: restored ${Object.keys(patch).join(", ")}${r.ok && rows.length === 1 ? "" : ` FAILED (HTTP ${r.status}, ${rows.length} rows)`}`);
         }
       }
+    }
+    // Weekly availability grid: put back what the run-level snapshot saw (Q325).
+    const week = weeklyAvailabilityBefore?.[persona];
+    if (week !== undefined) {
+      const w = await restoreWeeklyAvailability(s, week);
+      if (!w.ok) residue.push(`${persona} weekly availability: ${w.note}`);
+      else if (w.note !== "unchanged" && w.note !== "no snapshot of the week") log.push(`${persona} weekly availability: ${w.note}`);
     }
   }
   return { log, residue };

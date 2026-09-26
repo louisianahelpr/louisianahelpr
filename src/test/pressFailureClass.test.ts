@@ -108,9 +108,14 @@ describe("Q128 class 6: the sweep stops inside its own budget instead of being c
   it("the workflow's budget is below its job timeout", () => {
     const wf = readFileSync(resolve(ROOT, ".github/workflows/press-every-control.yml"), "utf8");
     const budget = Number(/TIME_BUDGET_MIN:\s*"(\d+)"/.exec(wf)?.[1]);
-    const timeout = Number(/timeout-minutes:\s*(\d+)\n\s*strategy:/.exec(wf)?.[1] ?? /Press every control \(shard[\s\S]*?timeout-minutes:\s*(\d+)/.exec(wf)?.[1]);
+    // The press job runs its shards in WAVES (scripts/audit/press-wave.sh,
+    // Q326), each wave bounded by the per-shard budget, so the job's timeout
+    // must cover every wave's budget plus set-up and the restore.
+    const timeout = Number(/\n {2}press:\n[\s\S]*?\n {4}timeout-minutes:\s*(\d+)/.exec(wf)?.[1]);
+    const waves = [...wf.matchAll(/bash scripts\/audit\/press-wave\.sh [\d ]+/g)].length;
     expect(budget).toBeGreaterThan(60);
-    expect(timeout).toBeGreaterThan(budget + 10);
+    expect(waves).toBeGreaterThan(0);
+    expect(timeout).toBeGreaterThan(waves * budget + 10);
   });
 });
 

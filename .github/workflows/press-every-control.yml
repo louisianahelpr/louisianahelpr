@@ -39,8 +39,8 @@ permissions:
 # scripts/e2e/mint-helper-login.sh.
 #
 # Nightly + workflow_dispatch only. Not on push: it drives the shared prod
-# accounts and shares their concurrency group with the money loop and the
-# journeys, so two runs never press the same rows at once.
+# accounts and holds their job-level lock (prod-lifecycle-shared-accounts) with
+# the money loop and the journeys, so two runs never press the same rows at once.
 
 on:
   schedule:
@@ -58,28 +58,21 @@ on:
         default: "anon,customer,helper,admin,incomplete"
 
 concurrency:
-  # Serialised against every other job that drives the shared prod test
-  # accounts — two runs signed in as poster-e2e at once corrupt each other's
-  # fixtures. `cancel-in-progress: false` is also what 34794e47b asked of every
-  # workflow on main (a cancelled run reports "cancelled", never a failure, so
-  # a real red hides); here it is load-bearing for a second reason: a cancelled
-  # prod run leaves its fixture job and test rows behind.
+  # WORKFLOW level: prod load only. A SCHEDULED run joins prod-load (spaced
+  # against every other prod cron, src/test/prodWorkflowSpacing.test.ts); a
+  # workflow_dispatch gets its own group (rule 4: GitHub keeps ONE pending run
+  # per group, so a dispatch parked in prod-load was cancelled by the next
+  # suite to queue there, e.g. run 36215841191 at 03:46Z on 2026-09-26).
   #
-  # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
-  # >= 2h apart, and share the prod-load concurrency group; see
-  # src/test/prodWorkflowSpacing.test.ts before moving this.
-  #
-  # THE EXCEPTION to the dispatch split, by name in
-  # src/test/prodWorkflowSpacing.test.ts's DISPATCH_SHARES_GROUP (2026-09-22).
-  # This workflow signs in as the shared prod test accounts and has no
-  # job-level `prod-lifecycle-shared-accounts` lock, because its matrix would
-  # be serialised against itself by one. prod-load IS its account lock. Giving
-  # its dispatch a private group — as e2e-journeys and prod-audit now do, since
-  # their JOBS hold that lock — would let a dispatched run drive poster-e2e
-  # beside another suite already driving it, and two runs signed in as the same
-  # account corrupt each other's fixtures. Losing a queued dispatch is
-  # recoverable and loud; corrupted prod fixtures are neither.
-  group: prod-load
+  # The ACCOUNT lock is the press job's job-level
+  # `prod-lifecycle-shared-accounts` group below, the one every job that drives
+  # the shared test accounts holds (docs/OPEN.md Q326;
+  # src/test/sharedAccountJobsHoldOneLock.test.ts). Until 2026-09-26 this
+  # workflow held only prod-load, so a DISPATCHED e2e-journeys run (own
+  # workflow group, job holding the account lock) pressed the same accounts at
+  # the same time as a press run. `cancel-in-progress: false` everywhere: a
+  # cancelled prod run leaves its fixture job and test rows behind.
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('press-every-control-{0}', github.run_id) }}
   cancel-in-progress: false
 
 env:
@@ -89,22 +82,42 @@ env:
 
 jobs:
   press:
-    name: Press every control (shard ${{ matrix.shard }}/4, 375, prod)
+    name: Press every control (4 shards, 2 at a time, 375, prod)
     runs-on: ubuntu-latest
-    # timeout-minutes is PER JOB and its clock starts when the shard starts on
-    # a runner, not while it waits for a max-parallel slot. So with two waves
-    # each shard still gets its full 150 (the last run's shards took 137 min),
-    # and the run's wall time roughly doubles (~4.6h, up to 2 x 150 min).
-    timeout-minutes: 150
-    strategy:
-      fail-fast: false
-      # Q317 (2026-09-23): four shards at once, beside other prod suites, took
-      # prod to 56/60 Postgres connections and pg_cron's jobs were refused
-      # ("remaining connection slots are reserved", 14 failures at 19:00Z).
-      # Two at a time. Guarded by src/test/pressMaxParallel.test.ts.
-      max-parallel: 2
-      matrix:
-        shard: [1, 2, 3, 4]
+    # ONE job for the whole run, so it holds the account lock from the
+    # snapshot to the restore (Q326) and nothing else can touch the accounts
+    # between the two (Q272). The shards run in two WAVES of two
+    # (scripts/audit/press-wave.sh): the Q317 load ceiling, which the old
+    # matrix held with `max-parallel: 2`. Each shard stops itself at
+    # TIME_BUDGET_MIN (Q128), so two waves take at most 2 x 135 min plus
+    # set-up, snapshot and restore; 330 leaves ~40 min of slack and stays under
+    # GitHub's 360-minute job limit.
+    timeout-minutes: 330
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    env:
+      BASE: http://127.0.0.1:4173
+      WIDTH: "375"
+      ROUTES: ${{ github.event.inputs.routes }}
+      PERSONAS: ${{ github.event.inputs.personas || 'anon,customer,helper,admin,incomplete' }}
+      RUN_BASE: ${{ github.run_id }}
+      # The run-level "before" of every shared account (Q272/Q325). Taken once,
+      # before the first shard; the only thing any restore reads.
+      SNAPSHOT_IN: test-results/press-snapshot.json
+      # Q128: each shard stops itself inside the wave and reports the rows it
+      # did not reach, instead of being cancelled with no report.
+      TIME_BUDGET_MIN: "135"
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+      # The restore signs in as every persona the presses used, so the job
+      # carries every persona's credentials (src/test/pressCleanupPersonas.test.ts).
+      PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }} # swept persona
+      PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }} # swept persona
 
     steps:
       - name: Checkout
@@ -161,95 +174,63 @@ jobs:
         with:
           supabase-publishable-key: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
-      - name: Press every control
-        env:
-          BASE: http://127.0.0.1:4173
-          WIDTH: "375"
-          SHARD: ${{ matrix.shard }}/4
-          RUN_ID: ${{ github.run_id }}-${{ matrix.shard }}
-          ROUTES: ${{ github.event.inputs.routes }}
-          PERSONAS: ${{ github.event.inputs.personas || 'anon,customer,helper,admin,incomplete' }}
-          OUT: test-results/press-every-control
-          # Q128: the sweep stops itself inside timeout-minutes (150) and
-          # reports the rows it did not reach, instead of being cancelled
-          # with no report (run 35837735324: three shards cancelled silently).
-          TIME_BUDGET_MIN: "135"
-          PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
-          PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
-          PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
-          PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
-          PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
-          PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
-          PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }}
-          PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
-        run: node scripts/audit/press-every-control.mjs
-
-      - name: Backend request budget (Q104)
-        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
-        # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
-        if: ${{ !cancelled() }}
-        run: node scripts/e2e/request-budget.mjs --label press-every-control
-      - name: Coverage summary
-        if: always()
+      - name: Snapshot the shared accounts (run-level, before any shard)
+        id: snapshot
+        # Records the clean-up window's start too: everything created after
+        # this moment is the run's own, whichever shard made it.
         run: |
-          if [ -f test-results/press-every-control/coverage.md ]; then
-            { echo "## Shard ${{ matrix.shard }}"; head -80 test-results/press-every-control/coverage.md; } >> "$GITHUB_STEP_SUMMARY"
-          fi
+          set -euo pipefail
+          mkdir -p test-results
+          echo "PRESS_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          SNAPSHOT_OUT="$SNAPSHOT_IN" node scripts/audit/press-every-control.mjs
 
-      - name: Upload coverage report + screenshots
+      - name: Press every control (wave 1, shards 1 and 2)
+        id: wave1
+        run: bash scripts/audit/press-wave.sh 1 2
+
+      - name: Press every control (wave 2, shards 3 and 4)
+        id: wave2
+        # A red wave 1 still leaves shards 3-4 unpressed; run them, but only
+        # on top of a snapshot (nothing could be restored without one).
+        if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
+        run: bash scripts/audit/press-wave.sh 3 4
+
+      # Whatever a shard created and could not remove itself (a shard that
+      # stopped mid-press) is swept here, on every outcome, and THIS is the one
+      # restore of the run (Q272): profiles and the weekly availability grid go
+      # back to the run-level snapshot (Q325). Same RLS-scoped clean-up the
+      # script runs at each shard's end.
+      - name: Restore the shared accounts and sweep what the presses created
+        id: restore
         if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: press-every-control-shard-${{ matrix.shard }}
-          path: test-results/press-every-control/
-          if-no-files-found: ignore
-          retention-days: 14
-
-  # Whatever a shard created and could not remove itself (a shard that timed
-  # out mid-press, a runner that died) is swept here, after every shard, on
-  # every outcome. Same RLS-scoped clean-up the script runs at its own end.
-  cleanup:
-    name: Clean up what the presses created
-    needs: [press]
-    if: always()
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      actions: read # read this run's own start time (CLEANUP_SINCE)
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: "npm"
-      - run: npm install --no-audit --no-fund --legacy-peer-deps
-      - name: Sweep
         env:
           OUT: test-results/press-every-control-cleanup
-          GH_TOKEN: ${{ github.token }}
-          PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
-          PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
-          PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
-          PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
-          PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
-          PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
-          # The sweep signs in as every persona the presses used, so it carries
-          # every persona's credentials (src/test/pressCleanupPersonas.test.ts).
-          PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }} # swept persona
-          PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }} # swept persona
         run: |
-          # Everything created since this run started; the marker-titled
-          # fixture jobs regardless of age. Q317: with max-parallel 2 the shards
-          # run in two waves (up to 2 x 150 min), so a fixed "-3 hours" would
-          # miss the first wave's rows. Read the run's own start time; if that
-          # read fails, fall back to 6 hours (>= two full waves plus setup).
-          if ! SINCE=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .run_started_at) || [ -z "$SINCE" ]; then
-            echo "::warning title=press clean-up window::could not read run_started_at; sweeping the last 6 hours"
-            SINCE=$(date -u -d '-6 hours' +%Y-%m-%dT%H:%M:%SZ)
+          set -euo pipefail
+          if [ ! -f "$SNAPSHOT_IN" ]; then
+            echo "::error title=press restore::no run-level snapshot ($SNAPSHOT_IN); nothing to restore from"
+            exit 1
           fi
-          echo "CLEANUP_SINCE=$SINCE"
-          CLEANUP_SINCE="$SINCE" node scripts/audit/press-every-control.mjs
+          # The snapshot step wrote PRESS_STARTED_AT before any shard began.
+          # If it never ran there is no snapshot either, and the line above failed.
+          echo "CLEANUP_SINCE=$PRESS_STARTED_AT"
+          CLEANUP_SINCE="$PRESS_STARTED_AT" node scripts/audit/press-every-control.mjs
+
+      # Each shard meters into its own directory (press-wave.sh sets
+      # REQUEST_BUDGET_DIR), so each is judged against the per-run budget on its
+      # own, as when every shard was a job. Not on cancel: nothing to judge.
+      - name: Backend request budget (Q104), shard 1
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label press-every-control --dir request-budget/shard-1
+      - name: Backend request budget (Q104), shard 2
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label press-every-control --dir request-budget/shard-2
+      - name: Backend request budget (Q104), shard 3
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label press-every-control --dir request-budget/shard-3
+      - name: Backend request budget (Q104), shard 4
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label press-every-control --dir request-budget/shard-4
 
       # The poster's own teardown CANNOT remove a fixture job it had to cancel:
       # `cancelled` is terminal in enforce_job_status_transition (never a SOURCE
@@ -258,10 +239,9 @@ jobs:
       # This is the service-role pass that can remove them, scoped to the
       # "PRESS DO NOT ACCEPT" title marker + the shared test accounts +
       # is_seed=true, with a 50-row cap (scripts/e2e/prod-audit-sweeper.mjs).
-      - uses: supabase/setup-cli@v3
-        with:
-          version: latest
       - name: Remove the cancelled fixture jobs, then check every proof-photo reference resolves
+        id: residue
+        if: always()
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -287,31 +267,44 @@ jobs:
           # workflow's own run 35768341847 produced: a jobs row naming an object
           # storage does not have. READ-ONLY, and it belongs here because this is
           # the workflow that surfaces it — it presses the screens that sign those
-          # paths. Exit 1 = a dangling reference; the nightly-red job below files
-          # it. Same $KEY, same masked shell, shredded in the next step.
+          # paths. Exit 1 = a dangling reference; the nightly-red job below files it.
           SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
             node scripts/proof-photo-reference-check.mjs
+
       - name: Shred the key
         if: always()
         run: rm -f .env
 
-      - uses: actions/upload-artifact@v7
+      - name: Coverage summary
         if: always()
+        run: |
+          for n in 1 2 3 4; do
+            f="test-results/press-every-control/shard-$n/coverage.md"
+            if [ -f "$f" ]; then
+              { echo "## Shard $n"; head -80 "$f"; } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+
+      - name: Upload coverage reports, screenshots, snapshot and clean-up log
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
-          name: press-every-control-cleanup
-          path: test-results/press-every-control-cleanup/
+          name: press-every-control
+          path: |
+            test-results/press-every-control/
+            test-results/press-every-control-cleanup/
+            test-results/press-snapshot.json
           if-no-files-found: ignore
           retention-days: 14
 
   # Owner-requested (2026-09-12): a red nightly used to land nowhere — nobody
   # watches this Actions tab. This opens/updates ONE `nightly-red` issue per
-  # workflow and closes it on the next green run.
+  # workflow and closes it on the next green run. The press job fails when a
+  # wave, the restore, the budget or the residue/proof-photo CHECK fails (Q52:
+  # a red clean-up used to close the issue as long as the presses passed).
   notify:
     name: Report nightly result
-    # cleanup is in `needs` and in `status` (Q52): it runs a CHECK
-    # (proof-photo-reference-check.mjs), and a red cleanup used to close the
-    # nightly-red issue as long as the presses themselves passed.
-    needs: [press, cleanup]
+    needs: [press]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -322,6 +315,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: press-every-control
-          status: ${{ (needs.press.result == 'success' && needs.cleanup.result == 'success') && 'success' || 'failure' }}
+          status: ${{ needs.press.result == 'success' && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

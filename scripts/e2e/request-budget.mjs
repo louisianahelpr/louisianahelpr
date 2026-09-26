@@ -3,7 +3,7 @@
  * request-budget — sum a CI run's backend requests and fail the run over its
  * budget (docs/OPEN.md Q104).
  *
- *   node scripts/e2e/request-budget.mjs --label journeys [--label …] [--dir request-budget]
+ *   node scripts/e2e/request-budget.mjs --label journeys [--label …] [--dir request-budget [--dir …]]
  *
  * Reads every sample e2e/requestMeter.mjs wrote (one per Playwright worker or
  * metered script), sums them per label, prints a table (and appends it to
@@ -146,19 +146,24 @@ function readSamples(dir) {
 
 function main(argv) {
   const labels = [];
-  let dir = process.env.REQUEST_BUDGET_DIR || "request-budget";
+  // --dir repeats: a sharded run (press-every-control) is judged as ONE run,
+  // its shards' samples summed, because the shard split moves rows between
+  // shards night to night (one shard 7859-32839 requests, the run 55490-82257).
+  const dirs = [];
   let budgetsFile = "e2e/request-budgets.json";
   let allowEmpty = false;
   let ceilingOnly = false;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--label") labels.push(argv[++i]);
-    else if (argv[i] === "--dir") dir = argv[++i];
+    else if (argv[i] === "--dir") dirs.push(argv[++i]);
     else if (argv[i] === "--budgets") budgetsFile = argv[++i];
     else if (argv[i] === "--allow-empty") allowEmpty = true;
     else if (argv[i] === "--ceiling-only") ceilingOnly = true;
   }
+  if (!dirs.length) dirs.push(process.env.REQUEST_BUDGET_DIR || "request-budget");
+  const dir = dirs.join(" + ");
   const budgets = JSON.parse(readFileSync(budgetsFile, "utf8")).budgets;
-  const by = aggregate(readSamples(dir));
+  const by = aggregate(dirs.flatMap(readSamples));
   const wanted = labels.length ? labels : Object.keys(by);
   const failures = [];
   const notes = [];
@@ -195,8 +200,8 @@ function main(argv) {
   ].join("\n");
   console.log(out);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${out}\n`);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "summary.json"), JSON.stringify({ aggs, failures, notes }, null, 2));
+  mkdirSync(dirs[0], { recursive: true });
+  writeFileSync(join(dirs[0], "summary.json"), JSON.stringify({ aggs, failures, notes }, null, 2));
   for (const n of notes) console.log(`::warning::${n}`);
   for (const f of failures) console.log(`::error::${f}`);
   return failures.length ? 1 : 0;

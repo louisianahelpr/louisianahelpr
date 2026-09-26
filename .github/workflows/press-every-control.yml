@@ -217,20 +217,12 @@ jobs:
           CLEANUP_SINCE="$PRESS_STARTED_AT" node scripts/audit/press-every-control.mjs
 
       # Each shard meters into its own directory (press-wave.sh sets
-      # REQUEST_BUDGET_DIR), so each is judged against the per-run budget on its
-      # own, as when every shard was a job. Not on cancel: nothing to judge.
-      - name: Backend request budget (Q104), shard 1
+      # REQUEST_BUDGET_DIR); the budget judges the RUN, all four summed. Per
+      # shard it could not be two-way: the split moves rows between shards,
+      # one shard measured 7859-32839 (nightly-red #1582). Not on cancel.
+      - name: Backend request budget (Q104), whole run
         if: ${{ !cancelled() }}
-        run: node scripts/e2e/request-budget.mjs --label press-every-control --dir request-budget/shard-1
-      - name: Backend request budget (Q104), shard 2
-        if: ${{ !cancelled() }}
-        run: node scripts/e2e/request-budget.mjs --label press-every-control --dir request-budget/shard-2
-      - name: Backend request budget (Q104), shard 3
-        if: ${{ !cancelled() }}
-        run: node scripts/e2e/request-budget.mjs --label press-every-control --dir request-budget/shard-3
-      - name: Backend request budget (Q104), shard 4
-        if: ${{ !cancelled() }}
-        run: node scripts/e2e/request-budget.mjs --label press-every-control --dir request-budget/shard-4
+        run: node scripts/e2e/request-budget.mjs --label press-every-control --dir request-budget/shard-1 --dir request-budget/shard-2 --dir request-budget/shard-3 --dir request-budget/shard-4
 
       # The poster's own teardown CANNOT remove a fixture job it had to cancel:
       # `cancelled` is terminal in enforce_job_status_transition (never a SOURCE

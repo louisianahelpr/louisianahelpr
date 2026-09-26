@@ -28,9 +28,11 @@
  * @mutate scripts/e2e/request-budget.mjs | kv && !/^t= | kv && !/^NOPE=
  * @mutate e2e/request-budgets.json | "perTest": 135.3, | "perTest": null,
  * @mutate .github/workflows/loading-states-refresh.yml | if: ${{ !cancelled() && steps.measure.outcome == 'success' }} | env: {}
+ * @mutate scripts/e2e/request-budget.mjs | aggregate(dirs.flatMap(readSamples)) | aggregate(readSamples(dirs[0]))
+ * @mutate .github/workflows/press-every-control.yml |  --dir request-budget/shard-4 | 
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync, mkdtempSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { join, relative, resolve } from "node:path";
@@ -87,7 +89,7 @@ function requiredBudgetSteps(): { wf: string; label: string; has: boolean }[] {
       for (const s of Object.values(METERED_SCRIPTS)) if (s.invoke.test(code)) labels.add(s.label);
       for (const label of labels) {
         const esc = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        out.push({ wf, label, has: new RegExp(`run: node scripts/e2e/request-budget\\.mjs --label ${esc}(?: --dir \\S+)?(?: \\$\\{GREP:\\+--ceiling-only\\})?\\s*$`, "m").test(code) });
+        out.push({ wf, label, has: new RegExp(`run: node scripts/e2e/request-budget\\.mjs --label ${esc}(?: --dir \\S+)*(?: \\$\\{GREP:\\+--ceiling-only\\})?\\s*$`, "m").test(code) });
       }
     }
   }
@@ -283,6 +285,34 @@ describe("Q104 review: the budget step is red when nothing was measured", () => 
     expect(red.status, red.stdout + red.stderr).not.toBe(0);
     const allowed = spawnSync(process.execPath, [script, "--label", "prod-audit", "--dir", dir, "--allow-empty"], { encoding: "utf8" });
     expect(allowed.status, allowed.stdout + allowed.stderr).toBe(0);
+  });
+});
+
+describe("nightly-red #1582: a sharded run is judged as ONE run", () => {
+  const script = resolve(__dirname, "..", "..", "scripts", "e2e", "request-budget.mjs");
+  const sample = (total: number) => JSON.stringify({ label: "press-every-control", total, byClass: {}, signIns: 0, duplicates: 0, tests: 0, minutes: { m: 1 }, topDuplicates: {} });
+
+  it("repeated --dir sums every shard's samples against the run budget", () => {
+    const budget = JSON.parse(read("e2e/request-budgets.json")).budgets["press-every-control"].perTest as number;
+    const dirs = [0.2, 0.25, 0.25, 0.3].map((f, i) => {
+      const d = mkdtempSync(join(tmpdir(), `rb-shard-${i}-`));
+      writeFileSync(join(d, "s.json"), sample(Math.round(budget * f)));
+      return d;
+    });
+    // Each shard alone is under half the budget; summed they are the run, inside it.
+    const run = spawnSync(process.execPath, [script, "--label", "press-every-control", ...dirs.flatMap((d) => ["--dir", d])], { encoding: "utf8" });
+    expect(run.status, run.stdout + run.stderr).toBe(0);
+    const one = spawnSync(process.execPath, [script, "--label", "press-every-control", "--dir", dirs[0]], { encoding: "utf8" });
+    expect(one.stdout).toMatch(/under half its budget/);
+  });
+
+  it("the press workflow judges all four shards in one step", () => {
+    const wf = read(".github/workflows/press-every-control.yml");
+    const steps = wf.match(/run: node scripts\/e2e\/request-budget\.mjs --label press-every-control[^\n]*/g) ?? [];
+    expect(steps).toHaveLength(1);
+    const shards = [...wf.matchAll(/run: bash scripts\/audit\/press-wave\.sh ([\d ]+)$/gm)].flatMap((m) => m[1].trim().split(/\s+/));
+    expect(shards.length).toBeGreaterThan(0);
+    for (const n of new Set(shards)) expect(steps[0], `shard ${n} is not judged`).toContain(`--dir request-budget/shard-${n}`);
   });
 });
 

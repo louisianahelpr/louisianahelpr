@@ -52,6 +52,7 @@ import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { publishAdminBadges } from "@/components/admin/adminBadgeStore";
 import { AdminCommandPalette } from "@/components/admin/AdminCommandPalette";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { CAPTURED_PAYMENT_STATUSES } from "@/lib/capturedPayment";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => safeStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
@@ -252,7 +253,7 @@ const Admin = () => {
       supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]).eq("is_seed", false),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed").eq("is_seed", false),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed").eq("is_seed", false),
-      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", ["escrow", "payout_pending", "released"]).neq("status", "cancelled").eq("is_seed", false),
+      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).not("stripe_payment_intent_id", "is", null).neq("status", "cancelled").eq("is_seed", false),
       supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null).eq("is_seed", false),
       supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, cancellation_fee").eq("status", "cancelled").in("payment_status", ["refunded", "cancelled", "escrow", "payout_pending", "released"]).eq("is_seed", false),
       // New users by created_at — rows so we can bucket into a sparkline.
@@ -260,12 +261,12 @@ const Admin = () => {
       supabase.from("profiles").select("created_at").gte("created_at", dPrevStart).lt("created_at", dStart).eq("is_seed", false),
       // Revenue rows in current window
       supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
-        .in("payment_status", ["escrow", "payout_pending", "released"])
+        .in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).not("stripe_payment_intent_id", "is", null)
         .neq("status", "cancelled")
         .gte("updated_at", dStart).eq("is_seed", false),
       // Revenue rows in previous window
       supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
-        .in("payment_status", ["escrow", "payout_pending", "released"])
+        .in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).not("stripe_payment_intent_id", "is", null)
         .neq("status", "cancelled")
         .gte("updated_at", dPrevStart).lt("updated_at", dStart).eq("is_seed", false),
       // Completed jobs in current window
@@ -277,7 +278,7 @@ const Admin = () => {
       // Platform-fee revenue accrued this calendar quarter — feeds the
       // tax-reserve tracker's "this quarter" figure.
       supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
-        .in("payment_status", ["escrow", "payout_pending", "released"])
+        .in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).not("stripe_payment_intent_id", "is", null)
         .neq("status", "cancelled")
         .gte("updated_at", quarterStart).eq("is_seed", false),
       // Q368: the seed rows the three counts above leave out, for "(+N test)".

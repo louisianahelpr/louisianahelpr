@@ -25,7 +25,7 @@ interface AdminUserDetailDialogProps {
   viewProfile: Profile | null;
   setViewProfile: (profile: Profile | null) => void;
   /** Supplemental detail the parent loads when a profile is opened. */
-  profileReviews: { rating: number; feedback: string | null; reviewer_name: string; created_at?: string; job_title?: string }[];
+  profileReviews: { rating: number; feedback: string | null; reviewer_name: string; created_at?: string; job_title?: string; counts_toward_rating?: boolean }[];
   profileReviewsLeft: { rating: number; feedback: string | null; reviewee_name: string; created_at?: string; job_title?: string }[];
   profileViolations: AdminProfileViolation[];
   profileJobs: AdminProfileJob[];

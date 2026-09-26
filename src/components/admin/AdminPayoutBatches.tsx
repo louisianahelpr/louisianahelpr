@@ -34,6 +34,7 @@ import { BatchRow } from "./adminPayoutBatches/BatchRow";
 import { LedgerList } from "./adminPayoutBatches/LedgerList";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { requireBiometric } from "@/lib/biometricGate";
+import { fetchSeedUserIds } from "@/components/admin/seedRows";
 
 /**
  * Guard against a SILENT NO-OP on the money path.
@@ -139,9 +140,11 @@ const AdminPayoutBatches = () => {
     meta: { persist: false },
     fetcher: async () => {
       const data = unwrap(await supabase.rpc("get_payout_batches"));
+      const seed = await fetchSeedUserIds((data ?? []).map((r) => r.helper_id));
       return (data ?? []).map((r) => ({
         ...r,
         helper_name: formatName(r.helper_name, "Unknown"),
+        is_seed: seed.has(r.helper_id),
       })) as PayoutBatch[];
     },
   });
@@ -188,14 +191,14 @@ const AdminPayoutBatches = () => {
         ? unwrap(
             await supabase
               .from("profiles")
-              .select("user_id, full_name")
+              .select("user_id, full_name, is_seed")
               .in("user_id", helperIds),
           )
         : [];
-      const nameMap = new Map((profileRows ?? []).map((p) => [p.user_id, p.full_name]));
+      const nameMap = new Map((profileRows ?? []).map((p) => [p.user_id, p]));
       return rows.map((r) => ({
         ...r,
-        profiles: { full_name: nameMap.get(r.helper_id) ?? null },
+        profiles: { full_name: nameMap.get(r.helper_id)?.full_name ?? null, is_seed: nameMap.get(r.helper_id)?.is_seed ?? null },
       }));
     },
     staleTime: 60_000,

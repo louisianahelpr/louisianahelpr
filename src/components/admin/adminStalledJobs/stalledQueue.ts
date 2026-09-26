@@ -41,6 +41,8 @@ export interface StalledQueueRow {
   second_sent_at: string | null;
   escalated_at: string | null;
   resolved_at: string | null;
+  /** Q233: resolved client-side; admin_stalled_job_queue does not return it. */
+  is_seed?: boolean;
 }
 
 /**

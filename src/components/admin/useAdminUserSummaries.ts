@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { helperFeePercentOrLegacy } from "@/lib/legacyFeeFallback";
+import { CAPTURED_PAYMENT_STATUSES } from "@/lib/capturedPayment";
+import { REVIEW_COUNT_COLUMNS, countsTowardRating } from "@/lib/reviewStats";
 import type { Profile } from "./adminUserHelpers";
 
 /**
@@ -45,14 +47,19 @@ export function useAdminUserSummaries() {
 
   const loadRatingSummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
+    // Q321: the rating an admin sees beside a user is the rating everyone else
+    // sees. Admin RLS reads every review, including ones still in the blind
+    // period, so this used to show 39 where the public profile showed 24.
     const { data, error } = await supabase
       .from("reviews")
-      .select("reviewee_id, rating")
+      .select(`reviewee_id, ${REVIEW_COUNT_COLUMNS}`)
       .in("reviewee_id", userIds);
     if (error) { console.error("[useAdminUserSummaries] loadRatingSummary:", error); return; }
     if (!data) return;
     const agg: Record<string, { sum: number; count: number }> = {};
-    for (const r of data) {
+    const now = Date.now();
+    for (const r of data as unknown as ({ reviewee_id: string; rating: number } & Parameters<typeof countsTowardRating>[0])[]) {
+      if (!countsTowardRating(r, now)) continue;
       if (!agg[r.reviewee_id]) agg[r.reviewee_id] = { sum: 0, count: 0 };
       agg[r.reviewee_id].sum += Number(r.rating) || 0;
       agg[r.reviewee_id].count += 1;
@@ -126,7 +133,9 @@ export function useAdminUserSummaries() {
       .from("jobs")
       .select("helper_id, customer_id, budget, helper_fee_percent, customer_fee_amount, sales_tax_amount, status, payment_status")
       .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
-      .in("payment_status", ["escrow", "payout_pending", "released"]);
+      // Q233: a held status without a PaymentIntent is a row nobody charged.
+      .in("payment_status", [...CAPTURED_PAYMENT_STATUSES])
+      .not("stripe_payment_intent_id", "is", null);
     if (error) { console.error("[useAdminUserSummaries] loadPaySummary:", error); return; }
     if (!data) return;
     const totals: Record<string, number> = {};

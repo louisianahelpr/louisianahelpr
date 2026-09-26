@@ -12,7 +12,7 @@ import { saveOrShareFile } from "@/lib/fileExport";
 /** A row of the jobs export: the narrow select, plus the two columns only the wide one carries. */
 type ExportJobRow = Pick<
   Tables<"jobs">,
-  "id" | "title" | "category" | "status" | "budget" | "platform_fee_amount" | "customer_id" | "helper_id" | "date_needed" | "created_at" | "payment_status"
+  "id" | "title" | "category" | "status" | "budget" | "platform_fee_amount" | "customer_id" | "helper_id" | "date_needed" | "created_at" | "payment_status" | "is_seed"
 > &
   Partial<Pick<Tables<"jobs">, "department" | "business_id">>;
 
@@ -54,7 +54,7 @@ const AdminExport = () => {
     setExporting("users");
     // profiles.role was dropped — fetch profile + user_roles separately and merge.
     const [{ data, error }, { data: roles, error: rolesError }] = await Promise.all([
-      supabase.from("profiles").select("user_id, full_name, email, email_verified, ban_status, location, created_at, subscription_tier").order("created_at", { ascending: false }),
+      supabase.from("profiles").select("user_id, full_name, email, email_verified, ban_status, location, created_at, subscription_tier, is_seed").order("created_at", { ascending: false }),
       supabase.from("user_roles").select("user_id, role"),
     ]);
     if (error) {
@@ -82,8 +82,10 @@ const AdminExport = () => {
     }
     // "Email Verified" replaced the approval "Status" column (Q205b): email
     // verification is the only entry gate.
-    const header = "User ID,Name,Email,Role,Email Verified,Ban Status,Location,Created,Subscription";
-    const rows = data.map(p => [p.user_id, p.full_name, p.email, roleByUser.get(p.user_id) ?? "", p.email_verified ? "yes" : "no", p.ban_status, p.location, p.created_at, p.subscription_tier].map(esc).join(","));
+    // "Test" (Q233): seed rows stay in every export, marked, the same way the
+    // admin lists wear a Test tag (Q368), so a spreadsheet total can drop them.
+    const header = "User ID,Name,Email,Role,Email Verified,Ban Status,Location,Created,Subscription,Test";
+    const rows = data.map(p => [p.user_id, p.full_name, p.email, roleByUser.get(p.user_id) ?? "", p.email_verified ? "yes" : "no", p.ban_status, p.location, p.created_at, p.subscription_tier, p.is_seed ? "yes" : "no"].map(esc).join(","));
     // Awaited: the native path stages a file and opens the share sheet, so the
     // button must stay in its spinner until the handoff resolves rather than
     // snapping back while the sheet is still coming up.
@@ -100,7 +102,7 @@ const AdminExport = () => {
     const wide = await supabase
       .from("jobs")
       .select(
-        "id, title, category, status, budget, platform_fee_amount, customer_id, helper_id, date_needed, created_at, payment_status, department, business_id",
+        "id, title, category, status, budget, platform_fee_amount, customer_id, helper_id, date_needed, created_at, payment_status, department, business_id, is_seed",
       )
       .order("created_at", { ascending: false });
     let rowsRaw: ExportJobRow[] | null = wide.data;
@@ -110,7 +112,7 @@ const AdminExport = () => {
       if (code === "42703" || code === "PGRST204") {
         const narrow = await supabase
           .from("jobs")
-          .select("id, title, category, status, budget, platform_fee_amount, customer_id, helper_id, date_needed, created_at, payment_status")
+          .select("id, title, category, status, budget, platform_fee_amount, customer_id, helper_id, date_needed, created_at, payment_status, is_seed")
           .order("created_at", { ascending: false });
         rowsRaw = narrow.data;
         queryErr = narrow.error;
@@ -123,10 +125,10 @@ const AdminExport = () => {
       return;
     }
     if (!rowsRaw?.length) { toast.error("No data to export."); setExporting(null); return; }
-    const header = "Job ID,Title,Category,Status,Budget,Platform Fee,Customer ID,Helpr ID,Date Needed,Created,Payment Status,Department,Business ID";
+    const header = "Job ID,Title,Category,Status,Budget,Platform Fee,Customer ID,Helpr ID,Date Needed,Created,Payment Status,Department,Business ID,Test";
     const rows = rowsRaw.map((j: ExportJobRow) => [
       j.id, j.title, j.category, j.status, j.budget, j.platform_fee_amount, j.customer_id, j.helper_id,
-      j.date_needed, j.created_at, j.payment_status, j.department ?? "", j.business_id ?? "",
+      j.date_needed, j.created_at, j.payment_status, j.department ?? "", j.business_id ?? "", j.is_seed ? "yes" : "no",
     ].map(esc).join(","));
     await downloadCSV("jobs", header, rows);
     setExporting(null);
@@ -136,7 +138,7 @@ const AdminExport = () => {
     setExporting("earnings");
     // helper_fee_percent, is_group_job and helpers_needed are selected because
     // the stamped fee alone is not the truth — see the header note below.
-    const { data, error } = await supabase.from("jobs").select("id, title, budget, platform_fee_amount, platform_fee_percent, helper_fee_percent, is_group_job, helpers_needed, helper_id, customer_id, status, updated_at, payment_status, urgent_fee").eq("status", "completed");
+    const { data, error } = await supabase.from("jobs").select("id, title, budget, platform_fee_amount, platform_fee_percent, helper_fee_percent, is_group_job, helpers_needed, helper_id, customer_id, status, updated_at, payment_status, urgent_fee, is_seed").eq("status", "completed");
     if (error) {
       report(error, { tags: { source: "AdminExport.exportEarnings" } });
       toast.error("Export failed: " + error.message);
@@ -161,7 +163,7 @@ const AdminExport = () => {
     // two agree.
     const FEE_FALLBACK_PERCENT = 10;
     const header =
-      "Job ID,Title,Budget,Platform Fee (stamped),Platform Fee (resolved),Fee %,Helpr Fee %,Fee Settled,Urgent Fee,Helpr ID,Customer ID,Payment Status,Completed At";
+      "Job ID,Title,Budget,Platform Fee (stamped),Platform Fee (resolved),Fee %,Helpr Fee %,Fee Settled,Urgent Fee,Helpr ID,Customer ID,Payment Status,Completed At,Test";
     const rows = data.map((j) => {
       const settled = isSettledForDisplay(j as Parameters<typeof isSettledForDisplay>[0]);
       const resolved = helperPlatformFeeDollars(
@@ -175,7 +177,7 @@ const AdminExport = () => {
         j.platform_fee_percent,
         j.helper_fee_percent,
         settled ? "yes" : "no",
-        j.urgent_fee, j.helper_id, j.customer_id, j.payment_status, j.updated_at,
+        j.urgent_fee, j.helper_id, j.customer_id, j.payment_status, j.updated_at, j.is_seed ? "yes" : "no",
       ].map(esc).join(",");
     });
     await downloadCSV("earnings", header, rows);

@@ -124,8 +124,13 @@ export function useProfileStats(userId: string | undefined) {
       return {
         completedCount,
         postedCount: postedRes.count || 0,
-        avgRating: ratings.length > 0 ? ratings.reduce((s, r) => s + r.rating, 0) / ratings.length : null,
-        reviewCount: ratings.length,
+        // Q321: the owner's own count is the one visitors see (published, past
+        // the blind period, job not cancelled). `ratings` is only the fallback
+        // for when the aggregate is unavailable; it lacks the cancelled-job rule.
+        avgRating: publicRow
+          ? (publicRow.review_count ?? 0) > 0 ? Number(publicRow.avg_rating) : null
+          : ratings.length > 0 ? ratings.reduce((s, r) => s + r.rating, 0) / ratings.length : null,
+        reviewCount: publicRow ? publicRow.review_count ?? 0 : ratings.length,
         helperBadgeStats: buildHelperBadgeStats(
           publicRow?.completed_jobs_as_helper ?? completedCount,
           helperReviews,

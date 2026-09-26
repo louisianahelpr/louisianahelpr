@@ -15,7 +15,11 @@ const rows = vi.hoisted(() => ({ value: [] as unknown[] }));
 const reportMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { rpc: vi.fn(async () => ({ data: rows.value, error: null })) },
+  supabase: {
+    rpc: vi.fn(async () => ({ data: rows.value, error: null })),
+    // Q233: the seed-account read behind each row's Test tag.
+    from: () => ({ select: () => ({ in: () => ({ eq: async () => ({ data: [], error: null }) }) }) }),
+  },
 }));
 vi.mock("@/lib/errorLogger", () => ({ report: reportMock }));
 vi.mock("@/components/UserAvatar", () => ({ UserAvatar: () => null }));

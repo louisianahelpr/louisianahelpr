@@ -19,14 +19,13 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const REPO = resolve(__dirname, "..", "..");
 const ROOTS = ["src", "supabase/functions", "scripts", "e2e"];
-const SKIP_DIRS = new Set(["node_modules", "fixtures", "dist"]);
 
 function walk(dir: string): string[] {
   const out: string[] = [];
   for (const e of readdirSync(dir)) {
     const p = join(dir, e);
     if (statSync(p).isDirectory()) {
-      if (!SKIP_DIRS.has(e)) out.push(...walk(p));
+      if (e !== "node_modules" && e !== "fixtures" && e !== "dist") out.push(...walk(p));
     } else if (/\.(ts|tsx|mjs|js)$/.test(e) && !/\.test\.tsx?$/.test(e)) out.push(p);
   }
   return out;

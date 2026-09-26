@@ -22,7 +22,7 @@ import { compareFunctions, repoFunctions } from "../../scripts/check-deployed-fu
 const ROOT = resolve(__dirname, "../..");
 
 describe("Q164: deployed edge functions are exactly the repo's", () => {
-  const repo = repoFunctions() as string[];
+  const repo = repoFunctions(resolve(ROOT, "supabase/functions")) as string[];
 
   it("reads the repo's functions, not _shared (inventory floor)", () => {
     expect(repo.length).toBeGreaterThan(60);

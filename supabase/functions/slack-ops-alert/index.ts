@@ -10,6 +10,7 @@ import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { effectiveSeverity, postsImmediately, type AlertSeverity } from '../_shared/alertPolicy.ts'
 import { recordOpsAlertLedger } from '../_shared/opsAlertLedger.ts'
+import { serve } from "../_shared/buildStamp.ts";
 
 const SLACK_API_URL = 'https://slack.com/api'
 const DEFAULT_CHANNEL = Deno.env.get('SLACK_OPS_CHANNEL') || '#ops-alerts'
@@ -103,7 +104,7 @@ function buildBlocks(body: AlertBody, severity: AlertSeverity) {
   return blocks
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }

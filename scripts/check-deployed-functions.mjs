@@ -25,10 +25,9 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const ROOT = new URL("..", import.meta.url).pathname;
 
-/** Every deployable function in the repo: supabase/functions/<name>/index.ts, `_shared` and other `_` dirs excluded. */
-export function repoFunctions(dir = join(ROOT, "supabase/functions")) {
+/** Every deployable function in the repo (run from the repo root, as CI does): supabase/functions/<name>/index.ts, `_shared` and other `_` dirs excluded. */
+export function repoFunctions(dir = join(process.cwd(), "supabase/functions")) {
   return readdirSync(dir, { withFileTypes: true })
     .filter((d) => d.isDirectory() && !d.name.startsWith("_") && existsSync(join(dir, d.name, "index.ts")))
     .map((d) => d.name)

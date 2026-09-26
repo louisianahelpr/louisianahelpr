@@ -46,6 +46,10 @@
 // @mutate scripts/check-migration-provenance.mjs |   if (!state) { |   if (false) {
 // @mutate scripts/check-deployed-functions.mjs |   if (!deployed.length) { |   if (false) {
 // @mutate scripts/check-migration-provenance.mjs | could not check migration provenance: ${e.message}`);\n  process.exit(2); | could not check migration provenance: ${e.message}`);\n  process.exit(0);
+// @mutate scripts/check-storage-refs.mjs | if (refs.length === 0) { | if (false) {
+// @mutate scripts/check-stripe-restore-drift.mjs | if (!isStripeList(body)) unmeasured( | if (false) unmeasured(
+// @mutate scripts/check-stripe-restore-drift.mjs | if (Object.values(dbCounts).every((n) => n === 0)) { | if (false) {
+// @mutate scripts/check-edge-build-stamps.mjs | if (result.mismatched.length) {\n  for | if (false) {\n  for
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
@@ -245,6 +249,44 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "Management API 500", env: MGMT("fail"), says: /could not read analytics_events: Management API SQL 500/ },
     { label: "Management API []", env: MGMT("empty"), says: /expected \d+ rows, got 0 — refusing to report clean/ },
   ],
+  // BR-024 (functions-deploy.yml): the build-stamp probe of every function.
+  // A 500 or a bare 200 carries no x-lh-build header, so every function is a
+  // mismatch — never "0 of 0 checked, clean".
+  "scripts/check-edge-build-stamps.mjs": [
+    { label: "no project", args: ["--wait-seconds", "0"], says: /could not probe the functions: SUPABASE_URL or SUPABASE_PROJECT_REF is required/ },
+    { label: "probe 500", args: ["--wait-seconds", "0"], env: { SUPABASE_URL: "@HTTP@/fail" }, says: /function\(s\) are not serving the build HEAD says they should/ },
+    { label: "probe answers no stamp", args: ["--wait-seconds", "0"], env: { SUPABASE_URL: "@HTTP@/empty" }, says: /function\(s\) are not serving the build HEAD says they should/ },
+  ],
+  // DR-004 (docs/runbooks/restore-from-backup.md): rows naming Storage files.
+  "scripts/check-storage-refs.mjs": [
+    { label: "no credentials", says: /could not read: SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL\/SUPABASE_PROJECT_REF are required/ },
+    { label: "REST 500", args: ["--pace-ms", "0"], env: { SUPABASE_URL: "@HTTP@/fail", SUPABASE_SERVICE_ROLE_KEY: "stub" }, says: /could not read applications\.attachment_urls: GET \/rest\/v1\/applications → 500/ },
+    { label: "REST []", args: ["--pace-ms", "0"], env: { SUPABASE_URL: "@HTTP@/empty", SUPABASE_SERVICE_ROLE_KEY: "stub" }, says: /found no storage references at all — refusing to report clean/ },
+  ],
+  // DR-006 (same runbook): Stripe money objects since the restore point, by id.
+  "scripts/check-stripe-restore-drift.mjs": [
+    { label: "no restore point", says: /could not reconcile: --since is required/ },
+    { label: "no mode", args: ["--since", "2026-09-24T00:00:00Z"], env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub" }, says: /could not reconcile: --mode is required/ },
+    { label: "no key", args: ["--since", "2026-09-24T00:00:00Z", "--mode", "test"], says: /could not reconcile: STRIPE_TEST_SECRET_KEY is not set/ },
+    {
+      label: "Stripe 500",
+      args: ["--since", "2026-09-24T00:00:00Z", "--mode", "test"],
+      env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub", LH_STRIPE_API_BASE: "@HTTP@/fail", SUPABASE_URL: "@HTTP@/fail", SUPABASE_SERVICE_ROLE_KEY: "stub" },
+      says: /could not reconcile: Stripe GET \S*\/v1\/payment_intents → 500/,
+    },
+    {
+      label: "Stripe []",
+      args: ["--since", "2026-09-24T00:00:00Z", "--mode", "test"],
+      env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub", LH_STRIPE_API_BASE: "@HTTP@/empty", SUPABASE_URL: "@HTTP@/empty", SUPABASE_SERVICE_ROLE_KEY: "stub" },
+      says: /did not return a list object — refusing to report clean/,
+    },
+    {
+      label: "database empty",
+      args: ["--since", "2026-09-24T00:00:00Z", "--mode", "test"],
+      env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub", LH_STRIPE_API_BASE: "@HTTP@/stripelist", SUPABASE_URL: "@HTTP@/empty", SUPABASE_SERVICE_ROLE_KEY: "stub" },
+      says: /every one was empty — refusing to report clean/,
+    },
+  ],
   "scripts/check-test-account-strikes.mjs": [
     { label: "REST read fails", env: { SUPABASE_URL: "@HTTP@/fail", SUPABASE_SERVICE_ROLE_KEY: "stub" }, says: /could not check: GET profiles → 500/ },
     { label: "REST read is empty", env: { SUPABASE_URL: "@HTTP@/empty", SUPABASE_SERVICE_ROLE_KEY: "stub" }, says: /no shared test account profiles found/ },
@@ -277,6 +319,9 @@ beforeAll(async () => {
       return;
     }
     if (req.url?.includes("webhook_endpoints")) return void res.end(JSON.stringify({ object: "list", data: [] }));
+    // An empty but well-formed Stripe list (check-stripe-restore-drift: zero
+    // Stripe objects since T is a true answer; the empty DATABASE is not).
+    if (mode === "stripelist") return void res.end(JSON.stringify({ object: "list", data: [], has_more: false }));
     // check-unvalidated-constraints' KNOWN_UNVALIDATED is two-way: a listed
     // constraint that is validated, or has 0 violators, must fail.
     if (mode === "cleancat" || mode === "knownzero") {

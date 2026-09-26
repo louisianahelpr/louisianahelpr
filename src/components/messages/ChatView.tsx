@@ -377,9 +377,9 @@ export function ChatView({
           // only the composer dock is uncapped: the column itself fills the
           // pane (and the dock still bleeds to the pane edges via
           // `--chat-gutter`, ChatPaneShell), while the message scroller below
-          // keeps the 780px centred reading column via CHAT_READING_COLUMN —
-          // and the safety banner, which now lives INSIDE that scroller,
-          // inherits it. The pane (embedded) or the standalone
+          // keeps the 780px centred reading column via CHAT_READING_COLUMN
+          // (the safety banner does not: it spans the column, see below).
+          // The pane (embedded) or the standalone
           // page container can be far wider than a comfortable reading
           // column, and bubbles spread across it read as sparse/oversized.
           // Phone is unaffected — nothing there is ever wider than 780.
@@ -401,6 +401,38 @@ export function ChatView({
             <h1 ref={headingRef} tabIndex={-1} className="sr-only focus:outline-none">
               Conversation with {activeConvo.otherUserName}
             </h1>
+          )}
+
+          {/* THE SAFETY BANNER SITS DIRECTLY UNDER THE HEADER, FULL WIDTH
+              (owner, 2026-09-25, phone screenshot of an empty thread: "The red
+              alert thing needs to fill the space and be under the name and
+              info more up"). This reverses 2026-09-19, when it rode inside the
+              bottom-anchored block with the 780px reading measure — on an
+              empty thread that floated it mid-pane as a narrow strip. It now
+              spans the chat column exactly like the composer notices at the
+              bottom, and sits first under ChatHeader. It is a one-time,
+              dismiss-forever notice (`CHAT_RULES_DISMISSED_KEY`), so the space
+              below it is only ever there until it is dismissed. Guarded by
+              src/test/chatThreadNoDeadBandAboveMessages.test.tsx and
+              ChatView.layout.test.tsx. */}
+          {!bannerDismissed && (
+            <div className="w-full mt-3 shrink-0 rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 relative flex items-start gap-1.5 pr-11">
+              <AlertTriangle className="w-3 h-3 text-accent mt-[3px] shrink-0" />
+              <p className="text-ds-11 leading-snug text-accent">
+                Keep chats &amp; payments on Helpr — going off-platform risks an account restriction.
+              </p>
+              {/* Absolutely positioned so the 44px hit target doesn't force the
+                  compact banner to expand to 44px in height. The button is
+                  vertically centred inside the banner; overflow: visible (the
+                  default) means any slight bleed above/below is fine. */}
+              <button
+                onClick={dismissBanner}
+                className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center min-h-[44px] min-w-[44px] ctl-exit ctl-tint text-accent/60 hover:text-accent"
+                aria-label="Dismiss safety reminder"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
           )}
 
           {/* Message thread — `aria-live="polite"` so screen readers
@@ -433,54 +465,6 @@ export function ChatView({
             {...revealHandlers}
             className={`overflow-x-clip ${timeline.length === 0 ? "my-auto" : "mt-auto"}`}
           >
-          {/* THE SAFETY BANNER RIDES WITH THE CONVERSATION, INSIDE the
-              bottom-anchored block (owner, 2026-09-19: "messages need to fill
-              the screen").
-
-              It used to be a SIBLING of this scroller, pinned to the top of
-              the chat column. The scroller is `flex-1`, so on a pane taller
-              than the thread the `mt-auto` above collapses every spare pixel
-              into ONE band — and with the banner pinned above, that band
-              opened BETWEEN two pieces of content: the banner alone at the
-              top, then ~280px of nothing, then the first date divider
-              (measured from the owner's 1640x900 desktop screenshot: banner
-              bottom y≈247, first divider y≈524). A gap between two things
-              reads as a hole; the same slack sitting above the banner, with
-              only the chat header over it, reads as air.
-
-              So the banner moves in here, ahead of the timeline and inside
-              the auto margin. The slack can now only ever open ABOVE the
-              banner — never between it and the conversation — at any pane
-              height, on desktop and on phone alike. Nothing is stretched and
-              no bubble gets wider: `CHAT_READING_COLUMN` still caps this
-              scroller at 780px (see VN-25 and ChatView.layout.test.tsx), so
-              the measure is unchanged and the banner simply inherits it from
-              its parent instead of restating it.
-
-              It scrolls with the thread now rather than staying pinned. That
-              is acceptable for THIS banner specifically: it is a one-time,
-              dismiss-forever education notice (`CHAT_RULES_DISMISSED_KEY`,
-              per user, read above), not persistent compliance chrome — and
-              until it is dismissed it comes back at the top of every thread. */}
-          {!bannerDismissed && (
-            <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mb-3 relative flex items-start gap-1.5 pr-11">
-              <AlertTriangle className="w-3 h-3 text-accent mt-[3px] shrink-0" />
-              <p className="text-ds-11 leading-snug text-accent">
-                Keep chats &amp; payments on Helpr — going off-platform risks an account restriction.
-              </p>
-              {/* Absolutely positioned so the 44px hit target doesn't force the
-                  compact banner to expand to 44px in height. The button is
-                  vertically centred inside the banner; overflow: visible (the
-                  default) means any slight bleed above/below is fine. */}
-              <button
-                onClick={dismissBanner}
-                className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center min-h-[44px] min-w-[44px] ctl-exit ctl-tint text-accent/60 hover:text-accent"
-                aria-label="Dismiss safety reminder"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          )}
           <ChatTimeline
             reveal={reveal}
             timeline={timeline}

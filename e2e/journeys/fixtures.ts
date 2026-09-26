@@ -411,6 +411,80 @@ export const TEST_CARD = {
   city: "Baton Rouge",
 };
 
+/**
+ * DIAGNOSTIC (nightly-red #1719): every WebKit run of 02-marketplace since the
+ * first one (2026-09-13) has failed to render Stripe Checkout, on every network
+ * row, while Chromium funds the same flow. The artifacts (traces) cannot be read
+ * from where this was investigated, so the evidence goes into the job log.
+ * Logs Stripe-host responses >= 400, failed requests, console errors and page
+ * errors; never request bodies. Test mode only (cs_test_ was verified upstream).
+ */
+function watchStripeTraffic(page: Page) {
+  const lines: string[] = [];
+  const isStripe = (u: string) => /stripe\.(com|network)|hcaptcha|stripecdn/.test(u);
+  const short = (u: string) => u.replace(/#.*$/, "#…").slice(0, 200);
+  page.on("response", (r) => {
+    const u = r.url();
+    if (!isStripe(u)) return;
+    const s = r.status();
+    if (s < 400) {
+      // Status only for the page and its init call: a 2xx body carries customer data.
+      if (/payment_pages|\/c\/pay\//.test(u)) lines.push(`resp ${s} ${r.request().method()} ${short(u)}`);
+      return;
+    }
+    void r
+      .text()
+      .then((b) => lines.push(`resp ${s} ${r.request().method()} ${short(u)} :: ${b.replace(/\s+/g, " ").slice(0, 400)}`))
+      .catch(() => lines.push(`resp ${s} ${r.request().method()} ${short(u)} :: <no body>`));
+  });
+  page.on("requestfailed", (q) => {
+    if (isStripe(q.url())) lines.push(`fail ${q.method()} ${short(q.url())} :: ${q.failure()?.errorText ?? "?"}`);
+  });
+  page.on("console", (m) => {
+    if (m.type() === "error" || m.type() === "warning") lines.push(`console.${m.type()} ${m.text().replace(/\s+/g, " ").slice(0, 400)}`);
+  });
+  page.on("pageerror", (e) => lines.push(`pageerror ${String(e).replace(/\s+/g, " ").slice(0, 400)}`));
+  return {
+    dump(label: string) {
+      console.log(`[stripe-diag] ${label}: ${lines.length} line(s)`);
+      for (const l of lines.slice(0, 120)) console.log(`[stripe-diag]   ${l}`);
+    },
+  };
+}
+
+/** DIAGNOSTIC (#1719): load the same session in fresh contexts that each change ONE thing. */
+async function probeStripeVariants(page: Page) {
+  const url = page.url();
+  const browser = page.context().browser();
+  if (!browser) return;
+  const ua = await page.evaluate(() => navigator.userAgent).catch(() => "?");
+  console.log(`[stripe-diag] engine=${browser.browserType().name()} version=${browser.version()} ua=${ua}`);
+  const variants: Array<[string, Parameters<Browser["newContext"]>[0]]> = [
+    ["same-ua+sw-block", { userAgent: ua, serviceWorkers: "block" }],
+    ["default-ua+sw-block", { serviceWorkers: "block" }],
+    ["default-ua+sw-allow", {}],
+  ];
+  for (const [name, opts] of variants) {
+    const ctx = await browser.newContext(opts);
+    try {
+      const p = await ctx.newPage();
+      const d = watchStripeTraffic(p);
+      await p.goto(url, { waitUntil: "domcontentloaded", timeout: 45_000 }).catch(() => undefined);
+      const field = p.locator("#cardNumber").or(p.getByRole("radio").first());
+      const broken = p.getByText(/Something went wrong/i).first();
+      const outcome = await field
+        .or(broken)
+        .waitFor({ state: "visible", timeout: 45_000 })
+        .then(async () => ((await broken.isVisible().catch(() => false)) ? "BROKEN" : "RENDERED"))
+        .catch(() => "NEITHER");
+      console.log(`[stripe-diag] variant ${name}: ${outcome}`);
+      d.dump(`variant ${name}`);
+    } finally {
+      await ctx.close().catch(() => undefined);
+    }
+  }
+}
+
 /** Fill and submit Stripe's hosted Checkout the way prod-lifecycle learned it behaves. */
 export async function payOnStripeCheckout(page: Page) {
   const cardNumber = page.locator("#cardNumber");
@@ -447,6 +521,7 @@ export async function payOnStripeCheckout(page: Page) {
    */
   const brokenPanel = page.getByText(/Something went wrong/i).first();
   const paymentField = cardNumber.or(methodRadio);
+  const diag = watchStripeTraffic(page);
   for (let attempt = 1; attempt <= 2; attempt++) {
     await expect(
       paymentField.or(brokenPanel),
@@ -458,6 +533,8 @@ export async function payOnStripeCheckout(page: Page) {
       description: `attempt ${attempt}: Stripe's own "Something went wrong" page at ${page.url()}`,
     });
     if (attempt === 2) {
+      diag.dump("broken twice");
+      await probeStripeVariants(page).catch((e) => console.log(`[stripe-diag] probe threw: ${String(e).slice(0, 300)}`));
       skipUncovered(
         "Stripe Checkout did not load",
         `Stripe's hosted page answered with its own "Something went wrong" twice, across a reload, for a ` +
@@ -471,6 +548,7 @@ export async function payOnStripeCheckout(page: Page) {
     await page.waitForTimeout(2_000);
   }
   await expect(paymentField, "Stripe Checkout never rendered a payment field").toBeVisible({ timeout: 30_000 });
+  diag.dump("rendered");
   await openCardFields(page);
   await cardNumber.fill(TEST_CARD.number);
   await page.locator("#cardExpiry").fill(TEST_CARD.expiry);

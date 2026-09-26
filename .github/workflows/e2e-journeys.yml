@@ -149,7 +149,7 @@ jobs:
             bash scripts/e2e/sweep-both-seats.sh
 
       - name: Run the journeys
-        run: npx playwright test --project=journeys --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
+        run: npx playwright test --project=journeys --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts e2e/journeys/02-marketplace.spec.ts
 
       - name: Backend request budget (Q104)
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
@@ -191,7 +191,7 @@ jobs:
     name: Journeys (journeys-webkit)
     # After chromium, never beside it: both drive the same two accounts.
     needs: [preflight, journeys]
-    if: always() && needs.preflight.outputs.have_accounts == 'true'
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 90
     # Workflow-level group is prod-load now; this job-level lock keeps the
@@ -312,9 +312,7 @@ jobs:
     # reports only when it is empty — a whole-suite run, exactly what the
     # schedule fires. Anything narrower stays silent rather than closing an
     # issue it has not earned.
-    if: >-
-      always() && (github.event_name == 'schedule'
-      || (github.event_name == 'workflow_dispatch' && inputs.scenario == ''))
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

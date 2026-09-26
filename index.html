@@ -95,10 +95,10 @@
          all three were arguments about how to lose that race gracefully. The
          race is gone; the woff2 ships with the binary.
 
-         Two preloads only, both for the LCP path: the Bodoni Moda latin
-         face (the hero H1) and the Montserrat latin face (everything else
-         above the fold). The remaining faces — latin-ext for both, Bodoni
-         italic, Beth Ellen — are left to the @font-face fetch; preloading
+         Three preloads only, all on the LCP path: the Bodoni Moda latin
+         faces, normal and italic (the hero H1 and its <em>, Q371), and the
+         Montserrat latin face (everything else above the fold). The
+         remaining faces — latin-ext, Beth Ellen — are left to the @font-face fetch; preloading
          them competes with the LCP for bandwidth and none of them is on the
          first paint. `crossorigin` is REQUIRED on a font preload even
          same-origin: fonts are fetched in CORS mode, and a preload without it
@@ -115,6 +115,20 @@
       as="font"
       type="font/woff2"
       href="/fonts/montserrat-normal-latin.woff2"
+      crossorigin
+    />
+    <!-- Q371: the hero H1's italic <em> ("Local Job Partner") is set in the
+         Bodoni ITALIC face, so it is on the LCP path too. Left to the
+         @font-face fetch it swapped in ~300ms after first paint, and on a
+         device without Georgia (Linux, Android: the size-matched
+         "Bodoni Moda Fallback" resolves via local("Georgia")) the swap moved
+         the em 26px: CLS 0.0315 at 1440, the exact CI number. Font, colour
+         and copy are unchanged; only when the file arrives. -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/bodoni-moda-italic-latin.woff2"
       crossorigin
     />
     <!-- Preconnect to Supabase to shorten the longest network dependency chain (LCP/data fetches) -->

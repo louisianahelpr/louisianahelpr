@@ -51,9 +51,15 @@
 # scripts/db-restore-drill.sh is the runbook as code; it is what the weekly
 # drill runs, so it is the procedure that is known to work.
 #
-# NOT IN THIS BACKUP (measured 2026-09-23; details in the runbook): storage
-# FILES (152 objects, ~10 MB, incl. ID documents and dispute proof photos; the
-# object ROWS restore and point at nothing), vault secret values (4), the
+# STORAGE FILES (Q147, owner decision 2026-09-23): every bucket's files are in
+# the archive under storage/<bucket>/<name> with storage/manifest.json (size +
+# sha256 per file), except the buckets in EXCLUDED_BUCKETS
+# (scripts/lib/storageBackup.mjs: id-documents, privacy). Inclusion is by
+# default, so a new bucket is covered the day it exists. Measured 2026-09-26:
+# 230 objects, ~9.3 MB in 7 buckets. The weekly restore drill proves every
+# restored storage.objects row has its file, byte-identical.
+#
+# NOT IN THIS BACKUP (details in the runbook): vault secret values (4), the
 # edge-function secrets, the migration ledger, and anything held only by
 # Stripe or Resend.
 
@@ -197,6 +203,22 @@ jobs:
             exit 1
           fi
 
+      - name: Back up the storage files (Q147)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          set -euo pipefail
+          KEY=$(supabase projects api-keys --project-ref "$SUPABASE_PROJECT_REF" --reveal -o json \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+          echo "::add-mask::$KEY"
+          # Fails on ANY object it cannot download or whose size disagrees with
+          # storage.objects, and on an empty result: a partial file backup is a
+          # failed one (see header point 1).
+          SUPABASE_URL="https://${SUPABASE_PROJECT_REF}.supabase.co" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
+            node scripts/storage-backup.mjs backup out/storage
+          du -sh out/storage
+
       - name: Verify the dump is real
         run: |
           set -euo pipefail
@@ -274,7 +296,7 @@ jobs:
         run: |
           set -euo pipefail
           STAMP=$(date -u +%Y-%m-%d)
-          tar czf "backup-$STAMP.tar.gz" -C out roles.sql schema.sql data.sql cron.sql storage-policies.sql
+          tar czf "backup-$STAMP.tar.gz" -C out roles.sql schema.sql data.sql cron.sql storage-policies.sql storage
           gpg --batch --yes --symmetric --cipher-algo AES256 \
               --passphrase "$BACKUP_PASSPHRASE" \
               -o "backup-$STAMP.tar.gz.gpg" "backup-$STAMP.tar.gz"
@@ -300,6 +322,7 @@ jobs:
           grep -qx "schema.sql" listing.txt
           grep -qx "cron.sql"   listing.txt
           grep -qx "storage-policies.sql" listing.txt
+          grep -qx "storage/manifest.json" listing.txt
           rm -f roundtrip.tar.gz listing.txt
 
       - uses: actions/upload-artifact@v7

@@ -138,14 +138,18 @@ export function failureTail(out, n = 25) {
   // the next PR #1809 run: "2 failed" and screenshots, no Expected/Received).
   // Keep the first failure's own block too: from its "  1) [project] ›" header
   // up to the attachments.
-  const first = lines.findIndex((l) => /^\s*1\) \[[^\]]+\] ›/.test(l));
-  if (first === -1 || lines.length - first <= n) return tail.join("\n");
-  const block = [];
-  for (const l of lines.slice(first, first + 40)) {
-    if (/^\s*attachment #\d+:/.test(l)) break;
-    block.push(l);
+  // Every failure's own block, not only the first: PR #1809's gate printed
+  // shell-spacing.spec.ts:148's assertion and nothing at all for :297.
+  const starts = lines.flatMap((l, i) => (/^\s*\d+\) \[[^\]]+\] ›/.test(l) ? [i] : []));
+  if (!starts.length || lines.length - starts[0] <= n) return tail.join("\n");
+  const blocks = [];
+  for (const start of starts.slice(0, 4)) {
+    for (const l of lines.slice(start, start + 40)) {
+      if (/^\s*attachment #\d+:/.test(l)) break;
+      blocks.push(l);
+    }
   }
-  return [...block, "      …", ...tail].join("\n");
+  return [...blocks, "      …", ...tail].join("\n");
 }
 
 function runVitest(guards, extraEnv = {}) {

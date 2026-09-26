@@ -200,17 +200,20 @@ jobs:
           SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
         run: node scripts/ci/guest-listing-horizon.mjs
-      - name: Route changes keep no old page alive (PD-009, guest, read-only)
+      - name: Route changes keep no old page alive (PD-009) + shell-spacing probe (Q411)
         # 40 guest route changes on this commit's build, then CDP detached-DOM
         # and node/listener budgets after forced GC. Needs no credentials, so it
         # lives in the leg that runs on every PR and push (the authenticated
         # leg is schedule/dispatch only). Chromium only (it needs CDP); ~30 s.
         # `always()` so a red contract step above cannot hide a leak, and
+        # probes/shell-spacing-probe (Q411) rides the same step: setContent
+        # pages, no backend, ~2 s; it proves the shell-spacing probe cannot
+        # swallow the gap it measures.
         # ONE line: e2eSpecsReachableInCi reads workflow files line by line.
         if: always()
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
-        run: npx playwright test --project=chromium e2e/memory/route-retention.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
+        run: npx playwright test --project=chromium e2e/memory/route-retention.spec.ts e2e/probes/shell-spacing-probe.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
       - name: Backend request budget (Q104)
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
         # fails over e2e/request-budgets.json. `always()`: this leg allows

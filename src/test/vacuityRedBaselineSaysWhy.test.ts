@@ -63,6 +63,20 @@ describe("failureTail keeps the reason a run was red", () => {
     expect(tail).toContain("2 failed");
   });
 
+  it("keeps EVERY failure's assertion, not only the first", () => {
+    const block = (n: number, line: number, got: string) => [
+      `  ${n}) [prod-audit] › e2e/prod-audit/shell-spacing.spec.ts:${line}:1 › test ${n}`,
+      "    Error: drifted",
+      `    Received: ["${got}"]`,
+      "    attachment #1: screenshot (image/png) ───",
+      ...Array.from({ length: 20 }, (_, i) => `    test-results/t${n}-${i}/test-failed-1.png`),
+    ];
+    const out = [...block(1, 148, "profile-landing@375: header→title 0px"), ...block(2, 297, "posts@375: section gaps [16]"), "  2 failed"];
+    const tail: string = failureTail(out.join("\n"));
+    expect(tail).toContain("profile-landing@375: header→title 0px");
+    expect(tail).toContain("posts@375: section gaps [16]");
+  });
+
   it("is safe on empty output", () => {
     expect(failureTail("")).toBe("");
     expect(failureTail(undefined)).toBe("");

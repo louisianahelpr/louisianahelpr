@@ -29,6 +29,16 @@ export function sentryReadToken(env) {
   return env.SENTRY_READ_TOKEN || env.SENTRY_AUTH_TOKEN || "";
 }
 
+/**
+ * A sync with no Sentry credentials is an alert only where the credentials
+ * are supposed to be: the prod-errors.yml run. A local `sync` (no repo
+ * secrets on a laptop) recording it reopened the warning 6 times by
+ * 2026-09-26 while CI read Sentry fine every run.
+ */
+export function missingSentryEnvIsAlert(env) {
+  return env.GITHUB_ACTIONS === "true";
+}
+
 export function sentryIssuesUrl(org, project, base = "https://sentry.io") {
   return `${base}/api/0/projects/${org}/${project}/issues/?query=${encodeURIComponent(SENTRY_SYNC_QUERY)}&statsPeriod=24h&limit=100`;
 }

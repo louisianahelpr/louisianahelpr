@@ -34,7 +34,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { OPEN_ITEMS_SQL, PENDING_SQL, lit, newestNightlyIssueByTitle, recordOpsAlert, sql, unreadableReason } from "./lib/opsAlertLedger.mjs";
-import { sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
+import { missingSentryEnvIsAlert, sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
 
 const [, , cmd, ...rest] = process.argv;
 const opt = (name, dflt = undefined) => {
@@ -202,6 +202,8 @@ async function sync() {
     } catch (e) {
       sentryProblem = `Sentry could not be read: ${String(e.message).slice(0, 200)}`;
     }
+  } else if (!missingSentryEnvIsAlert(process.env)) {
+    log.push("sentry: skipped (no Sentry credentials outside CI; prod-errors.yml syncs it)");
   } else {
     sentryProblem = "Sentry is not synced: SENTRY_READ_TOKEN (or SENTRY_AUTH_TOKEN)/SENTRY_ORG/SENTRY_PROJECT not all set";
   }

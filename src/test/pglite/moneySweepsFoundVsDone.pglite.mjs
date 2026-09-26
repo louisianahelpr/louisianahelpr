@@ -61,8 +61,17 @@ CREATE TABLE public.user_roles (user_id uuid, role text);
 CREATE TABLE public.error_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), severity text,
   message text, url text, tags jsonb, context jsonb, created_at timestamptz DEFAULT now());
 CREATE TABLE public.defects (fn text, ref text, err text);
+-- Stand-in for log_cron_defect; _defect_raises makes its PER-ROW call raise
+-- (ref <> 'run'), so the error escapes the inner handler and reaches the outer
+-- handler of sweep_release_last_chance. The outer handler's own call (ref
+-- 'run') still records, as the real function never raises.
+CREATE TABLE public._defect_raises (on_ boolean); INSERT INTO public._defect_raises VALUES (false);
 CREATE FUNCTION public.log_cron_defect(p_fn text, p_ref text, p_err text, p_ctx jsonb) RETURNS void
-  LANGUAGE sql AS $f$ INSERT INTO public.defects VALUES (p_fn, p_ref, p_err) $f$;
+  LANGUAGE plpgsql AS $f$
+BEGIN
+  IF (SELECT on_ FROM public._defect_raises) AND p_ref <> 'run' THEN RAISE EXCEPTION 'log_cron_defect itself failed'; END IF;
+  INSERT INTO public.defects VALUES (p_fn, p_ref, p_err);
+END $f$;
 -- The monitoring tables as 20260925231818 leaves them.
 CREATE TABLE public.cron_run_log (id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, jobname text NOT NULL,
   status_code int, body jsonb NOT NULL DEFAULT '{}'::jsonb, response_id bigint, occurred_at timestamptz NOT NULL,
@@ -81,10 +90,26 @@ CREATE FUNCTION net.http_post(url text, headers jsonb, body jsonb) RETURNS bigin
   LANGUAGE sql AS $f$ INSERT INTO net.posts VALUES (body) RETURNING 1::bigint $f$;
 CREATE SCHEMA vault; CREATE TABLE vault.decrypted_secrets (name text, decrypted_secret text);
 -- A switch that makes every notification insert raise.
-CREATE TABLE public._break (on_ boolean); INSERT INTO public._break VALUES (false);
+CREATE TABLE public._break (on_ boolean, only_like text); INSERT INTO public._break VALUES (false, NULL);
 CREATE FUNCTION public._maybe_break() RETURNS trigger LANGUAGE plpgsql AS $f$
-BEGIN IF (SELECT on_ FROM public._break) THEN RAISE EXCEPTION 'notifications write failed'; END IF; RETURN NEW; END $f$;
+BEGIN
+  IF (SELECT on_ FROM public._break)
+     AND ((SELECT only_like FROM public._break) IS NULL OR NEW.message LIKE (SELECT only_like FROM public._break)) THEN
+    RAISE EXCEPTION 'notifications write failed';
+  END IF;
+  RETURN NEW;
+END $f$;
 CREATE TRIGGER _break BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION public._maybe_break();
+-- A switch that makes the seed path's error_logs write raise.
+CREATE TABLE public._break_seed (on_ boolean); INSERT INTO public._break_seed VALUES (false);
+CREATE FUNCTION public._maybe_break_seed() RETURNS trigger LANGUAGE plpgsql AS $f$
+BEGIN
+  IF (SELECT on_ FROM public._break_seed) AND NEW.tags ->> 'source' = 'detect_stuck_payments-seed' THEN
+    RAISE EXCEPTION 'error_logs write failed';
+  END IF;
+  RETURN NEW;
+END $f$;
+CREATE TRIGGER _break_seed BEFORE INSERT ON public.error_logs FOR EACH ROW EXECUTE FUNCTION public._maybe_break_seed();
 `);
 // The real recorder and detector from 20260925231818.
 await db.exec(fnFrom(VIS, "cron_record_work"));
@@ -189,13 +214,51 @@ const filed = await silent();
 check("the detector files release-last-chance after two runs that found and pushed none",
   filed.some((r) => r.job === "sweep-release-last-chance" && r.rule === "candidates"), JSON.stringify(filed));
 
-// A detect run where EVERY row raised, seed included (the seed row insert fails too).
+// A detect run where EVERY row raised: only the real stuck job is left in the
+// window (the rule alone cannot see a failure while any other row is handled;
+// the per-row filing below covers that).
 await reset();
 await db.exec(`DELETE FROM public.jobs WHERE title <> 'stuck real'`);
 await failingRuns();
 await q(`SELECT public.sweep_silent_cron_failures()`);
 check("the detector files detect-stuck-payments after two runs where every stuck job failed to alert",
   (await silent()).some((r) => r.job === "detect-stuck-payments" && r.rule === "candidates"), JSON.stringify(await silent()));
+
+// ── partial failure: a real row fails while others are handled ─────────────
+await reset();
+await db.exec(`UPDATE public._break SET on_ = true`);
+await db.exec(CMD.dsp);
+await db.exec(`UPDATE public._break SET on_ = false`);
+const part = await body("detect-stuck-payments");
+const partDefects = await q(`SELECT fn, ref FROM public.defects ORDER BY fn`);
+check("partial failure: the run is not suspicious to the rule (another row was handled)",
+  part.found === 3 && part.failed === 1 && part.already_alerted + part.seed_logged > 0, JSON.stringify(part));
+check("partial failure: the failed real row is filed through log_cron_defect as detect_stuck_payments",
+  partDefects.length === 1 && partDefects[0].fn === "detect_stuck_payments", JSON.stringify(partDefects));
+
+// ── a failing SEED row files under the -seed source, never the paging one ──
+await reset();
+await db.exec(`UPDATE public._break_seed SET on_ = true`);
+await db.exec(CMD.dsp);
+await db.exec(`UPDATE public._break_seed SET on_ = false`);
+const seedFail = await body("detect-stuck-payments");
+const seedDefects = await q(`SELECT fn FROM public.defects ORDER BY fn`);
+check("seed row failure: counted failed, filed as detect_stuck_payments-seed only",
+  seedFail.failed === 1 && seedDefects.length === 1 && seedDefects[0].fn === "detect_stuck_payments-seed",
+  `${JSON.stringify(seedFail)} ${JSON.stringify(seedDefects)}`);
+
+// ── release outer handler: a rolled-back run reports pushed 0 ──────────────
+await reset();
+await db.exec(`UPDATE public._break SET on_ = true, only_like = '%escrow 1%'`);
+await db.exec(`UPDATE public._defect_raises SET on_ = true`);
+const outer = (await one(`SELECT public.sweep_release_last_chance() AS r`)).r;
+await db.exec(`UPDATE public._defect_raises SET on_ = false`);
+await db.exec(`UPDATE public._break SET on_ = false, only_like = NULL`);
+const kept = await one(`SELECT (SELECT count(*)::int FROM public.notifications WHERE title = 'Last chance to review') n,
+                               (SELECT count(*)::int FROM public.jobs WHERE release_last_chance_notif_sent_at IS NOT NULL) sent`);
+check("release outer handler: everything rolled back, so pushed 0 (found and failed kept, scan_failed 1)",
+  outer.pushed === 0 && outer.scan_failed === 1 && outer.found === 2 && kept.n === 0 && kept.sent === 0,
+  `${JSON.stringify(outer)} ${JSON.stringify(kept)}`);
 
 // ── ACL ─────────────────────────────────────────────────────────────────────
 for (const sig of ["public.sweep_release_last_chance()", "public.detect_stuck_payments()"]) {

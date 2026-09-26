@@ -12,9 +12,10 @@
 --                              that is capped hourly, and "all failed" read as 0.
 --   detect_stuck_payments      checkouts started and never settled by the
 --                              Stripe webhook. A job that raised inside the loop
---                              went to RAISE NOTICE only, which nothing reads:
---                              every stuck job failing to alert returned 0,
---                              the same as "nothing stuck".
+--                              went to RAISE NOTICE only, which nothing reads,
+--                              and the run returned how many it flagged: every
+--                              stuck job failing to alert returned 0, the same
+--                              as "nothing stuck".
 -- reap_stranded_instant_payouts is NOT split: it reaps with one
 -- UPDATE ... RETURNING, so what it found and what it did are the same rows by
 -- construction, and a failure raises (pg_cron records it; sweep_dead_crons
@@ -36,6 +37,17 @@
 --     `CONTINUE WHEN EXISTS`; they are now counted, because a stuck job
 --     already alerted today IS dealt with. Dispositions: alerted,
 --     already_alerted, seed_logged, seed_already_logged. failed is not one.
+--     Because a job already handled stays in the 24h scan and counts as a
+--     disposition on every run, the rule below pages only when EVERY scanned
+--     row fails. A PARTIAL failure is caught by the per-row handler instead,
+--     which now files each failed row through log_cron_defect (source
+--     detect_stuck_payments, or detect_stuck_payments-seed for a seed job)
+--     rather than RAISE NOTICE alone (review of this migration: on
+--     2026-09-26 prod had 3 seed stuck jobs already logged sitting in the
+--     window, which would have hidden any real failure from the rule alone).
+--   sweep_release_last_chance's outer handler rolls the whole run back, so it
+--     reports pushed 0 (the old pushed_before_failure counted warnings that no
+--     longer existed).
 -- cron_work_expectations: both get a candidate rule (min_streak 2, the table
 -- default) and work_visibility 'candidates'; sweep_silent_cron_failures' 3b
 -- then pages on two consecutive runs that found rows and dispositioned none.
@@ -99,7 +111,9 @@ EXCEPTION WHEN OTHERS THEN
   PERFORM public.log_cron_defect(
     'sweep_release_last_chance', 'run', SQLERRM,
     jsonb_build_object('phase', 'scan', 'pushed_before_failure', total_pushed));
-  RETURN jsonb_build_object('found', v_found, 'pushed', total_pushed, 'failed', v_failed, 'scan_failed', 1);
+  -- The outer handler rolled back every warning this run wrote, so none were
+  -- pushed, whatever total_pushed counted before the failure.
+  RETURN jsonb_build_object('found', v_found, 'pushed', 0, 'failed', v_failed, 'scan_failed', 1);
 END;
 $function$;
 
@@ -219,6 +233,14 @@ BEGIN
       v_alerted := v_alerted + 1;
     EXCEPTION WHEN OTHERS THEN
       v_failed := v_failed + 1;
+      -- Filed per row (review of this migration): a job that could not be
+      -- alerted used to reach RAISE NOTICE only. A seed job's failure goes to
+      -- the '-seed' source, which error_log_is_seed keeps out of Slack and the
+      -- ledger, same as the seed path above.
+      PERFORM public.log_cron_defect(
+        CASE WHEN rec.seed THEN 'detect_stuck_payments-seed' ELSE 'detect_stuck_payments' END,
+        rec.id::text, SQLERRM,
+        jsonb_build_object('job_id', rec.id, 'seed', rec.seed));
       RAISE NOTICE 'detect_stuck_payments: job % failed: %', rec.id, SQLERRM;
     END;
   END LOOP;
@@ -244,7 +266,7 @@ BEGIN
     ('sweep-release-last-chance', 'found', ARRAY['pushed'], 2,
      'Escrow jobs in their final 2 hours before auto-release, found vs warned. found>0 with pushed=0 twice running means posters are losing their last chance to object before money moves. failed counts the ones that raised (also in log_cron_defect).'),
     ('detect-stuck-payments', 'found', ARRAY['alerted', 'already_alerted', 'seed_logged', 'seed_already_logged'], 2,
-     'Checkouts never settled by the Stripe webhook, found vs alerted (or already alerted today, or a seed job logged). found>0 with none of those twice running means every stuck job raised inside the loop: a per-row failure used to go to RAISE NOTICE only.')
+     'Checkouts never settled by the Stripe webhook, found vs alerted (or already alerted today, or a seed job logged). found>0 with none of those twice running means every stuck job raised inside the loop. A partial failure is filed per row through log_cron_defect instead (it used to go to RAISE NOTICE only).')
   ON CONFLICT (jobname) DO UPDATE
     SET candidate_key    = EXCLUDED.candidate_key,
         disposition_keys = EXCLUDED.disposition_keys,

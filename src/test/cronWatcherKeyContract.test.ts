@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { jobCommands } from "./helpers/cronWorkRegister";
+import { argsAt } from "./helpers/cronHttpJobs";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 
@@ -102,14 +103,26 @@ function sqlFunctionSource(jobname: string): string | null {
   return stmt ? blankSqlComments(stmt) : null;
 }
 
+/**
+ * The argument lists of every `RETURN jsonb_build_object(...)` in a SQL body:
+ * what the function RETURNS, which is what cron_record_work records. A key
+ * that appears only in a log_cron_defect or error_logs object does not count
+ * (review of 20260926040817).
+ */
+function sqlReturnObjects(src: string): string {
+  return [...src.matchAll(/RETURN\s+jsonb_build_object\s*\(/gi)]
+    .map((m) => argsAt(src, m.index! + m[0].length - 1))
+    .join("\n");
+}
+
 /** Whether a SQL body returns `key` as a jsonb_build_object key: 'key', value. */
 function sqlEmitsKey(src: string, key: string): boolean {
-  return new RegExp(`'${key}'\\s*,`).test(src);
+  return new RegExp(`'${key}'\\s*,`).test(sqlReturnObjects(src));
 }
 
 /** A SQL key returned as a bare true/false. */
 function sqlEmitsKeyAsBoolean(src: string, key: string): boolean {
-  return new RegExp(`'${key}'\\s*,\\s*(true|false)\\b`, "i").test(src);
+  return new RegExp(`'${key}'\\s*,\\s*(true|false)\\b`, "i").test(sqlReturnObjects(src));
 }
 
 /**

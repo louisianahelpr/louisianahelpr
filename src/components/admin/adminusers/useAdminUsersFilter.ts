@@ -31,8 +31,10 @@ interface FilterDeps {
   tab: Tab;
   searchQuery: string;
   sortDir: SortDir;
-  strikesSummary: Record<string, number>;
-  lastLoginSummary: Record<string, string>;
+  /** null = not known yet; sorts as if empty. */
+  strikesSummary: Record<string, number> | null;
+  /** null = not known yet; sorts as if empty. */
+  lastLoginSummary: Record<string, string> | null;
   paySummary: Record<string, number>;
 }
 
@@ -96,14 +98,14 @@ export const filterAndSortProfiles = ({
       return aName.localeCompare(bName);
     }
     if (sortDir === "standing_worst" || sortDir === "standing_best") {
-      const aStrikes = strikesSummary[a.user_id] || 0;
-      const bStrikes = strikesSummary[b.user_id] || 0;
+      const aStrikes = strikesSummary?.[a.user_id] || 0;
+      const bStrikes = strikesSummary?.[b.user_id] || 0;
       if (aStrikes !== bStrikes) {
         return sortDir === "standing_worst" ? bStrikes - aStrikes : aStrikes - bStrikes;
       }
       // Tiebreaker: most recent login
-      const aLogin = lastLoginSummary[a.user_id];
-      const bLogin = lastLoginSummary[b.user_id];
+      const aLogin = lastLoginSummary?.[a.user_id];
+      const bLogin = lastLoginSummary?.[b.user_id];
       if (!aLogin && !bLogin) return 0;
       if (!aLogin) return 1;
       if (!bLogin) return -1;
@@ -122,8 +124,8 @@ export const filterAndSortProfiles = ({
     if (sortDir === "never_logged_in") {
       // Never-logged-in users first, then those with the oldest signup date among them.
       // Logged-in users fall to the bottom, sorted by most recent login last.
-      const aLogin = lastLoginSummary[a.user_id];
-      const bLogin = lastLoginSummary[b.user_id];
+      const aLogin = lastLoginSummary?.[a.user_id];
+      const bLogin = lastLoginSummary?.[b.user_id];
       if (!aLogin && !bLogin) {
         // Both never logged in — oldest signups first (most concerning)
         return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
@@ -132,8 +134,8 @@ export const filterAndSortProfiles = ({
       if (!bLogin) return 1;
       return new Date(bLogin).getTime() - new Date(aLogin).getTime();
     }
-    const aLogin = lastLoginSummary[a.user_id];
-    const bLogin = lastLoginSummary[b.user_id];
+    const aLogin = lastLoginSummary?.[a.user_id];
+    const bLogin = lastLoginSummary?.[b.user_id];
     if (!aLogin && !bLogin) return 0;
     if (!aLogin) return 1;
     if (!bLogin) return -1;

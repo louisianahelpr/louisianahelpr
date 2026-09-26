@@ -5355,7 +5355,7 @@ export type Database = {
       error_log_is_seed: { Args: { p_tags: Json }; Returns: boolean }
       expire_pending_direct_offers: { Args: never; Returns: number }
       expire_unanswered_offers: { Args: never; Returns: number }
-      export_my_data: { Args: never; Returns: Json }
+      export_my_data: { Args: { p_user_id: string }; Returns: Json }
       extend_boosts_with_no_applications: {
         Args: never
         Returns: {

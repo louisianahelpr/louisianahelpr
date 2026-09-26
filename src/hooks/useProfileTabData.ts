@@ -182,7 +182,7 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
       }
       const nameMap = new Map(profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
       const jobMap = new Map(jobsRes.data?.map((j) => [j.id, j.title]) || []);
-      return data.map((r: any) => ({
+      return data.map((r) => ({
         rating: r.rating,
         feedback: r.feedback,
         created_at: r.created_at,

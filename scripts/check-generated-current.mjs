@@ -252,6 +252,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/any-baseline.mjs": "rewrites scripts/any-baseline.json only on --write, which refuses to raise any entry (two-way guard: src/test/anyRatchet.test.ts)",
   "scripts/check-sensitive-review.mjs": "GITHUB_STEP_SUMMARY; `record` appends a hand-recorded review to docs/reviews/sensitive-reviews.jsonl (authored log, not generated; Q9)",
   "scripts/session-worktree.mjs": "creates ~/.lh-wt/session-<id> and <git-common-dir>/lh-sessions/<id>, logs overrides to ~/.lh-hygiene (Q47/Q18), nothing committed",
+  "scripts/component-size-baseline.mjs": "rewrites scripts/component-size-baseline.json only on --write, which refuses to raise or add any entry (two-way guard: src/test/componentSizeRatchet.test.ts)",
   "scripts/check-stated-counts.mjs": "rewrites scripts/stated-counts-baseline.json only on --write-baseline, which refuses to grow it",
 };
 

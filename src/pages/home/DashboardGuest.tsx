@@ -244,7 +244,7 @@ const DashboardGuest = () => {
       if (error) throw error;
 
       const now = new Date();
-      return ((rawJobs ?? []) as any[])
+      return (rawJobs ?? [])
         .filter((j) => !j.expires_at || new Date(j.expires_at) > now)
         .map((j) => ({
           ...j,

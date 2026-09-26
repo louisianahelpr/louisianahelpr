@@ -100,6 +100,6 @@ describe("Q345: every hire RPC refuses across a block", () => {
 // Each hire RPC's check removed, one at a time.
 // @mutate supabase/migrations/20260924023314_hire_refused_across_block.sql | IF public.are_users_blocked(v_helper_id, v_job_customer) THEN | IF false THEN
 // @mutate supabase/migrations/20260924023314_hire_refused_across_block.sql | IF public.are_users_blocked(v_job_customer, v_helper_id) THEN | IF false THEN
-// @mutate supabase/migrations/20260924023314_hire_refused_across_block.sql | IF public.are_users_blocked(auth.uid(), v_customer) THEN | IF false THEN
+// @mutate supabase/migrations/20260924220318_rename_tab_addresses.sql | IF public.are_users_blocked(auth.uid(), v_customer) THEN | IF false THEN
 // The accept copy removed.
 // @mutate src/lib/lifecycleErrors.ts | applicant_blocked: "This person can no longer be hired for this job.", | x_unused: "x",

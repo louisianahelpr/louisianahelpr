@@ -546,6 +546,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/cancellationFee.ts";`,
   );
 
+  // Crew shares (Q407): `_shared/crewShares.ts` is pure TS whose only import is
+  // the sibling cancellationFee.ts. It is the split and the fee pricing
+  // void-cancelled-payments and money-reconciliation settle a crew with, so
+  // they are tested against the real one.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/crewShares\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/crewShares.ts";`,
+  );
+
   // ── The transactional-email layer ────────────────────────────────────────
   //
   // `_shared/resend.ts` constructs a Resend client at module scope,

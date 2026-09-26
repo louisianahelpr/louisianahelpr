@@ -28,6 +28,8 @@ import { DisputedSection } from "./appliedJobCard/DisputedSection";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
 import { JobStatusStrip } from "../../components/job-card/JobStatusStrip";
 import { helperStatusLine } from "../../components/job-card/jobStatusLine";
+import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
+import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 
 /**
@@ -642,6 +644,14 @@ function AppliedJobCardInner({
              bottom of this card — one sentence, naming whose move it is. It
              replaces the 16px-dot rail that stood there for a few hours
              (owner: "remove the dots"). */}
+          {/* Q360: the money problem jobs.status cannot show — same notice,
+              same words as the poster's card. Not for an applicant who was
+              passed over: it is no longer their job. */}
+          {isExpanded && app.status !== "rejected" && cardPaymentProblem(job) && (
+            <div className="px-4 pt-3 pb-3 border-t border-border/30">
+              <PaymentProblemNotice job={job} />
+            </div>
+          )}
           {/* Confirmed: show tracking + message */}
           {isConfirmed && isExpanded && (
             <ConfirmedSection

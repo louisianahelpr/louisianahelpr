@@ -1,6 +1,8 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PhotoProofCaptureChip } from "@/components/PhotoProof";
 import { queryKeys } from "@/lib/queryKeys";
+import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import type { Job } from "../../../../components/job-card/activityConstants";
 
 /**
@@ -103,10 +105,37 @@ export function HelperPhotoAsk({
     void queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
   };
 
-  if (!proofRequired) return null;
+  // A CREW HAS NO LEAD (Q407). On a group job each member's proof is their OWN
+  // roster row (group_job_helpers), which is what their Working step and
+  // completion gate read; the job's columns belong to nobody on a crew. Keyed
+  // under ["activity"] so readBack() above refreshes it too.
+  const crew = job.is_group_job === true;
+  const slotProof = useQuery({
+    queryKey: [...queryKeys.activity.all, "crewSlotProof", jobId] as const,
+    enabled: crew,
+    queryFn: async () => {
+      const { data: auth } = await supabase.auth.getSession();
+      const me = auth.session?.user?.id;
+      if (!me) return null;
+      const rows = unwrap(
+        await supabase
+          .from("group_job_helpers")
+          .select("proof_before_urls, proof_after_urls")
+          .eq("job_id", jobId)
+          .eq("helper_id", me)
+          .limit(1),
+      );
+      return (rows ?? [])[0] ?? null;
+    },
+  });
 
-  const beforeUrls = job.proof_before_urls || [];
-  const afterUrls = job.proof_after_urls || [];
+  if (!proofRequired) return null;
+  // No ask until the member's own photos are known: offering Before on a stale
+  // empty array would append to nothing and drop the photos already filed.
+  if (crew && !slotProof.isSuccess) return null;
+
+  const beforeUrls = (crew ? slotProof.data?.proof_before_urls : job.proof_before_urls) || [];
+  const afterUrls = (crew ? slotProof.data?.proof_after_urls : job.proof_after_urls) || [];
 
   const beforeAsk = (
     <PhotoProofCaptureChip
@@ -115,6 +144,7 @@ export function HelperPhotoAsk({
       existingUrls={beforeUrls}
       onUploaded={readBack}
       label="Before Photo"
+      crew={crew}
     />
   );
   const afterAsk = (
@@ -124,6 +154,7 @@ export function HelperPhotoAsk({
       existingUrls={afterUrls}
       onUploaded={readBack}
       label="After Photo"
+      crew={crew}
     />
   );
 

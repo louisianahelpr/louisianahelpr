@@ -400,6 +400,11 @@ jobs:
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
           POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
           POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          SWEEP_PHASE: pre
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
         run: |
           set -euo pipefail
           URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
@@ -413,7 +418,7 @@ jobs:
           # see the header of the script for why the old inline form misled.
           TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a poster token — the warnings above give the HTTP status and auth's reason"; exit 1; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
-            node scripts/e2e/prod-lifecycle-sweeper.mjs
+            bash scripts/e2e/sweep-both-seats.sh
 
       - name: post → fund → apply → hire → complete → release → review
         env:
@@ -466,13 +471,18 @@ jobs:
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
           POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
           POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          SWEEP_PHASE: teardown
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
         run: |
           set -euo pipefail
           URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
           KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
           TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a token for teardown (Q52: an unwind that did not run is not green) — rows may be stranded for the next run's pre-sweep"; exit 1; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
-            node scripts/e2e/prod-lifecycle-sweeper.mjs
+            bash scripts/e2e/sweep-both-seats.sh
 
       - name: Upload report on failure
         if: failure()

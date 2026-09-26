@@ -209,3 +209,5 @@ export function computeCancellationFee(job: CancellationFeeJob): number {
   // round(budget * percent) / 100 mirrors the client's cent-accurate math.
   return Math.round(budget * percent) / 100;
 }
+
+// Crew (group job) shares and fees live in ./crewShares.ts (Q407).

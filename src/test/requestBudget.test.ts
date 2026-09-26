@@ -233,7 +233,7 @@ describe("Q104 calibration: budgets written from the first metered runs", () => 
     // EXACT, two-way: a label calibrated from a measured run (2026-09-23, run
     // ids in the file's _calibrated note) cannot silently go back to null, and
     // a new one is written here in the same commit.
-    expect(calibrated).toEqual(["journeys", "journeys-webkit", "loading-states", "press-every-control", "privacy", "prod-audit", "slow-network"]);
+    expect(calibrated).toEqual(["a11y-prod", "a11y-prod-webkit", "journeys", "journeys-webkit", "loading-states", "press-every-control", "privacy", "prod-audit", "slow-network"]);
     for (const k of calibrated) {
       const b = budgets[k];
       expect(typeof b.perTest, `${k}.perTest`).toBe("number");

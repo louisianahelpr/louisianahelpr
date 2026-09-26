@@ -1116,7 +1116,53 @@ describe("create-payment edge function", () => {
     });
   });
 
+  // A crew has no lead (Q407): the poster tips a named MEMBER of the roster.
+  describe("action: tip on a crew", () => {
+    const MEMBER = "11111111-2222-3333-4444-555555555555";
+    const crewJob = () => {
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: null, is_group_job: true, status: "completed", title: "Move a piano" }] };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_member" }] };
+      stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_tip", url: "https://checkout.stripe.test/tip" });
+    };
+
+    it("refuses a crew tip that names nobody", async () => {
+      seedAuth(scenario, POSTER);
+      crewJob();
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "tip", jobId: "job-1", amount: 15 } }));
+      expect((await json(res)).error).toMatch(/choose which helpr/i);
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
+    // @mutate supabase/functions/create-payment/index.ts | if ((slot?.length ?? 0) === 0) throw new PublicError("That Helpr didn't work this job"); | if (false) throw new PublicError("That Helpr didn't work this job");
+    it("refuses a crew tip to someone not on the roster", async () => {
+      seedAuth(scenario, POSTER);
+      crewJob();
+      scenario.reads.group_job_helpers = { rows: [] };
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "tip", jobId: "job-1", amount: 15, helperId: MEMBER } }));
+      expect((await json(res)).error).toMatch(/didn't work this job/i);
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
+    it("tips the named member: their account, their ledger row, a key that names them", async () => {
+      seedAuth(scenario, POSTER);
+      crewJob();
+      scenario.reads.group_job_helpers = { rows: [{ id: "slot-1" }] };
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "tip", jobId: "job-1", amount: 15, helperId: MEMBER } }));
+      expect(res.status).toBe(200);
+      const [args, opts] = stripeMock.checkout.sessions.create.mock.calls[0];
+      expect(args.payment_intent_data.transfer_data.destination).toBe("acct_member");
+      expect(args.metadata.helper_id).toBe(MEMBER);
+      expect((opts as { idempotencyKey: string }).idempotencyKey).toContain(`-${MEMBER}-`);
+      const tip = scenario.writes.find((w) => w.table === "tips" && w.op === "insert");
+      expect((tip?.payload as Record<string, unknown>).helper_id).toBe(MEMBER);
+    });
+  });
+
   describe("action: cancel_escrow", () => {
+    // @mutate supabase/functions/create-payment/index.ts | if ((crew?.length ?? 0) > 0) { | if (false) {
     it("refunds a succeeded payment intent minus the non-refundable service fee and cancels the job", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = {
@@ -1308,6 +1354,76 @@ describe("create-payment edge function", () => {
       expect(res.status).toBe(503);
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+    });
+
+    // A crew whose lead left or was removed has helper_id NULL while its other
+    // members are still hired (group_job_helpers). That is a hired job: the
+    // refund would skip the cancellation rules, so it goes through Cancel job.
+    it("refuses an OPEN group job with hired crew members and no lead: 409, no Stripe call, no claim", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", helper_id: null, is_group_job: true, payment_status: "escrow", stripe_payment_intent_id: "pi_live", budget: 100, customer_fee_amount: 10 }] };
+      scenario.reads.group_job_helpers = { rows: [{ id: "slot-2" }] };
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(409);
+      expect((await json(res)).useCancelJob).toBe(true);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+    });
+
+    it("fails CLOSED (503, nothing moved) when the crew roster cannot be read", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", helper_id: null, payment_status: "escrow", stripe_payment_intent_id: "pi_live" }] };
+      scenario.reads.group_job_helpers = { error: { message: "read blew up" } };
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(503);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+    });
+
+    // A crew has no lead (20260925154606): jobs.helper_id is NULL on every
+    // group job, so the claim's `helper_id IS NULL` no longer means "nobody
+    // hired". A hire that commits between the first roster read and the claim
+    // is caught by the post-claim read (final: the claimed job is 'cancelling',
+    // which the roster funding gate refuses to hire onto).
+    // @mutate supabase/functions/create-payment/index.ts | if (crewNowErr \|\| (crewNow?.length ?? 0) > 0) { | if (false) {
+    it("a crew hire that lands between the roster read and the claim: claim put back, 409, no refund", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", helper_id: null, is_group_job: true, payment_status: "escrow", stripe_payment_intent_id: "pi_live", budget: 100, customer_fee_amount: 10 }] };
+      scenario.reads.group_job_helpers = {
+        rows: [],
+        selectOverrides: [{ includes: "helper_id", result: { rows: [{ id: "slot-1", helper_id: "helper-late" }] } }],
+      };
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(409);
+      expect((await json(res)).useCancelJob).toBe(true);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+      const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect(jobUpdates.map((w) => (w.payload as Record<string, unknown>).payment_status)).toEqual(["cancelling", "escrow"]);
+      expect(jobUpdates[1].filters).toEqual(expect.arrayContaining([expect.objectContaining({ column: "payment_status", value: "cancelling" })]));
+    });
+
+    it("fails CLOSED after the claim too: a post-claim roster read error puts the claim back, 503, no refund", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", helper_id: null, is_group_job: true, payment_status: "escrow", stripe_payment_intent_id: "pi_live", budget: 100, customer_fee_amount: 10 }] };
+      scenario.reads.group_job_helpers = {
+        rows: [],
+        selectOverrides: [{ includes: "helper_id", result: { error: { message: "read blew up" } } }],
+      };
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      expect(res.status).toBe(503);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect(jobUpdates.map((w) => (w.payload as Record<string, unknown>).payment_status)).toEqual(["cancelling", "escrow"]);
     });
 
     it("non-owner cannot cancel another poster's escrow", async () => {

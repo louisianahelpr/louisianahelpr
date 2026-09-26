@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * LIVE: the TABLE half of the excess-client-grant class (check-updatable-views.mjs
- * is the view half). Three rules, read from the prod catalog:
+ * is the view half). Four rules, read from the prod catalog:
  *
  *   WRITE (H-004): no RLS-enabled table in an exposed schema may carry an `anon`
  *   INSERT/UPDATE/DELETE grant that no policy backs for that command. public.jobs
@@ -17,6 +17,11 @@
  *   yet anon SELECT and authenticated SELECT+INSERT, live on prod. Not
  *   exploitable while RLS denies all — which is exactly what a missing second
  *   line of defence looks like, one `USING (true)` away from a live read.
+ *
+ *   ANON-POLICY (Q399, 2026-09-25): on a table no signed-out path writes
+ *   (messages), no INSERT/UPDATE/DELETE/ALL policy may name anon or public. The
+ *   WRITE rule exempts a command such a policy covers, so the policy alone is
+ *   what would hide a returning anon grant.
  *
  *   READ (AUTHZ-02): no sensitive admin/money/trust table (allowlist in
  *   scripts/ci/sensitive-anon-grants.sql) may carry an `anon` SELECT grant.
@@ -90,6 +95,7 @@ if (!tablesChecked || !Array.isArray(offenders)) {
 if (process.argv.includes("--self-test")) {
   offenders.push({ schema: "public", table: "zz_fake_sensitive", role: "anon", priv: "SELECT", rule: "read:sensitive" });
   offenders.push({ schema: "public", table: "zz_fake_service_only", role: "authenticated", priv: "INSERT", rule: "zero-policy:client-grant" });
+  offenders.push({ schema: "public", table: "messages", role: "public", priv: "UPDATE", rule: "write:anon-policy" });
 }
 
 console.log(`Checked ${tablesChecked} base tables in public/graphql_public.`);
@@ -98,7 +104,9 @@ if (offenders.length) {
     console.error(
       o.rule === "stale-exception:zero-policy"
         ? `::error::${o.schema}.${o.table} is declared as a zero-policy exception in scripts/ci/sensitive-anon-grants.sql but holds no client grant any more — remove the exception (the list may only shrink).`
-        : `::error::${o.schema}.${o.table} — ${o.role} holds ${o.priv} (${o.rule})`,
+        : o.rule === "write:anon-policy"
+          ? `::error::${o.schema}.${o.table} — a ${o.priv} policy names ${o.role}, on a table no signed-out path writes (${o.rule}); recreate it TO authenticated.`
+          : `::error::${o.schema}.${o.table} — ${o.role} holds ${o.priv} (${o.rule})`,
     );
   }
   console.error(

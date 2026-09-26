@@ -145,19 +145,27 @@ function scan(): Site[] {
   const sites: Site[] = [];
   for (const file of tsxFiles(SRC)) {
     const src = stripComments(readFileSync(file, "utf8"));
-    for (const m of src.matchAll(/(?:^|[\s"'`:])(?:[a-z]+:)?grid-cols-\d+/g)) {
-      const window = src.slice(m.index ?? 0, (m.index ?? 0) + 1200);
+    // A track can also reach the element through a same-file class constant
+    // (`className={AT_A_GLANCE_GRID}`), so each use of such a constant is a
+    // track position too, not only the literal where the constant is declared.
+    const trackConsts = [...src.matchAll(/const\s+([A-Za-z_$][\w$]*)\s*=\s*["'`][^"'`]*grid-cols-\d+[^"'`]*["'`]/g)].map((c) => c[1]);
+    const positions = [...src.matchAll(/(?:^|[\s"'`:])(?:[a-z]+:)?grid-cols-\d+/g)].map((m) => ({ index: m.index ?? 0, text: m[0] }));
+    for (const name of trackConsts) {
+      for (const u of src.matchAll(new RegExp(`className=\\{\\s*${name}\\s*\\}`, "g"))) positions.push({ index: u.index ?? 0, text: name });
+    }
+    for (const m of positions) {
+      const window = src.slice(m.index, m.index + 1200);
       const mapped = window.match(/\{\s*([A-Za-z_$][\w$]*)\s*\.map\(/);
       if (!mapped) continue;
       const ident = mapped[1];
-      sites.push({ file: relative(ROOT, file), ident, track: m[0].trim(), conditional: conditionalPush(src, ident) });
+      sites.push({ file: relative(ROOT, file), ident, track: m.text.trim(), conditional: conditionalPush(src, ident) });
     }
   }
   return sites;
 }
 
 // @mutate src/pages/user/AtAGlanceCard.tsx | const cells: Cell[] = [ | const cells: Cell[] = []; if (postedJobsCount > 0) cells.push({ key: "x", icon: Star, value: "1", label: "y" }); const cellsLiteral: Cell[] = [
-// @mutate src/pages/user/AtAGlanceCard.tsx | className="grid grid-cols-2 auto-rows-fr gap-2 sm:grid-cols-4" | className="grid grid-cols-2 auto-rows-fr gap-2 sm:grid-cols-4" onCopy={() => cells.push(cells[0])}
+// @mutate src/pages/user/AtAGlanceCard.tsx | <div className={AT_A_GLANCE_GRID}> | <div className={AT_A_GLANCE_GRID} onCopy={() => cells.push(cells[0])}>
 
 describe("fixed-track grids are never fed a conditionally-built array", () => {
   const sites = scan();

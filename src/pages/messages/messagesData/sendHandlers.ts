@@ -13,6 +13,7 @@ import {
   isLockoutRefusal,
 } from "@/lib/messagingLockout";
 import { RECIPIENT_RESTRICTED_TOAST, fetchRecipientRestricted } from "@/lib/recipientGate";
+import { OFF_JOB_TOAST, fetchOffJobState } from "@/lib/offJobGate";
 import { DELETED_ACCOUNT_NOTICE } from "@/lib/deletedCounterparty";
 
 // Module-level so it survives the per-render re-creation of the handlers:
@@ -236,6 +237,33 @@ export function createSendHandlers({
           );
           return;
         }
+        const rlsRefusal = /row-level security/i.test(
+          (error as { message?: string } | null)?.message ?? "",
+        );
+        // Off the job (owner, 2026-09-25): once either person in the thread is
+        // no longer on the job, the INSERT gate refuses both directions. Ask
+        // the server's own read; if that is the reason, the thread becomes
+        // read-only and the bubble is non-retryable (a retry cannot work),
+        // instead of the retryable "didn't go through" below. Only for the RLS
+        // policy's refusal, like the receiver gate after it.
+        if (rlsRefusal) {
+          const offJob = await fetchOffJobState(optimistic.job_id, receiverId);
+          if (offJob) {
+            toast.error(OFF_JOB_TOAST);
+            // Only the OPEN thread is flipped; reopening it asks the server again.
+            setActiveConvo?.((prev) =>
+              prev && prev.jobId === optimistic.job_id && prev.otherUserId === receiverId
+                ? { ...prev, offJobState: offJob }
+                : prev,
+            );
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.clientId === optimistic.clientId ? { ...m, sendStatus: "refused" } : m,
+              ),
+            );
+            return;
+          }
+        }
         // Receiver gate: only the poster may message applicants and an offered
         // Helpr (can_send_message_to_in_job). Ask that same server function
         // whether it is the reason; if so the thread becomes read-only for this
@@ -249,7 +277,7 @@ export function createSendHandlers({
         const posterId =
           activeConvo?.jobId === optimistic.job_id ? (activeConvo.posterId ?? null) : null;
         if (
-          /row-level security/i.test((error as { message?: string } | null)?.message ?? "") &&
+          rlsRefusal &&
           (await fetchRecipientRestricted(
             optimistic.job_id,
             receiverId,

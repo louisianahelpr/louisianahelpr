@@ -352,7 +352,11 @@ function runPlaywright(guard, { rebuild = false } = {}) {
       },
     },
   );
-  const out = (r.stdout || "") + (r.stderr || "");
+  // stderr FIRST: the webServer's build log arrives on stderr after the
+  // reporter's lines, and every reader of `out` keeps only its tail, so the
+  // other order reported 25 lines of vite warnings and not the failed
+  // assertion (activity-loading-reserve.spec.ts, PR #1797, 2026-09-25).
+  const out = (r.stderr || "") + (r.stdout || "");
 
   if (timedOut(r)) {
     return {

@@ -30,17 +30,15 @@ concurrency:
   # >= 2h apart, and share the prod-load concurrency group; see
   # src/test/prodWorkflowSpacing.test.ts before moving this.
   #
-  # THE EXCEPTION to the dispatch split, by name in
-  # src/test/prodWorkflowSpacing.test.ts's DISPATCH_SHARES_GROUP (2026-09-22).
-  # This workflow signs in as the shared prod test accounts and has no
-  # job-level `prod-lifecycle-shared-accounts` lock, because its matrix would
-  # be serialised against itself by one. prod-load IS its account lock. Giving
-  # its dispatch a private group — as e2e-journeys and prod-audit now do, since
-  # their JOBS hold that lock — would let a dispatched run drive poster-e2e
-  # beside another suite already driving it, and two runs signed in as the same
-  # account corrupt each other's fixtures. Losing a queued dispatch is
-  # recoverable and loud; corrupted prod fixtures are neither.
-  group: prod-load
+  # A SCHEDULED run joins prod-load; a workflow_dispatch gets its own group
+  # (the e2e-journeys.yml split, issue #1595). Until 2026-09-25 this workflow
+  # was the rule-4 EXCEPTION (prod-load was its only account lock), which also
+  # left its two sweeps free to walk the same hired+funded row as another
+  # suite's sweep at the same moment (lh-money-escrow review M2). The suites
+  # job now holds `prod-lifecycle-shared-accounts` itself, like every job that
+  # sweeps with both seats (src/test/sweeperHoldsBothSeats.test.ts); the matrix
+  # is already `max-parallel: 1`, so that lock serialises nothing new.
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('e2e-abuse-notifications-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
@@ -72,6 +70,11 @@ jobs:
     if: needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # The shared-accounts lock every sweeping job holds (see the workflow-level
+    # comment): two sweeps must never walk the same leftover row at once.
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
     strategy:
       fail-fast: false
       max-parallel: 1     # both projects drive the same two accounts
@@ -121,13 +124,18 @@ jobs:
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
           POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
           POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          SWEEP_PHASE: pre
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
         run: |
           set -euo pipefail
           URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
           KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
           TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a poster token"; exit 1; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
-            node scripts/e2e/prod-lifecycle-sweeper.mjs
+            bash scripts/e2e/sweep-both-seats.sh
 
       - name: Run the abuse & notification suites
         run: >
@@ -160,13 +168,18 @@ jobs:
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
           POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
           POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          SWEEP_PHASE: teardown
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
         run: |
           set -euo pipefail
           URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
           KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
           TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a token for teardown (Q52: an unwind that did not run is not green)"; exit 1; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
-            node scripts/e2e/prod-lifecycle-sweeper.mjs
+            bash scripts/e2e/sweep-both-seats.sh
 
   # A RED RUN HAS TO LAND SOMEWHERE. Added 2026-09-23 after e2e-abuse-notifications — along
   # with 13 other scheduled workflows — was found failing with nobody told.

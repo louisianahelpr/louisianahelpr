@@ -24,6 +24,7 @@ import { report } from "@/lib/errorLogger";
 import { StarRow } from "./StarRow";
 import { quickTagsFor, safeImageSrc, type ReviewFormProps } from "./types";
 import { userFacingError } from "@/lib/userFacingError";
+import { recordReviewInActivityCache } from "@/lib/reviewActivityCache";
 
 export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, canTip = false, revieweeRole = "helper" }: ReviewFormProps) => {
   // ONE overall star rating. The three sub-criteria this used to collect
@@ -187,7 +188,10 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
     if (error || !inserted || inserted.length === 0) {
       hapticError();
       if (error?.code === "23505") {
-        toast.error("You've already reviewed this job.");
+        // The server holds this review already: the card must stop offering it
+        // (on a crew the invalidate inside re-reads which members are left).
+        recordReviewInActivityCache(jobId);
+        toast.error("You've already reviewed this person for this job.");
       } else if (error?.code === "23514" && error.message) {
         // The validity trigger raises check_violation with a HUMAN sentence —
         // "Reviews can only be left after the job is marked completed.",
@@ -204,6 +208,10 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
       }
     } else {
       hapticSuccess();
+      // Before the tip prompt below, which returns without `onClose` (the
+      // parent's only refresh): the card flips to "Reviewed" now, and a
+      // reload does not repaint the persisted "Review" (nightly-red #1719).
+      recordReviewInActivityCache(jobId);
       // Brand-tinted confetti for the first few reviews so the moment
       // feels worth doing again. After the limit it fades to silent.
       void maybeCelebrate("first_review");
@@ -474,6 +482,9 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
         onClose={() => { setTipDialogOpen(false); onClose(); }}
         jobId={jobId}
         helperName={revieweeName}
+        // The Helpr just reviewed: on a crew (no lead) the server needs the
+        // member named; on a single-helper job it is the hired Helpr anyway.
+        helperId={revieweeId}
       />
     </Dialog>
   );

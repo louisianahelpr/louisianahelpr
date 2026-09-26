@@ -119,7 +119,7 @@ export const PAYMENT_STATUSES = [
   "unpaid", "escrow", "payout_pending", "released", "refunded",
   "cancelled", "abandoned", "failed", "chargeback", "cancelling",
 ] as const;
-type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   unpaid: "Unpaid",

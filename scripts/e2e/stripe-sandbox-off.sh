@@ -14,6 +14,17 @@ REF=fncmgoasalhdgfwzhsqa
 WEBHOOK_URL="https://$REF.supabase.co/functions/v1/stripe-webhook"
 ID_FILE="$HOME/.lh-stripe-test-webhook-id"
 
+# FIRST, before any key changes: tell CI Stripe is no longer in test mode, so
+# the prod lifecycle sweeper stops settling test jobs forward (a real
+# `release`) before a live key is in place (lh-money-escrow review L2,
+# 2026-09-25; launch checklist in docs/OPEN.md). Refuses to continue if it
+# cannot: going live with CI still told "test" is the failure this prevents.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+if ! (cd "$REPO_ROOT" && gh variable set E2E_STRIPE_MODE --body live); then
+  echo "REFUSED: could not set the repo variable E2E_STRIPE_MODE=live (gh auth login, then re-run). Nothing was changed." >&2
+  exit 1
+fi
+
 read -r -s -p "Paste your sk_live key: " SK; echo
 read -r -s -p "Paste the LIVE webhook signing secret (whsec_...): " WHSEC; echo
 supabase secrets set STRIPE_SECRET_KEY="$SK" STRIPE_WEBHOOK_SECRET="$WHSEC" --project-ref $REF

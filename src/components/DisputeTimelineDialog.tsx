@@ -243,8 +243,23 @@ export const DisputeTimelineDialog = ({
         );
         setDispute({ ...dispute, evidence_urls: merged });
       } else {
-        // Legacy path — append onto jobs.dispute_evidence_urls.
-        const existing = legacy?.evidence_urls || [];
+        // Legacy path — append onto jobs.dispute_evidence_urls. The server
+        // holds this column append-only for the parties, and every element
+        // added must be the caller's own `<uid>/disputes/<job>/…` upload
+        // (trg_jobs_dispute_evidence_append_only, 20260925154842, Q398). The
+        // UPDATE sends the WHOLE array, so re-read it first, as the disputes
+        // branch above does: merging onto the copy loaded with the card would
+        // drop anything the other party added since, which the server now
+        // refuses as a removal.
+        const { data: freshJob, error: freshJobErr } = await supabase.from("jobs")
+          .select("dispute_evidence_urls")
+          .eq("id", jobId)
+          .maybeSingle();
+        if (freshJobErr) {
+          report(freshJobErr, { tags: { source: "DisputeTimelineDialog.reReadLegacyEvidence" } });
+          throw new Error("Couldn't attach your evidence — try again?");
+        }
+        const existing: string[] = (freshJob?.dispute_evidence_urls as string[] | null) ?? legacy?.evidence_urls ?? [];
         const merged = [...existing, ...newUrls];
         unwrapMutation(
           await supabase

@@ -17,7 +17,7 @@ export interface UseActivityActionsArgs {
   refresh: () => void | Promise<unknown>;
   setStatusFilter: (filter: string) => void;
   helperNames?: Record<string, string>;
-  completedJobMeta?: Record<string, { tipped: boolean; reviewed: boolean }>;
+  completedJobMeta?: Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }> }>;
 }
 
 /**

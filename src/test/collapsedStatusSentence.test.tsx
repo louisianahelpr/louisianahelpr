@@ -278,6 +278,11 @@ const POSTER_FIXTURES: Record<
   },
   dispute: { job: job({ status: "disputed", helper_id: HELPER, dispute_status: "open" }) },
   dispute_escalated: { job: job({ status: "disputed", helper_id: HELPER, dispute_status: "escalated" }) },
+  /* Q360: the bank took the money back from a job that finished and paid out;
+     jobs.status still says 'completed'. */
+  bank_dispute: { job: job({ status: "completed", helper_id: HELPER, payment_status: "chargeback" }) },
+  /* Q360: a declined card on a job still open (the webhook's only precondition). */
+  payment_failed: { job: job({ payment_status: "failed", stripe_session_id: "cs_1" }) },
   done_paid: {
     job: job({ status: "completed", helper_id: HELPER, payment_status: "released" }),
     completion: { tipped: true, reviewed: true },
@@ -340,6 +345,10 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
   overdue: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(48), date_needed: YESTERDAY }),
   dispute: makeApp({}, { status: "disputed", helper_id: HELPER, dispute_status: "open" }),
   dispute_escalated: makeApp({}, { status: "disputed", helper_id: HELPER, dispute_status: "escalated" }),
+  bank_dispute: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "chargeback" }),
+  payment_failed: makeApp({ status: "pending" }, {
+    status: "open", payment_status: "failed", direct_offer_status: "pending", offered_to_helper_id: HELPER,
+  }),
   done_paid: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "released" }),
 };
 

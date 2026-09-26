@@ -14,11 +14,18 @@ import { RecurringSchedulePicker } from "@/components/postjob/RecurringScheduleP
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { todayLocalISO } from "@/lib/dateUtils";
 import { formatPriceExact } from "@/lib/format";
+import { allocateCents } from "../../../supabase/functions/_shared/crewShares";
+
 import { AppleMapPreview } from "@/components/postjob/AppleMapPreview";
 import { CurrentLocationPill } from "@/components/postjob/CurrentLocationPill";
 import { FieldError } from "@/components/ui/FieldError";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
+
+/** The smallest of the N frozen crew shares of `budget`, in dollars. */
+function crewSmallestShare(budget: number, n: number): number {
+  return allocateCents(Math.round((Number.isFinite(budget) ? budget : 0) * 100), n, Math.max(0, n - 1)) / 100;
+}
 
 /**
  * Repeats is ON as of 2026-08-23 (owner approved).
@@ -374,7 +381,9 @@ export function LogisticsSection({
               aria-label="Number of Helprs needed"
             />
             <p className="text-ds-11 text-muted-foreground">
-              Budget of ${formatPriceExact(budgetNum)} will be split: ~${formatPriceExact(budgetNum / (parseInt(helpersNeeded) || 2))}/Helpr
+              {/* The server's split (crew_slot_share_cents, largest remainder in
+                  cents): the smallest share, so no Helpr gets less than shown. */}
+              Budget of ${formatPriceExact(budgetNum)} will be split: ~${formatPriceExact(crewSmallestShare(budgetNum, parseInt(helpersNeeded) || 2))}/Helpr
             </p>
           </div>
         )}

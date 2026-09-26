@@ -59,7 +59,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveRouteSet } from "./press-every-control.mjs";
 import { mintAccounts, prodSelect } from "./pressProdSafety.mjs";
-import { RequestMeter } from "../../e2e/requestMeter.mjs";
+import { RequestMeter, ceilingFor } from "../../e2e/requestMeter.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "../..");
@@ -369,6 +369,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function measureOne(context, { url, persona }) {
   const page = await context.newPage();
+  // The pacing gate (see main): attach() already wraps every page a metered
+  // context opens; saying so here keeps it explicit and costs nothing twice.
+  context.__requestMeter?.pacePage(page);
   const result = { url, persona, base: BASE };
   const consoleErrors = [];
   page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text().slice(0, 200)); });
@@ -602,6 +605,12 @@ async function main() {
     }
   }
 
+  // Two tabs at a time. One was ~70s per surface and 2.5h for the catalog,
+  // which is long enough that nobody reruns it — and a measurement nobody
+  // reruns stops being a measurement. Two is the ceiling: each tab holds the
+  // delayed responses of the other's route open, and more than two made the
+  // delays overlap enough to distort the very timings being measured.
+  const CONCURRENCY = Number(process.env.CONCURRENCY ?? 2);
   const browser = await chromium.launch();
   // Q104: count this run's backend requests; scripts/e2e/request-budget.mjs
   // checks them against e2e/request-budgets.json. Flushed on exit too, so a
@@ -609,6 +618,20 @@ async function main() {
   const requestMeter = new RequestMeter("loading-states");
   requestMeter.attachBrowser(browser);
   process.on("exit", () => requestMeter.flush());
+  // PACED under the label's ceilingPerMinute (e2e/request-budgets.json), by
+  // the same gate e2e/prodTest.ts puts in front of every Playwright spec: each
+  // surface's `page.goto` waits until the current wall-clock minute has room
+  // for the next burst (e2e/requestMeter.mjs pace). Run 36158775025 sent 3,007
+  // requests with 752 in its busiest minute, unpaced, and failed the budget
+  // step with every surface otherwise measured. The hold sits BEFORE the
+  // navigation, never between a navigation and what it measures, so a held
+  // surface measures exactly what an unheld one does.
+  //
+  // `workers: CONCURRENCY`: the two tabs share this ONE meter, and each passes
+  // the gate on the minute's shared count, so two can pass together and each
+  // then send a burst. Halving the per-gate ceiling is what keeps two
+  // simultaneous bursts inside the whole ceiling.
+  requestMeter.paceTo(ceilingFor("loading-states", resolve(REPO, "e2e", "request-budgets.json")), { workers: CONCURRENCY });
   const results = [];
   const byPersona = new Map();
   const contextFor = async (persona) => {
@@ -628,12 +651,6 @@ async function main() {
     return ctx;
   };
 
-  // Two tabs at a time. One was ~70s per surface and 2.5h for the catalog,
-  // which is long enough that nobody reruns it — and a measurement nobody
-  // reruns stops being a measurement. Two is the ceiling: each tab holds the
-  // delayed responses of the other's route open, and more than two made the
-  // delays overlap enough to distort the very timings being measured.
-  const CONCURRENCY = Number(process.env.CONCURRENCY ?? 2);
   let cursor = 0;
   const worker = async () => {
     for (;;) {

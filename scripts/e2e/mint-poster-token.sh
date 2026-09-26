@@ -21,6 +21,11 @@
 # and say what actually happened.
 set -uo pipefail
 
+# MINT_LABEL names the seat in the diagnostics. The same mint serves the helper
+# seat (POSTER_EMAIL/_PASSWORD set to the helper's) for the sweeper's
+# settle-forward, which needs both parties (prod-lifecycle-sweeper.mjs).
+LABEL="${MINT_LABEL:-poster}"
+
 URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
 KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
 : "${POSTER_EMAIL:?POSTER_EMAIL is not set — the secret did not reach this step}"
@@ -47,7 +52,7 @@ for attempt in 1 2 3; do
     DETAIL=$(printf '%s' "$BODY" | jq -c '{error, error_code, code, msg, message}' 2>/dev/null \
       || printf 'non-JSON body, %s bytes' "${#BODY}")
   fi
-  echo "::warning::poster token mint attempt $attempt/3 — HTTP $CODE — $DETAIL" >&2
+  echo "::warning::$LABEL token mint attempt $attempt/3 — HTTP $CODE — $DETAIL" >&2
   # 400/401/422 is a credentials problem and will not improve on retry.
   case "$CODE" in 400|401|403|422) break ;; esac
   sleep $((attempt * 5))

@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { relationsInSchema } from "./helpers/schemaRelations";
 
 /**
  * CLASS CHECK: no client query may name a relation the schema does not have.
@@ -35,19 +36,6 @@ import { join } from "node:path";
 const SRC = join(process.cwd(), "src");
 const TYPES = join(SRC, "integrations", "supabase", "types.ts");
 
-/** Every table and view PostgREST exposes on `public`, from the generated types. */
-export function relationsInSchema(typesSource: string): Set<string> {
-  const tablesAt = typesSource.indexOf("    Tables: {");
-  const viewsAt = typesSource.indexOf("    Views: {");
-  const functionsAt = typesSource.indexOf("    Functions: {");
-  if (tablesAt < 0 || viewsAt < 0 || functionsAt < 0) {
-    throw new Error("types.ts no longer has the public Tables/Views/Functions blocks this guard reads");
-  }
-  const region = typesSource.slice(tablesAt, functionsAt);
-  const names = new Set<string>();
-  for (const m of region.matchAll(/^ {6}([a-z0-9_]+): \{$/gm)) names.add(m[1]);
-  return names;
-}
 
 /** Every relation name a `.from("…")` call site in this file asks for. */
 export function relationsQueriedIn(source: string): string[] {

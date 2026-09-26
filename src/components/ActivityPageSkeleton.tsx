@@ -2,6 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
 import { LoadingHeading } from "@/components/ui/LoadingHeading";
+import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { POSTS_HEADER_PADDING } from "@/pages/posts/PostsHeader";
@@ -63,9 +64,31 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
    */
   const headerRow = (
     <div aria-hidden>
-      <div className="flex items-center" style={{ minHeight: "44px" }}>
-        <Skeleton className="h-4 w-32 rounded" />
-      </div>
+      {/* THE LOADED ROW ITSELF, not a drawing of it: the same ScreenHeaderRow
+          PostsHeader / JobsHeader render, with the screen's name (known before
+          any data) and, for each of its two phone controls (search, filter
+          chevron), the control's own 44px box with a bone where its 16px
+          glyph is. Those are ghost buttons: all that paints of them is the
+          glyph, so a 44px filled square would be a shape the row never shows
+          (and, measured in loading-states-refresh 36165226511, it reached
+          within 40px of the list's bones and merged the title row and the
+          list into one cluster). It used to be one 128px bar alone in a 44px
+          box: a single leaf standing in for a two-part row, "0 placeholder
+          rows -> 2 real" on customer /jobs in run 36158775025. */}
+      <ScreenHeaderRow
+        title={tab === "posted" ? "My Posts" : "My Jobs"}
+        decorativeTitle
+        actions={
+          <>
+            <span className="h-11 w-11 inline-flex items-center justify-center">
+              <Skeleton className="h-4 w-4 rounded" />
+            </span>
+            <span className="h-11 w-11 inline-flex items-center justify-center">
+              <Skeleton className="h-4 w-4 rounded" />
+            </span>
+          </>
+        }
+      />
       {!isWebDesktop && tabRowOpens && (
         // The real scroller's box, class for class (`-mx-5 px-5 … pb-0.5`), so
         // the reserved line cannot drift from the line it reserves.

@@ -18,8 +18,8 @@
  * may compare updated_at against now(): "when this row was last touched" is
  * not an event a charge, payout or release can be timed from.
  *
- * @mutate supabase/migrations/20260925053956_auto_tip_anchor_on_opt_in.sql | AND j.completed_at > now() - make_interval(hours => _since_hours) | AND j.updated_at > now() - make_interval(hours => _since_hours)
- * @mutate supabase/migrations/20260925053956_auto_tip_anchor_on_opt_in.sql | AND j.completed_at >= p.auto_tip_enabled_at | AND true
+ * @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND j.helper_id IS NOT NULL\n    AND p.auto_tip_mode <> 'off'\n    AND p.auto_tip_enabled_at IS NOT NULL\n    AND j.completed_at >= p.auto_tip_enabled_at\n    AND j.completed_at > now() |     AND j.helper_id IS NOT NULL\n    AND p.auto_tip_mode <> 'off'\n    AND p.auto_tip_enabled_at IS NOT NULL\n    AND j.completed_at >= p.auto_tip_enabled_at\n    AND j.updated_at > now()
+ * @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND j.helper_id IS NOT NULL\n    AND p.auto_tip_mode <> 'off'\n    AND p.auto_tip_enabled_at IS NOT NULL\n    AND j.completed_at >= p.auto_tip_enabled_at |     AND j.helper_id IS NOT NULL\n    AND p.auto_tip_mode <> 'off'\n    AND p.auto_tip_enabled_at IS NOT NULL\n    AND true
  * @mutate supabase/functions/auto-tip-charge/index.ts | await supabase.rpc("auto_tip_candidates"); | await supabase.rpc("auto_tip_candidates", { _since_hours: 24 });
  */
 import { describe, it, expect } from "vitest";
@@ -73,7 +73,10 @@ describe("money paths never time their rows by updated_at (CJ-008)", () => {
 
   it("auto_tip_candidates is anchored on completion and on the poster's opt-in", () => {
     const body = bodies.get("auto_tip_candidates") ?? "";
-    expect(body).toMatch(/j\.completed_at\s*>=\s*p\.auto_tip_enabled_at/);
+    // Every branch (single Helpr, crew) reads jobs and must carry the opt-in anchor.
+    const branches = (body.match(/FROM\s+public\.jobs\s+j\b/g) ?? []).length;
+    expect(branches).toBeGreaterThan(0);
+    expect((body.match(/j\.completed_at\s*>=\s*p\.auto_tip_enabled_at/g) ?? []).length, "every jobs branch anchors on the poster's opt-in").toBe(branches);
     expect(body).toMatch(/j\.completed_at\s*>\s*now\(\)\s*-\s*make_interval\(\s*hours\s*=>\s*_since_hours\s*\)/);
     expect(body).toMatch(/NOT\s+EXISTS\s*\(\s*SELECT\s+1\s+FROM\s+public\.tips\s+t\s+WHERE\s+t\.job_id\s*=\s*j\.id\s+AND\s+t\.source\s*=\s*'auto'/i);
   });

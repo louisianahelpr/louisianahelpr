@@ -249,6 +249,13 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // rendering on your activity screen after the flag flips, or the row you
     // are looking at silently vanishes.
     ["public.get_jobs_for_my_applications", "the caller's OWN applications, not a public feed"],
+    // 20260925154606 (Q407): a BEFORE-UPDATE trigger judging the ONE row being
+    // written; `OLD.status = 'open'` is its hire carve-out, and the jobs read
+    // the scan pairs it with is the crew fee ledger's RLS policy in the same file.
+    ["public.enforce_poster_jobs_money_lock", "BEFORE-trigger on one row; status is a precondition"],
+    // 20260925154606 (Q407): the crew roll-up closes ONE under-filled crew's
+    // staffing (open -> accepted) on the job the caller is on.
+    ["public.rpc_group_member_mark_done", "single-job mutation on the caller's own crew; status is a precondition"],
   ]);
 
   it("every migration object that SELECTS open jobs is gated or declared not-a-feed", () => {

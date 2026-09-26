@@ -214,6 +214,9 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:get_public_open_jobs": "no-return",
     "function:get_ranked_open_jobs": "no-return",
     "function:instant_book_claim": "no-return",
+    // Owner decision 2026-09-25 (Q407 addendum 14): is the user off the job
+    // (e.g. a declined/expired offeree)? Internal, service_role only; returns boolean.
+    "function:is_off_job": "no-return",
     "function:is_party_to_job": "no-return",
     "function:jobs_private_select_columns": "no-return",
     "function:notify_helper_on_direct_offer": "no-return",

@@ -244,7 +244,9 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
 
   it("without the fix migration there is no status guard on helper_completed_at and a done job is cancellable", () => {
     expect(triggerDefined([COMPLETION_FIX])).toBe(false);
-    expect(latestDefinition("poster_cancel_job", [COMPLETION_FIX, RENAMES_TAB_ADDRESSES])).not.toMatch(/helper_completed_at\s+IS\s+NOT\s+NULL/i);
+    // 20260925154606 (Q407: a crew has no lead) restates it WITH the guard
+    // (plus the crew's per-member version), so the pre-guard baseline excludes it.
+    expect(latestDefinition("poster_cancel_job", [COMPLETION_FIX, RENAMES_TAB_ADDRESSES, "20260925154606"])).not.toMatch(/helper_completed_at\s+IS\s+NOT\s+NULL/i);
   });
 
   it("with it: the trigger judges OLD.status and pins a re-stamp; poster_cancel_job refuses a job marked done", () => {
@@ -274,7 +276,9 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
       // restates that guard after prod lost it to an out-of-order apply, and
       // 20260924060512 (DH-006: one report per job+Helpr) restates it again.
       noShow: latestDefinition("report_helper_no_show", [COMPLETION_FIX, "20260915044137", "20260915074058", "20260924060512"]),
-      helperCancel: latestDefinition("helper_cancel_booking", [COMPLETION_FIX, RENAMES_TAB_ADDRESSES]),
+      // 20260925140148 (Q393: a crew member can leave) restates it with the
+      // done-stamp guard on both the single-helper and the crew path.
+      helperCancel: latestDefinition("helper_cancel_booking", [COMPLETION_FIX, RENAMES_TAB_ADDRESSES, "20260925140148"]),
     };
     expect(without.trg).toBe("");
     expect(without.block).not.toMatch(/helper_completed_at/);

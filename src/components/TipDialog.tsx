@@ -22,13 +22,16 @@ import { TIP_MAX_CENTS, TIP_MIN_CENTS } from "../../supabase/functions/_shared/t
 interface TipDialogProps {
   jobId: string;
   helperName?: string;
+  /** On a GROUP job, the crew member being tipped (Q407: a crew has no lead,
+   *  so the server needs to be told who). Ignored on a single-helper job. */
+  helperId?: string;
   open: boolean;
   onClose: () => void;
 }
 
 const SUGGESTED_AMOUNTS = [5, 10, 20];
 
-export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) {
+export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDialogProps) {
   const [amount, setAmount] = useState<number | undefined>(undefined);
   const [sending, setSending] = useState(false);
   // ME-007: one id per opening of the prompt. The server salts the Stripe
@@ -72,7 +75,8 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-payment", {
-        body: { action: "tip", jobId, amount: tipAmount, tipAttemptId: tipAttemptIdRef.current, native: isNativePlatform },
+        // helperId: undefined on a single-helper job, dropped by JSON.
+        body: { action: "tip", jobId, amount: tipAmount, tipAttemptId: tipAttemptIdRef.current, native: isNativePlatform, helperId },
       });
       // A non-2xx makes the SDK throw a FunctionsHttpError whose message is the
       // useless "Edge Function returned a non-2xx status code" — while the real

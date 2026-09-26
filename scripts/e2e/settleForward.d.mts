@@ -11,6 +11,16 @@
 export declare const SETTLEABLE_STATUSES: string[];
 export declare const SETTLED_PAYMENT_STATUSES: string[];
 
+/** Title token a lane puts on a marker job it holds past one run. */
+export declare const E2E_HOLD_MARKER: string;
+/** settleRefusalReason's answer for a funded row with no Checkout Session. */
+export declare const NO_CHECKOUT_SESSION: string;
+/** Why a row is held (title marker, or the PLAYWRIGHT_LIFECYCLE_JOB_ID fixture), or null. */
+export declare function heldReason(
+  job: { id?: string; title?: unknown },
+  env?: Record<string, string | undefined>,
+): string | null;
+
 /** True when a `cancel_escrow` answer is the 409 that means "hired and funded". */
 export declare function isSettleForwardRefusal(status: number, body?: string): boolean;
 

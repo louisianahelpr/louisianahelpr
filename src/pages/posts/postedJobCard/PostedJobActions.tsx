@@ -22,7 +22,7 @@ interface PostedJobActionsProps {
   job: Job;
   userId: string;
   helperNames: Record<string, string>;
-  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
+  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }> }>;
   onBoost: (jobId: string) => void;
   /** True when the job has never been funded, so it is invisible to every
       helper. Boost sells reach on a listing that has none — see PostedJobCard. */

@@ -47,6 +47,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { computeCancellationFee, helperIsCommitted, hoursUntilJob } from "../_shared/cancellationFee.ts";
+import { crewCancellationFee, type CrewFeeShareRow } from "../_shared/crewShares.ts";
 import { helperCommissionDollars, feePercentForTier } from "../_shared/helperFees.ts";
 import { AUTO_COMPLETE_HOURS } from "../_shared/escrowTiming.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -305,6 +306,19 @@ serve(async (req) => {
         "critical",
         "A SETTLED payout_transfer recorded a commission that differs from what the Helpr's LIVE subscription tier would charge — the discount was not applied to money that actually moved. Graded against the transfer ledger, never against jobs.helper_fee_percent, which is a global escrow-time stamp and is expected to differ from the ladder.",
       ),
+      // A crew has no lead (Q407): each member is paid their own frozen share
+      // (group_job_helpers.share_cents) with their own transfer (money review
+      // LOW-13).
+      crewTransfersExceedEscrow: new Check(
+        "crew_transfers_exceed_escrow",
+        "critical",
+        "The settled payout transfers of a group job (payout + commission) add up to more than its budget plus urgent fee — the crew was paid more than the escrow held.",
+      ),
+      crewMemberUnpaid: new Check(
+        "crew_member_unpaid_on_released_job",
+        "critical",
+        "A group job is payment_status='released' but a hired member on its roster has no settled payout transfer — the job left the payout queue with that member unpaid.",
+      ),
       releasedNoTransfer: new Check(
         "released_without_payout_transfer",
         "critical",
@@ -422,7 +436,7 @@ serve(async (req) => {
       const q = admin
         .from("jobs")
         .select(
-          "id, is_seed, status, payment_status, budget, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at, stripe_payment_intent_id, customer_fee_amount",
+          "id, is_seed, status, payment_status, budget, urgent_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at, stripe_payment_intent_id, customer_fee_amount",
           countOpt,
         )
         // Paging without an ORDER BY is sampling, not paging: the cap and the
@@ -438,17 +452,46 @@ serve(async (req) => {
     const jobRows = jobScan.rows;
     const jobById = new Map(jobRows.map((j) => [j.id as string, j]));
 
-    // ── Cancelled-job checks ─────────────────────────────────────────────────
-    for (const job of jobRows) {
-      if (job.status !== "cancelled") continue;
-      // A dispute decided for the poster (rpc_decide_dispute) sets 'cancelled'
-      // with dispute_status 'resolved' and never stamps cancelled_at. The
-      // decision governs its money, not the cancellation ladder: read as a
-      // cancellation it "owes" a 50% fee and pages critical (Q336).
-      if (job.dispute_status === "resolved" && !job.cancelled_at) continue;
-
-      // Recompute from the SAME module void-cancelled-payments settles with.
-      const expectedFee = computeCancellationFee({
+    // A crew has no lead (Q407, 20260925154606): a cancelled group job's fee
+    // is the sum of its crew_cancellation_fee_shares rows, each re-priced from
+    // the job's own fields exactly as void-cancelled-payments settles it. A
+    // row that does not match its recomputation makes the expectation NaN, so
+    // the stored fee is always flagged against it.
+    const cancelledCrewIds = jobRows
+      .filter((j) => j.status === "cancelled" && j.is_group_job === true)
+      .map((j) => j.id as string);
+    const crewSharesByJob = new Map<string, CrewFeeShareRow[]>();
+    if (cancelledCrewIds.length > 0) {
+      const { data: shareRows, error: shareErr } = await admin
+        .from("crew_cancellation_fee_shares")
+        .select("job_id, helper_id, committed, share_basis_cents, share_amount")
+        .in("job_id", cancelledCrewIds);
+      // Before 20260925154606 deploys the ledger does not exist, and no crew
+      // cancelled without a lead can exist either (the backfill is in the same
+      // migration): "no table" is "no shares". Any other error fails the run.
+      const missingTable = !!shareErr && (shareErr.code === "42P01" || shareErr.code === "PGRST205");
+      if (shareErr && !missingTable) throw new Error(`crew_cancellation_fee_shares read failed: ${shareErr.message}`);
+      for (const r of (shareRows ?? []) as Array<CrewFeeShareRow & { job_id: string }>) {
+        const list = crewSharesByJob.get(r.job_id) ?? [];
+        list.push(r);
+        crewSharesByJob.set(r.job_id, list);
+      }
+    }
+    /** What this cancelled job's fee must be: the single ladder, or the crew's re-priced ledger. */
+    const expectedCancellationFee = (job: Record<string, unknown>): number => {
+      if (job.is_group_job === true) {
+        const priced = crewCancellationFee(
+          {
+            budget: money(job.budget),
+            date_needed: job.date_needed as string | null,
+            start_time: job.start_time as string | null,
+            cancelled_at: job.cancelled_at as string | null,
+          },
+          crewSharesByJob.get(job.id as string) ?? [],
+        );
+        return priced.mismatch ? Number.NaN : priced.total;
+      }
+      return computeCancellationFee({
         budget: money(job.budget),
         date_needed: job.date_needed as string | null,
         // Required by CancellationFeeJob: without it the recomputation
@@ -463,9 +506,22 @@ serve(async (req) => {
         // reconciliation flag every correctly-zeroed row as a mismatch.
         helper_confirmed_at: job.helper_confirmed_at as string | null,
       });
+    };
+
+    // ── Cancelled-job checks ─────────────────────────────────────────────────
+    for (const job of jobRows) {
+      if (job.status !== "cancelled") continue;
+      // A dispute decided for the poster (rpc_decide_dispute) sets 'cancelled'
+      // with dispute_status 'resolved' and never stamps cancelled_at. The
+      // decision governs its money, not the cancellation ladder: read as a
+      // cancellation it "owes" a 50% fee and pages critical (Q336).
+      if (job.dispute_status === "resolved" && !job.cancelled_at) continue;
+
+      // Recompute from the SAME module void-cancelled-payments settles with.
+      const expectedFee = expectedCancellationFee(job);
       const storedFee = money(job.cancellation_fee);
 
-      if (Math.abs(storedFee - expectedFee) > EPSILON) {
+      if (!(Math.abs(storedFee - expectedFee) <= EPSILON)) {
         checks.cancellationFee.add({
           job_id: job.id,
           stored_fee: storedFee,
@@ -583,7 +639,54 @@ serve(async (req) => {
       (j) => j.payment_status === "released" || j.payment_status === "payout_pending",
     );
 
+    // Each payout-stage crew's hired members and their frozen shares (Q407).
+    const crewJobIds = payoutJobs.filter((j) => j.is_group_job === true).map((j) => j.id as string);
+    const crewShareBy = new Map<string, Map<string, number | null>>();
+    let crewRosterRead = true;
+    if (crewJobIds.length) {
+      let rosterScan = await scanAllIn<Record<string, unknown>>(
+        "group_job_helpers",
+        crewJobIds,
+        (chunk, countOpt) =>
+          admin
+            .from("group_job_helpers")
+            .select("id, job_id, helper_id, share_cents", countOpt)
+            .order("id", { ascending: true })
+            .in("job_id", chunk),
+      );
+      // Before 20260925154606 there are no frozen shares: read the roster
+      // without them (the per-member tier check then has nothing to grade).
+      if (rosterScan.error && ((rosterScan.error as { code?: string }).code === "42703" || /column [^ ]*(share_cents|slot_no)[^ ]* does not exist/i.test(rosterScan.error.message))) {
+        rosterScan = await scanAllIn<Record<string, unknown>>(
+          "group_job_helpers",
+          crewJobIds,
+          (chunk, countOpt) =>
+            admin
+              .from("group_job_helpers")
+              .select("id, job_id, helper_id", countOpt)
+              .order("id", { ascending: true })
+              .in("job_id", chunk),
+        );
+      }
+      const rosterCap = rosterScan.error ? `group_job_helpers read failed (${rosterScan.error.message})` : scanDefect("group_job_helpers", rosterScan);
+      if (rosterCap) {
+        crewRosterRead = false;
+        notes.push(`crew payout checks skipped: ${rosterCap}`);
+      } else {
+        for (const r of rosterScan.rows) {
+          if (!r.helper_id) continue;
+          const m = crewShareBy.get(r.job_id as string) ?? new Map<string, number | null>();
+          m.set(r.helper_id as string, r.share_cents == null ? null : Number(r.share_cents));
+          crewShareBy.set(r.job_id as string, m);
+        }
+      }
+    }
+
     for (const job of payoutJobs) {
+      // A crew's job-level platform_fee_amount is an escrow-time stamp for no
+      // one in particular (process-scheduled-payouts deliberately leaves it on a
+      // group job); each member's commission is graded per transfer below.
+      if (job.is_group_job === true) continue;
       const pct = job.helper_fee_percent === null || job.helper_fee_percent === undefined
         ? null
         : Number(job.helper_fee_percent);
@@ -608,8 +711,13 @@ serve(async (req) => {
 
     // Tier-ladder cross-check (informational). Batched profile read.
     const payoutHelperIds = [
-      ...new Set(payoutJobs.map((j) => j.helper_id).filter((v): v is string => !!v)),
+      ...new Set([
+        ...payoutJobs.map((j) => j.helper_id).filter((v): v is string => !!v),
+        ...[...crewShareBy.values()].flatMap((m) => [...m.keys()]),
+      ]),
     ];
+    // helper_id -> the rate that Helpr's LIVE tier charges (crew members).
+    const liveLadderByHelper = new Map<string, { ladder: number; tier: string }>();
     // job_id -> the commission rate the helper's LIVE tier would charge.
     // Graded against the payout ledger once it is read; see tierDrift.
     const liveFeeByJob = new Map<string, { ladder: number; tier: string }>();
@@ -639,6 +747,15 @@ serve(async (req) => {
         // comparison itself cannot happen here: it needs the payout ledger,
         // which is read further down, so it is deferred to liveFeeByJob.
         const tierBy = new Map(profScan.rows.map((p) => [p.user_id as string, p]));
+        for (const [uid, prof] of tierBy) {
+          const expired = prof.subscription_expires_at
+            ? new Date(prof.subscription_expires_at as string).getTime() < Date.now()
+            : false;
+          liveLadderByHelper.set(uid, {
+            ladder: feePercentForTier(expired ? "free" : (prof.subscription_tier as string | null)),
+            tier: expired ? "expired→free" : ((prof.subscription_tier as string | null) ?? "free"),
+          });
+        }
         for (const job of payoutJobs) {
           const prof = job.helper_id ? tierBy.get(job.helper_id as string) : null;
           if (!prof) continue;
@@ -656,6 +773,7 @@ serve(async (req) => {
     // ── Payout ledger ────────────────────────────────────────────────────────
     type TransferRow = {
       job_id: string;
+      helper_id?: string | null;
       amount_cents: number | null;
       platform_fee_cents: number | null;
       status: string | null;
@@ -664,7 +782,7 @@ serve(async (req) => {
     const transferScan = await scanAll<TransferRow>("payout_transfers", (countOpt) =>
       admin
         .from("payout_transfers")
-        .select("job_id, amount_cents, platform_fee_cents, status, stripe_transfer_id", countOpt)
+        .select("job_id, helper_id, amount_cents, platform_fee_cents, status, stripe_transfer_id", countOpt)
         .order("id", { ascending: true }),
     );
     if (transferScan.error) throw new Error(`payout_transfers read failed: ${transferScan.error.message}`);
@@ -723,11 +841,58 @@ serve(async (req) => {
       }
     }
 
+    // ── A crew, member by member (Q407, money review LOW-13) ─────────────────
+    if (crewRosterRead) {
+      const settledByJob = new Map<string, TransferRow[]>();
+      for (const t of transfers) {
+        if (!isSettledTransfer(t)) continue;
+        const list = settledByJob.get(t.job_id) ?? [];
+        list.push(t);
+        settledByJob.set(t.job_id, list);
+      }
+      for (const job of payoutJobs) {
+        if (job.is_group_job !== true) continue;
+        const settled = settledByJob.get(job.id as string) ?? [];
+        const grossCents = settled.reduce((a, t) => a + Number(t.amount_cents ?? 0) + Number(t.platform_fee_cents ?? 0), 0);
+        const escrowCents = Math.round((money(job.budget) + money(job.urgent_fee)) * 100);
+        if (grossCents > escrowCents) {
+          checks.crewTransfersExceedEscrow.add({ job_id: job.id, transfers_cents: grossCents, escrow_cents: escrowCents });
+        }
+        const members = crewShareBy.get(job.id as string);
+        if (job.payment_status === "released" && members) {
+          const paid = new Set(settled.map((t) => t.helper_id).filter((v): v is string => !!v));
+          for (const helperId of members.keys()) {
+            if (!paid.has(helperId)) checks.crewMemberUnpaid.add({ job_id: job.id, helper_id: helperId });
+          }
+        }
+        // Each member's commission against THEIR live tier over THEIR share.
+        for (const t of settled) {
+          const share = t.helper_id ? members?.get(t.helper_id) : undefined;
+          const live = t.helper_id ? liveLadderByHelper.get(t.helper_id) : undefined;
+          if (share == null || !live) continue;
+          const expectedCents = Math.round(helperCommissionDollars(share / 100, live.ladder) * 100);
+          const storedCents = Math.round(Number(t.platform_fee_cents ?? 0));
+          if (expectedCents !== storedCents) {
+            checks.tierDrift.add({
+              job_id: t.job_id,
+              helper_id: t.helper_id,
+              tier: live.tier,
+              live_tier_percent: live.ladder,
+              expected_commission_cents: expectedCents,
+              transfer_commission_cents: storedCents,
+            });
+          }
+        }
+      }
+    }
+
     for (const t of transfers) {
       const job = jobById.get(t.job_id as string);
       // A transfer whose job is outside this scan's scope (e.g. a seed job on a
       // non-seed run) is not a finding — it simply wasn't audited here.
       if (!job) continue;
+      // A crew is graded member by member above.
+      if (job.is_group_job === true) continue;
       // Only settled rows carry a real commission to compare. A 'failed' attempt
       // records 0 and a 'pending' claim records an estimate; grading either
       // against jobs.platform_fee_amount would manufacture a critical finding
@@ -1052,14 +1217,7 @@ serve(async (req) => {
           // decidedBySplit above.
           if (job.status !== "cancelled") return;
           if (decidedBySplit === null ? job.dispute_status != null : decidedBySplit.has(job.id as string)) return;
-          const feeCents = Math.round(computeCancellationFee({
-            budget: money(job.budget),
-            date_needed: job.date_needed as string | null,
-            start_time: job.start_time as string | null,
-            cancelled_at: job.cancelled_at as string | null,
-            helper_id: job.helper_id as string | null,
-            helper_confirmed_at: job.helper_confirmed_at as string | null,
-          }) * 100);
+          const feeCents = Math.round(expectedCancellationFee(job) * 100);
           const nonRefundableCents = Math.max(
             Math.round(money(job.customer_fee_amount) * 100),
             actualOrEstimatedFeeCents(pi, capturedCents),

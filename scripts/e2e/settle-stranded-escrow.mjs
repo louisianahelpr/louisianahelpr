@@ -51,7 +51,7 @@ const seats = { posterId: poster.userId, helperId: helper.userId };
 async function stranded() {
   if (ONLY) return [await readJobRow({ base: BASE, anon: ANON, posterToken: poster.token, jobId: ONLY })];
   const url =
-    `${BASE}/rest/v1/jobs?select=id,title,status,payment_status,customer_id,helper_id,is_seed,disputed_at,has_active_dispute,created_at` +
+    `${BASE}/rest/v1/jobs?select=id,title,stripe_session_id,status,payment_status,customer_id,helper_id,is_seed,disputed_at,has_active_dispute,created_at` +
     `&customer_id=eq.${poster.userId}&helper_id=eq.${helper.userId}` +
     `&payment_status=eq.escrow&status=in.(accepted,in_progress,revision_requested)` +
     `&title=like.*${encodeURIComponent(MARKER)}*&order=created_at.asc`;

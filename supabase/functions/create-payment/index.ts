@@ -1189,9 +1189,32 @@ serve(async (req) => {
       if (jobError || !job) throw new PublicError("Job not found");
       if (job.status !== "completed") throw new PublicError("Job must be completed to tip");
       if (user.id !== job.customer_id) throw new PublicError("Only the person who posted this job can tip the Helpr");
-      if (!job.helper_id) throw new PublicError("No Helpr assigned to this job");
 
-      const helperId = job.helper_id;
+      // A crew has no lead (Q407): the poster tips a MEMBER, named in the
+      // request, who must be on this job's roster. A single-helper job tips its
+      // hired Helpr exactly as before (a named helper is ignored there).
+      let helperId: string;
+      if (job.is_group_job) {
+        const named = (body as { helperId?: unknown }).helperId;
+        if (typeof named !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(named)) {
+          throw new PublicError("Choose which Helpr on the crew to tip");
+        }
+        const { data: slot, error: slotErr } = await supabaseAdmin
+          .from("group_job_helpers")
+          .select("id")
+          .eq("job_id", jobId)
+          .eq("helper_id", named)
+          .limit(1);
+        if (slotErr) {
+          console.error(`[create-payment] tip — crew roster read failed for job ${jobId}:`, slotErr);
+          throw new PublicError("Could not verify who worked this job — please try again");
+        }
+        if ((slot?.length ?? 0) === 0) throw new PublicError("That Helpr didn't work this job");
+        helperId = named;
+      } else {
+        if (!job.helper_id) throw new PublicError("No Helpr assigned to this job");
+        helperId = job.helper_id;
+      }
 
       // Check if helper has a connected Stripe account for direct tip transfer.
       // A read ERROR must fail the request — treating it as "no Connect account"
@@ -1279,9 +1302,11 @@ serve(async (req) => {
         // field, so an older app build still gets partial protection.
         // The key names the charged total as well as the tip, so a retry can
         // only replay a session whose money fields are identical.
+        // A crew tip names its member too, so tipping two members the same
+        // amount in one attempt window is two sessions, not one replayed.
         idempotencyKey: tipAttemptId
-          ? `tip-${jobId}-${user.id}-${tipCents}-c${tipQuote.chargeCents}-${tipAttemptId}`
-          : `tip-${jobId}-${user.id}-${tipCents}-c${tipQuote.chargeCents}-${Math.floor(Date.now() / 600_000)}`,
+          ? `tip-${jobId}-${user.id}${job.is_group_job ? `-${helperId}` : ""}-${tipCents}-c${tipQuote.chargeCents}-${tipAttemptId}`
+          : `tip-${jobId}-${user.id}${job.is_group_job ? `-${helperId}` : ""}-${tipCents}-c${tipQuote.chargeCents}-${Math.floor(Date.now() / 600_000)}`,
       });
 
       // Ledger row for the webhook to reconcile against. The idempotency key
@@ -1327,6 +1352,31 @@ serve(async (req) => {
       if (job.customer_id !== user.id) throw new PublicError("Not authorized");
 
       // ── Only an unhired, undisputed job is the poster's to refund here ──
+      // A group job's crew is its roster (group_job_helpers); jobs.helper_id is
+      // only the lead, and is NULL on a crew whose lead left or was removed
+      // (20260925140148). A crew with hired members is a hired job: it goes
+      // through Cancel job like any other. Fail-closed on a read error.
+      const { data: crew, error: crewErr } = await supabaseAdmin
+        .from("group_job_helpers")
+        .select("id")
+        .eq("job_id", jobId)
+        .limit(1);
+      if (crewErr) {
+        console.error(`[create-payment] cancel_escrow roster check failed for job ${jobId}: ${crewErr.message}`);
+        return new Response(JSON.stringify({
+          error: "Couldn't check who is hired on this job. No money was moved — try again.",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+      }
+      if ((crew?.length ?? 0) > 0) {
+        console.error(
+          `[create-payment] cancel_escrow REFUSED on job ${jobId} (caller ${user.id}): group job with hired crew members, helper=${job.helper_id ?? "none"}`,
+        );
+        return new Response(JSON.stringify({
+          error: "This job has a Helpr or has already started, so it has to be cancelled with Cancel job — that applies the cancellation rules and refunds you. No money was moved.",
+          useCancelJob: true,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+      }
+
       // This door checked `payment_status` alone, and it is reachable by any
       // poster with a JWT (no UI calls it; the prod test sweepers do). So:
       //   * on a DISPUTED job the poster — the side that filed, or the side
@@ -1396,6 +1446,58 @@ serve(async (req) => {
         return new Response(JSON.stringify({
           error: "This payment can no longer be cancelled — it has already been released, refunded, or was never held in escrow.",
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+      }
+
+      // ── A crew is hired through its roster, never through helper_id ──
+      // The claim's `helper_id IS NULL` stands for "nobody is hired", which is
+      // not true of a group job: a crew has no lead and jobs.helper_id is NULL
+      // on every group job (20260925154606). The roster read above can be
+      // overtaken by a hire that commits before this claim, so read it again
+      // NOW. It is final: the claimed job reads payment_status 'cancelling',
+      // and enforce_group_roster_award_gate refuses to add a crew member to an
+      // unfunded job, so no hire can land after this line. Anyone hired puts
+      // the claim back and sends the poster to Cancel job; a read error does
+      // the same and moves no money (fail closed).
+      if (job.is_group_job) {
+        const { data: crewNow, error: crewNowErr } = await supabaseAdmin
+          .from("group_job_helpers")
+          .select("id, helper_id")
+          .eq("job_id", jobId)
+          .limit(1);
+        if (crewNowErr || (crewNow?.length ?? 0) > 0) {
+          const { data: restored, error: restoreErr } = await supabaseAdmin
+            .from("jobs")
+            .update({ payment_status: job.payment_status })
+            .eq("id", jobId)
+            .eq("status", job.status)
+            .eq("payment_status", "cancelling")
+            .select("id");
+          if (restoreErr || !restored || restored.length === 0) {
+            console.error(
+              `CRITICAL: [create-payment] cancel_escrow on crew job ${jobId} could not put its claim back (payment_status stays 'cancelling'; no money moved): ${restoreErr?.message ?? "zero rows"}`,
+            );
+            // A job stuck in 'cancelling' blocks every payout and hire on it
+            // (money review LOW-12): page, do not only log.
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "critical",
+              title: "Crew job stuck in 'cancelling' — claim could not be put back",
+              message: `cancel_escrow claimed crew job ${jobId} (payment_status -> 'cancelling'), found a hired member, and could not restore payment_status. No money moved. Set payment_status back to '${job.payment_status}' by hand.`,
+              fields: { job_id: jobId, restore_to: String(job.payment_status), db_error: (restoreErr?.message ?? "zero rows").slice(0, 200) },
+            });
+          }
+          if (crewNowErr) {
+            console.error(`[create-payment] cancel_escrow post-claim roster check failed for job ${jobId}: ${crewNowErr.message}`);
+            return new Response(JSON.stringify({
+              error: "Couldn't check who is hired on this job. No money was moved — try again.",
+            }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+          }
+          console.error(`[create-payment] cancel_escrow REFUSED after claim on job ${jobId} (caller ${user.id}): crew member ${crewNow?.[0]?.helper_id ?? "(anonymised)"} was hired`);
+          return new Response(JSON.stringify({
+            error: "This job has a Helpr or has already started, so it has to be cancelled with Cancel job — that applies the cancellation rules and refunds you. No money was moved.",
+            useCancelJob: true,
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+        }
       }
 
       // With immediate capture, we need to refund instead of cancel.

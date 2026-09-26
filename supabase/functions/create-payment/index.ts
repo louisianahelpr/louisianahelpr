@@ -1655,8 +1655,9 @@ serve(async (req) => {
           message:
             `cancel_escrow on job ${jobId} could not give the recipient's gift card back, so the job was left 'cancelling' ` +
             "instead of cancelled. Any shortfall refund above has been issued. MANUAL ACTION: nothing retries this " +
-            "automatically and the job is still open and hireable; re-run cancel_escrow for it (a repeat call does not " +
-            "refund twice and the restore is idempotent) or restore the gift by hand before anyone is hired.",
+            "automatically unless the poster taps cancel again. While 'cancelling' the job cannot be hired or applied to " +
+            "(every hire/apply gate admits only 'open'); re-run cancel_escrow for it (a repeat call does not refund " +
+            "twice and the restore is idempotent) or restore the gift by hand and finish the cancel.",
           fields: { job_id: jobId, reason: giftBack.reason.slice(0, 200) },
           seed: job.is_seed === true,
         });

@@ -5,7 +5,7 @@
  * failed the batch, was reported on every inbox load, kept every live local
  * pin from syncing, and stayed in the mirror forever.
  *
- * @mutate src/lib/pinnedConversations.ts | if (isGonePin(rowError)) gone.add(pinnedKey(row.job_id, row.other_user_id)); | if (isGonePin(rowError)) void 0;
+ * @mutate src/lib/pinnedConversations.ts | if (isGoneReference(rowError)) gone.add(pinnedKey(row.job_id, row.other_user_id)); | if (isGoneReference(rowError)) void 0;
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 

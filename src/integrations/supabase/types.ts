@@ -5308,6 +5308,7 @@ export type Database = {
       }
       check_dispute_velocity: { Args: { p_user_id: string }; Returns: boolean }
       check_error_log_throttle: { Args: never; Returns: Json }
+      check_ops_alert_pending: { Args: never; Returns: Json }
       check_ops_digest_delivery: { Args: never; Returns: Json }
       check_push_token_health: { Args: never; Returns: Json }
       check_seed_boundary_failures: { Args: never; Returns: Json }

@@ -33,7 +33,7 @@
  *       the database unless the re-run started after the last occurrence.
  */
 import { execFileSync } from "node:child_process";
-import { OPEN_ITEMS_SQL, lit, newestNightlyIssueByTitle, recordOpsAlert, sql } from "./lib/opsAlertLedger.mjs";
+import { OPEN_ITEMS_SQL, PENDING_SQL, lit, newestNightlyIssueByTitle, recordOpsAlert, sql, unreadableReason } from "./lib/opsAlertLedger.mjs";
 import { sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
 
 const [, , cmd, ...rest] = process.argv;
@@ -55,11 +55,23 @@ async function list() {
   const brief = flag("brief");
   const limit = Number(opt("limit", brief ? 5 : 50));
   let rows;
+  let pending = null;
   try {
     rows = await sql(OPEN_ITEMS_SQL, { readOnly: true, timeoutMs: brief ? 8000 : 20000 });
   } catch (e) {
-    console.log(`ops alert ledger: could not read (${String(e.message).split("\n")[0].slice(0, 160)})`);
+    console.log(`ops alert ledger: could not read (${unreadableReason(e)})`);
     process.exit(brief ? 0 : 2);
+  }
+  try {
+    pending = (await sql(PENDING_SQL, { readOnly: true, timeoutMs: brief ? 4000 : 20000 }))[0] ?? null;
+  } catch (e) {
+    console.log(`ops alert ledger: queued occurrences unknown (${unreadableReason(e)})`);
+  }
+  if (pending && Number(pending.n) > 0) {
+    console.log(
+      `ops alert ledger: ${pending.n} occurrence(s) QUEUED, not yet folded in (oldest ${String(pending.oldest).slice(0, 16)}); ` +
+        "the counts below miss them until ops_alert_fold_pending() runs.",
+    );
   }
   if (brief) {
     if (!rows.length) {

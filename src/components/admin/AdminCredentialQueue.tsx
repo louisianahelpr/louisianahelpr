@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isStorageObjectPath, safeDocumentUrl } from "@/lib/storagePath";
+import { openSignedDocument } from "@/lib/openSignedDocument";
 import { report } from "@/lib/errorLogger";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
@@ -501,16 +502,22 @@ function SignedOpenLink({ path }: { path: string }) {
       else toast.error("This document link isn't one we can open.");
       return;
     }
+    // Q295: the tab opens inside the click (before any await), or WebKit
+    // blocks it silently; openSignedDocument then points it at the URL.
     setBusy(true);
-    const { data, error } = await supabase.storage
-      .from("user-documents")
-      .createSignedUrl(path, 300);
+    await openSignedDocument({
+      open: (url, target) => window.open(url, target),
+      sign: async () => {
+        if (!isStorageObjectPath(path)) return null;
+        const { data, error } = await supabase.storage
+          .from("user-documents")
+          .createSignedUrl(path, 300);
+        if (error) report(error, { tags: { source: "AdminCredentialQueue.SignedOpenLink" } });
+        return error || !data ? null : data.signedUrl;
+      },
+      toastError: (msg) => toast.error(msg),
+    });
     setBusy(false);
-    if (error || !data) {
-      toast.error("Couldn't generate a view link.");
-      return;
-    }
-    window.open(data.signedUrl, "_blank", "noopener");
   };
   return (
     <button

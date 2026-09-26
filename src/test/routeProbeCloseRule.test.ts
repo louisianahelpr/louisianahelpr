@@ -14,11 +14,24 @@
  *     were all clean (scripts/audit/pressRouteProbe.mjs).
  * Behaviour (3x apply, red without the migration): src/test/pglite/routeProbeCloseRule.pglite.mjs.
  *
- * @mutate supabase/migrations/20260926035556_cron_silent_close_rule.sql | AND p.passed_at > p_since); | AND p.passed_at > p_since - interval '100 years');
+ * Q298 (lh-authz-rls review of 8e686d57c), 20260926034740:
+ *   - the newest ops_alert_condition returns true (still failing) for an item
+ *     with no screen BEFORE the probe check: ops_route_key(null/'') is '/', so
+ *     otherwise any clean press pass on / closed a screenless item;
+ *   - it equals the definition before it except that one line;
+ *   - the newest record_route_probe_passes refuses a call over its route cap and
+ *     truncates each route before keying it, and equals the one before it otherwise;
+ *   - both are revoked FROM PUBLIC, anon, authenticated again.
+ *
+ * @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql | AND p.passed_at > p_since); | AND p.passed_at > p_since - interval '100 years');
  * @mutate supabase/migrations/20260923182022_ops_route_probe_close_rule.sql | REVOKE ALL ON FUNCTION public.record_route_probe_passes(text[], text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.record_route_probe_passes(text[], text) FROM PUBLIC;
  * @mutate supabase/migrations/20260923182022_ops_route_probe_close_rule.sql | ELSIF p_source = 'seed-boundary-check-failed' THEN | ELSIF p_source = 'seed-boundary-check-failed-x' THEN
  * @mutate scripts/audit/pressRouteProbe.mjs | if (r.status === "ok" && !(r.failed > 0)) v.clean++; | v.clean++;
  * @mutate scripts/audit/press-every-control.mjs | const probePasses = routeProbePasses(results); | const probePasses = [];
+ * @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql | IF nullif(p_sample_ref ->> 'screen', '') IS NULL THEN RETURN true; END IF; | IF false THEN RETURN true; END IF;
+ * @mutate supabase/migrations/20260926034740_route_probe_close_rule_hardening.sql | IF cardinality(p_routes) > 1000 THEN | IF cardinality(p_routes) > 100000 THEN
+ * @mutate supabase/migrations/20260926034740_route_probe_close_rule_hardening.sql | public.ops_route_key(left(r, 512)) | public.ops_route_key(r)
+ * @mutate supabase/migrations/20260926034740_route_probe_close_rule_hardening.sql | FUNCTION public.record_route_probe_passes(text[], text) FROM PUBLIC, anon, authenticated; | FUNCTION public.record_route_probe_passes(text[], text) FROM PUBLIC;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -153,5 +166,70 @@ describe("Q94: the press run writes a pass only for screens it walked cleanly", 
     const press = blankComments(readFileSync(join(ROOT, "scripts/audit/press-every-control.mjs"), "utf8"));
     expect(press).toContain("const probePasses = routeProbePasses(results);");
     expect(press).toMatch(/const probe = await recordRouteProbePasses\(probePasses, RUN_ID,/);
+  });
+});
+
+describe("Q298: the route-probe close rule is hardened", () => {
+  const Q298_FILE = "20260926034740_route_probe_close_rule_hardening.sql";
+  const EARLY = "IF nullif(p_sample_ref ->> 'screen', '') IS NULL THEN RETURN true; END IF;";
+  const PROBE = "RETURN NOT EXISTS ( SELECT 1 FROM public.ops_route_probe p";
+  const BOUND = / IF cardinality\(p_routes\) > 1000 THEN RAISE EXCEPTION '[^']*', cardinality\(p_routes\) USING ERRCODE = '22023'; END IF;/;
+
+  const conds = definitions("ops_alert_condition");
+  const cond = conds[conds.length - 1];
+  const writers = definitions("record_route_probe_passes");
+  const writer = writers[writers.length - 1];
+  /** Q298's own definition of `defs` and the one before it (restatement checks read Q298 by name). */
+  const ownAndPrior = (defs: Array<{ file: string; body: string }>) => {
+    const idx = defs.findIndex((d) => d.file === Q298_FILE);
+    return { own: defs[idx], prior: idx > 0 ? defs[idx - 1] : undefined };
+  };
+
+  it("reads a real history (floor)", () => {
+    expect(conds.length).toBeGreaterThan(6);
+    expect(writers.length).toBeGreaterThan(1);
+    expect(cond.file >= Q298_FILE, cond.file).toBe(true);
+    expect(writer.file >= Q298_FILE, writer.file).toBe(true);
+  });
+
+  it("the newest ops_alert_condition keeps a screenless item failing before it asks the probe", () => {
+    const t = ws(tailOf(ws(cond.body)));
+    expect(t, `${cond.file}: user-error-screen tail not found`).not.toBe("");
+    const early = t.indexOf(EARLY);
+    expect(early, `${cond.file}: the screenless early return`).toBeGreaterThan(-1);
+    expect(t.indexOf(PROBE), `${cond.file}: the probe check comes after it`).toBeGreaterThan(early);
+  });
+
+  it("Q298's ops_alert_condition is its predecessor plus only that line", () => {
+    const { own, prior } = ownAndPrior(conds);
+    expect(own, `${Q298_FILE} defines ops_alert_condition`).toBeTruthy();
+    expect(prior, "a prior definition exists").toBeTruthy();
+    expect(ws(own!.body).replace(` ${EARLY}`, ""), `${Q298_FILE} vs ${prior!.file}`).toBe(ws(prior!.body));
+  });
+
+  it("the newest record_route_probe_passes bounds its input", () => {
+    const w = ws(writer.body);
+    expect(w).toMatch(BOUND);
+    expect(w).toContain("SELECT DISTINCT public.ops_route_key(left(r, 512)), now(), left(p_run_ref, 200)");
+    expect(w).not.toContain("ops_route_key(r)");
+  });
+
+  it("Q298's record_route_probe_passes is its predecessor plus only the bounds", () => {
+    const { own, prior } = ownAndPrior(writers);
+    expect(own, `${Q298_FILE} defines record_route_probe_passes`).toBeTruthy();
+    expect(prior, "a prior definition exists").toBeTruthy();
+    const unbound = ws(own!.body).replace(BOUND, "").replace("ops_route_key(left(r, 512))", "ops_route_key(r)");
+    expect(unbound, `${Q298_FILE} vs ${prior!.file}`).toBe(ws(prior!.body));
+  });
+
+  it("both restated functions are revoked FROM PUBLIC, anon, authenticated; service_role only", () => {
+    const sql = blankSqlComments(readFileSync(join(MIG, Q298_FILE), "utf8"));
+    for (const fn of [
+      "public.record_route_probe_passes(text[], text)",
+      "public.ops_alert_condition(text, jsonb, timestamptz, boolean)",
+    ]) {
+      expect(sql, fn).toContain(`REVOKE ALL ON FUNCTION ${fn} FROM PUBLIC, anon, authenticated;`);
+      expect(sql, fn).toContain(`GRANT EXECUTE ON FUNCTION ${fn} TO service_role;`);
+    }
   });
 });

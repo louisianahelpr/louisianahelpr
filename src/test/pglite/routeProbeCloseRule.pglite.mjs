@@ -5,6 +5,7 @@
  *
  *   node src/test/pglite/routeProbeCloseRule.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/routeProbeCloseRule.pglite.mjs   # RED: 24h half only
+ *   Q298_MIGRATION=skip node src/test/pglite/routeProbeCloseRule.pglite.mjs  # RED: screenless closes via /, unbounded
  *
  * pglite is not a dependency (CLAUDE.md): it is loaded from ~/.lh-pglite
  * (override with PGLITE_DIR). The fixture schema is the Q96 proof's
@@ -23,6 +24,11 @@
  *   - a pass does not override a real occurrence < 24h old;
  *   - an item with no screen stays failing; the overflow item keeps the 24h
  *     rule alone;
+ *   - Q298 (20260926034740, applied 3x after Q287's restatement): an item with
+ *     no screen (missing or '') stays failing even with a clean pass on '/'
+ *     (ops_route_key(null/'') = '/'); record_route_probe_passes refuses a call
+ *     over its route cap and truncates each route before keying it (the caps
+ *     are the migration's constants, asserted below);
  *   - anon/authenticated can execute neither new function and have no
  *     privilege on ops_route_probe; service_role can.
  */
@@ -49,6 +55,10 @@ const CHAIN = [
   "20260923181420_user_reports_reach_the_ledger.sql",
 ];
 const Q94 = "20260923182022_ops_route_probe_close_rule.sql";
+// Q287 restated ops_alert_condition after Q94 (the newest body Q298 restates).
+const Q287 = "20260923215732_cron_http_untagged_close_rule.sql";
+const Q355 = "20260925155922_admin_queue_alerts_close_themselves.sql";
+const Q298 = "20260926034740_route_probe_close_rule_hardening.sql";
 
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -154,6 +164,21 @@ else {
       check(`apply ${Q94.slice(0, 14)} pass #${i}`, false, e.message);
     }
   }
+  try { await db.exec(mig(Q287)); } catch (e) { check(`chain ${Q287}`, false, e.message); }
+  // Q355 restated ops_alert_condition after Q287; Q298 restates on top of it.
+  try { await db.exec(mig(Q355)); } catch (e) { check(`chain ${Q355}`, false, e.message); }
+}
+const SKIP298 = SKIP || process.env.Q298_MIGRATION === "skip";
+if (SKIP298) console.log("Q298_MIGRATION=skip: running WITHOUT the Q298 migration (expect FAILs)");
+else {
+  for (let i = 1; i <= 3; i++) {
+    try {
+      await db.exec(mig(Q298));
+      check(`apply ${Q298.slice(0, 14)} pass #${i}`, true);
+    } catch (e) {
+      check(`apply ${Q298.slice(0, 14)} pass #${i}`, false, e.message);
+    }
+  }
 }
 
 // Q64's branches must survive the restatement (it is the newest body before Q94).
@@ -237,6 +262,44 @@ check("a probe pass does not override a real occurrence < 24h old", (await condO
 const noScreen = (await q(`SELECT public.ops_alert_condition('user-error-screen',
     jsonb_build_object('title_norm', 'no screen · boom'), now() - interval '30 hours', false) c`))[0].c;
 check("an item with no screen stays failing (nothing to probe)", noScreen === true, String(noScreen));
+
+// Q298: ops_route_key(null/'') = '/', so a clean pass on / must not close a screenless item.
+try { await q(`SELECT public.record_route_probe_passes(ARRAY['/'], 'run-root')`); }
+catch (e) { check("record a pass on /", false, e.message); }
+const rootPass = await q(`SELECT count(*)::int n FROM public.ops_route_probe WHERE route = '/' AND passed_at > now() - interval '30 hours'`)
+  .then((r) => r[0].n, (e) => e.message);
+check("a pass on / after p_since exists (the precondition)", rootPass === 1, String(rootPass));
+for (const [label, ref] of [
+  ["no screen key", { title_norm: "no screen · boom" }],
+  ["screen ''", { title_norm: "no screen · boom", screen: "" }],
+  ["screen null", { title_norm: "no screen · boom", screen: null }],
+]) {
+  const c = (await q(`SELECT public.ops_alert_condition('user-error-screen', $1::jsonb, now() - interval '30 hours', false) c`,
+    [JSON.stringify(ref)]))[0].c;
+  check(`Q298: ${label} + a pass on / stays failing (not closed via /)`, c === true, String(c));
+}
+// ...while a real screen on / still clears on that pass (the probe check is not bypassed).
+const rootScreen = (await q(`SELECT public.ops_alert_condition('user-error-screen',
+    '{"title_norm":"root · boom","screen":"/?x=1"}'::jsonb, now() - interval '30 hours', false) c`))[0].c;
+check("Q298: an item on screen / still clears on a pass on /", rootScreen === false, String(rootScreen));
+
+// Q298 (b): bounded input.
+const many = (n) => Array.from({ length: n }, (_, i) => `/bound/r${i}`);
+let tooMany = null;
+try { await q(`SELECT public.record_route_probe_passes($1::text[], 'run-big')`, [many(1001)]); tooMany = "accepted"; }
+catch (e) { tooMany = e.message; }
+check("Q298: 1001 routes in one call are refused", /at most 1000/.test(String(tooMany)), String(tooMany).slice(0, 80));
+let atCap = null;
+try { [{ n: atCap }] = await q(`SELECT public.record_route_probe_passes($1::text[], 'run-cap') n`, [many(1000)]); }
+catch (e) { atCap = e.message; }
+check("Q298: 1000 routes in one call are accepted", atCap === 1000, String(atCap));
+let longest = null;
+try {
+  await q(`SELECT public.record_route_probe_passes(ARRAY[$1], 'run-long')`, ["/long/" + "a".repeat(2000)]);
+  longest = (await q(`SELECT max(length(route))::int l FROM public.ops_route_probe WHERE route LIKE '/long/%'`))[0].l;
+  await q(`DELETE FROM public.ops_route_probe WHERE route LIKE '/bound/%' OR route LIKE '/long/%'`);
+} catch (e) { longest = e.message; }
+check("Q298: a route key is at most 512 characters", typeof longest === "number" && longest <= 512, String(longest));
 
 // Overflow keeps the 24h rule alone: no real rows at all in the last 24h -> cleared.
 await q(`UPDATE public.error_logs SET created_at = created_at - interval '48 hours'`);

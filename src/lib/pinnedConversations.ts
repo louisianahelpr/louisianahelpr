@@ -28,6 +28,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
+import { isGoneReference } from "@/lib/goneReference";
 
 const STORAGE_KEY_PREFIX = "helpr_pinned_threads_v2_";
 /** Pre-server key. Read once so existing session pins aren't yanked away. */
@@ -69,16 +70,6 @@ function isMissingTable(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
   const code = (error as { code?: string }).code;
   return code === "PGRST205" || code === "42P01";
-}
-
-/**
- * True when a pin points at a job or person that no longer exists (Postgres
- * 23503, a foreign-key violation). A job can be deleted after it was pinned on
- * this device; that pin can never be stored, so it is dropped, not retried.
- */
-function isGonePin(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  return (error as { code?: string }).code === "23503";
 }
 
 function readLocal(userId: string): Set<string> {
@@ -162,13 +153,13 @@ export async function loadPins(userId: string): Promise<Set<string>> {
           .from("thread_pins")
           .upsert(batch, { onConflict: "user_id,job_id,other_user_id", ignoreDuplicates: true });
       const { error: mergeError } = await pushPins(rows);
-      if (isGonePin(mergeError)) {
+      if (isGoneReference(mergeError)) {
         // One pin to a deleted job fails the whole batch (Sentry JAVASCRIPT-2K,
         // 2026-09-25). Retry one at a time so the live pins still sync, and
         // drop the ones whose job or person is gone.
         for (const row of rows) {
           const { error: rowError } = await pushPins([row]);
-          if (isGonePin(rowError)) gone.add(pinnedKey(row.job_id, row.other_user_id));
+          if (isGoneReference(rowError)) gone.add(pinnedKey(row.job_id, row.other_user_id));
           else if (rowError && !isMissingTable(rowError)) {
             report(rowError, { severity: "warning", tags: { source: "pinnedConversations.mergeLocalPins" } });
           }
@@ -239,6 +230,10 @@ export function togglePinned(userId: string, jobId: string, otherUserId: string)
       else rollback.add(k);
       cache.set(userId, rollback);
       writeLocal(userId, rollback);
+      // The thread's job (or person) was deleted while the inbox was open:
+      // the pin can never be stored and the rollback above already dropped
+      // it, so this is not a fault. Any other error still reports.
+      if (isGoneReference(error)) return;
       report(error, { severity: "warning", tags: { source: "pinnedConversations.togglePinned" } });
     }
   })();

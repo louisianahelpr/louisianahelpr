@@ -44,8 +44,8 @@ import { latestFunctionDefs } from "./helpers/rpcErrorInventory";
 const ROOT = process.cwd();
 const MIGRATIONS = join(ROOT, "supabase", "migrations");
 
-type Channel = "reports-table" | "contact-support" | "support-redirect" | "not-a-report";
-type Surface = { file: string; kind: "write" | "invoke" | "entry"; target: string; channel: Channel; note: string };
+type Channel = "reports-table" | "contact-support" | "support-redirect" | "store-review" | "not-a-report";
+type Surface = { file: string; kind: "write" | "invoke" | "entry" | "ingest"; target: string; channel: Channel; note: string };
 
 /** Every reporting surface in the app. Two-way with the source scan below. */
 export const SURFACES: Surface[] = [
@@ -65,6 +65,8 @@ export const SURFACES: Surface[] = [
     note: "a disputed job's contact-support link (poster side)" },
   { file: "src/pages/auth/AccountBanned.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
     note: "suspension appeal opens /support?topic=message" },
+  { file: "scripts/app-store-reviews.mjs", kind: "ingest", target: "app-store-review", channel: "store-review",
+    note: "Q289: App Store reviews rated <= 3, pulled daily by app-store-reviews.yml" },
   { file: "src/lib/nps.ts", kind: "write", target: "nps_responses", channel: "not-a-report",
     note: "NPS is a 1-5 survey with an optional comment, not a problem report; read on /admin analytics" },
 ];
@@ -101,6 +103,14 @@ function scan(): Set<string> {
     for (const m of src.matchAll(/functions\/v1\/([\w-]+)/g))
       if (REPORT_SHAPED.test(m[1])) found.add(`${file}|invoke|${m[1]}`);
     if (/["'`]\/support\?topic=/.test(src)) found.add(`${file}|entry|/support?topic=`);
+  }
+  // Store-review ingesters (Q289): a script that records `user-report` items
+  // itself, from an outside source, names that source as SOURCE.
+  for (const e of readdirSync(join(ROOT, "scripts")).filter((f) => f.endsWith(".mjs"))) {
+    const src = blankComments(readFileSync(join(ROOT, "scripts", e), "utf8"));
+    if (!/sourceKind:\s*["']user-report["']/.test(src)) continue;
+    const m = /export const SOURCE = ["']([\w-]+)["']/.exec(src);
+    found.add(`scripts/${e}|ingest|${m?.[1] ?? "(no SOURCE)"}`);
   }
   return found;
 }
@@ -229,5 +239,47 @@ describe("user-report text never reaches a public log", () => {
       }
     }
     expect(__read("scripts/morning-page.mjs", "utf8")).toContain("CASE WHEN source_kind = 'user-report'");
+  });
+});
+
+// Q289: App Store reviews that report a problem reach the ledger.
+// @mutate scripts/app-store-reviews.mjs | r.attributes.rating <= 3) | r.attributes.rating <= 5)
+// @mutate scripts/app-store-reviews.mjs | return !last \|\| Date.parse(r.attributes.createdDate) > Date.parse(last); | return true;
+// @mutate scripts/app-store-reviews.mjs | verifyKind: "manual", | verifyKind: "sql_condition",
+// @mutate .github/workflows/app-store-reviews.yml | run: node scripts/app-store-reviews.mjs | run: echo skipped
+// @ts-expect-error untyped .mjs (same as opsLedgerNightlyItemsCanClose.test.ts)
+import { reviewsToRecord as __reviewsToRecord, titleFor as __titleFor, SOURCE as __ASR_SOURCE } from "../../scripts/app-store-reviews.mjs";
+describe("store-review: App Store reviews rated <= 3 become user-report items (Q289)", () => {
+  const rev = (id: string, rating: number, createdDate: string) =>
+    ({ id, attributes: { rating, title: "t", body: "b", createdDate, territory: "USA" } });
+  const reviews = [
+    rev("a", 5, "2026-09-25T10:00:00Z"), rev("b", 2, "2026-09-25T11:00:00Z"),
+    rev("c", 3, "2026-09-25T12:00:00Z"), rev("d", 1, "2026-09-24T09:00:00Z"),
+  ];
+  it("records only ratings <= 3, oldest first, as user-report / app-store-review / manual", () => {
+    const out = __reviewsToRecord(reviews, new Map());
+    expect(out.map((o: { sampleRef: { review_id: string } }) => o.sampleRef.review_id)).toEqual(["d", "b", "c"]);
+    for (const o of out) {
+      expect(o.sourceKind).toBe("user-report");
+      expect(o.source).toBe(__ASR_SOURCE);
+      expect(o.verifyKind).toBe("manual");
+      expect(o.title, "the title never carries review text").not.toMatch(/\bt\b|\bb\b/);
+    }
+  });
+  it("is idempotent: a review not newer than its item's last_seen is skipped", () => {
+    const last = new Map([[__titleFor(2), "2026-09-25T11:00:00Z"], [__titleFor(1), "2026-09-20T00:00:00Z"]]);
+    const ids = __reviewsToRecord(reviews, last).map((o: { sampleRef: { review_id: string } }) => o.sampleRef.review_id);
+    expect(ids).toEqual(["d", "c"]);
+  });
+  it("titles differ per rating in words (the normaliser strips digits)", () => {
+    expect(new Set([1, 2, 3].map(__titleFor)).size).toBe(3);
+    expect([1, 2, 3].map(__titleFor).join(" ")).not.toMatch(/\d/);
+  });
+  it("runs daily in CI with the ASC key and reports its own red", () => {
+    const wf = readFileSync(join(ROOT, ".github/workflows/app-store-reviews.yml"), "utf8");
+    expect(wf).toMatch(/schedule:\s*\n\s*- cron:/);
+    expect(wf).toMatch(/run: node scripts\/app-store-reviews\.mjs/);
+    expect(wf).toMatch(/ASC_KEY_ID: \$\{\{ secrets\.ASC_KEY_ID \}\}/);
+    expect(wf).toMatch(/workflow-name: app-store-reviews/);
   });
 });

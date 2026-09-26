@@ -1,4 +1,4 @@
-// @mutate supabase/migrations/20260926035556_cron_silent_close_rule.sql | ELSIF p_source = 'db-saturation' THEN | ELSIF p_source = 'db-saturation-x' THEN
+// @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql | ELSIF p_source = 'db-saturation' THEN | ELSIF p_source = 'db-saturation-x' THEN
 // @mutate supabase/migrations/20260923090536_db_saturation_monitor.sql | PERFORM cron.schedule('db-saturation-check', '*/5 * * * *', | PERFORM cron.schedule('db-saturation-check', '0 3 * * *',
 // @mutate supabase/migrations/20260923090536_db_saturation_monitor.sql | jsonb_build_object('source', 'db-statement-timeouts', 'area', 'database'), | jsonb_build_object('source', 'db-statement-timeout', 'area', 'database'),
 // @mutate supabase/migrations/20260925231818_cron_work_visibility.sql | JOIN firsts f ON f.jobname = m.jobname | CROSS JOIN LATERAL (SELECT COALESCE((SELECT min(m2.rn) FROM marked m2 WHERE m2.jobname = m.jobname AND NOT m2.suspicious), 2147483647) AS first_ok) f

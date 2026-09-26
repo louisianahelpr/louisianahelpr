@@ -766,7 +766,7 @@ export async function ensureMessyInputState(
     const svcKey: string = svc;
     const docPath = `${s.helper.user.id}/credentials/trade_license-${Date.now()}.png`;
     const up = await api.post(`${SUPABASE_URL}/storage/v1/object/user-documents/${docPath}`, {
-      headers: rest(s.helper, { "Content-Type": "image/png", "x-upsert": "false" }),
+      headers: rest(s.helper, { "Content-Type": "image/png", "x-upsert": "false", "cache-control": "max-age=3600" }),
       data: Buffer.from(SEED_PIXEL.split(",")[1], "base64"),
     });
     expect(up.ok(), `upload a fixture credential document: ${up.status()} ${await up.text()}`).toBe(true);

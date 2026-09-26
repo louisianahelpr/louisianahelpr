@@ -6,7 +6,9 @@ import {
   isChunkLoadError,
   hardReloadBypassCache,
   recoverFromChunkError,
+  isRecoveryReloadInFlight,
 } from "@/lib/chunkReload";
+import { ChunkRecoveringState } from "@/components/ChunkRecoveringState";
 
 // Inline SVGs instead of lucide-react so this class component (which must be
 // statically imported) doesn't pull the entire lucide chunk onto the critical
@@ -38,6 +40,8 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  /** True while a stale-chunk recovery reload is starting or scheduled (Q286). */
+  recovering?: boolean;
 }
 
 class ErrorBoundary extends React.Component<Props, State> {
@@ -47,17 +51,30 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    // Decided here too, so the first fallback render is already quiet when a
+    // recovery reload is in flight (see RouteErrorBoundary).
+    return { hasError: true, error, recovering: isRecoveryReloadInFlight() };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // A stale chunk gets at most two automatic cache-busting reloads (bounded, see chunkReload). Only
-    // when that reload actually starts is the error skipped as deploy noise.
-    // If it does not start — it already ran and the chunk still failed, or the
-    // device is offline — this is a real failure and is reported like any
-    // other. It used to be skipped unconditionally and shown as "Update
-    // ready", a claim that is false in exactly that case (owner, 2026-09-12).
-    if (isChunkLoadError(error) && recoverFromChunkError()) return;
+    // A recovery reload is already leaving this page: whatever broke meanwhile
+    // is a symptom of it. No card, no report.
+    if (isRecoveryReloadInFlight()) {
+      if (!this.state.recovering) this.setState({ recovering: true });
+      return;
+    }
+    // A stale chunk gets a bounded schedule of automatic cache-busting reloads
+    // (CHUNK_RELOAD_SCHEDULE_MS in chunkReload). While one is starting or
+    // scheduled, recoverFromChunkError() returns true and this boundary shows
+    // the quiet reloading state (Q286), never the error card. When recovery is
+    // over — attempts spent, or offline — this is a real failure and is
+    // reported like any other. It used to be skipped unconditionally and shown
+    // as "Update ready", a claim that is false in exactly that case (owner,
+    // 2026-09-12).
+    if (isChunkLoadError(error) && recoverFromChunkError()) {
+      this.setState({ recovering: true });
+      return;
+    }
     report(error, {
       severity: "error",
       tags: { source: "ErrorBoundary", kind: USER_ERROR_SCREEN, screen: currentScreen() },
@@ -70,7 +87,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     // crash on one page doesn't trap the user — navigating elsewhere
     // renders a working tree under this still-mounted boundary.
     if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
-      this.setState({ hasError: false, error: null });
+      this.setState({ hasError: false, error: null, recovering: false });
     }
   }
 
@@ -86,6 +103,7 @@ class ErrorBoundary extends React.Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      if (this.state.recovering) return <ChunkRecoveringState />;
       if (this.props.fallback) return this.props.fallback;
 
       const offline = typeof navigator !== "undefined" && navigator.onLine === false;

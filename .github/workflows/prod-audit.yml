@@ -124,7 +124,9 @@ jobs:
       - name: Drop the Google Chrome apt source
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
-      - run: npx playwright install --with-deps chromium
+      # WebKit too: notification-panel-jump.spec.ts (Q51) measures the panel
+      # edge in both engines, as the original fix was measured.
+      - run: npx playwright install --with-deps chromium webkit
       - name: Build and serve this commit locally (real backend, local frontend)
         uses: ./.github/actions/local-preview
         with:
@@ -198,11 +200,12 @@ jobs:
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
         # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
         # Not on a vacuity-only dispatch: the suites it budgets did not run.
-        # Not on a grep-pinned dispatch: the budget is per test over the whole
-        # suite, so 3 route-walking tests read 700/test against 93.5 (run
-        # 36216759390, a false red).
-        if: ${{ !cancelled() && inputs.vacuity_only == '' && inputs.grep == '' }}
-        run: node scripts/e2e/request-budget.mjs --label prod-audit
+        # A `grep` dispatch runs a subset: its per-test number is not the
+        # suite's, so only the load ceiling is judged (--ceiling-only).
+        if: ${{ !cancelled() && inputs.vacuity_only == '' }}
+        env:
+          GREP: ${{ inputs.grep }}
+        run: node scripts/e2e/request-budget.mjs --label prod-audit ${GREP:+--ceiling-only}
       - name: Keep failure screenshots, samples and traces
         if: always()
         uses: actions/upload-artifact@v7

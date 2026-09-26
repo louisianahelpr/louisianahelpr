@@ -60,8 +60,14 @@ export function budgetFor(budgets, label) {
 /**
  * Judge one label. Returns { failures: string[], notes: string[] }.
  * A two-way measured budget fails above it and under STALE_FRACTION of it.
+ *
+ * `ceilingOnly`: a SUBSET run (a workflow_dispatch with a test filter) cannot
+ * be held to perTest/signIns, which are measured over the whole suite: two
+ * tests of forty are not "under half the budget", they are a different run.
+ * The ceiling and the meter-attached check still apply; the per-test fields
+ * are printed as notes. Full runs never pass it.
  */
-export function judge(agg, budget) {
+export function judge(agg, budget, { ceilingOnly = false } = {}) {
   const failures = [];
   const notes = [];
   // A run whose tests executed but whose meter saw nothing measured no load:
@@ -77,6 +83,10 @@ export function judge(agg, budget) {
   }
   for (const [field, measured] of [["perTest", agg.perTest], ["signIns", agg.signIns]]) {
     const b = budget[field];
+    if (ceilingOnly) {
+      notes.push(`${agg.label}: subset run, ${field} not judged (measured ${measured}; the budget ${b ?? "null"} is for the whole suite)`);
+      continue;
+    }
     if (b === null || b === undefined) {
       notes.push(`${agg.label}: ${field} not calibrated; measured ${measured} this run (write it to e2e/request-budgets.json)`);
       continue;
@@ -139,11 +149,13 @@ function main(argv) {
   let dir = process.env.REQUEST_BUDGET_DIR || "request-budget";
   let budgetsFile = "e2e/request-budgets.json";
   let allowEmpty = false;
+  let ceilingOnly = false;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--label") labels.push(argv[++i]);
     else if (argv[i] === "--dir") dir = argv[++i];
     else if (argv[i] === "--budgets") budgetsFile = argv[++i];
     else if (argv[i] === "--allow-empty") allowEmpty = true;
+    else if (argv[i] === "--ceiling-only") ceilingOnly = true;
   }
   const budgets = JSON.parse(readFileSync(budgetsFile, "utf8")).budgets;
   const by = aggregate(readSamples(dir));
@@ -165,7 +177,7 @@ function main(argv) {
     }
     aggs.push(a);
     if (a.paceWaitMs > 0) notes.push(`${label}: paced by e2e/requestMeter.mjs, navigations held ${Math.round(a.paceWaitMs / 1000)}s in total to stay under the ceiling`);
-    const j = judge(a, budgetFor(budgets, label));
+    const j = judge(a, budgetFor(budgets, label), { ceilingOnly });
     failures.push(...j.failures);
     notes.push(...j.notes);
   }

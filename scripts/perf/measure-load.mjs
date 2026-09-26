@@ -39,6 +39,8 @@ const ONLY = arg("only", "");
 // inflates every JS byte ~3.5x and makes bandwidth look worse than prod).
 // "preview": `vite preview`, the setup the 2026-09-23 lead measurement used.
 const SERVER = arg("server", "gzip");
+// Fail (exit 1) when a route's median data-start is later than this many ms.
+const MAX_DATA_START = arg("max-data-start", "");
 const DIST_DIR = resolve(arg("dist", "dist"));
 const BASE = `http://localhost:${PORT}`;
 
@@ -47,7 +49,10 @@ const BASE = `http://localhost:${PORT}`;
 // the email field that only the real page has).
 const ROUTES = [
   { path: "/", name: "landing H1", selector: "h1", text: "Louisiana" },
-  { path: "/browse", name: "browse first card", selector: "div.group.cursor-pointer.bg-card" },
+  // `data`: the route's primary data read. Its start time is printed as
+  // data-start (Q206 b: the entry issues /browse's job list beside the app
+  // download; before that it started only once the page had mounted, 3.8 s).
+  { path: "/browse", name: "browse first card", selector: "div.group.cursor-pointer.bg-card", data: /\/rest\/v1\/open_jobs_browse\?select=id%2Ctitle/ },
   { path: "/login", name: "login form", selector: 'input[type="email"]' },
   { path: "/signup", name: "signup form", selector: 'input[type="email"], input[name="email"], input[autocomplete="email"]' },
 ].filter((r) => !ONLY || ONLY.split(",").includes(r.path));
@@ -159,8 +164,10 @@ async function measureOnce(browser, route) {
     last = s;
   }
   await context.close();
+  const data = route.data ? entries.filter((e) => route.data.test(e.name)).sort((a, b) => a.start - b.start)[0] : undefined;
   return {
     ms,
+    dataStart: data ? data.start : null,
     fcp,
     wall: Date.now() - t0,
     requestsBefore: before.length,
@@ -192,11 +199,12 @@ try {
       medianJsBefore: median(runs.map((r) => r.jsBefore)),
       medianJsKB: median(runs.map((r) => r.jsKB)),
       medianRounds: median(runs.map((r) => r.rounds)),
+      medianDataStart: route.data ? median(runs.map((r) => r.dataStart ?? Infinity)) : null,
       waterfall: runs[0].waterfall,
     };
     const r = results[route.path];
     console.log(
-      `${route.path.padEnd(8)} ${r.signal.padEnd(18)} median ${String(r.medianMs).padStart(5)} ms  runs ${r.runsMs.join("/")}  fcp ${r.medianFcp}  reqs-before ${r.medianRequestsBefore}  js ${r.medianJsBefore} (${r.medianJsKB} KB)  js-rounds ${r.medianRounds}`,
+      `${route.path.padEnd(8)} ${r.signal.padEnd(18)} median ${String(r.medianMs).padStart(5)} ms  runs ${r.runsMs.join("/")}  fcp ${r.medianFcp}  reqs-before ${r.medianRequestsBefore}  js ${r.medianJsBefore} (${r.medianJsKB} KB)  js-rounds ${r.medianRounds}${r.medianDataStart != null ? `  data-start ${r.medianDataStart}` : ""}`,
     );
   }
 } finally {
@@ -206,3 +214,8 @@ try {
 mkdirSync(OUT, { recursive: true });
 writeFileSync(join(OUT, `${LABEL}.json`), JSON.stringify(results, null, 2));
 console.log(`wrote ${join(OUT, `${LABEL}.json`)}`);
+if (MAX_DATA_START) {
+  const late = Object.entries(results).filter(([, r]) => r.medianDataStart != null && r.medianDataStart > Number(MAX_DATA_START));
+  for (const [path, r] of late) console.error(`✗ ${path}: data-start ${r.medianDataStart} ms > ${MAX_DATA_START} ms (Q206 b: its read waits for the page to mount again)`);
+  if (late.length) process.exit(1);
+}

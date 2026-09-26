@@ -1,7 +1,13 @@
 import React, { Suspense, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { isChunkLoadError, hardReloadBypassCache, recoverFromChunkError } from "@/lib/chunkReload";
+import {
+  isChunkLoadError,
+  hardReloadBypassCache,
+  recoverFromChunkError,
+  isRecoveryReloadInFlight,
+} from "@/lib/chunkReload";
+import { ChunkRecoveringState } from "@/components/ChunkRecoveringState";
 import { report } from "@/lib/errorLogger";
 import { currentScreen, USER_ERROR_SCREEN } from "@/lib/currentScreen";
 
@@ -50,6 +56,8 @@ interface State {
   /** Bumped on `Try again` so the children re-mount and re-attempt the
    *  failing data fetch / query. */
   resetCount: number;
+  /** True while a stale-chunk recovery reload is starting or scheduled (Q286). */
+  recovering?: boolean;
 }
 
 class SectionErrorBoundary extends React.Component<
@@ -59,14 +67,22 @@ class SectionErrorBoundary extends React.Component<
   state: State = { hasError: false, error: null, resetCount: 0 };
 
   static getDerivedStateFromError(error: Error): Partial<State> {
-    return { hasError: true, error };
+    return { hasError: true, error, recovering: isRecoveryReloadInFlight() };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Same one-shot automatic reload the page-level boundaries use for a stale
-    // chunk. Only when it actually starts is the error treated as deploy noise;
-    // otherwise it is a real failure and is reported.
-    if (isChunkLoadError(error) && recoverFromChunkError()) return;
+    // Same bounded automatic reload schedule the page-level boundaries use for
+    // a stale chunk. While a reload is starting or scheduled (or already in
+    // flight) the section shows the quiet reloading state, not its error card
+    // (Q286); once recovery is over it is a real failure and is reported.
+    if (isRecoveryReloadInFlight()) {
+      if (!this.state.recovering) this.setState({ recovering: true });
+      return;
+    }
+    if (isChunkLoadError(error) && recoverFromChunkError()) {
+      this.setState({ recovering: true });
+      return;
+    }
     report(error, {
       severity: "error",
       tags: { source: "SectionBoundary", kind: USER_ERROR_SCREEN, section: this.props.label, screen: currentScreen() },
@@ -78,12 +94,14 @@ class SectionErrorBoundary extends React.Component<
     this.setState((prev) => ({
       hasError: false,
       error: null,
+      recovering: false,
       resetCount: prev.resetCount + 1,
     }));
   };
 
   render() {
     if (this.state.hasError) {
+      if (this.state.recovering) return <ChunkRecoveringState compact />;
       if (this.props.errorFallback) {
         return this.props.errorFallback({
           reset: this.handleReset,

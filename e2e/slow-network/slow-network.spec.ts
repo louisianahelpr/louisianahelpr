@@ -302,6 +302,30 @@ test(stepTitle("browse", "drop"), async ({ browser, journey }) => {
   await expect(page.getByRole("heading", { level: 2 }).first(), "Browse did not recover once back online").toBeVisible({ timeout: 45_000 });
   await assertHealthy(page, "browse recovered");
   await ctx.close();
+
+  // Q332: COLD, nothing cached. The connection drops before the job list has
+  // landed. Measured before the fix: skeletons to +23.5 s, then "Nothing
+  // today, neighbor." (a false empty state) under "Showing the last data we
+  // have". The screen must say it is offline, with no skeleton left waiting.
+  await test.step("cold, nothing cached: offline before the list lands", async () => {
+    const cold = await newUserContext(browser, null);
+    await cold.route(/\/rest\/v1\/open_jobs_browse\?select=id%2Ctitle/, async (r) => {
+      await new Promise((z) => setTimeout(z, 4_000));
+      await r.continue().catch(() => {});
+    });
+    const p = journey.track("guest", await cold.newPage());
+    await p.goto("/browse", { waitUntil: "domcontentloaded" });
+    await expect(p.getByRole("heading", { name: "Browse Jobs", level: 1 })).toBeVisible({ timeout: 45_000 });
+    await cold.setOffline(true);
+    await expect(p.getByText(/Open jobs will load here as soon as you're back online/), "cold offline /browse: no offline state").toBeVisible({ timeout: 10_000 });
+    await p.waitForTimeout(5_000);
+    expect(await p.locator('[aria-busy="true"]').count(), "cold offline /browse: a skeleton is still waiting for nothing").toBe(0);
+    await expect(p.getByText(/Nothing today, neighbor/), "cold offline /browse: claimed there are no jobs").toHaveCount(0);
+    await journey.milestone(p, "browse-offline-cold");
+    await cold.setOffline(false);
+    await expect(p.getByRole("heading", { level: 2 }).first(), "cold /browse did not load once back online").toBeVisible({ timeout: 45_000 });
+    await cold.close();
+  });
 });
 
 // ─── post ─────────────────────────────────────────────────────────────────────

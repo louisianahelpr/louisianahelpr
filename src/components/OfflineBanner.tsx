@@ -13,7 +13,10 @@ import { useRealtimeDegraded } from "@/lib/realtimeRecovery";
  *   1. online → renders nothing. Being online is the assumed default, so
  *      we never flash a "back online" confirmation — it's noise.
  *   2. offline → burnt-sienna brand banner with the "no retry queue"
- *      copy. We do NOT promise an automatic retry because the app has
+ *      copy. It is global, so it must be true on EVERY screen: it used to say
+ *      "Showing the last data we have", which was false on a screen that had
+ *      loaded nothing (Q332: cold /browse offline). Screens with nothing to
+ *      show say so themselves (feedPhase "offline-empty"). We do NOT promise an automatic retry because the app has
  *      no offline mutation queue — promising one is worse than saying
  *      nothing.
  *   3. online, but every realtime channel is down → the same banner with
@@ -123,7 +126,7 @@ const OfflineBanner = () => {
         ) : (
           <>
             <WifiOff className="w-3.5 h-3.5" />
-            You're offline. Showing the last data we have.
+            You're offline. Reconnect to load anything new.
           </>
         )}
       </div>

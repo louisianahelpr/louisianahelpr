@@ -139,7 +139,7 @@ async function ensureSeedLicenseDocument(helperId) {
   const name = SEED_LICENSE_DOC_NAME(helperId);
   const up = await fetch(`${BASE}/storage/v1/object/user-documents/${name}`, {
     method: "POST",
-    headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "image/png", "x-upsert": "true" },
+    headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "image/png", "x-upsert": "true", "cache-control": "max-age=3600" },
     body: Buffer.from(PIXEL.split(",")[1], "base64"),
     signal: AbortSignal.timeout(30_000),
   });
@@ -479,7 +479,7 @@ async function ensureHelperAvatar(helperId) {
   if (!confirmed) {
     const up = await fetch(`${BASE}/storage/v1/object/avatars/${helperId}/avatar.png`, {
       method: "POST",
-      headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "image/png", "x-upsert": "false", "cache-control": "3600" },
+      headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "image/png", "x-upsert": "false", "cache-control": "max-age=3600" },
       body: helperAvatarPng(),
       signal: AbortSignal.timeout(30_000),
     });

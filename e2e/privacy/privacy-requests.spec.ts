@@ -224,7 +224,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
     // Storage through the user's own session: the bucket policies are part of what is exercised.
     const avatarPath = `${userId}/privacy-journey.png`;
     const up = await request.post(`${SUPABASE_URL}/storage/v1/object/avatars/${avatarPath}`, {
-      headers: { apikey: ANON, Authorization: `Bearer ${session.access_token}`, "Content-Type": "image/png", "x-upsert": "true" },
+      headers: { apikey: ANON, Authorization: `Bearer ${session.access_token}`, "Content-Type": "image/png", "x-upsert": "true", "cache-control": "max-age=3600" },
       data: PNG_1PX,
     });
     expect(up.ok(), `avatar upload: ${up.status()} ${await up.text()}`).toBe(true);

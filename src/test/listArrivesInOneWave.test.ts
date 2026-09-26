@@ -22,7 +22,7 @@
  */
 // @mutate src/components/dashboard/JobCard.tsx | : "group relative h-full rounded-2xl | : "motion-safe:animate-fade-in group relative h-full rounded-2xl
 // @mutate src/hooks/useArrivalGate.ts | const ready = latched \|\| (primaryReady && (secondaryReady \|\| capped)); | const ready = latched \|\| primaryReady;
-// @mutate src/pages/home/DashboardGuest.tsx | {!feedReady ? ( | {isLoading ? (
+// @mutate src/pages/home/DashboardGuest.tsx | ) : !feedReady ? ( | ) : false ? (
 // @mutate src/pages/post-job/EntryChoice.tsx | unpaidDrafts !== null && recentPosted !== null && form.openJobCount !== null | true
 // @mutate src/components/NotificationPreferences.tsx |   if (!loaded) return <ProfileTabBodyReserve />;\n |
 // @mutate src/components/profile/EarningsTab.tsx | view === "earnings" && !earningsReady && | view === "earnings" && loading &&
@@ -97,8 +97,9 @@ describe("lists arrive in one wave (Q169)", () => {
 
   it("the guest browse feed renders its skeleton off the arrival gate", () => {
     const page = read("pages/home/DashboardGuest.tsx");
-    expect(page).toMatch(/const feedReady = useArrivalGate\(!isLoading, enrichmentSettled\)/);
-    expect(page).toMatch(/\{!feedReady \? \(/);
+    // Q332: the primary signal is feedPhase (a paused query is not "loaded").
+    expect(page).toMatch(/const feedReady = useArrivalGate\(phase === "ready" \|\| phase === "error", enrichmentSettled\)/);
+    expect(page).toMatch(/\) : !feedReady \? \(/);
     expect(page).not.toMatch(/\{isLoading \? \(/);
   });
 });

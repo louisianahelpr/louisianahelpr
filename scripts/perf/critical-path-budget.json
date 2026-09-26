@@ -1,9 +1,9 @@
 {
   "_what": "Q178 critical-path budget, checked by `node scripts/perf/critical-path.mjs --check` against the BUILT bundle (bundle-size.yml, npm run gate). Rounds are exact both ways; KB is a band (+5% fails as a regression, -10% fails as a stale budget). Lower these in the same commit as the change that lowers them.",
-  "_measured": "2026-09-24, production vite build (PD-020: zod off the boot path)",
+  "_measured": "2026-09-26, production vite build (Q206 b: the entry starts the guest /browse job list, +0.7 KB gz: 3.4 -> 4.1; /browse first card 4929 -> 4518 ms median, data-start 3796 -> 589 ms, scripts/perf/measure-load.mjs)",
   "entry": {
     "staticChunks": 2,
-    "kb": 3.3
+    "kb": 4.1
   },
   "routes": {
     "/": {

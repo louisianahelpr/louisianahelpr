@@ -10,9 +10,11 @@
  *
  * Inventory: every workflow in .github/workflows with a workflow_dispatch
  * `grep` input, read from the parsed YAML; each step there that runs
- * scripts/e2e/request-budget.mjs must gate on `inputs.grep == ''`.
+ * scripts/e2e/request-budget.mjs must either skip a pinned run
+ * (`inputs.grep == ''` in its `if`) or judge it by the load ceiling only
+ * (`GREP: ${{ inputs.grep }}` plus `${GREP:+--ceiling-only}`, PR #1815).
  */
-// @mutate .github/workflows/prod-audit.yml | && inputs.grep == '' }} | }}
+// @mutate .github/workflows/prod-audit.yml | ${GREP:+--ceiling-only} | 
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -20,7 +22,7 @@ import { parse } from "yaml";
 
 const DIR = join(process.cwd(), ".github", "workflows");
 
-type Step = { run?: string; if?: string };
+type Step = { run?: string; if?: string; env?: Record<string, string> };
 type Doc = {
   on?: { workflow_dispatch?: { inputs?: Record<string, unknown> } };
   jobs?: Record<string, { steps?: Step[] }>;
@@ -42,7 +44,7 @@ function pinnableBudgetSteps(): { where: string; step: Step }[] {
   return out;
 }
 
-describe("request budget skips grep-pinned runs", () => {
+describe("request budget never judges a grep-pinned run per test", () => {
   const steps = pinnableBudgetSteps();
 
   it("finds the pinnable budgeted workflows", () => {
@@ -51,9 +53,12 @@ describe("request budget skips grep-pinned runs", () => {
     expect(steps.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("every such budget step gates on an empty grep", () => {
+  it("every such budget step skips a pinned run or judges only the ceiling", () => {
+    const skips = (s: Step) => /inputs\.grep\s*==\s*''/.test(String(s.if ?? ""));
+    const ceilingOnly = (s: Step) =>
+      /inputs\.grep/.test(String(s.env?.GREP ?? "")) && s.run!.includes("${GREP:+--ceiling-only}");
     const ungated = steps
-      .filter(({ step }) => !/inputs\.grep\s*==\s*''/.test(String(step.if ?? "")))
+      .filter(({ step }) => !skips(step) && !ceilingOnly(step))
       .map(({ where }) => where);
     expect(ungated).toEqual([]);
   });

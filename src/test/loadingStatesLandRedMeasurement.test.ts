@@ -1,5 +1,5 @@
 /**
- * A RED loading-state measurement still reaches git (docs/OPEN.md Q408).
+ * A RED loading-state measurement still reaches git (docs/OPEN.md Q411).
  *
  * loading-states-refresh 36165226511 (2026-09-25) produced the measurement the
  * baseline fix needed, but its land job ran only on a green measure job, and

@@ -26,7 +26,7 @@
 // deliberately never cleared — including when a tier lapses — precisely so a
 // later renewal can still find the member it belongs to.
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "../_shared/buildStamp.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders, jsonResponse } from "../_shared/cors.ts";
 import {

@@ -121,8 +121,7 @@ describe("Q341: applicant list and counters share ONE blocked filter", () => {
         "src/components/job-card/activityActions/useApplicantsState.ts",
         "src/components/job-card/activityActions/useOfferHandlers.ts",
         "src/pages/home/useApplyFlow.ts",
-        "src/pages/info/legal/DataExportCard.tsx",
-        "src/pages/user/useUserProfileData.ts",
+          "src/pages/user/useUserProfileData.ts",
       ].sort(),
     );
   });

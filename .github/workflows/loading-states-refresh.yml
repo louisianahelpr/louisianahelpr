@@ -18,7 +18,7 @@ name: Loading states refresh
 # a nightly-red issue. scripts/check-staleness.mjs binds measurements.json's
 # currency to this workflow's last scheduled success (WORKFLOW_BOUND).
 #
-# LANDING (Q57, Q408): whenever a fresh measurement was produced, green or red,
+# LANDING (Q57, Q411): whenever a fresh measurement was produced, green or red,
 # the `land` job copies measurements.json onto latest main and lands it through
 # .github/actions/refresh-pr (one bot branch, one PR, auto-merge on green). A
 # red one cannot auto-merge (loadingStateShape.test.ts grades it against

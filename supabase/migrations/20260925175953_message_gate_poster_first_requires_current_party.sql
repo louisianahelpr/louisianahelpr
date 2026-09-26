@@ -1,4 +1,4 @@
--- Q410: can_message_in_job branch 4 ("the poster messaged THIS sender first")
+-- Q705: can_message_in_job branch 4 ("the poster messaged THIS sender first")
 -- had no membership or status check, so it never ended.
 --
 -- Once a poster had messaged someone on a job, that person could keep posting
@@ -46,7 +46,7 @@
 -- branch 2 for declined/expired offers, and closes the receiver side.
 --
 -- Not read live from this lane. Verify after deploy with pg_get_functiondef
--- and pg_proc.proacl (docs/OPEN.md Q410).
+-- and pg_proc.proacl (docs/OPEN.md Q705).
 --
 -- Replay-safe: CREATE OR REPLACE, idempotent grants, and skipped (NOTICE) when
 -- any object the body reads is absent.
@@ -58,7 +58,7 @@ BEGIN
      OR to_regclass('public.group_job_helpers') IS NULL
      OR to_regclass('public.applications') IS NULL
      OR to_regprocedure('public.job_messaging_closes_at(uuid)') IS NULL THEN
-    RAISE NOTICE 'jobs / messages / group_job_helpers / applications / job_messaging_closes_at absent: Q410 skipped';
+    RAISE NOTICE 'jobs / messages / group_job_helpers / applications / job_messaging_closes_at absent: Q705 skipped';
     RETURN;
   END IF;
 
@@ -95,7 +95,7 @@ AS $function$
         WHERE g.job_id = _job_id AND g.helper_id = _sender
       )
       -- 4. The poster messaged THIS sender first, AND the sender still holds a
-      --    live application on the job (Q410). A rejected applicant, or a crew
+      --    live application on the job (Q705). A rejected applicant, or a crew
       --    member removed from the roster (application -> rejected), no longer
       --    passes.
       OR (

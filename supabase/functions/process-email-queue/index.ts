@@ -3,6 +3,7 @@ import { verifyCronSecret } from '../_shared/cron-auth.ts'
 import { cronError, cronResult, defectTracker } from '../_shared/cron-result.ts'
 import { FROM_DEFAULT, htmlToPlainText, SEND_TIMEOUT_MS, sendWithResend } from '../_shared/resend.ts'
 import { isReservedRecipient } from '../_shared/reservedRecipient.ts'
+import { serve } from "../_shared/buildStamp.ts";
 
 // Email delivery is via Resend exclusively. Helpr's auth-email-hook
 // renders templates locally with @react-email/components and enqueues
@@ -29,7 +30,7 @@ function getRetryAfterSeconds(error: unknown): number {
   return 60
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   // Cron-only: this function drains the auth + transactional email queues and
   // sends via Resend. Before this gate, verify_jwt=false in config.toml +
   // no in-handler auth meant anyone could POST and either drain the queue

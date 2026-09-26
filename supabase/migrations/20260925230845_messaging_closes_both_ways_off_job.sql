@@ -9,7 +9,7 @@
 -- start a new message with them on that job; earlier messages stay readable
 -- (SELECT policies are untouched).
 --
--- Before this file, after 20260925175953 (Q410):
+-- Before this file, after 20260925175953 (Q705):
 --   * the SENDER side still admitted a former offeree: can_message_in_job
 --     branch 2 read offered_to_helper_id alone, which a declined/expired offer
 --     never clears (Q420(a)).
@@ -132,7 +132,7 @@ AS $function$
         WHERE g.job_id = _job_id AND g.helper_id = _sender
       )
       -- 4. The poster messaged THIS sender first, AND the sender still holds a
-      --    live application on the job (Q410). A rejected applicant, or a crew
+      --    live application on the job (Q705). A rejected applicant, or a crew
       --    member removed from the roster (application -> rejected), no longer
       --    passes.
       OR (

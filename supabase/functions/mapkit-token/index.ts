@@ -35,6 +35,7 @@
 
 import { corsHeadersFull, jsonResponse, errorResponse } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { serve } from "../_shared/buildStamp.ts";
 
 /** One hour. Apple's documented maximum for a MapKit JS token is 7 days; an
  *  hour is short enough that a scraped token is near-worthless and long enough
@@ -99,7 +100,7 @@ function originClaimFor(req: Request): string | null {
   }
 }
 
-Deno.serve(async (req: Request) => {
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeadersFull });
   }

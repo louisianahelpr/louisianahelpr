@@ -4,8 +4,9 @@ import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { queueEmail, SUPPORT_EMAIL } from '../_shared/resend.ts'
 import { AdminEmailChangedEmail } from '../_shared/email-templates/email-changed.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
+import { serve } from "../_shared/buildStamp.ts";
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }

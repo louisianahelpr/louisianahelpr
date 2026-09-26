@@ -103,6 +103,15 @@ function rewriteExternalImports(src: string): string {
     "",
   );
 
+  // serve (BR-024): every function now imports `serve` from
+  // `_shared/buildStamp.ts`, which wraps Deno.serve to answer the deploy build
+  // probe before the handler. Drop it the same way: the handler under test is
+  // the function's own, and the wrapper is tested in edgeBuildStamp.test.ts.
+  out = out.replace(
+    /import\s+\{\s*serve\s*\}\s+from\s+["'](?:\.\.\/)+_shared\/buildStamp\.ts["'];?/g,
+    "",
+  );
+
   // Shared helpers: `_shared/rate-limit.ts`, `_shared/slack-alerts.ts`,
   // `_shared/cors.ts`, `_shared/appUrl.ts`, `_shared/giftCardEmail.ts` — at ANY
   // `../` depth (index.ts uses `../_shared/...`; nested handlers use
@@ -247,6 +256,12 @@ function rewriteExternalImports(src: string): string {
   out = out.replace(
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/accountPurge\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/accountPurge.ts";`,
+  );
+  // Q290: export-my-data imports IDENTITY_BUCKETS from `_shared/purgeBuckets.ts`
+  // directly; it has ZERO imports, so it points at the REAL module too.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/purgeBuckets\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/purgeBuckets.ts";`,
   );
 
   // Q202: the job price cap and the 3D Secure rule have ZERO imports, so the

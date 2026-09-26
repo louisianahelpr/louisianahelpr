@@ -5139,12 +5139,18 @@ export type Database = {
           slots_total: number
         }[]
       }
+      admin_alert_close_rule: { Args: { p_title: string }; Returns: string }
+      admin_alert_ref: { Args: { p_sample_ref: Json }; Returns: Json }
       admin_delete_review: {
         Args: { _reason: string; _review_id: string }
         Returns: undefined
       }
       admin_notification_crosses_seed_boundary: {
         Args: { p_job_id: string; p_link: string; p_recipient: string }
+        Returns: boolean
+      }
+      admin_queue_still_pending: {
+        Args: { p_ref: Json; p_rule: string; p_since: string }
         Returns: boolean
       }
       admin_reverse_violation: {
@@ -5426,6 +5432,7 @@ export type Database = {
       error_log_is_seed: { Args: { p_tags: Json }; Returns: boolean }
       expire_pending_direct_offers: { Args: never; Returns: number }
       expire_unanswered_offers: { Args: never; Returns: number }
+      export_my_data: { Args: never; Returns: Json }
       extend_boosts_with_no_applications: {
         Args: never
         Returns: {

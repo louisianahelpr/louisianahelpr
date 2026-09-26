@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * PGlite proof for the messaging "off the job" rule, both directions:
- *   20260925175953_message_gate_poster_first_requires_current_party (Q410) and
+ *   20260925175953_message_gate_poster_first_requires_current_party (Q705) and
  *   20260925230845_messaging_closes_both_ways_off_job (owner decision
  *   2026-09-25, Q407 addendum 14; Q420).
  *
@@ -20,7 +20,7 @@
  * migrations the harness fails (missing definition / trigger, or the
  * application is not rejected by the delete).
  *
- * BEFORE = every definition as it stood before Q410: the hole must be visible
+ * BEFORE = every definition as it stood before Q705: the hole must be visible
  * both ways (the removed crew member, the rejected applicant and the declined
  * offeree can message the poster and the poster can message them).
  * AFTER = both migrations applied 3x: those are refused both ways; the hired
@@ -38,32 +38,32 @@ import { blankSqlComments } from "../helpers/blankNonCode.ts";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
-const Q410 = "20260925175953_message_gate_poster_first_requires_current_party.sql";
+const Q705 = "20260925175953_message_gate_poster_first_requires_current_party.sql";
 const OFFJOB = "20260925230845_messaging_closes_both_ways_off_job.sql";
 const read = (f) => readFileSync(DIR + f, "utf8");
 
-const BEFORE_DEFS = effectiveDefs(DIR, { before: Q410 });
+const BEFORE_DEFS = effectiveDefs(DIR, { before: Q705 });
 
 /** One function's effective statement, cut at its own closing dollar tag. */
 function fnStmt(name) {
   const d = BEFORE_DEFS.get(name);
-  if (!d) throw new Error(`no migration before ${Q410} defines ${name}: this tree lacks what the proof runs`);
+  if (!d) throw new Error(`no migration before ${Q705} defines ${name}: this tree lacks what the proof runs`);
   const open = /\bAS\s+(\$\w*\$)/i.exec(d.stmt);
   const end = d.stmt.indexOf(open[1], open.index + open[0].length);
   return { file: d.file, sql: `${d.stmt.slice(0, end + open[1].length)};` };
 }
 
-/** Newest `CREATE TRIGGER <name> ... ;` before Q410, located on comment-blanked text. */
+/** Newest `CREATE TRIGGER <name> ... ;` before Q705, located on comment-blanked text. */
 function triggerStmt(name) {
   let found = null;
   for (const f of migrationFiles(DIR)) {
-    if (f >= Q410) break;
+    if (f >= Q705) break;
     const raw = read(f);
     const code = blankSqlComments(raw);
     const re = new RegExp(`CREATE\\s+TRIGGER\\s+${name}\\b[^;]*;`, "gi");
     for (const m of code.matchAll(re)) found = { file: f, sql: raw.slice(m.index, m.index + m[0].length) };
   }
-  if (!found) throw new Error(`no migration before ${Q410} creates trigger ${name}`);
+  if (!found) throw new Error(`no migration before ${Q705} creates trigger ${name}`);
   return found;
 }
 
@@ -217,22 +217,22 @@ async function runPairs(db, phase, idx) {
   }
 }
 
-// ── BEFORE: every definition as it stood before Q410. The hole must be open.
+// ── BEFORE: every definition as it stood before Q705. The hole must be open.
 {
   const db = new PGlite();
   await seed(db);
-  console.log(`\n== BEFORE (definitions before ${Q410})`);
+  console.log(`\n== BEFORE (definitions before ${Q705})`);
   await runPairs(db, "before", 3);
 }
 
-// ── AFTER: Q410 then the both-ways migration, each 3x.
+// ── AFTER: Q705 then the both-ways migration, each 3x.
 const db = new PGlite();
 await seed(db);
 // A stray client grant of the kind prod's default privileges hand out, so the
 // REVOKEs below are shown to remove it.
 await db.exec(`GRANT EXECUTE ON FUNCTION public.can_message_in_job(uuid, uuid) TO anon, authenticated;`);
-for (const f of [Q410, OFFJOB]) for (let i = 0; i < 3; i++) await db.exec(read(f));
-console.log(`\n== AFTER (${Q410} + ${OFFJOB}, each applied 3x)`);
+for (const f of [Q705, OFFJOB]) for (let i = 0; i < 3; i++) await db.exec(read(f));
+console.log(`\n== AFTER (${Q705} + ${OFFJOB}, each applied 3x)`);
 await runPairs(db, "after", 4);
 
 // The client's read: get_off_job_thread_state(job, other) as the viewer.
@@ -273,7 +273,7 @@ check("can_message_in_job still SECURITY DEFINER with search_path pinned", sd.pr
 {
   const empty = new PGlite();
   let ok = true;
-  try { for (const f of [Q410, OFFJOB]) { await empty.exec(read(f)); await empty.exec(read(f)); } } catch (e) { ok = false; console.log(e.message); }
+  try { for (const f of [Q705, OFFJOB]) { await empty.exec(read(f)); await empty.exec(read(f)); } } catch (e) { ok = false; console.log(e.message); }
   check("skip path: an empty database runs both migrations twice as a no-op", ok);
 }
 

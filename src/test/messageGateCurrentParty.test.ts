@@ -1,5 +1,5 @@
 /**
- * Q410 (2026-09-25): can_message_in_job's "the poster messaged THIS sender
+ * Q705 (2026-09-25): can_message_in_job's "the poster messaged THIS sender
  * first" branch had no membership or status check, so a crew member removed
  * from the roster, or an applicant whose application was rejected, could keep
  * posting on the job for as long as it stayed open. A message the poster once
@@ -82,7 +82,7 @@ function messageBranches(sql: string): string[] {
   return out;
 }
 
-describe("can_message_in_job: a poster's earlier message never outlives the sender's party status (Q410)", () => {
+describe("can_message_in_job: a poster's earlier message never outlives the sender's party status (Q705)", () => {
   it("resolves the gate's effective definition", () => {
     expect(gate, "no migration defines can_message_in_job").toBeDefined();
     expect(defs.size).toBeGreaterThan(300);
@@ -157,7 +157,7 @@ describe("can_message_in_job: a poster's earlier message never outlives the send
     const src = readFileSync(proof, "utf8");
     // Reads effective definitions (no pinned file), runs the REAL departure
     // trigger, and has the both-ways cases.
-    expect(src).toContain("effectiveDefs(DIR, { before: Q410 })");
+    expect(src).toContain("effectiveDefs(DIR, { before: Q705 })");
     expect(src).toContain('"trg_sync_job_after_roster_departure"');
     expect(src).not.toMatch(/UPDATE public\.applications SET status = 'rejected'/);
     for (const c of ["removed crew member", "rejected applicant", "declined offeree", "pending offeree", "current crew member", "25h after completion", "poster -> "]) {

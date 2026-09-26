@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Mail, Loader2, Check, X } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { report as reportError } from "@/lib/errorLogger";
 
@@ -21,13 +22,8 @@ const ForgotPassword = () => {
   // page did not call itself. "Reset Password" is the settled noun for both
   // (owner, V4); the sign-in link keeps "Forgot Password?" because it describes
   // the user's SITUATION, not this page's title.
-  usePageMeta({
-    title: "Reset Password — Helpr",
-    description: "Forgot your Helpr password? Enter your email and we'll send you a reset link.",
-    canonical: "https://www.louisianahelpr.com/forgot-password",
-    ogTitle: "Reset Password — Helpr",
-    ogDescription: "Recover access to your Helpr account with a one-time password reset email.",
-  });
+  // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
+  usePageMeta(NOINDEX_PAGE_META["/forgot-password"]);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);

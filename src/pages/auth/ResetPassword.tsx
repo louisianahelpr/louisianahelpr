@@ -9,6 +9,7 @@ import { Loader2, Check, X, Circle, Eye, EyeOff } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import { signOutOtherDevices } from "@/lib/authSignOut";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { describeWeakPassword, isWeakPasswordError, resetPasswordError } from "@/lib/authErrors";
 import {
   passwordStrength,
@@ -37,13 +38,8 @@ const ResetPassword = () => {
   // usePageMeta, not usePageTitle: this was the one funnel page shipping a
   // bare <title> with no description/canonical/OG, so a shared or indexed
   // reset link had no card and no canonical. Matches ForgotPassword.
-  usePageMeta({
-    title: "Set New Password — Helpr",
-    description: "Choose a new password for your Helpr account.",
-    canonical: "https://www.louisianahelpr.com/reset-password",
-    ogTitle: "Set New Password — Helpr",
-    ogDescription: "Finish resetting your Helpr password.",
-  });
+  // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
+  usePageMeta(NOINDEX_PAGE_META["/reset-password"]);
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");

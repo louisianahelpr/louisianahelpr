@@ -20,7 +20,15 @@ import { resolve } from "node:path";
 
 type Assertion = [string, { maxNumericValue?: number; minScore?: number }];
 const cfg = JSON.parse(readFileSync(resolve(__dirname, "../../.lighthouserc.json"), "utf8"));
-const assertions: Record<string, Assertion> = cfg.ci.assert.assertions;
+
+// Q401a (2026-09-25) split the single global `assertions` block into a per-URL
+// `assertMatrix` (one row for /, /browse; one for /login, /signup, which turns
+// off `is-crawlable` since those pages are deliberately noindex). Every row still
+// carries the Q56 speed budgets below, so every measured route is still gated on
+// all three metrics -- this reads every row rather than one, so a future row that
+// drops a budget fails here instead of silently losing coverage.
+type MatrixRow = { matchingUrlPattern: string; assertions: Record<string, Assertion> };
+const rows: MatrixRow[] = cfg.ci.assert.assertMatrix;
 
 /** Worst route measured 2026-09-26 (ms), from the comment in .lighthouserc.json. */
 const MEASURED_WORST: Record<string, number> = {
@@ -36,21 +44,29 @@ describe("Lighthouse metric budgets (Q56)", () => {
     expect(Object.keys(MEASURED_WORST).length).toBe(3);
   });
 
+  it("every matrix row exists", () => {
+    expect(rows.length).toBeGreaterThan(0);
+  });
+
   for (const [metric, worst] of Object.entries(MEASURED_WORST)) {
-    it(`${metric} is an error-level budget within 10-40% above the measured worst (TBT: floor 300 ms)`, () => {
-      const a = assertions[metric];
-      expect(a, `${metric} has no assertion`).toBeDefined();
-      expect(a[0]).toBe("error");
-      const max = a[1].maxNumericValue ?? NaN;
-      // TBT is small and noisy on shared runners, so it gets an absolute floor.
-      const lo = metric === "total-blocking-time" ? 300 : worst * 1.1;
-      const hi = metric === "total-blocking-time" ? 800 : worst * 1.4;
-      expect(max).toBeGreaterThanOrEqual(lo);
-      expect(max).toBeLessThanOrEqual(hi);
+    it(`${metric} is an error-level budget within 10-40% above the measured worst on every row (TBT: floor 300 ms)`, () => {
+      for (const row of rows) {
+        const a = row.assertions[metric];
+        expect(a, `${metric} has no assertion on row ${row.matchingUrlPattern}`).toBeDefined();
+        expect(a[0]).toBe("error");
+        const max = a[1].maxNumericValue ?? NaN;
+        // TBT is small and noisy on shared runners, so it gets an absolute floor.
+        const lo = metric === "total-blocking-time" ? 300 : worst * 1.1;
+        const hi = metric === "total-blocking-time" ? 800 : worst * 1.4;
+        expect(max).toBeGreaterThanOrEqual(lo);
+        expect(max).toBeLessThanOrEqual(hi);
+      }
     });
   }
 
-  it("the blended score gate is still an error", () => {
-    expect(assertions["categories:performance"][0]).toBe("error");
+  it("the blended score gate is still an error on every row", () => {
+    for (const row of rows) {
+      expect(row.assertions["categories:performance"][0]).toBe("error");
+    }
   });
 });

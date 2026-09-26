@@ -26,6 +26,21 @@
  *
  * Proven red 2026-09-25 on each mutation below (and on the pre-fix tree:
  * 6 of 7 sitemap URLs served the homepage canonical).
+ *
+ * Q401a, the same class for the public pages kept OUT of the sitemap
+ * (scripts/generate-sitemap.mjs NOINDEX): /login, /signup, /forgot-password,
+ * /reset-password, /signup-pending and /account-banned served the homepage's
+ * title and canonical pre-JS with the shell's "index, follow". Each must now
+ * come back with noindex, its own title and a self canonical, from the table
+ * its page's usePageMeta also reads. Two-way against the generator's NOINDEX
+ * list (minus the routes behind <ProtectedRoute>, which no anonymous crawler
+ * reaches) and against the `_og=noindex` rewrites.
+ *
+ * Q401(b) (owner 2026-09-26: the "Hire a Helpr…" copy wins): the landing page
+ * `/` is the static shell, so its pre-JS title, description, og:* and
+ * twitter:* must equal LANDING_PAGE_META, the entry Index.tsx's usePageMeta
+ * spreads. Before this, index.html said "Helpr connects you with trusted
+ * neighbors…" until JavaScript swapped in "Hire a Helpr…".
  */
 // @mutate vercel.json | "source": "/help", | "source": "/help-moved",
 // @mutate api/share.ts | if (route.kind === "page") { | if (route.kind === "page" && url.hostname === "never") {
@@ -33,6 +48,15 @@
 // @mutate src/lib/publicPageMeta.mjs | title: "Help Center — Helpr", | title: "Contact Support — Helpr",
 // @mutate src/lib/publicPageMeta.mjs | canonical: `${SITE_ORIGIN}/legal?tab=privacy`, | canonical: `${SITE_ORIGIN}/legal?tab=privacy-policy`,
 // @mutate src/pages/info/HelpCenter.tsx | usePageMeta(PUBLIC_PAGE_META["/help"]); | usePageMeta({ ...PUBLIC_PAGE_META["/help"], canonical: "https://www.louisianahelpr.com/help" });
+// @mutate vercel.json | "source": "/forgot-password", | "source": "/forgot-password-moved",
+// @mutate api/share.ts | if (route.kind === "noindex") { | if (route.kind === "noindex" && url.hostname === "never") {
+// @mutate src/lib/publicPageMeta.mjs | export const NOINDEX_ROBOTS = "noindex, follow"; | export const NOINDEX_ROBOTS = "index, follow";
+// @mutate src/lib/publicPageMeta.mjs | canonical: `${SITE_ORIGIN}/signup-pending`, | canonical: SITE_ORIGIN,
+// @mutate api/share.ts |     robots: signup.robots,\n |
+// @mutate index.html | <meta property="og:description" content="Hire a Helpr or find local work. | <meta property="og:description" content="Helpr connects you with trusted neighbors.
+// @mutate index.html | <meta name="description" content="Hire a Helpr or find local work in Louisiana. | <meta name="description" content="Helpr connects you with trusted neighbors across Louisiana.
+// @mutate src/pages/info/Index.tsx |     ...LANDING_PAGE_META,\n |     ...LANDING_PAGE_META,\n    description: "Helpr connects you with trusted neighbors.",\n
+// @mutate src/pages/auth/AccountBanned.tsx | usePageMeta(NOINDEX_PAGE_META["/account-banned"]); | usePageMeta({ ...NOINDEX_PAGE_META["/account-banned"], robots: "index, follow" });
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -40,11 +64,15 @@ import { blankComments } from "./helpers/blankNonCode";
 import { walkSource } from "./helpers/walkSource";
 import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
 import {
+  LANDING_PAGE_META,
   LEGAL_PAGE_META,
   LEGAL_PATH_TAB,
+  NOINDEX_PAGE_META,
   PUBLIC_PAGE_META,
   SITE_ORIGIN,
 } from "../lib/publicPageMeta.mjs";
+// @ts-expect-error — plain .mjs script, no type declarations
+import { NOINDEX as SITEMAP_NOINDEX } from "../../scripts/generate-sitemap.mjs";
 
 const ROOT = resolve(__dirname, "..", "..");
 const SHELL_SOURCE = existsSync(resolve(ROOT, "dist/index.html"))
@@ -124,6 +152,7 @@ async function servedHead(rawUrl: string): Promise<string> {
 function head(html: string) {
   const one = (re: RegExp) => html.match(re)?.[1] ?? null;
   return {
+    robots: one(/<meta name="robots" content="([^"]*)"/),
     title: one(/<title>([\s\S]*?)<\/title>/),
     canonical: one(/<link rel="canonical" href="([^"]*)"/),
     description: one(/<meta name="description" content="([^"]*)"/),
@@ -188,6 +217,7 @@ describe("every sitemap URL serves its own head before JavaScript (SW-001/SW-002
     const owned = new Set([
       ...Object.values(PUBLIC_PAGE_META).map((m) => m.canonical),
       ...Object.values(LEGAL_PAGE_META).map((m) => m.canonical),
+      ...Object.values(NOINDEX_PAGE_META).map((m) => m.canonical),
     ]);
     const files = walkSource([resolve(ROOT, "src")]).filter((f) => !/\.test\.|\/test\//.test(f));
     expect(files.length).toBeGreaterThan(100);
@@ -199,5 +229,103 @@ describe("every sitemap URL serves its own head before JavaScript (SW-001/SW-002
       }
     }
     expect(hits).toEqual([]);
+  });
+});
+
+/* ── Q401a: the public pages kept out of the sitemap ─────────────────── */
+
+const APP = readFileSync(resolve(ROOT, "src/App.tsx"), "utf8");
+/** Generator NOINDEX routes an anonymous crawler never renders: they sit behind <ProtectedRoute>. */
+const PROTECTED_NOINDEX = ["/complete-profile", "/payment-success"];
+const noindexPaths = Object.keys(NOINDEX_PAGE_META) as Array<keyof typeof NOINDEX_PAGE_META>;
+
+/** The page component file a route renders, derived from App.tsx (route element -> lazy import). */
+/** Every RegExp metacharacter, backslash included, escaped. */
+const escapeRe = (s: string) => s.replace(/[\\^$.*+?()[\]{}|/-]/g, "\\$&");
+
+function pageFileFor(path: string): string {
+  const route = APP.match(new RegExp(`<Route path="${escapeRe(path)}" element=\\{[^\\n]*?<(\\w+) />`));
+  expect(route, `no <Route path="${path}"> in App.tsx`).toBeTruthy();
+  const imp = APP.match(new RegExp(`const ${route![1]} = lazyWithPreload\\(\\(\\) => import\\("\\./([^"]+)"\\)\\)`));
+  expect(imp, `no lazy import for ${route![1]}`).toBeTruthy();
+  return resolve(ROOT, "src", `${imp![1]}.tsx`);
+}
+
+describe("Q401a: every public noindex page serves noindex, its own title and a self canonical before JavaScript", () => {
+  it("two-way: the table covers exactly the generator's public NOINDEX routes and the _og=noindex rewrites", () => {
+    expect(noindexPaths.length).toBeGreaterThan(5);
+    expect([...noindexPaths, ...PROTECTED_NOINDEX].sort()).toEqual(Object.keys(SITEMAP_NOINDEX).sort());
+    for (const p of PROTECTED_NOINDEX) {
+      expect(APP, `${p} is exempt only while it is behind <ProtectedRoute>`).toMatch(
+        new RegExp(`<Route path="${escapeRe(p)}" element=\\{[^\\n]*<ProtectedRoute>`),
+      );
+    }
+    const rewrites = vercel.rewrites
+      .filter((r) => r.destination.includes("_og=noindex"))
+      .map((r) => r.source)
+      .sort();
+    expect(rewrites).toEqual([...noindexPaths].sort());
+    for (const p of noindexPaths) expect(sitemapUrls.has(SITE_ORIGIN + p), `${p} must stay out of the sitemap`).toBe(false);
+  });
+
+  it("each: noindex, the table's own title and description, a self canonical and og:url — never the homepage's", async () => {
+    const shell = head(SHELL);
+    const failures: string[] = [];
+    const titles = new Map<string, string>();
+    for (const [path, rawUrl] of [
+      ...noindexPaths.map((p) => [p, SITE_ORIGIN + p] as const),
+      ["/signup", `${SITE_ORIGIN}/signup?ref=abc123`] as const,
+      ["/reset-password", `${SITE_ORIGIN}/reset-password?code=one-time-code`] as const,
+    ]) {
+      const want = NOINDEX_PAGE_META[path as keyof typeof NOINDEX_PAGE_META];
+      const h = head(await servedHead(rawUrl));
+      if (h.robots !== "noindex, follow") failures.push(`${rawUrl}: robots ${h.robots}`);
+      if (decode(h.canonical) !== want.canonical) failures.push(`${rawUrl}: canonical ${h.canonical}`);
+      if (decode(h.ogUrl) !== want.canonical) failures.push(`${rawUrl}: og:url ${h.ogUrl}`);
+      if (norm(want.canonical) !== norm(SITE_ORIGIN + path)) failures.push(`${path}: table canonical ${want.canonical} is not self`);
+      if (h.title === shell.title || h.canonical === shell.canonical) failures.push(`${rawUrl}: homepage head`);
+      if (!rawUrl.includes("?")) {
+        if (decode(h.title) !== want.title) failures.push(`${rawUrl}: title ${h.title}`);
+        if (decode(h.description) !== want.description) failures.push(`${rawUrl}: description ${h.description}`);
+        const t = decode(h.title)!;
+        if (titles.has(t)) failures.push(`${rawUrl}: title duplicates ${titles.get(t)}`);
+        titles.set(t, rawUrl);
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it("each page passes its table entry to usePageMeta, so the values agree after JavaScript", () => {
+    const missing: string[] = [];
+    for (const p of noindexPaths) {
+      const file = pageFileFor(p);
+      const code = blankComments(readFileSync(file, "utf8"));
+      if (!code.includes(`usePageMeta(NOINDEX_PAGE_META["${p}"]);`)) missing.push(`${file.slice(ROOT.length + 1)} (${p})`);
+    }
+    expect(missing).toEqual([]);
+  });
+});
+
+/* ── Q401(b): the landing page's pre-JS head is its post-JS head ──────── */
+
+describe("Q401(b): / serves the same title, description and share card before and after JavaScript", () => {
+  it("the static shell's head equals LANDING_PAGE_META", () => {
+    const html = SHELL;
+    const one = (re: RegExp) => decode(html.match(re)?.[1] ?? null);
+    expect(one(/<title>([\s\S]*?)<\/title>/)).toBe(LANDING_PAGE_META.title);
+    expect(one(/<meta name="description" content="([^"]*)"/)).toBe(LANDING_PAGE_META.description);
+    expect(norm(one(/<link rel="canonical" href="([^"]*)"/)!)).toBe(norm(LANDING_PAGE_META.canonical));
+    expect(one(/<meta property="og:title" content="([^"]*)"/)).toBe(LANDING_PAGE_META.ogTitle);
+    expect(one(/<meta property="og:description" content="([^"]*)"/)).toBe(LANDING_PAGE_META.ogDescription);
+    expect(one(/<meta name="twitter:title" content="([^"]*)"/)).toBe(LANDING_PAGE_META.ogTitle);
+    expect(one(/<meta name="twitter:description" content="([^"]*)"/)).toBe(LANDING_PAGE_META.ogDescription);
+  });
+
+  it("Index.tsx spreads LANDING_PAGE_META and overrides none of its fields", () => {
+    const code = blankComments(readFileSync(resolve(ROOT, "src/pages/info/Index.tsx"), "utf8"));
+    const call = code.slice(code.indexOf("usePageMeta({"), code.indexOf("});", code.indexOf("usePageMeta({")));
+    expect(call).toContain("...LANDING_PAGE_META,");
+    const overridden = Object.keys(LANDING_PAGE_META).filter((k) => new RegExp(`\\b${k}\\s*:`).test(call));
+    expect(overridden).toEqual([]);
   });
 });

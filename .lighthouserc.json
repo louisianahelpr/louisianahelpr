@@ -52,7 +52,13 @@
     "  /signup  FCP 3773  LCP 6646  TBT  94  (perf 0.68)",
     "Budgets sit ~20% above the worst route: FCP 4500, LCP 8000, TBT 600 ms. A score can hold while one metric regresses",
     "(the score is a weighted blend), so each metric gets its own error. Lower them when a fix lowers the numbers;",
-    "src/test/lighthouseMetricBudgets.test.ts keeps them error-level and inside 10-40% of this measurement."
+    "src/test/lighthouseMetricBudgets.test.ts keeps them error-level and inside 10-40% of this measurement.",
+    "",
+    "NOINDEX PAGES (Q401a, 2026-09-25): /login and /signup are auth pages that must never rank in search --",
+    "api/share.ts now serves them a noindex meta tag before the SPA boots (see src/lib/publicPageMeta.mjs).",
+    "Lighthouse's `is-crawlable` audit correctly fails a noindex page, so that one audit is turned off for the",
+    "matching URLs below instead of being silenced globally; every other SEO audit (title, meta description,",
+    "status code, link text, robots.txt, hreflang) still runs and still errors on regression."
   ],
   "ci": {
     "collect": {
@@ -71,15 +77,39 @@
       "numberOfRuns": 2
     },
     "assert": {
-      "assertions": {
-        "categories:performance": ["error", { "minScore": 0.5 }],
-        "categories:accessibility": ["warn", { "minScore": 0.85 }],
-        "categories:best-practices": ["warn", { "minScore": 0.8 }],
-        "categories:seo": ["error", { "minScore": 0.9 }],
-        "first-contentful-paint": ["error", { "maxNumericValue": 4500 }],
-        "largest-contentful-paint": ["error", { "maxNumericValue": 8000 }],
-        "total-blocking-time": ["error", { "maxNumericValue": 600 }]
-      }
+      "assertMatrix": [
+        {
+          "matchingUrlPattern": "^http://127\\.0\\.0\\.1:4173/(browse)?$",
+          "assertions": {
+            "categories:performance": ["error", { "minScore": 0.5 }],
+            "categories:accessibility": ["warn", { "minScore": 0.85 }],
+            "categories:best-practices": ["warn", { "minScore": 0.8 }],
+            "categories:seo": ["error", { "minScore": 0.9 }],
+            "first-contentful-paint": ["error", { "maxNumericValue": 4500 }],
+            "largest-contentful-paint": ["error", { "maxNumericValue": 8000 }],
+            "total-blocking-time": ["error", { "maxNumericValue": 600 }]
+          }
+        },
+        {
+          "matchingUrlPattern": "^http://127\\.0\\.0\\.1:4173/(login|signup)$",
+          "assertions": {
+            "categories:performance": ["error", { "minScore": 0.5 }],
+            "categories:accessibility": ["warn", { "minScore": 0.85 }],
+            "categories:best-practices": ["warn", { "minScore": 0.8 }],
+            "is-crawlable": "off",
+            "document-title": ["error", { "minScore": 1 }],
+            "meta-description": ["error", { "minScore": 1 }],
+            "http-status-code": ["error", { "minScore": 1 }],
+            "link-text": ["error", { "minScore": 1 }],
+            "crawlable-anchors": ["error", { "minScore": 1 }],
+            "robots-txt": ["error", { "minScore": 1 }],
+            "hreflang": ["error", { "minScore": 1 }],
+            "first-contentful-paint": ["error", { "maxNumericValue": 4500 }],
+            "largest-contentful-paint": ["error", { "maxNumericValue": 8000 }],
+            "total-blocking-time": ["error", { "maxNumericValue": 600 }]
+          }
+        }
+      ]
     }
   }
 }

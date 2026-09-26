@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { LANDING_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { useScrollFadeUp } from "@/hooks/useScrollFadeUp";
 
 // IMPORTANT: do NOT import useCurrentUser at the top of Index. It pulls
@@ -87,16 +88,12 @@ const Index = () => {
   // sections via the hook's mount-time DOM query.
   useScrollFadeUp();
 
+  // Q401(b): title, description, canonical and og:* come from the same table
+  // index.html's pre-JS tags are pinned to (src/lib/publicPageMeta.mjs).
   usePageMeta({
-    title: "Helpr — Louisiana's Local Job Partner | Hire or Find Work",
-    description:
-      "Hire a Helpr or find local work in Louisiana. For everyday jobs, big and small — post or apply in minutes across New Orleans, Baton Rouge & beyond.",
+    ...LANDING_PAGE_META,
     keywords:
       "Louisiana helprs, local help, cleaning services Louisiana, yard work New Orleans, moving help Baton Rouge, errands Shreveport, handyman Lafayette, job marketplace, trusted neighbors, home services Louisiana",
-    canonical: SITE_URL,
-    ogTitle: "Helpr — Louisiana's Local Job Partner",
-    ogDescription:
-      "Hire a Helpr or find local work. For everyday jobs, big and small — Louisiana's trusted marketplace.",
     geoRegion: "US-LA",
     geoPlacename: "Louisiana",
   });

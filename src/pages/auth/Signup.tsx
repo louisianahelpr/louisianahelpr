@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { contactLeakFieldError } from "@/lib/contactLeakField";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { checkPasswordPwned } from "@/lib/hibpCheck";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
@@ -34,13 +35,8 @@ import { parishForCity } from "@/lib/parishes";
 
 const Signup = () => {
   const navigate = useNavigate();
-  usePageMeta({
-    title: "Sign Up — Helpr",
-    description: "Create your free Helpr account in under a minute.",
-    canonical: "https://www.louisianahelpr.com/signup",
-    ogTitle: "Sign Up — Helpr",
-    ogDescription: "Join Helpr in under a minute and start posting jobs or earning as a verified Helpr across Louisiana.",
-  });
+  // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
+  usePageMeta(NOINDEX_PAGE_META["/signup"]);
   const { user, isReady } = useAuthReady();
   const [searchParams] = useSearchParams();
   // `?job=<id>` — the job a guest tapped on /browse or /jobs before the signup

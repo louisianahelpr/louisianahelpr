@@ -65,6 +65,30 @@
       "destination": "/api/share?_og=page&_id=rules"
     },
     {
+      "source": "/login",
+      "destination": "/api/share?_og=noindex&_id=login"
+    },
+    {
+      "source": "/signup",
+      "destination": "/api/share?_og=noindex&_id=signup"
+    },
+    {
+      "source": "/forgot-password",
+      "destination": "/api/share?_og=noindex&_id=forgot-password"
+    },
+    {
+      "source": "/reset-password",
+      "destination": "/api/share?_og=noindex&_id=reset-password"
+    },
+    {
+      "source": "/signup-pending",
+      "destination": "/api/share?_og=noindex&_id=signup-pending"
+    },
+    {
+      "source": "/account-banned",
+      "destination": "/api/share?_og=noindex&_id=account-banned"
+    },
+    {
       "source": "/((?!api/|_vercel/).*)",
       "destination": "/index.html"
     }

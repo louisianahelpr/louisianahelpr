@@ -10,6 +10,7 @@ import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, Mail, Lock, Check, ShieldCheck, X } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import AuthShell from "@/components/auth/AuthShell";
@@ -214,13 +215,8 @@ const Login = () => {
           ? "That page needs an account. Log in and we'll take you straight back to it."
           : null;
   const queryClient = useQueryClient();
-  usePageMeta({
-    title: "Log In — Helpr",
-    description: "Log in to your Helpr account.",
-    canonical: "https://www.louisianahelpr.com/login",
-    ogTitle: "Log In — Helpr",
-    ogDescription: "Log in to your Helpr account to post jobs or pick up local work across Louisiana.",
-  });
+  // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
+  usePageMeta(NOINDEX_PAGE_META["/login"]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

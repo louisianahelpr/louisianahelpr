@@ -249,7 +249,9 @@ jobs:
       # strike a Helpr who had arrived while every check was green. This
       # replays every CREATE/DROP FUNCTION in version order and compares each
       # newest body with live pg_proc.prosrc (comments, whitespace and in-place
-      # notification-link rewrites ignored). Accepted drift lives in
+      # notification-link rewrites ignored; pg_get_functiondef + regexp_replace
+      # rewrite tuples REPLAYED, scripts/lib/functionRewrites.mjs, issue #1802).
+      # Accepted drift lives in
       # scripts/audit/function-body-drift.baseline.json, pinned to prod's exact
       # body. Same continue-on-error + fail-at-the-end shape.
       - name: Prod runs the newest migration's body for every function

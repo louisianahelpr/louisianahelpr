@@ -20,6 +20,7 @@
  *
  * @mutate scripts/audit/measure-loading-states.mjs | if (DATA_RX.test(u) && !gateOpen) await new Promise((go) => held.push(go)); | if (DATA_RX.test(u)) await sleep(1200);
  * @mutate scripts/audit/measure-loading-states.mjs | if (placeholders > 0) return "capture"; | if (placeholders >= 0) return "capture";
+ * @mutate scripts/audit/measure-loading-states.mjs | return booted ? "empty" : "wait"; | return "empty";
  * @mutate scripts/audit/measure-loading-states.mjs | if (moving > 0 \|\| quietFor < settleMs) return "wait"; | if (moving > 0) return "wait";
  * @mutate scripts/audit/measure-loading-states.mjs | if (step === "capture") { | if (step === "capture" \|\| scr?.count) {
  * @mutate scripts/check-loading-state-shape.mjs | url.replace(/^\/jobs\/[^/?#]+/, "/jobs/:id") | url
@@ -55,7 +56,14 @@ describe("loading-state measurement: the frame is a settled stage, not an instan
   });
 
   it("reports no loading state when settled, empty and nothing is held", () => {
-    expect(nextStage({ placeholders: 0, held: 0, ...settled })).toBe("empty");
+    expect(nextStage({ placeholders: 0, held: 0, booted: true, ...settled })).toBe("empty");
+  });
+
+  it("never calls the blank boot frame 'no loading state' (#1773: runs 36201048187, 36202873061)", () => {
+    // Between the last chunk landing and the app's first query the screen is
+    // quiet, nothing is held and nothing is in flight, but the app has not
+    // rendered: that frame is not the page, so it must wait, not end.
+    expect(nextStage({ placeholders: 0, held: 0, booted: false, ...settled })).toBe("wait");
   });
 
   it("the measurer holds data at the gate and measures only at a capture step", () => {

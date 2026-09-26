@@ -4,15 +4,17 @@
  * The app persists its React Query cache to IndexedDB (src/lib/queryPersister.ts)
  * and IndexedDB lives as long as the browser context. A measurement that
  * reuses one context across surfaces measures a WARM visit whenever a sibling
- * surface fetched the same queries first: the data rehydrates and the
- * skeleton never draws, or draws a different subset. Which sibling ran first
- * depended on worker timing, so the measurement stopped repeating:
+ * surface fetched the same queries first: the data can rehydrate so the
+ * skeleton never draws, or draws a different subset, and which sibling ran
+ * first depends on worker timing. The measurement did not repeat:
  * loading-states-refresh runs 36158775025 and 36186004139 (2026-09-25) on the SAME commit
  * (3569359) disagreed on 21 of 139 surface lines (78 vs 73 measured;
  * `helper /profile` was `cl=2/2` in one and `no-placeholder` in the other).
  * baseline.json is two-way, so a measurement that does not repeat can never
  * settle it: loading-states-refresh never passed, and staleness-watch went red
- * on that (nightly-red #1773).
+ * on that (nightly-red #1773). The flips reproduced locally were the boot-frame
+ * race in nextStage (src/test/loadingStatesRepeat.test.ts); this guard removes
+ * the second, order-dependent source: a shared context's persisted cache.
  *
  * INVENTORY: every script under scripts/ or e2e/ that launches a browser AND
  * writes the loading-state evidence (docs/audit/loading-states, what

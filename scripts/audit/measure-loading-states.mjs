@@ -94,22 +94,37 @@ export const PLACEHOLDER_SEL = [
  * "release" (let the held wave through) or "empty" (settled, nothing held,
  * nothing on screen: no loading state).
  */
-export function nextStage({ placeholders, held, moving, quietFor, settleMs = SETTLE_MS }) {
+export function nextStage({ placeholders, held, moving, quietFor, booted, settleMs = SETTLE_MS }) {
   if (moving > 0 || quietFor < settleMs) return "wait";
   if (placeholders > 0) return "capture";
   if (held > 0) return "release";
-  return "empty";
+  // "No loading state" is a verdict on the PAGE, so the page must exist. The
+  // boot frame (the route fallback draws only a sr-only "Loading…") is quiet
+  // and empty too, in the gap between the last chunk landing and the app's
+  // first query; judging it there scored signed-in /profile tabs as having no
+  // placeholder on some runs and not others (#1773, runs 36201048187 and
+  // 36202873061: 38 and 41 of 139 measured, every miss "0 wave(s) released").
+  return booted ? "empty" : "wait";
 }
 
-/** What the screen shows, cheaply: visible placeholder count and document height. */
+/**
+ * What the screen shows, cheaply: visible placeholder count, document height,
+ * and whether the app has BOOTED: some visible text inside #root. The route
+ * fallback's only text is a sr-only "Loading…" (1x1, clipped), which the size
+ * test excludes, so the blank boot frame reads as not booted.
+ */
 const SCREEN_SIG = (sel) => {
-  const n = [...document.querySelectorAll(sel)].filter((e) => {
+  const shown = (e) => {
     const r = e.getBoundingClientRect();
     if (r.width < 2 || r.height < 2) return false;
     const cs = getComputedStyle(e);
     return cs.visibility !== "hidden" && cs.display !== "none" && Number(cs.opacity) > 0.01;
-  }).length;
-  return { count: n, sig: `${n}|${document.documentElement.scrollHeight}` };
+  };
+  const n = [...document.querySelectorAll(sel)].filter(shown).length;
+  const root = document.getElementById("root") ?? document.body;
+  const booted = [...root.querySelectorAll("*")].some((e) =>
+    [...e.childNodes].some((c) => c.nodeType === 3 && (c.textContent ?? "").trim().length > 0) && shown(e));
+  return { count: n, booted, sig: `${n}|${document.documentElement.scrollHeight}|${booted ? 1 : 0}` };
 };
 
 // ---------------------------------------------------------------------------
@@ -383,13 +398,16 @@ async function measureOne(context, { url, persona }) {
   let inflight = 0;
   let chunksInflight = 0;
   let lastSettled = Date.now();
+  // Last time any chunk or data request started or ended. A stage is quiet
+  // only when the screen AND the wire have both been still for SETTLE_MS.
+  let lastNet = Date.now();
   page.on("request", (r) => {
-    if (DATA_RX.test(r.url())) inflight++;
-    else if (CHUNK_RX.test(r.url())) chunksInflight++;
+    if (DATA_RX.test(r.url())) { inflight++; lastNet = Date.now(); }
+    else if (CHUNK_RX.test(r.url())) { chunksInflight++; lastNet = Date.now(); }
   });
   const done = (r) => {
-    if (DATA_RX.test(r.url())) { inflight = Math.max(0, inflight - 1); lastSettled = Date.now(); }
-    else if (CHUNK_RX.test(r.url())) chunksInflight = Math.max(0, chunksInflight - 1);
+    if (DATA_RX.test(r.url())) { inflight = Math.max(0, inflight - 1); lastSettled = Date.now(); lastNet = Date.now(); }
+    else if (CHUNK_RX.test(r.url())) { chunksInflight = Math.max(0, chunksInflight - 1); lastNet = Date.now(); }
   };
   page.on("requestfinished", done);
   page.on("requestfailed", done);
@@ -428,7 +446,8 @@ async function measureOne(context, { url, persona }) {
         placeholders: scr?.count ?? 0,
         held: held.length,
         moving: chunksInflight + Math.max(0, inflight - held.length),
-        quietFor: scr ? Date.now() - sigSince : 0,
+        quietFor: scr ? Date.now() - Math.max(sigSince, lastNet) : 0,
+        booted: scr?.booted ?? false,
       });
       if (step === "capture") {
         loading = await page.evaluate(MEASURE, [PLACEHOLDER_SEL, null]).catch(() => null);
@@ -641,13 +660,13 @@ async function main() {
   // persists its React Query cache to IndexedDB (src/lib/queryPersister.ts),
   // and IndexedDB lives for the whole browser context. With one context per
   // persona, a surface measured after a sibling that had already fetched the
-  // same queries rehydrated that data and drew no skeleton, or a different
-  // subset of it, and which sibling ran first depended on the two workers'
-  // timing. Runs 36158775025 and 36186004139 (2026-09-25) on the SAME commit (3569359)
-  // disagreed on 21 of 139 surface lines (78 vs 73 measured; `helper /profile`
-  // measured `cl=2/2` in one and `no-placeholder` in the other), so the
-  // two-way baseline could never settle. A fresh context is a cold first
-  // visit every time, which is the loading state a person actually sees.
+  // same queries could rehydrate that data, so what it measured depended on
+  // which sibling the two workers happened to run first. A fresh context is a
+  // cold first visit every time, whatever the order. (Runs 36158775025 and
+  // 36186004139, 2026-09-25, same commit 3569359, disagreed on 21 of 139
+  // surface lines. The cause CONFIRMED by reproduction is the boot-frame race
+  // fixed in nextStage, which flipped surfaces in cold contexts too; this
+  // removes the order dependency on top of it.)
   // Guarded by src/test/loadingStatesColdContext.test.ts.
   const freshContext = async (persona) => {
     const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });

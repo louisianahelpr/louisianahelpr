@@ -74,10 +74,10 @@ describe("Q345: block_user_and_settle closes pending applications and offers", (
 });
 
 // The applications close disabled.
-// @mutate supabase/migrations/20260924023843_block_closes_pending_applications_and_offers.sql |      AND a.status = 'pending' |      AND false
+// @mutate supabase/migrations/20260924220318_rename_tab_addresses.sql |      AND a.status = 'pending' |      AND false
 // The offer decline disabled.
-// @mutate supabase/migrations/20260924023843_block_closes_pending_applications_and_offers.sql |    WHERE direct_offer_status = 'pending' |    WHERE false
+// @mutate supabase/migrations/20260924220318_rename_tab_addresses.sql | direct_offer_expires_at = NULL\n   WHERE direct_offer_status = 'pending' | direct_offer_expires_at = NULL\n   WHERE false
 // The notification skip removed.
-// @mutate supabase/migrations/20260924023843_block_closes_pending_applications_and_offers.sql |     IF NEW.closed_reason = 'party_blocked' THEN |     IF false THEN
+// @mutate supabase/migrations/20260924220318_rename_tab_addresses.sql |     IF NEW.closed_reason = 'party_blocked' THEN |     IF false THEN
 // The constraint not widened.
 // @mutate supabase/migrations/20260924023843_block_closes_pending_applications_and_offers.sql |   CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'party_blocked')); |   CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled'));

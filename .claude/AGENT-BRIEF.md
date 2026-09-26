@@ -8,6 +8,11 @@ says more.
 - You are in your own git worktree. Work only there. If you ever find your cwd
   is the shared checkout (`/Users/lexilombas/louisianahelpr` itself), stop and
   move into your worktree — never edit or commit from the shared checkout.
+  Enforced (Q47/Q18): the SessionStart hook gives a local session that opens
+  in the shared checkout its own `~/.lh-wt/session-<id>` worktree, and
+  .husky/pre-commit refuses a Claude session's commit from the shared checkout
+  (`scripts/session-worktree.mjs`; owner-approved override
+  `LH_SHARED_CHECKOUT_OK="<reason>"`, logged).
 - Never `git stash` (refs/stash is shared by every worktree).
 - Evidence (screenshots, logs, measurements) goes under `~/.lh-shots/<task>/`,
   NOT inside your worktree — worktrees are deleted when you finish.

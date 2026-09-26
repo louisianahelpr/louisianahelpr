@@ -36,17 +36,18 @@ window.HELPR_BUILD =
 installGlobalErrorHandlers();
 
 // A boot that FAILED last time (index.html's boot watchdog: the entry module
-// graph 404'd, the one automatic reload did not fix it, and the member saw
+// graph 404'd, the automatic reloads did not fix it, and the member saw
 // "Helpr couldn't load."). That watchdog runs before the bundle exists, so it
-// cannot call report() itself; it leaves a record, and the first boot that
-// does get this far reports it. Offline failures are not defects and are
+// cannot call report(); it posts the row itself (Q229) and leaves a record,
+// and the first boot that gets this far reports it unless the post landed. Offline failures are not defects and are
 // dropped, matching the in-app boundaries.
 try {
   const raw = localStorage.getItem("helpr_boot_failure");
   if (raw) {
     localStorage.removeItem("helpr_boot_failure");
-    const rec = JSON.parse(raw) as { at?: number; src?: string; offline?: boolean; url?: string };
-    if (!rec.offline) {
+    const rec = JSON.parse(raw) as { at?: number; src?: string; offline?: boolean; url?: string; sent?: boolean };
+    // `sent`: index.html's inline beacon already landed this row (Q229).
+    if (!rec.offline && !rec.sent) {
       report(new Error(`Boot failed: entry module graph did not load (${rec.src ?? "unknown"})`), {
         severity: "error",
         tags: { source: "BootWatchdog", kind: USER_ERROR_SCREEN, route: rec.url ?? "", screen: (rec.url ?? "").split("?")[0] },

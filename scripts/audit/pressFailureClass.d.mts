@@ -23,3 +23,13 @@ export declare function chromeKey(a: { persona: string; chain: readonly string[]
 export declare function chromeDisposition(a: { fromChrome: boolean; depth: number; key: string; passedOn: Map<string, string> }): string | null;
 export declare function landingSettled(samples: readonly { t: number; url: string }[], quietMs: number): boolean;
 export declare const LANDING_QUIET_MS: number;
+export declare function rowDetailLines(a: {
+  route: string;
+  persona: string;
+  controls: readonly { chain?: readonly string[]; result?: string; why?: string }[];
+  documented: ReadonlySet<string>;
+  max?: number;
+}): string[];
+export declare const RECENT_CYCLES: number;
+export declare const PACE_HEADROOM: number;
+export declare function cycleBurstEstimate(recent: readonly number[] | null | undefined): number;

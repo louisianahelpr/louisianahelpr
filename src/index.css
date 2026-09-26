@@ -1914,6 +1914,18 @@ body[data-scroll-locked] .strike-banner {
   z-index: 49;
 }
 
+/* Q313: OfflineBanner (z-[60]) had the same stacking, and worse: with an
+   iPhone notch inset (--safe-area-top ~47px) the banner's bottom edge is ~79px,
+   below a tall dialog's top edge (7vh = 57px at 812), so the sienna strip
+   painted over the dialog and took the upper part of its Close button's tap
+   target (measured 2026-09-25, ~/.lh-shots/q313/). Dimmed with the page like
+   StrikeBanner: the modal owns the screen while it is open, Radix already marks
+   the banner aria-hidden then (hideOthers), and a failed submit inside the
+   dialog reports itself. The banner comes back on top the moment it closes. */
+body[data-scroll-locked] .offline-banner {
+  z-index: 49;
+}
+
 /* ── PAGE-SHELL RHYTHM (Q176, owner 2026-09-23) ─────────────────────────────
    "Too much space above and below for phone width … make the page shells for
    public and authed all consistent." ONE phone gap, read by every shell:

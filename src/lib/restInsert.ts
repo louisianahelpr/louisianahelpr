@@ -71,8 +71,12 @@ export async function postRows<T>(
     const token = storedAccessToken(supabaseUrl);
     let res = await send(token ?? key, token != null);
     // A token the server no longer accepts: the rows are still worth having,
-    // so send once more as anon.
-    if (res.status === 401 && token) res = await send(key, false);
+    // so send once more as anon. 409 is the same case one step later: the
+    // account was deleted but its JWT is still unexpired, so the user_id the
+    // row carries (or the server stamps from the token) has no auth.users row
+    // and the user FK refuses the batch with 23503 (Q331). As anon the id is
+    // null and the rows land.
+    if ((res.status === 401 || res.status === 409) && token) res = await send(key, false);
     return res.status;
   } catch {
     // Network failure. The caller counts status 0 as a failed batch; it is

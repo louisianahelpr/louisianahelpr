@@ -6,11 +6,15 @@
  * dashboard feed (useDashboardData) and the nav badge (useNavUnreadCount) each
  * asking in the same instant. readUserBlockRows shares the in-flight request.
  * It must NOT become a cache: a harassment block made a moment later has to
- * reach the next read, and a failed read has to reach every caller (fail
- * closed, see getBlockedUserIds).
+ * reach the next read (a successful blockUser/unblockUser drops the in-flight
+ * read; found by the lh-silent-failure review of this change), and a failed
+ * read has to reach every caller. A block made by the OTHER person can still
+ * be missed by a reader that joins a read started a moment before it, which
+ * is the same as that reader having asked a moment earlier.
  */
 // @mutate src/lib/userBlocks.ts |   if (pending) return pending; |   if (pending && false) return pending;
-// @mutate src/lib/userBlocks.ts |     .finally(() => blockReadsInFlight.delete(currentUserId)); |     .finally(() => undefined);
+// @mutate src/lib/userBlocks.ts |       if (blockReadsInFlight.get(currentUserId) === read) blockReadsInFlight.delete(currentUserId); |       void 0;
+// @mutate src/lib/userBlocks.ts |   forgetInFlightBlockRead(blockerId);\n  return { ok: true, | \n  return { ok: true,
 // @mutate src/hooks/useDashboardData.ts |         readUserBlockRows(userId), |         supabase.from("user_blocks").select("blocker_id, blocked_id").or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -22,6 +26,7 @@ let respond: (r: Result) => void = () => {};
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
+    rpc: async () => ({ data: { settled: [] }, error: null }),
     from: () => ({
       select: () => ({
         or: () => {
@@ -36,7 +41,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
-import { getBlockedUserIds, readUserBlockRows } from "@/lib/userBlocks";
+import { blockUser, getBlockedUserIds, readUserBlockRows } from "@/lib/userBlocks";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROW = { blocker_id: "me", blocked_id: "them" };
@@ -63,6 +68,17 @@ describe("user_blocks: one read per moment, never a cache (Q330)", () => {
     expect(requests).toBe(2);
     respond({ data: [ROW], error: null });
     expect((await second).data).toEqual([ROW]);
+  });
+
+  it("a read that starts AFTER a successful block never joins a read from before it", async () => {
+    const before = readUserBlockRows("me");
+    expect(requests).toBe(1);
+    expect((await blockUser("me", "them")).ok).toBe(true);
+    const after = readUserBlockRows("me");
+    expect(requests, "the post-block reader joined the pre-block read").toBe(2);
+    respond({ data: [ROW], error: null });
+    expect((await after).data).toEqual([ROW]);
+    void before;
   });
 
   it("a failed shared read fails closed for every caller", async () => {

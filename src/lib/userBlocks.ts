@@ -16,10 +16,19 @@ const blockReadsInFlight = new Map<string, Promise<BlockRows>>();
  * The `user_blocks` rows either side of `currentUserId`, as the raw
  * `{ data, error }` result. CONCURRENT callers share ONE request (Q330: on a
  * signed-in boot the dashboard feed and the nav badge each read it in the
- * same moment, measured 2 reads per boot). Nothing is kept once it settles,
- * so a block made a second later is seen by the next read; this is not a
- * cache. Each caller still gets the error and fails closed as before.
+ * same moment, measured 2 reads per boot; the Messages inbox shares it too).
+ * Nothing is kept once it settles, so this is not a cache, and a successful
+ * blockUser / unblockUser drops the in-flight read (forgetInFlightBlockRead)
+ * so a reader that starts AFTER the write never joins a read that began
+ * before it. Every caller gets the same `{ data, error }` it got before and
+ * handles it as before (getBlockedUserIds throws on error; the dashboard feed
+ * reports and continues, see Q573).
  */
+/** A block or unblock just committed: the next reader must ask afresh. */
+function forgetInFlightBlockRead(userId: string): void {
+  blockReadsInFlight.delete(userId);
+}
+
 export function readUserBlockRows(currentUserId: string): Promise<BlockRows> {
   const pending = blockReadsInFlight.get(currentUserId);
   if (pending) return pending;
@@ -30,7 +39,10 @@ export function readUserBlockRows(currentUserId: string): Promise<BlockRows> {
       .or(`blocker_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`),
   )
     .then(({ data, error }) => ({ data, error }))
-    .finally(() => blockReadsInFlight.delete(currentUserId));
+    // Only its OWN entry: after a block dropped it, a newer read may hold the slot.
+    .finally(() => {
+      if (blockReadsInFlight.get(currentUserId) === read) blockReadsInFlight.delete(currentUserId);
+    });
   blockReadsInFlight.set(currentUserId, read);
   return read;
 }
@@ -102,7 +114,8 @@ export async function blockUser(
   blockedId: string,
   reason?: string,
 ): Promise<{ ok: boolean; cancelledJobIds: string[]; settled: SettledJob[]; error?: string }> {
-  void blockerId; // the server takes the blocker from auth.uid(), never from the client
+  // The server takes the blocker from auth.uid(), never from the client; the
+  // id is used here only to drop this user's in-flight block read.
   // `p_reason` is OMITTED rather than passed as null when blank. The SQL
   // declares `p_reason text DEFAULT NULL` and the body coalesces it to '', so
   // omitting is byte-for-byte the same call — and it is expressible in the
@@ -122,6 +135,9 @@ export async function blockUser(
   }
 
   const settled = ((data as { settled?: SettledJob[] } | null)?.settled ?? []) as SettledJob[];
+  // The blocked person reaches the blocker's list only through blocker_id, so
+  // the blocker's read is the one that must not be joined (Q330 shared read).
+  forgetInFlightBlockRead(blockerId);
   return { ok: true, cancelledJobIds: settled.map((s) => s.job_id), settled };
 }
 
@@ -148,6 +164,7 @@ export async function unblockUser(blockerId: string, blockedId: string): Promise
         .select("id"),
       { action: "unblock this person", context: { blockerId, blockedId } },
     );
+    forgetInFlightBlockRead(blockerId);
     return true;
   } catch (err) {
     // unwrapMutation already reported the zero-row rejection; this covers the

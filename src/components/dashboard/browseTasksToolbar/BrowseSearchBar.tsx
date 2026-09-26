@@ -222,7 +222,7 @@ export function BrowseSearchBar({
               className={`w-full flex items-center gap-2 px-3 py-2 text-left text-ds-13 hover:bg-muted/50 btn-press ${COMBOBOX_ACTIVE_OPTION_CLASS}`}
             >
               <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              <span className="truncate">{q}</span>
+              <span className="truncate" title={q}>{q}</span>
             </button>
           </li>
         ))}

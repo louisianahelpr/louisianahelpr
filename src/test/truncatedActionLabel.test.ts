@@ -38,6 +38,8 @@
  */
 // @mutate src/components/profile/CredentialsTab.tsx | text-ds-13 text-primary underline break-words | text-ds-13 text-primary underline truncate
 // @mutate src/components/messages/ConversationRow.tsx | title={c.jobTitle} | data-q116-mutant={c.jobTitle}
+// @mutate src/components/policy/CollapsedPolicy.tsx | <span className="text-ds-13 font-semibold text-foreground leading-snug"> | <span className="text-ds-13 font-semibold text-foreground line-clamp-2 leading-snug">
+// @mutate src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx | <span className="truncate" title={q}>{q}</span> | <span className="truncate">{q}</span>
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import ts from "typescript";
@@ -58,7 +60,13 @@ const CLIP_RE = /(^|\s)(?:[a-z0-9-]+:)*(truncate|text-ellipsis|line-clamp-(?:\d+
  * MEASURED NOT CLIPPED: scrollWidth/clientWidth (line-clamp: scrollHeight/
  * clientHeight) at 320, 375 and 1440 as poster-e2e on 2026-09-23.
  * UNMEASURED: surfaced when Q116 widened the scan; clipping on screen is not
- * yet measured. Tracked as Q119 in docs/OPEN.md.
+ * yet measured. Tracked as Q119 in docs/OPEN.md. The on-screen sweep for the
+ * default state of every route is e2e/prod-audit/clipped-labels.spec.ts.
+ *
+ * Q119 (2026-09-26): the eight that print USER DATA (a city, a search, an
+ * address, a pet's breed line, a draft's title, a saved search's summary) now
+ * carry a `title`, since input of any length can clip; the policy item TITLE
+ * clipped on /rules at 320 ("…$1,000…", sh 54 > ch 36) and now wraps unclamped.
  */
 const UNMEASURED = "Q119: not yet measured on screen (found by the Q116 widening, 2026-09-23)";
 // @two-way src/test/truncatedActionLabel.test.ts:expect([...offenders].sort()).toEqual(Object.keys(KNOWN).sort());
@@ -69,25 +77,17 @@ const KNOWN: Record<string, string> = {
     "MEASURED NOT CLIPPED 2026-09-23: all 19 descriptions sh==ch (<=2 lines) at 320, 375 and 1440",
   "src/components/DatePickerField.tsx:button:{formatted}": UNMEASURED,
   "src/components/DesktopSidebarNav.tsx:button:{label}": UNMEASURED,
-  "src/components/SavedSearches.tsx:button:{[ s.query && `“${s.query}”`, s.category && `Category: ${cat": UNMEASURED,
   "src/components/TimeRangeField.tsx:button:{display}": UNMEASURED,
-  "src/components/job-card/JobCardMetaRow.tsx:a:{city}": UNMEASURED,
-  "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx:button:{q}": UNMEASURED,
   "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:Button:Apply Now": UNMEASURED,
   "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:Button:{guestCtaLabel}": UNMEASURED,
   'src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:button:{(job.credential_tier ?? 0) === 1 ? "Get Verified to Apply" ': UNMEASURED,
   "src/components/mobileNav/NavQuickMenu.tsx:button:{label}": UNMEASURED,
   "src/components/mobileNav/NavQuickMenu.tsx:button:{sub}": UNMEASURED,
-  "src/components/policy/CollapsedPolicy.tsx:CollapsibleTrigger:{isSearching ? highlight(subtitle, query) : subtitle}": UNMEASURED,
-  "src/components/policy/CollapsedPolicy.tsx:CollapsibleTrigger:{isSearching ? highlight(title, query) : title}": UNMEASURED,
-  'src/components/postjob/AddressAutocomplete.tsx:button:{s.displayLines[0] ?? ""}': UNMEASURED,
-  "src/components/postjob/AddressAutocomplete.tsx:button:{s.displayLines[1]}": UNMEASURED,
-  'src/components/postjob/PetPicker.tsx:button:{[p.breed, p.species].filter(Boolean).join(" · ")}': UNMEASURED,
+  "src/components/policy/CollapsedPolicy.tsx:CollapsibleTrigger:{isSearching ? highlight(subtitle, query) : subtitle}":
+    "MEASURED NOT CLIPPED 2026-09-26 (Q119): all 23 section subtitles on /legal, /terms, /privacy, /rules sh==ch at 320, 375 and 1440 (guest, local build on prod)",
   "src/components/job-card/ActivitySectionedView.tsx:button:{sectionLabels[key]}": UNMEASURED,
   "src/pages/profile/petProfiles/PetCard.tsx:button:{SPECIES_OPTIONS.find((s) => s.value === pet.species)?.label": UNMEASURED,
-  'src/pages/profile/petProfiles/PetRailRow.tsx:button:{speciesLabel}{pet.breed ? ` · ${pet.breed}` : ""}{pet.age_y': UNMEASURED,
   'src/pages/post-job/EntryChoice.tsx:button:{fundingJobId === draft.id ? "Opening checkout…" : "Finish P': UNMEASURED,
-  "src/pages/post-job/EntryChoice.tsx:button:“{draft.title}” isn’t posted yet — nobody can see it until i": UNMEASURED,
   "src/pages/post-job/FormStep.tsx:Button:{submitLabel}": UNMEASURED,
 };
 

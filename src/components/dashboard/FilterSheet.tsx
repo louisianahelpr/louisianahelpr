@@ -34,6 +34,7 @@ import {
   NearbyContent,
   ExpiresContent,
 } from "@/components/dashboard/JobFilters";
+import { SHEET_HERO_TITLE_CLASS, SHEET_HERO_TITLE_STYLE } from "@/components/ui/sheetHeroTitle";
 
 /**
  * FilterSheet — the ONE filter presentation used across the app.
@@ -442,7 +443,10 @@ export function FilterSheet({
                 button by `onCloseAutoFocus` above. The phone/native band keeps
                 its ✕. */}
             <div className="shrink-0 flex items-center justify-between gap-3 px-5 pt-4 pb-3 border-b border-[hsl(var(--bark)/0.12)]">
-              <h2 id={titleId} className="font-sans text-ds-17 font-bold text-foreground">
+              {/* SheetHero's title look (Q237): the phone sheet below already
+                  uses SheetHero; this band cannot (it is a Popover, not a
+                  Radix Sheet), so it reads the same shared tokens. */}
+              <h2 id={titleId} className={SHEET_HERO_TITLE_CLASS} style={SHEET_HERO_TITLE_STYLE}>
                 Refine Your Search
               </h2>
               {!band.desktop && (

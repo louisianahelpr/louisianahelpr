@@ -67,7 +67,10 @@ export function PetRailRow({
           >
             {pet.name}
           </p>
-          <p className="text-ds-11 text-muted-foreground truncate leading-tight mt-0.5">
+          <p
+            title={`${speciesLabel}${pet.breed ? ` · ${pet.breed}` : ""}${pet.age_years != null ? ` · ${pet.age_years}yr` : ""}`}
+            className="text-ds-11 text-muted-foreground truncate leading-tight mt-0.5"
+          >
             {speciesLabel}
             {pet.breed ? ` · ${pet.breed}` : ""}
             {pet.age_years != null ? ` · ${pet.age_years}yr` : ""}

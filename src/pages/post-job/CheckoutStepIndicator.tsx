@@ -63,7 +63,7 @@ export function CheckoutStepIndicator({ onBackToForm }: CheckoutStepIndicatorPro
         <span
           className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-ds-10 font-sans font-bold tabular-nums"
           style={{
-            background: "hsla(0, 0%, 100%, 0.85)",
+            background: "hsl(var(--card) / 0.85)",
             color: "hsl(var(--bark))",
             boxShadow: "0 0 0 2px hsl(var(--bark) / 0.55)",
           }}

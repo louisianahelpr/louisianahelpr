@@ -61,7 +61,7 @@ export function MaterialsPanel({ category, className }: MaterialsPanelProps) {
     <div
       className={className}
       style={{
-        backgroundColor: "hsla(0, 0%, 100%, 0.45)",
+        backgroundColor: "hsl(var(--card) / 0.45)",
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
         border: "0.5px solid hsl(var(--border))",

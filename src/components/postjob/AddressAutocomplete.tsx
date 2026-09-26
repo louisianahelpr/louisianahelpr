@@ -254,11 +254,11 @@ export function AddressAutocomplete({
               >
                 <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
                 <span className="min-w-0 flex-1">
-                  <span className="block font-medium leading-tight truncate">
+                  <span title={s.displayLines[0] ?? ""} className="block font-medium leading-tight truncate">
                     {s.displayLines[0] ?? ""}
                   </span>
                   {s.displayLines[1] && (
-                    <span className="block text-ds-11 text-muted-foreground leading-tight truncate">
+                    <span title={s.displayLines[1]} className="block text-ds-11 text-muted-foreground leading-tight truncate">
                       {s.displayLines[1]}
                     </span>
                   )}

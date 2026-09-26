@@ -133,6 +133,7 @@ export function PetPicker({
                       {p.name}
                     </span>
                     <span
+                      title={[p.breed, p.species].filter(Boolean).join(" · ")}
                       className="block font-sans text-ds-11 truncate"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >

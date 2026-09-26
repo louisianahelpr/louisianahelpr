@@ -505,7 +505,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
                   <div
                     key={i}
                     className="rounded-ds-md p-4 h-20 motion-safe:animate-pulse"
-                    style={{ background: "rgba(255,255,255,0.20)" }}
+                    style={{ background: "hsl(var(--parchment) / 0.20)" }}
                   />
                 ))}
               </div>

@@ -136,11 +136,10 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
   const local = readLocal(userId);
   cache.set(userId, local);
 
-  // `thread_archives` isn't in the generated Supabase types yet (migration
-  // lag — see supabase/migrations/20260831011232_add_thread_archives.sql),
-  // same `as any` pattern pinnedConversations.ts used for thread_pins
-  // before types were regenerated.
-  const { data, error } = await (supabase.from("thread_archives" as any) as any)
+  // `thread_archives` (20260831011232_add_thread_archives.sql) is in the
+  // generated Supabase types, so these reads and writes are fully typed.
+  const { data, error } = await supabase
+    .from("thread_archives")
     .select("job_id, other_user_id, archived_at")
     .eq("user_id", userId);
 
@@ -182,7 +181,7 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
       })
       .filter((r): r is NonNullable<typeof r> => r !== null);
     if (rows.length > 0) {
-      const { error: mergeError } = await (supabase.from("thread_archives" as any) as any).upsert(
+      const { error: mergeError } = await supabase.from("thread_archives").upsert(
         rows,
         { onConflict: "user_id,job_id,other_user_id" },
       );
@@ -232,7 +231,7 @@ export function archiveConversation(
   emitArchiveChanged();
 
   void (async () => {
-    const { error } = await (supabase.from("thread_archives" as any) as any).upsert(
+    const { error } = await supabase.from("thread_archives").upsert(
       { user_id: userId, job_id: jobId, other_user_id: otherUserId, archived_at: archivedAt },
       { onConflict: "user_id,job_id,other_user_id" },
     );
@@ -264,7 +263,7 @@ export function unarchiveConversation(
   emitArchiveChanged();
 
   void (async () => {
-    const { error } = await (supabase.from("thread_archives" as any) as any)
+    const { error } = await supabase.from("thread_archives")
       .delete()
       .eq("user_id", userId)
       .eq("job_id", jobId)

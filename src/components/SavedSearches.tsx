@@ -222,11 +222,11 @@ export function SavedSearches({
           .select("id"),
         { action: "save this search" },
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       setSaving(false);
       report(err, { tags: { source: "SavedSearches.handleSave" } });
       hapticError();
-      if (err?.code === "42703") {
+      if ((err as { code?: unknown } | null)?.code === "42703") {
         // The columns land with the migration, which deploys on merge. During
         // that window say something the user can act on rather than "try
         // again" for a thing that cannot yet work.

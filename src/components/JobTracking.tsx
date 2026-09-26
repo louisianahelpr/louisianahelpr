@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
 import type { MouseEvent as ReactMouseEvent, CSSProperties } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { TablesUpdate } from "@/integrations/supabase/types";
+import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -786,7 +786,7 @@ export function JobTracking({
         { event: "UPDATE", schema: "public", table: "jobs", filter: `id=eq.${jobId}` },
         (payload) => {
           if (payload.new && typeof payload.new === "object") {
-            const updated = payload.new as any;
+            const updated = payload.new as Partial<Tables<"jobs">>;
             if (updated.helper_confirmed_at !== undefined) setHelperConfirmedAt(updated.helper_confirmed_at);
             if (updated.poster_confirmed_at !== undefined) setPosterConfirmedAt(updated.poster_confirmed_at);
             setJobStamps((prev) => ({

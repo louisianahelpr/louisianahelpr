@@ -68,6 +68,7 @@ const CATCH_UP_SAFE = [
   "prune-cron-run-log",
   "prune-edge-rate-limit-log",
   "prune-retention-tables",
+  "purge-old-seed-data",
   "push-token-health",
   "review-nag-cron",
   "stalled-completion-reminder",

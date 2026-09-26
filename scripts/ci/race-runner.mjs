@@ -113,6 +113,7 @@ async function fixture(admin, race) {
   const poster = randomUUID();
   const helper = randomUUID();
   for (const [id, who] of [[poster, "poster"], [helper, "helper"]]) {
+    // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
     await admin.query("INSERT INTO auth.users (id, email) VALUES ($1, $2)", [id, `race-${who}-${id}@helpr.test`]);
     // Approved and payout-ready, so onboarding gates stand aside: the runner
     // tests the lock, not onboarding.
@@ -126,6 +127,7 @@ async function fixture(admin, race) {
     );
   }
   if (race <= 2) {
+    // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
     const { rows } = await admin.query(
       // Funded (escrow): an award or confirmation on an unfunded job is refused
       // by enforce_job_funded_before_award(), which is not the guard under test.
@@ -141,6 +143,7 @@ async function fixture(admin, race) {
   // Races 3-5: a job underway whose completion gates (arrival verified, both
   // photos, 30-minute floor) are all satisfied, so the only thing that can
   // refuse the Helpr's Done is the guard under test.
+  // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
   const { rows } = await admin.query(
     `INSERT INTO public.jobs (title, description, category, budget, location, parish, status,
                               customer_id, helper_id, date_needed, start_time, created_at, payment_status,
@@ -368,6 +371,7 @@ async function disputeFixture(admin) {
   const poster = randomUUID();
   const helper = randomUUID();
   for (const [id, who] of [[poster, "poster"], [helper, "helper"]]) {
+    // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
     await admin.query("INSERT INTO auth.users (id, email) VALUES ($1, $2)", [id, `race-${who}-${id}@helpr.test`]);
     await admin.query(
       `UPDATE public.profiles
@@ -380,6 +384,7 @@ async function disputeFixture(admin) {
   }
   // Walk the transition matrix to `completed`, then settle the money and write
   // the terminal dispute state — the only shape settle_dispute_record accepts.
+  // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
   const { rows } = await admin.query(
     `INSERT INTO public.jobs (title, description, category, budget, location, parish, status,
                               customer_id, helper_id, date_needed, created_at, payment_status, start_time)

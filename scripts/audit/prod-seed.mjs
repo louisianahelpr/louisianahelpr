@@ -242,6 +242,7 @@ async function ensureOwnedAccount(key, spec) {
     const existing = await profileByEmail(spec.email);
     if (existing && !existing.is_seed) throw new Error(`REFUSED: ${spec.email} exists and is not is_seed`);
   } else {
+    // seed-policy: patched — the profile PATCH below sets is_seed: true (the admin account is @louisianahelpr.com, which trg_profiles_seed_from_fixture_email does not match)
     const r = await fetch(`${BASE}/auth/v1/admin/users`, {
       method: "POST",
       headers: SRH,

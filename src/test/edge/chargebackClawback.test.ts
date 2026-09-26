@@ -273,6 +273,9 @@ describe("card-dispute clawback (Q202)", () => {
       event("evt_l1", "charge.dispute.closed", dispute("lost"));
       scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
       scenario.reads.chargeback_clawbacks = { rows: [row()] };
+      // Q342: a LOST close reads the charge and settles any open dispute.
+      stripeMock.charges.retrieve.mockResolvedValue({ id: "ch_job", amount: 10000, amount_captured: 10000 });
+      scenario.rpc.settle_dispute_by_chargeback = { outcome: "no_unsettled_dispute" };
       await post(fn);
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
       expect(writesTo("chargeback_clawbacks", "update").some((w) => payload(w).status === "kept")).toBe(true);

@@ -85,7 +85,7 @@ describe("off the job: source wiring", () => {
     expect(at, "asked after the retryable fallback: a refused send would still offer a retry").toBeLessThan(
       code.indexOf(`toast.error("Message didn't go through — tap it to try again.")`),
     );
-    expect(code.lastIndexOf('code === "42501"', at)).toBeGreaterThan(0);
+    expect(code.lastIndexOf('refusalCode === "42501"', at)).toBeGreaterThan(0);
   });
 
   it("ChatView asks the server and hands the answer to the composer", () => {

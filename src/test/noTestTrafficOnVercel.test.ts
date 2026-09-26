@@ -66,6 +66,9 @@ export const SOURCE_EXEMPT: Record<string, string> = {
   "scripts/probes/edge-boot-sweep.mjs":
     "Sends the production domain only as the CORS Origin header of an OPTIONS preflight to Supabase edge " +
     "functions (that allowlisted origin is what the probe checks); it never requests the Vercel site.",
+  "scripts/scoreboard.mjs":
+    "EMAIL_DOMAIN names the sending domain whose SPF, DKIM and DMARC TXT records the email-DNS signal " +
+    "resolves over DNS; it never requests the Vercel site.",
 };
 
 const BASE_VARS = /^\s*-?\s*(PLAYWRIGHT_BASE_URL|HAPPY_PATH_BASE_URL|SITE_URL|BASE):\s*(.*?)\s*$/;

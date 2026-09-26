@@ -47,8 +47,11 @@ describe("slow-network covers every core journey step, two ways", () => {
   });
 
   it("the steps are exactly the journeys docs/OPEN.md Q68 names", () => {
-    const q68 = /\*\*Q68 [^\n]*\n(?:[^\n]*\n){0,4}/.exec(read("docs/OPEN.md"))![0];
-    const named = /journeys\s*\(([^)]+)\)/.exec(q68.replace(/\s+/g, " "))![1].split(",").map((w) => w.trim().replace(/\s+/g, "-"));
+    // Q68 is ticked into the month's archive once done; read wherever it lives.
+    const q68 = ["docs/OPEN.md", "docs/archive/OPEN-done-2026-09.md"]
+      .map((f) => /\*\*Q68 [^\n]*\n(?:[^\n]*\n){0,4}/.exec(read(f))?.[0])
+      .find(Boolean)!;
+    const named = /journeys?\s*\(([^)]+)\)/.exec(q68.replace(/\s+/g, " "))![1].split(",").map((w) => w.trim().replace(/\s+/g, "-"));
     expect(named.length).toBeGreaterThan(5);
     // "pay" in the queue text is the pay START step here: nothing is charged.
     const norm = (w: string) => (w === "pay" ? "pay-start" : w);

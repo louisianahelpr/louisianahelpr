@@ -345,6 +345,9 @@ BEGIN
     -- enough; the press run must also have walked the item's screen cleanly
     -- AFTER its last occurrence (p_since = the item's last_seen). An item with
     -- no screen has nothing to probe, so it stays open for a person to close.
+    -- Q298: that means an EARLY return. ops_route_key(null or '') is '/', so
+    -- without it any clean press pass on / would close a screenless item.
+    IF nullif(p_sample_ref ->> 'screen', '') IS NULL THEN RETURN true; END IF;
     RETURN NOT EXISTS (
       SELECT 1 FROM public.ops_route_probe p
        WHERE p.route = public.ops_route_key(p_sample_ref ->> 'screen')

@@ -299,7 +299,10 @@ BEGIN
   BEGIN
     v_folded := public.ops_alert_fold_pending();
   EXCEPTION WHEN OTHERS THEN
-    RAISE WARNING 'check_ops_alert_pending: fold failed: %', SQLERRM;
+    -- Filed, not just warned: a fold that keeps failing is what this job watches for.
+    PERFORM public.log_cron_defect(
+      'check_ops_alert_pending', 'fold', SQLERRM,
+      jsonb_build_object('phase', 'fold'));
   END;
 
   SELECT count(*), count(*) FILTER (WHERE queued_at < now() - interval '2 hours'), min(queued_at)
@@ -337,15 +340,18 @@ GRANT EXECUTE ON FUNCTION public.check_ops_alert_pending() TO service_role;
 DO $do$
 BEGIN
   IF to_regclass('public.cron_work_expectations') IS NOT NULL THEN
-    INSERT INTO public.cron_work_expectations (jobname, expected_max_gap, note)
+    INSERT INTO public.cron_work_expectations (jobname, expected_max_gap, note, work_visibility, work_exempt_reason)
     VALUES ('ops-alert-pending-watchdog', interval '3 hours',
-            'Q1(e): hourly fold of ops_alert_pending independent of the GitHub ledger job, and the page when a queued alert is stuck over 2h.')
-    ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap, note = EXCLUDED.note;
+            'Q1(e): hourly fold of ops_alert_pending independent of the GitHub ledger job, and the page when a queued alert is stuck over 2h.',
+            'exempt',
+            'An empty queue is the healthy state, so an hour with nothing folded is not a silent failure. A stuck item raises its own ops alert.')
+    ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap, note = EXCLUDED.note,
+      work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
   END IF;
 
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
     PERFORM cron.schedule('ops-alert-pending-watchdog', '37 * * * *',
-                          'SELECT public.check_ops_alert_pending();');
+                          $c$SELECT public.cron_record_work('ops-alert-pending-watchdog', to_jsonb(public.check_ops_alert_pending()));$c$);
   END IF;
 END
 $do$;

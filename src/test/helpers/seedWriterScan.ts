@@ -113,7 +113,7 @@ const IDENT = /\b[A-Za-z_$][\w$]*\b/g;
 const NOT_PAYLOAD = /(?:Id|_id|ID|Ids|_ids)$|^(?:id|await|async|const|let|return|new|JSON|Object|Array|String|Number|Date|Math|Promise|process|console)$/;
 
 /** True when `is_seed` is set in `text` or in an initializer `text` names (depth ≤ 4). */
-export function mentionsIsSeed(code: string, text: string, depth = 4, seen = new Set<string>()): boolean {
+function mentionsIsSeed(code: string, text: string, depth = 4, seen = new Set<string>()): boolean {
   if (IS_SEED_KEY.test(text)) return true;
   if (depth === 0) return false;
   for (const id of new Set(text.match(IDENT) ?? [])) {

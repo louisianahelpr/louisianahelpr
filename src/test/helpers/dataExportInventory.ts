@@ -95,6 +95,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   helper_w9_records: { by: ["helper_id"] },
   instant_payouts: { by: ["helper_id"] },
   payout_transfers: { by: ["helper_id"] },
+  crew_cancellation_fee_shares: { by: ["helper_id"] },
   payment_refunds: { by: ["customer_id"] },
   chargeback_clawbacks: { by: ["helper_id"] },
   tips: { by: ["tipper_id", "helper_id"] },
@@ -172,6 +173,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "profiles.preferred_helper_id": { reason: "a pointer on the person's own profile row (exported by user_id)" },
   "str_calendar_connections.preferred_helper_id": { reason: "a pointer on the person's own row (exported by user_id)" },
   "jobs.chargeback_evidence_due_by": { reason: "a deadline, not a person" },
+  "retired_client_relations.retired_by": { reason: "the migration version that dropped a relation, not a person" },
   // Staff or third-party ids on exported rows: removed from the export.
   "profiles.insurance_reviewed_by": { reason: "staff reviewer id", stripped: true },
   "profiles.license_reviewed_by": { reason: "staff reviewer id", stripped: true },

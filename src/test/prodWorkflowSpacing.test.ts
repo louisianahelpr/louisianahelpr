@@ -281,23 +281,18 @@ const SHARED_GROUP = "prod-load";
  * prod-audit.yml and (since 2026-09-25) e2e-abuse-notifications.yml have that
  * something: their JOBS hold
  * `prod-lifecycle-shared-accounts`, so a private workflow-level group costs
- * them nothing. These two do not, and cannot cheaply — each fans out over a
- * matrix that one shared job-level lock would serialise against itself — so
- * for them `prod-load` IS the account lock, and taking their dispatch out of
- * it would let a dispatched run drive poster-e2e beside another suite already
- * driving it.
+ * them nothing. A workflow without that lock (a matrix one shared job-level
+ * lock would serialise against itself) would keep `prod-load` as its account
+ * lock, and taking its dispatch out would let a dispatched run drive
+ * poster-e2e beside another suite already driving it.
  *
  * Losing a queued dispatch is recoverable and, since 2026-09-22, loud.
  * Corrupted prod fixtures are neither. Prefer a job-level lock and delete the
  * entry whenever a workflow's shape allows one.
  */
 export const DISPATCH_SHARES_GROUP: Record<string, string> = {
-  // press-every-control.yml left this list on 2026-09-26 (docs/OPEN.md Q326):
-  // its shards now run in ONE job that holds the account lock, so a11y is the
-  // only entry left, whatever the count in the comment above says.
-  "a11y-webkit-prod.yml":
-    "Drives the shared accounts across a browser matrix for the WebKit-vs-Chromium diff, " +
-    "with no job-level account lock available that would not also serialise the two engines.",
+  // Empty since 2026-09-26: press-every-control.yml (Q326) and then
+  // a11y-webkit-prod.yml (its `fixtures` job took the account lock) both left.
 };
 
 export function violations(wfs: Wf[]): string[] {
@@ -753,8 +748,16 @@ describe("prod-hitting workflow schedules", () => {
     const rule4 = (v: string[]) => v.filter((s) => s.includes("declares workflow_dispatch"));
     // The rule-4 exemption is BY NAME and lifts nothing else: the same file
     // shape not named in DISPATCH_SHARES_GROUP is still red.
-    expect(rule4(violations([asDispatched("a11y-webkit-prod.yml", "prod-load")]))).toEqual([]);
-    expect(rule4(violations([asDispatched("not-exempt-suite.yml", "prod-load")]))).toHaveLength(1);
+    // The list is empty today, so a stand-in entry proves the mechanism.
+    DISPATCH_SHARES_GROUP["exempt-suite.yml"] = "stand-in entry for this test only";
+    try {
+      expect(rule4(violations([asDispatched("exempt-suite.yml", "prod-load")]))).toEqual([]);
+      expect(rule4(violations([asDispatched("not-exempt-suite.yml", "prod-load")]))).toHaveLength(1);
+    } finally {
+      delete DISPATCH_SHARES_GROUP["exempt-suite.yml"];
+    }
+    // a11y-webkit-prod left on 2026-09-26 (its `fixtures` job holds the lock).
+    expect(rule4(violations([asDispatched("a11y-webkit-prod.yml", "prod-load")]))).toHaveLength(1);
     // press-every-control left the exemption on 2026-09-26 (docs/OPEN.md Q326):
     // its press job now holds the job-level account lock, so its dispatch is
     // split like every other suite's; the old shape is red again.

@@ -285,15 +285,18 @@ $do$;
 DO $do$
 BEGIN
   IF to_regclass('public.cron_work_expectations') IS NOT NULL THEN
-    INSERT INTO public.cron_work_expectations (jobname, expected_max_gap, note)
+    INSERT INTO public.cron_work_expectations (jobname, expected_max_gap, note, work_visibility, work_exempt_reason)
     VALUES ('purge-old-seed-data', interval '30 hours',
-            'Q65: daily bounded purge of old is_seed test data, dry until feature_flags.seed_purge_live = true. Each run is a row in seed_purge_runs.')
-    ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap;
+            'Q65: daily bounded purge of old is_seed test data, dry until feature_flags.seed_purge_live = true. Each run is a row in seed_purge_runs.',
+            'exempt',
+            'Dry until seed_purge_live is set, and a day with no old seed data is normal. Every run, empty or not, is a seed_purge_runs row.')
+    ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap,
+      work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
   END IF;
 
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
     PERFORM cron.schedule('purge-old-seed-data', '19 5 * * *',
-                          'SELECT public.run_seed_purge();');
+                          $c$SELECT public.cron_record_work('purge-old-seed-data', to_jsonb(public.run_seed_purge()));$c$);
   END IF;
 END
 $do$;

@@ -163,7 +163,7 @@ const job3 = await postJob("Clean gutters");
 // A saved-search alert for this job reached free first: N-007 once per job.
 await db.query(`INSERT INTO public.notifications (user_id, title, type, link, job_id) VALUES ($1, 'New job matches your saved search', 'job_match', $2, $3)`,
   [U.free, `/home?job=${job3}`, job3]);
-// capped: 10 job matches in the last hour.
+// capped: already at the hourly job-match cap.
 for (let i = 0; i < 10; i++) {
   await db.query(`INSERT INTO public.notifications (user_id, title, type, created_at) VALUES ($1, 'x', 'job_match', now() - interval '10 minutes')`, [U.capped]);
 }

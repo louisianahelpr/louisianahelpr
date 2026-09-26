@@ -5425,6 +5425,10 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      deliver_parish_match_alert: {
+        Args: { p_job_id: string; p_user_id: string }
+        Returns: boolean
+      }
       deliver_saved_search_alert: {
         Args: {
           p_job_id: string

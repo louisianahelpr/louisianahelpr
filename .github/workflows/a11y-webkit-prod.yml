@@ -52,17 +52,13 @@ concurrency:
   # >= 2h apart, and share the prod-load concurrency group; see
   # src/test/prodWorkflowSpacing.test.ts before moving this.
   #
-  # THE EXCEPTION to the dispatch split, by name in
-  # src/test/prodWorkflowSpacing.test.ts's DISPATCH_SHARES_GROUP (2026-09-22).
-  # This workflow signs in as the shared prod test accounts and has no
-  # job-level `prod-lifecycle-shared-accounts` lock, because its matrix would
-  # be serialised against itself by one. prod-load IS its account lock. Giving
-  # its dispatch a private group — as e2e-journeys and prod-audit now do, since
-  # their JOBS hold that lock — would let a dispatched run drive poster-e2e
-  # beside another suite already driving it, and two runs signed in as the same
-  # account corrupt each other's fixtures. Losing a queued dispatch is
-  # recoverable and loud; corrupted prod fixtures are neither.
-  group: prod-load
+  # A SCHEDULED run joins prod-load; a workflow_dispatch gets its OWN group
+  # (the split e2e-journeys.yml documents: GitHub keeps one pending run per
+  # group, so a dispatch in prod-load can be cancelled by an unrelated one).
+  # This was the one exception until the `fixtures` job took the shared-account
+  # lock (Q326): that job is the only writer, the sweep legs only read, so the
+  # accounts stay serialised without prod-load.
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('a11y-webkit-prod-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
@@ -123,6 +119,13 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       - run: npx playwright install --with-deps chromium
+      - name: Build and serve this commit locally (real backend, local frontend)
+        # The mint only drives Stripe's hosted page today, but any relative
+        # goto a fixture adds must land here, never on the deployed site.
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
       - name: Ensure the job-status fixtures
         run: npx playwright test --project=job-status-fixtures --reporter=list,./e2e/reporters/skipReporter.ts
       - name: Backend request budget (Q104)

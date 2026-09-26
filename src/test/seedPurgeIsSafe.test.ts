@@ -39,6 +39,7 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { jobCommands } from "./helpers/cronWorkRegister";
 
 const MIG = join(process.cwd(), "supabase", "migrations");
 const files = readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort();
@@ -50,14 +51,7 @@ for (const { f, sql } of sqlOf) for (const m of sql.matchAll(FN_RE)) newest.set(
 
 /** The last cron.schedule for a job name, and whether a later file unschedules it. */
 function cronCommand(job: string): string | null {
-  let cmd: string | null = null;
-  for (const { sql } of sqlOf) {
-    for (const m of sql.matchAll(/cron\.(schedule|unschedule)\s*\(\s*'([a-z0-9-]+)'(?:\s*,\s*'[^']*'\s*,\s*'((?:[^']|'')*)')?/gi)) {
-      if (m[2] !== job) continue;
-      cmd = m[1].toLowerCase() === "schedule" ? m[3] ?? "" : null;
-    }
-  }
-  return cmd;
+  return jobCommands(sqlOf.map(({ f, sql }) => ({ file: f, sql }))).get(job)?.command ?? null;
 }
 
 /** FK (table:column) that must hold a job back: RESTRICT / NO ACTION on prod, or money history. */
@@ -91,7 +85,10 @@ describe("the seed purge only removes old, money-free, disposable test data (Q65
   it("exists, is scheduled through the dry-by-default runner, and has a liveness row", () => {
     expect(purge, "public.purge_old_seed_data").toBeTruthy();
     expect(runner, "public.run_seed_purge").toBeTruthy();
-    expect(cronCommand("purge-old-seed-data")).toBe("SELECT public.run_seed_purge();");
+    // Through the dry-by-default runner, recorded (CJ-007: cron_record_work).
+    expect(cronCommand("purge-old-seed-data")).toMatch(
+      /cron_record_work\('purge-old-seed-data',\s*to_jsonb\(public\.run_seed_purge\(\)\)\)/,
+    );
     const all = sqlOf.map((x) => x.sql).join("\n");
     expect(all).toMatch(/INSERT\s+INTO\s+public\.cron_work_expectations[\s\S]*?'purge-old-seed-data'/i);
     expect(candidate.length).toBeGreaterThan(100);

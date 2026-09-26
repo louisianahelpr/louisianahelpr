@@ -155,9 +155,11 @@ describe("function-body drift — in-place rewrites are replayed", () => {
   const rewritten = [...effective.entries()].filter(([, d]) => d.rewrites.length > 0);
 
   it("inventories the rewritten functions (a parser that finds none must not pass)", () => {
-    // EXACT (2026-09-26): the 11 of 20260925143327. The older link rewrites
-    // (20260831232514, 20260901021929) were all superseded by later CREATEs.
-    expect(rewritten.length).toBe(11);
+    // EXACT (2026-09-26): 9 of 20260925143327's 11. 20260925154606 re-created
+    // notify_on_job_update and poster_cancel_job with the new copy already in
+    // them; the older link rewrites (20260831232514, 20260901021929) were all
+    // superseded by later CREATEs.
+    expect(rewritten.length).toBe(9);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "check_referral_bonus",
@@ -166,8 +168,6 @@ describe("function-body drift — in-place rewrites are replayed", () => {
       "helper_cancel_booking",
       "notify_helper_application_viewed",
       "notify_helper_on_direct_offer",
-      "notify_on_job_update",
-      "poster_cancel_job",
       "respond_to_direct_offer",
       "sweep_no_show_alerts",
       "track_revision_scope_creep",
@@ -185,23 +185,23 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     expect(mismatched).toEqual([]);
   });
 
-  it("poster_cancel_job is expected to carry 20260925143327's copy, not the text its newest CREATE wrote", () => {
-    const e = expected.get("poster_cancel_job(uuid,text)")!;
+  it("helper_cancel_booking is expected to carry 20260925143327's copy, not the text its newest CREATE wrote", () => {
+    const e = expected.get("helper_cancel_booking(uuid)")!;
     expect(e.state).toBe("defined");
     expect(e.version).toBe("20260925143327");
-    expect(e.body).toContain("was cancelled by the person who posted it");
-    expect(e.body).not.toContain("was cancelled by the poster");
+    expect(e.body).toContain("Message the person who posted it or open a dispute.");
+    expect(e.body).not.toContain("Message the poster or open a dispute.");
   });
 
   it("RED when prod never ran the rewrite: the pre-rewrite body reads as stale, not clean", () => {
-    const e = expected.get("poster_cancel_job(uuid,text)")!;
+    const e = expected.get("helper_cancel_booking(uuid)")!;
     const before = [...e.history].find((h) => h !== e.md5)!;
     expect(before).toBeTruthy();
     const prod = perfectProd(expected).map((r) =>
-      r.proname === "poster_cancel_job" ? { ...r, md5: "live", nmd5: before, lmd5: "before" } : r,
+      r.proname === "helper_cancel_booking" ? { ...r, md5: "live", nmd5: before, lmd5: "before" } : r,
     );
     const drift = diffFunctions(expected, prod, {});
     expect(drift).toHaveLength(1);
-    expect(drift[0]).toMatchObject({ key: "poster_cancel_job(uuid,text)", kind: "stale" });
+    expect(drift[0]).toMatchObject({ key: "helper_cancel_booking(uuid)", kind: "stale" });
   });
 });

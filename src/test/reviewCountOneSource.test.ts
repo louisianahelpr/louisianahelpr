@@ -46,7 +46,9 @@ type Kind =
   /** Renders or slices the rows (no count of its own): must honour the reveal. */
   | "rows"
   /** Everything a member owns, for their own data export: deliberately unfiltered. */
-  | "export";
+  | "export"
+  /** Whether the viewer already wrote this review (filtered on reviewer_id too): no count, no rows shown. */
+  | "own";
 
 const RECEIVED: Record<string, Kind> = {
   "src/lib/reviewStats.ts": "count",
@@ -59,7 +61,7 @@ const RECEIVED: Record<string, Kind> = {
   "src/pages/profile/HelprWrapped.tsx": "count",
   "src/components/reviewPanel/ReviewList.tsx": "rows",
   "src/components/profile/HelperStreakBadge.tsx": "rows",
-  "src/pages/info/legal/DataExportCard.tsx": "export",
+  "src/components/CompletionPrompts.tsx": "own",
 };
 
 /** Files that read reviews RECEIVED: a `from("reviews")` chain filtered on reviewee_id. */
@@ -72,7 +74,7 @@ function receivedReaders(): string[] {
     const src = blankComments(readFileSync(f, "utf8"));
     const chains = src.split('from("reviews")').slice(1).map((c) => c.split(/;|supabase\s*\n?\s*\.from\(/)[0]);
     const receivedHere = chains.some((c) => /reviewee_id\.eq\.|\.(eq|in)\("reviewee_id"/.test(c));
-    // DataExportCard reads both sides in one `.or(...)`.
+    // A reader may take both sides in one `.or(...)`.
     if (receivedHere || chains.some((c) => /reviewee_id\.eq\./.test(c))) out.push(relative(ROOT, f));
   }
   return out.sort();
@@ -95,6 +97,7 @@ describe("Q321: a review count comes from one definition", () => {
       const src = code(file);
       if (kind === "count") expect(src, file).toMatch(new RegExp(`${USES_ONE_SOURCE.source}|${ALL_THREE_ON_QUERY.source}`));
       if (kind === "rows") expect(src, file).toMatch(/feedback_visible_at/);
+      if (kind === "own") expect(src, file).toMatch(/from\("reviews"\)[^;]*\.eq\("reviewer_id",/);
     });
   }
 

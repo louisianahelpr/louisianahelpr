@@ -73,6 +73,8 @@ describe("edge fan-outs to admins use an operator type", () => {
       "the won/lost outcome posts dispute_won/dispute_lost itself",
     "supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts:info":
       "the retrieval-request close posts its own custom alert",
+    "supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts:warning":
+      "a lost chargeback on a decided dispute posts dispute_lost or money_at_risk itself on both paths (Q342)",
   };
   const sites: { key: string; type: string }[] = [];
   for (const f of walk(join(ROOT, "supabase/functions")).filter((x) => x.endsWith(".ts"))) {

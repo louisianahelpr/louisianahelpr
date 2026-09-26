@@ -66,9 +66,9 @@ const CARDS = {
 const DETACHED: { file: string; value: string; table: string }[] = [
   // The gift-card mint row (`mintRow`), inserted into gift_cards.
   { file: "handlers/checkoutSessionCompleted.ts", value: "paid", table: "gift_cards" },
-  // `updateData` for the job's own checkout: escrow, or payout_pending on a re-pay.
+  // `updateData` for the job's own checkout: escrow (the dead re-pay branch that
+  // wrote payout_pending was removed, Q343).
   { file: "handlers/checkoutSessionCompleted.ts", value: "escrow", table: "jobs" },
-  { file: "handlers/checkoutSessionCompleted.ts", value: "payout_pending", table: "jobs" },
 ];
 
 /** Writes whose value is a variable, with every value it can hold. */

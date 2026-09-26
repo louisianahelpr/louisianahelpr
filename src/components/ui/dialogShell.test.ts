@@ -212,6 +212,23 @@ describe("Popups share one shell", () => {
     expect(read("src/components/ui/dialog.tsx")).toContain("max-w-lg");
   });
 
+  // Q273 (2026-09-26): the content grid's one column has a 0 floor, and the
+  // hero titles wrap anywhere. Without both, one unbroken word typed into a
+  // field the dialog echoes as its title (EditJobDialog) widened the column to
+  // 2202px inside a 341px card at 375: every field ran past the right edge.
+  // The rendered check is readDialogOverflow in e2e/prod-audit/harness.ts.
+  // @mutate src/components/ui/dialog.tsx | z-50 grid grid-cols-[minmax(0,1fr)] w-[calc(100vw-2rem)] | z-50 grid w-[calc(100vw-2rem)]
+  // @mutate src/components/ui/sheet.tsx | font-bold leading-tight [overflow-wrap:anywhere]" | font-bold leading-tight"
+  it("no child can widen a popup: a 0-floor grid column, and hero titles that wrap anywhere", () => {
+    const dialog = blankComments(read("src/components/ui/dialog.tsx"));
+    expect(dialog).toMatch(/"glass-modal [^"]*\bgrid grid-cols-\[minmax\(0,1fr\)\]/);
+    for (const f of ["src/components/ui/dialog.tsx", "src/components/ui/sheet.tsx"]) {
+      const titles = blankComments(read(f)).match(/className="font-display italic font-bold leading-tight[^"]*"/g) ?? [];
+      expect(titles.length, `${f}: the hero title class was not found — the check has rotted`).toBeGreaterThan(0);
+      for (const t of titles) expect(t, `${f}: a hero title that cannot wrap an unbroken word`).toContain("[overflow-wrap:anywhere]");
+    }
+  });
+
   it("the modal overlay still declares an explicit backdrop tint", () => {
     // This used to assert dialog.tsx and alert-dialog.tsx carried the SAME
     // hsla() literal — and it earned its keep: the two drifted anyway, because

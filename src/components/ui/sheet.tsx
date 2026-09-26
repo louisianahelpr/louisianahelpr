@@ -288,7 +288,7 @@ const SheetHero = ({
         // removed on 2026-08-29 ("the container's own padding already clears
         // the X") and SheetHero kept it, so every sheet title in the app sat
         // 8px lower in its card than every dialog title.
-        className="font-display italic font-bold leading-tight"
+        className="font-display italic font-bold leading-tight [overflow-wrap:anywhere]"
         style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
       >
         {title}

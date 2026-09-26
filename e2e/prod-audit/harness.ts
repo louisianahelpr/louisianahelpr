@@ -358,8 +358,37 @@ export async function health(page: Page, ctx: string, opts: { layout?: boolean; 
     if (l && (l.overflowPx > 0 || l.overflowOffenders.length)) {
       problems.push(`${ctx}: horizontal overflow ${l.overflowPx}px — ${l.overflowOffenders.slice(0, 3).join(" | ")}`);
     }
+    // INSIDE open dialogs (Q273). measureLayout scans `#root *`, and every
+    // dialog and sheet is portaled to <body>, so a dialog whose own content ran
+    // sideways was invisible to it: EditJobDialog with a 200-char title
+    // scrolled 2202px inside a 341px card while documentElement stayed 375.
+    for (const d of await page.evaluate(readDialogOverflow).catch(() => [] as DialogOverflow[])) {
+      problems.push(`${ctx}: ${d.role} "${d.name}" scrolls sideways inside itself: scrollWidth ${d.sw} > clientWidth ${d.cw}`);
+    }
   }
   return problems;
+}
+
+export interface DialogOverflow {
+  role: string;
+  name: string;
+  sw: number;
+  cw: number;
+}
+
+/** Every visible open dialog/alertdialog whose own box scrolls sideways. Self-contained (page.evaluate). */
+export function readDialogOverflow(): DialogOverflow[] {
+  const out: DialogOverflow[] = [];
+  for (const d of Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"],[role="alertdialog"]'))) {
+    const r = d.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1 || getComputedStyle(d).visibility === "hidden") continue;
+    if (d.scrollWidth > d.clientWidth + 1) {
+      const labelled = d.getAttribute("aria-labelledby");
+      const name = (d.getAttribute("aria-label") || (labelled && document.getElementById(labelled)?.textContent) || "").trim().slice(0, 60);
+      out.push({ role: d.getAttribute("role") || "dialog", name, sw: d.scrollWidth, cw: d.clientWidth });
+    }
+  }
+  return out;
 }
 
 /** What the screen already looked like before a step, so a step is judged on what it CHANGED. */

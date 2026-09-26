@@ -10,7 +10,7 @@
 // @mutate scripts/lib/sensitiveReview.mjs |   if (/\.(test\|spec)\.[cm]?[jt]sx?$/.test(path) | if (/\.(never)\.[cm]?[jt]sx?$/.test(path)
 // @mutate scripts/lib/sensitiveReview.mjs |     if (reviewer === "not-needed" \|\| REVIEWERS.includes(reviewer)) found = | found =
 // @mutate scripts/lib/sensitiveReview.mjs |   return { rows, missing: rows.filter((r) => !r.review) }; |   return { rows, missing: [] };
-// @mutate scripts/lib/sensitiveReview.mjs |     if (c.date.slice(0, 10) < since) continue; |     if (true) continue;
+// @mutate scripts/lib/sensitiveReview.mjs |     if (Date.parse(c.date) < Date.parse(windowStart(since))) continue; |     if (true) continue;
 // @mutate scripts/check-sensitive-review.mjs | if (strict && (missing.length \|\| errors.length)) process.exit(1); | if (false) process.exit(1);
 // @mutate .github/workflows/sensitive-review.yml |         run: node scripts/check-sensitive-review.mjs --range origin/main --strict |         run: node scripts/check-sensitive-review.mjs --range origin/main
 // @mutate .github/workflows/main-red-watch.yml |       - Sensitive review record\n |

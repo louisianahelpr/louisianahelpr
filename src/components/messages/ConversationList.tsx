@@ -1488,9 +1488,10 @@ export function ConversationList({
                layout shift: prod-audit page-settle measured "375 /messages:
                cls=0.0558" (div 139→205) and "1440 /messages: cls=0.0216"
                (142→194), runs 36003051878 / 36069316906. Keyed, the bones are
-               REMOVED and the list is NEW content, which is what actually
-               happened; nothing that was on screen moves.
-               Guard: src/test/placeholderNodeNotReused.test.ts. */
+               removed and the list is new content, so the NUMBER reads zero —
+               but the rows still land 66px / 52px below where the bones sat.
+               HELD (PR #1825): this masks the jump, it does not remove it; the
+               fix is the banner's placement, MORNING QUESTION 28 in OPEN.md. */
             <div key="bones">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <MessageThreadSkeleton key={i} />

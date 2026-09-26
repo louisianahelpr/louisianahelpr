@@ -40,6 +40,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
+import { isGoneReference } from "@/lib/goneReference";
 
 const STORAGE_KEY = "helpr_archived_conversations";
 
@@ -181,16 +182,32 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
         };
       })
       .filter((r): r is NonNullable<typeof r> => r !== null);
+    const gone = new Set<string>();
     if (rows.length > 0) {
-      const { error: mergeError } = await (supabase.from("thread_archives" as any) as any).upsert(
-        rows,
-        { onConflict: "user_id,job_id,other_user_id" },
-      );
-      if (mergeError && !isMissingTable(mergeError)) {
+      const pushArchives = async (batch: typeof rows): Promise<unknown> =>
+        (
+          await (supabase.from("thread_archives" as any) as any).upsert(batch, {
+            onConflict: "user_id,job_id,other_user_id",
+          })
+        ).error;
+      const mergeError = await pushArchives(rows);
+      if (isGoneReference(mergeError)) {
+        // One archive of a since-deleted job fails the whole batch (the
+        // thread_pins twin was Sentry JAVASCRIPT-2K). Retry one at a time so
+        // the live archives still sync, and drop the ones whose job or person
+        // is gone instead of re-sending (and re-reporting) them every load.
+        for (const row of rows) {
+          const rowError = await pushArchives([row]);
+          if (isGoneReference(rowError)) gone.add(conversationKey(row.job_id, row.other_user_id));
+          else if (rowError && !isMissingTable(rowError)) {
+            report(rowError, { severity: "warning", tags: { source: "archivedConversations.mergeLocalArchives" } });
+          }
+        }
+      } else if (mergeError && !isMissingTable(mergeError)) {
         report(mergeError, { severity: "warning", tags: { source: "archivedConversations.mergeLocalArchives" } });
       }
     }
-    for (const k of localOnlyKeys) server[k] = local[k];
+    for (const k of localOnlyKeys) if (!gone.has(k)) server[k] = local[k];
   }
 
   cache.set(userId, server);
@@ -243,6 +260,10 @@ export function archiveConversation(
       cache.set(userId, rollback);
       writeLocal(userId, rollback);
       emitArchiveChanged();
+      // The thread's job (or person) was deleted while the inbox was open:
+      // it can never be archived and the rollback above already dropped it,
+      // so this is not a fault. Any other error still reports.
+      if (isGoneReference(error)) return;
       report(error, { severity: "warning", tags: { source: "archivedConversations.archiveConversation" } });
     }
   })();

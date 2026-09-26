@@ -34,12 +34,14 @@ interface AdminUserRowProps {
   p: Profile;
   tab: Tab;
   notesSummary: Record<string, { count: number; recent: NoteEntry[] }>;
-  strikesSummary: Record<string, number>;
+  /** null = not loaded yet (or the read failed): no standing claim is made. */
+  strikesSummary: Record<string, number> | null;
   ratingSummary: Record<string, { avg: number; count: number }>;
   jobsCompletedSummary: Record<string, number>;
   paySummary: Record<string, number>;
   openReportsSummary: Record<string, number>;
-  lastLoginSummary: Record<string, string>;
+  /** null = not loaded yet (or the read failed): no "Never logged in" claim. */
+  lastLoginSummary: Record<string, string> | null;
   onOpen: (p: Profile) => void;
 }
 
@@ -66,7 +68,7 @@ const AdminUserRowBase = ({
     </span>
   );
 
-  const lastLogin = lastLoginSummary[p.user_id];
+  const lastLogin = lastLoginSummary?.[p.user_id];
   const isOnline = lastLogin
     ? (Date.now() - new Date(lastLogin).getTime()) < 24 * 60 * 60 * 1000
     : false;
@@ -147,12 +149,15 @@ const AdminUserRowBase = ({
 
           {/* Meta chips — only for verified users */}
           {isVerifiedEmail(p) && (() => {
-            const strikes = strikesSummary[p.user_id] || 0;
+            const strikes = strikesSummary?.[p.user_id] || 0;
             const rating = ratingSummary[p.user_id];
             const jobsDone = jobsCompletedSummary[p.user_id] || 0;
             const ltv = paySummary[p.user_id] || 0;
             const openReports = openReportsSummary[p.user_id] || 0;
-            const neverLoggedIn = !lastLogin;
+            // Absence is only a fact once the map has loaded. Run 36069319716
+            // (#1582) captured every row as "Good · Never logged in" because
+            // both were read off maps that had not arrived yet.
+            const neverLoggedIn = lastLoginSummary !== null && !lastLogin;
             const hasIdv = p.idv_status === "verified";
             const hasStripe = !!p.stripe_account_id;
             // Same legacy-role pattern as deniedCount above.
@@ -163,7 +168,7 @@ const AdminUserRowBase = ({
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {/* Standing — only show when there's something to flag, OR when no recent login signal exists.
                     Avoids duplicating "Good" alongside the "active X ago" chip. */}
-                {(strikes > 0 || !lastLogin) && chip(
+                {strikesSummary !== null && (strikes > 0 || neverLoggedIn) && chip(
                   "standing",
                   <>
                     <ShieldCheck className="w-3 h-3" />

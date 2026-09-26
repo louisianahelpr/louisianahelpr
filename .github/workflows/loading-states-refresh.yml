@@ -127,6 +127,20 @@ jobs:
         if: ${{ !cancelled() && steps.measure.outcome == 'success' }}
         run: npm run check:loading-states
 
+      - name: Print the measurement into the log (branch dispatches only)
+        # A branch run's artifact is the only copy of its measurements.json,
+        # and a session that cannot reach the artifact host (Azure blob
+        # storage) cannot land a baseline change with the measurement it was
+        # made exact to (#1773: src/test/loadingStateShape.test.ts reads the
+        # committed pair). gzip + base64, 4000 characters a line between
+        # markers, read back with scripts/audit/measurement-from-log.mjs.
+        # Never on main: main lands it through the `land` job.
+        if: ${{ !cancelled() && steps.measure.outcome == 'success' && github.ref != 'refs/heads/main' }}
+        run: |
+          echo "LSM-BEGIN $(sha256sum docs/audit/loading-states/measurements.json | cut -d' ' -f1)"
+          gzip -9c docs/audit/loading-states/measurements.json | base64 -w 4000 | sed 's/^/LSM: /'
+          echo "LSM-END"
+
       - name: Shred the key
         if: always()
         run: rm -f .env

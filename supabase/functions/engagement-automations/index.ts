@@ -13,6 +13,7 @@ import {
   WelcomeDripStep3Email,
 } from '../_shared/email-templates/drip.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
+import { serve } from "../_shared/buildStamp.ts";
 
 // Declared because line 163 already used it. That reference was the only one
 // in the file and resolved to nothing, so the CAN-SPAM fail-closed branch —
@@ -181,7 +182,7 @@ async function logSend(
   }
 }
 
-Deno.serve(async (_req) => {
+serve(async (_req) => {
   // Verify cron secret
   const cronSecret = Deno.env.get("CRON_SECRET");
   const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));

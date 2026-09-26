@@ -1,5 +1,5 @@
 /**
- * Native push notifications + deep linking.
+ * Native push notifications (deep links: src/lib/deepLinkRouter.ts).
  *
  * Wires APNs/FCM via @capacitor/push-notifications. On the web this is
  * a no-op — we already have web push via /sw-push.js.
@@ -26,9 +26,8 @@ import {
   requestPushPermission as requestWebPushPermission,
   setNativePushPermission,
 } from "@/lib/pushNotifications";
-import { Browser } from "@capacitor/browser";
-import { normalizeDeepLinkUrl, NATIVE_RETURN_SCHEME } from "@/lib/deepLinkRoute";
 import { claimDeepLinkLaunch } from "@/lib/nativeLaunchMutex";
+import { startDeepLinkRouting } from "@/lib/deepLinkRouter";
 import { captureJobRef } from "@/lib/jobLinkRef";
 import { rememberPendingSave } from "@/lib/jobIntent";
 
@@ -230,6 +229,13 @@ export function useNativePushSetup() {
     listenersAttached = true;
     const navigate = (to: string) => navigateRef.current(to);
 
+    // Deep links FIRST, on their own chain (NB-017). They used to be attached
+    // at the end of the push chain below, so any throw in push setup left the
+    // app with no Universal Links and no Stripe hand-back for the whole
+    // process. src/lib/deepLinkRouter.ts owns both entry points
+    // (App.getLaunchUrl() and appUrlOpen) and routes them through one function.
+    void startDeepLinkRouting(navigate);
+
     (async () => {
       try {
         const { PushNotifications } = await import("@capacitor/push-notifications");
@@ -302,7 +308,7 @@ export function useNativePushSetup() {
             // and — unless somebody claimed the launch — navigates there with
             // `replace: true`, throwing this link away. That is precisely the
             // race nativeLaunchMutex exists for, and the Universal-Link path
-            // below already claims it (see handleIncomingUrl); the push-tap
+            // already claims it (routeIncomingUrl, deepLinkRouter.ts); the push-tap
             // path was the one participant that never did, so a tap from a
             // closed app landed on the default screen rather than on the thing
             // the notification was about.
@@ -381,90 +387,6 @@ export function useNativePushSetup() {
           }
         } catch (regErr) {
           report(regErr, { tags: { source: "push.autoRegister" } });
-        }
-
-
-        // Universal Links / App Links — handle taps from outside the app.
-        //
-        // Host whitelist + short-link normalization live in
-        // `@/lib/deepLinkRoute` so the routing table is unit-tested
-        // independently of Capacitor's bridge, and so the AASA path
-        // claims in public/.well-known/apple-app-site-association and
-        // the JS routing stay in sync. Do NOT enumerate that path set
-        // here — this comment used to, listing eight paths when the
-        // AASA claims thirty-three, and the copy rotted the moment the
-        // link census expanded it. `src/test/aasaRouteParity.test.ts`
-        // is the authority: it derives both sides and fails on drift.
-        //
-        // STRICT host check: on TestFlight cold-install, Capacitor
-        // sometimes fires appUrlOpen with the install-source URL on
-        // initial launch — without the whitelist a stale `/login` or
-        // `/whatever` path would yank fresh-install users away from
-        // the guest dashboard they were just rendered onto.
-        const { App } = await import("@capacitor/app");
-
-        const handleIncomingUrl = async (rawUrl: string) => {
-          try {
-            // Parse for analytics (host + raw path) even if we end up
-            // ignoring the URL — we still want to know how often
-            // foreign-host links reach the bridge.
-            let host = "";
-            let rawPath = "";
-            try {
-              const parsed = new URL(rawUrl);
-              host = parsed.host;
-              rawPath = parsed.pathname;
-            } catch { /* fall through to track('') */ }
-            track(AhaEvent.AppOpenedFromDeepLink, { host, path: rawPath });
-
-            // A `helpr://` URL means Stripe just handed us back from the
-            // in-app browser sheet. Close it first — otherwise we route
-            // underneath a sheet that is still covering the screen and the
-            // user sees nothing change.
-            if (rawUrl.startsWith(`${NATIVE_RETURN_SCHEME}:`)) {
-              try {
-                await Browser.close();
-              } catch (err) {
-                // Already dismissed, or no sheet open. Routing is what
-                // matters; never let this stop the hand-back.
-                report(err, { tags: { source: "nativeReturn.browserClose" } });
-              }
-            }
-
-            const internal = normalizeDeepLinkUrl(rawUrl);
-            if (internal) {
-              // Mark first so NativeLaunchRouter (which may resolve a
-              // moment later in a parallel useEffect) doesn't override
-              // the deep link with the default post-auth route.
-              claimDeepLinkLaunch();
-              navigate(internal);
-            }
-          } catch (err) {
-            report(err, { tags: { source: "appUrlOpen" }, context: { url: rawUrl } });
-          }
-        };
-
-        await App.addListener("appUrlOpen", (event) => {
-          // Listener signature is sync; the handler awaits Browser.close(), so
-          // surface any rejection rather than letting it become an unhandled one.
-          void handleIncomingUrl(event.url).catch((err) =>
-            report(err, { tags: { source: "appUrlOpen" } }),
-          );
-        });
-
-        // Cold-launch: if the app was opened FROM a Universal Link
-        // (rather than the home-screen icon), `appUrlOpen` may have
-        // already fired before this listener was attached, or — on
-        // some iOS versions — not fired at all. Querying
-        // App.getLaunchUrl() on every boot is cheap and idempotent;
-        // resolveNativeLaunchRoute won't override us because it only
-        // intervenes when currentPath === "/" AND no navigate() has
-        // happened yet.
-        try {
-          const launch = await App.getLaunchUrl();
-          if (launch?.url) await handleIncomingUrl(launch.url);
-        } catch (err) {
-          report(err, { tags: { source: "getLaunchUrl" } });
         }
       } catch (err) {
         report(err, { tags: { source: "useNativePushSetup" } });

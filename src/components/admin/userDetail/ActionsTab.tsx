@@ -22,7 +22,8 @@ import { isIdentityVerified } from "@/lib/awardGate";
 interface ActionsTabProps {
   viewProfile: Profile;
   viewBanStatus: string;
-  lastLoginSummary: Record<string, string>;
+  /** null = not known (loading or the read failed). */
+  lastLoginSummary: Record<string, string> | null;
   unbanUser: (profile: Profile) => void;
   viewHistoryFor: (profile: Profile) => void;
   setBanProfile: (profile: Profile | null) => void;
@@ -84,7 +85,7 @@ export function ActionsTab({
           {/* No Approve / Deny (Q193): every signup is auto-approved and
               bans are automated. */}
           {showActivityChip && (() => {
-            const hasLoggedIn = !!lastLoginSummary[viewProfile.user_id];
+            const hasLoggedIn = !!lastLoginSummary?.[viewProfile.user_id];
             // The OR that `identity_is_verified(idv_status,
             // stripe_identity_verified)` computes in the database — reading only
             // `idv_status` here would call a Stripe-verified account "Awaiting
@@ -103,7 +104,9 @@ export function ActionsTab({
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 {activeLabel}
               </div>
-            ) : (
+            ) : lastLoginSummary === null ? null : (
+              // "Awaiting first login" is a claim about login_history; with the
+              // map unknown (loading, or its read failed) there is no claim.
               <div className="flex-1 min-w-[160px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-muted/50 border border-border text-ds-11 text-muted-foreground font-medium">
                 <Clock className="w-3.5 h-3.5" />
                 Awaiting first login

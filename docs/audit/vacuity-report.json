@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-26T03:13:34.887Z",
-  "guards": 1058,
-  "registered": 1058,
+  "generated": "2026-09-26T03:57:18.644Z",
+  "guards": 1054,
+  "registered": 1054,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -163,7 +163,6 @@
     {
       "module": "src/components/ErrorBoundary.tsx",
       "tests": [
-        "src/test/errorBoundariesQuietDuringChunkRecovery.test.tsx",
         "src/test/errorSurfacesReport.test.tsx"
       ],
       "parents": [
@@ -321,7 +320,6 @@
     {
       "module": "src/components/RouteErrorBoundary.tsx",
       "tests": [
-        "src/test/errorBoundariesQuietDuringChunkRecovery.test.tsx",
         "src/test/errorSurfacesReport.test.tsx",
         "src/components/RouteErrorBoundary.recoveryInFlight.test.tsx"
       ],

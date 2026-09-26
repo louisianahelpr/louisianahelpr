@@ -13,7 +13,11 @@
  *      provably a live user (KNOWN_EQ, exact both ways); a conversation's
  *      other party goes through threadPairFilter, which uses `is.null`;
  *   4. no null other party is coalesced to "" outside the exact KNOWN list;
- *   5. the composer and the send path refuse a thread with nobody to receive.
+ *   5. the composer and the send path refuse a thread with nobody to receive;
+ *   6. a thread addressed to an id from OUTSIDE the inbox (a deep link, or an
+ *      open thread whose person deletes mid-conversation) asks the server
+ *      whether that account was deleted and becomes the deleted-account
+ *      thread (Q333/Q334), never a live composer to a missing id.
  *
  * Proof of the DB behaviour: src/test/pglite/messagesReceiverSetNull.pglite.mjs.
  *
@@ -22,6 +26,9 @@
  * @mutate src/pages/messages/messagesData/sendHandlers.ts | if (receiverId === null) { | if (false) {
  * @mutate supabase/migrations/20260924013306_messages_receiver_set_null.sql | REFERENCES auth.users(id) ON DELETE SET NULL; | REFERENCES auth.users(id) ON DELETE CASCADE;
  * @mutate src/pages/messages/useMessagesData.ts | .or(threadPairFilter(resolvedUserId, convo.otherUserId)) | .or(`and(sender_id.eq.${resolvedUserId},receiver_id.eq.${convo.otherUserId})`)
+ * @mutate src/pages/messages/messagesData/loadConversations.ts | otherUserId: counterpartyDeleted ? null : deepLinkUserId, | otherUserId: deepLinkUserId,
+ * @mutate src/pages/messages/messagesData/sendHandlers.ts | (await fetchCounterpartyDeleted(optimistic.job_id, receiverId)) === true | false
+ * @mutate supabase/migrations/20260926015040_thread_counterparty_deleted.sql | FROM PUBLIC, anon; | FROM PUBLIC;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -139,5 +146,34 @@ describe("messages.receiver_id may be a deleted account (Q262)", () => {
     const send = blankComments(read("src/pages/messages/messagesData/sendHandlers.ts"));
     expect(send).toMatch(/if \(receiverId === null\) \{[\s\S]{0,400}sendStatus: "refused"[\s\S]{0,200}return;/);
     expect(send).toMatch(/if \(activeConvo\.otherUserId === null\) return false;/);
+  });
+});
+
+describe("a thread addressed to a deleted account becomes the deleted-account thread (Q333/Q334)", () => {
+  it("the newest get_thread_counterparty_deleted is defined, reads auth.users, and is revoked from PUBLIC and anon", () => {
+    const dir = join(ROOT, "supabase", "migrations");
+    const defs = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort()
+      .map((f) => blankSqlComments(readFileSync(join(dir, f), "utf8")))
+      .filter((sql) => /FUNCTION\s+public\.get_thread_counterparty_deleted\s*\(/i.test(sql));
+    expect(defs.length).toBeGreaterThanOrEqual(1);
+    const newest = defs[defs.length - 1];
+    expect(newest).toMatch(/NOT EXISTS\s*\(\s*SELECT 1 FROM auth\.users/i);
+    expect(newest).toMatch(/REVOKE ALL ON FUNCTION public\.get_thread_counterparty_deleted\(uuid, uuid\) FROM PUBLIC, anon;/);
+  });
+
+  it("the deep-link fallback routes a missing profile to the deleted-account thread (Q333)", () => {
+    const src = blankComments(read("src/pages/messages/messagesData/loadConversations.ts"));
+    const body = src.slice(src.indexOf("export async function buildDeepLinkPlaceholder"));
+    expect(body).toMatch(/!profileFound && \(await fetchCounterpartyDeleted\(deepLinkJobId, deepLinkUserId\)\) === true/);
+    expect(body).toMatch(/otherUserId: counterpartyDeleted \? null : deepLinkUserId,/);
+    const hook = blankComments(read("src/pages/messages/useMessagesData.ts"));
+    expect(hook).toMatch(/placeholder\.otherUserId === null[\s\S]{0,300}c\.otherUserId === null/);
+  });
+
+  it("a refused send asks the server and flips the open thread to otherUserId null (Q334)", () => {
+    const send = blankComments(read("src/pages/messages/messagesData/sendHandlers.ts"));
+    expect(send).toMatch(/\(await fetchCounterpartyDeleted\(optimistic\.job_id, receiverId\)\) === true[\s\S]{0,600}otherUserId: null,[\s\S]{0,600}sendStatus: "refused"/);
   });
 });

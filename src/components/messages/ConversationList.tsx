@@ -1391,50 +1391,6 @@ export function ConversationList({
             }}
           >
           <div className="space-y-2">
-          {/* ── THE HIDDEN-UNREAD BANNER ────────────────────────────────────
-              The price of landing on Active (owner, 2026-09-19), paid openly.
-
-              Active is `LIVE_JOB_STATUSES`, which does NOT include `open` —
-              so an applicant's unread question about a posting you have not
-              awarded yet, the single most common unread thread a poster gets,
-              is NOT in the tab the inbox now opens on. "Opens to Active" must
-              never mean "hides something you have not read".
-
-              This is the only place that can say so, and it matters most on
-              PHONE: the tab strip lives behind a disclosure that starts
-              collapsed, so the "All N" count is not even on screen. There is
-              no Unread tab to fall back on any more either — it was removed
-              the same day.
-
-              Shown only when there is genuinely something concealed: on
-              Active, not searching, with at least one unread thread outside
-              the live slice. It sends the reader to All (the widest view),
-              not to a filter, because the point is to stop hiding. */}
-          {!loading && inboxTab === "active" && !searchQuery.trim() && hiddenUnreadCount > 0 && (
-            <button
-              type="button"
-              onClick={() => { hapticLight(); setInboxFilter(UNFILTERED_INBOX_TAB); }}
-              className="w-full flex items-center gap-2 rounded-ds-md px-3 py-2.5 btn-press transition-colors text-left"
-              style={{
-                background: "hsl(var(--amber-tint) / 0.10)",
-                border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
-              }}
-            >
-              <span
-                className="shrink-0 w-2 h-2 rounded-full"
-                style={{ background: "hsl(var(--burnt-sienna))" }}
-                aria-hidden="true"
-              />
-              <span
-                className="font-sans text-ds-13 leading-snug"
-                style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-              >
-                {hiddenUnreadCount === 1
-                  ? "1 unread conversation isn't in Active — show all"
-                  : `${hiddenUnreadCount} unread conversations aren't in Active — show all`}
-              </span>
-            </button>
-          )}
           {/* ── THE AGED-OUT NOTE ───────────────────────────────────────────
               "Keep them, auto-hide after a while. Never delete" (owner,
               2026-09-19). Hiding silently is how "hidden" becomes "I lost my
@@ -1719,6 +1675,53 @@ export function ConversationList({
                 </div>
               )}
             </div>
+          )}
+          {/* Below the rows, not above them (owner, 2026-09-26, MQ28): the
+              banner arrives with the unread counts, and above the list it
+              pushed every row down when it did. Below, it displaces nothing. */}
+          {/* ── THE HIDDEN-UNREAD BANNER ────────────────────────────────────
+              The price of landing on Active (owner, 2026-09-19), paid openly.
+
+              Active is `LIVE_JOB_STATUSES`, which does NOT include `open` —
+              so an applicant's unread question about a posting you have not
+              awarded yet, the single most common unread thread a poster gets,
+              is NOT in the tab the inbox now opens on. "Opens to Active" must
+              never mean "hides something you have not read".
+
+              This is the only place that can say so, and it matters most on
+              PHONE: the tab strip lives behind a disclosure that starts
+              collapsed, so the "All N" count is not even on screen. There is
+              no Unread tab to fall back on any more either — it was removed
+              the same day.
+
+              Shown only when there is genuinely something concealed: on
+              Active, not searching, with at least one unread thread outside
+              the live slice. It sends the reader to All (the widest view),
+              not to a filter, because the point is to stop hiding. */}
+          {!loading && inboxTab === "active" && !searchQuery.trim() && hiddenUnreadCount > 0 && (
+            <button
+              type="button"
+              onClick={() => { hapticLight(); setInboxFilter(UNFILTERED_INBOX_TAB); }}
+              className="w-full flex items-center gap-2 rounded-ds-md px-3 py-2.5 btn-press transition-colors text-left"
+              style={{
+                background: "hsl(var(--amber-tint) / 0.10)",
+                border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
+              }}
+            >
+              <span
+                className="shrink-0 w-2 h-2 rounded-full"
+                style={{ background: "hsl(var(--burnt-sienna))" }}
+                aria-hidden="true"
+              />
+              <span
+                className="font-sans text-ds-13 leading-snug"
+                style={{ color: "hsl(var(--olivewood) / 0.9)" }}
+              >
+                {hiddenUnreadCount === 1
+                  ? "1 unread conversation isn't in Active — show all"
+                  : `${hiddenUnreadCount} unread conversations aren't in Active — show all`}
+              </span>
+            </button>
           )}
           </div>
           </PullToRefreshWrapper>

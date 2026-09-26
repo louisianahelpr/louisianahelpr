@@ -34,6 +34,17 @@ import { render, screen, cleanup, fireEvent, within } from "@testing-library/rea
 import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+// jsdom has no layout, so the real virtualizer renders zero rows. Render them
+// all, flat, so row ORDER against the banner can be asserted (MQ28).
+vi.mock("@/components/VirtualList", () => ({
+  VirtualList: <T,>({ items, getKey, renderItem }: {
+    items: T[];
+    getKey: (item: T, i: number) => string;
+    renderItem: (item: T, i: number) => import("react").ReactNode;
+  }) => (
+    <div>{items.map((it, i) => <div key={getKey(it, i)}>{renderItem(it, i)}</div>)}</div>
+  ),
+}));
 // No network (Q55a): ConversationList's mount-time pin/archive loads read
 // thread_pins / thread_archives from Supabase. See the helper.
 vi.mock("@/lib/pinnedConversations", async (io) =>
@@ -200,6 +211,13 @@ describe("Messages opens on Active, and says what Active is hiding", () => {
       name: /2 unread conversations aren't in Active/i,
     });
     expect(banner).toBeTruthy();
+
+    // BELOW the rows (owner, 2026-09-26, MQ28): above them, its arrival
+    // pushed every row down. The live row must come first in the document.
+    const liveRow = screen.getAllByTestId("row-name")[0];
+    expect(
+      liveRow.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     fireEvent.click(banner);
     openPhoneDisclosure();

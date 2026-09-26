@@ -20,7 +20,7 @@ import { trackJobCompleted } from "@/lib/jobCompletedEvent";
 import { BEFORE_PHOTO_GATE_REASON, lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
-import { railStepPaint } from "@/components/job-card/jobRailTone";
+import { railStepPaint, railStepPulses } from "@/components/job-card/jobRailTone";
 import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
 import { JobStepRowSlot, useInJobStepRow } from "@/components/job-card/jobStepRow";
 /* `JobActionChip` was imported here for the "Try My Location Again" chip
@@ -2018,7 +2018,13 @@ export function JobTracking({
                     // `relative` is for the 44px hit overlay below; it does not
                     // affect the tooltip, which is absolutely positioned
                     // against the COLUMN (the outer div), not against this dot.
-                    className={`relative w-7 h-7 rounded-full flex items-center justify-center transition-all !min-h-0 !min-w-0 ${isCurrent && !disputedStep ? "step-current-pulse" : ""}`}
+                    // NO PULSE ON A FINISHED JOB. The pulse says "this step is
+                    // live, waiting on someone"; on a job whose rail reached
+                    // Done it said that forever, and an infinite scale
+                    // animation is a box that never holds still (press run
+                    // 36208184593: six "Done — <date>" dots NOT CLICKABLE,
+                    // "still moving (not stable)", Q294).
+                    className={`relative w-7 h-7 rounded-full flex items-center justify-center transition-all !min-h-0 !min-w-0 ${railStepPulses({ isCurrent, allDone, disputed: !!disputedStep }) ? "step-current-pulse" : ""}`}
                     /* ONE SOURCE for every dot's colour — `railStepPaint`
                        above. The five-branch ternary this replaces held the
                        alarm, the amber cursor, the completed green (which is

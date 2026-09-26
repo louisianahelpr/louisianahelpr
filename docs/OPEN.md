@@ -7,10 +7,10 @@ Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 - **Queue (this file):** 256 done, 35 partly done (fixed, protection pending), 111 open. Source of truth for work.
 - **Audit bus:** 23 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
-- **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
-- **nightly-red issues:** 8 open — `gh issue list -l nightly-red`. _(2026-09-23T06:08Z)_
-- **Workflows on main:** 10 red, 8 stale, 1 unknown, 27 green of 46 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-23T06:08Z)_
-- **Remote branches:** 34 carry patches not on main, 26 fully merged, of 63 (Q79). _(2026-09-23T06:08Z)_
+- **Ops alert ledger:** 15 open (14 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-25T22:28Z)_
+- **nightly-red issues:** 10 open — `gh issue list -l nightly-red`. _(2026-09-25T22:26Z)_
+- **Workflows on main:** 10 red, 8 stale, 0 unknown, 39 green of 57 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-25T22:26Z)_
+- **Remote branches:** 66 carry patches not on main, 3 fully merged, of 73 (Q79). _(2026-09-25T22:26Z)_
 <!-- /live -->
 <!-- /generated: everything-open -->
 
@@ -1027,6 +1027,14 @@ sure someone hears it and closes it.
    the hero font loads (e.g. preloading Bodoni Moda or matching the fallback's
    size). The hero font is locked, so: may I change how it LOADS, without
    changing the font, colour or words?
+28. **Where the /messages "N unread conversations aren't in Active" bar goes (Q384(5), nightly-red #1754, 2026-09-25).**
+    Held for the morning (owner: "I'll decide tom"). Screenshot: ~/.lh-shots/msg-notice/helper-e2e-375.png
+    (prod, helper-e2e, 375). The beige bar only appears after the list loads, so every
+    conversation under it jumps down (~66px at 375, ~52px at 1440; CLS 0.0558 / 0.0216).
+    Options: (a) below the rows; (b) a small chip in the header; (c) keep it on top and hold
+    a blank band for it while loading; (d) leave it and accept the red. PR #1825 only keys the
+    skeleton so the number reads zero while the rows still jump: not landed, for that reason.
+    Class guard for the fix is in PR #1832 (noLoadedOnlyChromeAbovePlaceholder).
 
 ## CARRIED — still open from the sections archived 2026-09-23
 
@@ -1714,7 +1722,7 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 | OBS-001 | HIGH ⚑ | 0 of 3 admins have a push token; admin safety alerts still fan into the void |
 | CC-006 | HIGH ⚑ | FIXED 2026-09-24 (0ed5f317a): onabort rejects; Signup toasts and continues. Guard signupHelpers.test.ts, proven red. |
 | BR-005 | HIGH ⚑ | CLOSED 2026-09-24: dashboard shows emails 100/h, sign-ups 30/5min per IP; the '2/hour' was observed volume, not the limit. |
-| NB-017 | HIGH ⚑ | The `cancelled` race is gone from code since the Q82 fix; still needs a device/sim repro of a cold-launch helpr:// link (gated on the Q152 TestFlight build). |
+| NB-017 | HIGH ⚑ | CODE FIX 2026-09-25 (Q427): one router (deepLinkRouter.ts) for getLaunchUrl + appUrlOpen, cold-start twin de-duplicated, started independent of push setup. Guard deepLinkOneRouter.test.ts, proven red. Device verification still owed: steps in Q427 (gated on the Q152 TestFlight build). |
 | OA-009 | HIGH ⚑ | FIXED 2026-09-24 (4d0c79b99): the non-dismissible re-consent gate captures pin + legal_acceptances event before any use (test proves both); the one live pin-without-event row was made by the press firewall, now fixed. |
 | BD-008 | HIGH ⚑ | FIXED (fa95a3ab0, 2026-09-07): header falls back to the rendered count under client-only filters. Guard dashboardCountNeverOverstates.test.ts (78c388d5a), proven red. |
 | ME-006 | HIGH | FIXED on branch me006 (2026-09-25), not yet on main or deployed: both tip charge paths charge tip + card fee from `_shared/tipFees.ts` and the Helpr's transfer is the whole tip; tip dialogs show the fee first. Guard src/test/tipFeesOneDefinition.test.ts, proven red. Verify on prod in Stripe test mode after deploy (Q362). |

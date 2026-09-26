@@ -63,8 +63,8 @@ import {
 import * as pressSafety from "./pressProdSafety.mjs";
 import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
-  CHROME_SKIP, FOREIGN_FIXTURE_SKIP, LANDING_QUIET_MS, MIN_CYCLE_BURST, landingSettled, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
-  classifyConsoleError, classifyFailedResponse, clickFailureReason, isForeignSweepFixture, overTimeBudget, refusalIsDeath, tokenNeedsRefresh,
+  CHROME_SKIP, FOREIGN_FIXTURE_SKIP, LANDING_QUIET_MS, PACE_HEADROOM, cycleBurstEstimate, landingSettled, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
+  classifyConsoleError, classifyFailedResponse, clickFailureReason, isForeignSweepFixture, overTimeBudget, refusalIsDeath, rowDetailLines, tokenNeedsRefresh,
 } from "./pressFailureClass.mjs";
 import { budgetFor } from "../e2e/request-budget.mjs";
 import { recordRouteProbePasses, routeProbePasses } from "./pressRouteProbe.mjs";
@@ -215,7 +215,7 @@ export function screenErrorText(snap) {
 export const SENTRY_PROBE_RX = /uncaught:\s*Sentry uncaught test\b/i;
 export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout)\b/i;
 export { ACCOUNT_DESTROY_RX, SESSION_END_RX, PAYMENT_RX, SELF_ROUTE_RX } from "./pressProdSafety.mjs";
-import { PAYMENT_RX, isAccountSettingToggle, isAdminStateToggle } from "./pressProdSafety.mjs";
+import { PAYMENT_RX, isAccountSettingToggle, isAdminStateToggle, isAdminWrite } from "./pressProdSafety.mjs";
 import { RequestMeter } from "../../e2e/requestMeter.mjs";
 /** Console lines the HARNESS causes, not the app. */
 /**
@@ -380,8 +380,11 @@ export const BOUNCED_SKIP = "the screen redirected away on a later load; its con
  *                              35692554813 excused seven page-level controls
  *                              on /account-banned before this line existed.
  */
-export function missingControlDisposition({ scope, onSameScreen, consumed, transient = false, foreignFixture = false }) {
+export function missingControlDisposition({ scope, onSameScreen, consumed, transient = false, foreignFixture = false, rowConsumed = false }) {
   if (!onSameScreen) return BOUNCED_SKIP;
+  // A page is not a feed, but a RECORD this run wrote to can leave it: see
+  // ROW_CONSUMED_SKIP. Proof is required (rowGoneAfterOwnWrite).
+  if (rowConsumed) return ROW_CONSUMED_SKIP;
   if (scope === "overlay" && consumed) return CONSUMED_SKIP;
   if (transient) return TRANSIENT_STATUS_SKIP;
   // Q128: reached through another sweep's live fixture row, which that sweep
@@ -406,6 +409,24 @@ export function missingControlDisposition({ scope, onSameScreen, consumed, trans
  * same screen. A control in such a region that IS there is pressed normally,
  * and a missing control anywhere else is still a failure.
  */
+/**
+ * THE RECORD LEFT THE LIST BECAUSE THIS RUN WROTE TO IT.
+ *
+ * #1582: /admin?view=reports, a report card carries Investigating, Message
+ * <reported>, Message <reporter>, Resolve, Dismiss. Pressing Investigating (a
+ * write, gated to a test-owned report since isAdminWrite) moves the report out
+ * of the pending queue, so every later control of that card is gone on the
+ * next load. That is the product working, not a missing control. Excused only
+ * with proof: this run made a MUTATING press on a control whose record text
+ * is exactly this control's, and no control with that record text is on the
+ * reloaded screen. Any other missing control on a page still fails.
+ */
+export const ROW_CONSUMED_SKIP = "its record left the list after this run's own mutating press on that same record";
+export function rowGoneAfterOwnWrite({ rowText, mutatedRows, now }) {
+  if (!rowText || !mutatedRows?.has(rowText)) return false;
+  return !(now ?? []).some((c) => c.rowText === rowText);
+}
+
 export const TRANSIENT_STATUS_SKIP = "inside a transient status region that dismissed itself (an announcement, not page chrome)";
 export const TRANSIENT_REGION_SEL = '[role="status"][aria-live], [role="alert"]';
 
@@ -526,6 +547,7 @@ export const DOCUMENTED_SKIPS = new Set([
   CONSUMED_SKIP,
   BOUNCED_SKIP,
   TRANSIENT_STATUS_SKIP,
+  ROW_CONSUMED_SKIP,
   FORM_MIRROR_SKIP,
   FOREIGN_FIXTURE_SKIP,
   CHROME_SKIP,
@@ -557,6 +579,16 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel }) => {
     let n = el;
     while (n && n !== top) {
       const tag = n.tagName.toLowerCase();
+      // A VIRTUALIZED ROW IS ADDRESSED BY ITS INDEX, NOT ITS POSITION.
+      // @tanstack/react-virtual (src/components/VirtualList.tsx) mounts only
+      // the rows in range and stamps each with `data-index`; scroll the list
+      // and the wrapper at nth-of-type(11) is a DIFFERENT row. Run 36069319716,
+      // /admin?view=people: "J3 Jean-Baptiste 3." at `div:nth-of-type(11)`
+      // NOT CLICKABLE after scrollIntoViewIfNeeded moved the window under it.
+      const di = n.getAttribute("data-index");
+      const unique = di !== null && /^\d+$/.test(di) &&
+        [...(n.parentElement?.children ?? [])].filter((c) => c.tagName === n.tagName && c.getAttribute("data-index") === di).length === 1;
+      if (unique) { parts.unshift(`${tag}[data-index="${di}"]`); n = n.parentElement; continue; }
       let i = 1, s = n;
       while ((s = s.previousElementSibling)) if (s.tagName === n.tagName) i++;
       parts.unshift(`${tag}:nth-of-type(${i})`);
@@ -677,6 +709,21 @@ const OVERLAY_FINGERPRINT = ({ overlaySel, controlSel }) => {
   // screen has stopped claiming it is still working.
   if (document.querySelectorAll('[aria-busy="true"]').length) return `busy:${Date.now()}`;
   return `${root.querySelectorAll(controlSel).length}|${(root.innerText || "").length}`;
+};
+
+/**
+ * What a reloaded screen holds when a control could not be found on it: the
+ * control count, the mounted rows of any virtualized list (`data-index`, which
+ * @tanstack/react-virtual stamps on every row it renders; src/components/VirtualList.tsx),
+ * the scroll position, and whether the missing control's label is on the screen
+ * as text at all. Runs in the page.
+ */
+export const RELOADED_SCREEN = ({ controlSel, label }) => {
+  const idx = [...document.querySelectorAll("[data-index]")].map((e) => Number(e.getAttribute("data-index"))).filter((n) => Number.isFinite(n));
+  const rows = idx.length ? `${idx.length} virtual row(s) mounted, index ${Math.min(...idx)}-${Math.max(...idx)}` : "no virtual rows";
+  const text = document.body.innerText || document.body.textContent || "";
+  const onScreen = label ? (text.includes(label.slice(0, 30)) ? "label text present" : "label text absent") : "no label";
+  return `[reloaded screen: ${document.querySelectorAll(controlSel).length} control(s); ${rows}; scrollY=${Math.round(window.scrollY)}; ${onScreen}; url=${location.pathname}${location.search}]`;
 };
 
 /** Structural fingerprint of the page; any difference is "something happened". */
@@ -816,13 +863,14 @@ async function main() {
   requestMeter.attachBrowser(browser);
   process.on("exit", () => requestMeter.flush());
   // The load ceiling the budget step judges this run by (e2e/request-budgets.json),
-  // and the largest burst one press cycle has produced so far. See ceilingWaitMs.
+  // and the recent press cycles' sizes. See ceilingWaitMs and cycleBurstEstimate.
   const LOAD_CEILING = budgetFor(JSON.parse(readFileSync(resolve(REPO, "e2e/request-budgets.json"), "utf8")).budgets, "press-every-control").ceilingPerMinute;
-  let cycleBurst = MIN_CYCLE_BURST;
+  const recentCycles = [];
   let cycleStartTotal = null;
   const paceToCeiling = async (page) => {
-    if (cycleStartTotal !== null) cycleBurst = Math.max(cycleBurst, requestMeter.total - cycleStartTotal);
-    const wait = ceilingWaitMs({ minutes: requestMeter.minutes, ceiling: LOAD_CEILING, burst: cycleBurst });
+    if (cycleStartTotal !== null) recentCycles.push(requestMeter.total - cycleStartTotal);
+    if (recentCycles.length > 50) recentCycles.shift();
+    const wait = ceilingWaitMs({ minutes: requestMeter.minutes, ceiling: Math.floor(LOAD_CEILING * PACE_HEADROOM), burst: cycleBurstEstimate(recentCycles) });
     if (wait > 0) await page.waitForTimeout(wait);
     cycleStartTotal = requestMeter.total;
   };
@@ -1260,6 +1308,8 @@ async function main() {
         const seenOverlays = new Set();
         /** scopeKey → the signatures of the controls this run has actually clicked in it. */
         const pressedInScope = new Map([["page", new Set()]]);
+        /** Record texts (meta.rowText) this row's MUTATING presses acted on; see ROW_CONSUMED_SKIP. */
+        const mutatedRows = new Set();
         let idx = 0;
         let pageDirty = false; // a press changed the resting page; reload before the next one
 
@@ -1318,7 +1368,7 @@ async function main() {
           const ckey = chromeKey({ persona, chain: entry.chain.slice(0, -1), sig: meta.sig });
           const chromeWhy = chromeDisposition({ fromChrome: item.fromChrome, depth: item.depth, key: ckey, passedOn: chromePassedOn });
           if (chromeWhy) { entry.pressedOn = chromePassedOn.get(ckey); skip(chromeWhy); continue; }
-          if (DESTRUCTIVE_RX.test(label) || meta.type === "submit" || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAccountSettingToggle({ persona, meta, label })) {
+          if (DESTRUCTIVE_RX.test(label) || isAdminWrite({ persona, label }) || meta.type === "submit" || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAccountSettingToggle({ persona, meta, label })) {
             const why = await gate(label, meta, item.chainOwned);
             if (why) { skip(why); continue; }
             entry.mutating = true;
@@ -1395,12 +1445,17 @@ async function main() {
                 consumed: item.step.scope === "overlay" ? await consumedHere(now) : false,
                 transient: !!meta.inStatus,
                 foreignFixture: isForeignSweepFixture(entry.chain),
+                rowConsumed: rowGoneAfterOwnWrite({ rowText: meta.rowText, mutatedRows, now }),
               });
               if (why) { skip(why); continue; }
             }
           }
           if (!(await target.count())) {
             entry.result = "FAIL"; entry.why = "control not found on a freshly loaded page (transient or non-deterministic DOM)";
+            // What the reloaded screen DID hold, so the log alone can tell a
+            // virtualized row that is not mounted from a row that is gone
+            // (#1582: /admin?view=people "AW / ET / HH" not found, unexplained).
+            entry.why += " " + (await page.evaluate(RELOADED_SCREEN, { controlSel: CONTROL_SEL, label: meta.label }).catch((e) => `[screen unreadable: ${String(e?.message).slice(0, 80)}]`));
             rec.failed++; failedPresses++;
             entry.shot = await shoot(`missing-${slug(label)}`);
             continue;
@@ -1543,6 +1598,7 @@ async function main() {
                   consumed: item.step.scope === "overlay" ? await consumedHere(now) : false,
                   transient: !!meta.inStatus,
                   foreignFixture: isForeignSweepFixture(entry.chain),
+                  rowConsumed: rowGoneAfterOwnWrite({ rowText: meta.rowText, mutatedRows, now }),
                 });
                 if (why) { skip(why); pageDirty = true; continue; }
               }
@@ -1556,6 +1612,7 @@ async function main() {
             }
           }
           rec.pressed++; totalPressed++;
+          if (entry.mutating && meta.rowText) mutatedRows.add(meta.rowText);
           // Remember WHAT was pressed in this scope: a control that vanishes
           // later is only excused when a control this run pressed is gone too.
           pressedInScope.get(item.scopeKey ?? "page")?.add(meta.sig);
@@ -1622,7 +1679,10 @@ async function main() {
             after.focused !== before.focused ? "moved focus only" :
             "";
           if (!alreadyActive && !blockedByValidation) {
-            if (!changed) problems.push("no observable change");
+            // What was compared, so a "no observable change" can be read from
+            // the log alone (#1582: the admin bell's "Stuck payment" row, whose
+            // row links to /admin?view=people&user=…, scored this).
+            if (!changed) problems.push(`no observable change [url ${before.url.replace(BASE, "")} → ${after.url.replace(BASE, "")}; overlays ${before.overlays}→${after.overlays}; toasts ${before.toasts}→${after.toasts}; acked=${acked}]`);
             else if (changed === "moved focus only") problems.push("no observable change (focus moved, nothing else)");
           }
 
@@ -1687,7 +1747,10 @@ async function main() {
       undocumented += unpressed;
       rec.net = summarizeTimings(reqTimings);
       console.log(`[${route.url} ${persona}] net=${rec.net.requests}req api=${rec.net.apiRequests} p95=${rec.net.p95Ms}ms max=${rec.net.maxMs}ms${rec.net.failed ? ` failed=${rec.net.failed}` : ""}${rec.status === "error-on-load" ? " slowest: " + rec.net.slowest.join(" | ") : ""}`);
-      console.log(`[${route.url} ${persona}] found=${rec.found} pressed=${rec.pressed} pass=${rec.passed} fail=${rec.failed} skip=${rec.skipped}${rec.failed ? " :: " + rec.controls.filter((c) => c.result === "FAIL").slice(0, 4).map((c) => `"${c.chain.join(" › ")}" — ${c.why}`).join(" ;; ") : ""}`);
+      console.log(`[${route.url} ${persona}] found=${rec.found} pressed=${rec.pressed} pass=${rec.passed} fail=${rec.failed} skip=${rec.skipped} undocumented=${unpressed}`);
+      // Every failure and every undocumented skip, one line each (#1582: the
+      // artifacts are not readable where the red is triaged; see rowDetailLines).
+      for (const l of rowDetailLines({ route: route.url, persona, controls: rec.controls, documented: DOCUMENTED_SKIPS })) console.log(l);
     }
   }
   requestMeter.flush();

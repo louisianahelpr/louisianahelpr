@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 278 done, 100 partly done (fixed, protection pending), 114 open. Source of truth for work.
+- **Queue (this file):** 278 done, 100 partly done (fixed, protection pending), 115 open. Source of truth for work.
 - **Audit bus:** 18 open, 2 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 15 open (14 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-25T22:28Z)_
@@ -1935,3 +1935,7 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   - `job_match_queue` rows marked 'dropped' leave `settled_at` null.
   - The seed-suppressed branch has no PGlite case.
   - OWNER: confirm that a 'dropped' row (e.g. blocked or seed) should also stop the other channel from sending.
+- [ ] **Q724 Proof-photo signed-URL cache survives sign-out (Q718 batch 1 review, LOW, 2026-09-26).**
+  - `src/lib/proofPhotoStorage.ts` keeps a module-level `signed` Map. Its only reset, `resetProofPhotoSignCache`, is called from `src/test/proofPhotoSigningIsBatched.test.ts` alone (grep of `src/`, 2026-09-26).
+  - Effect: after sign-out in the same tab, the next account can be handed a URL signed for the previous one for the rest of its ten-minute life.
+  - Fix: call it from `src/lib/authSignOut.ts`. Add a class check that every module-level Map/Set holding user-scoped data is cleared on sign-out.

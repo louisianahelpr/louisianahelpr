@@ -125,7 +125,7 @@ BEGIN
   -- manufactures a decided dispute that is stuck forever. The bank's ruling
   -- comes first: a LOST one is paged by the stripe-webhook
   -- (settle_dispute_by_chargeback answers needs_human for an open dispute on a
-  -- charged-back job), a WON one is Q427. Read by the FOR UPDATE above.
+  -- charged-back job), a WON one is Q449. Read by the FOR UPDATE above.
   IF _payment_status = 'chargeback' THEN
     RAISE EXCEPTION 'dispute_job_charged_back'
       USING HINT = 'The card holder''s bank is holding this payment in a card dispute, so no split could move it. Settle it by hand once the bank rules.';

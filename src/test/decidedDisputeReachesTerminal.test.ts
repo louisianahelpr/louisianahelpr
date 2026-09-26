@@ -23,7 +23,7 @@ import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
  *   - every Stripe dispute outcome charge.dispute.closed branches on.
  * Each outcome is classified: 'lost' (money gone) must call the terminal close
  * before anything else in its branch; 'warning_closed' restores the pre-block
- * payment state, so the split can still run; 'won' is Q427 (queued, exact).
+ * payment state, so the split can still run; 'won' is Q449 (queued, exact).
  * The close itself (settle_dispute_by_chargeback, newest definition) must close
  * only a decided, unexecuted dispute, refuse a partial chargeback, and be
  * service-role only. Its behaviour is proved in PGlite by
@@ -49,10 +49,10 @@ const Q344_MIGRATION = "20260926034348_decided_dispute_says_payment_processing.s
 const read = (rel: string) => blankComments(readFileSync(resolve(REPO, rel), "utf8"));
 
 /** How each Stripe dispute outcome leaves a decided-but-unexecuted dispute. */
-const OUTCOME_CLASS: Record<string, "closes" | "restores" | "queued:Q427"> = {
+const OUTCOME_CLASS: Record<string, "closes" | "restores" | "queued:Q449"> = {
   lost: "closes",
   warning_closed: "restores",
-  won: "queued:Q427",
+  won: "queued:Q449",
 };
 
 /** The body of `} else if (outcome === "<o>") {` … up to the next sibling branch. */

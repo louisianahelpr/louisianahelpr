@@ -14,11 +14,15 @@
 import { describe, it, expect } from "vitest";
 // @ts-expect-error — plain .mjs script, no declaration file
 import { queueCounts, countLine, storedLine, duplicateIds, nextFreeId } from "../../scripts/queue-count.mjs";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+// @ts-expect-error — plain .mjs module, no declaration file
+import { queueText } from "../../scripts/lib/openQueue.mjs";
 import { join } from "node:path";
 
 const ROOT = join(__dirname, "..", "..");
-const open = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
+// OPEN.md + its done archives (scripts/lib/openQueue.mjs, Q16): an archived done
+// item must still name its guard, and still count.
+const open = queueText(ROOT);
 
 /** Each done queue item's full text (from its line to the next list item or heading). */
 export function doneItems(md: string): { id: string; text: string }[] {

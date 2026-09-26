@@ -44,6 +44,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { listEvidence } from "./check-staleness.mjs";
+import { archivePathFor } from "./lib/openQueue.mjs";
 
 export const REPO = resolve(import.meta.dirname, "..");
 
@@ -105,6 +106,15 @@ export const GENERATED = [
     cmd: ["node", "scripts/burndown-score.mjs"],
     outputs: ["docs/GUARD-BURNDOWN.md"],
     what: "guard burn-down score table (proven / exempt / owed per scope)",
+  },
+  {
+    // BEFORE queue-count: moves done items to the dated archive; the counts,
+    // which read OPEN.md + archives (scripts/lib/openQueue.mjs), do not move.
+    id: "archive-done",
+    script: "scripts/archive-done.mjs",
+    cmd: ["node", "scripts/archive-done.mjs", "--write"],
+    outputs: ["docs/OPEN.md", archivePathFor(new Date().toISOString().slice(0, 10))],
+    what: "docs/OPEN.md holds live items only; done items move verbatim to docs/archive/OPEN-done-YYYY-MM.md (Q16)",
   },
   {
     id: "queue-count",
@@ -240,6 +250,8 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/verify-functions-deployed.mjs": "--lost-file for the deploy retry",
   "scripts/check-generated-current.mjs": "restores generator outputs after each comparison",
   "scripts/any-baseline.mjs": "rewrites scripts/any-baseline.json only on --write, which refuses to raise any entry (two-way guard: src/test/anyRatchet.test.ts)",
+  "scripts/check-sensitive-review.mjs": "GITHUB_STEP_SUMMARY; `record` appends a hand-recorded review to docs/reviews/sensitive-reviews.jsonl (authored log, not generated; Q9)",
+  "scripts/session-worktree.mjs": "creates ~/.lh-wt/session-<id> and <git-common-dir>/lh-sessions/<id>, logs overrides to ~/.lh-hygiene (Q47/Q18), nothing committed",
   "scripts/check-stated-counts.mjs": "rewrites scripts/stated-counts-baseline.json only on --write-baseline, which refuses to grow it",
 };
 

@@ -84,7 +84,7 @@ describe("what counts as a recorded review", () => {
   });
 
   it("history before START_DATE is not reported", () => {
-    const c = { sha: "a".repeat(40), date: "2026-09-20T00:00:00Z", message: "m", files: ["supabase/migrations/1_x.sql"] };
+    const c = { sha: "a".repeat(40), date: "2026-09-20T00:00:00Z", message: "m", files: ["supabase/migrations/fixture_old.sql"] };
     expect(audit([c], new Map()).rows).toEqual([]);
   });
 });
@@ -96,7 +96,7 @@ describe("the CLI on a fixture repo", () => {
     repo = realpathSync(mkdtempSync(join(tmpdir(), "lh-sensrev-")));
     git("init", "-q", "-b", "main");
     commit("README.md", "docs only");
-    bare = commit("supabase/migrations/20260927000000_x.sql", "add a policy");
+    bare = commit("supabase/migrations/fixture_add_policy.sql", "add a policy");
     reviewed = commit("supabase/functions/release-payout/index.ts", "release fix\n\nSensitive-Review: lh-money-escrow: clean");
     commit("src/lib/payoutMath.ts", "client money math");
   });

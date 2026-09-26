@@ -52,7 +52,7 @@
 // see the 23505 branch, which now proves whose intent it is holding before it
 // decides.
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 // Separate `import type` line on purpose: src/test/edge/harness.ts rewrites

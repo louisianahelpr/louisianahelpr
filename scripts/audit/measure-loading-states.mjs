@@ -728,6 +728,18 @@ async function main() {
     if (fixtureJobId) {
       const gone = await removeFixtureJob(poster, fixtureJobId);
       console.log(`${gone.ok ? "removed" : "::warning title=fixture job residue::could not remove"} fixture job ${fixtureJobId}: ${gone.note}`);
+      // "Already gone" means something ELSE deleted it while this run was
+      // measuring: press-every-control's clean-up and prod-audit-sweeper.mjs
+      // remove every PRESS-marker job, and a dispatched press run holds only
+      // prod-load, not this job's account lock. Run 36214822852 (2026-09-26)
+      // measured /jobs/:id after press run 36208184593 had removed its job:
+      // 95 requests instead of 102 and a different shape, which read as a
+      // baseline entry going stale. A /jobs/:id result from a job that no
+      // longer existed is not a measurement, so the run fails and says why.
+      if (gone.note === "already gone") {
+        console.error(`::error title=fixture job removed mid-run::fixture job ${fixtureJobId} was deleted by another suite before this run finished (a concurrent press-every-control or prod-audit clean-up); its /jobs/:id results are not a measurement of it. Re-run when no press or prod-audit run is in progress.`);
+        process.exitCode = 1;
+      }
     }
   }
 }

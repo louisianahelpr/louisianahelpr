@@ -22,6 +22,7 @@
  * @mutate scripts/audit/measure-loading-states.mjs | if (placeholders > 0) return "capture"; | if (placeholders >= 0) return "capture";
  * @mutate scripts/audit/measure-loading-states.mjs | return booted ? "empty" : "wait"; | return "empty";
  * @mutate scripts/audit/measure-loading-states.mjs | seedJobId = fixtureJobId = job.id; | seedJobId = job.id;
+ * @mutate scripts/audit/measure-loading-states.mjs | if (gone.note === "already gone") { | if (gone.note === "never") {
  * @mutate scripts/audit/measure-loading-states.mjs | const job = await createPressJob(poster, process.env.GITHUB_RUN_ID ?? String(Date.now()), "", "loading-states-refresh"); | const [job] = await (await fetch("about:blank")).json();
  * @mutate scripts/audit/measure-loading-states.mjs | if (moving > 0 \|\| quietFor < settleMs) return "wait"; | if (moving > 0) return "wait";
  * @mutate scripts/audit/measure-loading-states.mjs | if (step === "capture") { | if (step === "capture" \|\| scr?.count) {
@@ -127,5 +128,15 @@ describe("loading-state baseline keys name the same surface on every run", () =>
     const fin = src.indexOf("} finally {");
     expect(fin, "the fixture is removed in a finally").toBeGreaterThan(made!.index);
     expect(src.slice(fin, fin + 400)).toMatch(/removeFixtureJob\(poster, fixtureJobId\)/);
+  });
+
+  it("fails the run when another suite deleted the fixture job mid-run (run 36214822852)", () => {
+    // press-every-control's clean-up removes every PRESS-marker job; a /jobs/:id
+    // result measured after that is not a measurement of the fixture.
+    const src = blankComments(read(MEASURER));
+    const fin = src.indexOf("} finally {");
+    const tail = src.slice(fin, fin + 1500);
+    expect(tail).toMatch(/if \(gone\.note === "already gone"\) \{[\s\S]*?process\.exitCode = 1;/);
+    expect(read("scripts/audit/pressProdSafety.mjs")).toMatch(/return \{ ok: true, note: "already gone" \}/);
   });
 });

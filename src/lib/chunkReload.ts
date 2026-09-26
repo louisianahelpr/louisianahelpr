@@ -388,7 +388,7 @@ export const trackFailedAssetLoads = (): void => {
         const u = new URL(raw, window.location.href);
         if (u.origin === window.location.origin && /^\/assets\/[^/]+\.js$/.test(u.pathname)) failedAssetUrls.add(u.pathname);
       } catch {
-        /* not a URL: not an asset */
+        /* raw is not a parseable URL, so it cannot be one of our /assets chunks: nothing to record, and this listener must never throw into the page. */
       }
     },
     true,

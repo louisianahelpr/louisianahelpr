@@ -349,9 +349,12 @@ test.describe("money outcomes", () => {
     const url = typeof tip.json.url === "string" ? tip.json.url : "";
     expect(tip.status === 200 && url, `create-payment tip refused: ${tip.status} ${tip.text.slice(0, 300)}`).toBeTruthy();
     expect(stripeModeFromCheckoutUrl(url), "the tip Checkout is not a Stripe TEST session — refusing to pay it").toBe("test");
+    // An untracked, signed-out context, like fund()'s: after paying, Stripe
+    // returns to the app's success_url, and a signed-out landing there is not
+    // the screen under test (its client reports must not be read as this leg's).
     const ctx = await browser.newContext();
     try {
-      const page = journey.track("tip-checkout", await ctx.newPage());
+      const page = await ctx.newPage();
       await page.goto(url, { waitUntil: "domcontentloaded" });
       await payOnStripeCheckout(page);
     } finally {

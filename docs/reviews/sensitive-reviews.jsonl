@@ -1,0 +1,1 @@
+{"sha":"b12e87f777c94f01830d1da4da04b5b99f6d5e24","reviewer":"lh-silent-failure","verdict":"issues found (payout/refund refusals dropped by the 160 cap, raw RPC text, zero-row messages, stale mutate anchor); fixed in the follow-up commit","date":"2026-09-26"}

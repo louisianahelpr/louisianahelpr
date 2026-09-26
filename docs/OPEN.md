@@ -301,6 +301,8 @@ sure someone hears it and closes it.
    email_send_log), with an allowlist for the journeys that assert delivery.
    Your call, because it changes what the E2E journeys can check.
 5. **Push notifications (Q82): three things only you can do.** The code
+   **ANSWERED 2026-09-26 (owner pop-up): "cut it when main is current".** Claude runs fastlane beta from main
+   once the open landings are in and main CI is green; you install it and open the app once.
    cause is fixed and pushed (see Q82), but no phone has the fix yet.
    (a) **Cut a TestFlight build from main** (at or after the Q82 fix commit)
    and install it on your iPhone. The only builds with the AppDelegate
@@ -790,6 +792,12 @@ sure someone hears it and closes it.
    automatic deploys to the production branch (exact toggle name not verified).
    Until then, each new migration turns db-deploy red by design (the new
    provenance check), so the side channel stays visible.
+   **ANSWERED 2026-09-26 (owner asked "whats the best option?"): switch it OFF.** Measured: db-deploy
+   36261725456 (18:16Z) judged 124 prod versions since the cutoff, 108 with a db-deploy receipt and 16
+   acknowledged side-channel applies, the newest of them 2026-09-23 ~16:10Z (Q194). So nothing has come
+   in by the side channel for about 3 days, but that is not proof the toggle is off. Off is the only
+   setting where db-deploy's lint, replay and destructive-DDL checks actually run before prod changes.
+   Still the owner's dashboard click; the provenance check stays as the detector either way.
 
 7. **Backups (Q45): the restore is proven weekly now; five things are yours.**
    **ANSWERED 2026-09-23 (owner pop-ups): (a) yes, Pro is paid and intended; (b) keep 14-day retention; (c) back up uploaded files EXCEPT id-documents, encrypted (work item Q147); (d) no PITR (no paid upgrade); (e) BACKUP_PASSPHRASE and ban_fingerprint_salt go in the owner's password manager (owner to-do).**
@@ -835,6 +843,8 @@ sure someone hears it and closes it.
    and the Q40 ID-upload leftovers are listed as KEEP. Found on the way: two
    database clean-up jobs were never switched on (Q167).
 10. **Your own test report is the one critical alert left open (ledger 6c3679bc, 2026-09-24).**
+   **DONE 2026-09-26 (owner pop-up: dismiss it).** Re-read live: report 83792937 status='dismissed'; ledger
+   6c3679bc is no longer in `ops-alert-ledger.mjs list` (20 open, none of them it).
    Report 83792937 was filed from YOUR account on 2026-08-30 ("Harassment or
    abuse", text "dfhfghjfgtj") against user 11111111-…-103, who no longer
    exists (0 rows in auth.users and profiles, measured 04:40Z). It is still

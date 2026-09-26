@@ -196,8 +196,8 @@ export function useMessagesData({
     if (!allConversations) return NO_CONVERSATIONS;
     if (!resolvedUserId) return allConversations;
     return allConversations.filter(
-      // Q262: a deleted-account thread (otherUserId null) cannot be archived.
-      (c) => c.otherUserId === null || !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt),
+      // Q335: a deleted-account thread (otherUserId null) archives too.
+      (c) => !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt),
     );
     // archiveNonce is a dependency even though it's not read in the body —
     // bumping it forces a re-read of the archive map.

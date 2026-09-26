@@ -4182,20 +4182,23 @@ export type Database = {
       thread_archives: {
         Row: {
           archived_at: string
+          id: string
           job_id: string
-          other_user_id: string
+          other_user_id: string | null
           user_id: string
         }
         Insert: {
           archived_at?: string
+          id?: string
           job_id: string
-          other_user_id: string
+          other_user_id?: string | null
           user_id: string
         }
         Update: {
           archived_at?: string
+          id?: string
           job_id?: string
-          other_user_id?: string
+          other_user_id?: string | null
           user_id?: string
         }
         Relationships: [

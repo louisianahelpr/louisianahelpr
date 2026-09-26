@@ -252,9 +252,9 @@ const Messages = () => {
   // from this user's list, and it resurfaces automatically if a new
   // message arrives. See `src/lib/archivedConversations.ts`.
   const archiveConversationLocal = (convo: Conversation) => {
-    // Q262: a deleted-account thread offers no archive (no swipe row, not
-    // selectable), and thread_archives.other_user_id is NOT NULL.
-    if (!userId || convo.otherUserId === null) return;
+    // Q335 (owner, 2026-09-26): a deleted-account thread (otherUserId null)
+    // archives too, as thread_archives' other_user_id NULL row.
+    if (!userId) return;
     hapticHeavy();
     // No manual setConversations filter here (there used to be one): it
     // stripped the thread from the shared `allConversations` query cache
@@ -280,8 +280,6 @@ const Messages = () => {
     // setConversations filter here — it would strip these threads from
     // `allConversations` too, breaking Recently Deleted's restore path.
     for (const convo of batchArchiveConfirm) {
-      // Q262: toggleSelect never admits a deleted-account thread.
-      if (convo.otherUserId === null) continue;
       archiveConversation(userId, convo.jobId, convo.otherUserId);
     }
     hapticSuccess();
@@ -520,7 +518,13 @@ const Messages = () => {
         open={!!deleteConvoConfirm}
         onOpenChange={(o) => { if (!o) setDeleteConvoConfirm(null); }}
         title="Hide This Conversation?"
-        description={`This removes the conversation with ${deleteConvoConfirm?.otherUserName ?? "this person"} from your inbox. No messages are deleted, and it'll come back if they send you a new message.`}
+        description={
+          // Q335: a deleted account can never send again, so "it'll come back
+          // if they send you a new message" would be false for that thread.
+          deleteConvoConfirm?.otherUserId === null
+            ? "This removes the conversation with a deleted account from your inbox. No messages are deleted, and you can restore it from Recently Deleted."
+            : `This removes the conversation with ${deleteConvoConfirm?.otherUserName ?? "this person"} from your inbox. No messages are deleted, and it'll come back if they send you a new message.`
+        }
         primaryLabel="Hide"
         primaryTone="sienna"
         primaryHaptic="warning"

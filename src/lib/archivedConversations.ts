@@ -59,9 +59,17 @@ function emitArchiveChanged(): void {
   }
 }
 
+/**
+ * Q335 (owner, 2026-09-26): a job's deleted-account thread (otherUserId null,
+ * the other party deleted their account) can be archived too. Server-side it
+ * is the row with other_user_id NULL (20260926041106, one per user per job);
+ * in the key it is this token, which no uuid can equal.
+ */
+const DELETED_PARTY_KEY = "deleted-account";
+
 /** Stable key for one conversation — a job + the other participant. */
-function conversationKey(jobId: string, otherUserId: string): string {
-  return `${jobId}_${otherUserId}`;
+function conversationKey(jobId: string, otherUserId: string | null): string {
+  return `${jobId}_${otherUserId === null ? DELETED_PARTY_KEY : otherUserId}`;
 }
 
 /**
@@ -70,10 +78,11 @@ function conversationKey(jobId: string, otherUserId: string): string {
  * Postgres uuids (hex digits and hyphens only — never an underscore), so
  * a job/user id pair can't itself contain the separator.
  */
-function parseConversationKey(key: string): { jobId: string; otherUserId: string } | null {
+function parseConversationKey(key: string): { jobId: string; otherUserId: string | null } | null {
   const i = key.indexOf("_");
   if (i === -1) return null;
-  return { jobId: key.slice(0, i), otherUserId: key.slice(i + 1) };
+  const other = key.slice(i + 1);
+  return { jobId: key.slice(0, i), otherUserId: other === DELETED_PARTY_KEY ? null : other };
 }
 
 /** Per-user map of conversationKey -> ISO timestamp the thread was archived. */
@@ -155,7 +164,7 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
   }
 
   const server: ArchiveMap = {};
-  for (const r of (data ?? []) as { job_id: string; other_user_id: string; archived_at: string }[]) {
+  for (const r of (data ?? []) as { job_id: string; other_user_id: string | null; archived_at: string }[]) {
     server[conversationKey(r.job_id, r.other_user_id)] = r.archived_at;
   }
 
@@ -186,7 +195,9 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
         rows,
         { onConflict: "user_id,job_id,other_user_id" },
       );
-      if (mergeError && !isMissingTable(mergeError)) {
+      // 23502: a deleted-account row (Q335) before 20260926041106 made
+      // other_user_id nullable; the whole batch retries on the next load.
+      if (mergeError && !isMissingTable(mergeError) && (mergeError as { code?: string }).code !== "23502") {
         report(mergeError, { severity: "warning", tags: { source: "archivedConversations.mergeLocalArchives" } });
       }
     }
@@ -221,7 +232,7 @@ function getArchiveMap(userId: string): ArchiveMap {
 export function archiveConversation(
   userId: string,
   jobId: string,
-  otherUserId: string,
+  otherUserId: string | null,
 ): void {
   if (!userId) return;
   const key = conversationKey(jobId, otherUserId);
@@ -238,6 +249,10 @@ export function archiveConversation(
     );
     if (error) {
       if (isMissingTable(error)) return; // pre-deploy — the mirror still holds it
+      // Q335 deploy lag: before 20260926041106 other_user_id is NOT NULL
+      // (23502). Same self-healing state as a missing table: keep the mirror,
+      // and loadArchives' merge-up writes it once the column is nullable.
+      if (otherUserId === null && (error as { code?: string }).code === "23502") return;
       const rollback = { ...getArchiveMap(userId) };
       delete rollback[key];
       cache.set(userId, rollback);
@@ -252,7 +267,7 @@ export function archiveConversation(
 export function unarchiveConversation(
   userId: string,
   jobId: string,
-  otherUserId: string,
+  otherUserId: string | null,
 ): void {
   if (!userId) return;
   const key = conversationKey(jobId, otherUserId);
@@ -264,11 +279,15 @@ export function unarchiveConversation(
   emitArchiveChanged();
 
   void (async () => {
-    const { error } = await (supabase.from("thread_archives" as any) as any)
+    const base = (supabase.from("thread_archives" as any) as any)
       .delete()
       .eq("user_id", userId)
-      .eq("job_id", jobId)
-      .eq("other_user_id", otherUserId);
+      .eq("job_id", jobId);
+    // Q335: the deleted-account row is other_user_id IS NULL; `.eq(col, null)`
+    // would match nothing.
+    const { error } = await (otherUserId === null
+      ? base.is("other_user_id", null)
+      : base.eq("other_user_id", otherUserId));
     if (error) {
       if (isMissingTable(error)) return; // pre-deploy — the mirror still holds it
       if (previous) {
@@ -291,7 +310,7 @@ export function unarchiveConversation(
 export function isArchived(
   userId: string,
   jobId: string,
-  otherUserId: string,
+  otherUserId: string | null,
   lastAt: string,
 ): boolean {
   if (!userId) return false;

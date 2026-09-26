@@ -14517,6 +14517,13 @@
      "notNull": true,
      "type": "timestamp with time zone"
     },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
     "job_id": {
      "enum": null,
      "generated": false,
@@ -14528,7 +14535,7 @@
      "enum": null,
      "generated": false,
      "hasDefault": false,
-     "notNull": true,
+     "notNull": false,
      "type": "uuid"
     },
     "user_id": {

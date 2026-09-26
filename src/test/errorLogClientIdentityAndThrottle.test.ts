@@ -11,8 +11,8 @@
 // @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | PERFORM public.record_error_log_throttle_drop('guest');\n | 
 // @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | VALUES (date_trunc('minute', now()), pg_backend_pid(), p_kind | VALUES (date_trunc('minute', now()), 0, p_kind
 // @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | ALTER TABLE public.error_log_throttle_drops ENABLE ROW LEVEL SECURITY; | 
-// @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql | ELSIF p_source = 'error-log-throttled' THEN | ELSIF p_source = 'error-log-throttled-x' THEN
-// @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql | IF v_min < p_since THEN RETURN NULL; END IF; | 
+// @mutate supabase/migrations/20260926035556_cron_silent_close_rule.sql | ELSIF p_source = 'error-log-throttled' THEN | ELSIF p_source = 'error-log-throttled-x' THEN
+// @mutate supabase/migrations/20260926035556_cron_silent_close_rule.sql | IF v_min < p_since THEN RETURN NULL; END IF; | 
 // @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | jsonb_build_object('source', 'error-log-throttled', 'area', 'observability') | jsonb_build_object('source', 'error-log-throttle', 'area', 'observability')
 // @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | PERFORM cron.schedule('error-log-throttle-check', '*/5 * * * *', | PERFORM cron.schedule('error-log-throttle-check', '0 3 * * *',
 // @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | ON CONFLICT (minute, backend_pid, drop_kind) | ON CONFLICT (minute, backend_pid, kind)

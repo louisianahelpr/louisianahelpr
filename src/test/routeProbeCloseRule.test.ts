@@ -14,7 +14,7 @@
  *     were all clean (scripts/audit/pressRouteProbe.mjs).
  * Behaviour (3x apply, red without the migration): src/test/pglite/routeProbeCloseRule.pglite.mjs.
  *
- * @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql | AND p.passed_at > p_since); | AND p.passed_at > p_since - interval '100 years');
+ * @mutate supabase/migrations/20260926035556_cron_silent_close_rule.sql | AND p.passed_at > p_since); | AND p.passed_at > p_since - interval '100 years');
  * @mutate supabase/migrations/20260923182022_ops_route_probe_close_rule.sql | REVOKE ALL ON FUNCTION public.record_route_probe_passes(text[], text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.record_route_probe_passes(text[], text) FROM PUBLIC;
  * @mutate supabase/migrations/20260923182022_ops_route_probe_close_rule.sql | ELSIF p_source = 'seed-boundary-check-failed' THEN | ELSIF p_source = 'seed-boundary-check-failed-x' THEN
  * @mutate scripts/audit/pressRouteProbe.mjs | if (r.status === "ok" && !(r.failed > 0)) v.clean++; | v.clean++;

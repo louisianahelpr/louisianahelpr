@@ -5314,6 +5314,11 @@ export type Database = {
         Args: { p_job: string; p_result: Json }
         Returns: Json
       }
+      cron_silent_rule: { Args: { p_sample_ref: Json }; Returns: string }
+      cron_silent_still_failing: {
+        Args: { p_job: string; p_rule: string; p_since: string }
+        Returns: boolean
+      }
       db_saturation_problems: { Args: { p: Json }; Returns: string[] }
       db_saturation_thresholds: { Args: never; Returns: Json }
       decline_job_offer: { Args: { p_application_id: string }; Returns: Json }

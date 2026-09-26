@@ -238,7 +238,9 @@ check("a date with a visit already created is not given up here (cancel it from 
 // BEFORE now (Chicago), so tomorrow's visit starts in ~22 hours (00:00 when
 // now is before 02:00, still under 24 hours).
 await db.exec(SERIES(J(4), false, "tomorrow series"));
-await db.exec(`update public.jobs set date_needed = current_date,
+// Chicago's today, not the server's (UTC) current_date: from 18:00 CST /
+// 19:00 CDT they differ and "tomorrow" was two days out.
+await db.exec(`update public.jobs set date_needed = (now() at time zone 'America/Chicago')::date,
   start_time = case when extract(hour from (now() at time zone 'America/Chicago')) >= 2
                     then ((now() at time zone 'America/Chicago') - interval '2 hours')::time else '00:00'::time end
   where id='${J(4)}'`);

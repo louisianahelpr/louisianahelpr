@@ -250,7 +250,7 @@ BEGIN
       VALUES (
         p_customer, p_parent,
         CASE WHEN cardinality(v_released) = 1 THEN 'A visit date is open again' ELSE 'Visit dates are open again' END,
-        format('A Helpr gave up %s on "%s". Another Helpr on the series can pick %s up, or you can offer %s to someone new. A date nobody takes is not charged.',
+        format('A Helpr gave up %s on "%s". Another Helpr on the series can pick %s up, or you can offer %s to someone new. A date nobody takes isn''t charged, or is refunded less the card processing fee if you already paid for it.',
                v_list, COALESCE(p_title, 'your series'),
                CASE WHEN cardinality(v_released) = 1 THEN 'it' ELSE 'them' END,
                CASE WHEN cardinality(v_released) = 1 THEN 'it' ELSE 'them' END),

@@ -198,7 +198,7 @@ export function RecurringSchedulePicker({
         />
         <p className="text-ds-11 text-muted-foreground leading-snug">
           {splitOk
-            ? "The first Helpr you hire picks the dates they want, and you offer the rest to the next Helpr you choose. A date nobody takes isn't charged."
+            ? "The first Helpr you hire picks the dates they want, and you offer the rest to the next Helpr you choose. A date nobody takes isn't charged, or is refunded less the card processing fee if it was already paid."
             : "The Helpr you hire does every visit. If they give up a date, you can offer it to someone else."}
         </p>
       </div>

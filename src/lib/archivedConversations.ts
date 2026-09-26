@@ -72,17 +72,27 @@ function conversationKey(jobId: string, otherUserId: string | null): string {
   return `${jobId}_${otherUserId === null ? DELETED_PARTY_KEY : otherUserId}`;
 }
 
+const UUID_RE = new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", "i");
+
 /**
  * Inverse of `conversationKey`, for the local→server merge-up in
  * `loadArchives`. Safe to split on the first `_`: both halves are
  * Postgres uuids (hex digits and hyphens only — never an underscore), so
  * a job/user id pair can't itself contain the separator.
+ *
+ * Returns null for a key the server could never take, so the merge-up drops
+ * it instead of failing the batch on every load. `${job}_null` is the key an
+ * app build from before Q335 wrote for a server NULL row (a template literal
+ * over null); it means the deleted-account thread.
  */
-function parseConversationKey(key: string): { jobId: string; otherUserId: string | null } | null {
+export function parseConversationKey(key: string): { jobId: string; otherUserId: string | null } | null {
   const i = key.indexOf("_");
   if (i === -1) return null;
+  const jobId = key.slice(0, i);
   const other = key.slice(i + 1);
-  return { jobId: key.slice(0, i), otherUserId: other === DELETED_PARTY_KEY ? null : other };
+  if (!UUID_RE.test(jobId)) return null;
+  if (other === DELETED_PARTY_KEY || other === "null") return { jobId, otherUserId: null };
+  return UUID_RE.test(other) ? { jobId, otherUserId: other } : null;
 }
 
 /** Per-user map of conversationKey -> ISO timestamp the thread was archived. */
@@ -176,32 +186,52 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
   // the mirror, best-effort (a failed push just means it retries next
   // load — the entry stays in the merged result either way so this
   // session never loses it).
-  const localOnlyKeys = Object.keys(local).filter((k) => !(k in server));
-  if (localOnlyKeys.length > 0) {
-    const rows = localOnlyKeys
-      .map((k) => {
-        const parsed = parseConversationKey(k);
-        if (!parsed) return null;
-        return {
-          user_id: userId,
-          job_id: parsed.jobId,
-          other_user_id: parsed.otherUserId,
-          archived_at: local[k],
-        };
-      })
-      .filter((r): r is NonNullable<typeof r> => r !== null);
-    if (rows.length > 0) {
-      const { error: mergeError } = await (supabase.from("thread_archives" as any) as any).upsert(
-        rows,
-        { onConflict: "user_id,job_id,other_user_id" },
-      );
-      // 23502: a deleted-account row (Q335) before 20260926041106 made
-      // other_user_id nullable; the whole batch retries on the next load.
-      if (mergeError && !isMissingTable(mergeError) && (mergeError as { code?: string }).code !== "23502") {
-        report(mergeError, { severity: "warning", tags: { source: "archivedConversations.mergeLocalArchives" } });
+  //
+  // Keys are canonicalised first (a pre-Q335 `${job}_null` becomes the
+  // deleted-account key) and a key the server could never take is dropped,
+  // never re-pushed on every load.
+  const localOnly = new Map<string, { jobId: string; otherUserId: string | null; archivedAt: string }>();
+  for (const [k, archivedAt] of Object.entries(local)) {
+    const parsed = parseConversationKey(k);
+    if (!parsed) continue;
+    const canonical = conversationKey(parsed.jobId, parsed.otherUserId);
+    if (canonical in server) continue;
+    localOnly.set(canonical, { ...parsed, archivedAt });
+  }
+  if (localOnly.size > 0) {
+    const toRow = (e: { jobId: string; otherUserId: string | null; archivedAt: string }) => ({
+      user_id: userId,
+      job_id: e.jobId,
+      other_user_id: e.otherUserId,
+      archived_at: e.archivedAt,
+    });
+    const upsert = (rows: ReturnType<typeof toRow>[]) =>
+      (supabase.from("thread_archives" as any) as any).upsert(rows, {
+        onConflict: "user_id,job_id,other_user_id",
+      }) as Promise<{ error: { code?: string } | null }>;
+    const code = (e: { code?: string } | null) => e?.code;
+    // Rows the server can never accept: the person (or job) no longer exists
+    // (23503 — an archive of someone who then deleted their account; their
+    // thread is now the deleted-account thread), or a malformed id (22P02).
+    const GONE = new Set(["23503", "22P02"]);
+    const { error: batchError } = await upsert([...localOnly.values()].map(toRow));
+    // 23502: a deleted-account row (Q335) before 20260926041106 made
+    // other_user_id nullable. Deploy lag; the batch retries on the next load.
+    if (batchError && !isMissingTable(batchError) && code(batchError) !== "23502") {
+      // One bad row fails the whole batch, so the good ones would never
+      // sync. Retry row by row and drop only the rows that cannot exist.
+      let unexpected: { code?: string } | null = null;
+      for (const [k, e] of [...localOnly]) {
+        const { error } = await upsert([toRow(e)]);
+        if (!error) continue;
+        if (GONE.has(code(error) ?? "")) localOnly.delete(k);
+        else if (code(error) !== "23502" && !isMissingTable(error)) unexpected = error;
+      }
+      if (unexpected) {
+        report(unexpected, { severity: "warning", tags: { source: "archivedConversations.mergeLocalArchives" } });
       }
     }
-    for (const k of localOnlyKeys) server[k] = local[k];
+    for (const [k, e] of localOnly) server[k] = e.archivedAt;
   }
 
   cache.set(userId, server);

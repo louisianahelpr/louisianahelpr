@@ -35,6 +35,9 @@
  * @mutate supabase/migrations/20260926041106_thread_archives_deleted_party.sql | ALTER TABLE public.thread_archives ALTER COLUMN other_user_id DROP NOT NULL; | SELECT 1;
  * @mutate src/lib/archivedConversations.ts |       ? base.is("other_user_id", null) |       ? base.eq("other_user_id", otherUserId)
  * @mutate src/lib/archivedConversations.ts | return `${jobId}_${otherUserId === null ? DELETED_PARTY_KEY : otherUserId}`; | return `${jobId}_${otherUserId}`;
+ * @mutate src/lib/archivedConversations.ts | if (other === DELETED_PARTY_KEY \|\| other === "null") return { jobId, otherUserId: null }; | if (other === DELETED_PARTY_KEY) return { jobId, otherUserId: null };
+ * @mutate src/lib/archivedConversations.ts | return UUID_RE.test(other) ? { jobId, otherUserId: other } : null; | return { jobId, otherUserId: other };
+ * @mutate src/lib/archivedConversations.ts | if (GONE.has(code(error) ?? "")) localOnly.delete(k); | if (false) localOnly.delete(k);
  * @mutate src/pages/messages/useMessagesData.ts |       (c) => !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt), |       (c) => c.otherUserId === null \|\| !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt),
  * @mutate src/components/messages/ConversationList.tsx |                       return selectMode \|\| isRecentlyDeletedView ? row : ( |                       return selectMode \|\| isRecentlyDeletedView \|\| c.otherUserId === null ? row : (
  * @mutate src/components/messages/ConversationList.tsx | onTogglePin={c.otherUserId === null ? undefined : () => handleTogglePin(c)} | onTogglePin={() => handleTogglePin(c)}
@@ -211,7 +214,7 @@ describe("a deleted-account thread can be archived, never pinned (Q335, owner 20
   it("the archive store keys the null party with a token no uuid can equal, and restores it with IS NULL", () => {
     const src = blankComments(read("src/lib/archivedConversations.ts"));
     expect(src).toMatch(/otherUserId === null \? DELETED_PARTY_KEY : otherUserId/);
-    expect(src).toMatch(/other === DELETED_PARTY_KEY \? null : other/);
+    expect(src).toMatch(/if \(other === DELETED_PARTY_KEY \|\| other === "null"\) return \{ jobId, otherUserId: null \};/);
     expect(src).toMatch(/\? base\.is\("other_user_id", null\)/);
     // Every exported archive entry point takes a null other party.
     const sigs = [...src.matchAll(/export function (archiveConversation|unarchiveConversation|isArchived)\(([^)]*)\)/g)];
@@ -251,6 +254,25 @@ describe("a deleted-account thread can be archived, never pinned (Q335, owner 20
     expect(isArchived(uid, "job-9", "someone-live", "2026-09-25T00:00:00.000Z")).toBe(false);
     // Nor with the deleted-account thread of another job.
     expect(isArchived(uid, "job-8", null, "2026-09-25T00:00:00.000Z")).toBe(false);
+  });
+
+  it("the merge-up never re-pushes a key the server cannot take (lh-authz-rls review D1/D2)", async () => {
+    const { parseConversationKey } = await import("@/lib/archivedConversations");
+    const J = "11111111-1111-4111-8111-111111111111";
+    const X = "22222222-2222-4222-8222-222222222222";
+    expect(parseConversationKey(`${J}_${X}`)).toEqual({ jobId: J, otherUserId: X });
+    expect(parseConversationKey(`${J}_deleted-account`)).toEqual({ jobId: J, otherUserId: null });
+    // A pre-Q335 build wrote `${job}_null` for a server NULL row.
+    expect(parseConversationKey(`${J}_null`)).toEqual({ jobId: J, otherUserId: null });
+    // Anything else can never be a row: dropped, not retried on every load.
+    expect(parseConversationKey(`${J}_undefined`)).toBeNull();
+    expect(parseConversationKey(`job-1_${X}`)).toBeNull();
+    expect(parseConversationKey("garbage")).toBeNull();
+    // A batch that fails is retried row by row, and rows whose person or job
+    // is gone (23503) or whose id is malformed (22P02) leave the mirror.
+    const src = blankComments(read("src/lib/archivedConversations.ts"));
+    expect(src).toMatch(/const GONE = new Set\(\["23503", "22P02"\]\)/);
+    expect(src).toMatch(/if \(GONE\.has\(code\(error\) \?\? ""\)\) localOnly\.delete\(k\);/);
   });
 
   it("pin stays off for it: the swipe row gets no pin action", () => {

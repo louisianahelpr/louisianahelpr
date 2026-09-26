@@ -40,6 +40,7 @@
   "ignoreBinaries": [
     "supabase",
     "gitleaks",
+    "jq",
     "psql"
   ]
 }

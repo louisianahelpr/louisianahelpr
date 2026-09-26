@@ -87,7 +87,7 @@ export const EXPORT_SECTIONS = [
   "exported_at", "user_id", "email", "profile", "jobs", "applications", "reviews", "messages",
   "message_reactions", "notifications", "notification_preferences", "notification_logs",
   "notification_dedupe_suppressions", "push_tokens", "saved_jobs", "saved_searches",
-  "saved_search_alert_queue", "match_digest_queue", "favorite_helpers", "helper_availability",
+  "saved_search_alert_queue", "match_digest_queue", "job_match_queue", "favorite_helpers", "helper_availability",
   "helper_credentials", "helper_verifications", "verification_checks", "verification_exceptions",
   "helper_w9_records", "instant_payouts", "payout_transfers", "payment_refunds",
   "chargeback_clawbacks", "tips", "gift_cards", "referral_codes", "referral_credits", "referrals",

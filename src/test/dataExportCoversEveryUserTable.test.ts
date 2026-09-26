@@ -11,12 +11,12 @@
  * says are stripped really are, that anon cannot execute it, and that the
  * client, the edge function and the privacy journey all agree on the sections.
  *
- * @mutate supabase/migrations/20260925232153_export_my_data.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
- * @mutate supabase/migrations/20260925232153_export_my_data.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
- * @mutate supabase/migrations/20260925232153_export_my_data.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
- * @mutate supabase/migrations/20260925232153_export_my_data.sql | to_jsonb(t) - 'flag_reason' | to_jsonb(t)
- * @mutate supabase/migrations/20260925232153_export_my_data.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
- * @mutate supabase/migrations/20260925232153_export_my_data.sql | REVOKE ALL ON FUNCTION public.export_my_data() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.export_my_data() FROM PUBLIC;
+ * @mutate supabase/migrations/20260926035907_export_job_match_queue.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
+ * @mutate supabase/migrations/20260926035907_export_job_match_queue.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
+ * @mutate supabase/migrations/20260926035907_export_job_match_queue.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
+ * @mutate supabase/migrations/20260926035907_export_job_match_queue.sql | to_jsonb(t) - 'flag_reason' | to_jsonb(t)
+ * @mutate supabase/migrations/20260926035907_export_job_match_queue.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
+ * @mutate supabase/migrations/20260926035907_export_job_match_queue.sql | REVOKE ALL ON FUNCTION public.export_my_data() FROM PUBLIC, anon; | GRANT EXECUTE ON FUNCTION public.export_my_data() TO anon;
  * @mutate src/test/helpers/dataExportInventory.ts |   "profiles.email": { reason: | "profiles.no_such_column": { reason:
  * @mutate src/test/helpers/dataExportInventory.ts |   "fraud_flags.user_id": { reason: | "fraud_flagz.user_id": { reason:
  * @mutate supabase/functions/export-my-data/index.ts |       storage_objects: storageObjects, |       files: storageObjects,
